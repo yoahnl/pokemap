@@ -10,6 +10,142 @@ import 'package:map_runtime/src/spatial/spatial_cinematic_runtime_playback_sink.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test(
+    'model visibility follows daily state without hiding its bound entity',
+    () async {
+      final anchor = MapEntity(
+        id: 'tree',
+        kind: MapEntityKind.custom,
+        pos: const GridPos(x: 4, y: 4),
+        blocksMovement: true,
+      );
+      final session = await _loadActorLookupSession([anchor]);
+      final reference = PeriodicRewardReference(
+        sceneId: 'harvest',
+        nodeId: 'claim',
+        rewardId: 'fruit',
+      );
+      final command = SceneInteractiveCommand.claimPeriodicReward(
+        definition: PeriodicItemRewardDefinition(
+          rewardId: 'fruit',
+          label: 'Fruit',
+          itemId: 'fruit',
+          quantity: 1,
+        ),
+      );
+      final source = SceneAsset(
+        id: 'harvest',
+        name: 'Harvest',
+        graph: SceneGraph(
+          startNodeId: 'start',
+          nodes: [
+            SceneNode(id: 'start', kind: SceneNodeKind.start),
+            SceneNode(
+              id: 'claim',
+              kind: SceneNodeKind.action,
+              payload: SceneActionPayload.interactive(command),
+            ),
+            SceneNode(id: 'end', kind: SceneNodeKind.end),
+          ],
+          edges: [
+            SceneEdge(
+              id: 'enter',
+              fromNodeId: 'start',
+              fromPortId: 'completed',
+              toNodeId: 'claim',
+              kind: SceneEdgeKind.defaultFlow,
+            ),
+            for (final port in command.outputPortIds)
+              SceneEdge(
+                id: port,
+                fromNodeId: 'claim',
+                fromPortId: port,
+                toNodeId: 'end',
+                kind: SceneEdgeKind.actionCompleted,
+              ),
+          ],
+        ),
+      );
+      final original = session.bundle;
+      final map = original.map.copyWith(
+        spatialScene: original.map.spatialScene!.copyWith(
+          instances: [
+            for (final full in [true, false])
+              SpatialModelInstance(
+                id: full ? 'full' : 'empty',
+                modelId: 'tree',
+                position: Model3dVector3(x: 4.5, y: 0, z: 4.5),
+                entityId: full ? 'tree' : null,
+                blocksMovement: false,
+                visibilityCondition: NarrativeEventConditionExpression.leaf(
+                  NarrativeEventCondition.periodicRewardAvailable(
+                    reference: reference,
+                    expectedValue: full,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      );
+      session.bundle = original.copyWith(
+        map: map,
+        manifest: original.manifest.copyWith(scenes: [source]),
+      );
+      var reads = 0;
+      session.lookupRewardScenes = (id) {
+        reads++;
+        expect(id, 'harvest');
+        return [source];
+      };
+      var state = GameState(
+        saveId: 'visibility',
+        gameplayCalendarState: GameplayCalendarState(
+          observedLocalDay: '2026-10-31',
+          dayRevision: 1,
+        ),
+      );
+      session.presentationStateProvider = () => state;
+      for (var i = 0; i < 20; i++) {
+        expect(session.modelIsPresent('map', 'full'), isTrue);
+        expect(session.modelIsPresent('map', 'empty'), isFalse);
+      }
+      expect(reads, 1);
+      state = state.copyWith(
+        periodicRewardState: PeriodicRewardState(
+          claimsById: {
+            'fruit': PeriodicRewardClaim(
+              revision: 1,
+              lastClaimDayRevision: 1,
+              lastClaimLocalDay: '2026-10-31',
+            ),
+          },
+        ),
+      );
+      expect(session.modelIsPresent('map', 'full'), isFalse);
+      expect(session.modelIsPresent('map', 'empty'), isTrue);
+      expect(session.fieldObstacleIsPresent('tree'), isTrue);
+      expect(session.bundle.map.entities.single.blocksMovement, isTrue);
+      state = state.copyWith(
+        gameplayCalendarState: GameplayCalendarState(
+          observedLocalDay: '2026-11-01',
+          dayRevision: 2,
+        ),
+      );
+      expect(session.modelIsPresent('map', 'full'), isTrue);
+      expect(session.modelIsPresent('map', 'empty'), isFalse);
+      expect(reads, 1);
+      session.presentationStateProvider = null;
+      expect(session.modelIsPresent('map', 'full'), isFalse);
+      expect(session.modelIsPresent('map', 'empty'), isFalse);
+      session.presentationStateProvider = () => state;
+      session.lookupRewardScenes = (_) => const [];
+      expect(session.modelIsPresent('map', 'full'), isFalse);
+      expect(session.modelIsPresent('map', 'empty'), isFalse);
+      session.lookupRewardScenes = (_) => [source];
+      expect(session.modelIsPresent('map', 'full'), isTrue);
+    },
+  );
+
   for (final actorCount in [10, 1000]) {
     test(
       'installed actor lookup avoids source scans for $actorCount live actors',
@@ -264,6 +400,21 @@ void main() {
               modelId: 'model',
               blocksMovement: false,
               position: Model3dVector3(x: 1, y: 0, z: 1),
+              visibilityCondition: NarrativeEventConditionExpression.leaf(
+                NarrativeEventCondition.fact('hidden', false),
+              ),
+            ),
+            SpatialModelInstance(
+              id: 'neighbor-dependent',
+              modelId: 'model',
+              blocksMovement: false,
+              position: Model3dVector3(x: 1, y: 0, z: 1),
+              visibilityCondition: NarrativeEventConditionExpression.leaf(
+                NarrativeEventCondition.mapEventInstanceBoolean(
+                  mapId: 'neighbor', eventId: 'entity-255', key: 'on',
+                  expectedValue: true,
+                ),
+              ),
             ),
           ],
         ),
@@ -273,6 +424,7 @@ void main() {
           name: 'Model presence',
           maps: const [],
           tilesets: const [],
+          facts: [NarrativeFactDefinition(id: 'hidden', label: 'Hidden')],
           settings: const ProjectSettings(
             dimension: ProjectDimension.threeD,
             defaultPlayerCharacterId: 'actor',
@@ -293,6 +445,12 @@ void main() {
         ),
       );
       final hidden = <String>{};
+      var state = GameState(saveId: 'model-presence',
+        mapInstanceWorldState: MapInstanceWorldState(instancesByMapId: {
+          'neighbor': MapInstanceRuntimeState(instanceId: 'neighbor-1',
+            eventBooleans: {'entity-255': {'on': true}}),
+        }),
+      );
       var predicates = 0;
       final session = await SpatialExplorationSession.load(
         bundle,
@@ -303,6 +461,7 @@ void main() {
         loadMap: (_) async => neighborBundle,
       );
       addTearDown(session.dispose);
+      session.presentationStateProvider = () => state;
 
       entities.reads = 0;
       for (var index = 0; index < 256; index++) {
@@ -320,16 +479,31 @@ void main() {
       expect(session.modelIsPresent('map', 'unlinked'), isTrue);
       expect(session.modelIsPresent('map', 'missing-model'), isTrue);
       expect(session.modelIsPresent('unloaded', 'model-0'), isFalse);
+      expect(session.modelIsPresent('map', 'neighbor-dependent'), isFalse);
       await session.loadConnectionNeighbor(map.connections.single);
       neighborEntities.reads = 0;
       for (var index = 0; index < 256; index++) {
         expect(session.modelIsPresent('neighbor', 'model-$index'), isTrue);
       }
       expect(neighborEntities.reads, lessThanOrEqualTo(256));
+      expect(session.modelIsPresent('map', 'neighbor-dependent'), isTrue);
       neighborEntities.reads = 0;
+      for (var i = 0; i < 100; i++) {
+        expect(session.modelIsPresent('map', 'neighbor-dependent'), isTrue);
+      }
+      expect(neighborEntities.reads, 0);
       hidden.add('neighbor:entity-255');
       expect(session.modelIsPresent('neighbor', 'model-255'), isFalse);
       expect(neighborEntities.reads, 0);
+      expect(session.modelIsPresent('neighbor', 'unlinked'), isTrue);
+      state = state.copyWith(
+        storyFlags: const StoryFlags(activeFlags: {'hidden'}),
+      );
+      expect(session.modelIsPresent('map', 'unlinked'), isFalse);
+      expect(session.modelIsPresent('neighbor', 'unlinked'), isFalse);
+      state = const GameState(saveId: 'model-presence');
+      expect(session.modelIsPresent('map', 'unlinked'), isTrue);
+      expect(session.modelIsPresent('neighbor', 'unlinked'), isTrue);
       hidden.clear();
       expect(session.modelIsPresent('map', 'model-255'), isTrue);
 

@@ -1711,11 +1711,15 @@ final class SceneActions {
           : null;
       try {
         if (condition) {
+          final source = SceneConditionSource.fromJson(
+              narrativeObjectParameter(parameters, 'conditionSource'));
+          final label = source.label?.trim();
           payload = SceneConditionPayload(
-            conditionSource: SceneConditionSource.fromJson(
-              narrativeObjectParameter(parameters, 'conditionSource'),
-            ),
-          );
+            conditionSource: source,
+              conditionRef: source.sourceId,
+              conditionLabel: label != null && label.isNotEmpty
+                  ? label
+                  : source.partyConditionKind?.label);
         } else {
           final command = SceneInteractiveCommand.fromJson(
             narrativeObjectParameter(parameters, 'command'),

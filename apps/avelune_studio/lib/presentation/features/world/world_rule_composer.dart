@@ -79,7 +79,11 @@ extension _WorldRuleComposer on _WorldWorkspacePageState {
                     : _sourceSummary(draft.source!),
                 filled: draft.source != null,
                 onTap: () => unawaited(_pickSource(draft)),
-                child: draft.source?.kind == WorldRuleSourceKind.fact
+                child: draft.source?.kind == WorldRuleSourceKind.periodicRewardAvailable
+                    ? PeriodicRewardPicker(initial: draft.source?.rewardReference,
+                        expectedValue: draft.source?.predicate != WorldRuleSourcePredicate.isFalse,
+                        onApply: (reference, expected) => controller.editRule(draft.id, (value) => value.source = WorldRuleSource.periodicRewardAvailable(reference: reference, expectedValue: expected)))
+                    : draft.source?.kind == WorldRuleSourceKind.fact
                     ? _comparison(draft)
                     : null,
               ),

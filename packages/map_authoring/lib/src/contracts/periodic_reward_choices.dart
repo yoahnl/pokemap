@@ -54,6 +54,7 @@ final class PeriodicRewardNodeChoice {
   final String nodeId;
   final String label;
   final String itemId;
+  String get itemLabel => label;
   final int quantity;
   final PeriodicRewardReference reference;
   final String revision;
@@ -64,8 +65,20 @@ final class PeriodicRewardNodeChoice {
         'nodeId': nodeId,
         'label': label,
         'itemId': itemId,
+        'itemLabel': itemLabel,
         'quantity': quantity,
         'reference': reference.toJson(),
         'revision': revision,
       };
 }
+
+const periodicRewardConditionChoiceContract = <String, Object?>{
+  'kind': 'periodicRewardAvailable',
+  'rewardReference': {'schemaVersion': 1, 'required': ['sceneId', 'nodeId', 'rewardId'], 'rewardId': 'derivedFromSelectedPublishedClaimCommand'},
+  'sourceChoices': ['periodicRewardScene', 'periodicRewardNode'],
+  'sourceGraphDependencies': 'notExecutionDependencies',
+  'itemLabelSource': 'publishedRewardDefinitionLabel',
+  'unresolvedReference': 'refuseBeforePersistence',
+  'unavailableCalendar': 'unknownForBothExpectations',
+  'effects': 'none',
+};

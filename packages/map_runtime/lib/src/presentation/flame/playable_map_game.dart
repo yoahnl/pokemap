@@ -152,6 +152,7 @@ import 'battle_combatant_ball_resolver.dart';
 import 'battle_fx_bundle_cache.dart';
 import 'battle_animation_plan.dart';
 import 'battle_overlay_component.dart';
+import 'battle_motion_policy.dart';
 import 'post_battle_scene_plan_builder.dart';
 import 'battle_music_resolver.dart';
 import 'battle_sfx_player.dart';
@@ -560,6 +561,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   /// chaque étape du plan est encore jouée, chaque dégât encore appliqué, seule
   /// la durée change. Voir `battleReducedMotionSpeedFactor`.
   bool reducedMotion;
+  BattleMotionPolicy? _battleMotionPolicy;
 
   /// Échelle de texte demandée par le joueur, transmise à la scène de combat.
   ///
@@ -2512,6 +2514,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
 
   void applyPlayerPreferences(PlayerPreferencesSnapshot preferences) {
     reducedMotion = preferences.accessibility.reducedMotion;
+    _battleMotionPolicy = preferences.battleMotion;
+    _battleOverlay?.applyMotionPolicy(_battleMotionPolicy,
+      legacyMotionScale: reducedMotion ? battleReducedMotionSpeedFactor : 1);
     textScale = preferences.accessibility.textScale;
     setDialogueTextSpeed(preferences.dialogueTextSpeed);
     _worldTime = preferences.worldTime;
@@ -10368,6 +10373,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
             _syncRuntimeMusic();
           },
           motionScale: reducedMotion ? battleReducedMotionSpeedFactor : 1.0,
+          motionPolicy: _battleMotionPolicy,
           textScale: textScale,
           safeAreaPadding: _viewSafeAreaPadding,
           // BETA-BAT-017 : la fin de combat se joue DANS la scène — le

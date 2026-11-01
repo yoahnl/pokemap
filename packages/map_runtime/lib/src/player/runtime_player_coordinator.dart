@@ -1729,6 +1729,7 @@ final class RuntimePlayerCoordinator {
       before.realWeather != after.realWeather ||
       before.worldTime != after.worldTime ||
       before.graphics != after.graphics ||
+      before.battleMotion != after.battleMotion ||
       before.locale != after.locale ||
       before.accessibility.reducedMotion != after.accessibility.reducedMotion ||
       before.accessibility.textScale != after.accessibility.textScale ||

@@ -20,6 +20,25 @@ class FlutterFrameGraphicsDevice extends GraphicsDevice {
   Size renderSize = Size.zero;
   Image Function(GpuRenderTarget, Size)? postProcess;
   bool _frameOpen = false;
+  int _successfulPresentations = 0;
+
+  int get successfulPresentations => _successfulPresentations;
+  int _textureAllocations = 0;
+  int _textureAllocationBytes = 0;
+  int get textureAllocations => _textureAllocations;
+  int get colorTextureAllocationBytes => _textureAllocationBytes;
+
+  GpuTexture allocateRgbaTexture(int width, int height) {
+    final texture = backend.createTexture(
+      storageMode: GpuStorageMode.hostVisible,
+      width: width,
+      height: height,
+      format: GpuPixelFormat.rgba8888,
+    );
+    _textureAllocations++;
+    _textureAllocationBytes += width * height * 4;
+    return texture;
+  }
 
   @override
   void begin() {
@@ -59,7 +78,9 @@ class FlutterFrameGraphicsDevice extends GraphicsDevice {
       processed = process == null || target == null
           ? image
           : process(target, renderSize);
-      return _presentImage(processed);
+      final presented = _presentImage(processed);
+      _successfulPresentations++;
+      return presented;
     } finally {
       if (processed != null && !identical(processed, image)) {
         processed.dispose();

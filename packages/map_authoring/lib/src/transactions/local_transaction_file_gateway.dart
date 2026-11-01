@@ -834,7 +834,7 @@ final class LocalTransactionFileGateway
     );
   }
 
-  Future<AuthoringPayloadInspection> _inspectFile(File file, String storageKey,
+  Future<AuthoringResourceInspection> _inspectFile(File file, String storageKey,
       {String? expectedStagedRevision}) async {
     for (var attempt = 0;; attempt++) {
       final before = await file.stat();
@@ -845,7 +845,7 @@ final class LocalTransactionFileGateway
             'transaction.resource_not_regular',
             'The resource is not a regular file.');
       }
-      final observed = await inspectAuthoringPayload(
+      final observed = await inspectAuthoringResourceRevision(
           _readFile(file,
               AuthoringPerformanceCounterName.gatewayVerificationReadBytes),
           storageKey: storageKey,

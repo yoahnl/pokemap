@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:flame_3d/resources.dart';
+import 'package:flame_3d/graphics.dart';
 import 'package:flame_3d/core.dart';
 import 'package:map_core/map_core.dart';
 
@@ -28,6 +29,7 @@ final class SpatialActorTexture {
   static Future<SpatialActorTexture> fromImage(
     ui.Image image, {
     TilesetTransparentColor? transparentColor,
+    GpuTexture Function(int width, int height)? textureAllocator,
   }) async {
     if (transparentColor == null) {
       final data = await image.toByteData();
@@ -42,7 +44,14 @@ final class SpatialActorTexture {
         alpha[index] = rgba[index * 4 + 3];
       }
       return SpatialActorTexture._(
-        ImageTexture(data, width: image.width, height: image.height),
+        textureAllocator == null
+            ? ImageTexture(data, width: image.width, height: image.height)
+            : _SpatialActorImageTexture(
+                data,
+                width: image.width,
+                height: image.height,
+                allocate: textureAllocator,
+              ),
         alpha,
       );
     }
@@ -71,11 +80,44 @@ final class SpatialActorTexture {
     );
     final processed = await decoded.future;
     try {
-      return SpatialActorTexture._(await ImageTexture.create(processed), alpha);
+      if (textureAllocator == null) {
+        return SpatialActorTexture._(
+          await ImageTexture.create(processed),
+          alpha,
+        );
+      }
+      final pixels = await processed.toByteData();
+      if (pixels == null) {
+        throw StateError('Actor texture pixels are unavailable.');
+      }
+      return SpatialActorTexture._(
+        _SpatialActorImageTexture(
+          pixels,
+          width: processed.width,
+          height: processed.height,
+          allocate: textureAllocator,
+        ),
+        alpha,
+      );
     } finally {
       processed.dispose();
     }
   }
+}
+
+final class _SpatialActorImageTexture extends ImageTexture {
+  _SpatialActorImageTexture(
+    this._pixels, {
+    required super.width,
+    required super.height,
+    required this.allocate,
+  }) : super(_pixels);
+
+  final ByteData _pixels;
+  final GpuTexture Function(int width, int height) allocate;
+
+  @override
+  GpuTexture createResource() => allocate(width, height)..write(_pixels);
 }
 
 final class SpatialActorVisual {

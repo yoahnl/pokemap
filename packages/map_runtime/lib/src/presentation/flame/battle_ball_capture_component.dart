@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:flame/components.dart';
 import 'package:flutter/foundation.dart' show visibleForTesting;
+import 'battle_live_attachment.dart';
 
 /// Les moments de la séquence de capture que l'hôte doit accompagner —
 /// sons et absorption/libération du Pokémon visé.
@@ -39,18 +40,20 @@ enum BattleBallCaptureCue {
 ///
 /// Le composant est autonome : il ne pilote que la Ball et notifie [onCue]
 /// aux instants exacts — l'hôte joue les sons et les motions du combattant.
-class BattleBallCaptureComponent extends PositionComponent {
+class BattleBallCaptureComponent extends PositionComponent implements BattleLiveAttachment {
   BattleBallCaptureComponent({
     required this.sheet,
     required this.shakes,
     required this.caught,
     required Offset targetCenter,
     required double throwStartX,
-    this.cellSize = 26,
+    double cellSize = 26,
+    this.resolvePlacement,
     this.onCue,
     int priority = 50,
   })  : _targetCenter = targetCenter,
         _throwStartX = throwStartX,
+        _cellSize = cellSize,
         super(
           position: Vector2(throwStartX, targetCenter.dy),
           anchor: Anchor.center,
@@ -75,11 +78,13 @@ class BattleBallCaptureComponent extends PositionComponent {
   final Image sheet;
   final int shakes;
   final bool caught;
-  final Offset _targetCenter;
-  final double _throwStartX;
+  Offset _targetCenter;
+  double _throwStartX;
+  final BattleBallLivePlacement? Function()? resolvePlacement;
 
   /// La taille de rendu d'une cellule en pixels logiques de la scène.
-  final double cellSize;
+  double _cellSize;
+  double get cellSize => _cellSize;
 
   final void Function(BattleBallCaptureCue cue)? onCue;
 
@@ -87,6 +92,28 @@ class BattleBallCaptureComponent extends PositionComponent {
   var _cellIndex = 0;
   var _removalScheduled = false;
   final Set<Object> _firedCues = <Object>{};
+  bool _refreshingAttachment = false;
+  bool _attachmentInvalid = false;
+
+  @override
+  bool refreshAttachment() {
+    if (_attachmentInvalid) return false;
+    final resolver = resolvePlacement;
+    if (resolver == null) return true;
+    final next = resolver();
+    if (next == null || !next.targetCenter.x.isFinite || !next.targetCenter.y.isFinite ||
+        !next.throwStartX.isFinite || !next.cellSize.isFinite || next.cellSize <= 0) {
+      _attachmentInvalid = true;
+      removeBattleLiveAttachment(this);
+      return false;
+    }
+    _targetCenter = Offset(next.targetCenter.x, next.targetCenter.y);
+    _throwStartX = next.throwStartX;
+    _cellSize = next.cellSize;
+    _refreshingAttachment = true;
+    try { _applyTimeline(); } finally { _refreshingAttachment = false; }
+    return true;
+  }
 
   /// Le zoom de la référence : la cellule 64 dessinée à [cellSize].
   double get _scale => cellSize / 64;
@@ -101,6 +128,7 @@ class BattleBallCaptureComponent extends PositionComponent {
       Offset(_targetCenter.dx, _targetCenter.dy + 24 * _scale);
 
   void _fireOnce(Object key, BattleBallCaptureCue cue) {
+    if (_refreshingAttachment) return;
     if (!_firedCues.add(key)) return;
     onCue?.call(cue);
   }
@@ -108,7 +136,12 @@ class BattleBallCaptureComponent extends PositionComponent {
   @override
   void update(double dt) {
     super.update(dt);
+    if (!refreshAttachment()) return;
     _elapsed += dt;
+    _applyTimeline();
+  }
+
+  void _applyTimeline() {
     var t = _elapsed;
 
     if (t < _throwSeconds) {
@@ -225,6 +258,7 @@ class BattleBallCaptureComponent extends PositionComponent {
 
   @override
   void render(Canvas canvas) {
+    if (_attachmentInvalid) return;
     super.render(canvas);
     final cellHeight = sheet.height / _cellRows;
     final cellWidth = sheet.width.toDouble();

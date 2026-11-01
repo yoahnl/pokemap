@@ -1,3 +1,4 @@
+import 'periodic_reward_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:map_core/map_core.dart';
 
@@ -66,7 +67,8 @@ typedef SceneCinematicPayloadDraftUpdater =
       required String cinematicId,
     });
 
-typedef SceneInteractiveCommandDraftUpdater = Future<bool> Function({required String nodeId, required SceneInteractiveCommand command});
+typedef SceneInteractiveCommandDraftUpdater = Future<bool> Function({required String nodeId, required SceneInteractiveCommand command,
+    });
 
 typedef SceneActionConsequenceDraftUpdater =
     Future<bool> Function({
@@ -292,8 +294,7 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
 class _InspectorHeader extends StatelessWidget {
   const _InspectorHeader({
     required this.title,
-    required this.chipLabel,
-  });
+    required this.chipLabel});
 
   final String title;
   final String chipLabel;
@@ -516,21 +517,29 @@ class _NodeInspectorBody extends StatelessWidget {
                       consequence: SceneConsequence.adjustIntegerFact(
                         factId: selected.factId, delta: selected.delta,
                         minimum: selected.minimum, maximum: selected.maximum,
-                        label: adjustment.label, notes: adjustment.notes));
+                        label: adjustment.label, notes: adjustment.notes,
+                        ),
+                      );
                   },
                 )
               else
-                const _InspectorNote(label: 'Ouvrez ce nœud dans un projet modifiable pour configurer le compteur.'),
-            ]),
+                const _InspectorNote(label: 'Ouvrez ce nœud dans un projet modifiable pour configurer le compteur.',
+                  ),
+              ],
+            ),
             const SizedBox(height: 10),
           ] else if (node.payload case SceneActionPayload(
             interactiveCommand: SceneOpenImagePuzzleInteractiveCommand(),
           )) ...[
             _InspectorSection(title: 'Puzzle d’image', children: [
               if (onUpdateInteractiveCommand != null)
-                SceneActionBuilder(key: ValueKey('image-puzzle-inspector-${node.id}'), initialPayload: node.payload as SceneActionPayload, project: project, allowCommandSelection: false, pickerOptions: actionPickerOptions, onSubmit: (payload) => onUpdateInteractiveCommand!(nodeId: node.id, command: (payload as SceneActionPayload).interactiveCommand!))
-              else const _InspectorNote(label: 'Ouvrez un projet modifiable pour configurer ce puzzle.'),
-            ]),
+                SceneActionBuilder(key: ValueKey('image-puzzle-inspector-${node.id}'), initialPayload: node.payload as SceneActionPayload, project: project, allowCommandSelection: false, pickerOptions: actionPickerOptions, onSubmit: (payload) => onUpdateInteractiveCommand!(nodeId: node.id, command: (payload as SceneActionPayload).interactiveCommand!,
+                    ),
+                  )
+              else const _InspectorNote(label: 'Ouvrez un projet modifiable pour configurer ce puzzle.',
+                  ),
+              ],
+            ),
             const SizedBox(height: 10),
           ] else if (node.payload case SceneActionPayload(
             interactiveCommand: SceneReceivePokemonFromCatalogInteractiveCommand(),
@@ -581,7 +590,8 @@ class _NodeInspectorBody extends StatelessWidget {
             _InspectorSection(
               title: 'Avatar du joueur',
               children: [
-                const _InspectorRow(label: 'Type', value: 'Changer l’avatar du joueur'),
+                const _InspectorRow(label: 'Type', value: 'Changer l’avatar du joueur',
+                ),
                 if (onUpdateActionConsequence != null && project != null)
                   SceneActionBuilder(
                     key: ValueKey('avatar-inspector-${node.id}'),
@@ -592,12 +602,14 @@ class _NodeInspectorBody extends StatelessWidget {
                       final selected = (payload as SceneActionPayload).consequence! as SceneSetPlayerAvatarConsequence;
                       onUpdateActionConsequence!(
                         nodeId: node.id,
-                        consequence: SceneConsequence.setPlayerAvatar(characterId: selected.characterId, label: avatar.label, notes: avatar.notes),
+                        consequence: SceneConsequence.setPlayerAvatar(characterId: selected.characterId, label: avatar.label, notes: avatar.notes,
+                        ),
                       );
                     },
                   )
                 else
-                  const _InspectorNote(label: 'Ouvrez ce nœud dans un projet modifiable pour choisir un avatar.'),
+                  const _InspectorNote(label: 'Ouvrez ce nœud dans un projet modifiable pour choisir un avatar.',
+                  ),
               ],
             ),
             const SizedBox(height: 10),
@@ -838,8 +850,7 @@ class _DiagnosticMessageRow extends StatelessWidget {
 class _InspectorSection extends StatelessWidget {
   const _InspectorSection({
     required this.title,
-    required this.children,
-  });
+    required this.children});
 
   final String title;
   final List<Widget> children;
@@ -871,8 +882,7 @@ class _InspectorSection extends StatelessWidget {
 class _InspectorRow extends StatelessWidget {
   const _InspectorRow({
     required this.label,
-    required this.value,
-  });
+    required this.value});
 
   final String label;
   final String value;
@@ -1017,8 +1027,7 @@ class _YarnDialoguePayloadAuthoringPanel extends StatelessWidget {
         else
           _InspectorRow(
             label: 'Source',
-            value: currentContract.sourceRef,
-          ),
+            value: currentContract.sourceRef),
         const SizedBox(height: 4),
         PokeMapButton(
           key: const ValueKey('scene-payload-edit-dialogue-action'),
@@ -1168,8 +1177,10 @@ class _BattlePayloadAuthoringPanel extends StatelessWidget {
           label: 'Après une défaite',
           value: payload.defeatRecovery.name,
           items: const [
-            PokeMapDropdownItem(value: 'continueScene', label: 'Continuer la scène'),
-            PokeMapDropdownItem(value: 'returnToRecoveryPoint', label: 'Revenir au point de soin'),
+            PokeMapDropdownItem(value: 'continueScene', label: 'Continuer la scène',
+            ),
+            PokeMapDropdownItem(value: 'returnToRecoveryPoint', label: 'Revenir au point de soin',
+            ),
           ],
           enabled: onUpdateDefeatRecovery != null,
           onChanged: (value) {
@@ -1181,7 +1192,8 @@ class _BattlePayloadAuthoringPanel extends StatelessWidget {
           },
         ),
         const _InspectorNote(label: 'Le retour au point de soin a lieu à la fin de la scène. '
-            'L’équipe est soignée et la pénalité de défaite est appliquée.'),
+            'L’équipe est soignée et la pénalité de défaite est appliquée.',
+        ),
         const SizedBox(height: 8),
         const _InspectorNote(
           label: 'Cette édition modifie uniquement le payload du nœud Scene. '
@@ -1260,8 +1272,7 @@ class _CinematicPayloadAuthoringPanel extends StatelessWidget {
         if (currentEntry == null) ...[
           const _InspectorRow(
             label: 'Statut',
-            value: 'Référence inconnue',
-          ),
+            value: 'Référence inconnue'),
           const _InspectorNote(
             label:
                 'Cette référence ne pointe vers aucun CinematicAsset '
@@ -1520,21 +1531,24 @@ class _ActionConsequenceAuthoringPanel extends StatelessWidget {
           ..._itemRows(
             context,
             consequence,
-            typeLabel: 'Donner un objet',
-          )
+            typeLabel: 'Donner un objet')
         else if (consequence is SceneTakeItemConsequence)
           ..._itemRows(
             context,
             consequence,
-            typeLabel: 'Retirer un objet',
-          )
+            typeLabel: 'Retirer un objet')
         else if (consequence is SceneGiveMoneyConsequence)
           ..._moneyRows(context, consequence)
         else if (consequence is SceneMarkPokemonSeenConsequence) ...[
-          const _InspectorRow(label: 'Type', value: 'Marquer un Pokémon comme vu'),
-          _InspectorRow(label: 'Pokémon', value: _catalogOptionFor(catalogs.species, consequence.speciesId)?.label ?? 'Espèce locale indisponible'),
-          const _InspectorNote(label: 'Conservé dans le Pokédex, sans capture ni ajout à l’équipe.'),
-          _gameplayEditButton(context, consequence, enabled: catalogs.species.options.isNotEmpty),
+          const _InspectorRow(label: 'Type', value: 'Marquer un Pokémon comme vu',
+          ),
+          _InspectorRow(label: 'Pokémon', value: _catalogOptionFor(catalogs.species, consequence.speciesId,
+                )?.label ?? 'Espèce locale indisponible',
+          ),
+          const _InspectorNote(label: 'Conservé dans le Pokédex, sans capture ni ajout à l’équipe.',
+          ),
+          _gameplayEditButton(context, consequence, enabled: catalogs.species.options.isNotEmpty,
+          ),
         ]
         else if (consequence is SceneGivePokemonConsequence)
           ..._pokemonRows(context, consequence)
@@ -1580,7 +1594,9 @@ class _ActionConsequenceAuthoringPanel extends StatelessWidget {
           onChanged: onUpdatePayload == null ? null : (value) =>
               onUpdatePayload!(nodeId: node.id, consequence: SceneConsequence.setFactValue(
                 factId: consequence.factId, value: NarrativeValue.integer(value),
-                label: consequence.label, notes: consequence.notes)),
+                label: consequence.label, notes: consequence.notes,
+                  ),
+                ),
         ),
       const SizedBox(height: 4),
       Wrap(
@@ -1683,8 +1699,7 @@ class _ActionConsequenceAuthoringPanel extends StatelessWidget {
         const SizedBox(height: 6),
         PokeMapDiagnosticCallout(
           key: const ValueKey(
-            'scene-gameplay-consequence-catalog-diagnostic',
-          ),
+            'scene-gameplay-consequence-catalog-diagnostic'),
           severity: PokeMapDiagnosticSeverity.error,
           title: 'Référence à corriger',
           message: catalogs.items.isReady
@@ -1756,8 +1771,7 @@ class _ActionConsequenceAuthoringPanel extends StatelessWidget {
   ) {
     final species = _catalogOptionFor(
       catalogs.species,
-      consequence.speciesId,
-    );
+      consequence.speciesId);
     final formExists =
         species?.formIds.contains(consequence.formId) ?? false;
     return [
@@ -1778,8 +1792,7 @@ class _ActionConsequenceAuthoringPanel extends StatelessWidget {
         const SizedBox(height: 6),
         PokeMapDiagnosticCallout(
           key: const ValueKey(
-            'scene-gameplay-consequence-catalog-diagnostic',
-          ),
+            'scene-gameplay-consequence-catalog-diagnostic'),
           severity: PokeMapDiagnosticSeverity.error,
           title: 'Référence à corriger',
           message: catalogs.species.isReady
@@ -1798,13 +1811,17 @@ class _ActionConsequenceAuthoringPanel extends StatelessWidget {
     ];
   }
 
-  List<Widget> _catalogPokemonRows(BuildContext context, SceneGivePokemonFromCatalogConsequence consequence) {
+  List<Widget> _catalogPokemonRows(BuildContext context, SceneGivePokemonFromCatalogConsequence consequence,
+  ) {
     final species = _catalogOptionFor(catalogs.species, consequence.speciesId);
     final validForm = species?.catalogGiftFormIds.contains(consequence.formId) ?? false;
     return [
-      const _InspectorRow(label: 'Type', value: 'Donner un Pokémon du catalogue'),
-      _InspectorRow(label: 'Pokémon', value: species?.label ?? 'Espèce locale indisponible'),
-      _InspectorRow(label: 'Forme', value: validForm ? scenePokemonFormLabel(consequence.formId) : 'Forme locale indisponible'),
+      const _InspectorRow(label: 'Type', value: 'Donner un Pokémon du catalogue',
+      ),
+      _InspectorRow(label: 'Pokémon', value: species?.label ?? 'Espèce locale indisponible',
+      ),
+      _InspectorRow(label: 'Forme', value: validForm ? scenePokemonFormLabel(consequence.formId) : 'Forme locale indisponible',
+      ),
       _InspectorRow(label: 'Niveau', value: '${consequence.level}'),
       if (!validForm)
         const PokeMapDiagnosticCallout(
@@ -1813,9 +1830,12 @@ class _ActionConsequenceAuthoringPanel extends StatelessWidget {
           title: 'Forme du cadeau à corriger',
           message: 'Cette forme ne peut pas être chargée pour un cadeau du catalogue. Choisissez la forme principale disponible.',
         ),
-      const _InspectorNote(label: 'Caractéristiques, PV et attaques calculés dans le catalogue actif. Destination : équipe puis PC.'),
+      const _InspectorNote(label: 'Caractéristiques, PV et attaques calculés dans le catalogue actif. Destination : équipe puis PC.',
+      ),
       const SizedBox(height: 6),
-      _gameplayEditButton(context, consequence, enabled: catalogs.species.options.any((option) => option.catalogGiftFormIds.isNotEmpty)),
+      _gameplayEditButton(context, consequence, enabled: catalogs.species.options.any((option) => option.catalogGiftFormIds.isNotEmpty,
+        ),
+      ),
     ];
   }
 
@@ -1830,8 +1850,7 @@ class _ActionConsequenceAuthoringPanel extends StatelessWidget {
     return <Widget>[
       const _InspectorRow(
         label: 'Type',
-        value: 'Donner un starter configuré',
-      ),
+        value: 'Donner un starter configuré'),
       _InspectorRow(
         label: 'Starter',
         value: starter?.label ?? 'Starter configuré indisponible',
@@ -1840,8 +1859,7 @@ class _ActionConsequenceAuthoringPanel extends StatelessWidget {
         const SizedBox(height: 6),
         PokeMapDiagnosticCallout(
           key: const ValueKey(
-            'scene-gameplay-consequence-catalog-diagnostic',
-          ),
+            'scene-gameplay-consequence-catalog-diagnostic'),
           severity: PokeMapDiagnosticSeverity.error,
           title: 'Référence à corriger',
           message: catalogs.configuredStarters.isReady
@@ -1944,8 +1962,7 @@ class _ActionConsequenceAuthoringPanel extends StatelessWidget {
     final option = await showCupertinoDialog<SceneConsequenceFactPickerOption>(
       context: context,
       builder: (context) => _SceneConsequenceFactEditDialog(
-        facts: factOptions,
-      ),
+        facts: factOptions),
     );
     if (option == null || !context.mounted) {
       return;
@@ -1971,8 +1988,7 @@ class _ActionConsequenceAuthoringPanel extends StatelessWidget {
     final option = await showCupertinoDialog<SceneConsequenceEventPickerOption>(
       context: context,
       builder: (context) => _SceneConsequenceEventEditDialog(
-        events: eventOptions,
-      ),
+        events: eventOptions),
     );
     if (option == null || !context.mounted) {
       return;
@@ -2023,7 +2039,8 @@ class _ActionConsequenceAuthoringPanel extends StatelessWidget {
 }
 
 class _SceneIntegerFactValueEditor extends StatefulWidget {
-  const _SceneIntegerFactValueEditor({super.key, required this.value, this.onChanged});
+  const _SceneIntegerFactValueEditor({super.key, required this.value, this.onChanged,
+  });
   final int value;
   final Future<bool> Function(int)? onChanged;
 
@@ -2095,7 +2112,8 @@ class _SceneIntegerFactValueEditorState extends State<_SceneIntegerFactValueEdit
       ),
       if (_rejected)
         const PokeMapDiagnosticCallout(severity: PokeMapDiagnosticSeverity.error,
-          title: 'Valeur non appliquée', message: 'Le projet a refusé cette modification.'),
+          title: 'Valeur non appliquée', message: 'Le projet a refusé cette modification.',
+        ),
     ],
   );
 }
@@ -2244,8 +2262,7 @@ class _GameplayConsequenceEditSheetState
               const SizedBox(width: 8),
               PokeMapButton(
                 key: const ValueKey(
-                  'scene-gameplay-consequence-save-action',
-                ),
+                  'scene-gameplay-consequence-save-action'),
                 onPressed: consequence == null
                     ? null
                     : () => Navigator.of(context).pop(consequence),
@@ -2283,8 +2300,7 @@ class _GameplayConsequenceEditSheetState
         const SizedBox(height: 12),
         PokeMapTextField(
           key: const ValueKey(
-            'scene-gameplay-consequence-quantity-field',
-          ),
+            'scene-gameplay-consequence-quantity-field'),
           label: 'Quantité',
           controller: _quantityController,
           keyboardType: TextInputType.number,
@@ -2314,10 +2330,12 @@ class _GameplayConsequenceEditSheetState
       return [PokeMapDropdownField<String>(
         key: const ValueKey('scene-seen-pokemon-species-picker'),
         label: 'Pokémon vu', value: _selectedSpeciesId ?? '',
-        items: [for (final option in widget.catalogs.species.options) PokeMapDropdownItem(value: option.id, label: option.label)],
+        items: [for (final option in widget.catalogs.species.options) PokeMapDropdownItem(value: option.id, label: option.label),
+          ],
         enabled: widget.catalogs.species.options.isNotEmpty,
         onChanged: (value) => setState(() { _selectedSpeciesId = value; }),
-      )];
+      ),
+      ];
     }
     if (consequence is SceneGivePokemonConsequence || consequence is SceneGivePokemonFromCatalogConsequence) {
       final catalogGift = consequence is SceneGivePokemonFromCatalogConsequence;
@@ -2327,7 +2345,8 @@ class _GameplayConsequenceEditSheetState
       final formIds = (catalogGift ? selectedSpecies?.catalogGiftFormIds : selectedSpecies?.formIds) ?? const <String>[];
       return [
         if (consequence is SceneGivePokemonFromCatalogConsequence &&
-            !(_speciesOption(consequence.speciesId)?.catalogGiftFormIds.contains(consequence.formId) ?? false))
+            !(_speciesOption(consequence.speciesId,
+                )?.catalogGiftFormIds.contains(consequence.formId) ?? false))
           const PokeMapDiagnosticCallout(
             key: ValueKey('scene-catalog-gift-repair-diagnostic'),
             severity: PokeMapDiagnosticSeverity.warning,
@@ -2398,8 +2417,7 @@ class _GameplayConsequenceEditSheetState
         const SizedBox(height: 12),
         PokeMapTextField(
           key: const ValueKey(
-            'scene-gameplay-consequence-current-hp-field',
-          ),
+            'scene-gameplay-consequence-current-hp-field'),
           label: 'PV courants',
           controller: _currentHpController,
           keyboardType: TextInputType.number,
@@ -2474,7 +2492,8 @@ class _GameplayConsequenceEditSheetState
                 notes: notes,
               ),
       SceneMarkPokemonSeenConsequence(:final label, :final notes) =>
-        _selectedSpeciesId == null ? null : SceneConsequence.markPokemonSeen(speciesId: _selectedSpeciesId!, label: label, notes: notes),
+        _selectedSpeciesId == null ? null : SceneConsequence.markPokemonSeen(speciesId: _selectedSpeciesId!, label: label, notes: notes,
+              ),
       SceneGivePokemonConsequence(
         :final natureId,
         :final abilityId,
@@ -2763,8 +2782,7 @@ class _PayloadEditDialogContent extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const SizedBox(height: 8),
-            ...children,
-          ],
+            ...children],
         ),
       ),
     );
@@ -2972,7 +2990,8 @@ class _ConditionAuthoringPanelState extends State<_ConditionAuthoringPanel> {
           NarrativeValueKind.string => expected.stringValue,
         };
       }
-      if (_optionsForKind(_sourceKind)
+      if (_optionsForKind(_sourceKind,
+      )
           .any((option) => option.sourceId == source.sourceId)) {
         _sourceId = source.sourceId;
       }
@@ -2996,13 +3015,31 @@ class _ConditionAuthoringPanelState extends State<_ConditionAuthoringPanel> {
             _ConditionButtonRow(
               label: 'Source',
               children: [
-                _conditionButton(key: const ValueKey('scene-condition-source-kind-partyState'), label: 'Équipe Pokémon', selected: _sourceKind == SceneConditionSourceKind.partyState, onPressed: () => setState(() => _sourceKind = SceneConditionSourceKind.partyState)),
-                if (_optionsForKind(SceneConditionSourceKind.playerFacing).isNotEmpty)
+                _conditionButton(key: const ValueKey(
+                    'scene-condition-source-kind-periodicRewardAvailable',
+                  ),
+                  label: 'Récompense quotidienne',
+                  selected:
+                      _sourceKind ==
+                      SceneConditionSourceKind.periodicRewardAvailable,
+                  onPressed: () => setState(
+                    () => _sourceKind =
+                        SceneConditionSourceKind.periodicRewardAvailable,
+                  ),
+                ),
+                _conditionButton(
+                  key: const ValueKey('scene-condition-source-kind-partyState'), label: 'Équipe Pokémon', selected: _sourceKind == SceneConditionSourceKind.partyState, onPressed: () => setState(() => _sourceKind = SceneConditionSourceKind.partyState,
+                  ),
+                ),
+                if (_optionsForKind(SceneConditionSourceKind.playerFacing,
+                ).isNotEmpty)
                   _conditionButton(
-                    key: const ValueKey('scene-condition-source-kind-playerFacing'),
+                    key: const ValueKey('scene-condition-source-kind-playerFacing',
+                    ),
                     label: 'Orientation du joueur',
                     selected: _sourceKind == SceneConditionSourceKind.playerFacing,
-                    onPressed: () => _selectSourceKind(SceneConditionSourceKind.playerFacing),
+                    onPressed: () => _selectSourceKind(SceneConditionSourceKind.playerFacing,
+                    ),
                   ),
                 if (_optionsForKind(SceneConditionSourceKind.badge).isNotEmpty)
                   _conditionButton(
@@ -3015,13 +3052,11 @@ class _ConditionAuthoringPanelState extends State<_ConditionAuthoringPanel> {
                 if (_optionsForKind(SceneConditionSourceKind.fact).isNotEmpty)
                   _conditionButton(
                     key: const ValueKey(
-                      'scene-condition-source-kind-fact',
-                    ),
+                      'scene-condition-source-kind-fact'),
                     label: 'Fact Registry',
                     selected: _sourceKind == SceneConditionSourceKind.fact,
                     onPressed: () => _selectSourceKind(
-                      SceneConditionSourceKind.fact,
-                    ),
+                      SceneConditionSourceKind.fact),
                   ),
                 _conditionButton(
                   key: const ValueKey(
@@ -3034,9 +3069,12 @@ class _ConditionAuthoringPanelState extends State<_ConditionAuthoringPanel> {
                     SceneConditionSourceKind.factLikeStoryFlag,
                   ),
                 ),
-                _conditionButton(key: const ValueKey('scene-condition-source-kind-integerComparison'), label: 'Comparer des nombres',
+                _conditionButton(key: const ValueKey('scene-condition-source-kind-integerComparison',
+                  ), label: 'Comparer des nombres',
                   selected: _sourceKind == SceneConditionSourceKind.integerComparison,
-                  onPressed: () => _selectSourceKind(SceneConditionSourceKind.integerComparison)),
+                  onPressed: () => _selectSourceKind(SceneConditionSourceKind.integerComparison,
+                  ),
+                ),
                 _conditionButton(
                   key: const ValueKey(
                     'scene-condition-source-kind-storyStepCompletion',
@@ -3056,19 +3094,55 @@ class _ConditionAuthoringPanelState extends State<_ConditionAuthoringPanel> {
                   selected:
                       _sourceKind == SceneConditionSourceKind.consumedEvent,
                   onPressed: () => _selectSourceKind(
-                    SceneConditionSourceKind.consumedEvent,
-                  ),
+                    SceneConditionSourceKind.consumedEvent),
                 ),
               ],
             ),
+            if (_sourceKind == SceneConditionSourceKind.periodicRewardAvailable)
+              EditorPeriodicRewardPicker(
+                initial: (widget.node.payload as SceneConditionPayload)
+                    .conditionSource
+                    ?.rewardReference,
+                expectedValue:
+                    (widget.node.payload as SceneConditionPayload)
+                        .conditionSource
+                        ?.operator !=
+                    SceneConditionOperator.isFalse,
+                onApply: (reference, expected) async {
+                  final updater = widget.onUpdateConditionSource;
+                  if (updater == null || _saving) return;
+                  setState(() => _saving = true);
+                  try {
+                    await updater(
+                      nodeId: widget.node.id,
+                      source: SceneConditionSource.periodicRewardAvailable(
+                        reference: reference,
+                        expectedValue: expected,
+                      ),
+                    );
+                  } finally {
+                    if (mounted) setState(() => _saving = false);
+                  }
+                },
+            ),
             if (_sourceKind == SceneConditionSourceKind.integerComparison)
               SceneIntegerConditionEditor(current: (widget.node.payload as SceneConditionPayload).conditionSource,
-                facts: {for (final option in widget.options) if (option.sourceKind == SceneConditionSourceKind.fact && option.valueKind == NarrativeValueKind.integer) option.sourceId: option.label},
-                items: {for (final option in widget.options) if (option.sourceKind == SceneConditionSourceKind.inventoryItem) option.sourceId: option.label},
-                onApply: (source) async => await widget.onUpdateConditionSource?.call(nodeId: widget.node.id, source: source) ?? false),
+                facts: {for (final option in widget.options) if (option.sourceKind == SceneConditionSourceKind.fact && option.valueKind == NarrativeValueKind.integer) option.sourceId: option.label,
+                },
+                items: {for (final option in widget.options) if (option.sourceKind == SceneConditionSourceKind.inventoryItem) option.sourceId: option.label,
+                },
+                onApply: (source) async => await widget.onUpdateConditionSource?.call(nodeId: widget.node.id, source: source,
+                    ) ??
+                    false,
+              ),
             if (_sourceKind == SceneConditionSourceKind.partyState)
-              ScenePartyConditionEditor(dimension: widget.dimension, current: (widget.node.payload as SceneConditionPayload).conditionSource, loadMoves: widget.loadMoves, onApply: (source) async => await widget.onUpdateConditionSource?.call(nodeId: widget.node.id, source: source) ?? false),
-            if (_sourceKind != SceneConditionSourceKind.partyState && _sourceKind != SceneConditionSourceKind.integerComparison) ...[
+              ScenePartyConditionEditor(dimension: widget.dimension, current: (widget.node.payload as SceneConditionPayload).conditionSource, loadMoves: widget.loadMoves, onApply: (source) async => await widget.onUpdateConditionSource?.call(nodeId: widget.node.id, source: source,
+                    ) ??
+                    false,
+              ),
+            if (_sourceKind !=
+                    SceneConditionSourceKind.periodicRewardAvailable &&
+                _sourceKind != SceneConditionSourceKind.partyState && _sourceKind != SceneConditionSourceKind.integerComparison) ...[
             const SizedBox(height: 8),
             _ConditionButtonRow(
               label: 'Référence',
@@ -3078,7 +3152,8 @@ class _ConditionAuthoringPanelState extends State<_ConditionAuthoringPanel> {
                 _selectedOptionSummary != null) ...[
               const SizedBox(height: 2),
               _ConditionMutedLabel(
-                key: const ValueKey('scene-condition-selected-source-summary'),
+                key: const ValueKey('scene-condition-selected-source-summary',
+                  ),
                 label: _selectedOptionSummary!,
               ),
             ],
@@ -3393,7 +3468,8 @@ class _ConditionAuthoringPanelState extends State<_ConditionAuthoringPanel> {
 
   bool _isSourceKindAuthorable(SceneConditionSourceKind kind) {
     return switch (kind) {
-      SceneConditionSourceKind.integerComparison => true,
+      SceneConditionSourceKind.integerComparison ||
+      SceneConditionSourceKind.periodicRewardAvailable => true,
       SceneConditionSourceKind.newGameDraft => false,
       SceneConditionSourceKind.badge ||
       SceneConditionSourceKind.factLikeStoryFlag ||
@@ -3421,8 +3497,7 @@ class _ConditionAuthoringPanelState extends State<_ConditionAuthoringPanel> {
 class _ConditionButtonRow extends StatelessWidget {
   const _ConditionButtonRow({
     required this.label,
-    required this.children,
-  });
+    required this.children});
 
   final String label;
   final List<Widget> children;
@@ -3451,8 +3526,7 @@ class _ConditionButtonRow extends StatelessWidget {
 class _ConditionMutedLabel extends StatelessWidget {
   const _ConditionMutedLabel({
     super.key,
-    required this.label,
-  });
+    required this.label});
 
   final String label;
 
@@ -3623,12 +3697,16 @@ List<Widget> _payloadRows(SceneNodePayload payload) {
                   .join(', '),
         ),
         if (interactiveCommand != null) ...[
-          _InspectorRow(label: 'Commande native', value: NarrativeCommandCatalog.canonical().byId(interactiveCommand.kind.name)?.label ?? interactiveCommand.kind.name),
+          _InspectorRow(label: 'Commande native', value: NarrativeCommandCatalog.canonical().byId(interactiveCommand.kind.name)?.label ?? interactiveCommand.kind.name,
+          ),
           if (interactiveCommand is SceneReceivePokemonFromCatalogInteractiveCommand) ...[
-            _InspectorRow(label: 'Espèce / forme', value: '${interactiveCommand.speciesId} / ${interactiveCommand.formId}'),
-            _InspectorRow(label: 'Niveau', value: '${interactiveCommand.level}'),
+            _InspectorRow(label: 'Espèce / forme', value: '${interactiveCommand.speciesId} / ${interactiveCommand.formId}',
+            ),
+            _InspectorRow(label: 'Niveau', value: '${interactiveCommand.level}',
+            ),
           ],
-          _InspectorRow(label: 'Sorties attendues', value: interactiveCommand.outputPortIds.join(' / ')),
+          _InspectorRow(label: 'Sorties attendues', value: interactiveCommand.outputPortIds.join(' / '),
+          ),
         ] else ...[
           ..._sceneConsequenceRows(consequence),
           const _InspectorRow(label: 'Sortie attendue', value: 'completed'),
@@ -3654,7 +3732,8 @@ List<Widget> _payloadRows(SceneNodePayload payload) {
           value: _joinOrEmpty(declaredOutcomes),
         ),
         const _InspectorRow(
-            label: 'Sorties attendues', value: 'victory / defeat'),
+            label: 'Sorties attendues', value: 'victory / defeat',
+        ),
       ],
     SceneCinematicPayload(:final cinematicId) => [
         _InspectorRow(label: 'cinematicId', value: cinematicId),
@@ -3683,16 +3762,14 @@ List<Widget> _payloadRows(SceneNodePayload payload) {
         ),
         _InspectorRow(
           label: 'fallbackPolicy',
-          value: fallbackPolicy.name,
-        ),
+          value: fallbackPolicy.name),
       ],
     SceneMergePayload(:final label, :final notes) => [
         _InspectorRow(label: 'label', value: label ?? 'Aucun label.'),
         _InspectorRow(label: 'notes', value: notes ?? 'Aucune note.'),
       ],
     _ => const [
-        _InspectorRow(label: 'Payload', value: 'Payload non reconnu.'),
-      ],
+        _InspectorRow(label: 'Payload', value: 'Payload non reconnu.')],
   };
 }
 
@@ -3725,8 +3802,7 @@ List<Widget> _sceneConsequenceRows(SceneConsequence? consequence) {
     return [
       const _InspectorRow(
         label: 'consequence',
-        value: 'markEventConsumed',
-      ),
+        value: 'markEventConsumed'),
       _InspectorRow(label: 'mapId', value: consequence.mapId),
       _InspectorRow(label: 'eventId', value: consequence.eventId),
     ];
@@ -3765,7 +3841,9 @@ List<Widget> _sceneConsequenceRows(SceneConsequence? consequence) {
     ];
   }
   if (consequence is SceneMarkPokemonSeenConsequence) {
-    return [const _InspectorRow(label: 'consequence', value: 'Marquer un Pokémon comme vu'), _InspectorRow(label: 'espèce', value: consequence.speciesId)];
+    return [const _InspectorRow(label: 'consequence', value: 'Marquer un Pokémon comme vu',
+      ), _InspectorRow(label: 'espèce', value: consequence.speciesId),
+    ];
   }
   if (consequence is SceneGivePokemonConsequence) {
     return [
@@ -3776,7 +3854,8 @@ List<Widget> _sceneConsequenceRows(SceneConsequence? consequence) {
   }
   if (consequence is SceneGivePokemonFromCatalogConsequence) {
     return [
-      const _InspectorRow(label: 'consequence', value: 'Donner un Pokémon du catalogue'),
+      const _InspectorRow(label: 'consequence', value: 'Donner un Pokémon du catalogue',
+      ),
       _InspectorRow(label: 'niveau', value: '${consequence.level}'),
       const _InspectorRow(label: 'destination', value: 'Équipe ou PC'),
     ];
@@ -3785,8 +3864,7 @@ List<Widget> _sceneConsequenceRows(SceneConsequence? consequence) {
     return const [
       _InspectorRow(
         label: 'consequence',
-        value: 'Donner un starter configuré',
-      ),
+        value: 'Donner un starter configuré'),
     ];
   }
   return const [
@@ -3814,6 +3892,7 @@ SceneConditionOperator _defaultOperatorForKind(SceneConditionSourceKind kind) {
   return switch (kind) {
     SceneConditionSourceKind.integerComparison || SceneConditionSourceKind.storyStepCompletion =>
       SceneConditionOperator.equals,
+    SceneConditionSourceKind.periodicRewardAvailable ||
     SceneConditionSourceKind.newGameDraft ||
     SceneConditionSourceKind.fact ||
     SceneConditionSourceKind.badge ||
@@ -3841,6 +3920,7 @@ String? _defaultValueForKind(SceneConditionSourceKind kind) {
     SceneConditionSourceKind.integerComparison => null,
     SceneConditionSourceKind.storyStepCompletion =>
       SceneConditionValues.completed,
+    SceneConditionSourceKind.periodicRewardAvailable ||
     SceneConditionSourceKind.newGameDraft ||
     SceneConditionSourceKind.fact ||
     SceneConditionSourceKind.badge ||
@@ -3864,7 +3944,8 @@ String? _defaultValueForKind(SceneConditionSourceKind kind) {
 
 String _nodeInspectorModeLabel(
     SceneNode node, LinkedAssetContractsSnapshot? linkedAssetContracts,
-    {required bool endEditable}) {
+    {required bool endEditable,
+}) {
   return switch (node.kind) {
     SceneNodeKind.condition => 'Authoring V0',
     SceneNodeKind.yarnDialogue =>

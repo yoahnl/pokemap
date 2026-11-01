@@ -539,10 +539,12 @@ final class CatalogEditingSession {
           key: key,
           payload: {'id': 'workspace', 'fingerprint': workspaceFingerprint}));
     }
-    units.addAll(await CatalogPeriodicRewardConsumers.maintainAndGuard(
-        snapshot: base, upserts: units, removals: deleted));
     units.addAll(await CatalogMetadataDocuments.maintain(
         lookup: base.lookup, upserts: units, removals: deleted));
+    units.addAll(await CatalogPeriodicRewardConsumers.maintainAndGuard(
+        snapshot: base, upserts: units, removals: deleted,
+        additionalChanges: additional,
+        request: request));
     units.addAll(await CatalogResourcePositions.maintain(
         lookup: base.lookup, upserts: units, removals: deleted));
     final patch = await base.patch(upserts: units, removals: deleted);
@@ -779,7 +781,8 @@ final class CatalogEditingSession {
       for (final change in prepared.plan.changeSet.changes) {
         Future<String?> blobId(AuthoringPayload? payload) async {
           if (payload == null) return null;
-          final inspected = await inspectAuthoringPayload(payload.openRead(),
+          final inspected = await inspectAuthoringResourceRevision(
+              payload.openRead(),
               storageKey: 'authoring-history-blob',
               byteLength: payload.byteLength);
           costs['blob:${inspected.resourceRevision.substring(7)}'] =

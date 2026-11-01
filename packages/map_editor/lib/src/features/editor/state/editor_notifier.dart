@@ -1029,6 +1029,63 @@ class EditorNotifier extends _$EditorNotifier
           );
   }
 
+  bool acceptCanonicalSceneCondition({
+    required String projectRootPath,
+    required String sceneId,
+    required String nodeId,
+    required SceneNode previous,
+    required SceneNode current,
+  }) {
+    final project = state.project;
+    if (project == null || state.projectRootPath != projectRootPath)
+      return false;
+    final scenes = project.scenes.toList();
+    final index = scenes.indexWhere((scene) => scene.id == sceneId);
+    if (index < 0) return false;
+    final scene = scenes[index];
+    final node = scene.graph.nodes
+        .where((node) => node.id == nodeId)
+        .firstOrNull;
+    if (node != previous && node != current) return false;
+    scenes[index] = updateSceneConditionSource(
+      scene,
+      nodeId: nodeId,
+      source: (current.payload as SceneConditionPayload).conditionSource!,
+    ).updatedScene;
+    state = state.copyWith(
+      project: project.copyWith(scenes: scenes),
+      errorMessage: null,
+      statusMessage: 'Condition enregistrée.',
+    );
+    return true;
+  }
+
+  bool acceptCanonicalWorldRule({
+    required String projectRootPath,
+    required WorldRuleDefinition? previous,
+    required WorldRuleDefinition current,
+  }) {
+    final project = state.project;
+    if (project == null || state.projectRootPath != projectRootPath)
+      return false;
+    final existing = project.worldRules
+        .where((rule) => rule.id == current.id)
+        .firstOrNull;
+    if (existing != previous && existing != current) return false;
+    state = state.copyWith(
+      project: project.copyWith(
+        worldRules: [
+          for (final rule in project.worldRules)
+            if (rule.id == current.id) current else rule,
+          if (existing == null) current,
+        ],
+      ),
+      errorMessage: null,
+      statusMessage: 'Règle du monde enregistrée.',
+    );
+    return true;
+  }
+
   bool acceptCanonicalBattleSavingsConfiguration(
     ProjectBattleSavingsConfig? configuration, {
     required String projectRootPath,
@@ -1041,7 +1098,8 @@ class EditorNotifier extends _$EditorNotifier
     if (project.battleSavings != previousConfiguration &&
         project.battleSavings != configuration) {
       state = state.copyWith(errorMessage:
-          'L’épargne a été enregistrée, mais son brouillon a changé pendant l’enregistrement.');
+          'L’épargne a été enregistrée, mais son brouillon a changé pendant l’enregistrement.',
+      );
       return false;
     }
     state = state.copyWith(
@@ -12286,7 +12344,8 @@ class EditorNotifier extends _$EditorNotifier
     if (map == null) return;
     try {
       final updated = const BorderActions().setForeground(map,
-          layerId: layerId, renderInForeground: renderInForeground);
+          layerId: layerId, renderInForeground: renderInForeground,
+      );
       _applyMapMutation(
         previousMap: map,
         updatedMap: updated,
@@ -12294,7 +12353,8 @@ class EditorNotifier extends _$EditorNotifier
         statusMessage: renderInForeground ? 'Bordures au premier plan' : 'Bordures à l’arrière-plan',
       );
     } catch (e) {
-      state = state.copyWith(errorMessage: 'Impossible de modifier le premier plan : $e');
+      state = state.copyWith(errorMessage: 'Impossible de modifier le premier plan : $e',
+      );
     }
   }
 
@@ -13652,9 +13712,11 @@ class EditorNotifier extends _$EditorNotifier
     final project = state.project;
     if (map == null || project == null) return;
     try {
-      final updated = const MovingPropEditing().upsert(map: map, project: project, prop: prop);
+      final updated = const MovingPropEditing().upsert(map: map, project: project, prop: prop,
+      );
       _applyMapMutation(previousMap: map, updatedMap: updated,
-        preferredActiveLayerId: state.activeLayerId, statusMessage: 'Déplacement du décor configuré');
+        preferredActiveLayerId: state.activeLayerId, statusMessage: 'Déplacement du décor configuré',
+      );
     } on FormatException catch (error) {
       state = state.copyWith(errorMessage: error.message.toString());
     }
@@ -13665,9 +13727,11 @@ class EditorNotifier extends _$EditorNotifier
     final project = state.project;
     if (map == null || project == null) return;
     try {
-      final updated = const MovingPropEditing().delete(map: map, project: project, propId: propId);
+      final updated = const MovingPropEditing().delete(map: map, project: project, propId: propId,
+      );
       _applyMapMutation(previousMap: map, updatedMap: updated,
-        preferredActiveLayerId: state.activeLayerId, statusMessage: 'Déplacement du décor retiré');
+        preferredActiveLayerId: state.activeLayerId, statusMessage: 'Déplacement du décor retiré',
+      );
     } on FormatException catch (error) {
       state = state.copyWith(errorMessage: error.message.toString());
     }
@@ -14670,9 +14734,11 @@ class EditorNotifier extends _$EditorNotifier
     if (project != null && updatedMap.movingProps.isNotEmpty) {
       try {
         updatedMap = const MovingPropEditing().reconcilePlacementChanges(
-          before: previousMap, after: updatedMap, project: project);
+          before: previousMap, after: updatedMap, project: project,
+        );
       } on FormatException {
-        state = state.copyWith(errorMessage: 'Le décor mobile ou son rail dépasse les limites de la carte.');
+        state = state.copyWith(errorMessage: 'Le décor mobile ou son rail dépasse les limites de la carte.',
+        );
         return;
       }
     }

@@ -9,6 +9,240 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('model-only reward consumer guards source replacement and follows undo redo', () async {
+    final fixture = await _Fixture.create(catalog: true, wire: false, unrelated: 0, spatial: true);
+    addTearDown(fixture.dispose);
+    await fixture.apply(await fixture.plan('map3d.instance.visibility.set', {'mapId': 'route', 'instanceId': 'tree',
+      'visibilityCondition': NarrativeEventConditionExpression.leaf(NarrativeEventCondition.periodicRewardAvailable(reference: _reference(), expectedValue: true)).toJson()}));
+    final receiptId = fixture.lastReceiptId!;
+    expect((await fixture.facet())?['consumers'], hasLength(1));
+    await expectLater(fixture.plan('scene.interactive_command.set', {'sceneId': 'source', 'nodeId': 'claim',
+      'command': SceneInteractiveCommand.claimPeriodicReward(definition: PeriodicItemRewardDefinition(rewardId: 'replacement', label: 'Fruit', itemId: 'fruit', quantity: 2)).toJson()}),
+      throwsA(predicate((error) => error.toString().contains('periodic_reward_reference_in_use'))));
+    await fixture.mutations.undoMutation(fixture.opened.projectHandle, entryId: receiptId, idempotencyKey: 'undo-visibility');
+    expect((await fixture.facet())?['consumers'] ?? const [], isEmpty);
+    await fixture.mutations.redoMutation(fixture.opened.projectHandle, entryId: receiptId, idempotencyKey: 'redo-visibility');
+    expect((await fixture.facet())?['consumers'], hasLength(1));
+  });
+  for (final catalog in [false, true]) {
+    for (final wire in [false, true]) {
+      test(
+          'entity presentation periodic setter is targeted catalog=$catalog JSONL=$wire',
+          () async {
+        final fixture = await _Fixture.create(
+            catalog: catalog, wire: wire, unrelated: 80, spatial: true);
+        addTearDown(fixture.dispose);
+        fixture.reader.clear();
+        final condition = NarrativeEventConditionExpression.leaf(
+            NarrativeEventCondition.periodicRewardAvailable(
+                reference: _reference(), expectedValue: true));
+        final presentation = MapEntityPresentation(variants: [
+          MapEntityPresentationVariant(
+              id: 'daily', condition: condition, blocksMovement: false)
+        ]);
+        await fixture.apply(await fixture.plan('entity.set_presentation', {
+          'mapId': 'route',
+          'entityId': 'anchor',
+          'presentation': presentation.toJson()
+        }));
+        final saved = MapData.fromJson(jsonDecode(
+            await File('${fixture.root.path}/maps/route.json')
+                .readAsString()) as Map<String, dynamic>);
+        expect(saved.entities.single.presentation, presentation);
+        expect(
+            fixture.reader.paths.where((path) =>
+                path.startsWith('maps/') && path != 'maps/route.json' ||
+                path.startsWith('assets/') ||
+                path == 'items.json' ||
+                path == 'dialogues/foreign.yarn' ||
+                path.endsWith('history.jsonl')),
+            isEmpty);
+        if (catalog)
+          expect(
+              (await fixture.facet())?['consumers'],
+              contains(equals({
+                'kind': 'entityPresentation',
+                'mapId': 'route',
+                'entityId': 'anchor',
+                'variantId': 'daily',
+                'conditionIndex': '0',
+                'rewardId': 'daily-fruit'
+              })));
+      });
+    }
+  }
+  for (final catalog in [false, true]) {
+    for (final wire in [false, true]) {
+      for (final unrelated in [0, 80]) {
+        test(
+            'Event periodic condition resolves one source catalog=$catalog JSONL=$wire foreign=$unrelated',
+            () async {
+          final fixture = await _Fixture.create(
+              catalog: catalog,
+              wire: wire,
+              unrelated: unrelated,
+              spatial: true);
+          addTearDown(fixture.dispose);
+          for (final expected in [true, false]) {
+            fixture.reader.clear();
+            final condition = NarrativeEventCondition.periodicRewardAvailable(
+                reference: _reference(), expectedValue: expected);
+            final record = {
+              'state': 'configured',
+              'enabled': false,
+              'definition': {
+                'id': 'evt_019abcde-0000-7000-8000-000000000001',
+                'name': 'Daily entrance',
+                'source': {'kind': 'mapEnter', 'mapId': 'route'},
+                'conditions': [condition.toJson()],
+                'sceneId': 'consumer',
+                'reusePolicy': 'reusable',
+                'priority': 0,
+                'order': 0,
+              }
+            };
+            await fixture.apply(await fixture
+                .plan('event_v2.record_upsert', {'record': record}));
+            expect(
+                fixture.reader.paths.where((path) =>
+                    path.startsWith('maps/') && path != 'maps/route.json' ||
+                    path.startsWith('assets/') ||
+                    path == 'items.json' ||
+                    path == 'dialogues/foreign.yarn' ||
+                    path.endsWith('history.jsonl')),
+                isEmpty);
+            if (catalog) expect(
+                (await fixture.facet())?['consumers'],
+                contains(equals({
+                  'kind': 'eventCondition',
+                  'eventId': 'evt_019abcde-0000-7000-8000-000000000001',
+                  'conditionIndex': '0',
+                  'rewardId': 'daily-fruit'
+                })));
+          }
+        });
+      }
+    }
+  }
+  for (final catalog in [false, true]) {
+    for (final wire in [false, true]) {
+      for (final unrelated in [0, 80]) {
+        test(
+            'model visibility persists locally catalog=$catalog JSONL=$wire foreign=$unrelated',
+            () async {
+          final fixture = await _Fixture.create(
+              catalog: catalog,
+              wire: wire,
+              unrelated: unrelated,
+              spatial: true);
+          addTearDown(fixture.dispose);
+          for (final expected in [true, false]) {
+            fixture.reader.clear();
+            final condition = NarrativeEventConditionExpression.leaf(
+                NarrativeEventCondition.periodicRewardAvailable(
+                    reference: _reference(), expectedValue: expected));
+            await fixture
+                .apply(await fixture.plan('map3d.instance.visibility.set', {
+              'mapId': 'route',
+              'instanceId': 'tree',
+              'visibilityCondition': condition.toJson()
+            }));
+            final saved = MapData.fromJson(jsonDecode(
+                await File('${fixture.root.path}/maps/route.json')
+                    .readAsString()) as Map<String, dynamic>);
+            expect(saved.spatialScene!.instances.single.visibilityCondition,
+                condition);
+            expect(saved.spatialScene!.instances.single.blocksMovement, isTrue);
+            expect(
+                fixture.reader.paths.where((path) =>
+                    path.startsWith('maps/') && path != 'maps/route.json' ||
+                    path.startsWith('assets/') ||
+                    path == 'items.json' ||
+                    path == 'dialogues/foreign.yarn' ||
+                    path.endsWith('history.jsonl')),
+                isEmpty);
+            if (catalog)
+              expect(
+                  (await fixture.facet())?['consumers'],
+                  contains(equals({
+                    'kind': 'modelVisibility',
+                    'mapId': 'route',
+                    'instanceId': 'tree',
+                    'conditionIndex': '0',
+                    'rewardId': 'daily-fruit'
+                  })));
+          }
+          await fixture.apply(await fixture.plan(
+              'map3d.instance.visibility.set', {
+            'mapId': 'route',
+            'instanceId': 'tree',
+            'visibilityCondition': null
+          }));
+          final saved = MapData.fromJson(jsonDecode(
+              await File('${fixture.root.path}/maps/route.json')
+                  .readAsString()) as Map<String, dynamic>);
+          expect(
+              saved.spatialScene!.instances.single.visibilityCondition, isNull);
+          if (catalog) expect((await fixture.facet())?['consumers'], isEmpty);
+        });
+      }
+    }
+  }
+  for (final catalog in [false, true]) {
+    for (final wire in [false, true]) {
+      for (final unrelated in [1, 80]) {
+        test(
+            'World Rule periodic source stays bounded catalog=$catalog JSONL=$wire foreign=$unrelated',
+            () async {
+          final fixture = await _Fixture.create(
+              catalog: catalog, wire: wire, unrelated: unrelated);
+          addTearDown(fixture.dispose);
+          for (final expected in [true, false]) {
+            fixture.reader.clear();
+            final rule = WorldRuleDefinition(
+                id: 'world_rule_daily',
+                label: 'Daily',
+                source: WorldRuleSource.periodicRewardAvailable(
+                    reference: _reference(), expectedValue: expected),
+                target: const WorldRuleTarget(
+                    kind: WorldRuleTargetKind.mapEntity,
+                    mapId: 'foreign-0',
+                    entityId: 'tree'),
+                effect: const WorldRuleEffect(
+                    kind: WorldRuleEffectKind.entityHidden));
+            await fixture.apply(await fixture.plan(
+                expected ? 'world_rule.create' : 'world_rule.update',
+                {'rule': rule.toJson()}));
+            expect(
+                fixture.reader.paths.where((path) =>
+                    path.startsWith('maps/') && path != 'maps/foreign-0.json'),
+                isEmpty);
+            expect(
+                fixture.reader.paths.where((path) =>
+                    path == 'dialogues/foreign.yarn' ||
+                    path == 'items.json' ||
+                    path.endsWith('history.jsonl')),
+                isEmpty);
+            expect(
+                fixture.reader.definitions
+                    .where(
+                        (id) => id.startsWith('["projectDefinition","scenes",'))
+                    .map((id) => (jsonDecode(id) as List)[2])
+                    .where((position) => (position as int) > 1),
+                isEmpty);
+            if (catalog)
+              expect(
+                  (await fixture.facet())?['consumers'],
+                  contains(equals({
+                    'kind': 'worldRule',
+                    'ruleId': 'world_rule_daily',
+                    'rewardId': 'daily-fruit'
+                  })));
+          }
+        });
+      }
+    }
+  }
   for (final catalog in [false, true]) {
     for (final wire in [false, true]) {
       for (final unrelated in [0, 80]) {
@@ -470,14 +704,24 @@ final class _Fixture {
       {required bool catalog,
       required bool wire,
       required int unrelated,
+      bool spatial = false,
       AuthoringTransactionFaultInjector? faultInjector}) async {
     final qa = Directory(
         '/Users/karim/Library/Caches/AveluneQA/ecorcia-chapitre7-annexes/periodic-availability-authoring');
     await qa.create(recursive: true);
-    final root = await qa.createTemp('setter-');
+    final root = Directory('${qa.path}/fixture');
+    if (await root.exists()) throw StateError('The owned periodic fixture is already in use.');
+    await root.create();
     final project = ProjectManifest(
         name: 'Periodic conditions',
+        version: spatial ? ProjectVersion.v9 : ProjectVersion.v8,
+        settings: ProjectSettings(
+            dimension:
+                spatial ? ProjectDimension.threeD : ProjectDimension.twoD),
         maps: [
+          if (spatial)
+            const ProjectMapEntry(
+                id: 'route', name: 'Route', relativePath: 'maps/route.json'),
           for (var i = 0; i < unrelated; i++)
             ProjectMapEntry(
                 id: 'foreign-$i',
@@ -485,6 +729,20 @@ final class _Fixture {
                 relativePath: 'maps/foreign-$i.json'),
         ],
         tilesets: const [],
+        models3d: [
+          if (spatial)
+            ProjectModel3dEntry(
+                id: 'tree-model',
+                name: 'Tree',
+                sourceAssetId: 'tree-source',
+                relativePath: 'assets/models3d/tree-model.glb',
+                inspection: Model3dInspection(
+                    bounds: Model3dBounds(
+                        min: Model3dVector3(x: -.4, y: 0, z: -.4),
+                        max: Model3dVector3(x: .4, y: 2, z: .4)),
+                    meshCount: 1,
+                    triangleCount: 4))
+        ],
         scenes: [
           _consumer(),
           _source(),
@@ -527,13 +785,45 @@ final class _Fixture {
       ]
     }));
     await Directory('${root.path}/maps').create();
+    if (spatial)
+      await File('${root.path}/maps/route.json')
+          .writeAsString(jsonEncode(MapData(
+        id: 'route',
+        name: 'Route',
+        version: ProjectVersion.v9,
+        entities: [
+          MapEntity(
+              id: 'anchor',
+              name: 'Anchor',
+              kind: MapEntityKind.custom,
+              pos: const GridPos(x: 1, y: 1))
+        ],
+        size: const GridSize(width: 4, height: 4),
+        spatialScene: MapSpatialScene(
+            width: 4,
+            depth: 4,
+            heightLevels: List.filled(16, 0),
+            instances: [
+              SpatialModelInstance(
+                  id: 'tree',
+                  modelId: 'tree-model',
+                  position: Model3dVector3(x: 1.5, y: 0, z: 1.5),
+                  blocksMovement: true)
+            ]),
+      ).toJson()));
     for (var i = 0; i < unrelated; i++) {
       await File('${root.path}/maps/foreign-$i.json').writeAsString(jsonEncode(
           MapData(
-                  id: 'foreign-$i',
-                  name: 'Foreign',
-                  size: const GridSize(width: 4, height: 4))
-              .toJson()));
+              id: 'foreign-$i',
+              name: 'Foreign',
+              size: const GridSize(width: 4, height: 4),
+              entities: [
+            MapEntity(
+                id: 'tree',
+                name: 'Tree',
+                kind: MapEntityKind.custom,
+                pos: const GridPos(x: 1, y: 1))
+          ]).toJson()));
     }
     if (catalog) {
       final store = await CatalogStorageStore.open(projectRoot: root.path);

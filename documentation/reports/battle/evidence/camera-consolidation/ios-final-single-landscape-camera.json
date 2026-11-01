@@ -1,0 +1,75 @@
+{
+  "qaRoot": "/var/mobile/Containers/Data/Application/F7B3BFE8-F10C-41FF-B284-EECBDA6A815F/Library/Application Support/battle-camera-consolidation",
+  "readOnlyAssets": "/var/mobile/Containers/Data/Application/F7B3BFE8-F10C-41FF-B284-EECBDA6A815F/Library/Application Support/battle-camera-consolidation/fixture",
+  "ready": true,
+  "actorCount": 2,
+  "gpuActors": 2,
+  "allActorsGpu": true,
+  "actors": [
+    {
+      "index": 0,
+      "playerSide": false,
+      "renderedBy3DStage": true,
+      "hasImage": true,
+      "rect": {
+        "left": 482.3034803143821,
+        "top": 88.48394905437722,
+        "right": 569.3973095620574,
+        "bottom": 180.28555285598094,
+        "width": 87.09382924767533,
+        "height": 91.80160380160372
+      }
+    },
+    {
+      "index": 1,
+      "playerSide": true,
+      "renderedBy3DStage": true,
+      "hasImage": true,
+      "rect": {
+        "left": 25.65349288661555,
+        "top": 158.1496661137158,
+        "right": 166.27962734723195,
+        "bottom": 273.589030223177,
+        "width": 140.6261344606164,
+        "height": 115.43936410946122
+      }
+    }
+  ],
+  "viewport": "852.0x393.0",
+  "errors": [],
+  "gpu": true,
+  "framePresented": true,
+  "fxCount": 1,
+  "speed": 1.0,
+  "reduced": false,
+  "gpuPlayer": true,
+  "playerRect": {
+    "left": 25.65349288661555,
+    "top": 158.1496661137158,
+    "right": 166.27962734723195,
+    "bottom": 273.589030223177,
+    "width": 140.6261344606164,
+    "height": 115.43936410946122
+  },
+  "enemyRect": {
+    "left": 482.3034803143821,
+    "top": 88.48394905437722,
+    "right": 569.3973095620574,
+    "bottom": 180.28555285598094,
+    "width": 87.09382924767533,
+    "height": 91.80160380160372
+  },
+  "eye": [
+    9.020304016847987,
+    6.775350986961133,
+    15.655162985913178
+  ],
+  "aim": [
+    1.8562625599744491,
+    2.391385319322103,
+    -2.8430336116856583
+  ],
+  "moving": true,
+  "prompt": "",
+  "hudVisible": false
+}

@@ -91,6 +91,10 @@ void main() {
           canvas.drawImage(sprite, const Offset(30, 0), Paint());
         });
         expect(actual, orderedEquals(expected));
+
+        component.renderedBy3DStage = true;
+        final gpuOwned = await _pixels(component.renderTree);
+        expect(gpuOwned.every((value) => value == 0), isTrue);
       },
     );
   }

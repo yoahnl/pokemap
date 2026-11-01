@@ -31,6 +31,10 @@ const _nativeResourceActions = <String, (CatalogDefinitionKind, String)>{
     CatalogDefinitionKind.borderRecord,
     'blueprintId'
   ),
+  'border.blueprint.set_deprecated': (
+    CatalogDefinitionKind.borderRecord,
+    'blueprintId'
+  ),
   'environment.preset.upsert': (
     CatalogDefinitionKind.environmentPreset,
     'preset'
@@ -45,6 +49,7 @@ Future<CatalogWorkshopSelection> _readNativeResourceWorkshop({
 }) async {
   final (kind, parameter) = _nativeResourceActions[actionId]!;
   final publishingBorder = actionId == 'border.blueprint.publish';
+  final deprecatingBorder = actionId == 'border.blueprint.set_deprecated';
   if (parameters.containsKey('layer') || parameters.containsKey('draftId')) {
     CatalogWorkshopSelection.unsupported(
         actionId, 'standalone new resource publication');
@@ -58,7 +63,7 @@ Future<CatalogWorkshopSelection> _readNativeResourceWorkshop({
   final ids = <String>{};
   for (final input in inputs) {
     final id = kind == CatalogDefinitionKind.resourceLibraryEntry && input is Map
-        ? '${input['resourceKind']}:${input['resourceId']}' : publishingBorder
+        ? '${input['resourceKind']}:${input['resourceId']}' : publishingBorder || deprecatingBorder
         ? input
         : input is Map
             ? input['id']
@@ -93,7 +98,7 @@ Future<CatalogWorkshopSelection> _readNativeResourceWorkshop({
     for (final id in ids) {
       final key = CatalogDefinitionKey(kind, id);
       final existing = await catalog.lookup(key);
-      if (publishingBorder) {
+      if (publishingBorder || deprecatingBorder) {
         if (existing == null) {
           throw const FormatException(
               'catalog.native_resource: Border draft missing');
@@ -101,8 +106,8 @@ Future<CatalogWorkshopSelection> _readNativeResourceWorkshop({
         final record = decodeBorderBlueprintRecordJson(
             existing.payload['value'],
             formatVersion: ProjectBorderCatalog.latestSupportedFormatVersion);
-        if (record.latestPublished != null ||
-            !record.draft.definition.isSpatial) {
+        if (publishingBorder && (record.latestPublished != null ||
+            !record.draft.definition.isSpatial)) {
           CatalogWorkshopSelection.unsupported(
               actionId, 'first publication of a spatial Border draft');
         }

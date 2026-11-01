@@ -105,7 +105,8 @@ final class FileAuthoringContentBlobStore
   @override
   Future<AuthoringContentBlobRef> putPayload(AuthoringPayload payload) =>
       _guard(() async {
-        final inspection = await inspectAuthoringPayload(payload.openRead(),
+        final inspection = await inspectAuthoringResourceRevision(
+            payload.openRead(),
             storageKey: 'authoring-history-blob',
             byteLength: payload.byteLength);
         final id = inspection.resourceRevision;

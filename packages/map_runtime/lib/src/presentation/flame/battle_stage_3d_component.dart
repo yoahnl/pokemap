@@ -18,38 +18,51 @@ final class BattleStage3DComponent extends Component {
     required this.combatants,
     required this.platforms,
     required this.paintFloor,
-  }) : super(priority: 6);
+    Future<BattleStageRenderer> Function(Size)? stageFactory,
+    RuntimeResourceBudget? resourceBudget,
+  }) : _stageFactory =
+           stageFactory ??
+           ((size) =>
+               BattleStage3D.create(size, resourceBudget: resourceBudget)),
+       super(priority: 6);
 
   final BattlePerspectiveCamera camera;
   final BattleSceneLayout Function() layout;
   final Map<BattleSlotRef, BattleSceneCombatantComponent> Function() combatants;
   final Map<BattleSlotRef, BattleCombatantSceneGeometry> Function() platforms;
   final bool paintFloor;
-  BattleStage3D? _stage;
+  final Future<BattleStageRenderer> Function(Size) _stageFactory;
+  BattleStageRenderer? _stage;
   bool _closed = false;
-  BattleSceneLayout? _groundLayout;
-  int _groundCount = 0;
+  int _loadGeneration = 0;
+  bool _currentFramePresented = false;
+  bool _renderFailureReported = false;
+  List<Object>? _groundKey;
   List<BattleStageGround> _ground = const [];
 
   bool get isReady => _stage != null;
+  bool get currentFramePresented => _currentFramePresented;
 
   @override
   Future<void> onLoad() async {
+    final generation = ++_loadGeneration;
     final loadingGame = findGame();
     final loadingParent = parent;
     if (loadingGame?.buildContext == null) return;
     bool isCurrentOwner() =>
         !_closed &&
+        generation == _loadGeneration &&
         !isRemoving &&
         !isRemoved &&
         identical(parent, loadingParent) &&
         identical(findGame(), loadingGame);
     try {
-      final stage = await BattleStage3D.create(camera.viewport.size);
+      final stage = await _stageFactory(camera.viewport.size);
       if (!isCurrentOwner()) {
         stage.dispose();
         return;
       }
+      _stage?.dispose();
       _stage = stage;
     } catch (error) {
       if (!isCurrentOwner()) return;
@@ -70,65 +83,132 @@ final class BattleStage3DComponent extends Component {
 
   @override
   void render(Canvas canvas) {
+    final actors = combatants();
+    _currentFramePresented = false;
+    for (final actor in actors.values) {
+      actor.renderedBy3DStage = false;
+    }
     final stage = _stage;
     final context = findGame()?.buildContext;
     if (_closed || stage == null || context == null) return;
-    final actors = combatants();
-    final geometry = platforms();
-    final scene = layout();
-    if (!identical(scene, _groundLayout) || geometry.length != _groundCount) {
-      _groundLayout = scene;
-      _groundCount = geometry.length;
-      _ground = [
-        if (paintFloor)
-          BattleStageGround(
-            points: [
-              Model3dVector3(x: -150, y: -.04, z: -250),
-              Model3dVector3(x: 150, y: -.04, z: -250),
-              Model3dVector3(x: 150, y: -.04, z: 150),
-              Model3dVector3(x: -150, y: -.04, z: 150),
-            ],
-            color: const Color(0xff64875a),
-          ),
-        for (final entry in geometry.entries) ...[
-          _ellipse(entry.value, .0, 1, const Color(0xff635d3c)),
-          _ellipse(entry.value, .015, .94, const Color(0xff819269)),
-        ],
+    final recorder = PictureRecorder();
+    Picture? picture;
+    try {
+      final geometry = platforms();
+      final scene = layout();
+      final groundKey = <Object>[
+        camera.viewport,
+        camera.focal,
+        for (final entry in geometry.entries)
+          (entry.key, entry.value.footAnchor, entry.value.platformRect),
       ];
-    }
-    final visible = stage.render(
-      canvas: canvas,
-      context: context,
-      viewport: scene.arenaRect,
-      clip: scene.arenaRect,
-      eye: _point(camera.eye),
-      aim: _point(camera.aim),
-      focal: camera.focal,
-      projectionCenter: Offset(
-        camera.viewport.center.dx,
-        camera.viewport.top + camera.viewport.height * .55,
-      ),
-      ground: _ground,
-      billboards: [
+      if (!listEquals(groundKey, _groundKey)) {
+        _groundKey = groundKey;
+        _ground = [
+          if (paintFloor)
+            BattleStageGround(
+              points: [
+                Model3dVector3(x: -150, y: -.04, z: -250),
+                Model3dVector3(x: 150, y: -.04, z: -250),
+                Model3dVector3(x: 150, y: -.04, z: 150),
+                Model3dVector3(x: -150, y: -.04, z: 150),
+              ],
+              color: const Color(0xff64875a),
+            ),
+          for (final entry in geometry.entries) ...[
+            _ellipse(entry.value, .0, 1, const Color(0xff635d3c)),
+            _ellipse(entry.value, .015, .94, const Color(0xff819269)),
+          ],
+        ];
+      }
+      final billboards = [
         for (final entry in actors.entries)
-          if (entry.value.stageImage != null)
-            _billboard(entry.key, entry.value, geometry[entry.key]!.footAnchor),
-      ],
-    );
-    for (final entry in actors.entries) {
-      entry.value.renderedBy3DStage = visible.contains(entry.key);
+          if (entry.value.stageImage != null && geometry.containsKey(entry.key))
+            ?_billboard(
+              entry.key,
+              entry.value,
+              geometry[entry.key]!.footAnchor,
+            ),
+      ];
+      final result = stage.render(
+        canvas: Canvas(recorder),
+        context: context,
+        viewport: scene.arenaRect,
+        clip: scene.arenaRect,
+        eye: _point(camera.eye),
+        aim: _point(camera.aim),
+        focal: camera.focal,
+        projectionCenter: Offset(
+          camera.viewport.center.dx,
+          camera.viewport.top + camera.viewport.height * .55,
+        ),
+        ground: _ground,
+        billboards: billboards,
+      );
+      picture = recorder.endRecording();
+      if (!result.presented ||
+          billboards.length != actors.length ||
+          billboards.any(
+            (frame) => !result.submittedActorIds.contains(frame.id),
+          )) {
+        return;
+      }
+      canvas.drawPicture(picture);
+      _currentFramePresented = true;
+      _renderFailureReported = false;
+      for (final entry in actors.entries) {
+        entry.value.renderedBy3DStage = result.submittedActorIds.contains(
+          entry.key,
+        );
+      }
+    } catch (error) {
+      if (!_renderFailureReported) {
+        _renderFailureReported = true;
+        debugPrint(
+          '[battle][3D] Frame failed; using software presentation: $error',
+        );
+      }
+    } finally {
+      if (recorder.isRecording) recorder.endRecording().dispose();
+      picture?.dispose();
     }
   }
 
-  BattleStageBillboard _billboard(
+  BattleStageBillboard? _billboard(
     BattleSlotRef slot,
     BattleSceneCombatantComponent actor,
     Offset foot,
   ) {
-    final world = camera.billboardWorldGeometry(
+    final world = camera.tryBillboardWorldGeometry(
       foot,
       actor.currentCameraNeutralRenderedSpriteRect,
     );
+    if (world == null) return null;
+    final shadowRect = actor.currentCameraNeutralShadowRect;
+    final maskSize = actor.stageShadowMaskSize;
+    final pixels = BattleStageSoftShadow.imageSize(maskSize);
+    final shadow = camera.tryBillboardWorldGeometry(
+      foot,
+      Rect.fromCenter(
+        center: shadowRect.center,
+        width: pixels.width * shadowRect.width / maskSize.width,
+        height: pixels.height * shadowRect.height / maskSize.height,
+      ),
+    );
+    if (shadow == null) return null;
+    final trails = <BattleStageTrail>[];
+    for (final trail in actor.currentCameraNeutralDashTrails) {
+      final geometry = camera.tryBillboardWorldGeometry(foot, trail.rect);
+      if (geometry == null) return null;
+      trails.add(
+        BattleStageTrail(
+          position: _point(geometry.position),
+          width: geometry.width,
+          height: geometry.height,
+          tint: trail.tint,
+        ),
+      );
+    }
     return BattleStageBillboard(
       id: slot,
       image: actor.stageImage!,
@@ -137,6 +217,14 @@ final class BattleStage3DComponent extends Component {
       width: world.width,
       height: world.height,
       tint: actor.stageTint,
+      shadow: BattleStageSoftShadow(
+        maskSize: maskSize,
+        position: _point(shadow.position),
+        width: shadow.width,
+        height: shadow.height,
+        tint: actor.stageShadowTint,
+      ),
+      trails: trails,
     );
   }
 
@@ -145,28 +233,29 @@ final class BattleStage3DComponent extends Component {
     double y,
     double scale,
     Color color,
-  ) => BattleStageGround(
-    color: color,
-    points: [
-      for (var i = 0; i < 40; i++)
-        _point(
-          camera.groundAt(
-            geometry.footAnchor +
-                Offset(
-                  math.cos(i * math.pi / 20) *
-                      geometry.platformRect.width *
-                      scale /
-                      2,
-                  math.sin(i * math.pi / 20) *
-                      geometry.platformRect.height *
-                      scale /
-                      2,
-                ),
-          ),
-          y: y,
-        ),
-    ],
-  );
+  ) {
+    final points = <Model3dVector3>[];
+    for (var i = 0; i < 40; i++) {
+      final ground = camera.tryGroundAt(
+        geometry.footAnchor +
+            Offset(
+              math.cos(i * math.pi / 20) *
+                  geometry.platformRect.width *
+                  scale /
+                  2,
+              math.sin(i * math.pi / 20) *
+                  geometry.platformRect.height *
+                  scale /
+                  2,
+            ),
+      );
+      if (ground == null) {
+        return BattleStageGround(points: const [], color: color);
+      }
+      points.add(_point(ground, y: y));
+    }
+    return BattleStageGround(color: color, points: points);
+  }
 
   static Model3dVector3 _point(BattleCameraPoint point, {double? y}) =>
       Model3dVector3(x: point.x, y: y ?? point.y, z: point.z);
@@ -174,8 +263,12 @@ final class BattleStage3DComponent extends Component {
   @override
   void onRemove() {
     _closed = true;
+    _loadGeneration++;
+    _currentFramePresented = false;
     _stage?.dispose();
     _stage = null;
+    _groundKey = null;
+    _ground = const [];
     for (final actor in combatants().values) {
       actor.renderedBy3DStage = false;
     }

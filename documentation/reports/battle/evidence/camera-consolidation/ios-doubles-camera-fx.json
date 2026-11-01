@@ -1,0 +1,103 @@
+{
+  "qaRoot": "/var/mobile/Containers/Data/Application/A48F520E-0CD2-4BAC-8607-9A38F747F3E0/Library/Application Support/battle-camera-consolidation",
+  "readOnlyAssets": "/var/mobile/Containers/Data/Application/A48F520E-0CD2-4BAC-8607-9A38F747F3E0/Library/Application Support/battle-camera-consolidation/fixture",
+  "ready": true,
+  "actorCount": 4,
+  "gpuActors": 4,
+  "allActorsGpu": true,
+  "actors": [
+    {
+      "index": 0,
+      "playerSide": false,
+      "renderedBy3DStage": true,
+      "hasImage": true,
+      "rect": {
+        "left": 518.844403793302,
+        "top": 43.843768806109956,
+        "right": 579.3677246814383,
+        "bottom": 107.63862055306443,
+        "width": 60.523320888136254,
+        "height": 63.79485174695447
+      }
+    },
+    {
+      "index": 1,
+      "playerSide": true,
+      "renderedBy3DStage": true,
+      "hasImage": true,
+      "rect": {
+        "left": 114.92451957191085,
+        "top": 160.01487312885035,
+        "right": 178.95708788070428,
+        "bottom": 212.57892174054646,
+        "width": 64.03256830879343,
+        "height": 52.56404861169611
+      }
+    },
+    {
+      "index": 2,
+      "playerSide": true,
+      "renderedBy3DStage": true,
+      "hasImage": true,
+      "rect": {
+        "left": 242.0023339670448,
+        "top": 185.45463249654307,
+        "right": 303.03892916626444,
+        "bottom": 235.559300197395,
+        "width": 61.03659519921965,
+        "height": 50.104667700851934
+      }
+    },
+    {
+      "index": 3,
+      "playerSide": false,
+      "renderedBy3DStage": true,
+      "hasImage": true,
+      "rect": {
+        "left": 616.4892780537875,
+        "top": 76.75082205744557,
+        "right": 673.9944630774407,
+        "bottom": 137.36439546075565,
+        "width": 57.50518502365321,
+        "height": 60.61357340331007
+      }
+    }
+  ],
+  "viewport": "852.0x393.0",
+  "errors": [],
+  "gpu": true,
+  "framePresented": true,
+  "fxCount": 1,
+  "speed": 1.0,
+  "reduced": false,
+  "gpuPlayer": true,
+  "playerRect": {
+    "left": 114.92451957191085,
+    "top": 160.01487312885035,
+    "right": 178.95708788070428,
+    "bottom": 212.57892174054646,
+    "width": 64.03256830879343,
+    "height": 52.56404861169611
+  },
+  "enemyRect": {
+    "left": 518.844403793302,
+    "top": 43.843768806109956,
+    "right": 579.3677246814383,
+    "bottom": 107.63862055306443,
+    "width": 60.523320888136254,
+    "height": 63.79485174695447
+  },
+  "eye": [
+    11.345001615907925,
+    9.004295091438134,
+    22.8817199842727
+  ],
+  "aim": [
+    -0.39791071202419714,
+    1.8183338161363887,
+    -7.439531250537112
+  ],
+  "moving": true,
+  "prompt": "Que doit faire Kaiminus ?",
+  "hudVisible": false
+}

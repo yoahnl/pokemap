@@ -50,14 +50,23 @@ abstract final class SpatialGameplayCapabilities {
   static const periodicRewardCapabilityId = 'gameplay.periodic-reward@1';
   static const periodicRewardConditionCapabilityId = 'gameplay.periodic-reward-condition@1';
 
+  static bool requiresConditionalModelVisibility(Iterable<MapData> maps) =>
+      maps.any((map) => map.spatialScene?.instances.any(
+        (instance) => instance.visibilityCondition != null,
+      ) ?? false);
+
   static bool requiresPeriodicRewardCondition(ProjectManifest project, {required Iterable<MapData> maps}) =>
     project.scenes.any((scene) => scene.graph.nodes.any((node) =>
       node.payload is SceneConditionPayload && (node.payload as SceneConditionPayload).conditionSource?.sourceKind == SceneConditionSourceKind.periodicRewardAvailable)) ||
     project.worldRules.any((rule) => rule.source.kind == WorldRuleSourceKind.periodicRewardAvailable) ||
     (project.eventRegistry?.records.any((record) =>
       (record.definitionOrNull?.conditions ?? record.draftOrNull?.conditions ?? const []).any((condition) => condition.rewardReference != null)) ?? false) ||
-    maps.any((map) => map.entities.any((entity) => entity.presentation?.variants.any((variant) =>
-      variant.condition.leaves.any((condition) => condition.rewardReference != null)) ?? false));
+    maps.any((map) =>
+      (map.spatialScene?.instances.any((instance) =>
+        instance.visibilityCondition?.leaves.any((condition) =>
+          condition.rewardReference != null) ?? false) ?? false) ||
+      map.entities.any((entity) => entity.presentation?.variants.any((variant) =>
+        variant.condition.leaves.any((condition) => condition.rewardReference != null)) ?? false));
 
 
   static bool requiresPeriodicReward(ProjectManifest project) => project.scenes.any(

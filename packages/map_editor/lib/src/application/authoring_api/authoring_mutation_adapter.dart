@@ -147,6 +147,177 @@ final class AuthoringMutationAdapter
         closeCount: _closeCount,
       );
 
+  Future<({SceneAsset before, SceneAsset after, AuthoringReceipt receipt})>
+  setSceneCondition(
+    String projectRootPath, {
+    required SceneAsset expectedScene,
+    required String nodeId,
+    required SceneConditionSource source,
+  }) async {
+    final root = await _fileReader.canonicalizeDirectory(projectRootPath);
+    _requireAllowedRoot(root);
+    final policy = await WorkspacePolicy.create(
+      allowedRootPaths: [root],
+      fileReader: _fileReader,
+    );
+    final handles = _workspaceHandles();
+    final opener = ProjectOpenService(
+      policy: policy,
+      fileReader: _fileReader,
+      handles: handles,
+      catalogMetadataFields: const {},
+      workshopScope: true,
+      initializeSceneOwners: false,
+    );
+    final opened = await opener.openProject(root);
+    final mutations = LocalMapAuthoringMutationApi(
+      policy: policy,
+      snapshotLoader: ProjectSnapshotLoader(handles: handles),
+      catalogFileReader: _fileReader,
+      authorizationLimits: editorAuthoringSecurityLimits,
+    );
+    try {
+      await mutations.attachProject(
+        projectRootPath: root,
+        workspaceHandle: opened.workspaceHandle,
+        projectHandle: opened.projectHandle,
+      );
+      final parameters = <String, Object?>{
+        'sceneId': expectedScene.id,
+        'nodeId': nodeId,
+        'conditionSource': source.toJson(),
+      };
+      final snapshot = await mutations.readWorkshopSnapshot(
+        opened.projectHandle,
+        actionId: 'scene.condition.set',
+        parameters: parameters,
+      );
+      final scene = snapshot.manifest.scenes
+          .where((scene) => scene.id == expectedScene.id)
+          .single;
+      final expected = expectedScene.graph.nodes
+          .where((node) => node.id == nodeId)
+          .single;
+      final actual = scene.graph.nodes
+          .where((node) => node.id == nodeId)
+          .single;
+      if (expected != actual)
+        throw StateError(
+          'Cette condition a changé sur le disque. Votre brouillon est conservé.',
+        );
+      final identity = _identity('editor_scene_condition');
+      final plan = await mutations.planMutation(
+        opened.projectHandle,
+        AuthoringRequest(
+          requestId: identity,
+          actionId: 'scene.condition.set',
+          actionVersion: 1,
+          workspaceHandle: opened.workspaceHandle.value,
+          parameters: parameters,
+          expectedRevision: snapshot.revision,
+          idempotencyKey: identity,
+        ),
+      );
+      final applied = await mutations.applyMutation(
+        opened.projectHandle,
+        planId: plan.planId,
+        operationId: identity,
+      );
+      _lastAppliedReceipt = applied.receipt;
+      final after = updateSceneConditionSource(
+        scene,
+        nodeId: nodeId,
+        source: source,
+      ).updatedScene;
+      return (before: scene, after: after, receipt: applied.receipt);
+    } finally {
+      await mutations.detachWorkspace(opened.workspaceHandle);
+      opener.closeWorkspace(opened.workspaceHandle);
+    }
+  }
+
+  Future<
+    ({ProjectManifest before, ProjectManifest after, AuthoringReceipt receipt})
+  >
+  mutateConditionAction(
+    String projectRootPath, {
+    required String actionId,
+    required Map<String, Object?> parameters,
+    required void Function(ProjectSnapshot) validate,
+  }) async {
+    if (!const {
+      'world_rule.create',
+      'world_rule.update',
+      'event_v2.record_upsert',
+    }.contains(actionId))
+      throw ArgumentError.value(actionId);
+    final root = await _fileReader.canonicalizeDirectory(projectRootPath);
+    _requireAllowedRoot(root);
+    final policy = await WorkspacePolicy.create(
+      allowedRootPaths: [root],
+      fileReader: _fileReader,
+    );
+    final handles = _workspaceHandles();
+    final opener = ProjectOpenService(
+      policy: policy,
+      fileReader: _fileReader,
+      handles: handles,
+      catalogMetadataFields: const {},
+      workshopScope: true,
+      initializeSceneOwners: false,
+    );
+    final opened = await opener.openProject(root);
+    final mutations = LocalMapAuthoringMutationApi(
+      policy: policy,
+      snapshotLoader: ProjectSnapshotLoader(handles: handles),
+      catalogFileReader: _fileReader,
+      authorizationLimits: editorAuthoringSecurityLimits,
+    );
+    try {
+      await mutations.attachProject(
+        projectRootPath: root,
+        workspaceHandle: opened.workspaceHandle,
+        projectHandle: opened.projectHandle,
+      );
+      final snapshot = await mutations.readWorkshopSnapshot(
+        opened.projectHandle,
+        actionId: actionId,
+        parameters: parameters,
+      );
+      validate(snapshot);
+      final identity = _identity('editor_condition');
+      final plan = await mutations.planMutation(
+        opened.projectHandle,
+        AuthoringRequest(
+          requestId: identity,
+          actionId: actionId,
+          actionVersion: 1,
+          workspaceHandle: opened.workspaceHandle.value,
+          parameters: parameters,
+          expectedRevision: snapshot.revision,
+          idempotencyKey: identity,
+        ),
+      );
+      final projected = plan.projectedProject;
+      if (projected == null)
+        throw StateError('La projection de la condition est indisponible.');
+      final applied = await mutations.applyMutation(
+        opened.projectHandle,
+        planId: plan.planId,
+        operationId: identity,
+      );
+      _lastAppliedReceipt = applied.receipt;
+      return (
+        before: snapshot.manifest,
+        after: projected,
+        receipt: applied.receipt,
+      );
+    } finally {
+      await mutations.detachWorkspace(opened.workspaceHandle);
+      opener.closeWorkspace(opened.workspaceHandle);
+    }
+  }
+
   Future<EditorAuthoringMutationPlan> plan(
     String projectRootPath, {
     required String actionId,

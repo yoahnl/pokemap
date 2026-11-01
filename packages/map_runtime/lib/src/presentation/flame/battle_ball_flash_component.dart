@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flame/components.dart';
 import 'package:flutter/foundation.dart' show visibleForTesting;
+import 'battle_live_attachment.dart';
 
 /// Le flash d'ouverture d'une Poké Ball — BETA-BAT-031.
 ///
@@ -12,21 +13,42 @@ import 'package:flutter/foundation.dart' show visibleForTesting;
 ///
 /// Un halo radial qui s'ouvre vite et s'éteint : plein éclat sur le premier
 /// tiers, puis extinction. Le composant se retire seul.
-class BattleBallFlashComponent extends PositionComponent {
+class BattleBallFlashComponent extends PositionComponent implements BattleLiveAttachment {
   BattleBallFlashComponent({
     required Offset center,
-    required this.radiusPx,
+    required double radiusPx,
+    this.resolveCenter,
+    this.resolveRadiusPx,
+    this.resolveIntensity,
     this.durationSeconds = 0.28,
     int priority = 45,
-  }) : super(
+  }) : _radiusPx = radiusPx, super(
           position: Vector2(center.dx, center.dy),
           anchor: Anchor.center,
           priority: priority,
         );
 
   /// Le rayon du halo à son plein éclat.
-  final double radiusPx;
+  double _radiusPx;
+  double get radiusPx => _radiusPx;
   final double durationSeconds;
+  final BattleLivePointResolver? resolveCenter;
+  final double Function()? resolveRadiusPx;
+  final double Function()? resolveIntensity;
+  bool _attachmentInvalid = false;
+
+  @override
+  bool refreshAttachment() {
+    if (_attachmentInvalid) return false;
+    if (!refreshBattleLivePoint(resolveCenter, position)) {
+      _attachmentInvalid = true;
+      removeBattleLiveAttachment(this);
+      return false;
+    }
+    final radius = resolveRadiusPx?.call();
+    if (radius != null && radius.isFinite && radius > 0) _radiusPx = radius;
+    return true;
+  }
 
   var _elapsed = 0.0;
   var _removalScheduled = false;
@@ -39,6 +61,7 @@ class BattleBallFlashComponent extends PositionComponent {
   @override
   void update(double dt) {
     super.update(dt);
+    if (!refreshAttachment()) return;
     _elapsed += dt;
     if (_progress >= 1 && !_removalScheduled) {
       _removalScheduled = true;
@@ -50,6 +73,7 @@ class BattleBallFlashComponent extends PositionComponent {
 
   @override
   void render(Canvas canvas) {
+    if (_attachmentInvalid) return;
     super.render(canvas);
     final progress = _progress;
     // L'éclat s'ouvre sur le premier tiers, puis s'éteint : la référence
@@ -59,7 +83,8 @@ class BattleBallFlashComponent extends PositionComponent {
         : 1 - ((progress - 0.33) / 0.67);
     if (intensity <= 0) return;
     final radius = radiusPx * (0.45 + 0.55 * progress);
-    final alpha = (intensity.clamp(0.0, 1.0) * 235).round();
+    final effectIntensity = (resolveIntensity?.call() ?? 1).clamp(0.0, 1.0);
+    final alpha = (intensity.clamp(0.0, 1.0) * effectIntensity * 235).round();
     canvas.drawCircle(
       Offset.zero,
       radius,

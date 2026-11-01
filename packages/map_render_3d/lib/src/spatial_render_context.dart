@@ -22,7 +22,10 @@ class SpatialRenderContext extends RenderContext3D
         SpatialLightingContext,
         SpatialAtmosphereContext,
         SpatialPresentationContext {
-  SpatialRenderContext(super.device);
+  SpatialRenderContext(super.device, {this.transparentOrder});
+
+  final int Function(SpatialPixelMaterial, SpatialPixelMaterial)?
+  transparentOrder;
 
   @override
   SpatialLightingProfile lighting = SpatialLightingProfile.disabled;
@@ -320,6 +323,8 @@ class SpatialRenderContext extends RenderContext3D
       final previousJoints = jointsInfo.jointTransforms;
       try {
         _transparent.sort((a, b) {
+          final order = transparentOrder?.call(a.material, b.material);
+          if (order != null && order != 0) return order;
           final depth = b.depth.compareTo(a.depth);
           return depth == 0 ? a.sequence.compareTo(b.sequence) : depth;
         });

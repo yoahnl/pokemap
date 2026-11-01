@@ -1,6 +1,11 @@
 part of 'catalog_workshop_selection.dart';
 
 const _sceneWorkshopActions = {
+  'event_v2.record_upsert',
+  'event_v2.record_upsert_batch',
+  'world_rule.create',
+  'world_rule.update',
+  'world_rule.upsert_batch',
   'scene.upsert',
   'scene.graph.patch',
   'scene.condition.set',
@@ -16,7 +21,9 @@ Future<CatalogWorkshopSelection> _readSceneWorkshop({
   required Map<String, Object?> parameters,
   required Map<String, String> readDependencies,
 }) async {
-  final selected = await reader.withMetadataFields({'settings', 'pokemon'});
+  final selected = await reader.withMetadataFields({'settings', 'pokemon',
+    if (actionId.startsWith('event_v2.')) 'eventRegistry'
+  });
   return selected.read((catalog) async {
     await reader.store.requireMetadataIndexAdmission(catalog.snapshot);
     final ids = <String, Set<String>>{};
@@ -27,6 +34,22 @@ Future<CatalogWorkshopSelection> _readSceneWorkshop({
       }
     }
 
+    final incomingEvents = <NarrativeEventRecord>[
+      if (parameters['record'] case final Map record)
+        NarrativeEventRecord.fromJson(Map<String, dynamic>.from(record)),
+      if (parameters['records'] case final List records)
+        for (final record in records)
+          NarrativeEventRecord.fromJson(
+              Map<String, dynamic>.from(record as Map)),
+    ];
+    final incomingRules = <WorldRuleDefinition>[
+      if (parameters['rule'] case final Map rule)
+        WorldRuleDefinition.fromJson(Map<String, dynamic>.from(rule)),
+      if (parameters['rules'] case final List rules)
+        for (final rule in rules)
+          WorldRuleDefinition.fromJson(Map<String, dynamic>.from(rule as Map)),
+    ];
+    add('worldRules', incomingRules.map((rule) => rule.id));
     final rawScene = parameters['scene'];
     final rewardSceneIds = <String>{};
     final incomingNodes = <SceneNode>[
@@ -56,7 +79,13 @@ Future<CatalogWorkshopSelection> _readSceneWorkshop({
     final ownerScenes = <String>{};
     void includeDependencies(ProjectManifest project) {
       final index = buildNarrativeDependencyIndex(
-          project: project, additionalSceneNodes: incomingNodes);
+          project: project
+              .copyWith(
+                eventRegistry: actionId.startsWith('event_v2.') ? NarrativeEventRegistry(
+                  schemaVersion: project.eventRegistry?.schemaVersion ?? 1,
+                  mode: project.eventRegistry?.mode ?? EventSystemMode.legacyOnly,
+                  records: incomingEvents, legacyClaims: const []) : project.eventRegistry,
+                worldRules: [...project.worldRules, ...incomingRules]), additionalSceneNodes: incomingNodes);
       for (final usage in index.usages) {
         final target = usage.target;
         if (target.kind == NarrativeDependencyTargetKind.scene &&
@@ -165,7 +194,7 @@ Future<CatalogWorkshopSelection> _readSceneWorkshop({
         eventIds.addAll(await CatalogNarrativeEventDocuments.readSceneOwnerIds(
             catalog.snapshot, reader.store.projectRoot, pendingOwners));
       }
-      if (eventIds.isNotEmpty) {
+      if (eventIds.isNotEmpty && !actionId.startsWith('event_v2.')) {
         base = base.copyWith(
             eventRegistry: await CatalogNarrativeEventDocuments.read(
                 catalog.snapshot, eventIds));
@@ -205,7 +234,9 @@ Future<CatalogWorkshopSelection> _readSceneWorkshop({
         candidates.add(base.railJourneyCatalog!.toJson());
       }
       final selectedDefinitions = documents.project.toJson()..remove('scenes');
-      candidates.add(selectedDefinitions);
+      if (actionId.startsWith('event_v2.'))
+        selectedDefinitions.remove('eventRegistry');
+      candidates.add(_withoutRewardReferences(selectedDefinitions));
       for (final entry in const {
         'scenes': {'sceneId', 'preSessionSceneId'},
         'maps': {
@@ -384,9 +415,27 @@ Future<CatalogWorkshopSelection> _readSceneWorkshop({
                 jsonDecode(utf8.decode(bytes[itemCatalogResourceIdentity]!))
                     as Map)));
     final result = CatalogWorkshopSelection._(
-        selected, snapshot, {'scenes'}, revisions,
+        selected, snapshot, {
+          if (actionId.startsWith('world_rule.'))
+            'worldRules'
+          else if (actionId.startsWith('event_v2.'))
+            'eventRegistry'
+          else
+            'scenes'}, revisions,
         metadataDocuments: documents);
     await result.requireCurrent();
     return result;
   });
 }
+
+Object? _withoutRewardReferences(Object? value) => switch (value) {
+      Map entries => {
+          for (final entry in entries.entries)
+            if (entry.key != 'rewardReference')
+              entry.key: _withoutRewardReferences(entry.value)
+        },
+      List entries => [
+          for (final entry in entries) _withoutRewardReferences(entry)
+        ],
+      _ => value,
+    };

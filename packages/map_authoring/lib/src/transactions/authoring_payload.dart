@@ -248,6 +248,36 @@ typedef AuthoringPayloadInspection = ({
   String contentDigest,
 });
 
+typedef AuthoringResourceInspection = ({
+  String resourceRevision,
+  int byteLength
+});
+
+Future<AuthoringResourceInspection> inspectAuthoringResourceRevision(
+    Stream<List<int>> chunks,
+    {required String storageKey,
+    required int byteLength}) async {
+  if (const bool.fromEnvironment('dart.library.io') &&
+      byteLength >= 256 * 1024 &&
+      !chunks.isBroadcast) {
+    return _inspectAuthoringPayloadInWorker(
+      chunks,
+      storageKey: storageKey,
+      byteLength: byteLength,
+      revisionOnly: true,
+      decode: (result) => (
+        resourceRevision: result[1] as String,
+        byteLength: result[2] as int,
+      ),
+    );
+  }
+  final inspection = _ResourceRevisionInspection(storageKey, byteLength);
+  await for (final chunk in chunks) {
+    inspection.add(chunk);
+  }
+  return inspection.close();
+}
+
 Future<AuthoringPayloadInspection> inspectAuthoringPayload(
     Stream<List<int>> chunks,
     {required String storageKey,
@@ -256,7 +286,14 @@ Future<AuthoringPayloadInspection> inspectAuthoringPayload(
       byteLength >= 256 * 1024 &&
       !chunks.isBroadcast) {
     return _inspectAuthoringPayloadInWorker(chunks,
-        storageKey: storageKey, byteLength: byteLength);
+        storageKey: storageKey,
+        byteLength: byteLength,
+        decode: (result) => (
+              rawSha256: result[1] as String,
+              resourceRevision: result[2] as String,
+              byteLength: result[3] as int,
+              contentDigest: result[4] as String,
+            ));
   }
   final inspection = _PayloadInspection(storageKey, byteLength);
   await for (final chunk in chunks) {
@@ -286,10 +323,12 @@ void _releasePayloadInspectionWorker() {
   }
 }
 
-Future<AuthoringPayloadInspection> _inspectAuthoringPayloadInWorker(
+Future<T> _inspectAuthoringPayloadInWorker<T>(
   Stream<List<int>> chunks, {
   required String storageKey,
   required int byteLength,
+  bool revisionOnly = false,
+  required T Function(List<Object?> result) decode,
 }) async {
   await _acquirePayloadInspectionWorker();
   final replies = ReceivePort();
@@ -324,7 +363,7 @@ Future<AuthoringPayloadInspection> _inspectAuthoringPayloadInWorker(
   try {
     worker = await Isolate.spawn<List<Object?>>(
       _runPayloadInspectionWorker,
-      [replies.sendPort, storageKey, byteLength],
+      [replies.sendPort, storageKey, byteLength, revisionOnly],
       onError: replies.sendPort,
       onExit: replies.sendPort,
       errorsAreFatal: true,
@@ -367,12 +406,7 @@ Future<AuthoringPayloadInspection> _inspectAuthoringPayloadInWorker(
       throw StateError(
           'The payload inspection worker did not return a digest.');
     }
-    return (
-      rawSha256: result[1] as String,
-      resourceRevision: result[2] as String,
-      byteLength: result[3] as int,
-      contentDigest: result[4] as String,
-    );
+    return decode(result);
   } finally {
     worker?.kill(priority: Isolate.immediate);
     replies.close();
@@ -388,17 +422,30 @@ void _runPayloadInspectionWorker(List<Object?> arguments) async {
   final reply = arguments[0] as SendPort;
   final commands = ReceivePort();
   try {
-    final inspection =
-        _PayloadInspection(arguments[1] as String, arguments[2] as int);
+    final revisionOnly = arguments[3] as bool;
+    final inspection = revisionOnly
+        ? null
+        : _PayloadInspection(arguments[1] as String, arguments[2] as int);
+    final revisionInspection = revisionOnly
+        ? _ResourceRevisionInspection(
+            arguments[1] as String, arguments[2] as int)
+        : null;
     reply.send(['ready', commands.sendPort]);
     await for (final message in commands) {
       final request = message as List;
       if (request.first == 'chunk') {
-        inspection.add(
-            (request[1] as TransferableTypedData).materialize().asUint8List());
+        final bytes =
+            (request[1] as TransferableTypedData).materialize().asUint8List();
+        inspection?.add(bytes);
+        revisionInspection?.add(bytes);
         reply.send(['ack']);
       } else if (request.first == 'finish') {
-        final result = inspection.close();
+        if (revisionInspection != null) {
+          final result = revisionInspection.close();
+          reply.send(['done', result.resourceRevision, result.byteLength]);
+          return;
+        }
+        final result = inspection!.close();
         reply.send([
           'done',
           result.rawSha256,
@@ -423,6 +470,37 @@ void _runPayloadInspectionWorker(List<Object?> arguments) async {
     ]);
   } finally {
     commands.close();
+  }
+}
+
+final class _ResourceRevisionInspection {
+  _ResourceRevisionInspection(String storageKey, this.expectedLength) {
+    if (expectedLength < 0) {
+      throw ArgumentError.value(expectedLength, 'byteLength');
+    }
+    framed.startEntry(relativePath: storageKey, byteLength: expectedLength);
+  }
+  final int expectedLength;
+  final framed = NarrativeProjectFingerprintBuilder();
+  var length = 0;
+
+  void add(List<int> bytes) {
+    length += bytes.length;
+    if (length > expectedLength ||
+        bytes.any((byte) => byte < 0 || byte > 255)) {
+      throw const AuthoringPayloadException('payload.length_mismatch',
+          'The payload length or byte range is invalid.');
+    }
+    framed.addBytes(bytes);
+  }
+
+  AuthoringResourceInspection close() {
+    if (length != expectedLength) {
+      throw const AuthoringPayloadException('payload.length_mismatch',
+          'The payload length differs from its descriptor.');
+    }
+    framed.endEntry();
+    return (resourceRevision: framed.close(), byteLength: length);
   }
 }
 

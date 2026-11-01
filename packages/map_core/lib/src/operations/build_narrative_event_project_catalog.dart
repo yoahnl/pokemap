@@ -228,7 +228,7 @@ NarrativeEventProjectCatalog buildNarrativeEventProjectCatalog({
       definition.conditions[index].whenTyped<void>(
         periodicRewardAvailable: (reference, _) {
           final resolution = resolvePeriodicRewardReference(reference: reference,
-            lookupScenes: (id) => (scenesById[id] ?? const []).map((entry) => entry.scene));
+            lookupScenes: lookupRewardScenes ?? (id) => (scenesById[id] ?? const []).map((entry) => entry.scene));
           if (!resolution.isResolved) {
             valid = false;
             _recordEventIssue(diagnostics: diagnostics, code: 'narrativeEventPeriodicRewardReferenceInvalid',
@@ -359,6 +359,7 @@ NarrativeEventProjectCatalog buildNarrativeEventProjectCatalog({
 
   diagnostics.sort(_compareDiagnostics);
   final catalog = NarrativeEventProjectCatalog.withDeferredFingerprints(
+    lookupRewardScenes: lookupRewardScenes,
     nativeMapIds: [for (final entry in project.maps) entry.id],
     nativeMaps: maps,
     manifestHash: () => _jsonFingerprint(project.toJson()),

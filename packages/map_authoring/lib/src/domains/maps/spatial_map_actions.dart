@@ -1,9 +1,11 @@
+import '../../contracts/periodic_reward_choices.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../contracts/action_descriptor.dart';
 import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
 import 'semantic_map_action_support.dart';
+import '../../editing/environment_editing.dart';
 import 'map_action_examples.dart';
 
 final class SpatialMapActions {
@@ -13,6 +15,7 @@ final class SpatialMapActions {
     'map3d.terrain.set_levels': 'cells',
     'map3d.terrain.configure_height': 'levelHeight',
     'map3d.terrain.configure_appearance': 'cliffFrame',
+    'map3d.instance.visibility.set': 'visibilityCondition',
     'map3d.instance.upsert': 'instance',
     'map3d.instance.configure_field_obstacle': 'fieldObstacle',
     'map3d.instance.upsert_batch': 'instances',
@@ -29,6 +32,8 @@ final class SpatialMapActions {
         id: entry.key,
         version: 1,
         summary: switch (entry.value) {
+          'visibilityCondition' =>
+            'Set a native 3D model visibility condition without changing its anchor or collision',
           'fieldObstacle' =>
             'Configure Cut, Strength or Rock Smash on a selected static blocking 3D model',
           'cells' => 'Set discrete terrain levels on a 3D map',
@@ -61,8 +66,23 @@ final class SpatialMapActions {
           AuthoringGuarantee.atomic,
         ],
         extensions: {
+          if (entry.value == 'visibilityCondition') 'periodicRewardAvailable': periodicRewardConditionChoiceContract,
           if (mapActionInputExample(entry.key) case final example?)
             'inputExample': example,
+          if (entry.value == 'visibilityCondition')
+            'visibility': {
+              'capability': 'map3d.conditional-visibility@1',
+              'sourceChoices': ['periodicRewardScene', 'periodicRewardNode'],
+              'condition': 'NarrativeEventConditionExpression',
+              'preserves': [
+                'entityId',
+                'position',
+                'rotationDegrees',
+                'scale',
+                'blocksMovement'
+              ],
+              'automaticEnvironment': 'promotePreservingIdentityAndPose',
+            },
           if (entry.value == 'navigation')
             'fishingDrop': {
               'capability': SpatialNavigationProfile.fishingDropCapabilityId,
@@ -131,12 +151,14 @@ final class SpatialMapActions {
             'required': [
               'mapId',
               entry.value,
-              if (entry.value == 'fieldObstacle') 'instanceId'
+              if (const {'fieldObstacle', 'visibilityCondition'}
+                  .contains(entry.value)) 'instanceId'
             ],
             'properties': {
               'mapId': {'type': 'string', 'minLength': 1},
               entry.value: _schema(entry.value),
-              if (entry.value == 'fieldObstacle')
+              if (const {'fieldObstacle', 'visibilityCondition'}
+                  .contains(entry.value))
                 'instanceId': _schema('instanceId'),
               if (entry.value == 'cliffFrame')
                 'generateCliffs': {'type': 'boolean'},
@@ -145,6 +167,88 @@ final class SpatialMapActions {
         },
       ),
   ];
+
+  MapData setInstanceVisibility(MapData map,
+      {required ProjectManifest project,
+      required String instanceId,
+      required NarrativeEventConditionExpression? condition,
+      List<MapData> maps = const [],
+      PeriodicRewardSceneLookup? lookupRewardScenes}) {
+    if (map.spatialScene == null ||
+        project.settings.dimension != ProjectDimension.threeD) {
+      throw semanticFailure('map3d.dimension_required',
+          'Visibility requires a 3D project and map.');
+    }
+    final instances = map.spatialScene!.instances
+        .where((item) => item.id == instanceId)
+        .toList();
+    if (instances.length != 1)
+      throw semanticFailure(
+          'map3d.instance_missing', 'Select one existing model instance.');
+    _requireAuthoredInstance(map, instanceId,
+        requireExisting: true,
+        allowManualEnvironment: true,
+        allowAutomaticEnvironment: true);
+    for (final leaf in condition?.leaves ?? const <NarrativeEventCondition>[]) {
+      leaf.whenTyped<void>(periodicRewardAvailable: (reference, _) {
+        if (!resolvePeriodicRewardReference(
+                reference: reference,
+                lookupScenes: lookupRewardScenes ?? (_) => const [])
+            .isResolved) {
+          throw semanticFailure('map3d.visibility_reward_reference_invalid',
+              'Choose a published reward action that still exists.');
+        }
+      }, fact: (id, operator, expected) {
+        if (project.facts
+                .where(
+                    (fact) => fact.id == id && fact.valueKind == expected.kind)
+                .length !=
+            1) {
+          throw semanticFailure('map3d.visibility_fact_invalid',
+              'The selected world state is unavailable or has changed type.');
+        }
+      }, narrativeEventConsumed: (id, _) {
+        if (project.eventRegistry?.records
+                .where((record) => record.id == id)
+                .length !=
+            1) {
+          throw semanticFailure('map3d.visibility_event_invalid',
+              'The selected event is unavailable.');
+        }
+      }, mapEventInstanceBoolean: (mapId, eventId, key, expected) {
+        final candidates = mapId == map.id
+            ? [map]
+            : maps.where((item) => item.id == mapId).toList();
+        if (project.settings.mapInstanceRetentionPolicy == null ||
+            candidates.length != 1 ||
+            candidates.single.entities
+                    .where((entity) => entity.id == eventId)
+                    .length !=
+                1) {
+          throw semanticFailure('map3d.visibility_instance_owner_invalid',
+              'The selected entity state requires a valid map owner and retention policy.');
+        }
+      });
+    }
+    var result = map;
+    for (final layer in map.layers.whereType<EnvironmentLayer>()) {
+      for (final area in layer.content.areas) {
+        if (area.generatedPlacementIds.contains(instanceId) &&
+            !area.manualPlacementIds.contains(instanceId)) {
+          result = const EnvironmentEditing().promoteSpatialPlacement(result,
+              layerId: layer.id, areaId: area.id, placementId: instanceId);
+        }
+      }
+    }
+    return result.copyWith(
+        spatialScene: map.spatialScene!.copyWith(instances: [
+      for (final instance in map.spatialScene!.instances)
+        if (instance.id == instanceId)
+          instance.copyWith(visibilityCondition: condition, clearVisibilityCondition: condition == null)
+        else
+          instance,
+    ]));
+  }
 
   MapData configureFieldObstacle(
     MapData map, {
@@ -241,13 +345,35 @@ final class SpatialMapActions {
         deferFinalization: deferFinalization,
         allowedParameters: {
           field,
-          if (field == 'fieldObstacle') 'instanceId',
+          if (const {'fieldObstacle', 'visibilityCondition'}.contains(field)) 'instanceId',
           if (field == 'cliffFrame') 'generateCliffs',
         });
     if (context.manifest.settings.dimension != ProjectDimension.threeD ||
         context.map.spatialScene == null) {
       throw semanticFailure('map3d.dimension_required',
           'This operation requires a 3D project and map.');
+    }
+    if (field == 'visibilityCondition') {
+      if (!context.parameters.contains(field))
+        throw invalidSemanticField(
+            field, 'a condition expression or explicit null');
+      final raw = context.parameters.value(field);
+      final condition =
+          raw == null ? null : NarrativeEventConditionExpression.fromJson(raw);
+      final id = context.parameters.string('instanceId');
+      final after = setInstanceVisibility(context.map,
+          project: context.manifest,
+          instanceId: id,
+          condition: condition,
+          maps: planning.snapshot.maps,
+          lookupRewardScenes: planning.snapshot.lookupRewardScenes);
+      return SemanticMapProjection(
+          map: after,
+          operation: planning.request.actionId,
+          changedItems: 1,
+          preview: {'instanceId': id, 'preserveSpatialPreview': true},
+          finalize: () =>
+              context.draftInstanceVisibility(after: after, instanceId: id));
     }
     if (field == 'cells' && context.parameters.list(field).length > 65536) {
       throw semanticFailure('map3d.parameters_invalid',
@@ -389,8 +515,21 @@ final class SpatialMapActions {
 }
 
 MapData _upsertInstance(SemanticMapActionContext context) {
-  final instance = SpatialModelInstance.fromJson(
-      _object(context.parameters.object('instance'), {
+  final instance = _decodeUpsertInstance(
+      context, context.parameters.object('instance'));
+  _requireAuthoredInstance(context.map, instance.id,
+      allowManualEnvironment: true);
+  final model = context.manifest.models3d
+      .where((model) => model.id == instance.modelId)
+      .firstOrNull;
+  _requireStaticClip(instance, model);
+  return const SpatialMapOperations()
+      .upsertInstance(context.map, instance, model: model);
+}
+
+SpatialModelInstance _decodeUpsertInstance(
+    SemanticMapActionContext context, Object? value) {
+  final raw = _object(value, {
     'id',
     'modelId',
     'position',
@@ -403,15 +542,24 @@ MapData _upsertInstance(SemanticMapActionContext context) {
     'castsShadows',
     'entityId',
     'clip',
-  }));
-  _requireAuthoredInstance(context.map, instance.id,
-      allowManualEnvironment: true);
-  final model = context.manifest.models3d
-      .where((model) => model.id == instance.modelId)
+    'visibilityCondition',
+  });
+  final instance = SpatialModelInstance.fromJson(raw);
+  final existing = context.map.spatialScene!.instances
+      .where((value) => value.id == instance.id)
       .firstOrNull;
-  _requireStaticClip(instance, model);
-  return const SpatialMapOperations()
-      .upsertInstance(context.map, instance, model: model);
+  if (raw.containsKey('visibilityCondition') &&
+      instance.visibilityCondition != existing?.visibilityCondition) {
+    throw semanticFailure('map3d.instance.visibility_requires_setter',
+        'Change visibility through map3d.instance.visibility.set after creating the instance.',
+        details: {
+          'instanceId': instance.id,
+          'actionId': 'map3d.instance.visibility.set',
+        });
+  }
+  return raw.containsKey('visibilityCondition')
+      ? instance
+      : instance.copyWith(visibilityCondition: existing?.visibilityCondition);
 }
 
 MapData _configureNavigation(SemanticMapActionContext context) {
@@ -436,7 +584,8 @@ MapData _configureNavigation(SemanticMapActionContext context) {
 }
 
 void _requireAuthoredInstance(MapData map, String id,
-    {bool requireExisting = false, bool allowManualEnvironment = false}) {
+    {bool requireExisting = false, bool allowManualEnvironment = false,
+    bool allowAutomaticEnvironment = false}) {
   if (id.startsWith('smt_')) {
     throw semanticFailure('map3d.instance.generated',
         'Smart Tile models must be edited through their painted layer.');
@@ -444,7 +593,8 @@ void _requireAuthoredInstance(MapData map, String id,
   for (final layer in map.layers) {
     if (layer is EnvironmentLayer) {
       for (final area in layer.content.areas) {
-        if (area.generatedPlacementIds.contains(id) &&
+        if (!allowAutomaticEnvironment &&
+            area.generatedPlacementIds.contains(id) &&
             (!allowManualEnvironment ||
                 !area.manualPlacementIds.contains(id))) {
           throw semanticFailure('map3d.instance.owned',
@@ -552,20 +702,7 @@ MapData _upsertInstances(SemanticMapActionContext context) {
     for (final model in context.manifest.models3d) model.id: model
   };
   for (final value in raw) {
-    final instance = SpatialModelInstance.fromJson(_object(value, {
-      'id',
-      'modelId',
-      'position',
-      'rotationDegrees',
-      'scale',
-      'animationIndex',
-      'animationLoop',
-      'animationSpeed',
-      'blocksMovement',
-      'castsShadows',
-      'entityId',
-      'clip',
-    }));
+    final instance = _decodeUpsertInstance(context, value);
     _requireAuthoredInstance(context.map, instance.id,
         allowManualEnvironment: true);
     if (!ids.add(instance.id)) {
@@ -651,6 +788,9 @@ int _changedCells(MapSpatialScene before, MapSpatialScene after) {
 }
 
 Map<String, Object?> _schema(String field) => switch (field) {
+      'visibilityCondition' => {
+          'type': ['object', 'null']
+        },
       'fieldObstacle' => {
           'type': ['object', 'null'],
           'additionalProperties': false,
@@ -883,6 +1023,11 @@ Map<String, Object?> _schema(String field) => switch (field) {
               'type': ['boolean', 'null'],
               'description':
                   'Overrides the model shadow default; null or omission inherits it.',
+            },
+            'visibilityCondition': {
+              ..._schema('visibilityCondition'),
+              'description':
+                  'An identical condition is accepted; omission preserves the existing condition. Use map3d.instance.visibility.set to change or clear it, including after creating an instance.',
             },
             'clip': {
               'type': ['object', 'null'],

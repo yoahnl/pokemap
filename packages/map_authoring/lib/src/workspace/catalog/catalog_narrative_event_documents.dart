@@ -306,6 +306,39 @@ abstract final class CatalogNarrativeEventDocuments {
     ];
   }
 
+  static bool isRecordKey(CatalogDefinitionKey key) {
+    if (key.kind != CatalogDefinitionKind.workspaceState) return false;
+    try {
+      final id = jsonDecode(key.id);
+      return id is List &&
+          id.length == 2 &&
+          id.first == 'narrativeEventDocument';
+    } on FormatException {
+      return false;
+    }
+  }
+
+  static Future<NarrativeEventRecord?> readRecordUnit(
+      CatalogDefinitionUnit? unit,
+      Future<CatalogDefinitionUnit?> Function(CatalogDefinitionKey)
+          lookup) async {
+    if (unit == null || unit.payload['deleted'] == true) return null;
+    final id = unit.payload['eventId'] as String;
+    final chunks = <CatalogDefinitionUnit>[];
+    final count = unit.payload['chunkCount'] as int;
+    if (count < 0 || count > 512)
+      throw const FormatException(
+          'catalog.events: invalid record dependency budget');
+    for (var i = 0; i < count; i++) {
+      final chunk = await lookup(_recordChunkKey(id, i));
+      if (chunk == null)
+        throw const FormatException('catalog.events: missing record chunk');
+      chunks.add(chunk);
+    }
+    return NarrativeEventRecord.fromJson(
+        jsonDecode(utf8.decode(_recordBytes(unit, chunks))));
+  }
+
   static List<int> _recordBytes(
       CatalogDefinitionUnit unit, List<CatalogDefinitionUnit> parts) {
     final length = unit.payload['byteLength'] as int;

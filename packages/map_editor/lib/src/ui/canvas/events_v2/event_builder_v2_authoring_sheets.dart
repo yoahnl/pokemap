@@ -1,3 +1,4 @@
+import '../scenes/periodic_reward_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:map_core/map_core.dart';
 
@@ -5,8 +6,7 @@ import '../../../application/use_cases/narrative_event_builder_v2_use_case.dart'
 import '../../design_system/design_system.dart';
 
 typedef EventBuilderV2CreationSubmit = Future<String?> Function(
-  NarrativeEventBuilderV2CreationRequest request,
-);
+  NarrativeEventBuilderV2CreationRequest request);
 
 final class EventBuilderV2SourceChoice {
   const EventBuilderV2SourceChoice({
@@ -229,16 +229,13 @@ class _EventBuilderV2CreationSheetState
           items: const [
             PokeMapDropdownItem(
               value: 'later',
-              label: 'Décider plus tard',
-            ),
+              label: 'Décider plus tard'),
             PokeMapDropdownItem(
               value: 'oneShot',
-              label: 'Une seule fois',
-            ),
+              label: 'Une seule fois'),
             PokeMapDropdownItem(
               value: 'reusable',
-              label: 'Réutilisable',
-            ),
+              label: 'Réutilisable'),
           ],
           onChanged: (value) => setState(() => _reusePolicy = value),
         ),
@@ -550,8 +547,7 @@ class _EventBuilderV2SceneSheetState extends State<EventBuilderV2SceneSheet> {
           items: [
             const PokeMapDropdownItem(
               value: 'none',
-              label: 'Aucune Scene',
-            ),
+              label: 'Aucune Scene'),
             for (final entry in widget.snapshot.scenes)
               PokeMapDropdownItem(
                 value: entry.scene.id,
@@ -629,8 +625,7 @@ class _EventBuilderV2ConditionsSheetState
           for (final entry in widget.snapshot.facts)
             PokeMapDropdownItem(
               value: entry.fact.id,
-              label: entry.fact.label,
-            ),
+              label: entry.fact.label),
         ]
       : [
           for (final entry in widget.snapshot.events)
@@ -674,6 +669,11 @@ class _EventBuilderV2ConditionsSheetState
     final condition = _editableCondition(clause);
     if (condition == null) return;
     final updated = condition.whenTyped(
+      periodicRewardAvailable: (reference, expected) =>
+          NarrativeEventCondition.periodicRewardAvailable(
+            reference: reference,
+            expectedValue: !expected,
+          ),
       fact: (factId, operator, expected) => NarrativeEventCondition.factValue(
         factId,
         operator: _inverseFactOperator(operator),
@@ -871,6 +871,18 @@ class _EventBuilderV2ConditionsSheetState
           ),
           const SizedBox(height: 6),
         ],
+        EditorPeriodicRewardPicker(
+          onApply: (reference, expected) => setState(
+            () => _clauses.add(
+              NarrativeEventConditionExpression.leaf(
+                NarrativeEventCondition.periodicRewardAvailable(
+                  reference: reference,
+                  expectedValue: expected,
+                ),
+              ),
+            ),
+          ),
+        ),
         const SizedBox(height: 8),
         PokeMapDropdownField<String>(
           label: 'Type de condition',
@@ -1151,16 +1163,13 @@ class _EventBuilderV2BehaviorSheetState
           items: const [
             PokeMapDropdownItem(
               value: 'later',
-              label: 'Décider plus tard',
-            ),
+              label: 'Décider plus tard'),
             PokeMapDropdownItem(
               value: 'oneShot',
-              label: 'Une seule fois',
-            ),
+              label: 'Une seule fois'),
             PokeMapDropdownItem(
               value: 'reusable',
-              label: 'Réutilisable',
-            ),
+              label: 'Réutilisable'),
           ],
           onChanged: (value) => setState(() {
             _reuse = value;
@@ -1176,8 +1185,7 @@ class _EventBuilderV2BehaviorSheetState
           items: [
             const PokeMapDropdownItem(
               value: 'never',
-              label: 'Jamais',
-            ),
+              label: 'Jamais'),
             if (_recordSource(widget.record)?.kind !=
                 NarrativeEventSourceKind.outcomeReceived)
               const PokeMapDropdownItem(
@@ -1278,7 +1286,8 @@ class _EventBuilderV2BehaviorSheetState
 String _recordName(NarrativeEventRecord record) =>
     record.draftOrNull?.name ?? record.definitionOrNull!.name;
 
-NarrativeFactOperator _inverseFactOperator(NarrativeFactOperator operator) =>
+NarrativeFactOperator _inverseFactOperator(NarrativeFactOperator operator,
+) =>
     switch (operator) {
       NarrativeFactOperator.equals => NarrativeFactOperator.notEquals,
       NarrativeFactOperator.notEquals => NarrativeFactOperator.equals,
@@ -1330,6 +1339,9 @@ String _conditionLabel(
   NarrativeEventCondition condition,
 ) {
   return condition.whenTyped(
+    periodicRewardAvailable: (_, expected) => expected
+        ? 'Récompense disponible aujourd’hui'
+        : 'Récompense déjà récupérée aujourd’hui',
     fact: (factId, operator, expected) {
       final label = snapshot.facts
               .where((entry) => entry.fact.id == factId)
@@ -1369,7 +1381,8 @@ String _expressionClauseLabel(
 ) {
   return switch (expression) {
     NarrativeEventConditionLeaf(:final condition) =>
-      _conditionLabel(snapshot, condition),
+      _conditionLabel(snapshot, condition,
+    ),
     NarrativeEventConditionNot(:final child) =>
       'NON (${_expressionClauseLabel(snapshot, child)})',
     NarrativeEventConditionAll(:final children) =>

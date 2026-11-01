@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 
 import '../../infrastructure/tile_image_loader.dart';
 import 'battle_pokemon_sprite_resolver.dart';
+import 'battle_camera_subject_geometry.dart';
 import 'battle_visual_asset_cache.dart';
 
 class BattleSceneCombatantComponent extends PositionComponent {
@@ -67,11 +68,36 @@ class BattleSceneCombatantComponent extends PositionComponent {
   String? _pendingSpriteSourcePath;
   bool _didSpriteLoadFail = false;
   double _hitFlashRemaining = 0;
+  double _hitFlashIntensity = 1;
   TextComponent? _speciesText;
   TextComponent? _monogramText;
   Vector2 _basePosition = Vector2.zero();
   final Vector2 _sceneCameraOffset = Vector2.zero();
   double _sceneCameraScale = 1.0;
+  bool _rmxpTransformApplied = false;
+  Object? _rmxpTransformOwner;
+  Object? _rmxpVisibilityOwner;
+
+  Rect get currentEffectAttachmentSpriteRect {
+    if (!_rmxpTransformApplied || _animation != _CombatantPresentationAnimation.none) {
+      return currentRenderedSpriteRect;
+    }
+    final local = _renderedSpriteRectFor(spriteRect: _spriteRect,
+      footAnchor: _footAnchor, footXRatio: _spriteFootXRatio,
+      destinationSize: _currentRenderedSpriteDestinationSize());
+    final origin = Offset(_basePosition.x + _idleLateralOffset, _basePosition.y);
+    return Rect.fromLTRB(
+      (origin.dx + local.left) * _sceneCameraScale + _sceneCameraOffset.x,
+      (origin.dy + local.top) * _sceneCameraScale + _sceneCameraOffset.y,
+      (origin.dx + local.right) * _sceneCameraScale + _sceneCameraOffset.x,
+      (origin.dy + local.bottom) * _sceneCameraScale + _sceneCameraOffset.y);
+  }
+
+  Offset get currentEffectAttachmentFootAnchor =>
+      !_rmxpTransformApplied || _animation != _CombatantPresentationAnimation.none
+      ? currentFootAnchor : Offset(
+        (_basePosition.x + _idleLateralOffset + _footAnchor.dx) * _sceneCameraScale + _sceneCameraOffset.x,
+        (_basePosition.y + _footAnchor.dy) * _sceneCameraScale + _sceneCameraOffset.y);
 
   /// Dernière opacité (quantifiée 0-255) appliquée aux TextPaint : réassigner
   /// `textRenderer` invalide le cache texte de Flame, donc on ne le fait que
@@ -86,6 +112,14 @@ class BattleSceneCombatantComponent extends PositionComponent {
   double _visualScaleY = 1.0;
   Color? _visualToneColor;
   double _visualToneStrength = 0;
+  double _effectIntensity = 1;
+
+  void setEffectIntensity(double intensity) {
+    _effectIntensity = intensity.isFinite ? intensity.clamp(0, 1) : 0;
+    setHitFlashIntensity(_effectIntensity);
+  }
+
+  double get _toneIntensity => _visualToneMaxMix == 1 ? 1 : _effectIntensity;
 
   /// Le mélange MAXIMAL de la teinte — BETA-BAT-031.
   ///
@@ -143,6 +177,25 @@ class BattleSceneCombatantComponent extends PositionComponent {
   ui.Image? get stageImage => _spriteImage;
   Rect get stageSourceRect => _currentSpriteInputSubrect();
   Color get stageTint => _spriteModulationColor(_visualOpacity);
+  Color get stageShadowTint => _applyOpacity(const Color(0x26000000));
+  Size get stageShadowMaskSize {
+    final destination = _currentRenderedSpriteDestinationSize();
+    return Size(
+      destination.width * .55,
+      (destination.height * .045).clamp(2.0, 10.0),
+    );
+  }
+
+  Rect get currentCameraNeutralShadowRect =>
+      _currentShadowRectLocal().shift(_cameraNeutralPosition);
+
+  List<({Rect rect, Color tint})> get currentCameraNeutralDashTrails => [
+    for (final trail in _currentDashTrails())
+      (
+        rect: trail.rect.shift(_cameraNeutralPosition),
+        tint: _spriteModulationColor(trail.opacity),
+      ),
+  ];
   bool renderedBy3DStage = false;
   double _idleLateralOffset = 0;
 
@@ -158,6 +211,21 @@ class BattleSceneCombatantComponent extends PositionComponent {
     rect.width * _sceneCameraScale,
     rect.height * _sceneCameraScale,
   );
+
+  BattleCameraSubjectGeometry get stableCameraGeometry {
+    final position = Offset(_basePosition.x, _basePosition.y);
+    final bounds = _renderedSpriteRectFor(
+      spriteRect: _spriteRect,
+      footAnchor: _footAnchor,
+      footXRatio: _spriteFootXRatio,
+      destinationSize: _currentRenderedSpriteDestinationSize(),
+    ).shift(position);
+    return BattleCameraSubjectGeometry(
+      foot: _footAnchor + position,
+      bounds: bounds,
+      focusAnchor: Offset(bounds.center.dx, bounds.top + bounds.height * .42),
+    );
+  }
 
   Rect get currentCameraNeutralRenderedSpriteRect =>
       _currentRenderedSpriteRectLocal().shift(_cameraNeutralPosition);
@@ -180,7 +248,7 @@ class BattleSceneCombatantComponent extends PositionComponent {
   }
 
   @visibleForTesting
-  bool get isHitFlashActive => _hitFlashRemaining > 0;
+  bool get isHitFlashActive => _hitFlashRemaining > 0 && _hitFlashIntensity > 0;
 
   @visibleForTesting
   Offset get currentVisualOffset => _visualOffset;
@@ -272,8 +340,40 @@ class BattleSceneCombatantComponent extends PositionComponent {
 
   void triggerHitFlash({
     double duration = 0.24,
+    double intensity = 1,
   }) {
+    setHitFlashIntensity(intensity);
     _hitFlashRemaining = duration;
+  }
+
+  void setHitFlashIntensity(double intensity) {
+    _hitFlashIntensity = intensity.isFinite ? intensity.clamp(0.0, 1.0) : 0;
+  }
+
+  void reduceCurrentMotion() {
+    _hitFlashRemaining = 0;
+    switch (_animation) {
+      case _CombatantPresentationAnimation.none:
+        _visualOffset = Offset.zero;
+        _visualScaleX = 1;
+        _visualScaleY = 1;
+        _idleLateralOffset = 0;
+        _applyVisualPresentation();
+      case _CombatantPresentationAnimation.lunge:
+      case _CombatantPresentationAnimation.fastDash:
+      case _CombatantPresentationAnimation.shake:
+      case _CombatantPresentationAnimation.compress:
+      case _CombatantPresentationAnimation.ellipse:
+        _animation = _CombatantPresentationAnimation.none;
+        _visualOpacity = 1;
+        _visualOffset = Offset.zero;
+        _visualScaleX = 1;
+        _visualScaleY = 1;
+        _idleLateralOffset = 0;
+        _applyVisualPresentation();
+      default:
+        break;
+    }
   }
 
   Future<void> playLunge({
@@ -459,6 +559,9 @@ class BattleSceneCombatantComponent extends PositionComponent {
   /// l'équivalent Ball de [holdIntroSlideOffscreen] : aucune image ne doit
   /// le montrer avant l'ouverture.
   void holdMaterializeHidden() {
+    _rmxpTransformOwner = null;
+    _rmxpVisibilityOwner = null;
+    _rmxpTransformApplied = false;
     _animation = _CombatantPresentationAnimation.none;
     // Caché par l'opacité, pas par l'échelle : une échelle nulle qui remonte
     // produit exactement la miniature que la recette du 2026-08-24 a rejetée.
@@ -473,6 +576,9 @@ class BattleSceneCombatantComponent extends PositionComponent {
   /// BETA-BAT-016. Appelé avant le premier rendu pour qu'aucune image ne le
   /// montre à sa place finale sous le noir de la pré-transition.
   void holdIntroSlideOffscreen({required double distancePx}) {
+    _rmxpTransformOwner = null;
+    _rmxpVisibilityOwner = null;
+    _rmxpTransformApplied = false;
     _animationDistancePx = distancePx;
     _animation = _CombatantPresentationAnimation.none;
     _visualOffset = _introSlideOffset(progress: 1);
@@ -537,6 +643,9 @@ class BattleSceneCombatantComponent extends PositionComponent {
   }
 
   void snapToBattlePose() {
+    _rmxpTransformOwner = null;
+    _rmxpVisibilityOwner = null;
+    _rmxpTransformApplied = false;
     // Une pose de combat nette n'a plus de silhouette d'entrée en attente,
     // ni de lueur de matérialisation.
     _introSilhouetteActive = false;
@@ -559,7 +668,10 @@ class BattleSceneCombatantComponent extends PositionComponent {
   void applyRmxpTransform({
     required Offset offset,
     required double scale,
+    Object? owner,
   }) {
+    _rmxpTransformOwner = owner;
+    _rmxpTransformApplied = true;
     _animation = _CombatantPresentationAnimation.none;
     _animationElapsed = 0;
     _visualOffset = offset;
@@ -569,7 +681,13 @@ class BattleSceneCombatantComponent extends PositionComponent {
     _applyVisualPresentation();
   }
 
-  void clearRmxpTransform() {
+  void clearRmxpTransform({Object? owner}) {
+    if (owner != null && (!identical(owner, _rmxpTransformOwner) ||
+        _animation != _CombatantPresentationAnimation.none)) {
+      return;
+    }
+    _rmxpTransformOwner = null;
+    _rmxpTransformApplied = false;
     _visualOffset = Offset.zero;
     _visualScaleX = 1;
     _visualScaleY = 1;
@@ -585,7 +703,12 @@ class BattleSceneCombatantComponent extends PositionComponent {
     _applyVisualPresentation();
   }
 
-  void setRmxpHidden(bool hidden) {
+  void setRmxpHidden(bool hidden, {Object? owner}) {
+    if (!hidden && owner != null && (!identical(owner, _rmxpVisibilityOwner) ||
+        _animation != _CombatantPresentationAnimation.none)) {
+      return;
+    }
+    _rmxpVisibilityOwner = hidden ? owner : null;
     _visualOpacity = hidden ? 0 : 1;
     _applyVisualPresentation();
   }
@@ -606,19 +729,14 @@ class BattleSceneCombatantComponent extends PositionComponent {
     if (_spriteRect.isEmpty) return;
 
     if (_spriteImage != null) {
-      final rendered = _currentRenderedSpriteRectLocal();
+      if (renderedBy3DStage) return;
       canvas.drawOval(
-        Rect.fromCenter(
-          center: _footAnchor + const Offset(0, 2),
-          width: rendered.width * .55,
-          height: (rendered.height * .045).clamp(2.0, 10.0),
-        ),
+        _currentShadowRectLocal(),
         Paint()
           ..color = _applyOpacity(const Color(0x26000000))
           ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.5),
       );
       _renderDashTrail(canvas);
-      if (renderedBy3DStage) return;
       _renderSprite(canvas);
       return;
     }
@@ -707,32 +825,47 @@ class BattleSceneCombatantComponent extends PositionComponent {
   }
 
   void _renderDashTrail(Canvas canvas) {
+    for (final trail in _currentDashTrails()) {
+      _drawSpriteRect(canvas, outputSubrect: trail.rect, opacity: trail.opacity);
+    }
+  }
+
+  Rect _currentShadowRectLocal() {
+    final rendered = _currentRenderedSpriteRectLocal();
+    return Rect.fromCenter(
+      center: _footAnchor + const Offset(0, 2),
+      width: rendered.width * .55,
+      height: (rendered.height * .045).clamp(2.0, 10.0),
+    );
+  }
+
+  List<({Rect rect, double opacity})> _currentDashTrails() {
     if (_animation != _CombatantPresentationAnimation.fastDash ||
         _spriteImage == null) {
-      return;
+      return const [];
     }
     final progress = (_animationElapsed /
             (_animationDuration <= 0 ? 0.0001 : _animationDuration))
         .clamp(0.0, 1.0);
     if (progress <= 0 || progress >= 0.75) {
-      return;
+      return const [];
     }
     final baseRect = _computeRenderedSpriteRect();
     final direction = _signedAnimationDistance().sign;
     final trailOpacity = (0.26 * (1 - progress)).clamp(0.0, 0.26);
     if (trailOpacity <= 0) {
-      return;
+      return const [];
     }
-    _drawSpriteRect(
-      canvas,
-      outputSubrect: baseRect.shift(Offset(-direction * 14, 0)),
-      opacity: trailOpacity,
-    );
-    _drawSpriteRect(
-      canvas,
-      outputSubrect: baseRect.shift(Offset(-direction * 28, 0)),
-      opacity: trailOpacity * 0.58,
-    );
+    return [
+      (
+        rect: baseRect.shift(Offset(-direction * 14, 0)),
+        opacity: trailOpacity,
+      ),
+      (
+        rect: baseRect.shift(Offset(-direction * 28, 0)),
+        opacity: trailOpacity * 0.58,
+      ),
+    ];
   }
 
   void _drawSpriteRect(
@@ -927,7 +1060,7 @@ class BattleSceneCombatantComponent extends PositionComponent {
     final toneAdjustedColor = _toneAdjustedColor(color);
     final adjustedColor = !_shouldRenderFlashTint
         ? toneAdjustedColor
-        : (Color.lerp(toneAdjustedColor, const Color(0xFFF7FBFF), 0.45) ??
+        : (Color.lerp(toneAdjustedColor, const Color(0xFFF7FBFF), 0.45 * _hitFlashIntensity) ??
             toneAdjustedColor);
     if (_visualOpacity >= 0.999) {
       return adjustedColor;
@@ -941,12 +1074,12 @@ class BattleSceneCombatantComponent extends PositionComponent {
       color = Color.lerp(
             color,
             _visualToneColor,
-            _visualToneStrength.clamp(0.0, 1.0),
+            _visualToneStrength.clamp(0.0, 1.0) * _toneIntensity,
           ) ??
           color;
     }
     if (_shouldRenderFlashTint) {
-      color = Color.lerp(color, const Color(0xFFFFFFFF), 0.45) ?? color;
+      color = Color.lerp(color, const Color(0xFFFFFFFF), 0.45 * _hitFlashIntensity) ?? color;
     }
     return color.withValues(alpha: color.a * opacity);
   }
@@ -958,13 +1091,13 @@ class BattleSceneCombatantComponent extends PositionComponent {
     return Color.lerp(
           color,
           _visualToneColor,
-          _visualToneMaxMix * _visualToneStrength.clamp(0.0, 1.0),
+          _visualToneMaxMix * _visualToneStrength.clamp(0.0, 1.0) * _toneIntensity,
         ) ??
         color;
   }
 
   bool get _shouldRenderFlashTint {
-    if (_hitFlashRemaining <= 0) {
+    if (_hitFlashRemaining <= 0 || _hitFlashIntensity <= 0) {
       return false;
     }
     // BETA-BAT-013 : un basculement toutes les 0,1 s, donc un cycle complet de

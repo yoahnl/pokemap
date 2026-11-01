@@ -1909,6 +1909,66 @@ class _EventBuilderV2ProductRouteState
     );
   }
 
+  Future<String?> _saveConditionExpression(
+    NarrativeEventBuilderV2EditorSnapshot snapshot,
+    NarrativeEventConditionExpression expression,
+  ) async {
+    final editor = ref.read(editorNotifierProvider);
+    final root = editor.projectRootPath;
+    final record = snapshot.record;
+    if (root == null || record == null)
+      return 'Le projet ou cet événement est fermé.';
+    if (record.enabledOrNull == true)
+      return 'Désactivez cet événement avant de modifier ses conditions.';
+    if (_isAuthoring) return 'Une publication est déjà en cours.';
+    setState(() => _isAuthoring = true);
+    try {
+      final raw = Map<String, Object?>.from(record.toJson());
+      final key = record.definitionOrNull == null ? 'draft' : 'definition';
+      raw[key] = {
+        ...Map<String, Object?>.from(raw[key] as Map),
+        'conditions': expression.leaves
+            .map((condition) => condition.toJson())
+            .toList(),
+        'conditionExpression': expression.toJson(),
+      };
+      final next = NarrativeEventRecord.fromJson(raw);
+      final result = await ref
+          .read(authoringMutationAdapterProvider)
+          .mutateConditionAction(
+            root,
+            actionId: 'event_v2.record_upsert',
+            parameters: {'record': next.toJson()},
+            validate: (snapshot) {
+              if (snapshot.manifest.eventRegistry?.records
+                      .where((value) => value.id == record.id)
+                      .firstOrNull !=
+                  record)
+                throw StateError('Cet événement a changé sur le disque.');
+            },
+          );
+      final accepted = ref
+          .read(editorNotifierProvider.notifier)
+          .applyPersistedNarrativeEventRegistry(
+            expectedProjectRootPath: root,
+            expectedPreviousRegistry: result.before.eventRegistry,
+            nextRegistry: result.after.eventRegistry!,
+          );
+      if (!accepted)
+        return 'La condition est enregistrée. Rechargez la vue pour retrouver la version publiée.';
+      if (mounted)
+        setState(() {
+          _authoringMessage = 'Conditions enregistrées.';
+          _pendingSelectionEventId = record.id;
+        });
+      return null;
+    } on Object catch (error) {
+      return 'Les conditions restent dans le brouillon : $error';
+    } finally {
+      if (mounted) setState(() => _isAuthoring = false);
+    }
+  }
+
   Future<void> _openConditionsSheet(NarrativeEventProjectSummary event) async {
     final eventId = event.eventId;
     if (eventId == null) return;
@@ -1921,14 +1981,8 @@ class _EventBuilderV2ProductRouteState
       width: 480,
       builder: (_) => EventBuilderV2ConditionsSheet(
         snapshot: snapshot,
-        onSubmit: (expression) => _runWrite(
-          (useCase, path, environment) => useCase.setConditionExpression(
-            projectPath: path,
-            eventId: eventId,
-            expression: expression,
-            environment: environment,
-          ),
-        ),
+        onSubmit: (expression) =>
+            _saveConditionExpression(snapshot, expression),
       ),
     );
   }
@@ -2128,25 +2182,31 @@ buildEventBuilderV2TemplateActionPickerOptions({
       for (final map in maps)
         for (final prop in map.movingProps)
           SceneActionPickerOption(id: prop.id, parentId: map.id,
-            label: '${project.elements.where((element) => element.id == map.placedElements.where((placement) => placement.id == prop.placedElementId).firstOrNull?.elementId).firstOrNull?.name ?? 'Décor'} · (${prop.closedPositionPx.x}, ${prop.closedPositionPx.y})'),
+            label: '${project.elements.where((element) => element.id == map.placedElements.where((placement) => placement.id == prop.placedElementId).firstOrNull?.elementId).firstOrNull?.name ?? 'Décor'} · (${prop.closedPositionPx.x}, ${prop.closedPositionPx.y})',
+          ),
     ],
     NarrativeCommandParameterKind.movingPlatform: [
       for (final map in maps)
         for (final platform in map.movingPlatforms)
           SceneActionPickerOption(id: '${map.id}::${platform.id}',
-              label: '${map.name} · Plateforme ${map.movingPlatforms.indexOf(platform) + 1}'),
+              label: '${map.name} · Plateforme ${map.movingPlatforms.indexOf(platform) + 1}',
+          ),
       for (final map in maps)
         for (final lift in map.spatialScene?.lifts ?? const <SpatialLiftDefinition>[])
-          SceneActionPickerOption(id:'${map.id}::${lift.id}',label:'${map.name} · ${lift.name}'),
+          SceneActionPickerOption(id:'${map.id}::${lift.id}',label:'${map.name} · ${lift.name}',
+          ),
           for (final map in maps)
         for (final platform in map.spatialScene?.platforms ?? const <SpatialPlatformDefinition>[])
-          SceneActionPickerOption(id: '${map.id}::${platform.id}', label: '${map.name} · ${platform.name}'),
+          SceneActionPickerOption(id: '${map.id}::${platform.id}', label: '${map.name} · ${platform.name}',
+          ),
     ],
     NarrativeCommandParameterKind.mapEntityReference: [
       for (final map in maps)
         for (final entity in map.entities)
-          if (entity.presentation?.variants.any((variant) => variant.characterId != null) ?? false)
-            SceneActionPickerOption(id: '${map.id}::${entity.id}', label: '${map.name} · ${entity.inspectorHeadline}'),
+          if (entity.presentation?.variants.any((variant) => variant.characterId != null,
+              ) ?? false)
+            SceneActionPickerOption(id: '${map.id}::${entity.id}', label: '${map.name} · ${entity.inspectorHeadline}',
+            ),
     ],
     NarrativeCommandParameterKind.npc: [
       for (final map in maps)

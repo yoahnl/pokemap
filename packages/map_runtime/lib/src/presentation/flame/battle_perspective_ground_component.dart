@@ -11,7 +11,7 @@ final class BattlePerspectiveGroundComponent extends Component {
     this.paintFloor = true,
     this.clipRect,
     this.isVisible,
-  }) : super(priority: 5);
+  }) : super(priority: 7);
 
   final BattlePerspectiveCamera camera;
   final Iterable<Rect> Function() groundRects;
@@ -42,8 +42,12 @@ final class BattlePerspectiveGroundComponent extends Component {
 
   void _paintFloor(Canvas canvas) {
     final viewport = camera.viewport;
-    final near = camera.project(camera.groundAt(
-        Offset(viewport.center.dx, viewport.bottom))).position;
+    final ground = camera.tryGroundAt(
+      Offset(viewport.center.dx, viewport.bottom),
+    );
+    if (ground == null) return;
+    final near = camera.tryProject(ground)?.position;
+    if (near == null) return;
     canvas.drawRect(
       clipRect?.call() ?? viewport,
       Paint()

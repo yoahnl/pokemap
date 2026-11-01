@@ -20,6 +20,40 @@ String _rawSpeciesName(String speciesId) => speciesId;
 
 String _rawMoveName(String moveId, String fallbackName) => fallbackName;
 
+bool _containsCameraStep(BattleAnimationStep step) {
+  return step is CameraFocusStep ||
+      step is BattleCameraMoveStep ||
+      (step is AnimationGroupStep && step.steps.any(_containsCameraStep));
+}
+
+BattleAnimationStep _resolveCameraFocusStep(
+  BattleAnimationStep step,
+  BattleMoveExecution execution,
+) {
+  if (step is AnimationGroupStep) {
+    return AnimationGroupStep(
+      mode: step.mode,
+      steps: step.steps
+          .map((child) => _resolveCameraFocusStep(child, execution))
+          .toList(growable: false),
+    );
+  }
+  if (step is! CameraFocusStep ||
+      step.side != null ||
+      step.target == BattleCameraFocusTarget.scene) {
+    return step;
+  }
+  final slot = step.target == BattleCameraFocusTarget.user
+      ? execution.attackerSlot
+      : execution.targetSlot ?? execution.attackerSlot;
+  return CameraFocusStep(
+    target: step.target,
+    side: slot.side,
+    slotIndex: slot.slotIndex,
+    durationSeconds: step.durationSeconds,
+  );
+}
+
 bool itemHealingAnnouncesStatusCure(
   BattleTurnEvent? previous,
   BattleTurnStatusCuredItemEvent cure,
@@ -34,11 +68,16 @@ bool itemHealingAnnouncesStatusCure(
 final class BattleTurnAnimationPlanner {
   BattleTurnAnimationPlanner({
     BattleMoveVisualRecipeLibrary? recipeLibrary,
+    List<BattleAnimationStep> Function(
+      BattleMoveVisualRecipeId,
+      BattleMoveVisualRecipeContext,
+    )? recipeBuilder,
     this.speciesDisplayName = _rawSpeciesName,
     this.moveDisplayName = _rawMoveName,
     this.announcesOutcome = true,
     this.resolveCombatantBallItemId,
-  }) : _recipeLibrary = recipeLibrary ?? BattleMoveVisualRecipeLibrary();
+  }) : _buildRecipe = recipeBuilder ??
+            (recipeLibrary ?? BattleMoveVisualRecipeLibrary()).build;
 
   /// Ce plan annonce-t-il lui-même l'issue du combat ?
   ///
@@ -54,7 +93,10 @@ final class BattleTurnAnimationPlanner {
   final String? Function(BattleSideId side, int lineupIndex)?
       resolveCombatantBallItemId;
 
-  final BattleMoveVisualRecipeLibrary _recipeLibrary;
+  final List<BattleAnimationStep> Function(
+    BattleMoveVisualRecipeId,
+    BattleMoveVisualRecipeContext,
+  ) _buildRecipe;
 
   /// BETA-BAT-011 : le journal parle la langue du joueur.
   ///
@@ -199,23 +241,21 @@ final class BattleTurnAnimationPlanner {
               ),
             );
             final resolvedMove = resolver.resolve(execution.move);
-            final recipeSteps = _recipeLibrary
-                .build(
-                  resolvedMove.recipeId,
-                  BattleMoveVisualRecipeContext(
-                    resolvedMove: resolvedMove,
-                    battleMove: execution.move,
-                    execution: execution,
-                    attackerSide: execution.attackerSide,
-                    targetSide: execution.targetSide,
-                    attackerSlotIndex: execution.attackerSlot.slotIndex,
-                    targetSlotIndex: execution.targetSlot?.slotIndex ?? 0,
-                    damage: execution.damage,
-                    didHit: execution.didHit,
-                    didCrit: execution.didCrit,
-                  ),
-                )
-                .toList();
+            final recipeSteps = _buildRecipe(
+              resolvedMove.recipeId,
+              BattleMoveVisualRecipeContext(
+                resolvedMove: resolvedMove,
+                battleMove: execution.move,
+                execution: execution,
+                attackerSide: execution.attackerSide,
+                targetSide: execution.targetSide,
+                attackerSlotIndex: execution.attackerSlot.slotIndex,
+                targetSlotIndex: execution.targetSlot?.slotIndex ?? 0,
+                damage: execution.damage,
+                didHit: execution.didHit,
+                didCrit: execution.didCrit,
+              ),
+            ).toList();
             // BETA-BAT-013 : le clignotement de la cible est une réaction au
             // DÉGÂT, pas une étape de la chorégraphie du coup. Chez PSDK il
             // vit dans `show_hp_animations`, pilote par le gestionnaire de
@@ -236,7 +276,7 @@ final class BattleTurnAnimationPlanner {
             }
             final focusSlot = execution.targetSlot ?? execution.attackerSlot;
             final moveKey = execution.move.id.toLowerCase().replaceAll(RegExp(r'[-_ ]'), '');
-            if (!recipeSteps.any((step) => step is CameraFocusStep || step is BattleCameraMoveStep)) {
+            if (!recipeSteps.any(_containsCameraStep)) {
               if (moveKey == 'shadowball') {
                 steps.add(const AnimationGroupStep(
                   mode: BattleAnimationGroupMode.parallel,
@@ -260,14 +300,9 @@ final class BattleTurnAnimationPlanner {
                 )],
               ));
             }
-            steps.addAll(recipeSteps.map((step) {
-              if (step is! CameraFocusStep || step.side != null) return step;
-              final slot = step.target == BattleCameraFocusTarget.user
-                  ? execution.attackerSlot : focusSlot;
-              return CameraFocusStep(target: step.target,
-                side: slot.side, slotIndex: slot.slotIndex,
-                durationSeconds: step.durationSeconds);
-            }));
+            steps.addAll(recipeSteps.map(
+              (step) => _resolveCameraFocusStep(step, execution),
+            ));
             steps.add(const AnimationGroupStep(
               mode: BattleAnimationGroupMode.parallel,
               steps: [BattleCameraResetStep(durationSeconds: 16 / 60)],
@@ -496,7 +531,7 @@ final class BattleTurnAnimationPlanner {
               );
             case BattleVolatileEventKind.chargeStarted:
               steps.addAll(
-                _recipeLibrary.build(
+                _buildRecipe(
                   BattleMoveVisualRecipeId.chargeUp,
                   BattleMoveVisualRecipeContext(
                     resolvedMove: BattleResolvedMoveVisual(
@@ -524,7 +559,7 @@ final class BattleTurnAnimationPlanner {
               );
             case BattleVolatileEventKind.rechargeTurnSpent:
               steps.addAll(
-                _recipeLibrary.build(
+                _buildRecipe(
                   BattleMoveVisualRecipeId.rechargePause,
                   BattleMoveVisualRecipeContext(
                     resolvedMove: const BattleResolvedMoveVisual(
@@ -593,7 +628,7 @@ final class BattleTurnAnimationPlanner {
             case BattleFieldEventKind.weatherSet:
               if (event.weather == BattleWeatherId.rain) {
                 steps.addAll(
-                  _recipeLibrary.build(
+                  _buildRecipe(
                     BattleMoveVisualRecipeId.weatherRain,
                     _fieldRecipeContext(
                       recipeId: BattleMoveVisualRecipeId.weatherRain,
@@ -602,7 +637,7 @@ final class BattleTurnAnimationPlanner {
                 );
               } else if (event.weather == BattleWeatherId.sandstorm) {
                 steps.addAll(
-                  _recipeLibrary.build(
+                  _buildRecipe(
                     BattleMoveVisualRecipeId.weatherSandstorm,
                     _fieldRecipeContext(
                       recipeId: BattleMoveVisualRecipeId.weatherSandstorm,
@@ -613,7 +648,7 @@ final class BattleTurnAnimationPlanner {
             case BattleFieldEventKind.pseudoWeatherSet:
               if (event.pseudoWeather == BattlePseudoWeatherId.trickRoom) {
                 steps.addAll(
-                  _recipeLibrary.build(
+                  _buildRecipe(
                     BattleMoveVisualRecipeId.pseudoWeatherTrickRoom,
                     _fieldRecipeContext(
                       recipeId: BattleMoveVisualRecipeId.pseudoWeatherTrickRoom,
@@ -630,7 +665,7 @@ final class BattleTurnAnimationPlanner {
           );
           if (event.kind == BattleStealthRockEventKind.set) {
             steps.addAll(
-              _recipeLibrary.build(
+              _buildRecipe(
                 BattleMoveVisualRecipeId.setStealthRock,
                 _fieldRecipeContext(
                   recipeId: BattleMoveVisualRecipeId.setStealthRock,
@@ -692,7 +727,7 @@ final class BattleTurnAnimationPlanner {
           );
           if (event.kind == BattleSpikesEventKind.setLayer) {
             steps.addAll(
-              _recipeLibrary.build(
+              _buildRecipe(
                 BattleMoveVisualRecipeId.setSpikes,
                 _fieldRecipeContext(
                   recipeId: BattleMoveVisualRecipeId.setSpikes,

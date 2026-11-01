@@ -7,6 +7,12 @@ import 'package:flutter/material.dart';
 import 'battle_animation_plan.dart';
 import 'battle_rmxp_hue_filter.dart';
 import 'battle_sdk_rmxp_animation_catalog.dart';
+import 'battle_live_attachment.dart';
+
+typedef BattleRmxpLivePlacement = ({
+  Vector2 source, Vector2 placement, Vector2 attacker, Vector2 defender,
+  Vector2 projectileSource, Vector2 projectileTarget, Rect stageRect, Vector2 sceneSize,
+});
 
 typedef RmxpCombatantTransformCallback = void Function(
   RmxpCombatantTransform transform,
@@ -50,12 +56,12 @@ final class RmxpRenderedCell {
   final ColorFilter? colorFilter;
 }
 
-final class BattleRmxpAnimationComponent extends PositionComponent {
+final class BattleRmxpAnimationComponent extends PositionComponent implements BattleLiveAttachment {
   BattleRmxpAnimationComponent({
     required this.image,
     required this.animation,
-    required this.sourceAnchorPosition,
-    required this.sceneSize,
+    required Vector2 sourceAnchorPosition,
+    required Vector2 sceneSize,
     required this.reverse,
     this.placementSpec = const RmxpPlacementSpec(
       policy: RmxpPlacementPolicy.subjectAttached,
@@ -73,15 +79,18 @@ final class BattleRmxpAnimationComponent extends PositionComponent {
     this.onSceneFlash,
     this.onSeTiming,
     this.onVisibilityChanged,
-  })  : attackerAnchorPosition = attackerAnchorPosition ?? sourceAnchorPosition,
-        defenderAnchorPosition = defenderAnchorPosition ?? sourceAnchorPosition,
+    this.resolvePlacement,
+  })  : sourceAnchorPosition = sourceAnchorPosition.clone(),
+        sceneSize = sceneSize.clone(),
+        attackerAnchorPosition = (attackerAnchorPosition ?? sourceAnchorPosition).clone(),
+        defenderAnchorPosition = (defenderAnchorPosition ?? sourceAnchorPosition).clone(),
         placementAnchorPosition =
-            placementAnchorPosition ?? sourceAnchorPosition,
+            (placementAnchorPosition ?? sourceAnchorPosition).clone(),
         projectileSourceAnchorPosition =
-            projectileSourceAnchorPosition ?? sourceAnchorPosition,
+            (projectileSourceAnchorPosition ?? sourceAnchorPosition).clone(),
         projectileTargetAnchorPosition =
-            projectileTargetAnchorPosition ?? sourceAnchorPosition,
-        stageRect = stageRect ??
+            (projectileTargetAnchorPosition ?? sourceAnchorPosition).clone(),
+        _stageRect = stageRect ??
             Rect.fromLTWH(0, 0, sceneSize.x.toDouble(), sceneSize.y.toDouble()),
         super(
           size: sceneSize,
@@ -101,7 +110,8 @@ final class BattleRmxpAnimationComponent extends PositionComponent {
   final Vector2 projectileSourceAnchorPosition;
   final Vector2 projectileTargetAnchorPosition;
   final RmxpPlacementSpec placementSpec;
-  final Rect stageRect;
+  Rect _stageRect;
+  Rect get stageRect => _stageRect;
   final Vector2 sceneSize;
   final bool reverse;
   final RmxpCombatantTransformCallback? onCombatantTransform;
@@ -115,9 +125,11 @@ final class BattleRmxpAnimationComponent extends PositionComponent {
   final RmxpFlashCallback? onSeTiming;
   final RmxpFlashCallback? onSceneFlash;
   final RmxpVisibilityCallback? onVisibilityChanged;
+  final BattleRmxpLivePlacement? Function()? resolvePlacement;
 
   double _elapsed = 0;
   bool _isComplete = false;
+  bool _attachmentInvalid = false;
   bool _combatantTransformActive = false;
   bool _visibilityHidden = false;
   int? _hiddenUntilFrame;
@@ -133,6 +145,39 @@ final class BattleRmxpAnimationComponent extends PositionComponent {
 
   bool get isAnimationComplete => _isComplete;
 
+  @override
+  bool refreshAttachment() => _refreshAttachment(applyTransform: true);
+
+  bool _refreshAttachment({required bool applyTransform}) {
+    if (_isComplete) return false;
+    final resolver = resolvePlacement;
+    if (resolver == null) return true;
+    final placement = resolver();
+    if (placement == null ||
+        [placement.source, placement.placement, placement.attacker, placement.defender,
+          placement.projectileSource, placement.projectileTarget, placement.sceneSize]
+            .any((point) => !point.x.isFinite || !point.y.isFinite) ||
+        !placement.stageRect.isFinite || placement.stageRect.isEmpty) {
+      _attachmentInvalid = true;
+      _isComplete = true;
+      _clearCombatantTransform();
+      _setHidden(false);
+      removeBattleLiveAttachment(this);
+      return false;
+    }
+    sourceAnchorPosition.setFrom(placement.source);
+    placementAnchorPosition.setFrom(placement.placement);
+    attackerAnchorPosition.setFrom(placement.attacker);
+    defenderAnchorPosition.setFrom(placement.defender);
+    projectileSourceAnchorPosition.setFrom(placement.projectileSource);
+    projectileTargetAnchorPosition.setFrom(placement.projectileTarget);
+    sceneSize.setFrom(placement.sceneSize);
+    size.setFrom(placement.sceneSize);
+    _stageRect = placement.stageRect;
+    if (applyTransform) _applyCell15TransformForCurrentFrame();
+    return true;
+  }
+
   @visibleForTesting
   List<RmxpRenderedCell> get visibleCellsForTesting => _visibleCells();
 
@@ -142,6 +187,7 @@ final class BattleRmxpAnimationComponent extends PositionComponent {
     if (_isComplete) {
       return;
     }
+    if (!_refreshAttachment(applyTransform: false)) return;
     if (dt > 0) {
       _elapsed += dt;
     }
@@ -281,6 +327,7 @@ final class BattleRmxpAnimationComponent extends PositionComponent {
   }
 
   List<RmxpRenderedCell> _visibleCells() {
+    if (_attachmentInvalid) return const <RmxpRenderedCell>[];
     final frame = _currentFrame();
     if (frame == null) {
       return const <RmxpRenderedCell>[];
@@ -434,8 +481,11 @@ final class BattleRmxpAnimationComponent extends PositionComponent {
         (actualRight * (lateral * _sceneScale));
   }
 
+  late final ({Offset start, Offset axis, double axisLengthSquared})?
+      _projectileCanonicalAxis = _computeProjectileCanonicalAxis();
+
   ({Offset start, Offset axis, double axisLengthSquared})?
-      get _projectileCanonicalAxis {
+      _computeProjectileCanonicalAxis() {
     Offset? start;
     Offset? end;
     var maxDistanceSquared = -1.0;

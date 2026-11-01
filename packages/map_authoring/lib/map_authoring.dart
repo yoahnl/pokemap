@@ -208,6 +208,7 @@ export 'src/domains/gameplay/pokemon_external/pokeapi_pokemon_evolution_converte
 export 'src/domains/gameplay/pokemon_external/pokemon_external_source_repository.dart';
 export 'src/domains/gameplay/pokemon_external/pokemon_external_http_transport.dart';
 export 'src/domains/gameplay/pokemon_external/pokeapi_live_source.dart';
+export 'src/domains/gameplay/pokemon_external/avelune_pokemon_media_source.dart';
 export 'src/domains/gameplay/pokemon_external/showdown_snapshot_source.dart';
 export 'src/domains/gameplay/pokemon_external/http_pokemon_external_source_repository.dart';
 export 'src/domains/gameplay/pokemon_external/pokemon_external_query_resolution.dart';

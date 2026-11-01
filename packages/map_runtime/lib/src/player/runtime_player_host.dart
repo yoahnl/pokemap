@@ -2,6 +2,7 @@ import 'package:avelune_rendering/avelune_rendering.dart';
 import 'package:map_core/map_core.dart';
 
 import '../session/game_session_contract.dart';
+import '../presentation/flame/battle_motion_policy.dart';
 import '../presentation/flame/dialogue_text_speed.dart';
 import 'runtime_audio_mixer.dart';
 import 'runtime_graphics_preferences.dart';
@@ -133,6 +134,7 @@ final class PlayerPreferencesSnapshot {
     this.showInputHints = true,
     this.dialogueTextSpeed = RuntimeDialogueTextSpeed.normal,
     this.menuEffects = RuntimePlayerMenuEffects.full,
+    this.battleMotion,
     this.realWeather = const RealWeatherPreferences(),
     this.worldTime = const RuntimeWorldTimePreferences(),
     this.graphics = const RuntimeGraphicsPreferences(),
@@ -161,6 +163,7 @@ final class PlayerPreferencesSnapshot {
   final bool showInputHints;
   final RuntimeDialogueTextSpeed dialogueTextSpeed;
   final RuntimePlayerMenuEffects menuEffects;
+  final BattleMotionPolicy? battleMotion;
   final int targetFramesPerSecond;
   final RealWeatherPreferences realWeather;
   final RuntimeWorldTimePreferences worldTime;
@@ -177,6 +180,8 @@ final class PlayerPreferencesSnapshot {
     bool? showInputHints,
     RuntimeDialogueTextSpeed? dialogueTextSpeed,
     RuntimePlayerMenuEffects? menuEffects,
+    BattleMotionPolicy? battleMotion,
+    bool clearBattleMotion = false,
     int? targetFramesPerSecond,
     RealWeatherPreferences? realWeather,
     RuntimeWorldTimePreferences? worldTime,
@@ -197,6 +202,7 @@ final class PlayerPreferencesSnapshot {
         showInputHints: showInputHints ?? this.showInputHints,
         dialogueTextSpeed: dialogueTextSpeed ?? this.dialogueTextSpeed,
         menuEffects: menuEffects ?? this.menuEffects,
+        battleMotion: clearBattleMotion ? null : battleMotion ?? this.battleMotion,
         targetFramesPerSecond:
             targetFramesPerSecond ?? this.targetFramesPerSecond,
       );

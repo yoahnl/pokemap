@@ -61,7 +61,7 @@ final class BattleAnimationRunner {
   final void Function()? onShowDefeatedTrainer;
   final void Function(PlayBallSequenceStep step)? onPlayBallSequence;
   final void Function(PlayBallCaptureSequenceStep step)?
-      onPlayBallCaptureSequence;
+  onPlayBallCaptureSequence;
   final void Function(EnemyTrainerIntroStep step)? onEnemyTrainerIntro;
   final void Function(StatStageAuraStep step)? onStatStageAura;
   final void Function()? onShowTeamInfo;
@@ -76,7 +76,7 @@ final class BattleAnimationRunner {
   final void Function(BattleSlotRef slot)? onSwapCombatantVisualSlot;
   final void Function(PlaySpriteSheetFxStep step)? onSpriteSheetFx;
   final void Function(SpriteSheetOnCombatantStep step)?
-      onSpriteSheetOnCombatant;
+  onSpriteSheetOnCombatant;
   final void Function(ParticleBurstStep step)? onParticleBurst;
   final void Function(PlaySdkParticleSequenceStep step)? onSdkParticleSequence;
   final void Function(SdkFallingParticlesStep step)? onSdkFallingParticles;
@@ -99,6 +99,12 @@ final class BattleAnimationRunner {
   double _phaseElapsed = 0;
   double _phaseDuration = 0;
   bool _active = false;
+  bool _phaseStarted = false;
+  bool _phaseNotificationPending = false;
+  bool _isDraining = false;
+  int? _sharedWorkRemaining;
+  double _pendingSeconds = 0;
+  int _nextAccentIndex = 0;
   bool _cameraSequenceActive = false;
   bool _cameraResetPending = false;
   String? _currentMessage;
@@ -109,8 +115,25 @@ final class BattleAnimationRunner {
       <_ScheduledAccentStep>[];
 
   bool get isActive => _active;
-  double get secondsUntilNextPhase =>
-      _active ? math.max(0, _phaseDuration - _phaseElapsed) : double.infinity;
+  bool get hasImmediateWork =>
+      _active &&
+      (!_phaseStarted ||
+          _phaseNotificationPending ||
+          _pendingSeconds > 0 ||
+          _phaseElapsed + 0.000001 >= _phaseDuration ||
+          (_nextAccentIndex < _scheduledAccentSteps.length &&
+              _scheduledAccentSteps[_nextAccentIndex].startAtSeconds <=
+                  _phaseElapsed + 0.000001));
+
+  double get secondsUntilNextPhase {
+    if (!_active) return double.infinity;
+    if (hasImmediateWork) return 0;
+    final nextAccent = _nextAccentIndex < _scheduledAccentSteps.length
+        ? _scheduledAccentSteps[_nextAccentIndex].startAtSeconds
+        : double.infinity;
+    return math.max(0, math.min(_phaseDuration, nextAccent) - _phaseElapsed);
+  }
+
   bool get areGaugesHidden => _cameraSequenceActive;
 
   String? get currentMessage => _currentMessage;
@@ -138,18 +161,19 @@ final class BattleAnimationRunner {
     _currentHpTweenStep = null;
     _currentXpTweenStep = null;
     _completionCompleter = Completer<void>();
-    _beginNextPhase();
+    _drain(256);
   }
 
-  void cancel({
-    bool clearMessage = true,
-    bool notify = true,
-  }) {
+  void cancel({bool clearMessage = true, bool notify = true}) {
     _plan = null;
     _nextStepIndex = 0;
     _phaseElapsed = 0;
     _phaseDuration = 0;
     _active = false;
+    _phaseStarted = false;
+    _phaseNotificationPending = false;
+    _pendingSeconds = 0;
+    _nextAccentIndex = 0;
     _cameraSequenceActive = false;
     _cameraResetPending = false;
     _currentHpTweenStep = null;
@@ -164,23 +188,73 @@ final class BattleAnimationRunner {
     }
   }
 
-  void update(double dt) {
-    if (!_active) {
+  int update(double dt, {int workBudget = 256}) {
+    if (!_active || !dt.isFinite || dt < 0) return 0;
+    final pending = _pendingSeconds + dt;
+    if (!pending.isFinite) return 0;
+    _pendingSeconds = pending;
+    return _drain(workBudget.clamp(0, 256));
+  }
+
+  void withWorkBudget(void Function() advance) {
+    if (_sharedWorkRemaining != null) {
+      advance();
       return;
     }
-    var remaining = dt;
-    while (_active && remaining > 0) {
-      final phaseRemaining = math.max(0, _phaseDuration - _phaseElapsed);
-      if (remaining + 0.000001 < phaseRemaining) {
-        _phaseElapsed += remaining;
-        _dispatchDueScheduledAccents();
-        return;
-      }
-      _phaseElapsed = _phaseDuration;
-      _dispatchDueScheduledAccents();
-      remaining -= phaseRemaining;
-      _beginNextPhase();
+    _sharedWorkRemaining = 256;
+    try {
+      advance();
+    } finally {
+      _sharedWorkRemaining = null;
     }
+  }
+
+  int _drain(int workBudget) {
+    if (_isDraining) return 0;
+    _isDraining = true;
+    workBudget = math.min(workBudget, _sharedWorkRemaining ?? workBudget);
+    var workRemaining = workBudget;
+    try {
+      while (_active && workRemaining > 0) {
+        if (!_phaseStarted) {
+          workRemaining -= 1;
+          _beginNextPhase();
+          continue;
+        }
+        if (_nextAccentIndex < _scheduledAccentSteps.length &&
+            _scheduledAccentSteps[_nextAccentIndex].startAtSeconds <=
+                _phaseElapsed + 0.000001) {
+          workRemaining -= 1;
+          final step = _scheduledAccentSteps[_nextAccentIndex++].step;
+          _dispatchAccentStep(step);
+          continue;
+        }
+        if (_phaseNotificationPending) {
+          workRemaining -= 1;
+          _phaseNotificationPending = false;
+          onPresentationChanged();
+          continue;
+        }
+        if (_phaseElapsed + 0.000001 >= _phaseDuration) {
+          _phaseStarted = false;
+          continue;
+        }
+        if (_pendingSeconds <= 0) break;
+        final nextAccent = _nextAccentIndex < _scheduledAccentSteps.length
+            ? _scheduledAccentSteps[_nextAccentIndex].startAtSeconds
+            : double.infinity;
+        final untilNext = math.min(_phaseDuration, nextAccent) - _phaseElapsed;
+        final elapsed = math.min(_pendingSeconds, untilNext);
+        _phaseElapsed += elapsed;
+        _pendingSeconds = math.max(0, _pendingSeconds - elapsed);
+      }
+    } finally {
+      _isDraining = false;
+      if (_sharedWorkRemaining != null) {
+        _sharedWorkRemaining = _sharedWorkRemaining! - (workBudget - workRemaining);
+      }
+    }
+    return workBudget - workRemaining;
   }
 
   void _beginNextPhase() {
@@ -192,144 +266,82 @@ final class BattleAnimationRunner {
     _currentXpTweenStep = null;
     _phaseElapsed = 0;
     _phaseDuration = 0;
+    _nextAccentIndex = 0;
     _scheduledAccentSteps.clear();
-
-    while (true) {
-      final plan = _plan;
-      if (plan == null || _nextStepIndex >= plan.steps.length) {
-        _active = false;
-        _cameraSequenceActive = false;
-        _currentMessage = null;
-        _currentHpTweenStep = null;
-        _currentXpTweenStep = null;
-        _plan = null;
-        _completeCurrentPlan();
-        onPresentationChanged();
-        return;
-      }
-
-      final step = plan.steps[_nextStepIndex];
-      switch (step) {
-        case ShowMessageStep(:final message):
-          _nextStepIndex += 1;
-          _currentMessage = message;
-          _phaseDuration = messageStepSeconds;
-          onPresentationChanged();
-          return;
-        case WaitStep(:final durationSeconds):
-          _nextStepIndex += 1;
-          _phaseDuration = durationSeconds;
-          onPresentationChanged();
-          if (_phaseDuration <= 0) {
-            continue;
-          }
-          return;
-        case HudHpTweenStep():
-          _nextStepIndex += 1;
-          _currentHpTweenStep = step;
-          onHudHpTween(step);
-          _phaseDuration = step.durationMs / 1000;
-          onPresentationChanged();
-          if (_phaseDuration <= 0) {
-            continue;
-          }
-          return;
-        case HudXpTweenStep():
-          _nextStepIndex += 1;
-          _currentXpTweenStep = step;
-          onHudXpTween?.call(step);
-          _phaseDuration = step.durationMs / 1000;
-          onPresentationChanged();
-          if (_phaseDuration <= 0) {
-            continue;
-          }
-          return;
-        case PlayBallSequenceStep():
-          _nextStepIndex += 1;
-          onPlayBallSequence?.call(step);
-          _phaseDuration = step.durationSeconds;
-          onPresentationChanged();
-          if (_phaseDuration <= 0) {
-            continue;
-          }
-          return;
-        case PlayBallCaptureSequenceStep():
-          _nextStepIndex += 1;
-          onPlayBallCaptureSequence?.call(step);
-          _phaseDuration = step.durationSeconds;
-          onPresentationChanged();
-          if (_phaseDuration <= 0) {
-            continue;
-          }
-          return;
-        case EnemyTrainerIntroStep():
-          _nextStepIndex += 1;
-          onEnemyTrainerIntro?.call(step);
-          _phaseDuration = step.durationSeconds;
-          onPresentationChanged();
-          if (_phaseDuration <= 0) {
-            continue;
-          }
-          return;
-        case StatStageAuraStep():
-          _nextStepIndex += 1;
-          onStatStageAura?.call(step);
-          _phaseDuration = step.durationSeconds;
-          onPresentationChanged();
-          if (_phaseDuration <= 0) {
-            continue;
-          }
-          return;
-        case ShowTeamInfoStep():
-          _nextStepIndex += 1;
-          onShowTeamInfo?.call();
-          _phaseDuration = step.durationSeconds;
-          onPresentationChanged();
-          if (_phaseDuration <= 0) {
-            continue;
-          }
-          return;
-        case CombatantMotionStep():
-          _nextStepIndex += 1;
-          onCombatantMotion(step);
-          _phaseDuration = step.durationSeconds;
-          onPresentationChanged();
-          if (_phaseDuration <= 0) {
-            continue;
-          }
-          return;
-        case FaintCombatantStep():
-          _nextStepIndex += 1;
-          onFaintCombatant(step);
-          _phaseDuration = step.durationSeconds;
-          onPresentationChanged();
-          if (_phaseDuration <= 0) {
-            continue;
-          }
-          return;
-        case SpawnFxStep()
-            when !step.playAsAccent &&
-                (step.from != step.to ||
-                    step.curve == BattleFxMotionCurve.arcOver ||
-                    step.curve == BattleFxMotionCurve.arcUnder):
-          _nextStepIndex += 1;
-          onSpawnFx(step);
-          _phaseDuration = step.startDelaySeconds + step.durationSeconds;
-          onPresentationChanged();
-          if (_phaseDuration <= 0) {
-            continue;
-          }
-          return;
-        default:
-          final accentDuration = _startAccentPhase();
-          _dispatchDueScheduledAccents();
-          onPresentationChanged();
-          if (accentDuration <= 0) {
-            continue;
-          }
-          _phaseDuration = accentDuration;
-          return;
-      }
+    final plan = _plan;
+    if (plan == null || _nextStepIndex >= plan.steps.length) {
+      _active = false;
+      _cameraSequenceActive = false;
+      _currentMessage = null;
+      _plan = null;
+      _pendingSeconds = 0;
+      _completeCurrentPlan();
+      onPresentationChanged();
+      return;
+    }
+    _phaseStarted = true;
+    _phaseNotificationPending = true;
+    final step = plan.steps[_nextStepIndex];
+    switch (step) {
+      case ShowMessageStep(:final message):
+        _nextStepIndex += 1;
+        _currentMessage = message;
+        _phaseDuration = messageStepSeconds;
+      case WaitStep(:final durationSeconds):
+        _nextStepIndex += 1;
+        _phaseDuration = durationSeconds;
+      case HudHpTweenStep():
+        _nextStepIndex += 1;
+        _phaseDuration = step.durationMs / 1000;
+        _currentHpTweenStep = step;
+        onHudHpTween(step);
+      case HudXpTweenStep():
+        _nextStepIndex += 1;
+        _phaseDuration = step.durationMs / 1000;
+        _currentXpTweenStep = step;
+        onHudXpTween?.call(step);
+      case PlayBallSequenceStep():
+        _nextStepIndex += 1;
+        _phaseDuration = step.durationSeconds;
+        onPlayBallSequence?.call(step);
+      case PlayBallCaptureSequenceStep():
+        _nextStepIndex += 1;
+        _phaseDuration = step.durationSeconds;
+        onPlayBallCaptureSequence?.call(step);
+      case EnemyTrainerIntroStep():
+        _nextStepIndex += 1;
+        _phaseDuration = step.durationSeconds;
+        onEnemyTrainerIntro?.call(step);
+      case StatStageAuraStep():
+        _nextStepIndex += 1;
+        _phaseDuration = step.durationSeconds;
+        onStatStageAura?.call(step);
+      case ShowTeamInfoStep():
+        _nextStepIndex += 1;
+        _phaseDuration = step.durationSeconds;
+        onShowTeamInfo?.call();
+      case CombatantMotionStep():
+        _nextStepIndex += 1;
+        _phaseDuration = step.durationSeconds;
+        onCombatantMotion(step);
+      case FaintCombatantStep():
+        _nextStepIndex += 1;
+        _phaseDuration = step.durationSeconds;
+        onFaintCombatant(step);
+      case SpawnFxStep()
+          when !step.playAsAccent &&
+              (step.from != step.to ||
+                  step.curve == BattleFxMotionCurve.arcOver ||
+                  step.curve == BattleFxMotionCurve.arcUnder):
+        _nextStepIndex += 1;
+        _phaseDuration = step.startDelaySeconds + step.durationSeconds;
+        onSpawnFx(step);
+      default:
+        _phaseDuration = _startAccentPhase();
+        _scheduledAccentSteps.sort((left, right) {
+          final time = left.startAtSeconds.compareTo(right.startAtSeconds);
+          return time != 0 ? time : left.order.compareTo(right.order);
+        });
     }
   }
 
@@ -338,9 +350,9 @@ final class BattleAnimationRunner {
     for (final step in steps) {
       switch (step) {
         case AnimationGroupStep(
-            mode: BattleAnimationGroupMode.sequence,
-            :final steps,
-          ):
+          mode: BattleAnimationGroupMode.sequence,
+          :final steps,
+        ):
           normalized.addAll(_normalizeSteps(steps));
         case _:
           normalized.add(step);
@@ -421,47 +433,56 @@ final class BattleAnimationRunner {
     };
   }
 
+  void _addScheduledAccentStep(
+    double startAtSeconds,
+    BattleAnimationStep step,
+  ) {
+    _scheduledAccentSteps.add(
+      _ScheduledAccentStep(startAtSeconds, step, _scheduledAccentSteps.length),
+    );
+  }
+
   double _scheduleAccentStep(
     BattleAnimationStep step, {
     required double startAtSeconds,
   }) {
     return switch (step) {
       SpawnFxStep(:final durationSeconds, :final startDelaySeconds) => () {
-          _scheduledAccentSteps.add(_ScheduledAccentStep(startAtSeconds, step));
-          return startAtSeconds + startDelaySeconds + durationSeconds;
-        }(),
+        _addScheduledAccentStep(startAtSeconds, step);
+        return startAtSeconds + startDelaySeconds + durationSeconds;
+      }(),
       ScreenFlashStep(:final durationSeconds) => () {
-          _scheduledAccentSteps.add(_ScheduledAccentStep(startAtSeconds, step));
-          return startAtSeconds + durationSeconds;
-        }(),
+        _addScheduledAccentStep(startAtSeconds, step);
+        return startAtSeconds + durationSeconds;
+      }(),
       SceneTintStep(:final durationSeconds) => () {
-          _scheduledAccentSteps.add(_ScheduledAccentStep(startAtSeconds, step));
-          return startAtSeconds + durationSeconds;
-        }(),
+        _addScheduledAccentStep(startAtSeconds, step);
+        return startAtSeconds + durationSeconds;
+      }(),
       PlaySpriteSheetFxStep() => () {
-          _scheduledAccentSteps.add(_ScheduledAccentStep(startAtSeconds, step));
-          return startAtSeconds + step.durationSeconds;
-        }(),
+        _addScheduledAccentStep(startAtSeconds, step);
+        return startAtSeconds + step.durationSeconds;
+      }(),
       SpriteSheetOnCombatantStep() => () {
-          _scheduledAccentSteps.add(_ScheduledAccentStep(startAtSeconds, step));
-          return startAtSeconds + step.durationSeconds;
-        }(),
+        _addScheduledAccentStep(startAtSeconds, step);
+        return startAtSeconds + step.durationSeconds;
+      }(),
       ParticleBurstStep(:final durationSeconds, :final startDelaySeconds) =>
         () {
-          _scheduledAccentSteps.add(_ScheduledAccentStep(startAtSeconds, step));
+          _addScheduledAccentStep(startAtSeconds, step);
           return startAtSeconds + startDelaySeconds + durationSeconds;
         }(),
       PlaySdkParticleSequenceStep(:final durationSeconds) => () {
-          _scheduledAccentSteps.add(_ScheduledAccentStep(startAtSeconds, step));
-          return startAtSeconds + durationSeconds;
-        }(),
+        _addScheduledAccentStep(startAtSeconds, step);
+        return startAtSeconds + durationSeconds;
+      }(),
       SdkFallingParticlesStep(
         :final durationSeconds,
         :final particleCount,
-        :final intervalSeconds
+        :final intervalSeconds,
       ) =>
         () {
-          _scheduledAccentSteps.add(_ScheduledAccentStep(startAtSeconds, step));
+          _addScheduledAccentStep(startAtSeconds, step);
           return startAtSeconds +
               durationSeconds +
               (math.max(0, particleCount - 1) * intervalSeconds);
@@ -469,121 +490,110 @@ final class BattleAnimationRunner {
       SdkRadiusParticleStep(
         :final durationSeconds,
         :final particleCount,
-        :final intervalSeconds
+        :final intervalSeconds,
       ) =>
         () {
-          _scheduledAccentSteps.add(_ScheduledAccentStep(startAtSeconds, step));
+          _addScheduledAccentStep(startAtSeconds, step);
           return startAtSeconds +
               durationSeconds +
               (math.max(0, particleCount - 1) * intervalSeconds);
         }(),
       SdkScalarParticleStep(:final durationSeconds, :final delaySeconds) => () {
-          _scheduledAccentSteps.add(_ScheduledAccentStep(startAtSeconds, step));
-          return startAtSeconds + delaySeconds + durationSeconds;
-        }(),
+        _addScheduledAccentStep(startAtSeconds, step);
+        return startAtSeconds + delaySeconds + durationSeconds;
+      }(),
       SdkParticleZoomStep(:final durationSeconds, :final delaySeconds) => () {
-          _scheduledAccentSteps.add(_ScheduledAccentStep(startAtSeconds, step));
-          return startAtSeconds + delaySeconds + durationSeconds;
-        }(),
+        _addScheduledAccentStep(startAtSeconds, step);
+        return startAtSeconds + delaySeconds + durationSeconds;
+      }(),
       WeatherParticleStep(:final durationSeconds) => () {
-          _scheduledAccentSteps.add(_ScheduledAccentStep(startAtSeconds, step));
-          return startAtSeconds + durationSeconds;
-        }(),
+        _addScheduledAccentStep(startAtSeconds, step);
+        return startAtSeconds + durationSeconds;
+      }(),
       PlayRmxpAnimationStep() => () {
-          _scheduledAccentSteps.add(_ScheduledAccentStep(startAtSeconds, step));
-          return startAtSeconds + step.totalDurationSeconds;
-        }(),
+        _addScheduledAccentStep(startAtSeconds, step);
+        return startAtSeconds + step.totalDurationSeconds;
+      }(),
       CombatantFlashStep(:final durationSeconds) => () {
-          _scheduledAccentSteps.add(_ScheduledAccentStep(startAtSeconds, step));
-          return startAtSeconds + durationSeconds;
-        }(),
+        _addScheduledAccentStep(startAtSeconds, step);
+        return startAtSeconds + durationSeconds;
+      }(),
       PlaySeStep() => () {
-          _scheduledAccentSteps.add(_ScheduledAccentStep(startAtSeconds, step));
-          return startAtSeconds;
-        }(),
+        _addScheduledAccentStep(startAtSeconds, step);
+        return startAtSeconds;
+      }(),
       PlayCryStep() => () {
-          _scheduledAccentSteps.add(_ScheduledAccentStep(startAtSeconds, step));
-          return startAtSeconds;
-        }(),
+        _addScheduledAccentStep(startAtSeconds, step);
+        return startAtSeconds;
+      }(),
       ShowDefeatedTrainerStep() || HudLevelUpStep() => () {
-          _scheduledAccentSteps.add(_ScheduledAccentStep(startAtSeconds, step));
-          return startAtSeconds;
-        }(),
+        _addScheduledAccentStep(startAtSeconds, step);
+        return startAtSeconds;
+      }(),
       // BETA-BAT-013 : la barre de PV est ordonnançable À L'INTÉRIEUR d'un
       // groupe, pour qu'elle puisse partir sur la même frame que le
       // clignotement de la cible. Hors groupe elle reste une phase bloquante :
       // `_isAccentStep` ne la reconnaît pas, donc rien ne change pour les plans
       // qui l'émettent seule.
       HudHpTweenStep(:final durationMs) => () {
-          _scheduledAccentSteps.add(_ScheduledAccentStep(startAtSeconds, step));
-          return startAtSeconds + durationMs / 1000;
-        }(),
+        _addScheduledAccentStep(startAtSeconds, step);
+        return startAtSeconds + durationMs / 1000;
+      }(),
       CombatantShakeStep(:final durationSeconds) => () {
-          _scheduledAccentSteps.add(_ScheduledAccentStep(startAtSeconds, step));
-          return startAtSeconds + durationSeconds;
-        }(),
+        _addScheduledAccentStep(startAtSeconds, step);
+        return startAtSeconds + durationSeconds;
+      }(),
       CombatantToneStep(:final durationSeconds) => () {
-          _scheduledAccentSteps.add(_ScheduledAccentStep(startAtSeconds, step));
-          return startAtSeconds + durationSeconds;
-        }(),
+        _addScheduledAccentStep(startAtSeconds, step);
+        return startAtSeconds + durationSeconds;
+      }(),
       CombatantCompressStep(:final durationSeconds) => () {
-          _scheduledAccentSteps.add(_ScheduledAccentStep(startAtSeconds, step));
-          return startAtSeconds + durationSeconds;
-        }(),
+        _addScheduledAccentStep(startAtSeconds, step);
+        return startAtSeconds + durationSeconds;
+      }(),
       CombatantEllipseStep(:final durationSeconds) => () {
-          _scheduledAccentSteps.add(_ScheduledAccentStep(startAtSeconds, step));
-          return startAtSeconds + durationSeconds;
-        }(),
+        _addScheduledAccentStep(startAtSeconds, step);
+        return startAtSeconds + durationSeconds;
+      }(),
       CameraFocusStep(:final durationSeconds) => () {
-          _scheduledAccentSteps.add(_ScheduledAccentStep(startAtSeconds, step));
-          return startAtSeconds + durationSeconds;
-        }(),
+        _addScheduledAccentStep(startAtSeconds, step);
+        return startAtSeconds + durationSeconds;
+      }(),
       BattleCameraMoveStep(:final durationSeconds) => () {
-          _scheduledAccentSteps.add(_ScheduledAccentStep(startAtSeconds, step));
-          return startAtSeconds + durationSeconds;
-        }(),
+        _addScheduledAccentStep(startAtSeconds, step);
+        return startAtSeconds + durationSeconds;
+      }(),
       BattleCameraResetStep(:final durationSeconds) => () {
-          _scheduledAccentSteps.add(_ScheduledAccentStep(startAtSeconds, step));
-          return startAtSeconds + durationSeconds;
-        }(),
+        _addScheduledAccentStep(startAtSeconds, step);
+        return startAtSeconds + durationSeconds;
+      }(),
       BarrierPulseStep(:final durationSeconds) => () {
-          _scheduledAccentSteps.add(_ScheduledAccentStep(startAtSeconds, step));
-          return startAtSeconds + durationSeconds;
-        }(),
+        _addScheduledAccentStep(startAtSeconds, step);
+        return startAtSeconds + durationSeconds;
+      }(),
       SwapCombatantVisualStep() => () {
-          _scheduledAccentSteps.add(_ScheduledAccentStep(startAtSeconds, step));
-          return startAtSeconds;
-        }(),
+        _addScheduledAccentStep(startAtSeconds, step);
+        return startAtSeconds;
+      }(),
       AnimationGroupStep(:final mode, :final steps) => () {
-          if (mode == BattleAnimationGroupMode.sequence) {
-            var cursor = startAtSeconds;
-            for (final child in _normalizeSteps(steps)) {
-              cursor = _scheduleAccentStep(child, startAtSeconds: cursor);
-            }
-            return cursor;
+        if (mode == BattleAnimationGroupMode.sequence) {
+          var cursor = startAtSeconds;
+          for (final child in _normalizeSteps(steps)) {
+            cursor = _scheduleAccentStep(child, startAtSeconds: cursor);
           }
-          var maxDuration = 0.0;
-          for (final child in steps) {
-            maxDuration = math.max(
-              maxDuration,
-              _scheduleAccentStep(child, startAtSeconds: startAtSeconds),
-            );
-          }
-          return maxDuration;
-        }(),
+          return cursor;
+        }
+        var maxDuration = 0.0;
+        for (final child in steps) {
+          maxDuration = math.max(
+            maxDuration,
+            _scheduleAccentStep(child, startAtSeconds: startAtSeconds),
+          );
+        }
+        return maxDuration;
+      }(),
       _ => 0.0,
     };
-  }
-
-  void _dispatchDueScheduledAccents() {
-    for (final scheduledStep in _scheduledAccentSteps) {
-      if (scheduledStep.dispatched ||
-          scheduledStep.startAtSeconds > _phaseElapsed + 0.000001) {
-        continue;
-      }
-      scheduledStep.dispatched = true;
-      _dispatchAccentStep(scheduledStep.step);
-    }
   }
 
   void _dispatchAccentStep(BattleAnimationStep step) {
@@ -686,9 +696,9 @@ final class BattleAnimationRunner {
 }
 
 final class _ScheduledAccentStep {
-  _ScheduledAccentStep(this.startAtSeconds, this.step);
+  _ScheduledAccentStep(this.startAtSeconds, this.step, this.order);
 
   final double startAtSeconds;
   final BattleAnimationStep step;
-  bool dispatched = false;
+  final int order;
 }

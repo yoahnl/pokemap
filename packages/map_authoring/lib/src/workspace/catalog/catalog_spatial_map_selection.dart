@@ -1,3 +1,5 @@
+import '../../domains/maps/entity_actions.dart';
+import '../../domains/maps/model_visibility_dependencies.dart';
 import '../../domains/maps/map3d_edit_intents.dart';
 import '../../domains/maps/map3d_edit_projection.dart';
 import 'dart:convert';
@@ -106,6 +108,8 @@ final class CatalogSpatialMapSelection {
       'border_layer.stroke_erase',
       'border_layer.region_fill',
       'border_layer.region_clear',
+      'entity.set_presentation',
+      'map3d.instance.visibility.set',
       'map3d.instance.configure_field_obstacle',
       'map3d.instance.upsert',
       'map3d.instance.upsert_batch',
@@ -148,8 +152,7 @@ final class CatalogSpatialMapSelection {
       final settings = catalog.projectMetadata.settings;
       final base = ProjectManifest(name: catalog.projectMetadata.name,
           version: catalog.projectMetadata.version, maps: const [], tilesets: const [],
-          settings: ProjectSettings(dimension: settings.dimension, spatialCamera: settings.spatialCamera,
-              tileWidth: settings.tileWidth, tileHeight: settings.tileHeight));
+          settings: settings);
       final documents = await CatalogMetadataDocuments.readDocuments(snapshot: catalog.snapshot,
           project: base, ids: {'maps': {mapId}});
       final entry = documents.project.maps.where((entry) => entry.id == mapId).firstOrNull;
@@ -169,7 +172,8 @@ final class CatalogSpatialMapSelection {
         if (route && !TriggerZoneActions.isFieldTraversalMutation(map, actionId, parameters)) {
           throw const ProjectSnapshotException('project.field_traversal_scope_required', 'This zone mutation needs its existing reference scope.');
         }
-        MapValidator.validate(map);
+        if (!const {'map3d.instance.visibility.set', 'entity.set_presentation'}
+            .contains(actionId)) MapValidator.validate(map);
         var definitions = documents.project;
         if (actionId == 'map3d.instance.configure_field_obstacle') {
           final instance = map.spatialScene?.instances.where((item) => item.id == parameters['instanceId']).firstOrNull;
@@ -178,10 +182,77 @@ final class CatalogSpatialMapSelection {
             if (unit != null) definitions = definitions.copyWith(models3d: [ProjectModel3dEntry.fromJson(Map<String, dynamic>.from(unit.payload['value'] as Map))]);
           }
         }
-        final projectBytes = utf8.encode(jsonEncode(definitions.toJson()));
         final dependencyRevisions = <String, String>{};
         final dependencyBytes = <String, List<int>>{};
         final dependencyPaths = <String, String>{};
+        final referenceScenes = <SceneAsset>[];
+        final conditionMaps = <MapData>[];
+        if (const {'map3d.instance.visibility.set', 'entity.set_presentation'}
+            .contains(actionId)) {
+          final rawPresentation = parameters['presentation'];
+          final presentation = rawPresentation == null
+              ? null
+              : MapEntityPresentation.fromJson(
+                  Map<String, dynamic>.from(rawPresentation as Map));
+          final dependencies = actionId == 'entity.set_presentation'
+              ? ModelVisibilityDependencies.expressions(
+                  presentation?.variants.map((value) => value.condition) ??
+                      const [])
+              : ModelVisibilityDependencies(parameters['visibilityCondition']);
+          final characters = <ProjectCharacterEntry>[];
+          for (final id in presentation?.variants
+                  .map((value) => value.characterId)
+                  .whereType<String>()
+                  .toSet() ??
+              const <String>{}) {
+            final unit = await catalog.lookup(
+                CatalogDefinitionKey(CatalogDefinitionKind.character, id));
+            if (unit != null)
+              characters.add(ProjectCharacterEntry.fromJson(
+                  Map<String, dynamic>.from(unit.payload['value'] as Map)));
+          }
+          definitions = definitions.copyWith(characters: characters);
+          final selectedDefinitions =
+              await CatalogMetadataDocuments.readDocuments(
+                  snapshot: catalog.snapshot,
+                  project: definitions,
+                  ids: {
+                'maps': {mapId, ...dependencies.mapIds},
+                'facts': dependencies.factIds,
+                'scenes': dependencies.rewardSceneIds,
+              });
+          definitions = selectedDefinitions.project;
+          referenceScenes.addAll(definitions.scenes);
+          definitions = definitions.copyWith(
+              scenes: const [],
+              eventRegistry: await CatalogNarrativeEventDocuments.read(
+                  catalog.snapshot, dependencies.eventIds));
+          for (final declaration
+              in definitions.maps.where((item) => item.id != mapId)) {
+            final dependency = await reader.store.gateway
+                .captureResourcePayload(declaration.relativePath);
+            if (dependency == null)
+              throw const ProjectSnapshotException(
+                  'project.map_missing', 'A condition owner map is missing.');
+            try {
+              final content = await dependency.readBytes();
+              final value = MapData.fromJson(Map<String, dynamic>.from(
+                  jsonDecode(utf8.decode(content)) as Map));
+              if (value.id != declaration.id)
+                throw const FormatException(
+                    'catalog.visibility: map identity mismatch');
+              conditionMaps.add(value);
+              dependencyBytes['map:${declaration.id}'] = content;
+              dependencyPaths['map:${declaration.id}'] =
+                  declaration.relativePath;
+              dependencyRevisions[declaration.relativePath] =
+                  dependency.resourceRevision;
+            } finally {
+              await dependency.release();
+            }
+          }
+        }
+        final projectBytes = utf8.encode(jsonEncode(definitions.toJson()));
         if (actionId == 'map.audio.update' &&
             const ['musicPath', 'battleMusicPath'].any((field) =>
                 parameters[field] is String && (parameters[field] as String).trim().isNotEmpty)) {
@@ -200,7 +271,8 @@ final class CatalogSpatialMapSelection {
             revision: fingerprint(selected.revision, mapId, payload.resourceRevision, readDependencies: dependencyRevisions),
             manifest: definitions, materializedCatalogProject: true,
             availableProjectSections: const {}, scopedStorageRevisions: {entry.relativePath: payload.resourceRevision, ...dependencyRevisions},
-            maps: [map], resourceFingerprints: {'project': computeAuthoringBytesFingerprint(projectBytes, logicalName: 'project.json'),
+            maps: [map, ...conditionMaps],
+            rewardReferenceScenes: referenceScenes, resourceFingerprints: {'project': computeAuthoringBytesFingerprint(projectBytes, logicalName: 'project.json'),
               'map:$mapId': payload.resourceRevision,
               for (final dependency in dependencyPaths.entries) dependency.key: dependencyRevisions[dependency.value]!},
             resourceBytes: {'project': projectBytes, 'map:$mapId': bytes, ...dependencyBytes},
@@ -226,7 +298,9 @@ final class CatalogSpatialMapSelection {
       throw const FormatException('catalog.spatial: unsupported action');
     }
     if (actionId == 'map.update_metadata' || actionId == 'map.audio.update' || actionId == 'map3d.camera.configure' ||
-        actionId == 'warp.ladder.configure' || actionId == 'map3d.instance.configure_field_obstacle' || TriggerZoneActions.fieldTraversalActions.contains(actionId)) {
+        actionId == 'warp.ladder.configure' || actionId == 'map3d.instance.configure_field_obstacle' ||
+        actionId == 'map3d.instance.visibility.set' ||
+        actionId == 'entity.set_presentation' || TriggerZoneActions.fieldTraversalActions.contains(actionId)) {
       return _readProperties(reader: reader, projectHandle: projectHandle, actionId: actionId, parameters: parameters);
     }
     if (const {'warp.update', 'warp.create', 'connection.upsert',
@@ -744,6 +818,37 @@ final class CatalogSpatialMapSelection {
           throw AuthoringPlanException(code: 'catalog.mutation_outside_scope', message: 'The route action changed unrelated map content.');
         }
         MapValidator.validate(projected);
+      } else if (action == 'entity.set_presentation') {
+        final raw = plan.request.parameters['presentation'];
+        final expected = const EntityActions().setPresentation(
+            snapshot.mapById(mapId)!,
+            project: snapshot.manifest,
+            entityId: plan.request.parameters['entityId'] as String,
+            presentation: raw == null
+                ? null
+                : MapEntityPresentation.fromJson(
+                    Map<String, dynamic>.from(raw as Map)),
+            maps: snapshot.maps,
+            lookupRewardScenes: snapshot.lookupRewardScenes);
+        if (projected != expected)
+          throw AuthoringPlanException(
+              code: 'catalog.mutation_outside_scope',
+              message: 'Presentation changed unrelated map content.');
+      } else if (action == 'map3d.instance.visibility.set') {
+        final raw = plan.request.parameters['visibilityCondition'];
+        final expected = const SpatialMapActions().setInstanceVisibility(
+            snapshot.mapById(mapId)!,
+            project: snapshot.manifest,
+            instanceId: plan.request.parameters['instanceId'] as String,
+            condition: raw == null
+                ? null
+                : NarrativeEventConditionExpression.fromJson(raw),
+            maps: snapshot.maps,
+            lookupRewardScenes: snapshot.lookupRewardScenes);
+        if (projected != expected)
+          throw AuthoringPlanException(
+              code: 'catalog.mutation_outside_scope',
+              message: 'Visibility changed unrelated map content.');
       } else if (action == 'map3d.instance.configure_field_obstacle') {
         final parameters = plan.request.parameters;
         final value = parameters['fieldObstacle'];

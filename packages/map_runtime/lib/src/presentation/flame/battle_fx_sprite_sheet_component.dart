@@ -2,8 +2,9 @@ import 'dart:ui' as ui;
 
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
+import 'battle_live_attachment.dart';
 
-final class BattleFxSpriteSheetComponent extends PositionComponent {
+final class BattleFxSpriteSheetComponent extends PositionComponent implements BattleLiveAttachment {
   BattleFxSpriteSheetComponent({
     required this.image,
     required Vector2 anchorPosition,
@@ -19,6 +20,7 @@ final class BattleFxSpriteSheetComponent extends PositionComponent {
     this.startDelaySeconds = 0,
     this.frameSequence,
     this.frameDurationsSeconds,
+    this.resolveAnchorPosition,
   }) : super(
           position: Vector2(
             anchorPosition.x - (originX * displayScale),
@@ -45,11 +47,28 @@ final class BattleFxSpriteSheetComponent extends PositionComponent {
   final double startDelaySeconds;
   final List<int>? frameSequence;
   final List<double>? frameDurationsSeconds;
+  final BattleLivePointResolver? resolveAnchorPosition;
 
   double _elapsed = 0;
   bool _isComplete = false;
 
   bool get isAnimationComplete => _isComplete;
+
+  @override
+  bool refreshAttachment() {
+    if (_isComplete) return false;
+    final resolver = resolveAnchorPosition;
+    if (resolver == null) return true;
+    final anchor = resolver();
+    if (anchor == null || !anchor.x.isFinite || !anchor.y.isFinite) {
+      _isComplete = true;
+      removeBattleLiveAttachment(this);
+      return false;
+    }
+    position.setValues(anchor.x - originX * displayScale,
+      anchor.y - originY * displayScale);
+    return true;
+  }
 
   @visibleForTesting
   int get currentTimelineFrameIndex {
@@ -109,6 +128,7 @@ final class BattleFxSpriteSheetComponent extends PositionComponent {
     if (_isComplete) {
       return;
     }
+    if (!refreshAttachment()) return;
     _elapsed += dt;
     final totalDuration = startDelaySeconds + _playbackDurationSeconds;
     if (_elapsed >= totalDuration) {

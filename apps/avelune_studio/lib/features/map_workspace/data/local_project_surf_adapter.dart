@@ -1,6 +1,33 @@
 part of 'local_map_workspace_adapter.dart';
 
 extension _LocalProjectSurfAdapter on LocalMapWorkspaceAdapter {
+  Future<T> _observeAuthoringPhase<T>(
+    String name,
+    Future<T> Function() operation,
+  ) {
+    final observer = performanceObserver;
+    if (observer == null) return operation();
+    return () async {
+      final span = observer.startSpan(name);
+      try {
+        return await operation();
+      } finally {
+        span?.finish();
+      }
+    }();
+  }
+
+  T _observeAuthoringPhaseSync<T>(String name, T Function() operation) {
+    final observer = performanceObserver;
+    if (observer == null) return operation();
+    final span = observer.startSpan(name);
+    try {
+      return operation();
+    } finally {
+      span?.finish();
+    }
+  }
+
   Future<ProjectSurfState> _loadSurf(ProjectSession session) =>
       LocalWorkshopReader(session, reader: _reader).read(
         metadataFields: {'settings'},
@@ -21,9 +48,12 @@ extension _LocalProjectSurfAdapter on LocalMapWorkspaceAdapter {
     operation, {
     LocalArtifactStore? artifactStore,
   }) async {
-    final policy = await WorkspacePolicy.create(
-      allowedRootPaths: [session.directoryPath],
-      fileReader: _reader,
+    final policy = await _observeAuthoringPhase(
+      'studio.authoring.policy',
+      () => WorkspacePolicy.create(
+        allowedRootPaths: [session.directoryPath],
+        fileReader: _reader,
+      ),
     );
     final handles = WorkspaceHandleStore();
     final opener = ProjectOpenService(
@@ -33,22 +63,35 @@ extension _LocalProjectSurfAdapter on LocalMapWorkspaceAdapter {
       catalogMetadataFields: const {},
       workshopScope: true,
     );
-    final opened = await opener.openProject(session.directoryPath);
+    final opened = await _observeAuthoringPhase(
+      'studio.authoring.open',
+      () => opener.openProject(session.directoryPath),
+    );
     final snapshots = ProjectSnapshotLoader(handles: handles);
-    final api = LocalMapAuthoringMutationApi(
-      policy: policy,
-      snapshotLoader: snapshots,
-      catalogFileReader: _reader,
-      artifactStore: artifactStore,
+    final api = _observeAuthoringPhaseSync(
+      'studio.authoring.construct',
+      () => LocalMapAuthoringMutationApi(
+        policy: policy,
+        snapshotLoader: snapshots,
+        catalogFileReader: _reader,
+        artifactStore: artifactStore,
+        performanceObserver: performanceObserver,
+      ),
     );
     final reads = AuthoringReadApi(
       openService: opener,
       snapshotLoader: snapshots,
     );
     try {
-      return await operation(opener, opened, api, reads);
+      return await _observeAuthoringPhase(
+        'studio.authoring.operation',
+        () => operation(opener, opened, api, reads),
+      );
     } finally {
-      await api.detachWorkspace(opened.workspaceHandle);
+      await _observeAuthoringPhase(
+        'studio.authoring.detach',
+        () => api.detachWorkspace(opened.workspaceHandle),
+      );
       opener.closeWorkspace(opened.workspaceHandle);
     }
   }

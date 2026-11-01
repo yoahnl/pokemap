@@ -496,3 +496,5 @@ export 'src/models/map_warp_ladder.dart';
 export 'src/models/project_audio_settings.dart';
 
 export 'src/models/image_puzzle.dart';
+
+export 'src/authoring/narrative_event_configuration_validation.dart' show validateNarrativeEventAuthoringConditions;

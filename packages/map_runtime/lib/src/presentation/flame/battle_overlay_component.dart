@@ -20,13 +20,16 @@ import 'battle_bag_item_icon_resolver.dart';
 import 'battle_command_menu_model.dart';
 import 'battle_combatant_gender_resolver.dart';
 import 'battle_animation_plan.dart';
+import 'battle_motion_policy.dart';
+import 'battle_live_attachment.dart';
 import 'battle_animation_runner.dart';
 import 'battle_ball_capture_component.dart';
 import 'battle_ball_flash_component.dart';
 import 'battle_ball_throw_component.dart';
 import 'battle_background_resolver.dart';
-import 'battle_camera_rig.dart';
 import 'battle_perspective_camera.dart';
+import 'battle_camera_framing.dart';
+import 'battle_camera_motion_envelope.dart';
 import 'battle_perspective_ground_component.dart';
 import 'battle_stage_3d_component.dart';
 import 'battle_idle_motion.dart';
@@ -529,6 +532,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     this.resolveSpeciesDisplayName = _battleDisplayName,
     this.showDebugPanel = false,
     this.motionScale = 1.0,
+    BattleMotionPolicy? motionPolicy,
     this.textScale = 1.0,
     EdgeInsets safeAreaPadding = EdgeInsets.zero,
     RuntimeMoveCatalog? moveCatalog,
@@ -538,6 +542,8 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     bool allowMedicineReserveTargets = true,
     Map<int, double> playerExperienceProgressByLineupIndex = const {},
   })  : _session = session,
+        _motionPolicy = motionPolicy ?? BattleMotionPolicy.legacy(motionScale),
+        _hasExplicitMotionPolicy = motionPolicy != null,
         _battlePresentation = presentation,
         _gameState = gameState,
         _itemCapabilityResolver = itemCapabilityResolver ??
@@ -680,6 +686,47 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
   /// `1.0` laisse le rythme d'origine, ce qui garde ce paramètre sans effet
   /// partout où personne ne le passe.
   final double motionScale;
+  BattleMotionPolicy _motionPolicy;
+  bool _hasExplicitMotionPolicy;
+  bool _reducedEffectsApplied = false;
+
+  BattleMotionPolicy get motionPolicy => _motionPolicy;
+  bool get _systemReducedMotion =>
+      WidgetsBinding.instance.platformDispatcher.accessibilityFeatures.disableAnimations;
+  bool get _reducedBattleMotion => _motionPolicy.reducedMotion || _systemReducedMotion;
+  bool get _reducedBattleEffects =>
+      (_hasExplicitMotionPolicy && _motionPolicy.reducedMotion) || _systemReducedMotion;
+
+  void applyMotionPolicy(BattleMotionPolicy? policy, {double? legacyMotionScale}) {
+    _motionPolicy = policy ?? BattleMotionPolicy.legacy(legacyMotionScale ?? motionScale);
+    _hasExplicitMotionPolicy = policy != null;
+    _fxLayer?.effectIntensity = _motionPolicy.effectIntensity;
+    for (final actor in [_playerCombatant, _enemyCombatant,
+      ..._additionalCombatants.values]) {
+      actor?.setEffectIntensity(_motionPolicy.effectIntensity);
+    }
+    _syncReducedBattleEffects();
+    if (_reducedBattleMotion) {
+      _resetBattleCamera();
+      for (final actor in [
+        _playerCombatant, _enemyCombatant, ..._additionalCombatants.values,
+      ]) {
+        actor?.setIdleLateralOffset(0);
+      }
+    }
+  }
+
+  void _syncReducedBattleEffects() {
+    final reduced = _reducedBattleEffects;
+    if (_reducedEffectsApplied == reduced) return;
+    _reducedEffectsApplied = reduced;
+    if (!reduced) return;
+    for (final actor in [_playerCombatant, _enemyCombatant,
+      ..._additionalCombatants.values]) {
+      actor?.reduceCurrentMotion();
+    }
+    _fxLayer?.reduceCurrentMotion();
+  }
 
   /// Échelle de texte demandée par le joueur, transmise au panneau de commande.
   final double textScale;
@@ -707,6 +754,27 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
   BattleSceneLayout? _sceneLayout;
   BattleAnimationPlan _activeAnimationPlan =
       const BattleAnimationPlan(steps: <BattleAnimationStep>[]);
+  Map<BattleSlotRef, BattleCameraMotionEnvelope> _cameraMotionEnvelopes = const {};
+  int _cameraMotionEnvelopeRevision = 0;
+
+  @visibleForTesting
+  int get battleCameraMotionEnvelopeRevision => _cameraMotionEnvelopeRevision;
+
+  @visibleForTesting
+  Rect? battleCameraMotionEnvelope(BattleSlotRef slot) {
+    final geometry = _combatantForSlot(slot)?.stableCameraGeometry;
+    final layout = _sceneLayout;
+    if (geometry == null || layout == null) return null;
+    if (_reducedBattleEffects) return geometry.framingBounds;
+    return _cameraMotionEnvelopes[slot]?.resolve(geometry,
+      rmxpSceneScale: math.min(layout.stageRect.width / 320, layout.stageRect.height / 240)) ?? geometry.framingBounds;
+  }
+
+  void _installActiveAnimationPlan(BattleAnimationPlan plan) {
+    _activeAnimationPlan = plan;
+    _cameraMotionEnvelopes = compileBattleCameraMotionEnvelopes(plan);
+    _cameraMotionEnvelopeRevision += 1;
+  }
   Set<BattleSlotRef> _presentationLockedCombatantSlots = <BattleSlotRef>{};
 
   /// BETA-BAT-025 : le sauvage capturé reste dans sa Ball jusqu'au démontage
@@ -746,8 +814,17 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
   BattleCombatant? _displayedEnemyCombatant;
   BattleCombatant? _displayedPlayerCombatant;
   int _presentationGeneration = 0;
-  final BattleCameraRig _battleCameraRig = BattleCameraRig();
   BattlePerspectiveCamera? _perspectiveCamera;
+  ({BattleSlotRef slot, int lineupIndex, String? combatantId})? _cameraFocusSubject;
+  List<Object?>? _cameraFramingInputs;
+  int _cameraFramingRevision = 0;
+  BattleCameraShot? _cameraReturnShot;
+
+  @visibleForTesting
+  BattleCameraShot? get battleCameraReturnShot => _cameraReturnShot;
+
+  @visibleForTesting
+  int get battleCameraFramingRevision => _cameraFramingRevision;
   BattleStage3DComponent? _stage3D;
   final Map<BattleSlotRef, BattleIdleMotion> _idleMotions = {};
 
@@ -883,6 +960,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     // poses retenues n'ont plus à survivre à une synchronisation.
     _introHeldCombatantSlots = <BattleSlotRef>{};
     _introPlayed = true;
+    _resetSceneClock();
     _animationRunner?.start(plan);
     _handleAnimationPresentationChanged();
   }
@@ -910,11 +988,16 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
   void presentPostBattlePlan(BattleAnimationPlan plan) {
     if (_ballImagesDisposed) return;
     if (plan.isEmpty) return;
+    _presentationGeneration += 1;
+    _fxLayer?.clearAll();
+    _syncFieldAmbientState();
     // Le plan actif suit le même cycle qu'un tour : posé ici, vidé par
     // [_handleAnimationPresentationChanged] quand le runner s'éteint. Les
     // révisions de tween du snapshot se comptent dessus, et le bandeau
     // d'issue le regarde pour savoir qu'une présentation est en cours.
-    _activeAnimationPlan = plan;
+    _installActiveAnimationPlan(plan);
+    _resetSceneClock();
+    _resetBattleCamera();
     _animationRunner?.start(plan);
     _handleAnimationPresentationChanged();
   }
@@ -1168,6 +1251,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
 
   @override
   void onRemove() {
+    _resetSceneClock();
     if (_ballImagesDisposed) return;
     _ballImagesDisposed = true;
     _presentationGeneration++;
@@ -1200,29 +1284,26 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
   void _handleBallCaptureSequenceStep(PlayBallCaptureSequenceStep step) {
     final sheet = _ballSheetImages[step.ballItemId];
     if (sheet == null) return;
-    final layout = currentSceneLayout;
-    final spriteRect = layout.enemySpriteRect;
-    final targetCenter = Offset(
-      spriteRect.center.dx,
-      spriteRect.bottom - spriteRect.height * 0.45,
-    );
+    final placement = _bindBallPlacement(const BattleSlotRef.active(BattleSideId.enemy),
+      verticalRatio: .45, throwingSide: BattleSideId.player);
+    final initial = placement();
+    if (initial == null) return;
     add(
       BattleBallCaptureComponent(
         sheet: sheet,
         shakes: step.shakes,
         caught: step.caught,
-        targetCenter: targetCenter,
-        throwStartX: ballThrowStartXFor(
-          side: BattleSideId.player,
-          viewportWidth: size.x,
-        ),
+        targetCenter: Offset(initial.targetCenter.x, initial.targetCenter.y),
+        throwStartX: initial.throwStartX,
         // Toujours depuis le sprite du JOUEUR — recette du 2026-08-25 : « la
         // pokéball que l'on lance pour attraper un pokémon sauvage est trop
         // petite ». C'est la même Ball, lancée par la même main : elle n'a
         // aucune raison de rétrécir parce que la cible est plus loin. Se
         // baser sur le sprite VISÉ la faisait perdre 30 % côté ennemi.
-        cellSize: _ballCellSize,
+        cellSize: initial.cellSize,
+        resolvePlacement: placement,
         onCue: (cue) {
+          if (placement() == null) return;
           switch (cue) {
             case BattleBallCaptureCue.absorb:
               unawaited(
@@ -1265,11 +1346,10 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
   void _handleBallSequenceStep(PlayBallSequenceStep step) {
     final sheet = _ballSheetImages[step.ballItemId];
     if (sheet == null) return;
-    final spriteRect = _geometryFor(step.slot).spriteRect;
-    final targetCenter = Offset(
-      spriteRect.center.dx,
-      spriteRect.bottom - spriteRect.height * 0.25,
-    );
+    final placement = _bindBallPlacement(step.slot, verticalRatio: .25,
+      throwingSide: step.side);
+    final initial = placement();
+    if (initial == null) return;
     if (step.kind == BattleBallSequenceKind.sendOutThrown) {
       playSfx?.call('ball_throw', volume: 100, pitch: 100);
     }
@@ -1277,13 +1357,12 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
       BattleBallThrowComponent(
         sheet: sheet,
         kind: step.kind,
-        targetCenter: targetCenter,
-        throwStartX: ballThrowStartXFor(
-          side: step.side,
-          viewportWidth: size.x,
-        ),
-        cellSize: _ballCellSize,
+        targetCenter: Offset(initial.targetCenter.x, initial.targetCenter.y),
+        throwStartX: initial.throwStartX,
+        cellSize: initial.cellSize,
+        resolvePlacement: placement,
         onOpen: () {
+          if (placement() == null) return;
           playSfx?.call('ball_open', volume: 100, pitch: 100);
           _spawnBallFlash(step.side, slotIndex: step.slotIndex);
         },
@@ -1308,20 +1387,51 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
   @visibleForTesting
   double get debugBallCellSize => _ballCellSize;
 
+  BattleBallLivePlacement? Function() _bindBallPlacement(BattleSlotRef slot, {
+    required double verticalRatio, required BattleSideId throwingSide,
+  }) {
+    final generation = _presentationGeneration;
+    final identity = _effectSubjectAt(slot);
+    return () {
+      if (!_isCurrentPresentationGeneration(generation) || identity == null ||
+          _effectSubjectAt(slot) != identity) {
+        return null;
+      }
+      final geometry = _geometryFor(slot);
+      final rect = geometry.spriteRect;
+      final projection = _perspectiveCamera?.tryBillboardAt(geometry.footAnchor);
+      final playerProjection = _perspectiveCamera?.tryBillboardAt(
+        _geometryFor(const BattleSlotRef.active(BattleSideId.player)).footAnchor);
+      if (projection == null || playerProjection == null || rect.isEmpty) return null;
+      final target = Offset(rect.center.dx, rect.bottom - rect.height * verticalRatio);
+      return (targetCenter: Vector2(
+        projection.position.dx + (target.dx - geometry.footAnchor.dx) * projection.scale,
+        projection.position.dy + (target.dy - geometry.footAnchor.dy) * projection.scale),
+        throwStartX: ballThrowStartXFor(side: throwingSide, viewportWidth: size.x),
+        cellSize: _ballCellSize * playerProjection.scale);
+    };
+  }
+
   /// Le flash d'ouverture d'une Ball — BETA-BAT-031.
   ///
   /// Recette du 2026-08-24 : « ça manque de l'espèce de flash jolie ». La
   /// référence (Platine) projette un éclat blanc au point d'apparition juste
   /// avant que le Pokémon prenne forme.
   void _spawnBallFlash(BattleSideId side, {int slotIndex = 0}) {
+    if (_reducedBattleEffects || _motionPolicy.effectIntensity <= 0) return;
     final slot = BattleSlotRef(side: side, slotIndex: slotIndex);
+    final generation = _presentationGeneration;
+    final placement = _bindBallPlacement(slot, verticalRatio: .32, throwingSide: side);
+    final initial = placement();
+    if (initial == null) return;
     final rect = _geometryFor(slot).spriteRect;
     final flash = BattleBallFlashComponent(
-      center: Offset(
-        rect.center.dx,
-        rect.bottom - rect.height * 0.32,
-      ),
+      center: Offset(initial.targetCenter.x, initial.targetCenter.y),
       radiusPx: rect.height * 0.62,
+      resolveCenter: () => placement()?.targetCenter,
+      resolveRadiusPx: () => _geometryFor(slot).spriteRect.height * .62 *
+          (_perspectiveCamera?.tryBillboardAt(_geometryFor(slot).footAnchor)?.scale ?? 1),
+      resolveIntensity: () => _reducedBattleEffects ? 0 : _motionPolicy.effectIntensity,
       priority: (_combatantForSlot(slot)?.priority ?? 10) + 3,
     );
     // En microtask : ce flash naît DANS le `update` du composant de Ball
@@ -1329,7 +1439,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     // ajouter un enfant là mute l'arbre pendant son parcours. Le piège de
     // BETA-BAT-016, cette fois à l'ajout et non au retrait.
     Future<void>.microtask(() {
-      if (isRemoved) return;
+      if (!_isCurrentPresentationGeneration(generation) || isRemoved || placement() == null) return;
       add(flash);
     });
   }
@@ -1449,19 +1559,40 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
       _activeAnimationPlan.steps.isNotEmpty;
 
   @visibleForTesting
-  bool get isBattleCameraFocusActive => _battleCameraRig.isActive;
+  bool get isBattleCameraFocusActive => _perspectiveCamera?.isMoving ?? false;
 
   @visibleForTesting
   bool get isBattleCameraActive =>
-      _battleCameraRig.isActive ||
-      _battleCameraRig.offset.length > 0 ||
-      _battleCameraRig.scale != 1.0;
+      (_perspectiveCamera?.isMoving ?? false) ||
+      !(_perspectiveCamera?.isHome ?? true);
 
   @visibleForTesting
-  Vector2 get battleCameraOffset => _battleCameraRig.offset;
+  Vector2 get battleCameraOffset {
+    final foot = _geometryFor(const BattleSlotRef.active(BattleSideId.player)).footAnchor;
+    final projection = _perspectiveCamera?.tryBillboardAt(foot);
+    return projection == null ? Vector2.zero() : Vector2(
+      projection.position.dx - foot.dx * projection.scale,
+      projection.position.dy - foot.dy * projection.scale,
+    );
+  }
 
   @visibleForTesting
-  double get battleCameraScale => _battleCameraRig.scale;
+  double get battleCameraScale {
+    final camera = _perspectiveCamera;
+    if (camera == null) return 1;
+    final geometry = _geometryFor(const BattleSlotRef.active(BattleSideId.player));
+    if (geometry.spriteRect.isEmpty) return 0;
+    return camera.tryBillboardAt(geometry.footAnchor)?.scale ?? 0;
+  }
+
+  @visibleForTesting
+  ({BattleSlotRef slot, int lineupIndex, String? combatantId})?
+  get battleCameraFocusSubject => _cameraFocusSubject;
+
+  ({BattleCameraPoint eye, BattleCameraPoint aim})? get battleCameraPose {
+    final camera = _perspectiveCamera;
+    return camera == null ? null : (eye: camera.eye, aim: camera.aim);
+  }
 
   @visibleForTesting
   int get activeBattleFxCount {
@@ -1679,6 +1810,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
 
     _perspectiveCamera = BattlePerspectiveCamera(viewport: layout.stageRect);
     _stage3D = BattleStage3DComponent(
+      resourceBudget: _resourceBudget,
       camera: _perspectiveCamera!,
       layout: () => currentSceneLayout,
       combatants: () => {
@@ -1695,7 +1827,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     add(_stage3D!);
     add(BattlePerspectiveGroundComponent(
       camera: _perspectiveCamera!,
-      isVisible: () => !(_stage3D?.isReady ?? false),
+      isVisible: () => !(_stage3D?.currentFramePresented ?? false),
       paintFloor: !backgroundSpec.hasExplicitImage,
       clipRect: () => currentSceneLayout.arenaRect,
       groundRects: () => [
@@ -1898,7 +2030,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     _fxLayer = BattleFxLayerComponent(
       size: size.clone(),
       fxBundleCache: _fxBundleCache,
-    );
+    )..effectIntensity = _motionPolicy.effectIntensity;
     add(_fxLayer!);
     _syncFieldAmbientState();
     _animationRunner = BattleAnimationRunner(
@@ -2032,7 +2164,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     _selectedMedicineTargetIndex = 0;
     _bagFeedbackMessage = null;
     _capturedEnemyHeldInBall = false;
-    _activeAnimationPlan = animationPlan;
+    _installActiveAnimationPlan(animationPlan);
     _presentationHeldHp.clear();
     for (final step
         in animationPlan.flattenedSteps.whereType<HudHpTweenStep>()) {
@@ -2047,6 +2179,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
       }
     }
     _resetBattleCamera();
+    _resetSceneClock();
     _animationRunner?.cancel(
       clearMessage: animationPlan.isEmpty,
       notify: false,
@@ -2080,7 +2213,6 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     _backdrop?.size = Vector2(size.x, size.y);
     _backdrop?.artworkRect = layout.backdropArtworkRect;
     _fxLayer?.size = viewportSize.clone();
-    _applyBattleCameraTransform();
     _syncFieldAmbientState();
     _enemyCombatant?.updateSceneGeometry(
       sceneSpriteRect: _geometryFor(const BattleSlotRef.active(BattleSideId.enemy)).spriteRect,
@@ -2101,6 +2233,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
       );
     }
     _debugPanel?.position = Vector2(size.x - 248, 32);
+    _refreshBattleCameraFramingIfChanged();
     _applyBattleCameraTransform();
     _notifyOutcomePresented();
     if (syncPanels) _syncPanelsOnly();
@@ -2440,7 +2573,28 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     _advanceScene(dt, updateChildren: true);
   }
 
+  double _pendingSceneSeconds = 0;
+  int _sceneClockRevision = 0;
+
+  void _resetSceneClock() {
+    _sceneClockRevision += 1;
+    _pendingSceneSeconds = 0;
+  }
+
   void _advanceScene(double dt, {required bool updateChildren}) {
+    final runner = _animationRunner;
+    if (runner == null) {
+      _advanceSceneWithinBudget(dt, updateChildren: updateChildren);
+    } else {
+      runner.withWorkBudget(() =>
+        _advanceSceneWithinBudget(dt, updateChildren: updateChildren));
+    }
+  }
+
+  void _advanceSceneWithinBudget(double dt, {required bool updateChildren}) {
+    if (_ballImagesDisposed || !dt.isFinite || dt < 0) return;
+    _syncReducedBattleEffects();
+    if (_reducedBattleMotion && isBattleCameraActive) _resetBattleCamera();
     if (_introTrainerExitPending &&
         (_introTrainerSprite?.isMotionComplete ?? false)) {
       _introTrainerExitPending = false;
@@ -2454,24 +2608,46 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     // les enfants visuels avancent sur la même horloge, donc rien ne se
     // désynchronise. Scaler la seule durée de phase du runner couperait les
     // effets en cours, ce qui reviendrait à les sauter.
-    final scaledDt = dt * (motionScale <= 0 ? 1.0 : motionScale);
-    var remaining = scaledDt;
-    while (remaining > .000001) {
+    final scaledDt = dt * _motionPolicy.playbackSpeed;
+    final elapsed = _pendingSceneSeconds + scaledDt;
+    if (!elapsed.isFinite) return;
+    var remaining = elapsed;
+    var substeps = 0;
+    var runnerWorkRemaining = 256;
+    final revision = _sceneClockRevision;
+    if (_animationRunner?.hasImmediateWork ?? false) {
+      runnerWorkRemaining -= _animationRunner!.update(0,
+        workBudget: runnerWorkRemaining);
+      if (_sceneClockRevision != revision) return;
+      if (_animationRunner?.hasImmediateWork ?? false) {
+        _pendingSceneSeconds = remaining;
+        return;
+      }
+    }
+    while (remaining > .000001 && substeps < 32) {
+      if (runnerWorkRemaining <= 0) break;
+      substeps += 1;
       final phaseRemaining = _animationRunner?.secondsUntilNextPhase ?? double.infinity;
       final tick = math.min(remaining, math.min(1 / 60,
           phaseRemaining > .000001 ? phaseRemaining : 1 / 60));
       _advanceIdleMotion(tick);
-      if (_battleCameraRig.isActive || (_perspectiveCamera?.isMoving ?? false)) {
-        _battleCameraRig.update(tick);
+      if (_perspectiveCamera?.isMoving ?? false) {
         _perspectiveCamera?.update(tick);
         _applyBattleCameraTransform();
       }
       if (updateChildren) {
-        for (final child in children) { child.updateTree(tick); }
+        for (final child in children) {
+          child.updateTree(tick);
+          if (_sceneClockRevision != revision) return;
+        }
       }
-      _animationRunner?.update(tick);
+      runnerWorkRemaining -= _animationRunner?.update(tick,
+        workBudget: runnerWorkRemaining) ?? 0;
+      if (_sceneClockRevision != revision) return;
       remaining -= tick;
+      if (_animationRunner?.hasImmediateWork ?? false) break;
     }
+    _pendingSceneSeconds = math.max(0, remaining);
   }
 
   void _advanceIdleMotion(double dt) {
@@ -2484,7 +2660,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
         direction: slot.side == BattleSideId.player ? 1 : -1,
       ));
       final amount = math.min(10.0, currentSceneLayout.stageRect.width * .018);
-      actor.setIdleLateralOffset(motion.advance(dt, waiting: waiting && motionScale <= 1) * amount);
+      actor.setIdleLateralOffset(motion.advance(dt, waiting: waiting && !_reducedBattleMotion) * amount);
     }
   }
 
@@ -2663,6 +2839,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
       if (_sceneLayout?.commandPanelMode != BattleCommandOverlayMode.decision) {
         _applyViewportLayout(size, syncPanels: false);
       }
+      _refreshBattleCameraFramingIfChanged();
       _publishPostBattleDecisionPresentation(decision);
       return;
     }
@@ -2670,6 +2847,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     if (_sceneLayout?.commandPanelMode != _sceneLayoutMode) {
       _applyViewportLayout(size, syncPanels: false);
     }
+    _refreshBattleCameraFramingIfChanged();
     final menuModel = _currentMenuModel();
     final partyMenuModel = _currentPartyMenuModel();
     final bagMenuModel = _currentBagMenuModel();
@@ -3844,6 +4022,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     if (!_isCurrentPresentationGeneration(presentationGeneration)) {
       return;
     }
+    _resetSceneClock();
     _animationRunner?.start(animationPlan);
   }
 
@@ -3868,8 +4047,8 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     _resetBattleCamera();
     _presentationLockedCombatantSlots = <BattleSlotRef>{};
     _presentationHeldHp.clear();
-    _activeAnimationPlan =
-        const BattleAnimationPlan(steps: <BattleAnimationStep>[]);
+    _installActiveAnimationPlan(
+        const BattleAnimationPlan(steps: <BattleAnimationStep>[]));
     final presentationGeneration = _presentationGeneration;
     _pendingVisualSync = _syncVisualState(
       presentationGeneration: presentationGeneration,
@@ -3877,10 +4056,41 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     unawaited(_pendingVisualSync);
   }
 
-  BattleFxRuntimeContext _battleFxRuntimeContext({Vector2? sceneSize}) {
+  BattleFxRuntimeContext _battleFxRuntimeContext({Vector2? sceneSize, bool ignoreRmxpTransform = false}) {
+    final generation = _presentationGeneration;
+    final identities = {
+      for (final slot in [const BattleSlotRef.active(BattleSideId.player),
+        const BattleSlotRef.active(BattleSideId.enemy), ..._additionalCombatants.keys])
+        slot: _effectSubjectAt(slot),
+    };
     return BattleFxRuntimeContext(
       sceneSize: sceneSize ?? size.clone(),
       stageRect: currentSceneLayout.stageRect,
+      isCurrent: () => _isCurrentPresentationGeneration(generation),
+      resolveSceneSize: () => sceneSize == null ? size : _rmxpAnimationViewportSize(),
+      resolveStageRect: () => currentSceneLayout.stageRect,
+      bindSlotAnchor: ({required anchor, required attackerSlot, required defenderSlot}) {
+        final subject = switch (anchor) {
+          BattleVisualAnchor.attackerCenter || BattleVisualAnchor.attackerBody ||
+          BattleVisualAnchor.attackerHead || BattleVisualAnchor.attackerMouth ||
+          BattleVisualAnchor.attackerHand || BattleVisualAnchor.attackerFoot => attackerSlot,
+          BattleVisualAnchor.defenderCenter || BattleVisualAnchor.defenderBody ||
+          BattleVisualAnchor.defenderHead || BattleVisualAnchor.defenderMouth ||
+          BattleVisualAnchor.defenderHand || BattleVisualAnchor.defenderImpact ||
+          BattleVisualAnchor.defenderFoot => defenderSlot,
+          _ => null,
+        };
+        return () {
+          if (subject != null && (identities[subject] == null ||
+              _effectSubjectAt(subject) != identities[subject])) {
+            return null;
+          }
+          return _resolveBattleVisualAnchor(anchor: anchor,
+            ignoreRmxpTransform: ignoreRmxpTransform,
+            attackerSide: attackerSlot.side, attackerSlotIndex: attackerSlot.slotIndex,
+            defenderSide: defenderSlot.side, defenderSlotIndex: defenderSlot.slotIndex);
+        };
+      },
       resolveAnchor: _resolveBattleVisualAnchor,
       resolveSlotAnchor: ({required anchor, required attackerSlot, required defenderSlot}) => _resolveBattleVisualAnchor(
         anchor: anchor,
@@ -3890,6 +4100,22 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
         defenderSlotIndex: defenderSlot.slotIndex,
       ),
     );
+  }
+
+  ({BattleSceneCombatantComponent actor, int lineupIndex, String? combatantId})?
+  _effectSubjectAt(BattleSlotRef slot) {
+    final actor = _combatantForSlot(slot);
+    if (actor == null || _geometryFor(slot).spriteRect.isEmpty) return null;
+    final displayed = _displayedCombatantsBySlot[slot] ??
+        (slot.side == BattleSideId.player ? _displayedPlayerCombatant : _displayedEnemyCombatant);
+    if (displayed == null) return null;
+    final current = _battlePresentation?.combatantAt(slot);
+    final previous = _previousBattlePresentation?.combatantAt(slot);
+    final projection = current?.lineupIndex == displayed.lineupIndex ? current :
+        previous?.lineupIndex == displayed.lineupIndex ? previous : null;
+    if (_battlePresentation != null && projection == null) return null;
+    return (actor: actor, lineupIndex: displayed.lineupIndex,
+      combatantId: projection?.combatantId);
   }
 
   void _handleSpawnFxStep(SpawnFxStep step) {
@@ -3906,6 +4132,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
   }
 
   void _handleScreenFlashStep(ScreenFlashStep step) {
+    if (_reducedBattleEffects) return;
     _fxLayer?.playScreenFlash(step);
   }
 
@@ -4024,22 +4251,31 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
   void _handleRmxpAnimationStep(PlayRmxpAnimationStep step) {
     final fxLayer = _fxLayer;
     final combatant = _combatantForSlot(step.subjectSlot);
+    final generation = _presentationGeneration;
+    final subjectIdentity = _effectSubjectAt(step.subjectSlot);
+    final transformOwner = Object();
+    bool currentSubject() => _isCurrentPresentationGeneration(generation) &&
+        subjectIdentity != null && _effectSubjectAt(step.subjectSlot) == subjectIdentity;
     if (fxLayer == null) {
       return;
     }
     unawaited(
       fxLayer.playRmxpAnimation(
         step,
-        _battleFxRuntimeContext(sceneSize: _rmxpAnimationViewportSize()),
+        _battleFxRuntimeContext(sceneSize: _rmxpAnimationViewportSize(), ignoreRmxpTransform: true),
         onCombatantTransform: combatant == null
             ? null
             : (transform) {
+                if (!currentSubject()) return;
                 combatant.applyRmxpTransform(
-                  offset: transform.offset,
-                  scale: transform.scale,
+                  owner: transformOwner,
+                  offset: _reducedBattleEffects ? Offset.zero : transform.offset,
+                  scale: _reducedBattleEffects ? 1 : transform.scale,
                 );
               },
-        onCombatantTransformCleared: combatant?.clearRmxpTransform,
+        onCombatantTransformCleared: () {
+          combatant?.clearRmxpTransform(owner: transformOwner);
+        },
         onSeTiming: (timing) {
           final seName = timing.seName;
           if (seName != null) {
@@ -4051,12 +4287,16 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
           }
         },
         onPokemonFlash: (timing) {
+          if (!currentSubject()) return;
+          if (_reducedBattleEffects || _motionPolicy.effectIntensity == 0) return;
           combatant?.triggerHitFlash(
+            intensity: _motionPolicy.effectIntensity,
             duration:
                 (timing.flashDuration * 2 / 60).clamp(0.05, 0.8).toDouble(),
           );
         },
         onSceneFlash: (timing) {
+          if (_reducedBattleEffects) return;
           fxLayer.playScreenFlash(
             ScreenFlashStep(
               colorArgb: Color.fromARGB(
@@ -4070,7 +4310,9 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
             ),
           );
         },
-        onVisibilityChanged: combatant?.setRmxpHidden,
+        onVisibilityChanged: (hidden) {
+          if (!hidden || currentSubject()) combatant?.setRmxpHidden(hidden, owner: transformOwner);
+        },
       ),
     );
   }
@@ -4097,7 +4339,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
         unawaited(
           combatant.playLunge(
             towardOpponent: true,
-            distancePx: step.distancePx,
+            distancePx: _reducedBattleEffects ? 0 : step.distancePx,
             durationSeconds: step.durationSeconds,
           ),
         );
@@ -4105,7 +4347,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
         unawaited(
           combatant.playFastDash(
             towardOpponent: true,
-            distancePx: step.distancePx,
+            distancePx: _reducedBattleEffects ? 0 : step.distancePx,
             durationSeconds: step.durationSeconds,
           ),
         );
@@ -4121,7 +4363,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
         unawaited(
           combatant.playIntroSlide(
             durationSeconds: step.durationSeconds,
-            distancePx: step.distancePx,
+            distancePx: _reducedBattleEffects ? 0 : step.distancePx,
           ),
         );
       case BattleCombatantMotionKind.materializeIn:
@@ -4136,8 +4378,10 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
   }
 
   void _handleCombatantFlashStep(CombatantFlashStep step) {
+    if (_reducedBattleEffects || _motionPolicy.effectIntensity == 0) return;
     _combatantForSlot(step.slot)
-        ?.triggerHitFlash(duration: step.durationSeconds);
+        ?.triggerHitFlash(duration: step.durationSeconds,
+          intensity: _motionPolicy.effectIntensity);
   }
 
   void _handleCombatantShakeStep(CombatantShakeStep step) {
@@ -4147,7 +4391,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     }
     unawaited(
       combatant.playShake(
-        amplitudePx: step.amplitudePx,
+        amplitudePx: _reducedBattleEffects ? 0 : step.amplitudePx,
         durationSeconds: step.durationSeconds,
       ),
     );
@@ -4158,6 +4402,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     if (combatant == null) {
       return;
     }
+    combatant.setEffectIntensity(_motionPolicy.effectIntensity);
     unawaited(
       combatant.playTone(
         color: Color(step.colorArgb),
@@ -4173,8 +4418,8 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     }
     unawaited(
       combatant.playCompress(
-        scaleX: step.scaleX,
-        scaleY: step.scaleY,
+        scaleX: _reducedBattleEffects ? 0 : step.scaleX,
+        scaleY: _reducedBattleEffects ? 0 : step.scaleY,
         durationSeconds: step.durationSeconds,
         iteration: step.iteration,
       ),
@@ -4188,70 +4433,188 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     }
     unawaited(
       combatant.playEllipse(
-        radiusX: step.radiusX,
-        radiusY: step.radiusY,
+        radiusX: _reducedBattleEffects ? 0 : step.radiusX,
+        radiusY: _reducedBattleEffects ? 0 : step.radiusY,
         turns: step.turns,
         durationSeconds: step.durationSeconds,
       ),
     );
   }
 
+  ({BattleSlotRef slot, int lineupIndex, String? combatantId})?
+  _cameraSubjectAt(BattleSlotRef slot) {
+    if (_combatantForSlot(slot) == null) return null;
+    final projected = _battlePresentation?.combatantAt(slot);
+    if (_battlePresentation != null && projected == null) return null;
+    if (projected == null && slot.slotIndex != 0) return null;
+    final displayed = _displayedCombatantsBySlot[slot] ??
+        (slot.side == BattleSideId.player
+          ? _displayedPlayerCombatant : _displayedEnemyCombatant) ??
+        _combatantDataAt(slot);
+    if ((_presentationHeldHp[slot] ?? displayed.currentHp) <= 0) return null;
+    final previous = _previousBattlePresentation?.combatantAt(slot);
+    final displayedProjection = projected?.lineupIndex == displayed.lineupIndex
+        ? projected
+        : previous?.lineupIndex == displayed.lineupIndex ? previous : null;
+    if (_battlePresentation != null && displayedProjection == null) return null;
+    return (
+      slot: slot, lineupIndex: displayed.lineupIndex,
+      combatantId: displayedProjection?.combatantId,
+    );
+  }
+
+  BattleCameraShot? _resolveBattleCameraShot({BattleSlotRef? principal}) {
+    final camera = _perspectiveCamera;
+    final layout = _sceneLayout;
+    if (camera == null || layout == null) return null;
+    final slots = [
+      const BattleSlotRef.active(BattleSideId.enemy),
+      const BattleSlotRef.active(BattleSideId.player),
+      ..._additionalCombatants.keys,
+    ].where((slot) => _cameraSubjectAt(slot) != null && !_geometryFor(slot).spriteRect.isEmpty).toList(growable: false);
+    String id(BattleSlotRef slot) => '${slot.side.name}:${slot.slotIndex}';
+    BattleCameraSubjectGeometry geometry(BattleSlotRef slot) {
+      final stable = _combatantForSlot(slot)!.stableCameraGeometry;
+      final bounds = stable.bounds;
+      return BattleCameraSubjectGeometry(
+        foot: stable.foot, bounds: bounds, focusAnchor: stable.focusAnchor,
+        animationEnvelope: principal == slot
+          ? battleCameraMotionEnvelope(slot)
+          : stable.framingBounds.inflate(2),
+      );
+    }
+    return const BattleCameraShotResolver().resolve(
+      camera: camera,
+      intent: principal == null ? BattleCameraShotIntent.overview : BattleCameraShotIntent.attacker,
+      subjects: [
+        for (final slot in slots)
+          BattleCameraSubject(id: id(slot), geometry: geometry(slot)),
+      ],
+      principalId: principal == null ? null : id(principal),
+      usefulViewport: layout.arenaRect.intersect(Rect.fromLTRB(
+        _safeAreaPadding.left, _safeAreaPadding.top,
+        size.x - _safeAreaPadding.right, size.y - _safeAreaPadding.bottom,
+      )),
+      obstacles: [
+        if (layout.commandPanelPlacement != BattleCommandPanelPlacement.detached)
+          layout.commandPanelRect,
+        if (_teamInfoRevealed && !(_animationRunner?.areGaugesHidden ?? false))
+          for (final slot in slots) _geometryFor(slot).hudRect,
+      ],
+      playerSide: principal?.side == BattleSideId.player,
+      strength: _isDoubles ? .65 : 1,
+    );
+  }
+
+  void _refreshBattleCameraFramingIfChanged() {
+    final layout = _sceneLayout;
+    if (layout == null || _perspectiveCamera == null) return;
+    final inputs = <Object?>[
+      layout.viewportSize, layout.stageRect, layout.arenaRect,
+      layout.commandPanelRect, layout.commandPanelPlacement, _safeAreaPadding,
+      _cameraMotionEnvelopeRevision, _reducedBattleEffects,
+      _teamInfoRevealed && !(_animationRunner?.areGaugesHidden ?? false),
+      for (final slot in [
+        const BattleSlotRef.active(BattleSideId.enemy),
+        const BattleSlotRef.active(BattleSideId.player),
+        ..._additionalCombatants.keys,
+      ])
+        (slot, _cameraSubjectAt(slot), _geometryFor(slot).hudRect,
+          _combatantForSlot(slot)?.stableCameraGeometry.bounds,
+          _combatantForSlot(slot)?.stableCameraGeometry.foot,
+          _combatantForSlot(slot)?.stableCameraGeometry.focusAnchor,
+          _combatantForSlot(slot)?.stableCameraGeometry.framingBounds),
+    ];
+    if (listEquals(_cameraFramingInputs, inputs)) return;
+    _cameraFramingInputs = inputs;
+    _cameraFramingRevision += 1;
+    _reflowBattleCameraFocus();
+    _applyBattleCameraTransform();
+  }
+
+  void _resolveBattleCameraReturn() {
+    final overview = _resolveBattleCameraShot();
+    _cameraReturnShot = overview;
+    if (overview != null && overview.fits) {
+      _perspectiveCamera?.reflowOverview((eye: overview.eye, aim: overview.aim));
+    }
+  }
+
+  void _reflowBattleCameraFocus() {
+    _resolveBattleCameraReturn();
+    final subject = _cameraFocusSubject;
+    if (subject == null) return;
+    if (_cameraSubjectAt(subject.slot) != subject) {
+      _cameraFocusSubject = null;
+      _perspectiveCamera?.cancel();
+      return;
+    }
+    final shot = _resolveBattleCameraShot(principal: subject.slot);
+    _perspectiveCamera?.reflowFocus(_geometryFor(subject.slot).footAnchor,
+      resolvedPose: shot == null ? null : (eye: shot.eye, aim: shot.aim),
+    );
+  }
+
   void _handleCameraFocusStep(CameraFocusStep step) {
-    if (motionScale > 1) return;
+    if (_reducedBattleMotion) return;
+    _cameraFocusSubject = null;
     if (step.target == BattleCameraFocusTarget.scene) {
+      _resolveBattleCameraReturn();
       _perspectiveCamera?.reset(durationSeconds: step.durationSeconds);
     } else {
       final side = step.side ?? (step.target == BattleCameraFocusTarget.user
           ? BattleSideId.player : BattleSideId.enemy);
-      final geometry = _geometryFor(BattleSlotRef(side: side, slotIndex: step.slotIndex));
+      final slot = BattleSlotRef(side: side, slotIndex: step.slotIndex);
+      final subject = _cameraSubjectAt(slot);
+      final geometry = _geometryFor(slot);
+      if (subject == null || _perspectiveCamera?.tryGroundAt(geometry.footAnchor) == null) {
+        _resetBattleCamera();
+        return;
+      }
+      final shot = _resolveBattleCameraShot(principal: slot);
       _perspectiveCamera?.focus(geometry.footAnchor,
+        resolvedPose: shot == null ? null : (eye: shot.eye, aim: shot.aim),
         playerSide: side == BattleSideId.player,
         durationSeconds: step.durationSeconds,
         strength: _isDoubles ? .65 : 1,
       );
-    }
-    switch (step.target) {
-      case BattleCameraFocusTarget.user:
-        _battleCameraRig.focusUser(durationSeconds: step.durationSeconds);
-      case BattleCameraFocusTarget.target:
-        _battleCameraRig.focusTarget(durationSeconds: step.durationSeconds);
-      case BattleCameraFocusTarget.scene:
-        _battleCameraRig.centerScene(durationSeconds: step.durationSeconds);
+      _cameraFocusSubject = subject;
     }
     _applyBattleCameraTransform();
   }
 
   void _handleBattleCameraMoveStep(BattleCameraMoveStep step) {
-    if (motionScale > 1) return;
+    if (_reducedBattleMotion) return;
+    _cameraFocusSubject = null;
     _perspectiveCamera?.moveTo(
       eye: BattlePerspectiveCamera.homeEye + BattleCameraPoint(
         step.offsetX / 12, -step.offsetY / 12, (1 - step.scale) * 20,
       ),
       aim: BattlePerspectiveCamera.homeAim,
       durationSeconds: step.durationSeconds,
-    );
-    _battleCameraRig.moveTo(
-      offset: Vector2(step.offsetX, step.offsetY),
-      scale: step.scale,
-      durationSeconds: step.durationSeconds,
-      curve: step.curve,
+      easing: switch (step.curve) {
+        BattleFxMotionCurve.linear => BattleCameraEasing.linear,
+        _ => BattleCameraEasing.easeOut,
+      },
     );
     _applyBattleCameraTransform();
   }
 
   void _handleBattleCameraResetStep(BattleCameraResetStep step) {
-    if (motionScale > 1) {
+    _cameraFocusSubject = null;
+    _resolveBattleCameraReturn();
+    if (_reducedBattleMotion) {
       _resetBattleCamera();
       return;
     }
-    _perspectiveCamera?.reset(durationSeconds: motionScale > 1 ? 0 : step.durationSeconds);
-    _battleCameraRig.reset(durationSeconds: step.durationSeconds);
+    _perspectiveCamera?.reset(durationSeconds: step.durationSeconds);
     _applyBattleCameraTransform();
   }
 
   void _resetBattleCamera() {
-    _perspectiveCamera?.reset(durationSeconds: 0);
-    _battleCameraRig.cancel();
+    _cameraFocusSubject = null;
+    _resolveBattleCameraReturn();
+    _perspectiveCamera?.cancel();
     _applyBattleCameraTransform();
   }
 
@@ -4260,9 +4623,14 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     if (camera == null) return;
     _backdrop?.cameraParallax = camera.backdropOffset;
     void apply(BattleSlotRef slot, BattleSceneCombatantComponent? component) {
+      if (component == null) return;
       final foot = _geometryFor(slot).footAnchor;
-      final projected = camera.billboardAt(foot);
-      component?.applyBattleCameraTransform(
+      final projected = camera.tryBillboardAt(foot);
+      if (projected == null || _geometryFor(slot).spriteRect.isEmpty) {
+        component.applyBattleCameraTransform(offset: Vector2.zero(), scale: 0);
+        return;
+      }
+      component.applyBattleCameraTransform(
         offset: Vector2(
           projected.position.dx - foot.dx * projected.scale,
           projected.position.dy - foot.dy * projected.scale,
@@ -4273,9 +4641,13 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     apply(const BattleSlotRef.active(BattleSideId.enemy), _enemyCombatant);
     apply(const BattleSlotRef.active(BattleSideId.player), _playerCombatant);
     for (final entry in _additionalCombatants.entries) { apply(entry.key, entry.value); }
+    for (final child in children) {
+      if (child case final BattleLiveAttachment attachment) attachment.refreshAttachment();
+    }
   }
 
   void _handleFaintCombatantStep(FaintCombatantStep step) {
+    if (_cameraFocusSubject?.slot == step.slot) _resetBattleCamera();
     final combatant = _combatantForSlot(step.slot);
     if (combatant == null) {
       return;
@@ -4302,13 +4674,19 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     if (fxLayer == null || targetRect == null) {
       return;
     }
+    final generation = _presentationGeneration;
+    final identity = _effectSubjectAt(step.slot);
     fxLayer.playBarrierPulse(
       step,
       targetRect: targetRect.inflate(18),
+      resolveTargetRect: () => _isCurrentPresentationGeneration(generation) &&
+          identity != null && _effectSubjectAt(step.slot) == identity
+          ? _combatantRenderedRectForSlot(step.slot)?.inflate(18) : null,
     );
   }
 
   void _handleSwapCombatantVisualStep(BattleSideId side) {
+    if (_cameraFocusSubject?.slot == BattleSlotRef.active(side)) _resetBattleCamera();
     unawaited(
       _syncCombatantVisualForSide(
         side,
@@ -4318,6 +4696,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
   }
 
   void _handleSwapCombatantVisualSlot(BattleSlotRef slot) {
+    if (_cameraFocusSubject?.slot == slot) _resetBattleCamera();
     if (!_isDoubles) {
       _handleSwapCombatantVisualStep(slot.side);
       return;
@@ -4369,6 +4748,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     required BattleSideId defenderSide,
     int attackerSlotIndex = 0,
     int defenderSlotIndex = 0,
+    bool ignoreRmxpTransform = false,
   }) {
     final attackerSlot = BattleSlotRef(side: attackerSide, slotIndex: attackerSlotIndex);
     final defenderSlot = BattleSlotRef(side: defenderSide, slotIndex: defenderSlotIndex);
@@ -4423,7 +4803,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     }) {
       final combatant = _combatantForSlot(slot);
       if (combatant != null) {
-        final spriteRect = combatant.currentRenderedSpriteRect;
+        final spriteRect = ignoreRmxpTransform ? combatant.currentEffectAttachmentSpriteRect : combatant.currentRenderedSpriteRect;
         final facingSign = opponentCenter.dx >= spriteRect.center.dx ? 1.0 : -1.0;
         return Offset(
           spriteRect.center.dx + facingSign * spriteRect.width * .16,
@@ -4440,7 +4820,8 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
 
     Offset footFor(BattleSlotRef slot, Rect? rect, Rect fallbackRect) {
       final footAnchor =
-          _combatantForSlot(slot)?.currentFootAnchor;
+          ignoreRmxpTransform ? _combatantForSlot(slot)?.currentEffectAttachmentFootAnchor :
+            _combatantForSlot(slot)?.currentFootAnchor;
       if (footAnchor != null) {
         return footAnchor;
       }
@@ -4449,8 +4830,12 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     }
 
     final layout = currentSceneLayout;
-    final attackerRect = _combatantRenderedRectForSlot(attackerSlot);
-    final defenderRect = _combatantRenderedRectForSlot(defenderSlot);
+    final attackerRect = ignoreRmxpTransform
+        ? _combatantForSlot(attackerSlot)?.currentEffectAttachmentSpriteRect
+        : _combatantRenderedRectForSlot(attackerSlot);
+    final defenderRect = ignoreRmxpTransform
+        ? _combatantForSlot(defenderSlot)?.currentEffectAttachmentSpriteRect
+        : _combatantRenderedRectForSlot(defenderSlot);
     final attackerGeometry = _geometryFor(attackerSlot);
     final defenderGeometry = _geometryFor(defenderSlot);
     final attackerFallback = attackerGeometry.spriteRect.expandToInclude(attackerGeometry.platformRect);

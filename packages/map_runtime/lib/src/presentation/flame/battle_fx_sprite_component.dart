@@ -4,8 +4,9 @@ import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 
 import 'battle_animation_plan.dart';
+import 'battle_live_attachment.dart';
 
-final class BattleFxSpriteComponent extends PositionComponent {
+final class BattleFxSpriteComponent extends PositionComponent implements BattleLiveAttachment {
   BattleFxSpriteComponent({
     required this.sprite,
     required Vector2 startPosition,
@@ -19,6 +20,8 @@ final class BattleFxSpriteComponent extends PositionComponent {
     required this.startOpacity,
     required this.endOpacity,
     this.tintColor,
+    this.resolveStartPosition,
+    this.resolveEndPosition,
   })  : _startPosition = startPosition.clone(),
         _endPosition = endPosition.clone(),
         _baseDisplaySize = sprite.srcSize.clone(),
@@ -48,6 +51,8 @@ final class BattleFxSpriteComponent extends PositionComponent {
   final double startOpacity;
   final double endOpacity;
   final Color? tintColor;
+  final BattleLivePointResolver? resolveStartPosition;
+  final BattleLivePointResolver? resolveEndPosition;
 
   static const double _afterEffectSeconds = 0.12;
 
@@ -69,11 +74,33 @@ final class BattleFxSpriteComponent extends PositionComponent {
   bool get isAnimationComplete => _isAnimationComplete;
 
   @override
+  bool refreshAttachment() {
+    if (_isAnimationComplete) return false;
+    if (!refreshBattleLivePoint(resolveStartPosition, _startPosition) ||
+        !refreshBattleLivePoint(resolveEndPosition, _endPosition)) {
+      _currentOpacityMultiplier = 0;
+      _completeAnimation();
+      removeBattleLiveAttachment(this);
+      return false;
+    }
+    if (_inAfterEffect) {
+      position.setFrom(_endPosition);
+    } else if (_elapsed == 0) {
+      position.setFrom(_startPosition);
+    } else {
+      position.setFrom(_interpolatedPosition(
+        (_elapsed / (durationSeconds <= 0 ? .0001 : durationSeconds)).clamp(0, 1)));
+    }
+    return true;
+  }
+
+  @override
   void update(double dt) {
     super.update(dt);
     if (_isAnimationComplete) {
       return;
     }
+    if (!refreshAttachment()) return;
     if (!_delayCompleted && startDelaySeconds > 0) {
       _delayElapsed += dt;
       if (_delayElapsed < startDelaySeconds) {

@@ -10,6 +10,62 @@ import 'package:map_player_ui/src/player/runtime_player_options.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  for (final speed in [.25, 4.0]) {
+    testWidgets('valid battle speed $speed opens without editing stored value', (tester) async {
+      final changes = <PlayerPreferencesSnapshot>[];
+      await _pump(tester, preferences: _preferences.copyWith(
+        battleMotion: BattleMotionPolicy(playbackSpeed: speed)),
+        onChanged: changes.add);
+      await _category(tester, 'accessibility');
+      expect(tester.widget<Slider>(find.byKey(
+        const ValueKey('runtime-player-battle-speed-slider'))).value,
+        speed.clamp(.5, 3));
+      expect(changes, isEmpty);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  testWidgets('motion toggle shows the explicit battle policy after reload', (tester) async {
+    final changes = <PlayerPreferencesSnapshot>[];
+    await _pump(tester, preferences: _preferences.copyWith(
+      accessibility: const GameSessionAccessibilityOptions(reducedMotion: true),
+      battleMotion: BattleMotionPolicy()), onChanged: changes.add);
+    await _category(tester, 'accessibility');
+    await _tap(tester, 'runtime-player-reduced-motion-toggle');
+    expect(changes.last.battleMotion!.reducedMotion, isTrue);
+  });
+
+  for (final size in [const Size(390, 844), const Size(844, 390)]) {
+    testWidgets('battle controls remain independent and persist at $size', (tester) async {
+      final changes = <PlayerPreferencesSnapshot>[];
+      await _pump(tester, size: size, onChanged: changes.add);
+      await _category(tester, 'accessibility');
+      await _tap(tester, 'runtime-player-battle-speed-slider');
+      final speed = tester.widget<Slider>(find.byKey(
+        const ValueKey('runtime-player-battle-speed-slider')));
+      speed.onChangeEnd!(2.5);
+      await tester.pumpAndSettle();
+      expect(changes.last.battleMotion!.playbackSpeed, 2.5);
+      expect(changes.last.battleMotion!.reducedMotion, isFalse);
+      await _tap(tester, 'runtime-player-reduced-motion-toggle');
+      expect(changes.last.battleMotion!.reducedMotion, isTrue);
+      expect(changes.last.battleMotion!.playbackSpeed, 2.5);
+      await _tap(tester, 'runtime-player-battle-intensity-slider');
+      final intensity = tester.widget<Slider>(find.byKey(
+        const ValueKey('runtime-player-battle-intensity-slider')));
+      intensity.onChangeEnd!(.25);
+      await tester.pumpAndSettle();
+      expect(changes.last.battleMotion!.effectIntensity, .25);
+      expect(changes.last.battleMotion!.playbackSpeed, 2.5);
+      await _tap(tester, 'options-defaults');
+      await _tap(tester, 'options-reset-confirm');
+      expect(changes.last.battleMotion, BattleMotionPolicy());
+      expect(tester.widget<PlayerMenuSelectableRow>(find.byKey(
+        const ValueKey('options-defaults'))).onPressed, isNull);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets('display frame rate choices persist and reset only display', (
     tester,
   ) async {

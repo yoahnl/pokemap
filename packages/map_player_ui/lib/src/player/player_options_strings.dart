@@ -85,6 +85,8 @@ final class PlayerOptionsStrings {
       'Could not save settings. The last saved values have been kept. Please try again.');
   String get returnToTitle => text('Retour au titre', 'Return to title');
   String get textSpeed => text('Vitesse des textes', 'Text speed');
+  String get battleSpeed => text('Vitesse des combats', 'Battle speed');
+  String get battleEffectIntensity => text('Intensité des effets de combat', 'Battle effect intensity');
   String get menuEffects => text('Effets du menu', 'Menu effects');
   String get frameRateLimit => text('Images par seconde', 'Frames per second');
   String get renderScale => text('Résolution 3D', '3D resolution');

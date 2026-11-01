@@ -19,6 +19,7 @@ void main() {
       'condition-world',
       'condition-event',
       'condition-presentation',
+      if (dimension == ProjectDimension.threeD) 'condition-model',
     ]) {
       final periodic = scenario != 'unused';
       test(
@@ -189,6 +190,16 @@ void main() {
                           order: 0),
                       enabled: true)
                 ]));
+          } else if (scenario == 'condition-model') {
+            final map = MapData.fromJson(Map<String, dynamic>.from(
+                jsonDecode(utf8.decode(files['project/maps/map.json']!)) as Map));
+            files['project/maps/map.json'] = utf8.encode(jsonEncode(
+              map.copyWith(spatialScene: map.spatialScene!.copyWith(instances: [
+                for (final instance in map.spatialScene!.instances)
+                  instance.copyWith(visibilityCondition:
+                    NarrativeEventConditionExpression.leaf(leaf)),
+              ])).toJson(),
+            ));
           } else {
             final map = MapData.fromJson(Map<String, dynamic>.from(
                 jsonDecode(utf8.decode(files['project/maps/map.json']!))
@@ -279,6 +290,9 @@ void main() {
             const GamePackageInspector().inspect(result.packageBytes);
         expect(unpacked.manifest.compatibility.requiredCapabilities,
             result.manifest.compatibility.requiredCapabilities);
+        expect(result.manifest.compatibility.requiredCapabilities.contains(
+          SpatialModelInstance.conditionalVisibilityCapabilityId),
+          scenario == 'condition-model');
         if (scenario.startsWith('condition-')) {
           final archive =
               ZipDecoder().decodeBytes(result.packageBytes, verify: true);
@@ -329,6 +343,23 @@ void main() {
                     .single
                     .rewardReference,
                 locator);
+          if (scenario == 'condition-model') {
+            expect(exportedMap.spatialScene!.instances.first.visibilityCondition!
+              .leaves.single.rewardReference, locator);
+            final currentHost = AveluneRuntimeCompatibility.host();
+            final previousHost = GamePackageHostCompatibility(
+              hubVersion: currentHost.hubVersion,
+              runtimeApiVersion: currentHost.runtimeApiVersion,
+              capabilities: {...currentHost.capabilities}..remove(
+                SpatialModelInstance.conditionalVisibilityCapabilityId),
+              supportedProjectFormats: currentHost.supportedProjectFormats,
+              currentProjectFormat: currentHost.currentProjectFormat,
+              currentProjectFormats: currentHost.currentProjectFormats,
+              supportedSaveFormats: currentHost.supportedSaveFormats,
+            );
+            expect(() => GamePackageInspector(hostCompatibility: previousHost)
+              .inspect(result.packageBytes), throwsA(isA<GamePackageFormatException>()));
+          }
           final bytes = List<int>.of(result.packageBytes);
           final host = AveluneRuntimeCompatibility.host();
           final oldHost = GamePackageHostCompatibility(

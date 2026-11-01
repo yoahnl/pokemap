@@ -23,12 +23,24 @@ import 'package:map_runtime/src/presentation/flame/battle_scene_layout.dart';
 import 'package:map_runtime/src/presentation/flame/battle_fx_layer_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_rmxp_animation_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_visual_asset_cache.dart';
+import 'package:map_runtime/src/presentation/flame/battle_stage_3d_component.dart';
 
 import 'support/load_flame_component.dart';
 
 String _hudSpeciesText(BattleCommandOverlayHudSnapshot hud) {
   final gender = hud.genderSymbol;
   return gender == null ? hud.speciesLabel : '${hud.speciesLabel} $gender';
+}
+
+ui.Rect _projectSceneRect(BattleOverlayComponent overlay, ui.Rect rect, ui.Offset foot) {
+  final camera = overlay.children.whereType<BattleStage3DComponent>().single.camera;
+  final projected = camera.billboardAt(foot);
+  return ui.Rect.fromLTRB(
+    projected.position.dx + (rect.left - foot.dx) * projected.scale,
+    projected.position.dy + (rect.top - foot.dy) * projected.scale,
+    projected.position.dx + (rect.right - foot.dx) * projected.scale,
+    projected.position.dy + (rect.bottom - foot.dy) * projected.scale,
+  );
 }
 
 BattleStatsSnapshot _stats({
@@ -363,8 +375,13 @@ void main() {
     imageReady.complete(await _fakeBattleFxImage());
     await loading;
     expect(initialized, isTrue);
-    expect((overlay.debugPlayerCombatant!.currentFootAnchor -
+    final camera = overlay.children.whereType<BattleStage3DComponent>().single.camera;
+    expect((overlay.debugPlayerCombatant!.stableCameraGeometry.foot -
         overlay.currentSceneLayout.playerFootAnchor).distance, lessThan(.001));
+    expect(camera.viewport, overlay.currentSceneLayout.stageRect);
+    expect((overlay.debugPlayerCombatant!.currentFootAnchor -
+        camera.billboardAt(overlay.currentSceneLayout.playerFootAnchor).position)
+        .distance, lessThan(.001));
     expect(
       overlay.children
           .whereType<BattleSceneBackdropComponent>()
@@ -1313,19 +1330,19 @@ void main() {
 
       _expectRectCloseTo(
         playerCombatant.currentSpriteRect,
-        layout.playerSpriteRect,
+        _projectSceneRect(overlay, layout.playerSpriteRect, layout.playerFootAnchor),
       );
       _expectRectCloseTo(
         enemyCombatant.currentSpriteRect,
-        layout.enemySpriteRect,
+        _projectSceneRect(overlay, layout.enemySpriteRect, layout.enemyFootAnchor),
       );
       _expectRectCloseTo(
         playerCombatant.currentPlatformRect,
-        layout.playerPlatformRect,
+        _projectSceneRect(overlay, layout.playerPlatformRect, layout.playerFootAnchor),
       );
       _expectRectCloseTo(
         enemyCombatant.currentPlatformRect,
-        layout.enemyPlatformRect,
+        _projectSceneRect(overlay, layout.enemyPlatformRect, layout.enemyFootAnchor),
       );
       expect(
         layout.playerSpriteRect.height,
@@ -3870,6 +3887,9 @@ void main() {
       // (chute) + 0,42 + 0,42 ≈ 2,40 s, contre 2,14 s auparavant. Le budget
       // suit, avec de la marge.
       overlay.updateTree(1.9);
+      for (var frame = 0; frame < 4; frame++) {
+        overlay.updateTree(0);
+      }
 
       expect(overlay.isTurnPresentationActive, isFalse);
       expect(initialEnemyCombatant.isHitFlashActive, isFalse);
@@ -4103,8 +4123,10 @@ void main() {
             expect(snapshot.enemyHud.isVisible, isTrue);
             expect(snapshot.playerHud.isVisible, isTrue);
             expect(overlay.isBattleCameraActive, isFalse);
-            expect(overlay.debugEnemyCombatant!.currentRenderedSpriteRect,
-                overlay.debugEnemyCombatant!.currentCameraNeutralRenderedSpriteRect);
+            _expectRectCloseTo(overlay.debugEnemyCombatant!.currentRenderedSpriteRect,
+                _projectSceneRect(overlay,
+                  overlay.debugEnemyCombatant!.currentCameraNeutralRenderedSpriteRect,
+                  overlay.currentSceneLayout.enemyFootAnchor));
           }
           if (frame == 32) {
             overlay.onGameResize(Vector2(size.y, size.x));
@@ -4166,8 +4188,13 @@ void main() {
       await overlay.waitForPendingVisualSync();
 
       expect(overlay.isBattleCameraFocusActive, isFalse);
-      expect(overlay.battleCameraOffset, equals(Vector2.zero()));
-      expect(overlay.battleCameraScale, equals(1));
+      expect(overlay.isBattleCameraActive, isFalse);
+      final camera = overlay.children.whereType<BattleStage3DComponent>().single.camera;
+      expect(camera.isHome, isTrue);
+      _expectRectCloseTo(overlay.debugPlayerCombatant!.currentRenderedSpriteRect,
+        _projectSceneRect(overlay,
+          overlay.debugPlayerCombatant!.currentCameraNeutralRenderedSpriteRect,
+          overlay.currentSceneLayout.playerFootAnchor));
       expect(overlay.currentCommandOverlaySnapshot!.panelRect,
           equals(initialCommandPanelPosition));
     });

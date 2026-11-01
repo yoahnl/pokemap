@@ -1,3 +1,6 @@
+import '../events/event_conditions.dart';
+import '../../shared/widgets/buttons/studio_button.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -37,7 +40,22 @@ class SpatialModelEntityControls extends StatelessWidget {
             _ => false,
           },
         );
-    if (generated) return const SizedBox.shrink();
+    final visibility = _SpatialModelVisibilityControls(
+      document: document,
+      project: project,
+      instance: instance,
+      onChanged: onChanged,
+    );
+    if (generated) {
+      final protected =
+          instance.id.startsWith('smt_') ||
+          map.layers.whereType<BorderLayer>().any(
+            (layer) => layer.content.features.any(
+              (feature) => feature.generatedPlacementIds.contains(instance.id),
+            ),
+          );
+      return protected ? const SizedBox.shrink() : visibility;
+    }
     final bound = map.entities
         .where((entity) => entity.id == instance.entityId)
         .firstOrNull;
@@ -91,6 +109,7 @@ class SpatialModelEntityControls extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        visibility,
         StudioSelect(
           key: const ValueKey('spatial-model-field-obstacle'),
           label: 'Obstacle CS',
@@ -179,6 +198,62 @@ class SpatialModelEntityControls extends StatelessWidget {
           ),
         ],
       ],
+    );
+  }
+}
+
+class _SpatialModelVisibilityControls extends StatelessWidget {
+  const _SpatialModelVisibilityControls({
+    required this.document,
+    required this.project,
+    required this.instance,
+    required this.onChanged,
+  });
+  final EditableMapDocument document;
+  final ProjectManifest project;
+  final SpatialModelInstance instance;
+  final VoidCallback onChanged;
+  @override
+  Widget build(BuildContext context) {
+    final publish = document.configureSpatialModelVisibility;
+    if (publish == null)
+      return const StudioNotice(
+        'La publication ciblée des conditions de visibilité est indisponible dans cet atelier.',
+      );
+    void apply(NarrativeEventConditionExpression? value) {
+      unawaited(publish(instance.id, value).then((_) => onChanged()));
+    }
+
+    return AbsorbPointer(
+      absorbing: document.saving,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const StudioNotice(
+            'La condition masque le modèle visuel et conserve son élément de jeu, son interaction et sa collision.',
+          ),
+          EventConditions(
+            expression:
+                instance.visibilityCondition ??
+                NarrativeEventConditionExpression.all(const []),
+            facts: project.facts,
+            records: project.eventRegistry?.records ?? const [],
+            mapId: document.current.id,
+            entityId: instance.entityId,
+            onChanged: (value) => apply(
+              value is NarrativeEventConditionAll && value.children.isEmpty
+                  ? null
+                  : value,
+            ),
+          ),
+          if (instance.visibilityCondition != null)
+            StudioButton(
+              label: 'Toujours afficher ce modèle',
+              secondary: true,
+              onPressed: () => apply(null),
+            ),
+        ],
+      ),
     );
   }
 }

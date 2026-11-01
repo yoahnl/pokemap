@@ -1,0 +1,437 @@
+{
+  "owner": "root/battle-camera-consolidation baseline preparation",
+  "purpose": "Historical three-package battle presentation for physical iPhone profile before/after comparison",
+  "sourceCommit": "1706473626bd5402ad81cfe320f5ec0c4ca91239",
+  "ownedRoot": "/Users/karim/Library/Caches/AveluneQA/battle-camera-consolidation/baseline",
+  "removalCondition": "Root completes or abandons F before/after, closes owned build/device consumers and retains concise receipts; then remove baseline tree",
+  "physicalInstallOrLaunchAuthorized": true,
+  "enginePatches": [],
+  "state": "physical_baseline_completed_device_and_local_environment_removed",
+  "processes": [],
+  "snapshotPackages": {
+    "map_runtime": {
+      "files": 370,
+      "bytes": 5328663,
+      "orderedPathAndGitBlobSha256": "0d41370ea4b20496dea6c38087f59e57ad875ed06eb3677ceed4617d7e21dbae"
+    },
+    "map_render_3d": {
+      "files": 73,
+      "bytes": 678087,
+      "orderedPathAndGitBlobSha256": "4d1c74d456958a46f1abc6c8f79f2f47a054f0567a63696fe5afb03fb2030f54"
+    },
+    "map_player_ui": {
+      "files": 128,
+      "bytes": 1764308,
+      "orderedPathAndGitBlobSha256": "8d73c5edb4553e6e0dc8e3511da1910379360afc1f1efa005c9042b6d5bba4e6"
+    }
+  },
+  "archiveSha256": "768e8475e5266be4d881b73877be077eecfbcf7c872b51d5f7efc5121fad2e8d",
+  "verifiedHistoricalFiles": 571,
+  "historicalSourceBytes": 7771058,
+  "sharedDependencies": {
+    "map_core": "/Users/karim/Project/pokemonProject/packages/map_core",
+    "map_battle": "/Users/karim/Project/pokemonProject/packages/map_battle",
+    "map_gameplay": "/Users/karim/Project/pokemonProject/packages/map_gameplay",
+    "map_authoring": "/Users/karim/Project/pokemonProject/packages/map_authoring",
+    "map_distribution": "/Users/karim/Project/pokemonProject/packages/map_distribution",
+    "avelune_rendering": "/Users/karim/Project/pokemonProject/packages/avelune_rendering",
+    "flame_3d": "/Users/karim/Project/pokemonProject/third_party/flame_3d"
+  },
+  "harnessSource": "/Users/karim/Library/Caches/AveluneQA/battle-camera-consolidation/native",
+  "harnessAdaptations": [
+    "Unavailable currentFramePresented reported null explicitly",
+    "Unavailable motionPolicy diagnostics mapped to historical normal defaults",
+    "Live speed/reduced/intensity changes rejected in baseline harness",
+    "Distinct application bundle identifier and display name"
+  ],
+  "fixture": [
+    {
+      "path": "data/pokemon/media/totodile.json",
+      "bytes": 699,
+      "sha256": "c7727fee5607e9220098192fc83d1f01bc0c1418606c8ad7d347f16087c1277c",
+      "sharedReadOnlySource": "/Users/karim/Project/Pokemon HeartGold/jeu/data/pokemon/media/totodile.json"
+    },
+    {
+      "path": "data/pokemon/media/rattata.json",
+      "bytes": 679,
+      "sha256": "54ed4e08cde671983c1443d57fcb483141c8808911685d86519cd8d15bdbef3e",
+      "sharedReadOnlySource": "/Users/karim/Project/Pokemon HeartGold/jeu/data/pokemon/media/rattata.json"
+    },
+    {
+      "path": "assets/pokemon/johto/bourg-geon/totodile/back.png",
+      "bytes": 1744,
+      "sha256": "d565185c172138a960005dc06900b2e9fffc077b5e9285e16584d9e0db52494e",
+      "sharedReadOnlySource": "/Users/karim/Project/Pokemon HeartGold/jeu/assets/pokemon/johto/bourg-geon/totodile/back.png"
+    },
+    {
+      "path": "assets/pokemon/johto/route-29/rattata/front.png",
+      "bytes": 1233,
+      "sha256": "bf77c9e86dcd42aeb54f4e9b67df3e1dae8220f2ce79adfc103d751713567e7e",
+      "sharedReadOnlySource": "/Users/karim/Project/Pokemon HeartGold/jeu/assets/pokemon/johto/route-29/rattata/front.png"
+    },
+    {
+      "path": "assets/battle/backgrounds/clairiere-johto-v1.png",
+      "bytes": 74913,
+      "sha256": "8a2cb13d21bf926c191707ad668af122612d9640d2accccdc67e107fc4c15786",
+      "sharedReadOnlySource": "/Users/karim/Project/Pokemon HeartGold/jeu/assets/battle/backgrounds/clairiere-johto-v1.png"
+    }
+  ],
+  "bundleIdentifier": "com.example.battleCameraQaBaseline",
+  "frameTimingCollectorSha256": "a9f6da02d5fd61f537b448dc73dcc577b455e2f4176c801058d1e2c4227ecc40",
+  "newSourceAssetCopies": false,
+  "ownedProcessReceiptPattern": "/Users/karim/Library/Caches/AveluneQA/battle-camera-consolidation/baseline/f-baseline-*-processes.json",
+  "harnessAnalysis": {
+    "errors": 0,
+    "warnings": 3,
+    "warningKind": "invalid_use_of_visible_for_testing_member (same QA debug getters)",
+    "rawExitCode": 1,
+    "log": "f-baseline-analyze.log"
+  },
+  "apiCompilationFailures": 0,
+  "profileBuildCommand": "flutter build ios --profile -t lib/ios_profile_main.dart",
+  "dependencyVersionComparison": {
+    "currentLock": "/Users/karim/Library/Caches/AveluneQA/battle-camera-consolidation/native/pubspec.lock",
+    "baselineLock": "/Users/karim/Library/Caches/AveluneQA/battle-camera-consolidation/baseline/native/pubspec.lock",
+    "packages": 105,
+    "versionDifferences": {}
+  },
+  "historicalSourcesReverifiedAfterBuild": 571,
+  "sharedDependencyContentAtBuildCompletion": {
+    "map_core": {
+      "libFiles": 609,
+      "orderedPathAndContentSha256": "215e3675b05f3118d1f298ffdf2a282d65feb1c9313c02be5260cd32debff071"
+    },
+    "map_battle": {
+      "libFiles": 335,
+      "orderedPathAndContentSha256": "fff695189da0d2240e75e50de9d180ad696b12d4e8a5a64741dc65c70e430391"
+    },
+    "map_gameplay": {
+      "libFiles": 129,
+      "orderedPathAndContentSha256": "c8cfca564e965d55b4fe599e2c1f0e9e611deccef305fa2ecdbe41dbce073541"
+    },
+    "map_authoring": {
+      "libFiles": 415,
+      "orderedPathAndContentSha256": "8cb3f912b207d3b15a04b6d32216147224bc71ec920c93fd4d2b011e13ce94fd"
+    },
+    "map_distribution": {
+      "libFiles": 50,
+      "orderedPathAndContentSha256": "5a945b5995902a850b2641862b2ed93a8f75555064dcd052a6fb336c7a62edcd"
+    },
+    "avelune_rendering": {
+      "libFiles": 4,
+      "orderedPathAndContentSha256": "871e81c5a2d224cfd2171becb7c9587ccc7f044d1637ed11a8b45020501666dd"
+    },
+    "flame_3d": {
+      "libFiles": 127,
+      "orderedPathAndContentSha256": "ff1976b5026773cdeb1378dfd272fc0e0e7c530aa492bbdb06ff5fec8079b786"
+    }
+  },
+  "profileBuild": {
+    "exitCode": 0,
+    "xcodeBuildSeconds": 46.6,
+    "appPath": "/Users/karim/Library/Caches/AveluneQA/battle-camera-consolidation/baseline/native/build/ios/iphoneos/Runner.app",
+    "bundleIdentifier": "com.example.battleCameraQaBaseline",
+    "architecture": "arm64",
+    "codesignStrictVerificationExitCode": 0,
+    "runnerPid": 21249,
+    "observedDescendants": 70,
+    "liveOwnedProcessesAfterBuild": [],
+    "command": "flutter build ios --profile -t lib/ios_profile_main.dart",
+    "log": "f-baseline-build.log",
+    "ownedBuildDaemonsTerminatedWithSigterm": [
+      21938,
+      21942,
+      23241,
+      23242
+    ]
+  },
+  "physicalInstallOrLaunchPerformed": true,
+  "snapshotPackageFilesReadOnly": true,
+  "ownedTreeKiB": 313600,
+  "artifactExecutableSha256": "caf1806f8017cd2fccf8594b2d90372735c7dcb210ee24579e52411a64052c64",
+  "deviceIdentifier": "6CE2BDA6-9CD9-52DE-970C-7E49B9FC3627",
+  "deviceReleaseEvidence": "e3_spec_review: owned current console ended by signal15; devicectl info processes --search Runner returned no process",
+  "deviceLaunch": {
+    "bundleIdentifier": "com.example.battleCameraQaBaseline",
+    "remoteRunnerPid": 26652,
+    "localConsole": {
+      "runnerPid": 41009,
+      "owned": {
+        "41009": "Sun Nov  1 00:38:14 2026     /Library/Developer/PrivateFrameworks/CoreDevice.framework/Versions/A/Resources/bin/devicectl device process launch --device 6CE2BDA6-9CD9-52DE-970C-7E49B9FC3627 --console com.example.battleCameraQaBaseline --enable-dart-profiling --enable-flutter-gpu --vm-service-host=0.0.0.0"
+      }
+    },
+    "mainIsolateId": "isolates/5026617965996439",
+    "flags": [
+      "--enable-dart-profiling",
+      "--enable-flutter-gpu",
+      "--vm-service-host=0.0.0.0"
+    ]
+  },
+  "orientation": {
+    "requested": "portraitUp",
+    "matched": true,
+    "waitMs": 10,
+    "views": [
+      {
+        "viewId": 0,
+        "physicalWidth": 1179.0,
+        "physicalHeight": 2556.0,
+        "devicePixelRatio": 3.0,
+        "logicalWidth": 393.0,
+        "logicalHeight": 852.0
+      }
+    ],
+    "viewport": {
+      "width": 393.0,
+      "height": 852.0
+    }
+  },
+  "readiness": {
+    "qaRoot": "/var/mobile/Containers/Data/Application/166D1BD4-006A-47CF-A113-F270CCD7958D/Library/Application Support/battle-camera-consolidation",
+    "readOnlyAssets": "/var/mobile/Containers/Data/Application/166D1BD4-006A-47CF-A113-F270CCD7958D/Library/Application Support/battle-camera-consolidation/fixture",
+    "ready": true,
+    "actorCount": 2,
+    "gpuActors": 2,
+    "allActorsGpu": true,
+    "actors": [
+      {
+        "index": 0,
+        "playerSide": false,
+        "renderedBy3DStage": true,
+        "hasImage": true,
+        "rect": {
+          "left": 259.55657958984375,
+          "top": 263.46486181310706,
+          "right": 358.25657958984374,
+          "bottom": 367.4999969482422,
+          "width": 98.69999999999999,
+          "height": 104.03513513513514
+        }
+      },
+      {
+        "index": 1,
+        "playerSide": true,
+        "renderedBy3DStage": true,
+        "hasImage": true,
+        "rect": {
+          "left": 22.50767707824707,
+          "top": 481.3880457921202,
+          "right": 147.50767707824707,
+          "bottom": 583.9999860906277,
+          "width": 125.0,
+          "height": 102.61194029850748
+        }
+      }
+    ],
+    "viewport": "393.0x852.0",
+    "errors": [],
+    "gpu": true,
+    "framePresented": null,
+    "framePresentedCapability": "unavailable_at_baseline",
+    "fxCount": 0,
+    "speed": 1.0,
+    "reduced": false,
+    "baselineCommit": "1706473626bd5402ad81cfe320f5ec0c4ca91239",
+    "gpuPlayer": true,
+    "playerRect": {
+      "left": 22.50767707824707,
+      "top": 481.3880457921202,
+      "right": 147.50767707824707,
+      "bottom": 583.9999860906277,
+      "width": 125.0,
+      "height": 102.61194029850748
+    },
+    "enemyRect": {
+      "left": 259.55657958984375,
+      "top": 263.46486181310706,
+      "right": 358.25657958984374,
+      "bottom": 367.4999969482422,
+      "width": 98.69999999999999,
+      "height": 104.03513513513514
+    },
+    "eye": [
+      6.7,
+      6.7,
+      17.3
+    ],
+    "aim": [
+      0.0,
+      2.6,
+      0.0
+    ],
+    "moving": false,
+    "prompt": "Que doit faire Kaiminus ?",
+    "hudVisible": true
+  },
+  "performanceHandoff": {
+    "owner": "root",
+    "manualReadinessFramesBeforeMeasurement": 8,
+    "measurementResetOrStopPerformedByThisAgent": false,
+    "requestedWarmupFrames": 120,
+    "measurementClock": "live_engine via byte-identical FrameTiming collector",
+    "noFurtherAgentDeviceActionsUntilRootRequests": true
+  },
+  "deviceCleanup": {
+    "owner": "root/battle-camera-consolidation",
+    "bundleIdentifier": "com.example.battleCameraQaBaseline",
+    "applicationSupportRoot": "/var/mobile/Containers/Data/Application/166D1BD4-006A-47CF-A113-F270CCD7958D/Library/Application Support/battle-camera-consolidation",
+    "removalCondition": "After root captures baseline metrics, stop its owned console/app and uninstall only this task-owned baseline bundle; retain concise evidence then remove local baseline tree"
+  },
+  "performanceResultReportedByRoot": {
+    "samples": 8292,
+    "elapsedWallMs": 70143,
+    "warmupSkipped": 120,
+    "uiMs": {
+      "p50": 0.962,
+      "p95": 1.26
+    },
+    "rasterMs": {
+      "p50": 0.515,
+      "p95": 0.673
+    },
+    "nonLiveTimings": 0,
+    "droppedSamples": 0,
+    "clock": "live_engine",
+    "measurementOwner": "root"
+  },
+  "measuredAotSha256": "a30057f12fba65234644608a1f26090a9041ea16bccff491a8a34ce64d363499",
+  "consoleStop": {
+    "consolePid": 41009,
+    "verifiedIdentity": "Sun Nov  1 00:38:14 2026     /Library/Developer/PrivateFrameworks/CoreDevice.framework/Versions/A/Resources/bin/devicectl device process launch --device 6CE2BDA6-9CD9-52DE-970C-7E49B9FC3627 --console com.example.battleCameraQaBaseline --enable-dart-profiling --enable-flutter-gpu --vm-service-host=0.0.0.0",
+    "verifiedParentPid": 40995,
+    "verifiedParentIdentity": "Sun Nov  1 00:38:14 2026     /opt/homebrew/Cellar/python@3.15/3.15.2/Frameworks/Python.framework/Versions/3.15/Resources/Python.app/Contents/MacOS/Python /Users/karim/Library/Caches/AveluneQA/battle-camera-consolidation/baseline/run-owned.py f-baseline-console xcrun devicectl device process launch --device 6CE2BDA6-9CD9-52DE-970C-7E49B9FC3627 --console com.example.battleCameraQaBaseline --enable-dart-profiling --enable-flutter-gpu --vm-service-host=0.0.0.0",
+    "signal": "SIGTERM",
+    "rootPerformanceStoppedAndCaptureSavedBeforeStop": true
+  },
+  "consoleTail": "Launched application with com.example.battleCameraQaBaseline bundle identifier.\nWaiting for the application to terminate…\n2026-11-01 00:38:15.486 Runner[26652:2896607] Warning: Unable to create restoration in progress marker file\nApp terminated due to signal 15.\n",
+  "processesAfterStop": {
+    "info": {
+      "arguments": [
+        "devicectl",
+        "device",
+        "info",
+        "processes",
+        "--device",
+        "6CE2BDA6-9CD9-52DE-970C-7E49B9FC3627",
+        "--search",
+        "Runner",
+        "--timeout",
+        "30",
+        "--json-output",
+        "/Users/karim/Library/Caches/AveluneQA/battle-camera-consolidation/baseline/f-baseline-stopped-processes.json"
+      ],
+      "commandType": "devicectl.device.info.processes",
+      "environment": {
+        "TERM": "dumb"
+      },
+      "jsonVersion": 4,
+      "outcome": "success",
+      "version": "629.3"
+    },
+    "result": {
+      "deviceIdentifier": "6CE2BDA6-9CD9-52DE-970C-7E49B9FC3627",
+      "runningProcesses": []
+    }
+  },
+  "retainedCaptures": [
+    {
+      "path": "/Users/karim/Library/Caches/AveluneQA/battle-camera-consolidation/ios-baseline-portrait.png",
+      "bytes": 56540,
+      "sha256": "46694419e2e436047ac48d771d922d0360881845064452a939d85705da9969e2"
+    },
+    {
+      "path": "/Users/karim/Library/Caches/AveluneQA/battle-camera-consolidation/ios-baseline-portrait.json",
+      "bytes": 1971,
+      "sha256": "04508b63cc72b6b14320a1a249ba79ca8ee46a8f6f6019556a651caa73da5c2a"
+    }
+  ],
+  "retainedLock": "/Users/karim/Library/Caches/AveluneQA/battle-camera-consolidation/f-ios-baseline-pubspec.lock",
+  "retainedBuildLog": "/Users/karim/Library/Caches/AveluneQA/battle-camera-consolidation/f-ios-baseline-build.log",
+  "deviceUninstall": {
+    "info": {
+      "arguments": [
+        "devicectl",
+        "device",
+        "uninstall",
+        "app",
+        "--device",
+        "6CE2BDA6-9CD9-52DE-970C-7E49B9FC3627",
+        "com.example.battleCameraQaBaseline",
+        "--timeout",
+        "60",
+        "--json-output",
+        "/Users/karim/Library/Caches/AveluneQA/battle-camera-consolidation/baseline/f-baseline-uninstall.json"
+      ],
+      "commandType": "devicectl.device.uninstall.app",
+      "environment": {
+        "TERM": "dumb"
+      },
+      "jsonVersion": 4,
+      "outcome": "success",
+      "version": "629.3"
+    },
+    "result": {
+      "deviceIdentifier": "6CE2BDA6-9CD9-52DE-970C-7E49B9FC3627",
+      "uninstalledApplications": [
+        {
+          "bundleID": "com.example.battleCameraQaBaseline"
+        }
+      ]
+    }
+  },
+  "deviceBaselineAbsent": {
+    "info": {
+      "arguments": [
+        "devicectl",
+        "device",
+        "info",
+        "apps",
+        "--device",
+        "6CE2BDA6-9CD9-52DE-970C-7E49B9FC3627",
+        "--bundle-id",
+        "com.example.battleCameraQaBaseline",
+        "--timeout",
+        "30",
+        "--json-output",
+        "/Users/karim/Library/Caches/AveluneQA/battle-camera-consolidation/baseline/f-baseline-absent.json"
+      ],
+      "commandType": "devicectl.device.info.apps",
+      "environment": {
+        "TERM": "dumb"
+      },
+      "jsonVersion": 4,
+      "outcome": "success",
+      "version": "629.3"
+    },
+    "result": {
+      "apps": [],
+      "defaultAppsIncluded": false,
+      "deviceIdentifier": "6CE2BDA6-9CD9-52DE-970C-7E49B9FC3627",
+      "hiddenAppsIncluded": false,
+      "internalAppsIncluded": false,
+      "matchingBundleIdentifier": "com.example.battleCameraQaBaseline",
+      "removableAppsIncluded": true
+    }
+  },
+  "cleanup": {
+    "owner": "root/battle-camera-consolidation",
+    "ownedRoot": "/Users/karim/Library/Caches/AveluneQA/battle-camera-consolidation/baseline",
+    "sizeKiBBeforeRemoval": 313536,
+    "historicalFilesReverifiedBeforeRemoval": 571,
+    "historicalCommitStillPresent": true,
+    "originalPackagesAndDependenciesPresent": true,
+    "originalFixtureHashesVerified": true,
+    "activeConsumers": [],
+    "liveOwnedProcesses": [],
+    "filesystemBefore": 84292993024,
+    "ownedRootRemoved": true,
+    "filesystemAfter": 84550086656,
+    "ssdFreeByteDeltaObserved": 257093632,
+    "ssdDeltaIsNotAttributedSolelyToDeletion": true
+  },
+  "baselineHarnessDeltaAgainstSharedCurrentQaAtCleanup": {
+    "sharedCurrentSha256": "2c2403b791b414d58562319895453a3933b57f15d31dfc22ccec3803f4bbd675",
+    "baselineSha256": "a0182902c050f7acfe4cfc1bc1842b93e9a722f2fde7782c1065014f7ad0904a",
+    "unifiedDiff": "--- shared-current-QA/main.dart\n+++ historical-baseline-QA/main.dart\n@@ -75 +75 @@\n-    return {'qaRoot': qaRoot, 'readOnlyAssets': projectRoot, 'ready': game.loadedCompleter.isCompleted, 'actorCount': actors.length, 'gpuActors': gpuActors, 'allActorsGpu': actors.isNotEmpty && gpuActors == actors.length, 'actors': [for (final (index, actor) in actors.indexed) {'index': index, 'playerSide': actor.isPlayerSide, 'renderedBy3DStage': actor.renderedBy3DStage, 'hasImage': actor.stageImage != null, 'rect': qaRectData(actor.currentRenderedSpriteRect)}], 'viewport': '${viewport.width}x${viewport.height}', 'errors': errors, 'gpu': overlay?.children.whereType<BattleStage3DComponent>().firstOrNull?.isReady, 'framePresented': overlay?.children.whereType<BattleStage3DComponent>().firstOrNull?.currentFramePresented, 'fxCount': overlay?.children.whereType<BattleFxLayerComponent>().firstOrNull?.activeFxCount, 'speed': overlay?.motionPolicy.playbackSpeed, 'reduced': overlay?.motionPolicy.reducedMotion, 'gpuPlayer': player?.renderedBy3DStage, 'playerRect': qaRectData(player?.currentRenderedSpriteRect), 'enemyRect': qaRectData(overlay?.debugEnemyCombatant?.currentRenderedSpriteRect), 'eye': camera == null ? null : [camera.eye.x, camera.eye.y, camera.eye.z], 'aim': camera == null ? null : [camera.aim.x, camera.aim.y, camera.aim.z], 'moving': camera?.isMoving, 'prompt': snapshot?.prompt, 'hudVisible': snapshot?.playerHud.isVisible};\n+    return {'qaRoot': qaRoot, 'readOnlyAssets': projectRoot, 'ready': game.loadedCompleter.isCompleted, 'actorCount': actors.length, 'gpuActors': gpuActors, 'allActorsGpu': actors.isNotEmpty && gpuActors == actors.length, 'actors': [for (final (index, actor) in actors.indexed) {'index': index, 'playerSide': actor.isPlayerSide, 'renderedBy3DStage': actor.renderedBy3DStage, 'hasImage': actor.stageImage != null, 'rect': qaRectData(actor.currentRenderedSpriteRect)}], 'viewport': '${viewport.width}x${viewport.height}', 'errors': errors, 'gpu': overlay?.children.whereType<BattleStage3DComponent>().firstOrNull?.isReady, 'framePresented': null, 'framePresentedCapability': 'unavailable_at_baseline', 'fxCount': overlay?.children.whereType<BattleFxLayerComponent>().firstOrNull?.activeFxCount, 'speed': 1.0, 'reduced': false, 'baselineCommit': '1706473626bd5402ad81cfe320f5ec0c4ca91239', 'gpuPlayer': player?.renderedBy3DStage, 'playerRect': qaRectData(player?.currentRenderedSpriteRect), 'enemyRect': qaRectData(overlay?.debugEnemyCombatant?.currentRenderedSpriteRect), 'eye': camera == null ? null : [camera.eye.x, camera.eye.y, camera.eye.z], 'aim': camera == null ? null : [camera.aim.x, camera.aim.y, camera.aim.z], 'moving': camera?.isMoving, 'prompt': snapshot?.prompt, 'hudVisible': snapshot?.playerHud.isVisible};\n@@ -82,6 +82 @@\n-      final current = game.overlay.motionPolicy;\n-      game.overlay.applyMotionPolicy(BattleMotionPolicy(\n-        playbackSpeed: double.tryParse(args['speed'] ?? '') ?? current.playbackSpeed,\n-        reducedMotion: args['reduced'] == null ? current.reducedMotion : args['reduced'] == 'true',\n-        effectIntensity: double.tryParse(args['intensity'] ?? '') ?? current.effectIntensity,\n-      ));\n+      throw UnsupportedError('Baseline uses the historical default motionScale 1.');\n"
+  }
+}

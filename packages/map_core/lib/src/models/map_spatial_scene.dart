@@ -206,6 +206,9 @@ final class SpatialModelInstance {
     this.clip,
     this.visibilityCondition,
   }) {
+    if (visibilityCondition != null) {
+      validateNarrativeEventConditionExpression(visibilityCondition!);
+    }
     if (!RegExp(r'^[a-zA-Z0-9_-]{1,128}$').hasMatch(id) ||
         modelId.isEmpty ||
         (entityId != null &&
@@ -325,6 +328,16 @@ final class SpatialModelInstance {
         'Shadow casting override must be boolean or null.',
       );
     }
+    NarrativeEventConditionExpression? visibilityCondition;
+    if (json['visibilityCondition'] != null) {
+      try {
+        visibilityCondition = validateNarrativeEventConditionExpression(
+          NarrativeEventConditionExpression.fromJson(json['visibilityCondition']),
+        );
+      } on ArgumentError {
+        throw const FormatException('Invalid model visibility condition.');
+      }
+    }
     return SpatialModelInstance(
       id: json['id'] as String,
       modelId: json['modelId'] as String,
@@ -339,9 +352,7 @@ final class SpatialModelInstance {
       blocksMovement: json['blocksMovement'] as bool,
       castsShadows: json['castsShadows'] as bool?,
       entityId: json['entityId'] as String?,
-      visibilityCondition: json['visibilityCondition'] == null
-          ? null
-          : NarrativeEventConditionExpression.fromJson(json['visibilityCondition']),
+      visibilityCondition: visibilityCondition,
       clip: switch (json['clip']) {
         null => null,
         Map<String, dynamic> value => SpatialModelClip.fromJson(value),

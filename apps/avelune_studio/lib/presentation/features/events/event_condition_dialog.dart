@@ -1,3 +1,5 @@
+import '../scenes/periodic_reward_picker.dart';
+
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
@@ -14,9 +16,12 @@ Future<NarrativeEventCondition?> chooseEventCondition(
   String? entityId,
 }) => showDialog<NarrativeEventCondition>(
   context: context,
-  builder: (_) =>
-      _ConditionDialog(facts: facts, records: records, initial: initial,
-        mapId: mapId, entityId: entityId),
+  builder: (_) => PeriodicRewardChoiceScope.preserve(
+    context,
+    _ConditionDialog(facts: facts, records: records, initial: initial,
+        mapId: mapId, entityId: entityId,
+    ),
+  ),
 );
 
 class _ConditionDialog extends StatefulWidget {
@@ -43,6 +48,7 @@ class _ConditionDialogState extends State<_ConditionDialog> {
   final _text = TextEditingController();
   String? _error;
   String? _mapId, _entityId;
+  PeriodicRewardReference? _rewardReference;
   NarrativeFactDefinition? get _fact =>
       widget.facts.where((f) => f.id == _id).firstOrNull;
   @override
@@ -51,6 +57,11 @@ class _ConditionDialogState extends State<_ConditionDialog> {
     _mapId = widget.mapId;
     _entityId = widget.entityId;
     widget.initial?.whenTyped<void>(
+      periodicRewardAvailable: (reference, expected) {
+        _kind = 'periodicReward';
+        _rewardReference = reference;
+        _boolean = expected;
+      },
       fact: (id, operator, value) {
         _id = id;
         _operator = operator;
@@ -97,7 +108,8 @@ class _ConditionDialogState extends State<_ConditionDialog> {
         context,
         _kind == 'instance'
             ? NarrativeEventCondition.mapEventInstanceBoolean(mapId: _mapId!,
-              eventId: _entityId!, key: id, expectedValue: _boolean)
+              eventId: _entityId!, key: id, expectedValue: _boolean,
+              )
             : _kind == 'event'
             ? NarrativeEventCondition.narrativeEventConsumed(id, _boolean)
             : NarrativeEventCondition.factValue(
@@ -128,6 +140,7 @@ class _ConditionDialogState extends State<_ConditionDialog> {
               label: 'Condition sur',
               value: _kind,
               options: {
+                'periodicReward': 'Une récompense quotidienne',
                 'fact': 'Un état du monde',
                 'event': 'Un événement déjà joué',
                 if (_mapId != null && _entityId != null) 'instance': 'Une mémoire locale de cet élément',
@@ -139,13 +152,27 @@ class _ConditionDialogState extends State<_ConditionDialog> {
               }),
             ),
             const SizedBox(height: 16),
-            StudioSelect(
+            if (_kind == 'periodicReward')
+              PeriodicRewardPicker(
+                initial: _rewardReference,
+                expectedValue: _boolean,
+                onApply: (reference, expected) => Navigator.pop(
+                  context,
+                  NarrativeEventCondition.periodicRewardAvailable(
+                    reference: reference,
+                    expectedValue: expected,
+                  ),
+                ),
+              ),
+            if (_kind != 'periodicReward') ...[
+              StudioSelect(
               label: _kind == 'fact' ? 'État' : _kind == 'instance' ? 'Mémoire locale' : 'Événement',
               value: _id,
               options: _kind == 'instance' ? {
                 for (final key in {'A', 'B', 'C', 'D', ?_id}) key: 'Mémoire $key',
               } : _kind == 'fact'
-                  ? {for (final f in widget.facts) f.id: '${f.label} · ${f.id}'}
+                  ? {for (final f in widget.facts) f.id: '${f.label} · ${f.id}',
+                      }
                   : {
                       for (final r in widget.records)
                         r.id: '${eventName(r)} · ${r.id}',
@@ -192,6 +219,7 @@ class _ConditionDialogState extends State<_ConditionDialog> {
                       : 'Texte attendu',
                 ),
               ),
+            ],
             if (_error != null) Text(_error!),
           ],
         ),
@@ -205,7 +233,7 @@ class _ConditionDialogState extends State<_ConditionDialog> {
       ),
       StudioButton(
         label: 'Appliquer la condition',
-        onPressed: _id == null ? null : _accept,
+        onPressed: _kind == 'periodicReward' || _id == null ? null : _accept,
       ),
     ],
   );

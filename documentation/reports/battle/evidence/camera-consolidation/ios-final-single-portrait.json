@@ -1,0 +1,75 @@
+{
+  "qaRoot": "/var/mobile/Containers/Data/Application/F7B3BFE8-F10C-41FF-B284-EECBDA6A815F/Library/Application Support/battle-camera-consolidation",
+  "readOnlyAssets": "/var/mobile/Containers/Data/Application/F7B3BFE8-F10C-41FF-B284-EECBDA6A815F/Library/Application Support/battle-camera-consolidation/fixture",
+  "ready": true,
+  "actorCount": 2,
+  "gpuActors": 2,
+  "allActorsGpu": true,
+  "actors": [
+    {
+      "index": 0,
+      "playerSide": false,
+      "renderedBy3DStage": true,
+      "hasImage": true,
+      "rect": {
+        "left": 250.70426940917972,
+        "top": 218.25714391759925,
+        "right": 349.40426940917973,
+        "bottom": 322.2922790527344,
+        "width": 98.70000000000002,
+        "height": 104.03513513513514
+      }
+    },
+    {
+      "index": 1,
+      "playerSide": true,
+      "renderedBy3DStage": true,
+      "hasImage": true,
+      "rect": {
+        "left": 27.497957229614254,
+        "top": 377.0047450108702,
+        "right": 152.49795722961423,
+        "bottom": 479.6166853093776,
+        "width": 124.99999999999997,
+        "height": 102.61194029850742
+      }
+    }
+  ],
+  "viewport": "393.0x852.0",
+  "errors": [],
+  "gpu": true,
+  "framePresented": true,
+  "fxCount": 0,
+  "speed": 1.0,
+  "reduced": false,
+  "gpuPlayer": true,
+  "playerRect": {
+    "left": 27.497957229614254,
+    "top": 377.0047450108702,
+    "right": 152.49795722961423,
+    "bottom": 479.6166853093776,
+    "width": 124.99999999999997,
+    "height": 102.61194029850742
+  },
+  "enemyRect": {
+    "left": 250.70426940917972,
+    "top": 218.25714391759925,
+    "right": 349.40426940917973,
+    "bottom": 322.2922790527344,
+    "width": 98.70000000000002,
+    "height": 104.03513513513514
+  },
+  "eye": [
+    6.846161295795403,
+    4.868700590212538,
+    17.677401554814995
+  ],
+  "aim": [
+    0.14616129579540227,
+    0.7687005902125388,
+    0.377401554814994
+  ],
+  "moving": false,
+  "prompt": "Que doit faire Kaiminus ?",
+  "hudVisible": true
+}

@@ -11,8 +11,96 @@ import 'package:map_core/map_core.dart';
 import 'package:map_render_3d/src/spatial_pixel_material.dart';
 import 'package:map_render_3d/src/spatial_render_context.dart';
 import 'package:map_render_3d/src/spatial_lighting_preview.dart';
+import 'package:map_render_3d/src/battle_stage_underlays.dart';
 
 void main() {
+  test('battle painter order preserves coplanar alpha above opaque ground', () {
+    final orders = <SpatialPixelMaterial, BattleStageDrawOrder>{};
+    final harness = _Harness(
+      transparentOrder: (a, b) => orders[a]!.compareTo(orders[b]!),
+      depthState: DepthStencilState.none,
+    );
+    final ground = _surface(
+      'ground',
+      _material(Model3dAlphaMode.opaque, const Color(0xff00ff00)),
+      depth: .1,
+    );
+    _ProbeSurface part(
+      String name,
+      Color color,
+      bool shadow,
+      double actorDepth,
+      int actorIndex,
+      int partIndex,
+    ) {
+      final material = _material(Model3dAlphaMode.blend, color);
+      orders[material] = BattleStageDrawOrder(
+        shadow: shadow,
+        actorDepth: actorDepth,
+        actorIndex: actorIndex,
+        partIndex: partIndex,
+      );
+      return _surface(name, material, depth: .5);
+    }
+
+    final shadow = part(
+      'shadow',
+      const Color(0xff000000).withValues(alpha: .25),
+      true,
+      1,
+      0,
+      0,
+    );
+    final farTrail = part(
+      'far-trail',
+      const Color(0xffff0000).withValues(alpha: .2),
+      false,
+      10,
+      0,
+      0,
+    );
+    final far = part(
+      'far-actor',
+      const Color(0xff0000ff).withValues(alpha: .5),
+      false,
+      10,
+      0,
+      1,
+    );
+    final nearTrail = part(
+      'near-trail',
+      const Color(0xffff0000).withValues(alpha: .2),
+      false,
+      2,
+      1,
+      0,
+    );
+    final near = part(
+      'near-actor',
+      const Color(0xff00ff00).withValues(alpha: .5),
+      false,
+      2,
+      1,
+      1,
+    );
+    harness.submit(-1, (context) {
+      context.model.setIdentity();
+      for (final surface in [near, far, nearTrail, shadow, farTrail, ground]) {
+        context.drawSurface(surface);
+      }
+    });
+    harness.context.flush();
+    expect(harness.device.names, [
+      'ground',
+      'shadow',
+      'far-trail',
+      'far-actor',
+      'near-trail',
+      'near-actor',
+    ]);
+    _expectVector(harness.device.pixel, [.14, .62, .2, 1]);
+  });
+
   test('a house shadow darkens its ground instead of hiding the ground', () {
     final harness = _Harness();
     final shadow = _surface(
@@ -427,8 +515,12 @@ _ProbeSurface _surface(
 }) => _ProbeSurface(name, material, depth, localZ);
 
 class _Harness {
-  _Harness() {
-    context = SpatialRenderContext(device);
+  _Harness({
+    int Function(SpatialPixelMaterial, SpatialPixelMaterial)? transparentOrder,
+    DepthStencilState depthState = DepthStencilState.standard,
+  }) {
+    device.depthStencilState = depthState;
+    context = SpatialRenderContext(device, transparentOrder: transparentOrder);
     context.setCamera(Matrix4.identity(), Matrix4.identity());
     device.context = context;
   }
@@ -522,7 +614,8 @@ class _PixelDevice extends GraphicsDevice {
       failNextName = null;
       throw StateError('draw failed');
     }
-    if (probe.depth >= depth) return;
+    if (depthStencilState != DepthStencilState.none && probe.depth >= depth)
+      return;
     final alpha = state.alphaMode == Model3dAlphaMode.opaque
         ? 1.0
         : state.color.a;
@@ -532,7 +625,7 @@ class _PixelDevice extends GraphicsDevice {
       pixel[i] = channels[i] * alpha + pixel[i] * (1 - alpha);
     }
     pixel[3] = alpha + pixel[3] * (1 - alpha);
-    depth = probe.depth;
+    if (depthStencilState == DepthStencilState.standard) depth = probe.depth;
   }
 }
 

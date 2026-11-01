@@ -39,6 +39,7 @@ import '../presentation/flame/battle_combatant_ball_resolver.dart';
 import '../presentation/flame/battle_fx_bundle_cache.dart';
 import '../presentation/flame/battle_medicine_target_menu_model.dart';
 import '../presentation/flame/battle_overlay_component.dart';
+import '../presentation/flame/battle_motion_policy.dart';
 import '../presentation/flame/battle_pokemon_sprite_resolver.dart';
 import '../presentation/flame/battle_visual_asset_cache.dart';
 import '../presentation/flame/post_battle_progression_overlay_component.dart';
@@ -59,7 +60,15 @@ final class SpatialBattleRuntime extends ChangeNotifier {
     this.onError,
     this.audioMixer,
     this.onOutcomePresented,
-  });
+    BattleMotionPolicy? motionPolicy,
+  }) : _motionPolicy = motionPolicy;
+
+  BattleMotionPolicy? _motionPolicy;
+
+  void applyMotionPolicy(BattleMotionPolicy? policy) {
+    _motionPolicy = policy;
+    battleOverlay?.applyMotionPolicy(policy);
+  }
 
   final GameState Function() readGameState;
   final bool Function(GameState expected, GameState next) commitGameState;
@@ -396,6 +405,7 @@ final class SpatialBattleRuntime extends ChangeNotifier {
       }
       late final BattleOverlayComponent overlay;
       overlay = BattleOverlayComponent(
+        motionPolicy: _motionPolicy,
         resourceBudget: bundle.resourceBudget,
         playSfx: sounds.play,
         playCry: _playCry,

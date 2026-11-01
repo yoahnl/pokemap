@@ -22,6 +22,7 @@ String eventConditionLabel(
   List<NarrativeFactDefinition> facts,
   List<NarrativeEventRecord> records,
 ) => condition.whenTyped(
+  periodicRewardAvailable: (_, expected) => expected ? 'Récompense disponible aujourd’hui' : 'Récompense déjà récupérée aujourd’hui',
   fact: (id, operator, value) =>
       '${facts.where((f) => f.id == id).firstOrNull?.label ?? 'État absent : $id'} '
       '${eventOperatorLabel(operator)} ${eventValueLabel(value)}',

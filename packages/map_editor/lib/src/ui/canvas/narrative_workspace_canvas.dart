@@ -1,3 +1,4 @@
+import '../../application/authoring_api/authoring_mutation_adapter.dart';
 import 'dart:async';
 import 'dart:io';
 
@@ -1196,7 +1197,8 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
         loadPartyMoves: () async {
           final root = editor.projectRootPath;
           final project = editor.project;
-          final result = await ref.read(pokemonMovesCatalogWorkspaceLoaderProvider)(root);
+          final result = await ref.read(pokemonMovesCatalogWorkspaceLoaderProvider,
+          )(root);
           final current = ref.read(editorNotifierProvider);
           if (current.projectRootPath != root || current.project != project || !result.isAvailable || result.diagnostics.isNotEmpty) {
             throw StateError('Catalogue indisponible ou projet modifié.');
@@ -1224,7 +1226,8 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
             : _buildSceneActionPickerOptions(
                 editor.project!,
                 sceneConsequenceCatalogs,
-                imageCatalog: ref.watch(sceneImageMediaCatalogProvider(editor.projectRootPath)).asData?.value,
+                imageCatalog: ref.watch(sceneImageMediaCatalogProvider(editor.projectRootPath),
+                    ).asData?.value,
                 activeMap: editor.activeMap,
               ),
         loadWarpMap: (mapId) async {
@@ -1675,30 +1678,33 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
               required String nodeId,
               required SceneConditionSource source,
             }) async {
-              final project = editor.project;
-              if (project == null) {
-                return false;
-              }
-              final sceneIndex = project.scenes.indexWhere(
-                (scene) => scene.id == sceneId,
-              );
-              if (sceneIndex < 0) {
-                return false;
-              }
+              final state = ref.read(editorNotifierProvider);
+              final root = state.projectRootPath;
+              final scene = state.project?.scenes
+                  .where((scene) => scene.id == sceneId)
+                  .firstOrNull;
+              if (root == null || scene == null) return false;
               try {
-                final result = updateSceneConditionSource(
-                  project.scenes[sceneIndex],
+                final result = await ref
+                    .read(authoringMutationAdapterProvider)
+                    .setSceneCondition(
+                      root,
+                      expectedScene: scene,
+                      nodeId: nodeId,
+                      source: source,
+                    );
+                return editorNotifier.acceptCanonicalSceneCondition(
+                  projectRootPath: root,
+                  sceneId: sceneId,
                   nodeId: nodeId,
-                  source: source,
+                  previous: scene.graph.nodes.singleWhere(
+                    (node) => node.id == nodeId,
+                  ),
+                  current: result.after.graph.nodes.singleWhere(
+                    (node) => node.id == nodeId,
+                  ),
                 );
-                final scenes = project.scenes.toList(growable: true);
-                scenes[sceneIndex] = result.updatedScene;
-                editorNotifier.applyInMemoryProjectManifest(
-                  project.copyWith(scenes: scenes),
-                  statusMessage: 'Scene condition source updated',
-                );
-                return true;
-              } on ArgumentError {
+              } on Object {
                 return false;
               }
             },
@@ -1735,7 +1741,8 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
                       activeMap: current.activeMap,
                     );
                 final latest = ref.read(editorNotifierProvider);
-                if (latest.projectRootPath != root || latest.project != project) {
+                if (latest.projectRootPath != root ||
+                    latest.project != project) {
                   return false;
                 }
                 editorNotifier.applyInMemoryProjectManifest(
@@ -1853,20 +1860,29 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
               }
             },
         onUpdateBattleDefeatRecovery:
-            ({required sceneId, required nodeId, required defeatRecovery}) async {
+            ({required sceneId, required nodeId,
+              required defeatRecovery,
+            }) async {
               final current = ref.read(editorNotifierProvider);
               final project = current.project;
               final root = current.projectRootPath;
               if (project == null || root == null) return false;
               try {
-                final projected = await SceneBattleRecoveryAuthoringGateway(
-                  queries: ref.read(authoringQueryAdapterProvider),
-                ).updateDraft(root, project: project, sceneId: sceneId, nodeId: nodeId,
-                  defeatRecovery: defeatRecovery, activeMap: current.activeMap);
+                final projected =
+                    await SceneBattleRecoveryAuthoringGateway(
+                queries: ref.read(authoringQueryAdapterProvider),
+              ).updateDraft(root, project: project, sceneId: sceneId, nodeId: nodeId,
+                      defeatRecovery: defeatRecovery,
+                      activeMap: current.activeMap,
+                    );
                 final latest = ref.read(editorNotifierProvider);
-                if (latest.projectRootPath != root || latest.project != project) return false;
-                editorNotifier.applyInMemoryProjectManifest(projected,
-                  statusMessage: 'Comportement après défaite appliqué au brouillon');
+                if (latest.projectRootPath != root || latest.project != project)
+                  return false;
+                editorNotifier.applyInMemoryProjectManifest(
+                  projected,
+                  statusMessage:
+                      'Comportement après défaite appliqué au brouillon',
+                );
                 return true;
               } on Object {
                 return false;
@@ -1906,24 +1922,49 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
                 return false;
               }
             },
-        onUpdateInteractiveCommand: ({required sceneId, required nodeId, required command}) async {
-          final project = editor.project;
-          if (project == null) return false;
-          final scene = project.scenes.where((s) => s.id == sceneId).singleOrNull;
-          final node = scene?.graph.nodes.where((n) => n.id == nodeId).singleOrNull;
-          if (node == null || node.kind != SceneNodeKind.action) return false;
-          final old = node.payload as SceneActionPayload;
-          try {
-            final projected = const SceneActions().patchGraph(project,
-              maps: editor.activeMap == null ? const <MapData>[] : [editor.activeMap!], sceneId: sceneId,
-              upsertNodes: [SceneNode(id: node.id, kind: node.kind, title: node.title, description: node.description,
-                payload: SceneActionPayload.interactive(command, actionKind: old.actionKind, parameters: old.parameters))]);
-            editorNotifier.applyInMemoryProjectManifest(projected, statusMessage: 'Scene native gift updated');
-            return true;
-          } on NarrativeAuthoringException {
-            return false;
-          }
-        },
+        onUpdateInteractiveCommand:
+            ({required sceneId, required nodeId, required command}) async {
+              final project = editor.project;
+              if (project == null) return false;
+              final scene = project.scenes
+                  .where((s) => s.id == sceneId)
+                  .singleOrNull;
+              final node = scene?.graph.nodes
+                  .where((n) => n.id == nodeId)
+                  .singleOrNull;
+              if (node == null || node.kind != SceneNodeKind.action)
+                return false;
+              final old = node.payload as SceneActionPayload;
+              try {
+                final projected = const SceneActions().patchGraph(
+                  project,
+                  maps: editor.activeMap == null
+                      ? const <MapData>[]
+                      : [editor.activeMap!],
+                  sceneId: sceneId,
+                  upsertNodes: [
+                    SceneNode(
+                      id: node.id,
+                      kind: node.kind,
+                      title: node.title,
+                      description: node.description,
+                      payload: SceneActionPayload.interactive(
+                        command,
+                        actionKind: old.actionKind,
+                        parameters: old.parameters,
+                      ),
+                    ),
+                  ],
+                );
+                editorNotifier.applyInMemoryProjectManifest(
+                  projected,
+                  statusMessage: 'Scene native gift updated',
+                );
+                return true;
+              } on NarrativeAuthoringException {
+                return false;
+              }
+            },
         onUpdateActionConsequence:
             ({
               required String sceneId,
@@ -2154,6 +2195,7 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
       ),
       EditorWorkspaceMode.dialogue => const DialogueStudioWorkspace(),
       EditorWorkspaceMode.facts => _buildFactsWorldRulesWorkspace(
+        mutations: ref.read(authoringMutationAdapterProvider),
         editor: editor,
         editorNotifier: editorNotifier,
         mapRepository: ref.read(mapRepositoryProvider),
@@ -2197,6 +2239,7 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
         ),
       ),
       EditorWorkspaceMode.worldRules => _buildFactsWorldRulesWorkspace(
+        mutations: ref.read(authoringMutationAdapterProvider),
         editor: editor,
         editorNotifier: editorNotifier,
         mapRepository: ref.read(mapRepositoryProvider),
@@ -2381,6 +2424,7 @@ String _mapLayerLabel(MapLayer layer) {
 }
 
 Widget _buildFactsWorldRulesWorkspace({
+  required AuthoringMutationAdapter mutations,
   required EditorState editor,
   required EditorNotifier editorNotifier,
   required MapRepository mapRepository,
@@ -2397,6 +2441,7 @@ Widget _buildFactsWorldRulesWorkspace({
   final projectRootPath = editor.projectRootPath;
   if (projectRootPath == null || projectRootPath.trim().isEmpty) {
     return _buildFactsWorldRulesWorkspaceFromSnapshot(
+      mutations: mutations,
       editor: editor,
       editorNotifier: editorNotifier,
       readLatestProject: readLatestProject,
@@ -2436,6 +2481,7 @@ Widget _buildFactsWorldRulesWorkspace({
       }
       final maps = snapshot.requireData.maps;
       return _buildFactsWorldRulesWorkspaceFromSnapshot(
+      mutations: mutations,
         editor: editor,
         editorNotifier: editorNotifier,
         readLatestProject: readLatestProject,
@@ -2451,6 +2497,7 @@ Widget _buildFactsWorldRulesWorkspace({
 }
 
 Widget _buildFactsWorldRulesWorkspaceFromSnapshot({
+  required AuthoringMutationAdapter mutations,
   required EditorState editor,
   required EditorNotifier editorNotifier,
   required ProjectManifest? Function() readLatestProject,
@@ -2588,13 +2635,34 @@ Widget _buildFactsWorldRulesWorkspaceFromSnapshot({
               effect: effect,
               priority: priority,
               maps: maps,
+              lookupRewardScenes: (id) =>
+                  latest.scenes.where((scene) => scene.id == id),
             );
-            editorNotifier.applyInMemoryProjectManifest(
-              result.updatedProject,
-              statusMessage: 'World rule created',
+            final root = editor.projectRootPath;
+            if (root == null) return null;
+            final saved = await mutations
+                .mutateConditionAction(
+                  root,
+                  actionId: 'world_rule.create',
+                  parameters: {'rule': result.createdRule.toJson()},
+                  validate: (snapshot) {
+                    if (snapshot.manifest.worldRules.any(
+                      (rule) => rule.id == result.createdRule.id,
+                    ))
+                      throw StateError('Cette règle existe déjà.');
+                  },
+                );
+            final current = saved.after.worldRules.singleWhere(
+              (rule) => rule.id == result.createdRule.id,
             );
-            return result.createdRule.id;
-          } on ArgumentError {
+            return editorNotifier.acceptCanonicalWorldRule(
+                  projectRootPath: root,
+                  previous: null,
+                  current: current,
+                )
+                ? current.id
+                : null;
+          } on Object {
             return null;
           }
         },
@@ -2625,13 +2693,34 @@ Widget _buildFactsWorldRulesWorkspaceFromSnapshot({
               effect: effect,
               priority: priority,
               maps: maps,
+              lookupRewardScenes: (id) =>
+                  latest.scenes.where((scene) => scene.id == id),
             );
-            editorNotifier.applyInMemoryProjectManifest(
-              result.updatedProject,
-              statusMessage: 'World rule updated',
+            final root = editor.projectRootPath;
+            if (root == null) return false;
+            final previous = latest.worldRules.singleWhere(
+              (rule) => rule.id == ruleId,
             );
-            return true;
-          } on ArgumentError {
+            final current = result.updatedRule;
+            await mutations
+                .mutateConditionAction(
+                  root,
+                  actionId: 'world_rule.update',
+                  parameters: {'rule': current.toJson()},
+                  validate: (snapshot) {
+                    if (snapshot.manifest.worldRules
+                            .where((rule) => rule.id == ruleId)
+                            .firstOrNull !=
+                        previous)
+                      throw StateError('Cette règle a changé sur le disque.');
+                  },
+                );
+            return editorNotifier.acceptCanonicalWorldRule(
+              projectRootPath: root,
+              previous: previous,
+              current: current,
+            );
+          } on Object {
             return false;
           }
         },
@@ -2682,7 +2771,8 @@ List<SceneConditionSourcePickerOption> _buildSceneConditionSourceOptions(
         EntityFacing.west => 'Ouest',
       },
       debugTechnicalLabel: direction.name,
-    ));
+    ),
+    );
   }
 
   for (final badge in project.badges) {
@@ -5075,22 +5165,28 @@ _buildSceneActionPickerOptions(
     NarrativeCommandParameterKind.movingProps: [
       for (final prop in activeMap?.movingProps ?? const <MovingPropDefinition>[])
         SceneActionPickerOption(id: prop.id, parentId: activeMap!.id,
-          label: '${project.elements.where((element) => element.id == activeMap.placedElements.where((placement) => placement.id == prop.placedElementId).firstOrNull?.elementId).firstOrNull?.name ?? 'Décor'} · (${prop.closedPositionPx.x}, ${prop.closedPositionPx.y})'),
+          label: '${project.elements.where((element) => element.id == activeMap.placedElements.where((placement) => placement.id == prop.placedElementId).firstOrNull?.elementId).firstOrNull?.name ?? 'Décor'} · (${prop.closedPositionPx.x}, ${prop.closedPositionPx.y})',
+        ),
     ],
     NarrativeCommandParameterKind.movingPlatform: [
       for (final platform in activeMap?.movingPlatforms ?? const <MovingPlatformDefinition>[])
         SceneActionPickerOption(id: '${activeMap!.id}::${platform.id}',
-            label: '${activeMap.name} · Plateforme ${activeMap.movingPlatforms.indexOf(platform) + 1}'),
+            label: '${activeMap.name} · Plateforme ${activeMap.movingPlatforms.indexOf(platform) + 1}',
+        ),
       for (final lift in activeMap?.spatialScene?.lifts ?? const <SpatialLiftDefinition>[])
-        SceneActionPickerOption(id:'${activeMap!.id}::${lift.id}',label:'${activeMap.name} · ${lift.name}'),
+        SceneActionPickerOption(id:'${activeMap!.id}::${lift.id}',label:'${activeMap.name} · ${lift.name}',
+        ),
           for (final platform in activeMap?.spatialScene?.platforms ?? const <SpatialPlatformDefinition>[])
-        SceneActionPickerOption(id: '${activeMap!.id}::${platform.id}', label: '${activeMap.name} · ${platform.name}'),
+        SceneActionPickerOption(id: '${activeMap!.id}::${platform.id}', label: '${activeMap.name} · ${platform.name}',
+        ),
     ],
     NarrativeCommandParameterKind.mapEntityReference: [
       for (final map in activeMap == null ? const <MapData>[] : [activeMap])
         for (final entity in map.entities)
-          if (entity.presentation?.variants.any((variant) => variant.characterId != null) ?? false)
-            SceneActionPickerOption(id: '${map.id}::${entity.id}', label: '${map.name} · ${entity.inspectorHeadline}'),
+          if (entity.presentation?.variants.any((variant) => variant.characterId != null,
+              ) ?? false)
+            SceneActionPickerOption(id: '${map.id}::${entity.id}', label: '${map.name} · ${entity.inspectorHeadline}',
+            ),
     ],
     NarrativeCommandParameterKind.npc: [
       for (final entity in activeMap?.entities ?? const <MapEntity>[])
@@ -5149,7 +5245,8 @@ _buildSceneActionPickerOptions(
       for (final cinematic in project.cinematics)
         SceneActionPickerOption(id: cinematic.id, label: cinematic.title),
     ],
-    NarrativeCommandParameterKind.imageMediaReference: buildSceneImageMediaPickerOptions(imageCatalog ?? ProjectMediaCatalog()),
+    NarrativeCommandParameterKind.imageMediaReference: buildSceneImageMediaPickerOptions(imageCatalog ?? ProjectMediaCatalog(),
+        ),
     NarrativeCommandParameterKind.soundMediaReference:
         buildSceneSoundMediaPickerOptions(project),
     NarrativeCommandParameterKind.musicMediaReference:

@@ -6,6 +6,34 @@ import 'package:test/test.dart';
 import 'support/spatial_package_fixture.dart';
 
 void main() {
+  test('conditional model visibility requires its capability before packaging', () {
+    final payload = spatialPayload();
+    final map = MapData.fromJson(jsonDecode(utf8.decode(
+      payload['project/maps/map.json']!)) as Map<String, dynamic>);
+    payload['project/maps/map.json'] = utf8.encode(jsonEncode(map.copyWith(
+      spatialScene: map.spatialScene!.copyWith(instances: [
+        map.spatialScene!.instances.single.copyWith(visibilityCondition:
+          NarrativeEventConditionExpression.all([])),
+      ]),
+    ).toJson()));
+    expect(() => const GamePackageBuilder().build(
+      manifest: spatialManifest(capabilities: ['map3d@1']),
+      payloadFiles: payload,
+    ), throwsA(isA<GamePackageFormatException>().having(
+      (error) => error.message, 'message',
+      contains(SpatialModelInstance.conditionalVisibilityCapabilityId),
+    )));
+    final result = const GamePackageBuilder().build(
+      manifest: spatialManifest(capabilities: [
+        'map3d@1', SpatialModelInstance.conditionalVisibilityCapabilityId,
+      ]),
+      payloadFiles: payload,
+    );
+    expect(const GamePackageInspector().inspect(result.packageBytes)
+      .manifest.compatibility.requiredCapabilities,
+      contains(SpatialModelInstance.conditionalVisibilityCapabilityId));
+  });
+
   test('hidden pickups need no visible 3D model', () {
     final payload = spatialPayload();
     final map = MapData.fromJson(

@@ -273,6 +273,11 @@ final class GamePackageProjectValidator {
           !packageManifest.compatibility.requiredCapabilities.contains(SpatialGameplayCapabilities.periodicRewardConditionCapabilityId)) {
         _fail('Periodic reward conditions require gameplay.periodic-reward-condition@1.');
       }
+      if (SpatialGameplayCapabilities.requiresConditionalModelVisibility(obstacleMaps) &&
+          !packageManifest.compatibility.requiredCapabilities.contains(
+              SpatialModelInstance.conditionalVisibilityCapabilityId)) {
+        _fail('Conditional 3D model visibility requires ${SpatialModelInstance.conditionalVisibilityCapabilityId}.');
+      }
       validateGamePackageProjectAudio(project: project, policy: policy,
         payloadPaths: payloadPaths, readPayload: readPayload);
       if (SurfGameplayCapabilities.requiresCapability(project) &&

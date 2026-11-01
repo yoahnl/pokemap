@@ -141,6 +141,7 @@ final class NarrativeEventProjectCatalog {
     required List<NarrativeEventProjectDiagnostic> diagnostics,
     List<String> nativeMapIds = const [],
     List<NarrativeMapView> nativeMaps = const [],
+    PeriodicRewardSceneLookup? lookupRewardScenes,
   }) : this._(
          fingerprints: _NarrativeCatalogFingerprints.eager(
            manifestHash,
@@ -154,6 +155,7 @@ final class NarrativeEventProjectCatalog {
          diagnostics: diagnostics,
          nativeMapIds: nativeMapIds,
          nativeMaps: nativeMaps,
+         lookupRewardScenes: lookupRewardScenes,
        );
 
   NarrativeEventProjectCatalog.withDeferredFingerprints({
@@ -167,6 +169,7 @@ final class NarrativeEventProjectCatalog {
     required List<NarrativeEventProjectDiagnostic> diagnostics,
     List<String> nativeMapIds = const [],
     List<NarrativeMapView> nativeMaps = const [],
+    PeriodicRewardSceneLookup? lookupRewardScenes,
   }) : this._(
          fingerprints: _NarrativeCatalogFingerprints(manifestHash, mapHashes),
          spatialSources: spatialSources,
@@ -177,6 +180,7 @@ final class NarrativeEventProjectCatalog {
          diagnostics: diagnostics,
          nativeMapIds: nativeMapIds,
          nativeMaps: nativeMaps,
+         lookupRewardScenes: lookupRewardScenes,
        );
 
   NarrativeEventProjectCatalog._({
@@ -189,7 +193,9 @@ final class NarrativeEventProjectCatalog {
     required List<NarrativeEventProjectDiagnostic> diagnostics,
     List<String> nativeMapIds = const [],
     List<NarrativeMapView> nativeMaps = const [],
+    PeriodicRewardSceneLookup? lookupRewardScenes,
   }) : _fingerprints = fingerprints,
+       _lookupRewardScenes = lookupRewardScenes,
        scenes = List.unmodifiable(scenes),
        facts = List.unmodifiable(facts),
        events = List.unmodifiable(events),
@@ -201,6 +207,7 @@ final class NarrativeEventProjectCatalog {
        _eventsById = _index(events, (entry) => entry.record.id);
 
   final _NarrativeCatalogFingerprints _fingerprints;
+  final PeriodicRewardSceneLookup? _lookupRewardScenes;
   String get manifestHash => _fingerprints.manifestHash;
   Map<String, String> get mapHashes => _fingerprints.mapHashes;
   final NarrativeSpatialEventSourceCatalog spatialSources;
@@ -276,9 +283,10 @@ final class NarrativeEventProjectCatalog {
   }
 
   PeriodicRewardReferenceResolution resolveRewardReference(PeriodicRewardReference reference) => resolvePeriodicRewardReference(
-    reference: reference, lookupScenes: (id) => (_scenesById[id] ?? const []).map((entry) => entry.scene));
+    reference: reference, lookupScenes: rewardScenes);
 
-  Iterable<SceneAsset> rewardScenes(String id) => (_scenesById[id] ?? const []).map((entry) => entry.scene);
+  Iterable<SceneAsset> rewardScenes(String id) => _lookupRewardScenes?.call(id) ??
+      (_scenesById[id] ?? const []).map((entry) => entry.scene);
 
   NarrativeEventProjectResolution<NarrativeEventProjectFactEntry> resolveFact(
     String factId,

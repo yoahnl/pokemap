@@ -218,6 +218,7 @@ final class SpatialExplorationGameSessionRuntime
   @override
   void applyPlayerPreferences(PlayerPreferencesSnapshot preferences) {
     _preferences = preferences;
+    _battle?.applyMotionPolicy(preferences.battleMotion);
     if (_ownsAudioMixer) _observeMusic(_audioMixer.transitionTo(preferences.audioMix));
     _session?.setTextSpeed(preferences.dialogueTextSpeed);
     _session?.worldTimeOverrides = preferences.worldTime.visualOverrides;
@@ -840,6 +841,7 @@ final class SpatialExplorationGameSessionRuntime
       return;
     }
     _battle = SpatialBattleRuntime(
+        motionPolicy: _preferences?.battleMotion,
         audioMixer: _audioMixer,
         onOutcomePresented: _battleOutcomePresented,
         readGameState: _readMutableState,
@@ -1491,6 +1493,14 @@ final class SpatialExplorationGameSessionRuntime
           'The project requires ${SpatialGameplayCapabilities.periodicRewardConditionCapabilityId}.',
         );
       }
+      if (SpatialGameplayCapabilities.requiresConditionalModelVisibility([bundle.map]) &&
+          !descriptor.grantedCapabilities.contains(
+            SpatialModelInstance.conditionalVisibilityCapabilityId,
+          )) {
+        throw StateError(
+          'The project requires ${SpatialModelInstance.conditionalVisibilityCapabilityId}.',
+        );
+      }
       if (SurfGameplayCapabilities.requiresCapability(bundle.manifest) &&
           !descriptor.grantedCapabilities.contains(SurfGameplayCapabilities.capabilityId)) {
         throw StateError('The project requires ${SurfGameplayCapabilities.capabilityId}.');
@@ -1570,6 +1580,14 @@ final class SpatialExplorationGameSessionRuntime
               )) {
             throw StateError(
               'The map requires ${SpatialGameplayCapabilities.ladderCapabilityId}.',
+            );
+          }
+          if (SpatialGameplayCapabilities.requiresConditionalModelVisibility([next.map]) &&
+              !descriptor.grantedCapabilities.contains(
+                SpatialModelInstance.conditionalVisibilityCapabilityId,
+              )) {
+            throw StateError(
+              'The map requires ${SpatialModelInstance.conditionalVisibilityCapabilityId}.',
             );
           }
           if (next.map.spatialScene!.lifts.isNotEmpty &&

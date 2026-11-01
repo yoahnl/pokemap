@@ -1,3 +1,4 @@
+import '../../contracts/periodic_reward_choices.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../contracts/action_descriptor.dart';
@@ -32,6 +33,7 @@ final class EventV2Actions {
         entry.$2,
         resourceKinds: const ['project', 'eventV2'],
         extensions: {
+          'periodicRewardAvailable': periodicRewardConditionChoiceContract,
           'sourceVariants': NarrativeEventSourceRef.contracts,
           'parallelPolicy': NarrativeEventParallelPolicy.contract,
           if (entry.$1 == 'event_v2.record_upsert' ||
@@ -85,7 +87,8 @@ final class EventV2Actions {
       }
       final projected = upsertRecords(context.snapshot.manifest,
           maps: context.snapshot.maps, records: records,
-          presentationMediaCatalog: presentationMediaCatalog);
+          presentationMediaCatalog: presentationMediaCatalog,
+          lookupRewardScenes: context.snapshot.lookupRewardScenes);
       return narrativeProjectDraft(context.snapshot, projected,
           operation: context.request.actionId,
           path: '/eventRegistry/records',
@@ -144,6 +147,7 @@ final class EventV2Actions {
           context.snapshot.manifest,
           maps: context.snapshot.maps,
           presentationMediaCatalog: presentationMediaCatalog,
+          lookupRewardScenes: context.snapshot.lookupRewardScenes,
           revision: context.snapshot.revision,
           name: name,
           rawUuid: rawUuid,
@@ -168,6 +172,7 @@ final class EventV2Actions {
           context.snapshot.manifest,
           maps: context.snapshot.maps,
           presentationMediaCatalog: presentationMediaCatalog,
+          lookupRewardScenes: context.snapshot.lookupRewardScenes,
           record: record,
         );
       case 'event_v2.publish':
@@ -183,6 +188,7 @@ final class EventV2Actions {
               context.snapshot.manifest,
               maps: context.snapshot.maps,
               presentationMediaCatalog: presentationMediaCatalog,
+              lookupRewardScenes: context.snapshot.lookupRewardScenes,
               revision: context.snapshot.revision,
               eventId: eventId,
             ),
@@ -190,6 +196,7 @@ final class EventV2Actions {
               context.snapshot.manifest,
               maps: context.snapshot.maps,
               presentationMediaCatalog: presentationMediaCatalog,
+              lookupRewardScenes: context.snapshot.lookupRewardScenes,
               revision: context.snapshot.revision,
               eventId: eventId,
             ),
@@ -197,6 +204,7 @@ final class EventV2Actions {
               context.snapshot.manifest,
               maps: context.snapshot.maps,
               presentationMediaCatalog: presentationMediaCatalog,
+              lookupRewardScenes: context.snapshot.lookupRewardScenes,
               revision: context.snapshot.revision,
               eventId: eventId,
             ),
@@ -204,6 +212,7 @@ final class EventV2Actions {
               context.snapshot.manifest,
               maps: context.snapshot.maps,
               presentationMediaCatalog: presentationMediaCatalog,
+              lookupRewardScenes: context.snapshot.lookupRewardScenes,
               revision: context.snapshot.revision,
               eventId: eventId,
             ),
@@ -211,6 +220,7 @@ final class EventV2Actions {
               context.snapshot.manifest,
               maps: context.snapshot.maps,
               presentationMediaCatalog: presentationMediaCatalog,
+              lookupRewardScenes: context.snapshot.lookupRewardScenes,
               revision: context.snapshot.revision,
               eventId: eventId,
             ),
@@ -238,13 +248,15 @@ final class EventV2Actions {
     ProjectManifest project, {
     required List<MapData> maps,
     ProjectMediaCatalog? presentationMediaCatalog,
+    PeriodicRewardSceneLookup? lookupRewardScenes,
     required String revision,
     required String name,
     required String rawUuid,
     NarrativeEventSourceRef? initialSource,
   }) {
     final context = _context(project, maps: maps, revision: revision,
-        presentationMediaCatalog: presentationMediaCatalog);
+        presentationMediaCatalog: presentationMediaCatalog,
+        lookupRewardScenes: lookupRewardScenes);
     return _apply(
       project,
       createNarrativeEventDraft(
@@ -261,16 +273,19 @@ final class EventV2Actions {
     ProjectManifest project, {
     required List<MapData> maps,
     ProjectMediaCatalog? presentationMediaCatalog,
+    PeriodicRewardSceneLookup? lookupRewardScenes,
     required NarrativeEventRecord record,
   }) {
     return upsertRecords(project, maps: maps, records: [record],
-        presentationMediaCatalog: presentationMediaCatalog);
+        presentationMediaCatalog: presentationMediaCatalog,
+        lookupRewardScenes: lookupRewardScenes);
   }
 
   ProjectManifest upsertRecords(
     ProjectManifest project, {
     required List<MapData> maps,
     ProjectMediaCatalog? presentationMediaCatalog,
+    PeriodicRewardSceneLookup? lookupRewardScenes,
     required List<NarrativeEventRecord> records,
   }) {
     if (records.isEmpty || records.length > maxBatchRecords) {
@@ -299,11 +314,13 @@ final class EventV2Actions {
     final projected = project.copyWith(eventRegistry: registry);
     final requiresCatalog = records.any((record) =>
         record.definitionOrNull != null ||
+        (record.draftOrNull?.conditions.isNotEmpty ?? false) ||
         (record.definitionOrNull?.source ?? record.draftOrNull?.source)?.kind ==
             NarrativeEventSourceKind.triggerBump);
     final catalog = requiresCatalog
         ? buildNarrativeEventProjectCatalog(project: projected, maps: maps,
-            presentationMediaCatalog: presentationMediaCatalog)
+            presentationMediaCatalog: presentationMediaCatalog,
+            lookupRewardScenes: lookupRewardScenes)
         : null;
     for (final record in records) {
       final source =
@@ -314,6 +331,22 @@ final class EventV2Actions {
         throw NarrativeAuthoringException('event_v2.source_unavailable',
             'The contact source requires one valid event trigger in a 2D map.');
       }
+    }
+    for (final record in records.where(
+        (record) => record.draftOrNull?.conditions.isNotEmpty ?? false)) {
+      final context = _context(projected,
+          maps: maps,
+          revision: 'draft-validation',
+          presentationMediaCatalog: presentationMediaCatalog,
+          lookupRewardScenes: lookupRewardScenes);
+      final issue = validateNarrativeEventAuthoringConditions(
+          context: context,
+          eventId: record.id,
+          conditions: record.draftOrNull!.conditions);
+      if (issue != null)
+        throw NarrativeAuthoringException(
+            'event_v2.conditions_invalid', issue.message,
+            details: {'diagnosticCode': issue.code});
     }
     final definedIds = records
         .where((record) => record.definitionOrNull != null)
@@ -398,6 +431,7 @@ final class EventV2Actions {
     ProjectManifest project, {
     required List<MapData> maps,
     ProjectMediaCatalog? presentationMediaCatalog,
+    PeriodicRewardSceneLookup? lookupRewardScenes,
     required String revision,
     required String eventId,
   }) =>
@@ -407,7 +441,8 @@ final class EventV2Actions {
           context: _context(project,
               maps: maps,
               revision: revision,
-              presentationMediaCatalog: presentationMediaCatalog),
+              presentationMediaCatalog: presentationMediaCatalog,
+              lookupRewardScenes: lookupRewardScenes),
           expectedRevision: revision,
           eventId: eventId,
         ),
@@ -417,6 +452,7 @@ final class EventV2Actions {
     ProjectManifest project, {
     required List<MapData> maps,
     ProjectMediaCatalog? presentationMediaCatalog,
+    PeriodicRewardSceneLookup? lookupRewardScenes,
     required String revision,
     required String eventId,
   }) =>
@@ -426,7 +462,8 @@ final class EventV2Actions {
           context: _context(project,
               maps: maps,
               revision: revision,
-              presentationMediaCatalog: presentationMediaCatalog),
+              presentationMediaCatalog: presentationMediaCatalog,
+              lookupRewardScenes: lookupRewardScenes),
           expectedRevision: revision,
           eventId: eventId,
         ),
@@ -436,6 +473,7 @@ final class EventV2Actions {
     ProjectManifest project, {
     required List<MapData> maps,
     ProjectMediaCatalog? presentationMediaCatalog,
+    PeriodicRewardSceneLookup? lookupRewardScenes,
     required String revision,
     required String eventId,
   }) =>
@@ -445,7 +483,8 @@ final class EventV2Actions {
           context: _context(project,
               maps: maps,
               revision: revision,
-              presentationMediaCatalog: presentationMediaCatalog),
+              presentationMediaCatalog: presentationMediaCatalog,
+              lookupRewardScenes: lookupRewardScenes),
           expectedRevision: revision,
           eventId: eventId,
         ),
@@ -455,6 +494,7 @@ final class EventV2Actions {
     ProjectManifest project, {
     required List<MapData> maps,
     ProjectMediaCatalog? presentationMediaCatalog,
+    PeriodicRewardSceneLookup? lookupRewardScenes,
     required String revision,
     required String eventId,
   }) =>
@@ -464,7 +504,8 @@ final class EventV2Actions {
           context: _context(project,
               maps: maps,
               revision: revision,
-              presentationMediaCatalog: presentationMediaCatalog),
+              presentationMediaCatalog: presentationMediaCatalog,
+              lookupRewardScenes: lookupRewardScenes),
           expectedRevision: revision,
           eventId: eventId,
         ),
@@ -474,6 +515,7 @@ final class EventV2Actions {
     ProjectManifest project, {
     required List<MapData> maps,
     ProjectMediaCatalog? presentationMediaCatalog,
+    PeriodicRewardSceneLookup? lookupRewardScenes,
     required String revision,
     required String eventId,
   }) =>
@@ -483,7 +525,8 @@ final class EventV2Actions {
           context: _context(project,
               maps: maps,
               revision: revision,
-              presentationMediaCatalog: presentationMediaCatalog),
+              presentationMediaCatalog: presentationMediaCatalog,
+              lookupRewardScenes: lookupRewardScenes),
           expectedRevision: revision,
           eventId: eventId,
           dependencyIndex: buildNarrativeDependencyIndex(
@@ -499,12 +542,14 @@ NarrativeEventAuthoringContext _context(
   required List<MapData> maps,
   required String revision,
   ProjectMediaCatalog? presentationMediaCatalog,
+  PeriodicRewardSceneLookup? lookupRewardScenes,
 }) {
   final registry = project.eventRegistry;
   final catalog = buildNarrativeEventProjectCatalog(
     project: project,
     maps: maps,
     presentationMediaCatalog: presentationMediaCatalog,
+    lookupRewardScenes: lookupRewardScenes,
   );
   return NarrativeEventAuthoringContext(
     registryState: registry == null

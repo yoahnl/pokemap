@@ -1,0 +1,75 @@
+{
+  "qaRoot": "/var/mobile/Containers/Data/Application/F7B3BFE8-F10C-41FF-B284-EECBDA6A815F/Library/Application Support/battle-camera-consolidation",
+  "readOnlyAssets": "/var/mobile/Containers/Data/Application/F7B3BFE8-F10C-41FF-B284-EECBDA6A815F/Library/Application Support/battle-camera-consolidation/fixture",
+  "ready": true,
+  "actorCount": 2,
+  "gpuActors": 2,
+  "allActorsGpu": true,
+  "actors": [
+    {
+      "index": 0,
+      "playerSide": false,
+      "renderedBy3DStage": true,
+      "hasImage": true,
+      "rect": {
+        "left": 543.9653930664062,
+        "top": 75.48523477090377,
+        "right": 628.7653930664062,
+        "bottom": 164.8690185546875,
+        "width": 84.79999999999995,
+        "height": 89.38378378378373
+      }
+    },
+    {
+      "index": 1,
+      "playerSide": true,
+      "renderedBy3DStage": true,
+      "hasImage": true,
+      "rect": {
+        "left": 130.80615234375003,
+        "top": 134.41537557573463,
+        "right": 265.50615234375,
+        "bottom": 244.99000244140626,
+        "width": 134.69999999999996,
+        "height": 110.57462686567163
+      }
+    }
+  ],
+  "viewport": "852.0x393.0",
+  "errors": [],
+  "gpu": true,
+  "framePresented": true,
+  "fxCount": 0,
+  "speed": 1.0,
+  "reduced": false,
+  "gpuPlayer": true,
+  "playerRect": {
+    "left": 130.80615234375003,
+    "top": 134.41537557573463,
+    "right": 265.50615234375,
+    "bottom": 244.99000244140626,
+    "width": 134.69999999999996,
+    "height": 110.57462686567163
+  },
+  "enemyRect": {
+    "left": 543.9653930664062,
+    "top": 75.48523477090377,
+    "right": 628.7653930664062,
+    "bottom": 164.8690185546875,
+    "width": 84.79999999999995,
+    "height": 89.38378378378373
+  },
+  "eye": [
+    6.736845098847635,
+    6.238356529982573,
+    17.395137344785685
+  ],
+  "aim": [
+    0.036845098847634095,
+    2.1383565299825738,
+    0.09513734478568207
+  ],
+  "moving": false,
+  "prompt": "Que doit faire Kaiminus ?",
+  "hudVisible": true
+}

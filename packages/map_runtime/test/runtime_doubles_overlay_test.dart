@@ -11,6 +11,7 @@ import 'package:map_runtime/src/presentation/flame/battle_move_visual_resolver.d
 import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_scene_combatant_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_scene_layout.dart';
+import 'package:map_runtime/src/presentation/flame/battle_stage_3d_component.dart';
 import 'package:map_runtime/src/presentation/flutter/battle_command_overlay_snapshot.dart';
 import 'package:map_runtime/src/presentation/flutter/battle_mobile_command_overlay.dart';
 
@@ -18,6 +19,36 @@ import 'support/load_flame_component.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('camera diagnostics use the active slot geometry in doubles', () async {
+    final adapter = _adapter();
+    final overlay = BattleOverlayComponent(
+      session: adapter.createLegacyDisplaySession(isTrainerBattle: true),
+      presentation: adapter.presentation,
+      viewportSize: Vector2(436, 800), onPlayerChoice: (_) {},
+    );
+    await loadFlameComponent(overlay);
+    await overlay.waitForPendingVisualSync();
+    addTearDown(overlay.onRemove);
+    overlay.presentPostBattlePlan(const BattleAnimationPlan(steps: [
+      AnimationGroupStep(mode: BattleAnimationGroupMode.parallel, steps: [
+        CameraFocusStep(target: BattleCameraFocusTarget.target,
+          side: BattleSideId.enemy, slotIndex: 1, durationSeconds: .4),
+      ]),
+      WaitStep(durationSeconds: 1),
+    ]));
+    overlay.updateTree(.1);
+    final foot = overlay.currentSceneLayout.combatantGeometry(
+      const BattleSlotRef.active(BattleSideId.player), doubles: true,
+    ).footAnchor;
+    final projection = overlay.children.whereType<BattleStage3DComponent>()
+        .single.camera.billboardAt(foot);
+    expect(overlay.battleCameraScale, closeTo(projection.scale, .000001));
+    expect(overlay.battleCameraOffset.x,
+      closeTo(projection.position.dx - foot.dx * projection.scale, .0001));
+    expect(overlay.battleCameraOffset.y,
+      closeTo(projection.position.dy - foot.dy * projection.scale, .0001));
+  });
 
   test(
     'four sprites and HUDs keep slots while choosing the second foe',

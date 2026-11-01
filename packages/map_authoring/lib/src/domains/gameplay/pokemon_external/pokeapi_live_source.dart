@@ -11,7 +11,8 @@ class PokeApiLiveSource {
     required PokemonExternalHttpTransport client,
     this.baseUri = const String.fromEnvironment(
       'POKEAPI_BASE_URI',
-      defaultValue: 'https://pokeapi.co/api/v2',
+      defaultValue:
+          'https://pokemon-api.yoahn.me/v1/compat/public-2026-10/pokeapi',
     ),
     this.requestTimeout = const Duration(seconds: 20),
     this.userAgent = _defaultUserAgent,

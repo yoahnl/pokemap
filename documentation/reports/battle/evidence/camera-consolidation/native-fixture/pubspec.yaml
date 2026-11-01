@@ -1,0 +1,29 @@
+name: battle_camera_qa
+publish_to: none
+version: 1.0.0+1
+environment:
+  sdk: ^3.13.4
+dependencies:
+  flutter:
+    sdk: flutter
+  flame: 2.0.0-dev.1
+  map_core:
+    path: /Users/karim/Project/pokemonProject/packages/map_core
+  map_battle:
+    path: /Users/karim/Project/pokemonProject/packages/map_battle
+  map_runtime:
+    path: /Users/karim/Project/pokemonProject/packages/map_runtime
+  map_player_ui:
+    path: /Users/karim/Project/pokemonProject/packages/map_player_ui
+  path_provider: ^2.1.6
+dev_dependencies:
+  marionette_flutter: ^0.6.0
+  marionette_mcp: ^0.6.0
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/fixture/data/pokemon/media/totodile.json
+    - assets/fixture/data/pokemon/media/rattata.json
+    - assets/fixture/assets/pokemon/johto/bourg-geon/totodile/back.png
+    - assets/fixture/assets/pokemon/johto/route-29/rattata/front.png
+    - assets/fixture/assets/battle/backgrounds/clairiere-johto-v1.png

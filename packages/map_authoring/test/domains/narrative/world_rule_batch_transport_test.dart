@@ -65,7 +65,10 @@ void main() {
       final planned = await f.plan(request, wire);
       expect(await f.manifest.readAsBytes(), before);
       final preview = (planned['receipt'] as Map)['extensions'] as Map;
-      expect((preview['preview'] as Map)['canPublish'], isFalse);
+      expect((preview['preview'] as Map)['canPublish'], isNull);
+      expect(
+          ((preview['preview'] as Map)['inspectionScope']
+              as Map)['projectWide'], isFalse);
       final applied = await f.apply(planned['planId'] as String, wire);
       final savedBytes = await f.manifest.readAsBytes();
       final replay = await f.apply(planned['planId'] as String, wire);

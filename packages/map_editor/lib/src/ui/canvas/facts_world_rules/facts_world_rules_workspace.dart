@@ -1,3 +1,4 @@
+import '../scenes/periodic_reward_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
@@ -12,8 +13,7 @@ import 'world_state_simulator_panel.dart';
 
 enum FactsWorldRulesWorkspaceMode {
   facts,
-  worldRules,
-}
+  worldRules }
 
 class FactsWorldRulesWorkspace extends StatefulWidget {
   const FactsWorldRulesWorkspace({
@@ -44,11 +44,9 @@ class FactsWorldRulesWorkspace extends StatefulWidget {
   final int? requestedSelectionNonce;
   final NarrativeFactRuntimeState? runtimeState;
   final Future<String?> Function({
-    required String label,
-  }) onCreateFact;
+    required String label}) onCreateFact;
   final Future<String?> Function({
-    required String factId,
-  }) onDuplicateFact;
+    required String factId}) onDuplicateFact;
   final Future<bool> Function({
     required String factId,
     required String label,
@@ -57,8 +55,7 @@ class FactsWorldRulesWorkspace extends StatefulWidget {
     required NarrativeValue initialValue,
   }) onUpdateFact;
   final Future<bool> Function({
-    required String factId,
-  }) onRemoveFact;
+    required String factId}) onRemoveFact;
   final Future<String?> Function({
     required String label,
     required String description,
@@ -79,8 +76,7 @@ class FactsWorldRulesWorkspace extends StatefulWidget {
     required int priority,
   }) onUpdateWorldRule;
   final Future<bool> Function({
-    required String ruleId,
-  }) onRemoveWorldRule;
+    required String ruleId}) onRemoveWorldRule;
 
   @override
   State<FactsWorldRulesWorkspace> createState() =>
@@ -119,6 +115,8 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
   String? _pendingRuleDeleteId;
   String? _ruleFeedback;
   String? _sourceKey;
+  WorldRuleSource? _dailySource;
+  WorldRuleSource? _editDailySource;
   String? _targetKey;
   String? _effectKey;
   String _worldRuleTemplateId = 'worldRule.manual';
@@ -280,8 +278,7 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
                           PokeMapDropdownItem(value: 'all', label: 'Tous'),
                           PokeMapDropdownItem(
                             value: 'readers',
-                            label: 'Lus',
-                          ),
+                            label: 'Lus'),
                           PokeMapDropdownItem(
                             value: 'writers',
                             label: 'Écrits',
@@ -328,8 +325,7 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
           child: _requestedFactUnavailable
               ? PokeMapPanel(
                   key: const ValueKey(
-                    'facts-manager-requested-unavailable',
-                  ),
+                    'facts-manager-requested-unavailable'),
                   expandChild: true,
                   child: _CompactEmptyState(
                     title: 'Fact introuvable',
@@ -352,8 +348,7 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
         const SizedBox(width: 12),
         SizedBox(
           width: 280,
-          child: _buildFactUsagePanel(selectedFact),
-        ),
+          child: _buildFactUsagePanel(selectedFact)),
       ],
     );
   }
@@ -692,10 +687,10 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
                       : _buildWorldRuleEditor(
                           context,
                           readModel,
-                          selectedEntry,
-                        );
+                          selectedEntry);
               final createPanel =
-                  _buildWorldRuleCreatePanel(context, readModel);
+                  _buildWorldRuleCreatePanel(context, readModel,
+              );
               if (MediaQuery.sizeOf(context).height < 820) {
                 // At low desktop heights the no-code picker can wrap onto
                 // several rows. Give both creation and inspection a bounded,
@@ -728,8 +723,7 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
           width: 360,
           child: WorldStateSimulatorPanel(
             project: widget.project,
-            maps: maps,
-          ),
+            maps: maps),
         ),
       ],
     );
@@ -780,8 +774,7 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
               for (final template in _templateCatalog.worldRuleTemplates)
                 PokeMapDropdownItem(
                   value: template.id,
-                  label: template.label,
-                ),
+                  label: template.label),
             ],
             onChanged: (id) {
               final template = _templateCatalog.worldRuleTemplates
@@ -793,6 +786,17 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
                 _applyWorldRuleTemplate(readModel, template);
               }
             },
+          ),
+          EditorPeriodicRewardPicker(
+            initial: _dailySource?.rewardReference,
+            expectedValue:
+                _dailySource?.predicate != WorldRuleSourcePredicate.isFalse,
+            onApply: (reference, expected) => setState(
+              () => _dailySource = WorldRuleSource.periodicRewardAvailable(
+                reference: reference,
+                expectedValue: expected,
+              ),
+            ),
           ),
           const SizedBox(height: 10),
           Wrap(
@@ -807,6 +811,7 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
                   onChanged: (value) {
                     setState(() {
                       _sourceKey = value;
+                      _dailySource = null;
                       _ruleTypedSourceId = null;
                     });
                   },
@@ -988,6 +993,20 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
                     subtitle:
                         'Source, prédicat, cible et effet restent modifiables.',
                   ),
+                  EditorPeriodicRewardPicker(
+                    key: ValueKey('world-rule-daily-${entry.rule.id}'),
+                    initial: _editDailySource?.rewardReference,
+                    expectedValue:
+                        _editDailySource?.predicate !=
+                        WorldRuleSourcePredicate.isFalse,
+                    onApply: (reference, expected) => setState(
+                      () => _editDailySource =
+                          WorldRuleSource.periodicRewardAvailable(
+                            reference: reference,
+                            expectedValue: expected,
+                          ),
+                    ),
+                  ),
                   const SizedBox(height: 10),
                   Wrap(
                     spacing: 10,
@@ -1005,6 +1024,7 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
                           onChanged: (value) {
                             setState(() {
                               _editSourceKey = value;
+                              _editDailySource = null;
                               final selected = _optionByKey(
                                 readModel.sourceOptions,
                                 value,
@@ -1199,7 +1219,8 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const _SmallText(
-                        'Confirmez la suppression de cette règle.'),
+                        'Confirmez la suppression de cette règle.',
+                    ),
                     const SizedBox(height: 8),
                     PokeMapButton(
                       key: const ValueKey('world-rules-confirm-delete'),
@@ -1353,6 +1374,10 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
       return;
     }
     _loadedRuleId = rule?.id;
+    _editDailySource =
+        rule?.source.kind == WorldRuleSourceKind.periodicRewardAvailable
+        ? rule?.source
+        : null;
     _ruleLabelController.text = rule?.label ?? '';
     _ruleDescriptionController.text = rule?.description ?? '';
     _rulePriorityController.text = rule == null ? '0' : '${rule.priority}';
@@ -1427,12 +1452,14 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
             _ruleFactValueController.text.trim().toLowerCase() == 'true',
           ),
         NarrativeValueKind.integer => switch (
-              int.tryParse(_ruleFactValueController.text.trim())) {
+              int.tryParse(_ruleFactValueController.text.trim(),
+        )) {
             final value? => NarrativeValue.integer(value),
             null => null,
           },
         NarrativeValueKind.string =>
-          NarrativeValue.string(_ruleFactValueController.text),
+          NarrativeValue.string(_ruleFactValueController.text,
+        ),
       };
 
   NarrativeValue? _ruleEditFactInputValue(NarrativeValueKind kind) =>
@@ -1441,12 +1468,14 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
             _ruleEditFactValueController.text.trim().toLowerCase() == 'true',
           ),
         NarrativeValueKind.integer => switch (
-              int.tryParse(_ruleEditFactValueController.text.trim())) {
+              int.tryParse(_ruleEditFactValueController.text.trim(),
+        )) {
             final value? => NarrativeValue.integer(value),
             null => null,
           },
         NarrativeValueKind.string =>
-          NarrativeValue.string(_ruleEditFactValueController.text),
+          NarrativeValue.string(_ruleEditFactValueController.text,
+        ),
       };
 
   Future<void> _createFact() async {
@@ -1471,12 +1500,14 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
     final initialValue = switch (_factKind) {
       NarrativeValueKind.boolean => NarrativeValue.boolean(_factDefaultValue),
       NarrativeValueKind.integer => switch (
-            int.tryParse(_factValueController.text.trim())) {
+            int.tryParse(_factValueController.text.trim(),
+      )) {
           final value? => NarrativeValue.integer(value),
           null => null,
         },
       NarrativeValueKind.string =>
-        NarrativeValue.string(_factValueController.text),
+        NarrativeValue.string(_factValueController.text,
+      ),
     };
     if (initialValue == null) {
       setState(() => _factFeedback = 'Saisissez un nombre entier valide.');
@@ -1538,6 +1569,7 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
   WorldRuleSourcePickerOption? _selectedSource(
     FactsWorldRulesManagerReadModel readModel,
   ) {
+    if (_dailySource != null) return _dailyOption(_dailySource!);
     final options = readModel.sourceOptions;
     if (options.isEmpty) {
       return null;
@@ -1548,11 +1580,21 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
 
   WorldRuleSourcePickerOption? _selectedEditSource(
     FactsWorldRulesManagerReadModel readModel,
-  ) =>
-      _optionByKey(
+  ) => _editDailySource != null
+      ? _dailyOption(_editDailySource!)
+      : _optionByKey(
         readModel.sourceOptions,
         _editSourceKey,
-        _sourceOptionKey,
+        _sourceOptionKey);
+
+  WorldRuleSourcePickerOption _dailyOption(WorldRuleSource source) =>
+      WorldRuleSourcePickerOption(
+        kind: source.kind,
+        sourceId: source.sourceId,
+        predicate: source.predicate,
+        label: 'Récompense quotidienne',
+        subtitle: 'Action publiée',
+        debugTechnicalLabel: 'Récompense quotidienne',
       );
 
   void _applyWorldRuleTemplate(
@@ -1574,7 +1616,8 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
         .firstOrNull;
     final effect = target == null
         ? null
-        : _compatibleEffects(readModel, target)
+        : _compatibleEffects(readModel, target,
+          )
             .where((option) => option.effectKind == effectKind)
             .firstOrNull;
     setState(() {
@@ -1608,8 +1651,7 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
       _optionByKey(
         readModel.targetOptions,
         _editTargetKey,
-        _targetOptionKey,
-      );
+        _targetOptionKey);
 
   WorldRuleEffectPickerOption? _selectedEffect(
     List<WorldRuleEffectPickerOption> options,
@@ -1652,8 +1694,7 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
   }
 
   String? _selectedEditDialogueId(
-    FactsWorldRulesManagerReadModel readModel,
-  ) {
+    FactsWorldRulesManagerReadModel readModel) {
     final ids =
         readModel.dialogueOptions.map((option) => option.dialogueId).toSet();
     if (_editDialogueId != null && ids.contains(_editDialogueId)) {
@@ -1670,7 +1711,8 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
     required NarrativeValue? typedFactValue,
   }) async {
     final sourceModel =
-        source.kind == WorldRuleSourceKind.fact && typedFactValue != null
+        _dailySource ??
+        (source.kind == WorldRuleSourceKind.fact && typedFactValue != null
             ? WorldRuleSource.factValue(
                 factId: source.sourceId,
                 operator: _ruleFactOperator,
@@ -1684,7 +1726,7 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
                 predicate: source.predicate,
                 label: source.label,
                 debugTechnicalLabel: source.debugTechnicalLabel,
-              );
+              ));
     final targetModel = WorldRuleTarget(
       kind: target.kind,
       mapId: target.mapId,
@@ -1727,7 +1769,8 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
   }) async {
     final priority = int.tryParse(_rulePriorityController.text.trim()) ?? 0;
     final sourceModel =
-        source.kind == WorldRuleSourceKind.fact && typedFactValue != null
+        _editDailySource ??
+        (source.kind == WorldRuleSourceKind.fact && typedFactValue != null
             ? WorldRuleSource.factValue(
                 factId: source.sourceId,
                 operator: _editRuleFactOperator,
@@ -1741,7 +1784,7 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
                 predicate: source.predicate,
                 label: source.label,
                 debugTechnicalLabel: source.debugTechnicalLabel,
-              );
+              ));
     final targetModel = WorldRuleTarget(
       kind: target.kind,
       mapId: target.mapId,
@@ -1815,7 +1858,8 @@ class _MetricsStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textScale =
-        MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 1.5).toDouble();
+        MediaQuery.textScalerOf(context,
+    ).scale(1).clamp(1.0, 1.5).toDouble();
     return SizedBox(
       // Metric cards include a subtitle; reserve the extra line-height at
       // accessible text scales instead of clipping the shared DS primitive.
@@ -1862,8 +1906,7 @@ class _MetricsStrip extends StatelessWidget {
 class _CreateFactPanel extends StatelessWidget {
   const _CreateFactPanel({
     required this.controller,
-    required this.onCreate,
-  });
+    required this.onCreate});
 
   final TextEditingController controller;
   final VoidCallback onCreate;
@@ -2244,8 +2287,7 @@ class _PanelTitle extends StatelessWidget {
   const _PanelTitle({
     required this.title,
     required this.subtitle,
-    this.badge,
-  });
+    this.badge});
 
   final String title;
   final String subtitle;
@@ -2268,8 +2310,7 @@ class _PanelTitle extends StatelessWidget {
         ),
         if (badge != null) ...[
           const SizedBox(width: 8),
-          badge!,
-        ],
+          badge!],
       ],
     );
   }
@@ -2327,16 +2368,14 @@ class _FeedbackText extends StatelessWidget {
     }
     return PokeMapBadge(
       label: message!,
-      variant: PokeMapBadgeVariant.warning,
-    );
+      variant: PokeMapBadgeVariant.warning);
   }
 }
 
 class _CompactEmptyState extends StatelessWidget {
   const _CompactEmptyState({
     required this.title,
-    required this.description,
-  });
+    required this.description});
 
   final String title;
   final String description;

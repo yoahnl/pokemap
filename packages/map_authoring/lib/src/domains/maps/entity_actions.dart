@@ -1,3 +1,4 @@
+import '../../contracts/periodic_reward_choices.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../contracts/action_descriptor.dart';
@@ -279,6 +280,7 @@ final class EntityActions {
         AuthoringGuarantee.undoable
       ],
       extensions: const {
+        'periodicRewardAvailable': periodicRewardConditionChoiceContract,
         'semanticIds': true,
         'rawTilesetRequired': false,
         'presentation': {
@@ -598,7 +600,9 @@ final class EntityActions {
   MapData setPresentation(MapData map,
       {required ProjectManifest project,
       required String entityId,
-      required MapEntityPresentation? presentation}) {
+      required MapEntityPresentation? presentation,
+      PeriodicRewardSceneLookup? lookupRewardScenes,
+      List<MapData> maps = const []}) {
     final entity =
         _entityById(map, entityId).copyWith(presentation: presentation);
     final updated = map.copyWith(entities: [
@@ -606,7 +610,8 @@ final class EntityActions {
         if (value.id == entityId) entity else value
     ]);
     if (presentation != null)
-      _assertPresentationTarget(updated, project, entity);
+      _assertPresentationTarget(updated, project, entity,
+          lookupRewardScenes: lookupRewardScenes, maps: maps);
     return updated;
   }
 
@@ -900,6 +905,8 @@ final class EntityActions {
           updated = setPresentation(context.map,
               project: context.manifest,
               entityId: parameters.string('entityId'),
+              lookupRewardScenes: context.planning.snapshot.lookupRewardScenes,
+              maps: context.planning.snapshot.maps,
               presentation: raw == null
                   ? null
                   : MapEntityPresentation.fromJson(
@@ -1137,6 +1144,11 @@ final class EntityActions {
       throw _entityFailure(error);
     }
 
+    if (actionId == 'entity.set_presentation') {
+      return context.draftEntityPresentation(
+          after: updated, entityId: parameters.string('entityId'));
+    }
+
     for (final entity
         in updated.entities.where((entity) => entity.fieldObstacle != null)) {
       _assertFieldObstacleTarget(updated, context.manifest, entity);
@@ -1175,9 +1187,13 @@ void _requireCreateBatchSize(int count) {
 }
 
 void _assertPresentationTarget(
-    MapData map, ProjectManifest project, MapEntity entity) {
+    MapData map, ProjectManifest project, MapEntity entity,
+    {PeriodicRewardSceneLookup? lookupRewardScenes,
+    List<MapData> maps = const []}) {
   final errors =
-      validateMapEntityPresentation(project: project, map: map, entity: entity);
+      validateMapEntityPresentation(project: project, map: map, entity: entity,
+      lookupRewardScenes: lookupRewardScenes,
+      maps: maps);
   if (!const [MapEntityKind.npc, MapEntityKind.custom].contains(entity.kind) ||
       entity.sign != null ||
       entity.item != null ||

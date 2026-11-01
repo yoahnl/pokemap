@@ -1,0 +1,77 @@
+{
+  "qaRoot": "/var/mobile/Containers/Data/Application/166D1BD4-006A-47CF-A113-F270CCD7958D/Library/Application Support/battle-camera-consolidation",
+  "readOnlyAssets": "/var/mobile/Containers/Data/Application/166D1BD4-006A-47CF-A113-F270CCD7958D/Library/Application Support/battle-camera-consolidation/fixture",
+  "ready": true,
+  "actorCount": 2,
+  "gpuActors": 2,
+  "allActorsGpu": true,
+  "actors": [
+    {
+      "index": 0,
+      "playerSide": false,
+      "renderedBy3DStage": true,
+      "hasImage": true,
+      "rect": {
+        "left": 251.80699157714847,
+        "top": 263.46486181310706,
+        "right": 350.5069915771485,
+        "bottom": 367.4999969482422,
+        "width": 98.70000000000002,
+        "height": 104.03513513513514
+      }
+    },
+    {
+      "index": 1,
+      "playerSide": true,
+      "renderedBy3DStage": true,
+      "hasImage": true,
+      "rect": {
+        "left": 33.63582992553711,
+        "top": 481.3880457921202,
+        "right": 158.6358299255371,
+        "bottom": 583.9999860906277,
+        "width": 125.0,
+        "height": 102.61194029850748
+      }
+    }
+  ],
+  "viewport": "393.0x852.0",
+  "errors": [],
+  "gpu": true,
+  "framePresented": null,
+  "framePresentedCapability": "unavailable_at_baseline",
+  "fxCount": 0,
+  "speed": 1.0,
+  "reduced": false,
+  "baselineCommit": "1706473626bd5402ad81cfe320f5ec0c4ca91239",
+  "gpuPlayer": true,
+  "playerRect": {
+    "left": 33.63582992553711,
+    "top": 481.3880457921202,
+    "right": 158.6358299255371,
+    "bottom": 583.9999860906277,
+    "width": 125.0,
+    "height": 102.61194029850748
+  },
+  "enemyRect": {
+    "left": 251.80699157714847,
+    "top": 263.46486181310706,
+    "right": 350.5069915771485,
+    "bottom": 367.4999969482422,
+    "width": 98.70000000000002,
+    "height": 104.03513513513514
+  },
+  "eye": [
+    6.7,
+    6.7,
+    17.3
+  ],
+  "aim": [
+    0.0,
+    2.6,
+    0.0
+  ],
+  "moving": false,
+  "prompt": "Que doit faire Kaiminus ?",
+  "hudVisible": true
+}

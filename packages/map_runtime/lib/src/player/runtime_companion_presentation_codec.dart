@@ -9,6 +9,7 @@ import '../session/player_input.dart';
 import '../application/dialogue_portrait_resolver.dart';
 import '../presentation/flutter/dialogue_presentation_snapshot.dart';
 import '../presentation/flame/dialogue_text_speed.dart';
+import '../presentation/flame/battle_motion_policy.dart';
 import '../player/runtime_audio_mixer.dart';
 import '../player/runtime_player_host.dart';
 import '../player/runtime_player_models.dart';
@@ -1335,6 +1336,8 @@ abstract final class RuntimeCompanionPresentationCodec {
         'showInputHints': value.showInputHints,
         'dialogueTextSpeed': value.dialogueTextSpeed.name,
         'menuEffects': value.menuEffects.name,
+        if (value.battleMotion != null)
+          'battleMotion': value.battleMotion!.toJson(),
         'targetFramesPerSecond': value.targetFramesPerSecond,
         if (value.realWeather != const RealWeatherPreferences()) 'realWeather': value.realWeather.toJson(),
         if (value.worldTime != const RuntimeWorldTimePreferences())
@@ -1359,6 +1362,8 @@ abstract final class RuntimeCompanionPresentationCodec {
             .byName(data['dialogueTextSpeed'] as String),
         menuEffects: RuntimePlayerMenuEffects.values
             .byName(data['menuEffects'] as String),
+        battleMotion: data.containsKey('battleMotion')
+            ? BattleMotionPolicy.fromJson(data['battleMotion']) : null,
         targetFramesPerSecond: _decodeTargetFramesPerSecond(data),
         realWeather: data['realWeather'] == null ? const RealWeatherPreferences() : RealWeatherPreferences.fromJson(_map(data['realWeather'])),
         worldTime: data['worldTime'] == null

@@ -1,3 +1,4 @@
+import 'periodic_reward_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 import 'scene_integer_condition_form.dart';
@@ -28,6 +29,7 @@ class SceneConditionForm extends StatefulWidget {
 
 class _SceneConditionFormState extends State<SceneConditionForm> {
   static const families = {
+    'periodicRewardAvailable': 'Récompense quotidienne',
     'integerComparison': 'Comparer des nombres',
     'partyState': 'Équipe Pokémon',
     'fact': 'État du monde',
@@ -602,6 +604,14 @@ class _SceneConditionFormState extends State<SceneConditionForm> {
 
   @override
   Widget build(BuildContext context) {
+    if (_family == 'periodicRewardAvailable') {
+      return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        StudioSelect(label: 'Source de la condition', value: _family, options: _availableFamilies, onChanged: _selectFamily),
+        PeriodicRewardPicker(initial: widget.current.conditionSource?.rewardReference,
+          expectedValue: widget.current.conditionSource?.operator != SceneConditionOperator.isFalse,
+          onApply: (reference, expected) => widget.onApply(SceneConditionSource.periodicRewardAvailable(reference: reference, expectedValue: expected))),
+      ]);
+    }
     if (_family == 'integerComparison') {
       return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         StudioSelect(label: 'Source de la condition', value: _family, options: _availableFamilies, onChanged: _selectFamily),

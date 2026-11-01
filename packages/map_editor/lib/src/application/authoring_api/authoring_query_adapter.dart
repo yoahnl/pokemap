@@ -51,6 +51,18 @@ final class AuthoringQueryAdapter
         closeCount: _closeCount,
       );
 
+  Future<AuthoringQueryPage> queryPeriodicRewardChoices(
+    String projectRootPath,
+    AuthoringQueryRequest request,
+  ) async {
+    final root = await _fileReader.canonicalizeDirectory(projectRootPath);
+    _requireAllowedRoot(root);
+    return LocalPeriodicRewardChoiceReader(
+      projectRootPath: root,
+      fileReader: _fileReader,
+    ).query(request);
+  }
+
   Future<EditorAuthoringReadSession> open(String projectRootPath) async {
     final canonicalRoot = await _fileReader.canonicalizeDirectory(
       projectRootPath,

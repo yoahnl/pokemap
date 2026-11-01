@@ -373,6 +373,9 @@ final class CanonicalGamePackageExportService {
             SpatialNavigationProfile.defaultMaximumFishingDropWorld))
           SpatialNavigationProfile.fishingDropCapabilityId,
         if (entityModels) SpatialModelInstance.entityBindingCapabilityId,
+        if (SpatialGameplayCapabilities.requiresConditionalModelVisibility(
+            fieldObstacleMaps))
+          SpatialModelInstance.conditionalVisibilityCapabilityId,
         if (actorOcclusion) SpatialActorOcclusionCapabilities.capabilityId,
         if (modelClips) SpatialModelClipCapabilities.capabilityId,
         if (spatialGameplay) SpatialGameplayCapabilities.capabilityId,

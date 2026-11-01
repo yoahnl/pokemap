@@ -249,6 +249,11 @@ final class SpatialExplorationSession {
   Set<String> _imageIds = {};
   final _preparedMaps = <String, _PreparedSpatialMap>{};
   final _modelPresenceIndices = Expando<_SpatialModelPresenceIndex>();
+  final _modelVisibility = Expando<({
+    ProjectManifest project,
+    PeriodicRewardSceneLookup? lookup,
+    SpatialModelVisibilityProjection projection,
+  })>();
   final _preparingMaps = <String, Future<_PreparedSpatialMap>>{};
   final _mapOrigins = <String, ui.Offset>{};
   Set<String> _visibleMaps = {};
@@ -552,10 +557,39 @@ final class SpatialExplorationSession {
     if (source == null) return false;
     final index = _modelPresenceIndices[source.map] ??=
         _SpatialModelPresenceIndex(source.map);
+    final instance = index.instancesById[instanceId];
+    if (instance?.visibilityCondition != null) {
+      final state = presentationStateProvider?.call();
+      if (state == null) return false;
+      var cached = _modelVisibility[source.map];
+      if (cached == null ||
+          !identical(cached.project, source.manifest) ||
+          !identical(cached.lookup, lookupRewardScenes)) {
+        cached = (
+          project: source.manifest,
+          lookup: lookupRewardScenes,
+          projection: SpatialModelVisibilityProjection(
+            project: source.manifest,
+            map: source.map,
+            lookupRewardScenes: lookupRewardScenes,
+            lookupMaps: _loadedVisibilityMaps,
+          ),
+        );
+        _modelVisibility[source.map] = cached;
+      }
+      if (!cached.projection.isPresent(state, instanceId)) return false;
+    }
     final entityId = index.entityIdsByInstanceId[instanceId];
     if (entityId == null) return true;
     final entity = index.entitiesById[entityId];
     return entity != null && (entityIsPresent?.call(mapId, entity) ?? true);
+  }
+
+  Iterable<NarrativeMapView> _loadedVisibilityMaps(String mapId) sync* {
+    final map = mapId == bundle.map.id
+        ? bundle.map
+        : _preparedMaps[mapId]?.bundle.map;
+    if (map != null) yield map;
   }
 
   SpatialModelRuntimeState? modelRuntimeState(

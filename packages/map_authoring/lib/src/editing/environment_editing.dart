@@ -19,6 +19,37 @@ class EnvironmentEditing with _EnvironmentGenerationEditing {
   static const int generationHaloCells = 1;
   static const int maxGenerationCells = 4096;
 
+  MapData promoteSpatialPlacement(MapData map,
+      {required String layerId,
+      required String areaId,
+      required String placementId}) {
+    final layer = _environmentLayer(map, layerId);
+    final area = areaOf(map, layerId: layerId, areaId: areaId);
+    final instance = map.spatialScene?.instances
+        .where((item) => item.id == placementId)
+        .firstOrNull;
+    if (!layer.content.targetsSpatialTerrain ||
+        instance == null ||
+        !area.generatedPlacementIds.contains(placementId)) {
+      throw semanticFailure('environment.placement_missing',
+          'Select one native spatial Environment placement.');
+    }
+    if (area.manualPlacementIds.contains(placementId)) return map;
+    final anchor = _spatialTrackedAnchor(layer, area, instance);
+    return _editMaskCells(
+        _replaceArea(map,
+            layerId: layerId,
+            areaId: areaId,
+            update: (value) => _copyArea(value, manualPlacementIds: [
+                  ...value.manualPlacementIds,
+                  placementId
+                ])),
+        layerId: layerId,
+        areaId: areaId,
+        cells: [(x: anchor.x, y: anchor.y)],
+        value: false);
+  }
+
   MapData createArea(
     MapData map, {
     required ProjectManifest manifest,

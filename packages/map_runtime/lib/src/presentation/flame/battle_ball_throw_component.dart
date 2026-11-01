@@ -5,6 +5,7 @@ import 'package:flame/components.dart';
 import 'package:map_battle/map_battle.dart';
 
 import 'battle_animation_plan.dart';
+import 'battle_live_attachment.dart';
 
 /// La Poké Ball d'un envoi ou d'un rappel — BETA-BAT-022.
 ///
@@ -15,17 +16,19 @@ import 'battle_animation_plan.dart';
 /// moment de l'ouverture (le SE et le grossissement du Pokémon s'y
 /// alignent) et se retire seul. Les emplois posés (adversaire, rappel)
 /// sautent le vol : 0,2 s d'attente puis l'ouverture.
-class BattleBallThrowComponent extends PositionComponent {
+class BattleBallThrowComponent extends PositionComponent implements BattleLiveAttachment {
   BattleBallThrowComponent({
     required this.sheet,
     required this.kind,
     required Offset targetCenter,
     required double throwStartX,
-    this.cellSize = 26,
+    double cellSize = 26,
+    this.resolvePlacement,
     this.onOpen,
     int priority = 50,
   })  : _targetCenter = targetCenter,
         _throwStartX = throwStartX,
+        _cellSize = cellSize,
         super(
           position: Vector2(targetCenter.dx, targetCenter.dy),
           anchor: Anchor.center,
@@ -40,11 +43,13 @@ class BattleBallThrowComponent extends PositionComponent {
 
   final Image sheet;
   final BattleBallSequenceKind kind;
-  final Offset _targetCenter;
-  final double _throwStartX;
+  Offset _targetCenter;
+  double _throwStartX;
+  final BattleBallLivePlacement? Function()? resolvePlacement;
 
   /// La taille de rendu d'une cellule en pixels logiques de la scène.
-  final double cellSize;
+  double _cellSize;
+  double get cellSize => _cellSize;
 
   final void Function()? onOpen;
 
@@ -52,11 +57,38 @@ class BattleBallThrowComponent extends PositionComponent {
   var _openNotified = false;
   var _removalScheduled = false;
   var _cellIndex = 3;
+  bool _refreshingAttachment = false;
+  bool _attachmentInvalid = false;
+
+  @override
+  bool refreshAttachment() {
+    if (_attachmentInvalid) return false;
+    final resolver = resolvePlacement;
+    if (resolver == null) return true;
+    final next = resolver();
+    if (next == null || !next.targetCenter.x.isFinite || !next.targetCenter.y.isFinite ||
+        !next.throwStartX.isFinite || !next.cellSize.isFinite || next.cellSize <= 0) {
+      _attachmentInvalid = true;
+      removeBattleLiveAttachment(this);
+      return false;
+    }
+    _targetCenter = Offset(next.targetCenter.x, next.targetCenter.y);
+    _throwStartX = next.throwStartX;
+    _cellSize = next.cellSize;
+    _refreshingAttachment = true;
+    try { _applyTimeline(); } finally { _refreshingAttachment = false; }
+    return true;
+  }
 
   @override
   void update(double dt) {
     super.update(dt);
+    if (!refreshAttachment()) return;
     _elapsed += dt;
+    _applyTimeline();
+  }
+
+  void _applyTimeline() {
     final throwSeconds =
         kind == BattleBallSequenceKind.sendOutThrown ? _throwSeconds : 0.0;
     final waitSeconds =
@@ -80,7 +112,7 @@ class BattleBallThrowComponent extends PositionComponent {
       return;
     }
     position = Vector2(_targetCenter.dx, _targetCenter.dy);
-    if (!_openNotified) {
+    if (!_openNotified && !_refreshingAttachment) {
       _openNotified = true;
       onOpen?.call();
     }
@@ -98,6 +130,7 @@ class BattleBallThrowComponent extends PositionComponent {
 
   @override
   void render(Canvas canvas) {
+    if (_attachmentInvalid) return;
     super.render(canvas);
     final cellHeight = sheet.height / _cellRows;
     final cellWidth = sheet.width.toDouble();

@@ -1,3 +1,4 @@
+import '../domains/maps/model_visibility_dependencies.dart';
 import '../domains/maps/map3d_edit_intents.dart' show requestedMapEditMaterialNames, normalizeMapEditMaterialName;
 import '../domains/maps/map3d_edit_projection.dart';
 import '../transactions/local_authoring_payload.dart';

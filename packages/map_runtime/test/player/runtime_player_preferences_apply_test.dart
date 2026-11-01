@@ -4,6 +4,29 @@ import 'package:map_runtime/map_runtime.dart';
 import 'support/runtime_player_test_harness.dart';
 
 void main() {
+  test('changing only battle motion reaches the active runtime after persistence', () async {
+    final harness = RuntimePlayerTestHarness();
+    addTearDown(harness.dispose);
+    await launchHarnessToPlaying(harness);
+    await openHarnessPause(harness);
+    await harness.coordinator.dispatch(RuntimePlayerCommand(
+      action: RuntimePlayerAction.openOptions,
+      snapshotRevision: harness.coordinator.snapshot.revision,
+    ));
+    final policy = BattleMotionPolicy(playbackSpeed: 2.5, effectIntensity: .5);
+    final preferences = harness.coordinator.snapshot.preferences!.copyWith(
+      battleMotion: policy);
+    final result = await harness.coordinator.dispatch(RuntimePlayerCommand(
+      action: RuntimePlayerAction.updatePreferences,
+      snapshotRevision: harness.coordinator.snapshot.revision,
+      payload: preferences,
+    ));
+    expect(result.status, RuntimePlayerCommandStatus.accepted);
+    expect(harness.preferences.current.battleMotion, policy);
+    expect(harness.adapter.appliedPreferences, hasLength(2));
+    expect(harness.adapter.appliedPreferences.last.battleMotion, policy);
+  });
+
   test('host defaults remain distinct from saved preferences across snapshots',
       () async {
     final harness = RuntimePlayerTestHarness();
@@ -95,6 +118,16 @@ void main() {
       payload: confirmed.copyWith(dialogueTextSpeed: RuntimeDialogueTextSpeed.fast),
     ));
     expect(result.status, RuntimePlayerCommandStatus.failed);
+    expect(harness.coordinator.snapshot.preferences, same(confirmed));
+    expect(harness.adapter.appliedPreferences, hasLength(1));
+    final battleResult = await harness.coordinator.dispatch(RuntimePlayerCommand(
+      action: RuntimePlayerAction.updatePreferences,
+      snapshotRevision: harness.coordinator.snapshot.revision,
+      payload: confirmed.copyWith(battleMotion: BattleMotionPolicy(
+        playbackSpeed: 2.5, effectIntensity: .25)),
+    ));
+    expect(battleResult.status, RuntimePlayerCommandStatus.failed);
+    expect(harness.preferences.current, same(confirmed));
     expect(harness.coordinator.snapshot.preferences, same(confirmed));
     expect(harness.adapter.appliedPreferences, hasLength(1));
   });

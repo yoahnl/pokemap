@@ -1160,6 +1160,31 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
       ],
       PlayerOptionsCategory.accessibility => [
         _slider(
+          _strings.battleSpeed,
+          'runtime-player-battle-speed-slider',
+          preferences.battleMotion?.playbackSpeed ?? 1,
+          compact,
+          (value, focusNode) => _save(
+            _confirmed.copyWith(battleMotion: _editableBattleMotion.copyWith(
+              playbackSpeed: value)),
+            focusAfterSave: focusNode,
+          ),
+          min: .5, max: 3, divisions: 5,
+          formatValue: (value) => '×${value.toStringAsFixed(1)}',
+        ),
+        _slider(
+          _strings.battleEffectIntensity,
+          'runtime-player-battle-intensity-slider',
+          preferences.battleMotion?.effectIntensity ?? 1,
+          compact,
+          (value, focusNode) => _save(
+            _confirmed.copyWith(battleMotion: _editableBattleMotion.copyWith(
+              effectIntensity: value)),
+            focusAfterSave: focusNode,
+          ),
+          divisions: 4,
+        ),
+        _slider(
           _strings.textSize,
           'runtime-player-text-scale-slider',
           preferences.accessibility.textScale,
@@ -1179,13 +1204,14 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
         _toggle(
           _strings.reducedMotion,
           'runtime-player-reduced-motion-toggle',
-          preferences.accessibility.reducedMotion,
+          preferences.battleMotion?.reducedMotion ?? preferences.accessibility.reducedMotion,
           compact,
           (value) => _save(
             _confirmed.copyWith(
               accessibility: _confirmed.accessibility.copyWith(
                 reducedMotion: value,
               ),
+              battleMotion: _editableBattleMotion.copyWith(reducedMotion: value),
             ),
           ),
         ),
@@ -1213,6 +1239,9 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
       ],
     };
   }
+
+  BattleMotionPolicy get _editableBattleMotion => _confirmed.battleMotion ??
+      BattleMotionPolicy(reducedMotion: _confirmed.accessibility.reducedMotion);
 
   Widget _row(
     String label,
@@ -1295,6 +1324,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
     double min = 0,
     double max = 1,
     int divisions = 20,
+    String Function(double value)? formatValue,
   }) {
     final draft = _drafts[key] ?? value;
     final focusNode = _sliderFocus.putIfAbsent(
@@ -1389,7 +1419,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
                     min: min,
                     max: max,
                     divisions: divisions,
-                    semanticFormatterCallback: (value) =>
+                    semanticFormatterCallback: formatValue ?? (value) =>
                         '${(value * 100).round()} %',
                     onChanged: _enabled
                         ? (value) => setState(() => _drafts[key] = value)
@@ -1406,7 +1436,7 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
       ),
       true,
       labelFlex: 7,
-      valueLabel: '${(draft * 100).round()} %',
+      valueLabel: formatValue?.call(draft) ?? '${(draft * 100).round()} %',
       key: ValueKey('$key-setting'),
     );
   }
@@ -1647,6 +1677,10 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
       PlayerOptionsCategory.language => value.locale != defaults.locale,
       PlayerOptionsCategory.accessibility =>
         value.highContrast != defaults.highContrast ||
+            (value.battleMotion ?? BattleMotionPolicy(
+              reducedMotion: value.accessibility.reducedMotion)) !=
+                (defaults.battleMotion ?? BattleMotionPolicy(
+                  reducedMotion: defaults.accessibility.reducedMotion)) ||
             value.accessibility.reducedMotion !=
                 defaults.accessibility.reducedMotion ||
             value.accessibility.textScale != defaults.accessibility.textScale ||
@@ -1696,6 +1730,8 @@ class _RuntimePlayerOptionsState extends State<RuntimePlayerOptions> {
         locale: defaults.locale,
       ),
       PlayerOptionsCategory.accessibility => _confirmed.copyWith(
+        battleMotion: defaults.battleMotion ?? BattleMotionPolicy(
+          reducedMotion: defaults.accessibility.reducedMotion),
         highContrast: defaults.highContrast,
         accessibility: defaults.accessibility.copyWith(
           hapticsEnabled: _hapticsSupported

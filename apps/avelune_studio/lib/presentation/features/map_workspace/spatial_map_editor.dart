@@ -694,7 +694,7 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
   Future<void> updatePreview(SpatialWorkspaceVisuals visuals) async {
     final map = editingExterior
         ? widget.document.current
-        : editingDocument.current;
+        : editingDocument.spatialPreviewMap;
     if (identical(previewMap, map)) return;
     final previous = previewMap;
     if (previous != null && _previewOrderOnlyChange(previous, map)) {
@@ -1565,7 +1565,7 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
                         terrainSurfaceMap?.spatialScene ??
                         environmentPreview?.spatialScene ??
                         reliefStroke?.preview.spatialScene ??
-                        editingDocument.current.spatialScene!,
+                        editingDocument.spatialPreviewMap.spatialScene!,
               groundMap: editingExterior
                   ? widget.document.current
                   : borderMap ??
@@ -1574,7 +1574,7 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
                         environmentPreview ??
                         reliefStroke?.preview ??
                         terrainStroke?.preview ??
-                        editingDocument.current,
+                        editingDocument.spatialPreviewMap,
               groundProject: widget.project,
               loadGroundImage:
                   (visuals as SpatialWorkspaceVisuals).readGroundImage,
@@ -1653,7 +1653,9 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
       for (var z = area.pos.y; z < area.pos.y + area.size.height; z++) {
         for (var x = area.pos.x; x < area.pos.x + area.size.width; x++) {
           cells.add(SpatialCellOverlay(id: 'field-zone-draft:$x:$z', cell: (x, z),
-              kind: SpatialCellOverlayKind.preview, color: colors.secondary));
+              kind: SpatialCellOverlayKind.preview, color: colors.secondary,
+            ),
+          );
         }
       }
     }
@@ -1662,12 +1664,15 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
       final waterfall = zone.fieldAction?.waterfall, whirlpool = zone.fieldAction?.whirlpool;
       if (waterfall == null && whirlpool == null) continue;
       final route = [waterfall?.entry ?? whirlpool!.entry,
-        ...?waterfall?.path, ...?whirlpool?.path, waterfall?.exit ?? whirlpool!.exit];
+        ...?waterfall?.path, ...?whirlpool?.path, waterfall?.exit ?? whirlpool!.exit,
+      ];
       final origin = drawing?.armed?.id == zone.id ? drawing?.armedArea?.pos ?? zone.area.pos : zone.area.pos;
       for (var index = 0; index < route.length; index++) {
         cells.add(SpatialCellOverlay(id: 'field-route:${zone.id}:$index',
             cell: (origin.x + route[index].x, origin.y + route[index].y), kind: SpatialCellOverlayKind.preview,
-            color: index == 0 ? colors.secondary : index == route.length - 1 ? colors.tertiary : colors.primary));
+            color: index == 0 ? colors.secondary : index == route.length - 1 ? colors.tertiary : colors.primary,
+          ),
+        );
       }
     }
 

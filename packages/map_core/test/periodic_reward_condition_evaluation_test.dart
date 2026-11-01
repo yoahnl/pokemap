@@ -77,6 +77,46 @@ GameState rewardState({bool claimed = false, bool initialized = true}) =>
     );
 
 void main() {
+  for (final deferred in [false, true]) {
+    test('event catalog preserves data-only reward resolver deferred=$deferred', () {
+      final requests = <String>[];
+      final consumer = SceneAsset(id: 'consumer', name: 'Consumer',
+        graph: SceneGraph(startNodeId: 'start', nodes: [
+          SceneNode(id: 'start', kind: SceneNodeKind.start),
+          SceneNode(id: 'end', kind: SceneNodeKind.end),
+        ], edges: [SceneEdge(id: 'end', fromNodeId: 'start', fromPortId: 'completed',
+          toNodeId: 'end', kind: SceneEdgeKind.defaultFlow)]),
+      );
+      final project = ProjectManifest(name: 'Consumer', maps: [
+        const ProjectMapEntry(id: 'map', name: 'Map', relativePath: 'maps/map.json'),
+      ], tilesets: [], scenes: [consumer]);
+      final event = NarrativeEventRecord.configuredStructurallyUnchecked(
+        NarrativeEventDefinition(id: 'evt_018f0f8c-7b8a-7def-8000-000000000001',
+          name: 'Daily event', source: NarrativeEventSourceRef.mapEnter('map'),
+          conditions: [NarrativeEventCondition.periodicRewardAvailable(
+            reference: rewardReference(), expectedValue: true)],
+          sceneId: 'consumer', reusePolicy: NarrativeEventReusePolicy.reusable,
+          priority: 0, order: 0), enabled: false,
+      );
+      final catalog = buildNarrativeEventProjectCatalog(
+        project: project, maps: [const MapData(id: 'map', name: 'Map',
+          size: GridSize(width: 2, height: 2))], deferFingerprints: deferred,
+        proposedRecords: [event],
+        lookupRewardScenes: (id) {
+          requests.add(id);
+          return id == 'source' ? [rewardScene()] : const [];
+        },
+      );
+      expect(catalog.scenes.single.scene.id, 'consumer');
+      expect(catalog.hasBlockingDiagnostics, isFalse,
+        reason: catalog.diagnostics.map((entry) => '${entry.code}: ${entry.path}').join('\n'));
+      expect(catalog.resolveRewardReference(rewardReference()).isResolved, isTrue);
+      expect(catalog.rewardScenes('source').single.id, 'source');
+      expect(catalog.resolveRewardReference(rewardReference(nodeId: 'missing')).isResolved, isFalse);
+      expect(requests, ['source', 'source', 'source', 'source']);
+      expect(project.scenes, [consumer]);
+    });
+  }
   test(
     'resolver requests one scene and distinguishes absent claims from missing definitions',
     () {

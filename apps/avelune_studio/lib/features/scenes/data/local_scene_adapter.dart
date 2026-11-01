@@ -67,6 +67,55 @@ class LocalSceneAdapter implements ScenePort {
     required SceneAsset? base,
     required SceneAsset current,
   }) async {
+    if (base != null) {
+      final previous = {for (final node in base.graph.nodes) node.id: node};
+      final changed = current.graph.nodes
+          .where((node) => previous[node.id] != node)
+          .toList();
+      if (changed.length == 1 &&
+          changed.single.payload is SceneConditionPayload &&
+          (changed.single.payload as SceneConditionPayload).conditionSource !=
+              null) {
+        final source =
+            (changed.single.payload as SceneConditionPayload).conditionSource!;
+        final nodeId = changed.single.id;
+        if (updateSceneConditionSource(
+              base,
+              nodeId: nodeId,
+              source: source,
+            ).updatedScene ==
+            current) {
+          final receipt =
+              await LocalNarrativeCatalogTransaction(
+                session: session,
+                mapAdapter: mapAdapter,
+                faultInjector: faultInjector,
+              ).run(
+                actionId: 'scene.condition.set',
+                parameters: (manifest) {
+                  if (manifest.scenes
+                          .where((scene) => scene.id == base.id)
+                          .firstOrNull !=
+                      base)
+                    throw const SceneFailure(
+                      'Cette scène a changé sur le disque. Votre brouillon est conservé.',
+                    );
+                  return {
+                    'sceneId': base.id,
+                    'nodeId': nodeId,
+                    'conditionSource': source.toJson(),
+                  };
+                },
+              );
+          return ScenePublicationReceipt(
+            catalog: receipt,
+            scene: receipt.manifest.scenes.singleWhere(
+              (scene) => scene.id == base.id,
+            ),
+          );
+        }
+      }
+    }
     try {
       final receipt =
           await LocalNarrativeCatalogTransaction(

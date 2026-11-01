@@ -310,11 +310,104 @@ final class SemanticMapActionContext {
         preview: preview);
   }
 
+  AuthoringMutationDraft draftEntityPresentation(
+          {required MapData after, required String entityId}) =>
+      _draftMap(
+          after: after,
+          operation: 'entity.set_presentation',
+          changedItems: 1,
+          spatialGeometryUnchanged: true,
+          diff: AuthoringDiff([
+            AuthoringDiffEntry(
+              operation: AuthoringDiffOperation.replace,
+              resource: resource,
+              path: '/maps/${map.id}/entities/$entityId/presentation',
+              before: map.entities
+                  .singleWhere((value) => value.id == entityId)
+                  .presentation
+                  ?.toJson(),
+              after: after.entities
+                  .singleWhere((value) => value.id == entityId)
+                  .presentation
+                  ?.toJson(),
+            ),
+          ]),
+          preview: {'entityId': entityId});
+
+  AuthoringMutationDraft draftInstanceVisibility(
+          {required MapData after, required String instanceId}) =>
+      _draftMap(
+          after: after,
+          operation: 'map3d.instance.visibility.set',
+          changedItems: 1,
+          spatialGeometryUnchanged: true,
+          diff: _instanceVisibilityDiff(after, instanceId),
+          preview: {'instanceId': instanceId, 'preserveSpatialPreview': true});
+
+  AuthoringDiff _instanceVisibilityDiff(MapData after, String instanceId) {
+    final entries = [
+      AuthoringDiffEntry(
+        operation: AuthoringDiffOperation.replace,
+        resource: resource,
+        path:
+            '/maps/${map.id}/spatialScene/instances/$instanceId/visibilityCondition',
+        before: map.spatialScene!.instances
+            .singleWhere((value) => value.id == instanceId)
+            .visibilityCondition
+            ?.toJson(),
+        after: after.spatialScene!.instances
+            .singleWhere((value) => value.id == instanceId)
+            .visibilityCondition
+            ?.toJson(),
+      ),
+    ];
+    for (final layer in map.layers.whereType<EnvironmentLayer>()) {
+      for (final area in layer.content.areas) {
+        if (!area.generatedPlacementIds.contains(instanceId)) continue;
+        final updated = after.layers
+            .whereType<EnvironmentLayer>()
+            .singleWhere((value) => value.id == layer.id)
+            .content
+            .areas
+            .singleWhere((value) => value.id == area.id);
+        final wasManual = area.manualPlacementIds.contains(instanceId);
+        final isManual = updated.manualPlacementIds.contains(instanceId);
+        if (wasManual == isManual) continue;
+        final changedCells = [
+          for (var index = 0; index < area.mask.cells.length; index++)
+            if (area.mask.cells[index] != updated.mask.cells[index]) index,
+        ];
+        Map<String, Object?> owner(EnvironmentArea value, bool manual) => {
+              'manual': manual,
+              'generationMaskCells': [
+                for (final index in changedCells)
+                  {
+                    'x': index % value.mask.width,
+                    'y': index ~/ value.mask.width,
+                    'value': value.mask.cells[index]
+                  },
+              ],
+            };
+        entries.add(AuthoringDiffEntry(
+          operation: AuthoringDiffOperation.replace,
+          resource: resource,
+          path:
+              '/maps/${map.id}/layers/${layer.id}/areas/${area.id}/placements/$instanceId/ownership',
+          before: owner(area, wasManual),
+          after: owner(updated, isManual),
+        ));
+      }
+    }
+    return AuthoringDiff(entries);
+  }
+
   AuthoringMutationDraft _draftMap({
     required MapData after,
     required String operation,
     required int changedItems,
     String? layerId,
+    bool spatialGeometryUnchanged = false,
+    AuthoringDiff? diff,
     Map<String, Object?> preview = const {},
   }) {
     final afterBytes = encodeMapAuthoringDocument(after);
@@ -334,15 +427,16 @@ final class SemanticMapActionContext {
             afterBytes: afterBytes,
           ),
         ],
-        diff: AuthoringDiff([
-          AuthoringDiffEntry(
-            operation: AuthoringDiffOperation.replace,
-            resource: resource,
-            path: '/maps/${map.id}',
-            before: semanticMapSummary(map),
-            after: semanticMapSummary(after),
-          ),
-        ]),
+        diff: diff ??
+            AuthoringDiff([
+              AuthoringDiffEntry(
+                operation: AuthoringDiffOperation.replace,
+                resource: resource,
+                path: '/maps/${map.id}',
+                before: semanticMapSummary(map),
+                after: semanticMapSummary(after),
+              ),
+            ]),
       ),
       preview: {
         'operation': operation,
@@ -351,7 +445,13 @@ final class SemanticMapActionContext {
         'seed': planning.seed,
         'changedItemCount': changedItems,
         ...preview,
-        ..._introducedIntegrityPreview(after),
+        if (spatialGeometryUnchanged)
+          'inspectionScope': {
+            'projectWide': false,
+            'spatialGeometry': 'unchanged'
+          }
+        else
+          ..._introducedIntegrityPreview(after),
       },
     );
   }

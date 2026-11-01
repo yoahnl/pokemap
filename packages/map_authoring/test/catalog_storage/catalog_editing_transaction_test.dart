@@ -25,12 +25,16 @@ void main() {
           actorId: 'test',
           faultInjector: fault);
 
+  String mapImage(String name) => jsonEncode(
+      MapData(id: 'one', name: name, size: const GridSize(width: 1, height: 1))
+          .toJson());
+
   AuthoringResourceChange change({String path = 'maps/one.json'}) =>
       AuthoringResourceChange(
           resource: AuthoringResourceRef(kind: 'map', id: 'one'),
           storageKey: path,
-          beforeBytes: utf8.encode('before'),
-          afterBytes: utf8.encode('after'));
+          beforeBytes: utf8.encode(mapImage('before')),
+          afterBytes: utf8.encode(mapImage('after')));
 
   setUp(() async {
     directory = await Directory.systemTemp.createTemp('catalog-transaction-');
@@ -42,7 +46,7 @@ void main() {
             ProjectManifest(name: 'Game', maps: const [], tilesets: const []));
     map = File('${directory.path}/maps/one.json');
     await map.parent.create(recursive: true);
-    await map.writeAsString('before');
+    await map.writeAsString(mapImage('before'));
     session = await open();
   });
   tearDown(() async {
@@ -72,19 +76,19 @@ void main() {
     expect(plan.plan.baseRevision, before);
     expect(plan.plan.changeSet.changes, hasLength(2));
     final receipt = await session.apply(plan);
-    expect(await map.readAsString(), 'after');
+    expect(await map.readAsString(), mapImage('after'));
     expect((await session.apply(plan)).toJson(), receipt.toJson());
     await session.close();
     session = await open();
     await session.retention.collect(
         projectId: 'game', history: session.history, blobs: session.blobs);
     await session.undo(entryId: receipt.receiptId, idempotencyKey: 'undo-map');
-    expect(await map.readAsString(), 'before');
+    expect(await map.readAsString(), mapImage('before'));
     expect(session.snapshot.root, root);
     await session.close();
     session = await open();
     await session.redo(entryId: receipt.receiptId, idempotencyKey: 'redo-map');
-    expect(await map.readAsString(), 'after');
+    expect(await map.readAsString(), mapImage('after'));
     final working = await WorkingProjectCatalog.open(
         store: store,
         descriptor: WorkingProjectCatalogDescriptor(projectId: 'game'));
@@ -108,11 +112,11 @@ void main() {
         operationId: 'external_undo', beforeReservation: () => reserved = true);
     expect(reserved, isTrue);
     expect(undo.operationId, 'external_undo');
-    expect(await map.readAsString(), 'before');
+    expect(await map.readAsString(), mapImage('before'));
     final redo = await session.planRedo(
         entryId: receipt.receiptId, idempotencyKey: 'plan-redo');
     await session.apply(redo, operationId: 'external_redo');
-    expect(await map.readAsString(), 'after');
+    expect(await map.readAsString(), mapImage('after'));
   });
 
   test('managed editing admission and an update do not read unrelated units',
@@ -204,13 +208,13 @@ void main() {
         idempotencyKey: 'mixed');
     await expectLater(session.apply(plan),
         throwsA(isA<AuthoringTransactionSimulatedCrash>()));
-    expect(await map.readAsString(), 'after');
+    expect(await map.readAsString(), mapImage('after'));
     expect(await asset.readAsBytes(), [1, 2, 3]);
     await session.close();
     session = await open();
     await session.reconcile(plan.operationId, compensate: true);
     expect(session.snapshot.root, root);
-    expect(await map.readAsString(), 'before');
+    expect(await map.readAsString(), mapImage('before'));
     expect(await asset.exists(), isFalse);
     final working = await WorkingProjectCatalog.open(
         store: store,
@@ -232,7 +236,7 @@ void main() {
         session.apply(plan),
         throwsA(isA<CatalogStorageException>().having((error) => error.code,
             'code', 'catalog.project_revision_conflict')));
-    expect(await map.readAsString(), 'before');
+    expect(await map.readAsString(), mapImage('before'));
     expect(await store.gateway.listJournals(), isEmpty);
   });
 
@@ -246,13 +250,13 @@ void main() {
         publicBaseRevision: before,
         currentProjectRevision: () async => before,
         idempotencyKey: 'file-cas');
-    await map.writeAsString('external');
+    await map.writeAsString(mapImage('external'));
     await expectLater(
         session.apply(plan), throwsA(isA<AuthoringRevisionConflict>()));
     expect(await store.readHead(), root);
-    expect(await map.readAsString(), 'external');
+    expect(await map.readAsString(), mapImage('external'));
     expect(await store.gateway.listJournals(), isEmpty);
-    await map.writeAsString('before');
+    await map.writeAsString(mapImage('before'));
     await expectLater(
         session.apply(plan, precondition: () async {
           throw StateError('job cancelled');
@@ -292,7 +296,7 @@ void main() {
         idempotencyKey: 'read-gap');
     await expectLater(session.apply(plan),
         throwsA(isA<AuthoringTransactionSimulatedCrash>()));
-    expect(await map.readAsString(), 'before');
+    expect(await map.readAsString(), mapImage('before'));
     final blocked = isA<CatalogStorageException>()
         .having((error) => error.code, 'code', 'catalog.recovery_required');
     await expectLater(
@@ -310,7 +314,7 @@ void main() {
     final recovered =
         await WorkingProjectCatalog.open(store: store, descriptor: descriptor);
     expect((await recovered.exportProject()).name, 'Game');
-    expect(await map.readAsString(), 'after');
+    expect(await map.readAsString(), mapImage('after'));
   });
 
   test('certified bulk history restores the head and its external inventory',
@@ -383,8 +387,8 @@ void main() {
         releases++;
       });
     final staged = File('${directory.path}/staged-after.bin');
-    await staged.writeAsString('after');
-    final bytes = AuthoringPayload.inline(utf8.encode('after'),
+    await staged.writeAsString(mapImage('after'));
+    final bytes = AuthoringPayload.inline(utf8.encode(mapImage('after')),
         storageKey: 'maps/one.json');
     final stored = await AuthoringPayload.verifiedSource(
         storageKey: 'maps/one.json',
@@ -397,7 +401,7 @@ void main() {
     final retainedChange = AuthoringResourceChange.withPayloads(
         resource: AuthoringResourceRef(kind: 'map', id: 'one'),
         storageKey: 'maps/one.json',
-        beforePayload: AuthoringPayload.inline(utf8.encode('before'),
+        beforePayload: AuthoringPayload.inline(utf8.encode(mapImage('before')),
             storageKey: 'maps/one.json'),
         afterPayload: stored);
     final now = DateTime.now().toUtc();
@@ -421,7 +425,7 @@ void main() {
               AuthoringDiffEntry(
                   operation: AuthoringDiffOperation.replace,
                   resource: AuthoringResourceRef(kind: 'map', id: 'one'),
-                  path: '/value',
+                  path: '/name',
                   before: 'before',
                   after: 'after')
             ])),
@@ -446,7 +450,7 @@ void main() {
     expect(releases, 0);
     expect(await staged.exists(), isTrue);
     await session.apply(plan);
-    expect(await map.readAsString(), 'after');
+    expect(await map.readAsString(), mapImage('after'));
     expect(releases, 1);
     expect(await staged.exists(), isFalse);
   });
@@ -474,7 +478,8 @@ void main() {
       await session.reconcile(plan.operationId);
       final reserved = checkpoint.index >=
           AuthoringTransactionCheckpoint.afterReservation.index;
-      expect(await map.readAsString(), reserved ? 'after' : 'before');
+      expect(await map.readAsString(),
+          reserved ? mapImage('after') : mapImage('before'));
     });
   }
 }

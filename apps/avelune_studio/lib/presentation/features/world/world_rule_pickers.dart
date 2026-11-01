@@ -63,6 +63,63 @@ extension _WorldRulePickers on _WorldWorkspacePageState {
 
   Future<void> _pickSource(WorldRuleDraft draft) async {
     if (!flush()) return;
+    final daily = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Source de la condition'),
+        actions: [
+          StudioButton(
+            label: 'État, histoire ou événement',
+            secondary: true,
+            onPressed: () => Navigator.pop(context, false),
+          ),
+          StudioButton(
+            label: 'Récompense quotidienne',
+            onPressed: () => Navigator.pop(context, true),
+          ),
+        ],
+      ),
+    );
+    if (daily == null || !mounted) return;
+    if (daily) {
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => PeriodicRewardChoiceScope.preserve(
+          context,
+          AlertDialog(
+            title: const Text('Récompense quotidienne'),
+            content: SizedBox(
+              width: 460,
+              child: SingleChildScrollView(
+                child: PeriodicRewardPicker(
+                  initial: draft.source?.rewardReference,
+                  expectedValue: draft.source?.predicate != WorldRuleSourcePredicate.isFalse,
+                  onApply: (reference, expected) {
+                    controller.editRule(
+                      draft.id,
+                      (value) => value.source =
+                          WorldRuleSource.periodicRewardAvailable(
+                            reference: reference,
+                            expectedValue: expected,
+                          ),
+                    );
+                    Navigator.pop(context);
+                  },
+                ),
+              ),
+            ),
+            actions: [
+              StudioButton(
+                label: 'Annuler',
+                secondary: true,
+                onPressed: () => Navigator.pop(context),
+              ),
+            ],
+          ),
+        ),
+      );
+      return;
+    }
     final chosen = await _choose<WorldRuleSourcePickerOption>(
       'Choisir la condition',
       [
@@ -131,12 +188,16 @@ extension _WorldRulePickers on _WorldWorkspacePageState {
   }
 
   Future<void> _pickAtmosphereTarget(WorldRuleDraft draft) async {
-    final mapId = await _choose<String>('Ambiance de quelle carte ?', [for (final entry in controller.project.maps) (entry.id, entry.name, '')]);
+    final mapId = await _choose<String>('Ambiance de quelle carte ?', [for (final entry in controller.project.maps) (entry.id, entry.name, ''),
+    ]);
     if (mapId == null || !mounted) return;
     controller.editRule(draft.id, (d) {
-      d.target = WorldRuleTarget(kind: WorldRuleTargetKind.atmosphere, mapId: mapId);
+      d.target = WorldRuleTarget(kind: WorldRuleTargetKind.atmosphere, mapId: mapId,
+      );
       d.effect = WorldRuleEffect(kind: WorldRuleEffectKind.atmosphere,
-        visualSettings: SpatialVisualPatch({SpatialVisualParameter.depthOfFieldEnabled: true}));
+        visualSettings: SpatialVisualPatch({SpatialVisualParameter.depthOfFieldEnabled: true,
+        }),
+      );
     });
     refresh();
   }
@@ -174,7 +235,8 @@ extension _WorldRulePickers on _WorldWorkspacePageState {
       (d) => d.effect = WorldRuleEffect(
         kind: chosen.effectKind,
         dialogueId: dialogueId,
-        visualSettings: chosen.effectKind == WorldRuleEffectKind.atmosphere ? SpatialVisualPatch({SpatialVisualParameter.depthOfFieldEnabled: true}) : null,
+        visualSettings: chosen.effectKind == WorldRuleEffectKind.atmosphere ? SpatialVisualPatch({SpatialVisualParameter.depthOfFieldEnabled: true,
+              }) : null,
       ),
     );
     refresh();

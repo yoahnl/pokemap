@@ -2,8 +2,9 @@ import 'dart:math' as math;
 
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
+import 'battle_live_attachment.dart';
 
-final class BattleSdkParticleComponent extends PositionComponent {
+final class BattleSdkParticleComponent extends PositionComponent implements BattleLiveAttachment {
   BattleSdkParticleComponent({
     required this.sprite,
     required Vector2 startPosition,
@@ -18,6 +19,8 @@ final class BattleSdkParticleComponent extends PositionComponent {
     required this.durationSeconds,
     this.rotationTurns = 0,
     this.tintColor,
+    this.resolveStartPosition,
+    this.resolveEndPosition,
   })  : _startPosition = startPosition.clone(),
         _endPosition = endPosition.clone(),
         super(
@@ -43,6 +46,8 @@ final class BattleSdkParticleComponent extends PositionComponent {
   final double durationSeconds;
   final double rotationTurns;
   final Color? tintColor;
+  final BattleLivePointResolver? resolveStartPosition;
+  final BattleLivePointResolver? resolveEndPosition;
 
   double _elapsed = 0;
   bool _isAnimationComplete = false;
@@ -66,11 +71,28 @@ final class BattleSdkParticleComponent extends PositionComponent {
   double get currentRotationRadians => _currentRotationRadians;
 
   @override
+  bool refreshAttachment() {
+    if (_isAnimationComplete) return false;
+    if (!refreshBattleLivePoint(resolveStartPosition, _startPosition) ||
+        !refreshBattleLivePoint(resolveEndPosition, _endPosition)) {
+      _currentOpacity = 0;
+      _isAnimationComplete = true;
+      removeBattleLiveAttachment(this);
+      return false;
+    }
+    final progress = ((_elapsed - delaySeconds) /
+      (durationSeconds <= 0 ? .0001 : durationSeconds)).clamp(0.0, 1.0);
+    _applyVisualState(progress: progress, hidden: _elapsed < delaySeconds);
+    return true;
+  }
+
+  @override
   void update(double dt) {
     super.update(dt);
     if (_isAnimationComplete) {
       return;
     }
+    if (!refreshAttachment()) return;
     _elapsed += dt;
     if (_elapsed < delaySeconds) {
       _applyVisualState(progress: 0, hidden: true);

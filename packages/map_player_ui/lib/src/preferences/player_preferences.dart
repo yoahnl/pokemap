@@ -26,6 +26,7 @@ final class PlayerPreferences {
     this.launchMostRecentGameOnStartup = false,
     this.dialogueTextSpeed = RuntimeDialogueTextSpeed.normal,
     this.menuEffects = RuntimePlayerMenuEffects.full,
+    this.battleMotion,
     this.realWeather = const RealWeatherPreferences(),
     this.worldTime = const RuntimeWorldTimePreferences(),
     this.graphics = const RuntimeGraphicsPreferences(),
@@ -58,6 +59,7 @@ final class PlayerPreferences {
       'launchMostRecentGameOnStartup',
       'dialogueTextSpeed',
       'menuEffects',
+      'battleMotion',
       'targetFramesPerSecond',
       'realWeather',
       'worldTime',
@@ -159,6 +161,8 @@ final class PlayerPreferences {
       theme: theme,
       dialogueTextSpeed: dialogueTextSpeed,
       menuEffects: menuEffects,
+      battleMotion: json.containsKey('battleMotion')
+          ? BattleMotionPolicy.fromJson(json['battleMotion']) : null,
       targetFramesPerSecond: targetFramesPerSecond,
       masterVolume: masterVolume,
       musicVolume: musicVolume,
@@ -193,6 +197,7 @@ final class PlayerPreferences {
   final bool launchMostRecentGameOnStartup;
   final RuntimeDialogueTextSpeed dialogueTextSpeed;
   final RuntimePlayerMenuEffects menuEffects;
+  final BattleMotionPolicy? battleMotion;
   final int targetFramesPerSecond;
   final RealWeatherPreferences realWeather;
   final RuntimeWorldTimePreferences worldTime;
@@ -230,6 +235,7 @@ final class PlayerPreferences {
         showInputHints: showInputHints,
         dialogueTextSpeed: dialogueTextSpeed,
         menuEffects: menuEffects,
+        battleMotion: battleMotion,
         realWeather: realWeather,
         worldTime: worldTime,
         graphics: graphics,
@@ -256,6 +262,8 @@ final class PlayerPreferences {
         showInputHints: snapshot.showInputHints,
         dialogueTextSpeed: snapshot.dialogueTextSpeed,
         menuEffects: snapshot.menuEffects,
+        battleMotion: snapshot.battleMotion,
+        clearBattleMotion: snapshot.battleMotion == null,
         realWeather: snapshot.realWeather,
         worldTime: snapshot.worldTime,
         graphics: snapshot.graphics,
@@ -279,6 +287,8 @@ final class PlayerPreferences {
     bool? launchMostRecentGameOnStartup,
     RuntimeDialogueTextSpeed? dialogueTextSpeed,
     RuntimePlayerMenuEffects? menuEffects,
+    BattleMotionPolicy? battleMotion,
+    bool clearBattleMotion = false,
     int? targetFramesPerSecond,
     RealWeatherPreferences? realWeather,
     RuntimeWorldTimePreferences? worldTime,
@@ -291,6 +301,7 @@ final class PlayerPreferences {
         graphics: graphics ?? this.graphics,
         dialogueTextSpeed: dialogueTextSpeed ?? this.dialogueTextSpeed,
         menuEffects: menuEffects ?? this.menuEffects,
+        battleMotion: clearBattleMotion ? null : battleMotion ?? this.battleMotion,
         targetFramesPerSecond:
             targetFramesPerSecond ?? this.targetFramesPerSecond,
         theme: theme ?? this.theme,
@@ -320,6 +331,7 @@ final class PlayerPreferences {
         'language': language.name,
         'dialogueTextSpeed': dialogueTextSpeed.name,
         'menuEffects': menuEffects.name,
+        if (battleMotion != null) 'battleMotion': battleMotion!.toJson(),
         'targetFramesPerSecond': targetFramesPerSecond,
         'theme': theme.name,
         'masterVolume': masterVolume,
@@ -346,6 +358,7 @@ final class PlayerPreferences {
       language == other.language &&
       dialogueTextSpeed == other.dialogueTextSpeed &&
       menuEffects == other.menuEffects &&
+      battleMotion == other.battleMotion &&
       targetFramesPerSecond == other.targetFramesPerSecond &&
       theme == other.theme &&
       masterVolume == other.masterVolume &&
@@ -370,6 +383,7 @@ final class PlayerPreferences {
         language,
         dialogueTextSpeed,
         menuEffects,
+        battleMotion,
         targetFramesPerSecond,
         theme,
         masterVolume,

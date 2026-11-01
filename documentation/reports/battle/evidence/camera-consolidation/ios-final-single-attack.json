@@ -1,0 +1,75 @@
+{
+  "qaRoot": "/var/mobile/Containers/Data/Application/F7B3BFE8-F10C-41FF-B284-EECBDA6A815F/Library/Application Support/battle-camera-consolidation",
+  "readOnlyAssets": "/var/mobile/Containers/Data/Application/F7B3BFE8-F10C-41FF-B284-EECBDA6A815F/Library/Application Support/battle-camera-consolidation/fixture",
+  "ready": true,
+  "actorCount": 2,
+  "gpuActors": 2,
+  "allActorsGpu": true,
+  "actors": [
+    {
+      "index": 0,
+      "playerSide": false,
+      "renderedBy3DStage": true,
+      "hasImage": true,
+      "rect": {
+        "left": 295.00450869902716,
+        "top": 191.20594692625872,
+        "right": 396.8071422175196,
+        "bottom": 298.5114254998048,
+        "width": 101.80263351849243,
+        "height": 107.30547857354605
+      }
+    },
+    {
+      "index": 1,
+      "playerSide": true,
+      "renderedBy3DStage": true,
+      "hasImage": true,
+      "rect": {
+        "left": 96.36138475792981,
+        "top": 323.88070647716285,
+        "right": 230.8235365230678,
+        "bottom": 434.2600847918284,
+        "width": 134.46215176513797,
+        "height": 110.37937831466553
+      }
+    }
+  ],
+  "viewport": "393.0x852.0",
+  "errors": [],
+  "gpu": true,
+  "framePresented": true,
+  "fxCount": 0,
+  "speed": 1.0,
+  "reduced": false,
+  "gpuPlayer": true,
+  "playerRect": {
+    "left": 96.36138475792981,
+    "top": 323.88070647716285,
+    "right": 230.8235365230678,
+    "bottom": 434.2600847918284,
+    "width": 134.46215176513797,
+    "height": 110.37937831466553
+  },
+  "enemyRect": {
+    "left": 295.00450869902716,
+    "top": 191.20594692625872,
+    "right": 396.8071422175196,
+    "bottom": 298.5114254998048,
+    "width": 101.80263351849243,
+    "height": 107.30547857354605
+  },
+  "eye": [
+    5.347449193261269,
+    3.786348647410374,
+    17.75408497031009
+  ],
+  "aim": [
+    2.094822061571438,
+    1.795935029510627,
+    9.355510436245298
+  ],
+  "moving": true,
+  "prompt": "Rattata utilise Charge !",
+  "hudVisible": false
+}

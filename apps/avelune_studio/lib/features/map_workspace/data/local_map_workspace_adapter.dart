@@ -1,3 +1,5 @@
+import '../domain/spatial_model_visibility_port.dart';
+
 import 'dart:convert';
 import 'dart:io';
 import 'dart:async';
@@ -37,6 +39,7 @@ part 'local_project_audio_adapter.dart';
 part 'local_project_settings_mutation.dart';
 part 'local_map_editor_adapter.dart';
 part 'local_spatial_field_obstacle_adapter.dart';
+part 'local_spatial_model_visibility_adapter.dart';
 part 'local_field_traversal_zone_adapter.dart';
 part 'local_map_workspace_catalog.dart';
 part 'local_map_workspace_working_catalog.dart';
@@ -59,62 +62,114 @@ final class LocalMapWorkspaceAdapter
         MapEditorPort,
         MapElementOrderPort,
         SpatialFieldObstaclePort,
+        SpatialModelVisibilityPort,
         FieldTraversalZonePort {
   @override
-  Future<FieldTraversalZoneReceipt> publishFieldTraversalZone(ProjectSession session, MapWorkspaceDocument base, String actionId, Map<String, Object?> parameters) => withResourceMutation(() => _publishFieldTraversalZone(session, base, actionId, parameters));
+  Future<FieldTraversalZoneReceipt> publishFieldTraversalZone(ProjectSession session, MapWorkspaceDocument base, String actionId, Map<String, Object?> parameters,
+  ) => withResourceMutation(() => _publishFieldTraversalZone(session, base, actionId, parameters),
+  );
   @override
-  Future<FieldTraversalZoneReceipt> restoreFieldTraversalZone(ProjectSession session, MapWorkspaceDocument base, FieldTraversalZoneReceipt receipt, {required bool redo}) => withResourceMutation(() => _publishFieldTraversalZone(session, base, receipt.actionId, receipt.parameters, undo: receipt, redo: redo));
+  Future<FieldTraversalZoneReceipt> restoreFieldTraversalZone(ProjectSession session, MapWorkspaceDocument base, FieldTraversalZoneReceipt receipt, {required bool redo,
+  }) => withResourceMutation(() => _publishFieldTraversalZone(session, base, receipt.actionId, receipt.parameters, undo: receipt, redo: redo,
+    ),
+  );
   @override
-  Future<SpatialFieldObstacleReceipt> configureSpatialFieldObstacle(ProjectSession session, MapWorkspaceDocument base, String instanceId, MapEntityFieldObstacleData? fieldObstacle) => withResourceMutation(() => _configureSpatialFieldObstacle(session, base, instanceId, fieldObstacle));
+  Future<SpatialFieldObstacleReceipt> configureSpatialFieldObstacle(ProjectSession session, MapWorkspaceDocument base, String instanceId, MapEntityFieldObstacleData? fieldObstacle,
+  ) => withResourceMutation(() => _configureSpatialFieldObstacle(session, base, instanceId, fieldObstacle,
+    ),
+  );
   @override
-  Future<SpatialFieldObstacleReceipt> undoSpatialFieldObstacle(ProjectSession session, MapWorkspaceDocument base, SpatialFieldObstacleReceipt receipt, {required bool redo}) => withResourceMutation(() => _mutateSpatialFieldObstacle(session, base, undo: receipt, redo: redo));
+  Future<SpatialFieldObstacleReceipt> undoSpatialFieldObstacle(ProjectSession session, MapWorkspaceDocument base, SpatialFieldObstacleReceipt receipt, {required bool redo,
+  }) => withResourceMutation(() => _mutateSpatialFieldObstacle(session, base, undo: receipt, redo: redo),
+  );
+  @override
+  Future<SpatialModelVisibilityReceipt> configureSpatialModelVisibility(
+    ProjectSession session,
+    MapWorkspaceDocument base,
+    String instanceId,
+    NarrativeEventConditionExpression? condition,
+  ) => withResourceMutation(
+    () =>
+        _configureSpatialModelVisibility(session, base, instanceId, condition),
+  );
+  @override
+  Future<SpatialModelVisibilityReceipt> undoSpatialModelVisibility(
+    ProjectSession session,
+    MapWorkspaceDocument base,
+    SpatialModelVisibilityReceipt receipt, {
+    required bool redo,
+  }) => withResourceMutation(
+    () =>
+        _mutateSpatialModelVisibility(session, base, undo: receipt, redo: redo),
+  );
   LocalMapWorkspaceAdapter({
     ProjectFileReader? reader,
     AtomicMapDocumentPersistence? persistence,
+    this.performanceObserver,
     this.onMapMetadataEntryRead,
     this.onMapMetadataNodeCopied,
   }) : _reader = reader ?? const LocalProjectFileReader(),
        _persistence = persistence ?? const AtomicMapDocumentPersistence();
 
+  final AuthoringPerformanceObserver? performanceObserver;
+
   @override
   Future<ProjectAudioState> loadAudio(ProjectSession session) => _loadAudio(session);
   @override
-  Future<ProjectAudioState> saveAudioCue(ProjectSession session, ProjectSoundCue cue, ProjectSoundBinding? binding, String expectedRevision) => withResourceMutation(() => _saveAudioCue(session, cue, binding, expectedRevision));
+  Future<ProjectAudioState> saveAudioCue(ProjectSession session, ProjectSoundCue cue, ProjectSoundBinding? binding, String expectedRevision,
+  ) => withResourceMutation(() => _saveAudioCue(session, cue, binding, expectedRevision),
+  );
   @override
-  Future<ProjectAudioPage> queryAudio(ProjectSession session, {String query = '', String? cursor}) => _queryAudio(session, query: query, cursor: cursor);
+  Future<ProjectAudioPage> queryAudio(ProjectSession session, {String query = '', String? cursor,
+  }) => _queryAudio(session, query: query, cursor: cursor);
   @override
-  Future<ProjectAudioImport> importAudio(ProjectSession session, String sourcePath, String label, String expectedRevision) => withResourceMutation(() => _importAudio(session, sourcePath, label, expectedRevision));
+  Future<ProjectAudioImport> importAudio(ProjectSession session, String sourcePath, String label, String expectedRevision,
+  ) => withResourceMutation(() => _importAudio(session, sourcePath, label, expectedRevision),
+  );
   @override
-  Future<ProjectAudioFile> resolveAudio(ProjectSession session, String mediaId) => _resolveAudio(session, mediaId);
+  Future<ProjectAudioFile> resolveAudio(ProjectSession session, String mediaId,
+  ) => _resolveAudio(session, mediaId);
   @override
-  Future<ProjectAudioPage> queryLegacyAudio(ProjectSession session, {String query = '', String? cursor}) => _queryLegacyAudio(session, query: query, cursor: cursor);
+  Future<ProjectAudioPage> queryLegacyAudio(ProjectSession session, {String query = '', String? cursor,
+  }) => _queryLegacyAudio(session, query: query, cursor: cursor);
   @override
-  Future<ProjectAudioImport> adoptAudioAsset(ProjectSession session, String assetId, String mediaId, String label, String expectedRevision) => withResourceMutation(() => _adoptAudioAsset(session, assetId, mediaId, label, expectedRevision));
+  Future<ProjectAudioImport> adoptAudioAsset(ProjectSession session, String assetId, String mediaId, String label, String expectedRevision,
+  ) => withResourceMutation(() => _adoptAudioAsset(session, assetId, mediaId, label, expectedRevision),
+  );
   var _settingsOperations = 0;
   @override
   Future<ProjectCsState> loadFieldAbilities(ProjectSession session) => _loadFieldAbilities(session);
   @override
-  Future<ProjectCsState> saveFieldAbility(ProjectSession session, FieldAbility ability, bool enabled, String expectedRevision) => saveFieldAbilityId(session, ability.moveId, enabled, expectedRevision);
+  Future<ProjectCsState> saveFieldAbility(ProjectSession session, FieldAbility ability, bool enabled, String expectedRevision,
+  ) => saveFieldAbilityId(session, ability.moveId, enabled, expectedRevision);
   @override
-  Future<ProjectCsState> saveFieldAbilityId(ProjectSession session, String abilityId, bool enabled, String expectedRevision) => withResourceMutation(() => _saveFieldAbilityId(session, abilityId, enabled, expectedRevision));
+  Future<ProjectCsState> saveFieldAbilityId(ProjectSession session, String abilityId, bool enabled, String expectedRevision,
+  ) => withResourceMutation(() => _saveFieldAbilityId(session, abilityId, enabled, expectedRevision),
+  );
   var _surfOperations = 0;
   @override
   Future<ProjectSurfState> loadSurf(ProjectSession session) => _loadSurf(session);
   @override
-  Future<ProjectSurfState> saveSurf(ProjectSession session, ProjectSurfSettings? configuration, String expectedRevision) => withResourceMutation(() => _saveSurf(session, configuration, expectedRevision));
+  Future<ProjectSurfState> saveSurf(ProjectSession session, ProjectSurfSettings? configuration, String expectedRevision,
+  ) => withResourceMutation(() => _saveSurf(session, configuration, expectedRevision),
+  );
   @override
   Future<ProjectSurfReferences> loadSurfReferences(ProjectSession session) => _loadSurfReferences(session);
   @override
-  Future<NarrativeFactDefinition> loadSurfFact(ProjectSession session, String id) => _loadSurfFact(session, id);
+  Future<NarrativeFactDefinition> loadSurfFact(ProjectSession session, String id,
+  ) => _loadSurfFact(session, id);
 
   final _visualServices = <String, Future<LocalVisualSettingsAuthoring>>{};
   var _visualOperations = 0;
   @override
-  Future<ProjectVisualsState> loadVisuals(ProjectSession session, {ProjectMapEntry? map}) => _loadVisuals(session, map);
+  Future<ProjectVisualsState> loadVisuals(ProjectSession session, {ProjectMapEntry? map,
+  }) => _loadVisuals(session, map);
   @override
-  Future<ProjectVisualsState> saveVisuals(ProjectSession session, SpatialVisualPatch profile, String expectedRevision, {ProjectMapEntry? map}) => _saveVisuals(session, profile, expectedRevision, map);
+  Future<ProjectVisualsState> saveVisuals(ProjectSession session, SpatialVisualPatch profile, String expectedRevision, {ProjectMapEntry? map,
+  }) => _saveVisuals(session, profile, expectedRevision, map);
   @override
-  Future<ProjectVisualsState> undoVisuals(ProjectSession session, String receiptId, String expectedRevision, {ProjectMapEntry? map}) => _undoVisuals(session, receiptId, expectedRevision, map);
+  Future<ProjectVisualsState> undoVisuals(ProjectSession session, String receiptId, String expectedRevision, {ProjectMapEntry? map,
+  }) => _undoVisuals(session, receiptId, expectedRevision, map);
 
   @override
   Future<MapWorkspaceCatalog> loadResourceKind(
@@ -124,13 +179,15 @@ final class LocalMapWorkspaceAdapter
 
   @override
   Future<void> acceptModelLight(ProjectSession session, ProjectModel3dEntry model,
-      String beforeRevision, String afterRevision) async {
+      String beforeRevision, String afterRevision,
+  ) async {
     final current = _projects[session.sessionId];
     if (current == null) return;
     if ((current.revision != beforeRevision && current.revision != afterRevision) ||
         await resourceRevision(session) != afterRevision) {
       throw const MapWorkspaceFailure(MapWorkspaceProblem.conflict,
-          'La lumière est enregistrée, mais le catalogue ouvert a changé.');
+          'La lumière est enregistrée, mais le catalogue ouvert a changé.',
+      );
     }
     ProjectManifest update(ProjectManifest value) {
       final entries = value.models3d;
@@ -144,17 +201,20 @@ final class LocalMapWorkspaceAdapter
       if (item == null) return value;
       return value.copyWith(models3d: entries.replaceSelected([
         item.copyWith(light: model.light, clearLight: model.light == null),
-      ]));
+      ]),
+      );
     }
     final manifest = update(current.manifest);
     final projections = [
-      for (final cache in [_resourceSelections, _activeMapDefinitions, _workshopCharacterDefinitions])
+      for (final cache in [_resourceSelections, _activeMapDefinitions, _workshopCharacterDefinitions,
+      ])
         if (cache[session.sessionId] case final value?)
           (cache: cache, manifest: update(value)),
     ];
     _projects[session.sessionId] = _ProjectDocument(current.root,
         manifest, afterRevision,
-        complete: current.complete, metadataFields: current.metadataFields);
+        complete: current.complete, metadataFields: current.metadataFields,
+    );
     for (final projection in projections) {
       projection.cache[session.sessionId] = projection.manifest;
     }
@@ -170,15 +230,26 @@ final class LocalMapWorkspaceAdapter
   final _workshopCharacterDefinitions = <String, ProjectManifest>{};
   final _loadedPaths = <(String, String), String>{};
   Future<void> _writes = Future.value();
-  @override Future<MapExteriorDecorationWrite> saveExteriorDecorationBorder(ProjectSession session,String mapId,ExteriorDecorationBorder border,String expectedRevision)=>_saveExteriorDecorationBorder(session,mapId,border,expectedRevision);
-  @override Future<MapExteriorDecorationWrite> removeExteriorDecorationBorder(ProjectSession session,String mapId,String borderId,String expectedRevision)=>_removeExteriorDecorationBorder(session,mapId,borderId,expectedRevision);
-  @override Future<MapExteriorDecorationWrite> saveExteriorDecorationSectors(ProjectSession session,String mapId,List<ExteriorDecorationSector> sectors,List<String> removeSectorIds,String expectedRevision)=>_saveExteriorDecorationSectors(session,mapId,sectors,removeSectorIds,expectedRevision);
+  @override Future<MapExteriorDecorationWrite> saveExteriorDecorationBorder(ProjectSession session,String mapId,ExteriorDecorationBorder border,String expectedRevision,
+  )=>_saveExteriorDecorationBorder(session,mapId,border,expectedRevision);
+  @override Future<MapExteriorDecorationWrite> removeExteriorDecorationBorder(ProjectSession session,String mapId,String borderId,String expectedRevision,
+  )=>_removeExteriorDecorationBorder(session,mapId,borderId,expectedRevision,
+  );
+  @override Future<MapExteriorDecorationWrite> saveExteriorDecorationSectors(ProjectSession session,String mapId,List<ExteriorDecorationSector> sectors,List<String> removeSectorIds,String expectedRevision,
+  )=>_saveExteriorDecorationSectors(session,mapId,sectors,removeSectorIds,expectedRevision,
+  );
   final _exteriorServices = <String, Future<LocalMapExteriorDecorationAuthoring>>{};
   var _exteriorOperations = 0;
-  @override Future<MapExteriorDecorationState> loadExteriorDecoration(ProjectSession session,String mapId) => _loadExteriorDecoration(session,mapId);
-  @override Future<MapExteriorDecorationWrite> configureExteriorDecoration(ProjectSession session,String mapId,MapExteriorDecoration? definition,String expectedRevision) => _configureExteriorDecoration(session,mapId,definition,expectedRevision);
-  @override Future<MapExteriorDecorationWrite> saveExteriorDecorationSector(ProjectSession session,String mapId,ExteriorDecorationSector sector,String expectedRevision) => _saveExteriorDecorationSector(session,mapId,sector,expectedRevision);
-  @override Future<MapExteriorDecorationWrite> removeExteriorDecorationSector(ProjectSession session,String mapId,String sectorId,String expectedRevision) => _removeExteriorDecorationSector(session,mapId,sectorId,expectedRevision);
+  @override Future<MapExteriorDecorationState> loadExteriorDecoration(ProjectSession session,String mapId,
+  ) => _loadExteriorDecoration(session,mapId);
+  @override Future<MapExteriorDecorationWrite> configureExteriorDecoration(ProjectSession session,String mapId,MapExteriorDecoration? definition,String expectedRevision,
+  ) => _configureExteriorDecoration(session,mapId,definition,expectedRevision,
+  );
+  @override Future<MapExteriorDecorationWrite> saveExteriorDecorationSector(ProjectSession session,String mapId,ExteriorDecorationSector sector,String expectedRevision,
+  ) => _saveExteriorDecorationSector(session,mapId,sector,expectedRevision);
+  @override Future<MapExteriorDecorationWrite> removeExteriorDecorationSector(ProjectSession session,String mapId,String sectorId,String expectedRevision,
+  ) => _removeExteriorDecorationSector(session,mapId,sectorId,expectedRevision,
+  );
   final _atmosphereServices = <String, Future<LocalMapAtmosphereAuthoring>>{};
   final _editorServices = <String, Future<LocalMapEditorAuthoring>>{};
   final _elementOrderServices = <String, Future<LocalMapElementOrderAuthoring>>{};
@@ -200,10 +271,12 @@ final class LocalMapWorkspaceAdapter
   ) => _saveEditorState(session, mapId, state, expectedRevision);
 
   @override
-  Future<MapElementOrderWorkspaceReceipt> reorderMapElements(ProjectSession session, MapWorkspaceDocument base, String kind, List<String> frontFirstIds, String? layerId) => _reorderMapElements(session, base, kind, frontFirstIds, layerId);
+  Future<MapElementOrderWorkspaceReceipt> reorderMapElements(ProjectSession session, MapWorkspaceDocument base, String kind, List<String> frontFirstIds, String? layerId,
+  ) => _reorderMapElements(session, base, kind, frontFirstIds, layerId);
 
   @override
-  Future<MapElementOrderWorkspaceReceipt> undoMapElementOrder(ProjectSession session, MapWorkspaceDocument base, MapElementOrderWorkspaceReceipt receipt) => _undoMapElementOrder(session, base, receipt);
+  Future<MapElementOrderWorkspaceReceipt> undoMapElementOrder(ProjectSession session, MapWorkspaceDocument base, MapElementOrderWorkspaceReceipt receipt,
+  ) => _undoMapElementOrder(session, base, receipt);
 
   @override
   Future<MapAtmosphereState> loadAtmosphere(
@@ -605,7 +678,9 @@ final class LocalMapWorkspaceAdapter
           'Ce projet publié est en lecture seule.',
         );
       }
-      if (base.map.spatialScene != null && current.spatialScene != null && jsonEncode(base.map.spatialScene!.platforms.map((value) => value.toJson()).toList()) != jsonEncode(current.spatialScene!.platforms.map((value) => value.toJson()).toList())) {
+      if (base.map.spatialScene != null && current.spatialScene != null && jsonEncode(base.map.spatialScene!.platforms.map((value) => value.toJson()).toList(),
+              ) != jsonEncode(current.spatialScene!.platforms.map((value) => value.toJson()).toList(),
+              )) {
         return await _saveSpatialPlatformChange(session, base, current);
       }
       final project = _project(session);

@@ -9,7 +9,8 @@ class ShowdownSnapshotSource {
     required PokemonExternalHttpTransport client,
     this.baseUri = const String.fromEnvironment(
       'SHOWDOWN_DATA_BASE_URI',
-      defaultValue: 'https://play.pokemonshowdown.com/data',
+      defaultValue:
+          'https://pokemon-api.yoahn.me/v1/compat/public-2026-10/showdown',
     ),
     this.requestTimeout = const Duration(seconds: 20),
     this.userAgent = _defaultUserAgent,

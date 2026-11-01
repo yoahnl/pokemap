@@ -1,0 +1,198 @@
+{
+  "label": "f-ios-actorwise-build",
+  "recordedUtc": "2026-10-31T23:49:11.361206+00:00",
+  "command": "flutter build ios --profile -t lib/ios_profile_main.dart --dart-define=QA_DOUBLES=true",
+  "exitCode": 0,
+  "xcodeSeconds": 40.3,
+  "appReportedMB": 64.0,
+  "team": "AH4CK9Z798",
+  "sources": {
+    "packages/map_runtime/lib/src/presentation/flame/battle_camera_framing.dart": {
+      "sha256": "cc38be62549fa3e515e61851b32a68e3a04d737ac9228750ab4d416fc1b53f3b",
+      "sha20": "cc38be62549fa3e515e6"
+    },
+    "packages/map_runtime/lib/src/presentation/flame/battle_overlay_component.dart": {
+      "sha256": "522e74173fa6baf3ecf16528bc180ae2cb44b8f8e7d350aa3fc6ef719b4ecef6",
+      "sha20": "522e74173fa6baf3ecf1"
+    }
+  },
+  "compiledDefines": [
+    "QA_DOUBLES=true"
+  ],
+  "aot": {
+    "path": "/Users/karim/Library/Caches/AveluneQA/battle-camera-consolidation/native/build/ios/iphoneos/Runner.app/Frameworks/App.framework/App",
+    "sha256": "a5586d3225f897389eb3fd74c6c0980e935b6ad7dfca79e026d2bbfc49b6754a",
+    "hostArtifactStatus": "removed_after_evidence_retained"
+  },
+  "device": {
+    "identifier": "6CE2BDA6-9CD9-52DE-970C-7E49B9FC3627",
+    "bundleIdentifier": "com.example.battleCameraQa",
+    "state": "stopped_and_uninstalled",
+    "installationUUID": "99FF857B-11B4-4B1D-B500-AE5B14681EDB",
+    "priorLaunchRefusalBeforeUserUnlock": "CoreDevice10002 FBSRequestDenied Locked"
+  },
+  "initialContext": {
+    "qaRoot": "/var/mobile/Containers/Data/Application/A48F520E-0CD2-4BAC-8607-9A38F747F3E0/Library/Application Support/battle-camera-consolidation",
+    "readOnlyAssets": "/var/mobile/Containers/Data/Application/A48F520E-0CD2-4BAC-8607-9A38F747F3E0/Library/Application Support/battle-camera-consolidation/fixture",
+    "ready": true,
+    "actorCount": 4,
+    "gpuActors": 4,
+    "allActorsGpu": true,
+    "actors": [
+      {
+        "index": 0,
+        "playerSide": false,
+        "renderedBy3DStage": true,
+        "hasImage": true,
+        "rect": {
+          "left": 221.3746693225158,
+          "top": 146.36901418544494,
+          "right": 303.06854589330374,
+          "bottom": 232.47877597627541,
+          "width": 81.69387657078792,
+          "height": 86.10976179083048
+        }
+      },
+      {
+        "index": 1,
+        "playerSide": true,
+        "renderedBy3DStage": true,
+        "hasImage": true,
+        "rect": {
+          "left": 31.766217871945674,
+          "top": 357.1485755827813,
+          "right": 110.18017300681535,
+          "bottom": 421.518240245734,
+          "width": 78.41395513486968,
+          "height": 64.36966466295269
+        }
+      },
+      {
+        "index": 2,
+        "playerSide": true,
+        "renderedBy3DStage": true,
+        "hasImage": true,
+        "rect": {
+          "left": 106.2333473154884,
+          "top": 493.68849876996796,
+          "right": 182.31154061722398,
+          "bottom": 556.140747002736,
+          "width": 76.07819330173558,
+          "height": 62.452248232768056
+        }
+      },
+      {
+        "index": 3,
+        "playerSide": false,
+        "renderedBy3DStage": true,
+        "hasImage": true,
+        "rect": {
+          "left": 285.83075606565774,
+          "top": 250.24156925289978,
+          "right": 365.75476443718077,
+          "bottom": 334.4857942931538,
+          "width": 79.92400837152303,
+          "height": 84.24422504025401
+        }
+      }
+    ],
+    "viewport": "390.0x844.0",
+    "errors": [],
+    "gpu": true,
+    "framePresented": true,
+    "fxCount": 0,
+    "speed": 1.0,
+    "reduced": false,
+    "gpuPlayer": true,
+    "playerRect": {
+      "left": 31.766217871945674,
+      "top": 357.1485755827813,
+      "right": 110.18017300681535,
+      "bottom": 421.518240245734,
+      "width": 78.41395513486968,
+      "height": 64.36966466295269
+    },
+    "enemyRect": {
+      "left": 221.3746693225158,
+      "top": 146.36901418544494,
+      "right": 303.06854589330374,
+      "bottom": 232.47877597627541,
+      "width": 81.69387657078792,
+      "height": 86.10976179083048
+    },
+    "eye": [
+      6.794638912791845,
+      5.823812669502081,
+      18.221031853691766
+    ],
+    "aim": [
+      -0.1461884702045282,
+      1.5764406888625102,
+      0.29919398416381776
+    ],
+    "moving": false,
+    "prompt": "Que doit faire Kaiminus ?",
+    "hudVisible": true
+  },
+  "fixture": "doubles_readonly",
+  "rootValidation": {
+    "reviewer": "root",
+    "portraitLogicalSize": [
+      393,
+      852
+    ],
+    "landscapeLogicalSize": [
+      852,
+      393
+    ],
+    "actorCount": 4,
+    "gpuActors": 4,
+    "errors": [],
+    "cameraAndFxThenReturnVerified": true,
+    "metrics": {
+      "source": "SchedulerBinding.addTimingsCallback",
+      "fixture": "doubles_readonly",
+      "viewportLogicalSize": [
+        852,
+        393
+      ],
+      "samples": 5441,
+      "elapsedWallMs": 46437,
+      "warmupSkipped": 120,
+      "uiMs": {
+        "p50": 1.563,
+        "p95": 1.923
+      },
+      "rasterMs": {
+        "p50": 0.812,
+        "p95": 1.0
+      },
+      "nonLiveTimings": 0,
+      "droppedSamples": 0
+    },
+    "captureStems": [
+      "ios-doubles-portrait-accepted",
+      "ios-doubles-landscape-accepted",
+      "ios-doubles-camera-fx",
+      "ios-doubles-camera-return"
+    ]
+  },
+  "cleanup": {
+    "nativePath": "/Users/karim/Library/Caches/AveluneQA/battle-camera-consolidation/native",
+    "nativeRemoved": true,
+    "nativeBeforeKiB": 1718080,
+    "retainedFixtureDirectory": "/Users/karim/Library/Caches/AveluneQA/battle-camera-consolidation/evidence-native-fixture",
+    "retainedFixtureBytes": 22632,
+    "originalAssetTargetsUnchanged": 5,
+    "nativeOpenConsumersBeforeRemoval": [],
+    "ssdAvailableBeforeKiB": 79136168,
+    "ssdAvailableAfterKiB": 80792468,
+    "ssdAvailableDeltaKiB": 1656300,
+    "appUninstalled": "com.example.battleCameraQa",
+    "appAbsenceVerified": true,
+    "ownedIosPidStopped": 26802,
+    "ownedConsolePidStopped": 80089,
+    "ownedRecordedPidsAudited": 339,
+    "ownedSurvivingPids": []
+  }
+}

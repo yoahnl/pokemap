@@ -13,6 +13,58 @@ import '../domains/maps/border_spatial_actions_test.dart'
 
 void main() {
   for (final unrelated in [0, 80]) {
+    test('published Border deprecation stays local with $unrelated foreign units',
+        () async {
+      final fixture = await _Fixture.open(unrelated,
+          rootPath: '/Users/karim/Library/Caches/AveluneQA/alpha-border-fix/api-$unrelated');
+      addTearDown(fixture.close);
+      final artifact = await fixture.api.artifacts
+          .put(triangleGlb(), declaredMediaType: 'model/gltf-binary');
+      final imported = await fixture.plan('model3d.import', {
+        'modelId': 'tree',
+        'name': 'Tree',
+        'artifactHandle': artifact.reference.handle,
+      }, 'import-source');
+      await fixture.api.applyMutation(fixture.opened.projectHandle,
+          planId: imported.planId, operationId: 'import-source');
+      final border = jsonDecode(jsonEncode(encodeBorderBlueprintRecordJson(
+          spatialBorderAuthoringFixture().project.borderCatalog.records.single,
+          formatVersion: ProjectBorderCatalog.latestSupportedFormatVersion))) as Map<String, dynamic>;
+      final created = await fixture.plan('border.blueprint.draft.upsert',
+          {'record': border}, 'create-draft');
+      await fixture.api.applyMutation(fixture.opened.projectHandle,
+          planId: created.planId, operationId: 'create-draft');
+      final published = await fixture.plan('border.blueprint.publish',
+          {'blueprintId': border['id']}, 'publish-draft');
+      await fixture.api.applyMutation(fixture.opened.projectHandle,
+          planId: published.planId, operationId: 'publish-draft');
+      await fixture.reopen();
+      for (final value in [true, false]) {
+        fixture.reader.paths.clear();
+        fixture.reader.probes.clear();
+        final plan = await fixture.plan('border.blueprint.set_deprecated',
+            {'blueprintId': border['id'], 'isDeprecated': value}, 'deprecate-$value');
+        final confirmation = await fixture.api.confirmMutation(
+            fixture.opened.projectHandle, planId: plan.planId);
+        await fixture.api.applyMutation(fixture.opened.projectHandle,
+            planId: plan.planId, operationId: 'deprecate-$value',
+            confirmationToken: confirmation.confirmationToken);
+        expect(fixture.reader.paths.where(fixture.unrelatedPaths.contains), isEmpty);
+        expect(fixture.reader.paths.where((path) => path.endsWith('history.jsonl')), isEmpty);
+        expect(fixture.reader.paths.length, lessThan(220));
+        expect(fixture.reader.probes.length, lessThan(160));
+        await fixture.reopen();
+        final snapshot = (await fixture.store.openRoot((await fixture.store.readHead())!)).snapshot;
+        final saved = decodeBorderBlueprintRecordJson(
+            (await snapshot.lookup(CatalogDefinitionKey(CatalogDefinitionKind.borderRecord, border['id'] as String)))!.payload['value'],
+            formatVersion: ProjectBorderCatalog.latestSupportedFormatVersion);
+        expect(saved.isDeprecated, value);
+        expect(saved.latestPublished, isNotNull);
+      }
+      expect(await File('${fixture.root.path}/project.json').readAsBytes(), fixture.descriptor);
+    });
+  }
+  for (final unrelated in [0, 80]) {
     test('unpublished Border draft edits stay local with $unrelated foreign units',
         () async {
       final fixture = await _Fixture.open(unrelated,

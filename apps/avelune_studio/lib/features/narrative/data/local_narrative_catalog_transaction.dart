@@ -29,6 +29,16 @@ class LocalNarrativeCatalogTransaction {
     bool refreshCatalog = false,
     Set<String> allowedStorageKeys = const {},
   }) => mapAdapter.withResourceMutation(() async {
+    final scoped =
+        session.storage == ProjectSessionStorage.workingCatalog ||
+        const {
+          'scene.condition.set',
+          'world_rule.create',
+          'world_rule.update',
+          'world_rule.upsert_batch',
+          'event_v2.record_upsert',
+          'event_v2.record_upsert_batch',
+        }.contains(actionId);
     final baseline = await mapAdapter.resourceBaseline(
       session,
       refreshCatalog: refreshCatalog,
@@ -45,10 +55,9 @@ class LocalNarrativeCatalogTransaction {
       fileReader: reader,
       handles: handles,
       initializeSceneOwners: false,
-      catalogMetadataFields:
-          session.storage == ProjectSessionStorage.workingCatalog
-          ? const {}
+      catalogMetadataFields: scoped ? const {}
           : null,
+      workshopScope: scoped,
     ).openProject(session.directoryPath);
     final snapshots = ProjectSnapshotLoader(handles: handles);
     final api = LocalMapAuthoringMutationApi(
@@ -64,7 +73,6 @@ class LocalNarrativeCatalogTransaction {
         projectHandle: opened.projectHandle,
       );
       attached = true;
-      final scoped = session.storage == ProjectSessionStorage.workingCatalog;
       final snapshot = scoped
           ? await api.readWorkshopSnapshot(
               opened.projectHandle,

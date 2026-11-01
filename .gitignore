@@ -61,6 +61,12 @@ documentation/
 /documentation/*
 !/documentation/reports/
 /documentation/reports/*
+!/documentation/reports/battle/
+/documentation/reports/battle/*
+!/documentation/reports/battle/battle_camera_3d_consolidation.md
+!/documentation/reports/battle/evidence/
+/documentation/reports/battle/evidence/*
+!/documentation/reports/battle/evidence/camera-consolidation/
 !/documentation/reports/mcp/
 /documentation/reports/mcp/*
 !/documentation/reports/mcp/plans/

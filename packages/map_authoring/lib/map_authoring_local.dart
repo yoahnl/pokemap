@@ -100,3 +100,5 @@ export 'src/api/map_health_query.dart';
 export 'src/api/map_edit_execution.dart';
 export 'src/contracts/map_edit_operation.dart';
 export 'src/support/companion_process_access.dart';
+
+export 'src/api/local_periodic_reward_choice_reader.dart';

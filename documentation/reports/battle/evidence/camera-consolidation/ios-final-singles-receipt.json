@@ -1,0 +1,190 @@
+{
+  "label": "f-ios-actorwise-single-build",
+  "recordedUtc": "2026-10-31T23:53:32.140005+00:00",
+  "command": "flutter build ios --profile -t lib/ios_profile_main.dart --dart-define=QA_DOUBLES=false",
+  "exitCode": 0,
+  "xcodeSeconds": 41.3,
+  "team": "AH4CK9Z798",
+  "sources": {
+    "packages/map_runtime/lib/src/presentation/flame/battle_camera_framing.dart": {
+      "sha256": "cc38be62549fa3e515e61851b32a68e3a04d737ac9228750ab4d416fc1b53f3b",
+      "sha20": "cc38be62549fa3e515e6"
+    },
+    "packages/map_runtime/lib/src/presentation/flame/battle_overlay_component.dart": {
+      "sha256": "522e74173fa6baf3ecf16528bc180ae2cb44b8f8e7d350aa3fc6ef719b4ecef6",
+      "sha20": "522e74173fa6baf3ecf1"
+    }
+  },
+  "compiledDefines": [
+    "QA_DOUBLES=false"
+  ],
+  "aot": {
+    "path": "/Users/karim/Library/Caches/AveluneQA/battle-camera-consolidation/native/build/ios/iphoneos/Runner.app/Frameworks/App.framework/App",
+    "sha256": "f26f95971f67737f0064cebf90d5470a5468ffaedbc46c1e8c604217d2bb07ed",
+    "hostArtifactStatus": "removed_after_evidence_retained"
+  },
+  "device": {
+    "identifier": "6CE2BDA6-9CD9-52DE-970C-7E49B9FC3627",
+    "bundleIdentifier": "com.example.battleCameraQa",
+    "state": "stopped_and_uninstalled",
+    "installationUUID": "0F8AD789-E9DB-41A3-99D2-3D1F45C25D17"
+  },
+  "initialContext": {
+    "qaRoot": "/var/mobile/Containers/Data/Application/F7B3BFE8-F10C-41FF-B284-EECBDA6A815F/Library/Application Support/battle-camera-consolidation",
+    "readOnlyAssets": "/var/mobile/Containers/Data/Application/F7B3BFE8-F10C-41FF-B284-EECBDA6A815F/Library/Application Support/battle-camera-consolidation/fixture",
+    "ready": true,
+    "actorCount": 2,
+    "gpuActors": 2,
+    "allActorsGpu": true,
+    "actors": [
+      {
+        "index": 0,
+        "playerSide": false,
+        "renderedBy3DStage": true,
+        "hasImage": true,
+        "rect": {
+          "left": 252.83879089355472,
+          "top": 211.5735349088102,
+          "right": 351.53879089355473,
+          "bottom": 315.6086700439453,
+          "width": 98.70000000000002,
+          "height": 104.03513513513514
+        }
+      },
+      {
+        "index": 1,
+        "playerSide": true,
+        "renderedBy3DStage": true,
+        "hasImage": true,
+        "rect": {
+          "left": 34.19625282287596,
+          "top": 372.8653913845156,
+          "right": 156.19625282287598,
+          "bottom": 473.01464511585885,
+          "width": 122.00000000000001,
+          "height": 100.14925373134326
+        }
+      }
+    ],
+    "viewport": "390.0x844.0",
+    "errors": [],
+    "gpu": true,
+    "framePresented": true,
+    "fxCount": 0,
+    "speed": 1.0,
+    "reduced": false,
+    "gpuPlayer": true,
+    "playerRect": {
+      "left": 34.19625282287596,
+      "top": 372.8653913845156,
+      "right": 156.19625282287598,
+      "bottom": 473.01464511585885,
+      "width": 122.00000000000001,
+      "height": 100.14925373134326
+    },
+    "enemyRect": {
+      "left": 252.83879089355472,
+      "top": 211.5735349088102,
+      "right": 351.53879089355473,
+      "bottom": 315.6086700439453,
+      "width": 98.70000000000002,
+      "height": 104.03513513513514
+    },
+    "eye": [
+      6.845959834715338,
+      4.871224757469049,
+      17.67688136426498
+    ],
+    "aim": [
+      0.14595983471533847,
+      0.7712247574690501,
+      0.3768813642649784
+    ],
+    "moving": false,
+    "prompt": "Que doit faire Kaiminus ?",
+    "hudVisible": true
+  },
+  "fixture": "singles",
+  "rootValidation": {
+    "reviewer": "root",
+    "portraitLogicalSize": [
+      393,
+      852
+    ],
+    "landscapeLogicalSize": [
+      852,
+      393
+    ],
+    "actorCount": 2,
+    "gpuActors": 2,
+    "errors": [],
+    "charge40FrameWidth": 134.462,
+    "restWidth": 125.0,
+    "chargeScaleRatio": 1.075696,
+    "chargeHidesHudAndMovesCamera": true,
+    "return600FramesVerified": true,
+    "nativeLandscapeWaitMs": 220,
+    "cameraAndFxThenReturnVerified": true,
+    "metrics": {
+      "source": "SchedulerBinding.addTimingsCallback",
+      "fixture": "singles",
+      "viewportLogicalSize": [
+        393,
+        852
+      ],
+      "samples": 4557,
+      "elapsedWallMs": 38998,
+      "warmupSkipped": 120,
+      "uiMs": {
+        "p50": 1.184,
+        "p95": 1.448
+      },
+      "rasterMs": {
+        "p50": 0.556,
+        "p95": 0.727
+      },
+      "nonLiveTimings": 0,
+      "droppedSamples": 0
+    },
+    "captureStems": [
+      "ios-final-single-portrait",
+      "ios-final-single-attack",
+      "ios-final-single-return",
+      "ios-final-single-landscape-camera",
+      "ios-final-single-landscape-return"
+    ]
+  },
+  "retainedFixtureSources": {
+    "main.dart": {
+      "bytes": 11197,
+      "sha256": "2c2403b791b414d58562319895453a3933b57f15d31dfc22ccec3803f4bbd675"
+    },
+    "ios_profile_main.dart": {
+      "bytes": 10502,
+      "sha256": "a9f6da02d5fd61f537b448dc73dcc577b455e2f4176c801058d1e2c4227ecc40"
+    },
+    "pubspec.yaml": {
+      "bytes": 933,
+      "sha256": "f867bbb07a415535d3ce6b3f035420c69ed774fefa8707ed2500f47bed1812ed"
+    }
+  },
+  "retainedFixtureDirectory": "/Users/karim/Library/Caches/AveluneQA/battle-camera-consolidation/evidence-native-fixture",
+  "cleanup": {
+    "nativePath": "/Users/karim/Library/Caches/AveluneQA/battle-camera-consolidation/native",
+    "nativeRemoved": true,
+    "nativeBeforeKiB": 1718080,
+    "retainedFixtureDirectory": "/Users/karim/Library/Caches/AveluneQA/battle-camera-consolidation/evidence-native-fixture",
+    "retainedFixtureBytes": 22632,
+    "originalAssetTargetsUnchanged": 5,
+    "nativeOpenConsumersBeforeRemoval": [],
+    "ssdAvailableBeforeKiB": 79136168,
+    "ssdAvailableAfterKiB": 80792468,
+    "ssdAvailableDeltaKiB": 1656300,
+    "appUninstalled": "com.example.battleCameraQa",
+    "appAbsenceVerified": true,
+    "ownedIosPidStopped": 26802,
+    "ownedConsolePidStopped": 80089,
+    "ownedRecordedPidsAudited": 339,
+    "ownedSurvivingPids": []
+  }
+}

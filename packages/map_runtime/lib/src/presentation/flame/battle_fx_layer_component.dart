@@ -8,6 +8,7 @@ import 'package:map_battle/map_battle.dart';
 import 'battle_animation_plan.dart';
 import 'battle_fx_bundle_cache.dart';
 import 'battle_fx_catalog.dart';
+import 'battle_live_attachment.dart';
 import 'battle_fx_sprite_component.dart';
 import 'battle_fx_sprite_sheet_component.dart';
 import 'battle_rmxp_animation_component.dart';
@@ -20,17 +21,59 @@ typedef BattleVisualAnchorResolver = Vector2 Function({
   required BattleSideId defenderSide,
 });
 
+typedef BattleVisualAnchorBinder = BattleLivePointResolver Function({
+  required BattleVisualAnchor anchor,
+  required BattleSlotRef attackerSlot,
+  required BattleSlotRef defenderSlot,
+});
+
 final class BattleFxRuntimeContext {
   const BattleFxRuntimeContext({
     required this.sceneSize,
     required this.resolveAnchor,
     this.stageRect,
     this.resolveSlotAnchor,
+    this.bindSlotAnchor,
+    this.isCurrent,
+    this.resolveSceneSize,
+    this.resolveStageRect,
   });
 
   final Vector2 sceneSize;
   final Rect? stageRect;
   final BattleVisualAnchorResolver resolveAnchor;
+  final BattleVisualAnchorBinder? bindSlotAnchor;
+  final bool Function()? isCurrent;
+  final Vector2 Function()? resolveSceneSize;
+  final Rect Function()? resolveStageRect;
+
+  Vector2 get currentSceneSize => resolveSceneSize?.call() ?? sceneSize;
+  Rect? get currentStageRect => resolveStageRect?.call() ?? stageRect;
+
+  BattleLivePointResolver bindAnchorFor({
+    required BattleVisualAnchor anchor,
+    required BattleSideId attackerSide,
+    required BattleSideId defenderSide,
+    int attackerSlotIndex = 0,
+    int defenderSlotIndex = 0,
+    double offsetX = 0,
+    double offsetY = 0,
+  }) {
+    final bound = bindSlotAnchor?.call(anchor: anchor,
+      attackerSlot: BattleSlotRef(side: attackerSide, slotIndex: attackerSlotIndex),
+      defenderSlot: BattleSlotRef(side: defenderSide, slotIndex: defenderSlotIndex)) ??
+      () => anchorFor(anchor: anchor, attackerSide: attackerSide,
+        defenderSide: defenderSide, attackerSlotIndex: attackerSlotIndex,
+        defenderSlotIndex: defenderSlotIndex);
+    final point = Vector2.zero();
+    return () {
+      if (!(isCurrent?.call() ?? true)) return null;
+      final current = bound();
+      if (current == null) return null;
+      point.setValues(current.x + offsetX, current.y + offsetY);
+      return point;
+    };
+  }
   final Vector2 Function({
     required BattleVisualAnchor anchor,
     required BattleSlotRef attackerSlot,
@@ -54,7 +97,7 @@ final class BattleFxRuntimeContext {
   );
 }
 
-final class BattleFxLayerComponent extends PositionComponent {
+final class BattleFxLayerComponent extends PositionComponent implements BattleLiveAttachment {
   BattleFxLayerComponent({
     required Vector2 size,
     required this.fxBundleCache,
@@ -65,6 +108,64 @@ final class BattleFxLayerComponent extends PositionComponent {
         );
 
   final BattleFxBundleCache fxBundleCache;
+  int _generation = 0;
+  bool _closed = false;
+
+  bool _canSpawn(int generation, BattleFxRuntimeContext? context) =>
+      !_closed && generation == _generation && (context?.isCurrent?.call() ?? true);
+
+  Future<T?> _loadCurrent<T>(Future<T> Function() load, int generation,
+      [BattleFxRuntimeContext? context]) async {
+    if (!_canSpawn(generation, context)) return null;
+    try {
+      final value = await load();
+      return _canSpawn(generation, context) ? value : null;
+    } catch (_) {
+      if (!_canSpawn(generation, context)) return null;
+      rethrow;
+    }
+  }
+
+  @override
+  bool refreshAttachment() {
+    if (_closed) return false;
+    for (final child in children) {
+      if (child case final BattleLiveAttachment attachment) attachment.refreshAttachment();
+      if (child is _BattleScreenFlashComponent ||
+          child is _BattleWeatherAmbientComponent ||
+          child is _BattlePseudoWeatherAmbientComponent) {
+        (child as PositionComponent).size.setFrom(size);
+      }
+    }
+    return true;
+  }
+
+  @override
+  void onRemove() {
+    _closed = true;
+    clearAll();
+    super.onRemove();
+  }
+  double effectIntensity = 1;
+
+  void reduceCurrentMotion() {
+    for (final child in children.whereType<_BattleScreenFlashComponent>().toList()) {
+      child.removeFromParent();
+    }
+  }
+
+  @override
+  void renderTree(ui.Canvas canvas) {
+    if (effectIntensity >= 1) {
+      super.renderTree(canvas);
+      return;
+    }
+    if (effectIntensity <= 0) return;
+    canvas.saveLayer(null, ui.Paint()
+      ..color = ui.Color.fromRGBO(255, 255, 255, effectIntensity));
+    super.renderTree(canvas);
+    canvas.restore();
+  }
   _BattleWeatherAmbientComponent? _weatherAmbient;
   _BattlePseudoWeatherAmbientComponent? _pseudoWeatherAmbient;
 
@@ -168,31 +269,36 @@ final class BattleFxLayerComponent extends PositionComponent {
     SpawnFxStep step,
     BattleFxRuntimeContext ctx,
   ) async {
-    final sprite = await fxBundleCache.loadSprite(step.effectId);
-    final startPosition = ctx
-        .anchorFor(
+    final generation = _generation;
+    final sprite = await _loadCurrent(() => fxBundleCache.loadSprite(step.effectId), generation, ctx);
+    if (sprite == null) return;
+    final startBinding = ctx
+        .bindAnchorFor(
           anchor: step.from,
           attackerSide: step.attackerSide,
           attackerSlotIndex: step.attackerSlotIndex,
           defenderSide: step.defenderSide,
           defenderSlotIndex: step.defenderSlotIndex,
-        )
-        .clone()
-      ..add(Vector2(step.fromOffsetX, step.fromOffsetY));
-    final endPosition = ctx
-        .anchorFor(
+          offsetX: step.fromOffsetX, offsetY: step.fromOffsetY,
+        );
+    final endBinding = ctx
+        .bindAnchorFor(
           anchor: step.to,
           attackerSide: step.attackerSide,
           attackerSlotIndex: step.attackerSlotIndex,
           defenderSide: step.defenderSide,
           defenderSlotIndex: step.defenderSlotIndex,
-        )
-        .clone()
-      ..add(Vector2(step.toOffsetX, step.toOffsetY));
+          offsetX: step.toOffsetX, offsetY: step.toOffsetY,
+        );
+    final startPosition = startBinding();
+    final endPosition = endBinding();
+    if (startPosition == null || endPosition == null) return;
     final component = BattleFxSpriteComponent(
       sprite: sprite,
       startPosition: startPosition,
       endPosition: endPosition,
+      resolveStartPosition: startBinding,
+      resolveEndPosition: endBinding,
       durationSeconds: step.durationSeconds,
       startDelaySeconds: step.startDelaySeconds,
       curve: step.curve,
@@ -210,21 +316,25 @@ final class BattleFxLayerComponent extends PositionComponent {
     BattleFxRuntimeContext ctx,
   ) async {
     final spec = BattleFxCatalog.require(step.assetId);
-    final image = await fxBundleCache.loadImage(step.assetId);
-    final anchorPosition = ctx
-        .anchorFor(
+    final generation = _generation;
+    final image = await _loadCurrent(() => fxBundleCache.loadImage(step.assetId), generation, ctx);
+    if (image == null) return;
+    final anchorBinding = ctx
+        .bindAnchorFor(
           anchor: step.anchor,
           attackerSide: step.attackerSide,
           attackerSlotIndex: step.attackerSlotIndex,
           defenderSide: step.defenderSide,
           defenderSlotIndex: step.defenderSlotIndex,
-        )
-        .clone()
-      ..add(Vector2(step.offsetX, step.offsetY));
+          offsetX: step.offsetX, offsetY: step.offsetY,
+        );
+    final anchorPosition = anchorBinding();
+    if (anchorPosition == null) return;
     add(
       BattleFxSpriteSheetComponent(
         image: image,
         anchorPosition: anchorPosition,
+        resolveAnchorPosition: anchorBinding,
         frameWidth: step.frameWidth,
         frameHeight: step.frameHeight,
         frameCount: step.frameCount,
@@ -284,19 +394,22 @@ final class BattleFxLayerComponent extends PositionComponent {
     ParticleBurstStep step,
     BattleFxRuntimeContext ctx,
   ) async {
-    final sprite = await fxBundleCache.loadSprite(step.assetId);
+    final generation = _generation;
+    final sprite = await _loadCurrent(() => fxBundleCache.loadSprite(step.assetId), generation, ctx);
+    if (sprite == null) return;
     final anchorSide = step.side == BattleSideId.player
         ? BattleSideId.player
         : BattleSideId.enemy;
-    final center = ctx
-        .anchorFor(
+    final centerBinding = ctx
+        .bindAnchorFor(
           anchor: step.anchor,
           attackerSide: anchorSide,
           attackerSlotIndex: step.slotIndex,
           defenderSide: anchorSide,
           defenderSlotIndex: step.slotIndex,
-        )
-        .clone();
+        );
+    final center = centerBinding();
+    if (center == null) return;
     final count = step.particleCount.clamp(0, 160);
     for (var i = 0; i < count; i++) {
       final radius = step.radiusPx * (0.45 + ((i % 5) * 0.14));
@@ -316,6 +429,8 @@ final class BattleFxLayerComponent extends PositionComponent {
           sprite: sprite,
           startPosition: startPosition,
           endPosition: endPosition,
+          resolveStartPosition: offsetBattleLivePoint(centerBinding, startPosition - center),
+          resolveEndPosition: offsetBattleLivePoint(centerBinding, endPosition - center),
           durationSeconds: step.durationSeconds,
           startDelaySeconds: step.startDelaySeconds + (i * 0.015),
           curve: BattleFxMotionCurve.easeOut,
@@ -334,17 +449,20 @@ final class BattleFxLayerComponent extends PositionComponent {
     PlaySdkParticleSequenceStep step,
     BattleFxRuntimeContext ctx,
   ) async {
+    final generation = _generation;
     for (final particle in step.particles) {
-      final sprite = await fxBundleCache.loadSprite(particle.assetId);
-      final anchorPosition = ctx
-          .anchorFor(
+      final sprite = await _loadCurrent(() => fxBundleCache.loadSprite(particle.assetId), generation, ctx);
+      if (sprite == null) return;
+      final anchorBinding = ctx
+          .bindAnchorFor(
             anchor: particle.anchor,
             attackerSide: step.attackerSide,
             attackerSlotIndex: step.attackerSlotIndex,
             defenderSide: step.defenderSide,
             defenderSlotIndex: step.defenderSlotIndex,
-          )
-          .clone();
+          );
+      final anchorPosition = anchorBinding();
+      if (anchorPosition == null) return;
       add(
         BattleSdkParticleComponent(
           sprite: sprite,
@@ -352,6 +470,10 @@ final class BattleFxLayerComponent extends PositionComponent {
             ..add(Vector2(particle.startOffsetX, particle.startOffsetY)),
           endPosition: anchorPosition.clone()
             ..add(Vector2(particle.endOffsetX, particle.endOffsetY)),
+          resolveStartPosition: offsetBattleLivePoint(anchorBinding,
+            Vector2(particle.startOffsetX, particle.startOffsetY)),
+          resolveEndPosition: offsetBattleLivePoint(anchorBinding,
+            Vector2(particle.endOffsetX, particle.endOffsetY)),
           startScaleX: particle.startScaleX,
           startScaleY: particle.startScaleY,
           endScaleX: particle.endScaleX,
@@ -372,14 +494,18 @@ final class BattleFxLayerComponent extends PositionComponent {
     SdkFallingParticlesStep step,
     BattleFxRuntimeContext ctx,
   ) async {
-    final sprite = await fxBundleCache.loadSprite(step.assetId);
-    final anchorPosition = ctx.anchorFor(
+    final generation = _generation;
+    final sprite = await _loadCurrent(() => fxBundleCache.loadSprite(step.assetId), generation, ctx);
+    if (sprite == null) return;
+    final anchorBinding = ctx.bindAnchorFor(
       anchor: step.anchor,
       attackerSide: step.attackerSide,
       attackerSlotIndex: step.attackerSlotIndex,
       defenderSide: step.defenderSide,
       defenderSlotIndex: step.defenderSlotIndex,
     );
+    final anchorPosition = anchorBinding();
+    if (anchorPosition == null) return;
     final count = step.particleCount.clamp(0, 160);
     for (var i = 0; i < count; i++) {
       final spreadProgress = count <= 1 ? 0.5 : i / (count - 1);
@@ -394,6 +520,10 @@ final class BattleFxLayerComponent extends PositionComponent {
           endPosition: anchorPosition.clone()
             ..add(Vector2(
                 startX + drift, step.startOffsetY + step.fallDistanceY)),
+          resolveStartPosition: offsetBattleLivePoint(anchorBinding,
+            Vector2(startX, step.startOffsetY - (i % 3) * 4)),
+          resolveEndPosition: offsetBattleLivePoint(anchorBinding,
+            Vector2(startX + drift, step.startOffsetY + step.fallDistanceY)),
           startScaleX: step.startScaleX,
           startScaleY: step.startScaleY,
           endScaleX: step.endScaleX,
@@ -413,14 +543,18 @@ final class BattleFxLayerComponent extends PositionComponent {
     SdkRadiusParticleStep step,
     BattleFxRuntimeContext ctx,
   ) async {
-    final sprite = await fxBundleCache.loadSprite(step.assetId);
-    final anchorPosition = ctx.anchorFor(
+    final generation = _generation;
+    final sprite = await _loadCurrent(() => fxBundleCache.loadSprite(step.assetId), generation, ctx);
+    if (sprite == null) return;
+    final anchorBinding = ctx.bindAnchorFor(
       anchor: step.anchor,
       attackerSide: step.attackerSide,
       attackerSlotIndex: step.attackerSlotIndex,
       defenderSide: step.defenderSide,
       defenderSlotIndex: step.defenderSlotIndex,
     );
+    final anchorPosition = anchorBinding();
+    if (anchorPosition == null) return;
     final count = step.particleCount.clamp(0, 160);
     for (var i = 0; i < count; i++) {
       final angleTurns = step.startAngleTurns + (i / math.max(1, count));
@@ -438,6 +572,8 @@ final class BattleFxLayerComponent extends PositionComponent {
           sprite: sprite,
           startPosition: anchorPosition.clone()..add(startOffset),
           endPosition: anchorPosition.clone()..add(endOffset),
+          resolveStartPosition: offsetBattleLivePoint(anchorBinding, startOffset),
+          resolveEndPosition: offsetBattleLivePoint(anchorBinding, endOffset),
           startScaleX: step.startScale,
           startScaleY: step.startScale,
           endScaleX: step.endScale,
@@ -457,14 +593,18 @@ final class BattleFxLayerComponent extends PositionComponent {
     SdkScalarParticleStep step,
     BattleFxRuntimeContext ctx,
   ) async {
-    final sprite = await fxBundleCache.loadSprite(step.assetId);
-    final anchorPosition = ctx.anchorFor(
+    final generation = _generation;
+    final sprite = await _loadCurrent(() => fxBundleCache.loadSprite(step.assetId), generation, ctx);
+    if (sprite == null) return;
+    final anchorBinding = ctx.bindAnchorFor(
       anchor: step.anchor,
       attackerSide: step.attackerSide,
       attackerSlotIndex: step.attackerSlotIndex,
       defenderSide: step.defenderSide,
       defenderSlotIndex: step.defenderSlotIndex,
     );
+    final anchorPosition = anchorBinding();
+    if (anchorPosition == null) return;
     add(
       BattleSdkParticleComponent(
         sprite: sprite,
@@ -472,6 +612,10 @@ final class BattleFxLayerComponent extends PositionComponent {
           ..add(Vector2(step.offsetX, step.offsetY)),
         endPosition: anchorPosition.clone()
           ..add(Vector2(step.endOffsetX, step.endOffsetY)),
+        resolveStartPosition: offsetBattleLivePoint(anchorBinding,
+          Vector2(step.offsetX, step.offsetY)),
+        resolveEndPosition: offsetBattleLivePoint(anchorBinding,
+          Vector2(step.endOffsetX, step.endOffsetY)),
         startScaleX: step.startScaleX,
         startScaleY: step.startScaleY,
         endScaleX: step.endScaleX,
@@ -490,14 +634,18 @@ final class BattleFxLayerComponent extends PositionComponent {
     SdkParticleZoomStep step,
     BattleFxRuntimeContext ctx,
   ) async {
-    final sprite = await fxBundleCache.loadSprite(step.assetId);
-    final anchorPosition = ctx.anchorFor(
+    final generation = _generation;
+    final sprite = await _loadCurrent(() => fxBundleCache.loadSprite(step.assetId), generation, ctx);
+    if (sprite == null) return;
+    final anchorBinding = ctx.bindAnchorFor(
       anchor: step.anchor,
       attackerSide: step.attackerSide,
       attackerSlotIndex: step.attackerSlotIndex,
       defenderSide: step.defenderSide,
       defenderSlotIndex: step.defenderSlotIndex,
     );
+    final anchorPosition = anchorBinding();
+    if (anchorPosition == null) return;
     add(
       BattleSdkParticleComponent(
         sprite: sprite,
@@ -505,6 +653,10 @@ final class BattleFxLayerComponent extends PositionComponent {
           ..add(Vector2(step.offsetX, step.offsetY)),
         endPosition: anchorPosition.clone()
           ..add(Vector2(step.offsetX, step.offsetY)),
+        resolveStartPosition: offsetBattleLivePoint(anchorBinding,
+          Vector2(step.offsetX, step.offsetY)),
+        resolveEndPosition: offsetBattleLivePoint(anchorBinding,
+          Vector2(step.offsetX, step.offsetY)),
         startScaleX: step.startScale,
         startScaleY: step.startScale,
         endScaleX: step.endScale,
@@ -530,68 +682,67 @@ final class BattleFxLayerComponent extends PositionComponent {
     RmxpVisibilityCallback? onVisibilityChanged,
   }) async {
     final animation = BattleSdkRmxpAnimationCatalog.require(step.animationId);
-    final image = await fxBundleCache.loadImage(animation.assetId);
+    final generation = _generation;
+    final needsSubject =
+        onCombatantTransform != null &&
+            animation.frames.any((frame) => frame.cells.any((cell) => cell.index == 15)) ||
+        onPokemonFlash != null && animation.timings.any((timing) => timing.flashScope == 1) ||
+        onVisibilityChanged != null && animation.timings.any((timing) => timing.flashScope == 3);
+    final needsPlacement = switch (step.placementSpec.policy) {
+      RmxpPlacementPolicy.subjectAttached || RmxpPlacementPolicy.targetImpact ||
+      RmxpPlacementPolicy.attackerCast => true,
+      _ => false,
+    };
+    final needsProjectile = step.placementSpec.policy == RmxpPlacementPolicy.projectileLine;
     final subjectAnchor = step.subjectSlot == step.attackerSlot
         ? BattleVisualAnchor.attackerBody
         : BattleVisualAnchor.defenderImpact;
-    final anchorPosition = ctx.anchorFor(
-      anchor: subjectAnchor,
-      attackerSide: step.attackerSide,
-      attackerSlotIndex: step.attackerSlotIndex,
-      defenderSide: step.defenderSide,
-      defenderSlotIndex: step.defenderSlotIndex,
-    );
-    final placementAnchorPosition = ctx.anchorFor(
-      anchor: step.placementSpec.anchor ??
-          _defaultAnchorForRmxpPlacement(step, subjectAnchor),
-      attackerSide: step.attackerSide,
-      attackerSlotIndex: step.attackerSlotIndex,
-      defenderSide: step.defenderSide,
-      defenderSlotIndex: step.defenderSlotIndex,
-    );
-    final projectileSourceAnchorPosition = ctx.anchorFor(
-      anchor:
-          step.placementSpec.sourceAnchor ?? BattleVisualAnchor.attackerMouth,
-      attackerSide: step.attackerSide,
-      attackerSlotIndex: step.attackerSlotIndex,
-      defenderSide: step.defenderSide,
-      defenderSlotIndex: step.defenderSlotIndex,
-    );
-    final projectileTargetAnchorPosition = ctx.anchorFor(
-      anchor:
-          step.placementSpec.targetAnchor ?? BattleVisualAnchor.defenderImpact,
-      attackerSide: step.attackerSide,
-      attackerSlotIndex: step.attackerSlotIndex,
-      defenderSide: step.defenderSide,
-      defenderSlotIndex: step.defenderSlotIndex,
-    );
-    final attackerAnchorPosition = ctx.anchorFor(
-      anchor: BattleVisualAnchor.attackerCenter,
-      attackerSide: step.attackerSide,
-      attackerSlotIndex: step.attackerSlotIndex,
-      defenderSide: step.defenderSide,
-      defenderSlotIndex: step.defenderSlotIndex,
-    );
-    final defenderAnchorPosition = ctx.anchorFor(
-      anchor: BattleVisualAnchor.defenderCenter,
-      attackerSide: step.attackerSide,
-      attackerSlotIndex: step.attackerSlotIndex,
-      defenderSide: step.defenderSide,
-      defenderSlotIndex: step.defenderSlotIndex,
-    );
+    BattleLivePointResolver bind(BattleVisualAnchor anchor) => ctx.bindAnchorFor(
+      anchor: anchor, attackerSide: step.attackerSide, defenderSide: step.defenderSide,
+      attackerSlotIndex: step.attackerSlotIndex, defenderSlotIndex: step.defenderSlotIndex);
+    final sourceBinding = bind(subjectAnchor);
+    final placementBinding = bind(step.placementSpec.anchor ?? _defaultAnchorForRmxpPlacement(step, subjectAnchor));
+    final projectileSourceBinding = bind(step.placementSpec.sourceAnchor ?? BattleVisualAnchor.attackerMouth);
+    final projectileTargetBinding = bind(step.placementSpec.targetAnchor ?? BattleVisualAnchor.defenderImpact);
+    final attackerBinding = bind(BattleVisualAnchor.attackerCenter);
+    final defenderBinding = bind(BattleVisualAnchor.defenderCenter);
+    BattleRmxpLivePlacement? resolvePlacement() {
+      if (!(ctx.isCurrent?.call() ?? true)) return null;
+      final source = sourceBinding();
+      final placement = placementBinding();
+      final projectileSource = projectileSourceBinding();
+      final projectileTarget = projectileTargetBinding();
+      final attacker = attackerBinding();
+      final defender = defenderBinding();
+      if (needsSubject && source == null || needsPlacement && placement == null ||
+          needsProjectile && (projectileSource == null || projectileTarget == null)) {
+        return null;
+      }
+      final fallback = Vector2.zero();
+      return (source: source ?? fallback, placement: placement ?? fallback,
+        attacker: attacker ?? fallback, defender: defender ?? fallback,
+        projectileSource: projectileSource ?? fallback, projectileTarget: projectileTarget ?? fallback,
+        stageRect: ctx.currentStageRect ?? (Offset.zero & Size(ctx.currentSceneSize.x, ctx.currentSceneSize.y)),
+        sceneSize: ctx.currentSceneSize);
+    }
+    final image = await _loadCurrent(() => fxBundleCache.loadImage(animation.assetId), generation, ctx);
+    if (image == null) return;
+    final initial = resolvePlacement();
+    if (initial == null) return;
     add(
       BattleRmxpAnimationComponent(
         image: image,
         animation: animation,
-        sourceAnchorPosition: anchorPosition,
+        sourceAnchorPosition: initial.source,
         placementSpec: step.placementSpec,
-        placementAnchorPosition: placementAnchorPosition,
-        attackerAnchorPosition: attackerAnchorPosition,
-        defenderAnchorPosition: defenderAnchorPosition,
-        projectileSourceAnchorPosition: projectileSourceAnchorPosition,
-        projectileTargetAnchorPosition: projectileTargetAnchorPosition,
-        stageRect: ctx.stageRect,
-        sceneSize: ctx.sceneSize.clone(),
+        placementAnchorPosition: initial.placement,
+        attackerAnchorPosition: initial.attacker,
+        defenderAnchorPosition: initial.defender,
+        projectileSourceAnchorPosition: initial.projectileSource,
+        projectileTargetAnchorPosition: initial.projectileTarget,
+        stageRect: initial.stageRect,
+        sceneSize: initial.sceneSize,
+        resolvePlacement: resolvePlacement,
         reverse: step.reverse && !animation.forceNoReverse,
         onCombatantTransform: onCombatantTransform,
         onCombatantTransformCleared: onCombatantTransformCleared,
@@ -619,7 +770,9 @@ final class BattleFxLayerComponent extends PositionComponent {
   }
 
   Future<void> playWeatherParticles(WeatherParticleStep step) async {
-    final sprite = await fxBundleCache.loadSprite(step.assetId);
+    final generation = _generation;
+    final sprite = await _loadCurrent(() => fxBundleCache.loadSprite(step.assetId), generation);
+    if (sprite == null) return;
     final count = step.particleCount.clamp(0, 240);
     for (var i = 0; i < count; i++) {
       final startX = ((i * 37.0) % (size.x + 80)) - 40;
@@ -629,6 +782,9 @@ final class BattleFxLayerComponent extends PositionComponent {
           sprite: sprite,
           startPosition: Vector2(startX, startY),
           endPosition: Vector2(startX + 80, size.y + 48),
+          resolveStartPosition: () => Vector2(((i * 37.0) % (size.x + 80)) - 40,
+            -24.0 - ((i * 19.0) % size.y)),
+          resolveEndPosition: () => Vector2(((i * 37.0) % (size.x + 80)) + 40, size.y + 48),
           durationSeconds: step.durationSeconds,
           startDelaySeconds: i * 0.01,
           curve: BattleFxMotionCurve.linear,
@@ -664,10 +820,12 @@ final class BattleFxLayerComponent extends PositionComponent {
   void playBarrierPulse(
     BarrierPulseStep step, {
     required Rect targetRect,
+    BattleLiveRectResolver? resolveTargetRect,
   }) {
     add(
       _BattleBarrierPulseComponent(
         targetRect: targetRect,
+        resolveTargetRect: resolveTargetRect,
         color: Color(step.colorArgb),
         durationSeconds: step.durationSeconds,
         style: step.style,
@@ -676,6 +834,7 @@ final class BattleFxLayerComponent extends PositionComponent {
   }
 
   void clearAll() {
+    _generation += 1;
     for (final child in List<Component>.from(children)) {
       child.removeFromParent();
     }
@@ -763,12 +922,13 @@ final class _BattleScreenFlashComponent extends PositionComponent {
   }
 }
 
-final class _BattleBarrierPulseComponent extends PositionComponent {
+final class _BattleBarrierPulseComponent extends PositionComponent implements BattleLiveAttachment {
   _BattleBarrierPulseComponent({
     required Rect targetRect,
     required this.color,
     required this.durationSeconds,
     required this.style,
+    this.resolveTargetRect,
   })  : _targetRect = targetRect,
         super(
           position: Vector2(targetRect.left, targetRect.top),
@@ -777,22 +937,43 @@ final class _BattleBarrierPulseComponent extends PositionComponent {
           priority: 19,
         );
 
-  final Rect _targetRect;
+  Rect _targetRect;
+  final BattleLiveRectResolver? resolveTargetRect;
+  bool _attachmentInvalid = false;
   final Color color;
   final double durationSeconds;
   final BattleBarrierStyle style;
   double _elapsed = 0;
 
-  bool get isExpired => _elapsed >= durationSeconds;
+  bool get isExpired => _attachmentInvalid || _elapsed >= durationSeconds;
+
+  @override
+  bool refreshAttachment() {
+    final resolver = resolveTargetRect;
+    if (_attachmentInvalid) return false;
+    if (resolver == null) return true;
+    final rect = resolver();
+    if (rect == null || !rect.isFinite || rect.isEmpty) {
+      _attachmentInvalid = true;
+      removeBattleLiveAttachment(this);
+      return false;
+    }
+    _targetRect = rect;
+    position.setValues(rect.left, rect.top);
+    size.setValues(rect.width, rect.height);
+    return true;
+  }
 
   @override
   void update(double dt) {
     super.update(dt);
+    if (!refreshAttachment()) return;
     _elapsed += dt;
   }
 
   @override
   void render(Canvas canvas) {
+    if (_attachmentInvalid) return;
     final progress =
         (_elapsed / (durationSeconds <= 0 ? 0.0001 : durationSeconds))
             .clamp(0.0, 1.0);

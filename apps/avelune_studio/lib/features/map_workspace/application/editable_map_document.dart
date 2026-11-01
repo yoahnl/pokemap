@@ -95,6 +95,14 @@ class EditableMapDocument {
   bool saving = false;
   bool spatialFieldObstacleSaving = false;
   bool fieldTraversalSaving = false;
+  bool modelVisibilitySaving = false;
+  Future<bool> Function(
+    String instanceId,
+    NarrativeEventConditionExpression? value,
+  )?
+  configureSpatialModelVisibility;
+  MapData? _visibilityPreviewBase;
+  MapData get spatialPreviewMap => _visibilityPreviewBase ?? current;
   Future<bool> Function(MapData next)? configureFieldTraversal;
   Future<bool> Function(String instanceId, MapEntityFieldObstacleData? value)? configureSpatialFieldObstacle;
   bool elementOrderSaving = false;
@@ -115,10 +123,12 @@ class EditableMapDocument {
 
   void Function() preserveDraft() {
     final map = current;
+    final preview = _visibilityPreviewBase;
     final undo = _undo;
     final redo = _redo;
     return () {
       current = map;
+      _visibilityPreviewBase = preview;
       _undo = undo;
       _redo = redo;
       _repairSelection();
@@ -130,7 +140,8 @@ class EditableMapDocument {
       .firstOrNull;
 
   void commit(MapData next) {
-    if (elementOrderSaving || spatialFieldObstacleSaving || fieldTraversalSaving) return;
+    if (elementOrderSaving || spatialFieldObstacleSaving || fieldTraversalSaving ||
+        modelVisibilitySaving) return;
     if (next == current) return;
     final result = _history.recordMutation(
       before: current,
@@ -142,8 +153,21 @@ class EditableMapDocument {
     _undo = result.undoStack;
     _redo = result.redoStack;
     current = next;
+    _visibilityPreviewBase = null;
     error = null;
     _repairSelection();
+  }
+
+  void commitInstanceVisibility(MapData next) {
+    final preview = spatialPreviewMap;
+    commit(next);
+    _visibilityPreviewBase = preview;
+  }
+
+  void restoreInstanceVisibility({required bool redo}) {
+    final preview = spatialPreviewMap;
+    restore(redo: redo);
+    _visibilityPreviewBase = preview;
   }
 
   void restore({required bool redo, bool Function(MapData)? canRestore}) {
@@ -166,6 +190,7 @@ class EditableMapDocument {
           );
     if (canRestore != null && !canRestore(restored)) return;
     current = restored;
+    _visibilityPreviewBase = null;
     _undo = result.undoStack;
     _redo = result.redoStack;
     error = null;
@@ -210,6 +235,7 @@ class EditableMapDocument {
       );
     }
     current = updated.map;
+    _visibilityPreviewBase = null;
     saved = updated.map;
     base = updated;
     _catalogName = updated.map.name;

@@ -1,3 +1,4 @@
+import '../../contracts/periodic_reward_choices.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../contracts/action_descriptor.dart';
@@ -74,6 +75,7 @@ final class FactRuleActions {
                       'semantics': 'createOrUpdate',
                       'atomic': true,
                     },
+                    'periodicRewardAvailable': periodicRewardConditionChoiceContract,
                     'atmosphere': {'targetKind': 'atmosphere', 'effectKind': 'atmosphere', 'payloadField': 'effect.visualSettings', 'capability': SpatialVisualDocument.capabilityId},
                     'rules': {
                       'type': 'array',
@@ -83,6 +85,7 @@ final class FactRuleActions {
                     },
                   }
                 : entry.$1.startsWith('world_rule.') ? const {
+                    'periodicRewardAvailable': periodicRewardConditionChoiceContract,
                     'atmosphere': {'targetKind': 'atmosphere', 'effectKind': 'atmosphere', 'mapId': 'required',
                       'payloadField': 'effect.visualSettings', 'condition': 'canonicalWorldRuleSource',
                       'merge': 'perFieldPriorityThenRuleId', 'capability': SpatialVisualDocument.capabilityId}
@@ -117,6 +120,7 @@ final class FactRuleActions {
           context.snapshot.manifest,
           maps: context.snapshot.maps,
           rules: rules,
+          lookupRewardScenes: context.snapshot.lookupRewardScenes,
         );
         return narrativeProjectDraft(
           context.snapshot,
@@ -189,6 +193,7 @@ final class FactRuleActions {
           context.snapshot.manifest,
           maps: context.snapshot.maps,
           rule: rule,
+          lookupRewardScenes: context.snapshot.lookupRewardScenes,
         );
         return _draft(
           context,
@@ -206,6 +211,7 @@ final class FactRuleActions {
           context.snapshot.manifest,
           maps: context.snapshot.maps,
           rule: rule,
+          lookupRewardScenes: context.snapshot.lookupRewardScenes,
         );
         return _draft(
           context,
@@ -337,6 +343,7 @@ final class FactRuleActions {
     ProjectManifest project, {
     required List<MapData> maps,
     required WorldRuleDefinition rule,
+    PeriodicRewardSceneLookup? lookupRewardScenes,
   }) =>
       _translate('world_rule.create_rejected', () {
         final result = addWorldRule(
@@ -351,6 +358,7 @@ final class FactRuleActions {
           tags: rule.tags,
           debugTechnicalLabel: rule.debugTechnicalLabel,
           maps: maps,
+          lookupRewardScenes: lookupRewardScenes,
         );
         if (result.createdRule.id != rule.id) {
           throw ArgumentError.value(
@@ -366,6 +374,7 @@ final class FactRuleActions {
     ProjectManifest project, {
     required List<MapData> maps,
     required WorldRuleDefinition rule,
+    PeriodicRewardSceneLookup? lookupRewardScenes,
   }) =>
       _translate(
         'world_rule.update_rejected',
@@ -382,6 +391,7 @@ final class FactRuleActions {
           tags: rule.tags,
           debugTechnicalLabel: rule.debugTechnicalLabel,
           maps: maps,
+          lookupRewardScenes: lookupRewardScenes,
         ).updatedProject,
       );
 
@@ -398,6 +408,7 @@ final class FactRuleActions {
     ProjectManifest project, {
     required List<MapData> maps,
     required List<WorldRuleDefinition> rules,
+    PeriodicRewardSceneLookup? lookupRewardScenes,
   }) {
     if (rules.isEmpty || rules.length > maxWorldRuleBatchSize) {
       throw NarrativeAuthoringException(
@@ -420,7 +431,7 @@ final class FactRuleActions {
       }
     }
     try {
-      return upsertWorldRules(project, maps: maps, rules: rules);
+      return upsertWorldRules(project, maps: maps, lookupRewardScenes: lookupRewardScenes, rules: rules);
     } on WorldRuleBatchException catch (error) {
       throw NarrativeAuthoringException(
         'world_rule.batch_rejected',

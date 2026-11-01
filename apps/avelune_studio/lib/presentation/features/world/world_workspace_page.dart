@@ -1,3 +1,4 @@
+import '../scenes/periodic_reward_picker.dart';
 import '../project_settings/spatial_visual_controls.dart';
 import 'dart:async';
 

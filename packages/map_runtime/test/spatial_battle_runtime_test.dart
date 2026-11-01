@@ -25,6 +25,7 @@ import 'package:map_runtime/src/presentation/flame/battle_transition_overlay_com
 import 'package:map_runtime/src/presentation/flame/battle_scene_layout.dart';
 import 'package:map_runtime/src/presentation/flutter/battle_command_overlay_snapshot.dart';
 import 'package:map_runtime/src/spatial/spatial_battle_runtime.dart';
+import 'package:map_runtime/src/presentation/flame/battle_motion_policy.dart';
 import 'package:map_runtime/src/spatial/spatial_battle_view.dart';
 import 'package:path/path.dart' as p;
 
@@ -37,7 +38,9 @@ void main() {
   setUp(() => installConvertedQaHeadlessAudio(completePlayback: true));
   testWidgets('3D battle connects effects, cries and victory presentation', (tester) async {
     final fixture = (await tester.runAsync(_fixture))!;
-    final runtime = SpatialBattleRuntime(readGameState: () => fixture.state, commitGameState: (_, _) => true);
+    final policy = BattleMotionPolicy(playbackSpeed: 2.5, effectIntensity: .5);
+    final runtime = SpatialBattleRuntime(readGameState: () => fixture.state,
+      commitGameState: (_, _) => true, motionPolicy: policy);
     addTearDown(runtime.dispose);
     await tester.runAsync(() async {
       unawaited(runtime.start(bundle: fixture.bundle, request: _wild('audio')));
@@ -46,6 +49,12 @@ void main() {
     expect(runtime.battleOverlay!.playSfx, isNotNull);
     expect(runtime.battleOverlay!.playCry, isNotNull);
     expect(runtime.battleOverlay!.onOutcomePresented, isNotNull);
+    expect(runtime.battleOverlay!.motionPolicy, policy);
+    final reduced = BattleMotionPolicy(reducedMotion: true);
+    runtime.applyMotionPolicy(reduced);
+    expect(runtime.battleOverlay!.motionPolicy, reduced);
+    runtime.applyMotionPolicy(null);
+    expect(runtime.battleOverlay!.motionPolicy, BattleMotionPolicy());
     runtime.cancel();
   });
   testWidgets(

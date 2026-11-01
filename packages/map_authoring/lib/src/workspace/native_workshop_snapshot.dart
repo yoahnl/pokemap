@@ -2,6 +2,13 @@ part of 'project_snapshot_loader.dart';
 
 const _nativeWorkshopActions = {
   'scene.condition.set',
+  'world_rule.create',
+  'world_rule.update',
+  'world_rule.upsert_batch',
+  'event_v2.record_upsert',
+  'event_v2.record_upsert_batch',
+  'entity.set_presentation',
+  'map3d.instance.visibility.set',
   'map3d.instance.configure_field_obstacle',
   ...TriggerZoneActions.fieldTraversalActions,
   'surf.configure',
@@ -114,13 +121,18 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
         loader, projectHandle, raw, projectBytes, parameters);
   }
   if (actionId == 'map3d.instance.configure_field_obstacle' ||
+      actionId == 'map3d.instance.visibility.set' ||
+      actionId == 'entity.set_presentation' ||
       TriggerZoneActions.fieldTraversalActions.contains(actionId)) {
     return _loadNativeMapProperties(
         loader, projectHandle, raw, projectBytes, parameters,
         actionId: actionId);
   }
   final adoptingAudio = actionId == 'project.audio.media.adopt_asset';
-  final sceneCondition = actionId == 'scene.condition.set';
+  final conditionRule = actionId.startsWith('world_rule.');
+  final conditionEvent = actionId == 'event_v2.record_upsert' ||
+      actionId == 'event_v2.record_upsert_batch';
+  final sceneCondition = actionId == 'scene.condition.set' || conditionRule || conditionEvent;
   final presentationImport =
       actionId == 'presentationMedia.import' || adoptingAudio;
   final guided = actionId == 'event_v2.template.apply' ||
@@ -169,7 +181,7 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
         return result;
       });
   void collect() {
-    for (final entry in ids.entries) {
+    for (final entry in ids.entries.toList()) {
       final found = selected.putIfAbsent(entry.key, () => {});
       for (final id in entry.value) {
         if (found.containsKey(id)) continue;
@@ -181,6 +193,39 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
         }
         found[id] = rows.single;
         candidates.add(rows.single);
+        if (entry.key == 'scenes') {
+          final graph = rows.single['graph'];
+          if (graph is Map && graph['nodes'] is List) {
+            for (final node in (graph['nodes'] as List).whereType<Map>()) {
+              final payload = node['payload'];
+              final source = payload is Map ? payload['conditionSource'] : null;
+              if (source is! Map || source['sourceId'] is! String) continue;
+              final field = switch (source['sourceKind']) { 'fact' => 'facts', 'badge' => 'badges', 'trainerDefeated' => 'trainers', _ => null };
+              if (field != null) add(field, [source['sourceId'] as String]);
+            }
+          }
+        }
+
+      }
+    }
+  }
+
+  if (parameters['conditionSource'] case final Map source) {
+    final field = switch (source['sourceKind']) {
+      'badge' => 'badges', 'fact' => 'facts', 'trainerDefeated' => 'trainers', _ => null,
+    };
+    if (field != null && source['sourceId'] is String) add(field, [source['sourceId'] as String]);
+  }
+  if (conditionRule) {
+    sections.add('worldRules');
+    for (final rule in [
+      if (parameters['rule'] case final Map rule) rule,
+      if (parameters['rules'] case final List rules) ...rules.whereType<Map>()
+    ]) {
+      if (rule['id'] case final String id) add('worldRules', [id]);
+      if (rule['source'] case final Map source) {
+        if (source['kind'] == 'fact' && source['sourceId'] is String)
+          add('facts', [source['sourceId'] as String]);
       }
     }
   }
@@ -325,7 +370,7 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
   };
   final rawSettings = raw['settings'];
   if (rawSettings is Map) {
-    projected['settings'] = guided ||
+    projected['settings'] = guided || sceneCondition ||
             const {
               'surf.configure',
               'field_ability.configure',
@@ -656,6 +701,13 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
       referenceScenes.add(SceneAsset.fromJson(row));
     }
   }
+  if (conditionEvent ||
+      conditionRule &&
+          _nativeReferenceIds(candidates, const {'eventId'}).isNotEmpty) {
+    sections.add('eventRegistry');
+    if (raw.containsKey('eventRegistry'))
+      projected['eventRegistry'] = raw['eventRegistry'];
+  }
   final manifest = ProjectManifest.fromJson(projected);
   for (final dialogue in manifest.dialogues) {
     await read(
@@ -779,7 +831,10 @@ Future<ProjectSnapshot> _loadNativeMapProperties(
   final access = loader._handles.resolveProject(handle);
   final mapBytes = await access.readResourceBytes(declaration.relativePath);
   final map = await loader._decodeExecutor.decodeMap(mapBytes.bytes);
-  if (map.id != mapId || !route && map.spatialScene == null) {
+  if (map.id != mapId ||
+      (!route &&
+          actionId != 'entity.set_presentation' &&
+          map.spatialScene == null)) {
     throw const ProjectSnapshotException(
         'project.map_invalid', 'The selected spatial map identity differs.');
   }
@@ -789,13 +844,17 @@ Future<ProjectSnapshot> _loadNativeMapProperties(
         'project.field_traversal_scope_required',
         'This zone mutation needs its existing reference scope.');
   }
-  MapValidator.validate(map);
-  final instance = route
+  final visibility = const {
+    'map3d.instance.visibility.set',
+    'entity.set_presentation'
+  }.contains(actionId);
+  if (!visibility) MapValidator.validate(map);
+  final instance = route || visibility
       ? null
       : map.spatialScene!.instances
           .where((item) => item.id == parameters['instanceId'])
           .firstOrNull;
-  final models = route
+  final models = route || visibility
       ? const <Map>[]
       : (raw['models3d'] as List? ?? const [])
           .whereType<Map>()
@@ -814,7 +873,7 @@ Future<ProjectSnapshot> _loadNativeMapProperties(
     throw const ProjectSnapshotException(
         'project.version_unsupported', 'The project version is unknown.');
   }
-  final manifest = ProjectManifest(
+  var manifest = ProjectManifest(
       name: raw['name'] as String,
       version: version,
       settings: !route && raw['settings'] is Map
@@ -829,6 +888,72 @@ Future<ProjectSnapshot> _loadNativeMapProperties(
         for (final model in models)
           ProjectModel3dEntry.fromJson(Map<String, dynamic>.from(model))
       ]);
+  final referenceScenes = <SceneAsset>[];
+  final conditionMaps = <MapData>[];
+  final dependencyBytes = <String, ProjectResourceBytes>{};
+  final dependencyRevisions = <String, String>{};
+  final dependencyPaths = <String, String>{};
+  if (visibility) {
+    final rawPresentation = parameters['presentation'];
+    final presentation = rawPresentation == null
+        ? null
+        : MapEntityPresentation.fromJson(
+            Map<String, dynamic>.from(rawPresentation as Map));
+    final dependencies = actionId == 'entity.set_presentation'
+        ? ModelVisibilityDependencies.expressions(
+            presentation?.variants.map((value) => value.condition) ?? const [])
+        : ModelVisibilityDependencies(parameters['visibilityCondition']);
+    List<Map<String, dynamic>> select(String field, Set<String> ids) => [
+          for (final value in raw[field] as List? ?? const [])
+            if (value is Map && ids.contains(value['id']))
+              Map<String, dynamic>.from(value),
+        ];
+    referenceScenes.addAll(
+        select('scenes', dependencies.rewardSceneIds).map(SceneAsset.fromJson));
+    final registry = raw['eventRegistry'];
+    manifest = manifest.copyWith(
+      characters: select(
+              'characters',
+              presentation?.variants
+                      .map((value) => value.characterId)
+                      .whereType<String>()
+                      .toSet() ??
+                  const {})
+          .map(ProjectCharacterEntry.fromJson)
+          .toList(),
+      facts: select('facts', dependencies.factIds)
+          .map(NarrativeFactDefinition.fromJson)
+          .toList(),
+      maps: [
+        declaration,
+        ...select('maps', dependencies.mapIds.difference({mapId}))
+            .map(ProjectMapEntry.fromJson)
+      ],
+      eventRegistry: registry is Map
+          ? NarrativeEventRegistry.fromJson({
+              ...Map<String, dynamic>.from(registry),
+              'records': [
+                for (final record in registry['records'] as List? ?? const [])
+                  if (record is Map &&
+                      dependencies.eventIds.contains(_nativeEventId(record)))
+                    record
+              ],
+              'legacyClaims': const [],
+            })
+          : null,
+    );
+    for (final entry in manifest.maps.where((value) => value.id != mapId)) {
+      final content = await access.readResourceBytes(entry.relativePath);
+      final value = await loader._decodeExecutor.decodeMap(content.bytes);
+      if (value.id != entry.id)
+        throw const FormatException('native.visibility: map identity mismatch');
+      conditionMaps.add(value);
+      dependencyBytes['map:${entry.id}'] = content;
+      dependencyPaths['map:${entry.id}'] = entry.relativePath;
+      dependencyRevisions['map:${entry.id}'] = await loader._decodeExecutor
+          .fingerprintResource(content.bytes, relativePath: entry.relativePath);
+    }
+  }
   if (!await access.matchesResourceBytes('project.json', projectBytes.bytes) ||
       !await access.matchesResourceBytes(
           declaration.relativePath, mapBytes.bytes)) {
@@ -844,10 +969,13 @@ Future<ProjectSnapshot> _loadNativeMapProperties(
   return ProjectSnapshot(
       projectHandle: handle,
       revision: computeAuthoringJsonFingerprint(
-          {'project': projectRevision, 'map:$mapId': mapRevision},
+          {'project': projectRevision, 'map:$mapId': mapRevision,
+        ...dependencyRevisions
+      },
           logicalName: 'native-field-obstacle-selection.json'),
       manifest: manifest,
-      maps: [map],
+      maps: [map, ...conditionMaps],
+      rewardReferenceScenes: referenceScenes,
       availableProjectSections: route ? const {} : const {'settings'},
       availableProjectDocuments: {
         'maps': {mapId},
@@ -855,16 +983,22 @@ Future<ProjectSnapshot> _loadNativeMapProperties(
       },
       resourceFingerprints: {
         'project': projectRevision,
-        'map:$mapId': mapRevision
+        'map:$mapId': mapRevision,
+        ...dependencyRevisions
       },
       scopedStorageRevisions: {
         'project.json': projectRevision,
+        for (final entry in dependencyPaths.entries)
+          entry.value: dependencyRevisions[entry.key]!,
         declaration.relativePath: mapRevision
       },
-      ownedResourceBytes: {'project': projectBytes, 'map:$mapId': mapBytes},
+      ownedResourceBytes: {'project': projectBytes, 'map:$mapId': mapBytes,
+        ...dependencyBytes
+      },
       resourceStorageKeys: {
         'project': 'project.json',
-        'map:$mapId': declaration.relativePath
+        'map:$mapId': declaration.relativePath,
+        ...dependencyPaths
       });
 }
 

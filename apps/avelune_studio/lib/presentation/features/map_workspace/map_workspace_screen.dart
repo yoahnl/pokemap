@@ -1,3 +1,9 @@
+import '../../../features/narrative/data/local_periodic_reward_choice_adapter.dart';
+
+import 'package:map_authoring/map_authoring_api.dart'
+    show AuthoringQueryPage, AuthoringQueryRequest;
+
+import '../scenes/periodic_reward_picker.dart';
 import '../../../features/project_cs/application/project_cs_controller.dart';
 import '../../../features/project_cs/domain/project_cs_port.dart';
 import '../../../features/project_audio/application/project_audio_controller.dart';
@@ -337,7 +343,8 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
 
   ProjectVisualsController? _projectVisuals;
   ProjectVisualsController get _visualOwner {
-    final owner = _projectVisuals ??= ProjectVisualsController(session: _controller.session, port: _controller.port as ProjectVisualsPort);
+    final owner = _projectVisuals ??= ProjectVisualsController(session: _controller.session, port: _controller.port as ProjectVisualsPort,
+    );
     _controller.settingsVisualsOwner = owner;
     return owner;
   }
@@ -411,12 +418,22 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
     super.dispose();
   }
 
+  Future<AuthoringQueryPage> _readPeriodicRewards(
+    AuthoringQueryRequest request,
+  ) =>
+      LocalPeriodicRewardChoiceAdapter(session: _controller.session)
+          .readPeriodicRewardChoices(request);
+
   @override
   Widget build(BuildContext context) => DivePairPublishingScope(
     controller: _controller,
     port: widget.mapConnectionPort is MapDivePairPort
         ? widget.mapConnectionPort as MapDivePairPort
         : null,
-    child: _buildWorkspace(context),
+    child: PeriodicRewardChoiceScope(
+      projectRootPath: _controller.session.directoryPath,
+      query: _readPeriodicRewards,
+      child: _buildWorkspace(context),
+  ),
   );
 }
