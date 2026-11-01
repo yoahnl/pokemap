@@ -6,7 +6,9 @@
 
 **Architecture :** l’API NestJS et PostgreSQL publient des versions immuables ; les médias sont stockés sur le volume local du serveur. L’import Avelune récupère les ressources depuis une version précise, puis les embarque dans le projet et l’export ; Player ne dépend pas du réseau pour jouer.
 
-**Technologies :** TypeScript/NestJS, PostgreSQL, Dokploy/TrueNAS, Dart/Flutter/Flame ; AnimaEngine C sous MIT pour le pilote de sprites par pièces, sous réserve des vérifications de provenance.
+**Technologies :** TypeScript/NestJS, PostgreSQL, Dokploy/TrueNAS, Dart/Flutter/Flame ; AnimaEngine C et les sources BW2 indiquées par Yoahn pour le pilote de sprites par pièces.
+
+**Cadre du POC :** à la demande de Yoahn, les questions de licences et de diffusion sur les stores seront traitées lors de la préparation d’une éventuelle publication ; elles ne bloquent pas l’exploration technique ni l’intégration du prototype. Les 74 modèles explicitement réservés au brouillon restent privés.
 
 ---
 
@@ -28,7 +30,7 @@
 
 - **Tom / référentiel :** inventaire, API, import des données et médias, administration, sécurité, sauvegardes et publication.
 - **Conversation attaques :** moteur d’effets et de caméra BW2, son, intégration Player et validation d’un combat réel.
-- **Conversation sprites :** lecteur par pièces, comparaisons à la référence, provenance et raccordement Player quand la fidélité le permet.
+- **Conversation sprites :** lecteur par pièces, comparaisons à la référence et raccordement Player quand la fidélité le permet.
 - Les lots 1 et 2 peuvent avancer pendant les lots 3 et 4. Le lot 5 dépend de ressources et de capacités prouvées ; les contrôles du lot 6 commencent dès maintenant et sont rejoués au lot 7.
 - Chaque lot finit par un résultat vérifiable, un point de reprise, la mise à jour du ticket Notion existant et, conformément à l’autorisation de Yoahn, un commit ciblé si du code a changé. Une conversation sans tâche utile attend ; elle ne fabrique pas de travail.
 
@@ -82,14 +84,14 @@
 
 **Responsable :** conversation sprites. **Dépendance :** disponibilité et vérification des sources nécessaires à son périmètre, déjà présentes pour les 649 formes par défaut ; coordination avec le lot 3 pour les ancrages. La fin de tout le lot 2 n’est pas un préalable.
 
-- [ ] Résoudre les écarts du pilote Ponchiot à partir d’hypothèses mesurables ; garder AnimaEngine MIT et ses notices séparés de la référence melonDS. Clarifier la provenance des parties ayant consulté des sources GPL avant toute distribution.
+- [ ] Résoudre les écarts du pilote Ponchiot à partir d’hypothèses mesurables ; exploiter les sources techniques indiquées et comparer le résultat à la référence melonDS.
 - [x] Comparer pour Ponchiot les atlas PNG et palettes PAL de l’API avec les données NCGR/NCLR de la ROM de Yoahn : face et dos, normal et chromatique. Les indices et les dix banques d’animation/coordonnées concordent ; les palettes possèdent les mêmes valeurs 5 bits. Après harmonisation de la conversion 5→8 bits, les quatre comparaisons d’images ne présentent plus de différence de pixel.
 - [ ] Fixer la convention de conversion des palettes et vérifier son effet sur les cinq poses de référence avant de la raccorder au Player ; l’égalité des données ne prouve ni la fidélité de l’animation ni sa cadence.
 - [ ] Vérifier face et dos, palette, pièces, animations et placement sur plusieurs Pokémon et formes représentatifs, à échelle comparable à la référence ; ne pas assimiler un aperçu ou un test unitaire à une preuve Player. Déterminer le rythme et le cadrage sans utiliser la référence comme oracle pendant l’exécution.
 - [ ] Compiler et embarquer le C/FFI sur les plateformes Player visées, puis raccorder le lecteur aux ressources prises en charge ; annuler les chargements périmés et libérer les ressources. Si la source ou le moteur est indisponible, vérifier le repli GIF → image statique → silhouette. Des données corrompues doivent produire un diagnostic clair et préserver les originaux.
 - [ ] Exercer et inventorier automatiquement les 649 formes par défaut et leurs modes pris en charge ; préciser les cas non pris en charge et leur repli. Ne pas annoncer les autres formes ou différences de sexe comme couvertes sans leurs données.
 
-**Fini quand :** Ponchiot face/dos normal/chromatique et au moins une autre espèce sont comparés sur un cycle complet, à échelle et placement fixes, puis vus dans un vrai combat Player : corps entier, appui stable, pas de coupure ni de saut visible, rythme cohérent. Les écarts restants sont montrés à Yoahn plutôt que masqués derrière un seuil inventé. La provenance, le repli et la couverture sont vérifiés. Les générations 6 à 9 en moteur par pièces restent hors de ce lot.
+**Fini quand :** Ponchiot face/dos normal/chromatique et au moins une autre espèce sont comparés sur un cycle complet, à échelle et placement fixes, puis vus dans un vrai combat Player : corps entier, appui stable, pas de coupure ni de saut visible, rythme cohérent. Les écarts restants sont montrés à Yoahn plutôt que masqués derrière un seuil inventé. Les sources utilisées, le repli et la couverture sont vérifiés. Les générations 6 à 9 en moteur par pièces restent hors de ce lot.
 
 ### 5 — Raccorder Studio, Player et HGSS
 
