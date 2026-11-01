@@ -7,6 +7,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_runtime/src/presentation/flame/battle_animation_plan.dart';
 import 'package:map_runtime/src/presentation/flame/battle_animation_runner.dart';
 import 'package:map_runtime/src/presentation/flame/battle_move_recipe_compiler.dart';
+import 'package:map_runtime/src/presentation/flame/battle_recipe_audio_program.dart';
 
 void main() {
   Map<String, dynamic> source() => {
@@ -50,9 +51,188 @@ void main() {
     },
   };
 
+  Map<String, dynamic> explicitAudioSource(Map<String, dynamic> audio) {
+    final bytes = utf8.encode('synthetic');
+    return {
+      ...source(),
+      'schemaVersion': 2,
+      'requiredCapabilities': [
+        'sequence',
+        'parallel',
+        'wait',
+        'cameraFocus',
+        'cameraReset',
+        'audioSelectionV2',
+        if (audio['kind'] != 'none') 'sound',
+      ],
+      'resources': [
+        {
+          'id': 'cue',
+          'role': 'sound',
+          'mediaType': 'audio/ogg',
+          'sizeBytes': bytes.length,
+          'sha256': sha256.convert(bytes).toString(),
+        },
+      ],
+      'audio': audio,
+    };
+  }
+
+  Map<String, dynamic> seqEvent({
+    String sourceId = 'SEQ_EXAMPLE',
+    int ticks = 1,
+    int ticksPerSecond = 60,
+  }) => {
+    'sourceId': sourceId,
+    'resourceId': 'cue',
+    'offset': {'ticks': ticks, 'ticksPerSecond': ticksPerSecond},
+  };
+
   const user = BattleSlotRef(side: BattleSideId.player, slotIndex: 1);
   const target = BattleSlotRef(side: BattleSideId.enemy, slotIndex: 1);
   const compiler = BattleMoveRecipeCompiler();
+
+  test('keeps legacy and silent audio distinct from an explicit clip', () {
+    final legacy = compiler.compileAudioSelection(
+      BattleMoveAnimationRecipe.fromJson(source()),
+    );
+    expect(legacy.status, BattleRecipeAudioCompileStatus.legacy);
+    expect(legacy.selection, isNull);
+
+    final oldSound = source();
+    final bytes = utf8.encode('synthetic');
+    oldSound['requiredCapabilities'] = ['sound'];
+    oldSound['resources'] = [
+      {
+        'id': 'cue',
+        'role': 'sound',
+        'mediaType': 'audio/ogg',
+        'sizeBytes': bytes.length,
+        'sha256': sha256.convert(bytes).toString(),
+      },
+    ];
+    oldSound['program'] = {'kind': 'sound', 'resourceId': 'cue'};
+    final legacySound = compiler.compileAudioSelection(
+      BattleMoveAnimationRecipe.fromJson(oldSound),
+    );
+    expect(legacySound.status, BattleRecipeAudioCompileStatus.legacy);
+    expect(legacySound.selection, isNull);
+
+    final silent = compiler.compileAudioSelection(
+      BattleMoveAnimationRecipe.fromJson(explicitAudioSource({'kind': 'none'})),
+    );
+    expect(silent.status, BattleRecipeAudioCompileStatus.silent);
+    expect(silent.selection, isNull);
+
+    final clip = compiler.compileAudioSelection(
+      BattleMoveAnimationRecipe.fromJson(
+        explicitAudioSource({'kind': 'clip', 'resourceId': 'cue'}),
+      ),
+    );
+    expect(clip.status, BattleRecipeAudioCompileStatus.ready);
+    expect((clip.selection as BattleMoveClipAudio).resourceId, 'cue');
+  });
+
+  test('converts explicit rational SEQ offsets independently', () {
+    final recipe = BattleMoveAnimationRecipe.fromJson(
+      explicitAudioSource({
+        'kind': 'seq',
+        'events': [
+          seqEvent(ticks: 1, ticksPerSecond: 400000),
+          seqEvent(),
+          seqEvent(ticks: 2, ticksPerSecond: 120),
+          seqEvent(ticks: 2),
+          seqEvent(ticks: 3),
+        ],
+      }),
+    );
+    final result = compiler.compileAudioSelection(recipe);
+    expect(result.status, BattleRecipeAudioCompileStatus.ready);
+    final events = (result.selection as BattleSeqAudio).events;
+    expect(events.map((item) => item.sourceId), List.filled(5, 'SEQ_EXAMPLE'));
+    expect(events.map((item) => item.offset.inMicroseconds), [
+      3,
+      16667,
+      16667,
+      33333,
+      50000,
+    ]);
+    expect(
+      (recipe.audio as BattleRecipeAudioSequence).events[1].offset.ticks,
+      1,
+    );
+    expect(
+      (recipe.audio as BattleRecipeAudioSequence)
+          .events[1]
+          .offset
+          .ticksPerSecond,
+      60,
+    );
+  });
+
+  test('reports runtime audio limits without truncating valid recipes', () {
+    final boundary = BattleMoveAnimationRecipe.fromJson(
+      explicitAudioSource({
+        'kind': 'seq',
+        'events': List.generate(
+          8,
+          (_) => seqEvent(ticks: 30, ticksPerSecond: 1),
+        ),
+      }),
+    );
+    final atLimit = compiler.compileAudioSelection(boundary);
+    expect(atLimit.status, BattleRecipeAudioCompileStatus.ready);
+    expect(
+      (atLimit.selection as BattleSeqAudio).events.map((event) => event.offset),
+      List.filled(8, const Duration(seconds: 30)),
+    );
+    final examples = [
+      (
+        List.generate(9, (_) => seqEvent()),
+        BattleRecipeAudioCompileFailure.tooManyEvents,
+      ),
+      ([seqEvent(ticks: 1801)], BattleRecipeAudioCompileFailure.offsetTooLate),
+      (
+        [seqEvent(sourceId: 'x' * 161)],
+        BattleRecipeAudioCompileFailure.sourceIdTooLong,
+      ),
+    ];
+    for (final (events, failure) in examples) {
+      final recipe = BattleMoveAnimationRecipe.fromJson(
+        explicitAudioSource({'kind': 'seq', 'events': events}),
+      );
+      final result = compiler.compileAudioSelection(recipe);
+      expect(result.status, BattleRecipeAudioCompileStatus.unsupported);
+      expect(result.failure, failure);
+      expect(result.selection, isNull);
+      expect(
+        (recipe.audio as BattleRecipeAudioSequence).events,
+        hasLength(events.length),
+      );
+    }
+  });
+
+  test('v2 audio is unavailable to the existing Player compiler', () {
+    for (final audio in [
+      {'kind': 'none'},
+      {'kind': 'clip', 'resourceId': 'cue'},
+    ]) {
+      final recipe = BattleMoveAnimationRecipe.fromJson(
+        explicitAudioSource(audio),
+      );
+      expect(
+        recipe.unsupportedCapabilities(
+          BattleMoveRecipeCompiler.availableCapabilities,
+        ),
+        contains('audioSelectionV2'),
+      );
+      expect(
+        () => compiler.prepare(recipe, {'cue': utf8.encode('synthetic')}),
+        throwsFormatException,
+      );
+    }
+    expect(BattleMoveRecipeCompiler.supportsCompleteMoveVisuals, isFalse);
+  });
 
   test('compiles nested groups, milliseconds and exact combatant slots', () {
     final plan = compiler.compile(

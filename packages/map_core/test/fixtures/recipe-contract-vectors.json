@@ -1,0 +1,29 @@
+{
+  "format": "avelune-recipe-contract-vectors-v1",
+  "base": {
+    "schemaVersion": 1,
+    "recipeId": "example.fire",
+    "revision": "1",
+    "moveSourceId": "flamethrower",
+    "variant": "default",
+    "requiredCapabilities": ["sound"],
+    "provenance": {"source": "synthetic", "sourceRevision": "1", "sourcePaths": [], "converter": "fixture/1"},
+    "resources": [{"id": "cue", "role": "sound", "mediaType": "audio/ogg", "sizeBytes": 12, "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}],
+    "program": {"kind": "sound", "resourceId": "cue"}
+  },
+  "cases": [
+    {"id": "v1-inline-sound", "accept": true, "overrides": {}},
+    {"id": "v1-rejects-v2-capability", "accept": false, "overrides": {"requiredCapabilities": ["sound", "audioSelectionV2"]}},
+    {"id": "v2-silent", "accept": true, "overrides": {"schemaVersion": 2, "requiredCapabilities": ["audioSelectionV2", "wait"], "audio": {"kind": "none"}, "program": {"kind": "wait", "durationMs": 1}}},
+    {"id": "v2-clip", "accept": true, "overrides": {"schemaVersion": 2, "requiredCapabilities": ["audioSelectionV2", "sound", "wait"], "audio": {"kind": "clip", "resourceId": "cue"}, "program": {"kind": "wait", "durationMs": 1}}},
+    {"id": "v2-seq-simultaneous", "accept": true, "overrides": {"schemaVersion": 2, "requiredCapabilities": ["audioSelectionV2", "sound", "wait"], "audio": {"kind": "seq", "events": [{"sourceId": "SEQ_EXAMPLE", "resourceId": "cue", "offset": {"ticks": 1, "ticksPerSecond": 60}}, {"sourceId": "SEQ_EXAMPLE", "resourceId": "cue", "offset": {"ticks": 2, "ticksPerSecond": 120}}]}, "program": {"kind": "wait", "durationMs": 1}}},
+    {"id": "v2-format-beyond-runtime", "accept": true, "overrides": {"schemaVersion": 2, "requiredCapabilities": ["audioSelectionV2", "sound", "wait"], "audio": {"kind": "seq", "events": [{"sourceId": "SEQ_EXAMPLE", "resourceId": "cue", "offset": {"ticks": 31, "ticksPerSecond": 1}}]}, "program": {"kind": "wait", "durationMs": 1}}},
+    {"id": "v2-missing-marker", "accept": false, "overrides": {"schemaVersion": 2, "requiredCapabilities": ["sound", "wait"], "audio": {"kind": "clip", "resourceId": "cue"}, "program": {"kind": "wait", "durationMs": 1}}},
+    {"id": "v2-mixed-audio", "accept": false, "overrides": {"schemaVersion": 2, "requiredCapabilities": ["audioSelectionV2", "sound", "wait"], "audio": {"kind": "clip", "resourceId": "cue", "events": []}, "program": {"kind": "wait", "durationMs": 1}}},
+    {"id": "v2-nested-sound", "accept": false, "overrides": {"schemaVersion": 2, "requiredCapabilities": ["audioSelectionV2", "sound", "sequence"], "audio": {"kind": "clip", "resourceId": "cue"}, "program": {"kind": "sequence", "steps": [{"kind": "sound", "resourceId": "cue"}]}}},
+    {"id": "v2-decreasing-rational", "accept": false, "overrides": {"schemaVersion": 2, "requiredCapabilities": ["audioSelectionV2", "sound", "wait"], "audio": {"kind": "seq", "events": [{"sourceId": "SEQ_EXAMPLE", "resourceId": "cue", "offset": {"ticks": 2, "ticksPerSecond": 3}}, {"sourceId": "SEQ_EXAMPLE", "resourceId": "cue", "offset": {"ticks": 666666, "ticksPerSecond": 1000000}}]}, "program": {"kind": "wait", "durationMs": 1}}},
+    {"id": "v2-decimal-token", "accept": false, "overrides": {"schemaVersion": 2, "requiredCapabilities": ["audioSelectionV2", "sound", "wait"], "audio": {"kind": "seq", "events": [{"sourceId": "SEQ_EXAMPLE", "resourceId": "cue", "offset": {"ticks": 1, "ticksPerSecond": 60}}]}, "program": {"kind": "wait", "durationMs": 1}}, "replace": {"from": "\"ticks\":1", "to": "\"ticks\":1.0"}},
+    {"id": "v2-exponent-token", "accept": false, "overrides": {"schemaVersion": 2, "requiredCapabilities": ["audioSelectionV2", "sound", "wait"], "audio": {"kind": "seq", "events": [{"sourceId": "SEQ_EXAMPLE", "resourceId": "cue", "offset": {"ticks": 1, "ticksPerSecond": 60}}]}, "program": {"kind": "wait", "durationMs": 1}}, "replace": {"from": "\"ticks\":1", "to": "\"ticks\":1e0"}},
+    {"id": "future-version", "accept": false, "overrides": {"schemaVersion": 3}}
+  ]
+}

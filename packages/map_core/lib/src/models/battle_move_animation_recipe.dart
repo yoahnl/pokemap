@@ -5,8 +5,45 @@ import 'package:crypto/crypto.dart';
 import 'battle_recipe_json.dart';
 import 'battle_spl_particle_definition.dart';
 
+sealed class BattleRecipeAudio {
+  const BattleRecipeAudio._();
+}
+
+final class BattleRecipeAudioNone extends BattleRecipeAudio {
+  const BattleRecipeAudioNone._() : super._();
+}
+
+final class BattleRecipeAudioClip extends BattleRecipeAudio {
+  const BattleRecipeAudioClip._(this.resourceId) : super._();
+
+  final String resourceId;
+}
+
+final class BattleRecipeAudioOffset {
+  const BattleRecipeAudioOffset._(this.ticks, this.ticksPerSecond);
+
+  final int ticks;
+  final int ticksPerSecond;
+}
+
+final class BattleRecipeAudioEvent {
+  const BattleRecipeAudioEvent._(this.sourceId, this.resourceId, this.offset);
+
+  final String sourceId;
+  final String resourceId;
+  final BattleRecipeAudioOffset offset;
+}
+
+final class BattleRecipeAudioSequence extends BattleRecipeAudio {
+  BattleRecipeAudioSequence._(List<BattleRecipeAudioEvent> events)
+    : events = List.unmodifiable(events),
+      super._();
+
+  final List<BattleRecipeAudioEvent> events;
+}
+
 final class BattleMoveAnimationRecipe {
-  BattleMoveAnimationRecipe._(this._json, this.resources);
+  BattleMoveAnimationRecipe._(this._json, this.resources, this.audio);
 
   static const recognizedCapabilities = {
     'sequence',
@@ -18,9 +55,13 @@ final class BattleMoveAnimationRecipe {
     'startParticle',
     'waitEffects',
     'splParticleV2',
+    'audioSelectionV2',
   };
   final Map<String, dynamic> _json;
   final List<BattleMoveAnimationResource> resources;
+  final BattleRecipeAudio? audio;
+
+  int get schemaVersion => _json['schemaVersion'] as int;
 
   factory BattleMoveAnimationRecipe.fromJson(Map<String, dynamic> json) {
     final copy = (jsonDecode(jsonEncode(json)) as Map).cast<String, dynamic>();
@@ -34,10 +75,13 @@ final class BattleMoveAnimationRecipe {
       'provenance',
       'resources',
       'program',
+      if (copy['schemaVersion'] == 2) 'audio',
     });
-    if (copy['schemaVersion'] is! int || copy['schemaVersion'] != 1) {
+    if (copy['schemaVersion'] is! int ||
+        (copy['schemaVersion'] != 1 && copy['schemaVersion'] != 2)) {
       throw const FormatException('Unsupported schema');
     }
+    final version = copy['schemaVersion'] as int;
     for (final key in ['recipeId', 'revision', 'moveSourceId', 'variant']) {
       _text(copy[key], key);
     }
@@ -49,9 +93,13 @@ final class BattleMoveAnimationRecipe {
     for (final value in required) {
       final capability = _text(value, 'capability');
       if (!recognizedCapabilities.contains(capability) ||
+          (version == 1 && capability == 'audioSelectionV2') ||
           !capabilities.add(capability)) {
         throw const FormatException('Unsupported or duplicate capability');
       }
+    }
+    if (version == 2 && !capabilities.contains('audioSelectionV2')) {
+      throw const FormatException('Audio selection capability not declared');
     }
     final provenance = _map(copy['provenance'], 'provenance');
     _keys(provenance, {'source', 'sourceRevision', 'sourcePaths', 'converter'});
@@ -90,6 +138,68 @@ final class BattleMoveAnimationRecipe {
         }
       }
     }
+    BattleRecipeAudio? audio;
+    if (version == 2) {
+      final selection = _map(copy['audio'], 'audio');
+      final kind = _text(selection['kind'], 'audio kind');
+      final soundIds = {
+        for (final resource in resources)
+          if (resource.role == 'sound') resource.id,
+      };
+      String soundResource(Object? value) {
+        final id = _audioText(value, 'audio resourceId');
+        if (!soundIds.contains(id)) {
+          throw const FormatException('Missing sound resource');
+        }
+        return id;
+      }
+
+      if (kind == 'none') {
+        _keys(selection, {'kind'});
+        if (capabilities.contains('sound')) {
+          throw const FormatException('Silent audio declares sound');
+        }
+        audio = const BattleRecipeAudioNone._();
+      } else if (kind == 'clip') {
+        _keys(selection, {'kind', 'resourceId'});
+        if (!capabilities.contains('sound')) {
+          throw const FormatException('Sound capability not declared');
+        }
+        audio = BattleRecipeAudioClip._(soundResource(selection['resourceId']));
+      } else if (kind == 'seq') {
+        _keys(selection, {'kind', 'events'});
+        if (!capabilities.contains('sound')) {
+          throw const FormatException('Sound capability not declared');
+        }
+        final rawEvents = _list(selection['events'], 'audio events');
+        if (rawEvents.isEmpty || rawEvents.length > 4096) {
+          throw const FormatException('Invalid audio event count');
+        }
+        final events = <BattleRecipeAudioEvent>[];
+        BattleRecipeAudioOffset? previous;
+        for (final rawEvent in rawEvents) {
+          final event = _map(rawEvent, 'audio event');
+          _keys(event, {'sourceId', 'resourceId', 'offset'});
+          final sourceId = _audioText(event['sourceId'], 'audio sourceId');
+          final resourceId = soundResource(event['resourceId']);
+          final rawOffset = _map(event['offset'], 'audio offset');
+          _keys(rawOffset, {'ticks', 'ticksPerSecond'});
+          final ticks = _audioInteger(rawOffset['ticks'], 0, 3600000000);
+          final rate = _audioInteger(rawOffset['ticksPerSecond'], 1, 1000000);
+          if (ticks > rate * 3600 ||
+              (previous != null &&
+                  previous.ticks * rate > ticks * previous.ticksPerSecond)) {
+            throw const FormatException('Invalid audio event offset');
+          }
+          final offset = BattleRecipeAudioOffset._(ticks, rate);
+          events.add(BattleRecipeAudioEvent._(sourceId, resourceId, offset));
+          previous = offset;
+        }
+        audio = BattleRecipeAudioSequence._(events);
+      } else {
+        throw const FormatException('Unsupported audio kind');
+      }
+    }
     var count = 0;
     void validate(Object? node, int depth, bool inParallel) {
       if (depth > 32 || ++count > 4096) {
@@ -122,6 +232,9 @@ final class BattleMoveAnimationRecipe {
           _keys(step, {'kind', 'durationMs'});
           _duration(step);
         case 'sound':
+          if (version == 2) {
+            throw const FormatException('Sound step in v2 visual program');
+          }
           _keys(step, {'kind', 'resourceId'});
           final id = _text(step['resourceId'], 'resourceId');
           if (!resources.any(
@@ -154,7 +267,11 @@ final class BattleMoveAnimationRecipe {
     }
 
     validate(copy['program'], 0, false);
-    return BattleMoveAnimationRecipe._(copy, List.unmodifiable(resources));
+    return BattleMoveAnimationRecipe._(
+      copy,
+      List.unmodifiable(resources),
+      audio,
+    );
   }
 
   Map<String, dynamic> toJson() =>
@@ -419,6 +536,23 @@ final class BattleMoveAnimationResource {
       bytes.length == sizeBytes &&
       sha256.convert(bytes).toString() == sha256Hex;
 }
+
+int _audioInteger(Object? value, int minimum, int maximum) {
+  if (value is! int || value < minimum || value > maximum) {
+    throw const FormatException('Invalid audio offset');
+  }
+  return value;
+}
+
+String _audioText(Object? value, String name) {
+  final result = _text(value, name);
+  if (result.length > 512 || _audioControlCharacters.hasMatch(result)) {
+    throw FormatException('Invalid $name');
+  }
+  return result;
+}
+
+final _audioControlCharacters = RegExp(r'[\x00-\x1f\x7f]');
 
 void _keys(Map<String, dynamic> object, Set<String> allowed) {
   if (object.keys.any((key) => !allowed.contains(key))) {

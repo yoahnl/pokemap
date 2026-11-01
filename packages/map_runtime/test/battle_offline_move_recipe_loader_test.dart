@@ -90,6 +90,58 @@ void main() {
   BattleOfflineMoveRecipeLoader loader() =>
       BattleOfflineMoveRecipeLoader(projectRootDirectory: project.path);
 
+  test('verified v2 recipes fall back without rewriting their bytes', () async {
+    final wav = await File('assets/audio/overworld/jump.wav').readAsBytes();
+    final hash = sha256.convert(wav).toString();
+    for (final withClip in [false, true]) {
+      final move = withClip ? 'clip' : 'silent';
+      final data = recipe(
+        resources: withClip
+            ? [
+                {
+                  'id': 'sound',
+                  'role': 'sound',
+                  'mediaType': 'audio/wav',
+                  'sizeBytes': wav.length,
+                  'sha256': hash,
+                },
+              ]
+            : const [],
+      );
+      data['schemaVersion'] = 2;
+      data['requiredCapabilities'] = [
+        'wait',
+        'audioSelectionV2',
+        if (withClip) 'sound',
+      ];
+      data['audio'] = withClip
+          ? {'kind': 'clip', 'resourceId': 'sound'}
+          : {'kind': 'none'};
+      final binding = await install(data, move: move);
+      final recipeFile = File(
+        '${project.path}/${battleRecipeBlobPath(binding.recipeSha256, 'application/vnd.avelune.battle-recipe+json', projectMoveId: move)}',
+      );
+      final before = await recipeFile.readAsBytes();
+      if (withClip) {
+        await write(
+          battleRecipeBlobPath(hash, 'audio/wav', projectMoveId: move),
+          wav,
+        );
+      }
+      final result = await loader().load(move);
+      expect(
+        result.fallbackReason,
+        BattleRecipeFallbackReason.unavailableCapabilities,
+      );
+      expect(result.unavailableCapabilities, {
+        'audioSelectionV2',
+        if (withClip) 'sound',
+      });
+      expect(result.prepared, isNull);
+      expect(await recipeFile.readAsBytes(), before);
+    }
+  });
+
   test('verifies sound before selecting the complete legacy fallback', () async {
     final wav = await File('assets/audio/overworld/jump.wav').readAsBytes();
     final hash = sha256.convert(wav).toString();

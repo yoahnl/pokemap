@@ -33,7 +33,7 @@ function largeWav(): Buffer {
   return bytes;
 }
 
-async function runScenario(spl: boolean, withSound = false): Promise<void> {
+async function runScenario(spl: boolean, withSound = false, explicitAudio = false): Promise<void> {
   const root = await mkdtemp(join(tmpdir(), 'battle-recipe-mcp-'));
   const dart = process.env.POKEMAP_TEST_DART ?? 'dart';
   const packageRoot = resolve('../../packages/map_authoring');
@@ -68,15 +68,16 @@ async function runScenario(spl: boolean, withSound = false): Promise<void> {
     const sound = withSound ? largeWav() : null;
     const soundHash = sound ? createHash('sha256').update(sound).digest('hex') : null;
     const recipe = Buffer.from(JSON.stringify({
-      schemaVersion: 1, recipeId: 'visual', revision: '1', moveSourceId: 'source', variant: 'default',
-      requiredCapabilities: ['startParticle', ...(spl ? ['splParticleV2'] : []), ...(sound ? ['sequence', 'sound'] : [])], provenance: { source: 'synthetic', sourceRevision: '1', sourcePaths: [], converter: 'test' },
+      schemaVersion: explicitAudio ? 2 : 1, recipeId: 'visual', revision: '1', moveSourceId: 'source', variant: 'default',
+      requiredCapabilities: ['startParticle', ...(spl ? ['splParticleV2'] : []), ...(sound ? ['sequence', 'sound'] : []), ...(explicitAudio ? ['audioSelectionV2'] : [])], provenance: { source: 'synthetic', sourceRevision: '1', sourcePaths: [], converter: 'test' },
       resources: [
         { id: 'tex', role: 'texture', mediaType: 'image/png', sizeBytes: png.length, sha256: pngHash },
         { id: 'particle', role: 'particleDefinition', mediaType: 'application/vnd.avelune.particle+json',
           sizeBytes: particle.length, sha256: particleHash, definitionVersion: spl ? 2 : 1, dependencies: ['tex'] },
         ...(sound ? [{ id: 'sound', role: 'sound', mediaType: 'audio/wav', sizeBytes: sound.length, sha256: soundHash }] : []),
       ],
-      program: sound ? { kind: 'sequence', steps: [
+      ...(explicitAudio ? { audio: { kind: 'clip', resourceId: 'sound' } } : {}),
+      program: sound && !explicitAudio ? { kind: 'sequence', steps: [
         { kind: 'sound', resourceId: 'sound' },
         { kind: 'startParticle', resourceId: 'particle', from: 'userMouth', to: 'targetImpact' },
       ] } : { kind: 'startParticle', resourceId: 'particle', from: 'userMouth', to: 'targetImpact' },
@@ -166,3 +167,4 @@ async function runScenario(spl: boolean, withSound = false): Promise<void> {
 test('MCP stages, imports and undoes a version 1 move recipe', { timeout: 120_000 }, () => runScenario(false));
 test('MCP stages, imports and undoes a version 2 SPL move recipe', { timeout: 120_000 }, () => runScenario(true));
 test('MCP stages, imports and undoes a sound and SPL move recipe', { timeout: 120_000 }, () => runScenario(true, true));
+test('MCP stages, imports and undoes an explicit audio v2 move recipe', { timeout: 120_000 }, () => runScenario(true, true, true));

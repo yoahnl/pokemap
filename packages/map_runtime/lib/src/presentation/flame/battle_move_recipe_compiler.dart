@@ -2,6 +2,27 @@ import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
 
 import 'battle_animation_plan.dart';
+import 'battle_recipe_audio_program.dart';
+
+enum BattleRecipeAudioCompileStatus { ready, silent, legacy, unsupported }
+
+enum BattleRecipeAudioCompileFailure {
+  tooManyEvents,
+  offsetTooLate,
+  sourceIdTooLong,
+}
+
+final class BattleRecipeAudioCompileResult {
+  const BattleRecipeAudioCompileResult._(
+    this.status, {
+    this.selection,
+    this.failure,
+  });
+
+  final BattleRecipeAudioCompileStatus status;
+  final BattleRecipeAudioSelection? selection;
+  final BattleRecipeAudioCompileFailure? failure;
+}
 
 final class PreparedBattleMoveRecipe {
   const PreparedBattleMoveRecipe._(
@@ -30,6 +51,65 @@ final class BattleMoveRecipeCompiler {
     'cameraFocus',
     'cameraReset',
   };
+
+  BattleRecipeAudioCompileResult compileAudioSelection(
+    BattleMoveAnimationRecipe recipe,
+  ) {
+    final audio = recipe.audio;
+    if (audio == null) {
+      return const BattleRecipeAudioCompileResult._(
+        BattleRecipeAudioCompileStatus.legacy,
+      );
+    }
+    if (audio is BattleRecipeAudioNone) {
+      return const BattleRecipeAudioCompileResult._(
+        BattleRecipeAudioCompileStatus.silent,
+      );
+    }
+    if (audio is BattleRecipeAudioClip) {
+      return BattleRecipeAudioCompileResult._(
+        BattleRecipeAudioCompileStatus.ready,
+        selection: BattleMoveClipAudio(audio.resourceId),
+      );
+    }
+    final events = (audio as BattleRecipeAudioSequence).events;
+    if (events.length > 8) {
+      return const BattleRecipeAudioCompileResult._(
+        BattleRecipeAudioCompileStatus.unsupported,
+        failure: BattleRecipeAudioCompileFailure.tooManyEvents,
+      );
+    }
+    final selection = <BattleSeqAudioEvent>[];
+    for (final event in events) {
+      if (event.sourceId.length > 160) {
+        return const BattleRecipeAudioCompileResult._(
+          BattleRecipeAudioCompileStatus.unsupported,
+          failure: BattleRecipeAudioCompileFailure.sourceIdTooLong,
+        );
+      }
+      final offset = event.offset;
+      if (offset.ticks > offset.ticksPerSecond * 30) {
+        return const BattleRecipeAudioCompileResult._(
+          BattleRecipeAudioCompileStatus.unsupported,
+          failure: BattleRecipeAudioCompileFailure.offsetTooLate,
+        );
+      }
+      final microseconds =
+          (offset.ticks * 1000000 + offset.ticksPerSecond ~/ 2) ~/
+          offset.ticksPerSecond;
+      selection.add(
+        BattleSeqAudioEvent(
+          event.sourceId,
+          event.resourceId,
+          Duration(microseconds: microseconds),
+        ),
+      );
+    }
+    return BattleRecipeAudioCompileResult._(
+      BattleRecipeAudioCompileStatus.ready,
+      selection: BattleSeqAudio(selection),
+    );
+  }
 
   PreparedBattleMoveRecipe prepare(
     BattleMoveAnimationRecipe recipe,

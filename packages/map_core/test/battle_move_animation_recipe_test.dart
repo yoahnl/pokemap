@@ -1,7 +1,9 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 import 'package:map_core/src/models/battle_move_animation_recipe.dart';
+import 'package:map_core/src/models/battle_move_recipe_binding.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -44,6 +46,290 @@ void main() {
       ],
     },
   };
+
+  Map<String, dynamic> explicitAudioRecipe(Map<String, dynamic> audio) => {
+    ...recipe(),
+    'schemaVersion': 2,
+    'requiredCapabilities': [
+      'sequence',
+      'wait',
+      'audioSelectionV2',
+      if (audio['kind'] != 'none') 'sound',
+    ],
+    'audio': audio,
+    'program': {
+      'kind': 'sequence',
+      'steps': [
+        {'kind': 'wait', 'durationMs': 20},
+      ],
+    },
+  };
+
+  Map<String, dynamic> event({
+    String sourceId = 'SEQ_EXAMPLE',
+    String resourceId = 'cue',
+    int ticks = 1,
+    int ticksPerSecond = 60,
+  }) => {
+    'sourceId': sourceId,
+    'resourceId': resourceId,
+    'offset': {'ticks': ticks, 'ticksPerSecond': ticksPerSecond},
+  };
+
+  test('matches the shared API recipe contract vectors on Dart VM', () {
+    final fixture = File(
+      'test/fixtures/recipe-contract-vectors.json',
+    ).readAsBytesSync();
+    expect(
+      sha256.convert(fixture).toString(),
+      '60d199e65eaf4184dd937fb937663b78bdcc54ae174d082a56cbef66dd9eb4bd',
+    );
+    final corpus = jsonDecode(utf8.decode(fixture)) as Map<String, dynamic>;
+    final base = corpus['base'] as Map<String, dynamic>;
+    final cases = corpus['cases'] as List<dynamic>;
+    expect(cases, isNotEmpty);
+    for (final raw in cases) {
+      final example = raw as Map<String, dynamic>;
+      final json = {...base, ...example['overrides'] as Map<String, dynamic>};
+      var text = jsonEncode(json);
+      final replacement = example['replace'] as Map<String, dynamic>?;
+      if (replacement != null) {
+        final from = replacement['from'] as String;
+        expect(
+          from.allMatches(text),
+          hasLength(1),
+          reason: example['id'] as String,
+        );
+        text = text.replaceFirst(from, replacement['to'] as String);
+      }
+      final bytes = utf8.encode(text);
+      final binding = BattleMoveRecipeBinding.fromJson({
+        'schemaVersion': 1,
+        'projectMoveId': 'local-fire',
+        'sourceMoveId': 'flamethrower',
+        'catalogReleaseId': 'fixture',
+        'recipeId': 'example.fire',
+        'variant': 'default',
+        'revision': '1',
+        'recipeSha256': sha256.convert(bytes).toString(),
+      });
+      expect(
+        () => binding.inspectRecipe(bytes),
+        example['accept'] == true ? returnsNormally : throwsFormatException,
+        reason: example['id'] as String,
+      );
+    }
+  });
+
+  test('keeps v1 sound steps and serialized bytes unchanged', () {
+    final original = recipe();
+    final originalBytes = utf8.encode(jsonEncode(original));
+    final parsed = BattleMoveAnimationRecipe.fromJson(original);
+    expect(parsed.schemaVersion, 1);
+    expect(parsed.audio, isNull);
+    expect(utf8.encode(jsonEncode(parsed.toJson())), originalBytes);
+    final unsupported = {
+      ...original,
+      'requiredCapabilities': ['sequence', 'audioSelectionV2'],
+    };
+    expect(
+      () => BattleMoveAnimationRecipe.fromJson(unsupported),
+      throwsFormatException,
+    );
+  });
+
+  test('reads each explicit v2 audio mode without changing its JSON', () {
+    final silentJson = explicitAudioRecipe({'kind': 'none'});
+    final silent = BattleMoveAnimationRecipe.fromJson(silentJson);
+    expect(silent.schemaVersion, 2);
+    expect(silent.audio, isA<BattleRecipeAudioNone>());
+    expect(silent.toJson(), silentJson);
+    expect(silent.unsupportedCapabilities({'sequence', 'wait'}), {
+      'audioSelectionV2',
+    });
+
+    final clipJson = explicitAudioRecipe({'kind': 'clip', 'resourceId': 'cue'});
+    final clip = BattleMoveAnimationRecipe.fromJson(clipJson);
+    expect((clip.audio as BattleRecipeAudioClip).resourceId, 'cue');
+    expect(clip.toJson(), clipJson);
+
+    final seqJson = explicitAudioRecipe({
+      'kind': 'seq',
+      'events': [event(), event(ticks: 2, ticksPerSecond: 120)],
+    });
+    final seq = BattleMoveAnimationRecipe.fromJson(seqJson);
+    final events = (seq.audio as BattleRecipeAudioSequence).events;
+    expect(events.map((item) => item.sourceId), ['SEQ_EXAMPLE', 'SEQ_EXAMPLE']);
+    expect(
+      events.map((item) => (item.offset.ticks, item.offset.ticksPerSecond)),
+      [(1, 60), (2, 120)],
+    );
+    expect(seq.toJson(), seqJson);
+    expect(() => events.clear(), throwsUnsupportedError);
+  });
+
+  test('rejects ambiguous or undeclared v2 audio without changing v1', () {
+    final clip = explicitAudioRecipe({'kind': 'clip', 'resourceId': 'cue'});
+    final invalid = <Map<String, dynamic>>[
+      {...clip, 'schemaVersion': 3},
+      {...clip, 'audio': null},
+      {
+        ...clip,
+        'audio': {'kind': 'none', 'resourceId': 'cue'},
+      },
+      {
+        ...clip,
+        'audio': {
+          'kind': 'clip',
+          'resourceId': 'cue',
+          'events': [event()],
+        },
+      },
+      {
+        ...clip,
+        'audio': {'kind': 'clip', 'resourceId': 'missing'},
+      },
+      {
+        ...clip,
+        'audio': {'kind': 'seq', 'events': <Object>[]},
+      },
+      {
+        ...clip,
+        'requiredCapabilities': ['sequence', 'wait', 'sound'],
+      },
+      {
+        ...clip,
+        'requiredCapabilities': ['sequence', 'wait', 'audioSelectionV2'],
+      },
+      {
+        ...explicitAudioRecipe({'kind': 'none'}),
+        'requiredCapabilities': [
+          'sequence',
+          'wait',
+          'audioSelectionV2',
+          'sound',
+        ],
+      },
+      {
+        ...clip,
+        'program': {
+          'kind': 'sequence',
+          'steps': [
+            {'kind': 'sound', 'resourceId': 'cue'},
+          ],
+        },
+      },
+    ];
+    for (final value in invalid) {
+      expect(
+        () => BattleMoveAnimationRecipe.fromJson(value),
+        throwsFormatException,
+        reason: jsonEncode(value),
+      );
+    }
+    expect(BattleMoveAnimationRecipe.fromJson(recipe()).toJson(), recipe());
+  });
+
+  test('rejects invalid v2 audio resource ids while preserving v1', () {
+    for (final id in ['x' * 513, 'cue\u0001']) {
+      final legacy = recipe();
+      (legacy['resources'] as List).single['id'] = id;
+      legacy['requiredCapabilities'] = ['sound'];
+      legacy['program'] = {'kind': 'sound', 'resourceId': id};
+      expect(BattleMoveAnimationRecipe.fromJson(legacy).toJson(), legacy);
+
+      for (final audio in [
+        {'kind': 'clip', 'resourceId': id},
+        {
+          'kind': 'seq',
+          'events': [event(resourceId: id)],
+        },
+      ]) {
+        final current = explicitAudioRecipe(audio);
+        (current['resources'] as List).single['id'] = id;
+        expect(
+          () => BattleMoveAnimationRecipe.fromJson(current),
+          throwsFormatException,
+        );
+      }
+    }
+  });
+
+  test('rejects decimal and exponent audio times in bound recipe bytes', () {
+    final document = explicitAudioRecipe({
+      'kind': 'seq',
+      'events': [event(ticks: 1, ticksPerSecond: 1)],
+    });
+    final json = jsonEncode(document);
+    for (final field in ['ticks', 'ticksPerSecond']) {
+      for (final number in ['1.0', '1e0']) {
+        final bytes = utf8.encode(
+          json.replaceFirst('"$field":1', '"$field":$number'),
+        );
+        final binding = BattleMoveRecipeBinding.fromJson({
+          'schemaVersion': 1,
+          'projectMoveId': 'local-fire',
+          'sourceMoveId': 'flamethrower',
+          'catalogReleaseId': 'fixture',
+          'recipeId': 'example.fire',
+          'variant': 'default',
+          'revision': '1',
+          'recipeSha256': sha256.convert(bytes).toString(),
+        });
+        expect(
+          () => binding.inspectRecipe(bytes),
+          throwsFormatException,
+          reason: '$field=$number',
+        );
+      }
+    }
+  });
+
+  test('bounds and orders rational SEQ times without runtime truncation', () {
+    final maximum = explicitAudioRecipe({
+      'kind': 'seq',
+      'events': List.generate(
+        4096,
+        (_) => event(ticks: 3600, ticksPerSecond: 1),
+      ),
+    });
+    expect(
+      (BattleMoveAnimationRecipe.fromJson(maximum).audio
+              as BattleRecipeAudioSequence)
+          .events,
+      hasLength(4096),
+    );
+    final largeOffsets = explicitAudioRecipe({
+      'kind': 'seq',
+      'events': [
+        event(ticks: 3599999999, ticksPerSecond: 1000000),
+        event(ticks: 3600, ticksPerSecond: 1),
+      ],
+    });
+    expect(
+      (BattleMoveAnimationRecipe.fromJson(largeOffsets).audio
+              as BattleRecipeAudioSequence)
+          .events,
+      hasLength(2),
+    );
+    for (final events in [
+      List.generate(4097, (_) => event()),
+      [event(ticks: -1)],
+      [event(ticksPerSecond: 0)],
+      [event(ticksPerSecond: 1000001)],
+      [event(ticks: 3601, ticksPerSecond: 1)],
+      [event(ticks: 2), event()],
+      [event(sourceId: 'x' * 513)],
+      [event(sourceId: 'SEQ\u0001')],
+      [event(resourceId: 'missing')],
+    ]) {
+      final json = explicitAudioRecipe({'kind': 'seq', 'events': events});
+      expect(
+        () => BattleMoveAnimationRecipe.fromJson(json),
+        throwsFormatException,
+      );
+    }
+  });
 
   test('preserves the explicit sequence and parallel structure', () {
     final json = recipe();

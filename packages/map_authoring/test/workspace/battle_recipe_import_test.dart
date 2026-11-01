@@ -105,7 +105,11 @@ final class _RecipeApi implements PokemonBoundedExternalHttpTransport {
 }
 
 void main() {
-  Future<void> runScenario({required bool spl, bool withSound = false}) async {
+  Future<void> runScenario({
+    required bool spl,
+    bool withSound = false,
+    bool explicitAudio = false,
+  }) async {
     final root = await Directory.systemTemp.createTemp('battle-recipe-import-');
     final handles = WorkspaceHandleStore();
     LocalMapAuthoringMutationApi? api;
@@ -211,7 +215,7 @@ void main() {
         : null;
     final soundHash = sound == null ? null : sha256.convert(sound).toString();
     final recipe = utf8.encode(jsonEncode({
-      'schemaVersion': 1,
+      'schemaVersion': explicitAudio ? 2 : 1,
       'recipeId': 'visual',
       'revision': '1',
       'moveSourceId': 'source',
@@ -221,6 +225,7 @@ void main() {
         if (spl) 'splParticleV2',
         if (withSound) 'sequence',
         if (withSound) 'sound',
+        if (explicitAudio) 'audioSelectionV2',
       ],
       'provenance': {
         'source': 'synthetic',
@@ -254,7 +259,8 @@ void main() {
             'sha256': soundHash,
           },
       ],
-      'program': withSound
+      if (explicitAudio) 'audio': {'kind': 'clip', 'resourceId': 'sound'},
+      'program': withSound && !explicitAudio
           ? {
               'kind': 'sequence',
               'steps': [
@@ -551,4 +557,6 @@ void main() {
       () => runScenario(spl: true));
   test('imports and exports a mixed sound and SPL recipe through API and JSONL',
       () => runScenario(spl: true, withSound: true));
+  test('imports and exports an explicit audio v2 recipe through API and JSONL',
+      () => runScenario(spl: true, withSound: true, explicitAudio: true));
 }
