@@ -317,6 +317,7 @@ final class SpatialMapOperations {
         scene,
         scene.copyWith(navigation: navigation),
         reanchorAttached: false,
+        pinned: _borderOwnedInstanceIds(map),
       ),
     );
     final modelIds = models

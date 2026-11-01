@@ -11,6 +11,111 @@ import '../support/spatial_border_ground_surface_fixture.dart'
 const _operations = SpatialMapOperations();
 
 void main() {
+  test('navigation ramp changes preserve contour-owned Border poses', () {
+    final fixture = spatialCliffFixture(
+      geometry: BorderStrokeGeometry(
+        alignment: BorderStrokeAlignment.gridEdges,
+        strokes: [
+          BorderStroke(
+            id: 'corner',
+            closed: false,
+            points: const [
+              GridPos(x: 3, y: 2),
+              GridPos(x: 3, y: 3),
+              GridPos(x: 2, y: 3),
+            ],
+          ),
+        ],
+      ),
+      levels: [
+        for (var z = 0; z < 6; z++)
+          for (var x = 0; x < 6; x++) x == 2 && z == 2 ? 2 : 1,
+      ],
+    );
+    final ramp = SpatialRamp(
+      id: 'ramp',
+      x: 3,
+      z: 2,
+      width: 1,
+      depth: 2,
+      lowLevel: 1,
+      highLevel: 3,
+      direction: SpatialRampDirection.north,
+      surfaceInstanceId: 'stairs',
+    );
+    final stairs = SpatialModelInstance(
+      id: 'stairs',
+      modelId: 'unit',
+      position: Model3dVector3(x: 3.5, y: 1, z: 3),
+      blocksMovement: false,
+    );
+    final prop = SpatialModelInstance(
+      id: 'ordinary-prop',
+      modelId: 'unit',
+      position: Model3dVector3(x: 3, y: 2.5, z: 3),
+    );
+    final source = fixture.map.copyWith(
+      spatialScene: fixture.map.spatialScene!.copyWith(
+        navigation: SpatialNavigationProfile(ramps: [ramp]),
+        instances: [stairs, prop],
+      ),
+    );
+    final before = applySpatialBorderFeaturePreview(
+      source,
+      manifest: fixture.project,
+      proposedResult: resolveSpatialBorderFeature(
+        manifest: fixture.project,
+        map: source,
+        layerId: 'border',
+        featureId: 'fence',
+      ),
+    );
+    final borderBefore = _borderInstances(before);
+    expect(borderBefore, hasLength(3));
+    expect(
+      borderBefore.map((instance) => instance.position.y),
+      everyElement(2),
+    );
+    expect(_storedOutputMatchesReceipt(before), isTrue);
+    final fishingOnly = _operations.configureNavigation(
+      before,
+      before.spatialScene!.navigation.copyWith(maximumFishingDropWorld: .5),
+    );
+    expect(fishingOnly.spatialScene!.instances, before.spatialScene!.instances);
+    expect(fishingOnly.layers, before.layers);
+    final after = _operations.configureNavigation(
+      before,
+      before.spatialScene!.navigation.copyWith(
+        ramps: [ramp.copyWith(lowLevel: .5)],
+      ),
+    );
+    expect(before.spatialScene!.worldHeightAt(3, 3), 2);
+    expect(after.spatialScene!.worldHeightAt(3, 3), 1.75);
+    expect(after.spatialScene!.worldHeightAt(2.5, 2.5), 2);
+    expect(
+      after.spatialScene!.instances
+          .singleWhere((instance) => instance.id == prop.id)
+          .position
+          .y,
+      2.25,
+    );
+    expect(
+      _borderInstances(after)
+          .singleWhere(
+            (instance) => instance.position.x == 3 && instance.position.z == 3,
+          )
+          .position
+          .y,
+      2,
+    );
+    expect(_borderInstances(after), borderBefore);
+    expect(_feature(after).materialization, _feature(before).materialization);
+    expect(_storedOutputMatchesReceipt(after), isTrue);
+    final reopened = MapData.fromJson(after.toJson());
+    expect(_borderInstances(reopened), borderBefore);
+    expect(_storedOutputMatchesReceipt(reopened), isTrue);
+  });
+
   test('model-attached stairs do not lift native Border terrain support', () {
     final fixture = _stairFixture(attached: true);
     final before = jsonEncode(fixture.map.toJson());
