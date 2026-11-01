@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -31,6 +32,7 @@ Future<({int resident, int transient, int retainedStaticResident})>
 spatialModelResourceEstimate(
   Uint8List bytes,
   RuntimeResourceReservation reservation, {
+  bool experimentalPartitionSkinnedMeshes = false,
   Object? Function(String source) decodeJson = jsonDecode,
 }) async {
   if (bytes.length < 28) throw const FormatException('Invalid GLB header.');
@@ -93,16 +95,91 @@ spatialModelResourceEstimate(
         ]);
     }
   }
+  var partitionResidentBytes = 0;
+  var partitionTransientBytes = 0;
+  if (experimentalPartitionSkinnedMeshes) {
+    final instancesBySkinnedMesh = <int, int>{};
+    final skins = (json['skins'] as List?) ?? const [];
+    for (final node in nodes) {
+      final mesh = node['mesh'] as int?;
+      final skin = node['skin'] as int?;
+      if (mesh == null || skin == null) continue;
+      final joints = (skins[skin]['joints'] as List?) ?? const [];
+      if (joints.length > 65536) {
+        throw const RuntimeResourceAdmissionException('skin_joint_count');
+      }
+      partitionResidentBytes = _sum([
+        partitionResidentBytes,
+        _product(joints.length, 1024),
+      ]);
+      partitionTransientBytes = _sum([
+        partitionTransientBytes,
+        _product(joints.length, 1024),
+      ]);
+      instancesBySkinnedMesh.update(
+        mesh,
+        (value) => value + 1,
+        ifAbsent: () => 1,
+      );
+    }
+    for (final (meshIndex, mesh)
+        in ((json['meshes'] as List?) ?? const []).indexed) {
+      final instances = instancesBySkinnedMesh[meshIndex] ?? 0;
+      if (instances == 0) continue;
+      for (final primitive in (mesh['primitives'] as List?) ?? const []) {
+        final attributes = primitive['attributes'] as Map;
+        if (!attributes.containsKey('JOINTS_0') ||
+            !attributes.containsKey('WEIGHTS_0'))
+          continue;
+        final positionIndex = attributes['POSITION'] as int;
+        final indexIndex = primitive['indices'] as int? ?? positionIndex;
+        final vertexCount = accessors[positionIndex]['count'] as int;
+        final indexCount = accessors[indexIndex]['count'] as int;
+        if (vertexCount < 1 ||
+            vertexCount > 65535 ||
+            indexCount < 3 ||
+            indexCount % 3 != 0 ||
+            indexCount ~/ 3 > 200000) {
+          throw const RuntimeResourceAdmissionException(
+            'skin_partition_geometry',
+          );
+        }
+        final outputVertices = math.min(indexCount, 200000);
+        final surfaces = math.min(indexCount ~/ 3, 1024);
+        partitionResidentBytes = _sum([
+          partitionResidentBytes,
+          _product(
+            _sum([_product(outputVertices, 256), _product(surfaces, 8192)]),
+            instances,
+          ),
+        ]);
+        partitionTransientBytes = _sum([
+          partitionTransientBytes,
+          _product(
+            _sum([
+              _product(vertexCount, 1024),
+              _product(outputVertices, 1024),
+              _product(indexCount, 128),
+              _product(surfaces, 8192),
+            ]),
+            instances,
+          ),
+        ]);
+      }
+    }
+  }
   var pixels = 0;
   reservation.resize(
     residentBytes: _sum([
       geometryBytes,
+      partitionResidentBytes,
       _product(bytes.length, 2),
       _product(metadataBytes, 2),
     ]),
     transientBytes: _sum([
       _product(bytes.length, 4),
       geometryBytes,
+      partitionTransientBytes,
       _product(metadataBytes, 4),
     ]),
   );
@@ -134,6 +211,7 @@ spatialModelResourceEstimate(
     reservation.resize(
       residentBytes: _sum([
         geometryBytes,
+        partitionResidentBytes,
         _product(bytes.length, 2),
         _product(pixels, 2),
         _product(metadataBytes, 2),
@@ -141,15 +219,21 @@ spatialModelResourceEstimate(
       transientBytes: _sum([
         _product(bytes.length, 4),
         geometryBytes,
+        partitionTransientBytes,
         _product(pixels, 2),
         _product(metadataBytes, 4),
       ]),
     );
   }
   return (
-    retainedStaticResident: _sum([geometryBytes, _product(pixels, 2)]),
+    retainedStaticResident: _sum([
+      geometryBytes,
+      partitionResidentBytes,
+      _product(pixels, 2),
+    ]),
     resident: _sum([
       geometryBytes,
+      partitionResidentBytes,
       _product(bytes.length, 2),
       _product(pixels, 2),
       _product(metadataBytes, 2),
@@ -157,6 +241,7 @@ spatialModelResourceEstimate(
     transient: _sum([
       _product(bytes.length, 4),
       geometryBytes,
+      partitionTransientBytes,
       _product(pixels, 2),
       _product(metadataBytes, 4),
     ]),

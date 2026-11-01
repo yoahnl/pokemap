@@ -13,6 +13,7 @@ import 'package:flame_3d/resources.dart' as resources;
 import 'package:map_core/map_core.dart';
 
 import 'animated_render_model.dart';
+import 'experimental_skinned_mesh_loader.dart';
 import 'glb_renderer_layout.dart';
 import 'spatial_model_source_admission.dart';
 import 'spatial_resource_admission.dart';
@@ -99,6 +100,7 @@ final class ModelByteLoader {
 
   static Future<Model> load(
     Uint8List bytes, {
+    bool experimentalPartitionSkinnedMeshes = false,
     RuntimeResourceBudget? budget,
     RuntimeResourceReservation? reservation,
     bool Function()? isCurrent,
@@ -106,6 +108,7 @@ final class ModelByteLoader {
     Future<ui.Codec> Function(Uint8List bytes)? codecLoader,
   }) => _load(
     bytes,
+    experimentalPartitionSkinnedMeshes: experimentalPartitionSkinnedMeshes,
     budget: budget,
     reservation: reservation,
     isCurrent: isCurrent,
@@ -115,6 +118,7 @@ final class ModelByteLoader {
 
   static Future<Model> _load(
     Uint8List bytes, {
+    bool experimentalPartitionSkinnedMeshes = false,
     RuntimeResourceBudget? budget,
     RuntimeResourceReservation? reservation,
     bool Function()? isCurrent,
@@ -130,12 +134,22 @@ final class ModelByteLoader {
         throw const RuntimeResourceAdmissionException('encoded_bytes');
       }
       lease.resize(residentBytes: 0, transientBytes: bytes.length * 2);
-      final estimate = await spatialModelResourceEstimate(bytes, lease);
+      final estimate = await spatialModelResourceEstimate(
+        bytes,
+        lease,
+        experimentalPartitionSkinnedMeshes: experimentalPartitionSkinnedMeshes,
+      );
       lease.resize(
         residentBytes: estimate.resident,
         transientBytes: estimate.transient,
       );
-      final model = await _loadAdmitted(bytes, lease, codecLoader, textures);
+      final model = await _loadAdmitted(
+        bytes,
+        lease,
+        codecLoader,
+        textures,
+        experimentalPartitionSkinnedMeshes: experimentalPartitionSkinnedMeshes,
+      );
       lease.ensureCurrent();
       final retained = spatialRetainedModelResourceBytes(
         model,
@@ -164,8 +178,9 @@ final class ModelByteLoader {
     Uint8List bytes,
     RuntimeResourceReservation reservation,
     Future<ui.Codec> Function(Uint8List bytes)? codecLoader,
-    _SharedTextures? textures,
-  ) async {
+    _SharedTextures? textures, {
+    required bool experimentalPartitionSkinnedMeshes,
+  }) async {
     final current = Flame.assets;
     final cache = current is _ModelAssetsCache
         ? current
@@ -219,6 +234,11 @@ final class ModelByteLoader {
             mirroredTransform: determinant < 0,
           );
         }
+      }
+      if (experimentalPartitionSkinnedMeshes) {
+        reservation.ensureCurrent();
+        partitionExperimentalSkinnedModel(model, root);
+        reservation.ensureCurrent();
       }
       final animations = [
         for (final clip in model.animations)

@@ -7,6 +7,7 @@ import 'package:flame_3d/graphics.dart';
 import 'package:flame_3d/resources.dart';
 import 'package:map_core/map_core.dart';
 
+import 'glb_renderer_layout.dart';
 import 'spatial_pixel_material.dart';
 import 'spatial_lighting_preview.dart';
 import 'spatial_shadow_profile.dart';
@@ -134,7 +135,10 @@ class SpatialRenderContext extends RenderContext3D
     SpatialPixelMaterial material,
     int sequence,
   ) {
-    surface.aabb.copyCenter(_snapshotCenter);
+    final sortBounds = surface is SpatialModelSurface
+        ? surface.transparentSortBounds ?? surface.aabb
+        : surface.aabb;
+    sortBounds.copyCenter(_snapshotCenter);
     model.transform3(_snapshotCenter);
     view.transform3(_snapshotCenter);
     if (_snapshotCount == _snapshots.length) {

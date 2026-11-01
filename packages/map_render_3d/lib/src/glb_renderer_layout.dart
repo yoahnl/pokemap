@@ -260,11 +260,16 @@ final class SpatialModelSurface extends Surface {
     required super.material,
     super.jointMap,
     this.materialIndex,
-  }) : _hasSourceNormals = vertices.firstOrNull?.normal != null,
+    Aabb3? transparentSortBounds,
+  }) : transparentSortBounds = transparentSortBounds == null
+           ? null
+           : Aabb3.copy(transparentSortBounds),
+       _hasSourceNormals = vertices.firstOrNull?.normal != null,
        _sourceAttributes = _packSourceAttributes(vertices),
        super(vertices: vertices);
 
   final int? materialIndex;
+  final Aabb3? transparentSortBounds;
   final bool _hasSourceNormals;
   final Float32List _sourceAttributes;
 
