@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'indexed_atlas.dart';
 import 'lz11.dart';
 import 'mcss_bin.dart';
 import 'nanr.dart';
@@ -10,6 +11,7 @@ import 'nmcr.dart';
 final class Gen5DecodedSourceView {
   const Gen5DecodedSourceView({
     required this.atlas,
+    required this.indexedAtlas,
     required this.palette,
     required this.info,
     required this.cells,
@@ -19,6 +21,7 @@ final class Gen5DecodedSourceView {
   });
 
   final Uint8List atlas;
+  final Gen5IndexedAtlas indexedAtlas;
   final List<({int r, int g, int b})> palette;
   final Gen5McssBin info;
   final List<Gen5NcerCell> cells;
@@ -74,7 +77,7 @@ Gen5DecodedSourceView decodeGen5SourceView(
       assets[name] ??
       (throw FormatException('Missing Gen 5 source asset: $name'));
   final atlas = asset('$view.png');
-  validateGen5AtlasHeader(atlas);
+  final indexedAtlas = decodeGen5IndexedAtlas(atlas);
   final palette = parseGen5SourcePalette(
     asset(shiny ? 'shiny.pal' : 'normal.pal'),
   );
@@ -94,6 +97,7 @@ Gen5DecodedSourceView decodeGen5SourceView(
   );
   return Gen5DecodedSourceView(
     atlas: atlas,
+    indexedAtlas: indexedAtlas,
     palette: palette,
     info: info,
     cells: cells,

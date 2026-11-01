@@ -7,7 +7,7 @@ import 'package:test/test.dart';
 import '../../../tools/gen5_battle_sprite/source_choice.dart';
 
 Uint8List _atlas() => base64.decode(
-  'iVBORw0KGgoAAAANSUhEUgAAAQAAAACACAYAAADktbcKAAAAlklEQVR4nO3BMQEAAADCoPVPbQ0PoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA+DACeAAGpcCxCAAAAAElFTkSuQmCC',
+  'iVBORw0KGgoAAAANSUhEUgAAAQAAAACACAMAAADTa0c4AAAAMFBMVEUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABaPxwLAAAAAXRSTlMAQObYZgAAADdJREFUeJztwTEBAAAAwqD1T20MH6AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgLcBgIAAARE6C/kAAAAASUVORK5CYII=',
 );
 
 Uint8List _ncer() {
@@ -145,6 +145,7 @@ void main() {
       expect(result.view!.info.width, width);
       expect(result.view!.palette.first.r, red);
       expect(result.view!.palette.first.b, blue);
+      expect(result.view!.indexedAtlas.indices.length, 256 * 128);
     }
   });
 
@@ -197,6 +198,24 @@ void main() {
       );
     },
   );
+
+  test('falls back for a truncated atlas even if its digest matches', () {
+    final document = _validSource();
+    final broken = _atlas().sublist(0, 33);
+    ((document['assets'] as Map)['front.png'] as Map)
+      ..['size'] = broken.length
+      ..['sha256'] = sha256.convert(broken).toString()
+      ..['data'] = base64.encode(broken);
+    final result = selectGen5SourceCandidate(
+      document: document,
+      view: 'front',
+      shiny: false,
+      gifAvailable: true,
+      rendererSupported: true,
+    );
+    expect(result.kind, Gen5SourceCandidateKind.gifFallback);
+    expect(result.reason, Gen5SourceCandidateReason.invalidSource);
+  });
 
   test('keeps GIF fallback when the renderer cannot display the source', () {
     final result = selectGen5SourceCandidate(
