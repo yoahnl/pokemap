@@ -87,3 +87,18 @@ must be preserved where its license terms require it.
 The ownership and redistribution status of Pokémon graphics, palettes and
 other game data are separate from the licenses of these repositories and
 remain unverified. This tooling does not authorize their redistribution.
+
+The experimental anima_frame_clock C helper resolves a bounded, forward-looping
+parent frame and its elapsed tick. It rejects zero durations, other playback
+modes and nonzero loop starts. In a private FFI bench it was used with the MIT
+AnimaEngine composer to reset observed mode-zero children on parent-frame
+changes. Five retained Oshawott software-GPU captures from one battle favored
+that candidate over the composer's global child tick after per-frame integer
+translation; one comparison matched all 688 visible reference pixels. This
+is not proof of general timing, animation fidelity or Player integration.
+
+The experiment compared against the existing controller and captures described
+above. Those earlier investigations consulted GPL-licensed pokebw2 and
+melonDS sources; their provenance and unresolved licensing questions continue
+to apply. No melonDS raster source is included in the clock helper. No game
+assets are included in this helper or its synthetic test.
