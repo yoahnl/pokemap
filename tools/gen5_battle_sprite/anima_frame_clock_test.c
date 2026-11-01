@@ -85,14 +85,25 @@ int main(void) {
     failures += !check(av_anima_child_clock(1, 67, 3, &child_tick) == AV_ANIMA_CLOCK_OK &&
                        child_tick == 70, "mode one did not use accumulated time");
     failures += !check(av_anima_child_clock(1, 65530, 5, &child_tick) == AV_ANIMA_CLOCK_OK &&
-                       child_tick == 65535, "largest supported child tick rejected");
+                       child_tick == 65535, "last 16-bit child tick rejected");
+    const struct { int completed; int elapsed; int expected; } child_boundary_cases[] = {
+        {65530, 6, 65536}, {65534, 2, 65536}, {65534, 5, 65539},
+        {4, 0, 4}, {65535, 65535, 131070},
+    };
+    for (size_t i = 0; i < sizeof(child_boundary_cases) / sizeof(child_boundary_cases[0]); i++) {
+        child_tick = 999;
+        int result = av_anima_child_clock(1, child_boundary_cases[i].completed,
+                                           child_boundary_cases[i].elapsed, &child_tick);
+        failures += !check(result == AV_ANIMA_CLOCK_OK && child_tick == child_boundary_cases[i].expected,
+                           "mode one child time did not preserve the sum across the boundary");
+    }
     child_tick = 999;
-    failures += !check(av_anima_child_clock(1, 65530, 6, &child_tick) == AV_ANIMA_CLOCK_UNSUPPORTED,
-                       "unvalidated counter wrap accepted");
     failures += !check(av_anima_child_clock(1, 65536, 0, &child_tick) == AV_ANIMA_CLOCK_UNSUPPORTED,
                        "unvalidated completed counter accepted");
     failures += !check(av_anima_child_clock(0, 1, 65536, &child_tick) == AV_ANIMA_CLOCK_UNSUPPORTED,
                        "unvalidated elapsed counter accepted");
+    failures += !check(av_anima_child_clock(1, 65535, 65536, &child_tick) == AV_ANIMA_CLOCK_UNSUPPORTED,
+                       "oversized mode one elapsed counter accepted");
     failures += !check(av_anima_child_clock(2, 0, 1, &child_tick) == AV_ANIMA_CLOCK_UNSUPPORTED,
                        "unknown child mode accepted");
     failures += !check(av_anima_child_clock(1, -1, 1, &child_tick) == AV_ANIMA_CLOCK_INVALID,
