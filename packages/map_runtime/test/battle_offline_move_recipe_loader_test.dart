@@ -91,6 +91,136 @@ void main() {
   BattleOfflineMoveRecipeLoader loader() =>
       BattleOfflineMoveRecipeLoader(projectRootDirectory: project.path);
 
+  test(
+    'retains verified media under the shared budget until released',
+    () async {
+      final wav = await File('assets/audio/overworld/jump.wav').readAsBytes();
+      final hash = sha256.convert(wav).toString();
+      final data = recipe(
+        resources: [
+          {
+            'id': 'sound',
+            'role': 'sound',
+            'mediaType': 'audio/wav',
+            'sizeBytes': wav.length,
+            'sha256': hash,
+          },
+        ],
+      );
+      data['schemaVersion'] = 2;
+      data['requiredCapabilities'] = ['wait', 'sound', 'audioSelectionV2'];
+      data['audio'] = {'kind': 'clip', 'resourceId': 'sound'};
+      await install(data);
+      await write(
+        battleRecipeBlobPath(hash, 'audio/wav', projectMoveId: 'local'),
+        wav,
+      );
+      final budget = RuntimeResourceBudget();
+      addTearDown(budget.dispose);
+      var current = true;
+      final result = await BattleOfflineMoveRecipeLoader(
+        projectRootDirectory: project.path,
+        resourceBudget: budget,
+      ).load('local', retainVerifiedMedia: true, isCurrent: () => current);
+      expect(
+        result.fallbackReason,
+        BattleRecipeFallbackReason.unavailableCapabilities,
+      );
+      final lease = result.verifiedMedia!;
+      addTearDown(lease.release);
+      expect(lease.bundle.media['sound'], wav);
+      expect(budget.residentBytes, greaterThanOrEqualTo(wav.length));
+      expect(budget.transientBytes, 0);
+      expect(budget.activeDecodes, 0);
+      current = false;
+      expect(
+        () => lease.bundle,
+        throwsA(isA<RuntimeResourceAdmissionException>()),
+      );
+      lease.release();
+      lease.release();
+      expect(() => lease.bundle, throwsStateError);
+      expect(budget.residentBytes, 0);
+      current = true;
+      final altered = Uint8List.fromList(wav)..[wav.length - 1] ^= 1;
+      await write(
+        battleRecipeBlobPath(hash, 'audio/wav', projectMoveId: 'local'),
+        altered,
+      );
+      await expectLater(
+        BattleOfflineMoveRecipeLoader(
+          projectRootDirectory: project.path,
+          resourceBudget: budget,
+        ).load('local', retainVerifiedMedia: true, isCurrent: () => current),
+        throwsFormatException,
+      );
+      expect(budget.residentBytes, 0);
+      expect(budget.transientBytes, 0);
+      expect(budget.activeDecodes, 0);
+    },
+  );
+
+  test(
+    'refuses retained media when the resident budget is insufficient',
+    () async {
+      final wav = await File('assets/audio/overworld/jump.wav').readAsBytes();
+      final hash = sha256.convert(wav).toString();
+      final data = recipe(
+        resources: [
+          {
+            'id': 'sound',
+            'role': 'sound',
+            'mediaType': 'audio/wav',
+            'sizeBytes': wav.length,
+            'sha256': hash,
+          },
+        ],
+      );
+      data['schemaVersion'] = 2;
+      data['requiredCapabilities'] = ['wait', 'sound', 'audioSelectionV2'];
+      data['audio'] = {'kind': 'clip', 'resourceId': 'sound'};
+      await install(data);
+      await write(
+        battleRecipeBlobPath(hash, 'audio/wav', projectMoveId: 'local'),
+        wav,
+      );
+      final budget = RuntimeResourceBudget(
+        profile: const RuntimeResourceProfile(maximumResidentBytes: 1024),
+      );
+      addTearDown(budget.dispose);
+      final result = await BattleOfflineMoveRecipeLoader(
+        projectRootDirectory: project.path,
+        resourceBudget: budget,
+      ).load('local', retainVerifiedMedia: true);
+      expect(result.fallbackReason, BattleRecipeFallbackReason.resourceBudget);
+      expect(result.verifiedMedia, isNull);
+      expect(budget.residentBytes, 0);
+      expect(budget.transientBytes, 0);
+      expect(budget.activeDecodes, 0);
+    },
+  );
+
+  test('retains supported recipes without changing their fallback', () async {
+    await install(recipe());
+    final budget = RuntimeResourceBudget();
+    addTearDown(budget.dispose);
+    final result = await BattleOfflineMoveRecipeLoader(
+      projectRootDirectory: project.path,
+      resourceBudget: budget,
+    ).load('local', retainVerifiedMedia: true);
+    expect(
+      result.fallbackReason,
+      BattleRecipeFallbackReason.incompletePresentation,
+    );
+    expect(result.prepared, isNotNull);
+    final lease = result.verifiedMedia!;
+    addTearDown(lease.release);
+    expect(lease.bundle.recipe.toJson()['moveSourceId'], 'source');
+    expect(budget.residentBytes, greaterThan(0));
+    lease.release();
+    expect(budget.residentBytes, 0);
+  });
+
   test('verified v2 recipes fall back without rewriting their bytes', () async {
     final wav = await File('assets/audio/overworld/jump.wav').readAsBytes();
     final hash = sha256.convert(wav).toString();

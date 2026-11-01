@@ -23,12 +23,37 @@ final class BattleOfflineMoveRecipeResult {
   BattleOfflineMoveRecipeResult({
     required this.fallbackReason,
     this.prepared,
+    this.verifiedMedia,
     Set<String> unavailableCapabilities = const {},
   }) : unavailableCapabilities = Set.unmodifiable(unavailableCapabilities);
 
   final BattleRecipeFallbackReason? fallbackReason;
   final PreparedBattleMoveRecipe? prepared;
+  final BattleOfflineVerifiedMedia? verifiedMedia;
   final Set<String> unavailableCapabilities;
+}
+
+final class BattleOfflineVerifiedMedia {
+  BattleOfflineVerifiedMedia._(this._bundle, this._reservation);
+
+  InspectedBattleRecipeBundle? _bundle;
+  RuntimeResourceReservation? _reservation;
+
+  InspectedBattleRecipeBundle get bundle {
+    final bundle = _bundle;
+    final reservation = _reservation;
+    if (bundle == null || reservation == null) {
+      throw StateError('Battle recipe media already released');
+    }
+    reservation.ensureCurrent();
+    return bundle;
+  }
+
+  void release() {
+    _bundle = null;
+    _reservation?.release();
+    _reservation = null;
+  }
 }
 
 final class BattleOfflineMoveRecipeLoader {
@@ -52,6 +77,7 @@ final class BattleOfflineMoveRecipeLoader {
   Future<BattleOfflineMoveRecipeResult> load(
     String projectMoveId, {
     bool Function()? isCurrent,
+    bool retainVerifiedMedia = false,
   }) async {
     _checkCurrent(isCurrent);
     final root = await Directory(projectRootDirectory).resolveSymbolicLinks();
@@ -107,14 +133,21 @@ final class BattleOfflineMoveRecipeLoader {
           'Battle recipe belongs to a different move',
         );
       }
-      return await _loadBound(
+      final result = await _loadBound(
         root,
         binding,
         projectMoveId,
         reservation,
         isCurrent,
         bindingBytes.length,
+        retainVerifiedMedia,
       );
+      _checkCurrent(isCurrent);
+      if (result.verifiedMedia != null) {
+        reservation.ensureCurrent();
+        reservation = null;
+      }
+      return result;
     } on RuntimeResourceAdmissionException {
       _checkCurrent(isCurrent);
       return BattleOfflineMoveRecipeResult(
@@ -132,6 +165,7 @@ final class BattleOfflineMoveRecipeLoader {
     RuntimeResourceReservation reservation,
     bool Function()? isCurrent,
     int bindingByteLength,
+    bool retainVerifiedMedia,
   ) async {
     final recipeBytes = await _read(
       root,
@@ -234,24 +268,34 @@ final class BattleOfflineMoveRecipeLoader {
     final unavailable = inspected.recipe.unsupportedCapabilities(
       BattleMoveRecipeCompiler.availableCapabilities,
     );
-    if (unavailable.isNotEmpty) {
-      return BattleOfflineMoveRecipeResult(
-        fallbackReason: BattleRecipeFallbackReason.unavailableCapabilities,
-        unavailableCapabilities: unavailable,
+    final prepared = unavailable.isNotEmpty
+        ? null
+        : const BattleMoveRecipeCompiler().prepareBound(
+            binding,
+            inspected.recipeBytes,
+            inspected.media,
+            expectedProjectMoveId: projectMoveId,
+            expectedCatalogReleaseId: binding.catalogReleaseId,
+          );
+    BattleOfflineVerifiedMedia? verifiedMedia;
+    if (retainVerifiedMedia) {
+      reservation.resize(
+        residentBytes: totalBytes * 2 + jsonBytes * 64 + totalTexturePixels * 8,
+        transientBytes: encodedReservation + largestTexturePixels * 16,
       );
+      _checkCurrent(isCurrent);
+      reservation.commit();
+      verifiedMedia = BattleOfflineVerifiedMedia._(inspected, reservation);
     }
-    final prepared = const BattleMoveRecipeCompiler().prepareBound(
-      binding,
-      inspected.recipeBytes,
-      inspected.media,
-      expectedProjectMoveId: projectMoveId,
-      expectedCatalogReleaseId: binding.catalogReleaseId,
-    );
     return BattleOfflineMoveRecipeResult(
-      fallbackReason: BattleMoveRecipeCompiler.supportsCompleteMoveVisuals
+      fallbackReason: unavailable.isNotEmpty
+          ? BattleRecipeFallbackReason.unavailableCapabilities
+          : BattleMoveRecipeCompiler.supportsCompleteMoveVisuals
           ? null
           : BattleRecipeFallbackReason.incompletePresentation,
       prepared: prepared,
+      verifiedMedia: verifiedMedia,
+      unavailableCapabilities: unavailable,
     );
   }
 

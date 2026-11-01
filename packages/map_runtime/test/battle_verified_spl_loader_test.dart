@@ -326,6 +326,82 @@ void main() {
   });
 
   test(
+    'scene clock subdivides uneven frames for grouped SPL effects',
+    () async {
+      const stats = BattleStatsSnapshot(
+        attack: 20,
+        defense: 20,
+        specialAttack: 20,
+        specialDefense: 20,
+        speed: 20,
+      );
+      const pokemon = BattleCombatantData(
+        speciesId: 'synthetic',
+        level: 7,
+        maxHp: 25,
+        currentHp: 25,
+        stats: stats,
+        moves: [BattleMoveData(id: 'tackle', name: 'Charge', power: 40)],
+      );
+      final overlay = BattleOverlayComponent(
+        session: createBattleSession(
+          BattleSetup.pokeMapBetaV1ForTest(
+            playerPokemon: pokemon,
+            enemyPokemon: pokemon,
+            isTrainerBattle: false,
+            trainerId: null,
+          ),
+        ),
+        viewportSize: Vector2(390, 844),
+        onPlayerChoice: (_) {},
+      );
+      await loadFlameComponent(overlay);
+      await overlay.waitForPendingVisualSync();
+      addTearDown(overlay.onRemove);
+      final base = testProjection();
+      final failures = <BattleSplAdmissionFailure>[];
+      final result = await BattleVerifiedSplLoader(await bundle(grouped: true))
+          .createGrouped(
+            ['particle', 'particle2'],
+            emitters: const [
+              BattleSplStaticEmitter(
+                emitterIndex: 0,
+                startTick: 0,
+                position: (x: 0, y: 0, z: 0),
+              ),
+              BattleSplStaticEmitter(
+                emitterIndex: 1,
+                startTick: 0,
+                position: (x: 0, y: 0, z: 0),
+              ),
+            ],
+            seed: 0,
+            poolCapacity: 32,
+            maxTicks: 80,
+            origin: ui.Offset.zero,
+            pixelsPerUnit: 4,
+            projection: BattleSplCameraProjection(
+              camera: base.camera,
+              bindings: List.filled(2, base.bindings.single),
+            ),
+            onComplete: () {},
+            onFailure: failures.add,
+          );
+      final component = result.component!;
+      addTearDown(component.dispose);
+      overlay.add(component);
+      overlay.findGame()!.processLifecycleEvents();
+      await component.loaded;
+      overlay.findGame()!.processLifecycleEvents();
+      overlay.updateTree(1.5 / 60);
+      expect(component.playback.tick, 1);
+      overlay.updateTree(1.5 / 60);
+      expect(component.playback.tick, 3);
+      expect(failures, isEmpty);
+    },
+  );
+
+  test(
     'refuses scene playback before starting if projection is unavailable',
     () async {
       final loader = BattleVerifiedSplLoader(await bundle());
