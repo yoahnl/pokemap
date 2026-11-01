@@ -119,43 +119,32 @@ class Primitive({
 
   JointData computeJointData() {
     final weights = this.weights?.get().typedData() ?? [];
-    // this are the indexes (0, 1, 2, 3) that have any relevance at all
-    final relevantIndexes = weights.expand((w) {
-      return w.storage.indexed
-          .where((e) => e.$2 > 0.0)
-          .map((e) => e.$1)
-          .toSet();
-    }).toSet();
-
     final joints = this.joints?.get().typedData() ?? [];
-    final globalToLocalJointMap = Map.fromEntries(
-      joints
-          .expand((e) {
-            return e.storage.indexed
-                .where((e) => relevantIndexes.contains(e.$1))
-                .map((e) => e.$2);
-          })
-          .toSet()
-          .indexed
-          .map((e) => MapEntry(e.$2.toInt(), e.$1)),
-    );
-
-    final localizedJoints = joints.map((joint) {
-      return Vector4.array(
-        joint.storage.map((e) {
-          final index = e.toInt();
-          if (index != e) {
-            throw StateError('Invalid joint index: $e');
-          }
-          // TODO(luan): remove this logic entirely once we support arrays
-          if (e == 0.0 && globalToLocalJointMap[index] == null) {
-            // this must be a 0 weight value that just happens to be id = 0
-            return 0.0;
-          }
-          return globalToLocalJointMap[index]!.toDouble();
-        }).toList(),
-      );
-    }).toList();
+    if (weights.length != joints.length) {
+      throw StateError('Joint and weight accessor counts do not match');
+    }
+    final globalToLocalJointMap = <int, int>{};
+    for (final (vertexIndex, joint) in joints.indexed) {
+      for (final (componentIndex, value) in joint.storage.indexed) {
+        final index = value.toInt();
+        if (index != value) {
+          throw StateError('Invalid joint index: $value');
+        }
+        if (weights[vertexIndex].storage[componentIndex] > 0) {
+          globalToLocalJointMap.putIfAbsent(
+            index,
+            () => globalToLocalJointMap.length,
+          );
+        }
+      }
+    }
+    final localizedJoints = [
+      for (final joint in joints)
+        Vector4.array([
+          for (final value in joint.storage)
+            (globalToLocalJointMap[value.toInt()] ?? 0).toDouble(),
+        ]),
+    ];
 
     return JointData(
       weights: weights,
