@@ -112,9 +112,11 @@ enum BattleCombatantMotionKind {
 class BattleAnimationPlan {
   const BattleAnimationPlan({
     required this.steps,
+    this.audioScopes = const [],
   });
 
   final List<BattleAnimationStep> steps;
+  final List<BattleAnimationAudioScope> audioScopes;
 
   /// Toutes les étapes du plan, celles imbriquées dans un groupe comprises.
   ///
@@ -181,6 +183,16 @@ class BattleAnimationPlan {
   }
 
   bool get isEmpty => steps.isEmpty;
+}
+
+abstract interface class BattleAnimationAudioScope {
+  AnimationGroupStep get anchor;
+  Iterable<PlaySeStep> get cues;
+  bool claim();
+  bool dispatch(PlaySeStep step);
+  bool get fullyDispatched;
+  Future<void> get finished;
+  Future<void> cancel();
 }
 
 sealed class BattleAnimationStep {

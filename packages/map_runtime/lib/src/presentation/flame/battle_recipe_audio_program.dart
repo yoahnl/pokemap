@@ -70,10 +70,25 @@ final class BattlePreparedRecipeAudio {
   final Future<void> Function() _cancel;
   final Completer<Object> _playbackFailure = Completer<Object>();
   bool _disabled = false;
+  bool _claimed = false;
 
   final List<BattleAnimationStep> steps;
   final List<String> sourceSeqIds;
   Future<Object> get playbackFailure => _playbackFailure.future;
+  bool get fullyDispatched => _cues.values.every((cue) => cue.started);
+  Future<void> get finished =>
+      Future.wait(_cues.values.map((cue) => cue.sound.finished))
+          .then<void>((_) {});
+
+  bool claim() {
+    if (_claimed || _disabled || _cues.values.any((cue) => cue.started)) {
+      return false;
+    }
+    _claimed = true;
+    return true;
+  }
+
+  Future<void> cancel() => _cancel();
 
   static List<BattleAnimationStep> _buildSteps(List<_PreparedAudioCue> cues) {
     final steps = <BattleAnimationStep>[];

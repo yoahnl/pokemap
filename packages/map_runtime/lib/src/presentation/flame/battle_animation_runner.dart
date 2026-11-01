@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 import 'dart:math' as math;
 
 import 'package:map_battle/map_battle.dart';
@@ -119,6 +120,11 @@ final class BattleAnimationRunner {
   bool _waitingTrackedEffects = false;
   int _generation = 0;
   final Map<Object, void Function()?> _trackedEffects = {};
+  final Set<BattleAnimationAudioScope> _activeAudioScopes = HashSet.identity();
+  final Set<BattleAnimationAudioScope> _audioTails = HashSet.identity();
+  final Set<BattleAnimationAudioScope> _finishedAudioScopes = HashSet.identity();
+  final Map<PlaySeStep, BattleAnimationAudioScope> _scopedAudioCues =
+      HashMap.identity();
   String? _currentMessage;
   HudHpTweenStep? _currentHpTweenStep;
   HudXpTweenStep? _currentXpTweenStep;
@@ -223,12 +229,101 @@ final class BattleAnimationRunner {
         throw StateError('Recoverable effect requires a barrier');
       }
     }
+    int countCue(List<BattleAnimationStep> steps, PlaySeStep cue) {
+      var count = 0;
+      for (final step in steps) {
+        if (identical(step, cue)) count++;
+        if (step is AnimationGroupStep) count += countCue(step.steps, cue);
+        if (step is StartTrackedEffectStep && step.fallbackSteps != null) {
+          count += countCue(step.fallbackSteps!, cue);
+        }
+      }
+      return count;
+    }
+
+    final scopes = List<BattleAnimationAudioScope>.of(plan.audioScopes);
+    final anchors = HashMap<AnimationGroupStep, int>.identity();
+    final planCues = HashMap<PlaySeStep, int>.identity();
+
+    void collect(List<BattleAnimationStep> steps, {bool fallback = false}) {
+      for (final step in steps) {
+        if (step is AnimationGroupStep) {
+          if (!fallback) anchors[step] = (anchors[step] ?? 0) + 1;
+          collect(step.steps, fallback: fallback);
+        } else if (step is PlaySeStep) {
+          planCues[step] = (planCues[step] ?? 0) + 1;
+        } else if (step is StartTrackedEffectStep &&
+            step.fallbackSteps != null) {
+          collect(step.fallbackSteps!, fallback: true);
+        }
+      }
+    }
+
+    if (scopes.isNotEmpty) collect(plan.steps);
+    final unique = HashSet<BattleAnimationAudioScope>.identity();
+    if (scopes.length > 16 ||
+        scopes.any(
+          (scope) => !unique.add(scope) || anchors[scope.anchor] != 1,
+        )) {
+      throw StateError('Invalid move audio scope');
+    }
+    final cues = HashMap<PlaySeStep, BattleAnimationAudioScope>.identity();
+    for (final scope in scopes) {
+      final scopeCues = scope.cues.toList();
+      if (scopeCues.isEmpty || scopeCues.length > 8) {
+        throw StateError('Invalid move audio cue count');
+      }
+      for (final cue in scopeCues) {
+        if (cues.containsKey(cue) ||
+            countCue([scope.anchor], cue) != 1 ||
+            planCues[cue] != 1) {
+          throw StateError('Invalid scoped audio cue');
+        }
+        cues[cue] = scope;
+      }
+    }
+    final claimed = <BattleAnimationAudioScope>[];
+    try {
+      for (final scope in scopes) {
+        if (!scope.claim()) throw StateError('Move audio scope already used');
+        claimed.add(scope);
+      }
+    } catch (_) {
+      _cancelAudioScopes(claimed);
+      rethrow;
+    }
     final previousGeneration = _generation;
-    cancel(clearMessage: false, notify: false);
-    if (_generation != previousGeneration + 1) return;
-    if (plan.isEmpty) {
+    try {
+      _cancel(clearMessage: false, notify: false, cancelTails: _active);
+    } catch (_) {
+      _cancelAudioScopes(claimed);
+      rethrow;
+    }
+    if (_generation != previousGeneration + 1) {
+      _cancelAudioScopes(claimed);
       return;
     }
+    if (plan.isEmpty) {
+      _cancelAudioScopes(claimed);
+      return;
+    }
+    for (final scope in claimed) {
+      _activeAudioScopes.add(scope);
+      unawaited(scope.finished.then<void>((_) {
+        if (_activeAudioScopes.contains(scope)) {
+          _finishedAudioScopes.add(scope);
+        } else {
+          _audioTails.remove(scope);
+        }
+      }, onError: (Object _) {
+        if (_activeAudioScopes.contains(scope)) {
+          _finishedAudioScopes.add(scope);
+        } else {
+          _audioTails.remove(scope);
+        }
+      }));
+    }
+    _scopedAudioCues.addAll(cues);
     _plan = BattleAnimationPlan(steps: normalized);
     _nextStepIndex = 0;
     _phaseElapsed = 0;
@@ -240,7 +335,14 @@ final class BattleAnimationRunner {
     _drain(256);
   }
 
-  void cancel({bool clearMessage = true, bool notify = true}) {
+  void cancel({bool clearMessage = true, bool notify = true}) =>
+      _cancel(clearMessage: clearMessage, notify: notify, cancelTails: true);
+
+  void _cancel({
+    required bool clearMessage,
+    required bool notify,
+    required bool cancelTails,
+  }) {
     _generation += 1;
     final cancellations = _trackedEffects.values.toList();
     _trackedEffects.clear();
@@ -259,10 +361,19 @@ final class BattleAnimationRunner {
     _currentHpTweenStep = null;
     _currentXpTweenStep = null;
     _scheduledAccentSteps.clear();
+    _scopedAudioCues.clear();
     _completeCurrentPlan();
     if (clearMessage) {
       _currentMessage = null;
     }
+    final audio = _activeAudioScopes.toList();
+    _activeAudioScopes.clear();
+    _finishedAudioScopes.clear();
+    if (cancelTails) {
+      audio.addAll(_audioTails);
+      _audioTails.clear();
+    }
+    _cancelAudioScopes(audio);
     _cancelAllTrackedEffects(cancellations);
     if (notify) {
       onPresentationChanged();
@@ -368,6 +479,19 @@ final class BattleAnimationRunner {
       _plan = null;
       _pendingSeconds = 0;
       _completeCurrentPlan();
+      final incompleteAudio = _activeAudioScopes
+          .where((scope) => !scope.fullyDispatched)
+          .toList();
+      _audioTails.addAll(
+        _activeAudioScopes.where(
+          (scope) =>
+              scope.fullyDispatched && !_finishedAudioScopes.contains(scope),
+        ),
+      );
+      _activeAudioScopes.clear();
+      _finishedAudioScopes.clear();
+      _scopedAudioCues.clear();
+      _cancelAudioScopes(incompleteAudio);
       final generation = ++_generation;
       final cancellations = _trackedEffects.values.toList();
       _trackedEffects.clear();
@@ -857,7 +981,12 @@ final class BattleAnimationRunner {
       case CombatantFlashStep():
         onCombatantFlash(step);
       case PlaySeStep():
-        onPlaySe?.call(step);
+        final scope = _scopedAudioCues[step];
+        if (scope == null) {
+          onPlaySe?.call(step);
+        } else {
+          scope.dispatch(step);
+        }
       case PlayCryStep():
         onPlayCry?.call(step);
       case CombatantShakeStep():
@@ -923,6 +1052,14 @@ final class BattleAnimationRunner {
     if (completer != null && !completer.isCompleted) {
       completer.complete();
     }
+  }
+}
+
+void _cancelAudioScopes(Iterable<BattleAnimationAudioScope> scopes) {
+  for (final scope in scopes) {
+    unawaited(
+      Future.sync(scope.cancel).then<void>((_) {}, onError: (Object _) {}),
+    );
   }
 }
 

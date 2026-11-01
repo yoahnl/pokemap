@@ -14,6 +14,7 @@ import 'package:map_runtime/map_runtime.dart';
 import 'package:map_runtime/src/presentation/flame/battle_sfx_player.dart';
 import 'package:map_runtime/src/presentation/flame/battle_animation_plan.dart';
 import 'package:map_runtime/src/presentation/flame/battle_animation_runner.dart';
+import 'package:map_runtime/src/presentation/flame/battle_move_audio_scope.dart';
 import 'package:map_runtime/src/presentation/flame/battle_recipe_audio_program.dart';
 import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_verified_recipe_sound_loader.dart';
@@ -335,6 +336,17 @@ void main() {
           result.stepsOrFallback(const [PlaySeStep(seName: 'legacy')]),
           isEmpty,
         );
+        final scope = BattleMoveAudioScope.compose(
+          audio: result,
+          silentVisuals: const AnimationGroupStep(
+            mode: BattleAnimationGroupMode.parallel,
+            steps: [WaitStep(durationSeconds: .1)],
+          ),
+          fallback: const [PlaySeStep(seName: 'legacy')],
+        );
+        expect(scope.status, BattleRecipeAudioStatus.cancelled);
+        expect(scope.steps, isEmpty);
+        expect(scope.audioScopes, isEmpty);
         await closing.timeout(const Duration(milliseconds: 500));
         expect(voice.resumes, 0);
         expect(voice.disposals, 1);
@@ -645,6 +657,716 @@ void main() {
   );
 
   test(
+    'selected move clip replaces legacy move audio but keeps impact and HP',
+    () async {
+      final bundle = await _bundle();
+      final voice = _Voice();
+      final player = FlameAudioBattleSfxPlayer(playerFactory: () => voice);
+      addTearDown(player.dispose);
+      final audio = BattleRecipeAudioCoordinator(
+        player: player,
+        bundle: bundle,
+        preparationTimeout: const Duration(seconds: 1),
+        startTimeout: const Duration(seconds: 1),
+      );
+      addTearDown(audio.cancel);
+      final result = await audio.prepare(const BattleMoveClipAudio('cue'));
+      final scope = BattleMoveAudioScope.compose(
+        audio: result,
+        silentVisuals: const AnimationGroupStep(
+          mode: BattleAnimationGroupMode.parallel,
+          steps: [WaitStep(durationSeconds: .1)],
+        ),
+        fallback: const [
+          PlaySeStep(seName: 'legacy-move'),
+          WaitStep(durationSeconds: .1),
+        ],
+      );
+      final sounds = <String>[];
+      var hpTransitions = 0;
+      final runner = BattleAnimationRunner(
+        onPresentationChanged: () {},
+        onSpawnFx: (_) {},
+        onScreenFlash: (_) {},
+        onCombatantMotion: (_) {},
+        onCombatantFlash: (_) {},
+        onCombatantShake: (_) {},
+        onFaintCombatant: (_) {},
+        onHudHpTween: (_) => hpTransitions++,
+        onBarrierPulse: (_) {},
+        onSwapCombatantVisual: (_) {},
+        onPlaySe: (step) => sounds.add(step.seName),
+      );
+      runner.start(
+        BattleAnimationPlan(
+          steps: [
+            ...scope.steps,
+            const PlaySeStep(seName: 'impact'),
+            const HudHpTweenStep(
+              side: BattleSideId.enemy,
+              fromHp: 25,
+              toHp: 15,
+            ),
+          ],
+          audioScopes: scope.audioScopes,
+        ),
+      );
+      runner.update(.1);
+      await Future<void>.delayed(Duration.zero);
+      expect(voice.resumes, 1);
+      expect(sounds, ['impact']);
+      expect(hpTransitions, 1);
+    },
+  );
+
+  test('audio tokens are intercepted only inside their move scope', () async {
+    final voice = _Voice();
+    final player = FlameAudioBattleSfxPlayer(playerFactory: () => voice);
+    addTearDown(player.dispose);
+    final audio = BattleRecipeAudioCoordinator(
+      player: player,
+      bundle: await _bundle(),
+      preparationTimeout: const Duration(seconds: 1),
+      startTimeout: const Duration(seconds: 1),
+    );
+    addTearDown(audio.cancel);
+    final result = await audio.prepare(const BattleMoveClipAudio('cue'));
+    final token = result.program!.steps.whereType<PlaySeStep>().single.seName;
+    final scope = BattleMoveAudioScope.compose(
+      audio: result,
+      silentVisuals: const AnimationGroupStep(
+        mode: BattleAnimationGroupMode.parallel,
+        steps: [WaitStep(durationSeconds: .1)],
+      ),
+      fallback: const [],
+    );
+    final legacy = <String>[];
+    final runner = _scopeRunner(onPlaySe: (step) => legacy.add(step.seName));
+    runner.start(
+      BattleAnimationPlan(
+        steps: [
+          PlaySeStep(seName: token),
+          ...scope.steps,
+        ],
+        audioScopes: scope.audioScopes,
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+    expect(legacy, [token]);
+    expect(voice.resumes, 1);
+  });
+
+  test('a scoped audio cue cannot also occur outside its scope', () async {
+    final voice = _Voice();
+    final player = FlameAudioBattleSfxPlayer(playerFactory: () => voice);
+    addTearDown(player.dispose);
+    final audio = BattleRecipeAudioCoordinator(
+      player: player,
+      bundle: await _bundle(),
+      preparationTimeout: const Duration(seconds: 1),
+      startTimeout: const Duration(seconds: 1),
+    );
+    addTearDown(audio.cancel);
+    final result = await audio.prepare(const BattleMoveClipAudio('cue'));
+    final cue = result.program!.steps.whereType<PlaySeStep>().single;
+    final scope = BattleMoveAudioScope.compose(
+      audio: result,
+      silentVisuals: const AnimationGroupStep(
+        mode: BattleAnimationGroupMode.parallel,
+        steps: [WaitStep(durationSeconds: .1)],
+      ),
+      fallback: const [],
+    );
+    final runner = _scopeRunner();
+    expect(
+      () => runner.start(
+        BattleAnimationPlan(
+          steps: [cue, ...scope.steps],
+          audioScopes: scope.audioScopes,
+        ),
+      ),
+      throwsStateError,
+    );
+    expect(voice.resumes, 0);
+  });
+
+  test(
+    'a prepared scope cannot be started twice or interrupt its first run',
+    () async {
+      final voice = _Voice();
+      final player = FlameAudioBattleSfxPlayer(playerFactory: () => voice);
+      addTearDown(player.dispose);
+      final audio = BattleRecipeAudioCoordinator(
+        player: player,
+        bundle: await _bundle(),
+        preparationTimeout: const Duration(seconds: 1),
+        startTimeout: const Duration(seconds: 1),
+      );
+      addTearDown(audio.cancel);
+      final scope = BattleMoveAudioScope.compose(
+        audio: await audio.prepare(const BattleMoveClipAudio('cue')),
+        silentVisuals: const AnimationGroupStep(
+          mode: BattleAnimationGroupMode.parallel,
+          steps: [WaitStep(durationSeconds: .1)],
+        ),
+        fallback: const [],
+      );
+      var hpTransitions = 0;
+      final runner = _scopeRunner(onHudHpTween: (_) => hpTransitions++);
+      final plan = BattleAnimationPlan(
+        steps: [
+          ...scope.steps,
+          const HudHpTweenStep(side: BattleSideId.enemy, fromHp: 25, toHp: 15),
+        ],
+        audioScopes: scope.audioScopes,
+      );
+      runner.start(plan);
+      expect(() => runner.start(plan), throwsStateError);
+      runner.update(.1);
+      await Future<void>.delayed(Duration.zero);
+      expect(voice.resumes, 1);
+      expect(hpTransitions, 1);
+    },
+  );
+
+  test(
+    'SEQ cues follow their offsets alongside an explicit visual sequence',
+    () async {
+      final voices = <_Voice>[];
+      final player = FlameAudioBattleSfxPlayer(
+        playerFactory: () {
+          final voice = _Voice();
+          voices.add(voice);
+          return voice;
+        },
+      );
+      addTearDown(player.dispose);
+      final audio = BattleRecipeAudioCoordinator(
+        player: player,
+        bundle: await _bundle(),
+        preparationTimeout: const Duration(seconds: 1),
+        startTimeout: const Duration(seconds: 1),
+      );
+      addTearDown(audio.cancel);
+      final scope = BattleMoveAudioScope.compose(
+        audio: await audio.prepare(
+          BattleSeqAudio([
+            const BattleSeqAudioEvent('first', 'cue', Duration.zero),
+            const BattleSeqAudioEvent(
+              'second',
+              'cue',
+              Duration(milliseconds: 200),
+            ),
+          ]),
+        ),
+        silentVisuals: const AnimationGroupStep(
+          mode: BattleAnimationGroupMode.sequence,
+          steps: [
+            ScreenFlashStep(colorArgb: 1, durationSeconds: .1),
+            ScreenFlashStep(colorArgb: 2, durationSeconds: .2),
+          ],
+        ),
+        fallback: const [PlaySeStep(seName: 'legacy-move')],
+      );
+      final events = <String>[];
+      var hpTransitions = 0;
+      final runner = _scopeRunner(
+        onPlaySe: (step) => events.add(step.seName),
+        onScreenFlash: (step) => events.add('flash:${step.colorArgb}'),
+        onHudHpTween: (_) => hpTransitions++,
+      );
+      runner.start(
+        BattleAnimationPlan(
+          steps: [
+            ...scope.steps,
+            const PlaySeStep(seName: 'impact'),
+            const HudHpTweenStep(
+              side: BattleSideId.enemy,
+              fromHp: 25,
+              toHp: 15,
+            ),
+          ],
+          audioScopes: scope.audioScopes,
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+      expect(voices.map((voice) => voice.resumes), [1, 0]);
+      expect(events, ['flash:1']);
+      runner.update(.1);
+      expect(events, ['flash:1', 'flash:2']);
+      runner.update(.1);
+      await Future<void>.delayed(Duration.zero);
+      expect(voices.map((voice) => voice.resumes), [1, 1]);
+      expect(hpTransitions, 0);
+      runner.update(.1);
+      expect(events, ['flash:1', 'flash:2', 'impact']);
+      expect(hpTransitions, 1);
+    },
+  );
+
+  test(
+    'RMXP visuals with implicit audio retain the complete fallback',
+    () async {
+      final voice = _Voice();
+      final player = FlameAudioBattleSfxPlayer(playerFactory: () => voice);
+      addTearDown(player.dispose);
+      final audio = BattleRecipeAudioCoordinator(
+        player: player,
+        bundle: await _bundle(),
+        preparationTimeout: const Duration(seconds: 1),
+        startTimeout: const Duration(seconds: 1),
+      );
+      addTearDown(audio.cancel);
+      const fallback = [
+        PlaySeStep(seName: 'legacy-move'),
+        WaitStep(durationSeconds: .1),
+      ];
+      final scope = BattleMoveAudioScope.compose(
+        audio: await audio.prepare(const BattleMoveClipAudio('cue')),
+        silentVisuals: const AnimationGroupStep(
+          mode: BattleAnimationGroupMode.parallel,
+          steps: [
+            PlayRmxpAnimationStep(
+              animationId: 1,
+              subjectSide: BattleSideId.player,
+              attackerSide: BattleSideId.player,
+              defenderSide: BattleSideId.enemy,
+              phase: RmxpPlacementPhase.user,
+              placementSpec: RmxpPlacementSpec(
+                policy: RmxpPlacementPolicy.sdkStage,
+              ),
+            ),
+          ],
+        ),
+        fallback: fallback,
+      );
+      expect(scope.status, BattleRecipeAudioStatus.fallback);
+      expect(scope.steps, fallback);
+      expect(scope.audioScopes, isEmpty);
+      final events = <String>[];
+      var hpTransitions = 0;
+      final runner = _scopeRunner(
+        onPlaySe: (step) => events.add(step.seName),
+        onHudHpTween: (_) => hpTransitions++,
+      );
+      runner.start(
+        BattleAnimationPlan(
+          steps: [
+            ...scope.steps,
+            const PlaySeStep(seName: 'impact'),
+            const HudHpTweenStep(
+              side: BattleSideId.enemy,
+              fromHp: 25,
+              toHp: 15,
+            ),
+          ],
+        ),
+      );
+      runner.update(.1);
+      await voice.disposed.future;
+      expect(voice.resumes, 0);
+      expect(events, ['legacy-move', 'impact']);
+      expect(hpTransitions, 1);
+    },
+  );
+
+  test('nested visual audio is rejected and does not start the clip', () async {
+    final voice = _Voice();
+    final player = FlameAudioBattleSfxPlayer(playerFactory: () => voice);
+    addTearDown(player.dispose);
+    final audio = BattleRecipeAudioCoordinator(
+      player: player,
+      bundle: await _bundle(),
+      preparationTimeout: const Duration(seconds: 1),
+      startTimeout: const Duration(seconds: 1),
+    );
+    addTearDown(audio.cancel);
+    final scope = BattleMoveAudioScope.compose(
+      audio: await audio.prepare(const BattleMoveClipAudio('cue')),
+      silentVisuals: const AnimationGroupStep(
+        mode: BattleAnimationGroupMode.parallel,
+        steps: [
+          AnimationGroupStep(
+            mode: BattleAnimationGroupMode.sequence,
+            steps: [PlaySeStep(seName: 'hidden')],
+          ),
+        ],
+      ),
+      fallback: const [PlaySeStep(seName: 'legacy-move')],
+    );
+    expect(scope.status, BattleRecipeAudioStatus.fallback);
+    expect(scope.steps.single, isA<PlaySeStep>());
+    await voice.disposed.future;
+    expect(voice.resumes, 0);
+  });
+
+  test('unsafe visual timing or size selects the legacy fallback', () async {
+    final voices = <_Voice>[];
+    final player = FlameAudioBattleSfxPlayer(
+      playerFactory: () {
+        final voice = _Voice();
+        voices.add(voice);
+        return voice;
+      },
+    );
+    addTearDown(player.dispose);
+    final bundle = await _bundle();
+    final inputs = <List<BattleAnimationStep>>[
+      const [WaitStep(durationSeconds: double.nan)],
+      const [WaitStep(durationSeconds: double.infinity)],
+      const [WaitStep(durationSeconds: 31)],
+      List.generate(257, (_) => const WaitStep(durationSeconds: 0)),
+    ];
+    for (final steps in inputs) {
+      final audio = BattleRecipeAudioCoordinator(
+        player: player,
+        bundle: bundle,
+        preparationTimeout: const Duration(seconds: 1),
+        startTimeout: const Duration(seconds: 1),
+      );
+      final scope = BattleMoveAudioScope.compose(
+        audio: await audio.prepare(const BattleMoveClipAudio('cue')),
+        silentVisuals: AnimationGroupStep(
+          mode: BattleAnimationGroupMode.parallel,
+          steps: steps,
+        ),
+        fallback: const [PlaySeStep(seName: 'legacy-move')],
+      );
+      expect(scope.status, BattleRecipeAudioStatus.fallback);
+      await audio.cancel();
+      expect(voices.last.resumes, 0);
+    }
+  });
+
+  test(
+    'changing the source visual list cannot inject audio after admission',
+    () async {
+      final voice = _Voice();
+      final player = FlameAudioBattleSfxPlayer(playerFactory: () => voice);
+      addTearDown(player.dispose);
+      final audio = BattleRecipeAudioCoordinator(
+        player: player,
+        bundle: await _bundle(),
+        preparationTimeout: const Duration(seconds: 1),
+        startTimeout: const Duration(seconds: 1),
+      );
+      addTearDown(audio.cancel);
+      final visualSteps = <BattleAnimationStep>[
+        const WaitStep(durationSeconds: .1),
+      ];
+      final scope = BattleMoveAudioScope.compose(
+        audio: await audio.prepare(const BattleMoveClipAudio('cue')),
+        silentVisuals: AnimationGroupStep(
+          mode: BattleAnimationGroupMode.parallel,
+          steps: visualSteps,
+        ),
+        fallback: const [],
+      );
+      visualSteps.add(const PlaySeStep(seName: 'late-legacy'));
+      final sounds = <String>[];
+      final runner = _scopeRunner(onPlaySe: (step) => sounds.add(step.seName));
+      runner.start(
+        BattleAnimationPlan(steps: scope.steps, audioScopes: scope.audioScopes),
+      );
+      runner.update(.1);
+      await Future<void>.delayed(Duration.zero);
+      expect(sounds, isEmpty);
+      expect(voice.resumes, 1);
+    },
+  );
+
+  test(
+    'preparation failure leaves the legacy audio and HP untouched',
+    () async {
+      final voice = _Voice(failSource: true);
+      final player = FlameAudioBattleSfxPlayer(playerFactory: () => voice);
+      addTearDown(player.dispose);
+      final audio = BattleRecipeAudioCoordinator(
+        player: player,
+        bundle: await _bundle(),
+        preparationTimeout: const Duration(seconds: 1),
+        startTimeout: const Duration(seconds: 1),
+      );
+      addTearDown(audio.cancel);
+      final scope = BattleMoveAudioScope.compose(
+        audio: await audio.prepare(const BattleMoveClipAudio('cue')),
+        silentVisuals: const AnimationGroupStep(
+          mode: BattleAnimationGroupMode.parallel,
+          steps: [WaitStep(durationSeconds: .1)],
+        ),
+        fallback: const [PlaySeStep(seName: 'legacy-move')],
+      );
+      expect(scope.status, BattleRecipeAudioStatus.fallback);
+      final events = <String>[];
+      var hpTransitions = 0;
+      final runner = _scopeRunner(
+        onPlaySe: (step) => events.add(step.seName),
+        onHudHpTween: (_) => hpTransitions++,
+      );
+      runner.start(
+        BattleAnimationPlan(
+          steps: [
+            ...scope.steps,
+            const PlaySeStep(seName: 'impact'),
+            const HudHpTweenStep(
+              side: BattleSideId.enemy,
+              fromHp: 25,
+              toHp: 15,
+            ),
+          ],
+          audioScopes: scope.audioScopes,
+        ),
+      );
+      expect(events, ['legacy-move', 'impact']);
+      expect(hpTransitions, 1);
+    },
+  );
+
+  test(
+    'a failed start suppresses later SEQ tokens without replaying damage',
+    () async {
+      final voices = <_Voice>[];
+      final player = FlameAudioBattleSfxPlayer(
+        playerFactory: () {
+          final voice = _Voice(failResume: voices.isEmpty);
+          voices.add(voice);
+          return voice;
+        },
+      );
+      addTearDown(player.dispose);
+      final audio = BattleRecipeAudioCoordinator(
+        player: player,
+        bundle: await _bundle(),
+        preparationTimeout: const Duration(seconds: 1),
+        startTimeout: const Duration(seconds: 1),
+      );
+      addTearDown(audio.cancel);
+      final result = await audio.prepare(
+        BattleSeqAudio([
+          const BattleSeqAudioEvent('first', 'cue', Duration.zero),
+          const BattleSeqAudioEvent(
+            'second',
+            'cue',
+            Duration(milliseconds: 500),
+          ),
+        ]),
+      );
+      final scope = BattleMoveAudioScope.compose(
+        audio: result,
+        silentVisuals: const AnimationGroupStep(
+          mode: BattleAnimationGroupMode.parallel,
+          steps: [WaitStep(durationSeconds: .5)],
+        ),
+        fallback: const [PlaySeStep(seName: 'legacy-move')],
+      );
+      final sounds = <String>[];
+      var hpTransitions = 0;
+      final runner = _scopeRunner(
+        onPlaySe: (step) => sounds.add(step.seName),
+        onHudHpTween: (_) => hpTransitions++,
+      );
+      runner.start(
+        BattleAnimationPlan(
+          steps: [
+            ...scope.steps,
+            const PlaySeStep(seName: 'impact'),
+            const HudHpTweenStep(
+              side: BattleSideId.enemy,
+              fromHp: 25,
+              toHp: 15,
+            ),
+          ],
+          audioScopes: scope.audioScopes,
+        ),
+      );
+      await result.program!.playbackFailure;
+      await Future.wait(voices.map((voice) => voice.disposed.future));
+      await Future<void>.delayed(Duration.zero);
+      runner.update(.5);
+      expect(voices.map((voice) => voice.resumes), [1, 0]);
+      expect(sounds, ['impact']);
+      expect(hpTransitions, 1);
+    },
+  );
+
+  test(
+    'cancelling a running scope stops both started and pending SEQ cues',
+    () async {
+      final voices = <_Voice>[];
+      final player = FlameAudioBattleSfxPlayer(
+        playerFactory: () {
+          final voice = _Voice();
+          voices.add(voice);
+          return voice;
+        },
+      );
+      addTearDown(player.dispose);
+      final audio = BattleRecipeAudioCoordinator(
+        player: player,
+        bundle: await _bundle(),
+        preparationTimeout: const Duration(seconds: 1),
+        startTimeout: const Duration(seconds: 1),
+      );
+      addTearDown(audio.cancel);
+      final scope = BattleMoveAudioScope.compose(
+        audio: await audio.prepare(
+          BattleSeqAudio([
+            const BattleSeqAudioEvent('first', 'cue', Duration.zero),
+            const BattleSeqAudioEvent(
+              'second',
+              'cue',
+              Duration(milliseconds: 500),
+            ),
+          ]),
+        ),
+        silentVisuals: const AnimationGroupStep(
+          mode: BattleAnimationGroupMode.parallel,
+          steps: [WaitStep(durationSeconds: 1)],
+        ),
+        fallback: const [PlaySeStep(seName: 'legacy-move')],
+      );
+      final events = <String>[];
+      var hpTransitions = 0;
+      final runner = _scopeRunner(
+        onPlaySe: (step) => events.add(step.seName),
+        onHudHpTween: (_) => hpTransitions++,
+      );
+      runner.start(
+        BattleAnimationPlan(
+          steps: [
+            ...scope.steps,
+            const HudHpTweenStep(
+              side: BattleSideId.enemy,
+              fromHp: 25,
+              toHp: 15,
+            ),
+          ],
+          audioScopes: scope.audioScopes,
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+      expect(voices.map((voice) => voice.resumes), [1, 0]);
+      runner.cancel();
+      runner.update(2);
+      await Future.wait(voices.map((voice) => voice.disposed.future));
+      expect(voices.map((voice) => voice.resumes), [1, 0]);
+      expect(events, isEmpty);
+      expect(hpTransitions, 0);
+    },
+  );
+
+  test('runner cancellation does not wait for a stalled audio stop', () async {
+    final gate = Completer<void>();
+    final voice = _Voice(stopGate: gate);
+    final player = FlameAudioBattleSfxPlayer(playerFactory: () => voice);
+    addTearDown(player.dispose);
+    final audio = BattleRecipeAudioCoordinator(
+      player: player,
+      bundle: await _bundle(),
+      preparationTimeout: const Duration(seconds: 1),
+      startTimeout: const Duration(seconds: 1),
+    );
+    final scope = BattleMoveAudioScope.compose(
+      audio: await audio.prepare(const BattleMoveClipAudio('cue')),
+      silentVisuals: const AnimationGroupStep(
+        mode: BattleAnimationGroupMode.parallel,
+        steps: [WaitStep(durationSeconds: 1)],
+      ),
+      fallback: const [],
+    );
+    final runner = _scopeRunner();
+    runner.start(
+      BattleAnimationPlan(steps: scope.steps, audioScopes: scope.audioScopes),
+    );
+    await voice.resuming.future;
+    try {
+      runner.cancel();
+      await voice.stopping.future;
+      expect(runner.isActive, isFalse);
+      expect(voice.disposals, 0);
+    } finally {
+      gate.complete();
+      await audio.cancel();
+    }
+    expect(voice.disposals, 1);
+  });
+
+  test(
+    'a completed plan lets its clip finish until the runner is cancelled',
+    () async {
+      final voice = _Voice();
+      final player = FlameAudioBattleSfxPlayer(playerFactory: () => voice);
+      addTearDown(player.dispose);
+      final audio = BattleRecipeAudioCoordinator(
+        player: player,
+        bundle: await _bundle(),
+        preparationTimeout: const Duration(seconds: 1),
+        startTimeout: const Duration(seconds: 1),
+      );
+      addTearDown(audio.cancel);
+      final scope = BattleMoveAudioScope.compose(
+        audio: await audio.prepare(const BattleMoveClipAudio('cue')),
+        silentVisuals: const AnimationGroupStep(
+          mode: BattleAnimationGroupMode.parallel,
+          steps: [WaitStep(durationSeconds: .1)],
+        ),
+        fallback: const [],
+      );
+      final runner = _scopeRunner();
+      runner.start(
+        BattleAnimationPlan(steps: scope.steps, audioScopes: scope.audioScopes),
+      );
+      runner.update(.1);
+      await Future<void>.delayed(Duration.zero);
+      expect(runner.isActive, isFalse);
+      expect(voice.resumes, 1);
+      expect(voice.disposals, 0);
+      runner.start(
+        const BattleAnimationPlan(steps: [WaitStep(durationSeconds: 1)]),
+      );
+      await Future<void>.delayed(Duration.zero);
+      expect(voice.disposals, 0);
+      runner.cancel();
+      await voice.disposed.future;
+      expect(voice.disposals, 1);
+    },
+  );
+
+  test(
+    'a naturally finished clip releases its voice without cancelling play',
+    () async {
+      final voice = _Voice();
+      final player = FlameAudioBattleSfxPlayer(playerFactory: () => voice);
+      addTearDown(player.dispose);
+      final audio = BattleRecipeAudioCoordinator(
+        player: player,
+        bundle: await _bundle(),
+        preparationTimeout: const Duration(seconds: 1),
+        startTimeout: const Duration(seconds: 1),
+      );
+      addTearDown(audio.cancel);
+      final scope = BattleMoveAudioScope.compose(
+        audio: await audio.prepare(const BattleMoveClipAudio('cue')),
+        silentVisuals: const AnimationGroupStep(
+          mode: BattleAnimationGroupMode.parallel,
+          steps: [WaitStep(durationSeconds: .1)],
+        ),
+        fallback: const [],
+      );
+      final runner = _scopeRunner();
+      runner.start(
+        BattleAnimationPlan(steps: scope.steps, audioScopes: scope.audioScopes),
+      );
+      await voice.resuming.future;
+      voice.complete.add(null);
+      await voice.disposed.future;
+      runner.update(.1);
+      expect(runner.isActive, isFalse);
+      expect(voice.disposals, 1);
+    },
+  );
+
+  test(
     'battle overlay dispatches the complete clip and HP transition once',
     () async {
       final bundle = await _bundle();
@@ -658,7 +1380,14 @@ void main() {
         startTimeout: const Duration(seconds: 1),
       );
       final result = await audio.prepare(const BattleMoveClipAudio('cue'));
-      final program = result.program!;
+      final scope = BattleMoveAudioScope.compose(
+        audio: result,
+        silentVisuals: const AnimationGroupStep(
+          mode: BattleAnimationGroupMode.parallel,
+          steps: [WaitStep(durationSeconds: 0)],
+        ),
+        fallback: const [PlaySeStep(seName: 'legacy-move')],
+      );
       const stats = BattleStatsSnapshot(
         attack: 20,
         defense: 20,
@@ -677,10 +1406,6 @@ void main() {
       final sounds = <String>[];
       final hpTransitions = <int>[];
       var tweening = false;
-      final route = program.route(
-        (String name, {required int volume, required int pitch}) =>
-            sounds.add('$name:$volume:$pitch'),
-      );
       final overlay = BattleOverlayComponent(
         session: createBattleSession(
           BattleSetup.pokeMapBetaV1ForTest(
@@ -698,7 +1423,8 @@ void main() {
           if (current && !tweening) hpTransitions.add(hud!.hpTweenRevision);
           tweening = current;
         },
-        playSfx: route,
+        playSfx: (name, {required volume, required pitch}) =>
+            sounds.add('$name:$volume:$pitch'),
       );
       await loadFlameComponent(overlay);
       await overlay.waitForPendingVisualSync();
@@ -706,7 +1432,7 @@ void main() {
       overlay.presentPostBattlePlan(
         BattleAnimationPlan(
           steps: [
-            ...program.steps,
+            ...scope.steps,
             const PlaySeStep(seName: 'impact', volume: 65, pitch: 90),
             const HudHpTweenStep(
               side: BattleSideId.enemy,
@@ -714,6 +1440,7 @@ void main() {
               toHp: 15,
             ),
           ],
+          audioScopes: scope.audioScopes,
         ),
       );
       overlay.updateTree(.01);
@@ -721,7 +1448,9 @@ void main() {
       expect(voice.resumes, 1);
       expect(sounds, ['impact:65:90']);
       expect(hpTransitions, [1]);
-      await audio.cancel();
+      overlay.onRemove();
+      await voice.disposed.future;
+      expect(voice.disposals, 1);
     },
   );
 
@@ -1109,23 +1838,19 @@ void main() {
     final result = await audio.prepare(const BattleMoveClipAudio('cue'));
     expect(result.status, BattleRecipeAudioStatus.ready);
     final program = result.program!;
-    final events = <String>[];
-    final runner = BattleAnimationRunner(
-      onPresentationChanged: () {},
-      onSpawnFx: (_) {},
-      onScreenFlash: (_) {},
-      onCombatantMotion: (_) {},
-      onCombatantFlash: (_) {},
-      onCombatantShake: (_) {},
-      onFaintCombatant: (_) {},
-      onHudHpTween: (_) {},
-      onBarrierPulse: (_) {},
-      onSwapCombatantVisual: (_) {},
-      onPlaySe: (step) {
-        if (!program.dispatch(step)) events.add(step.seName);
-      },
+    final scope = BattleMoveAudioScope.compose(
+      audio: result,
+      silentVisuals: const AnimationGroupStep(
+        mode: BattleAnimationGroupMode.parallel,
+        steps: [WaitStep(durationSeconds: .1)],
+      ),
+      fallback: const [PlaySeStep(seName: 'legacy-move')],
     );
-    runner.start(BattleAnimationPlan(steps: program.steps));
+    final events = <String>[];
+    final runner = _scopeRunner(onPlaySe: (step) => events.add(step.seName));
+    runner.start(
+      BattleAnimationPlan(steps: scope.steps, audioScopes: scope.audioScopes),
+    );
     await Future<void>.delayed(Duration.zero);
     final source = voice.source as DeviceFileSource;
     expect(await File(source.path).readAsBytes(), orderedEquals(input));
@@ -1135,6 +1860,24 @@ void main() {
     await audio.cancel();
   }, skip: sourcePath == null ? 'No local sound supplied' : false);
 }
+
+BattleAnimationRunner _scopeRunner({
+  void Function(PlaySeStep)? onPlaySe,
+  void Function(ScreenFlashStep)? onScreenFlash,
+  void Function(HudHpTweenStep)? onHudHpTween,
+}) => BattleAnimationRunner(
+  onPresentationChanged: () {},
+  onSpawnFx: (_) {},
+  onScreenFlash: onScreenFlash ?? (_) {},
+  onCombatantMotion: (_) {},
+  onCombatantFlash: (_) {},
+  onCombatantShake: (_) {},
+  onFaintCombatant: (_) {},
+  onHudHpTween: onHudHpTween ?? (_) {},
+  onBarrierPulse: (_) {},
+  onSwapCombatantVisual: (_) {},
+  onPlaySe: onPlaySe,
+);
 
 final class _Voice implements AudioPlayer {
   _Voice({

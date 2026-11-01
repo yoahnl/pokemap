@@ -273,8 +273,10 @@ final class BattlePreparedRecipeSound {
   bool _cancelled = false;
   bool _started = false;
   bool _completedNaturally = false;
+  final Completer<void> _finished = Completer<void>();
 
   bool get completedNaturally => _completedNaturally;
+  Future<void> get finished => _finished.future;
 
   Future<void> _completeNaturally() {
     if (!_cancelled && _started) _completedNaturally = true;
@@ -324,6 +326,7 @@ final class BattlePreparedRecipeSound {
     final existing = _disposal;
     if (existing != null) return existing;
     _cancelled = true;
+    _finished.complete();
     _cancelSignal.complete();
     return _disposal = _dispose();
   }
