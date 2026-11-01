@@ -7,46 +7,66 @@ import 'tile_image_loader.dart';
 
 typedef RuntimeGifCodecFactory = Future<ui.Codec> Function(Uint8List bytes);
 
-final class RuntimeGifAnimation {
-  RuntimeGifAnimation._(
-    this._frames,
-    this._durations,
-    this.repetitionCount,
-    this._reservation,
-  );
+final class RuntimeGifTimeline {
+  const RuntimeGifTimeline._(this._durations, this.repetitionCount);
 
-  final List<ui.Image> _frames;
   final List<Duration> _durations;
-  final RuntimeResourceReservation _reservation;
   final int repetitionCount;
-  bool _disposed = false;
 
-  int get frameCount => _frames.length;
+  int get frameCount => _durations.length;
 
-  ui.Image frameAt(Duration elapsed) {
-    if (_disposed) throw StateError('GIF animation is disposed');
+  int frameIndexAt(Duration elapsed) {
     if (elapsed.isNegative) throw ArgumentError.value(elapsed, 'elapsed');
     var total = 0;
     for (var i = 0; i < _durations.length; i++) {
       final duration = _durations[i].inMicroseconds;
       if (duration == 0) {
         if (elapsed.inMicroseconds < total) break;
-        return _frames[i];
+        return i;
       }
       total += duration;
     }
-    if (total == 0) return _frames.first;
+    if (total == 0) return 0;
     final elapsedMicros = elapsed.inMicroseconds;
     if (repetitionCount >= 0 && elapsedMicros ~/ total > repetitionCount) {
-      return _frames.last;
+      return frameCount - 1;
     }
     var position = elapsedMicros % total;
     for (var i = 0; i < _durations.length; i++) {
       final duration = _durations[i].inMicroseconds;
-      if (duration == 0 || position < duration) return _frames[i];
+      if (duration == 0 || position < duration) return i;
       position -= duration;
     }
-    return _frames.last;
+    return frameCount - 1;
+  }
+}
+
+final class RuntimeGifAnimation {
+  RuntimeGifAnimation._(
+    this._frames,
+    this.timeline,
+    this._reservation,
+    this.resourceBudget,
+  );
+
+  final List<ui.Image> _frames;
+  final RuntimeGifTimeline timeline;
+  final RuntimeResourceReservation _reservation;
+  final RuntimeResourceBudget resourceBudget;
+  bool _disposed = false;
+
+  int get frameCount => _frames.length;
+  int get repetitionCount => timeline.repetitionCount;
+  bool get isDisposed => _disposed;
+
+  ui.Image frameByIndex(int index) {
+    if (_disposed) throw StateError('GIF animation is disposed');
+    return _frames[index];
+  }
+
+  ui.Image frameAt(Duration elapsed) {
+    if (_disposed) throw StateError('GIF animation is disposed');
+    return _frames[timeline.frameIndexAt(elapsed)];
   }
 
   void dispose() {
@@ -130,9 +150,9 @@ Future<RuntimeGifAnimation> decodeRuntimeGif(
     reservation.commit();
     return RuntimeGifAnimation._(
       List.unmodifiable(frames),
-      List.unmodifiable(durations),
-      repetitionCount,
+      RuntimeGifTimeline._(List.unmodifiable(durations), repetitionCount),
       reservation,
+      budget,
     );
   } catch (_) {
     for (final frame in frames) {
