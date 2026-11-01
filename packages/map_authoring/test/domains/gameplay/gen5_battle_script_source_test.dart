@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
+import 'package:map_authoring/src/domains/gameplay/pokemon_external/gen5_battle_script_control_flow.dart';
 import 'package:map_authoring/src/domains/gameplay/pokemon_external/gen5_battle_script_source.dart';
 import 'package:test/test.dart';
 
@@ -149,6 +150,49 @@ void main() {
         );
         expect(parsed.variant, 'Flamethrower');
         expect(parsed.instructions.length, 32);
+        final blocks = Gen5BattleScriptControlFlow.analyze(parsed).blocks;
+        expect(blocks.length, 21);
+        expect(
+          blocks.expand((block) => block.instructions),
+          orderedEquals(parsed.instructions),
+        );
+        expect(
+          blocks
+              .where(
+                (block) =>
+                    block.boundary == Gen5BattleScriptBoundary.particleLoad,
+              )
+              .length,
+          1,
+        );
+        expect(
+          blocks
+              .where(
+                (block) =>
+                    block.boundary == Gen5BattleScriptBoundary.waitFrames,
+              )
+              .length,
+          2,
+        );
+        expect(
+          blocks
+              .where(
+                (block) =>
+                    block.boundary == Gen5BattleScriptBoundary.waitCondition,
+              )
+              .length,
+          3,
+        );
+        expect(
+          blocks
+              .where(
+                (block) =>
+                    block.instructions.first.name == 'SetYield' &&
+                    block.instructions.first.arguments.single == 'FALSE',
+              )
+              .map((block) => block.instructions.length),
+          [7, 6],
+        );
         for (final entry in {
           'PlaySE': 6,
           'EmitterMove': 2,
