@@ -77,14 +77,14 @@ final class BattlePreparedRecipeAudio {
   Future<Object> get playbackFailure => _playbackFailure.future;
   bool get anyDispatched => _cues.values.any((cue) => cue.started);
   bool get fullyDispatched => _cues.values.every((cue) => cue.started);
+  bool get canClaim => !_claimed && !_disabled && !anyDispatched;
+  bool get canStartReserved => _claimed && !_disabled && !anyDispatched;
   Future<void> get finished =>
       Future.wait(_cues.values.map((cue) => cue.sound.finished))
           .then<void>((_) {});
 
   bool claim() {
-    if (_claimed || _disabled || _cues.values.any((cue) => cue.started)) {
-      return false;
-    }
+    if (!canClaim) return false;
     _claimed = true;
     return true;
   }
@@ -162,6 +162,8 @@ final class BattleRecipeAudioCoordinator {
   BattlePreparedRecipeAudio? _program;
   bool _requested = false;
   bool _cancelled = false;
+
+  bool get canRequest => !_requested && !_cancelled;
 
   Future<BattleRecipeAudioResult> prepare(
     BattleRecipeAudioSelection audio,

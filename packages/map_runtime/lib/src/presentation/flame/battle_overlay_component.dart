@@ -20,6 +20,8 @@ import 'battle_bag_item_icon_resolver.dart';
 import 'battle_command_menu_model.dart';
 import 'battle_combatant_gender_resolver.dart';
 import 'battle_animation_plan.dart';
+import 'battle_move_audio_scope.dart';
+import 'battle_recipe_audio_program.dart';
 import 'battle_motion_policy.dart';
 import 'battle_live_attachment.dart';
 import 'battle_animation_runner.dart';
@@ -751,6 +753,9 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
   BattleDebugPanelComponent? _debugPanel;
 
   Future<void>? _pendingVisualSync;
+  BattleAnimationPlan? _pendingTurnAudioPlan;
+  _PendingTurnAudioPreparation? _pendingTurnAudioPreparation;
+  _PendingTurnAudioPreparation? _turnAudioSettlement;
   // BETA-BAT-011 : le planner reçoit les MÊMES résolveurs que le HUD et le
   // menu. `late` parce qu'un initialiseur de champ ne peut pas lire `this`, et
   // c'est exactement pour ça que le plan d'animation s'en passait.
@@ -861,6 +866,148 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     if (_preparingTurn) return;
     _preparingTurn = true;
     _syncPanelsOnly();
+  }
+
+  Future<bool> prepareTurnAudioAndUpdateState(
+    BattleSession newSession, {
+    required List<BattleTurnAudioRequest> audioRequests,
+    Duration preparationTimeout = const Duration(seconds: 2),
+    GameState? gameState,
+    RuntimeBattlePresentation? presentation,
+    Map<String, PreparedBattleMoveRecipe>? importedRecipes,
+  }) async {
+    final requests = List<BattleTurnAudioRequest>.unmodifiable(audioRequests);
+    final events = Set<BattleTurnExecutionEvent>.identity();
+    final coordinators = Set<Object>.identity();
+    final timeline = newSession.state.currentTurn?.timeline ?? const [];
+    final valid = preparationTimeout > Duration.zero &&
+        preparationTimeout <= const Duration(seconds: 30) &&
+        requests.length <= 16 &&
+        requests.every((request) =>
+            timeline.where((event) => identical(event, request.event)).length ==
+                1 &&
+            !request.event.execution.move.id.startsWith('effect:') &&
+            events.add(request.event) &&
+            coordinators.add(request.coordinator) &&
+            request.coordinator.canRequest);
+    if (!valid || _ballImagesDisposed) {
+      final seen = Set<Object>.identity();
+      for (final request in requests) {
+        if (request.coordinator.canRequest && seen.add(request.coordinator)) {
+          unawaited(Future.sync(request.coordinator.cancel).then<void>(
+            (_) {},
+            onError: (Object _) {},
+          ));
+        }
+      }
+      if (_ballImagesDisposed) return false;
+      throw StateError('Invalid turn audio preparation');
+    }
+    if (requests.isEmpty) {
+      updateState(
+        newSession,
+        gameState: gameState,
+        presentation: presentation,
+        importedRecipes: importedRecipes,
+      );
+      return true;
+    }
+    _cancelPendingTurnAudioPreparation();
+    final pending = _PendingTurnAudioPreparation(requests);
+    _pendingTurnAudioPreparation = pending;
+    _turnAudioSettlement = pending;
+    final clock = Stopwatch()..start();
+    final selections = <BattleTurnAudioSelection>[];
+    bool current() =>
+        !_ballImagesDisposed && identical(_pendingTurnAudioPreparation, pending);
+    void abort({required bool unlock}) {
+      final shouldUnlock = unlock &&
+          !_ballImagesDisposed &&
+          identical(_pendingTurnAudioPreparation, pending);
+      if (identical(_pendingTurnAudioPreparation, pending)) {
+        _pendingTurnAudioPreparation = null;
+      }
+      pending.cancel();
+      if (shouldUnlock) {
+        _preparingTurn = false;
+        _syncPanelsOnly();
+      }
+    }
+    try {
+      beginTurnPreparation();
+      for (final request in requests) {
+        if (!current()) throw const _TurnAudioInterrupted();
+        if (clock.elapsed >= preparationTimeout) {
+          throw const _TurnAudioPreparationTimedOut();
+        }
+        final operation = request.coordinator.prepare(request.audio);
+        unawaited(operation.then<void>((_) {}, onError: (Object _) {}));
+        final remaining = preparationTimeout - clock.elapsed;
+        if (remaining <= Duration.zero) {
+          throw const _TurnAudioPreparationTimedOut();
+        }
+        final result = await Future.any<BattleRecipeAudioResult>([
+          operation,
+          pending.interrupted.future.then(
+            (_) => throw const _TurnAudioInterrupted(),
+          ),
+        ]).timeout(
+          remaining,
+          onTimeout: () => throw const _TurnAudioPreparationTimedOut(),
+        );
+        if (!current() || result.status == BattleRecipeAudioStatus.cancelled) {
+          throw const _TurnAudioInterrupted();
+        }
+        selections.add(
+          BattleTurnAudioSelection(
+            event: request.event,
+            audio: result,
+            silentVisuals: request.silentVisuals,
+          ),
+        );
+      }
+      if (!current()) throw const _TurnAudioInterrupted();
+      _pendingTurnAudioPreparation = null;
+      updateState(
+        newSession,
+        gameState: gameState,
+        presentation: presentation,
+        importedRecipes: importedRecipes,
+        audioSelections: selections,
+      );
+      return true;
+    } on _TurnAudioPreparationTimedOut {
+      final shouldApplyFallback = current();
+      abort(unlock: false);
+      if (!shouldApplyFallback) return false;
+      updateState(
+        newSession,
+        gameState: gameState,
+        presentation: presentation,
+        importedRecipes: importedRecipes,
+      );
+      return true;
+    } on _TurnAudioInterrupted {
+      abort(unlock: true);
+      return false;
+    } catch (_) {
+      abort(unlock: true);
+      rethrow;
+    } finally {
+      if (identical(_turnAudioSettlement, pending)) {
+        _turnAudioSettlement = null;
+      }
+      pending.settled.complete();
+    }
+  }
+
+  void _cancelPendingTurnAudioPreparation() {
+    final pending = _pendingTurnAudioPreparation;
+    _pendingTurnAudioPreparation = null;
+    if (pending != null) {
+      _preparingTurn = false;
+      pending.cancel();
+    }
   }
 
   /// BETA-BAT-017 : ferme les commandes sans éteindre l'UI de combat.
@@ -975,6 +1122,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     if (_ballImagesDisposed) return;
     final plan = _pendingIntroPlan;
     if (plan == null) return;
+    _cancelPendingTurnAudioPreparation();
     _pendingIntroPlan = null;
     // À partir d'ici c'est le PLAN qui pilote les sprites d'entrée : les
     // poses retenues n'ont plus à survivre à une synchronisation.
@@ -1008,6 +1156,8 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
   void presentPostBattlePlan(BattleAnimationPlan plan) {
     if (_ballImagesDisposed) return;
     if (plan.isEmpty) return;
+    _cancelPendingTurnAudioPreparation();
+    _discardPendingTurnAudio();
     _presentationGeneration += 1;
     _fxLayer?.clearAll();
     _syncFieldAmbientState();
@@ -1275,6 +1425,8 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     if (_ballImagesDisposed) return;
     _ballImagesDisposed = true;
     _presentationGeneration++;
+    _cancelPendingTurnAudioPreparation();
+    _discardPendingTurnAudio();
     _animationRunner?.cancel(notify: false);
     for (final lease in _sheetLeases.values) {
       lease.dispose();
@@ -1749,6 +1901,11 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
   }
 
   Future<void> waitForTurnPresentationComplete() async {
+    while (true) {
+      final pending = _turnAudioSettlement;
+      if (pending == null) break;
+      await pending.settled.future;
+    }
     await waitForPendingVisualSync();
     await (_animationRunner?.completionFuture ?? Future<void>.value());
     await waitForPendingVisualSync();
@@ -2160,7 +2317,10 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     GameState? gameState,
     RuntimeBattlePresentation? presentation,
     Map<String, PreparedBattleMoveRecipe>? importedRecipes,
+    List<BattleTurnAudioSelection> audioSelections = const [],
   }) {
+    _cancelPendingTurnAudioPreparation();
+    _discardPendingTurnAudio();
     _preparingTurn = false;
     final previousSession = _session;
     final previousPresentation = _battlePresentation;
@@ -2181,44 +2341,62 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
       moveCatalog: _moveCatalog,
       resolver: _moveVisualResolver,
       importedRecipes: importedRecipes,
+      audioSelections: audioSelections,
     );
-    _session = newSession;
-    _syncFieldAmbientState();
-    if (gameState != null) {
-      _gameState = gameState;
+    if (animationPlan.audioScopes.isNotEmpty) {
+      _pendingTurnAudioPlan = animationPlan;
     }
-    _selectedMedicineAction = null;
-    _selectedMedicineRequest = null;
-    _selectedMedicineTargetIndex = 0;
-    _bagFeedbackMessage = null;
-    _capturedEnemyHeldInBall = false;
-    _installActiveAnimationPlan(animationPlan);
-    _presentationHeldHp.clear();
-    for (final step
-        in animationPlan.flattenedSteps.whereType<HudHpTweenStep>()) {
-      _presentationHeldHp.putIfAbsent(step.slot, () => step.fromHp);
-    }
-    _presentationLockedCombatantSlots =
-        _lockedCombatantSlotsFor(animationPlan).toSet();
-    for (final slot in _presentationLockedCombatantSlots) {
-      final previous = previousPresentation?.combatantAt(slot)?.combatant;
-      if (previous != null) {
-        _presentationHeldHp[slot] = previous.currentHp;
+    try {
+      _session = newSession;
+      _syncFieldAmbientState();
+      if (gameState != null) {
+        _gameState = gameState;
       }
+      _selectedMedicineAction = null;
+      _selectedMedicineRequest = null;
+      _selectedMedicineTargetIndex = 0;
+      _bagFeedbackMessage = null;
+      _capturedEnemyHeldInBall = false;
+      _installActiveAnimationPlan(animationPlan);
+      _presentationHeldHp.clear();
+      for (final step
+          in animationPlan.flattenedSteps.whereType<HudHpTweenStep>()) {
+        _presentationHeldHp.putIfAbsent(step.slot, () => step.fromHp);
+      }
+      _presentationLockedCombatantSlots =
+          _lockedCombatantSlotsFor(animationPlan).toSet();
+      for (final slot in _presentationLockedCombatantSlots) {
+        final previous = previousPresentation?.combatantAt(slot)?.combatant;
+        if (previous != null) {
+          _presentationHeldHp[slot] = previous.currentHp;
+        }
+      }
+      _resetBattleCamera();
+      _resetSceneClock();
+      _animationRunner?.cancel(
+        clearMessage: animationPlan.isEmpty,
+        notify: false,
+      );
+      _normalizeMenuSelection();
+      _pendingVisualSync = _prepareAnimationPresentation(
+        previousSession: previousSession,
+        animationPlan: animationPlan,
+        presentationGeneration: presentationGeneration,
+      );
+      unawaited(_pendingVisualSync);
+    } catch (_) {
+      _discardPendingTurnAudio(animationPlan);
+      rethrow;
     }
-    _resetBattleCamera();
-    _resetSceneClock();
-    _animationRunner?.cancel(
-      clearMessage: animationPlan.isEmpty,
-      notify: false,
-    );
-    _normalizeMenuSelection();
-    _pendingVisualSync = _prepareAnimationPresentation(
-      previousSession: previousSession,
-      animationPlan: animationPlan,
-      presentationGeneration: presentationGeneration,
-    );
-    unawaited(_pendingVisualSync);
+  }
+
+  void _discardPendingTurnAudio([BattleAnimationPlan? expected]) {
+    final plan = _pendingTurnAudioPlan;
+    if (plan == null || (expected != null && !identical(plan, expected))) return;
+    _pendingTurnAudioPlan = null;
+    for (final scope in plan.audioScopes) {
+      unawaited(scope.cancel().then<void>((_) {}, onError: (Object _) {}));
+    }
   }
 
   void _applyViewportLayout(Vector2 viewportSize, {bool syncPanels = true}) {
@@ -4033,47 +4211,66 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     required BattleAnimationPlan animationPlan,
     required int presentationGeneration,
   }) async {
-    await _syncVisualState(
-      previousSession: previousSession,
-      preserveDisplayedCombatantSlots: _presentationLockedCombatantSlots,
-      presentationGeneration: presentationGeneration,
-    );
-    if (!_isCurrentPresentationGeneration(presentationGeneration)) {
-      return;
-    }
-    if (animationPlan.isEmpty) {
-      _presentationLockedCombatantSlots = <BattleSlotRef>{};
-      _syncPanelsOnly();
-      return;
-    }
-    final requiredFxIds = animationPlan.requiredFxIds;
-    final fxScope = _fxImageScope;
-    if (fxScope != null && requiredFxIds.isNotEmpty) {
-      _fxBundleCache.updateScope(fxScope,
-        effectIds: requiredFxIds, liveImages: _fxLayer?.liveImages ?? const []);
-    }
+    var transferred = false;
     try {
-      await _fxBundleCache.prewarm(requiredFxIds);
+      await _syncVisualState(
+        previousSession: previousSession,
+        preserveDisplayedCombatantSlots: _presentationLockedCombatantSlots,
+        presentationGeneration: presentationGeneration,
+      );
+      if (!_isCurrentPresentationGeneration(presentationGeneration)) {
+        return;
+      }
+      if (animationPlan.isEmpty) {
+        _presentationLockedCombatantSlots = <BattleSlotRef>{};
+        _syncPanelsOnly();
+        return;
+      }
+      final requiredFxIds = animationPlan.requiredFxIds;
+      final fxScope = _fxImageScope;
+      if (fxScope != null && requiredFxIds.isNotEmpty) {
+        _fxBundleCache.updateScope(fxScope,
+          effectIds: requiredFxIds, liveImages: _fxLayer?.liveImages ?? const []);
+      }
+      try {
+        await _fxBundleCache.prewarm(requiredFxIds);
+      } on RuntimeResourceAdmissionException catch (error) {
+        if (error.reason != 'resident_bytes' || !_releaseUnusedStatSheets()) {
+          rethrow;
+        }
+        await _fxBundleCache.prewarm(requiredFxIds);
+      }
+      final ballItemIds = <String>{
+        for (final step in animationPlan.flattenedSteps)
+          if (step is PlayBallCaptureSequenceStep && step.ballItemId != null)
+            step.ballItemId!,
+        for (final step in animationPlan.flattenedSteps)
+          if (step is PlayBallSequenceStep && step.ballItemId != null)
+            step.ballItemId!,
+      };
+      await Future.wait(ballItemIds.map(_loadBallSheet));
+      if (!_isCurrentPresentationGeneration(presentationGeneration)) {
+        return;
+      }
+      _resetSceneClock();
+      final runner = _animationRunner;
+      if (runner == null) return;
+      runner.start(animationPlan);
+      transferred = true;
     } on RuntimeResourceAdmissionException catch (error) {
-      if (error.reason != 'resident_bytes' || !_releaseUnusedStatSheets()) {
+      if (error.reason != 'cancelled_or_closed' ||
+          _isCurrentPresentationGeneration(presentationGeneration)) {
         rethrow;
       }
-      await _fxBundleCache.prewarm(requiredFxIds);
+    } finally {
+      if (identical(_pendingTurnAudioPlan, animationPlan)) {
+        if (transferred) {
+          _pendingTurnAudioPlan = null;
+        } else {
+          _discardPendingTurnAudio(animationPlan);
+        }
+      }
     }
-    final ballItemIds = <String>{
-      for (final step in animationPlan.flattenedSteps)
-        if (step is PlayBallCaptureSequenceStep && step.ballItemId != null)
-          step.ballItemId!,
-      for (final step in animationPlan.flattenedSteps)
-        if (step is PlayBallSequenceStep && step.ballItemId != null)
-          step.ballItemId!,
-    };
-    await Future.wait(ballItemIds.map(_loadBallSheet));
-    if (!_isCurrentPresentationGeneration(presentationGeneration)) {
-      return;
-    }
-    _resetSceneClock();
-    _animationRunner?.start(animationPlan);
   }
 
   Set<BattleSlotRef> _lockedCombatantSlotsFor(BattleAnimationPlan plan) {
@@ -5164,4 +5361,30 @@ final class _PostBattleDecisionRequest {
   final String prompt;
   final List<String> choices;
   final ValueChanged<int> onChoice;
+}
+
+final class _TurnAudioInterrupted implements Exception {
+  const _TurnAudioInterrupted();
+}
+
+final class _TurnAudioPreparationTimedOut implements Exception {
+  const _TurnAudioPreparationTimedOut();
+}
+
+final class _PendingTurnAudioPreparation {
+  _PendingTurnAudioPreparation(this.requests);
+
+  final List<BattleTurnAudioRequest> requests;
+  final Completer<void> interrupted = Completer<void>();
+  final Completer<void> settled = Completer<void>();
+
+  void cancel() {
+    if (!interrupted.isCompleted) interrupted.complete();
+    for (final request in requests) {
+      unawaited(Future.sync(request.coordinator.cancel).then<void>(
+        (_) {},
+        onError: (Object _) {},
+      ));
+    }
+  }
 }

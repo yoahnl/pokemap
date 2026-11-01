@@ -1,8 +1,36 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:map_battle/map_battle.dart';
+
 import 'battle_animation_plan.dart';
 import 'battle_recipe_audio_program.dart';
+
+final class BattleTurnAudioSelection {
+  const BattleTurnAudioSelection({
+    required this.event,
+    required this.audio,
+    required this.silentVisuals,
+  });
+
+  final BattleTurnExecutionEvent event;
+  final BattleRecipeAudioResult audio;
+  final AnimationGroupStep silentVisuals;
+}
+
+final class BattleTurnAudioRequest {
+  const BattleTurnAudioRequest({
+    required this.event,
+    required this.coordinator,
+    required this.audio,
+    required this.silentVisuals,
+  });
+
+  final BattleTurnExecutionEvent event;
+  final BattleRecipeAudioCoordinator coordinator;
+  final BattleRecipeAudioSelection audio;
+  final AnimationGroupStep silentVisuals;
+}
 
 final class BattleMoveAudioScopeResult {
   const BattleMoveAudioScopeResult._(this.status, this.steps, this.audioScopes);
@@ -17,6 +45,8 @@ final class BattleMoveAudioScope {
     required BattleRecipeAudioResult audio,
     required AnimationGroupStep silentVisuals,
     required List<BattleAnimationStep> fallback,
+    BattleSlotRef? forbiddenTargetFlash,
+    BattleSlotRef? attackerSlot,
   }) {
     if (audio.status == BattleRecipeAudioStatus.cancelled) {
       return const BattleMoveAudioScopeResult._(
@@ -33,31 +63,41 @@ final class BattleMoveAudioScope {
       );
     }
     final program = audio.program!;
-    final visual = _freezeSilentVisuals(silentVisuals);
-    if (visual == null) {
-      unawaited(program.cancel().then<void>((_) {}, onError: (Object _) {}));
-      return BattleMoveAudioScopeResult._(
-        BattleRecipeAudioStatus.fallback,
-        List.unmodifiable(fallback),
-        const [],
+    if (!program.claim()) throw StateError('Move audio already claimed');
+    try {
+      final visual = _freezeSilentVisuals(
+        silentVisuals,
+        forbiddenTargetFlash,
+        attackerSlot,
       );
+      if (visual == null) {
+        unawaited(program.cancel().then<void>((_) {}, onError: (Object _) {}));
+        return BattleMoveAudioScopeResult._(
+          BattleRecipeAudioStatus.fallback,
+          List.unmodifiable(fallback),
+          const [],
+        );
+      }
+      final anchor = AnimationGroupStep(
+        mode: BattleAnimationGroupMode.parallel,
+        steps: List.unmodifiable([
+          visual,
+          AnimationGroupStep(
+            mode: BattleAnimationGroupMode.sequence,
+            steps: program.steps,
+          ),
+        ]),
+      );
+      final scope = _PreparedMoveAudioScope(anchor, program);
+      return BattleMoveAudioScopeResult._(
+        BattleRecipeAudioStatus.ready,
+        List.unmodifiable([anchor]),
+        List.unmodifiable([scope]),
+      );
+    } catch (_) {
+      unawaited(program.cancel().then<void>((_) {}, onError: (Object _) {}));
+      rethrow;
     }
-    final anchor = AnimationGroupStep(
-      mode: BattleAnimationGroupMode.parallel,
-      steps: List.unmodifiable([
-        visual,
-        AnimationGroupStep(
-          mode: BattleAnimationGroupMode.sequence,
-          steps: program.steps,
-        ),
-      ]),
-    );
-    final scope = _PreparedMoveAudioScope(anchor, program);
-    return BattleMoveAudioScopeResult._(
-      BattleRecipeAudioStatus.ready,
-      List.unmodifiable([anchor]),
-      List.unmodifiable([scope]),
-    );
   }
 }
 
@@ -67,12 +107,17 @@ final class _PreparedMoveAudioScope implements BattleAnimationAudioScope {
   @override
   final AnimationGroupStep anchor;
   final BattlePreparedRecipeAudio _program;
+  bool _started = false;
 
   @override
   Iterable<PlaySeStep> get cues => _program.steps.whereType<PlaySeStep>();
 
   @override
-  bool claim() => _program.claim();
+  bool claim() {
+    if (_started || !_program.canStartReserved) return false;
+    _started = true;
+    return true;
+  }
 
   @override
   bool dispatch(PlaySeStep step) => _program.dispatch(step);
@@ -90,10 +135,17 @@ final class _PreparedMoveAudioScope implements BattleAnimationAudioScope {
   Future<void> cancel() => _program.cancel();
 }
 
-AnimationGroupStep? _freezeSilentVisuals(AnimationGroupStep root) {
+AnimationGroupStep? _freezeSilentVisuals(
+  AnimationGroupStep root,
+  BattleSlotRef? forbiddenTargetFlash,
+  BattleSlotRef? attackerSlot,
+) {
   var count = 0;
   (BattleAnimationStep, double)? freeze(BattleAnimationStep step, int depth) {
     if (++count > 256 || depth > 32) return null;
+    if (step is CombatantFlashStep && step.slot == forbiddenTargetFlash) {
+      return null;
+    }
     if (step is AnimationGroupStep) {
       if (step.steps.isEmpty) return null;
       final children = <BattleAnimationStep>[];
@@ -140,6 +192,23 @@ AnimationGroupStep? _freezeSilentVisuals(AnimationGroupStep root) {
     }
     final duration = durations.fold<double>(0, (sum, value) => sum + value);
     if (!duration.isFinite || duration > 30) return null;
+    if (step is CameraFocusStep &&
+        step.side == null &&
+        step.target != BattleCameraFocusTarget.scene &&
+        attackerSlot != null) {
+      final slot = step.target == BattleCameraFocusTarget.user
+          ? attackerSlot
+          : forbiddenTargetFlash ?? attackerSlot;
+      return (
+        CameraFocusStep(
+          target: step.target,
+          side: slot.side,
+          slotIndex: slot.slotIndex,
+          durationSeconds: step.durationSeconds,
+        ),
+        duration,
+      );
+    }
     return (step, duration);
   }
 

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:crypto/crypto.dart';
 import 'package:flame/components.dart';
@@ -14,12 +15,19 @@ import 'package:map_runtime/map_runtime.dart';
 import 'package:map_runtime/src/presentation/flame/battle_sfx_player.dart';
 import 'package:map_runtime/src/presentation/flame/battle_animation_plan.dart';
 import 'package:map_runtime/src/presentation/flame/battle_animation_runner.dart';
+import 'package:map_runtime/src/presentation/flame/battle_fx_bundle_cache.dart';
 import 'package:map_runtime/src/presentation/flame/battle_move_audio_scope.dart';
+import 'package:map_runtime/src/presentation/flame/battle_move_visual_resolver.dart';
+import 'package:map_runtime/src/presentation/flame/battle_turn_animation_planner.dart';
+import 'package:map_runtime/src/application/runtime_move_catalog_loader.dart';
 import 'package:map_runtime/src/presentation/flame/battle_recipe_audio_program.dart';
 import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
+import 'package:map_runtime/src/presentation/flame/battle_offline_move_recipe_loader.dart';
 import 'package:map_runtime/src/presentation/flame/battle_verified_recipe_sound_loader.dart';
+import 'package:path/path.dart' as p;
 
 import 'support/load_flame_component.dart';
+import 'support/offline_recipe_package_fixture.dart';
 
 Future<InspectedBattleRecipeBundle> _bundle({
   Uint8List? audio,
@@ -1731,6 +1739,1280 @@ void main() {
     },
   );
 
+  test('a real turn routes its selected attack clip once', () async {
+    final sourceGate = Completer<void>();
+    final voice = _Voice(sourceGate: sourceGate);
+    final player = FlameAudioBattleSfxPlayer(playerFactory: () => voice);
+    addTearDown(player.dispose);
+    final audio = BattleRecipeAudioCoordinator(
+      player: player,
+      bundle: await _bundle(),
+      preparationTimeout: const Duration(seconds: 1),
+      startTimeout: const Duration(seconds: 1),
+    );
+    addTearDown(audio.cancel);
+    addTearDown(() {
+      if (!sourceGate.isCompleted) sourceGate.complete();
+    });
+    const stats = BattleStatsSnapshot(
+      attack: 20,
+      defense: 20,
+      specialAttack: 20,
+      specialDefense: 20,
+      speed: 20,
+    );
+    const playerPokemon = BattleCombatantData(
+      speciesId: 'one',
+      level: 7,
+      maxHp: 80,
+      currentHp: 80,
+      stats: stats,
+      moves: [BattleMoveData(id: 'tackle', name: 'Charge', power: 40)],
+    );
+    const enemyPokemon = BattleCombatantData(
+      speciesId: 'two',
+      level: 7,
+      maxHp: 80,
+      currentHp: 80,
+      stats: stats,
+      moves: [
+        BattleMoveData(
+          id: 'wait',
+          name: 'Wait',
+          power: 0,
+          category: BattleMoveCategory.status,
+          target: BattleMoveTarget.self,
+          accuracy: BattleMoveAccuracy.alwaysHits(),
+        ),
+      ],
+    );
+    final session = createBattleSession(
+      BattleSetup.pokeMapBetaV1ForTest(
+        playerPokemon: playerPokemon,
+        enemyPokemon: enemyPokemon,
+        isTrainerBattle: false,
+        trainerId: null,
+      ),
+    );
+    final after = session.applyChoice(const PlayerBattleChoiceFight(0));
+    final event = after.state.currentTurn!.timeline
+        .whereType<BattleTurnExecutionEvent>()
+        .singleWhere(
+          (entry) => entry.execution.attackerSide == BattleSideId.player,
+        );
+    final sounds = <String>[];
+    final hpTransitions = <int>{};
+    final overlay = BattleOverlayComponent(
+      session: session,
+      viewportSize: Vector2(390, 844),
+      onPlayerChoice: (_) {},
+      playSfx: (name, {required volume, required pitch}) => sounds.add(name),
+      onCommandOverlaySnapshotChanged: (snapshot) {
+        final hud = snapshot?.enemyHud;
+        if (hud?.targetDisplayedHp == after.state.enemy.currentHp) {
+          hpTransitions.add(hud!.hpTweenRevision);
+        }
+      },
+    );
+    await loadFlameComponent(overlay);
+    await overlay.waitForPendingVisualSync();
+    addTearDown(overlay.onRemove);
+    final preparing = overlay.prepareTurnAudioAndUpdateState(
+      after,
+      audioRequests: [
+        BattleTurnAudioRequest(
+          event: event,
+          coordinator: audio,
+          audio: const BattleMoveClipAudio('cue'),
+          silentVisuals: const AnimationGroupStep(
+            mode: BattleAnimationGroupMode.parallel,
+            steps: [WaitStep(durationSeconds: .3)],
+          ),
+        ),
+      ],
+    );
+    await voice.sourceSet.future;
+    expect(voice.resumes, 0);
+    expect(overlay.debugSession.state.currentTurn, isNull);
+    sourceGate.complete();
+    expect(await preparing, isTrue);
+    await overlay.waitForPendingVisualSync();
+    expect(voice.resumes, 0);
+    for (var i = 0; i < 300; i++) {
+      overlay.updateTree(1 / 60);
+      await Future<void>.delayed(Duration.zero);
+    }
+    expect(voice.resumes, 1);
+    expect(sounds.where((name) => name == 'hit'), hasLength(1));
+    expect(hpTransitions, hasLength(1));
+  });
+
+  test(
+    'a failed clip start in a real turn does not replay sound or damage',
+    () async {
+      final turn = _realTurn();
+      final event = turn.events.firstWhere(
+        (entry) => entry.execution.attackerSide == BattleSideId.player,
+      );
+      final voice = _Voice(failResume: true);
+      final player = FlameAudioBattleSfxPlayer(playerFactory: () => voice);
+      addTearDown(player.dispose);
+      final audio = BattleRecipeAudioCoordinator(
+        player: player,
+        bundle: await _bundle(),
+        preparationTimeout: const Duration(seconds: 1),
+        startTimeout: const Duration(seconds: 1),
+      );
+      addTearDown(audio.cancel);
+      final sounds = <String>[];
+      final hpTransitions = <int>{};
+      final overlay = BattleOverlayComponent(
+        session: turn.before,
+        viewportSize: Vector2(390, 844),
+        onPlayerChoice: (_) {},
+        playSfx: (name, {required volume, required pitch}) => sounds.add(name),
+        onCommandOverlaySnapshotChanged: (snapshot) {
+          final hud = snapshot?.enemyHud;
+          if (hud?.targetDisplayedHp == turn.after.state.enemy.currentHp) {
+            hpTransitions.add(hud!.hpTweenRevision);
+          }
+        },
+      );
+      await loadFlameComponent(overlay);
+      await overlay.waitForPendingVisualSync();
+      addTearDown(overlay.onRemove);
+      expect(
+        await overlay.prepareTurnAudioAndUpdateState(
+          turn.after,
+          audioRequests: [
+            BattleTurnAudioRequest(
+              event: event,
+              coordinator: audio,
+              audio: const BattleMoveClipAudio('cue'),
+              silentVisuals: const AnimationGroupStep(
+                mode: BattleAnimationGroupMode.parallel,
+                steps: [WaitStep(durationSeconds: .2)],
+              ),
+            ),
+          ],
+        ),
+        isTrue,
+      );
+      await overlay.waitForPendingVisualSync();
+      for (var i = 0; i < 300; i++) {
+        overlay.updateTree(1 / 60);
+        await Future<void>.delayed(Duration.zero);
+      }
+      expect(voice.resumes, 1);
+      expect(sounds.where((name) => name == 'hit'), hasLength(1));
+      expect(
+        sounds.where((name) => name.startsWith('avelune-recipe-audio-')),
+        isEmpty,
+      );
+      expect(hpTransitions, hasLength(1));
+    },
+  );
+
+  test(
+    'two executions of the same move get independent audio voices',
+    () async {
+      final turn = _realTurn(enemyAttacks: true);
+      expect(turn.events, hasLength(2));
+      expect(turn.events.map((event) => event.execution.move.id), [
+        'tackle',
+        'tackle',
+      ]);
+      final voices = <_Voice>[];
+      final player = FlameAudioBattleSfxPlayer(
+        playerFactory: () {
+          final voice = _Voice();
+          voices.add(voice);
+          return voice;
+        },
+      );
+      addTearDown(player.dispose);
+      final bundle = await _bundle();
+      final audios = List.generate(
+        2,
+        (_) => BattleRecipeAudioCoordinator(
+          player: player,
+          bundle: bundle,
+          preparationTimeout: const Duration(seconds: 1),
+          startTimeout: const Duration(seconds: 1),
+        ),
+      );
+      addTearDown(() async {
+        for (final audio in audios) {
+          await audio.cancel();
+        }
+      });
+      final selections = <BattleTurnAudioSelection>[];
+      for (var i = 0; i < 2; i++) {
+        selections.add(
+          BattleTurnAudioSelection(
+            event: turn.events[i],
+            audio: await audios[i].prepare(const BattleMoveClipAudio('cue')),
+            silentVisuals: const AnimationGroupStep(
+              mode: BattleAnimationGroupMode.parallel,
+              steps: [WaitStep(durationSeconds: .2)],
+            ),
+          ),
+        );
+      }
+      final plan = _realTurnPlan(
+        turn.before,
+        turn.after,
+        selections: selections,
+      );
+      final sounds = <String>[];
+      var hpTransitions = 0;
+      final runner = _scopeRunner(
+        onPlaySe: (step) => sounds.add(step.seName),
+        onHudHpTween: (_) => hpTransitions++,
+      );
+      runner.start(plan);
+      for (var i = 0; i < 100 && voices.first.resumes == 0; i++) {
+        runner.update(.05);
+        await Future<void>.delayed(Duration.zero);
+      }
+      expect(voices.map((voice) => voice.resumes), [1, 0]);
+      for (var i = 0; i < 150 && voices.last.resumes == 0; i++) {
+        runner.update(.05);
+        await Future<void>.delayed(Duration.zero);
+      }
+      for (var i = 0; i < 150 && runner.isActive; i++) {
+        runner.update(.05);
+      }
+      expect(voices.map((voice) => voice.resumes), [1, 1]);
+      expect(sounds.where((name) => name == 'legacy-move'), isEmpty);
+      expect(sounds.where((name) => name == 'hit'), hasLength(2));
+      expect(hpTransitions, 2);
+    },
+  );
+
+  test('a stale attack event cancels its unused prepared sound', () async {
+    final turn = _realTurn();
+    final event = turn.events.firstWhere(
+      (entry) => entry.execution.attackerSide == BattleSideId.player,
+    );
+    final voice = _Voice();
+    final player = FlameAudioBattleSfxPlayer(playerFactory: () => voice);
+    addTearDown(player.dispose);
+    final audio = BattleRecipeAudioCoordinator(
+      player: player,
+      bundle: await _bundle(),
+      preparationTimeout: const Duration(seconds: 1),
+      startTimeout: const Duration(seconds: 1),
+    );
+    addTearDown(audio.cancel);
+    final selection = BattleTurnAudioSelection(
+      event: BattleTurnExecutionEvent(event.execution),
+      audio: await audio.prepare(const BattleMoveClipAudio('cue')),
+      silentVisuals: const AnimationGroupStep(
+        mode: BattleAnimationGroupMode.parallel,
+        steps: [WaitStep(durationSeconds: .1)],
+      ),
+    );
+    expect(
+      () => _realTurnPlan(turn.before, turn.after, selections: [selection]),
+      throwsStateError,
+    );
+    await voice.disposed.future;
+    expect(voice.resumes, 0);
+  });
+
+  test(
+    'cancelled turn preparation releases the other unstarted clip',
+    () async {
+      final turn = _realTurn(enemyAttacks: true);
+      final gate = Completer<void>();
+      final voices = <_Voice>[];
+      final player = FlameAudioBattleSfxPlayer(
+        playerFactory: () {
+          final voice = _Voice(sourceGate: voices.isEmpty ? gate : null);
+          voices.add(voice);
+          return voice;
+        },
+      );
+      addTearDown(player.dispose);
+      final bundle = await _bundle();
+      final audios = List.generate(
+        2,
+        (_) => BattleRecipeAudioCoordinator(
+          player: player,
+          bundle: bundle,
+          preparationTimeout: const Duration(seconds: 1),
+          startTimeout: const Duration(seconds: 1),
+        ),
+      );
+      addTearDown(() async {
+        if (!gate.isCompleted) gate.complete();
+        for (final audio in audios) {
+          await audio.cancel();
+        }
+      });
+      final pending = audios.first.prepare(const BattleMoveClipAudio('cue'));
+      await voices.first.sourceSet.future;
+      await audios.first.cancel();
+      final cancelled = await pending;
+      final ready = await audios.last.prepare(const BattleMoveClipAudio('cue'));
+      const visual = AnimationGroupStep(
+        mode: BattleAnimationGroupMode.parallel,
+        steps: [WaitStep(durationSeconds: .1)],
+      );
+      expect(
+        () => _realTurnPlan(
+          turn.before,
+          turn.after,
+          selections: [
+            BattleTurnAudioSelection(
+              event: turn.events[1],
+              audio: ready,
+              silentVisuals: visual,
+            ),
+            BattleTurnAudioSelection(
+              event: turn.events[0],
+              audio: cancelled,
+              silentVisuals: visual,
+            ),
+          ],
+        ),
+        throwsA(isA<BattleTurnAudioCancelled>()),
+      );
+      await voices.last.disposed.future;
+      expect(voices.map((voice) => voice.resumes), [0, 0]);
+      gate.complete();
+    },
+  );
+
+  test(
+    'a sound already reserved for another scope is never cancelled',
+    () async {
+      final voice = _Voice();
+      final player = FlameAudioBattleSfxPlayer(playerFactory: () => voice);
+      addTearDown(player.dispose);
+      final audio = BattleRecipeAudioCoordinator(
+        player: player,
+        bundle: await _bundle(),
+        preparationTimeout: const Duration(seconds: 1),
+        startTimeout: const Duration(seconds: 1),
+      );
+      addTearDown(audio.cancel);
+      final result = await audio.prepare(const BattleMoveClipAudio('cue'));
+      const visuals = AnimationGroupStep(
+        mode: BattleAnimationGroupMode.parallel,
+        steps: [WaitStep(durationSeconds: .1)],
+      );
+      final first = BattleMoveAudioScope.compose(
+        audio: result,
+        silentVisuals: visuals,
+        fallback: const [],
+      );
+      expect(
+        () => BattleMoveAudioScope.compose(
+          audio: result,
+          silentVisuals: visuals,
+          fallback: const [],
+        ),
+        throwsStateError,
+      );
+      final runner = _scopeRunner();
+      runner.start(
+        BattleAnimationPlan(steps: first.steps, audioScopes: first.audioScopes),
+      );
+      await voice.resuming.future;
+      expect(voice.resumes, 1);
+      expect(voice.disposals, 0);
+    },
+  );
+
+  test('a planner failure cancels claimed and unclaimed turn audio', () async {
+    final turn = _realTurn(enemyAttacks: true);
+    final voices = <_Voice>[];
+    final player = FlameAudioBattleSfxPlayer(
+      playerFactory: () {
+        final voice = _Voice();
+        voices.add(voice);
+        return voice;
+      },
+    );
+    addTearDown(player.dispose);
+    final bundle = await _bundle();
+    final audios = List.generate(
+      2,
+      (_) => BattleRecipeAudioCoordinator(
+        player: player,
+        bundle: bundle,
+        preparationTimeout: const Duration(seconds: 1),
+        startTimeout: const Duration(seconds: 1),
+      ),
+    );
+    addTearDown(() async {
+      for (final audio in audios) {
+        await audio.cancel();
+      }
+    });
+    const visual = AnimationGroupStep(
+      mode: BattleAnimationGroupMode.parallel,
+      steps: [WaitStep(durationSeconds: .1)],
+    );
+    final selections = <BattleTurnAudioSelection>[];
+    for (var i = 0; i < 2; i++) {
+      selections.add(
+        BattleTurnAudioSelection(
+          event: turn.events[i],
+          audio: await audios[i].prepare(const BattleMoveClipAudio('cue')),
+          silentVisuals: visual,
+        ),
+      );
+    }
+    var built = 0;
+    final catalog = RuntimeMoveCatalog.fromEntries(
+      const <String, PokemonMove>{},
+    );
+    final planner = BattleTurnAnimationPlanner(
+      recipeBuilder: (_, _) {
+        if (++built == 2) throw StateError('visual builder failed');
+        return const [WaitStep(durationSeconds: .1)];
+      },
+    );
+    expect(
+      () => planner.build(
+        previousSession: turn.before,
+        newSession: turn.after,
+        moveCatalog: catalog,
+        resolver: BattleMoveVisualResolver(catalog),
+        audioSelections: selections,
+      ),
+      throwsStateError,
+    );
+    await Future.wait(voices.map((voice) => voice.disposed.future));
+    expect(voices.map((voice) => voice.resumes), [0, 0]);
+  });
+
+  test('failed preflight keeps the real turn legacy plan intact', () async {
+    final turn = _realTurn();
+    final event = turn.events.firstWhere(
+      (entry) => entry.execution.attackerSide == BattleSideId.player,
+    );
+    final voice = _Voice(failSource: true);
+    final player = FlameAudioBattleSfxPlayer(playerFactory: () => voice);
+    addTearDown(player.dispose);
+    final audio = BattleRecipeAudioCoordinator(
+      player: player,
+      bundle: await _bundle(),
+      preparationTimeout: const Duration(seconds: 1),
+      startTimeout: const Duration(seconds: 1),
+    );
+    addTearDown(audio.cancel);
+    final result = await audio.prepare(const BattleMoveClipAudio('cue'));
+    expect(result.status, BattleRecipeAudioStatus.fallback);
+    final baseline = _realTurnPlan(turn.before, turn.after);
+    final plan = _realTurnPlan(
+      turn.before,
+      turn.after,
+      selections: [
+        BattleTurnAudioSelection(
+          event: event,
+          audio: result,
+          silentVisuals: const AnimationGroupStep(
+            mode: BattleAnimationGroupMode.parallel,
+            steps: [WaitStep(durationSeconds: .1)],
+          ),
+        ),
+      ],
+    );
+    expect(plan.audioScopes, isEmpty);
+    expect(
+      plan.flattenedSteps.map((step) => step.runtimeType),
+      baseline.flattenedSteps.map((step) => step.runtimeType),
+    );
+    expect(
+      plan.flattenedSteps.whereType<PlaySeStep>().map((step) => step.seName),
+      baseline.flattenedSteps.whereType<PlaySeStep>().map(
+        (step) => step.seName,
+      ),
+    );
+    expect(
+      plan.flattenedSteps.whereType<HudHpTweenStep>().length,
+      baseline.flattenedSteps.whereType<HudHpTweenStep>().length,
+    );
+    expect(voice.resumes, 0);
+  });
+
+  test(
+    'target damage flashes inside selected visuals fall back safely',
+    () async {
+      final turn = _realTurn();
+      final event = turn.events.firstWhere(
+        (entry) => entry.execution.attackerSide == BattleSideId.player,
+      );
+      final voice = _Voice();
+      final player = FlameAudioBattleSfxPlayer(playerFactory: () => voice);
+      addTearDown(player.dispose);
+      final audio = BattleRecipeAudioCoordinator(
+        player: player,
+        bundle: await _bundle(),
+        preparationTimeout: const Duration(seconds: 1),
+        startTimeout: const Duration(seconds: 1),
+      );
+      addTearDown(audio.cancel);
+      final baseline = _realTurnPlan(turn.before, turn.after);
+      final plan = _realTurnPlan(
+        turn.before,
+        turn.after,
+        selections: [
+          BattleTurnAudioSelection(
+            event: event,
+            audio: await audio.prepare(const BattleMoveClipAudio('cue')),
+            silentVisuals: const AnimationGroupStep(
+              mode: BattleAnimationGroupMode.parallel,
+              steps: [
+                AnimationGroupStep(
+                  mode: BattleAnimationGroupMode.sequence,
+                  steps: [
+                    CombatantFlashStep(
+                      side: BattleSideId.enemy,
+                      durationSeconds: .1,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+      expect(plan.audioScopes, isEmpty);
+      expect(
+        plan.flattenedSteps.map((step) => step.runtimeType),
+        baseline.flattenedSteps.map((step) => step.runtimeType),
+      );
+      await voice.disposed.future;
+      expect(voice.resumes, 0);
+    },
+  );
+
+  test('a selected camera follows the event attacker without losing its audio scope', () async {
+    final turn = _realTurn();
+    final event = turn.events.firstWhere(
+      (entry) => entry.execution.attackerSide == BattleSideId.player,
+    );
+    final voice = _Voice();
+    final player = FlameAudioBattleSfxPlayer(playerFactory: () => voice);
+    addTearDown(player.dispose);
+    final audio = BattleRecipeAudioCoordinator(
+      player: player,
+      bundle: await _bundle(),
+      preparationTimeout: const Duration(seconds: 1),
+      startTimeout: const Duration(seconds: 1),
+    );
+    addTearDown(audio.cancel);
+    final plan = _realTurnPlan(
+      turn.before,
+      turn.after,
+      selections: [
+        BattleTurnAudioSelection(
+          event: event,
+          audio: await audio.prepare(const BattleMoveClipAudio('cue')),
+          silentVisuals: const AnimationGroupStep(
+            mode: BattleAnimationGroupMode.parallel,
+            steps: [
+              CameraFocusStep(
+                target: BattleCameraFocusTarget.user,
+                durationSeconds: .1,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+    final focus = plan.flattenedSteps.whereType<CameraFocusStep>().firstWhere(
+      (step) => step.target == BattleCameraFocusTarget.user,
+    );
+    expect(focus.side, BattleSideId.player);
+    expect(focus.slotIndex, event.execution.attackerSlot.slotIndex);
+    final runner = _scopeRunner();
+    runner.start(plan);
+    for (var i = 0; i < 100 && voice.resumes == 0; i++) {
+      runner.update(.05);
+      await Future<void>.delayed(Duration.zero);
+    }
+    expect(voice.resumes, 1);
+  });
+
+  test('a finishing turn retains its selected audio scope', () async {
+    final turn = _realTurn(enemyHp: 1);
+    expect(turn.after.state.isFinished, isTrue);
+    final event = turn.events.firstWhere(
+      (entry) => entry.execution.attackerSide == BattleSideId.player,
+    );
+    final voice = _Voice();
+    final player = FlameAudioBattleSfxPlayer(playerFactory: () => voice);
+    addTearDown(player.dispose);
+    final audio = BattleRecipeAudioCoordinator(
+      player: player,
+      bundle: await _bundle(),
+      preparationTimeout: const Duration(seconds: 1),
+      startTimeout: const Duration(seconds: 1),
+    );
+    addTearDown(audio.cancel);
+    final plan = _realTurnPlan(
+      turn.before,
+      turn.after,
+      selections: [
+        BattleTurnAudioSelection(
+          event: event,
+          audio: await audio.prepare(const BattleMoveClipAudio('cue')),
+          silentVisuals: const AnimationGroupStep(
+            mode: BattleAnimationGroupMode.parallel,
+            steps: [WaitStep(durationSeconds: .1)],
+          ),
+        ),
+      ],
+    );
+    expect(plan.audioScopes, hasLength(1));
+    final runner = _scopeRunner();
+    runner.start(plan);
+    for (var i = 0; i < 100 && voice.resumes == 0; i++) {
+      runner.update(.05);
+      await Future<void>.delayed(Duration.zero);
+    }
+    expect(voice.resumes, 1);
+  });
+
+  test(
+    'removing the overlay cancels audio preparation before the turn starts',
+    () async {
+      final turn = _realTurn();
+      final gate = Completer<void>();
+      final voice = _Voice(sourceGate: gate);
+      final player = FlameAudioBattleSfxPlayer(playerFactory: () => voice);
+      addTearDown(player.dispose);
+      final audio = BattleRecipeAudioCoordinator(
+        player: player,
+        bundle: await _bundle(),
+        preparationTimeout: const Duration(seconds: 1),
+        startTimeout: const Duration(seconds: 1),
+      );
+      addTearDown(() async {
+        if (!gate.isCompleted) gate.complete();
+        await audio.cancel();
+      });
+      final overlay = BattleOverlayComponent(
+        session: turn.before,
+        viewportSize: Vector2(390, 844),
+        onPlayerChoice: (_) {},
+      );
+      await loadFlameComponent(overlay);
+      await overlay.waitForPendingVisualSync();
+      addTearDown(overlay.onRemove);
+      final event = turn.events.firstWhere(
+        (entry) => entry.execution.attackerSide == BattleSideId.player,
+      );
+      final pending = overlay.prepareTurnAudioAndUpdateState(
+        turn.after,
+        audioRequests: [
+          BattleTurnAudioRequest(
+            event: event,
+            coordinator: audio,
+            audio: const BattleMoveClipAudio('cue'),
+            silentVisuals: const AnimationGroupStep(
+              mode: BattleAnimationGroupMode.parallel,
+              steps: [WaitStep(durationSeconds: .1)],
+            ),
+          ),
+        ],
+      );
+      await voice.sourceSet.future;
+      expect(overlay.isTurnPresentationActive, isTrue);
+      overlay.onRemove();
+      expect(await pending.timeout(const Duration(milliseconds: 500)), isFalse);
+      expect(overlay.debugSession.state.currentTurn, isNull);
+      expect(voice.resumes, 0);
+    },
+  );
+
+  test(
+    'waiting for turn presentation includes pending audio preparation',
+    () async {
+      final turn = _realTurn();
+      final event = turn.events.firstWhere(
+        (entry) => entry.execution.attackerSide == BattleSideId.player,
+      );
+      final gate = Completer<void>();
+      final voice = _Voice(sourceGate: gate);
+      final player = FlameAudioBattleSfxPlayer(playerFactory: () => voice);
+      addTearDown(player.dispose);
+      final audio = BattleRecipeAudioCoordinator(
+        player: player,
+        bundle: await _bundle(),
+        preparationTimeout: const Duration(seconds: 1),
+        startTimeout: const Duration(seconds: 1),
+      );
+      addTearDown(() async {
+        if (!gate.isCompleted) gate.complete();
+        await audio.cancel();
+      });
+      final overlay = BattleOverlayComponent(
+        session: turn.before,
+        viewportSize: Vector2(390, 844),
+        onPlayerChoice: (_) {},
+      );
+      await loadFlameComponent(overlay);
+      await overlay.waitForPendingVisualSync();
+      addTearDown(overlay.onRemove);
+      final preparing = overlay.prepareTurnAudioAndUpdateState(
+        turn.after,
+        audioRequests: [
+          BattleTurnAudioRequest(
+            event: event,
+            coordinator: audio,
+            audio: const BattleMoveClipAudio('cue'),
+            silentVisuals: const AnimationGroupStep(
+              mode: BattleAnimationGroupMode.parallel,
+              steps: [WaitStep(durationSeconds: .1)],
+            ),
+          ),
+        ],
+      );
+      await voice.sourceSet.future;
+      var completed = false;
+      final waiting = overlay.waitForTurnPresentationComplete().then(
+        (_) => completed = true,
+      );
+      await Future<void>.delayed(Duration.zero);
+      expect(completed, isFalse);
+      gate.complete();
+      expect(await preparing, isTrue);
+      await overlay.waitForPendingVisualSync();
+      for (var i = 0; i < 300 && !completed; i++) {
+        overlay.updateTree(1 / 60);
+        await Future<void>.delayed(Duration.zero);
+      }
+      await waiting.timeout(const Duration(seconds: 1));
+      expect(completed, isTrue);
+      expect(voice.resumes, 1);
+    },
+  );
+
+  test(
+    'cancelling a later audio preparation also releases earlier ready audio',
+    () async {
+      final turn = _realTurn(enemyAttacks: true);
+      final gate = Completer<void>();
+      final secondCreated = Completer<_Voice>();
+      final voices = <_Voice>[];
+      final player = FlameAudioBattleSfxPlayer(
+        playerFactory: () {
+          final voice = _Voice(sourceGate: voices.isEmpty ? null : gate);
+          voices.add(voice);
+          if (voices.length == 2) secondCreated.complete(voice);
+          return voice;
+        },
+      );
+      addTearDown(player.dispose);
+      final bundle = await _bundle();
+      final audios = List.generate(
+        2,
+        (_) => BattleRecipeAudioCoordinator(
+          player: player,
+          bundle: bundle,
+          preparationTimeout: const Duration(seconds: 1),
+          startTimeout: const Duration(seconds: 1),
+        ),
+      );
+      addTearDown(() async {
+        if (!gate.isCompleted) gate.complete();
+        for (final audio in audios) {
+          await audio.cancel();
+        }
+      });
+      final overlay = BattleOverlayComponent(
+        session: turn.before,
+        viewportSize: Vector2(390, 844),
+        onPlayerChoice: (_) {},
+      );
+      await loadFlameComponent(overlay);
+      await overlay.waitForPendingVisualSync();
+      addTearDown(overlay.onRemove);
+      final pending = overlay.prepareTurnAudioAndUpdateState(
+        turn.after,
+        audioRequests: [
+          for (var i = 0; i < 2; i++)
+            BattleTurnAudioRequest(
+              event: turn.events[i],
+              coordinator: audios[i],
+              audio: const BattleMoveClipAudio('cue'),
+              silentVisuals: const AnimationGroupStep(
+                mode: BattleAnimationGroupMode.parallel,
+                steps: [WaitStep(durationSeconds: .1)],
+              ),
+            ),
+        ],
+      );
+      final second = await secondCreated.future;
+      await second.sourceSet.future;
+      expect(voices.map((voice) => voice.resumes), [0, 0]);
+      overlay.onRemove();
+      expect(await pending.timeout(const Duration(seconds: 1)), isFalse);
+      await Future.wait(voices.map((voice) => voice.disposed.future));
+      expect(voices.map((voice) => voice.resumes), [0, 0]);
+      gate.complete();
+    },
+  );
+
+  test(
+    'a turn planning timeout is not mistaken for audio preparation timeout',
+    () async {
+      final turn = _realTurn();
+      final event = turn.events.firstWhere(
+        (entry) => entry.execution.attackerSide == BattleSideId.player,
+      );
+      final voice = _Voice();
+      final player = FlameAudioBattleSfxPlayer(playerFactory: () => voice);
+      addTearDown(player.dispose);
+      final audio = BattleRecipeAudioCoordinator(
+        player: player,
+        bundle: await _bundle(),
+        preparationTimeout: const Duration(seconds: 1),
+        startTimeout: const Duration(seconds: 1),
+      );
+      addTearDown(audio.cancel);
+      var thrown = false;
+      var armed = false;
+      late BattleOverlayComponent overlay;
+      overlay = BattleOverlayComponent(
+        session: turn.before,
+        viewportSize: Vector2(390, 844),
+        onPlayerChoice: (_) {},
+        resolveMoveDisplayName: (id, fallback) {
+          if (armed && !thrown && !overlay.isTurnPresentationActive) {
+            thrown = true;
+            throw TimeoutException('presentation failed');
+          }
+          return fallback;
+        },
+      );
+      await loadFlameComponent(overlay);
+      await overlay.waitForPendingVisualSync();
+      addTearDown(overlay.onRemove);
+      armed = true;
+      await expectLater(
+        overlay.prepareTurnAudioAndUpdateState(
+          turn.after,
+          audioRequests: [
+            BattleTurnAudioRequest(
+              event: event,
+              coordinator: audio,
+              audio: const BattleMoveClipAudio('cue'),
+              silentVisuals: const AnimationGroupStep(
+                mode: BattleAnimationGroupMode.parallel,
+                steps: [WaitStep(durationSeconds: .1)],
+              ),
+            ),
+          ],
+        ),
+        throwsA(isA<TimeoutException>()),
+      );
+      expect(thrown, isTrue);
+      expect(voice.resumes, 0);
+    },
+  );
+
+  test('external cancellation unlocks the turn without applying it', () async {
+    final turn = _realTurn();
+    final event = turn.events.firstWhere(
+      (entry) => entry.execution.attackerSide == BattleSideId.player,
+    );
+    final gate = Completer<void>();
+    final voice = _Voice(sourceGate: gate);
+    final player = FlameAudioBattleSfxPlayer(playerFactory: () => voice);
+    addTearDown(player.dispose);
+    final audio = BattleRecipeAudioCoordinator(
+      player: player,
+      bundle: await _bundle(),
+      preparationTimeout: const Duration(seconds: 1),
+      startTimeout: const Duration(seconds: 1),
+    );
+    addTearDown(() async {
+      if (!gate.isCompleted) gate.complete();
+      await audio.cancel();
+    });
+    final overlay = BattleOverlayComponent(
+      session: turn.before,
+      viewportSize: Vector2(390, 844),
+      onPlayerChoice: (_) {},
+    );
+    await loadFlameComponent(overlay);
+    await overlay.waitForPendingVisualSync();
+    addTearDown(overlay.onRemove);
+    final pending = overlay.prepareTurnAudioAndUpdateState(
+      turn.after,
+      audioRequests: [
+        BattleTurnAudioRequest(
+          event: event,
+          coordinator: audio,
+          audio: const BattleMoveClipAudio('cue'),
+          silentVisuals: const AnimationGroupStep(
+            mode: BattleAnimationGroupMode.parallel,
+            steps: [WaitStep(durationSeconds: .1)],
+          ),
+        ),
+      ],
+    );
+    await voice.sourceSet.future;
+    await audio.cancel();
+    expect(await pending, isFalse);
+    expect(overlay.isTurnPresentationActive, isFalse);
+    expect(identical(overlay.debugSession, turn.before), isTrue);
+    expect(voice.resumes, 0);
+    gate.complete();
+  });
+
+  test(
+    'a turn audio timeout plays the legacy turn without waiting for stop',
+    () async {
+      final turn = _realTurn();
+      final event = turn.events.firstWhere(
+        (entry) => entry.execution.attackerSide == BattleSideId.player,
+      );
+      final sourceGate = Completer<void>();
+      final stopGate = Completer<void>();
+      final voice = _Voice(sourceGate: sourceGate, stopGate: stopGate);
+      final player = FlameAudioBattleSfxPlayer(playerFactory: () => voice);
+      addTearDown(player.dispose);
+      final audio = BattleRecipeAudioCoordinator(
+        player: player,
+        bundle: await _bundle(),
+        preparationTimeout: const Duration(seconds: 1),
+        startTimeout: const Duration(seconds: 1),
+      );
+      addTearDown(() async {
+        if (!sourceGate.isCompleted) sourceGate.complete();
+        if (!stopGate.isCompleted) stopGate.complete();
+        await audio.cancel();
+      });
+      final sounds = <String>[];
+      final hpTransitions = <int>{};
+      final overlay = BattleOverlayComponent(
+        session: turn.before,
+        viewportSize: Vector2(390, 844),
+        onPlayerChoice: (_) {},
+        playSfx: (name, {required volume, required pitch}) => sounds.add(name),
+        onCommandOverlaySnapshotChanged: (snapshot) {
+          final hud = snapshot?.enemyHud;
+          if (hud?.targetDisplayedHp == turn.after.state.enemy.currentHp) {
+            hpTransitions.add(hud!.hpTweenRevision);
+          }
+        },
+      );
+      await loadFlameComponent(overlay);
+      await overlay.waitForPendingVisualSync();
+      addTearDown(overlay.onRemove);
+      final pending = overlay.prepareTurnAudioAndUpdateState(
+        turn.after,
+        preparationTimeout: const Duration(milliseconds: 50),
+        audioRequests: [
+          BattleTurnAudioRequest(
+            event: event,
+            coordinator: audio,
+            audio: const BattleMoveClipAudio('cue'),
+            silentVisuals: const AnimationGroupStep(
+              mode: BattleAnimationGroupMode.parallel,
+              steps: [WaitStep(durationSeconds: .1)],
+            ),
+          ),
+        ],
+      );
+      await voice.sourceSet.future;
+      expect(await pending.timeout(const Duration(seconds: 1)), isTrue);
+      await voice.stopping.future.timeout(const Duration(seconds: 1));
+      expect(voice.disposals, 0);
+      expect(voice.resumes, 0);
+      await overlay.waitForPendingVisualSync();
+      for (var i = 0; i < 300; i++) {
+        overlay.updateTree(1 / 60);
+        await Future<void>.delayed(Duration.zero);
+      }
+      expect(sounds.where((name) => name == 'hit'), hasLength(1));
+      expect(hpTransitions, hasLength(1));
+      sourceGate.complete();
+      stopGate.complete();
+      await audio.cancel();
+    },
+  );
+
+  test(
+    'replacing the turn cancels slow audio preparation before it can apply',
+    () async {
+      final turn = _realTurn();
+      final event = turn.events.firstWhere(
+        (entry) => entry.execution.attackerSide == BattleSideId.player,
+      );
+      final gate = Completer<void>();
+      final voice = _Voice(sourceGate: gate);
+      final player = FlameAudioBattleSfxPlayer(playerFactory: () => voice);
+      addTearDown(player.dispose);
+      final audio = BattleRecipeAudioCoordinator(
+        player: player,
+        bundle: await _bundle(),
+        preparationTimeout: const Duration(seconds: 1),
+        startTimeout: const Duration(seconds: 1),
+      );
+      addTearDown(() async {
+        if (!gate.isCompleted) gate.complete();
+        await audio.cancel();
+      });
+      final overlay = BattleOverlayComponent(
+        session: turn.before,
+        viewportSize: Vector2(390, 844),
+        onPlayerChoice: (_) {},
+      );
+      await loadFlameComponent(overlay);
+      await overlay.waitForPendingVisualSync();
+      addTearDown(overlay.onRemove);
+      final pending = overlay.prepareTurnAudioAndUpdateState(
+        turn.after,
+        audioRequests: [
+          BattleTurnAudioRequest(
+            event: event,
+            coordinator: audio,
+            audio: const BattleMoveClipAudio('cue'),
+            silentVisuals: const AnimationGroupStep(
+              mode: BattleAnimationGroupMode.parallel,
+              steps: [WaitStep(durationSeconds: .1)],
+            ),
+          ),
+        ],
+      );
+      await voice.sourceSet.future;
+      overlay.updateState(turn.before);
+      expect(await pending.timeout(const Duration(seconds: 1)), isFalse);
+      expect(identical(overlay.debugSession, turn.before), isTrue);
+      expect(voice.resumes, 0);
+      gate.complete();
+      await audio.cancel();
+    },
+  );
+
+  test(
+    'removing the overlay during visual prewarm cancels the pending clip',
+    () async {
+      final turn = _realTurn();
+      final event = turn.events.firstWhere(
+        (entry) => entry.execution.attackerSide == BattleSideId.player,
+      );
+      final voice = _Voice();
+      final player = FlameAudioBattleSfxPlayer(playerFactory: () => voice);
+      addTearDown(player.dispose);
+      final audio = BattleRecipeAudioCoordinator(
+        player: player,
+        bundle: await _bundle(),
+        preparationTimeout: const Duration(seconds: 1),
+        startTimeout: const Duration(seconds: 1),
+      );
+      addTearDown(audio.cancel);
+      final result = await audio.prepare(const BattleMoveClipAudio('cue'));
+      final gate = Completer<ui.Image>();
+      final started = Completer<void>();
+      final cache = BattleFxBundleCache(
+        imageLoader: (key) {
+          if (key.endsWith('/anim008_elec.png')) {
+            if (!started.isCompleted) started.complete();
+            return gate.future;
+          }
+          return _tinyFxImage();
+        },
+      );
+      addTearDown(cache.dispose);
+      final overlay = BattleOverlayComponent(
+        session: turn.before,
+        viewportSize: Vector2(390, 844),
+        onPlayerChoice: (_) {},
+        fxBundleCache: cache,
+      );
+      await loadFlameComponent(overlay);
+      await overlay.waitForPendingVisualSync();
+      addTearDown(overlay.onRemove);
+      overlay.updateState(
+        turn.after,
+        audioSelections: [
+          BattleTurnAudioSelection(
+            event: event,
+            audio: result,
+            silentVisuals: const AnimationGroupStep(
+              mode: BattleAnimationGroupMode.parallel,
+              steps: [
+                SpawnFxStep(
+                  effectId: 'electroball',
+                  attackerSide: BattleSideId.player,
+                  defenderSide: BattleSideId.enemy,
+                  from: BattleVisualAnchor.attackerCenter,
+                  to: BattleVisualAnchor.defenderCenter,
+                  durationSeconds: .2,
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+      final pending = overlay.waitForPendingVisualSync();
+      try {
+        await started.future.timeout(const Duration(seconds: 2));
+        expect(voice.resumes, 0);
+        overlay.onRemove();
+        await voice.disposed.future.timeout(const Duration(seconds: 2));
+        expect(voice.resumes, 0);
+      } finally {
+        gate.complete(await _tinyFxImage());
+        await pending;
+      }
+    },
+  );
+
+  test(
+    'replacing a turn during visual prewarm releases the old clip',
+    () async {
+      final turn = _realTurn();
+      final event = turn.events.firstWhere(
+        (entry) => entry.execution.attackerSide == BattleSideId.player,
+      );
+      final voice = _Voice();
+      final player = FlameAudioBattleSfxPlayer(playerFactory: () => voice);
+      addTearDown(player.dispose);
+      final audio = BattleRecipeAudioCoordinator(
+        player: player,
+        bundle: await _bundle(),
+        preparationTimeout: const Duration(seconds: 1),
+        startTimeout: const Duration(seconds: 1),
+      );
+      addTearDown(audio.cancel);
+      final gate = Completer<ui.Image>();
+      final started = Completer<void>();
+      final cache = BattleFxBundleCache(
+        imageLoader: (key) {
+          if (key.endsWith('/anim008_elec.png')) {
+            if (!started.isCompleted) started.complete();
+            return gate.future;
+          }
+          return _tinyFxImage();
+        },
+      );
+      addTearDown(cache.dispose);
+      final overlay = BattleOverlayComponent(
+        session: turn.before,
+        viewportSize: Vector2(390, 844),
+        onPlayerChoice: (_) {},
+        fxBundleCache: cache,
+      );
+      await loadFlameComponent(overlay);
+      await overlay.waitForPendingVisualSync();
+      addTearDown(overlay.onRemove);
+      overlay.updateState(
+        turn.after,
+        audioSelections: [
+          BattleTurnAudioSelection(
+            event: event,
+            audio: await audio.prepare(const BattleMoveClipAudio('cue')),
+            silentVisuals: const AnimationGroupStep(
+              mode: BattleAnimationGroupMode.parallel,
+              steps: [
+                SpawnFxStep(
+                  effectId: 'electroball',
+                  attackerSide: BattleSideId.player,
+                  defenderSide: BattleSideId.enemy,
+                  from: BattleVisualAnchor.attackerCenter,
+                  to: BattleVisualAnchor.defenderCenter,
+                  durationSeconds: .2,
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+      final oldPending = overlay.waitForPendingVisualSync();
+      try {
+        await started.future.timeout(const Duration(seconds: 2));
+        overlay.updateState(turn.after);
+        await voice.disposed.future.timeout(const Duration(seconds: 2));
+        await overlay.waitForPendingVisualSync();
+        expect(voice.resumes, 0);
+      } finally {
+        gate.complete(await _tinyFxImage());
+        await oldPending;
+      }
+      expect(voice.resumes, 0);
+    },
+  );
+
+  test(
+    'a current visual prewarm failure stays visible and releases its clip',
+    () async {
+      final turn = _realTurn();
+      final event = turn.events.firstWhere(
+        (entry) => entry.execution.attackerSide == BattleSideId.player,
+      );
+      final voice = _Voice();
+      final player = FlameAudioBattleSfxPlayer(playerFactory: () => voice);
+      addTearDown(player.dispose);
+      final audio = BattleRecipeAudioCoordinator(
+        player: player,
+        bundle: await _bundle(),
+        preparationTimeout: const Duration(seconds: 1),
+        startTimeout: const Duration(seconds: 1),
+      );
+      addTearDown(audio.cancel);
+      final cache = BattleFxBundleCache(
+        imageLoader: (key) {
+          if (key.endsWith('/anim008_elec.png')) {
+            return Future<ui.Image>.error(
+              const RuntimeResourceAdmissionException('cancelled_or_closed'),
+            );
+          }
+          return _tinyFxImage();
+        },
+      );
+      addTearDown(cache.dispose);
+      final overlay = BattleOverlayComponent(
+        session: turn.before,
+        viewportSize: Vector2(390, 844),
+        onPlayerChoice: (_) {},
+        fxBundleCache: cache,
+      );
+      await loadFlameComponent(overlay);
+      await overlay.waitForPendingVisualSync();
+      addTearDown(overlay.onRemove);
+      overlay.updateState(
+        turn.after,
+        audioSelections: [
+          BattleTurnAudioSelection(
+            event: event,
+            audio: await audio.prepare(const BattleMoveClipAudio('cue')),
+            silentVisuals: const AnimationGroupStep(
+              mode: BattleAnimationGroupMode.parallel,
+              steps: [
+                SpawnFxStep(
+                  effectId: 'electroball',
+                  attackerSide: BattleSideId.player,
+                  defenderSide: BattleSideId.enemy,
+                  from: BattleVisualAnchor.attackerCenter,
+                  to: BattleVisualAnchor.defenderCenter,
+                  durationSeconds: .2,
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+      await expectLater(
+        overlay.waitForPendingVisualSync(),
+        throwsA(isA<RuntimeResourceAdmissionException>()),
+      );
+      await voice.disposed.future;
+      expect(voice.resumes, 0);
+    },
+  );
+
   test(
     'battle overlay recovers after clip playback without repeating sound or HP',
     () async {
@@ -2181,6 +3463,135 @@ void main() {
   });
 
   final sourcePath = Platform.environment['AVELUNE_RECIPE_SOUND_FILE'];
+
+  test(
+    'exported sound is verified offline before explicit real-turn playback',
+    () => HttpOverrides.runZoned(() async {
+      final sound = await File(sourcePath ?? 'assets/audio/overworld/jump.wav')
+          .readAsBytes();
+      final mediaType = sourcePath == null ? 'audio/wav' : 'audio/mpeg';
+      final original = await _bundle(audio: sound, mediaType: mediaType);
+      final binding = BattleMoveRecipeBinding.fromJson({
+        'schemaVersion': 1,
+        'projectMoveId': 'tackle',
+        'sourceMoveId': 'flamethrower',
+        'catalogReleaseId': 'fixture',
+        'recipeId': 'fire',
+        'variant': 'default',
+        'revision': '1',
+        'recipeSha256': sha256.convert(original.recipeBytes).toString(),
+      });
+      final fixture = await offlineRecipePackageFixture(
+        spatial: false,
+        fetchedRecipe: (
+          binding: binding,
+          bundle: original,
+          catalogMoveId: 'catalog',
+          recipeMediaId: 'fixture-sound',
+        ),
+      );
+      final root = fixture.bundle.projectRootDirectory;
+      final offline = await BattleOfflineMoveRecipeLoader(
+        projectRootDirectory: root,
+        resourceBudget: fixture.bundle.resourceBudget,
+      ).load('tackle');
+      expect(
+        offline.fallbackReason,
+        BattleRecipeFallbackReason.unavailableCapabilities,
+      );
+      expect(offline.unavailableCapabilities, {'sound'});
+      expect(offline.prepared, isNull);
+      final resource = original.recipe.resources.single;
+      final recipeBytes = await File(
+        p.join(
+          root,
+          battleRecipeBlobPath(
+            binding.recipeSha256,
+            'application/vnd.avelune.battle-recipe+json',
+            projectMoveId: 'tackle',
+          ),
+        ),
+      ).readAsBytes();
+      final soundBytes = await File(
+        p.join(
+          root,
+          battleRecipeBlobPath(
+            resource.sha256Hex,
+            resource.mediaType,
+            projectMoveId: 'tackle',
+          ),
+        ),
+      ).readAsBytes();
+      final inspected = const BattleRecipeBundleInspector().inspect(
+        binding,
+        recipeBytes,
+        {'cue': soundBytes},
+        limits: const BattleRecipeBundleLimits(
+          maxTextures: 0,
+          maxTextureBytes: 0,
+          maxBundleBytes: 8 * 1024 * 1024,
+          maxDimension: 1,
+          maxTexturePixels: 1,
+          maxTotalPixels: 1,
+        ),
+        availableCapabilities: const {'sound'},
+        expectedProjectMoveId: 'tackle',
+        expectedCatalogReleaseId: 'fixture',
+      );
+      expect(soundBytes, orderedEquals(sound));
+      final voice = _Voice();
+      final player = FlameAudioBattleSfxPlayer(playerFactory: () => voice);
+      addTearDown(player.dispose);
+      final audio = BattleRecipeAudioCoordinator(
+        player: player,
+        bundle: inspected,
+        preparationTimeout: const Duration(seconds: 1),
+        startTimeout: const Duration(seconds: 1),
+      );
+      addTearDown(audio.cancel);
+      final turn = _realTurn();
+      final event = turn.events.firstWhere(
+        (entry) => entry.execution.attackerSide == BattleSideId.player,
+      );
+      final sounds = <String>[];
+      final overlay = BattleOverlayComponent(
+        session: turn.before,
+        viewportSize: Vector2(390, 844),
+        onPlayerChoice: (_) {},
+        playSfx: (name, {required volume, required pitch}) => sounds.add(name),
+      );
+      await loadFlameComponent(overlay);
+      await overlay.waitForPendingVisualSync();
+      addTearDown(overlay.onRemove);
+      expect(
+        await overlay.prepareTurnAudioAndUpdateState(
+          turn.after,
+          audioRequests: [
+            BattleTurnAudioRequest(
+              event: event,
+              coordinator: audio,
+              audio: const BattleMoveClipAudio('cue'),
+              silentVisuals: const AnimationGroupStep(
+                mode: BattleAnimationGroupMode.parallel,
+                steps: [WaitStep(durationSeconds: .1)],
+              ),
+            ),
+          ],
+        ),
+        isTrue,
+      );
+      await overlay.waitForPendingVisualSync();
+      for (var i = 0; i < 300; i++) {
+        overlay.updateTree(1 / 60);
+        await Future<void>.delayed(Duration.zero);
+      }
+      expect(voice.resumes, 1);
+      expect(sounds.where((name) => name == 'hit'), hasLength(1));
+      final source = voice.source as DeviceFileSource;
+      expect(await File(source.path).readAsBytes(), orderedEquals(sound));
+    }, createHttpClient: (_) => throw StateError('Network disabled')),
+  );
+
   test('accepts and prepares a locally supplied verified MP3', () async {
     final input = await File(sourcePath!).readAsBytes();
     final bundle = await _bundle(audio: input, mediaType: 'audio/mpeg');
@@ -2236,6 +3647,97 @@ void main() {
     expect(events, isEmpty);
     await audio.cancel();
   }, skip: sourcePath == null ? 'No local sound supplied' : false);
+}
+
+({
+  BattleSession before,
+  BattleSession after,
+  List<BattleTurnExecutionEvent> events,
+})
+_realTurn({bool enemyAttacks = false, int enemyHp = 80}) {
+  const stats = BattleStatsSnapshot(
+    attack: 20,
+    defense: 20,
+    specialAttack: 20,
+    specialDefense: 20,
+    speed: 20,
+  );
+  const attack = BattleMoveData(
+    id: 'tackle',
+    name: 'Charge',
+    power: 40,
+    accuracy: BattleMoveAccuracy.alwaysHits(),
+  );
+  const wait = BattleMoveData(
+    id: 'wait',
+    name: 'Wait',
+    power: 0,
+    category: BattleMoveCategory.status,
+    target: BattleMoveTarget.self,
+    accuracy: BattleMoveAccuracy.alwaysHits(),
+  );
+  final before = createBattleSession(
+    BattleSetup.pokeMapBetaV1ForTest(
+      playerPokemon: const BattleCombatantData(
+        speciesId: 'one',
+        level: 7,
+        maxHp: 80,
+        currentHp: 80,
+        stats: stats,
+        moves: [attack],
+      ),
+      enemyPokemon: BattleCombatantData(
+        speciesId: 'two',
+        level: 7,
+        maxHp: 80,
+        currentHp: enemyHp,
+        stats: stats,
+        moves: [enemyAttacks ? attack : wait],
+      ),
+      isTrainerBattle: false,
+      trainerId: null,
+    ),
+  );
+  final after = before.applyChoice(const PlayerBattleChoiceFight(0));
+  return (
+    before: before,
+    after: after,
+    events: after.state.currentTurn!.timeline
+        .whereType<BattleTurnExecutionEvent>()
+        .toList(),
+  );
+}
+
+Future<ui.Image> _tinyFxImage() async {
+  final recorder = ui.PictureRecorder();
+  final canvas = ui.Canvas(recorder);
+  canvas.drawRect(const ui.Rect.fromLTWH(0, 0, 1, 1), ui.Paint());
+  final picture = recorder.endRecording();
+  try {
+    return await picture.toImage(1, 1);
+  } finally {
+    picture.dispose();
+  }
+}
+
+BattleAnimationPlan _realTurnPlan(
+  BattleSession before,
+  BattleSession after, {
+  List<BattleTurnAudioSelection> selections = const [],
+}) {
+  final catalog = RuntimeMoveCatalog.fromEntries(const <String, PokemonMove>{});
+  return BattleTurnAnimationPlanner(
+    recipeBuilder: (_, _) => const [
+      PlaySeStep(seName: 'legacy-move'),
+      WaitStep(durationSeconds: .1),
+    ],
+  ).build(
+    previousSession: before,
+    newSession: after,
+    moveCatalog: catalog,
+    resolver: BattleMoveVisualResolver(catalog),
+    audioSelections: selections,
+  );
 }
 
 BattleAnimationRunner _scopeRunner({

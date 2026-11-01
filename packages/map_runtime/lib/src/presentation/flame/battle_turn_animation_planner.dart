@@ -1,11 +1,36 @@
+import 'dart:async';
+import 'dart:collection';
+
 import 'package:map_battle/map_battle.dart';
 
 import '../../application/runtime_move_catalog_loader.dart';
 import 'battle_animation_plan.dart';
+import 'battle_move_audio_scope.dart';
 import 'battle_move_recipe_compiler.dart';
 import 'battle_move_visual_catalog.dart';
 import 'battle_move_visual_recipe_library.dart';
 import 'battle_move_visual_resolver.dart';
+import 'battle_recipe_audio_program.dart';
+
+final class BattleTurnAudioCancelled implements Exception {
+  const BattleTurnAudioCancelled();
+}
+
+void _cancelUnclaimedTurnAudio(Iterable<BattleTurnAudioSelection> selections) {
+  final seen = HashSet<BattlePreparedRecipeAudio>.identity();
+  for (final selection in selections) {
+    final program = selection.audio.program;
+    if (program != null && program.canClaim && seen.add(program)) {
+      unawaited(program.cancel().then<void>((_) {}, onError: (Object _) {}));
+    }
+  }
+}
+
+void _cancelTurnAudioScopes(Iterable<BattleAnimationAudioScope> scopes) {
+  for (final scope in scopes) {
+    unawaited(scope.cancel().then<void>((_) {}, onError: (Object _) {}));
+  }
+}
 
 /// Le nom affichable d'une espèce, ou son identifiant faute de mieux.
 typedef BattleTurnSpeciesDisplayName = String Function(String speciesId);
@@ -121,9 +146,14 @@ final class BattleTurnAnimationPlanner {
     Map<BattleSlotRef, BattleCombatant>? combatantsBefore,
     Map<BattleSlotRef, BattleCombatant>? combatantsAfter,
     Map<String, PreparedBattleMoveRecipe>? importedRecipes,
+    List<BattleTurnAudioSelection> audioSelections = const [],
   }) {
     final turnResult = newSession.state.currentTurn;
     if (turnResult == null) {
+      if (audioSelections.isNotEmpty) {
+        _cancelUnclaimedTurnAudio(audioSelections);
+        throw StateError('Audio selection has no battle turn');
+      }
       final outcome = newSession.state.outcome;
       if (!newSession.state.isFinished || outcome == null) {
         return const BattleAnimationPlan(steps: <BattleAnimationStep>[]);
@@ -158,22 +188,29 @@ final class BattleTurnAnimationPlanner {
       moveCatalog: moveCatalog,
       resolver: resolver,
       importedRecipes: importedRecipes,
+      audioSelections: audioSelections,
     );
     final outcome = newSession.state.outcome;
     if (!newSession.state.isFinished || outcome == null) {
       return plan;
     }
-    return BattleAnimationPlan(
-      steps: List<BattleAnimationStep>.unmodifiable(<BattleAnimationStep>[
-        ...plan.steps,
-        ..._buildOutcomeSteps(
-          outcome,
-          isTrainerBattle: newSession.setup.isTrainerBattle,
-          speciesDisplayName: speciesDisplayName,
-          announcesOutcome: announcesOutcome,
-        ),
-      ]),
-    );
+    try {
+      return BattleAnimationPlan(
+        steps: List<BattleAnimationStep>.unmodifiable(<BattleAnimationStep>[
+          ...plan.steps,
+          ..._buildOutcomeSteps(
+            outcome,
+            isTrainerBattle: newSession.setup.isTrainerBattle,
+            speciesDisplayName: speciesDisplayName,
+            announcesOutcome: announcesOutcome,
+          ),
+        ]),
+        audioScopes: plan.audioScopes,
+      );
+    } catch (_) {
+      _cancelTurnAudioScopes(plan.audioScopes);
+      rethrow;
+    }
   }
 
   BattleAnimationPlan buildForTurn({
@@ -188,6 +225,75 @@ final class BattleTurnAnimationPlanner {
     Map<BattleSlotRef, BattleCombatant>? combatantsAfter,
     Map<(BattleSideId, int), int>? partyHpBefore,
     Map<String, PreparedBattleMoveRecipe>? importedRecipes,
+    List<BattleTurnAudioSelection> audioSelections = const [],
+  }) {
+    final selectedAudio =
+        HashMap<BattleTurnExecutionEvent, BattleTurnAudioSelection>.identity();
+    final programs = HashSet<BattlePreparedRecipeAudio>.identity();
+    try {
+      if (audioSelections.length > 16) {
+        throw StateError('Too many audio selections');
+      }
+      for (final selection in audioSelections) {
+        final event = selection.event;
+        if (turnResult.timeline.where((item) => identical(item, event)).length !=
+                1 ||
+            event.execution.move.id.startsWith('effect:') ||
+            selectedAudio.containsKey(event)) {
+          throw StateError('Audio selection does not match one attack');
+        }
+        if (selection.audio.status == BattleRecipeAudioStatus.cancelled) {
+          throw const BattleTurnAudioCancelled();
+        }
+        final program = selection.audio.program;
+        if (program != null && (!program.canClaim || !programs.add(program))) {
+          throw StateError('Audio program is already in use');
+        }
+        selectedAudio[event] = selection;
+      }
+    } catch (_) {
+      _cancelUnclaimedTurnAudio(audioSelections);
+      rethrow;
+    }
+    final audioScopes = <BattleAnimationAudioScope>[];
+    try {
+      return _buildTurnPlan(
+        playerBefore: playerBefore,
+        enemyBefore: enemyBefore,
+        playerAfter: playerAfter,
+        enemyAfter: enemyAfter,
+        turnResult: turnResult,
+        moveCatalog: moveCatalog,
+        resolver: resolver,
+        combatantsBefore: combatantsBefore,
+        combatantsAfter: combatantsAfter,
+        partyHpBefore: partyHpBefore,
+        importedRecipes: importedRecipes,
+        selectedAudio: selectedAudio,
+        audioScopes: audioScopes,
+      );
+    } catch (_) {
+      _cancelTurnAudioScopes(audioScopes);
+      _cancelUnclaimedTurnAudio(audioSelections);
+      rethrow;
+    }
+  }
+
+  BattleAnimationPlan _buildTurnPlan({
+    required BattleCombatant playerBefore,
+    required BattleCombatant enemyBefore,
+    required BattleCombatant? playerAfter,
+    required BattleCombatant? enemyAfter,
+    required BattleTurnResult turnResult,
+    required RuntimeMoveCatalog moveCatalog,
+    required BattleMoveVisualResolver resolver,
+    required Map<BattleSlotRef, BattleCombatant>? combatantsBefore,
+    required Map<BattleSlotRef, BattleCombatant>? combatantsAfter,
+    required Map<(BattleSideId, int), int>? partyHpBefore,
+    required Map<String, PreparedBattleMoveRecipe>? importedRecipes,
+    required Map<BattleTurnExecutionEvent, BattleTurnAudioSelection>
+        selectedAudio,
+    required List<BattleAnimationAudioScope> audioScopes,
   }) {
     final before = combatantsBefore ?? {
       const BattleSlotRef.active(BattleSideId.player): playerBefore,
@@ -321,9 +427,24 @@ final class BattleTurnAnimationPlanner {
                     step.slot == targetSideForFlash,
               );
             }
+            var resolvedSteps = recipeSteps.map(
+              (step) => _resolveCameraFocusStep(step, execution),
+            ).toList();
+            final selection = selectedAudio[event];
+            if (selection != null) {
+              final scoped = BattleMoveAudioScope.compose(
+                audio: selection.audio,
+                silentVisuals: selection.silentVisuals,
+                fallback: resolvedSteps,
+                forbiddenTargetFlash: execution.targetSlot,
+                attackerSlot: execution.attackerSlot,
+              );
+              resolvedSteps = scoped.steps;
+              audioScopes.addAll(scoped.audioScopes);
+            }
             final focusSlot = execution.targetSlot ?? execution.attackerSlot;
             final moveKey = execution.move.id.toLowerCase().replaceAll(RegExp(r'[-_ ]'), '');
-            if (!recipeSteps.any(_containsCameraStep)) {
+            if (!resolvedSteps.any(_containsCameraStep)) {
               if (moveKey == 'shadowball') {
                 steps.add(const AnimationGroupStep(
                   mode: BattleAnimationGroupMode.parallel,
@@ -347,9 +468,7 @@ final class BattleTurnAnimationPlanner {
                 )],
               ));
             }
-            steps.addAll(recipeSteps.map(
-              (step) => _resolveCameraFocusStep(step, execution),
-            ));
+            steps.addAll(resolvedSteps);
             steps.add(const AnimationGroupStep(
               mode: BattleAnimationGroupMode.parallel,
               steps: [BattleCameraResetStep(durationSeconds: 16 / 60)],
@@ -931,6 +1050,7 @@ final class BattleTurnAnimationPlanner {
 
     return BattleAnimationPlan(
       steps: List<BattleAnimationStep>.unmodifiable(steps),
+      audioScopes: List<BattleAnimationAudioScope>.unmodifiable(audioScopes),
     );
   }
 
