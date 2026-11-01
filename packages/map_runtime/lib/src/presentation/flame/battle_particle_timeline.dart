@@ -11,21 +11,44 @@ enum BattleParticleEventKind { emission, expiration }
 final class BattleParticleEmitterTiming {
   const BattleParticleEmitterTiming({
     required this.textureId,
-    required this.emissionDurationMs,
-    required this.emissionIntervalMs,
-    required this.particleLifetimeMs,
+    required int emissionDurationMs,
+    required int emissionIntervalMs,
+    required int particleLifetimeMs,
     required this.particlesPerEmission,
     this.fractionalEmission4096 = 0,
-    this.startDelayMs = 0,
-  });
+    int startDelayMs = 0,
+  }) : _durationUnits = emissionDurationMs,
+       _intervalUnits = emissionIntervalMs,
+       _lifetimeUnits = particleLifetimeMs,
+       _startDelayUnits = startDelayMs,
+       _unitsPerSecond = 1000;
+
+  const BattleParticleEmitterTiming.ticks({
+    required this.textureId,
+    required int emissionDurationTicks,
+    required int emissionIntervalTicks,
+    required int particleLifetimeTicks,
+    required this.particlesPerEmission,
+    required int ticksPerSecond,
+    this.fractionalEmission4096 = 0,
+    int startDelayTicks = 0,
+  }) : _durationUnits = emissionDurationTicks,
+       _intervalUnits = emissionIntervalTicks,
+       _lifetimeUnits = particleLifetimeTicks,
+       _startDelayUnits = startDelayTicks,
+       _unitsPerSecond = ticksPerSecond;
 
   final String textureId;
-  final int emissionDurationMs;
-  final int emissionIntervalMs;
-  final int particleLifetimeMs;
+  final int _durationUnits;
+  final int _intervalUnits;
+  final int _lifetimeUnits;
+  final int _startDelayUnits;
+  final int _unitsPerSecond;
   final int particlesPerEmission;
   final int fractionalEmission4096;
-  final int startDelayMs;
+
+  int _microsecondsAt(int units) =>
+      (units * Duration.microsecondsPerSecond) ~/ _unitsPerSecond;
 }
 
 final class BattleParticleEvent {
@@ -70,12 +93,14 @@ final class BattleParticleTimeline {
     for (final emitter in emitters) {
       if (emitter.textureId.isEmpty ||
           emitter.textureId.trim() != emitter.textureId ||
-          emitter.emissionDurationMs < 1 ||
-          emitter.emissionDurationMs > 60000 ||
-          emitter.emissionIntervalMs < 1 ||
-          emitter.emissionIntervalMs > 60000 ||
-          emitter.particleLifetimeMs < 1 ||
-          emitter.particleLifetimeMs > 60000 ||
+          emitter._unitsPerSecond < 1 ||
+          emitter._unitsPerSecond > 1000 ||
+          emitter._durationUnits < 1 ||
+          emitter._durationUnits > emitter._unitsPerSecond * 60 ||
+          emitter._intervalUnits < 1 ||
+          emitter._intervalUnits > emitter._unitsPerSecond * 60 ||
+          emitter._lifetimeUnits < 1 ||
+          emitter._lifetimeUnits > emitter._unitsPerSecond * 60 ||
           emitter.particlesPerEmission < 0 ||
           emitter.particlesPerEmission > 64 ||
           emitter.fractionalEmission4096 < 0 ||
@@ -84,13 +109,13 @@ final class BattleParticleTimeline {
               emitter.fractionalEmission4096 == 0) ||
           (emitter.particlesPerEmission == 64 &&
               emitter.fractionalEmission4096 != 0) ||
-          emitter.startDelayMs < 0 ||
-          emitter.startDelayMs > 60000) {
+          emitter._startDelayUnits < 0 ||
+          emitter._startDelayUnits > emitter._unitsPerSecond * 60) {
         throw const FormatException('Invalid particle timing');
       }
       final batches =
-          (emitter.emissionDurationMs + emitter.emissionIntervalMs - 1) ~/
-          emitter.emissionIntervalMs;
+          (emitter._durationUnits + emitter._intervalUnits - 1) ~/
+          emitter._intervalUnits;
       totalBatches += batches;
       totalParticles +=
           batches * emitter.particlesPerEmission +
@@ -100,11 +125,11 @@ final class BattleParticleTimeline {
         throw const FormatException('Particle emission limit exceeded');
       }
       _states.add(_EmitterState(batches));
-      final end =
-          (emitter.startDelayMs +
-              (batches - 1) * emitter.emissionIntervalMs +
-              emitter.particleLifetimeMs) *
-          1000;
+      final end = emitter._microsecondsAt(
+        emitter._startDelayUnits +
+            (batches - 1) * emitter._intervalUnits +
+            emitter._lifetimeUnits,
+      );
       if (end > _endMicros) _endMicros = end;
     }
   }
@@ -173,26 +198,26 @@ final class BattleParticleTimeline {
   }
 
   BattleParticleEvent? _nextEvent() {
-    int? earliestMs;
+    int? earliestMicros;
     var earliestIndex = 0;
     var earliestBatch = 0;
     var earliestKind = BattleParticleEventKind.emission;
     void consider(
-      int atMs,
+      int atMicros,
       BattleParticleEventKind kind,
       int index,
       int batch,
     ) {
-      final previousMs = earliestMs;
-      if (previousMs == null ||
-          atMs < previousMs ||
-          (atMs == previousMs &&
+      final previousMicros = earliestMicros;
+      if (previousMicros == null ||
+          atMicros < previousMicros ||
+          (atMicros == previousMicros &&
               kind == BattleParticleEventKind.expiration &&
               earliestKind == BattleParticleEventKind.emission) ||
-          (atMs == previousMs &&
+          (atMicros == previousMicros &&
               kind == earliestKind &&
               index < earliestIndex)) {
-        earliestMs = atMs;
+        earliestMicros = atMicros;
         earliestKind = kind;
         earliestIndex = index;
         earliestBatch = batch;
@@ -204,7 +229,9 @@ final class BattleParticleTimeline {
       final state = _states[index];
       if (state.emitted < state.batches) {
         consider(
-          emitter.startDelayMs + state.emitted * emitter.emissionIntervalMs,
+          emitter._microsecondsAt(
+            emitter._startDelayUnits + state.emitted * emitter._intervalUnits,
+          ),
           BattleParticleEventKind.emission,
           index,
           state.emitted,
@@ -213,24 +240,26 @@ final class BattleParticleTimeline {
       if (state.pendingExpirations.isNotEmpty) {
         final batch = state.pendingExpirations.first;
         consider(
-          emitter.startDelayMs +
-              batch * emitter.emissionIntervalMs +
-              emitter.particleLifetimeMs,
+          emitter._microsecondsAt(
+            emitter._startDelayUnits +
+                batch * emitter._intervalUnits +
+                emitter._lifetimeUnits,
+          ),
           BattleParticleEventKind.expiration,
           index,
           batch,
         );
       }
     }
-    final atMs = earliestMs;
-    if (atMs == null) return null;
+    final atMicros = earliestMicros;
+    if (atMicros == null) return null;
     final emitter = _emitters[earliestIndex];
     return BattleParticleEvent(
       kind: earliestKind,
       emitterIndex: earliestIndex,
       batchIndex: earliestBatch,
       textureId: emitter.textureId,
-      at: Duration(milliseconds: atMs),
+      at: Duration(microseconds: atMicros),
       count:
           emitter.particlesPerEmission +
           ((earliestBatch + 1) * emitter.fractionalEmission4096) ~/

@@ -225,6 +225,121 @@ void main() {
     expect(timeline.hasPendingEvents, isTrue);
   });
 
+  test(
+    'tick schedules use absolute time without accumulating rounding drift',
+    () {
+      final timeline = BattleParticleTimeline([
+        const BattleParticleEmitterTiming.ticks(
+          textureId: 'ticks',
+          ticksPerSecond: 60,
+          startDelayTicks: 1,
+          emissionDurationTicks: 60,
+          emissionIntervalTicks: 1,
+          particleLifetimeTicks: 2,
+          particlesPerEmission: 1,
+        ),
+      ]);
+      final events = timeline.advance(const Duration(seconds: 1));
+      final emitted = events
+          .where((event) => event.kind == BattleParticleEventKind.emission)
+          .toList();
+      expect(emitted.length, 60);
+      expect(emitted[0].at.inMicroseconds, 16666);
+      expect(emitted[2].at.inMicroseconds, 50000);
+      expect(emitted[29].at.inMicroseconds, 500000);
+      expect(emitted[59].at.inMicroseconds, 1000000);
+      expect(timeline.isComplete, isFalse);
+      timeline.advance(const Duration(microseconds: 33333));
+      expect(timeline.isComplete, isTrue);
+      expect(timeline.activeParticles, 0);
+    },
+  );
+
+  test('rejects invalid tick frequencies and out-of-budget durations', () {
+    BattleParticleEmitterTiming timing({
+      int rate = 60,
+      int duration = 60,
+      int delay = 0,
+    }) => BattleParticleEmitterTiming.ticks(
+      textureId: 'ticks',
+      ticksPerSecond: rate,
+      startDelayTicks: delay,
+      emissionDurationTicks: duration,
+      emissionIntervalTicks: 1,
+      particleLifetimeTicks: 1,
+      particlesPerEmission: 1,
+    );
+    for (final invalid in [
+      timing(rate: 0),
+      timing(rate: 1001),
+      timing(duration: 3601),
+      timing(delay: -1),
+      timing(delay: 3601),
+    ]) {
+      expect(() => BattleParticleTimeline([invalid]), throwsFormatException);
+    }
+  });
+
+  test(
+    'tick and millisecond emitters retain ordering across frame budgets',
+    () {
+      const timings = [
+        BattleParticleEmitterTiming.ticks(
+          textureId: 'ticks',
+          ticksPerSecond: 60,
+          startDelayTicks: 1,
+          emissionDurationTicks: 8,
+          emissionIntervalTicks: 1,
+          particleLifetimeTicks: 2,
+          particlesPerEmission: 1,
+          fractionalEmission4096: 2048,
+        ),
+        BattleParticleEmitterTiming(
+          textureId: 'milliseconds',
+          startDelayMs: 50,
+          emissionDurationMs: 60,
+          emissionIntervalMs: 10,
+          particleLifetimeMs: 20,
+          particlesPerEmission: 1,
+        ),
+      ];
+      final whole = BattleParticleTimeline(timings);
+      final partitioned = BattleParticleTimeline(timings);
+      final expected = whole.advance(const Duration(milliseconds: 200));
+      final actual = <BattleParticleEvent>[];
+      for (var frame = 0; frame < 100; frame++) {
+        actual.addAll(
+          partitioned.advance(const Duration(milliseconds: 2), workBudget: 2),
+        );
+        while (partitioned.hasPendingEvents) {
+          actual.addAll(partitioned.advance(Duration.zero, workBudget: 2));
+        }
+      }
+      expect(
+        actual.map(
+          (event) => (
+            event.kind,
+            event.emitterIndex,
+            event.batchIndex,
+            event.at,
+            event.count,
+          ),
+        ),
+        expected.map(
+          (event) => (
+            event.kind,
+            event.emitterIndex,
+            event.batchIndex,
+            event.at,
+            event.count,
+          ),
+        ),
+      );
+      expect(partitioned.isComplete, isTrue);
+      expect(partitioned.activeParticles, 0);
+    },
+  );
+
   test('rejects invalid fractions, delays and excessive particle counts', () {
     BattleParticleEmitterTiming timing({
       int count = 1,
