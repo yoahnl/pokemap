@@ -74,3 +74,8 @@ documentation/
 !/documentation/reports/mcp/plans/fiabilite_creation_cartes_mcp_v2.md
 !/documentation/reports/mcp/plans/integration_mcp_avelune_studio.md
 documentation/reports/mcp/plans/
+!/documentation/reports/heartgold/
+/documentation/reports/heartgold/*
+!/documentation/reports/heartgold/plans/
+/documentation/reports/heartgold/plans/*
+!/documentation/reports/heartgold/plans/2026-11-01-chapitre-7-finition.md
