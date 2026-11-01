@@ -1,5 +1,6 @@
 library map_distribution;
 
+export 'src/battle_recipe_bundle_inspector.dart';
 export 'src/avelune_runtime_compatibility.dart';
 export 'src/audio_media_format.dart';
 export 'src/canonical_json.dart';

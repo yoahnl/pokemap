@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:crypto/crypto.dart';
 import 'package:image/image.dart' as image;
 
 import 'package:map_core/map_core.dart';
@@ -777,6 +778,30 @@ final class RuntimeProjectProjectionBuilder {
       budget.addPayload(payload, _normalizePackagePath('project/$relative'),
           await authorFiles.read(relative, budget));
     }
+    final battleRecipes = <String, BattleRecipeProjectBinding>{};
+    final bindingPattern = RegExp(r'^data/pokemon/battle_recipes/bindings/([0-9a-f]{64})\.json$');
+    for (final path in jsonRoots) {
+      final match = bindingPattern.firstMatch(path);
+      if (match == null) continue;
+      final marker = _decodeJsonObject(
+        await authorFiles.read(path, budget, jsonLike: true), path,
+      );
+      if (marker['kind'] != 'avelune.battle-recipe-binding') continue;
+      try {
+        final value = BattleRecipeProjectBinding.fromJson(marker);
+        if (path != battleRecipeBindingPath(value.binding.projectMoveId)) {
+          throw const FormatException('Battle recipe binding path mismatch');
+        }
+        battleRecipes[match.group(1)!] = value;
+      } on Object catch (error) {
+        throw GamePackageExportException(
+          code: 'battle_recipe.invalid_binding',
+          path: path,
+          message: 'Battle recipe binding is invalid or unsupported.',
+          cause: error,
+        );
+      }
+    }
     final visitedJson = <String>{};
     final pendingJson = jsonRoots.toList(growable: true);
     while (pendingJson.isNotEmpty) {
@@ -785,6 +810,32 @@ final class RuntimeProjectProjectionBuilder {
         continue;
       }
       final packagePath = _normalizePackagePath('project/$relative');
+      final recipeBlob = RegExp(
+        r'^data/pokemon/battle_recipes/blobs/([0-9a-f]{64})/([0-9a-f]{64})\.json$',
+      ).firstMatch(relative);
+      if (recipeBlob != null && battleRecipes.containsKey(recipeBlob.group(1))) {
+        final bytes = payload[packagePath] ??
+            await authorFiles.read(relative, budget, jsonLike: true);
+        final decoded = _decodeJsonObject(bytes, relative);
+        if (jsonEncode(_scrubJson(decoded).value) != jsonEncode(decoded)) {
+          throw GamePackageExportException(
+            code: 'battle_recipe.unsafe_content',
+            path: relative,
+            message: 'Battle recipe content cannot be exported unchanged.',
+          );
+        }
+        if (sha256.convert(bytes).toString() != recipeBlob.group(2)) {
+          throw GamePackageExportException(
+            code: 'battle_recipe.digest_mismatch',
+            path: relative,
+            message: 'Battle recipe content does not match its identity.',
+          );
+        }
+        if (!payload.containsKey(packagePath)) {
+          budget.addPayload(payload, packagePath, bytes);
+        }
+        continue;
+      }
       Object? runtimeJson;
       if (relative == 'project.json') {
         final projectJson = projectedProject.toJson();
@@ -824,6 +875,7 @@ final class RuntimeProjectProjectionBuilder {
             false,
       ));
     }
+    if (battleRecipes.isNotEmpty) _validateBattleRecipeBundles(payload, battleRecipes);
 
     if (projectedProject.borderCatalog.records.isNotEmpty) {
       projectedProject = projectRuntimeBorderRecords(
@@ -1440,6 +1492,73 @@ final class RuntimeProjectProjectionBuilder {
         message: 'Runtime JSON source is malformed.',
         cause: error,
       );
+    }
+  }
+
+  void _validateBattleRecipeBundles(
+      Map<String, List<int>> payload, Map<String, BattleRecipeProjectBinding> bindings) {
+    const prefix = 'project/data/pokemon/battle_recipes/';
+    final referenced = <String>{};
+    for (final owner in bindings.entries) {
+      final entryPath = '${prefix}bindings/${owner.key}.json';
+      try {
+        final value = BattleRecipeProjectBinding.fromJson(
+          _decodeJsonObject(payload[entryPath]!, entryPath),
+        );
+        final binding = value.binding;
+        if (entryPath != 'project/${battleRecipeBindingPath(binding.projectMoveId)}') {
+          throw const FormatException('Battle recipe binding path mismatch');
+        }
+        final recipePath = 'project/${battleRecipeBlobPath(binding.recipeSha256, 'application/vnd.avelune.battle-recipe+json', projectMoveId: binding.projectMoveId)}';
+        final recipeBytes = payload[recipePath];
+        if (recipeBytes == null) throw const FormatException('Missing recipe');
+        referenced.add(recipePath);
+        final recipe = BattleMoveAnimationRecipe.fromJson(
+          _decodeJsonObject(recipeBytes, recipePath),
+        );
+        final resources = <String, Uint8List>{};
+        for (final resource in recipe.resources) {
+          final path = 'project/${battleRecipeBlobPath(resource.sha256Hex, resource.mediaType, projectMoveId: binding.projectMoveId)}';
+          final bytes = payload[path];
+          if (bytes == null) throw const FormatException('Missing resource');
+          referenced.add(path);
+          resources[resource.id] = Uint8List.fromList(bytes);
+        }
+        const BattleRecipeBundleInspector().inspect(
+          binding,
+          Uint8List.fromList(recipeBytes),
+          resources,
+          limits: const BattleRecipeBundleLimits(
+            maxTextures: 256,
+            maxTextureBytes: 8 * 1024 * 1024,
+            maxBundleBytes: 64 * 1024 * 1024,
+            maxDimension: 2048,
+            maxTexturePixels: 4000000,
+            maxTotalPixels: 16000000,
+          ),
+          availableCapabilities: BattleMoveAnimationRecipe.recognizedCapabilities,
+          expectedProjectMoveId: binding.projectMoveId,
+          expectedCatalogReleaseId: binding.catalogReleaseId,
+        );
+      } on Object catch (error) {
+        throw GamePackageExportException(
+          code: 'battle_recipe.invalid_bundle',
+          path: entryPath,
+          message: 'Battle recipe bundle is incomplete or invalid.',
+          cause: error,
+        );
+      }
+    }
+    for (final path in payload.keys.where((path) => path.startsWith('${prefix}blobs/'))) {
+      final rest = path.substring('${prefix}blobs/'.length);
+      final owner = rest.split('/').first;
+      if (bindings.containsKey(owner) && !referenced.contains(path)) {
+        throw GamePackageExportException(
+          code: 'battle_recipe.orphan_blob',
+          path: path,
+          message: 'Battle recipe resource has no binding.',
+        );
+      }
     }
   }
 

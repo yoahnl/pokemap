@@ -4,14 +4,21 @@ import 'package:map_core/map_core.dart';
 import 'battle_animation_plan.dart';
 
 final class PreparedBattleMoveRecipe {
-  const PreparedBattleMoveRecipe._(this._program, this.moveSourceId);
+  const PreparedBattleMoveRecipe._(
+    this._program,
+    this.moveSourceId,
+    this.projectMoveId,
+  );
 
   final Map<String, dynamic> _program;
   final String moveSourceId;
+  final String? projectMoveId;
 }
 
 final class BattleMoveRecipeCompiler {
   const BattleMoveRecipeCompiler();
+
+  static bool get supportsCompleteMoveVisuals => false;
 
   static const availableCapabilities = {
     'sequence',
@@ -48,14 +55,18 @@ final class BattleMoveRecipeCompiler {
       resources,
       availableCapabilities: availableCapabilities,
     );
-    return _prepareValidated(recipe);
+    return _prepareValidated(recipe, projectMoveId: binding.projectMoveId);
   }
 
-  PreparedBattleMoveRecipe _prepareValidated(BattleMoveAnimationRecipe recipe) {
+  PreparedBattleMoveRecipe _prepareValidated(
+    BattleMoveAnimationRecipe recipe, {
+    String? projectMoveId,
+  }) {
     final json = recipe.toJson();
     return PreparedBattleMoveRecipe._(
       (json['program'] as Map).cast<String, dynamic>(),
       json['moveSourceId'] as String,
+      projectMoveId,
     );
   }
 

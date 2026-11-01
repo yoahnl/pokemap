@@ -33,6 +33,45 @@ void main() {
     'recipeSha256': sha256.convert(bytes).toString(),
   };
 
+  test('inspects the verified recipe before loading its media', () {
+    final bytes = utf8.encode(jsonEncode(recipe()));
+    final value = BattleMoveRecipeBinding.fromJson(binding(bytes));
+    expect(value.inspectRecipe(bytes).toJson(), recipe());
+    expect(() => value.inspectRecipe([...bytes, 32]), throwsFormatException);
+    final mismatch = BattleMoveRecipeBinding.fromJson({
+      ...binding(bytes),
+      'sourceMoveId': 'other',
+    });
+    expect(() => mismatch.inspectRecipe(bytes), throwsFormatException);
+    final duplicate = utf8.encode(
+      jsonEncode(recipe()).replaceFirst(
+        '"schemaVersion":1',
+        r'"schemaVersion":1,"schema\u0056ersion":1',
+      ),
+    );
+    final duplicatedBinding = BattleMoveRecipeBinding.fromJson(
+      binding(duplicate),
+    );
+    expect(
+      () => duplicatedBinding.inspectRecipe(duplicate),
+      throwsFormatException,
+    );
+  });
+
+  test('rejects duplicate recipe keys even with a matching hash', () {
+    final bytes = utf8.encode(
+      jsonEncode(recipe()).replaceFirst(
+        '"schemaVersion":1',
+        r'"schemaVersion":1,"schema\u0056ersion":1',
+      ),
+    );
+    final value = BattleMoveRecipeBinding.fromJson(binding(bytes));
+    expect(
+      () => value.resolve(bytes, const {}, availableCapabilities: {'wait'}),
+      throwsFormatException,
+    );
+  });
+
   test(
     'round-trips an explicit local binding and verifies exact recipe bytes',
     () {

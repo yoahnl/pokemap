@@ -77,6 +77,15 @@ final class BattleMoveRecipeBinding {
     Map<String, List<int>> resources, {
     required Set<String> availableCapabilities,
   }) {
+    final recipe = inspectRecipe(recipeBytes);
+    recipe.validateBundle(
+      resources,
+      availableCapabilities: availableCapabilities,
+    );
+    return recipe;
+  }
+
+  BattleMoveAnimationRecipe inspectRecipe(List<int> recipeBytes) {
     if (recipeBytes.length > 1048576 ||
         sha256.convert(recipeBytes).toString() != recipeSha256) {
       throw const FormatException('Recipe bytes do not match binding');
@@ -95,11 +104,6 @@ final class BattleMoveRecipeBinding {
         decoded['revision'] != revision) {
       throw const FormatException('Recipe identity does not match binding');
     }
-    final recipe = BattleMoveAnimationRecipe.fromJson(decoded);
-    recipe.validateBundle(
-      resources,
-      availableCapabilities: availableCapabilities,
-    );
-    return recipe;
+    return BattleMoveAnimationRecipe.fromJson(decoded);
   }
 }

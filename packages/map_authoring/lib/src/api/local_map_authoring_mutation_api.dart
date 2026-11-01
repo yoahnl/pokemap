@@ -437,6 +437,9 @@ final class LocalMapAuthoringMutationApi
       Map<String, String> readDependencies = const {}}) {
     final session = _catalogSession(handle);
     if (session == null) {
+      if (actionId == 'pokemon.move_recipe.import') {
+        throw const FormatException('Battle recipe import requires a working catalog project.');
+      }
       _session(handle).requireProjectionRead();
       return _snapshotLoader.loadWorkshop(handle, actionId: actionId, parameters: parameters, readDependencies: readDependencies);
     }
@@ -909,6 +912,9 @@ final class LocalMapAuthoringMutationApi
   ) async {
     final catalog = _catalogSession(projectHandle);
     if (catalog != null) return catalog.plan(request);
+    if (request.actionId == 'pokemon.move_recipe.import') {
+      throw const FormatException('Battle recipe import requires a working catalog project.');
+    }
     final result = await _session(projectHandle)
         .planMutation(request)
         .whenComplete(() =>

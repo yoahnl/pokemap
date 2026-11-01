@@ -7,9 +7,11 @@ import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_distribution/map_distribution.dart';
 import 'package:map_runtime/src/presentation/flame/battle_animation_plan.dart';
 import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_particle_synthetic_component.dart';
+import 'package:map_runtime/src/presentation/flame/battle_verified_particle_loader.dart';
 
 import 'support/load_flame_component.dart';
 
@@ -128,8 +130,197 @@ Future<List<int>> sceneFrame(BattleOverlayComponent overlay) async {
   return pixel;
 }
 
+InspectedBattleRecipeBundle inspectedFixture(Uint8List png) {
+  final particle = Uint8List.fromList(
+    utf8.encode(
+      jsonEncode({
+        'schemaVersion': 1,
+        'emitters': [
+          {
+            'textureId': 'tex',
+            'emissionDurationMs': 100,
+            'emissionIntervalMs': 100,
+            'particleLifetimeMs': 100,
+            'particlesPerEmission': 1,
+          },
+        ],
+      }),
+    ),
+  );
+  Map<String, dynamic> resource(
+    String id,
+    String role,
+    String type,
+    Uint8List bytes,
+  ) => {
+    'id': id,
+    'role': role,
+    'mediaType': type,
+    'sizeBytes': bytes.length,
+    'sha256': sha256.convert(bytes).toString(),
+  };
+  final recipe = Uint8List.fromList(
+    utf8.encode(
+      jsonEncode({
+        'schemaVersion': 1,
+        'recipeId': 'fire',
+        'revision': '1',
+        'moveSourceId': 'fire',
+        'variant': 'default',
+        'requiredCapabilities': ['startParticle'],
+        'provenance': {
+          'source': 'synthetic',
+          'sourceRevision': '1',
+          'sourcePaths': <String>[],
+          'converter': 'test',
+        },
+        'resources': [
+          {
+            ...resource(
+              'particle',
+              'particleDefinition',
+              'application/vnd.avelune.particle+json',
+              particle,
+            ),
+            'definitionVersion': 1,
+            'dependencies': ['tex'],
+          },
+          resource('tex', 'texture', 'image/png', png),
+        ],
+        'program': {
+          'kind': 'startParticle',
+          'resourceId': 'particle',
+          'from': 'userMouth',
+          'to': 'targetImpact',
+        },
+      }),
+    ),
+  );
+  final binding = BattleMoveRecipeBinding.fromJson({
+    'schemaVersion': 1,
+    'projectMoveId': 'fire',
+    'sourceMoveId': 'fire',
+    'catalogReleaseId': 'test',
+    'recipeId': 'fire',
+    'variant': 'default',
+    'revision': '1',
+    'recipeSha256': sha256.convert(recipe).toString(),
+  });
+  return const BattleRecipeBundleInspector().inspect(
+    binding,
+    recipe,
+    {'particle': particle, 'tex': png},
+    limits: const BattleRecipeBundleLimits(
+      maxTextures: 1,
+      maxTextureBytes: 10000,
+      maxBundleBytes: 20000,
+      maxDimension: 8,
+      maxTexturePixels: 64,
+      maxTotalPixels: 64,
+    ),
+    availableCapabilities: {'startParticle'},
+    expectedProjectMoveId: 'fire',
+    expectedCatalogReleaseId: 'test',
+  );
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('renders the inspected snapshot after the input bytes change', () async {
+    final original = await redTexture();
+    final png = Uint8List.fromList(
+      (await original.toByteData(format: ui.ImageByteFormat.png))!.buffer
+          .asUint8List(),
+    );
+    original.dispose();
+    final bundle = inspectedFixture(png);
+    png.fillRange(0, png.length, 0);
+    final load = BattleVerifiedParticleLoader(bundle);
+    final component = await load.create(
+      'particle',
+      centers: const [ui.Offset(3, 3)],
+    );
+    addTearDown(component.dispose);
+    component.update(0);
+    expect(await frame(component), [255, 0, 0, 255]);
+    component.dispose();
+    expect(await frame(component), [0, 0, 0, 0]);
+  });
+
+  test(
+    'cancelling an in-flight decode prevents a component from escaping',
+    () async {
+      final original = await redTexture();
+      final png = Uint8List.fromList(
+        (await original.toByteData(format: ui.ImageByteFormat.png))!.buffer
+            .asUint8List(),
+      );
+      original.dispose();
+      final load = BattleVerifiedParticleLoader(inspectedFixture(png));
+      final result = load.create('particle', centers: const [ui.Offset(3, 3)]);
+      load.cancel();
+      await expectLater(result, throwsStateError);
+    },
+  );
+
+  test(
+    'cancellation after image creation disposes the decoded handle',
+    () async {
+      final original = await redTexture();
+      final png = Uint8List.fromList(
+        (await original.toByteData(format: ui.ImageByteFormat.png))!.buffer
+            .asUint8List(),
+      );
+      original.dispose();
+      final load = BattleVerifiedParticleLoader(inspectedFixture(png));
+      final created = <ui.Image>[];
+      final disposed = <ui.Image>[];
+      final previousCreate = ui.Image.onCreate;
+      final previousDispose = ui.Image.onDispose;
+      ui.Image.onCreate = (image) {
+        created.add(image);
+        load.cancel();
+      };
+      ui.Image.onDispose = disposed.add;
+      addTearDown(() {
+        ui.Image.onCreate = previousCreate;
+        ui.Image.onDispose = previousDispose;
+      });
+      await expectLater(
+        load.create('particle', centers: const [ui.Offset(3, 3)]),
+        throwsStateError,
+      );
+      expect(created, isNotEmpty);
+      expect(disposed, containsAll(created));
+    },
+  );
+
+  test('construction failure disposes decoded handles', () async {
+    final original = await redTexture();
+    final png = Uint8List.fromList(
+      (await original.toByteData(format: ui.ImageByteFormat.png))!.buffer
+          .asUint8List(),
+    );
+    original.dispose();
+    final load = BattleVerifiedParticleLoader(inspectedFixture(png));
+    final created = <ui.Image>[];
+    final disposed = <ui.Image>[];
+    final previousCreate = ui.Image.onCreate;
+    final previousDispose = ui.Image.onDispose;
+    ui.Image.onCreate = created.add;
+    ui.Image.onDispose = disposed.add;
+    addTearDown(() {
+      ui.Image.onCreate = previousCreate;
+      ui.Image.onDispose = previousDispose;
+    });
+    await expectLater(
+      load.create('particle', centers: const []),
+      throwsFormatException,
+    );
+    expect(created, isNotEmpty);
+    expect(disposed, containsAll(created));
+  });
 
   test('renders the synthetic texture until the timeline completes', () async {
     final original = await redTexture();

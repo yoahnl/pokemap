@@ -526,6 +526,7 @@ const authoringCapabilityDomains = {
     'pokemon.media.delete',
     'pokemon.media.import',
     'pokemon.media.write',
+    'pokemon.move_recipe.import',
     'pokemon.ruleset.set',
     'pokemon.species.delete',
     'pokemon.species.write',

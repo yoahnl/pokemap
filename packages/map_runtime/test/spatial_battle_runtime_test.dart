@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flame/game.dart';
@@ -19,6 +20,7 @@ import 'package:map_runtime/map_runtime.dart' show
 import 'package:map_runtime/src/application/battle_start_request.dart';
 import 'package:map_runtime/src/application/load_runtime_map_bundle.dart';
 import 'package:map_runtime/src/application/runtime_map_bundle.dart';
+import 'package:map_runtime/src/application/runtime_battle_setup_exception.dart';
 import 'package:map_runtime/src/application/runtime_battle_demonstration.dart';
 import 'package:map_runtime/src/presentation/flame/runtime_input_event.dart';
 import 'package:map_runtime/src/presentation/flame/battle_transition_overlay_component.dart';
@@ -26,16 +28,127 @@ import 'package:map_runtime/src/presentation/flame/battle_scene_layout.dart';
 import 'package:map_runtime/src/presentation/flutter/battle_command_overlay_snapshot.dart';
 import 'package:map_runtime/src/spatial/spatial_battle_runtime.dart';
 import 'package:map_runtime/src/presentation/flame/battle_motion_policy.dart';
+import 'package:map_runtime/src/presentation/flame/battle_offline_move_recipe_loader.dart';
 import 'package:map_runtime/src/spatial/spatial_battle_view.dart';
 import 'package:path/path.dart' as p;
 
 import 'support/load_flame_component.dart';
 import 'support/battle_transition_presets.dart';
+import 'support/offline_recipe_package_fixture.dart';
 import 'source_converted_gym_reward_journey_test.dart' show installConvertedQaHeadlessAudio;
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUp(() => installConvertedQaHeadlessAudio(completePlayback: true));
+  testWidgets('imports exports and plays the packaged battle offline', (tester) =>
+      HttpOverrides.runZoned(() async {
+    final fixture = (await tester.runAsync(offlineRecipePackageFixture))!;
+    var commitCount = 0;
+    final runtime = SpatialBattleRuntime(readGameState: () => fixture.state,
+        commitGameState: (_, _) { commitCount++; return true; });
+    addTearDown(runtime.dispose);
+    unawaited(runtime.start(bundle: fixture.bundle, request: _packagedWild()));
+    await _readyInView(tester, runtime);
+    final fight = runtime.displaySession!.decisionRequest.allowedChoices
+        .whereType<PlayerBattleChoiceFight>().first;
+    expect(await _submit(tester, runtime, fight), isTrue);
+    expect(runtime.debugOfflineRecipeResults['tackle']?.fallbackReason,
+        BattleRecipeFallbackReason.incompletePresentation);
+    expect(runtime.error, isNull);
+    expect(commitCount, 0);
+    runtime.cancel();
+  }, createHttpClient: (_) => throw StateError('Network disabled for this test')));
+  testWidgets('corrupt packaged recipe stops the battle without committing', (tester) async {
+    final fixture = (await tester.runAsync(offlineRecipePackageFixture))!;
+    await tester.runAsync(() async {
+      final root = fixture.bundle.projectRootDirectory;
+      final stored = jsonDecode(await File(p.join(root,
+          battleRecipeBindingPath('tackle'))).readAsString()) as Map<String, dynamic>;
+      final binding = BattleRecipeProjectBinding.fromJson(stored).binding;
+      final file = File(p.join(root, battleRecipeBlobPath(binding.recipeSha256,
+          'application/vnd.avelune.battle-recipe+json', projectMoveId: 'tackle')));
+      await file.writeAsString('{}');
+    });
+    var commitCount = 0;
+    final runtime = SpatialBattleRuntime(readGameState: () => fixture.state,
+        commitGameState: (_, _) { commitCount++; return true; });
+    addTearDown(runtime.dispose);
+    unawaited(runtime.start(bundle: fixture.bundle, request: _packagedWild()));
+    await _readyInView(tester, runtime);
+    final fight = runtime.displaySession!.decisionRequest.allowedChoices
+        .whereType<PlayerBattleChoiceFight>().first;
+    expect(await _submit(tester, runtime, fight), isFalse);
+    expect(runtime.error, isA<RuntimeBattleSetupException>());
+    expect(runtime.error.toString(), contains('animation'));
+    expect(commitCount, 0);
+  });
+  testWidgets('cancelled battle cannot resume after a delayed recipe load', (tester) async {
+    final fixture = (await tester.runAsync(offlineRecipePackageFixture))!;
+    var commitCount = 0;
+    final runtime = SpatialBattleRuntime(readGameState: () => fixture.state,
+        commitGameState: (_, _) { commitCount++; return true; });
+    addTearDown(runtime.dispose);
+    unawaited(runtime.start(bundle: fixture.bundle, request: _packagedWild()));
+    await _readyInView(tester, runtime);
+    final budget = fixture.bundle.resourceBudget;
+    final first = await budget.acquire(transientBytes: 1);
+    final second = await budget.acquire(transientBytes: 1);
+    addTearDown(() { first.release(); second.release(); });
+    final fight = runtime.displaySession!.decisionRequest.allowedChoices
+        .whereType<PlayerBattleChoiceFight>().first;
+    final turn = runtime.submitChoice(fight);
+    for (var i = 0; i < 200 && budget.pendingDecodes == 0; i++) {
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 5)));
+    }
+    expect(budget.pendingDecodes, greaterThan(0));
+    expect(runtime.battlePresentationListenable.value?.interactionsEnabled, isFalse);
+    runtime.cancel();
+    first.release();
+    second.release();
+    expect(await tester.runAsync(() => turn), isFalse);
+    expect(runtime.phase, SpatialBattlePhase.idle);
+    expect(runtime.battleOverlay, isNull);
+    expect(runtime.debugOfflineRecipeResults, isEmpty);
+    expect(commitCount, 0);
+  });
+  testWidgets('3D battle loads the local recipe and keeps legacy presentation', (tester) async {
+    final fixture = (await tester.runAsync(_fixture))!;
+    final bytes = utf8.encode(jsonEncode({
+      'schemaVersion': 1, 'recipeId': 'synthetic', 'revision': '1',
+      'moveSourceId': 'source', 'variant': 'default',
+      'requiredCapabilities': ['wait'],
+      'provenance': {'source': 'synthetic', 'sourceRevision': '1',
+        'sourcePaths': <String>[], 'converter': 'test'},
+      'resources': <Object>[], 'program': {'kind': 'wait', 'durationMs': 1234},
+    }));
+    final binding = BattleMoveRecipeBinding.fromJson({
+      'schemaVersion': 1, 'projectMoveId': 'tackle', 'sourceMoveId': 'source',
+      'catalogReleaseId': 'test', 'recipeId': 'synthetic', 'variant': 'default',
+      'revision': '1', 'recipeSha256': sha256.convert(bytes).toString(),
+    });
+    await tester.runAsync(() async {
+      final root = fixture.bundle.projectRootDirectory;
+      final stored = File(p.join(root, battleRecipeBindingPath('tackle')));
+      await stored.parent.create(recursive: true);
+      await stored.writeAsString(jsonEncode(BattleRecipeProjectBinding(binding: binding).toJson()));
+      final recipe = File(p.join(root, battleRecipeBlobPath(binding.recipeSha256,
+          'application/vnd.avelune.battle-recipe+json', projectMoveId: 'tackle')));
+      await recipe.parent.create(recursive: true);
+      await recipe.writeAsBytes(bytes);
+    });
+    final runtime = SpatialBattleRuntime(readGameState: () => fixture.state,
+        commitGameState: (_, _) => true);
+    addTearDown(runtime.dispose);
+    unawaited(runtime.start(bundle: fixture.bundle, request: _wild('recipe')));
+    await _readyInView(tester, runtime);
+    final fight = runtime.displaySession!.decisionRequest.allowedChoices
+        .whereType<PlayerBattleChoiceFight>().first;
+    expect(await _submit(tester, runtime, fight), isTrue);
+    expect(runtime.debugOfflineRecipeResults['tackle']?.fallbackReason,
+        BattleRecipeFallbackReason.incompletePresentation);
+    expect(runtime.error, isNull);
+    runtime.cancel();
+  });
   testWidgets('3D battle connects effects, cries and victory presentation', (tester) async {
     final fixture = (await tester.runAsync(_fixture))!;
     final policy = BattleMotionPolicy(playbackSpeed: 2.5, effectIntensity: .5);
@@ -1858,6 +1971,17 @@ WildBattleStartRequest _wild(String id, {int level = 2, SceneBattleDemonstration
         maxLevel: level,
         weight: 1,
         playerPos: const GridPos(x: 1, y: 1));
+
+WildBattleStartRequest _packagedWild() => WildBattleStartRequest(
+  requestId: 'packaged-recipe', createdAtEpochMs: 1,
+  returnContext: const OverworldReturnContext(
+    mapId: 'map', playerPos: GridPos(x: 1, y: 1), playerFacing: Direction.east),
+  mapId: 'map', encounterSourceId: 'grass',
+  encounterSourceKind: EncounterSourceKind.gameplayZone, tableId: 'wild',
+  encounterKind: EncounterKind.walk, speciesId: 'clockbird',
+  level: 2, minLevel: 2, maxLevel: 2, weight: 1,
+  playerPos: const GridPos(x: 1, y: 1),
+);
 
 Future<({RuntimeMapBundle bundle, GameState state})> _fixture({bool contextual = false}) async {
   final root = p.normalize(p.join(Directory.current.path, '..', '..',

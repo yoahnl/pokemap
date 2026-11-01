@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:archive/archive.dart';
+import 'package:crypto/crypto.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
@@ -10,6 +11,169 @@ import 'package:test/test.dart';
 import '../../../../map_distribution/test/support/spatial_package_fixture.dart';
 
 void main() {
+  test('exports a bound battle recipe without changing its exact bytes', () async {
+    final root = await _fixture();
+    final bytes = utf8.encode('''{
+  "schemaVersion":1,"recipeId":"synthetic","revision":"1",
+  "moveSourceId":"source","variant":"default","requiredCapabilities":["wait"],
+  "provenance":{"source":"synthetic","sourceRevision":"1","sourcePaths":[],"converter":"test"},
+  "resources":[],"program":{"kind":"wait","durationMs":100}
+}''');
+    final digest = sha256.convert(bytes).toString();
+    final binding = BattleMoveRecipeBinding.fromJson({
+      'schemaVersion': 1, 'projectMoveId': 'custom', 'sourceMoveId': 'source',
+      'catalogReleaseId': 'test', 'recipeId': 'synthetic', 'variant': 'default',
+      'revision': '1', 'recipeSha256': digest,
+    });
+    final recipePath = battleRecipeBlobPath(digest, 'application/vnd.avelune.battle-recipe+json', projectMoveId: 'custom');
+    final bindingPath = battleRecipeBindingPath('custom');
+    await _write(root, recipePath, bytes);
+    await _write(root, bindingPath, BattleRecipeProjectBinding(binding: binding, catalogMoveId: 'catalog-move', recipeMediaId: 'recipe-file').toJson());
+    final result = await _build(root);
+    expect(result.payloadFiles['project/$recipePath'], bytes);
+    final restored = BattleRecipeProjectBinding.fromJson(
+      jsonDecode(utf8.decode(result.payloadFiles['project/$bindingPath']!)) as Map<String, dynamic>,
+    );
+    final outputBinding = restored.binding;
+    expect((restored.catalogMoveId, restored.recipeMediaId), ('catalog-move', 'recipe-file'));
+    expect(
+      () => outputBinding.resolve(result.payloadFiles['project/$recipePath']!, const {}, availableCapabilities: {'wait'}),
+      returnsNormally,
+    );
+    final exported = await const CanonicalGamePackageExportService().build(
+      projectRoot: root, profile: _profile(), mode: GamePackageExportMode.localTest,
+    );
+    final archive = ZipDecoder().decodeBytes(exported.packageBytes, verify: true);
+    final archivedBytes = archive.findFile('project/$recipePath')!.content as List<int>;
+    expect(archivedBytes, bytes);
+    expect(
+      () => outputBinding.resolve(archivedBytes, const {}, availableCapabilities: {'wait'}),
+      returnsNormally,
+    );
+  });
+
+  test('rejects changed bytes at a content-addressed battle recipe path', () async {
+    final root = await _fixture();
+    final path = battleRecipeBlobPath('a' * 64, 'application/vnd.avelune.battle-recipe+json', projectMoveId: 'custom');
+    await _write(root, battleRecipeBindingPath('custom'), _bindingFor('a' * 64).toJson());
+    await _write(root, path, utf8.encode('{"schemaVersion":1}'));
+    await expectLater(
+      _build(root),
+      throwsA(isA<GamePackageExportException>().having((e) => e.code, 'code', 'battle_recipe.digest_mismatch')),
+    );
+  });
+
+  test('exports a complete particle closure and rejects a missing texture', () async {
+    final root = await _fixture();
+    final png = spatialPayload()['project/assets/hero.png']!;
+    final textureHash = sha256.convert(png).toString();
+    final particle = utf8.encode(jsonEncode({
+      'schemaVersion': 1,
+      'emitters': [{
+        'textureId': 'tex', 'emissionDurationMs': 10, 'emissionIntervalMs': 10,
+        'particleLifetimeMs': 10, 'particlesPerEmission': 1,
+      }],
+    }));
+    final particleHash = sha256.convert(particle).toString();
+    final recipe = utf8.encode(jsonEncode({
+      'schemaVersion': 1, 'recipeId': 'synthetic', 'revision': '1',
+      'moveSourceId': 'source', 'variant': 'default',
+      'requiredCapabilities': ['startParticle'],
+      'provenance': {'source': 'synthetic', 'sourceRevision': '1', 'sourcePaths': [], 'converter': 'test'},
+      'resources': [
+        {'id': 'tex', 'role': 'texture', 'mediaType': 'image/png', 'sizeBytes': png.length, 'sha256': textureHash},
+        {'id': 'particle', 'role': 'particleDefinition', 'mediaType': 'application/vnd.avelune.particle+json', 'sizeBytes': particle.length, 'sha256': particleHash, 'definitionVersion': 1, 'dependencies': ['tex']},
+      ],
+      'program': {'kind': 'startParticle', 'resourceId': 'particle', 'from': 'userMouth', 'to': 'targetImpact'},
+    }));
+    final recipeHash = sha256.convert(recipe).toString();
+    final binding = BattleMoveRecipeBinding.fromJson({
+      'schemaVersion': 1, 'projectMoveId': 'custom', 'sourceMoveId': 'source',
+      'catalogReleaseId': 'test', 'recipeId': 'synthetic', 'variant': 'default',
+      'revision': '1', 'recipeSha256': recipeHash,
+    });
+    final recipePath = battleRecipeBlobPath(recipeHash, 'application/vnd.avelune.battle-recipe+json', projectMoveId: 'custom');
+    final particlePath = battleRecipeBlobPath(particleHash, 'application/vnd.avelune.particle+json', projectMoveId: 'custom');
+    final texturePath = battleRecipeBlobPath(textureHash, 'image/png', projectMoveId: 'custom');
+    await _write(root, battleRecipeBindingPath('custom'), BattleRecipeProjectBinding(binding: binding).toJson());
+    await _write(root, recipePath, recipe);
+    await _write(root, particlePath, particle);
+    await expectLater(_build(root), throwsA(isA<GamePackageExportException>().having((e) => e.code, 'code', 'battle_recipe.invalid_bundle')));
+    await _write(root, texturePath, png);
+    final exported = await const CanonicalGamePackageExportService().build(
+      projectRoot: root, profile: _profile(), mode: GamePackageExportMode.localTest,
+    );
+    final archive = ZipDecoder().decodeBytes(exported.packageBytes, verify: true);
+    expect(archive.findFile('project/$recipePath')!.content, recipe);
+    expect(archive.findFile('project/$particlePath')!.content, particle);
+    expect(archive.findFile('project/$texturePath')!.content, png);
+  });
+
+  test('keeps unmarked projects on their existing JSON export path', () async {
+    final root = await _fixture();
+    final path = battleRecipeBlobPath('a' * 64, 'application/vnd.avelune.battle-recipe+json', projectMoveId: 'custom');
+    await _write(root, path, utf8.encode('{"schemaVersion":1}'));
+    final result = await _build(root);
+    expect(result.payloadFiles, contains('project/$path'));
+  });
+
+  test('rejects an explicitly unsupported battle recipe binding', () async {
+    final root = await _fixture();
+    await _write(root, battleRecipeBindingPath('custom'), {
+      ..._bindingFor('a' * 64).toJson(), 'schemaVersion': 2,
+    });
+    await expectLater(_build(root),
+      throwsA(isA<GamePackageExportException>().having((e) => e.code, 'code', 'battle_recipe.invalid_binding')));
+  });
+
+  test('rejects orphan battle recipe blobs in a marked project', () async {
+    final root = await _fixture();
+    final bytes = utf8.encode('{"schemaVersion":1}');
+    final path = battleRecipeBlobPath(sha256.convert(bytes).toString(),
+        'application/vnd.avelune.battle-recipe+json', projectMoveId: 'custom');
+    final recipe = utf8.encode(jsonEncode({
+      'schemaVersion': 1, 'recipeId': 'synthetic', 'revision': '1',
+      'moveSourceId': 'source', 'variant': 'default', 'requiredCapabilities': ['wait'],
+      'provenance': {'source':'synthetic','sourceRevision':'1','sourcePaths':[],'converter':'test'},
+      'resources': [], 'program': {'kind':'wait','durationMs':10},
+    }));
+    final recipeHash = sha256.convert(recipe).toString();
+    await _write(root, battleRecipeBindingPath('custom'), _bindingFor(recipeHash).toJson());
+    await _write(root, battleRecipeBlobPath(recipeHash,
+      'application/vnd.avelune.battle-recipe+json', projectMoveId: 'custom'), recipe);
+    await _write(root, path, bytes);
+    await expectLater(
+      _build(root),
+      throwsA(isA<GamePackageExportException>()
+          .having((e) => e.code, 'code', 'battle_recipe.orphan_blob')),
+    );
+  });
+
+  test('each move owns its binding and recipe even for identical bytes', () async {
+    final root = await _fixture();
+    final recipe = utf8.encode(jsonEncode({
+      'schemaVersion': 1, 'recipeId': 'synthetic', 'revision': '1',
+      'moveSourceId': 'source', 'variant': 'default', 'requiredCapabilities': ['wait'],
+      'provenance': {'source':'synthetic','sourceRevision':'1','sourcePaths':[],'converter':'test'},
+      'resources': [], 'program': {'kind':'wait','durationMs':10},
+    }));
+    final hash = sha256.convert(recipe).toString();
+    for (final move in ['custom', 'other']) {
+      final binding = BattleMoveRecipeBinding.fromJson({
+        ..._bindingFor(hash).binding.toJson(), 'projectMoveId': move,
+      });
+      await _write(root, battleRecipeBindingPath(move), BattleRecipeProjectBinding(binding: binding).toJson());
+      await _write(root, battleRecipeBlobPath(hash,
+        'application/vnd.avelune.battle-recipe+json', projectMoveId: move), recipe);
+    }
+    final first = battleRecipeBlobPath(hash, 'application/vnd.avelune.battle-recipe+json', projectMoveId: 'custom');
+    final second = battleRecipeBlobPath(hash, 'application/vnd.avelune.battle-recipe+json', projectMoveId: 'other');
+    expect(first, isNot(second));
+    await File('${root.path}/${battleRecipeBindingPath('custom')}').delete();
+    await File('${root.path}/$first').delete();
+    final exported = await _build(root);
+    expect(exported.payloadFiles['project/$second'], recipe);
+  });
   test('Pokemon media excludes unused provenance and preserves author bytes', () async {
     final root = await _fixture();
     final record = await _catalogJson(root, 'source-proof',
@@ -619,6 +783,14 @@ void main() {
         isFalse);
   });
 }
+
+BattleRecipeProjectBinding _bindingFor(String digest) => BattleRecipeProjectBinding(
+  binding: BattleMoveRecipeBinding.fromJson({
+    'schemaVersion': 1, 'projectMoveId': 'custom', 'sourceMoveId': 'source',
+    'catalogReleaseId': 'test', 'recipeId': 'synthetic', 'variant': 'default',
+    'revision': '1', 'recipeSha256': digest,
+  }),
+);
 
 Future<Directory> _fixture() async {
   final root =

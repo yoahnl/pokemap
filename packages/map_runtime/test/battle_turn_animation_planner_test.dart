@@ -1,11 +1,47 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_authoring/map_authoring.dart';
+import 'package:map_distribution/map_distribution.dart';
 import 'package:map_runtime/src/presentation/flame/battle_sdk_rmxp_animation_catalog.dart';
 import 'package:map_runtime/src/application/runtime_move_catalog_loader.dart';
 import 'package:map_runtime/src/presentation/flame/battle_animation_plan.dart';
 import 'package:map_runtime/src/presentation/flame/battle_move_visual_resolver.dart';
 import 'package:map_runtime/src/presentation/flame/battle_turn_animation_planner.dart';
+import 'package:map_runtime/src/presentation/flame/battle_move_recipe_compiler.dart';
+
+final class _RecipeTransport implements PokemonBoundedExternalHttpTransport {
+  _RecipeTransport(this.bytes);
+  final List<int> bytes;
+
+  @override
+  Future<PokemonExternalHttpResponse> getBounded(Uri uri,
+      {required Map<String, String> headers,
+      required int maximumBytes,
+      required Duration timeout}) async {
+    final data = uri.path.endsWith('/owners/move/catalog-move')
+        ? utf8.encode(jsonEncode([{
+            'id': 'recipe-file', 'sha256': sha256.convert(bytes).toString(),
+            'contentType': 'application/vnd.avelune.battle-recipe+json',
+            'usage': 'battle', 'representation': 'recipe', 'style': 'synthetic',
+            'metadata': {
+              'recipeId': 'custom', 'revision': '1', 'moveSourceId': 'source',
+              'variant': 'default', 'bindings': <String, String>{},
+            },
+          }]))
+        : bytes;
+    return PokemonExternalHttpResponse(
+      statusCode: 200,
+      headers: const {},
+      body: uri.path.contains('/owners/') ? utf8.decode(data) : '',
+      bodyBytes: Uint8List.fromList(data),
+    );
+  }
+}
 
 BattleStatsSnapshot _stats({
   int attack = 60,
@@ -115,6 +151,160 @@ BattleMoveVisualResolver _resolver() {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(BattleSdkRmxpAnimationCatalog.ensureLoaded);
+
+  test('keeps the complete legacy animation for timing and camera recipes', () async {
+    final bytes = utf8.encode(
+      jsonEncode({
+        'schemaVersion': 1,
+        'recipeId': 'custom',
+        'revision': '1',
+        'moveSourceId': 'source',
+        'variant': 'default',
+        'requiredCapabilities': ['wait'],
+        'provenance': {
+          'source': 'synthetic',
+          'sourceRevision': '1',
+          'sourcePaths': <String>[],
+          'converter': 'test',
+        },
+        'resources': <Object>[],
+        'program': {'kind': 'wait', 'durationMs': 1234},
+      }),
+    );
+    final binding = BattleMoveRecipeBinding.fromJson({
+      'schemaVersion': 1,
+      'projectMoveId': 'tackle',
+      'sourceMoveId': 'source',
+      'catalogReleaseId': 'test',
+      'recipeId': 'custom',
+      'variant': 'default',
+      'revision': '1',
+      'recipeSha256': sha256.convert(bytes).toString(),
+    });
+    final prepared = const BattleMoveRecipeCompiler().prepareBound(
+      binding,
+      bytes,
+      const {},
+      expectedProjectMoveId: 'tackle',
+      expectedCatalogReleaseId: 'test',
+    );
+    final otherBinding = BattleMoveRecipeBinding.fromJson({
+      ...binding.toJson(),
+      'projectMoveId': 'other',
+    });
+    final otherPrepared = const BattleMoveRecipeCompiler().prepareBound(
+      otherBinding,
+      bytes,
+      const {},
+      expectedProjectMoveId: 'other',
+      expectedCatalogReleaseId: 'test',
+    );
+    final before = _session(
+      player: _combatant(
+        speciesId: 'one',
+        lineupIndex: 0,
+        moves: [_move(id: 'tackle', name: 'Tackle', type: 'normal')],
+      ),
+      enemy: _combatant(
+        speciesId: 'two',
+        lineupIndex: 0,
+        moves: [_move(id: 'tackle', name: 'Tackle', type: 'normal')],
+      ),
+    );
+    BattleAnimationPlan build(Map<String, PreparedBattleMoveRecipe> recipes,
+            {bool fieldTarget = false}) =>
+        BattleTurnAnimationPlanner(importedRecipes: recipes).buildForTurn(
+          playerBefore: before.state.player,
+          enemyBefore: before.state.enemy,
+          turnResult: BattleTurnResult(
+            playerAction: const BattleActionNone(),
+            enemyAction: const BattleActionNone(),
+            executions: const [],
+            timeline: [
+              BattleTurnExecutionEvent(
+                BattleMoveExecution(
+                  attackerSlot: const BattleSlotRef.active(BattleSideId.player),
+                  move: const BattleMove(
+                    id: 'tackle',
+                    name: 'Tackle',
+                    power: 40,
+                  ),
+                  targetKind: fieldTarget
+                      ? BattleMoveExecutionTargetKind.field
+                      : BattleMoveExecutionTargetKind.combatant,
+                  targetSlot: fieldTarget
+                      ? null
+                      : const BattleSlotRef.active(BattleSideId.enemy),
+                  damage: fieldTarget ? 0 : 1,
+                  didHit: true,
+                ),
+              ),
+            ],
+          ),
+          moveCatalog: RuntimeMoveCatalog.fromEntries(const {}),
+          resolver: _resolver(),
+        );
+    expect(
+      build({'tackle': prepared}).flattenedSteps
+          .whereType<WaitStep>()
+          .any((step) => step.durationSeconds == 1.234),
+      isFalse,
+    );
+    final legacyTypes = build(const {}).flattenedSteps
+        .map((step) => step.runtimeType).toList();
+    expect(build({'tackle': prepared}).flattenedSteps
+        .map((step) => step.runtimeType).toList(), legacyTypes);
+    expect(
+      build({'other': prepared}).flattenedSteps
+          .whereType<WaitStep>()
+          .any((step) => step.durationSeconds == 1.234),
+      isFalse,
+    );
+    final mismatched = build({'tackle': otherPrepared}).flattenedSteps;
+    expect(mismatched.whereType<WaitStep>().any((step) => step.durationSeconds == 1.234), isFalse);
+    final active = build({'tackle': prepared}).flattenedSteps.toList();
+    expect(active.indexWhere((step) => step is BattleCameraResetStep),
+        lessThan(active.indexWhere((step) => step is HudHpTweenStep)));
+    final apiSource = AveluneMoveRecipeSource(
+      AvelunePokemonMediaSource(client: _RecipeTransport(bytes)),
+    );
+    final fetched = await apiSource.fetch(
+      catalogMoveId: 'catalog-move', sourceMoveId: 'source',
+      projectMoveId: 'tackle', mediaId: 'recipe-file',
+      limits: const BattleRecipeBundleLimits(
+        maxTextures: 0, maxTextureBytes: 0, maxBundleBytes: 10000,
+        maxDimension: 16, maxTexturePixels: 256, maxTotalPixels: 256,
+      ),
+      availableCapabilities: BattleMoveRecipeCompiler.availableCapabilities,
+    );
+    final fromApi = const BattleMoveRecipeCompiler().prepareBound(
+      fetched.binding, fetched.bundle.recipeBytes, fetched.bundle.media,
+      expectedProjectMoveId: 'tackle', expectedCatalogReleaseId: 'public-2026-10',
+    );
+    expect(build({'tackle': fromApi}).flattenedSteps
+        .whereType<WaitStep>().any((step) => step.durationSeconds == 1.234), isFalse);
+    final targetRecipe = jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
+    targetRecipe['requiredCapabilities'] = ['cameraFocus'];
+    targetRecipe['program'] = {
+      'kind': 'cameraFocus', 'target': 'target', 'durationMs': 1234,
+    };
+    final targetBytes = utf8.encode(jsonEncode(targetRecipe));
+    final targetBinding = BattleMoveRecipeBinding.fromJson({
+      ...binding.toJson(),
+      'recipeSha256': sha256.convert(targetBytes).toString(),
+    });
+    final targetPrepared = const BattleMoveRecipeCompiler().prepareBound(
+      targetBinding, targetBytes, const {},
+      expectedProjectMoveId: 'tackle', expectedCatalogReleaseId: 'test',
+    );
+    expect(
+      build({'tackle': targetPrepared}, fieldTarget: true).flattenedSteps
+          .whereType<CameraFocusStep>()
+          .any((step) => step.durationSeconds == 1.234),
+      isFalse,
+    );
+  });
+
 
   test('trainer status medicine keeps project names in animation messages', () {
     final before = _session(

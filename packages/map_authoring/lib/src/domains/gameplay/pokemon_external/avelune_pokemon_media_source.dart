@@ -79,14 +79,21 @@ final class AvelunePokemonMediaSource {
     return response;
   }
 
-  Future<List<AvelunePokemonMedia>> listPokemonMedia(String speciesId) async {
-    _identifier(speciesId);
+  Future<List<AvelunePokemonMedia>> listPokemonMedia(String speciesId) =>
+      _listMedia('pokemon', speciesId);
+
+  Future<List<AvelunePokemonMedia>> listMoveMedia(String moveId) =>
+      _listMedia('move', moveId);
+
+  Future<List<AvelunePokemonMedia>> _listMedia(
+      String kind, String ownerId) async {
+    _identifier(ownerId);
     final entries = <AvelunePokemonMedia>[];
     final seen = <String>{};
     var after = '';
     while (true) {
       final response = await _get(
-          _uri('$release/owners/pokemon/$speciesId', {
+          _uri('$release/owners/$kind/$ownerId', {
             'limit': '100',
             if (after.isNotEmpty) 'after': after,
           }),
@@ -135,11 +142,15 @@ final class AvelunePokemonMediaSource {
     }
   }
 
-  Future<Uint8List> readMedia(AvelunePokemonMedia media) async {
+  Future<Uint8List> readMedia(AvelunePokemonMedia media,
+      {int maximumBytes = 64 * 1024 * 1024}) async {
     if (media.release != release) throw ArgumentError('Media release differs.');
-    final response = await _get(_uri('$release/${media.id}'), 64 * 1024 * 1024);
+    if (maximumBytes < 1 || maximumBytes > 64 * 1024 * 1024) {
+      throw ArgumentError.value(maximumBytes, 'maximumBytes');
+    }
+    final response = await _get(_uri('$release/${media.id}'), maximumBytes);
     if (response.bodyBytes.isEmpty ||
-        response.bodyBytes.length > 64 * 1024 * 1024 ||
+        response.bodyBytes.length > maximumBytes ||
         sha256.convert(response.bodyBytes).toString() != media.sha256) {
       throw const FormatException('Media content or digest is invalid.');
     }

@@ -2,6 +2,7 @@ import 'package:map_battle/map_battle.dart';
 
 import '../../application/runtime_move_catalog_loader.dart';
 import 'battle_animation_plan.dart';
+import 'battle_move_recipe_compiler.dart';
 import 'battle_move_visual_catalog.dart';
 import 'battle_move_visual_recipe_library.dart';
 import 'battle_move_visual_resolver.dart';
@@ -68,6 +69,7 @@ bool itemHealingAnnouncesStatusCure(
 final class BattleTurnAnimationPlanner {
   BattleTurnAnimationPlanner({
     BattleMoveVisualRecipeLibrary? recipeLibrary,
+    Map<String, PreparedBattleMoveRecipe> importedRecipes = const {},
     List<BattleAnimationStep> Function(
       BattleMoveVisualRecipeId,
       BattleMoveVisualRecipeContext,
@@ -76,7 +78,8 @@ final class BattleTurnAnimationPlanner {
     this.moveDisplayName = _rawMoveName,
     this.announcesOutcome = true,
     this.resolveCombatantBallItemId,
-  }) : _buildRecipe = recipeBuilder ??
+  }) : _importedRecipes = Map.unmodifiable(importedRecipes),
+       _buildRecipe = recipeBuilder ??
             (recipeLibrary ?? BattleMoveVisualRecipeLibrary()).build;
 
   /// Ce plan annonce-t-il lui-même l'issue du combat ?
@@ -90,6 +93,7 @@ final class BattleTurnAnimationPlanner {
   /// Le SON de la fuite reste attaché ici : c'est un accent du tour, pas une
   /// annonce.
   final bool announcesOutcome;
+  final Map<String, PreparedBattleMoveRecipe> _importedRecipes;
   final String? Function(BattleSideId side, int lineupIndex)?
       resolveCombatantBallItemId;
 
@@ -116,6 +120,7 @@ final class BattleTurnAnimationPlanner {
     required BattleMoveVisualResolver resolver,
     Map<BattleSlotRef, BattleCombatant>? combatantsBefore,
     Map<BattleSlotRef, BattleCombatant>? combatantsAfter,
+    Map<String, PreparedBattleMoveRecipe>? importedRecipes,
   }) {
     final turnResult = newSession.state.currentTurn;
     if (turnResult == null) {
@@ -152,6 +157,7 @@ final class BattleTurnAnimationPlanner {
       },
       moveCatalog: moveCatalog,
       resolver: resolver,
+      importedRecipes: importedRecipes,
     );
     final outcome = newSession.state.outcome;
     if (!newSession.state.isFinished || outcome == null) {
@@ -181,6 +187,7 @@ final class BattleTurnAnimationPlanner {
     Map<BattleSlotRef, BattleCombatant>? combatantsBefore,
     Map<BattleSlotRef, BattleCombatant>? combatantsAfter,
     Map<(BattleSideId, int), int>? partyHpBefore,
+    Map<String, PreparedBattleMoveRecipe>? importedRecipes,
   }) {
     final before = combatantsBefore ?? {
       const BattleSlotRef.active(BattleSideId.player): playerBefore,
@@ -241,7 +248,7 @@ final class BattleTurnAnimationPlanner {
               ),
             );
             final resolvedMove = resolver.resolve(execution.move);
-            final recipeSteps = _buildRecipe(
+            List<BattleAnimationStep> legacySteps() => _buildRecipe(
               resolvedMove.recipeId,
               BattleMoveVisualRecipeContext(
                 resolvedMove: resolvedMove,
@@ -256,6 +263,23 @@ final class BattleTurnAnimationPlanner {
                 didCrit: execution.didCrit,
               ),
             ).toList();
+            final imported = (importedRecipes ?? _importedRecipes)[execution.move.id];
+            List<BattleAnimationStep> recipeSteps;
+            if (!BattleMoveRecipeCompiler.supportsCompleteMoveVisuals ||
+                imported == null ||
+                imported.projectMoveId != execution.move.id) {
+              recipeSteps = legacySteps();
+            } else {
+              try {
+                recipeSteps = const BattleMoveRecipeCompiler().compile(
+                  imported,
+                  user: execution.attackerSlot,
+                  target: execution.targetSlot,
+                ).steps.toList();
+              } on FormatException {
+                recipeSteps = legacySteps();
+              }
+            }
             // BETA-BAT-013 : le clignotement de la cible est une réaction au
             // DÉGÂT, pas une étape de la chorégraphie du coup. Chez PSDK il
             // vit dans `show_hp_animations`, pilote par le gestionnaire de

@@ -84,6 +84,23 @@ void main() {
     );
   }
 
+  test('rejects duplicate particle keys even with a matching hash', () {
+    final raw = utf8.encode(
+      jsonEncode(definition()).replaceFirst(
+        '"schemaVersion":1',
+        r'"schemaVersion":1,"schema\u0056ersion":1',
+      ),
+    );
+    final (recipe, media) = bundle(definition(), rawBytes: raw);
+    expect(
+      () => recipe.validateBundle(
+        media,
+        availableCapabilities: {'sequence', 'startParticle', 'waitEffects'},
+      ),
+      throwsFormatException,
+    );
+  });
+
   test(
     'validates bytes, supported capabilities and exact texture references',
     () {

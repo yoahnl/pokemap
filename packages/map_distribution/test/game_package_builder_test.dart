@@ -10,6 +10,46 @@ import 'package:test/test.dart';
 import 'package:map_distribution/src/deterministic_zip_encoder.dart';
 
 void main() {
+  test('keeps exact recipe bytes through package build and inspection', () {
+    final recipe = utf8.encode('''{
+  "schemaVersion": 1, "recipeId": "synthetic", "revision": "1",
+  "moveSourceId": "source", "variant": "default",
+  "requiredCapabilities": ["wait"],
+  "provenance": {"source":"synthetic","sourceRevision":"1","sourcePaths":[],"converter":"test"},
+  "resources": [], "program": {"kind":"wait","durationMs":10}
+}''');
+    final binding = BattleMoveRecipeBinding.fromJson({
+      'schemaVersion': 1,
+      'projectMoveId': 'local',
+      'sourceMoveId': 'source',
+      'catalogReleaseId': 'release',
+      'recipeId': 'synthetic',
+      'variant': 'default',
+      'revision': '1',
+      'recipeSha256': sha256.convert(recipe).toString(),
+    });
+    final built = GamePackageBuilder().build(
+      manifest: _draftManifest(),
+      payloadFiles: {
+        'project/project.json': _validProjectBytes(),
+        'project/data/animations/synthetic.json': recipe,
+        'project/data/animations/synthetic-binding.json':
+            utf8.encode(jsonEncode(binding.toJson())),
+      },
+    );
+    GamePackageInspector().inspect(built.packageBytes);
+    final archive = ZipDecoder().decodeBytes(built.packageBytes);
+    final bytes = archive.findFile('project/data/animations/synthetic.json')!.content as List<int>;
+    expect(bytes, recipe);
+    final bindingBytes = archive
+        .findFile('project/data/animations/synthetic-binding.json')!
+        .content as List<int>;
+    final restored = BattleMoveRecipeBinding.fromJson(
+      jsonDecode(utf8.decode(bindingBytes)) as Map<String, dynamic>,
+    );
+    expect(() => restored.resolve(bytes, const {}, availableCapabilities: {'wait'}), returnsNormally);
+  });
+
   test('publishes partitioned project and preserves its exact reexport', () {
     final first = GamePackageBuilder().build(
         manifest: _draftManifest(),

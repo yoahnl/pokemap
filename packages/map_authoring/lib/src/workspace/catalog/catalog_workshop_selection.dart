@@ -27,6 +27,7 @@ part 'catalog_surf_selection.dart';
 part 'catalog_guided_workshop_selection.dart';
 part 'catalog_model_light_selection.dart';
 part 'catalog_audio_media_selection.dart';
+part 'catalog_battle_recipe_selection.dart';
 part 'catalog_map_creation_selection.dart';
 part 'catalog_map_metadata_selection.dart';
 part 'catalog_asset_import_selection.dart';
@@ -89,6 +90,7 @@ final class CatalogWorkshopSelection {
       action == 'project.audio.media.adopt_asset' ||
       action == 'asset.import' ||
       action == 'asset.import_batch' ||
+      action == 'pokemon.move_recipe.import' ||
       action == 'project.battle_audio.update' ||
       _sceneWorkshopActions.contains(action) ||
       _guidedActions.contains(action) ||
@@ -168,6 +170,11 @@ final class CatalogWorkshopSelection {
     if (const {'surf.configure', 'field_ability.configure', 'project.audio.cue.configure'}.contains(actionId)) {
       if (readDependencies.isNotEmpty) unsupported(actionId);
       return _readSurfWorkshop(reader: reader, projectHandle: projectHandle, parameters: parameters);
+    }
+    if (actionId == 'pokemon.move_recipe.import') {
+      if (readDependencies.isNotEmpty) unsupported(actionId);
+      return _readBattleRecipeWorkshop(reader: reader,
+        projectHandle: projectHandle, parameters: parameters);
     }
     if (const {'presentation.delete', 'presentation.reset_interface'}.contains(actionId)) {
       if (readDependencies.isNotEmpty) unsupported(actionId);

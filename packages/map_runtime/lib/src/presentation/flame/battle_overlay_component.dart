@@ -51,6 +51,7 @@ import 'battle_scene_combatant_component.dart';
 import 'battle_turn_animation_planner.dart';
 import 'battle_sfx_player.dart';
 import 'battle_move_visual_resolver.dart';
+import 'battle_move_recipe_compiler.dart';
 
 /// Retourne le prompt de décision à afficher pour la requête courante.
 ///
@@ -735,6 +736,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
   final double textScale;
   final bool _allowMedicineReserveTargets;
   bool _acceptsPlayerCommands = true;
+  bool _preparingTurn = false;
 
   BattleSceneBackdropComponent? _backdrop;
   BattleSceneCombatantComponent? _enemyCombatant;
@@ -848,6 +850,12 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
       <String, Future<void>>{};
 
   bool get acceptsPlayerCommands => _acceptsPlayerCommands;
+
+  void beginTurnPreparation() {
+    if (_preparingTurn) return;
+    _preparingTurn = true;
+    _syncPanelsOnly();
+  }
 
   /// BETA-BAT-017 : ferme les commandes sans éteindre l'UI de combat.
   ///
@@ -1546,7 +1554,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
   final Map<BattleSlotRef, int> _presentationHeldHp = <BattleSlotRef, int>{};
 
   bool get isTurnPresentationActive =>
-      (_animationRunner?.isActive ?? false) || _pendingIntroPlan != null;
+      _preparingTurn || (_animationRunner?.isActive ?? false) || _pendingIntroPlan != null;
 
   /// Une présentation est en cours OU pas encore démarrée.
   ///
@@ -1558,7 +1566,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
   /// Le plan est remis à vide quand le runner a fini, donc « plan non vide ou
   /// runner actif » couvre exactement la durée d'une présentation.
   bool get _presentationPendingOrRunning =>
-      (_animationRunner?.isActive ?? false) ||
+      _preparingTurn || (_animationRunner?.isActive ?? false) ||
       _activeAnimationPlan.steps.isNotEmpty;
 
   @visibleForTesting
@@ -2138,7 +2146,9 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
   void updateState(BattleSession newSession, {
     GameState? gameState,
     RuntimeBattlePresentation? presentation,
+    Map<String, PreparedBattleMoveRecipe>? importedRecipes,
   }) {
+    _preparingTurn = false;
     final previousSession = _session;
     final previousPresentation = _battlePresentation;
     _previousBattlePresentation = previousPresentation;
@@ -2157,6 +2167,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
       combatantsAfter: _battlePresentation?.combatantsBySlot,
       moveCatalog: _moveCatalog,
       resolver: _moveVisualResolver,
+      importedRecipes: importedRecipes,
     );
     _session = newSession;
     _syncFieldAmbientState();

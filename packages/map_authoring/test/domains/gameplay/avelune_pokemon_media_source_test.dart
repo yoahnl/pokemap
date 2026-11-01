@@ -135,4 +135,15 @@ void main() {
     await expectLater(
         source.listPokemonMedia('bulbasaur'), throwsFormatException);
   });
+
+  test('move media are paginated under their own owner and verified', () async {
+    final transport = _PagedTransport();
+    final source = AvelunePokemonMediaSource(client: transport);
+    final entries = await source.listMoveMedia('flamethrower');
+    expect(entries, hasLength(101));
+    expect(transport.requests.first.path,
+        '/v1/media/public-2026-10/owners/move/flamethrower');
+    expect(transport.requests.last.queryParameters['after'], 'media-099');
+    await expectLater(source.listMoveMedia('../bad'), throwsArgumentError);
+  });
 }

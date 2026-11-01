@@ -152,6 +152,8 @@ import 'battle_combatant_ball_resolver.dart';
 import 'battle_fx_bundle_cache.dart';
 import 'battle_animation_plan.dart';
 import 'battle_overlay_component.dart';
+import 'battle_move_recipe_compiler.dart';
+import 'battle_offline_move_recipe_loader.dart';
 import 'battle_motion_policy.dart';
 import 'post_battle_scene_plan_builder.dart';
 import 'battle_music_resolver.dart';
@@ -2432,6 +2434,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   // Battle system (map_battle integration)
   BattleSession? _battleSession;
   RuntimePsdkBattleSessionAdapter? _psdkBattleSession;
+  final Map<String, BattleOfflineMoveRecipeResult> _offlineRecipeResults = {};
+  bool _battleRecipeDirectoryPresent = false;
+  int _battleRecipeGeneration = 0;
   RuntimeActiveBattleContext? _activeBattleContext;
   GameState? _battleRollbackState;
   RuntimeBattleCaptureAttemptReceipt? _captureAttemptReceipt;
@@ -4161,6 +4166,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   BattleSession? get debugBattleSessionSnapshot => _battleSession;
 
   @visibleForTesting
+  Map<String, BattleOfflineMoveRecipeResult> get debugOfflineRecipeResults =>
+      Map.unmodifiable(_offlineRecipeResults);
+
+  @visibleForTesting
   bool get debugPsdkBattleSessionActive => _psdkBattleSession != null;
 
   @visibleForTesting
@@ -4204,6 +4213,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
 
   @visibleForTesting
   void debugResetBattleForTest() {
+    _resetOfflineBattleRecipes();
     _cinematicRuntimeController.cancel(
       message: 'Cinematic playback was cancelled by debug battle reset.',
     );
@@ -5306,6 +5316,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
 
   @override
   void onRemove() {
+    _resetOfflineBattleRecipes();
     _parallelFaultedOwners.clear();
     _parallelScheduler.clear();
     if (!_isRemoved) _simulationClock.dispose();
@@ -10097,6 +10108,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       return;
     }
     _battleRollbackState ??= _battleRuntimeGameState;
+    final recipeGeneration = ++_battleRecipeGeneration;
+    _offlineRecipeResults.clear();
+    _battleRecipeDirectoryPresent = false;
     // BETA-BAT-016 : la pré-transition n'est PLUS retirée ici. Elle vit
     // par-dessus le chargement et tombe au reveal (_maybeRevealBattleScene) ;
     // les chemins d'échec la retirent déjà explicitement.
@@ -10106,6 +10120,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       if (_flowPhase != _RuntimeFlowPhase.battleTransition || !_canContinueInteractiveBattle(request)) {
         return;
       }
+      final recipeDirectoryPresent = await Directory(p.join(
+          _bundle.projectRootDirectory, 'data/pokemon/battle_recipes/bindings')).exists();
+      if (_isRemoved || recipeGeneration != _battleRecipeGeneration ||
+          _flowPhase != _RuntimeFlowPhase.battleTransition ||
+          !_canContinueInteractiveBattle(request)) {
+        return;
+      }
+      _battleRecipeDirectoryPresent = recipeDirectoryPresent;
       if (request case WildBattleStartRequest wildRequest) {
         request = await _traceAsync(
           'battle',
@@ -10623,6 +10645,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     required String userMessage,
     String? debugDetails,
   }) {
+    _resetOfflineBattleRecipes();
     _releaseInteractiveEncounter(request.requestId);
     _completePendingSceneBattleOutcome(
       SceneBattleRuntimeOutcomeResult.failed(
@@ -10701,6 +10724,95 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           port: SceneBattleRuntimeOutcomePort.captured,
         ),
     };
+  }
+
+  void _resetOfflineBattleRecipes() {
+    _battleRecipeGeneration++;
+    _battleRecipeDirectoryPresent = false;
+    _offlineRecipeResults.clear();
+  }
+
+  bool _deferBattleTurnForRecipes(
+    BattleSession turnSession,
+    BattleOverlayComponent? overlay,
+    RuntimePsdkBattleSessionAdapter? psdkSession,
+  ) {
+    final context = _activeBattleContext;
+    final moveIds = turnSession.state.currentTurn?.timeline
+            .whereType<BattleTurnExecutionEvent>()
+            .map((event) => event.execution.move.id)
+            .toSet() ??
+        <String>{};
+    if (!_battleRecipeDirectoryPresent || overlay == null || context == null ||
+        moveIds.isEmpty) {
+      return false;
+    }
+    final generation = ++_battleRecipeGeneration;
+    final bundle = _bundle;
+    bool current() => !_isRemoved &&
+        _flowPhase == _RuntimeFlowPhase.battle &&
+        generation == _battleRecipeGeneration &&
+        identical(_bundle, bundle) &&
+        identical(_battleSession, turnSession) &&
+        identical(_activeBattleContext, context) &&
+        identical(_battleOverlay, overlay) &&
+        identical(_psdkBattleSession, psdkSession);
+
+    overlay.beginTurnPreparation();
+    unawaited(() async {
+      try {
+        final loader = BattleOfflineMoveRecipeLoader(
+          projectRootDirectory: bundle.projectRootDirectory,
+          resourceBudget: bundle.resourceBudget,
+        );
+        final recipes = <String, PreparedBattleMoveRecipe>{};
+        for (final moveId in moveIds) {
+          final result = _offlineRecipeResults[moveId] ??
+              await loader.load(moveId, isCurrent: current);
+          if (!current()) return;
+          if (result.fallbackReason != BattleRecipeFallbackReason.resourceBudget) {
+            _offlineRecipeResults[moveId] = result;
+          }
+          if (result.prepared != null) recipes[moveId] = result.prepared!;
+        }
+        if (!current()) return;
+        overlay.updateState(turnSession, gameState: _battleOverlayGameState,
+          presentation: psdkSession?.presentation, importedRecipes: recipes);
+        if (psdkSession != null && psdkSession.state.isFinished) {
+          final request = context.request;
+          final isTrainerBattle = request is TrainerBattleStartRequest;
+          unawaited(_finishBattleAfterPresentation(
+            finishedSession: turnSession, overlay: overlay,
+            outcome: psdkSession.createLegacyOutcome(
+              isTrainerBattle: isTrainerBattle,
+              trainerId: isTrainerBattle ? request.trainerId : null,
+            ),
+          ));
+        } else if (turnSession.state.isFinished) {
+          unawaited(_finishBattleAfterPresentation(
+            finishedSession: turnSession, overlay: overlay,
+            outcome: turnSession.state.outcome!,
+          ));
+        } else if (current()) {
+          _isBattleResolving = false;
+        }
+      } on BattleOfflineRecipeLoadCancelled {
+        return;
+      } on FormatException catch (error) {
+        if (current()) {
+          _cancelBattleHandoff(request: context.request,
+            userMessage: 'Une animation de capacité est corrompue ou incomplète. Réinstalle le jeu ou contacte son créateur.',
+            debugDetails: error.toString());
+        }
+      } on Object catch (error) {
+        if (current()) {
+          _cancelBattleHandoff(request: context.request,
+            userMessage: 'Impossible de charger une animation de capacité.',
+            debugDetails: error.toString());
+        }
+      }
+    }());
+    return true;
   }
 
   /// Gère le choix du joueur pendant le combat.
@@ -10826,6 +10938,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
 
       // Mettre à jour l'UI avec le nouvel état
       final overlay = _battleOverlay;
+      if (_deferBattleTurnForRecipes(_battleSession!, overlay, psdkSession)) {
+        battleFinishDeferred = true;
+        return;
+      }
       overlay?.updateState(
         _battleSession!,
         gameState: _battleOverlayGameState,
@@ -10913,6 +11029,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         _battleSession = result.updatedDisplaySession;
         _replaceBattleRuntimeGameState(result.updatedGameState);
         final overlay = _battleOverlay;
+        if (_deferBattleTurnForRecipes(_battleSession!, overlay, psdkSession)) {
+          battleFinishDeferred = true;
+          return true;
+        }
         overlay?.updateState(
           _battleSession!,
           gameState: _battleOverlayGameState,
@@ -10952,6 +11072,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
 
       _battleSession = result.updatedSession;
       _replaceBattleRuntimeGameState(result.updatedGameState);
+      if (_deferBattleTurnForRecipes(_battleSession!, _battleOverlay, null)) {
+        battleFinishDeferred = true;
+        return true;
+      }
       _battleOverlay?.updateState(
         _battleSession!,
         gameState: _battleRuntimeGameState,
@@ -11550,6 +11674,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   }
 
   void _forcePostBattleCleanup() {
+    _resetOfflineBattleRecipes();
     if (_battleRollbackState case final original?) {
       _replaceBattleRuntimeGameState(original);
       _battleRollbackState = null;
@@ -11606,6 +11731,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     GameState? postBattleFinalState,
     bool postBattleFailed = false,
   }) {
+    _resetOfflineBattleRecipes();
     debugPrint('[battle] battle finished outcome=${outcome.type.name}');
     if (postBattleFailed && _battleRollbackState != null) {
       _replaceBattleRuntimeGameState(_battleRollbackState!);

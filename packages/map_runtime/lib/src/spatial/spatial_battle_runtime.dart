@@ -40,6 +40,8 @@ import '../presentation/flame/battle_fx_bundle_cache.dart';
 import '../presentation/flame/battle_medicine_target_menu_model.dart';
 import '../presentation/flame/battle_overlay_component.dart';
 import '../presentation/flame/battle_motion_policy.dart';
+import '../presentation/flame/battle_move_recipe_compiler.dart';
+import '../presentation/flame/battle_offline_move_recipe_loader.dart';
 import '../presentation/flame/battle_pokemon_sprite_resolver.dart';
 import '../presentation/flame/battle_visual_asset_cache.dart';
 import '../presentation/flame/post_battle_progression_overlay_component.dart';
@@ -91,6 +93,10 @@ final class SpatialBattleRuntime extends ChangeNotifier {
   BattleTransitionOverlayComponent? exitTransition;
   RuntimePsdkBattleSessionAdapter? _engine;
   RuntimeMapBundle? _bundle;
+  final Map<String, BattleOfflineMoveRecipeResult> _offlineRecipeResults = {};
+  @visibleForTesting
+  Map<String, BattleOfflineMoveRecipeResult> get debugOfflineRecipeResults =>
+      Map.unmodifiable(_offlineRecipeResults);
   GameState? _base;
   SceneBattleDefeatRecovery _defeatRecovery =
       SceneBattleDefeatRecovery.returnToRecoveryPoint;
@@ -240,6 +246,7 @@ final class SpatialBattleRuntime extends ChangeNotifier {
     if (_disposed || isActive) return Future.value(false);
     final completion = _completion = Completer<bool>();
     final generation = ++_generation;
+    _offlineRecipeResults.clear();
     error = null;
     _base = readGameState();
     _defeatRecovery = defeatRecovery;
@@ -547,6 +554,7 @@ final class SpatialBattleRuntime extends ChangeNotifier {
     }
     _resolving = true;
     final generation = _generation;
+    final turnOverlay = battleOverlay;
     try {
       if (choice is PlayerBattleChoiceCapture) {
         final capture = _items!.definitionFor(choice.itemId)?.capture;
@@ -588,7 +596,8 @@ final class SpatialBattleRuntime extends ChangeNotifier {
       if (_current(generation)) _fail(failure);
       return false;
     } finally {
-      if (_current(generation) && phase == SpatialBattlePhase.battle) {
+      if (_current(generation) && identical(battleOverlay, turnOverlay) &&
+          phase == SpatialBattlePhase.battle) {
         _resolving = false;
       }
     }
@@ -623,11 +632,13 @@ final class SpatialBattleRuntime extends ChangeNotifier {
     _working = result.updatedGameState;
     _resolving = true;
     final generation = _generation;
+    final turnOverlay = battleOverlay;
     unawaited(
       _presentTurn(generation).catchError((Object failure) {
         if (_current(generation)) _fail(failure);
       }).whenComplete(() {
-        if (_current(generation) && phase == SpatialBattlePhase.battle) {
+        if (_current(generation) && identical(battleOverlay, turnOverlay) &&
+            phase == SpatialBattlePhase.battle) {
           _resolving = false;
         }
       }),
@@ -652,10 +663,48 @@ final class SpatialBattleRuntime extends ChangeNotifier {
       ).state;
     }
     displaySession = _display();
+    final turnSession = displaySession!;
     final overlay = battleOverlay;
     if (overlay != null && overlay.isMounted) {
-      overlay.updateState(displaySession!,
+      final loader = BattleOfflineMoveRecipeLoader(
+        projectRootDirectory: _bundle!.projectRootDirectory,
+        resourceBudget: _bundle!.resourceBudget,
+      );
+      final moveIds = turnSession.state.currentTurn?.timeline
+              .whereType<BattleTurnExecutionEvent>()
+              .map((event) => event.execution.move.id)
+              .toSet() ??
+          <String>{};
+      if (moveIds.isNotEmpty) overlay.beginTurnPreparation();
+      final recipes = <String, PreparedBattleMoveRecipe>{};
+      for (final moveId in moveIds) {
+        late final BattleOfflineMoveRecipeResult result;
+        try {
+          result = _offlineRecipeResults[moveId] ?? await loader.load(moveId,
+              isCurrent: () => _current(generation) &&
+                  identical(battleOverlay, overlay) &&
+                  identical(displaySession, turnSession));
+        } on BattleOfflineRecipeLoadCancelled {
+          return;
+        } on FormatException catch (error) {
+          throw RuntimeBattleSetupException(
+            'L’animation de la capacité « $moveId » est corrompue ou incomplète. Réinstalle le jeu ou contacte son créateur.',
+            debugDetails: error.toString(),
+          );
+        }
+        if (!_current(generation) || !identical(battleOverlay, overlay) ||
+            !identical(displaySession, turnSession)) {
+          return;
+        }
+        if (result.fallbackReason != BattleRecipeFallbackReason.resourceBudget) {
+          _offlineRecipeResults[moveId] = result;
+        }
+        if (result.prepared != null) recipes[moveId] = result.prepared!;
+      }
+      if (!overlay.isMounted) return;
+      overlay.updateState(turnSession,
         gameState: _overlayGameState, presentation: _engine!.presentation,
+        importedRecipes: recipes,
       );
       await overlay.waitForTurnPresentationComplete();
     }
@@ -1045,6 +1094,7 @@ final class SpatialBattleRuntime extends ChangeNotifier {
 
   void _end(bool success) {
     ++_generation;
+    _offlineRecipeResults.clear();
     final completion = _completion;
     _completion = null;
     _resumed?.complete();

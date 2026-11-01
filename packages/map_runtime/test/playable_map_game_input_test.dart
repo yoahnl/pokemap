@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui show Image, KeyEventDeviceType;
 
+import 'package:crypto/crypto.dart';
 import 'package:flame/components.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart'
@@ -24,7 +25,10 @@ import 'package:map_runtime/map_runtime.dart';
 import 'package:map_runtime/src/application/dialogue_runtime_models.dart';
 import 'package:map_runtime/src/infrastructure/runtime_tileset_image.dart';
 import 'package:map_runtime/src/presentation/flame/battle_scene_layout.dart';
+import 'package:map_runtime/src/presentation/flame/battle_offline_move_recipe_loader.dart';
 import 'package:path/path.dart' as p;
+
+import 'support/offline_recipe_package_fixture.dart';
 
 const _warpTargetMapEnterFlag = 'test.warp.target.map_enter';
 const _failedWarpTargetMapEnterFlag = 'test.warp.failed_target.map_enter';
@@ -35,6 +39,113 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('PlayableMapGame runtime input seam', () {
+    test('2D battle reads an imported exported package without HTTP', () =>
+        HttpOverrides.runZoned(() async {
+      final fixture = await offlineRecipePackageFixture(spatial: false);
+      final projectFilePath = p.join(fixture.bundle.projectRootDirectory, 'project.json');
+      final game = _TestPlayableMapGame(bundle: fixture.bundle,
+          projectFilePath: projectFilePath, initialGameState: fixture.state);
+      addTearDown(() async { await game.debugWaitForBattlePrewarm(); game.onRemove(); });
+      game.onGameResize(_testViewportSize);
+      await game.onLoad();
+      await game.debugOpenBattleForTest(const WildBattleStartRequest(
+        requestId: 'packaged-recipe', createdAtEpochMs: 1,
+        returnContext: OverworldReturnContext(mapId: 'map',
+          playerPos: GridPos(x: 1, y: 1), playerFacing: Direction.east),
+        mapId: 'map', encounterSourceId: 'grass',
+        encounterSourceKind: EncounterSourceKind.gameplayZone, tableId: 'wild',
+        encounterKind: EncounterKind.walk, speciesId: 'clockbird',
+        level: 2, minLevel: 2, maxLevel: 2, weight: 1,
+        playerPos: GridPos(x: 1, y: 1),
+      ));
+      await _pumpUntil(game, () => game.battleCommandOverlayListenable.value?.interactionsEnabled == true);
+      expect(game.debugBattleSessionSnapshot?.state.player.speciesId, 'clockbird');
+      bool choose(int index) {
+        final snapshot = game.battleCommandOverlayListenable.value!;
+        return game.dispatchBattlePresentationCommand(BattleSelectEntryCommand(
+          snapshotRevision: snapshot.revision, expectedMode: snapshot.mode, entryIndex: index));
+      }
+      expect(choose(0), isTrue);
+      expect(choose(0), isTrue);
+      await _pumpUntil(game, () => game.debugOfflineRecipeResults.containsKey('tackle'));
+      expect(game.debugOfflineRecipeResults['tackle']?.fallbackReason,
+          BattleRecipeFallbackReason.incompletePresentation);
+      await game.debugWaitForBattleOverlaySync();
+    }, createHttpClient: (_) => throw StateError('Network disabled for this test')));
+
+    test('2D battle loads the local recipe and keeps legacy presentation', () async {
+      final fixture = await _recipe2dFixture();
+      final game = fixture.game;
+      bool choose(int index) {
+        final snapshot = game.battleCommandOverlayListenable.value!;
+        return game.dispatchBattlePresentationCommand(BattleSelectEntryCommand(
+          snapshotRevision: snapshot.revision, expectedMode: snapshot.mode, entryIndex: index));
+      }
+      expect(choose(0), isTrue);
+      expect(choose(0), isTrue);
+      await _pumpUntil(game, () => game.debugOfflineRecipeResults.containsKey('tackle'));
+      expect(game.debugOfflineRecipeResults['tackle']?.fallbackReason,
+          BattleRecipeFallbackReason.incompletePresentation);
+      await game.debugWaitForBattleOverlaySync();
+    });
+
+    test('2D battle cancellation invalidates an outstanding recipe load', () async {
+      final fixture = await _recipe2dFixture();
+      final game = fixture.game;
+      final budget = fixture.bundle.resourceBudget;
+      final first = await budget.acquire(transientBytes: 1);
+      final second = await budget.acquire(transientBytes: 1);
+      addTearDown(() { first.release(); second.release(); });
+      bool choose(int index) {
+        final snapshot = game.battleCommandOverlayListenable.value!;
+        return game.dispatchBattlePresentationCommand(BattleSelectEntryCommand(
+          snapshotRevision: snapshot.revision, expectedMode: snapshot.mode, entryIndex: index));
+      }
+      expect(choose(0), isTrue);
+      expect(choose(0), isTrue);
+      await _pumpUntil(game, () => budget.pendingDecodes > 0);
+      expect(game.battleCommandOverlayListenable.value?.interactionsEnabled, isFalse);
+      game.debugResetBattleForTest();
+      expect(game.debugFlowPhaseName, 'overworld');
+      expect(game.debugBattleOverlayMounted, isFalse);
+      final reopened = game.debugOpenBattleForTest(_battleWarmWildRequest());
+      first.release();
+      second.release();
+      await reopened;
+      for (var i = 0; i < 20; i++) {
+        game.update(.016);
+        await Future<void>.delayed(Duration.zero);
+      }
+      expect(game.debugFlowPhaseName, 'battle');
+      expect(game.debugBattleOverlayMounted, isTrue);
+      expect(game.debugOfflineRecipeResults, isEmpty);
+      expect(game.debugIsBattleResolving, isFalse);
+    });
+
+    test('2D corrupt recipe rolls back the battle with an actionable error', () async {
+      final fixture = await _recipe2dFixture();
+      final game = fixture.game;
+      final party = game.gameStateSnapshot.party;
+      final root = fixture.bundle.projectRootDirectory;
+      final stored = jsonDecode(await File(p.join(root,
+          battleRecipeBindingPath('tackle'))).readAsString()) as Map<String, dynamic>;
+      final binding = BattleRecipeProjectBinding.fromJson(stored).binding;
+      await File(p.join(root, battleRecipeBlobPath(binding.recipeSha256,
+          'application/vnd.avelune.battle-recipe+json', projectMoveId: 'tackle')))
+          .writeAsString('{}');
+      bool choose(int index) {
+        final snapshot = game.battleCommandOverlayListenable.value!;
+        return game.dispatchBattlePresentationCommand(BattleSelectEntryCommand(
+          snapshotRevision: snapshot.revision, expectedMode: snapshot.mode, entryIndex: index));
+      }
+      expect(choose(0), isTrue);
+      expect(choose(0), isTrue);
+      await _pumpUntil(game, () => game.debugFlowPhaseName == 'overworld');
+      expect(game.debugBattleOverlayMounted, isFalse);
+      expect(game.debugNotificationText, contains('corrompue ou incomplète'));
+      expect(game.gameStateSnapshot.party, party);
+    });
+
     test('missing player running animation rejects sprint from every input source',
         () async {
       final game = _TestPlayableMapGame(
@@ -3042,11 +3153,52 @@ class _RecordingPlayableMapGame extends PlayableMapGame {
   }
 }
 
+Future<({_TestPlayableMapGame game, RuntimeMapBundle bundle})> _recipe2dFixture() async {
+  final root = await Directory.systemTemp.createTemp('recipe-2d-');
+  addTearDown(() async { if (await root.exists()) await root.delete(recursive: true); });
+  final map = _battleWarmMap();
+  final projectFilePath = await _writeRuntimeProject(root,
+      maps: [map.copyWith(entities: map.entities.where((e) => e.kind == MapEntityKind.spawn).toList(),
+          gameplayZones: const [])]);
+  await _writeBattleRuntimePokemonData(root);
+  final bytes = utf8.encode(jsonEncode({
+    'schemaVersion': 1, 'recipeId': 'synthetic', 'revision': '1',
+    'moveSourceId': 'source', 'variant': 'default', 'requiredCapabilities': ['wait'],
+    'provenance': {'source': 'synthetic', 'sourceRevision': '1',
+      'sourcePaths': <String>[], 'converter': 'test'},
+    'resources': <Object>[], 'program': {'kind': 'wait', 'durationMs': 1234},
+  }));
+  final binding = BattleMoveRecipeBinding.fromJson({
+    'schemaVersion': 1, 'projectMoveId': 'tackle', 'sourceMoveId': 'source',
+    'catalogReleaseId': 'test', 'recipeId': 'synthetic', 'variant': 'default',
+    'revision': '1', 'recipeSha256': sha256.convert(bytes).toString(),
+  });
+  final marker = File(p.join(root.path, battleRecipeBindingPath('tackle')));
+  await marker.parent.create(recursive: true);
+  await marker.writeAsString(jsonEncode(BattleRecipeProjectBinding(binding: binding).toJson()));
+  final recipe = File(p.join(root.path, battleRecipeBlobPath(binding.recipeSha256,
+      'application/vnd.avelune.battle-recipe+json', projectMoveId: 'tackle')));
+  await recipe.parent.create(recursive: true);
+  await recipe.writeAsBytes(bytes);
+  final bundle = await loadRuntimeMapBundle(projectFilePath: projectFilePath,
+      mapId: 'battle_warm_map');
+  final game = _TestPlayableMapGame(bundle: bundle, projectFilePath: projectFilePath,
+      saveData: _battleReadySaveData(mapId: 'battle_warm_map'));
+  addTearDown(() async { await game.debugWaitForBattlePrewarm(); game.onRemove(); });
+  game.onGameResize(_testViewportSize);
+  await game.onLoad();
+  await game.debugOpenBattleForTest(_battleWarmWildRequest());
+  await _pumpUntil(game, () => game.battleCommandOverlayListenable.value?.interactionsEnabled == true);
+  await game.debugWaitForBattleOverlaySync();
+  return (game: game, bundle: bundle);
+}
+
 class _TestPlayableMapGame extends PlayableMapGame {
   _TestPlayableMapGame({
     required super.bundle,
     required super.projectFilePath,
     super.saveData,
+    super.initialGameState,
     super.dialogueSessionLoader,
     super.runtimeMapBundleLoader,
     super.runtimeTilesetImageLoader,
