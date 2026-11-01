@@ -13,4 +13,7 @@ int av_anima_frame_clock(const int *durations, size_t count, int playback,
                          int loop_start, int tick, size_t *frame_index,
                          int *frame_elapsed);
 
+int av_anima_child_clock(int mode, int parent_completed, int parent_elapsed,
+                         int *child_tick);
+
 #endif

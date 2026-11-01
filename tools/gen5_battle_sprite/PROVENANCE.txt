@@ -89,9 +89,10 @@ other game data are separate from the licenses of these repositories and
 remain unverified. This tooling does not authorize their redistribution.
 
 The experimental anima_frame_clock C helper resolves a bounded, forward-looping
-parent frame and its elapsed tick. It rejects zero durations, other playback
-modes and nonzero loop starts. In a private FFI bench it was used with the MIT
-AnimaEngine composer to reset observed mode-zero children on parent-frame
+parent frame and its elapsed tick, skipping zero-duration frames. It rejects
+an all-zero timeline, other playback modes and nonzero loop starts. In a private
+FFI bench it was used with the MIT AnimaEngine composer to reset observed
+mode-zero children on parent-frame
 changes. Five retained Oshawott software-GPU captures from one battle favored
 that candidate over the composer's global child tick after per-frame integer
 translation; one comparison matched all 688 visible reference pixels. This
@@ -102,3 +103,20 @@ above. Those earlier investigations consulted GPL-licensed pokebw2 and
 melonDS sources; their provenance and unresolved licensing questions continue
 to apply. No melonDS raster source is included in the clock helper. No game
 assets are included in this helper or its synthetic test.
+
+The companion child-clock helper uses the elapsed parent-frame time for mode 0
+and the supplied completed parent time plus elapsed time for mode 1. Mode 1
+refuses sums above 65535 until counter wrapping is independently verified. The
+caller must provide completed time for the actual animation lifetime; a tick
+within the current parent loop is insufficient. Other child modes are rejected.
+
+The mode-1 and zero-duration rules were checked using a private software-emulator
+experiment in which a copied battle state was modified in memory. Four unmodified
+GPU frames reproduced earlier captures byte-for-byte. Across eight capture times
+per variant, the clock agreed with 24 parent and 183 child states; ten GPU-image
+comparisons remained imperfect except for two exact visible-pixel matches after
+separate integer-translation fits. Each GPU comparison used a CPU snapshot two
+captured steps earlier in this pipeline; all ten parent and 75 child-cell
+selections matched. The mode-1 flags and zero duration were deliberately
+altered, so this is not proof for naturally occurring mode-1 assets, mixed modes,
+counter rollover, full rendering fidelity or physical hardware.
