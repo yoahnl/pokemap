@@ -30,6 +30,7 @@ import 'package:map_runtime/src/presentation/flame/battle_scene_layout.dart';
 import 'package:map_runtime/src/presentation/flutter/battle_command_overlay_snapshot.dart';
 import 'package:map_runtime/src/spatial/spatial_battle_runtime.dart';
 import 'package:map_runtime/src/presentation/flame/battle_motion_policy.dart';
+import 'package:map_runtime/src/presentation/flame/battle_animation_plan.dart';
 import 'package:map_runtime/src/presentation/flame/battle_offline_move_recipe_loader.dart';
 import 'package:map_runtime/src/spatial/spatial_battle_view.dart';
 import 'package:path/path.dart' as p;
@@ -124,7 +125,9 @@ void main() {
   }, skip: !loopbackConfigured);
   testWidgets('imports exports and plays the packaged battle offline', (tester) =>
       HttpOverrides.runZoned(() async {
-    final fixture = (await tester.runAsync(offlineRecipePackageFixture))!;
+    final fixture = (await tester.runAsync(
+      () => offlineRecipePackageFixture(cameraRecipe: true),
+    ))!;
     var commitCount = 0;
     final runtime = SpatialBattleRuntime(readGameState: () => fixture.state,
         commitGameState: (_, _) { commitCount++; return true; });
@@ -133,7 +136,36 @@ void main() {
     await _readyInView(tester, runtime);
     final fight = runtime.displaySession!.decisionRequest.allowedChoices
         .whereType<PlayerBattleChoiceFight>().first;
-    expect(await _submit(tester, runtime, fight), isTrue);
+    bool? accepted;
+    var sawImportedPlan = false;
+    var sawImportedCamera = false;
+    final submitted = runtime.submitChoice(fight).then((value) {
+      accepted = value;
+      return value;
+    });
+    for (var i = 0; i < 2000 && accepted == null; i++) {
+      await _pumpPresentation(tester);
+      final overlay = runtime.battleOverlay;
+      if (overlay != null) {
+        final imported = overlay.debugActiveAnimationPlan.flattenedSteps
+            .whereType<CameraFocusStep>()
+            .where((step) => step.durationSeconds == .321);
+        for (final step in imported) {
+          sawImportedPlan = true;
+          final slot = overlay.battleCameraFocusSubject?.slot;
+          if (slot?.side == step.side && slot?.slotIndex == step.slotIndex) {
+            sawImportedCamera = true;
+          }
+        }
+        if (runtime.phase == SpatialBattlePhase.battle && overlay.isTurnPresentationActive) {
+          runtime.handleInput(const RuntimeInputEvent.press(RuntimeInputControl.primary));
+        }
+      }
+    }
+    expect(accepted, isNotNull, reason: '${runtime.error}');
+    expect(await submitted, isTrue);
+    expect(sawImportedPlan, isTrue);
+    expect(sawImportedCamera, isTrue);
     expect(runtime.debugOfflineRecipeResults['tackle']?.fallbackReason,
         BattleRecipeFallbackReason.incompletePresentation);
     expect(runtime.error, isNull);

@@ -154,7 +154,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(BattleSdkRmxpAnimationCatalog.ensureLoaded);
 
-  test('keeps the complete legacy animation for timing and camera recipes', () async {
+  test('keeps the complete legacy animation with supported timing recipes', () async {
     final bytes = utf8.encode(
       jsonEncode({
         'schemaVersion': 1,
@@ -250,7 +250,7 @@ void main() {
       build({'tackle': prepared}).flattenedSteps
           .whereType<WaitStep>()
           .any((step) => step.durationSeconds == 1.234),
-      isFalse,
+      isTrue,
     );
     final legacyTypes = build(const {}).flattenedSteps
         .map((step) => step.runtimeType).toList();
@@ -320,8 +320,11 @@ void main() {
         legacy.whereType<PlaySeStep>().map((step) => step.seName).toList());
     expect(fallback.whereType<HudHpTweenStep>(), isNotEmpty);
     expect(fallback.whereType<WaitStep>().any((step) => step.durationSeconds == 9.876), isFalse);
-    expect(build({'tackle': prepared}).flattenedSteps
-        .map((step) => step.runtimeType).toList(), legacyTypes);
+    final supplemental = build({'tackle': prepared}).flattenedSteps.toList();
+    expect(supplemental.whereType<PlaySeStep>().map((step) => step.seName).toList(),
+        legacy.whereType<PlaySeStep>().map((step) => step.seName).toList());
+    expect(supplemental.whereType<HudHpTweenStep>().length,
+        legacy.whereType<HudHpTweenStep>().length);
     expect(
       build({'other': prepared}).flattenedSteps
           .whereType<WaitStep>()
@@ -350,7 +353,7 @@ void main() {
       expectedProjectMoveId: 'tackle', expectedCatalogReleaseId: 'public-2026-10',
     );
     expect(build({'tackle': fromApi}).flattenedSteps
-        .whereType<WaitStep>().any((step) => step.durationSeconds == 1.234), isFalse);
+        .whereType<WaitStep>().any((step) => step.durationSeconds == 1.234), isTrue);
     final targetRecipe = jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
     targetRecipe['requiredCapabilities'] = ['cameraFocus'];
     targetRecipe['program'] = {

@@ -68,6 +68,7 @@ Future<({RuntimeMapBundle bundle, GameState state})>
 offlineRecipePackageFixture({
   bool spatial = true,
   FetchedBattleRecipe? fetchedRecipe,
+  bool cameraRecipe = false,
 }) async {
   final owner = await Directory.systemTemp.createTemp(
     'offline-recipe-package-',
@@ -191,7 +192,9 @@ offlineRecipePackageFixture({
       'revision': '1',
       'moveSourceId': 'source',
       'variant': 'default',
-      'requiredCapabilities': ['wait'],
+      'requiredCapabilities': cameraRecipe
+          ? ['sequence', 'cameraFocus', 'wait']
+          : ['wait'],
       'provenance': {
         'source': 'synthetic',
         'sourceRevision': '1',
@@ -199,7 +202,15 @@ offlineRecipePackageFixture({
         'converter': 'test',
       },
       'resources': <Object>[],
-      'program': {'kind': 'wait', 'durationMs': 1234},
+      'program': cameraRecipe
+          ? {
+              'kind': 'sequence',
+              'steps': [
+                {'kind': 'cameraFocus', 'target': 'user', 'durationMs': 321},
+                {'kind': 'wait', 'durationMs': 1234},
+              ],
+            }
+          : {'kind': 'wait', 'durationMs': 1234},
     }),
   );
   final fetched =

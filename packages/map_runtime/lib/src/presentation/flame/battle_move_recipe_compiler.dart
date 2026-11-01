@@ -20,6 +20,9 @@ final class BattleMoveRecipeCompiler {
 
   static bool get supportsCompleteMoveVisuals => false;
 
+  static const _maxSupplementalSteps = 256;
+  static const _maxSupplementalDurationMs = 30000;
+
   static const availableCapabilities = {
     'sequence',
     'parallel',
@@ -116,5 +119,37 @@ final class BattleMoveRecipeCompiler {
     }
 
     return BattleAnimationPlan(steps: [compileStep(recipe._program)]);
+  }
+
+  BattleAnimationPlan? compileSupplemental(
+    PreparedBattleMoveRecipe recipe, {
+    required BattleSlotRef user,
+    BattleSlotRef? target,
+  }) {
+    var count = 0;
+    int? duration(Map<String, dynamic> step) {
+      if (++count > _maxSupplementalSteps) return null;
+      final kind = step['kind'];
+      if (kind == 'wait' || kind == 'cameraFocus' || kind == 'cameraReset') {
+        final milliseconds = step['durationMs'] as int;
+        return milliseconds <= _maxSupplementalDurationMs ? milliseconds : null;
+      }
+      if (kind != 'sequence' && kind != 'parallel') return null;
+      var total = 0;
+      for (final child in step['steps'] as List) {
+        final childDuration = duration((child as Map).cast<String, dynamic>());
+        if (childDuration == null) return null;
+        if (kind == 'sequence') {
+          total += childDuration;
+        } else if (childDuration > total) {
+          total = childDuration;
+        }
+        if (total > _maxSupplementalDurationMs) return null;
+      }
+      return total;
+    }
+
+    if (duration(recipe._program) == null) return null;
+    return compile(recipe, user: user, target: target);
   }
 }

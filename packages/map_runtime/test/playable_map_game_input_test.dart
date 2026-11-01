@@ -24,6 +24,7 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:map_runtime/src/application/dialogue_runtime_models.dart';
 import 'package:map_runtime/src/infrastructure/runtime_tileset_image.dart';
+import 'package:map_runtime/src/presentation/flame/battle_animation_plan.dart';
 import 'package:map_runtime/src/presentation/flame/battle_scene_layout.dart';
 import 'package:map_runtime/src/presentation/flame/battle_offline_move_recipe_loader.dart';
 import 'package:path/path.dart' as p;
@@ -41,7 +42,7 @@ void main() {
   group('PlayableMapGame runtime input seam', () {
     test('2D battle reads an imported exported package without HTTP', () =>
         HttpOverrides.runZoned(() async {
-      final fixture = await offlineRecipePackageFixture(spatial: false);
+      final fixture = await offlineRecipePackageFixture(spatial: false, cameraRecipe: true);
       final projectFilePath = p.join(fixture.bundle.projectRootDirectory, 'project.json');
       final game = _TestPlayableMapGame(bundle: fixture.bundle,
           projectFilePath: projectFilePath, initialGameState: fixture.state);
@@ -71,6 +72,16 @@ void main() {
       expect(game.debugOfflineRecipeResults['tackle']?.fallbackReason,
           BattleRecipeFallbackReason.incompletePresentation);
       await game.debugWaitForBattleOverlaySync();
+      final overlay = game.debugBattleOverlayComponent!;
+      final importedFocus = overlay.debugActiveAnimationPlan.flattenedSteps
+          .whereType<CameraFocusStep>()
+          .firstWhere((step) => step.durationSeconds == .321);
+      expect(importedFocus.target, BattleCameraFocusTarget.user);
+      expect(overlay.debugActiveAnimationPlan.flattenedSteps.whereType<HudHpTweenStep>(), isNotEmpty);
+      await _pumpUntil(game, () {
+        final slot = overlay.battleCameraFocusSubject?.slot;
+        return slot?.side == importedFocus.side && slot?.slotIndex == importedFocus.slotIndex;
+      });
     }, createHttpClient: (_) => throw StateError('Network disabled for this test')));
 
     test('2D battle loads the local recipe and keeps legacy presentation', () async {

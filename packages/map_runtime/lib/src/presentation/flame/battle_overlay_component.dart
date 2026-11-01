@@ -882,6 +882,9 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
   String? get debugCurrentAnimationMessage => _animationRunner?.currentMessage;
 
   @visibleForTesting
+  BattleAnimationPlan get debugActiveAnimationPlan => _activeAnimationPlan;
+
+  @visibleForTesting
   double? get debugPlayerSpriteOpacity =>
       // ignore: invalid_use_of_visible_for_testing_member
       _playerCombatant?.currentVisualOpacity;

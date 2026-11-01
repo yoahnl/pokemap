@@ -265,20 +265,34 @@ final class BattleTurnAnimationPlanner {
             ).toList();
             final imported = (importedRecipes ?? _importedRecipes)[execution.move.id];
             List<BattleAnimationStep> recipeSteps;
-            if (!BattleMoveRecipeCompiler.supportsCompleteMoveVisuals ||
-                imported == null ||
+            if (imported == null ||
                 imported.projectMoveId != execution.move.id) {
               recipeSteps = legacySteps();
             } else {
+              const compiler = BattleMoveRecipeCompiler();
+              final complete = BattleMoveRecipeCompiler.supportsCompleteMoveVisuals;
+              BattleAnimationPlan? compiled;
               try {
-                recipeSteps = const BattleMoveRecipeCompiler().compile(
-                  imported,
-                  user: execution.attackerSlot,
-                  target: execution.targetSlot,
-                ).steps.toList();
+                if (complete) {
+                  compiled = compiler.compile(
+                    imported,
+                    user: execution.attackerSlot,
+                    target: execution.targetSlot,
+                  );
+                } else {
+                  compiled = compiler.compileSupplemental(
+                    imported,
+                    user: execution.attackerSlot,
+                    target: execution.targetSlot,
+                  );
+                }
               } on FormatException {
-                recipeSteps = legacySteps();
+                compiled = null;
               }
+              recipeSteps = [
+                ...?compiled?.steps,
+                if (!complete || compiled == null) ...legacySteps(),
+              ];
             }
             // BETA-BAT-013 : le clignotement de la cible est une réaction au
             // DÉGÂT, pas une étape de la chorégraphie du coup. Chez PSDK il
