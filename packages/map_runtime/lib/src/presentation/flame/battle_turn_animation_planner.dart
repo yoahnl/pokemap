@@ -289,10 +289,19 @@ final class BattleTurnAnimationPlanner {
               } on FormatException {
                 compiled = null;
               }
-              recipeSteps = [
-                ...?compiled?.steps,
-                if (!complete || compiled == null) ...legacySteps(),
-              ];
+              if (compiled == null) {
+                recipeSteps = legacySteps();
+              } else if (complete) {
+                recipeSteps = compiled.steps.toList();
+              } else {
+                recipeSteps = [
+                  AnimationGroupStep(
+                    mode: BattleAnimationGroupMode.parallel,
+                    steps: compiled.steps,
+                  ),
+                  ...legacySteps(),
+                ];
+              }
             }
             // BETA-BAT-013 : le clignotement de la cible est une réaction au
             // DÉGÂT, pas une étape de la chorégraphie du coup. Chez PSDK il

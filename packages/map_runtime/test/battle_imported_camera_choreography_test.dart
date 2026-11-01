@@ -79,6 +79,7 @@ Future<PreparedBattleMoveRecipe> _install(
 BattleAnimationPlan _plan(
   PreparedBattleMoveRecipe? recipe, {
   bool fieldTarget = false,
+  bool accentFirst = false,
   String recipeKey = 'tackle',
 }) {
   BattleCombatantData combatant(String id) => BattleCombatantData(
@@ -118,14 +119,15 @@ BattleAnimationPlan _plan(
   final catalog = RuntimeMoveCatalog.fromEntries({});
   return BattleTurnAnimationPlanner(
     importedRecipes: {recipeKey: ?recipe},
-    recipeBuilder: (_, _) => const [
-      CombatantMotionStep(
+    recipeBuilder: (_, _) => [
+      if (accentFirst) const PlaySeStep(seName: 'legacy'),
+      const CombatantMotionStep(
         side: BattleSideId.player,
         motionKind: BattleCombatantMotionKind.lunge,
         durationSeconds: .1,
       ),
-      PlaySeStep(seName: 'legacy'),
-      SpawnFxStep(
+      if (!accentFirst) const PlaySeStep(seName: 'legacy'),
+      const SpawnFxStep(
         effectId: 'legacy-fx',
         attackerSide: BattleSideId.player,
         defenderSide: BattleSideId.enemy,
@@ -262,6 +264,81 @@ void main() {
       );
     },
   );
+
+  test('keeps camera steps and the legacy sound in sequence', () async {
+    final imported = await _install(
+      root,
+      _recipe(
+        {
+          'kind': 'sequence',
+          'steps': [
+            {'kind': 'cameraFocus', 'target': 'user', 'durationMs': 200},
+            {'kind': 'cameraFocus', 'target': 'target', 'durationMs': 100},
+          ],
+        },
+        ['sequence', 'cameraFocus'],
+      ),
+    );
+    final events = <String>[];
+    final runner = BattleAnimationRunner(
+      onPresentationChanged: () {},
+      onSpawnFx: (_) {},
+      onScreenFlash: (_) {},
+      onCombatantMotion: (_) {},
+      onCombatantFlash: (_) {},
+      onCombatantShake: (_) {},
+      onFaintCombatant: (_) {},
+      onHudHpTween: (_) {},
+      onBarrierPulse: (_) {},
+      onSwapCombatantVisual: (_) {},
+      onPlaySe: (step) => events.add('sound:${step.seName}'),
+      onCameraFocus: (step) => events.add('camera:${step.durationSeconds}'),
+      onBattleCameraReset: (_) {},
+      messageStepSeconds: 0,
+    );
+    runner.start(_plan(imported, accentFirst: true));
+    expect(events, ['camera:0.2']);
+    runner.update(.1);
+    expect(events, ['camera:0.2']);
+    runner.update(.11);
+    expect(events, ['camera:0.2', 'camera:0.1']);
+    runner.update(.11);
+    expect(events.where((event) => event == 'sound:legacy'), hasLength(1));
+  });
+
+  test('cancelling the camera phase cannot replay the old attack', () async {
+    final imported = await _install(
+      root,
+      _recipe(
+        {'kind': 'cameraFocus', 'target': 'user', 'durationMs': 500},
+        ['cameraFocus'],
+      ),
+    );
+    final events = <String>[];
+    final runner = BattleAnimationRunner(
+      onPresentationChanged: () {},
+      onSpawnFx: (_) => events.add('fx'),
+      onScreenFlash: (_) {},
+      onCombatantMotion: (_) => events.add('motion'),
+      onCombatantFlash: (_) {},
+      onCombatantShake: (_) {},
+      onFaintCombatant: (_) {},
+      onHudHpTween: (_) => events.add('hp'),
+      onBarrierPulse: (_) {},
+      onSwapCombatantVisual: (_) {},
+      onPlaySe: (step) => events.add('sound:${step.seName}'),
+      onCameraFocus: (_) => events.add('camera'),
+      onBattleCameraReset: (_) {},
+      messageStepSeconds: 0,
+    );
+    runner.start(_plan(imported, accentFirst: true));
+    runner.update(.1);
+    expect(events, ['camera']);
+    runner.cancel();
+    runner.update(2);
+    expect(runner.isActive, isFalse);
+    expect(events, ['camera']);
+  });
 
   test('ignores a prepared recipe bound to a different move', () async {
     final imported = await _install(
