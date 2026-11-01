@@ -7,6 +7,141 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_runtime/src/presentation/flame/battle_spl_emitter_lifecycle.dart';
 
 void main() {
+  test('records ordered parent and child events with stable identities', () {
+    final lifecycle = BattleSplEmitterLifecycle(
+      emitterLifetime: 1,
+      emissionInterval: 1,
+      emissionRate4096: 4096,
+      particleLifetime: 2,
+      particleLifetimeVariance: 0,
+      maxParticles: 8,
+      captureEvents: true,
+      child: const BattleSplChildTiming(
+        emissionCount: 1,
+        emissionDelay256: 0,
+        emissionInterval: 1,
+        lifetime: 1,
+      ),
+    );
+    final steps = [
+      for (var tick = 0; tick < 4; tick++)
+        lifecycle.step(managerFrame: tick % 2),
+    ];
+    List<(BattleSplParticleEventKind, int, int?, int)> events(int tick) => [
+      for (final event in steps[tick].events)
+        (event.kind, event.particleId, event.parentId, event.age),
+    ];
+
+    expect(events(0), [
+      (BattleSplParticleEventKind.parentEmitted, 1, null, 0),
+      (BattleSplParticleEventKind.parentUpdated, 1, null, 0),
+      (BattleSplParticleEventKind.childEmitted, 2, 1, 0),
+      (BattleSplParticleEventKind.childUpdated, 2, 1, 0),
+    ]);
+    expect(events(1), [
+      (BattleSplParticleEventKind.parentUpdated, 1, null, 1),
+      (BattleSplParticleEventKind.childEmitted, 3, 1, 0),
+      (BattleSplParticleEventKind.childUpdated, 3, 1, 0),
+      (BattleSplParticleEventKind.childUpdated, 2, 1, 1),
+      (BattleSplParticleEventKind.childExpired, 2, 1, 2),
+    ]);
+    expect(events(2), [
+      (BattleSplParticleEventKind.parentUpdated, 1, null, 2),
+      (BattleSplParticleEventKind.childEmitted, 4, 1, 0),
+      (BattleSplParticleEventKind.parentExpired, 1, null, 3),
+      (BattleSplParticleEventKind.childUpdated, 4, 1, 0),
+      (BattleSplParticleEventKind.childUpdated, 3, 1, 1),
+      (BattleSplParticleEventKind.childExpired, 3, 1, 2),
+    ]);
+    expect(events(3), [
+      (BattleSplParticleEventKind.childUpdated, 4, 1, 1),
+      (BattleSplParticleEventKind.childExpired, 4, 1, 2),
+    ]);
+    expect(steps.last.complete, isTrue);
+    expect(() => steps.first.events.clear(), throwsUnsupportedError);
+  });
+
+  test('updates newest parents and children first, as in the source pool', () {
+    final lifecycle = BattleSplEmitterLifecycle(
+      emitterLifetime: 1,
+      emissionInterval: 1,
+      emissionRate4096: 8192,
+      particleLifetime: 2,
+      particleLifetimeVariance: 0,
+      maxParticles: 8,
+      captureEvents: true,
+      child: const BattleSplChildTiming(
+        emissionCount: 2,
+        emissionDelay256: 0,
+        emissionInterval: 1,
+        lifetime: 1,
+      ),
+    );
+    final events = lifecycle.step(managerFrame: 0).events;
+    expect(
+      events
+          .where((e) => e.kind == BattleSplParticleEventKind.parentEmitted)
+          .map((e) => e.particleId),
+      [1, 2],
+    );
+    expect(
+      events
+          .where((e) => e.kind == BattleSplParticleEventKind.parentUpdated)
+          .map((e) => e.particleId),
+      [2, 1],
+    );
+    expect(
+      events
+          .where((e) => e.kind == BattleSplParticleEventKind.childEmitted)
+          .map((e) => (e.particleId, e.parentId)),
+      [(3, 2), (4, 2), (5, 1), (6, 1)],
+    );
+    expect(
+      events
+          .where((e) => e.kind == BattleSplParticleEventKind.childUpdated)
+          .map((e) => e.particleId),
+      [6, 5, 4, 3],
+    );
+  });
+
+  test('does not collect per-particle events unless explicitly enabled', () {
+    final lifecycle = BattleSplEmitterLifecycle(
+      emitterLifetime: 1,
+      emissionInterval: 1,
+      emissionRate4096: 4096,
+      particleLifetime: 2,
+      particleLifetimeVariance: 0,
+      maxParticles: 8,
+    );
+    expect(lifecycle.step(managerFrame: 0).events, isEmpty);
+  });
+
+  test(
+    'bounds captured work when parents and children compete for the pool',
+    () {
+      final lifecycle = BattleSplEmitterLifecycle(
+        emitterLifetime: 1,
+        emissionInterval: 1,
+        emissionRate4096: 16 * 4096,
+        particleLifetime: 2,
+        particleLifetimeVariance: 0,
+        maxParticles: 16,
+        captureEvents: true,
+        child: const BattleSplChildTiming(
+          emissionCount: 16,
+          emissionDelay256: 0,
+          emissionInterval: 1,
+          lifetime: 1,
+        ),
+      );
+      for (var tick = 0; tick < 5; tick++) {
+        final step = lifecycle.step(managerFrame: tick % 2);
+        expect(step.activeParents + step.activeChildren, lessThanOrEqualTo(16));
+        expect(step.events.length, lessThanOrEqualTo(6 * 16));
+      }
+    },
+  );
+
   test('keeps children alive after their parents and emitter stop', () {
     final lifecycle = BattleSplEmitterLifecycle(
       startDelay: 2,

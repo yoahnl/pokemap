@@ -12,8 +12,31 @@ final class BattleSplChildTiming {
   final int lifetime;
 }
 
+enum BattleSplParticleEventKind {
+  parentEmitted,
+  parentUpdated,
+  parentExpired,
+  childEmitted,
+  childUpdated,
+  childExpired,
+}
+
+final class BattleSplParticleEvent {
+  const BattleSplParticleEvent({
+    required this.kind,
+    required this.particleId,
+    required this.parentId,
+    required this.age,
+  });
+
+  final BattleSplParticleEventKind kind;
+  final int particleId;
+  final int? parentId;
+  final int age;
+}
+
 final class BattleSplEmitterStep {
-  const BattleSplEmitterStep({
+  BattleSplEmitterStep({
     required this.started,
     required this.complete,
     required this.emittedParents,
@@ -22,7 +45,8 @@ final class BattleSplEmitterStep {
     required this.droppedChildren,
     required this.activeParents,
     required this.activeChildren,
-  });
+    required List<BattleSplParticleEvent> events,
+  }) : events = events.isEmpty ? const [] : List.unmodifiable(events);
 
   final bool started;
   final bool complete;
@@ -32,6 +56,7 @@ final class BattleSplEmitterStep {
   final int droppedChildren;
   final int activeParents;
   final int activeChildren;
+  final List<BattleSplParticleEvent> events;
 }
 
 final class BattleSplEmitterLifecycle {
@@ -45,6 +70,7 @@ final class BattleSplEmitterLifecycle {
     this.startDelay = 0,
     this.updateCycle = 0,
     this.autoTerminate = true,
+    this.captureEvents = false,
     this.child,
   }) : _particleLifetime = ((particleLifetime * 255) >> 8) + 1 {
     final childTiming = child;
@@ -87,6 +113,7 @@ final class BattleSplEmitterLifecycle {
   final int startDelay;
   final int updateCycle;
   final bool autoTerminate;
+  final bool captureEvents;
   final BattleSplChildTiming? child;
   final int _particleLifetime;
 
@@ -94,6 +121,7 @@ final class BattleSplEmitterLifecycle {
   List<_ParticleAge> _children = [];
   int _age = 0;
   int _emissionFraction = 0;
+  int _nextParticleId = 1;
   bool _started = false;
   bool _terminate = false;
   bool _complete = false;
@@ -108,6 +136,10 @@ final class BattleSplEmitterLifecycle {
       throw ArgumentError.value(managerFrame, 'managerFrame');
     }
     if (_complete) return _result();
+    if (captureEvents &&
+        _nextParticleId > 9007199254740991 - maxParticles * 2) {
+      throw StateError('SPL particle identity space exhausted');
+    }
     _terminate = _terminate || terminate;
     if (!_started && _age >= startDelay) {
       _started = true;
@@ -118,6 +150,21 @@ final class BattleSplEmitterLifecycle {
     var emittedChildren = 0;
     var droppedParents = 0;
     var droppedChildren = 0;
+    final events = captureEvents ? <BattleSplParticleEvent>[] : null;
+    void record(BattleSplParticleEventKind kind, _ParticleAge particle) {
+      events?.add(
+        BattleSplParticleEvent(
+          kind: kind,
+          particleId: particle.id,
+          parentId: particle.parentId,
+          age: particle.age,
+        ),
+      );
+    }
+
+    _ParticleAge createParticle([int? parentId]) =>
+        _ParticleAge(captureEvents ? _nextParticleId++ : 0, parentId);
+
     if (!paused && (updateCycle == 0 || managerFrame == updateCycle - 1)) {
       final parents = <_ParticleAge>[];
       if (_started &&
@@ -131,7 +178,13 @@ final class BattleSplEmitterLifecycle {
         final available = maxParticles - _parents.length - _children.length;
         emittedParents = requested < available ? requested : available;
         droppedParents = requested - emittedParents;
-        parents.addAll(List.generate(emittedParents, (_) => _ParticleAge()));
+        final newParents = <_ParticleAge>[];
+        for (var index = 0; index < emittedParents; index++) {
+          final particle = createParticle();
+          newParents.add(particle);
+          record(BattleSplParticleEventKind.parentEmitted, particle);
+        }
+        parents.addAll(newParents.reversed);
       }
       parents.addAll(_parents);
 
@@ -140,6 +193,7 @@ final class BattleSplEmitterLifecycle {
       final newChildren = <_ParticleAge>[];
       final childTiming = child;
       for (final parent in parents) {
+        record(BattleSplParticleEventKind.parentUpdated, parent);
         if (childTiming != null) {
           final sinceDelay =
               parent.age * 256 -
@@ -156,12 +210,17 @@ final class BattleSplEmitterLifecycle {
                 : available;
             emittedChildren += count;
             droppedChildren += childTiming.emissionCount - count;
-            newChildren.addAll(List.generate(count, (_) => _ParticleAge()));
+            for (var index = 0; index < count; index++) {
+              final particle = createParticle(parent.id);
+              newChildren.add(particle);
+              record(BattleSplParticleEventKind.childEmitted, particle);
+            }
           }
         }
         parent.age++;
         if (parent.age > _particleLifetime) {
           liveParents--;
+          record(BattleSplParticleEventKind.parentExpired, parent);
         } else {
           survivingParents.add(parent);
         }
@@ -170,10 +229,13 @@ final class BattleSplEmitterLifecycle {
 
       if (childTiming != null) {
         final survivingChildren = <_ParticleAge>[];
-        for (final particle in [...newChildren, ..._children]) {
+        for (final particle in [...newChildren.reversed, ..._children]) {
+          record(BattleSplParticleEventKind.childUpdated, particle);
           particle.age++;
           if (particle.age <= childTiming.lifetime) {
             survivingChildren.add(particle);
+          } else {
+            record(BattleSplParticleEventKind.childExpired, particle);
           }
         }
         _children = survivingChildren;
@@ -195,6 +257,7 @@ final class BattleSplEmitterLifecycle {
       emittedChildren: emittedChildren,
       droppedParents: droppedParents,
       droppedChildren: droppedChildren,
+      events: events ?? const [],
     );
   }
 
@@ -203,6 +266,7 @@ final class BattleSplEmitterLifecycle {
     int emittedChildren = 0,
     int droppedParents = 0,
     int droppedChildren = 0,
+    List<BattleSplParticleEvent> events = const [],
   }) => BattleSplEmitterStep(
     started: _started,
     complete: _complete,
@@ -212,9 +276,14 @@ final class BattleSplEmitterLifecycle {
     droppedChildren: droppedChildren,
     activeParents: _parents.length,
     activeChildren: _children.length,
+    events: events,
   );
 }
 
 final class _ParticleAge {
+  _ParticleAge(this.id, this.parentId);
+
+  final int id;
+  final int? parentId;
   int age = 0;
 }
