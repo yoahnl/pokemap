@@ -1874,6 +1874,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
       isPlayerSide: false,
       speciesLabel: resolveSpeciesDisplayName(_session.state.enemy.speciesId),
       visualAssetCache: visualAssetCache,
+      resourceBudget: _resourceBudget,
     );
     add(_enemyCombatant!);
     await _enemyCombatant!.loaded;
@@ -1892,6 +1893,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
       isPlayerSide: true,
       speciesLabel: resolveSpeciesDisplayName(_session.state.player.speciesId),
       visualAssetCache: visualAssetCache,
+      resourceBudget: _resourceBudget,
     );
     add(_playerCombatant!);
     await _playerCombatant!.loaded;
@@ -1912,6 +1914,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
           isPlayerSide: active.slot.side == BattleSideId.player,
           speciesLabel: resolveSpeciesDisplayName(active.combatant.speciesId),
           visualAssetCache: visualAssetCache,
+          resourceBudget: _resourceBudget,
         );
         _additionalCombatants[active.slot] = component;
         add(component);

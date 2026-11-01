@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui';
 
@@ -6,6 +7,7 @@ import 'package:flame/game.dart';
 import 'package:flutter/widgets.dart';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image/image.dart' as img;
 import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_render_3d/map_render_3d.dart';
@@ -64,6 +66,83 @@ void main() {
     await fixture.stage.loaded;
     expect(fixture.stage.isReady, isTrue);
     expect(fixture.stage.currentFramePresented, isFalse);
+  });
+
+  testWidgets('passes animated atlas rectangles to the 3D stage', (
+    tester,
+  ) async {
+    final fixture = await _mountFixture(tester);
+    final actor = fixture.actors[_player]!;
+    actor.onMount();
+    final gif = await tester.runAsync(_writeGif);
+    await tester.runAsync(
+      () => actor.sync(
+        speciesLabel: 'fixture',
+        spriteSpec: BattleCombatantSpriteSpec(
+          facing: BattleCombatantSpriteFacing.back,
+          explicitAnimatedImageAbsolutePath: gif,
+        ),
+      ),
+    );
+    _render(fixture.stage.render);
+    final first = fixture.renderer.lastBillboards.firstWhere(
+      (billboard) => billboard.id == _player,
+    );
+    actor.update(.1);
+    _render(fixture.stage.render);
+    final second = fixture.renderer.lastBillboards.firstWhere(
+      (billboard) => billboard.id == _player,
+    );
+    expect(fixture.stage.currentFramePresented, isTrue);
+    expect(identical(first.image, second.image), isTrue);
+    expect(first.source, isNot(second.source));
+  });
+
+  testWidgets('keeps the whole scene in 2D when an atlas cannot fit', (
+    tester,
+  ) async {
+    final fixture = await _mountFixture(tester);
+    final gif = await tester.runAsync(_writeGif);
+    final budget = RuntimeResourceBudget(
+      profile: const RuntimeResourceProfile(
+        maximumResidentBytes: 64,
+        maximumTransientBytes: 65536,
+        maximumEncodedBytes: 65536,
+        maximumConcurrentDecodes: 1,
+      ),
+    );
+    final scene = _layout();
+    final actor = BattleSceneCombatantComponent(
+      sceneSpriteRect: scene.playerSpriteRect,
+      scenePlatformRect: scene.playerPlatformRect,
+      sceneFootAnchor: scene.playerFootAnchor,
+      spriteFootXRatio: .5,
+      isPlayerSide: true,
+      speciesLabel: 'fixture',
+      resourceBudget: budget,
+    );
+    addTearDown(actor.onRemove);
+    actor.onMount();
+    await tester.runAsync(
+      () => actor.sync(
+        speciesLabel: 'fixture',
+        spriteSpec: BattleCombatantSpriteSpec(
+          facing: BattleCombatantSpriteFacing.back,
+          explicitAnimatedImageAbsolutePath: gif,
+        ),
+      ),
+    );
+    fixture.actors[_player] = actor;
+    _render(fixture.stage.render);
+    expect(actor.stageImage, isNull);
+    expect(fixture.stage.currentFramePresented, isFalse);
+    expect(
+      fixture.actors.values.every((entry) => !entry.renderedBy3DStage),
+      isTrue,
+    );
+    actor.update(.1);
+    final rendered = await tester.runAsync(() => _pixels(actor.renderTree));
+    expect(_coloredPixels(rendered!), greaterThan(0));
   });
 
   testWidgets(
@@ -305,6 +384,28 @@ BattleSceneCombatantComponent _actor() => BattleSceneCombatantComponent(
 );
 
 const _enemy = BattleSlotRef.active(BattleSideId.enemy);
+
+Future<String> _writeGif() async {
+  final root = Directory(
+    Platform.environment['AVELUNE_QA_ROOT'] ?? Directory.systemTemp.path,
+  );
+  final directory = await root.createTemp('stage-gif-');
+  addTearDown(() => directory.delete(recursive: true));
+  final red = img.Image(width: 2, height: 2);
+  final blue = img.Image(width: 2, height: 2);
+  img.fill(red, color: img.ColorRgb8(255, 0, 0));
+  img.fill(blue, color: img.ColorRgb8(0, 0, 255));
+  final encoder = img.GifEncoder(
+    repeat: 0,
+    dither: img.DitherKernel.none,
+    quantizerType: img.QuantizerType.octree,
+  );
+  encoder.addFrame(red, duration: 10);
+  encoder.addFrame(blue, duration: 20);
+  final file = File('${directory.path}/animated.gif');
+  await file.writeAsBytes(encoder.finish()!);
+  return file.path;
+}
 
 final class _Fixture {
   _Fixture(

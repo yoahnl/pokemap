@@ -13,10 +13,12 @@ final class BattleCombatantSpriteSpec {
   const BattleCombatantSpriteSpec({
     required this.facing,
     this.explicitImageAbsolutePath,
+    this.explicitAnimatedImageAbsolutePath,
   });
 
   final BattleCombatantSpriteFacing facing;
   final String? explicitImageAbsolutePath;
+  final String? explicitAnimatedImageAbsolutePath;
 
   bool get hasExplicitImage =>
       (explicitImageAbsolutePath?.trim().isNotEmpty ?? false);

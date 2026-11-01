@@ -1,10 +1,14 @@
+import 'dart:async';
 import 'dart:ui' as ui;
 import 'dart:math' as math;
 
 import 'package:flame/components.dart';
 import 'package:flame/text.dart';
 import 'package:flutter/material.dart';
+import 'package:map_core/map_core.dart';
 
+import '../../infrastructure/runtime_gif_animation.dart';
+import '../../infrastructure/runtime_gif_atlas.dart';
 import '../../infrastructure/tile_image_loader.dart';
 import 'battle_pokemon_sprite_resolver.dart';
 import 'battle_camera_subject_geometry.dart';
@@ -19,11 +23,16 @@ class BattleSceneCombatantComponent extends PositionComponent {
     required this.isPlayerSide,
     required String speciesLabel,
     this.visualAssetCache,
+    RuntimeResourceBudget? resourceBudget,
     BattleCombatantSpriteSpec initialSpriteSpec =
         const BattleCombatantSpriteSpec(
       facing: BattleCombatantSpriteFacing.front,
     ),
-  })  : _speciesLabel = speciesLabel,
+  })  : _resourceBudget = resourceBudget ??
+            visualAssetCache?.resourceBudget ??
+            RuntimeResourceBudget(),
+        _ownsResourceBudget = resourceBudget == null && visualAssetCache == null,
+        _speciesLabel = speciesLabel,
         _spriteSpec = initialSpriteSpec,
         _spriteRect = _toLocalRect(
           sceneSpriteRect,
@@ -55,6 +64,8 @@ class BattleSceneCombatantComponent extends PositionComponent {
 
   final bool isPlayerSide;
   final BattleVisualAssetCache? visualAssetCache;
+  RuntimeResourceBudget _resourceBudget;
+  final bool _ownsResourceBudget;
 
   String _speciesLabel;
   BattleCombatantSpriteSpec _spriteSpec;
@@ -63,9 +74,19 @@ class BattleSceneCombatantComponent extends PositionComponent {
   Offset _footAnchor;
   final double _spriteFootXRatio;
   ui.Image? _spriteImage;
+  ui.Image? _ownedStaticSpriteImage;
   Rect? _spriteOpaqueSourceRect;
   String? _spriteSourcePath;
-  String? _pendingSpriteSourcePath;
+  (String?, String?)? _loadedSpritePaths;
+  (String?, String?)? _pendingSpritePaths;
+  Future<void>? _pendingSpriteLoad;
+  bool Function()? _pendingSpriteIsCurrent;
+  int _spriteGeneration = 0;
+  bool _spriteClosed = false;
+  bool _spriteMounted = false;
+  RuntimeGifAnimation? _gifAnimation;
+  RuntimeGifAtlas? _gifAtlas;
+  double _gifElapsedSeconds = 0;
   bool _didSpriteLoadFail = false;
   double _hitFlashRemaining = 0;
   double _hitFlashIntensity = 1;
@@ -174,7 +195,7 @@ class BattleSceneCombatantComponent extends PositionComponent {
   Rect get currentRenderedSpriteRect =>
       _projectLocalRect(_currentRenderedSpriteRectLocal());
 
-  ui.Image? get stageImage => _spriteImage;
+  ui.Image? get stageImage => _gifAnimation == null ? _spriteImage : null;
   Rect get stageSourceRect => _currentSpriteInputSubrect();
   Color get stageTint => _spriteModulationColor(_visualOpacity);
   Color get stageShadowTint => _applyOpacity(const Color(0x26000000));
@@ -310,7 +331,43 @@ class BattleSceneCombatantComponent extends PositionComponent {
   }) async {
     _speciesLabel = speciesLabel;
     _spriteSpec = spriteSpec;
+    _syncTextVisibility();
     await _syncSpriteImage();
+  }
+
+  @override
+  void onMount() {
+    super.onMount();
+    _spriteMounted = true;
+    final wasClosed = _spriteClosed;
+    if (wasClosed) {
+      _spriteClosed = false;
+      if (_ownsResourceBudget) _resourceBudget = RuntimeResourceBudget();
+    }
+    if (wasClosed ||
+        _spritePath(_spriteSpec.explicitAnimatedImageAbsolutePath) != null) {
+      unawaited(_syncSpriteImage());
+    }
+  }
+
+  @override
+  void onRemove() {
+    if (!_spriteClosed) {
+      _spriteClosed = true;
+      _spriteGeneration++;
+      _loadedSpritePaths = null;
+      _pendingSpritePaths = null;
+      _pendingSpriteLoad = null;
+      _pendingSpriteIsCurrent = null;
+      _spriteMounted = false;
+      _releaseGif();
+      _spriteImage = null;
+      _releaseOwnedStaticSprite();
+      _spriteOpaqueSourceRect = null;
+      _spriteSourcePath = null;
+      if (_ownsResourceBudget) _resourceBudget.dispose();
+    }
+    super.onRemove();
   }
 
   /// Repositionne le combattant quand le layout battle est recalculé.
@@ -721,6 +778,11 @@ class BattleSceneCombatantComponent extends PositionComponent {
     }
     _updateTone(dt);
     _updateAnimation(dt);
+    if (dt.isFinite && dt > 0 && (_gifAtlas != null || _gifAnimation != null)) {
+      _gifElapsedSeconds += dt;
+      final animation = _gifAnimation;
+      if (animation != null) _spriteImage = animation.frameAt(_gifElapsed);
+    }
   }
 
   @override
@@ -770,11 +832,120 @@ class BattleSceneCombatantComponent extends PositionComponent {
     _renderSilhouette(canvas);
   }
 
-  Future<void> _syncSpriteImage() async {
-    final explicitImagePath = _spriteSpec.explicitImageAbsolutePath?.trim();
-    _pendingSpriteSourcePath = explicitImagePath;
-    if (explicitImagePath == null || explicitImagePath.isEmpty) {
+  Duration get _gifElapsed =>
+      Duration(microseconds: (_gifElapsedSeconds * 1000000).round());
+
+  String? _spritePath(String? path) {
+    final trimmed = path?.trim();
+    return trimmed == null || trimmed.isEmpty ? null : trimmed;
+  }
+
+  Future<void> _syncSpriteImage() {
+    if (_spriteClosed) return Future.value();
+    final paths = (
+      _spritePath(_spriteSpec.explicitImageAbsolutePath),
+      _spritePath(_spriteSpec.explicitAnimatedImageAbsolutePath),
+    );
+    if (_loadedSpritePaths == paths) return Future.value();
+    if (_pendingSpritePaths == paths &&
+        _pendingSpriteLoad != null &&
+        (_pendingSpriteIsCurrent?.call() ?? false)) {
+      return _pendingSpriteLoad!;
+    }
+    final generation = ++_spriteGeneration;
+    final loadingParent = parent;
+    final loadingGame = findGame();
+    bool isCurrent() =>
+        !_spriteClosed &&
+        _spriteGeneration == generation &&
+        !isRemoving &&
+        !isRemoved &&
+        !(parent?.isRemoving ?? false) &&
+        !(parent?.isRemoved ?? false) &&
+        identical(parent, loadingParent) &&
+        identical(findGame(), loadingGame);
+    _pendingSpritePaths = paths;
+    _pendingSpriteIsCurrent = isCurrent;
+    _loadedSpritePaths = null;
+    _releaseGif();
+    final pending = _loadSprite(paths.$1, paths.$2, generation, isCurrent);
+    _pendingSpriteLoad = pending;
+    return pending.whenComplete(() {
+      if (_spriteGeneration == generation) {
+        _pendingSpritePaths = null;
+        _pendingSpriteLoad = null;
+        _pendingSpriteIsCurrent = null;
+      }
+    });
+  }
+
+  Future<void> _loadSprite(
+    String? staticPath,
+    String? animatedPath,
+    int generation,
+    bool Function() isCurrent,
+  ) async {
+    try {
+      await _loadStaticSprite(staticPath, isCurrent);
+      if (!isCurrent()) return;
+      if (animatedPath != null && !_spriteMounted) return;
+      if (animatedPath != null) {
+        RuntimeGifAnimation? animation;
+        RuntimeGifAtlas? atlas;
+        try {
+          animation = await loadRuntimeGifFromFilePath(
+            animatedPath,
+            resourceBudget: _resourceBudget,
+            isCurrent: isCurrent,
+          );
+          atlas = await buildRuntimeGifAtlas(animation, isCurrent: isCurrent);
+          if (!isCurrent()) return;
+          _gifElapsedSeconds = 0;
+          if (atlas == null) {
+            _gifAnimation = animation;
+            _spriteImage = animation.frameByIndex(0);
+            animation = null;
+          } else {
+            _gifAtlas = atlas;
+            _spriteImage = atlas.image;
+            atlas = null;
+          }
+          _releaseOwnedStaticSprite();
+          _spriteOpaqueSourceRect = null;
+          _spriteSourcePath = animatedPath;
+          _didSpriteLoadFail = false;
+          _syncTextVisibility();
+        } catch (_) {
+          if (!isCurrent()) return;
+          if (_spriteImage == null) _didSpriteLoadFail = true;
+        } finally {
+          atlas?.dispose();
+          animation?.dispose();
+        }
+      }
+      if (isCurrent() &&
+          (_spriteImage != null ||
+              (staticPath == null && animatedPath == null))) {
+        _loadedSpritePaths = (staticPath, animatedPath);
+      }
+    } finally {
+      if (_spriteGeneration == generation && !isCurrent()) {
+        _releaseGif();
+        _spriteImage = null;
+        _releaseOwnedStaticSprite();
+        _spriteOpaqueSourceRect = null;
+        _spriteSourcePath = null;
+      }
+    }
+  }
+
+  Future<void> _loadStaticSprite(
+    String? explicitImagePath,
+    bool Function() isCurrent,
+  ) async {
+    if (explicitImagePath == null) {
       _spriteImage = null;
+      _releaseOwnedStaticSprite();
       _spriteOpaqueSourceRect = null;
       _spriteSourcePath = null;
       _didSpriteLoadFail = false;
@@ -786,33 +957,59 @@ class BattleSceneCombatantComponent extends PositionComponent {
       return;
     }
 
+    ui.Image? image;
     try {
-      final image = visualAssetCache == null
+      image = visualAssetCache == null
           ? await loadImageFromFilePath(explicitImagePath)
           : await visualAssetCache!.loadImage(explicitImagePath);
-      if (_pendingSpriteSourcePath != explicitImagePath) {
-        return;
-      }
-      _spriteImage = image;
-      _spriteOpaqueSourceRect = visualAssetCache == null
+      if (!isCurrent()) return;
+      final opaqueRect = visualAssetCache == null
           ? await _computeOpaqueSourceRect(image)
           : await visualAssetCache!.loadOpaqueSourceRect(
               explicitImagePath,
               image: image,
             );
+      if (!isCurrent()) return;
+      _spriteImage = image;
+      _releaseOwnedStaticSprite();
+      if (visualAssetCache == null) _ownedStaticSpriteImage = image;
+      _spriteOpaqueSourceRect = opaqueRect;
       _spriteSourcePath = explicitImagePath;
       _didSpriteLoadFail = false;
       _syncTextVisibility();
+      image = null;
     } catch (_) {
-      if (_pendingSpriteSourcePath != explicitImagePath) {
-        return;
-      }
+      if (!isCurrent()) return;
       _spriteImage = null;
+      _releaseOwnedStaticSprite();
       _spriteOpaqueSourceRect = null;
       _spriteSourcePath = explicitImagePath;
       _didSpriteLoadFail = true;
       _syncTextVisibility();
+    } finally {
+      if (visualAssetCache == null) image?.dispose();
     }
+  }
+
+  void _releaseOwnedStaticSprite() {
+    final image = _ownedStaticSpriteImage;
+    _ownedStaticSpriteImage = null;
+    image?.dispose();
+  }
+
+  void _releaseGif() {
+    final atlas = _gifAtlas;
+    final animation = _gifAnimation;
+    _gifAtlas = null;
+    _gifAnimation = null;
+    _gifElapsedSeconds = 0;
+    if (atlas != null || animation != null) {
+      _spriteImage = null;
+      _spriteOpaqueSourceRect = null;
+      _spriteSourcePath = null;
+    }
+    atlas?.dispose();
+    animation?.dispose();
   }
 
   void _renderSprite(Canvas canvas) {
@@ -874,12 +1071,7 @@ class BattleSceneCombatantComponent extends PositionComponent {
     required double opacity,
   }) {
     final image = _spriteImage!;
-    final inputSubrect = _spriteOpaqueSourceRect ??
-        (Offset.zero &
-            Size(
-              image.width.toDouble(),
-              image.height.toDouble(),
-            ));
+    final inputSubrect = _currentSpriteInputSubrect();
     canvas.drawImageRect(
       image,
       inputSubrect,
@@ -1028,6 +1220,8 @@ class BattleSceneCombatantComponent extends PositionComponent {
   }
 
   Rect _currentSpriteInputSubrect() {
+    final atlas = _gifAtlas;
+    if (atlas != null) return atlas.sourceAt(_gifElapsed);
     final image = _spriteImage;
     if (image == null) {
       return Offset.zero & _fallbackDestinationSize();
