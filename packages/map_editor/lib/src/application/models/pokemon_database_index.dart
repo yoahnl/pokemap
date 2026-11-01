@@ -1,4 +1,5 @@
 import 'package:map_core/map_core.dart';
+import 'package:path/path.dart' as p;
 
 /// References legeres exposees par l'index local Pokemon.
 ///
@@ -38,6 +39,7 @@ class PokemonDatabaseIndexEntry {
     required this.types,
     required this.isEnabledInProject,
     required this.refs,
+    this.sourceRelativePath,
     this.formIds = const <String>[],
     this.primaryFormId,
     this.portraitRelativePath,
@@ -58,6 +60,7 @@ class PokemonDatabaseIndexEntry {
   /// classification détaillée dans l'index.
   final bool isEnabledInProject;
   final PokemonDatabaseIndexRefs refs;
+  final String? sourceRelativePath;
   final List<String> formIds;
   final String? primaryFormId;
 
@@ -124,6 +127,9 @@ class PokemonDatabaseIndexEntry {
       id: speciesIndexEntry.id,
       nationalDex: speciesIndexEntry.nationalDex,
       primaryName: speciesIndexEntry.primaryName,
+      sourceRelativePath: p.posix.joinAll(
+        p.split(speciesIndexEntry.relativePath),
+      ),
       genIntroduced: species.genIntroduced,
       types: List<String>.from(speciesIndexEntry.types),
       formIds: List<String>.from(speciesIndexEntry.formIds),
