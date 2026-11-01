@@ -100,6 +100,88 @@ void main() {
     return Uint8List.fromList(bytes);
   }
 
+  Uint8List opusHeaders() {
+    final source = opus();
+    var audioOffset = 0;
+    for (var page = 0; page < 2; page++) {
+      final count = source[audioOffset + 26];
+      final segments =
+          source.sublist(audioOffset + 27, audioOffset + 27 + count);
+      audioOffset +=
+          27 + count + segments.fold<int>(0, (sum, value) => sum + value);
+    }
+    return Uint8List.sublistView(source, 0, audioOffset);
+  }
+
+  Uint8List opusPage(int sequence, int flags, int? granule, List<int> segments,
+      List<int> payload) {
+    final source = opus();
+    final bytes = Uint8List(27 + segments.length + payload.length);
+    final data = ByteData.sublistView(bytes);
+    bytes.setRange(0, 4, ascii.encode('OggS'));
+    bytes[5] = flags;
+    if (granule == null) {
+      data.setUint32(6, 0xffffffff, Endian.little);
+      data.setUint32(10, 0xffffffff, Endian.little);
+    } else {
+      data.setUint64(6, granule, Endian.little);
+    }
+    data.setUint32(
+        14,
+        ByteData.sublistView(source).getUint32(14, Endian.little),
+        Endian.little);
+    data.setUint32(18, sequence, Endian.little);
+    bytes[26] = segments.length;
+    bytes.setRange(27, 27 + segments.length, segments);
+    bytes.setRange(27 + segments.length, bytes.length, payload);
+    var crc = 0;
+    for (final byte in bytes) {
+      crc ^= byte << 24;
+      for (var bit = 0; bit < 8; bit++) {
+        crc = ((crc << 1) ^ ((crc & 0x80000000) == 0 ? 0 : 0x04c11db7))
+            .toUnsigned(32);
+      }
+    }
+    data.setUint32(22, crc, Endian.little);
+    return bytes;
+  }
+
+  Uint8List opusWithPackets(
+    int packetCount, {
+    int packetsPerPage = 50,
+    int? finalPagePackets,
+    int samplesPerPacket = 960,
+    int initialOffset = 0,
+    int finalTrim = 0,
+    List<int> packet = const [0xf8, 0xff, 0xfe],
+    int Function(int page, int packets, bool isLast)? granule,
+  }) {
+    final output = BytesBuilder()..add(opusHeaders());
+    var emitted = 0, page = 0;
+    while (emitted < packetCount) {
+      final remaining = packetCount - emitted;
+      final count = finalPagePackets == null
+          ? remaining.clamp(0, packetsPerPage)
+          : remaining <= finalPagePackets
+              ? remaining
+              : (remaining - finalPagePackets).clamp(0, packetsPerPage);
+      emitted += count;
+      final isLast = emitted == packetCount;
+      output.add(opusPage(
+        page + 2,
+        isLast ? 4 : 0,
+        granule?.call(page, emitted, isLast) ??
+            initialOffset +
+                emitted * samplesPerPacket -
+                (isLast ? finalTrim : 0),
+        List.filled(count, packet.length),
+        [for (var i = 0; i < count; i++) ...packet],
+      ));
+      page++;
+    }
+    return output.takeBytes();
+  }
+
   ({
     BattleMoveRecipeBinding binding,
     Uint8List recipe,
@@ -378,6 +460,78 @@ void main() {
       ..setRange(0, sound.length, sound);
     expect(() => inspectBattleRecipeSound(oversized, 'audio/ogg'),
         throwsFormatException);
+  });
+
+  test('rejects long Opus audio hidden behind tiny increasing granules', () {
+    final declaredLong = opusWithPackets(6251);
+    final hiddenLong = opusWithPackets(6251,
+        granule: (page, packets, isLast) => 312 + (page + 1) * 48);
+    expect(() => inspectBattleRecipeSound(declaredLong, 'audio/ogg'),
+        throwsFormatException);
+    expect(() => inspectBattleRecipeSound(hiddenLong, 'audio/ogg'),
+        throwsFormatException);
+  });
+
+  test('accepts Opus offsets, end trimming and a packet split across pages',
+      () {
+    final packet = [0xfb, 0x41, 252, 0xff, 0xfe, ...List.filled(252, 0)];
+    final split = Uint8List.fromList([
+      ...opusHeaders(),
+      ...opusPage(2, 0, null, [255], packet.sublist(0, 255)),
+      ...opusPage(3, 5, 960, [packet.length - 255], packet.sublist(255)),
+    ]);
+    final sounds = {
+      'initial offset':
+          opusWithPackets(100, initialOffset: 12345, finalTrim: 100),
+      '120 seconds': opusWithPackets(6001, finalTrim: 648),
+      'large valid end trim':
+          opusWithPackets(6251, finalPagePackets: 251, finalTrim: 240648),
+      'packet split across pages': split,
+    };
+    for (final entry in sounds.entries) {
+      expect(() => inspectBattleRecipeSound(entry.value, 'audio/ogg'),
+          returnsNormally,
+          reason: entry.key);
+    }
+  });
+
+  test('rejects inconsistent Opus granules and invalid frame counts', () {
+    final sounds = {
+      'middle granule': opusWithPackets(150,
+          granule: (page, packets, isLast) =>
+              page == 1 ? 48048 : packets * 960),
+      'end granule beyond packets': opusWithPackets(100,
+          granule: (page, packets, isLast) => packets * 960 + (isLast ? 1 : 0)),
+      'missing frame count': opusWithPackets(1, packet: [0xfb]),
+      'zero frame count': opusWithPackets(1, packet: [0xfb, 0, 0xfe]),
+      'packet longer than 120 ms': opusWithPackets(1, packet: [0xfb, 7, 0xfe]),
+    };
+    for (final entry in sounds.entries) {
+      expect(() => inspectBattleRecipeSound(entry.value, 'audio/ogg'),
+          throwsFormatException,
+          reason: entry.key);
+    }
+  });
+
+  test('accepts Opus frame durations and valid frame counts', () {
+    final cases = <(List<int>, int)>[
+      ([0x00, 0xff, 0xfe], 480),
+      ([0x18, 0xff, 0xfe], 2880),
+      ([0x60, 0xff, 0xfe], 480),
+      ([0x68, 0xff, 0xfe], 960),
+      ([0x80, 0xff, 0xfe], 120),
+      ([0x98, 0xff, 0xfe], 960),
+      ([0x81, 0xff, 0xfe], 240),
+      ([0x82, 0xff, 0xfe], 240),
+      ([0xfb, 6, 0xff, 0xfe], 5760),
+    ];
+    for (final (packet, samples) in cases) {
+      final sound = opusWithPackets(10,
+          packetsPerPage: 5, samplesPerPacket: samples, packet: packet);
+      expect(
+          () => inspectBattleRecipeSound(sound, 'audio/ogg'), returnsNormally,
+          reason: 'TOC ${packet.first} with $samples samples');
+    }
   });
 
   test(

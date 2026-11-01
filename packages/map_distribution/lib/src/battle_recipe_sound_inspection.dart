@@ -121,6 +121,25 @@ bool _validOpusHead(Uint8List packet) {
   return true;
 }
 
+int? _opusPacketSamples(List<int> prefix) {
+  if (prefix.isEmpty) return null;
+  final toc = prefix[0];
+  final config = toc >> 3;
+  final frameSamples = config < 12
+      ? const [480, 960, 1920, 2880][config & 3]
+      : config < 16
+          ? const [480, 960][config & 1]
+          : const [120, 240, 480, 960][config & 3];
+  final countCode = toc & 3;
+  final frames = switch (countCode) {
+    0 => 1,
+    1 || 2 => 2,
+    _ => prefix.length < 2 ? 0 : prefix[1] & 0x3f,
+  };
+  final samples = frameSamples * frames;
+  return frames == 0 || samples > 5760 ? null : samples;
+}
+
 final _oggCrcTable = List<int>.generate(256, (index) {
   var value = index << 24;
   for (var i = 0; i < 8; i++) {
@@ -149,6 +168,9 @@ bool _inspectOgg(Uint8List bytes) {
   var codec = '';
   var finalSamples = 0, previousGranule = 0;
   final header = <int>[];
+  final opusPrefix = <int>[];
+  var opusSamples = 0;
+  int? opusInitialGranule;
   while (offset < bytes.length) {
     if (ended) {
       if (bytes.length - offset > 4096 ||
@@ -187,12 +209,18 @@ bool _inspectOgg(Uint8List bytes) {
       return false;
     }
     var cursor = payload;
+    var opusPagePackets = 0;
     for (var i = 0; i < count; i++) {
       final length = bytes[offset + 27 + i];
       if (packets < 3 && header.length < 64) {
         final available = 64 - header.length;
         header.addAll(bytes.sublist(
             cursor, cursor + (length < available ? length : available)));
+      }
+      if (codec == 'opus' && packets >= 2 && opusPrefix.length < 2) {
+        for (var byte = 0; byte < length && opusPrefix.length < 2; byte++) {
+          opusPrefix.add(bytes[cursor + byte]);
+        }
       }
       cursor += length;
       continued = length == 255;
@@ -234,12 +262,33 @@ bool _inspectOgg(Uint8List bytes) {
         }
         header.clear();
       }
+      if (!continued && codec == 'opus' && packets >= 2) {
+        final samples = _opusPacketSamples(opusPrefix);
+        if (samples == null) return false;
+        opusSamples += samples;
+        opusPagePackets++;
+        opusPrefix.clear();
+      }
       if (!continued) packets++;
     }
     final granuleLow = data.getUint32(offset + 6, Endian.little);
     final granuleHigh = data.getUint32(offset + 10, Endian.little);
     final unknownGranule =
         granuleLow == 0xffffffff && granuleHigh == 0xffffffff;
+    if (codec == 'opus' && opusPagePackets > 0) {
+      if (unknownGranule) return false;
+      final isEnd = (flags & 4) != 0;
+      if (opusInitialGranule == null) {
+        if (!isEnd && granuleLow < opusSamples) return false;
+        opusInitialGranule =
+            granuleLow > opusSamples ? granuleLow - opusSamples : 0;
+      } else {
+        final expected = opusInitialGranule + opusSamples;
+        if (isEnd ? granuleLow > expected : granuleLow != expected) {
+          return false;
+        }
+      }
+    }
     if (!unknownGranule) {
       if (granuleHigh != 0 ||
           granuleLow < previousGranule ||
