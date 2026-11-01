@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -157,6 +158,94 @@ void main() {
       decodeRuntimeGif(_gif(), resourceBudget: budget),
       throwsA(isA<RuntimeResourceAdmissionException>()),
     );
+    expect(budget.residentBytes, 0);
+    expect(budget.transientBytes, 0);
+    expect(budget.activeDecodes, 0);
+  });
+
+  test('loads a bounded GIF from a file and releases its resources', () async {
+    final root = Directory(
+      Platform.environment['AVELUNE_QA_ROOT'] ?? Directory.systemTemp.path,
+    );
+    final directory = await root.createTemp('gif-file-');
+    addTearDown(() => directory.delete(recursive: true));
+    final file = File('${directory.path}/sample.gif');
+    await file.writeAsBytes(_gif());
+    final budget = _budget(32);
+    final animation = await loadRuntimeGifFromFilePath(
+      file.path,
+      resourceBudget: budget,
+    );
+    expect(animation.frameCount, 2);
+    expect(await _pixel(animation.frameAt(const Duration(milliseconds: 100))), [
+      0,
+      0,
+      255,
+      255,
+    ]);
+    animation.dispose();
+    expect(budget.residentBytes, 0);
+    expect(budget.transientBytes, 0);
+    final small = RuntimeResourceBudget(
+      profile: const RuntimeResourceProfile(maximumEncodedBytes: 8),
+    );
+    await expectLater(
+      loadRuntimeGifFromFilePath(file.path, resourceBudget: small),
+      throwsA(isA<RuntimeResourceAdmissionException>()),
+    );
+    expect(small.residentBytes, 0);
+    expect(small.transientBytes, 0);
+  });
+
+  test('releases file admission when the GIF is invalid', () async {
+    final root = Directory(
+      Platform.environment['AVELUNE_QA_ROOT'] ?? Directory.systemTemp.path,
+    );
+    final directory = await root.createTemp('gif-invalid-');
+    addTearDown(() => directory.delete(recursive: true));
+    final file = File('${directory.path}/invalid.gif');
+    await file.writeAsBytes([1, 2, 3]);
+    final budget = _budget(32);
+    await expectLater(
+      loadRuntimeGifFromFilePath(file.path, resourceBudget: budget),
+      throwsFormatException,
+    );
+    expect(budget.residentBytes, 0);
+    expect(budget.transientBytes, 0);
+    expect(budget.activeDecodes, 0);
+  });
+
+  test('disposes a file GIF frame completed after cancellation', () async {
+    final root = Directory(
+      Platform.environment['AVELUNE_QA_ROOT'] ?? Directory.systemTemp.path,
+    );
+    final directory = await root.createTemp('gif-cancelled-');
+    addTearDown(() => directory.delete(recursive: true));
+    final file = File('${directory.path}/sample.gif');
+    await file.writeAsBytes(_gif());
+    final budget = _budget(32);
+    final image = Completer<ui.Image>();
+    final gate = Completer<void>();
+    var current = true;
+    final loading = loadRuntimeGifFromFilePath(
+      file.path,
+      resourceBudget: budget,
+      isCurrent: () => current,
+      codecFactory: (bytes) async => _DelayedCodec(
+        await ui.instantiateImageCodec(bytes),
+        image,
+        gate.future,
+      ),
+    );
+    final rejected = expectLater(
+      loading,
+      throwsA(isA<RuntimeResourceAdmissionException>()),
+    );
+    final frame = await image.future;
+    current = false;
+    gate.complete();
+    await rejected;
+    expect(frame.debugDisposed, isTrue);
     expect(budget.residentBytes, 0);
     expect(budget.transientBytes, 0);
     expect(budget.activeDecodes, 0);

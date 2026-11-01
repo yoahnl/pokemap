@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -101,6 +102,61 @@ Future<RuntimeGifAnimation> decodeRuntimeGif(
     transientBytes: bytes.length * 2,
     isCurrent: isCurrent,
   );
+  return _decodeAdmittedRuntimeGif(
+    bytes,
+    reservation: reservation,
+    budget: budget,
+    maximumFrames: maximumFrames,
+    codecFactory: codecFactory,
+  );
+}
+
+Future<RuntimeGifAnimation> loadRuntimeGifFromFilePath(
+  String absolutePath, {
+  RuntimeResourceBudget? resourceBudget,
+  bool Function()? isCurrent,
+  int maximumFrames = 256,
+  RuntimeGifCodecFactory? codecFactory,
+}) async {
+  if (maximumFrames < 1 || maximumFrames > 512) {
+    throw ArgumentError.value(maximumFrames, 'maximumFrames');
+  }
+  final file = File(absolutePath);
+  if (!await file.exists()) {
+    throw AssetNotFoundException('Image not found: $absolutePath');
+  }
+  final budget = resourceBudget ?? defaultRuntimeResourceBudget;
+  final length = await file.length();
+  if (length <= 0 || length > budget.profile.maximumEncodedBytes) {
+    throw const RuntimeResourceAdmissionException('encoded_bytes');
+  }
+  final reservation = await budget.acquire(
+    transientBytes: length * 2,
+    isCurrent: isCurrent,
+  );
+  try {
+    reservation.ensureCurrent();
+    final bytes = await readRuntimeImageFileBytes(file, length);
+    return await _decodeAdmittedRuntimeGif(
+      bytes,
+      reservation: reservation,
+      budget: budget,
+      maximumFrames: maximumFrames,
+      codecFactory: codecFactory,
+    );
+  } catch (_) {
+    reservation.release();
+    rethrow;
+  }
+}
+
+Future<RuntimeGifAnimation> _decodeAdmittedRuntimeGif(
+  Uint8List bytes, {
+  required RuntimeResourceReservation reservation,
+  required RuntimeResourceBudget budget,
+  required int maximumFrames,
+  RuntimeGifCodecFactory? codecFactory,
+}) async {
   ui.Codec? codec;
   final frames = <ui.Image>[];
   final durations = <Duration>[];
