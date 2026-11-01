@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import '../../application/errors/application_errors.dart';
 import '../../application/ports/pokemon_write_repository.dart';
 import '../../application/ports/project_workspace.dart';
+import '../../application/services/pokemon_media_id_policy.dart';
 import '../../application/services/pokemon_project_data_reader.dart';
 
 class FilePokemonWriteRepository implements PokemonWriteRepository {
@@ -135,12 +136,7 @@ class FilePokemonWriteRepository implements PokemonWriteRepository {
     ProjectWorkspace workspace,
     PokemonMediaFile media,
   ) async {
-    final speciesId = media.speciesId.trim();
-    if (speciesId.isEmpty) {
-      throw const EditorValidationException(
-        'Pokemon media speciesId cannot be empty',
-      );
-    }
+    final speciesId = requireSafePokemonMediaId(media.speciesId);
     await _writeJsonObject(
       workspace,
       'data/pokemon/media/$speciesId.json',

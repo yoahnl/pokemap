@@ -9,6 +9,7 @@ import 'package:map_editor/src/application/use_cases/initialize_pokemon_project_
 import 'package:map_editor/src/application/use_cases/project_management_use_cases.dart';
 import 'package:map_editor/src/infrastructure/filesystem/project_filesystem.dart';
 import 'package:map_editor/src/infrastructure/repositories/file_repositories.dart';
+import 'package:path/path.dart' as p;
 
 void main() {
   late Directory tempProjectRoot;
@@ -53,6 +54,36 @@ void main() {
   });
 
   group('ImportPokemonMediaJsonUseCase', () {
+    test(
+      'rejects an imported media identity that escapes the project',
+      () async {
+        final sentinel = File('${tempProjectRoot.path}-sentinel.json');
+        addTearDown(() async {
+          if (await sentinel.exists()) await sentinel.delete();
+        });
+        await sentinel.writeAsString('{"sentinel":"original"}');
+        final name = p.basenameWithoutExtension(sentinel.path);
+        final sourceFile = await _writeSourceJson(
+          tempImportRoot,
+          'hostile.json',
+          _bulbasaurMedia.toJson()..['speciesId'] = '../../../../$name',
+        );
+
+        await expectLater(
+          () => useCase.readValidatedSource(
+            workspace,
+            absoluteSourcePath: sourceFile.path,
+          ),
+          throwsA(isA<EditorValidationException>()),
+        );
+        await expectLater(
+          () => useCase.execute(workspace, absoluteSourcePath: sourceFile.path),
+          throwsA(isA<EditorValidationException>()),
+        );
+        expect(await sentinel.readAsString(), '{"sentinel":"original"}');
+      },
+    );
+
     test('imports one internal media json into the local media directory',
         () async {
       final sourceFile = await _writeSourceJson(

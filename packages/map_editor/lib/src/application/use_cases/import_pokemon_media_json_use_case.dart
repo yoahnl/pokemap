@@ -4,6 +4,7 @@ import '../errors/application_errors.dart';
 import 'package:map_core/map_core.dart';
 import '../ports/pokemon_write_repository.dart';
 import '../ports/project_workspace.dart';
+import '../services/pokemon_media_id_policy.dart';
 
 /// Importe un fichier média Pokémon déjà au format JSON interne du projet.
 ///
@@ -101,12 +102,7 @@ class ImportPokemonMediaJsonUseCase {
     // On reste volontairement sur une validation locale.
     // Le but est de rejeter les fichiers média inutilisables dès l'import,
     // sans transformer ce lot en validateur Pokédex global.
-    final speciesId = media.speciesId.trim();
-    if (speciesId.isEmpty) {
-      throw const EditorValidationException(
-        'Pokemon media speciesId cannot be empty',
-      );
-    }
+    requireSafePokemonMediaId(media.speciesId);
 
     final defaultFormId = media.defaultFormId.trim();
     if (defaultFormId.isEmpty) {

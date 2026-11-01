@@ -42,6 +42,41 @@ void main() {
   });
 
   group('FilePokemonWriteRepository', () {
+    test('refuses path separators in Pokemon media identities', () async {
+      for (final id in ['nested/escape', r'nested\escape', 'bad\u0000id']) {
+        final media = PokemonMediaFile(
+          speciesId: id,
+          defaultFormId: 'base',
+          variants: const {
+            'base': PokemonMediaVariant(frontStatic: 'front.png'),
+          },
+        );
+        await expectLater(
+          () => writeRepository.saveMedia(workspace, media),
+          throwsA(isA<EditorValidationException>()),
+          reason: id,
+        );
+      }
+    });
+
+    test('retains valid Pokemon media identities as filenames', () async {
+      for (final id in ['mr-mime', 'Forme Étoile_1', 'type.feu']) {
+        final media = PokemonMediaFile(
+          speciesId: id,
+          defaultFormId: 'base',
+          variants: const {
+            'base': PokemonMediaVariant(frontStatic: 'front.png'),
+          },
+        );
+        await writeRepository.saveMedia(workspace, media);
+        final file = File(
+          workspace.resolveProjectRelativePath('data/pokemon/media/$id.json'),
+        );
+        expect(await file.exists(), isTrue, reason: id);
+        expect((jsonDecode(await file.readAsString()) as Map)['speciesId'], id);
+      }
+    });
+
     test('saves a species file in the project workspace', () async {
       final species = _bulbasaurSpecies();
 
