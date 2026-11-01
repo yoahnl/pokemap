@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
+import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/src/presentation/flame/battle_offline_move_recipe_loader.dart';
 
@@ -190,6 +192,122 @@ void main() {
       await File('${project.path}/$texturePath').delete();
       await expectLater(loader().load('local'), throwsFormatException);
     },
+  );
+
+  test(
+    'keeps the legacy player presentation for a verified BW2 SPL bundle',
+    () async {
+      const revision = '41f42ca1afe6291f00b0ba0ec3f6099b9ff1346c';
+      const directory = 'res/particles/btlv_effvm_particles/218';
+      const hashes = <String, String>{
+        'particles.json':
+            'c69c571dbb9f9f20fe0a85bcba82aac97333e9c2c69ca968c597fe4f77b2f0e9',
+        'texture00.png':
+            'd03979b4d9e7cc4146cd28313006fc7e770e8aa83c8bffb06797f8cb5076bab1',
+        'texture01.png':
+            'a3dbf0ea435572f668f8ba2beb676587036035fdb6989a4583605dfa68d9e06e',
+        'texture02.png':
+            '3d10133124483c7c68bf8ef9df9e50d8a2bab9ed4c0f9882b5291ce8bc96260f',
+        'texture03.png':
+            '3eee20e4f1adbc946d4623f42fe12203fcd4919ec23988aa8fb2b932203bf137',
+        'texture04.png':
+            'ebce49dd55ea712ac46fa7032218fce2e8109062ff6380c55257172d6e0d44f0',
+        'texture05.png':
+            '9c83ad9fe9503947791501b1ecbe2705ccb67564f21e6c7aa26950c338da7e6e',
+      };
+      final client = HttpClient();
+      addTearDown(() => client.close(force: true));
+      Future<Uint8List> fetch(String name) async {
+        final request = await client
+            .getUrl(
+              Uri.https(
+                'raw.githubusercontent.com',
+                '/fuddlesworth/pokebw2/$revision/$directory/$name',
+              ),
+            )
+            .timeout(const Duration(seconds: 20));
+        request.followRedirects = false;
+        final response = await request.close().timeout(
+          const Duration(seconds: 20),
+        );
+        expect(response.statusCode, HttpStatus.ok);
+        final bytes = BytesBuilder(copy: false);
+        await for (final chunk in response.timeout(
+          const Duration(seconds: 20),
+        )) {
+          if (bytes.length + chunk.length > 262144) {
+            throw const FormatException('SPL test source too large');
+          }
+          bytes.add(chunk);
+        }
+        final result = bytes.takeBytes();
+        expect(sha256.convert(result).toString(), hashes[name]);
+        return result;
+      }
+
+      final source = await fetch('particles.json');
+      final converted = Gen5SplParticleConverter.convert(
+        source,
+        particleId: 218,
+        sourceRevision: revision,
+        sourcePath: '$directory/particles.json',
+        expectedSha256: hashes['particles.json']!,
+        textureResourceIds: {
+          for (var i = 0; i < 6; i++) 'texture0$i': 'texture0$i',
+        },
+      );
+      final particle = utf8.encode(jsonEncode(converted.definition.toJson()));
+      final particleHash = sha256.convert(particle).toString();
+      final resources = <Object>[
+        {
+          'id': 'particle',
+          'role': 'particleDefinition',
+          'mediaType': 'application/vnd.avelune.particle+json',
+          'sizeBytes': particle.length,
+          'sha256': particleHash,
+          'definitionVersion': 2,
+          'dependencies': converted.definition.textureIds.toList(),
+        },
+      ];
+      await write(
+        battleRecipeBlobPath(
+          particleHash,
+          'application/vnd.avelune.particle+json',
+          projectMoveId: 'local',
+        ),
+        particle,
+      );
+      for (var i = 0; i < 6; i++) {
+        final name = 'texture0$i';
+        final png = await fetch('$name.png');
+        final hash = hashes['$name.png']!;
+        resources.add({
+          'id': name,
+          'role': 'texture',
+          'mediaType': 'image/png',
+          'sizeBytes': png.length,
+          'sha256': hash,
+        });
+        await write(
+          battleRecipeBlobPath(hash, 'image/png', projectMoveId: 'local'),
+          png,
+        );
+      }
+      final data = recipe(particle: true, resources: resources);
+      data['requiredCapabilities'] = ['startParticle', 'splParticleV2'];
+      await install(data);
+      final result = await loader().load('local');
+      expect(
+        result.fallbackReason,
+        BattleRecipeFallbackReason.unavailableCapabilities,
+      );
+      expect(result.unavailableCapabilities, {
+        'startParticle',
+        'splParticleV2',
+      });
+      expect(result.prepared, isNull);
+    },
+    skip: Platform.environment['AVELUNE_BW2_SCRIPT_TEST'] != '1',
   );
 
   test(

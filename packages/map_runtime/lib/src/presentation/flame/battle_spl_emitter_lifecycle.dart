@@ -1,3 +1,5 @@
+import 'battle_spl_particle_pool.dart';
+
 final class BattleSplChildTiming {
   const BattleSplChildTiming({
     required this.emissionCount,
@@ -72,6 +74,7 @@ final class BattleSplEmitterLifecycle {
     this.autoTerminate = true,
     this.captureEvents = false,
     this.child,
+    BattleSplParticlePool? particlePool,
   }) : _particleLifetime = ((particleLifetime * 255) >> 8) + 1 {
     final childTiming = child;
     if (startDelay < 0 ||
@@ -90,6 +93,7 @@ final class BattleSplEmitterLifecycle {
         updateCycle > 2 ||
         maxParticles < 1 ||
         maxParticles > 4096 ||
+        (particlePool != null && particlePool.capacity != maxParticles) ||
         (childTiming != null &&
             (childTiming.emissionCount < 1 ||
                 childTiming.emissionCount > 64 ||
@@ -103,6 +107,8 @@ final class BattleSplEmitterLifecycle {
                 _particleLifetime * childTiming.emissionDelay256 > 524287))) {
       throw const FormatException('Invalid SPL emitter timing');
     }
+    _lease = (particlePool ?? BattleSplParticlePool(capacity: maxParticles))
+        .createLease();
   }
 
   final int emitterLifetime;
@@ -116,6 +122,9 @@ final class BattleSplEmitterLifecycle {
   final bool captureEvents;
   final BattleSplChildTiming? child;
   final int _particleLifetime;
+  late final BattleSplParticleLease _lease;
+
+  int get particleLifetime => _particleLifetime;
 
   List<_ParticleAge> _parents = [];
   List<_ParticleAge> _children = [];
@@ -175,8 +184,7 @@ final class BattleSplEmitterLifecycle {
         final emissions = emissionRate4096 + _emissionFraction;
         _emissionFraction = emissions & 4095;
         final requested = emissions >> 12;
-        final available = maxParticles - _parents.length - _children.length;
-        emittedParents = requested < available ? requested : available;
+        emittedParents = _lease.acquire(requested);
         droppedParents = requested - emittedParents;
         final newParents = <_ParticleAge>[];
         for (var index = 0; index < emittedParents; index++) {
@@ -188,7 +196,6 @@ final class BattleSplEmitterLifecycle {
       }
       parents.addAll(_parents);
 
-      var liveParents = parents.length;
       final survivingParents = <_ParticleAge>[];
       final newChildren = <_ParticleAge>[];
       final childTiming = child;
@@ -200,14 +207,7 @@ final class BattleSplEmitterLifecycle {
               _particleLifetime * childTiming.emissionDelay256;
           if (sinceDelay >= 0 &&
               (sinceDelay ~/ 256) % childTiming.emissionInterval == 0) {
-            final available =
-                maxParticles -
-                liveParents -
-                _children.length -
-                newChildren.length;
-            final count = childTiming.emissionCount < available
-                ? childTiming.emissionCount
-                : available;
+            final count = _lease.acquire(childTiming.emissionCount);
             emittedChildren += count;
             droppedChildren += childTiming.emissionCount - count;
             for (var index = 0; index < count; index++) {
@@ -219,7 +219,7 @@ final class BattleSplEmitterLifecycle {
         }
         parent.age++;
         if (parent.age > _particleLifetime) {
-          liveParents--;
+          _lease.release(1);
           record(BattleSplParticleEventKind.parentExpired, parent);
         } else {
           survivingParents.add(parent);
@@ -235,6 +235,7 @@ final class BattleSplEmitterLifecycle {
           if (particle.age <= childTiming.lifetime) {
             survivingChildren.add(particle);
           } else {
+            _lease.release(1);
             record(BattleSplParticleEventKind.childExpired, particle);
           }
         }
@@ -251,6 +252,7 @@ final class BattleSplEmitterLifecycle {
         _parents.isEmpty &&
         _children.isEmpty) {
       _complete = true;
+      _lease.dispose();
     }
     return _result(
       emittedParents: emittedParents,
@@ -259,6 +261,14 @@ final class BattleSplEmitterLifecycle {
       droppedChildren: droppedChildren,
       events: events ?? const [],
     );
+  }
+
+  void cancel() {
+    if (_complete) return;
+    _parents.clear();
+    _children.clear();
+    _lease.dispose();
+    _complete = true;
   }
 
   BattleSplEmitterStep _result({

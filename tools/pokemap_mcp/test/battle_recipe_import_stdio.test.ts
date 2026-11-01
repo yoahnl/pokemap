@@ -15,7 +15,7 @@ function record(value: unknown): JsonRecord {
   return value as JsonRecord;
 }
 
-test('MCP stages, imports and undoes an exact move recipe', { timeout: 120_000 }, async () => {
+async function runScenario(spl: boolean): Promise<void> {
   const root = await mkdtemp(join(tmpdir(), 'battle-recipe-mcp-'));
   const dart = process.env.POKEMAP_TEST_DART ?? 'dart';
   const packageRoot = resolve('../../packages/map_authoring');
@@ -39,7 +39,9 @@ test('MCP stages, imports and undoes an exact move recipe', { timeout: 120_000 }
     await mkdir(join(root, 'data/pokemon/catalogs'), { recursive: true });
     await writeFile(moves, JSON.stringify({ catalog: 'moves', entries: [{ id: 'custom' }] }));
     const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAASUlEQVR42mNkoAA4LEj4D2MfSFjASI4ZTAwDDEYdMOqAUQeMOmDUAaMOGHAHMCJXqaNRMCBRMNoiGnXAqANGHTDqgFEHjHgHAADb/Qp9KEMvVQAAAABJRU5ErkJggg==', 'base64');
-    const particle = Buffer.from(JSON.stringify({ schemaVersion: 1, emitters: [{
+    const particle = spl
+      ? await readFile(resolve('../../packages/map_core/test/fixtures/spl_particle_v2.json'))
+      : Buffer.from(JSON.stringify({ schemaVersion: 1, emitters: [{
       textureId: 'tex', emissionDurationMs: 10, emissionIntervalMs: 10,
       particleLifetimeMs: 10, particlesPerEmission: 1,
     }] }));
@@ -47,11 +49,11 @@ test('MCP stages, imports and undoes an exact move recipe', { timeout: 120_000 }
     const particleHash = createHash('sha256').update(particle).digest('hex');
     const recipe = Buffer.from(JSON.stringify({
       schemaVersion: 1, recipeId: 'visual', revision: '1', moveSourceId: 'source', variant: 'default',
-      requiredCapabilities: ['startParticle'], provenance: { source: 'synthetic', sourceRevision: '1', sourcePaths: [], converter: 'test' },
+      requiredCapabilities: spl ? ['startParticle', 'splParticleV2'] : ['startParticle'], provenance: { source: 'synthetic', sourceRevision: '1', sourcePaths: [], converter: 'test' },
       resources: [
         { id: 'tex', role: 'texture', mediaType: 'image/png', sizeBytes: png.length, sha256: pngHash },
         { id: 'particle', role: 'particleDefinition', mediaType: 'application/vnd.avelune.particle+json',
-          sizeBytes: particle.length, sha256: particleHash, definitionVersion: 1, dependencies: ['tex'] },
+          sizeBytes: particle.length, sha256: particleHash, definitionVersion: spl ? 2 : 1, dependencies: ['tex'] },
       ],
       program: { kind: 'startParticle', resourceId: 'particle', from: 'userMouth', to: 'targetImpact' },
     }, null, 2));
@@ -114,4 +116,7 @@ test('MCP stages, imports and undoes an exact move recipe', { timeout: 120_000 }
     await transport.close();
     await rm(root, { recursive: true, force: true });
   }
-});
+}
+
+test('MCP stages, imports and undoes a version 1 move recipe', { timeout: 120_000 }, () => runScenario(false));
+test('MCP stages, imports and undoes a version 2 SPL move recipe', { timeout: 120_000 }, () => runScenario(true));

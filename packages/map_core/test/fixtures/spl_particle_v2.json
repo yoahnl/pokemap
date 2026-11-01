@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 2,
+  "emitters": [
+    {
+      "emission": {
+        "shape": "point",
+        "origin": {"x": 0, "y": 0, "z": 0},
+        "axis": {"x": 4096, "y": 0, "z": 0},
+        "radius": 0,
+        "axisVelocity": 1024,
+        "followEmitter": true,
+        "rate": 4096,
+        "startDelay": 0,
+        "interval": 1,
+        "duration": 2,
+        "particleLifetime": 4,
+        "autoTerminate": true,
+        "scaleVariance": 0,
+        "randomInitialAngle": false,
+        "initialAngle": 0
+      },
+      "appearance": {
+        "draw": "billboard",
+        "scaleAxis": "xy",
+        "baseScale": 4096,
+        "aspectRatio": 4096,
+        "baseAlpha": 31,
+        "loopTime": 4,
+        "scale": {"start": 4096, "middle": 4096, "end": 0, "fadeIn": 64, "fadeOut": 192, "loop": false},
+        "color": {"start": {"red": 31, "green": 16, "blue": 0}, "middle": {"red": 31, "green": 8, "blue": 0}, "end": {"red": 0, "green": 0, "blue": 0}, "fadeIn": 0, "peak": 128, "fadeOut": 255, "interpolate": true, "loop": false},
+        "alpha": {"start": 31, "middle": 31, "end": 0, "fadeIn": 64, "fadeOut": 192, "randomRange": 0, "loop": false},
+        "initialTexture": "tex",
+        "textureAnimation": null
+      },
+      "motion": {"gravity": {"x": 0, "y": 0, "z": 0}, "airResistance": 128},
+      "child": null
+    }
+  ]
+}

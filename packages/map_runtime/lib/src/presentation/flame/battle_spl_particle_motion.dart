@@ -72,7 +72,8 @@ final class BattleSplParticleMotion {
     int emitterVelocity,
     int resistance,
   ) {
-    final damped = _checked(velocity * (resistance + 384)) >> 9;
+    final product = _checked(velocity * (resistance + 384));
+    final damped = product >= 0 ? product ~/ 512 : -((-product + 511) ~/ 512);
     final nextVelocity = _checked(damped + gravity);
     final displacement = _checked(nextVelocity + emitterVelocity);
     return (

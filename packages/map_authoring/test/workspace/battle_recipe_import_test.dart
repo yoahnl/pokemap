@@ -95,8 +95,7 @@ final class _RecipeApi implements PokemonBoundedExternalHttpTransport {
 }
 
 void main() {
-  test('imports separate move-owned recipes and undo preserves the other move',
-      () async {
+  Future<void> runScenario({required bool spl}) async {
     final root = await Directory.systemTemp.createTemp('battle-recipe-import-');
     final handles = WorkspaceHandleStore();
     LocalMapAuthoringMutationApi? api;
@@ -180,18 +179,21 @@ void main() {
         projectHandle: current.projectHandle);
     final png = img.encodePng(img.Image(width: 2, height: 2));
     final pngHash = sha256.convert(png).toString();
-    final particle = utf8.encode(jsonEncode({
-      'schemaVersion': 1,
-      'emitters': [
-        {
-          'textureId': 'tex',
-          'emissionDurationMs': 10,
-          'emissionIntervalMs': 10,
-          'particleLifetimeMs': 10,
-          'particlesPerEmission': 1
-        }
-      ],
-    }));
+    final particle = spl
+        ? await File('../map_core/test/fixtures/spl_particle_v2.json')
+            .readAsBytes()
+        : utf8.encode(jsonEncode({
+            'schemaVersion': 1,
+            'emitters': [
+              {
+                'textureId': 'tex',
+                'emissionDurationMs': 10,
+                'emissionIntervalMs': 10,
+                'particleLifetimeMs': 10,
+                'particlesPerEmission': 1
+              }
+            ],
+          }));
     final particleHash = sha256.convert(particle).toString();
     final recipe = utf8.encode(jsonEncode({
       'schemaVersion': 1,
@@ -199,7 +201,10 @@ void main() {
       'revision': '1',
       'moveSourceId': 'source',
       'variant': 'default',
-      'requiredCapabilities': ['startParticle'],
+      'requiredCapabilities': [
+        'startParticle',
+        if (spl) 'splParticleV2',
+      ],
       'provenance': {
         'source': 'synthetic',
         'sourceRevision': '1',
@@ -220,7 +225,7 @@ void main() {
           'mediaType': 'application/vnd.avelune.particle+json',
           'sizeBytes': particle.length,
           'sha256': particleHash,
-          'definitionVersion': 1,
+          'definitionVersion': spl ? 2 : 1,
           'dependencies': ['tex']
         },
       ],
@@ -473,5 +478,10 @@ void main() {
           .content as List<int>),
     ));
     expect(archivedBinding.binding.projectMoveId, 'two');
-  });
+  }
+
+  test('imports, exports and undoes version 1 move recipes',
+      () => runScenario(spl: false));
+  test('imports, exports and undoes version 2 SPL move recipes',
+      () => runScenario(spl: true));
 }

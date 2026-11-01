@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 
 import 'battle_recipe_json.dart';
+import 'battle_spl_particle_definition.dart';
 
 final class BattleMoveAnimationRecipe {
   BattleMoveAnimationRecipe._(this._json, this.resources);
@@ -16,6 +17,7 @@ final class BattleMoveAnimationRecipe {
     'cameraReset',
     'startParticle',
     'waitEffects',
+    'splParticleV2',
   };
   final Map<String, dynamic> _json;
   final List<BattleMoveAnimationResource> resources;
@@ -75,6 +77,10 @@ final class BattleMoveAnimationRecipe {
       resources.add(resource);
     }
     for (final resource in resources) {
+      if (resource.definitionVersion == 2 &&
+          !capabilities.contains('splParticleV2')) {
+        throw const FormatException('SPL particle capability not declared');
+      }
       for (final dependency in resource.dependencies) {
         if (!resources.any(
           (candidate) =>
@@ -170,13 +176,39 @@ final class BattleMoveAnimationRecipe {
     Map<String, List<int>> bytesById, {
     required Set<String> availableCapabilities,
   }) {
-    readVerifiedParticleDefinitions(
+    _readVerifiedParticleDefinitions(
       bytesById,
       availableCapabilities: availableCapabilities,
     );
   }
 
   Map<String, BattleParticleDefinition> readVerifiedParticleDefinitions(
+    Map<String, List<int>> bytesById, {
+    required Set<String> availableCapabilities,
+  }) {
+    final result = _readVerifiedParticleDefinitions(
+      bytesById,
+      availableCapabilities: availableCapabilities,
+    );
+    if (result.spl.isNotEmpty) {
+      throw const FormatException('Legacy particle reader cannot consume SPL');
+    }
+    return result.legacy;
+  }
+
+  Map<String, BattleSplParticleDefinition> readVerifiedSplParticleDefinitions(
+    Map<String, List<int>> bytesById, {
+    required Set<String> availableCapabilities,
+  }) => _readVerifiedParticleDefinitions(
+    bytesById,
+    availableCapabilities: availableCapabilities,
+  ).spl;
+
+  ({
+    Map<String, BattleParticleDefinition> legacy,
+    Map<String, BattleSplParticleDefinition> spl,
+  })
+  _readVerifiedParticleDefinitions(
     Map<String, List<int>> bytesById, {
     required Set<String> availableCapabilities,
   }) {
@@ -187,6 +219,7 @@ final class BattleMoveAnimationRecipe {
       throw const FormatException('Missing or altered resource');
     }
     final result = <String, BattleParticleDefinition>{};
+    final splResult = <String, BattleSplParticleDefinition>{};
     for (final resource in resources) {
       if (resource.role != 'particleDefinition') continue;
       final bytes = bytesById[resource.id]!;
@@ -199,11 +232,21 @@ final class BattleMoveAnimationRecipe {
         label: 'Particle',
       );
       final definition = _map(decoded, 'particle definition');
-      _keys(definition, {'schemaVersion', 'emitters'});
       if (definition['schemaVersion'] is! int ||
           definition['schemaVersion'] != resource.definitionVersion) {
         throw const FormatException('Particle version mismatch');
       }
+      if (resource.definitionVersion == 2) {
+        final particle = BattleSplParticleDefinition.fromJson(definition);
+        final declared = resource.dependencies.toSet();
+        if (particle.textureIds.length != declared.length ||
+            !declared.containsAll(particle.textureIds)) {
+          throw const FormatException('Particle texture dependencies mismatch');
+        }
+        splResult[resource.id] = particle;
+        continue;
+      }
+      _keys(definition, {'schemaVersion', 'emitters'});
       final emitters = _list(definition['emitters'], 'emitters');
       if (emitters.isEmpty || emitters.length > 32) {
         throw const FormatException('Invalid emitter count');
@@ -249,7 +292,7 @@ final class BattleMoveAnimationRecipe {
         List.unmodifiable(typedEmitters),
       );
     }
-    return Map.unmodifiable(result);
+    return (legacy: Map.unmodifiable(result), spl: Map.unmodifiable(splResult));
   }
 }
 
@@ -325,7 +368,8 @@ final class BattleMoveAnimationResource {
     final hash = _text(json['sha256'], 'sha256');
     final definitionVersion = json['definitionVersion'];
     if ((role == 'particleDefinition' &&
-            (definitionVersion is! int || definitionVersion != 1)) ||
+            (definitionVersion is! int ||
+                (definitionVersion != 1 && definitionVersion != 2))) ||
         (role != 'particleDefinition' && definitionVersion != null)) {
       throw const FormatException('Unsupported particle definition version');
     }
