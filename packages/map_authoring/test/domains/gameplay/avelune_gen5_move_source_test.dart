@@ -127,6 +127,19 @@ final class _Transport implements PokemonBoundedExternalHttpTransport {
 }
 
 void main() {
+  test('accepts the real API response for the BW2 Tail Whip source v2',
+      () async {
+    final encoded = Platform.environment['AVELUNE_BW2_TAIL_WHIP_RESPONSE']!;
+    final transport = _Transport()..overrideBytes = base64.decode(encoded);
+    final snapshot =
+        await AveluneGen5MoveSource(client: transport, release: 'draft')
+            .fetch(moveId: 'tail-whip', sourceMoveId: 39);
+    expect(snapshot!.effectiveDependencyStatus, 'complete');
+    expect(snapshot.particleDependencyInventoryVerified, isTrue);
+    expect(snapshot.particles, isEmpty);
+    expect(snapshot.playbackStatus, 'not-supported');
+  }, skip: Platform.environment['AVELUNE_BW2_TAIL_WHIP_RESPONSE'] == null);
+
   test('accepts the real API response for the BW2 Disable source v2', () async {
     final encoded = Platform.environment['AVELUNE_BW2_INTEROP_RESPONSE']!;
     final transport = _Transport()..overrideBytes = base64.decode(encoded);
