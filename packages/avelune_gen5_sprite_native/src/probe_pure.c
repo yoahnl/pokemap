@@ -157,8 +157,8 @@ static int32_t read_i32(const uint8_t *data) {
 }
 
 static int valid_scale(int scale) {
-    return scale == 0 || (scale >= 256 && scale <= 65536) ||
-           (scale <= -256 && scale >= -65536);
+    return scale == 0 || (scale >= 128 && scale <= 65536) ||
+           (scale <= -128 && scale >= -65536);
 }
 
 static int valid_transform(int scale_x, int scale_y, int x, int y) {

@@ -51,7 +51,7 @@ Uint8List animations(String magic, {int count = 1, int frames = 1}) {
   return bytes;
 }
 
-Uint8List oversizedTransform(String magic) {
+Uint8List oversizedTransform(String magic, {int? scale}) {
   final bytes = bank(magic, 'KNBA', 64);
   final data = ByteData.sublistView(bytes);
   data.setUint16(24, 1, Endian.little);
@@ -61,8 +61,8 @@ Uint8List oversizedTransform(String magic) {
   data.setUint16(40, 1, Endian.little);
   data.setUint16(44, 1, Endian.little);
   data.setUint16(60, 1, Endian.little);
-  data.setInt32(68, 32 * 4096, Endian.little);
-  data.setInt32(72, 4096, Endian.little);
+  data.setInt32(68, scale ?? 32 * 4096, Endian.little);
+  data.setInt32(72, scale ?? 4096, Endian.little);
   return bytes;
 }
 
@@ -296,5 +296,26 @@ void main() {
   test('rejects transforms outside the supported range', () {
     expect(render(nmar: oversizedTransform('RAMN')), -5);
     expect(render(nanr: oversizedTransform('RNAN')), -5);
+  });
+
+  test('accepts the small scale used by Pansage animations', () {
+    for (final scale in [0, 128, -128, 205, -205, 65536, -65536]) {
+      expect(render(nmar: oversizedTransform('RAMN', scale: scale)), 0);
+      expect(render(nanr: oversizedTransform('RNAN', scale: scale)), 0);
+    }
+    expect(
+      render(
+        nmar: oversizedTransform('RAMN', scale: 128),
+        nanr: oversizedTransform('RNAN', scale: -128),
+      ),
+      0,
+    );
+  });
+
+  test('rejects transforms outside the bounded scale limits', () {
+    for (final scale in [127, -127, 65537, -65537]) {
+      expect(render(nmar: oversizedTransform('RAMN', scale: scale)), -5);
+      expect(render(nanr: oversizedTransform('RNAN', scale: scale)), -5);
+    }
   });
 }
