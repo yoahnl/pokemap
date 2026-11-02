@@ -91,6 +91,43 @@ Map<String, dynamic> _copy(Map<String, dynamic> value) =>
     (jsonDecode(jsonEncode(value)) as Map).cast<String, dynamic>();
 
 void main() {
+  test('accepts bounded v4 magnets while retaining v2 and v3 semantics', () {
+    final v4 = _copy(_definition())..['schemaVersion'] = 4;
+    final emitter = (v4['emitters'] as List).single as Map;
+    (emitter['emission'] as Map)['positionVelocity'] = 914;
+    (emitter['motion'] as Map)['magnet'] = {
+      'target': {'x': 0, 'y': -19033, 'z': 0},
+      'force': 761,
+    };
+    (emitter['child'] as Map)['scaleEnd'] = 0;
+    (emitter['child'] as Map)['inheritBehaviors'] = true;
+    (emitter['child'] as Map)['draw'] = 'directionalBillboard';
+    expect(BattleSplParticleDefinition.fromJson(v4).toJson(), v4);
+    final v3 = _copy(v4)..['schemaVersion'] = 3;
+    expect(() => BattleSplParticleDefinition.fromJson(v3), throwsFormatException);
+    ((emitter['motion'] as Map)['magnet'] as Map)['force'] = 32768;
+    expect(() => BattleSplParticleDefinition.fromJson(v4), throwsFormatException);
+  });
+
+  test('retains v3 radial velocity without changing v2 validation', () {
+    final original = _copy(_definition());
+    final v3 = _copy(original)..['schemaVersion'] = 3;
+    final emission =
+        ((v3['emitters'] as List).single as Map)['emission'] as Map;
+    emission['positionVelocity'] = 914;
+    expect(BattleSplParticleDefinition.fromJson(v3).toJson(), v3);
+
+    final invalidV2 = _copy(original);
+    (((invalidV2['emitters'] as List).single as Map)['emission']
+            as Map)['positionVelocity'] =
+        914;
+    expect(
+      () => BattleSplParticleDefinition.fromJson(invalidV2),
+      throwsFormatException,
+    );
+    expect(BattleSplParticleDefinition.fromJson(original).toJson(), original);
+  });
+
   test(
     'retains a bounded emitter and every texture without mutable aliases',
     () {
@@ -282,6 +319,39 @@ void main() {
       );
       expect(
         () => BattleMoveAnimationRecipe.fromJson(missingCapability),
+        throwsFormatException,
+      );
+
+      final radialDefinition = _copy(_definition())..['schemaVersion'] = 3;
+      (((radialDefinition['emitters'] as List).single as Map)['emission']
+              as Map)['positionVelocity'] =
+          914;
+      final radialBytes = utf8.encode(jsonEncode(radialDefinition));
+      final radialJson = _copy(json);
+      (radialJson['requiredCapabilities'] as List)
+        ..remove('splParticleV2')
+        ..add('splParticleV3');
+      final radialResource = (radialJson['resources'] as List).first as Map;
+      radialResource['definitionVersion'] = 3;
+      radialResource['sizeBytes'] = radialBytes.length;
+      radialResource['sha256'] = sha256.convert(radialBytes).toString();
+      final radialRecipe = BattleMoveAnimationRecipe.fromJson(radialJson);
+      final radialMedia = {...media, 'effect': radialBytes};
+      const radialCapabilities = {'sequence', 'startParticle', 'splParticleV3'};
+      expect(
+        radialRecipe
+            .readVerifiedSplParticleDefinitions(
+              radialMedia,
+              availableCapabilities: radialCapabilities,
+            )['effect']!
+            .toJson(),
+        radialDefinition,
+      );
+      expect(
+        () => radialRecipe.validateBundle(
+          radialMedia,
+          availableCapabilities: capabilities,
+        ),
         throwsFormatException,
       );
 

@@ -9,6 +9,57 @@ import 'package:map_runtime/src/presentation/flame/battle_spl_random.dart';
 import 'package:map_runtime/src/presentation/flame/battle_spl_scalar_animation.dart';
 
 void main() {
+  test('applies parent forces to children only when configured', () {
+    BattleSplPointEmitterPlayback create(bool inherit) => _playback(
+      _lifecycle(child: const BattleSplChildTiming(
+        emissionCount: 1, emissionDelay256: 0, emissionInterval: 1, lifetime: 4,
+      )),
+      magnet: (target: (x: 4096, y: 0, z: 0), force: 512),
+      childInheritsBehaviors: inherit,
+      childInitializer: (_, parent) => (
+        motion: BattleSplParticleMotion(position: (x: 0, y: 0, z: 0),
+          velocity: (x: 0, y: 0, z: 0), rotation: 0, angularVelocity: 0),
+        emitterPosition: parent.emitterPosition, baseScale4096: 4096,
+        baseAlpha5: 31, color: parent.color, lifetime: 4, texture: 10,
+      ),
+    );
+    final inherited = create(true)..step(managerFrame: 0);
+    final independent = create(false)..step(managerFrame: 0);
+    expect(inherited.particles.firstWhere((p) => p.parentId != null).motion.velocity.x, 512);
+    expect(independent.particles.firstWhere((p) => p.parentId != null).motion.velocity.x, 0);
+    inherited.cancel();
+    independent.cancel();
+  });
+  test('animates child scale toward the configured BW2 end scale', () {
+    final lifecycle = _lifecycle(
+      child: const BattleSplChildTiming(
+        emissionCount: 1,
+        emissionDelay256: 0,
+        emissionInterval: 1,
+        lifetime: 4,
+      ),
+    );
+    final playback = _playback(
+      lifecycle,
+      childScaleEnd: 0,
+      childInitializer: (_, parent) => (
+        motion: parent.motion,
+        emitterPosition: parent.emitterPosition,
+        baseScale4096: parent.baseScale4096,
+        baseAlpha5: 31,
+        color: parent.color,
+        lifetime: 4,
+        texture: 10,
+      ),
+    );
+    playback.step(managerFrame: 0);
+    final child = playback.particles.firstWhere((p) => p.parentId != null);
+    expect(child.scale4096, 4096);
+    playback.step(managerFrame: 1);
+    final updated = playback.particles.firstWhere((p) => p.id == child.id);
+    expect(updated.scale4096, lessThan(4096));
+    playback.cancel();
+  });
   test('tracks each point particle through emission, motion and expiry', () {
     final playback = _playback(_lifecycle());
 
@@ -459,6 +510,9 @@ BattleSplPointEmitterPlayback _playback(
   bool followEmitter = false,
   bool childFollowsEmitter = false,
   bool childFadeAlpha = false,
+  int? childScaleEnd,
+  ({BattleSplVector target, int force})? magnet,
+  bool childInheritsBehaviors = false,
   BattleSplInitialChild Function(int, BattleSplPointParticle)? childInitializer,
 }) => BattleSplPointEmitterPlayback(
   lifecycle: lifecycle,
@@ -469,6 +523,9 @@ BattleSplPointEmitterPlayback _playback(
   childFollowsEmitter: childFollowsEmitter,
   airResistance: 128,
   childFadeAlpha: childFadeAlpha,
+  childScaleEnd: childScaleEnd,
+  magnet: magnet,
+  childInheritsBehaviors: childInheritsBehaviors,
   childInitializer: childInitializer,
   initialTexture: 10,
   initializeParent:

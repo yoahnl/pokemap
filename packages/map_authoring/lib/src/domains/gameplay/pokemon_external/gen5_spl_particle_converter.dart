@@ -83,11 +83,17 @@ abstract final class Gen5SplParticleConverter {
       return _text(id);
     }
 
+    final version = rawEmitters
+            .any((raw) => _map(raw).containsKey('magnetBehavior'))
+        ? 4
+        : rawEmitters.any((raw) => _map(raw)['initVelPositionAmplifier'] != 0)
+            ? 3
+            : 2;
     final converted = [
-      for (final raw in rawEmitters) _emitter(_map(raw), texture),
+      for (final raw in rawEmitters) _emitter(_map(raw), texture, version),
     ];
     final definition = BattleSplParticleDefinition.fromJson({
-      'schemaVersion': 2,
+      'schemaVersion': version,
       'emitters': converted,
     });
     return Gen5SplParticleConversion._(
@@ -102,6 +108,7 @@ abstract final class Gen5SplParticleConverter {
 Map<String, dynamic> _emitter(
   Map<String, dynamic> source,
   String Function(Object?) texture,
+  int version,
 ) {
   _keys(source, {
     'emissionType',
@@ -159,6 +166,7 @@ Map<String, dynamic> _emitter(
     'textureAnim',
     'childResource',
     'gravityBehavior',
+    'magnetBehavior',
   });
   final shape = switch (source['emissionType']) {
     'point' => 'point',
@@ -196,7 +204,6 @@ Map<String, dynamic> _emitter(
     }
   }
   for (final field in [
-    'initVelPositionAmplifier',
     'lifeTimeVariance',
     'velocityVariance',
     'dirStretch',
@@ -213,7 +220,18 @@ Map<String, dynamic> _emitter(
   final scale = _map(source['scaleAnim']);
   _keys(scale, {'start', 'mid', 'end', 'in', 'out', 'loop', 'unused'});
   _optionalUnused(scale);
-  final color = _map(source['colorAnim']);
+  final color = source['colorAnim'] == null
+      ? <String, dynamic>{
+          'start': source['color'],
+          'end': source['color'],
+          'in': 0,
+          'peak': 0,
+          'out': 0,
+          'randomStart': false,
+          'loop': false,
+          'interpolate': false,
+        }
+      : _map(source['colorAnim']);
   _keys(color, {
     'start',
     'end',
@@ -222,8 +240,10 @@ Map<String, dynamic> _emitter(
     'out',
     'randomStart',
     'loop',
-    'interpolate'
+    'interpolate',
+    'unused'
   });
+  _optionalUnused(color);
   if (color['randomStart'] != false) {
     throw const FormatException('Unsupported SPL random color start');
   }
@@ -237,6 +257,10 @@ Map<String, dynamic> _emitter(
           'magnitude': {'x': 0, 'y': 0, 'z': 0},
         };
   _keys(gravity, {'magnitude'});
+  final magnet = source.containsKey('magnetBehavior')
+      ? _map(source['magnetBehavior'])
+      : null;
+  if (magnet != null) _keys(magnet, {'target', 'force'});
   final rawTextureAnimation = source['textureAnim'];
   Map<String, dynamic>? textureAnimation;
   if (rawTextureAnimation != null) {
@@ -261,6 +285,7 @@ Map<String, dynamic> _emitter(
       'axis': source['axis'],
       'radius': shape == 'point' ? 0 : source['radius'],
       'axisVelocity': source['initVelAxisAmplifier'],
+      if (version >= 3) 'positionVelocity': source['initVelPositionAmplifier'],
       'followEmitter': source['followEmitter'],
       'rate': source['emissionCount'],
       'startDelay': source['startDelay'],
@@ -311,14 +336,15 @@ Map<String, dynamic> _emitter(
     },
     'motion': {
       'gravity': gravity['magnitude'],
-      'airResistance': source['airResistance']
+      'airResistance': source['airResistance'],
+      if (version >= 4) 'magnet': magnet,
     },
-    'child': rawChild == null ? null : _child(_map(rawChild), texture),
+    'child': rawChild == null ? null : _child(_map(rawChild), texture, version),
   };
 }
 
-Map<String, dynamic> _child(
-    Map<String, dynamic> source, String Function(Object?) texture) {
+Map<String, dynamic> _child(Map<String, dynamic> source,
+    String Function(Object?) texture, int version) {
   _keys(source, {
     'hasBehaviors',
     'hasScaleAnim',
@@ -347,8 +373,6 @@ Map<String, dynamic> _child(
     'unused',
   });
   for (final field in [
-    'hasBehaviors',
-    'hasScaleAnim',
     'followEmitter',
     'flipTextureS',
     'flipTextureT',
@@ -358,17 +382,26 @@ Map<String, dynamic> _child(
       throw FormatException('Unsupported SPL child field: $field');
     }
   }
-  for (final field in [
-    'endScale',
-    'textureRepeatShiftS',
-    'textureRepeatShiftT'
-  ]) {
+  if (source['hasBehaviors'] is! bool ||
+      (source['hasBehaviors'] == true && version < 4)) {
+    throw const FormatException('Unsupported SPL child field: hasBehaviors');
+  }
+  if (source['hasScaleAnim'] is! bool ||
+      (source['hasScaleAnim'] == true && version < 4)) {
+    throw const FormatException('Unsupported SPL child field: hasScaleAnim');
+  }
+  for (final field in ['textureRepeatShiftS', 'textureRepeatShiftT']) {
     if (source[field] is! int || source[field] != 0) {
       throw FormatException('Unsupported SPL child field: $field');
     }
   }
+  if (source['endScale'] is! int ||
+      (source['hasScaleAnim'] == false && source['endScale'] != 0)) {
+    throw const FormatException('Unsupported SPL child field: endScale');
+  }
   if (source['useChildColor'] != true ||
-      source['drawType'] != 'billboard' ||
+      !(source['drawType'] == 'billboard' ||
+          (version >= 4 && source['drawType'] == 'directional_billboard')) ||
       source['polygonRotAxis'] != 'y' ||
       source['polygonReferencePlane'] != 'xy') {
     throw const FormatException('Unsupported SPL child appearance');
@@ -392,6 +425,13 @@ Map<String, dynamic> _child(
     'emissionDelay': source['emissionDelay'],
     'emissionInterval': source['emissionInterval'],
     'fadeAlpha': source['hasAlphaAnim'],
+    if (version >= 4)
+      'scaleEnd': source['hasScaleAnim'] == true ? source['endScale'] : null,
+    if (version >= 4) 'inheritBehaviors': source['hasBehaviors'],
+    if (version >= 4)
+      'draw': source['drawType'] == 'billboard'
+          ? 'billboard'
+          : 'directionalBillboard',
   };
 }
 

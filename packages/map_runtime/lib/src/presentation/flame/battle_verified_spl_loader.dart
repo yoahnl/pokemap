@@ -82,10 +82,14 @@ final class BattleVerifiedSplLoader {
       }
       selected.add(definition);
     }
+    final combinedVersion = selected.first.schemaVersion;
+    if (selected.any((item) => item.schemaVersion != combinedVersion)) {
+      throw const FormatException('Mixed SPL versions are unsupported');
+    }
     final definition = selected.length == 1
         ? selected.single
         : BattleSplParticleDefinition.fromJson({
-            'schemaVersion': 2,
+            'schemaVersion': combinedVersion,
             'emitters': [
               for (final item in selected) ...item.toJson()['emitters'] as List,
             ],

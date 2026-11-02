@@ -261,6 +261,89 @@ Nettoyage terminé avant sélection Git : hôtes, builds, copies de projets, dé
 
 **Fermé quand :** parcours sur les données réellement intégrées, reprise conservée, récompense unique, reset de Force/rocher à la nouvelle instance correct, aucune régression narrative. La sauvegarde de fin de chapitre sans CS reste bloquée aux bons accès. Rattachements : FG-082, FG-083, FG-088, FG-120, FG-122, FG-129.
 
+### Exécution C7-03 — 2 novembre 2026
+
+**État en cours : contenu publié sur la copie QA, dix scénarios Runtime et trois tests CT18 passés ; parcours natif, admission au jeu principal et clôture encore ouverts.** Aucun export supplémentaire, aucune opération Git du moteur autorisée pour ce lot. Le téléchargement public reste 0.1.11.
+
+Audit initial : première observation `main/e539801de`, six chemins étrangers et index vide ; admission durable sur `59abe229584a34042e6ef566aa222b8bcff2238a`, quatre chemins étrangers. Les travaux concurrents Studio/Pokémon puis SPL/combat sont préservés. Le jeu HeartGold reste extérieur au dépôt moteur. La QA antérieure `revisites-content` reste en lecture seule et ne fournit aucune postimage au jeu.
+
+Le périmètre conserve les sept PNJ, trois objets, huit zones, six Events, six Scenes, huit règles de présence et deux Facts du premier sous-sol, leurs dépendances et les sorties originales. La présence des deux Ramoloss après libération reste celle de la source. Les cinq zones Surf B1 sont réutilisées ; sept zones B2 et trois liaisons internes sont ajoutées. Le contenu nouveau comprend le rocher Force `ch7-force-177-0`, l'habitant `ch7-181-0`, la CT18 `ch7-objet-181-7042`, une récompense Roche Royale, un Fact, trois dialogues, une Scene et un Event.
+
+La CT18 est admise comme machine native consommable vers `rain_dance`, dont l'effet existe déjà. La compatibilité HGSS utilise l'indice décodé **18**, pas 17 : 40 learnsets compatibles sur 69 espèces observées ; les entrées incompatibles, les autres CT/CS et les champs étrangers sont conservés. Aucun nouvel effet de combat ni nouvelle évolution solo n'est inventé. Fargas/Balls/capture et l'Élixir restent leurs lots distincts.
+
+La navigation enlève uniquement les cellules d'eau non solides justifiées par la ROM : 81 sur B1, 439 sur B2 ; les quinze cellules d'eau solides B1 restent bloquées. La cellule d'échelle B1 est corrigée séparément. Cinq pieds de rampes passent de `.5` à `1`, cinq raccords de rive sont bornés à `.5 → 1`. Les 13 Borders B1 et six Borders B2 sont recalculés depuis la source. Le coin `border3d_d28f00c90564428d5ca956c97288703b` passe automatiquement de Y 1.75 à Y 2 avec la rampe corrigée, sans translation manuelle ni offset ajouté.
+
+L'intention active `90e86110312b96ad949ebce67cea4f054ac936c4deafce9ad0ce1cb2ffa29c79` contient 31 opérations canoniques. Le rocher utilise successivement une entité custom, son modèle lié, puis `map3d.instance.configure_field_obstacle`. La version initiale de 30 opérations a été remplacée après preuve d'égalité du projet et des cinq postimages complètes ; les dix premiers reçus ont été conservés sans réapplication dans cet essai historique. Le premier accusé d'import a également été récupéré à partir de l'historique durable et de ses quatre postimages exactes, sans nouvel apply.
+
+#### Contexte de validation et preuves
+
+Le chargeur réel requiert les références globales et les états des cartes déjà visitées. La fixture finale conserve les 102 entrées de cartes, leurs 45 212 984 octets JSON, les 426 scènes et leurs dépendances : 99 personnages, 5 464 modèles et 491 tilesets avant les ajouts. Les médias physiques restent bornés aux cinq cartes parcourues et à leur fermeture effective. Les cinq cartes du parcours sont comparées intégralement ; les cent cartes non modifiées sont contrôlées par leurs octets et SHA. Le profil `project.visual.json` de 750 octets est identique à la source, SHA `90c9af7369193f56d54de8d5f4d5931fe3e5d70a87c070b8e89a324f86c33305` ; les quinze sidecars de carte absents restent absents.
+
+La certification Runtime/native utilise une tranche isolée du commit `39314a39c4f551a9213e3a046003f586f24ca7e0`, créée par lecture Git, sans checkout ni worktree : dix packages et `third_party/flame_3d`, 2 726 fichiers, 67 410 474 octets de sources. Le package config des tests et du natif est commun. Les modifications concurrentes SPL restent dans le dépôt original. La frontière API/CLI authoring est enregistrée séparément ; elle n'est pas présentée comme le moteur compilé du Runtime.
+
+Le build macOS Release passe : 108,3 Mo ; 5 321 inputs identiques avant/après, 4 840 entrées Dart du depfile couvertes, aucune classe du moteur original dans le graphe isolé. Le vrai AOT est `App.framework`, SHA `191425c485871cb8f2d8f67660a9840482b3838ade9fb826815a08cda5e79c2f`, et non le seul stub Cocoa. Les seuls assouplissements du scaffold sont propres à cette app QA : GPU activé et serveur loopback, App Sandbox désactivée après son refus d'écriture dans le cache. Aucun entitlement produit n'est modifié.
+
+L'admission QA courante est `67fa7d38d94582f434fac291723248abf6851a87ad291f37baf0fa411a090bee`, le reçu de publication `9486b4779d574a03adbc576f181270451eca9ef875bccdb789637defeea77d07`, avec 31 reçus et `pending: null`. La reprise retourne `additionalApply: 0`. Les postimages B1 et B2 sont respectivement `dd31ff5b05d7aa70245242744d9b43aed270114ff5d91fa1baf808c2f65f1b8c` et `a7b8078fa1d8a3da121087e792940f37c54c987080a55748723b32097a7302bd`.
+
+| Vérification exécutée | Résultat acquis à ce stade |
+|---|---|
+| Préflight indépendant des 102 cartes, métadonnées complètes, médias effectifs et sidecars | `01:18 +2: All tests passed!`, exit 0, descendants réapés |
+| Deux sauvegardes authentiques, Continue, vraie écriture disque, reprise à froid et B2 | `02:20 +2: All tests passed!`, exit 0, descendants réapés |
+| Vérificateur de delta : treize gardes positives/négatives | `All tests passed! Ran 13 verifier tests`, exit 0 |
+| Recette CT18 | `--check` PASS, 40 learnsets / 69 espèces, cinq gardes de fusion |
+| CT18 : apprentissage, incompatibilité, annulation, PP, consommation, Continue et Pluie cinq tours | `00:54 +3: All tests passed!`, exit 0, sous gel `15cd04f6…` |
+| Dix scénarios Runtime complets | `08:26 +10: All tests passed!`, exit 0, deux descendants réapés, `remaining=[]`, sous gel `15cd04f6…` |
+| Retour après reset, cinq vraies poussées Force et sortie originale aller/retour | Diagnostic ciblé `02:11 +1: All tests passed!`, exit 0, deux descendants réapés |
+| Géométrie canonique fraîche | 19 Borders fresh, zéro erreur/avertissement de Border ; trous/exposé/non prouvé zéro ; AABB B1 neuf contacts existants, B2 zéro |
+| Smoke Runtime combat | `00:00 +3: All tests passed!`, trois descendants réapés |
+| Smoke host golden slice | `00:00 +14: All tests passed!`, 22 descendants réapés |
+| MCP TypeScript | `npm run check` et `npm run build`, exit 0 ; seize contrats concernés découverts |
+| MCP ciblé | Trois PASS : Event V2, zone movement, catalogue d'objets ; deux FAIL dans `border_spatial_stdio.test.ts`, détails ci-dessous |
+| Parcours macOS Metal et inspection du contact d'escalier | En cours ; aucune qualification native complète revendiquée |
+| Publication et relecture du jeu principal | Pas encore exécutées |
+
+Le gel `15cd04f6…` conserve le PASS des dix scénarios et des trois tests CT18. Une correction d'attente du pilote natif, limitée à attendre effectivement `strengthActive`, est en cours de qualification sur un nouveau gel. Les anciens PASS restent immuables et historiques ; ils ne sont pas réétiquetés avec de nouveaux hashes. Après stabilisation native, les deux suites seront rejouées une fois sous le même gel final.
+
+Le scénario futur Surf/Force utilise une fixture déclarée : relocalisation initiale, capacités futures et quatrième Ramoloss. Les trois Pokémon authentiques et leurs identités sont conservés ; la sauvegarde originale reste byte-identique, SHA `67ec65c4ce3e15d8e3cf1e41a97d1c74cab085fda319d0a14028a057e48dad0a`. Les refus depuis le vrai état de progression sont testés séparément. Le cas sac plein projette en mémoire une limite d'un exemplaire dans la poche concernée ; le projet réel garde sa politique. Cette vue contient toutes les définitions nécessaires au contexte global, son owner détaché est explicite et toutes ses autres données sont comparées à la vue complète.
+
+Le retour après reset exige de réutiliser Force : le rocher initial `(23,4)` ferme le couloir. Les cinq poussées jusqu'en `(28,4)` sont maintenant prouvées par de vrais inputs ; le personnage contourne ensuite le rocher au sud, rejoint les escaliers originaux et la sortie `(42,28)`. Aucun terrain ni collider n'a été changé pour faciliter le test. Le pilote médical hérité est désactivé dans ce lot ; aucune guérison, aucun PP ni résultat de combat n'est injecté par cette adaptation.
+
+#### Fichiers et zones de changement
+
+Le seul document moteur prévu est ce plan existant. Les quinze helpers maintenus sont dans `creation/ecorcia-chapitre7-annexes/`, hors Git moteur :
+
+| Fichier | Zone et responsabilité |
+|---|---|
+| `c7_03_fixture.dart` | Sélection par le vrai Runtime, corpus 102 cartes, métadonnées et médias nécessaires, readback et witnesses |
+| `c7_03_fixture_test.dart` | Préflight indépendant avant publication : contexte, fichiers et loaders effectifs |
+| `c7_03_boot_preflight_test.dart` | Deux vrais Continue, état durable complet, normalisations du writer, états étrangers et scripts préservés |
+| `c7_03_navigation.py` | Recalcul ROM, eau non solide, rampes et raccords |
+| `c7_03_preparer.py` | Intention canonique de 31 actions, préimages et témoins gelés |
+| `c7_03_expected.dart` | Postimages typées complètes et résolution native des 19 Borders |
+| `c7_03_verifier.py` | Comparaison de toutes les sections de projet et de chaque champ des cinq cartes détaillées |
+| `c7_03_verifier_test.py` | Treize refus de dérive, dont bool/nombre, PNJ, ancienne zone, instance et Border |
+| `c7_03_publier.py` | Staging, preview/apply, pending durable, reprise, conservation et gates QA/LIVE |
+| `c7_03_tm18_preparer.py` | Fusion gardée du catalogue et des 40 compatibilités natives |
+| `c7_03_tm18_test.dart` | Services de machine, état durable et moteur Pluie réels |
+| `c7_03_runtime_test.dart` | Refus, récit Rocket/Fargas, Force/Surf, cinq rives, récompenses, reset, disque et Continue |
+| `c7_03_native.dart` | Vraie session et vue 3D, dialogue Player et SaveGameUseCase dans un host QA |
+| `c7_03_native_driver.py` | Inputs et frames GPU, captures, redémarrages réels et preuves de parcours |
+| `c7_03_sources.py` | Graphes de provenance séparés, vrai AOT, gel et vérification des inputs effectifs |
+
+Les reçus canoniques sont sous `creation/ecorcia-chapitre7-annexes/revisites/c7-03/`. Les essais invalidés, leurs logs et leur code exact sont conservés dans une archive unique de preuves `bootstrap-incomplete-closure`, sans copie complète de projet. Le détail des unités physiques admises est dans `publication-qa.json.expectedFiles` ; l'inventaire du jeu principal sera ajouté à la clôture LIVE.
+
+#### Commandes et limites
+
+Depuis le chantier privé : `python3 -B c7_03_preparer.py --check`, `python3 -B c7_03_tm18_preparer.py --check`, `python3 -B c7_03_verifier_test.py`, puis `python3 -B c7_03_publier.py --qa`. Les tests sont exécutés avec le wrapper `executer_tests.py`, `TMPDIR` dans l'unique root QA, et le package config du host isolé. Les actions du driver sont `runtime`, `native` et `review-contact`. Les commandes LIVE ne seront exécutées qu'après les preuves native/runtime qualifiées.
+
+Les deux échecs MCP ciblés restent visibles : premier test Border, `idempotency.preparation_required` à `border_spatial_stdio.test.ts:132` ; second, compteur attendu 11 contre 13 à la ligne 521. Aucun de ces tests ni leur moteur n'a été modifié pour ce lot. Les 19 Borders du Puits sont en revanche testés via le chemin canonique API/CLI et le contexte Runtime. Aucun nouveau contrat ou contrôle UI n'est créé ; l'Editor n'est pas globalement certifié par cette authoring de contenu.
+
+Les deux warnings `visible_for_testing` du helper audio importé hors `test/` restent limités au harnais privé. L'hygiène Markdown garde son échec préexistant sur deux documents ignorés étrangers : le plan iOS du 31 octobre et l'audit des cartes Johto du 31 octobre. Aucun nouveau Markdown C7-03 n'est créé. Les contrôles de rendu macOS ne certifient ni l'iPhone/Android, ni l'acceptation visuelle de Yoahn, ni le shell complet de Player. Le téléchargement 0.1.11 reste antérieur au lot.
+
+Auto-critique : le coût du lot a été augmenté par une fixture initialement trop réduite et par des oracles qui comparaient des données brutes à leur normalisation de sauvegarde. La fixture finale garde le contexte réellement consommé, le writer est vérifié sans supprimer les sept variables de script, et les preuves erronées restent identifiées comme telles. Les conditions de sécurité des Borders ne sont pas désactivées. Le contact connu de l'escalier ne sera accepté en LIVE qu'avec sa paire exacte, sa traversée bidirectionnelle et deux captures inspectées.
+
+Statuts de roadmap inchangés : FG-082/083/120/129 `PARTIAL`, FG-088 `TODO`, FG-122 `DEFERRED` historique MVP ; Force est explicitement autorisé dans C7-03, sans promotion globale de FG-122. La clôture locale doit rester `TO REVIEW`, jamais `DONE` sans décision de Yoahn. C7-04 demeure le prochain lot ; il n'est pas commencé.
+
 ## C7-04 — Ajouter l'Élixir tous-PP
 
 **Fichiers et frontières :** `packages/map_core/lib/src/models/items/project_item_effect_definition.dart`, `packages/map_core/lib/src/serialization/project_item_catalog_codec.dart`, `packages/map_core/lib/src/validation/project_item_catalog_validator.dart`, `packages/map_core/lib/src/read_models/item_capability_truth.dart` ; `packages/map_gameplay/lib/src/player_item_effects.dart` et `items/player_item_use_service.dart` ; `packages/map_authoring/lib/src/domains/gameplay/item_catalog_actions.dart` ; consommateurs runtime/menus de PP et tests correspondants. Les fichiers générés sont régénérés dans le seul package touché.

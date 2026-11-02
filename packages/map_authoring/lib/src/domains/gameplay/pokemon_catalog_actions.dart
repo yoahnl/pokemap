@@ -411,10 +411,22 @@ final class PokemonCatalogActions {
             kind,
             _object(parameters, 'document'),
           );
-    final document =
-        parsedDocument != null && parameters['migrateSchema'] == true
-            ? PokemonJsonDocument._(kind, _object(parameters, 'document'))
-            : parsedDocument;
+    final gifArtifacts = context.request.extensions['battleGifArtifacts'];
+    final preserveGifDocument = !deleting &&
+        kind == PokemonDocumentKind.media &&
+        beforeDocument is Map &&
+        gifArtifacts is Map;
+    if (preserveGifDocument) {
+      _validatePokemonMediaGifChanges(
+        Map<String, dynamic>.from(beforeDocument),
+        _object(parameters, 'document'),
+        gifArtifacts,
+      );
+    }
+    final document = parsedDocument != null &&
+            (parameters['migrateSchema'] == true || preserveGifDocument)
+        ? PokemonJsonDocument._(kind, _object(parameters, 'document'))
+        : parsedDocument;
     final resourceId =
         deleting ? _string(parameters, 'resourceId') : document!.identity;
     if (kind == PokemonDocumentKind.media &&
@@ -588,6 +600,47 @@ AuthoringActionDescriptor _descriptor(String id, {required bool delete}) =>
             }
           : const {},
     );
+
+void _validatePokemonMediaGifChanges(
+  Map<String, dynamic> before,
+  Map<String, dynamic> after,
+  Map artifacts,
+) {
+  final formId = before['defaultFormId'];
+  final beforeVariants = before['variants'];
+  final afterVariants = after['variants'];
+  if (formId is! String ||
+      beforeVariants is! Map ||
+      afterVariants is! Map ||
+      beforeVariants[formId] is! Map ||
+      afterVariants[formId] is! Map) {
+    throw const FormatException('Invalid battle GIF media document.');
+  }
+  const roles = {
+    'frontAnimated',
+    'backAnimated',
+    'frontShinyAnimated',
+    'backShinyAnimated',
+  };
+  if (artifacts.isEmpty || artifacts.keys.any((key) => !roles.contains(key))) {
+    throw const FormatException('Invalid battle GIF selection.');
+  }
+  final beforeForm = Map<String, dynamic>.from(beforeVariants[formId] as Map);
+  final afterForm = afterVariants[formId] as Map;
+  final expectedForm = {
+    ...beforeForm,
+    for (final role in artifacts.keys) role as String: afterForm[role],
+  };
+  final expected = {
+    ...before,
+    'variants': {...beforeVariants, formId: expectedForm},
+  };
+  if (jsonEncode(freezeContractJsonObject(expected, field: 'document')) !=
+      jsonEncode(freezeContractJsonObject(after, field: 'document'))) {
+    throw const FormatException(
+        'A battle GIF import cannot change other media fields.');
+  }
+}
 
 void _validatePokemonMediaMigration(
   Map<String, dynamic> before,

@@ -504,6 +504,8 @@ final class BattleTurnAnimationPlanner {
                     effectId != null &&
                         scoped.status == BattleRecipeAudioStatus.ready
                     ? [
+                        if (selection.cameraBefore != null)
+                          _resolveCameraFocusStep(selection.cameraBefore!, execution),
                         StartTrackedEffectStep(
                           effectId: effectId,
                           fallbackSteps: fallback,
@@ -511,6 +513,7 @@ final class BattleTurnAnimationPlanner {
                         ),
                         ...scoped.steps,
                         const WaitTrackedEffectsStep(),
+                        if (selection.cameraAfter != null) selection.cameraAfter!,
                       ]
                     : scoped.steps;
                 audioScopes.addAll(scoped.audioScopes);

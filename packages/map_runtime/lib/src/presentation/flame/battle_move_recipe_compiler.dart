@@ -2,6 +2,7 @@ import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
 
 import 'battle_animation_plan.dart';
+import 'battle_gen5_motion_playback.dart';
 import 'battle_recipe_audio_program.dart';
 
 enum BattleRecipeAudioCompileStatus { ready, silent, legacy, unsupported }
@@ -20,6 +21,10 @@ typedef BattleGroupedSplParticle = ({
 typedef BattleGroupedSplSelection = ({
   List<BattleGroupedSplParticle> particles,
   BattleMoveClipAudio audio,
+  ({String target, int durationMs})? cameraBefore,
+  int? cameraAfterMs,
+  List<BattleGen5MotionSpec> swings,
+  String? pausedTarget,
 });
 
 final class BattleRecipeAudioCompileResult {
@@ -75,16 +80,42 @@ final class BattleMoveRecipeCompiler {
       'startParticle',
       'waitEffects',
       'splParticleV2',
+      'splParticleV3',
+      'splParticleV4',
       'sound',
       'audioSelectionV2',
+      'cameraFocus',
+      'cameraReset',
+      'gen5Swing',
+      'gen5SpritePause',
     };
     if (recipe.unsupportedCapabilities(capabilities).isNotEmpty) return null;
-    final program = (recipe.toJson()['program'] as Map).cast<String, dynamic>();
+    final source = recipe.toJson();
+    final required = (source['requiredCapabilities'] as List).cast<String>();
+    final program = (source['program'] as Map).cast<String, dynamic>();
     if (program['kind'] != 'sequence') return null;
     final sequence = program['steps'] as List;
-    if (sequence.length != 2) return null;
-    final parallel = (sequence.first as Map).cast<String, dynamic>();
-    final barrier = (sequence.last as Map).cast<String, dynamic>();
+    if (sequence.length != 2 && sequence.length != 4 && sequence.length != 6) return null;
+    final hasCamera = sequence.length >= 4;
+    final hasMotion = sequence.length == 6;
+    if (required.contains('cameraFocus') != hasCamera ||
+        required.contains('cameraReset') != hasCamera ||
+        required.contains('gen5Swing') != hasMotion ||
+        required.contains('gen5SpritePause') != hasMotion) {
+      return null;
+    }
+    final focus = hasCamera ? (sequence.first as Map).cast<String, dynamic>() : null;
+    final reset = hasCamera ? (sequence.last as Map).cast<String, dynamic>() : null;
+    if (hasCamera && (focus!['kind'] != 'cameraFocus' || reset!['kind'] != 'cameraReset')) return null;
+    final pause = hasMotion ? (sequence[1] as Map).cast<String, dynamic>() : null;
+    final resume = hasMotion ? (sequence[4] as Map).cast<String, dynamic>() : null;
+    if (hasMotion && (pause!['kind'] != 'gen5SpritePause' || pause['paused'] != true ||
+        resume!['kind'] != 'gen5SpritePause' || resume['paused'] != false ||
+        pause['target'] != resume['target'])) {
+      return null;
+    }
+    final parallel = (sequence[hasMotion ? 2 : hasCamera ? 1 : 0] as Map).cast<String, dynamic>();
+    final barrier = (sequence[hasMotion ? 3 : hasCamera ? 2 : 1] as Map).cast<String, dynamic>();
     if (parallel['kind'] != 'parallel' || barrier['kind'] != 'waitEffects') {
       return null;
     }
@@ -94,21 +125,46 @@ final class BattleMoveRecipeCompiler {
       for (final resource in recipe.resources) resource.id: resource,
     };
     final particles = <BattleGroupedSplParticle>[];
+    final swings = <BattleGen5MotionSpec>[];
+    final swingChannels = <(String, String)>{};
+    int? definitionVersion;
     for (final value in steps) {
       final step = (value as Map).cast<String, dynamic>();
+      if (step['kind'] == 'gen5Swing' && hasMotion) {
+        final target = step['target'] as String;
+        final channel = step['channel'] as String;
+        if (!swingChannels.add((target, channel)) || swings.length >= 4) return null;
+        swings.add(BattleGen5MotionSpec(
+          target: target, channel: channel, x: step['x'] as int, y: step['y'] as int,
+          frames: step['frames'] as int, wait: step['wait'] as int, count: step['count'] as int,
+        ));
+        continue;
+      }
       if (step['kind'] != 'startParticle') return null;
       final id = step['resourceId'] as String;
       final resource = resources[id];
-      if (resource == null || resource.definitionVersion != 2) return null;
+      if (resource == null || !{2, 3, 4}.contains(resource.definitionVersion)) {
+        return null;
+      }
+      definitionVersion ??= resource.definitionVersion;
+      if (resource.definitionVersion != definitionVersion) return null;
       particles.add((
         resourceId: id,
         from: step['from'] as String,
         to: step['to'] as String,
       ));
     }
+    if (particles.isEmpty || (hasMotion &&
+        (swings.isEmpty || !swings.any((swing) => swing.target == pause!['target'])))) {
+      return null;
+    }
     return (
       particles: List.unmodifiable(particles),
       audio: BattleMoveClipAudio(audio.resourceId),
+      cameraBefore: focus == null ? null : (target: focus['target'] as String, durationMs: focus['durationMs'] as int),
+      cameraAfterMs: reset == null ? null : reset['durationMs'] as int,
+      swings: List.unmodifiable(swings),
+      pausedTarget: pause?['target'] as String?,
     );
   }
 

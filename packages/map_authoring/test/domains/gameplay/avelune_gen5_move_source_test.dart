@@ -127,6 +127,40 @@ final class _Transport implements PokemonBoundedExternalHttpTransport {
 }
 
 void main() {
+  test('accepts the pinned BW2 source names for six canonical moves', () async {
+    for (final item in [
+      (id: 108, move: 'smokescreen', path: 'smoke_screen'),
+      (id: 120, move: 'self-destruct', path: 'selfdestruct'),
+      (id: 135, move: 'soft-boiled', path: 'softboiled'),
+      (id: 136, move: 'high-jump-kick', path: 'hi_jump_kick'),
+      (id: 185, move: 'feint-attack', path: 'faint_attack'),
+      (id: 265, move: 'smelling-salts', path: 'smelling_salt'),
+    ]) {
+      final transport = _Transport()..document = _v2Document();
+      transport.document['move'] = {'id': item.move, 'sourceId': item.id};
+      final file = Map<String, Object?>.from(transport.document['script'] as Map);
+      file['path'] = 'res/battle/animations/moves/${item.path}.s';
+      transport.document['script'] = file;
+      final result = await AveluneGen5MoveSource(client: transport)
+          .fetch(moveId: item.move, sourceMoveId: item.id);
+      expect(result!.scriptPath, file['path']);
+      expect(result.playbackStatus, 'not-supported');
+    }
+  });
+
+  test('does not apply a BW2 name alias to another move identity', () async {
+    final transport = _Transport()..document = _v2Document();
+    transport.document['move'] = {'id': 'smokescreen', 'sourceId': 109};
+    final file = Map<String, Object?>.from(transport.document['script'] as Map);
+    file['path'] = 'res/battle/animations/moves/smoke_screen.s';
+    transport.document['script'] = file;
+    await expectLater(
+      AveluneGen5MoveSource(client: transport)
+          .fetch(moveId: 'smokescreen', sourceMoveId: 109),
+      throwsFormatException,
+    );
+  });
+
   test('accepts the generic API response with a missing BW2 texture', () async {
     final encoded =
         Platform.environment['AVELUNE_BW2_TACKLE_PARTIAL_RESPONSE']!;
@@ -166,6 +200,45 @@ void main() {
     expect(snapshot.particles.keys, [199]);
     expect(snapshot.particles[199]!.textureBytes, isNotEmpty);
     expect(snapshot.playbackStatus, 'not-supported');
+    final particle = snapshot.particles[199]!;
+    final converted = Gen5SplParticleConverter.convert(
+      particle.definitionBytes,
+      particleId: 199,
+      sourceRevision: snapshot.sourceRevision,
+      sourcePath: 'res/particles/btlv_effvm_particles/199/particles.json',
+      expectedSha256: particle.definitionSha256,
+      textureResourceIds: {
+        for (final name in particle.textureBytes.keys) name: name,
+      },
+    );
+    expect(converted.definition.schemaVersion, 3);
+    expect(converted.definition.emitters, hasLength(2));
+    final soundPath = Platform.environment['AVELUNE_BW2_TACKLE_QA_SOUND_PATH'];
+    final sound = await File(soundPath ?? '../map_runtime/assets/audio/overworld/jump.wav').readAsBytes();
+    final pilot = Gen5TacklePilotRecipeConverter.convert(
+      snapshot: snapshot, projectMoveId: 'tackle', soundBytes: sound,
+      soundMediaType: soundPath == null ? 'audio/wav' : 'audio/mpeg',
+    );
+    expect(pilot.binding.sourceMoveId, 'tackle');
+    expect(pilot.bundle.recipe.usesGen5Motion, isTrue);
+    expect(pilot.limitations, isNotEmpty);
+    final program = pilot.bundle.recipe.toJson()['program'] as Map;
+    final steps = program['steps'] as List;
+    final grouped = (steps[2] as Map)['steps'] as List;
+    expect(grouped.where((item) => (item as Map)['kind'] == 'gen5Swing'), [
+      {'kind': 'gen5Swing', 'target': 'user', 'channel': 'position',
+        'x': 4096, 'y': 0, 'frames': 4, 'wait': 1, 'count': 1},
+      {'kind': 'gen5Swing', 'target': 'target', 'channel': 'scale',
+        'x': 1229, 'y': -1229, 'frames': 2, 'wait': 1, 'count': 1},
+    ]);
+    expect(pilot.bundle.recipe.resources.where((item) => item.role == 'particleDefinition'), hasLength(1));
+    expect(() => snapshot.scriptBytes[0] = 0, throwsUnsupportedError);
+    final texture = particle.textureBytes.values.first;
+    expect(() => texture[0] = 0, throwsUnsupportedError);
+    expect(() => Gen5TacklePilotRecipeConverter.convert(
+      snapshot: snapshot, projectMoveId: 'tackle', soundBytes: Uint8List.fromList([1, 2, 3]),
+      soundMediaType: 'audio/mpeg',
+    ), throwsFormatException);
   }, skip: Platform.environment['AVELUNE_BW2_TACKLE_RESPONSE'] == null);
 
   test('accepts the real API response for the BW2 Tail Whip source v2',

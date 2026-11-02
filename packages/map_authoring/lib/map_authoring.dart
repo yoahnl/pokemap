@@ -216,6 +216,7 @@ export 'src/domains/gameplay/pokemon_external/import_avelune_gen5_battle_source.
 export 'src/domains/gameplay/pokemon_external/avelune_gen5_move_source.dart';
 export 'src/domains/gameplay/pokemon_external/gen5_battle_source_dependencies.dart';
 export 'src/domains/gameplay/pokemon_external/gen5_spl_particle_converter.dart';
+export 'src/domains/gameplay/pokemon_external/gen5_tackle_pilot_recipe_converter.dart';
 export 'src/domains/gameplay/pokemon_external/avelune_move_recipe_source.dart';
 export 'src/domains/gameplay/pokemon_external/showdown_snapshot_source.dart';
 export 'src/domains/gameplay/pokemon_external/http_pokemon_external_source_repository.dart';

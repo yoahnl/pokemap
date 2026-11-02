@@ -45,6 +45,10 @@ final class BattleRecipeAudioSequence extends BattleRecipeAudio {
 final class BattleMoveAnimationRecipe {
   BattleMoveAnimationRecipe._(this._json, this.resources, this.audio);
 
+  static const splV3RuntimeCapability = 'battle.spl-particle-v3@1';
+  static const splV4RuntimeCapability = 'battle.spl-particle-v4@1';
+  static const gen5MotionRuntimeCapability = 'battle.gen5-combatant-motion@1';
+
   static const recognizedCapabilities = {
     'sequence',
     'parallel',
@@ -55,7 +59,11 @@ final class BattleMoveAnimationRecipe {
     'startParticle',
     'waitEffects',
     'splParticleV2',
+    'splParticleV3',
+    'splParticleV4',
     'audioSelectionV2',
+    'gen5Swing',
+    'gen5SpritePause',
   };
   final Map<String, dynamic> _json;
   final List<BattleMoveAnimationResource> resources;
@@ -93,7 +101,7 @@ final class BattleMoveAnimationRecipe {
     for (final value in required) {
       final capability = _text(value, 'capability');
       if (!recognizedCapabilities.contains(capability) ||
-          (version == 1 && capability == 'audioSelectionV2') ||
+          (version == 1 && {'audioSelectionV2', 'gen5Swing', 'gen5SpritePause'}.contains(capability)) ||
           !capabilities.add(capability)) {
         throw const FormatException('Unsupported or duplicate capability');
       }
@@ -127,6 +135,14 @@ final class BattleMoveAnimationRecipe {
     for (final resource in resources) {
       if (resource.definitionVersion == 2 &&
           !capabilities.contains('splParticleV2')) {
+        throw const FormatException('SPL particle capability not declared');
+      }
+      if (resource.definitionVersion == 3 &&
+          !capabilities.contains('splParticleV3')) {
+        throw const FormatException('SPL particle capability not declared');
+      }
+      if (resource.definitionVersion == 4 &&
+          !capabilities.contains('splParticleV4')) {
         throw const FormatException('SPL particle capability not declared');
       }
       for (final dependency in resource.dependencies) {
@@ -261,6 +277,35 @@ final class BattleMoveAnimationRecipe {
           if (inParallel) {
             throw const FormatException('Effect barrier inside parallel group');
           }
+        case 'gen5Swing':
+          _keys(step, {'kind', 'target', 'channel', 'x', 'y', 'frames', 'wait', 'count'});
+          if (!{'user', 'target'}.contains(step['target']) ||
+              !{'position', 'scale'}.contains(step['channel'])) {
+            throw const FormatException('Invalid Gen 5 swing target or channel');
+          }
+          final min = step['channel'] == 'scale' ? -4095 : -65536;
+          final max = step['channel'] == 'scale' ? 28672 : 65536;
+          final x = _boundedInt(step['x'], min, max);
+          final y = _boundedInt(step['y'], min, max);
+          final frames = _boundedInt(step['frames'], 1, 600);
+          final wait = _boundedInt(step['wait'], 0, 600);
+          final count = _boundedInt(step['count'], 1, 32);
+          if (frames * 2 * count * (wait + 1) - wait > 1800) {
+            throw const FormatException('Gen 5 swing duration exceeds limit');
+          }
+          if (step['channel'] == 'scale') {
+            for (final value in [x, y]) {
+              final extreme = (((value * 1048576) ~/ frames + 524288) / 1048576).floor() * frames;
+              if (extreme < -4095 || extreme > 28672) {
+                throw const FormatException('Gen 5 swing scale exceeds limit');
+              }
+            }
+          }
+        case 'gen5SpritePause':
+          _keys(step, {'kind', 'target', 'paused'});
+          if (!{'user', 'target'}.contains(step['target']) || step['paused'] is! bool) {
+            throw const FormatException('Invalid Gen 5 sprite pause');
+          }
         default:
           throw const FormatException('Unsupported step');
       }
@@ -276,6 +321,9 @@ final class BattleMoveAnimationRecipe {
 
   Map<String, dynamic> toJson() =>
       (jsonDecode(jsonEncode(_json)) as Map).cast<String, dynamic>();
+
+  bool get usesGen5Motion => _list(_json['requiredCapabilities'], 'requiredCapabilities')
+      .any((value) => value == 'gen5Swing' || value == 'gen5SpritePause');
 
   Set<String> unsupportedCapabilities(Set<String> available) => _list(
     _json['requiredCapabilities'],
@@ -353,7 +401,7 @@ final class BattleMoveAnimationRecipe {
           definition['schemaVersion'] != resource.definitionVersion) {
         throw const FormatException('Particle version mismatch');
       }
-      if (resource.definitionVersion == 2) {
+      if ({2, 3, 4}.contains(resource.definitionVersion)) {
         final particle = BattleSplParticleDefinition.fromJson(definition);
         final declared = resource.dependencies.toSet();
         if (particle.textureIds.length != declared.length ||
@@ -486,7 +534,10 @@ final class BattleMoveAnimationResource {
     final definitionVersion = json['definitionVersion'];
     if ((role == 'particleDefinition' &&
             (definitionVersion is! int ||
-                (definitionVersion != 1 && definitionVersion != 2))) ||
+                (definitionVersion != 1 &&
+                    definitionVersion != 2 &&
+                    definitionVersion != 3 &&
+                    definitionVersion != 4))) ||
         (role != 'particleDefinition' && definitionVersion != null)) {
       throw const FormatException('Unsupported particle definition version');
     }

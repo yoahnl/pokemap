@@ -2280,6 +2280,10 @@ void main() {
           event: event,
           audio: result,
           trackedEffectId: 'grouped-spl',
+          cameraBefore: const CameraFocusStep(
+            target: BattleCameraFocusTarget.target, durationSeconds: .1,
+          ),
+          cameraAfter: const BattleCameraResetStep(durationSeconds: .1),
           silentVisuals: const AnimationGroupStep(
             mode: BattleAnimationGroupMode.parallel,
             steps: [WaitStep(durationSeconds: .1)],
@@ -2342,6 +2346,10 @@ void main() {
             event: event,
             audio: audio,
             trackedEffectId: 'grouped-spl',
+            cameraBefore: const CameraFocusStep(
+              target: BattleCameraFocusTarget.target, durationSeconds: .1,
+            ),
+            cameraAfter: const BattleCameraResetStep(durationSeconds: .1),
             silentVisuals: const AnimationGroupStep(
               mode: BattleAnimationGroupMode.parallel,
               steps: [WaitStep(durationSeconds: 0)],
@@ -2352,11 +2360,19 @@ void main() {
       final sounds = <String>[];
       var hpTransitions = 0;
       var visualFallbacks = 0;
+      var cameraFocuses = 0;
+      var cameraResets = 0;
       void Function()? failEffect;
       final runner = _scopeRunner(
         onPlaySe: (step) => sounds.add(step.seName),
         onHudHpTween: (_) => hpTransitions++,
         onScreenFlash: (_) => visualFallbacks++,
+        onCameraFocus: (step) {
+          if (step.target == BattleCameraFocusTarget.target && step.durationSeconds == .1) {
+            cameraFocuses++;
+          }
+        },
+        onBattleCameraReset: (_) => cameraResets++,
         onStartRecoverableTrackedEffect: (step, done, fail) {
           expect(step.effectId, 'grouped-spl');
           failEffect = fail;
@@ -2391,6 +2407,8 @@ void main() {
       expect(sounds.where((name) => name == 'hit'), hasLength(1));
       expect(hpTransitions, 1);
       expect(visualFallbacks, 2);
+      expect(cameraFocuses, 1);
+      expect(cameraResets, greaterThanOrEqualTo(1));
     });
   }
 
@@ -4408,6 +4426,8 @@ BattleAnimationRunner _scopeRunner({
   void Function(PlaySeStep)? onPlaySe,
   void Function(ScreenFlashStep)? onScreenFlash,
   void Function(HudHpTweenStep)? onHudHpTween,
+  void Function(CameraFocusStep)? onCameraFocus,
+  void Function(BattleCameraResetStep)? onBattleCameraReset,
   void Function() Function(
     StartTrackedEffectStep,
     void Function(),
@@ -4426,6 +4446,8 @@ BattleAnimationRunner _scopeRunner({
   onBarrierPulse: (_) {},
   onSwapCombatantVisual: (_) {},
   onPlaySe: onPlaySe,
+  onCameraFocus: onCameraFocus,
+  onBattleCameraReset: onBattleCameraReset,
   onStartRecoverableTrackedEffect: onStartRecoverableTrackedEffect,
 );
 

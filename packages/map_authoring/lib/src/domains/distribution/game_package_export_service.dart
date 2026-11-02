@@ -324,7 +324,26 @@ final class CanonicalGamePackageExportService {
           ? spatialMaps
           : [for (final entry in projection.project.maps) MapData.fromJson(jsonDecode(utf8.decode(
               projection.payloadFiles['project/${entry.relativePath}']!)) as Map<String, dynamic>)];
+      final battleCapabilities = <String>{};
+      for (final entry in projection.payloadFiles.entries.where((entry) =>
+          entry.key.startsWith('project/data/pokemon/battle_recipes/bindings/') && entry.key.endsWith('.json'))) {
+        final decoded = jsonDecode(utf8.decode(entry.value));
+        if (decoded is! Map<String, dynamic> || decoded['kind'] != 'avelune.battle-recipe-binding') continue;
+        final marker = BattleRecipeProjectBinding.fromJson(decoded);
+        final path = 'project/${battleRecipeBlobPath(marker.binding.recipeSha256, 'application/vnd.avelune.battle-recipe+json', projectMoveId: marker.binding.projectMoveId)}';
+        final recipe = BattleMoveAnimationRecipe.fromJson(jsonDecode(utf8.decode(projection.payloadFiles[path]!)) as Map<String, dynamic>);
+        if (recipe.resources.any((resource) => resource.definitionVersion == 3)) {
+          battleCapabilities.add(BattleMoveAnimationRecipe.splV3RuntimeCapability);
+        }
+        if (recipe.resources.any((resource) => resource.definitionVersion == 4)) {
+          battleCapabilities.add(BattleMoveAnimationRecipe.splV4RuntimeCapability);
+        }
+        if (recipe.usesGen5Motion) {
+          battleCapabilities.add(BattleMoveAnimationRecipe.gen5MotionRuntimeCapability);
+        }
+      }
       final requiredCapabilities = <String>{
+        ...battleCapabilities,
         if (contextualCapture) PokemonRulesetProfile.contextualCaptureCapabilityId,
         if (exteriorDecoration) MapExteriorDecoration.capabilityId,
         if (extendedWeather) SpatialWeatherCapabilities.extendedCapabilityId,

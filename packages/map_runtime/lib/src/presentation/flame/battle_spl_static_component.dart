@@ -71,6 +71,7 @@ final class BattleSplStaticComponent extends PositionComponent
             pixelsPerUnit: pixelsPerUnit,
             aspectRatio4096: frame.aspectRatio4096,
             directionalParents: frame.directional,
+            directionalChildren: frame.childDirectional,
             scaleAxis: switch (frame.scaleAxis) {
               'x' => BattleSplPreviewScaleAxis.x,
               'y' => BattleSplPreviewScaleAxis.y,
@@ -185,8 +186,9 @@ final class BattleSplStaticComponent extends PositionComponent
               : activeProjection!.projectParticle(
                   anchor,
                   particle,
+                  emitterIndex: i,
                   includeDirection:
-                      frame.directional && particle.parentId == null,
+                      particle.parentId == null ? frame.directional : frame.childDirectional,
                 );
           if (value == null) {
             _fail(BattleSplAdmissionFailure.projectionUnavailable);

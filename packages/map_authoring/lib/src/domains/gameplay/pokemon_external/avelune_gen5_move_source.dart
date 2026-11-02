@@ -121,6 +121,19 @@ final class AveluneGen5MoveSource {
   static final _revisionPattern = RegExp(r'^[a-f0-9]{40}$');
   static final _textureName = RegExp(r'^[A-Za-z0-9_]{1,64}$');
 
+  static String _scriptPath(String moveId, int sourceMoveId) {
+    final name = switch ((sourceMoveId, moveId)) {
+      (108, 'smokescreen') => 'smoke_screen',
+      (120, 'self-destruct') => 'selfdestruct',
+      (135, 'soft-boiled') => 'softboiled',
+      (136, 'high-jump-kick') => 'hi_jump_kick',
+      (185, 'feint-attack') => 'faint_attack',
+      (265, 'smelling-salts') => 'smelling_salt',
+      _ => moveId.replaceAll('-', '_'),
+    };
+    return 'res/battle/animations/moves/$name.s';
+  }
+
   Future<AveluneGen5MoveSourceSnapshot?> fetch({
     required String moveId,
     required int sourceMoveId,
@@ -215,8 +228,7 @@ final class AveluneGen5MoveSource {
       );
     }
     final scriptFile = _SourceFile.read(document['script']);
-    if (scriptFile.path !=
-            'res/battle/animations/moves/${moveId.replaceAll('-', '_')}.s' ||
+    if (scriptFile.path != _scriptPath(moveId, sourceMoveId) ||
         scriptFile.size > 64 * 1024) {
       throw const FormatException('Invalid Gen 5 move script file');
     }
@@ -392,8 +404,7 @@ final class AveluneGen5MoveSource {
     }
 
     final scriptFile = _SourceFile.read(document['script']);
-    if (scriptFile.path !=
-            'res/battle/animations/moves/${moveId.replaceAll('-', '_')}.s' ||
+    if (scriptFile.path != _scriptPath(moveId, sourceMoveId) ||
         scriptFile.size > 64 * 1024) {
       throw const FormatException('Invalid Gen 5 move script file');
     }

@@ -22,6 +22,36 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('BattleSceneCombatantComponent animations', () {
+    test('applies and releases a script transform only for its owner', () async {
+      final component = _component();
+      await component.onLoad();
+      final initial = component.currentRenderedSpriteRect;
+      final owner = Object();
+      component.applyBattleScriptTransform(
+        offset: const Offset(12, -4), scaleX: 1.25, scaleY: .75, owner: owner,
+      );
+      expect(component.applyBattleScriptTransform(
+        offset: Offset.zero, scaleX: 1, scaleY: 1, owner: Object(),
+      ), isFalse);
+      expect(component.currentVisualOffset, const Offset(12, -4));
+      expect(component.currentRenderedSpriteRect.width, closeTo(initial.width * 1.25, .01));
+      expect(component.currentRenderedSpriteRect.height, closeTo(initial.height * .75, .01));
+      component.clearBattleScriptTransform(owner: Object());
+      expect(component.currentVisualOffset, const Offset(12, -4));
+      component.clearBattleScriptTransform(owner: owner);
+      expect(component.currentVisualOffset, Offset.zero);
+      expect(component.currentRenderedSpriteRect, initial);
+      component.pauseBattleSpriteAnimation(owner: owner);
+      expect(component.applyBattleScriptTransform(
+        offset: const Offset(1, 0), scaleX: 1, scaleY: 1, owner: owner,
+      ), isTrue);
+      expect(component.ownsBattleScriptTransform(owner), isTrue);
+      expect(component.ownsBattleSpriteAnimationPause(owner), isTrue);
+      component.snapToBattlePose();
+      expect(component.ownsBattleScriptTransform(owner), isFalse);
+      expect(component.ownsBattleSpriteAnimationPause(owner), isFalse);
+    });
+
     test('lunge changes position and then returns to battle pose', () async {
       final component = _component();
       await component.onLoad();

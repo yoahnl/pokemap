@@ -114,6 +114,26 @@ void main() {
     expect(alpha(z, 30, 30), 0);
   });
 
+  test('orients directional children independently from parents', () async {
+    final texture = await _solidImage(const ui.Color(0xffffffff));
+    addTearDown(texture.dispose);
+    final painter = BattleSplPointPreviewPainter(
+      textures: {1: texture}, pixelsPerUnit: 10, aspectRatio4096: 8192,
+      directionalChildren: true,
+    );
+    final recorder = ui.PictureRecorder();
+    painter.paint(ui.Canvas(recorder), origin: const ui.Offset(30, 30),
+      particles: [_particle(parentId: 1, velocity: (x: 1, y: 0, z: 0))]);
+    final picture = recorder.endRecording();
+    final image = await picture.toImage(60, 60);
+    addTearDown(image.dispose);
+    picture.dispose();
+    final data = (await image.toByteData(format: ui.ImageByteFormat.rawRgba))!;
+    int alpha(int x, int y) => data.getUint8((y * 60 + x) * 4 + 3);
+    expect(alpha(45, 30), 0);
+    expect(alpha(30, 45), 255);
+  });
+
   test('uses projected direction for a depth-only velocity', () async {
     final texture = await _solidImage(const ui.Color(0xffffffff));
     addTearDown(texture.dispose);
@@ -308,8 +328,10 @@ BattleSplPointParticle _particle({
   int animScale = 4096,
   BattleSplVector velocity = (x: 0, y: 0, z: 0),
   int texture = 1,
+  int? parentId,
 }) => BattleSplPointParticle(
   id: 1,
+  parentId: parentId,
   motion: BattleSplParticleMotion(
     position: (x: x, y: 0, z: 0),
     velocity: velocity,

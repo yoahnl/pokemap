@@ -137,7 +137,9 @@ final class PokemonExternalImport {
         species.nationalDex <= 649 &&
         species.forms.isBaseForm &&
         gifSource == null) {
-      warnings.add('Les GIF de secours ne sont pas disponibles pour ce projet.');
+      warnings.add(
+        'Les GIF de secours ne sont pas disponibles pour ce projet.',
+      );
     } else if (gifSource != null &&
         species.nationalDex >= 1 &&
         species.nationalDex <= 649 &&
@@ -157,7 +159,9 @@ final class PokemonExternalImport {
     AvelunePokemonCry? cry;
     final cryForm = pokemon?['name'];
     if (session.storage != ProjectSessionStorage.workingCatalog ||
-        crySource == null || !species.forms.isBaseForm || cryForm is! String) {
+        crySource == null ||
+        !species.forms.isBaseForm ||
+        cryForm is! String) {
       warnings.add('Le cri compatible n’est pas disponible pour cet import.');
     } else {
       try {
@@ -404,15 +408,24 @@ final class PokemonExternalImport {
       }
     }
     final gifs = preview.gifSelection;
-    if (gifs != null &&
-        gifs.media.isNotEmpty &&
-        importsSpecies &&
-        !requiresReopen) {
+    final sharedGifMedia = pokemonReferenceOwners(
+      indexed,
+      PokemonDocumentFamily.media,
+      preview.speciesId,
+    ).any((owner) => owner != preview.speciesId);
+    if (gifs != null && gifs.media.isNotEmpty && !requiresReopen) {
       try {
-        final speciesPath = preview.documents
-            .firstWhere((item) => item.family == PokemonDocumentFamily.species)
-            .relativePath;
-        gifImported = await _importGifs(gifs, preview.speciesId, speciesPath);
+        final speciesDocument = preview.documents.firstWhere(
+          (item) => item.family == PokemonDocumentFamily.species,
+        );
+        if (!sharedGifMedia) {
+          gifImported = await _importGifs(
+            gifs,
+            preview.speciesId,
+            speciesDocument.relativePath,
+            speciesDocument.document['nationalDex'] as int,
+          );
+        }
         if (!gifImported) {
           warnings.add('La fiche média existante a été conservée.');
         }
@@ -425,7 +438,9 @@ final class PokemonExternalImport {
       }
     }
     final sharedCryMedia = pokemonReferenceOwners(
-      indexed, PokemonDocumentFamily.media, preview.speciesId,
+      indexed,
+      PokemonDocumentFamily.media,
+      preview.speciesId,
     ).any((owner) => owner != preview.speciesId);
     if (preview.cry != null && sharedCryMedia) {
       warnings.add('La fiche média partagée a été conservée.');
@@ -434,10 +449,16 @@ final class PokemonExternalImport {
         final speciesPath = preview.documents
             .firstWhere((item) => item.family == PokemonDocumentFamily.species)
             .relativePath;
-        cryImported = await _importCry(preview.cry!, preview.speciesId, speciesPath);
-        warnings.add(cryImported
-            ? 'Cri importé.'
-            : 'Le cri ou la fiche média existante a été conservé(e).');
+        cryImported = await _importCry(
+          preview.cry!,
+          preview.speciesId,
+          speciesPath,
+        );
+        warnings.add(
+          cryImported
+              ? 'Cri importé.'
+              : 'Le cri ou la fiche média existante a été conservé(e).',
+        );
       } on Object {
         requiresReopen = true;
         warnings.add(
@@ -483,7 +504,10 @@ final class PokemonExternalImport {
       return false;
     }
     final baseline = await mapAdapter.resourceBaseline(session);
-    final mediaPath = pokemonDocumentPath(baseline.manifest.pokemon.mediaDir, speciesId);
+    final mediaPath = pokemonDocumentPath(
+      baseline.manifest.pokemon.mediaDir,
+      speciesId,
+    );
     final before = await readOptionalPokemonResource(
       reader: reader,
       projectRoot: session.directoryPath,
@@ -500,22 +524,33 @@ final class PokemonExternalImport {
     } else {
       final decoded = jsonDecode(utf8.decode(before));
       if (decoded is! Map ||
-          !const {1, currentPokemonMediaSchemaVersion}.contains(decoded['schemaVersion']) ||
+          !const {
+            1,
+            currentPokemonMediaSchemaVersion,
+          }.contains(decoded['schemaVersion']) ||
           decoded['speciesId'] != speciesId ||
-          decoded['defaultFormId'] is! String || decoded['variants'] is! Map ||
+          decoded['defaultFormId'] is! String ||
+          decoded['variants'] is! Map ||
           (decoded['variants'] as Map)[decoded['defaultFormId']] is! Map) {
         return false;
       }
       document = decoded.cast<String, dynamic>();
     }
     final variants = (document['variants'] as Map).cast<String, dynamic>();
-    final variant = (variants[document['defaultFormId']] as Map).cast<String, dynamic>();
+    final variant = (variants[document['defaultFormId']] as Map)
+        .cast<String, dynamic>();
     final existing = variant['cry'];
-    if (existing != null && (existing is! String || existing.trim().isNotEmpty)) return false;
+    if (existing != null &&
+        (existing is! String || existing.trim().isNotEmpty)) {
+      return false;
+    }
     final extension = cry.mediaType == 'audio/wav' ? 'wav' : 'mp3';
     variant['cry'] = 'assets/pokemon/battle-cries/${cry.sha256}.$extension';
-    await PokemonDocumentTransaction(session: session, mapAdapter: mapAdapter, reader: reader)
-        .applyBattleCry(
+    await PokemonDocumentTransaction(
+      session: session,
+      mapAdapter: mapAdapter,
+      reader: reader,
+    ).applyBattleCry(
       PokemonDocumentWriteRequest(
         family: PokemonDocumentFamily.media,
         relativePath: mediaPath,
@@ -537,6 +572,7 @@ final class PokemonExternalImport {
     PokemonBattleGifSelection selection,
     String speciesId,
     String speciesPath,
+    int nationalDex,
   ) async {
     if (isCurrent?.call() == false) throw StateError('La sélection a changé.');
     final speciesBytes = await readOptionalPokemonResource(
@@ -549,6 +585,7 @@ final class PokemonExternalImport {
       (jsonDecode(utf8.decode(speciesBytes)) as Map).cast<String, dynamic>(),
     );
     if (species.id != speciesId ||
+        species.nationalDex != nationalDex ||
         !species.forms.isBaseForm ||
         species.refs.media != speciesId) {
       return false;
@@ -558,7 +595,7 @@ final class PokemonExternalImport {
       baseline.manifest.pokemon.mediaDir,
       speciesId,
     );
-    final before = await readOptionalPokemonResource(
+    var before = await readOptionalPokemonResource(
       reader: reader,
       projectRoot: session.directoryPath,
       relativePath: mediaPath,
@@ -574,7 +611,10 @@ final class PokemonExternalImport {
     } else {
       final decoded = jsonDecode(utf8.decode(before));
       if (decoded is! Map ||
-          decoded['schemaVersion'] != currentPokemonMediaSchemaVersion ||
+          !const {
+            1,
+            currentPokemonMediaSchemaVersion,
+          }.contains(decoded['schemaVersion']) ||
           decoded['speciesId'] != speciesId ||
           decoded['defaultFormId'] != 'base' ||
           decoded['variants'] is! Map ||
@@ -582,6 +622,61 @@ final class PokemonExternalImport {
         return false;
       }
       document = decoded.cast<String, dynamic>();
+    }
+    if (document['schemaVersion'] == 1) {
+      const animatedFields = {
+        'frontAnimated',
+        'backAnimated',
+        'frontShinyAnimated',
+        'backShinyAnimated',
+        'frontFemaleAnimated',
+        'backFemaleAnimated',
+        'frontShinyFemaleAnimated',
+        'backShinyFemaleAnimated',
+      };
+      final variants = document['variants'] as Map;
+      if (variants.values.any(
+        (variant) =>
+            variant is Map && variant.keys.any(animatedFields.contains),
+      )) {
+        return false;
+      }
+      await PokemonDocumentTransaction(
+        session: session,
+        mapAdapter: mapAdapter,
+        reader: reader,
+      ).migrateMedia(
+        PokemonDocumentWriteRequest(
+          family: PokemonDocumentFamily.media,
+          relativePath: mediaPath,
+          beforeBytes: before,
+          document: {
+            ...document,
+            'schemaVersion': currentPokemonMediaSchemaVersion,
+          },
+        ),
+        species: (
+          resourceIdentity: pokemonSpeciesResourceIdentity(speciesId),
+          relativePath: speciesPath,
+          beforeBytes: speciesBytes,
+        ),
+      );
+      before = await readOptionalPokemonResource(
+        reader: reader,
+        projectRoot: session.directoryPath,
+        relativePath: mediaPath,
+      );
+      if (before == null) {
+        throw StateError('La fiche média migrée est absente.');
+      }
+      final migrated = jsonDecode(utf8.decode(before));
+      if (migrated is! Map ||
+          migrated['schemaVersion'] != currentPokemonMediaSchemaVersion) {
+        throw StateError('La fiche média migrée a changé.');
+      }
+      document
+        ..clear()
+        ..addAll(migrated.cast<String, dynamic>());
     }
     final variants = (document['variants'] as Map).cast<String, dynamic>();
     final variant = (variants['base'] as Map).cast<String, dynamic>();

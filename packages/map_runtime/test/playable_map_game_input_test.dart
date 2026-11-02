@@ -42,11 +42,13 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('PlayableMapGame runtime input seam', () {
-    test('2D battle plays a packaged grouped SPL recipe without HTTP', () =>
+    for (final moveSourceId in ['flamethrower', 'scratch', 'tackle-bw2-qa', 'tackle-bw2-cancel-qa', 'tackle-bw2-hang-qa', 'karate-bw2-qa', 'poison-bw2-qa']) {
+    test('2D battle plays a packaged grouped SPL recipe without HTTP: $moveSourceId', () =>
         HttpOverrides.runZoned(() async {
-      installConvertedQaHeadlessAudio(completePlayback: true);
+      installConvertedQaHeadlessAudio(completePlayback: moveSourceId != 'tackle-bw2-hang-qa');
       final fetched = await groupedSplRecipeFixture(
-        fixtureRoot: Platform.environment['AVELUNE_BW2_PILOT_FIXTURE'],
+        fixtureRoot: moveSourceId == 'flamethrower' ? Platform.environment['AVELUNE_BW2_PILOT_FIXTURE'] : null,
+        moveSourceId: moveSourceId,
       );
       final fixture = await offlineRecipePackageFixture(
         spatial: false, fetchedRecipe: fetched,
@@ -84,12 +86,64 @@ void main() {
       final tracked = overlay.debugActiveAnimationPlan.flattenedSteps
           .whereType<StartTrackedEffectStep>().length;
       expect(overlay.debugActiveAnimationPlan.audioScopes, hasLength(tracked));
+      if (moveSourceId.startsWith('tackle-bw2-')) {
+        final steps = overlay.debugActiveAnimationPlan.flattenedSteps.toList();
+        final focus = steps.indexWhere((step) => step is CameraFocusStep &&
+            step.target == BattleCameraFocusTarget.target && step.durationSeconds == .267);
+        final effect = steps.indexWhere((step) => step is StartTrackedEffectStep);
+        final reset = steps.indexWhere((step) => step is BattleCameraResetStep && step.durationSeconds == .267);
+        expect(focus, greaterThanOrEqualTo(0));
+        expect(effect, greaterThan(focus));
+        expect(reset, greaterThan(effect));
+      }
       final scopes = overlay.debugActiveAnimationPlan.audioScopes.toList();
+      if (moveSourceId.startsWith('tackle-bw2-')) {
+        await _pumpUntil(game, () =>
+            (overlay.debugPlayerCombatant?.currentVisualOffset.dx.abs() ?? 0) > .1 &&
+            overlay.debugEnemyCombatant?.debugBattleSpriteAnimationPaused == true,
+          maxTicks: 2000);
+        if (moveSourceId == 'tackle-bw2-cancel-qa') {
+          final attacker = overlay.debugPlayerCombatant!;
+          final target = overlay.debugEnemyCombatant!;
+          overlay.onRemove();
+          expect(target.debugBattleSpriteAnimationPaused, isFalse);
+          expect(attacker.currentVisualOffset.dx, closeTo(0, .001));
+          return;
+        }
+        if (moveSourceId == 'tackle-bw2-hang-qa') {
+          await _pumpUntil(game, () => !overlay.isTurnPresentationActive, maxTicks: 8000);
+          expect(overlay.debugEnemyCombatant?.debugBattleSpriteAnimationPaused, isFalse);
+          expect(overlay.debugPlayerCombatant?.currentVisualOffset.dx, closeTo(0, .001));
+          return;
+        }
+      }
       await _pumpUntil(game, () => overlay.children.whereType<BattleSplStaticComponent>()
           .any((effect) => effect.playback.activeParticles > 0), maxTicks: 2000);
+      if (moveSourceId == 'tackle-bw2-qa') {
+        final focus = overlay.debugActiveAnimationPlan.flattenedSteps
+            .whereType<CameraFocusStep>()
+            .firstWhere((step) => step.target == BattleCameraFocusTarget.target && step.durationSeconds == .267);
+        expect(overlay.battleCameraFocusSubject?.slot.side, focus.side);
+        expect(overlay.battleCameraFocusSubject?.slot.slotIndex, focus.slotIndex);
+      }
       await _pumpUntil(game, () => !overlay.isTurnPresentationActive, maxTicks: 2000);
       expect(scopes.every((scope) => scope.fullyDispatched && scope.cues.length == 1), isTrue);
-    }, createHttpClient: (_) => throw StateError('Network disabled for this test')));
+      if (moveSourceId == 'tackle-bw2-qa') {
+        expect(overlay.battleCameraFocusSubject, isNull);
+        expect(overlay.debugEnemyCombatant?.debugBattleSpriteAnimationPaused, isFalse);
+        expect(overlay.debugPlayerCombatant?.currentVisualOffset.dx, closeTo(0, .001));
+      }
+    }, createHttpClient: (_) => throw StateError('Network disabled for this test')),
+      skip: Platform.environment['AVELUNE_BW2_BUNDLE_QA_DIR'] == null && ((moveSourceId == 'poison-bw2-qa' &&
+          (Platform.environment['AVELUNE_BW2_POISON_QA_RESPONSE_PATH'] == null ||
+           Platform.environment['AVELUNE_BW2_POISON_QA_SOUND_PATH'] == null)) ||
+          (moveSourceId == 'karate-bw2-qa' &&
+          (Platform.environment['AVELUNE_BW2_KARATE_QA_RESPONSE_PATH'] == null ||
+           Platform.environment['AVELUNE_BW2_KARATE_QA_SOUND_PATH'] == null)) ||
+          (moveSourceId.startsWith('tackle-bw2-') &&
+          (Platform.environment['AVELUNE_BW2_TACKLE_QA_RESPONSE_PATH'] == null ||
+           Platform.environment['AVELUNE_BW2_TACKLE_QA_SOUND_PATH'] == null))));
+    }
 
     test('2D battle reads an imported exported package without HTTP', () =>
         HttpOverrides.runZoned(() async {

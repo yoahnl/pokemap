@@ -7,6 +7,7 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flame/game.dart';
+import 'package:flame_audio/flame_audio.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
@@ -58,12 +59,17 @@ void main() {
       ? LoopbackRecipeTransport(Platform.environment[loopbackKeys.first]!)
       : null;
   TestWidgetsFlutterBinding.ensureInitialized();
-  setUp(() => installConvertedQaHeadlessAudio(completePlayback: true));
+  setUp(() async {
+    installConvertedQaHeadlessAudio(completePlayback: true);
+    await AudioPlayer.global.ensureInitialized();
+  });
   tearDownAll(() => loopbackTransport?.close());
-  testWidgets('spatial battle plays a packaged grouped SPL recipe offline', (tester) =>
+  for (final moveSourceId in ['flamethrower', 'scratch', 'tackle-bw2-qa', 'karate-bw2-qa', 'poison-bw2-qa']) {
+  testWidgets('spatial battle plays a packaged grouped SPL recipe offline: $moveSourceId', (tester) =>
       HttpOverrides.runZoned(() async {
     final fetched = (await tester.runAsync(() => groupedSplRecipeFixture(
-      fixtureRoot: Platform.environment['AVELUNE_BW2_PILOT_FIXTURE'],
+      fixtureRoot: moveSourceId == 'flamethrower' ? Platform.environment['AVELUNE_BW2_PILOT_FIXTURE'] : null,
+      moveSourceId: moveSourceId,
     )))!;
     final fixture = (await tester.runAsync(
       () => offlineRecipePackageFixture(fetchedRecipe: fetched),
@@ -81,32 +87,151 @@ void main() {
     var sawTracked = false;
     var sawParticles = false;
     var sawAudio = false;
+    var sawTargetCamera = false;
+    var sawCameraReset = false;
+    var sawMotionAndPause = false;
+    var sawActiveTurn = false;
     final submitted = runtime.submitChoice(fight).then((value) {
       accepted = value;
       return value;
     });
-    for (var i = 0; i < 2000 && accepted == null; i++) {
+    for (var i = 0; i < 2000; i++) {
       await _pumpPresentation(tester);
       final overlay = runtime.battleOverlay;
       if (overlay != null) {
+        sawActiveTurn = sawActiveTurn || overlay.isTurnPresentationActive;
         final plan = overlay.debugActiveAnimationPlan;
         sawTracked = sawTracked || plan.flattenedSteps.whereType<StartTrackedEffectStep>().isNotEmpty;
         sawAudio = sawAudio || plan.audioScopes.isNotEmpty;
         sawParticles = sawParticles || overlay.children.whereType<BattleSplStaticComponent>()
             .any((effect) => effect.playback.activeParticles > 0);
+        if (moveSourceId == 'tackle-bw2-qa') {
+          sawMotionAndPause = sawMotionAndPause ||
+              ((overlay.debugPlayerCombatant?.currentVisualOffset.dx.abs() ?? 0) > .1 &&
+               overlay.debugEnemyCombatant?.debugBattleSpriteAnimationPaused == true);
+          final focus = plan.flattenedSteps.whereType<CameraFocusStep>()
+              .where((step) => step.target == BattleCameraFocusTarget.target && step.durationSeconds == .267)
+              .firstOrNull;
+          sawTargetCamera = sawTargetCamera || (focus != null &&
+              overlay.battleCameraFocusSubject?.slot.side == focus.side &&
+              overlay.battleCameraFocusSubject?.slot.slotIndex == focus.slotIndex);
+          sawCameraReset = sawCameraReset || plan.flattenedSteps
+              .whereType<BattleCameraResetStep>().any((step) => step.durationSeconds == .267);
+        }
         if (runtime.phase == SpatialBattlePhase.battle && overlay.isTurnPresentationActive) {
           runtime.handleInput(const RuntimeInputEvent.press(RuntimeInputControl.primary));
         }
       }
+      if (accepted == false ||
+          (accepted == true && sawTracked && sawAudio && sawParticles &&
+           !(runtime.battleOverlay?.isTurnPresentationActive ?? false)) ||
+          (accepted == true && sawActiveTurn &&
+           !(runtime.battleOverlay?.isTurnPresentationActive ?? false) &&
+           runtime.battlePresentationListenable.value?.interactionsEnabled == true)) {
+        break;
+      }
     }
     expect(accepted, isNotNull, reason: '${runtime.error}');
     expect(await submitted, isTrue);
-    expect(sawTracked, isTrue);
+    final recipeResult = runtime.debugOfflineRecipeResults[fetched.binding.projectMoveId];
+    final executions = runtime.displaySession?.state.currentTurn?.timeline
+        .whereType<BattleTurnExecutionEvent>()
+        .map((event) => '${event.execution.move.id}:${event.execution.targetSlot}')
+        .toList();
+    expect(sawTracked, isTrue, reason: 'move=${fetched.binding.projectMoveId} fallback=${recipeResult?.fallbackReason} unavailable=${recipeResult?.unavailableCapabilities} executions=$executions phase=${runtime.phase} error=${runtime.error}');
+    expect(sawAudio, isTrue);
+    expect(sawParticles, isTrue);
+    if (moveSourceId == 'tackle-bw2-qa') {
+      expect(sawTargetCamera, isTrue);
+      expect(sawCameraReset, isTrue);
+      expect(sawMotionAndPause, isTrue);
+      expect(runtime.battleOverlay?.debugEnemyCombatant?.debugBattleSpriteAnimationPaused, isFalse);
+    }
+    expect(runtime.error, isNull);
+    runtime.cancel();
+  }, createHttpClient: (_) => throw StateError('Network disabled for this test')),
+    skip: Platform.environment['AVELUNE_BW2_BUNDLE_QA_DIR'] == null &&
+        ((moveSourceId == 'tackle-bw2-qa' &&
+          (Platform.environment['AVELUNE_BW2_TACKLE_QA_RESPONSE_PATH'] == null ||
+           Platform.environment['AVELUNE_BW2_TACKLE_QA_SOUND_PATH'] == null)) ||
+         (moveSourceId == 'karate-bw2-qa' &&
+          (Platform.environment['AVELUNE_BW2_KARATE_QA_RESPONSE_PATH'] == null ||
+           Platform.environment['AVELUNE_BW2_KARATE_QA_SOUND_PATH'] == null)) ||
+         (moveSourceId == 'poison-bw2-qa' &&
+          (Platform.environment['AVELUNE_BW2_POISON_QA_RESPONSE_PATH'] == null ||
+           Platform.environment['AVELUNE_BW2_POISON_QA_SOUND_PATH'] == null))));
+  }
+
+  for (final (move, species, ability, level) in [
+    ('tackle', 'pidgey', 'keen_eye', 8),
+    ('karate_chop', 'machop', 'guts', 10),
+    ('poison_jab', 'spinarak', 'swarm', 43),
+  ]) {
+  testWidgets('HGSS exported $move plays offline from the published recipe', (tester) =>
+      HttpOverrides.runZoned(() async {
+    final projectRoot = Platform.environment['AVELUNE_HGSS_BW2_QA_PROJECT']!;
+    final bundle = (await tester.runAsync(() => loadRuntimeMapBundle(
+      projectFilePath: p.join(projectRoot, 'project.json'), mapId: 'route-29',
+    )))!;
+    final savePath = p.join(Directory.current.path, '..', '..', 'examples',
+        'playable_runtime_host', 'golden_battle_slice', 'runtime_host_launch_save.json');
+    final saveText = await tester.runAsync(() => File(savePath).readAsString());
+    final save = jsonDecode(saveText!) as Map<String, dynamic>;
+    final member = Map<String, dynamic>.from(((save['party'] as Map)['members'] as List).first as Map);
+    member.addAll({'speciesId': species, 'abilityId': ability, 'level': level,
+      'knownMoveIds': [move], 'currentPpByMoveId': {move: 20}, 'currentHp': 25});
+    save['party'] = {'members': [member]};
+    save['currentMapId'] = 'route-29';
+    final state = gameStateFromSaveData(SaveData.fromJson(save))
+        .copyWith(playerSpatialPosition: PlayerSpatialPosition(x: 1.25, z: 1.5));
+    final runtime = SpatialBattleRuntime(readGameState: () => state, commitGameState: (_, _) => true);
+    addTearDown(runtime.dispose);
+    unawaited(runtime.start(bundle: bundle, request: WildBattleStartRequest(
+      requestId: 'hgss-bw2-qa', createdAtEpochMs: 1,
+      returnContext: const OverworldReturnContext(mapId: 'route-29', playerPos: GridPos(x: 1, y: 1), playerFacing: Direction.east),
+      mapId: 'route-29', encounterSourceId: 'qa', encounterSourceKind: EncounterSourceKind.gameplayZone,
+      tableId: 'qa', encounterKind: EncounterKind.walk, speciesId: 'rattata',
+      level: 2, minLevel: 2, maxLevel: 2, weight: 1, playerPos: const GridPos(x: 1, y: 1),
+    )));
+    await _readyInView(tester, runtime);
+    final fight = runtime.displaySession!.decisionRequest.allowedChoices.whereType<PlayerBattleChoiceFight>().first;
+    bool? accepted;
+    final submitted = runtime.submitChoice(fight).then((value) {
+      accepted = value;
+      return value;
+    });
+    var sawTracked = false;
+    var sawParticles = false;
+    var sawAudio = false;
+    final executions = <String>{};
+    final phases = <SpatialBattlePhase>{};
+    for (var i = 0; i < 2000; i++) {
+      await _pumpPresentation(tester);
+      phases.add(runtime.phase);
+      executions.addAll(runtime.displaySession?.state.currentTurn?.timeline
+          .whereType<BattleTurnExecutionEvent>()
+          .map((event) => '${event.execution.move.id}:${event.execution.targetSlot}') ?? const <String>[]);
+      final overlay = runtime.battleOverlay;
+      if (overlay == null) continue;
+      final plan = overlay.debugActiveAnimationPlan;
+      sawTracked = sawTracked || plan.flattenedSteps.whereType<StartTrackedEffectStep>().isNotEmpty;
+      sawAudio = sawAudio || plan.audioScopes.isNotEmpty;
+      sawParticles = sawParticles || overlay.children.whereType<BattleSplStaticComponent>().any((effect) => effect.playback.activeParticles > 0);
+      if (overlay.isTurnPresentationActive) runtime.handleInput(const RuntimeInputEvent.press(RuntimeInputControl.primary));
+      if (accepted == false || (accepted == true && sawTracked && sawAudio && sawParticles && !overlay.isTurnPresentationActive) ||
+          (accepted == true && runtime.phase != SpatialBattlePhase.battle)) break;
+    }
+    expect(accepted, isNotNull, reason: '${runtime.error}');
+    expect(await submitted, isTrue);
+    final result = runtime.debugOfflineRecipeResults[move];
+    expect(sawTracked, isTrue, reason: 'fallback=${result?.fallbackReason} executions=$executions phases=$phases error=${runtime.error}');
     expect(sawAudio, isTrue);
     expect(sawParticles, isTrue);
     expect(runtime.error, isNull);
     runtime.cancel();
-  }, createHttpClient: (_) => throw StateError('Network disabled for this test')));
+  }, createHttpClient: (_) => throw StateError('Network disabled for this test')),
+    skip: Platform.environment['AVELUNE_HGSS_BW2_QA_PROJECT'] == null);
+  }
 
   testWidgets('imports a real API recipe and uses it offline in battle',
       (tester) async {

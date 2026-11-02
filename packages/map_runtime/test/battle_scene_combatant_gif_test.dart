@@ -95,6 +95,36 @@ Future<List<int>> _renderedPixel(
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('pauses and resumes the sprite clock without accepting a foreign owner', () async {
+    final directory = await _directory();
+    final gif = await _writeGif(directory);
+    final budget = _budget(1024);
+    final sprite = BattleCombatantSpriteSpec(
+      facing: BattleCombatantSpriteFacing.front,
+      explicitAnimatedImageAbsolutePath: gif,
+    );
+    final component = _component(budget: budget, sprite: sprite);
+    addTearDown(component.onRemove);
+    await _loadMounted(component, sprite);
+    component.update(.1);
+    final pausedFrame = component.stageSourceRect;
+    final owner = Object();
+    component.pauseBattleSpriteAnimation(owner: owner);
+    component.update(.3);
+    expect(component.stageSourceRect, pausedFrame);
+    component.resumeBattleSpriteAnimation(owner: Object());
+    component.update(.3);
+    expect(component.stageSourceRect, pausedFrame);
+    final otherOwner = Object();
+    component.pauseBattleSpriteAnimation(owner: otherOwner);
+    component.resumeBattleSpriteAnimation(owner: owner);
+    component.update(.2);
+    expect(component.stageSourceRect, pausedFrame);
+    component.resumeBattleSpriteAnimation(owner: otherOwner);
+    component.update(.2);
+    expect(component.stageSourceRect, isNot(pausedFrame));
+  });
+
   test('advances a stable GIF atlas and releases it on removal', () async {
     final directory = await _directory();
     final gif = await _writeGif(directory);

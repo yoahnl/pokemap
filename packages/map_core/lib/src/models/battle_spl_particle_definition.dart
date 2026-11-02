@@ -1,8 +1,13 @@
 import 'dart:convert';
 
 final class BattleSplParticleDefinition {
-  BattleSplParticleDefinition._(this.emitters, this.textureIds);
+  BattleSplParticleDefinition._(
+    this.schemaVersion,
+    this.emitters,
+    this.textureIds,
+  );
 
+  final int schemaVersion;
   final List<BattleSplEmitterDefinition> emitters;
   final Set<String> textureIds;
 
@@ -14,7 +19,8 @@ final class BattleSplParticleDefinition {
       throw const FormatException('Invalid SPL particle definition');
     }
     _fields(copy, {'schemaVersion', 'emitters'});
-    if (copy['schemaVersion'] is! int || copy['schemaVersion'] != 2) {
+    if (copy['schemaVersion'] is! int ||
+        !{2, 3, 4}.contains(copy['schemaVersion'])) {
       throw const FormatException('Unsupported SPL particle version');
     }
     final values = _list(copy['emitters']);
@@ -25,17 +31,18 @@ final class BattleSplParticleDefinition {
     final emitters = <BattleSplEmitterDefinition>[];
     for (final value in values) {
       final emitter = _map(value);
-      _validateEmitter(emitter, textures);
+      _validateEmitter(emitter, textures, copy['schemaVersion'] as int);
       emitters.add(BattleSplEmitterDefinition._(emitter));
     }
     return BattleSplParticleDefinition._(
+      copy['schemaVersion'] as int,
       List.unmodifiable(emitters),
       Set.unmodifiable(textures),
     );
   }
 
   Map<String, dynamic> toJson() => {
-    'schemaVersion': 2,
+    'schemaVersion': schemaVersion,
     'emitters': [for (final emitter in emitters) emitter.toJson()],
   };
 }
@@ -49,7 +56,11 @@ final class BattleSplEmitterDefinition {
       (jsonDecode(jsonEncode(_json)) as Map).cast<String, dynamic>();
 }
 
-void _validateEmitter(Map<String, dynamic> emitter, Set<String> textures) {
+void _validateEmitter(
+  Map<String, dynamic> emitter,
+  Set<String> textures,
+  int version,
+) {
   _fields(emitter, {'emission', 'appearance', 'motion', 'child'});
   final emission = _map(emitter['emission']);
   _fields(emission, {
@@ -58,6 +69,7 @@ void _validateEmitter(Map<String, dynamic> emitter, Set<String> textures) {
     'axis',
     'radius',
     'axisVelocity',
+    if (version >= 3) 'positionVelocity',
     'followEmitter',
     'rate',
     'startDelay',
@@ -80,6 +92,7 @@ void _validateEmitter(Map<String, dynamic> emitter, Set<String> textures) {
     throw const FormatException('Zero-radius SPL sphere is unsupported');
   }
   _integer(emission['axisVelocity'], -32768, 32767);
+  if (version >= 3) _integer(emission['positionVelocity'], -32768, 32767);
   _boolean(emission['followEmitter']);
   _integer(emission['rate'], 0, 64 * 4096);
   _integer(emission['startDelay'], 0, 65535);
@@ -137,9 +150,15 @@ void _validateEmitter(Map<String, dynamic> emitter, Set<String> textures) {
   }
 
   final motion = _map(emitter['motion']);
-  _fields(motion, {'gravity', 'airResistance'});
+  _fields(motion, {'gravity', 'airResistance', if (version >= 4) 'magnet'});
   _vector(motion['gravity'], -32768, 32767);
   _integer(motion['airResistance'], 0, 255);
+  if (version >= 4 && motion['magnet'] != null) {
+    final magnet = _map(motion['magnet']);
+    _fields(magnet, {'target', 'force'});
+    _vector(magnet['target'], -2147483648, 2147483647);
+    _integer(magnet['force'], -32768, 32767);
+  }
 
   final child = emitter['child'];
   if (child != null) {
@@ -156,6 +175,9 @@ void _validateEmitter(Map<String, dynamic> emitter, Set<String> textures) {
       'emissionDelay',
       'emissionInterval',
       'fadeAlpha',
+      if (version >= 4) 'scaleEnd',
+      if (version >= 4) 'inheritBehaviors',
+      if (version >= 4) 'draw',
     });
     _integer(fields['velocityRatio'], 0, 255);
     _integer(fields['randomVelocityMagnitude'], 0, 32767);
@@ -168,6 +190,13 @@ void _validateEmitter(Map<String, dynamic> emitter, Set<String> textures) {
     final delay = _integer(fields['emissionDelay'], 0, 255);
     _integer(fields['emissionInterval'], 1, 255);
     _boolean(fields['fadeAlpha']);
+    if (version >= 4 && fields['scaleEnd'] != null) {
+      _integer(fields['scaleEnd'], 0, 32767);
+    }
+    if (version >= 4) {
+      _boolean(fields['inheritBehaviors']);
+      _choice(fields['draw'], {'billboard', 'directionalBillboard'});
+    }
     final effectiveLifetime = ((lifetime * 255) >> 8) + 1;
     if (effectiveLifetime < 2 || effectiveLifetime * delay > 524287) {
       throw const FormatException('Invalid SPL child timing');

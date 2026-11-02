@@ -33,6 +33,21 @@ void main() {
   if (motion.velocity.x != -1) {
     throw StateError('Incorrect motion: ${motion.velocity.x}');
   }
+  final magnet = BattleSplParticleMotion(
+    position: (x: 100, y: -200, z: 300),
+    velocity: (x: 512, y: -512, z: 1024),
+    rotation: 0,
+    angularVelocity: 0,
+  ).advanceWithGravity(
+    gravity: (x: 0, y: 0, z: 0),
+    emitterVelocity: (x: 0, y: 0, z: 0),
+    airResistance: 128,
+    magnetTarget: (x: 4096, y: -4096, z: 0),
+    magnetForce: 512,
+  );
+  if (magnet.velocity != (x: 947, y: -935, z: 858)) {
+    throw StateError('Incorrect magnetic force: ${magnet.velocity}');
+  }
   final vector = BattleSplVectorMath.randomUnitVector(BattleSplRandom(seed: 0));
   if (vector != (x: 3262, y: 2383, z: -676)) {
     throw StateError('Incorrect vector: $vector');

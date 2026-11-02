@@ -17,6 +17,7 @@ final class BattleSplConfiguredEmitter {
     this._origin,
     this.aspectRatio4096,
     this.directional,
+    this.childDirectional,
     this.scaleAxis,
   );
 
@@ -30,6 +31,7 @@ final class BattleSplConfiguredEmitter {
     final emission = json['emission'] as Map<String, dynamic>;
     final appearance = json['appearance'] as Map<String, dynamic>;
     final motion = json['motion'] as Map<String, dynamic>;
+    final magnet = motion['magnet'] as Map<String, dynamic>?;
     final scale = appearance['scale'] as Map<String, dynamic>;
     final color = appearance['color'] as Map<String, dynamic>;
     final alpha = appearance['alpha'] as Map<String, dynamic>;
@@ -83,6 +85,9 @@ final class BattleSplConfiguredEmitter {
       lifecycle: lifecycle,
       loopTime: appearance['loopTime'] as int,
       gravity: _vector(motion['gravity']),
+      magnet: magnet == null
+          ? null
+          : (target: _vector(magnet['target']), force: magnet['force'] as int),
       emitterVelocity: (x: 0, y: 0, z: 0),
       airResistance: motion['airResistance'] as int,
       initialTexture: initialTexture,
@@ -94,9 +99,18 @@ final class BattleSplConfiguredEmitter {
                 radius: emission['radius'] as int,
               )
             : (x: 0, y: 0, z: 0);
-        random.vary(0, variance: 0);
+        final radialSpeed = random.vary(
+          emission['positionVelocity'] as int? ?? 0,
+          variance: 0,
+        );
         final speed = random.vary(emission['axisVelocity'] as int, variance: 0);
-        if (!spherical) BattleSplVectorMath.randomUnitVector(random);
+        final direction = emission.containsKey('positionVelocity')
+            ? position.x == 0 && position.y == 0 && position.z == 0
+                  ? BattleSplVectorMath.randomUnitVector(random)
+                  : BattleSplVectorMath.normalize(position)
+            : spherical
+            ? (x: 0, y: 0, z: 0)
+            : BattleSplVectorMath.randomUnitVector(random);
         final baseScale = random.vary(
           appearance['baseScale'] as int,
           variance: emission['scaleVariance'] as int,
@@ -109,9 +123,15 @@ final class BattleSplConfiguredEmitter {
           motion: BattleSplParticleMotion(
             position: position,
             velocity: (
-              x: (axis.x * speed + 2048) >> 12,
-              y: (axis.y * speed + 2048) >> 12,
-              z: (axis.z * speed + 2048) >> 12,
+              x:
+                  ((direction.x * radialSpeed + 2048) >> 12) +
+                  ((axis.x * speed + 2048) >> 12),
+              y:
+                  ((direction.y * radialSpeed + 2048) >> 12) +
+                  ((axis.y * speed + 2048) >> 12),
+              z:
+                  ((direction.z * radialSpeed + 2048) >> 12) +
+                  ((axis.z * speed + 2048) >> 12),
             ),
             rotation: angle,
             angularVelocity: 0,
@@ -121,6 +141,8 @@ final class BattleSplConfiguredEmitter {
         );
       },
       childFadeAlpha: child?['fadeAlpha'] as bool? ?? false,
+      childScaleEnd: child?['scaleEnd'] as int?,
+      childInheritsBehaviors: child?['inheritBehaviors'] as bool? ?? false,
       childInitializer: child == null
           ? null
           : (_, parent) => BattleSplChildInitializer.create(
@@ -188,6 +210,7 @@ final class BattleSplConfiguredEmitter {
       _vector(emission['origin']),
       appearance['aspectRatio'] as int,
       appearance['draw'] == 'directionalBillboard',
+      child?['draw'] == 'directionalBillboard',
       appearance['scaleAxis'] as String,
     );
   }
@@ -197,6 +220,7 @@ final class BattleSplConfiguredEmitter {
   final BattleSplVector _origin;
   final int aspectRatio4096;
   final bool directional;
+  final bool childDirectional;
   final String scaleAxis;
 
   BattleSplEmitterStep step({

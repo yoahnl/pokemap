@@ -26,10 +26,17 @@ Future<InspectedBattleRecipeBundle> bundle({
   bool crowded = false,
   bool opaque = false,
   bool grouped = false,
+  bool radial = false,
 }) async {
   final raw = jsonDecode(
     await File('../map_core/test/fixtures/spl_particle_v2.json').readAsString(),
   ) as Map<String, dynamic>;
+  if (radial) {
+    raw['schemaVersion'] = 3;
+    (((raw['emitters'] as List).single as Map)['emission']
+            as Map)['positionVelocity'] =
+        914;
+  }
   if (crowded) {
     (((raw['emitters'] as List).single as Map)['emission'] as Map)['rate'] =
         2 * 4096;
@@ -51,7 +58,7 @@ Future<InspectedBattleRecipeBundle> bundle({
         'requiredCapabilities': [
           if (grouped) 'parallel',
           'startParticle',
-          'splParticleV2',
+          radial ? 'splParticleV3' : 'splParticleV2',
         ],
         'provenance': {
           'source': 'synthetic',
@@ -73,7 +80,7 @@ Future<InspectedBattleRecipeBundle> bundle({
             'mediaType': 'application/vnd.avelune.particle+json',
             'sizeBytes': particle.length,
             'sha256': sha256.convert(particle).toString(),
-            'definitionVersion': 2,
+            'definitionVersion': radial ? 3 : 2,
             'dependencies': ['tex'],
           },
           if (grouped)
@@ -83,7 +90,7 @@ Future<InspectedBattleRecipeBundle> bundle({
               'mediaType': 'application/vnd.avelune.particle+json',
               'sizeBytes': particle.length,
               'sha256': sha256.convert(particle).toString(),
-              'definitionVersion': 2,
+              'definitionVersion': radial ? 3 : 2,
               'dependencies': ['tex'],
             },
         ],
@@ -206,6 +213,48 @@ List<String> runWithManualFallback(BattleVerifiedSplPreparation result) {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('loads versioned radial emitters into one verified group', () async {
+    final inspected = await bundle(grouped: true, radial: true);
+    final baseProjection = testProjection();
+    final result = await BattleVerifiedSplLoader(inspected).createGrouped(
+      ['particle', 'particle2'],
+      emitters: const [
+        BattleSplStaticEmitter(
+          emitterIndex: 0,
+          startTick: 0,
+          position: (x: 0, y: 0, z: 0),
+        ),
+        BattleSplStaticEmitter(
+          emitterIndex: 1,
+          startTick: 0,
+          position: (x: 0, y: 0, z: 0),
+        ),
+      ],
+      seed: 0,
+      poolCapacity: 32,
+      maxTicks: 80,
+      origin: ui.Offset.zero,
+      pixelsPerUnit: 4,
+      projection: BattleSplCameraProjection(
+        camera: baseProjection.camera,
+        bindings: [
+          baseProjection.bindings.single,
+          baseProjection.bindings.single,
+        ],
+      ),
+      onComplete: () {},
+      onFailure: (_) => fail('unexpected failure'),
+    );
+    expect(result.failure, isNull);
+    final component = result.component!;
+    addTearDown(component.dispose);
+    expect(component.playback.advance(), isNull);
+    expect(
+      component.playback.frames.expand((frame) => frame.particles),
+      isNotEmpty,
+    );
+  });
 
   test('prepares grouped SPL definitions with one shared playback', () async {
     final inspected = await bundle(grouped: true);

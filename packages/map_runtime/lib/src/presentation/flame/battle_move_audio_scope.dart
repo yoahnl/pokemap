@@ -12,12 +12,16 @@ final class BattleTurnAudioSelection {
     required this.audio,
     required this.silentVisuals,
     this.trackedEffectId,
+    this.cameraBefore,
+    this.cameraAfter,
   });
 
   final BattleTurnExecutionEvent event;
   final BattleRecipeAudioResult audio;
   final AnimationGroupStep silentVisuals;
   final String? trackedEffectId;
+  final CameraFocusStep? cameraBefore;
+  final BattleCameraResetStep? cameraAfter;
 }
 
 final class BattleTurnAudioRequest {
@@ -27,6 +31,8 @@ final class BattleTurnAudioRequest {
     required this.audio,
     required this.silentVisuals,
     this.trackedEffectId,
+    this.cameraBefore,
+    this.cameraAfter,
   });
 
   final BattleTurnExecutionEvent event;
@@ -34,6 +40,8 @@ final class BattleTurnAudioRequest {
   final BattleRecipeAudioSelection audio;
   final AnimationGroupStep silentVisuals;
   final String? trackedEffectId;
+  final CameraFocusStep? cameraBefore;
+  final BattleCameraResetStep? cameraAfter;
 }
 
 final class BattleMoveAudioScopeResult {

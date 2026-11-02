@@ -154,6 +154,60 @@ void main() {
     expect(() => selected.particles.clear(), throwsUnsupportedError);
   });
 
+  test('selects grouped SPL v3 but refuses mixed definition versions', () {
+    final input = groupedSplSource();
+    (input['requiredCapabilities'] as List).add('splParticleV3');
+    final definitions = (input['resources'] as List)
+        .where((item) => (item as Map)['role'] == 'particleDefinition')
+        .cast<Map<String, dynamic>>()
+        .toList();
+    definitions.first['definitionVersion'] = 3;
+    expect(
+      compiler.selectGroupedSpl(BattleMoveAnimationRecipe.fromJson(input)),
+      isNull,
+    );
+    definitions.last['definitionVersion'] = 3;
+    final selected = compiler.selectGroupedSpl(
+      BattleMoveAnimationRecipe.fromJson(input),
+    );
+    expect(selected?.particles, hasLength(2));
+  });
+
+  test('keeps camera movements around a grouped particle effect', () {
+    final input = groupedSplSource();
+    (input['requiredCapabilities'] as List).addAll(<String>['cameraFocus', 'cameraReset']);
+    final steps = (input['program'] as Map)['steps'] as List;
+    steps.insert(0, {'kind': 'cameraFocus', 'target': 'target', 'durationMs': 267});
+    steps.add({'kind': 'cameraReset', 'durationMs': 267});
+    final selected = compiler.selectGroupedSpl(BattleMoveAnimationRecipe.fromJson(input));
+    expect(selected, isNotNull);
+    expect(selected!.cameraBefore, (target: 'target', durationMs: 267));
+    expect(selected.cameraAfterMs, 267);
+  });
+
+  test('selects paired sprite pause and bounded swings around a grouped effect', () {
+    final input = groupedSplSource();
+    (input['requiredCapabilities'] as List).addAll(<String>[
+      'cameraFocus', 'cameraReset', 'gen5Swing', 'gen5SpritePause',
+    ]);
+    final steps = (input['program'] as Map)['steps'] as List;
+    final parallel = steps.first as Map;
+    parallel['steps'] = [...parallel['steps'] as List, ...<Map<String, Object>>[
+      {'kind': 'gen5Swing', 'target': 'user', 'channel': 'position', 'x': 4096, 'y': 0, 'frames': 4, 'wait': 1, 'count': 1},
+      {'kind': 'gen5Swing', 'target': 'target', 'channel': 'scale', 'x': 1229, 'y': -1229, 'frames': 2, 'wait': 1, 'count': 1},
+    ]];
+    steps.insert(0, {'kind': 'gen5SpritePause', 'target': 'target', 'paused': true});
+    steps.insert(0, {'kind': 'cameraFocus', 'target': 'target', 'durationMs': 267});
+    steps.add({'kind': 'gen5SpritePause', 'target': 'target', 'paused': false});
+    steps.add({'kind': 'cameraReset', 'durationMs': 267});
+    final selected = compiler.selectGroupedSpl(BattleMoveAnimationRecipe.fromJson(input));
+    expect(selected, isNotNull);
+    expect(selected!.swings, hasLength(2));
+    expect(selected.pausedTarget, 'target');
+    (steps[4] as Map)['target'] = 'user';
+    expect(compiler.selectGroupedSpl(BattleMoveAnimationRecipe.fromJson(input)), isNull);
+  });
+
   test('does not partially select unsupported grouped recipes', () {
     final silent = groupedSplSource();
     silent['audio'] = {'kind': 'none'};

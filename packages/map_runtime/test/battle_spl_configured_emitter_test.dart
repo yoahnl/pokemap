@@ -11,12 +11,108 @@ import 'package:map_runtime/src/presentation/flame/battle_spl_particle_pool.dart
 import 'package:map_runtime/src/presentation/flame/battle_spl_random.dart';
 
 void main() {
+  test('applies a v4 magnet to configured parent particles', () async {
+    final raw = jsonDecode(
+      await File('../map_core/test/fixtures/spl_particle_v2.json').readAsString(),
+    ) as Map<String, dynamic>;
+    raw['schemaVersion'] = 4;
+    final source = (raw['emitters'] as List).single as Map<String, dynamic>;
+    (source['emission'] as Map)['positionVelocity'] = 0;
+    (source['motion'] as Map)['magnet'] = {
+      'target': {'x': 4096, 'y': 0, 'z': 0},
+      'force': 512,
+    };
+    final emitter = BattleSplConfiguredEmitter(
+      definition: BattleSplParticleDefinition.fromJson(raw).emitters.single,
+      textureIndices: const {'tex': 0},
+      random: BattleSplRandom(seed: 0),
+      pool: BattleSplParticlePool(capacity: 64),
+    );
+    emitter.step(managerFrame: 0, position: (x: 0, y: 0, z: 0));
+    final withMagnet = emitter.playback.particles.single.motion;
+    (source['motion'] as Map)['magnet'] = null;
+    final without = BattleSplConfiguredEmitter(
+      definition: BattleSplParticleDefinition.fromJson(raw).emitters.single,
+      textureIndices: const {'tex': 0},
+      random: BattleSplRandom(seed: 0),
+      pool: BattleSplParticlePool(capacity: 64),
+    );
+    without.step(managerFrame: 0, position: (x: 0, y: 0, z: 0));
+    final base = without.playback.particles.single.motion;
+    expect(withMagnet.position.x, greaterThan(base.position.x));
+    emitter.cancel();
+    without.cancel();
+  });
+
+  test(
+    'applies source radial and axial velocities to a sphere emission',
+    () async {
+      final raw = jsonDecode(
+        await File('../map_core/test/fixtures/spl_particle_v2.json')
+            .readAsString(),
+      ) as Map<String, dynamic>;
+      raw['schemaVersion'] = 3;
+      final data = (raw['emitters'] as List).single as Map<String, dynamic>;
+      final emission = data['emission'] as Map<String, dynamic>;
+      emission['shape'] = 'sphereSurface';
+      emission['radius'] = 1218;
+      emission['axis'] = {'x': 0, 'y': 4096, 'z': 0};
+      emission['axisVelocity'] = 609;
+      emission['positionVelocity'] = 914;
+      final pool = BattleSplParticlePool(capacity: 64);
+      final emitter = BattleSplConfiguredEmitter(
+        definition: BattleSplParticleDefinition.fromJson(raw).emitters.single,
+        textureIndices: const {'tex': 0},
+        random: BattleSplRandom(seed: 0),
+        pool: pool,
+      );
+      emitter.step(managerFrame: 0, position: (x: 0, y: 0, z: 0));
+      final particle = emitter.playback.particles.single;
+      expect(particle.motion.position, (x: 1694, y: 1845, z: -351));
+      expect(particle.motion.velocity, (x: 724, y: 1136, z: -150));
+      emitter.cancel();
+      expect(pool.inUse, 0);
+    },
+  );
+
+  test('keeps v2 sphere emission random state unchanged', () async {
+    final raw = jsonDecode(
+      await File('../map_core/test/fixtures/spl_particle_v2.json')
+          .readAsString(),
+    ) as Map<String, dynamic>;
+    final data = (raw['emitters'] as List).single as Map<String, dynamic>;
+    final emission = data['emission'] as Map<String, dynamic>;
+    emission['shape'] = 'sphereSurface';
+    emission['radius'] = 1;
+    emission['axisVelocity'] = 0;
+    final random = BattleSplRandom(seed: 0);
+    final emitter = BattleSplConfiguredEmitter(
+      definition: BattleSplParticleDefinition.fromJson(raw).emitters.single,
+      textureIndices: const {'tex': 0},
+      random: random,
+      pool: BattleSplParticlePool(capacity: 64),
+    );
+    emitter.step(managerFrame: 0, position: (x: 0, y: 0, z: 0));
+    expect(emitter.playback.particles.single.motion.position, (
+      x: 1,
+      y: 1,
+      z: 0,
+    ));
+    final expected = BattleSplRandom(seed: 0);
+    for (var i = 0; i < 8; i++) {
+      expected.next();
+    }
+    expect(random.state, expected.state);
+    emitter.cancel();
+  });
+
   test('reports dropped particles to the caller', () async {
     final raw = jsonDecode(
       await File('../map_core/test/fixtures/spl_particle_v2.json')
           .readAsString(),
     ) as Map<String, dynamic>;
-    final emission = ((raw['emitters'] as List).single as Map)['emission'] as Map;
+    final emission =
+        ((raw['emitters'] as List).single as Map)['emission'] as Map;
     emission['rate'] = 2 * 4096;
     final pool = BattleSplParticlePool(capacity: 1);
     final emitter = BattleSplConfiguredEmitter(
@@ -25,10 +121,7 @@ void main() {
       random: BattleSplRandom(seed: 0),
       pool: pool,
     );
-    final result = emitter.step(
-      managerFrame: 0,
-      position: (x: 0, y: 0, z: 0),
-    );
+    final result = emitter.step(managerFrame: 0, position: (x: 0, y: 0, z: 0));
     expect(result.droppedParents, 1);
     emitter.cancel();
     expect(pool.inUse, 0);

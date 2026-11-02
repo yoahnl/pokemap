@@ -103,6 +103,18 @@ final class PokemonDocumentTransaction {
     );
   });
 
+  Future<void> migrateMedia(
+    PokemonDocumentWriteRequest media, {
+    required PokemonDocumentReadDependency species,
+  }) => mapAdapter.withResourceMutation(() async {
+    await _apply(
+      [media],
+      scopedMedia: true,
+      expectedDependencies: [species],
+      migrateMedia: true,
+    );
+  });
+
   Future<void> applyBattleCry(
     PokemonDocumentWriteRequest media, {
     required PokemonDocumentReadDependency species,
@@ -121,6 +133,7 @@ final class PokemonDocumentTransaction {
     List<PokemonDocumentWriteRequest> documents, {
     List<PokemonDocumentReadDependency> expectedDependencies = const [],
     bool scopedMedia = false,
+    bool migrateMedia = false,
     Map<String, List<int>> battleGifs = const {},
     ({List<int> bytes, String mediaType})? battleCry,
   }) async {
@@ -132,7 +145,8 @@ final class PokemonDocumentTransaction {
         documents.length == 1 &&
         documents.single.family == PokemonDocumentFamily.media;
     if ((battleGifs.isNotEmpty || battleCry != null) &&
-        (!mediaOnly || session.storage != ProjectSessionStorage.workingCatalog)) {
+        (!mediaOnly ||
+            session.storage != ProjectSessionStorage.workingCatalog)) {
       throw const PokemonWorkspaceFailure(
         'Les GIF et les cris nécessitent un catalogue de travail.',
       );
@@ -185,6 +199,7 @@ final class PokemonDocumentTransaction {
         'parameters': {
           'relativePath': item.relativePath,
           'document': item.document,
+          if (migrateMedia) 'migrateSchema': true,
           if (item.beforeBytes != null)
             'beforeBytesBase64': base64Encode(item.beforeBytes!),
         },

@@ -52,6 +52,9 @@ final class BattleSplPointEmitterPlayback {
     required this.alpha,
     required this.texture,
     required this.nextAlphaByte,
+    this.magnet,
+    this.childScaleEnd,
+    this.childInheritsBehaviors = false,
     this.childInitializer,
     this.childFadeAlpha = false,
     this.followEmitter = false,
@@ -69,7 +72,8 @@ final class BattleSplPointEmitterPlayback {
         initialTexture < 0 ||
         initialTexture > 255 ||
         baseAlpha < 0 ||
-        baseAlpha > 31) {
+        baseAlpha > 31 ||
+        (childScaleEnd != null && (childScaleEnd! < 0 || childScaleEnd! > 32767))) {
       throw const FormatException('Unsupported SPL point emitter playback');
     }
   }
@@ -77,6 +81,9 @@ final class BattleSplPointEmitterPlayback {
   final BattleSplEmitterLifecycle _lifecycle;
   final int loopTime;
   final BattleSplVector gravity;
+  final ({BattleSplVector target, int force})? magnet;
+  final int? childScaleEnd;
+  final bool childInheritsBehaviors;
   final BattleSplVector emitterVelocity;
   final int airResistance;
   final int initialTexture;
@@ -178,6 +185,8 @@ final class BattleSplPointEmitterPlayback {
                 gravity: gravity,
                 emitterVelocity: currentVelocity,
                 airResistance: airResistance,
+                magnetTarget: magnet?.target,
+                magnetForce: magnet?.force,
               ),
               emitterPosition: followEmitter
                   ? followingPosition()
@@ -228,13 +237,18 @@ final class BattleSplPointEmitterPlayback {
             final animatedAlpha = childFadeAlpha
                 ? ((255 - lifeRate) * 31) ~/ 255
                 : 31;
+            final animatedScale = childScaleEnd == null
+                ? 4096
+                : childScaleEnd! + ((childScaleEnd! - 4096) * (lifeRate - 255)) ~/ 255;
             _particles[event.particleId] = BattleSplPointParticle(
               id: event.particleId,
               parentId: previous.parentId,
               motion: previous.motion.advanceWithGravity(
-                gravity: (x: 0, y: 0, z: 0),
+                gravity: childInheritsBehaviors ? gravity : (x: 0, y: 0, z: 0),
                 emitterVelocity: currentVelocity,
                 airResistance: airResistance,
+                magnetTarget: childInheritsBehaviors ? magnet?.target : null,
+                magnetForce: childInheritsBehaviors ? magnet?.force : null,
               ),
               emitterPosition: childFollowsEmitter
                   ? followingPosition()
@@ -242,7 +256,7 @@ final class BattleSplPointEmitterPlayback {
               baseScale4096: previous.baseScale4096,
               baseAlpha5: previous.baseAlpha5,
               animatedAlpha5: animatedAlpha,
-              scale4096: 4096,
+              scale4096: animatedScale,
               color: previous.color,
               alpha5: (previous.baseAlpha5 * (animatedAlpha + 1)) >> 5,
               texture: previous.texture,

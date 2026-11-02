@@ -56,18 +56,29 @@ final class BattleSplCameraProjection {
     required this.camera,
     required List<BattleSplCameraBinding> bindings,
     this.worldTransform,
-  }) : bindings = List.unmodifiable(bindings) {
+    List<BattleSplWorldTransform>? emitterTransforms,
+  }) : bindings = List.unmodifiable(bindings),
+       emitterTransforms = emitterTransforms == null
+           ? null
+           : List.unmodifiable(emitterTransforms) {
     if (bindings.isEmpty || bindings.length > 32) {
       throw const FormatException('Invalid SPL camera bindings');
     }
     if (worldTransform != null && !worldTransform!.isValid) {
       throw const FormatException('Invalid SPL world transform');
     }
+    if (emitterTransforms != null &&
+        (worldTransform == null ||
+            emitterTransforms.length != bindings.length ||
+            emitterTransforms.any((transform) => !transform.isValid))) {
+      throw const FormatException('Invalid SPL emitter transforms');
+    }
   }
 
   final BattlePerspectiveCamera camera;
   final List<BattleSplCameraBinding> bindings;
   final BattleSplWorldTransform? worldTransform;
+  final List<BattleSplWorldTransform>? emitterTransforms;
 
   List<BattleSplWorldAnchor>? capture() {
     final values = <BattleSplWorldAnchor>[];
@@ -125,8 +136,13 @@ final class BattleSplCameraProjection {
     BattleSplWorldAnchor anchor,
     BattleSplPointParticle particle, {
     bool includeDirection = true,
+    int emitterIndex = 0,
   }) {
-    final transform = worldTransform;
+    if (emitterTransforms != null &&
+        (emitterIndex < 0 || emitterIndex >= emitterTransforms!.length)) {
+      return null;
+    }
+    final transform = emitterTransforms?[emitterIndex] ?? worldTransform;
     if (transform == null) return null;
     final position = particle.motion.position;
     final emitter = particle.emitterPosition;

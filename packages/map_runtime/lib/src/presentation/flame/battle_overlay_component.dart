@@ -54,6 +54,7 @@ import 'battle_turn_animation_planner.dart';
 import 'battle_sfx_player.dart';
 import 'battle_move_visual_resolver.dart';
 import 'battle_move_recipe_compiler.dart';
+import 'battle_gen5_motion_playback.dart';
 import 'battle_offline_move_recipe_loader.dart';
 import 'battle_spl_camera_projection.dart';
 import 'battle_spl_static_admission.dart';
@@ -937,25 +938,25 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
           .where((item) => item.from != item.to)
           .map((item) => (from: item.from, to: item.to))
           .toSet();
-      if (directions.length > 1) return null;
       final anchors = BattleSplCameraProjection(
         camera: camera,
         bindings: [bindings['userMouth']!, bindings['targetImpact']!],
       ).capture();
       if (anchors == null) return null;
       final anchorByName = {'userMouth': anchors[0], 'targetImpact': anchors[1]};
-      var yaw = 0.0;
-      if (directions.isNotEmpty) {
-        final direction = directions.single;
+      final yaws = <({String from, String to}), double>{};
+      for (final direction in directions) {
         final from = anchorByName[direction.from]!;
         final to = anchorByName[direction.to]!;
         final dx = to.x - from.x;
         final dz = to.z - from.z;
         if (dx.abs() + dz.abs() < .000001) return null;
-        yaw = math.atan2(dz, dx);
+        yaws[direction] = math.atan2(dz, dx);
       }
+      final yaw = yaws.isEmpty ? 0.0 : yaws.values.first;
       final emitters = <BattleSplStaticEmitter>[];
       final emitterBindings = <BattleSplCameraBinding>[];
+      final emitterTransforms = <BattleSplWorldTransform>[];
       for (final part in selection.particles) {
         final definition = definitions[part.resourceId];
         if (definition == null) return null;
@@ -966,6 +967,10 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
             position: (x: 0, y: 0, z: 0),
           ));
           emitterBindings.add(bindings[part.from]!);
+          emitterTransforms.add(BattleSplWorldTransform(
+            worldUnitsPerUnit: anchors[0].unit * 5,
+            yawRadians: yaws[(from: part.from, to: part.to)] ?? yaw,
+          ));
         }
       }
       if (emitters.isEmpty || emitters.length > 32) return null;
@@ -976,6 +981,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
           worldUnitsPerUnit: anchors[0].unit * 5,
           yawRadians: yaw,
         ),
+        emitterTransforms: emitterTransforms,
       );
       final pendingDecode = media.acquireTextureDecode(
         isCurrent: () => !_ballImagesDisposed,
@@ -1013,8 +1019,64 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
         startTimeout: const Duration(seconds: 1),
       );
       final id = 'grouped-spl-${_nextGroupedSplId++}';
+      BattleGen5MotionComponent? motion;
+      if (selection.swings.isNotEmpty) {
+        final owner = Object();
+        BattleGen5MotionBinding motionBinding(
+          BattleSlotRef slot,
+          ({BattleSceneCombatantComponent actor, int lineupIndex, String? combatantId}) identity,
+        ) {
+          var claimed = false;
+          var paused = false;
+          bool current() {
+            final value = _effectSubjectAt(slot);
+            return value != null && identical(value.actor, identity.actor) &&
+                value.lineupIndex == identity.lineupIndex && value.combatantId == identity.combatantId;
+          }
+          return BattleGen5MotionBinding(
+            apply: (pose) {
+              if (!current() || (claimed && !identity.actor.ownsBattleScriptTransform(owner)) ||
+                  (paused && !identity.actor.ownsBattleSpriteAnimationPause(owner))) return false;
+              final applied = identity.actor.applyBattleScriptTransform(
+                offset: _reducedBattleEffects ? Offset.zero : Offset(pose.offsetX, pose.offsetY),
+                scaleX: _reducedBattleEffects ? 1 : pose.scaleX,
+                scaleY: _reducedBattleEffects ? 1 : pose.scaleY,
+                owner: owner,
+              );
+              claimed = claimed || applied;
+              return applied;
+            },
+            clear: () => identity.actor.clearBattleScriptTransform(owner: owner),
+            pause: () {
+              if (!current()) throw StateError('Battle motion target changed');
+              identity.actor.pauseBattleSpriteAnimation(owner: owner);
+              paused = true;
+            },
+            resume: () {
+              identity.actor.resumeBattleSpriteAnimation(owner: owner);
+              paused = false;
+            },
+          );
+        }
+        final userBinding = motionBinding(attackerSlot, attacker);
+        final targetBinding = identical(attacker.actor, target.actor)
+            ? userBinding : motionBinding(targetSlot, target);
+        motion = BattleGen5MotionComponent(BattleGen5MotionPlayback(
+          bindings: {'user': userBinding, 'target': targetBinding},
+          swings: [for (final spec in selection.swings) BattleGen5MotionSpec(
+            target: spec.target, channel: spec.channel, x: spec.x, y: spec.y,
+            frames: spec.frames, wait: spec.wait, count: spec.count,
+            mirrorX: (spec.target == 'user' ? attackerSlot.side : targetSlot.side) == BattleSideId.enemy,
+          )],
+          pausedTargets: {selection.pausedTarget!},
+          pixelsPerUnit: 5,
+          onComplete: () => prepared.motionCompleted(),
+          onFailure: () => prepared.visualFailed(),
+        ));
+      }
       prepared = _PreparedGroupedSpl(
         component: component,
+        motion: motion,
         media: media,
         coordinator: coordinator,
         onClosed: () => _groupedSplEffects.remove(id),
@@ -1026,6 +1088,17 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
         coordinator: coordinator,
         audio: selection.audio,
         trackedEffectId: id,
+        cameraBefore: selection.cameraBefore == null ? null : CameraFocusStep(
+          target: switch (selection.cameraBefore!.target) {
+            'user' => BattleCameraFocusTarget.user,
+            'target' => BattleCameraFocusTarget.target,
+            _ => BattleCameraFocusTarget.scene,
+          },
+          durationSeconds: selection.cameraBefore!.durationMs / 1000,
+        ),
+        cameraAfter: selection.cameraAfterMs == null ? null : BattleCameraResetStep(
+          durationSeconds: selection.cameraAfterMs! / 1000,
+        ),
         silentVisuals: const AnimationGroupStep(
           mode: BattleAnimationGroupMode.parallel,
           steps: [
@@ -1170,6 +1243,8 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
             audio: result,
             silentVisuals: request.silentVisuals,
             trackedEffectId: request.trackedEffectId,
+            cameraBefore: request.cameraBefore,
+            cameraAfter: request.cameraAfter,
           ),
         );
       }
@@ -5593,12 +5668,14 @@ final class _TurnAudioPreparationTimedOut implements Exception {
 final class _PreparedGroupedSpl {
   _PreparedGroupedSpl({
     required this.component,
+    required this.motion,
     required this.media,
     required this.coordinator,
     required this.onClosed,
   });
 
   final BattleSplStaticComponent component;
+  final BattleGen5MotionComponent? motion;
   final BattleOfflineVerifiedMedia media;
   final BattleRecipeAudioCoordinator coordinator;
   final void Function() onClosed;
@@ -5607,8 +5684,12 @@ final class _PreparedGroupedSpl {
   Future<void>? _cancelling;
   bool _started = false;
   bool _visualFinished = false;
+  bool _particleFinished = false;
+  bool _motionFinished = false;
   bool _audioFinished = false;
   bool _closed = false;
+  bool _failed = false;
+  bool _cancelled = false;
 
   void audioPrepared(BattleRecipeAudioResult result) {
     final program = result.program;
@@ -5651,6 +5732,11 @@ final class _PreparedGroupedSpl {
     }
     if (!component.refreshAttachment()) return _cancelVisual;
     try {
+      if (motion != null) {
+        motion!.begin();
+        if (_visualFinished) return _cancelVisual;
+        overlay.add(motion!);
+      }
       component.priority = 9999;
       overlay.add(component);
     } on Object {
@@ -5664,21 +5750,35 @@ final class _PreparedGroupedSpl {
   }
 
   void visualCompleted() {
-    if (_visualFinished) return;
+    _particleFinished = true;
+    _finishVisualIfReady();
+  }
+
+  void motionCompleted() {
+    _motionFinished = true;
+    _finishVisualIfReady();
+  }
+
+  void _finishVisualIfReady() {
+    if (_visualFinished || !_particleFinished || (motion != null && !_motionFinished)) return;
     _visualFinished = true;
-    _onComplete?.call();
+    if (motion == null) _onComplete?.call();
     _finishIfDone();
   }
 
   void visualFailed() {
-    if (_visualFinished) return;
+    if (_closed || _failed || _cancelled || (_visualFinished && motion == null)) return;
     _visualFinished = true;
+    _failed = true;
     component.dispose();
+    motion?.dispose();
     _onFailure?.call();
     _finishIfDone();
   }
 
   void _cancelVisual() {
+    _cancelled = true;
+    motion?.dispose();
     if (_visualFinished) return;
     _visualFinished = true;
     component.dispose();
@@ -5702,8 +5802,10 @@ final class _PreparedGroupedSpl {
   void _finishIfDone() {
     if (_closed || !_visualFinished || !_audioFinished) return;
     _closed = true;
+    motion?.dispose();
     media.release();
     onClosed();
+    if (motion != null && !_failed && !_cancelled) _onComplete?.call();
   }
 }
 

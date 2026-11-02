@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 import 'package:crypto/crypto.dart';
@@ -12,6 +13,130 @@ import 'package:test/test.dart';
 import '../../../../map_distribution/test/support/spatial_package_fixture.dart';
 
 void main() {
+  test('declares and enforces the Player capability for Gen 5 combatant motion', () async {
+    final root = await _fixture();
+    final recipe = utf8.encode(jsonEncode({
+      'schemaVersion': 2, 'recipeId': 'motion', 'revision': '1',
+      'moveSourceId': 'source', 'variant': 'default',
+      'requiredCapabilities': ['gen5Swing', 'audioSelectionV2'],
+      'provenance': {'source': 'synthetic', 'sourceRevision': '1', 'sourcePaths': [], 'converter': 'test'},
+      'resources': [], 'audio': {'kind': 'none'},
+      'program': {'kind': 'gen5Swing', 'target': 'user', 'channel': 'position',
+        'x': 4096, 'y': 0, 'frames': 4, 'wait': 1, 'count': 1},
+    }));
+    final digest = sha256.convert(recipe).toString();
+    final binding = BattleMoveRecipeBinding.fromJson({
+      'schemaVersion': 1, 'projectMoveId': 'custom', 'sourceMoveId': 'source',
+      'catalogReleaseId': 'test', 'recipeId': 'motion', 'variant': 'default',
+      'revision': '1', 'recipeSha256': digest,
+    });
+    await _write(root, battleRecipeBindingPath('custom'), BattleRecipeProjectBinding(binding: binding).toJson());
+    await _write(root, battleRecipeBlobPath(digest, 'application/vnd.avelune.battle-recipe+json', projectMoveId: 'custom'), recipe);
+    final exported = await const CanonicalGamePackageExportService().build(
+      projectRoot: root, profile: _profile(), mode: GamePackageExportMode.localTest,
+    );
+    final inspection = const GamePackageInspector().inspect(exported.packageBytes);
+    const capability = BattleMoveAnimationRecipe.gen5MotionRuntimeCapability;
+    expect(inspection.manifest.compatibility.requiredCapabilities, contains(capability));
+    final current = AveluneRuntimeCompatibility.host();
+    expect(current.capabilities, contains(capability));
+    final older = GamePackageHostCompatibility(
+      hubVersion: current.hubVersion, runtimeApiVersion: current.runtimeApiVersion,
+      supportedRuntimeApiVersions: current.supportedRuntimeApiVersions,
+      capabilities: {...current.capabilities}..remove(capability),
+      supportedProjectFormats: current.supportedProjectFormats,
+      currentProjectFormat: current.currentProjectFormat,
+      currentProjectFormats: current.currentProjectFormats,
+      supportedSaveFormats: current.supportedSaveFormats,
+    );
+    final compatibility = const GamePackageCompatibilityEvaluator().evaluate(inspection.manifest, older);
+    expect(compatibility.decision, GamePackageCompatibilityDecision.reject);
+    expect(compatibility.missingCapabilities, contains(capability));
+    final manifest = inspection.manifest.toJson();
+    (manifest['compatibility'] as Map)['requiredCapabilities'] = inspection.manifest.compatibility.requiredCapabilities
+        .where((value) => value != capability).toList();
+    final stripped = const GamePackageManifestCodec().decodeJson(manifest);
+    final archive = ZipDecoder().decodeBytes(exported.packageBytes);
+    final files = {for (final file in archive.files) file.name: file.content as List<int>};
+    expect(() => const GamePackageProjectValidator(GamePackageSecurityPolicy()).validate(
+      stripped, Uint8List.fromList(files['project/project.json']!),
+      payloadPaths: files.keys.toSet(), readPayload: (path) => files[path],
+    ), throwsA(isA<GamePackageFormatException>().having((error) => error.message, 'message', contains(capability))));
+  });
+  for (final splVersion in [3, 4]) {
+  test('declares the Player capability required by SPL v$splVersion', () async {
+    final root = await _fixture();
+    final png = spatialPayload()['project/assets/hero.png']!;
+    final definition = jsonDecode(await File('../map_core/test/fixtures/spl_particle_v2.json').readAsString()) as Map<String, dynamic>;
+    definition['schemaVersion'] = splVersion;
+    (((definition['emitters'] as List).single as Map)['emission'] as Map)['positionVelocity'] = 914;
+    if (splVersion == 4) {
+      (((definition['emitters'] as List).single as Map)['motion'] as Map)['magnet'] = {'target': {'x': 0, 'y': -19033, 'z': 0}, 'force': 761};
+    }
+    final particle = utf8.encode(jsonEncode(definition));
+    final particleHash = sha256.convert(particle).toString();
+    final textureHash = sha256.convert(png).toString();
+    final recipe = utf8.encode(jsonEncode({
+      'schemaVersion': 1, 'recipeId': 'radial', 'revision': '1',
+      'moveSourceId': 'source', 'variant': 'default',
+      'requiredCapabilities': ['startParticle', 'splParticleV$splVersion'],
+      'provenance': {'source': 'synthetic', 'sourceRevision': '1', 'sourcePaths': [], 'converter': 'test'},
+      'resources': [
+        {'id': 'tex', 'role': 'texture', 'mediaType': 'image/png', 'sizeBytes': png.length, 'sha256': textureHash},
+        {'id': 'particle', 'role': 'particleDefinition', 'mediaType': 'application/vnd.avelune.particle+json', 'sizeBytes': particle.length, 'sha256': particleHash, 'definitionVersion': splVersion, 'dependencies': ['tex']},
+      ],
+      'program': {'kind': 'startParticle', 'resourceId': 'particle', 'from': 'userMouth', 'to': 'targetImpact'},
+    }));
+    final recipeHash = sha256.convert(recipe).toString();
+    final binding = BattleMoveRecipeBinding.fromJson({
+      'schemaVersion': 1, 'projectMoveId': 'custom', 'sourceMoveId': 'source',
+      'catalogReleaseId': 'test', 'recipeId': 'radial', 'variant': 'default',
+      'revision': '1', 'recipeSha256': recipeHash,
+    });
+    await _write(root, battleRecipeBindingPath('custom'), BattleRecipeProjectBinding(binding: binding).toJson());
+    await _write(root, battleRecipeBlobPath(recipeHash, 'application/vnd.avelune.battle-recipe+json', projectMoveId: 'custom'), recipe);
+    await _write(root, battleRecipeBlobPath(particleHash, 'application/vnd.avelune.particle+json', projectMoveId: 'custom'), particle);
+    await _write(root, battleRecipeBlobPath(textureHash, 'image/png', projectMoveId: 'custom'), png);
+    final exported = await const CanonicalGamePackageExportService().build(
+      projectRoot: root, profile: _profile(), mode: GamePackageExportMode.localTest,
+    );
+    final inspection = const GamePackageInspector().inspect(exported.packageBytes);
+    final capability = 'battle.spl-particle-v$splVersion@1';
+    expect(inspection.manifest.compatibility.requiredCapabilities, contains(capability));
+    final current = AveluneRuntimeCompatibility.host();
+    expect(current.capabilities, contains(capability));
+    final older = GamePackageHostCompatibility(
+      hubVersion: current.hubVersion, runtimeApiVersion: current.runtimeApiVersion,
+      supportedRuntimeApiVersions: current.supportedRuntimeApiVersions,
+      capabilities: {...current.capabilities}..remove(capability),
+      supportedProjectFormats: current.supportedProjectFormats,
+      currentProjectFormat: current.currentProjectFormat,
+      currentProjectFormats: current.currentProjectFormats,
+      supportedSaveFormats: current.supportedSaveFormats,
+    );
+    final compatibility = const GamePackageCompatibilityEvaluator().evaluate(inspection.manifest, older);
+    expect(compatibility.decision, GamePackageCompatibilityDecision.reject);
+    expect(compatibility.missingCapabilities, contains(capability));
+    final manifestJson = inspection.manifest.toJson();
+    (manifestJson['compatibility'] as Map)['requiredCapabilities'] = inspection
+        .manifest.compatibility.requiredCapabilities
+        .where((value) => value != capability)
+        .toList();
+    final stripped = const GamePackageManifestCodec().decodeJson(manifestJson);
+    final archive = ZipDecoder().decodeBytes(exported.packageBytes);
+    final files = {for (final file in archive.files) file.name: file.content as List<int>};
+    expect(
+      () => const GamePackageProjectValidator(GamePackageSecurityPolicy()).validate(
+        stripped,
+        Uint8List.fromList(files['project/project.json']!),
+        payloadPaths: files.keys.toSet(),
+        readPayload: (path) => files[path],
+      ),
+      throwsA(isA<GamePackageFormatException>().having((error) => error.message, 'message', contains(capability))),
+    );
+  });
+  }
+
   test('exports a bound battle recipe without changing its exact bytes', () async {
     final root = await _fixture();
     final bytes = utf8.encode('''{
@@ -116,6 +241,16 @@ void main() {
     await _write(root, path, utf8.encode('{"schemaVersion":1}'));
     final result = await _build(root);
     expect(result.payloadFiles, contains('project/$path'));
+  });
+
+  test('keeps unrelated legacy JSON at a battle binding path', () async {
+    final root = await _fixture();
+    await _write(root, battleRecipeBindingPath('legacy'), {'custom': true});
+    final exported = await const CanonicalGamePackageExportService().build(
+      projectRoot: root, profile: _profile(), mode: GamePackageExportMode.localTest,
+    );
+    final inspection = const GamePackageInspector().inspect(exported.packageBytes);
+    expect(inspection.manifest.compatibility.requiredCapabilities, isNot(contains('battle.spl-particle-v3@1')));
   });
 
   test('rejects an explicitly unsupported battle recipe binding', () async {

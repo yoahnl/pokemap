@@ -29,11 +29,16 @@ final class BattleSplParticleMotion {
     required BattleSplVector gravity,
     required BattleSplVector emitterVelocity,
     required int airResistance,
+    BattleSplVector? magnetTarget,
+    int? magnetForce,
   }) {
     if (!_fitsVector(gravity, -32768, 32767) ||
         !_fitsVector(emitterVelocity, _minimum32, _maximum32) ||
         airResistance < 0 ||
-        airResistance > 255) {
+        airResistance > 255 ||
+        (magnetTarget == null) != (magnetForce == null) ||
+        (magnetTarget != null && !_fitsVector(magnetTarget, _minimum32, _maximum32)) ||
+        (magnetForce != null && (magnetForce < -32768 || magnetForce > 32767))) {
       throw const FormatException('Invalid SPL gravity or resistance');
     }
     final x = _advanceAxis(
@@ -42,6 +47,8 @@ final class BattleSplParticleMotion {
       gravity.x,
       emitterVelocity.x,
       airResistance,
+      magnetTarget?.x,
+      magnetForce,
     );
     final y = _advanceAxis(
       position.y,
@@ -49,6 +56,8 @@ final class BattleSplParticleMotion {
       gravity.y,
       emitterVelocity.y,
       airResistance,
+      magnetTarget?.y,
+      magnetForce,
     );
     final z = _advanceAxis(
       position.z,
@@ -56,6 +65,8 @@ final class BattleSplParticleMotion {
       gravity.z,
       emitterVelocity.z,
       airResistance,
+      magnetTarget?.z,
+      magnetForce,
     );
     return BattleSplParticleMotion(
       position: (x: x.position, y: y.position, z: z.position),
@@ -71,10 +82,18 @@ final class BattleSplParticleMotion {
     int gravity,
     int emitterVelocity,
     int resistance,
+    int? magnetTarget,
+    int? magnetForce,
   ) {
+    final magneticProduct = magnetTarget == null
+        ? 0
+        : _checked(_checked(_checked(magnetTarget - position) - velocity) * magnetForce!);
+    final magneticAcceleration = magneticProduct >= 0
+        ? magneticProduct ~/ 4096
+        : -((-magneticProduct + 4095) ~/ 4096);
     final product = _checked(velocity * (resistance + 384));
     final damped = product >= 0 ? product ~/ 512 : -((-product + 511) ~/ 512);
-    final nextVelocity = _checked(damped + gravity);
+    final nextVelocity = _checked(_checked(damped + gravity) + magneticAcceleration);
     final displacement = _checked(nextVelocity + emitterVelocity);
     return (
       position: _checked(position + displacement),
@@ -84,7 +103,7 @@ final class BattleSplParticleMotion {
 
   static int _checked(int value) {
     if (value < _minimum32 || value > _maximum32) {
-      throw const FormatException('SPL motion arithmetic exceeds 32 bits');
+      throw FormatException('SPL motion arithmetic exceeds 32 bits: $value');
     }
     return value;
   }

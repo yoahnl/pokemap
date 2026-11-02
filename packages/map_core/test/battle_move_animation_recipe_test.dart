@@ -168,6 +168,40 @@ void main() {
     expect(() => events.clear(), throwsUnsupportedError);
   });
 
+  test('validates bounded Gen 5 combatant swing and pause operations', () {
+    final input = explicitAudioRecipe({'kind': 'none'});
+    input['requiredCapabilities'] = [
+      'sequence', 'gen5Swing', 'gen5SpritePause', 'audioSelectionV2',
+    ];
+    final swing = <String, dynamic>{
+      'kind': 'gen5Swing', 'target': 'user', 'channel': 'position',
+      'x': 4096, 'y': 0, 'frames': 4, 'wait': 1, 'count': 1,
+    };
+    final pause = <String, dynamic>{
+      'kind': 'gen5SpritePause', 'target': 'target', 'paused': true,
+    };
+    input['program'] = {'kind': 'sequence', 'steps': [swing, pause]};
+    expect(BattleMoveAnimationRecipe.fromJson(input).toJson(), input);
+    for (final bad in [
+      {...swing, 'frames': 0}, {...swing, 'wait': -1},
+      {...swing, 'count': 0}, {...swing, 'x': 65537},
+      {...swing, 'frames': 600, 'wait': 1, 'count': 1},
+      {...swing, 'target': 'scene'}, {...swing, 'channel': 'opacity'},
+      {...swing, 'channel': 'scale', 'x': -4096},
+      {...swing, 'channel': 'scale', 'x': 28673},
+      {...swing, 'channel': 'scale', 'x': -4095, 'frames': 600, 'wait': 0},
+      {...swing, 'channel': 'scale', 'x': 28672, 'frames': 600, 'wait': 0},
+    ]) {
+      input['program'] = {'kind': 'sequence', 'steps': [bad]};
+      expect(() => BattleMoveAnimationRecipe.fromJson(input), throwsFormatException);
+    }
+    input['program'] = {'kind': 'sequence', 'steps': [{...pause, 'paused': 1}]};
+    expect(() => BattleMoveAnimationRecipe.fromJson(input), throwsFormatException);
+    input['program'] = {'kind': 'sequence', 'steps': [swing]};
+    (input['requiredCapabilities'] as List).remove('gen5Swing');
+    expect(() => BattleMoveAnimationRecipe.fromJson(input), throwsFormatException);
+  });
+
   test('rejects ambiguous or undeclared v2 audio without changing v1', () {
     final clip = explicitAudioRecipe({'kind': 'clip', 'resourceId': 'cue'});
     final invalid = <Map<String, dynamic>>[
@@ -515,6 +549,11 @@ void main() {
         () => BattleMoveAnimationRecipe.fromJson(json),
         throwsFormatException,
       );
+      particle['definitionVersion'] = 4;
+      json['requiredCapabilities'] = ['sequence', 'startParticle', 'waitEffects', 'splParticleV4'];
+      expect(BattleMoveAnimationRecipe.fromJson(json).resources.first.definitionVersion, 4);
+      json['requiredCapabilities'] = ['sequence', 'startParticle', 'waitEffects'];
+      expect(() => BattleMoveAnimationRecipe.fromJson(json), throwsFormatException);
       particle['definitionVersion'] = 1;
       json['requiredCapabilities'] = ['parallel', 'waitEffects'];
       json['program'] = {

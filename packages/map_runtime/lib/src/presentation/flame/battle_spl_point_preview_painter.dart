@@ -12,6 +12,7 @@ final class BattleSplPointPreviewPainter {
     required this.pixelsPerUnit,
     required this.aspectRatio4096,
     this.directionalParents = false,
+    this.directionalChildren = false,
     this.scaleAxis = BattleSplPreviewScaleAxis.xy,
   }) : _textures = Map.unmodifiable(textures) {
     if (textures.isEmpty ||
@@ -30,6 +31,7 @@ final class BattleSplPointPreviewPainter {
   final double pixelsPerUnit;
   final int aspectRatio4096;
   final bool directionalParents;
+  final bool directionalChildren;
   final BattleSplPreviewScaleAxis scaleAxis;
 
   void paint(
@@ -76,7 +78,7 @@ final class BattleSplPointPreviewPainter {
       final particle = particles[index];
       if (particle.alpha5 == 0 || particle.scale4096 == 0) continue;
       final image = _textures[particle.texture]!;
-      final directional = directionalParents && particle.parentId == null;
+      final directional = particle.parentId == null ? directionalParents : directionalChildren;
       final velocity = particle.motion.velocity;
       final projected = projections?[index];
       final direction = projected?.direction;

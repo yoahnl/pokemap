@@ -35,6 +35,44 @@ final class GamePackageProjectValidator {
         _fail('Partitioned catalog capability is required.');
       }
       if (readPayload == null) _fail('Catalog object reader is required.');
+      final missingSplCapability = !packageManifest.compatibility.requiredCapabilities
+          .contains(BattleMoveAnimationRecipe.splV3RuntimeCapability);
+      final missingSplV4Capability = !packageManifest.compatibility.requiredCapabilities
+          .contains(BattleMoveAnimationRecipe.splV4RuntimeCapability);
+      final missingMotionCapability = !packageManifest.compatibility.requiredCapabilities
+          .contains(BattleMoveAnimationRecipe.gen5MotionRuntimeCapability);
+      if (missingSplCapability || missingSplV4Capability || missingMotionCapability) {
+        final bindingPattern = RegExp(r'^project/data/pokemon/battle_recipes/bindings/[0-9a-f]{64}\.json$');
+        final bindings = payloadPaths.where(bindingPattern.hasMatch);
+        for (final path in bindings) {
+          final bytes = readPayload(path);
+          if (bytes == null || bytes.length > 65536) continue;
+          BattleMoveAnimationRecipe? recipe;
+          try {
+            final marker = decodeBoundedBattleJson(bytes, maxDepth: 16, label: 'Battle recipe binding');
+            if (marker is! Map<String, dynamic> || marker['kind'] != 'avelune.battle-recipe-binding') continue;
+            final binding = BattleRecipeProjectBinding.fromJson(marker).binding;
+            if (path != 'project/${battleRecipeBindingPath(binding.projectMoveId)}') continue;
+            final recipePath = 'project/${battleRecipeBlobPath(binding.recipeSha256, 'application/vnd.avelune.battle-recipe+json', projectMoveId: binding.projectMoveId)}';
+            final recipeBytes = readPayload(recipePath);
+            if (recipeBytes == null || recipeBytes.length > 1048576) continue;
+            final recipeJson = decodeBoundedBattleJson(recipeBytes, maxDepth: 72, label: 'Battle recipe');
+            if (recipeJson is! Map<String, dynamic>) continue;
+            recipe = BattleMoveAnimationRecipe.fromJson(recipeJson);
+          } on FormatException {
+            continue;
+          }
+          if (missingSplCapability && recipe.resources.any((resource) => resource.definitionVersion == 3)) {
+            _fail('SPL v3 requires ${BattleMoveAnimationRecipe.splV3RuntimeCapability}.');
+          }
+          if (missingSplV4Capability && recipe.resources.any((resource) => resource.definitionVersion == 4)) {
+            _fail('SPL v4 requires ${BattleMoveAnimationRecipe.splV4RuntimeCapability}.');
+          }
+          if (missingMotionCapability && recipe.usesGen5Motion) {
+            _fail('Gen 5 motion requires ${BattleMoveAnimationRecipe.gen5MotionRuntimeCapability}.');
+          }
+        }
+      }
       final consumed = <String>{};
       var catalogBytes = projectBytes.length;
       var catalogValues = _jsonValues(decoded);

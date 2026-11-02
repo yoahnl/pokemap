@@ -138,6 +138,21 @@ Gen5SplParticleConversion _convert(
 }
 
 void main() {
+  test('preserves radial velocity in a versioned particle definition', () {
+    final source = _source();
+    final emitter = (source['emitters'] as List).single as Map<String, dynamic>;
+    emitter['emissionType'] = 'sphere_surface';
+    emitter['radius'] = 1218;
+    emitter['initVelPositionAmplifier'] = 914;
+
+    final converted = _convert(source).definition.toJson();
+    expect(converted['schemaVersion'], 3);
+    final emission =
+        ((converted['emitters'] as List).single as Map)['emission'] as Map;
+    expect(emission['positionVelocity'], 914);
+    expect(emission['axisVelocity'], 1000);
+  });
+
   test('converts a verified source without losing the initial texture', () {
     final source = _source();
     final result = _convert(source);
@@ -320,8 +335,7 @@ void main() {
     expect(emitters.map((e) => e.parameters['emitter']!.raw), ['0', '1']);
   }, skip: Platform.environment['AVELUNE_BW2_SCRIPT_TEST'] != '1');
 
-  test('rejects unsupported radial velocity in BW2 particle source 199',
-      () async {
+  test('converts radial velocity in BW2 particle source 199', () async {
     const path = 'res/particles/btlv_effvm_particles/199/particles.json';
     const hash =
         '0a2edc30e578f3f9d7650d6f3b6916fb673b8a494547d22557e2c5a34915955e';
@@ -343,22 +357,22 @@ void main() {
       }
       bytes.add(chunk);
     }
+    final converted = Gen5SplParticleConverter.convert(
+      bytes.takeBytes(),
+      particleId: 199,
+      sourceRevision: _revision,
+      sourcePath: path,
+      expectedSha256: hash,
+      textureResourceIds: {
+        for (var i = 0; i < 5; i++) 'texture0$i': 'texture0$i'
+      },
+    );
+    final definition = converted.definition.toJson();
+    expect(definition['schemaVersion'], 3);
     expect(
-      () => Gen5SplParticleConverter.convert(
-        bytes.takeBytes(),
-        particleId: 199,
-        sourceRevision: _revision,
-        sourcePath: path,
-        expectedSha256: hash,
-        textureResourceIds: {
-          for (var i = 0; i < 5; i++) 'texture0$i': 'texture0$i'
-        },
-      ),
-      throwsA(isA<FormatException>().having(
-        (error) => error.message,
-        'message',
-        'Unsupported SPL source field: initVelPositionAmplifier',
-      )),
+      (definition['emitters'] as List).map((emitter) =>
+          ((emitter as Map)['emission'] as Map)['positionVelocity']),
+      [914, 0],
     );
   }, skip: Platform.environment['AVELUNE_BW2_SCRIPT_TEST'] != '1');
 }

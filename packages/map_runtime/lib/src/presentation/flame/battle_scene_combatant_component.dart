@@ -108,6 +108,11 @@ class BattleSceneCombatantComponent extends PositionComponent {
   bool _rmxpTransformApplied = false;
   Object? _rmxpTransformOwner;
   Object? _rmxpVisibilityOwner;
+  final Set<Object> _battleSpriteAnimationPauseOwners = Set.identity();
+  int _battleSpriteAnimationPauseEpoch = 0;
+
+  @visibleForTesting
+  bool get debugBattleSpriteAnimationPaused => _battleSpriteAnimationPauseOwners.isNotEmpty;
 
   Rect get currentEffectAttachmentSpriteRect {
     if (!_rmxpTransformApplied || _animation != _CombatantPresentationAnimation.none) {
@@ -367,6 +372,7 @@ class BattleSceneCombatantComponent extends PositionComponent {
   @override
   void onRemove() {
     if (!_spriteClosed) {
+      _battleSpriteAnimationPauseOwners.clear();
       _spriteClosed = true;
       _spriteGeneration++;
       _loadedSpritePaths = null;
@@ -718,6 +724,7 @@ class BattleSceneCombatantComponent extends PositionComponent {
     _rmxpTransformOwner = null;
     _rmxpVisibilityOwner = null;
     _rmxpTransformApplied = false;
+    _battleSpriteAnimationPauseOwners.clear();
     // Une pose de combat nette n'a plus de silhouette d'entrée en attente,
     // ni de lueur de matérialisation.
     _introSilhouetteActive = false;
@@ -751,6 +758,49 @@ class BattleSceneCombatantComponent extends PositionComponent {
     _visualScaleY = scale;
     _visualOpacity = 1;
     _applyVisualPresentation();
+  }
+
+  bool applyBattleScriptTransform({
+    required Offset offset,
+    required double scaleX,
+    required double scaleY,
+    required Object owner,
+  }) {
+    if (!offset.dx.isFinite || !offset.dy.isFinite ||
+        !scaleX.isFinite || !scaleY.isFinite ||
+        scaleX <= 0 || scaleX > 8 || scaleY <= 0 || scaleY > 8 ||
+        _animation != _CombatantPresentationAnimation.none ||
+        (_rmxpTransformApplied && !identical(_rmxpTransformOwner, owner))) {
+      return false;
+    }
+    _rmxpTransformOwner = owner;
+    _rmxpTransformApplied = true;
+    _visualOffset = offset;
+    _visualScaleX = scaleX;
+    _visualScaleY = scaleY;
+    _applyVisualPresentation();
+    return true;
+  }
+
+  void clearBattleScriptTransform({required Object owner}) {
+    clearRmxpTransform(owner: owner);
+  }
+
+  bool ownsBattleScriptTransform(Object owner) => _rmxpTransformApplied &&
+      identical(_rmxpTransformOwner, owner) &&
+      _animation == _CombatantPresentationAnimation.none;
+
+  bool ownsBattleSpriteAnimationPause(Object owner) =>
+      _battleSpriteAnimationPauseOwners.contains(owner);
+
+  void pauseBattleSpriteAnimation({required Object owner}) {
+    if (_battleSpriteAnimationPauseOwners.add(owner)) {
+      _battleSpriteAnimationPauseEpoch++;
+    }
+  }
+
+  void resumeBattleSpriteAnimation({required Object owner}) {
+    _battleSpriteAnimationPauseOwners.remove(owner);
   }
 
   void clearRmxpTransform({Object? owner}) {
@@ -793,14 +843,14 @@ class BattleSceneCombatantComponent extends PositionComponent {
     }
     _updateTone(dt);
     _updateAnimation(dt);
-    if (dt.isFinite && dt > 0 && _gen5Sprite != null) {
+    if (_battleSpriteAnimationPauseOwners.isEmpty && dt.isFinite && dt > 0 && _gen5Sprite != null) {
       _gen5ElapsedSeconds += dt;
       final tick = (_gen5ElapsedSeconds * 60).floor();
       if (!_gen5FramePending && tick != _gen5RenderedTick && tick <= 0x7fffffff) {
         unawaited(_updateGen5Frame(tick, _spriteGeneration));
       }
     }
-    if (dt.isFinite && dt > 0 && (_gifAtlas != null || _gifAnimation != null)) {
+    if (_battleSpriteAnimationPauseOwners.isEmpty && dt.isFinite && dt > 0 && (_gifAtlas != null || _gifAnimation != null)) {
       _gifElapsedSeconds += dt;
       final animation = _gifAnimation;
       if (animation != null) _spriteImage = animation.frameAt(_gifElapsed);
@@ -1033,11 +1083,13 @@ class BattleSceneCombatantComponent extends PositionComponent {
   Future<void> _updateGen5Frame(int tick, int generation) async {
     final sprite = _gen5Sprite;
     if (sprite == null) return;
+    final pauseEpoch = _battleSpriteAnimationPauseEpoch;
     _gen5FramePending = true;
     ui.Image? frame;
     try {
       frame = await _gen5Image(sprite.renderRgba(tick));
-      if (_spriteClosed || generation != _spriteGeneration || !identical(sprite, _gen5Sprite)) return;
+      if (_spriteClosed || generation != _spriteGeneration || !identical(sprite, _gen5Sprite) ||
+          pauseEpoch != _battleSpriteAnimationPauseEpoch || _battleSpriteAnimationPauseOwners.isNotEmpty) return;
       final previous = _ownedGen5Image;
       _ownedGen5Image = frame;
       _spriteImage = frame;

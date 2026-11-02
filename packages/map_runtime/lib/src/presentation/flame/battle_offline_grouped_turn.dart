@@ -30,10 +30,13 @@ Future<List<BattleTurnAudioRequest>> prepareOfflineGroupedSplTurn({
           !previous!.unavailableCapabilities.containsAll(const {
             'startParticle',
             'waitEffects',
-            'splParticleV2',
             'sound',
             'audioSelectionV2',
-          })) {
+          }) ||
+          !previous.unavailableCapabilities.any(
+            (capability) =>
+                capability == 'splParticleV2' || capability == 'splParticleV3' || capability == 'splParticleV4',
+          )) {
         continue;
       }
       final result = await loader.load(
@@ -46,9 +49,6 @@ Future<List<BattleTurnAudioRequest>> prepareOfflineGroupedSplTurn({
       var transferred = false;
       try {
         if (!isCurrent()) throw const BattleOfflineRecipeLoadCancelled();
-        if (media.bundle.recipe.toJson()['moveSourceId'] != 'flamethrower') {
-          continue;
-        }
         transferred = true;
         final request = await overlay.prepareGroupedSplTurn(
           event: event,

@@ -23,10 +23,48 @@ typedef FetchedBattleRecipe = ({
   String recipeMediaId,
 });
 
-Future<FetchedBattleRecipe> groupedSplRecipeFixture({String? fixtureRoot}) async {
+Future<FetchedBattleRecipe> groupedSplRecipeFixture({String? fixtureRoot, String moveSourceId = 'flamethrower'}) async {
   late final Uint8List recipe;
   late final Map<String, Uint8List> media;
-  if (fixtureRoot != null) {
+  final bundleRoot = Platform.environment['AVELUNE_BW2_BUNDLE_QA_DIR'];
+  if (bundleRoot != null && (moveSourceId.startsWith('tackle-bw2-') || moveSourceId == 'karate-bw2-qa' || moveSourceId == 'poison-bw2-qa')) {
+    final move = moveSourceId == 'karate-bw2-qa' ? 'karate-chop' : moveSourceId == 'poison-bw2-qa' ? 'poison-jab' : 'tackle';
+    final bundle = jsonDecode(await File(p.join(bundleRoot, '$move.json')).readAsString()) as Map;
+    final recipeBytes = base64.decode(bundle['recipe'] as String);
+    final mediaBytes = {
+      for (final entry in (bundle['media'] as Map).entries)
+        entry.key as String: base64.decode(entry.value as String),
+    };
+    final transport = _CatalogBundleTransport(move, recipeBytes, mediaBytes);
+    return AveluneMoveRecipeSource(AvelunePokemonMediaSource(
+      client: transport,
+      release: Platform.environment['AVELUNE_BW2_PUBLIC_RELEASE'] ?? 'public-fixture',
+    )).fetch(
+      catalogMoveId: move, sourceMoveId: move, projectMoveId: move,
+      mediaId: 'bw2-$move-pilot',
+      limits: const BattleRecipeBundleLimits(
+        maxTextures: 16, maxTextureBytes: 8 * 1024 * 1024,
+        maxBundleBytes: 32 * 1024 * 1024, maxDimension: 2048,
+        maxTexturePixels: 4000000, maxTotalPixels: 16000000,
+      ),
+      availableCapabilities: BattleMoveAnimationRecipe.recognizedCapabilities,
+    );
+  }
+  if (moveSourceId.startsWith('tackle-bw2-') || moveSourceId == 'karate-bw2-qa' || moveSourceId == 'poison-bw2-qa') {
+    final karate = moveSourceId == 'karate-bw2-qa';
+    final poison = moveSourceId == 'poison-bw2-qa';
+    final response = await File(Platform.environment[poison ? 'AVELUNE_BW2_POISON_QA_RESPONSE_PATH' : karate ? 'AVELUNE_BW2_KARATE_QA_RESPONSE_PATH' : 'AVELUNE_BW2_TACKLE_QA_RESPONSE_PATH']!).readAsBytes();
+    final snapshot = await AveluneGen5MoveSource(
+      client: _Gen5SourceTransport(response), release: 'draft',
+    ).fetch(moveId: poison ? 'poison-jab' : karate ? 'karate-chop' : 'tackle', sourceMoveId: poison ? 398 : karate ? 2 : 33);
+    final sound = await File(Platform.environment[poison ? 'AVELUNE_BW2_POISON_QA_SOUND_PATH' : karate ? 'AVELUNE_BW2_KARATE_QA_SOUND_PATH' : 'AVELUNE_BW2_TACKLE_QA_SOUND_PATH']!).readAsBytes();
+    final pilot = Gen5CommonImpactRecipeConverter.convert(
+      snapshot: snapshot!, projectMoveId: poison ? 'poison-jab' : karate ? 'karate-chop' : 'tackle', soundBytes: sound,
+      soundMediaType: 'audio/mpeg',
+    );
+    return (binding: pilot.binding, bundle: pilot.bundle,
+      catalogMoveId: 'fixture', recipeMediaId: 'fixture-tackle-pilot');
+  } else if (fixtureRoot != null) {
     recipe = await File(p.join(fixtureRoot, 'recipe.json')).readAsBytes();
     final paths = jsonDecode(
       await File(p.join(fixtureRoot, 'media-paths.json')).readAsString(),
@@ -44,7 +82,7 @@ Future<FetchedBattleRecipe> groupedSplRecipeFixture({String? fixtureRoot}) async
     media = {'tex': texture, 'from': particle, 'to': particle, 'cue': sound};
     recipe = Uint8List.fromList(utf8.encode(jsonEncode({
       'schemaVersion': 2, 'recipeId': 'grouped', 'revision': '1',
-      'moveSourceId': 'flamethrower', 'variant': 'default',
+      'moveSourceId': moveSourceId, 'variant': 'default',
       'requiredCapabilities': [
         'sequence', 'parallel', 'startParticle', 'waitEffects',
         'splParticleV2', 'sound', 'audioSelectionV2',
@@ -95,6 +133,78 @@ Future<FetchedBattleRecipe> groupedSplRecipeFixture({String? fixtureRoot}) async
   );
   return (binding: binding, bundle: inspected,
     catalogMoveId: 'fixture', recipeMediaId: 'fixture-grouped');
+}
+
+final class _CatalogBundleTransport implements PokemonBoundedExternalHttpTransport {
+  _CatalogBundleTransport(this.move, this.recipe, this.media);
+  final String move;
+  final Uint8List recipe;
+  final Map<String, Uint8List> media;
+
+  @override
+  Future<PokemonExternalHttpResponse> getBounded(Uri uri, {
+    required Map<String, String> headers,
+    required int maximumBytes,
+    required Duration timeout,
+  }) async {
+    final decoded = jsonDecode(utf8.decode(recipe)) as Map;
+    final resources = decoded['resources'] as List;
+    final bindings = <String, String>{
+      for (final resource in resources)
+        resource['id'] as String: 'fixture-${resource['id']}',
+    };
+    final isList = uri.path.endsWith('/owners/move/$move');
+    late final Uint8List bytes;
+    if (isList) {
+      final records = [
+        {
+          'id': 'bw2-$move-pilot', 'sha256': sha256.convert(recipe).toString(),
+          'contentType': 'application/vnd.avelune.battle-recipe+json',
+          'usage': 'battle', 'representation': 'recipe', 'style': 'gen5-pilot',
+          'metadata': {'recipeId': decoded['recipeId'], 'revision': decoded['revision'],
+            'moveSourceId': move, 'variant': decoded['variant'], 'bindings': bindings},
+        },
+        for (final resource in resources)
+          {
+            'id': bindings[resource['id']], 'sha256': resource['sha256'],
+            'contentType': resource['mediaType'], 'usage': 'battle',
+            'representation': switch (resource['role']) {
+              'texture' => 'sprite2d', 'sound' => 'audio',
+              'particleDefinition' => 'particle', _ => throw StateError('Invalid role'),
+            },
+            'style': 'gen5-pilot', 'metadata': <String, Object>{},
+          },
+      ];
+      bytes = Uint8List.fromList(utf8.encode(jsonEncode(records)));
+    } else {
+      final id = uri.pathSegments.last;
+      bytes = id == 'bw2-$move-pilot'
+          ? recipe
+          : media[bindings.entries.singleWhere((entry) => entry.value == id).key]!;
+    }
+    return PokemonExternalHttpResponse(
+      statusCode: 200, headers: const {}, body: isList ? utf8.decode(bytes) : '',
+      bodyBytes: bytes,
+    );
+  }
+}
+
+final class _Gen5SourceTransport implements PokemonBoundedExternalHttpTransport {
+  _Gen5SourceTransport(this.response);
+  final Uint8List response;
+
+  @override
+  Future<PokemonExternalHttpResponse> getBounded(
+    Uri uri, {
+    required Map<String, String> headers,
+    required int maximumBytes,
+    required Duration timeout,
+  }) async => PokemonExternalHttpResponse(
+    statusCode: 200,
+    headers: const {'x-source-revision': '41f42ca1afe6291f00b0ba0ec3f6099b9ff1346c'},
+    body: '',
+    bodyBytes: response,
+  );
 }
 
 final class _RecipeTransport implements PokemonBoundedExternalHttpTransport {
@@ -152,6 +262,7 @@ offlineRecipePackageFixture({
     if (await owner.exists()) await owner.delete(recursive: true);
   });
   final root = await Directory(p.join(owner.path, 'authoring')).create();
+  final projectMoveId = fetchedRecipe?.binding.projectMoveId ?? 'tackle';
   final files = spatialFeaturePayload('companion');
   if (!spatial) {
     final pokemonProject = ProjectManifest.fromJson(
@@ -178,9 +289,9 @@ offlineRecipePackageFixture({
   );
   files['project/data/pokemon/learnsets/clockbird.json'] = utf8.encode(
     jsonEncode(
-      const PokemonLearnsetFile(
+      PokemonLearnsetFile(
         speciesId: 'clockbird',
-        startingMoves: ['tackle'],
+        startingMoves: [projectMoveId],
       ).toJson(),
     ),
   );
@@ -199,8 +310,8 @@ offlineRecipePackageFixture({
       'schemaVersion': 1,
       'catalog': 'moves',
       'entries': [
-        const PokemonMove(
-          id: 'tackle',
+        PokemonMove(
+          id: projectMoveId,
           name: 'Tackle',
           type: 'normal',
           category: PokemonMoveCategory.physical,
@@ -372,8 +483,11 @@ offlineRecipePackageFixture({
   } on GamePackageExportException catch (error) {
     fail('$error; cause: ${error.cause}');
   }
+  final nativePackagePath = Platform.environment['AVELUNE_BW2_NATIVE_QA_PACKAGE'];
+  if (nativePackagePath != null) {
+    await File(nativePackagePath).writeAsBytes(exported.packageBytes, flush: true);
+  }
   final archive = ZipDecoder().decodeBytes(exported.packageBytes, verify: true);
-  final projectMoveId = fetched.binding.projectMoveId;
   expect(
     archive
         .findFile(
@@ -425,14 +539,18 @@ offlineRecipePackageFixture({
     'speciesId': 'clockbird',
     'abilityId': 'calm',
     'level': 5,
-    'knownMoveIds': ['tackle'],
-    'currentPpByMoveId': {'tackle': 35},
+    'knownMoveIds': [projectMoveId],
+    'currentPpByMoveId': {projectMoveId: 35},
     'currentHp': 10,
   });
   save['party'] = {
     'members': [member],
   };
   save['currentMapId'] = 'map';
+  final nativeSavePath = Platform.environment['AVELUNE_BW2_NATIVE_QA_SAVE'];
+  if (nativeSavePath != null) {
+    await File(nativeSavePath).writeAsString(jsonEncode(save), flush: true);
+  }
   final state = gameStateFromSaveData(SaveData.fromJson(save))
       .copyWith(playerSpatialPosition: PlayerSpatialPosition(x: 1.25, z: 1.5));
   return (bundle: bundle, state: state);
