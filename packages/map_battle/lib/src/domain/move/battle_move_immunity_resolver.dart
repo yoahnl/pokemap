@@ -42,7 +42,9 @@ final class BattleMoveImmunityResolver {
     BattleRngStreams? punishedRng;
     final shouldCheckTypeImmunity =
         execution.move.category != PsdkBattleMoveCategory.status &&
-            execution.move.power > 0;
+            (execution.move.power > 0 ||
+                const <String>{'s_ohko', 's_counter', 's_mirror_coat'}
+                    .contains(execution.move.battleEngineMethod));
 
     for (final targetRef in targets) {
       if (shouldCheckTypeImmunity && _isTypeImmune(execution, targetRef)) {
@@ -148,6 +150,9 @@ final class BattleMoveImmunityResolver {
       rules: execution.context.state.battleRules,
       moveType: moveType,
       targetTypes: _effectiveVisibleTypes(target),
+      user: execution.context.state.battlerAt(
+        _psdkSlotFromBattlePosition(execution.actualUser),
+      ),
       extraTargetTypes: _extraTypes(target),
       forceGrounded: moveType == 'ground' &&
           _groundingResolver.isGrounded(
@@ -413,7 +418,9 @@ String _effectiveMoveType(
   BattlePositionRef targetRef,
 ) {
   final user = execution.context.state.battlerAt(execution.psdkActualUser);
-  var moveType = execution.move.type.toLowerCase();
+  var moveType = execution.move.battleEngineMethod == 's_hidden_power'
+      ? const BattleMoveTypeProcessor().resolveHiddenPowerType(user)
+      : execution.move.type.toLowerCase();
   if (user.effects.contains('electrify')) {
     moveType = 'electric';
   } else if (_hasBattleWideEffect(execution.context.state, 'ion_deluge') &&

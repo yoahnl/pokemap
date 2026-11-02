@@ -1,28 +1,54 @@
 import '../../battle_typing.dart';
+import '../effect/ability/ability_effect.dart';
 import '../../pokemon_battle_rules.dart';
 import '../../psdk/domain/psdk_battle_combatant.dart';
 
 final class BattleMoveTypeProcessor {
   const BattleMoveTypeProcessor();
 
+  String resolveHiddenPowerType(PsdkBattleCombatant user) {
+    var index = 0;
+    final bits = <int>[
+      user.ivHp & 1,
+      user.ivAttack & 1,
+      user.ivDefense & 1,
+      user.ivSpeed & 1,
+      user.ivSpecialAttack & 1,
+      user.ivSpecialDefense & 1,
+    ];
+    for (var i = 0; i < bits.length; i++) {
+      index += bits[i] << i;
+    }
+    final tableIndex = (index * (_hiddenPowerTypes.length - 1) / 63).floor();
+    return _hiddenPowerTypes[tableIndex];
+  }
+
   double resolveStabMultiplier({
     required PokemonBattleRules rules,
     required String moveType,
     required PsdkBattleTypes userTypes,
+    PsdkBattleCombatant? user,
     Iterable<String> extraUserTypes = const <String>[],
   }) {
     final multiplier = rules.resolveStabMultiplier(
       moveType: moveType,
       attackerTyping: _typingSnapshot(userTypes),
     );
+    final sameTypeMultiplier = user?.abilityEffects.fold(
+          1.5,
+          (current, effect) => effect.sameTypeAttackMultiplier > current
+              ? effect.sameTypeAttackMultiplier
+              : current,
+        ) ??
+        1.5;
     if (multiplier > 1) {
-      return multiplier;
+      return sameTypeMultiplier;
     }
     final normalizedMoveType = moveType.trim().toLowerCase();
     return extraUserTypes.any(
       (type) => type.trim().toLowerCase() == normalizedMoveType,
     )
-        ? 1.5
+        ? sameTypeMultiplier
         : multiplier;
   }
 
@@ -30,6 +56,7 @@ final class BattleMoveTypeProcessor {
     required PokemonBattleRules rules,
     required String moveType,
     required PsdkBattleTypes targetTypes,
+    PsdkBattleCombatant? user,
     Iterable<String> extraTargetTypes = const <String>[],
     bool forceGrounded = false,
     bool foresight = false,
@@ -41,7 +68,10 @@ final class BattleMoveTypeProcessor {
       targetTypes: targetTypes,
       extraTargetTypes: extraTargetTypes,
       forceGrounded: forceGrounded,
-      foresight: foresight,
+      foresight: foresight ||
+          (user?.abilityEffects
+                  .any((effect) => effect.ignoresGhostTypeImmunity) ??
+              false),
       miracleEye: miracleEye,
       neutralizeFlyingWeaknesses: neutralizeFlyingWeaknesses,
       rules: rules,
@@ -133,3 +163,22 @@ BattleTypingSnapshot _typingSnapshot(PsdkBattleTypes types) {
     secondaryType: types.secondary,
   );
 }
+
+const _hiddenPowerTypes = <String>[
+  'fighting',
+  'flying',
+  'poison',
+  'ground',
+  'rock',
+  'bug',
+  'ghost',
+  'steel',
+  'fire',
+  'water',
+  'grass',
+  'electric',
+  'psychic',
+  'ice',
+  'dragon',
+  'dark',
+];

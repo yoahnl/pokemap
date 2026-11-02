@@ -235,6 +235,11 @@ void main() {
       expect(setup.stats.attack, equals(18));
       expect(setup.stats.defense, equals(17));
       expect(
+        [setup.ivHp, setup.ivAttack, setup.ivDefense, setup.ivSpecialAttack,
+          setup.ivSpecialDefense, setup.ivSpeed],
+        [31, 31, 0, 15, 0, 7],
+      );
+      expect(
           setup.moves.map((move) => move.id).toList(),
           equals(
             <String>['wrap', 'haze', 'coil', 'gastro_acid'],
@@ -676,6 +681,12 @@ void main() {
       expect(psdkSeed.moves.single.id, canonicalStruggleMoveId);
       expect(psdkSeed.moves.single.battleEngineMethod, 's_struggle');
       expect(request.generatedPokemon?.knownMoveIds, isEmpty);
+      final setup = psdkSeed.toPsdkBattleCombatantSetup();
+      expect(
+        [setup.ivHp, setup.ivAttack, setup.ivDefense, setup.ivSpecialAttack,
+          setup.ivSpecialDefense, setup.ivSpeed],
+        [0, 0, 0, 0, 0, 0],
+      );
     });
 
     test('an authored ability override wins over the species primary ability',
@@ -712,6 +723,12 @@ void main() {
         trainerName: 'Ace Jules',
       );
       expect(psdkSeed.abilityId, equals('swift-swim'));
+      final setup = psdkSeed.toPsdkBattleCombatantSetup();
+      expect(
+        [setup.ivHp, setup.ivAttack, setup.ivDefense, setup.ivSpecialAttack,
+          setup.ivSpecialDefense, setup.ivSpeed],
+        [15, 15, 15, 15, 15, 15],
+      );
     });
 
     test('uses authored trainer IV EV and nature in both battle lanes',

@@ -68,11 +68,62 @@ C7-01 se ferme progressivement par ensemble de dépendances réellement utilisé
 
 **Fichiers et frontières :** `revisites_donnees.py`, `revisites_pack.dart`, `revisites_assets_test.py`, `revisites_contract_test.dart` dans le chantier ; `packages/map_runtime/lib/src/application/runtime_move_catalog_loader.dart` ; catalogues Pokémon/attaques/objets/trainer du jeu via `map_authoring`. `map_battle` uniquement pour un effet manquant établi et coordonné avec son propriétaire.
 
-- [ ] Revalider les préimages et le plus petit inventaire des espèces, équipes, attaques dont Surf/Force/Coupe, métadonnées HM, talents et quatre objets référencés (`fire-stone`, `kings-rock`, `thunderstone`, `water-stone`) ; vérifier ce qui a déjà été livré par le chantier Pokémon concurrent. Examiner les effets des talents réellement utilisés, notamment Adaptability, Scrappy et Volt Absorb, et les évolutions référencées, sans créer de définitions de remplacement.
-- [ ] Admettre seulement les dépendances nécessaires, avec identités existantes et médias protégés intacts ; ne pas fabriquer d'effet de combat de remplacement.
-- [ ] Vérifier chargement, usage des attaques et équipes réellement concernées, enseignement/compatibilité des CS sur fixture déclarée, conservation après Continue. Un effet non implémenté reste un blocage explicite.
+- [x] Revalider les préimages et le plus petit inventaire des espèces, équipes, attaques dont Surf/Force/Coupe, métadonnées HM, talents et quatre objets référencés (`fire-stone`, `kings-rock`, `thunderstone`, `water-stone`) ; vérifier ce qui a déjà été livré par le chantier Pokémon concurrent. Examiner les effets des talents réellement utilisés, notamment Adaptability, Scrappy et Volt Absorb, et les évolutions référencées, sans créer de définitions de remplacement.
+- [x] Admettre seulement les dépendances nécessaires, avec identités existantes et médias protégés intacts ; ne pas fabriquer d'effet de combat de remplacement.
+- [x] Vérifier chargement, usage des attaques et équipes réellement concernées, enseignement/compatibilité des CS sur fixture déclarée, conservation après Continue. Un effet non implémenté reste un blocage explicite.
 
 **Fermé quand :** chaque référence utilisée par les lots suivants se résout et son comportement nécessaire fonctionne ; les combats utilisent les vraies définitions. Aucune activation des règles de capture Fargas. Rattachements : FG-073, FG-086, FG-108, FG-120, FG-129 selon les consommateurs touchés.
+
+### Exécution C7-01 — 2 novembre 2026
+
+**Verdict : implémenté et vérifié sur le jeu principal, proposé TO REVIEW.** Les autres lots ne sont pas commencés par cette livraison. Le téléchargement reste 0.1.11 ; aucun export supplémentaire. La présentation Surf et les parcours graphiques/appareils restent C7-02/C7-12.
+
+Audit initial de cette exécution : HEAD `6bc630faaf2167773879a40b22ebfea896fd35b9`, onze chemins étrangers déjà modifiés. Main a ensuite avancé à `d966cb0c85ea636abe7028ae6e607576bcb9c19a` par un autre chantier. Les changements de recettes audio, présentation et sprites Gen5 sont exclus du commit C7 ; le resolver sprites est sélectionné par son seul hunk C7.
+
+L'admission source couvre 35 nouvelles fiches espèces/formes dont Zarbi A–J, 53 attaques, sept talents, les quatre objets référencés et CS01/03/04, ainsi que 182 médias vérifiés. La recette comporte 174 documents : 156 écrits et 18 déjà identiques préservés sans réécriture. Les évolutions conditionnelles, échanges et objets sources sont conservés ; aucune évolution solo inventée. Les sept équipes préparées sont consommées par le test runtime mais leur placement appartient aux lots de contenu suivants.
+
+Recette gelée : `7d7d8ff21ab0d68e1de7094d9f3c8261dd8db57b9be5031ed6452940577a6ea3`. Publication QA puis LIVE par six opérations canoniques, préimages et postimages relues, aucun pending. Les ajouts de catalogues utilisent `pokemon.catalog.write` avec préimage exacte et ajout sans remplacement : `pokemon.catalog.entries.add` n'est pas admis par le workshop partitionné courant. Les documents sémantiquement identiques restent protégés et sont exclus du batch qui refuse les no-op. Aucun contournement par écriture directe du jeu.
+
+Audit/Architecture, revue SPEC du code, revue SPEC des données, QUALITY du code et du publisher, puis critique finale du hunk sprites : PASS sur leurs périmètres. Le contrôle des 24 954 fichiers existants (1 111 423 352 octets) confirme la préservation des cartes, des médias originaux, du projet et du profil d'export ; seuls 25 learnsets, quatre catalogues et l'index d'assets prévus changent parmi les fichiers préexistants. Les entrées anciennes des catalogues et la sauvegarde authentique restent intactes.
+
+| Validation | Résultat exact |
+|---|---|
+| `packages/map_battle`: `dart test test/c7_required_abilities_test.dart test/tool/generate_psdk_move_flags_test.dart test/psdk_ability_registry_manifest_test.dart test/psdk_ability_effects_test.dart test/psdk_missing_ability_effects_test.dart test/psdk_accuracy_test.dart --reporter expanded` | `00:01 +281: All tests passed!`, exit 0 |
+| `packages/map_battle`: `dart test --reporter expanded` | `01:13 +2186 -1: Some tests failed.` ; seul MindBlown `Studio s_recoil mind_blown crashes once after adjacent damage` échoue aussi sur HEAD isolé : 19 PASS/1 FAIL, attendu [8,8,8], observé [6,6,7] |
+| `packages/map_battle`: `dart analyze` | `No issues found!`, exit 0 |
+| Générateur `generate_psdk_move_flags.dart --source-directory <source Studio existante> --check` | `Verified 728 native Studio move flags`, exit 0 |
+| `dart compile kernel test/c7_required_abilities_test.dart -o <QA C7>/battle-test.dill` | exit 0 ; sortie temporaire supprimée après contrôle des consommateurs |
+| `packages/map_runtime`: `flutter test test/runtime_battle_combatant_seed_builder_test.dart --reporter expanded` | `00:00 +28: All tests passed!`, exit 0 |
+| `packages/map_runtime`: `flutter test test/battle_pokemon_sprite_resolver_test.dart --reporter expanded` | `00:00 +15: All tests passed!`, exit 0 ; RED initial +9/-4 et RED défaut média +13/-1 avant correction |
+| Test externe `c7_01_runtime_test.dart`, QA puis `C701_PROJECT=<jeu principal>` | QA `00:01 +5: All tests passed!`, LIVE `00:04 +5: All tests passed!`, exit 0 ; PP, six IV, compatibilité/refus/enseignement des CS, non-consommation, sauvegarde/relecture froide et invariants narratifs vérifiés |
+| Analyse seed et test seed ; test sprites ; test externe | `No issues found!`, exit 0. Analyse resolver complet : deux diagnostics dans les ajouts Gen5 étrangers, laissés à leur propriétaire |
+| Runtime `phase_a_golden_battle_slice_smoke_test.dart` | `00:00 +3: All tests passed!`, exit 0 |
+| Host `phase_a_golden_slice_launch_test.dart` | `00:00 +14: All tests passed!`, exit 0 |
+| Publisher `python3 -B c7_01_publication_test.py` | `Ran 8 tests`, `OK`, exit 0 |
+| Authoring `dart test test/domains/gameplay/pokemon_catalog_authoring_test.dart test/domains/gameplay/pokemon_catalog_jsonl_test.dart --reporter expanded` | 14 PASS/1 FAIL : test de réparation d'évolution cherche `.pokemap/authoring/history.jsonl` absent après écriture réussie ; production Authoring inchangée par C7 |
+| MCP `npm run check`, `npm run build` | exit 0 |
+| MCP `node --import tsx --test --test-concurrency=1 test/pokemon_authoring.test.ts test/pokemon_document_query.test.ts` | 3 PASS/1 FAIL : ancien test attend `pokemon.ruleset.no_change`, reçoit `plan.stale` avant écriture espèce ; fichiers hors C7 |
+| MCP connecté, nouveau workspace LIVE et `batch_get` ciblé | trois documents relus : Kangourex et ses trois HM, média partagé Zarbi A–J, espèce Zarbi B et sa référence `unown` |
+| `git diff --check` | exit 0 |
+| `bash tools/scripts/check_markdown_hygiene.sh` | exit 1 : deux Markdown ignorés étrangers préexistants, aucun nouveau Markdown C7 |
+
+Toutes les suites passent par `executer_tests.py` : PID et descendants suivis, aucun descendant restant. Les tests externes utilisent le package config runtime absolu ; la forme relative faisait échouer un hook native-assets avant test. Le package runtime compile par ces suites ; aucun build applicatif complet ni certification GPU/iPhone déclaré. Aucune nouvelle capacité d'authoring ajoutée : contrats, UI et transports existants réutilisés ; les lectures/écritures canoniques sont prouvées, les deux limites des suites élargies restent visibles.
+
+Inventaire moteur du commit, préfixe commun `packages/` :
+
+- `map_battle/lib/src/data/generated/psdk_ability_effect_manifest.dart` : trois talents enregistrés ; `psdk_move_flags.dart` : éligibilité native Roche Royale.
+- `map_battle/lib/src/domain/ai/psdk_battle_ai.dart` : estimation STAB et immunités ; `effect/ability/ability_effect.dart`, `ability_effect_registry.dart`, `ability_immunity_effect.dart`, `type_modifier_ability_effect.dart` : Adaptabilité, Querelleur, Matinal et immunités pertinentes.
+- `map_battle/lib/src/domain/effect/status/sleep_effect.dart`, `handler/battle_status_change_handler.dart` : progression du sommeil par talent.
+- `map_battle/lib/src/domain/move/battle_accuracy_resolver.dart`, `battle_move_damage_calculator.dart`, `battle_move_immunity_resolver.dart`, `battle_move_type_processor.dart`, `behaviors/ohko_move_behavior.dart`, `behaviors/type_based_move_behavior.dart` : précision OHKO, STAB, immunités des ripostes et type/puissance de Puissance Cachée.
+- `map_battle/lib/src/psdk/canonical_psdk_move_projector.dart` : transport des flags natifs et Voile Miroir.
+- `map_battle/test/c7_required_abilities_test.dart`, `psdk_ability_registry_manifest_test.dart`, `tool/generate_psdk_move_flags_test.dart` ; `map_battle/tool/generate_psdk_move_flags.dart` : comportement, manifest et génération.
+- `map_runtime/lib/src/application/runtime_battle_combatant_seed_builder.dart`, `map_runtime/test/runtime_battle_combatant_seed_builder_test.dart` : transport des six IV joueur/sauvage/dresseur.
+- `map_runtime/lib/src/presentation/flame/battle_pokemon_sprite_resolver.dart`, `map_runtime/test/battle_pokemon_sprite_resolver_test.dart` : référence média canonique, forme propre, défaut conservé et confinement des chemins. Seul le hunk `_readMedia` entre au commit ; les ajouts Gen5 concurrents restent dans le worktree.
+- Ce plan existant : état et preuves C7-01, sans modification des statuts globaux de la roadmap.
+
+Sources et preuves du jeu hors Git moteur : `c7_01_preparer.py`, `c7_01_fixture.dart`, `c7_01_publier.py`, `c7_01_publication_test.py`, `c7_01_runtime_test.dart`, `c7_01_preserver.py`, `revisites/c7-01-admission.json` et `revisites/c7-01/`. Les logs, préimages canoniques, reçus de publication et contrôles de préservation restent techniques ; le carnet public n'en reçoit que la projection éditoriale.
+
+Limites et autocritique : le profil combat générique conserve ses règles actuelles ; ce lot ne certifie pas une équivalence intégrale Gen4/RNG. Les évolutions à condition ou échange restent des données sources, pas des fonctions solo promises. Les 40 résolutions de sprites Zarbi ne constituent pas une revue artistique. Fargas/capture et l'Élixir restent différés à leurs lots. FG-073 garde son état historique ; FG-086/108/120/129 ne sont pas promus globalement par cette preuve locale. Prochain lot : C7-02, présentation Surf.
 
 ## C7-02 — Terminer la présentation Surf
 

@@ -53,12 +53,14 @@ final class BattleMoveDamageCalculator {
       rules: rules,
       moveType: moveType,
       userTypes: _effectiveVisibleTypes(context.user),
+      user: context.user,
       extraUserTypes: _extraTypes(context.user),
     );
     final effectiveness = _typeProcessor.resolveEffectiveness(
       rules: rules,
       moveType: moveType,
       targetTypes: _effectiveVisibleTypes(context.target),
+      user: context.user,
       extraTargetTypes: _extraTypes(context.target),
       forceGrounded: moveType == 'ground' &&
           _groundingResolver.isGrounded(

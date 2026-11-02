@@ -2,11 +2,6 @@ import '../../../psdk/domain/psdk_battle_timeline.dart';
 import '../battle_move_behavior.dart';
 import 'battle_move_behavior_support.dart';
 
-/// Ports PSDK `OHKO`'s direct HP removal once the shared move procedure hits.
-///
-/// The local behavior intentionally remains partial in the manifest: Ruby PSDK
-/// also customizes chance of hit by level difference and applies Sheer Cold's
-/// post-Gen-7 Ice immunity. Those belong in the accuracy/effect hook layer.
 final class OhkoMoveBehavior implements BattleMoveBehavior {
   const OhkoMoveBehavior();
 

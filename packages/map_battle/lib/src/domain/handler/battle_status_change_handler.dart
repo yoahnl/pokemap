@@ -403,7 +403,8 @@ BattleStatusUserPreventionResult _resolveSleepPrevention(
   BattleMoveDefinition move,
 ) {
   final battler = context.state.battlerAt(user);
-  if (battler.sleepTurns >= 2) {
+  final nextTurns = battler.sleepTurns + battler.sleepTurnProgress;
+  if (nextTurns > 2) {
     return BattleStatusUserPreventionResult(
       state: context.state.updateBattler(
         user,
@@ -421,7 +422,7 @@ BattleStatusUserPreventionResult _resolveSleepPrevention(
 
   final nextState = context.state.updateBattler(
     user,
-    (current) => current.copyWith(sleepTurns: current.sleepTurns + 1),
+    (current) => current.copyWith(sleepTurns: nextTurns),
   );
   return BattleStatusUserPreventionResult(
     state: nextState,

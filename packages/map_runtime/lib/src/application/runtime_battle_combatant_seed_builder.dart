@@ -607,6 +607,7 @@ class RuntimeBattleCombatantSeedBuilder {
 
     return RuntimePsdkBattleCombatantSeed(
       speciesId: playerPokemon.speciesId.trim(),
+      ivs: playerPokemon.ivs,
       level: playerPokemon.level,
       maxHp: calculatedStats.maxHp,
       catchRate: species.catchRate,
@@ -792,6 +793,7 @@ class RuntimeBattleCombatantSeedBuilder {
 
     return RuntimePsdkBattleCombatantSeed(
       speciesId: generatedPokemon.speciesId.trim(),
+      ivs: generatedPokemon.ivs,
       level: generatedPokemon.level,
       maxHp: calculatedStats.maxHp,
       catchRate: species.catchRate,
@@ -899,6 +901,7 @@ class RuntimeBattleCombatantSeedBuilder {
 
     return RuntimePsdkBattleCombatantSeed(
       speciesId: teamMember.speciesId.trim(),
+      ivs: resolveTrainerPokemonStats(teamMember).ivs,
       level: teamMember.level,
       maxHp: calculatedStats.maxHp,
       catchRate: species.catchRate,
@@ -1289,6 +1292,14 @@ class RuntimePsdkBattleCombatantSeed {
     required this.stats,
     required this.typing,
     required this.abilityId,
+    this.ivs = const PokemonStatSpread(
+      hp: 31,
+      attack: 31,
+      defense: 31,
+      specialAttack: 31,
+      specialDefense: 31,
+      speed: 31,
+    ),
     this.heldItemId,
     this.majorStatus,
     required this.moves,
@@ -1305,6 +1316,7 @@ class RuntimePsdkBattleCombatantSeed {
   final int? currentHp;
   final String abilityId;
   final String? heldItemId;
+  final PokemonStatSpread ivs;
   final PsdkBattleMajorStatus? majorStatus;
   final List<PsdkBattleMoveData> moves;
   final List<RuntimeBattleMoveBridgeDiagnostics> moveDiagnostics;
@@ -1342,6 +1354,12 @@ class RuntimePsdkBattleCombatantSeed {
       majorStatus: majorStatus,
       abilityId: abilityId,
       heldItemId: heldItemId,
+      ivHp: ivs.hp,
+      ivAttack: ivs.attack,
+      ivDefense: ivs.defense,
+      ivSpecialAttack: ivs.specialAttack,
+      ivSpecialDefense: ivs.specialDefense,
+      ivSpeed: ivs.speed,
     );
   }
 }

@@ -7,6 +7,7 @@ import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_runtime/src/application/runtime_battle_presentation.dart';
 import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_pokemon_sprite_resolver.dart';
 import 'package:map_runtime/src/presentation/flame/battle_scene_combatant_component.dart';
@@ -147,6 +148,192 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('BattlePokemonSpriteResolver', () {
+    test(
+      'resolves shared canonical media with each species own form',
+      () async {
+        final root = await _sharedMediaProject('canonical');
+        final resolver = BattlePokemonSpriteResolver(
+          manifest: _manifest(),
+          projectRootDirectory: root.path,
+        );
+        for (final form in ['a', 'b']) {
+          for (final player in [false, true]) {
+            for (final shiny in [false, true]) {
+              final facing = player ? 'back' : 'front';
+              final suffix = shiny ? '-shiny' : '';
+              final spec = await resolver.resolve(
+                speciesId: 'letter-$form',
+                isPlayerSide: player,
+                visualIdentity: RuntimeBattleVisualIdentity(
+                  speciesId: 'letter-$form',
+                  formId: form,
+                  genderId: null,
+                  isShiny: shiny,
+                ),
+              );
+              expect(
+                spec.explicitImageAbsolutePath,
+                '${root.path}/assets/$form-$facing$suffix.png',
+              );
+            }
+          }
+          final ordinary = await resolver.resolve(
+            speciesId: 'letter-$form',
+            isPlayerSide: false,
+          );
+          expect(
+            ordinary.explicitImageAbsolutePath,
+            '${root.path}/assets/$form-front.png',
+          );
+          expect(
+            await resolver.resolveCry('letter-$form'),
+            '${root.path}/assets/$form.wav',
+          );
+        }
+        expect(resolver.debugActualMediaReadCount, 2);
+      },
+    );
+
+    test('preserves species fallback and legacy media references', () async {
+      final root = await _sharedMediaProject('legacy');
+      for (final entry in {
+        'legacy': {'spriteSetRef': 'shared', 'cryRef': 'shared'},
+        'fallback': <String, Object?>{},
+      }.entries) {
+        await File('${root.path}/data/pokemon/species/${entry.key}.json')
+            .writeAsString(
+              jsonEncode({'schemaVersion': 1, 'id': entry.key, ...entry.value}),
+            );
+      }
+      await _writePokemonMedia(
+        root: root,
+        speciesId: 'fallback',
+        frontRelativePath: 'assets/a-front.png',
+        backRelativePath: 'assets/a-back.png',
+      );
+      final resolver = BattlePokemonSpriteResolver(
+        manifest: _manifest(),
+        projectRootDirectory: root.path,
+      );
+      for (final species in ['legacy', 'fallback']) {
+        expect(
+          (await resolver.resolve(
+            speciesId: species,
+            isPlayerSide: false,
+          )).explicitImageAbsolutePath,
+          '${root.path}/assets/a-front.png',
+        );
+      }
+    });
+
+    test(
+      'rejects unsafe media references without using same-species media',
+      () async {
+        final root = await _sharedMediaProject('unsafe');
+        for (final reference in [
+          '../shared',
+          '/shared',
+          r'..\shared',
+          'file:///shared',
+          'shared/nested',
+        ]) {
+          await File('${root.path}/data/pokemon/species/letter-a.json')
+              .writeAsString(
+                jsonEncode({
+                  'schemaVersion': 1,
+                  'id': 'letter-a',
+                  'refs': {'media': reference},
+                }),
+              );
+          await _writePokemonMedia(
+            root: root,
+            speciesId: 'letter-a',
+            frontRelativePath: 'assets/a-front.png',
+            backRelativePath: 'assets/a-back.png',
+          );
+          final resolver = BattlePokemonSpriteResolver(
+            manifest: _manifest(),
+            projectRootDirectory: root.path,
+          );
+          expect(
+            (await resolver.resolve(
+              speciesId: 'letter-a',
+              isPlayerSide: false,
+            )).explicitImageAbsolutePath,
+            isNull,
+            reason: reference,
+          );
+        }
+      },
+    );
+
+    test('preserves malformed media errors for canonical references', () async {
+      final root = await _sharedMediaProject('malformed');
+      await File('${root.path}/data/pokemon/media/shared.json')
+          .writeAsString('{');
+      final resolver = BattlePokemonSpriteResolver(
+        manifest: _manifest(),
+        projectRootDirectory: root.path,
+      );
+      await expectLater(
+        resolver.resolve(speciesId: 'letter-b', isPlayerSide: false),
+        throwsFormatException,
+      );
+    });
+
+    test(
+      'keeps authored media default when species form has no variant',
+      () async {
+        final root = await _sharedMediaProject('default');
+        final media = File('${root.path}/data/pokemon/media/shared.json');
+        final document =
+            jsonDecode(await media.readAsString()) as Map<String, dynamic>;
+        document['defaultFormId'] = 'b';
+        await media.writeAsString(jsonEncode(document));
+        await File('${root.path}/data/pokemon/species/letter-a.json')
+            .writeAsString(
+              jsonEncode({
+                'schemaVersion': 1,
+                'id': 'letter-a',
+                'refs': {'media': 'shared'},
+                'forms': {'formId': 'missing'},
+              }),
+            );
+        final resolver = BattlePokemonSpriteResolver(
+          manifest: _manifest(),
+          projectRootDirectory: root.path,
+        );
+        expect(
+          (await resolver.resolve(
+            speciesId: 'letter-a',
+            isPlayerSide: false,
+          )).explicitImageAbsolutePath,
+          '${root.path}/assets/b-front.png',
+        );
+      },
+    );
+
+    test('rejects a referenced media symlink outside the project', () async {
+      final root = await _sharedMediaProject('symlink');
+      final media = File('${root.path}/data/pokemon/media/shared.json');
+      final outside = File('${root.path}-outside.json');
+      await outside.writeAsString(await media.readAsString());
+      addTearDown(() => outside.delete());
+      await media.delete();
+      await Link(media.path).create(outside.path);
+      final resolver = BattlePokemonSpriteResolver(
+        manifest: _manifest(),
+        projectRootDirectory: root.path,
+      );
+      expect(
+        (await resolver.resolve(
+          speciesId: 'letter-a',
+          isPlayerSide: false,
+        )).explicitImageAbsolutePath,
+        isNull,
+      );
+    });
+
     test('resolves authored cries and shares the media read with sprites', () async {
       final root = await Directory.systemTemp.createTemp('battle-cry-');
       addTearDown(() => root.delete(recursive: true));
@@ -494,6 +681,45 @@ void main() {
       endsWith('/ivysaur/back.png'),
     );
   });
+}
+
+Future<Directory> _sharedMediaProject(String name) async {
+  final root = await Directory.systemTemp.createTemp(
+    'battle_shared_media_$name',
+  );
+  addTearDown(() => root.delete(recursive: true));
+  final variants = <String, Object?>{};
+  for (final form in ['a', 'b']) {
+    final species = File('${root.path}/data/pokemon/species/letter-$form.json');
+    await species.parent.create(recursive: true);
+    await species.writeAsString(
+      jsonEncode({
+        'schemaVersion': 1,
+        'id': 'letter-$form',
+        'refs': {'media': 'shared'},
+        'forms': {'formId': form},
+      }),
+    );
+    final variant = <String, Object?>{'cry': 'assets/$form.wav'};
+    for (final facing in ['front', 'back']) {
+      for (final shiny in [false, true]) {
+        final path = 'assets/$form-$facing${shiny ? '-shiny' : ''}.png';
+        await _writeTinyPng(root: root, relativePath: path);
+        variant['$facing${shiny ? 'Shiny' : ''}Static'] = path;
+      }
+    }
+    variants[form] = variant;
+  }
+  final media = File('${root.path}/data/pokemon/media/shared.json');
+  await media.parent.create(recursive: true);
+  await media.writeAsString(
+    jsonEncode({
+      'schemaVersion': 1,
+      'defaultFormId': 'a',
+      'variants': variants,
+    }),
+  );
+  return root;
 }
 
 Future<String> _writeRawPng({

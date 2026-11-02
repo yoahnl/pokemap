@@ -4,6 +4,7 @@ import '../battle_effect.dart';
 import '../battle_effect_scope.dart';
 import '../../move/battle_move_prevention.dart';
 import 'status_effect_registry.dart';
+import '../ability/ability_effect.dart';
 
 final class SleepEffect extends BattleMajorStatusEffect {
   const SleepEffect({
@@ -32,7 +33,8 @@ final class SleepEffect extends BattleMajorStatusEffect {
     if (battler.majorStatus != status) {
       return null;
     }
-    if (battler.sleepTurns >= 2) {
+    final nextTurns = battler.sleepTurns + battler.sleepTurnProgress;
+    if (nextTurns > 2) {
       return BattleEffectUserMovePreventionResult(
         state: context.state.updateBattler(
           context.user,
@@ -48,7 +50,6 @@ final class SleepEffect extends BattleMajorStatusEffect {
       );
     }
 
-    final nextTurns = battler.sleepTurns + 1;
     final nextState = context.state.updateBattler(
       context.user,
       (current) => current.copyWith(

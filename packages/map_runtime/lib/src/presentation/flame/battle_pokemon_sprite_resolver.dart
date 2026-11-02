@@ -178,14 +178,37 @@ final class BattlePokemonSpriteResolver {
   }
 
   Future<_BattlePokemonMediaRecord?> _readMedia(String speciesId) async {
+    final rawSpeciesDirectory = manifest.pokemon.speciesDir.trim();
+    final speciesDirectory = rawSpeciesDirectory.isEmpty
+        ? 'data/pokemon/species'
+        : _normalizeProjectRelativePath(rawSpeciesDirectory);
+    if (speciesDirectory == null) return null;
+    final speciesPath = await _resolveProjectFile(
+      p.posix.join(speciesDirectory, '$speciesId.json'),
+    );
+    var mediaId = speciesId;
+    String? speciesFormId;
+    if (speciesPath != null) {
+      final decoded = jsonDecode(await File(speciesPath).readAsString());
+      if (decoded is! Map<String, dynamic>) return null;
+      final species = PokemonSpeciesFile.fromJson(decoded);
+      if (species.id != speciesId) return null;
+      if (species.mediaRef.isNotEmpty) mediaId = species.mediaRef;
+      speciesFormId = species.forms.formId;
+    }
+    if (!_isSafeSpeciesId(mediaId) ||
+        p.windows.isAbsolute(mediaId) ||
+        Uri.tryParse(mediaId)?.hasScheme == true) {
+      return null;
+    }
     final rawDirectory = manifest.pokemon.mediaDir.trim();
     final directory = rawDirectory.isEmpty || rawDirectory == '.'
         ? ''
         : _normalizeProjectRelativePath(rawDirectory);
     if (directory == null) return null;
     final relativePath = directory.isEmpty
-        ? '$speciesId.json'
-        : p.posix.join(directory, '$speciesId.json');
+        ? '$mediaId.json'
+        : p.posix.join(directory, '$mediaId.json');
     final path = await _resolveProjectFile(relativePath);
     if (path == null) {
       return null;
@@ -204,7 +227,10 @@ final class BattlePokemonSpriteResolver {
 
     return _BattlePokemonMediaRecord(
       variants: variants,
-      defaultFormId: (decoded['defaultFormId'] as String?)?.trim(),
+      defaultFormId: speciesFormId?.isNotEmpty == true &&
+              variants[speciesFormId] is Map
+          ? speciesFormId
+          : (decoded['defaultFormId'] as String?)?.trim(),
       readAnimated: decoded['schemaVersion'] == 2,
     );
   }

@@ -4,6 +4,7 @@ import '../battle_move_behavior.dart';
 import '../battle_move_data.dart';
 import '../battle_move_damage_calculator.dart';
 import '../battle_move_prevention.dart';
+import '../battle_move_type_processor.dart';
 import '../battle_move_secondary_effect_resolver.dart';
 import 'battle_move_behavior_support.dart';
 
@@ -146,9 +147,13 @@ final class TypeBasedMoveBehavior implements BattleMoveUserPreventionBehavior {
   ) {
     return _copyMove(
       move,
+      power: _kind == _TypeBasedMoveKind.hiddenPower && move.power == 1
+          ? _hiddenPowerPower(user)
+          : move.power,
       type: switch (_kind) {
         _TypeBasedMoveKind.auraWheel => _auraWheelType(user),
-        _TypeBasedMoveKind.hiddenPower => _hiddenPowerType(user),
+        _TypeBasedMoveKind.hiddenPower =>
+          const BattleMoveTypeProcessor().resolveHiddenPowerType(user),
         _TypeBasedMoveKind.ivyCudgel =>
           _typeFromItem(user.heldItemId, _ivyCudgelTable, 'grass'),
         _TypeBasedMoveKind.judgment =>
@@ -229,26 +234,26 @@ String _auraWheelType(PsdkBattleCombatant user) {
   };
 }
 
-String _hiddenPowerType(PsdkBattleCombatant user) {
+int _hiddenPowerPower(PsdkBattleCombatant user) {
   var index = 0;
   final bits = <int>[
-    user.ivHp & 1,
-    user.ivAttack & 1,
-    user.ivDefense & 1,
-    user.ivSpeed & 1,
-    user.ivSpecialAttack & 1,
-    user.ivSpecialDefense & 1,
+    (user.ivHp >> 1) & 1,
+    (user.ivAttack >> 1) & 1,
+    (user.ivDefense >> 1) & 1,
+    (user.ivSpeed >> 1) & 1,
+    (user.ivSpecialAttack >> 1) & 1,
+    (user.ivSpecialDefense >> 1) & 1,
   ];
   for (var i = 0; i < bits.length; i++) {
     index += bits[i] << i;
   }
-  final tableIndex = (index * (_hiddenPowerTypes.length - 1) / 63).floor();
-  return _hiddenPowerTypes[tableIndex];
+  return (index * 40 ~/ 63) + 30;
 }
 
 BattleMoveDefinition _copyMove(
   BattleMoveDefinition move, {
   required String type,
+  required int power,
 }) {
   return BattleMoveDefinition(
     id: move.id,
@@ -256,7 +261,7 @@ BattleMoveDefinition _copyMove(
     name: move.name,
     type: type,
     category: move.category,
-    power: move.power,
+    power: power,
     accuracy: move.accuracy,
     pp: move.pp,
     currentPp: move.currentPp,
@@ -270,22 +275,3 @@ BattleMoveDefinition _copyMove(
     statuses: move.statuses,
   );
 }
-
-const _hiddenPowerTypes = <String>[
-  'fighting',
-  'flying',
-  'poison',
-  'ground',
-  'rock',
-  'bug',
-  'ghost',
-  'steel',
-  'fire',
-  'water',
-  'grass',
-  'electric',
-  'psychic',
-  'ice',
-  'dragon',
-  'dark',
-];

@@ -1,6 +1,7 @@
 import '../battle/battle_slot.dart';
 import '../effect/ability/ability_effect.dart';
 import '../effect/item/item_effect.dart';
+import '../effect/move/lock_on_effect.dart';
 import '../rng/battle_rng_streams.dart';
 import '../../psdk/domain/psdk_battle_field.dart';
 import '../../psdk/domain/psdk_battle_slots.dart';
@@ -13,6 +14,9 @@ final class BattleAccuracyResolver {
     required BattleMoveProcedureExecution execution,
     required List<BattlePositionRef> targets,
   }) {
+    if (execution.move.battleEngineMethod == 's_ohko') {
+      return _resolveOhko(execution, targets);
+    }
     if (_bypassAccuracy(execution, targets)) {
       return BattleAccuracyResult(
         rng: execution.context.rng,
@@ -40,6 +44,53 @@ final class BattleAccuracyResolver {
       hitTargets: hitTargets,
       missedTargets: missedTargets,
       bypassed: false,
+    );
+  }
+
+  BattleAccuracyResult _resolveOhko(
+    BattleMoveProcedureExecution execution,
+    List<BattlePositionRef> targets,
+  ) {
+    var rng = execution.context.rng;
+    final state = execution.context.state;
+    final user = state.battlerAt(execution.psdkActualUser);
+    final hitTargets = <BattlePositionRef>[];
+    final missedTargets = <BattlePositionRef>[];
+    var bypassed = false;
+    for (final targetRef in targets) {
+      final targetSlot = PsdkBattleSlotRef(
+        bank: targetRef.bank,
+        position: targetRef.position,
+      );
+      final target = state.battlerAt(targetSlot);
+      if (user.level < target.level) {
+        missedTargets.add(targetRef);
+        continue;
+      }
+      final lockedOn = user.effects.effects.whereType<LockOnEffect>().any(
+            (effect) => effect.target == targetSlot,
+          );
+      if (lockedOn ||
+          _bypassAccuracy(execution, <BattlePositionRef>[targetRef])) {
+        hitTargets.add(targetRef);
+        bypassed = true;
+        continue;
+      }
+      final accuracy =
+          (execution.move.accuracy + user.level - target.level).clamp(0, 100);
+      final roll = rng.moveAccuracy.nextPercent();
+      rng = rng.copyWith(moveAccuracy: roll.next);
+      if (roll.value <= accuracy) {
+        hitTargets.add(targetRef);
+      } else {
+        missedTargets.add(targetRef);
+      }
+    }
+    return BattleAccuracyResult(
+      rng: rng,
+      hitTargets: hitTargets,
+      missedTargets: missedTargets,
+      bypassed: bypassed,
     );
   }
 

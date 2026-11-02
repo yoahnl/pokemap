@@ -2,6 +2,7 @@ import 'package:map_core/map_core.dart';
 
 import '../battle_type_chart.dart';
 import '../data/generated/psdk_move_registry_manifest.dart';
+import '../data/generated/psdk_move_flags.dart';
 import '../data/psdk_move_method_index.dart';
 import 'domain/psdk_battle_move.dart';
 
@@ -43,6 +44,10 @@ class CanonicalPsdkMoveProjector {
       criticalRate: move.critRatio,
       battleEngineMethod: battleEngineMethod,
       target: _translatePsdkTarget(move.target),
+      kingRockUtility: psdkMoveKingRockUtilityForMoveId(move.id) ??
+          psdkMoveKingRockUtilityForMoveId(
+              move.sourceRefs.showdownMoveId ?? '') ??
+          false,
       contact: move.flags.contains(PokemonMoveFlag.contact),
       sound: move.flags.contains(PokemonMoveFlag.sound),
       bite: move.flags.contains(PokemonMoveFlag.bite),
@@ -298,6 +303,8 @@ const _knownPsdkMethodByMoveId = <String, String>{
   'baton_pass': 's_baton_pass',
   'copycat': 's_mirror_move',
   'counter': 's_counter',
+  'mirror_coat': 's_mirror_coat',
+  'mirrorcoat': 's_mirror_coat',
   'endure': 's_protect',
   'helping_hand': 's_helping_hand',
   'helpinghand': 's_helping_hand',

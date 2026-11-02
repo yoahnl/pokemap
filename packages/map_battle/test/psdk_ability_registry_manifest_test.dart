@@ -7,7 +7,7 @@ void main() {
     test('tracks all PSDK ability registrations without duplicates', () {
       final ids = psdkAbilityEffectManifest.map((entry) => entry.abilityId);
 
-      expect(psdkAbilityEffectManifest.length, 278);
+      expect(psdkAbilityEffectManifest.length, 281);
       expect(ids.toSet(), hasLength(psdkAbilityEffectManifest.length));
       expect(
         ids,
@@ -30,6 +30,9 @@ void main() {
       final registry = AbilityEffectRegistry();
 
       for (final abilityId in <String>[
+        'adaptability',
+        'early_bird',
+        'scrappy',
         'analytic',
         'anticipation',
         'aura_break',
@@ -301,7 +304,7 @@ void main() {
     test('registry coverage keeps manifest evidence and factories aligned', () {
       final coverage = AbilityEffectRegistry().manifestCoverage();
 
-      expect(coverage.totalManifestAbilities, 278);
+      expect(coverage.totalManifestAbilities, 281);
       expect(coverage.factoryIdsOutsideManifest, isEmpty);
       expect(coverage.declaredEffectsWithoutFactory, isEmpty);
       expect(coverage.concreteFactoryAbilityIds, contains('imposter'));

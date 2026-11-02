@@ -337,6 +337,7 @@ final class PsdkBattleAi {
       state: state,
       move: move,
       target: targetBattler,
+      user: userBattler,
     );
     final effectiveness =
         move.category == PsdkBattleMoveCategory.status && rawEffectiveness > 0
@@ -393,6 +394,7 @@ final class PsdkBattleAi {
     required PsdkBattleState state,
     required PsdkBattleMoveData move,
     required PsdkBattleCombatant target,
+    required PsdkBattleCombatant user,
   }) {
     if (level < 2) {
       return 1;
@@ -401,6 +403,7 @@ final class PsdkBattleAi {
       rules: state.battleRules,
       moveType: move.type,
       targetTypes: target.types,
+      user: user,
       extraTargetTypes: <String>[
         if (target.type3 != null) target.type3!,
         ...target.temporaryTypes,
@@ -436,6 +439,7 @@ final class PsdkBattleAi {
       rules: state.battleRules,
       moveType: move.type,
       userTypes: user.types,
+      user: user,
       extraUserTypes: <String>[
         if (user.type3 != null) user.type3!,
         ...user.temporaryTypes,

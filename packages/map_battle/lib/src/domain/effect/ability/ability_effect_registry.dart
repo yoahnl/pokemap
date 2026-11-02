@@ -57,6 +57,7 @@ import 'status_immunity_effect.dart';
 import 'switch_trigger_ability_effect.dart';
 import 'switch_out_cleanup_ability_effect.dart';
 import 'type_boosting_ability_effect.dart';
+import 'type_modifier_ability_effect.dart';
 import 'type_immunity_ability_effect.dart';
 import 'turn_skip_ability_effect.dart';
 import 'unaware_effect.dart';
@@ -72,6 +73,9 @@ final class AbilityEffectRegistry {
 
   static final Map<String, AbilityEffectFactory> _defaultFactories =
       <String, AbilityEffectFactory>{
+    'adaptability': ({required scope}) => AdaptabilityEffect(scope: scope),
+    'scrappy': ({required scope}) => ScrappyEffect(scope: scope),
+    'early_bird': ({required scope}) => EarlyBirdEffect(scope: scope),
     'air_lock': ({required scope}) => AirLockEffect(scope: scope),
     'cloud_nine': ({required scope}) => CloudNineEffect(scope: scope),
     'commander': ({required scope}) => CommanderEffect(scope: scope),

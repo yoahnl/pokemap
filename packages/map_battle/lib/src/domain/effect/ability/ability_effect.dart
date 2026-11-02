@@ -55,6 +55,12 @@ abstract class BattleAbilityEffect extends BattleEffect {
 
   String? moveTypeOverride(BattleAbilityMoveTypeContext context) => null;
 
+  double get sameTypeAttackMultiplier => 1.5;
+
+  bool get ignoresGhostTypeImmunity => false;
+
+  int get sleepTurnProgress => 1;
+
   double basePowerMultiplier(BattleAbilityMoveContext context) => 1;
 
   double damageBasePowerMultiplier(BattleAbilityDamageContext context) => 1;
@@ -221,6 +227,13 @@ final class BattleAbilityStatContext {
 }
 
 extension BattleAbilityEffectList on PsdkBattleCombatant {
+  int get sleepTurnProgress => abilityEffects.fold(
+        1,
+        (progress, effect) => effect.sleepTurnProgress > progress
+            ? effect.sleepTurnProgress
+            : progress,
+      );
+
   Iterable<BattleAbilityEffect> get abilityEffects sync* {
     if (effects.contains('ability_suppressed')) {
       return;

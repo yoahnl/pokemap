@@ -6,6 +6,13 @@
 /// before every ability has a dedicated Dart effect implementation.
 const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
   PsdkAbilityEffectManifestEntry(
+    abilityId: 'adaptability',
+    rubyPath:
+        'pokemonsdk-development/scripts/5 Battle/10 Move/103 Type Processing.rb',
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'AdaptabilityEffect',
+  ),
+  PsdkAbilityEffectManifestEntry(
     abilityId: 'aerilate',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/051 ChangingMoveType.rb',
@@ -387,6 +394,13 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Dry Skin.rb',
     status: PsdkAbilityPortStatus.ported,
     dartEffect: 'DrySkinEffect',
+  ),
+  PsdkAbilityEffectManifestEntry(
+    abilityId: 'early_bird',
+    rubyPath:
+        'pokemonsdk-development/scripts/4 Systems/000 General/1 PFM/2 Pokemon/800 Pokemon Status.rb',
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'EarlyBirdEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'earth_eater',
@@ -1328,6 +1342,13 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Zen Mode.rb',
     status: PsdkAbilityPortStatus.ported,
     dartEffect: 'HpThresholdFormAbilityEffect.schooling',
+  ),
+  PsdkAbilityEffectManifestEntry(
+    abilityId: 'scrappy',
+    rubyPath:
+        'pokemonsdk-development/scripts/5 Battle/10 Move/103 Type Processing.rb',
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'ScrappyEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'screen_cleaner',
