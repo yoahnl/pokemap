@@ -143,12 +143,24 @@ final class BattlePokemonSpriteResolver {
     final loader = gen5SourceLoader;
     final pokemon = manifest.pokemon;
     final form = identity?.formId?.trim();
+    final variant = media == null || !media.readAnimated
+        ? null
+        : _defaultVariant(media);
+    final hasFemaleArtwork = const [
+      'frontFemaleAnimated',
+      'backFemaleAnimated',
+      'frontShinyFemaleAnimated',
+      'backShinyFemaleAnimated',
+    ].any((key) {
+      final path = variant?[key];
+      return path is String && path.trim().isNotEmpty;
+    });
     if (loader == null ||
         !pokemon.enabled ||
         identity == null ||
         identity.isShiny == null ||
         identity.genderId == null ||
-        identity.genderId == 'female' ||
+        (identity.genderId == 'female' && hasFemaleArtwork) ||
         (form != null &&
             form.isNotEmpty &&
             form != (media?.defaultFormId ?? 'base'))) {

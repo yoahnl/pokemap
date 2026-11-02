@@ -156,13 +156,76 @@ void main() {
     expect(requests, isEmpty);
   });
 
-  test('keeps an unknown or female visual identity on the existing fallback', () async {
+  test('uses the base skeleton when no female artwork is declared', () async {
+    final sprite = await resolver().resolve(
+      speciesId: 'localmon',
+      isPlayerSide: false,
+      visualIdentity: const RuntimeBattleVisualIdentity(
+        speciesId: 'localmon', formId: 'base', genderId: 'female', isShiny: false,
+      ),
+    );
+    expect(sprite.gen5Source, isNotNull);
+    expect(await sprite.gen5Source!.load(), same(bundle));
+    expect(requests, [('localmon', 506)]);
+  });
+
+  test('uses the base skeleton for a female without a media document', () async {
+    await File('${project.path}/data/pokemon/media/localmon.json').delete();
+    final sprite = await resolver().resolve(
+      speciesId: 'localmon',
+      isPlayerSide: false,
+      visualIdentity: const RuntimeBattleVisualIdentity(
+        speciesId: 'localmon', formId: 'base', genderId: 'female', isShiny: false,
+      ),
+    );
+    expect(sprite.gen5Source, isNotNull);
+    expect(await sprite.gen5Source!.load(), same(bundle));
+    expect(requests, [('localmon', 506)]);
+  });
+
+  test('uses the shiny back skeleton when no female artwork is declared', () async {
+    final sprite = await resolver().resolve(
+      speciesId: 'localmon',
+      isPlayerSide: true,
+      visualIdentity: const RuntimeBattleVisualIdentity(
+        speciesId: 'localmon', formId: 'base', genderId: 'female', isShiny: true,
+      ),
+    );
+    expect(sprite.facing, BattleCombatantSpriteFacing.back);
+    expect(sprite.gen5Source?.shiny, isTrue);
+    expect(await sprite.gen5Source!.load(), same(bundle));
+    expect(requests, [('localmon', 506)]);
+  });
+
+  test('keeps distinct female artwork on its image fallback', () async {
+    final media = File('${project.path}/data/pokemon/media/localmon.json');
+    await media.writeAsString(jsonEncode({
+      'schemaVersion': 2,
+      'defaultFormId': 'base',
+      'variants': {
+        'base': {
+          'frontAnimated': 'assets/front.gif',
+          'frontFemaleAnimated': 'assets/female.gif',
+        },
+      },
+    }));
+    await File('${project.path}/assets/female.gif').writeAsBytes([1]);
+    final sprite = await resolver().resolve(
+      speciesId: 'localmon',
+      isPlayerSide: false,
+      visualIdentity: const RuntimeBattleVisualIdentity(
+        speciesId: 'localmon', formId: 'base', genderId: 'female', isShiny: false,
+      ),
+    );
+    expect(sprite.gen5Source, isNull);
+    expect(sprite.explicitAnimatedImageAbsolutePath, endsWith('/female.gif'));
+    expect(requests, isEmpty);
+  });
+
+  test('keeps an unknown visual identity on the existing fallback', () async {
     final subject = resolver();
     for (final identity in <RuntimeBattleVisualIdentity?>[
       null,
-      const RuntimeBattleVisualIdentity(
-        speciesId: 'localmon', formId: 'base', genderId: 'female', isShiny: false,
-      ),
       const RuntimeBattleVisualIdentity(
         speciesId: 'localmon', formId: 'base', genderId: 'male', isShiny: null,
       ),
