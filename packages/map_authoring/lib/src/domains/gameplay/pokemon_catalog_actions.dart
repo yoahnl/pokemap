@@ -564,6 +564,19 @@ AuthoringActionDescriptor _descriptor(String id, {required bool delete}) =>
                 'preserves': 'all document fields except schemaVersion',
                 'projectStorage': 'working-catalog-only',
               },
+              'battleGifImport': {
+                'requestExtension': 'battleGifArtifacts',
+                'value': 'role-to-artifact-handle map',
+                'roles': [
+                  'frontAnimated',
+                  'backAnimated',
+                  'frontShinyAnimated',
+                  'backShinyAnimated',
+                ],
+                'path': 'assets/pokemon/battle-gifs/<sha256>.gif',
+                'projectStorage': 'working-catalog-only',
+                'preservesExistingChoices': true,
+              },
             }
           : const {},
     );

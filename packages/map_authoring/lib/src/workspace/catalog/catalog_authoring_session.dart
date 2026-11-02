@@ -4,6 +4,14 @@ import '../../domains/gameplay/pokemon_media_storage_path.dart';
 import '../../ports/transaction_file_gateway.dart';
 import '../../references/exterior_decoration_references.dart';
 import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:crypto/crypto.dart';
+import 'package:map_distribution/map_distribution.dart';
+
+import '../../contracts/artifact_ref.dart';
+import '../../ports/artifact_store.dart';
 
 import 'package:map_core/map_core.dart';
 
@@ -51,6 +59,7 @@ final class CatalogAuthoringSession {
       required this.requireActive,
       required this.dispatcher,
       required this.resolveAction,
+      this.artifactStore,
       required this.inspectHistoryReplay,
       required this.loadProject,
       this.acceptObservedCatalogRevision,
@@ -78,6 +87,7 @@ final class CatalogAuthoringSession {
   final AuthoringActor actor;
   final void Function() requireActive;
   final MapMutationDispatcher dispatcher;
+  final ArtifactStore? artifactStore;
   final AuthoringActionDescriptor Function(String actionId) resolveAction;
   final Future<AuthoringReceipt?> Function(
       String operationId, String actionId, String entryId) inspectHistoryReplay;
@@ -111,6 +121,8 @@ final class CatalogAuthoringSession {
       _modelSourceSelection;
   final Map<String, CatalogEditingPlan> _plans = {};
   final Map<String, String> _operations = {};
+  final Map<String, Map<String, String>> _battleGifs = {};
+  final Map<String, Map<String, String>> _historyBattleGifs = {};
 
   bool _closed = false;
 
@@ -194,6 +206,12 @@ final class CatalogAuthoringSession {
 
   Future<AuthoringMutationPlanResult> plan(AuthoringRequest request) async {
     _authorize(AuthoringSecurityOperation.plan, request: request);
+    if (request.extensions.containsKey('battleGifArtifacts') &&
+        (request.actionId != 'pokemon.media.write' ||
+            request.extensions['workshopScope'] != true)) {
+      throw const FormatException('GIF imports require a scoped media write.');
+    }
+
     if (request.actionId == 'map3d.edit_batch' &&
         !CatalogSpatialMapSelection.supports(request.actionId,parameters:request.parameters)) {
       throw AuthoringPlanException(code:'map3d.edit_batch.scope_unsupported',
@@ -502,6 +520,7 @@ final class CatalogAuthoringSession {
   }
 
   Future<AuthoringMutationPlanResult> _planWorkshop(AuthoringRequest request) async {
+    final gifs = await _prepareBattleGifs(request);
     final current = (await CatalogProjectReader.open(store: reader.store,
         descriptor: reader.descriptor, metadataFields: {}))!;
     final selection = await CatalogWorkshopSelection.read(reader: current,
@@ -549,6 +568,7 @@ final class CatalogAuthoringSession {
           currentProjectRevision: currentRevision,
           idempotencyKey: request.idempotencyKey!, request: request);
       _plans[prepared.plan.planId] = prepared;
+      if (gifs.isNotEmpty) _battleGifs[prepared.plan.planId] = gifs;
       final receipt = prepared.plan.toPlannedReceipt();
       return AuthoringMutationPlanResult(plan: prepared.plan,
           snapshotRevision: publicRevision, receipt: receipt,
@@ -559,6 +579,80 @@ final class CatalogAuthoringSession {
       await publicPlan?.releasePayloads();
       await discardProjectPlan(built.planId);
     }
+  }
+
+  Future<Map<String, String>> _prepareBattleGifs(
+      AuthoringRequest request) async {
+    final raw = request.extensions['battleGifArtifacts'];
+    if (!request.extensions.containsKey('battleGifArtifacts')) return const {};
+    final artifacts = artifactStore;
+    if (artifacts == null) {
+      throw const FormatException('Battle GIF artifacts are unavailable.');
+    }
+    const roles = {
+      'frontAnimated',
+      'backAnimated',
+      'frontShinyAnimated',
+      'backShinyAnimated'
+    };
+    if (raw is! Map ||
+        raw.isEmpty ||
+        raw.length > roles.length ||
+        raw.keys.any((key) => key is! String || !roles.contains(key)) ||
+        raw.values.any((value) => value is! String)) {
+      throw const FormatException('Invalid battle GIF selection.');
+    }
+    final document = request.parameters['document'];
+    if (document is! Map ||
+        document['defaultFormId'] is! String ||
+        document['variants'] is! Map) {
+      throw const FormatException('Invalid battle GIF media document.');
+    }
+    final form = (document['variants'] as Map)[document['defaultFormId']];
+    if (form is! Map) {
+      throw const FormatException('Missing default media form.');
+    }
+    final beforeText = request.parameters['beforeBytesBase64'];
+    final before = beforeText is String
+        ? jsonDecode(utf8.decode(base64Decode(beforeText)))
+        : null;
+    if (before is Map && before['defaultFormId'] != document['defaultFormId']) {
+      throw const FormatException('A battle GIF import cannot change the default form.');
+    }
+    final oldForms = before is Map ? before['variants'] : null;
+    final oldForm =
+        oldForms is Map ? oldForms[document['defaultFormId']] : null;
+    final output = <String, String>{};
+    var total = 0;
+    for (final entry in raw.entries) {
+      final role = entry.key as String;
+      final handle = entry.value as String;
+      final ref = artifacts.inspect(handle);
+      if (ref == null ||
+          ref.mediaType != 'image/gif' ||
+          ref.byteLength < 1 ||
+          ref.byteLength > PokemonGifInspector.maxEncodedBytes) {
+        throw const FormatException('A battle GIF artifact is unavailable.');
+      }
+      final bytes = await artifacts.read(handle);
+      total += bytes.length;
+      if (total > 64 * 1024 * 1024 ||
+          ContentArtifactRef.fromBytes(bytes, mediaType: ref.mediaType) !=
+              ref) {
+        throw const FormatException(
+            'A battle GIF artifact changed or is too large.');
+      }
+      const PokemonGifInspector(maxFrames: 500, maxCanvasPixels: 16777216)
+          .inspect(Uint8List.fromList(bytes));
+      final path = 'assets/pokemon/battle-gifs/${sha256.convert(bytes)}.gif';
+      final previous = oldForm is Map ? oldForm[role] : null;
+      if (form[role] != path || (previous != null && previous != path)) {
+        throw const FormatException(
+            'A battle GIF selection would replace an existing media choice.');
+      }
+      output[path] = handle;
+    }
+    return output;
   }
 
   Future<AuthoringMutationPlanResult> _planMap(AuthoringRequest request) async {
@@ -1016,6 +1110,93 @@ final class CatalogAuthoringSession {
         }
         await requirePlanPreconditions(prepared.plan);
         await precondition?.call();
+        await _requireNoBattleGifWrites(
+            prepared.plan.changeSet.changes.map((change) => change.storageKey));
+        final historyGifs = _historyBattleGifs[planId];
+        if (historyGifs != null) {
+          await _requireBattleGifRevisions(historyGifs);
+        }
+        final gifs = _battleGifs[planId];
+        if (gifs != null) {
+          final gateway = reader.store.gateway;
+          final revisions = <String, String?>{
+            'project.json': await gateway.readResourceRevision('project.json'),
+          };
+          if (revisions['project.json'] == null) {
+            throw const FormatException('The project descriptor is missing.');
+          }
+          final stageId =
+              'battle_gif_${sha256.convert(utf8.encode(operationId))}';
+          if (await gateway.readJournal(stageId) != null) {
+            throw const FormatException('The GIF staging identity is in use.');
+          }
+          try {
+            for (final entry in gifs.entries) {
+              final store = artifactStore;
+              final reference = store?.inspect(entry.value);
+              if (store == null || reference == null ||
+                  reference.mediaType != 'image/gif' ||
+                  reference.byteLength < 1 ||
+                  reference.byteLength > PokemonGifInspector.maxEncodedBytes) {
+                throw const FormatException('A battle GIF artifact is unavailable.');
+              }
+              final bytes = await store.read(entry.value);
+              if ('assets/pokemon/battle-gifs/${sha256.convert(bytes)}.gif' != entry.key ||
+                  ContentArtifactRef.fromBytes(bytes, mediaType: reference.mediaType) != reference) {
+                throw const FormatException('A battle GIF artifact changed.');
+              }
+              final expected = computeAuthoringBytesFingerprint(bytes,
+                  logicalName: entry.key);
+              final current = await gateway.readResourceRevision(entry.key);
+              final marker = _battleGifMarker(entry.key)!;
+              final markerBytes = utf8.encode(canonicalAuthoringJson({
+                'schemaVersion': 1,
+                'path': entry.key,
+              }));
+              final markerRevision = computeAuthoringBytesFingerprint(markerBytes, logicalName: marker);
+              final existingMarker = await gateway.readResourceRevision(marker);
+              if (existingMarker == null && current != null) {
+                throw const FormatException('An existing file cannot be adopted as an immutable battle GIF.');
+              }
+              if (existingMarker != null && existingMarker != markerRevision) {
+                throw const FormatException('A battle GIF ownership marker is invalid.');
+              }
+              if (existingMarker == null) {
+                await gateway.stagePayload(operationId: stageId, storageKey: marker, kind: TransactionPayloadKind.after, bytes: markerBytes);
+                await gateway.promoteStaged(operationId: stageId, storageKey: marker, kind: TransactionPayloadKind.after, expectedCurrentRevision: null);
+              }
+              if (current == null) {
+                await gateway.stagePayload(
+                    operationId: stageId,
+                    storageKey: entry.key,
+                    kind: TransactionPayloadKind.after,
+                    bytes: bytes);
+                await gateway.promoteStaged(
+                    operationId: stageId,
+                    storageKey: entry.key,
+                    kind: TransactionPayloadKind.after,
+                    expectedCurrentRevision: null);
+              } else if (current != expected) {
+                throw const FormatException(
+                    'A retained battle GIF differs from its content address.');
+              }
+              if (await gateway.readResourceRevision(entry.key) != expected) {
+                throw const FormatException(
+                    'A published battle GIF failed verification.');
+              }
+              revisions[entry.key] = expected;
+            }
+          } finally {
+            await gateway.deleteTransaction(stageId);
+          }
+          if (prepared.plan.mediaRecoveryDependencies == null) {
+            prepared.plan.bindMediaRecoveryDependencies(revisions);
+          } else if (canonicalAuthoringJson(
+                  prepared.plan.mediaRecoveryDependencies) !=
+              canonicalAuthoringJson(revisions)) {
+            throw const FormatException('The battle GIF dependencies changed.');
+          }
+        }
       },
               beforeReservation: beforeReservation,
               preparationCheck: preparationCheck);
@@ -1040,6 +1221,8 @@ final class CatalogAuthoringSession {
       ],
       'touchedResources': touched,
     });
+    _battleGifs.remove(planId);
+    _historyBattleGifs.remove(planId);
     return _result(receipt);
   }
 
@@ -1202,6 +1385,21 @@ final class CatalogAuthoringSession {
                   historyEntry: entry)
               : () async => (await loadProject()).revision);
     }
+    if (operation == 'redo' && entry != null) {
+      final gifs = _battleGifRevisions(entry.receipt);
+      if (gifs.isNotEmpty) {
+        final projectRevision =
+            await reader.store.gateway.readResourceRevision('project.json');
+        if (projectRevision == null) {
+          throw const AuthoringHistoryException(
+              'history.pokemon_media_path_changed',
+              'The project descriptor is missing.');
+        }
+        prepared.plan.bindMediaRecoveryDependencies(
+            {'project.json': projectRevision, ...gifs});
+        _historyBattleGifs[prepared.plan.planId] = gifs;
+      }
+    }
     _plans[prepared.plan.planId] = prepared;
     return apply(
         planId: prepared.plan.planId,
@@ -1226,6 +1424,15 @@ final class CatalogAuthoringSession {
       String operationId, CatalogEditingSession editing) async {
     final gateway = reader.store.gateway;
     final journal = await gateway.readJournal(operationId);
+    if (journal != null && journal.entries.any((entry) =>
+        _battleGifMarker(entry.storageKey.toLowerCase()) != null)) {
+      final state = await editing.recovery.inspectOperation(
+          operationId: operationId, scope: journal.scope);
+      if (state?.disposition != AuthoringRecoveryDisposition.completed) {
+        await _requireNoBattleGifWrites(
+            journal.entries.map((entry) => entry.storageKey));
+      }
+    }
     if (journal == null ||
         !const {'pokemon.media.write', 'history.undo', 'history.redo'}
             .contains(journal.scope.actionId)) {
@@ -1261,6 +1468,7 @@ final class CatalogAuthoringSession {
           'Reconcile the other pending transactions before recovering this operation.');
     }
     await reader.store.requireProjectDescriptor(reader.descriptor);
+    await _requireBattleGifRevisions(_battleGifRevisions(journal.intendedReceipt));
     await _requireScopedMediaRecoveryDependencies(journal);
     final head = await reader.store.readHead();
     if (head == null) {
@@ -1278,6 +1486,65 @@ final class CatalogAuthoringSession {
       throw const AuthoringHistoryException(
           'history.pokemon_media_path_changed',
           'The configured media directory no longer matches this history entry.');
+    }
+  }
+
+  Map<String, String> _battleGifRevisions(AuthoringReceipt receipt) {
+    final raw = receipt.extensions['mediaRecoveryDependencies'];
+    if (raw is! Map) return const {};
+    final result = <String, String>{};
+    for (final entry in raw.entries) {
+      final path = entry.key;
+      if (path is! String || !path.startsWith('assets/pokemon/battle-gifs/')) {
+        continue;
+      }
+      if (!RegExp(r'^assets/pokemon/battle-gifs/[0-9a-f]{64}\.gif$')
+              .hasMatch(path) ||
+          entry.value is! String ||
+          !RegExp(r'^sha256:[0-9a-f]{64}$').hasMatch(entry.value as String)) {
+        throw const FormatException('Invalid battle GIF dependency.');
+      }
+      result[path] = entry.value as String;
+    }
+    return result;
+  }
+
+  String? _battleGifMarker(String path) {
+    final match = RegExp(r'^assets/pokemon/battle-gifs/([0-9a-f]{64})\.gif$').firstMatch(path);
+    return match == null ? null : 'catalog/battle-gif-ownership/${match.group(1)}.json';
+  }
+
+  Future<void> _requireNoBattleGifWrites(Iterable<String> paths) async {
+    for (final path in paths) {
+      final canonicalPath = path.toLowerCase();
+      final marker = _battleGifMarker(canonicalPath);
+      if (marker == null ||
+          await reader.store.gateway.readResourceRevision(marker) == null) {
+        continue;
+      }
+      var same = canonicalPath == path;
+      if (!same) {
+        try {
+          same = await FileSystemEntity.identical(
+              '${reader.store.projectRoot}/$path',
+              '${reader.store.projectRoot}/$canonicalPath');
+        } on FileSystemException {
+          same = !await File('${reader.store.projectRoot}/$path').exists();
+        }
+      }
+      if (same) {
+        throw const FormatException('An imported battle GIF cannot be changed in place.');
+      }
+    }
+  }
+
+  Future<void> _requireBattleGifRevisions(Map<String, String> revisions) async {
+    for (final entry in revisions.entries) {
+      if (await reader.store.gateway.readResourceRevision(entry.key) !=
+          entry.value) {
+        throw const AuthoringHistoryException('history.pokemon_gif_changed',
+            'A referenced battle GIF is missing or changed.');
+      }
     }
   }
 
@@ -1399,6 +1666,8 @@ final class CatalogAuthoringSession {
     _modelSourceSelection = null;
     _plans.clear();
     _operations.clear();
+    _battleGifs.clear();
+    _historyBattleGifs.clear();
     if (opening == null) return;
     final CatalogEditingSession editing;
     try {

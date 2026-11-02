@@ -866,6 +866,7 @@ final class LocalMapAuthoringMutationApi
             requireActive: () =>
                 _snapshotLoader.requireActiveProject(projectHandle),
             dispatcher: _dispatcher,
+            artifactStore: artifacts,
             resolveAction: (id) => _resolveHistoryOrAction(_dispatcher, id),
             inspectHistoryReplay: (operationId, actionId, entryId) =>
                 _inspectCatalogHistoryReplay(
@@ -1903,6 +1904,9 @@ final class _LocalMapAuthoringSession {
 
   Future<AuthoringMutationPlanResult> planMutation(AuthoringRequest request,
       {ProjectSnapshot? suppliedSnapshot}) async {
+    if (suppliedSnapshot == null && request.extensions.containsKey('battleGifArtifacts')) {
+      throw const FormatException('Battle GIF imports require a working catalog.');
+    }
     _requireWorkspace(request.workspaceHandle);
     final idempotencyKey = request.idempotencyKey;
     if (idempotencyKey == null) {
