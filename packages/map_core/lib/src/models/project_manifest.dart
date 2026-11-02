@@ -806,6 +806,7 @@ abstract class ProjectPokemonConfig with _$ProjectPokemonConfig {
     @Default('data/pokemon/evolutions') String evolutionsDir,
     @Default('data/pokemon/media') String mediaDir,
     @Default(_defaultPokemonCatalogFiles) Map<String, String> catalogFiles,
+    @JsonKey(includeIfNull: false) String? catalogRelease,
   }) = _ProjectPokemonConfig;
 
   factory ProjectPokemonConfig.fromJson(Map<String, dynamic> json) =>

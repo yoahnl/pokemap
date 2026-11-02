@@ -130,6 +130,7 @@ void main() {
             p.join(created.data['projectPath'] as String, 'project.json'))
         .readAsString()) as Map<String, dynamic>);
     expect(manifest.settings.mapInstanceRetentionPolicy, retention);
+    expect(manifest.pokemon.catalogRelease, 'public-2026-11-02');
     final opened = await _request(
         host, 'open', {'projectRoot': created.data['projectPath']});
     expect(opened.status, AuthoringResultStatus.success);

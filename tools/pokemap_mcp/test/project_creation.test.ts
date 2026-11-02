@@ -63,6 +63,7 @@ test("real MCP/JSONL bootstrap previews, confirms, creates and independently ope
       assert.equal(wrong.domainCode, "confirmation.binding_mismatch");
       const created = await call("pokemap_project_create", { request, confirmation: preview.confirmation });
       const manifest = JSON.parse(await readFile(join(root, request.folderName, "project.json"), "utf8")) as JsonRecord;
+      assert.equal(record(manifest.pokemon).catalogRelease, "public-2026-11-02");
       assert.equal(record(manifest.settings).tileWidth, tileSize);
       assert.equal(record(manifest.settings).tileHeight, tileSize);
       assert.equal(record(manifest.settings).defaultMapWidth, 24);

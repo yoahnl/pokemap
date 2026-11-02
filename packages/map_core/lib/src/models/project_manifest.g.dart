@@ -330,6 +330,7 @@ _ProjectPokemonConfig _$ProjectPokemonConfigFromJson(
         (k, e) => MapEntry(k, e as String),
       ) ??
       _defaultPokemonCatalogFiles,
+  catalogRelease: json['catalogRelease'] as String?,
 );
 
 Map<String, dynamic> _$ProjectPokemonConfigToJson(
@@ -343,6 +344,7 @@ Map<String, dynamic> _$ProjectPokemonConfigToJson(
   'evolutionsDir': instance.evolutionsDir,
   'mediaDir': instance.mediaDir,
   'catalogFiles': instance.catalogFiles,
+  'catalogRelease': ?instance.catalogRelease,
 };
 
 _ProjectSettings _$ProjectSettingsFromJson(Map<String, dynamic> json) =>

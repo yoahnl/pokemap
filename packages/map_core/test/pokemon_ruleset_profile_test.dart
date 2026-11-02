@@ -131,6 +131,22 @@ void main() {
       );
     });
 
+    test('catalog release survives project config serialization and copies', () {
+      final legacy = const ProjectPokemonConfig(
+        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+      ).toJson();
+      expect(legacy.containsKey('catalogRelease'), isFalse);
+      expect(ProjectPokemonConfig.fromJson(legacy).toJson(), legacy);
+
+      final config = ProjectPokemonConfig.fromJson({
+        ...legacy,
+        'catalogRelease': 'public-2026-11-02',
+      });
+      expect(config.toJson()['catalogRelease'], 'public-2026-11-02');
+      expect(config.copyWith(enabled: false).toJson()['catalogRelease'],
+          'public-2026-11-02');
+    });
+
     test('rejects an existing project without an explicit ruleset', () {
       final manifest = const ProjectManifest(
         name: 'Ruleset fixture',

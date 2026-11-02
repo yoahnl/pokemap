@@ -67,6 +67,7 @@ final class LocalPokemonWorkspaceAdapter
   bool _closed = false;
   PokemonExternalSourceSession? _externalSession;
   PokemonExternalImport? _externalImport;
+  Future<String>? _catalogReleaseOpening;
   Set<String>? _knownSpeciesIds;
   List<PokemonSpeciesSummary>? _indexedSpecies;
   Map<String, Set<String>> _mediaReferenceOwners = const {};
@@ -81,47 +82,80 @@ final class LocalPokemonWorkspaceAdapter
     _mediaReferenceOwners = owners;
   }
 
-  PokemonExternalImport get _external =>
-      _externalImport ??= PokemonExternalImport(
-        session: session,
-        mapAdapter: mapAdapter,
-        reader: _reader,
-        source: (_externalSession ??= PokemonExternalSourceSession(
-          _externalSource,
-        )).source,
-        gen5Source: session.storage == ProjectSessionStorage.workingCatalog
-            ? _gen5Source ??
-                  AveluneGen5BattleSource(
-                    client: HttpPokemonExternalTransport(
-                      _gen5Client ??= http.Client(),
-                    ),
-                  )
-            : null,
-        gifSource: session.storage == ProjectSessionStorage.workingCatalog
-            ? _gifSource ??
-                  (_externalSource == null
-                      ? AveluneBattleGifSource(
+  Future<String> get _catalogRelease {
+    final existing = _catalogReleaseOpening;
+    if (existing != null) return existing;
+    late final Future<String> opening;
+    opening = _manifest
+        .then((manifest) {
+          final release =
+              manifest.pokemon.catalogRelease ?? aveluneCatalogRelease;
+          if (!RegExp(r'^[a-z0-9][a-z0-9-]{0,127}$').hasMatch(release)) {
+            throw const PokemonWorkspaceFailure(
+              'La version du catalogue Pokémon est invalide.',
+            );
+          }
+          return release;
+        })
+        .catchError((Object error, StackTrace stack) {
+          if (identical(_catalogReleaseOpening, opening)) {
+            _catalogReleaseOpening = null;
+          }
+          Error.throwWithStackTrace(error, stack);
+        });
+    return _catalogReleaseOpening = opening;
+  }
+
+  Future<PokemonExternalImport> _prepareExternal() async {
+    if (_closed) throw StateError('L’atelier Pokémon est fermé.');
+    if (_externalImport != null) return _externalImport!;
+    final release = await _catalogRelease;
+    if (_closed) throw StateError('L’atelier Pokémon est fermé.');
+    return _externalImport ??= PokemonExternalImport(
+      session: session,
+      mapAdapter: mapAdapter,
+      reader: _reader,
+      source: (_externalSession ??= PokemonExternalSourceSession(
+        _externalSource,
+        release: release,
+      )).source,
+      gen5Source: session.storage == ProjectSessionStorage.workingCatalog
+          ? _gen5Source ??
+                AveluneGen5BattleSource(
+                  release: release,
+                  client: HttpPokemonExternalTransport(
+                    _gen5Client ??= http.Client(),
+                  ),
+                )
+          : null,
+      gifSource: session.storage == ProjectSessionStorage.workingCatalog
+          ? _gifSource ??
+                (_externalSource == null
+                    ? AveluneBattleGifSource(
+                        release: release,
+                        client: HttpPokemonExternalTransport(
+                          _gen5Client ??= http.Client(),
+                        ),
+                      )
+                    : null)
+          : null,
+      crySource: session.storage == ProjectSessionStorage.workingCatalog
+          ? _crySource ??
+                (_externalSource == null
+                    ? AvelunePokemonCrySource(
+                        media: AvelunePokemonMediaSource(
+                          release: release,
                           client: HttpPokemonExternalTransport(
                             _gen5Client ??= http.Client(),
                           ),
-                        )
-                      : null)
-            : null,
-        crySource: session.storage == ProjectSessionStorage.workingCatalog
-            ? _crySource ??
-                  (_externalSource == null
-                      ? AvelunePokemonCrySource(
-                          media: AvelunePokemonMediaSource(
-                            client: HttpPokemonExternalTransport(
-                              _gen5Client ??= http.Client(),
-                            ),
-                          ),
-                        )
-                      : null)
-            : null,
-        isCurrent: () => !_closed,
-        loadIndex: loadIndex,
-      );
+                        ),
+                      )
+                    : null)
+          : null,
+      isCurrent: () => !_closed,
+      loadIndex: loadIndex,
+    );
+  }
 
   @override
   bool get supportsMoveRecipes =>
@@ -140,23 +174,30 @@ final class LocalPokemonWorkspaceAdapter
     }
     final existing = _recipeOpening;
     if (existing != null) return existing;
-    final source =
-        _recipeMediaSource ??
-        AvelunePokemonMediaSource(
-          client: HttpPokemonExternalTransport(_recipeClient ??= http.Client()),
-        );
     late final Future<PokemonMoveRecipeImport> opening;
-    opening =
-        PokemonMoveRecipeImport.open(
-          session: session,
-          mapAdapter: mapAdapter,
-          media: source,
-          reader: _reader,
-        ).catchError((Object error, StackTrace stack) {
-          if (identical(_recipeOpening, opening)) _recipeOpening = null;
-          Error.throwWithStackTrace(error, stack);
-        });
+    opening = _openMoveRecipes().catchError((Object error, StackTrace stack) {
+      if (identical(_recipeOpening, opening)) _recipeOpening = null;
+      Error.throwWithStackTrace(error, stack);
+    });
     return _recipeOpening = opening;
+  }
+
+  Future<PokemonMoveRecipeImport> _openMoveRecipes() async {
+    var source = _recipeMediaSource;
+    if (source == null) {
+      final release = await _catalogRelease;
+      if (_closed) throw StateError('L’atelier Pokémon est fermé.');
+      source = AvelunePokemonMediaSource(
+        client: HttpPokemonExternalTransport(_recipeClient ??= http.Client()),
+        release: release,
+      );
+    }
+    return PokemonMoveRecipeImport.open(
+      session: session,
+      mapAdapter: mapAdapter,
+      media: source,
+      reader: _reader,
+    );
   }
 
   @override
@@ -202,38 +243,45 @@ final class LocalPokemonWorkspaceAdapter
   }
 
   @override
-  Future<PokemonExternalSearch> searchExternal(String query) =>
-      _external.search(query);
+  Future<PokemonExternalSearch> searchExternal(String query) async =>
+      (await _prepareExternal()).search(query);
 
   @override
-  Future<PokemonExternalImportPreview> previewExternal(String speciesId) =>
-      _external.preview(speciesId);
+  Future<PokemonExternalImportPreview> previewExternal(
+    String speciesId,
+  ) async => (await _prepareExternal()).preview(speciesId);
 
   @override
   Future<PokemonExternalImportResult> applyExternal(
     PokemonExternalImportPreview preview,
     PokemonExternalConflictPolicy policy,
-  ) => _external.apply(preview, policy);
+  ) async => (await _prepareExternal()).apply(preview, policy);
 
-  PokemonMovesSync get _sync => PokemonMovesSync(
-    session: session,
-    mapAdapter: mapAdapter,
-    reader: _reader,
-    source:
-        _movesSource ??
-        ExternalPokemonMovesSnapshotSource(
-          (_externalSession ??= PokemonExternalSourceSession(
-            _externalSource,
-          )).source,
-        ),
-  );
+  Future<PokemonMovesSync> _prepareSync() async {
+    final release = await _catalogRelease;
+    if (_closed) throw StateError('L’atelier Pokémon est fermé.');
+    return PokemonMovesSync(
+      session: session,
+      mapAdapter: mapAdapter,
+      reader: _reader,
+      source:
+          _movesSource ??
+          ExternalPokemonMovesSnapshotSource(
+            (_externalSession ??= PokemonExternalSourceSession(
+              _externalSource,
+              release: release,
+            )).source,
+          ),
+    );
+  }
 
   @override
-  Future<PokemonMovesSyncPreview> previewMovesSync() => _sync.preview();
+  Future<PokemonMovesSyncPreview> previewMovesSync() async =>
+      (await _prepareSync()).preview();
 
   @override
-  Future<void> applyMovesSync(PokemonMovesSyncPreview preview) =>
-      _sync.apply(preview);
+  Future<void> applyMovesSync(PokemonMovesSyncPreview preview) async =>
+      (await _prepareSync()).apply(preview);
 
   PokemonJsonImport get _import => PokemonJsonImport(
     session: session,

@@ -10,14 +10,22 @@ import 'pokemon_external_source_repository.dart';
 class PokeApiLiveSource {
   PokeApiLiveSource({
     required PokemonExternalHttpTransport client,
-    this.baseUri = const String.fromEnvironment(
-      'POKEAPI_BASE_URI',
-      defaultValue:
-          'https://pokemon-api.yoahn.me/v1/compat/$aveluneCatalogRelease/pokeapi',
-    ),
+    String? baseUri,
+    String release = aveluneCatalogRelease,
     this.requestTimeout = const Duration(seconds: 20),
     this.userAgent = _defaultUserAgent,
-  }) : _client = client;
+  })  : baseUri = baseUri ?? _defaultBaseUri(release),
+        _client = client;
+
+  static String _defaultBaseUri(String release) {
+    if (!RegExp(r'^[a-z0-9][a-z0-9-]{0,127}$').hasMatch(release)) {
+      throw ArgumentError.value(release, 'release');
+    }
+    const configured = String.fromEnvironment('POKEAPI_BASE_URI');
+    return configured.isNotEmpty
+        ? configured
+        : 'https://pokemon-api.yoahn.me/v1/compat/$release/pokeapi';
+  }
 
   static const String _defaultUserAgent =
       'PokeMapEditor/0.1 (+https://pokemap.local)';

@@ -7,6 +7,7 @@ import 'package:map_core/map_core.dart';
 
 import '../contracts/artifact_ref.dart';
 import '../domains/assets/asset_store.dart';
+import '../domains/gameplay/pokemon_external/avelune_catalog_release.dart';
 import 'project_creation_atlas.dart';
 import 'project_creation_contracts.dart';
 
@@ -69,7 +70,9 @@ ProjectCreationKit buildProjectCreationKit(ProjectCreationRequest request) {
         defaultMapHeight: request.mapHeight,
         defaultPlayerCharacterId: playable ? 'player' : null),
     pokemon: const ProjectPokemonConfig(
-        enabled: false, ruleset: PokemonRulesetProfile.pokeMapBetaV1),
+        enabled: false,
+        ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+        catalogRelease: aveluneNewProjectCatalogRelease),
     characters: [if (playable) _character(request.tileSize)],
     newGame: playable
         ? const ProjectNewGameConfig(

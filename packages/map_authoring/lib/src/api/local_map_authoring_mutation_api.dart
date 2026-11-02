@@ -1496,14 +1496,21 @@ Future<void> _requireFreshBootstrapRoot(String root) async {
         await File(_joinAll([root, 'project.json'])).readAsBytes();
     final manifest = ProjectManifest.fromJson(
         jsonDecode(utf8.decode(manifestBytes)) as Map<String, dynamic>);
+    final catalogRelease = manifest.pokemon.catalogRelease;
+    if (catalogRelease != null &&
+        !RegExp(r'^[a-z0-9][a-z0-9-]{0,127}$').hasMatch(catalogRelease)) {
+      _requireFreshBootstrap();
+    }
     final empty = ProjectManifest(
         name: manifest.name,
         version: manifest.version,
         maps: const [],
         tilesets: const [],
         settings: manifest.settings,
-        pokemon: const ProjectPokemonConfig(
-            enabled: false, ruleset: PokemonRulesetProfile.pokeMapBetaV1));
+        pokemon: ProjectPokemonConfig(
+            enabled: false,
+            ruleset: PokemonRulesetProfile.pokeMapBetaV1,
+            catalogRelease: manifest.pokemon.catalogRelease));
     if (manifest != empty) _requireFreshBootstrap();
     final ledger =
         File(_joinAll([root, '.pokemap', 'authoring', 'idempotency.jsonl']));

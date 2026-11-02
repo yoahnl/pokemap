@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 
 import '../contracts/artifact_ref.dart';
 import '../domains/assets/asset_store.dart';
+import '../domains/gameplay/pokemon_external/avelune_catalog_release.dart';
 import 'project_creation_contracts.dart';
 import 'project_creation_kit.dart';
 import 'project_template_catalog.dart';
@@ -61,8 +62,12 @@ ProjectCreationKit prepareTemplateCreationKit(List<int> bytes,
       jsonDecode(utf8.decode(files[path] ??
               (throw FormatException('Missing template document: $path'))))
           as Map<String, dynamic>;
-  final manifest = ProjectManifest.fromJson(document('project.json'))
-      .copyWith(name: request.name.trim());
+  final sourceManifest = ProjectManifest.fromJson(document('project.json'));
+  final manifest = sourceManifest.copyWith(
+      name: request.name.trim(),
+      pokemon: sourceManifest.pokemon.copyWith(
+          catalogRelease: sourceManifest.pokemon.catalogRelease ??
+              aveluneNewProjectCatalogRelease));
   if (manifest.settings.dimension != request.dimension ||
       manifest.settings.tileWidth != request.tileSize ||
       manifest.settings.tileHeight != request.tileSize) {
