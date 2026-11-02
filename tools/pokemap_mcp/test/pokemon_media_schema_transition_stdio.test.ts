@@ -17,6 +17,82 @@ function record(value: unknown): JsonRecord {
   return value as JsonRecord;
 }
 
+test("MCP rejects scoped media undo after the manifest media directory moves", { timeout: 120_000 }, async () => {
+  const qaRoot = process.env.AVELUNE_QA_ROOT ?? (process.platform === "darwin"
+    ? join(homedir(), "Library/Caches/AveluneQA")
+    : tmpdir());
+  await mkdir(qaRoot, { recursive: true });
+  const root = await mkdtemp(join(qaRoot, "pokemon-media-history-mcp-"));
+  const entry = resolve(process.env.POKEMAP_TEST_MCP_ENTRY ?? "dist/src/index.js");
+  const args = [entry, "--root", root, "--authoring-timeout-ms", "60000"];
+  if (process.env.POKEMAP_TEST_AUTHORING_PACKAGE) {
+    args.push("--authoring-package", process.env.POKEMAP_TEST_AUTHORING_PACKAGE,
+      "--repository-root", resolve(process.cwd(), "../.."));
+  }
+  const client = new Client({ name: "pokemon-media-history-test", version: "1.0.0" });
+  const transport = new StdioClientTransport({ command: process.execPath, args, cwd: process.cwd(), stderr: "pipe" });
+  async function call(name: string, input: JsonRecord = {}, failure = false): Promise<JsonRecord> {
+    const result = await client.callTool({ name, arguments: input });
+    const envelope = record(result.structuredContent);
+    assert.equal(envelope.ok, !failure, JSON.stringify(envelope));
+    return record(envelope[failure ? "error" : "data"]);
+  }
+  try {
+    const relativePath = "data/pokemon/media/cyndaquil.json";
+    const mediaPath = join(root, relativePath);
+    const projectPath = join(root, "project.json");
+    const project = {
+      name: "Pokemon media history", version: "v8", maps: [], tilesets: [],
+      pokemon: { ...canonicalPokemonConfig(), enabled: true },
+    };
+    const media = {
+      schemaVersion: 2, speciesId: "cyndaquil", defaultFormId: "base",
+      variants: { base: { frontAnimated: "assets/front.gif" } },
+    };
+    const before = Buffer.from(JSON.stringify(media));
+    await mkdir(join(root, "data/pokemon/media"), { recursive: true });
+    await writeFile(projectPath, JSON.stringify(project));
+    await writeFile(mediaPath, before);
+    await client.connect(transport);
+    const workspace = await call("pokemap_workspace", { operation: "open", projectRoot: root });
+    await call("pokemap_workshop", { operation: "prepare", projectHandle: workspace.projectHandle });
+    const parameters = {
+      relativePath,
+      beforeBytesBase64: before.toString("base64"),
+      document: { ...media, variants: { base: { frontAnimated: "assets/front.gif", frontStatic: "assets/front.png" } } },
+    };
+    const scope = await call("pokemap_workshop", {
+      operation: "read", projectHandle: workspace.projectHandle, actionId: "pokemon.media.write", parameters,
+    });
+    const plan = await call("pokemap_plan", {
+      projectHandle: workspace.projectHandle,
+      request: {
+        requestId: "media-history", actionId: "pokemon.media.write", actionVersion: 1,
+        workspaceHandle: workspace.workspaceHandle, expectedRevision: scope.snapshotRevision,
+        extensions: scope.planExtensions, idempotencyKey: "media-history", parameters,
+      },
+    });
+    const applied = await call("pokemap_apply", {
+      operation: "apply", projectHandle: workspace.projectHandle,
+      planId: plan.planId, operationId: "media-history",
+    });
+    const after = await readFile(mediaPath);
+    await writeFile(projectPath, JSON.stringify({
+      ...project, pokemon: { ...project.pokemon, mediaDir: "data/pokemon/moved" },
+    }));
+    const error = await call("pokemap_history", {
+      operation: "undo", projectHandle: workspace.projectHandle,
+      entryId: record(applied.receipt).receiptId, idempotencyKey: "media-history-undo",
+    }, true);
+    assert.equal(error.domainCode, "history.pokemon_media_path_changed");
+    assert.deepEqual(await readFile(mediaPath), after);
+    await call("pokemap_workspace", { operation: "close", workspaceHandle: workspace.workspaceHandle });
+  } finally {
+    await client.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test("MCP rejects media schema changes before interpreting legacy extensions", { timeout: 120_000 }, async () => {
   const qaRoot = process.env.AVELUNE_QA_ROOT ?? (process.platform === "darwin"
     ? join(homedir(), "Library/Caches/AveluneQA")

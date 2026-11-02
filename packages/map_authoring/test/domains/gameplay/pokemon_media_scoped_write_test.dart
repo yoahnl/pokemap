@@ -804,7 +804,9 @@ void main() {
 
   for (final operation in ['write', 'undo', 'redo']) {
     for (final boundary in ['before-promotion', 'after-promotion']) {
-      for (final projectChange in ['unchanged', 'moved', 'missing']) {
+      for (final projectChange in [
+        'unchanged', 'moved', 'missing', 'different', 'restart', 'no-inventory'
+      ]) {
         test(
             'recovers native media $operation $boundary with project $projectChange',
             () async {
@@ -855,7 +857,7 @@ void main() {
             workshopScope: true,
             initializeSceneOwners: false,
           );
-          final opened = await opener.openProject(root.path);
+          var opened = await opener.openProject(root.path);
           var injectCrash = false;
           String? interruptedOperationId;
           final mutations = LocalMapAuthoringMutationApi(
@@ -965,13 +967,49 @@ void main() {
               'mediaDir': 'data/pokemon/other-media',
             };
             await projectFile.writeAsString(jsonEncode(project));
+          } else if (projectChange == 'different') {
+            final project = Map<String, dynamic>.from(
+                jsonDecode(utf8.decode(projectBytes)) as Map);
+            project['name'] = 'Changed while the transaction was interrupted';
+            await projectFile.writeAsString(jsonEncode(project));
           } else if (projectChange == 'missing') {
             await projectFile.delete();
           }
+          if (projectChange == 'restart') {
+            await mutations.detachWorkspace(opened.workspaceHandle);
+            opener.closeWorkspace(opened.workspaceHandle);
+            opened = await opener.openProject(root.path);
+            await mutations.attachProject(
+              projectRootPath: root.path,
+              workspaceHandle: opened.workspaceHandle,
+              projectHandle: opened.projectHandle,
+            );
+          }
           final gateway =
               await LocalTransactionFileGateway.open(projectRoot: root.path);
-          expect(await gateway.readJournal(interruptedOperationId!), isNotNull);
-          if (projectChange == 'unchanged') {
+          final originalJournal = await gateway.readJournal(interruptedOperationId!);
+          expect(originalJournal, isNotNull);
+          if (projectChange == 'no-inventory') {
+            final json = originalJournal!.toJson();
+            final receipt = Map<String, dynamic>.from(json['intendedReceipt'] as Map);
+            final extensions = Map<String, dynamic>.from(receipt['extensions'] as Map);
+            extensions.remove('mediaRecoveryDependencies');
+            receipt['extensions'] = extensions;
+            json['intendedReceipt'] = receipt;
+            await gateway.writeJournal(AuthoringTransactionJournal.fromJson(json));
+            await expectLater(
+              mutations.recoverMutation(opened.projectHandle,
+                  operationId: interruptedOperationId!),
+              throwsA(isA<AuthoringRecoveryException>().having(
+                  (error) => error.code,
+                  'code',
+                  'recovery.dependency_unavailable')),
+            );
+            expect(await file.readAsBytes(), interrupted);
+            await gateway.writeJournal(originalJournal);
+          }
+          if (projectChange == 'unchanged' ||
+              projectChange == 'restart' || projectChange == 'no-inventory') {
             await mutations.recoverMutation(
               opened.projectHandle,
               operationId: interruptedOperationId!,

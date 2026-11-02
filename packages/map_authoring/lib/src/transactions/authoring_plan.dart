@@ -65,6 +65,24 @@ final class AuthoringPlan {
   }
 
   MapEditBinding? _mapEditBinding;
+  Map<String, String?>? _mediaRecoveryDependencies;
+  Map<String, String?>? get mediaRecoveryDependencies =>
+      _mediaRecoveryDependencies;
+
+  void bindMediaRecoveryDependencies(Map<String, String?> dependencies) {
+    if (_mediaRecoveryDependencies != null ||
+        !const {'pokemon.media.write', 'history.undo', 'history.redo'}
+            .contains(request.actionId) ||
+        dependencies['project.json'] == null ||
+        dependencies.entries.any((entry) =>
+            entry.key.isEmpty ||
+            (entry.value != null &&
+                !RegExp(r'^sha256:[0-9a-f]{64}$').hasMatch(entry.value!)))) {
+      throw StateError('Invalid Pokemon media recovery dependencies.');
+    }
+    _mediaRecoveryDependencies = Map.unmodifiable(dependencies);
+  }
+
   MapEditBinding? get mapEditBinding => _mapEditBinding;
   Set<String> _mapEditReadStorageKeys = const {};
   Set<String> get mapEditReadStorageKeys => _mapEditReadStorageKeys;

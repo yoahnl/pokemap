@@ -107,6 +107,92 @@ bool _usesNativeWorkshop(AuthoringRequest request) =>
         request.extensions['workshopScope'] == true) ||
     _isScopedPokemonMediaWrite(request);
 
+Future<String> _requireNativeMediaProjectPath(
+  TransactionFileGateway gateway,
+  String storageKey,
+  String resourceId,
+) async {
+  final bytes = await gateway.readResource('project.json');
+  try {
+    if (bytes == null || !resourceId.startsWith('media:')) {
+      throw const FormatException();
+    }
+    final project = jsonDecode(utf8.decode(bytes));
+    if (project is! Map || project['storage'] != null) {
+      throw const FormatException();
+    }
+    final pokemon = project['pokemon'];
+    if (pokemon != null && pokemon is! Map) {
+      throw const FormatException();
+    }
+    final directory = pokemon == null
+        ? 'data/pokemon/media'
+        : pokemon['mediaDir'] ?? 'data/pokemon/media';
+    if (directory is! String ||
+        !isCanonicalPokemonMediaStoragePath(
+            directory, storageKey, resourceId.substring('media:'.length))) {
+      throw const FormatException();
+    }
+    return computeAuthoringBytesFingerprint(bytes, logicalName: 'project.json');
+  } on FormatException {
+    throw const AuthoringHistoryException(
+      'history.pokemon_media_path_changed',
+      'The configured Pokemon media path is no longer valid.',
+    );
+  }
+}
+
+Future<void> _requireNativeMediaRecovery(
+  TransactionFileGateway gateway,
+  AuthoringTransactionJournal journal,
+) async {
+  if (!const {'pokemon.media.write', 'history.undo', 'history.redo'}
+      .contains(journal.scope.actionId)) {
+    return;
+  }
+  final changes = journal.entries
+      .where((entry) =>
+          entry.resource.kind == 'pokemonDocument' &&
+          entry.resource.id.startsWith('media:') &&
+          entry.resource.extensions[scopedPokemonMediaHistoryKey] == true)
+      .toList();
+  if (changes.isEmpty) return;
+  if (changes.length != 1 || journal.entries.length != 1) {
+    throw const AuthoringRecoveryException('recovery.dependency_unavailable',
+        'The media recovery target is invalid.');
+  }
+  final dependencies =
+      journal.intendedReceipt.extensions['mediaRecoveryDependencies'];
+  if (dependencies is! Map ||
+      dependencies['project.json'] is! String ||
+      dependencies.entries.any((entry) =>
+          entry.key is! String ||
+          (entry.value != null && entry.value is! String))) {
+    throw const AuthoringRecoveryException('recovery.dependency_unavailable',
+        'The media operation has no recoverable dependency inventory.');
+  }
+  final pending =
+      await readPendingTransactionJournals(gateway, requirePrepared: true);
+  if (pending.any((entry) => entry.operationId != journal.operationId)) {
+    throw const AuthoringRecoveryException('resource_pack.recovery_required',
+        'Reconcile the other pending transactions first.');
+  }
+  final projectRevision = await _requireNativeMediaProjectPath(
+      gateway, changes.single.storageKey, changes.single.resource.id);
+  if (projectRevision != dependencies['project.json']) {
+    throw const AuthoringRecoveryException('recovery.dependency_changed',
+        'The media project dependency changed after the operation.');
+  }
+  for (final dependency in dependencies.entries) {
+    final path = dependency.key as String;
+    if (path == 'project.json' || path == changes.single.storageKey) continue;
+    if (await gateway.readResourceRevision(path) != dependency.value) {
+      throw const AuthoringRecoveryException('recovery.dependency_changed',
+          'A media operation dependency changed after the operation.');
+    }
+  }
+}
+
 final class LocalMapAuthoringMutationApi
     implements
         AuthoringMapEditPort,
@@ -1656,6 +1742,9 @@ final class _LocalMapAuthoringSession {
         }
         return recovery.resume(operationId, precondition: () async {
           final journal = await gateway.readJournal(operationId);
+          if (journal != null) {
+            await _requireNativeMediaRecovery(gateway, journal);
+          }
           if (journal != null &&
               mapAtmosphereLifecycleActions
                   .contains(journal.intendedReceipt.actionId)) {
@@ -1903,6 +1992,10 @@ final class _LocalMapAuthoringSession {
         (suppliedSnapshot == null || _logicalMapEdits.containsKey(request.requestId))) {
       _workshopPlans[plan.planId] = request;
       _workshopPreconditions[plan.planId] = snapshot.scopedStorageRevisions ?? const {};
+      if (_isScopedPokemonMediaWrite(request)) {
+        plan.bindMediaRecoveryDependencies(
+            snapshot.scopedStorageRevisions ?? const {});
+      }
     }
     final receipt = plan.toPlannedReceipt();
     try {
@@ -2327,9 +2420,16 @@ final class _LocalMapAuthoringSession {
       workspaceHandle: workspaceHandle.value,
       idempotencyKey: _safeIdentity(idempotencyKey, 'idempotencyKey'),
     );
+    await _requireScopedMediaHistoryPlan(prepared, scoped);
+    if (scoped != null) {
+      prepared.plan
+          .bindMediaRecoveryDependencies(scoped.scopedStorageRevisions!);
+    }
     final receipt = await _undoService.apply(
       prepared,
-      additionalPrecondition: scoped == null ? null : _requireScopedReconciled,
+      additionalPrecondition: scoped == null
+          ? null
+          : () => _requireScopedMediaHistoryPrecondition(scoped),
     );
     try {
       await prepared.plan.releaseAppliedPayload();
@@ -2355,9 +2455,16 @@ final class _LocalMapAuthoringSession {
       workspaceHandle: workspaceHandle.value,
       idempotencyKey: _safeIdentity(idempotencyKey, 'idempotencyKey'),
     );
+    await _requireScopedMediaHistoryPlan(prepared, scoped);
+    if (scoped != null) {
+      prepared.plan
+          .bindMediaRecoveryDependencies(scoped.scopedStorageRevisions!);
+    }
     final receipt = await _undoService.apply(
       prepared,
-      additionalPrecondition: scoped == null ? null : _requireScopedReconciled,
+      additionalPrecondition: scoped == null
+          ? null
+          : () => _requireScopedMediaHistoryPrecondition(scoped),
     );
     try {
       await prepared.plan.releaseAppliedPayload();
@@ -2365,6 +2472,32 @@ final class _LocalMapAuthoringSession {
       _snapshotLoader.invalidate(projectHandle);
     }
     return _mutationResult(receipt, refreshUnavailable: true);
+  }
+
+  Future<void> _requireScopedMediaHistoryPrecondition(
+      ProjectSnapshot snapshot) async {
+    await _requireScopedReconciled();
+    if (await _mapAtmosphereGateway.readResourceRevision('project.json') !=
+        snapshot.scopedStorageRevisions!['project.json']) {
+      throw const AuthoringHistoryException('history.pokemon_media_path_changed',
+          'The Pokemon media project dependency changed.');
+    }
+  }
+
+  Future<void> _requireScopedMediaHistoryPlan(
+    AuthoringPreparedHistoryMutation prepared,
+    ProjectSnapshot? scoped,
+  ) async {
+    if (scoped != null ||
+        !prepared.plan.changeSet.changes.any((change) =>
+            change.resource.extensions[scopedPokemonMediaHistoryKey] == true)) {
+      return;
+    }
+    await prepared.plan.releaseAppliedPayload();
+    throw const AuthoringHistoryException(
+      'history.preparation_required',
+      'Prepare the scoped Pokemon media history before undo or redo.',
+    );
   }
 
   Future<ProjectSnapshot?> _scopedPokemonMediaHistorySnapshot(
@@ -2396,6 +2529,9 @@ final class _LocalMapAuthoringSession {
       return null;
     }
     await _requireScopedReconciled();
+    final change = entry.changes.single;
+    final projectRevision = await _requireNativeMediaProjectPath(
+        _mapAtmosphereGateway, change.storageKey, change.resource.id);
     return ProjectSnapshot(
       projectHandle: projectHandle,
       revision: computeAuthoringJsonFingerprint(
@@ -2407,6 +2543,7 @@ final class _LocalMapAuthoringSession {
       availableProjectSections: const {},
       availableProjectDocuments: const {},
       resourceFingerprints: const {},
+      scopedStorageRevisions: {'project.json': projectRevision},
     );
   }
 
