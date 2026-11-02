@@ -85,13 +85,14 @@ final class BattlePokemonSpriteResolver {
       trimmedSpeciesId,
       () => _readMedia(trimmedSpeciesId),
     );
-    if (media == null) {
-      return BattleCombatantSpriteSpec(facing: facing);
-    }
-
     final identity = visualIdentity?.speciesId.trim() == trimmedSpeciesId
         ? visualIdentity
         : null;
+    final gen5Source = _gen5Source(trimmedSpeciesId, identity, media);
+    if (media == null) {
+      return BattleCombatantSpriteSpec(facing: facing, gen5Source: gen5Source);
+    }
+
     final requestedForm = identity?.formId?.trim();
     final requestedVariant = _readVariantMap(
       requestedForm == null || requestedForm.isEmpty
@@ -100,7 +101,9 @@ final class BattlePokemonSpriteResolver {
     );
     final defaultVariant = _defaultVariant(media);
     final variant = requestedVariant ?? defaultVariant;
-    if (variant == null) return BattleCombatantSpriteSpec(facing: facing);
+    if (variant == null) {
+      return BattleCombatantSpriteSpec(facing: facing, gen5Source: gen5Source);
+    }
     var paths = await _resolveVariant(
       variant,
       media: media,
@@ -128,14 +131,14 @@ final class BattlePokemonSpriteResolver {
       facing: facing,
       explicitImageAbsolutePath: paths.staticPath,
       explicitAnimatedImageAbsolutePath: paths.animatedPath,
-      gen5Source: _gen5Source(trimmedSpeciesId, identity, media),
+      gen5Source: gen5Source,
     );
   }
 
   BattleGen5SpriteSource? _gen5Source(
     String speciesId,
     RuntimeBattleVisualIdentity? identity,
-    _BattlePokemonMediaRecord media,
+    _BattlePokemonMediaRecord? media,
   ) {
     final loader = gen5SourceLoader;
     final pokemon = manifest.pokemon;
@@ -146,7 +149,9 @@ final class BattlePokemonSpriteResolver {
         identity.isShiny == null ||
         identity.genderId == null ||
         identity.genderId == 'female' ||
-        (form != null && form.isNotEmpty && form != media.defaultFormId)) {
+        (form != null &&
+            form.isNotEmpty &&
+            form != (media?.defaultFormId ?? 'base'))) {
       return null;
     }
     return BattleGen5SpriteSource(

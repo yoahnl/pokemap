@@ -98,6 +98,51 @@ void main() {
     expect(requests, [('localmon', 506)]);
   });
 
+  test('uses the native source when the media document is missing', () async {
+    await File('${project.path}/data/pokemon/media/localmon.json').delete();
+    final sprite = await resolver().resolve(
+      speciesId: 'localmon',
+      isPlayerSide: true,
+      visualIdentity: const RuntimeBattleVisualIdentity(
+        speciesId: 'localmon', formId: 'base', genderId: 'male', isShiny: false,
+      ),
+    );
+    expect(sprite.explicitImageAbsolutePath, isNull);
+    expect(sprite.explicitAnimatedImageAbsolutePath, isNull);
+    expect(sprite.gen5Source, isNotNull);
+    expect(await sprite.gen5Source!.load(), same(bundle));
+    expect(requests, [('localmon', 506)]);
+  });
+
+  test('uses the native source when the media has no variant', () async {
+    await File('${project.path}/data/pokemon/media/localmon.json').writeAsString(
+      jsonEncode({'schemaVersion': 2, 'defaultFormId': 'base', 'variants': {}}),
+    );
+    final sprite = await resolver().resolve(
+      speciesId: 'localmon',
+      isPlayerSide: false,
+      visualIdentity: const RuntimeBattleVisualIdentity(
+        speciesId: 'localmon', formId: 'base', genderId: 'male', isShiny: false,
+      ),
+    );
+    expect(sprite.gen5Source, isNotNull);
+    expect(await sprite.gen5Source!.load(), same(bundle));
+    expect(requests, [('localmon', 506)]);
+  });
+
+  test('does not assume an alternate form when media is missing', () async {
+    await File('${project.path}/data/pokemon/media/localmon.json').delete();
+    final sprite = await resolver().resolve(
+      speciesId: 'localmon',
+      isPlayerSide: false,
+      visualIdentity: const RuntimeBattleVisualIdentity(
+        speciesId: 'localmon', formId: 'other', genderId: 'male', isShiny: false,
+      ),
+    );
+    expect(sprite.gen5Source, isNull);
+    expect(requests, isEmpty);
+  });
+
   test('keeps an authored alternate form on its existing image fallback', () async {
     final sprite = await resolver().resolve(
       speciesId: 'localmon',
