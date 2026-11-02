@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
+import 'package:map_distribution/map_distribution.dart';
 
 import '../../../documents/document_errors.dart';
 import 'avelune_catalog_release.dart';
@@ -27,6 +28,66 @@ final class AvelunePokemonMedia {
   final String style;
   final Map<String, dynamic> metadata;
   final String release;
+}
+
+final class AvelunePokemonCry {
+  const AvelunePokemonCry({required this.sha256, required this.mediaType, required this.bytes});
+
+  final String sha256;
+  final String mediaType;
+  final Uint8List bytes;
+}
+
+final class AvelunePokemonCrySource {
+  const AvelunePokemonCrySource({required this.media});
+
+  final AvelunePokemonMediaSource media;
+
+  Future<AvelunePokemonCry?> fetch({
+    required String speciesId,
+    required String formId,
+  }) async {
+    final identity = RegExp(r'^[a-z0-9][a-z0-9-]{0,127}$');
+    if (!identity.hasMatch(speciesId) || !identity.hasMatch(formId)) {
+      throw ArgumentError('Invalid Pokemon cry identity.');
+    }
+    final candidates = (await media.listPokemonMedia(speciesId))
+        .where((item) =>
+            item.usage == 'cry' &&
+            item.representation == 'audio' &&
+            item.metadata['formId'] == formId &&
+            item.metadata['gender'] == null &&
+            const {'latest', 'legacy'}.contains(item.style) &&
+            const {'audio/wav', 'audio/mpeg'}.contains(item.contentType))
+        .toList();
+    for (final style in ['latest', 'legacy']) {
+      for (final mime in ['audio/wav', 'audio/mpeg']) {
+        var matching = candidates
+            .where((item) => item.style == style && item.contentType == mime)
+            .toList();
+        if (mime == 'audio/wav' && matching.length > 1) {
+          final converted = matching.where((item) {
+            final provenance = item.metadata['provenance'];
+            return provenance is Map && provenance['source'] == 'avelune/cry-wav';
+          }).toList();
+          if (converted.isNotEmpty) matching = converted;
+        }
+        if (matching.length > 1) {
+          throw const FormatException('Ambiguous Pokemon cry selection.');
+        }
+        if (matching.isEmpty) continue;
+        final item = matching.single;
+        final bytes = await media.readMedia(item, maximumBytes: maxBattleRecipeSoundBytes);
+        inspectBattleRecipeSound(bytes, mime);
+        return AvelunePokemonCry(
+          sha256: item.sha256,
+          mediaType: mime,
+          bytes: bytes.asUnmodifiableView(),
+        );
+      }
+    }
+    return null;
+  }
 }
 
 final class AvelunePokemonMediaSource {

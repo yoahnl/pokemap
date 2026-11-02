@@ -1904,8 +1904,10 @@ final class _LocalMapAuthoringSession {
 
   Future<AuthoringMutationPlanResult> planMutation(AuthoringRequest request,
       {ProjectSnapshot? suppliedSnapshot}) async {
-    if (suppliedSnapshot == null && request.extensions.containsKey('battleGifArtifacts')) {
-      throw const FormatException('Battle GIF imports require a working catalog.');
+    if (suppliedSnapshot == null &&
+        (request.extensions.containsKey('battleGifArtifacts') ||
+            request.extensions.containsKey('battleCryArtifact'))) {
+      throw const FormatException('Battle media imports require a working catalog.');
     }
     _requireWorkspace(request.workspaceHandle);
     final idempotencyKey = request.idempotencyKey;

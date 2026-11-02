@@ -577,6 +577,14 @@ AuthoringActionDescriptor _descriptor(String id, {required bool delete}) =>
                 'projectStorage': 'working-catalog-only',
                 'preservesExistingChoices': true,
               },
+              'battleCryImport': {
+                'requestExtension': 'battleCryArtifact',
+                'value': 'audio-artifact-handle',
+                'mediaTypes': ['audio/wav', 'audio/mpeg'],
+                'path': 'assets/pokemon/battle-cries/<sha256>.<wav|mp3>',
+                'projectStorage': 'working-catalog-only',
+                'preservesExistingChoices': true,
+              },
             }
           : const {},
     );

@@ -206,10 +206,11 @@ final class CatalogAuthoringSession {
 
   Future<AuthoringMutationPlanResult> plan(AuthoringRequest request) async {
     _authorize(AuthoringSecurityOperation.plan, request: request);
-    if (request.extensions.containsKey('battleGifArtifacts') &&
+    if ((request.extensions.containsKey('battleGifArtifacts') ||
+            request.extensions.containsKey('battleCryArtifact')) &&
         (request.actionId != 'pokemon.media.write' ||
             request.extensions['workshopScope'] != true)) {
-      throw const FormatException('GIF imports require a scoped media write.');
+      throw const FormatException('Battle media imports require a scoped media write.');
     }
 
     if (request.actionId == 'map3d.edit_batch' &&
@@ -520,7 +521,10 @@ final class CatalogAuthoringSession {
   }
 
   Future<AuthoringMutationPlanResult> _planWorkshop(AuthoringRequest request) async {
-    final gifs = await _prepareBattleGifs(request);
+    final gifs = {
+      ...await _prepareBattleGifs(request),
+      ...await _prepareBattleCry(request),
+    };
     final current = (await CatalogProjectReader.open(store: reader.store,
         descriptor: reader.descriptor, metadataFields: {}))!;
     final selection = await CatalogWorkshopSelection.read(reader: current,
@@ -653,6 +657,54 @@ final class CatalogAuthoringSession {
       output[path] = handle;
     }
     return output;
+  }
+
+  Future<Map<String, String>> _prepareBattleCry(AuthoringRequest request) async {
+    if (!request.extensions.containsKey('battleCryArtifact')) return const {};
+    final handle = request.extensions['battleCryArtifact'];
+    final artifacts = artifactStore;
+    if (handle is! String || artifacts == null) {
+      throw const FormatException('The Pokemon cry artifact is unavailable.');
+    }
+    final document = request.parameters['document'];
+    if (document is! Map || document['defaultFormId'] is! String ||
+        document['variants'] is! Map) {
+      throw const FormatException('Invalid Pokemon cry media document.');
+    }
+    final form = (document['variants'] as Map)[document['defaultFormId']];
+    if (form is! Map) throw const FormatException('Missing default media form.');
+    final beforeText = request.parameters['beforeBytesBase64'];
+    final before = beforeText is String
+        ? jsonDecode(utf8.decode(base64Decode(beforeText)))
+        : null;
+    if (before is Map && before['defaultFormId'] != document['defaultFormId']) {
+      throw const FormatException('A cry import cannot change the default form.');
+    }
+    final oldForms = before is Map ? before['variants'] : null;
+    final oldForm = oldForms is Map ? oldForms[document['defaultFormId']] : null;
+    final ref = artifacts.inspect(handle);
+    if (ref == null || !const {'audio/wav', 'audio/mpeg'}.contains(ref.mediaType) ||
+        ref.byteLength < 1 || ref.byteLength > maxBattleRecipeSoundBytes) {
+      throw const FormatException('The Pokemon cry artifact is unavailable.');
+    }
+    final bytes = await artifacts.read(handle);
+    if (ContentArtifactRef.fromBytes(bytes, mediaType: ref.mediaType) != ref) {
+      throw const FormatException('The Pokemon cry artifact changed.');
+    }
+    _validateCryAudio(bytes, ref.mediaType);
+    final suffix = ref.mediaType == 'audio/wav' ? 'wav' : 'mp3';
+    final path = 'assets/pokemon/battle-cries/${sha256.convert(bytes)}.$suffix';
+    final previous = oldForm is Map ? oldForm['cry'] : null;
+    if (form['cry'] != path ||
+        (previous != null && previous != path &&
+            (previous is! String || previous.trim().isNotEmpty))) {
+      throw const FormatException('A cry import cannot replace an existing media choice.');
+    }
+    return {path: handle};
+  }
+
+  void _validateCryAudio(List<int> bytes, String mediaType) {
+    inspectBattleRecipeSound(Uint8List.fromList(bytes), mediaType);
   }
 
   Future<AuthoringMutationPlanResult> _planMap(AuthoringRequest request) async {
@@ -1134,17 +1186,23 @@ final class CatalogAuthoringSession {
             for (final entry in gifs.entries) {
               final store = artifactStore;
               final reference = store?.inspect(entry.value);
+              final isCry = entry.key.startsWith('assets/pokemon/battle-cries/');
+              final cryType = entry.key.endsWith('.wav') ? 'audio/wav' : 'audio/mpeg';
               if (store == null || reference == null ||
-                  reference.mediaType != 'image/gif' ||
+                  reference.mediaType != (isCry ? cryType : 'image/gif') ||
                   reference.byteLength < 1 ||
-                  reference.byteLength > PokemonGifInspector.maxEncodedBytes) {
-                throw const FormatException('A battle GIF artifact is unavailable.');
+                  reference.byteLength > (isCry ? maxBattleRecipeSoundBytes : PokemonGifInspector.maxEncodedBytes)) {
+                throw const FormatException('A battle media artifact is unavailable.');
               }
               final bytes = await store.read(entry.value);
-              if ('assets/pokemon/battle-gifs/${sha256.convert(bytes)}.gif' != entry.key ||
+              final expectedPath = isCry
+                  ? 'assets/pokemon/battle-cries/${sha256.convert(bytes)}.${cryType == 'audio/wav' ? 'wav' : 'mp3'}'
+                  : 'assets/pokemon/battle-gifs/${sha256.convert(bytes)}.gif';
+              if (expectedPath != entry.key ||
                   ContentArtifactRef.fromBytes(bytes, mediaType: reference.mediaType) != reference) {
-                throw const FormatException('A battle GIF artifact changed.');
+                throw const FormatException('A battle media artifact changed.');
               }
+              if (isCry) _validateCryAudio(bytes, cryType);
               final expected = computeAuthoringBytesFingerprint(bytes,
                   logicalName: entry.key);
               final current = await gateway.readResourceRevision(entry.key);
@@ -1495,10 +1553,12 @@ final class CatalogAuthoringSession {
     final result = <String, String>{};
     for (final entry in raw.entries) {
       final path = entry.key;
-      if (path is! String || !path.startsWith('assets/pokemon/battle-gifs/')) {
+      if (path is! String ||
+          (!path.startsWith('assets/pokemon/battle-gifs/') &&
+              !path.startsWith('assets/pokemon/battle-cries/'))) {
         continue;
       }
-      if (!RegExp(r'^assets/pokemon/battle-gifs/[0-9a-f]{64}\.gif$')
+      if (!RegExp(r'^assets/pokemon/(?:battle-gifs/[0-9a-f]{64}\.gif|battle-cries/[0-9a-f]{64}\.(?:wav|mp3))$')
               .hasMatch(path) ||
           entry.value is! String ||
           !RegExp(r'^sha256:[0-9a-f]{64}$').hasMatch(entry.value as String)) {
@@ -1511,7 +1571,9 @@ final class CatalogAuthoringSession {
 
   String? _battleGifMarker(String path) {
     final match = RegExp(r'^assets/pokemon/battle-gifs/([0-9a-f]{64})\.gif$').firstMatch(path);
-    return match == null ? null : 'catalog/battle-gif-ownership/${match.group(1)}.json';
+    if (match != null) return 'catalog/battle-gif-ownership/${match.group(1)}.json';
+    final cry = RegExp(r'^assets/pokemon/battle-cries/([0-9a-f]{64})\.(wav|mp3)$').firstMatch(path);
+    return cry == null ? null : 'catalog/battle-cry-ownership/${cry.group(1)}.${cry.group(2)}.json';
   }
 
   Future<void> _requireNoBattleGifWrites(Iterable<String> paths) async {

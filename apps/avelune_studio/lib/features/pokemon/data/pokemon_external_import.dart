@@ -22,6 +22,7 @@ final class PokemonExternalImport {
     required this.loadIndex,
     this.gen5Source,
     this.gifSource,
+    this.crySource,
     this.isCurrent,
   }) : _search = SearchExternalPokemonSpeciesUseCase(
          externalSourceRepository: source,
@@ -34,6 +35,7 @@ final class PokemonExternalImport {
   final PokemonExternalSourceRepository source;
   final AveluneGen5BattleSource? gen5Source;
   final AveluneBattleGifSource? gifSource;
+  final AvelunePokemonCrySource? crySource;
   final bool Function()? isCurrent;
   final Future<PokemonWorkspaceIndex> Function() loadIndex;
   final SearchExternalPokemonSpeciesUseCase _search;
@@ -152,6 +154,19 @@ final class PokemonExternalImport {
         warnings.add('Les GIF de secours sont indisponibles ou invalides.');
       }
     }
+    AvelunePokemonCry? cry;
+    final cryForm = pokemon?['name'];
+    if (session.storage != ProjectSessionStorage.workingCatalog ||
+        crySource == null || !species.forms.isBaseForm || cryForm is! String) {
+      warnings.add('Le cri compatible n’est pas disponible pour cet import.');
+    } else {
+      try {
+        cry = await crySource!.fetch(speciesId: canonicalId, formId: cryForm);
+        if (cry == null) warnings.add('Aucun cri WAV ou MP3 disponible.');
+      } on Object {
+        warnings.add('Le cri est indisponible ou invalide.');
+      }
+    }
     PokemonLearnsetFile? learnset;
     PokemonEvolutionFile? evolution;
     if (pokemon != null) {
@@ -174,9 +189,6 @@ final class PokemonExternalImport {
         warnings.add('Évolution non convertie : $error');
       }
     }
-    warnings.add(
-      'Les cris ne sont pas téléchargés par cet import.',
-    );
     final config = baseline.manifest.pokemon;
     final indexed = (await loadIndex()).entries;
     final existing = indexed
@@ -288,6 +300,7 @@ final class PokemonExternalImport {
       warnings: List.unmodifiable(warnings),
       gen5Bundle: gen5Bundle,
       gifSelection: gifSelection,
+      cry: cry,
     );
   }
 
@@ -301,8 +314,8 @@ final class PokemonExternalImport {
         'Le projet a changé depuis l’aperçu. Reprévisualisez.',
       );
     }
-    if (pokemonInventorySignature((await loadIndex()).entries) !=
-        preview.inventorySignature) {
+    final indexed = (await loadIndex()).entries;
+    if (pokemonInventorySignature(indexed) != preview.inventorySignature) {
       throw const PokemonWorkspaceFailure(
         'Les références Pokémon ont changé depuis l’aperçu. Reprévisualisez.',
       );
@@ -344,6 +357,7 @@ final class PokemonExternalImport {
     final warnings = [...preview.warnings];
     var gen5Imported = false;
     var gifImported = false;
+    var cryImported = false;
     var requiresReopen = false;
     final bundle = preview.gen5Bundle;
     final gen5 = gen5Source;
@@ -410,6 +424,27 @@ final class PokemonExternalImport {
         );
       }
     }
+    final sharedCryMedia = pokemonReferenceOwners(
+      indexed, PokemonDocumentFamily.media, preview.speciesId,
+    ).any((owner) => owner != preview.speciesId);
+    if (preview.cry != null && sharedCryMedia) {
+      warnings.add('La fiche média partagée a été conservée.');
+    } else if (preview.cry != null && !requiresReopen) {
+      try {
+        final speciesPath = preview.documents
+            .firstWhere((item) => item.family == PokemonDocumentFamily.species)
+            .relativePath;
+        cryImported = await _importCry(preview.cry!, preview.speciesId, speciesPath);
+        warnings.add(cryImported
+            ? 'Cri importé.'
+            : 'Le cri ou la fiche média existante a été conservé(e).');
+      } on Object {
+        requiresReopen = true;
+        warnings.add(
+          'L’import du cri est incertain. Rouvrez le projet avant de réessayer.',
+        );
+      }
+    }
     return PokemonExternalImportResult(
       speciesId: preview.speciesId,
       created: plan.created,
@@ -419,8 +454,83 @@ final class PokemonExternalImport {
       warnings: List.unmodifiable(warnings),
       gen5Imported: gen5Imported,
       gifImported: gifImported,
+      cryImported: cryImported,
       requiresReopen: requiresReopen,
     );
+  }
+
+  Future<bool> _importCry(
+    AvelunePokemonCry cry,
+    String speciesId,
+    String speciesPath,
+  ) async {
+    if (isCurrent?.call() == false) throw StateError('La sélection a changé.');
+    if (!const {'audio/wav', 'audio/mpeg'}.contains(cry.mediaType)) {
+      throw const FormatException('Format de cri non pris en charge.');
+    }
+    final speciesBytes = await readOptionalPokemonResource(
+      reader: reader,
+      projectRoot: session.directoryPath,
+      relativePath: speciesPath,
+    );
+    if (speciesBytes == null) throw StateError('La fiche Pokémon est absente.');
+    final species = PokemonSpeciesFile.fromJson(
+      (jsonDecode(utf8.decode(speciesBytes)) as Map).cast<String, dynamic>(),
+    );
+    if (species.id != speciesId ||
+        !species.forms.isBaseForm ||
+        species.refs.media != speciesId) {
+      return false;
+    }
+    final baseline = await mapAdapter.resourceBaseline(session);
+    final mediaPath = pokemonDocumentPath(baseline.manifest.pokemon.mediaDir, speciesId);
+    final before = await readOptionalPokemonResource(
+      reader: reader,
+      projectRoot: session.directoryPath,
+      relativePath: mediaPath,
+    );
+    final Map<String, dynamic> document;
+    if (before == null) {
+      document = {
+        'schemaVersion': currentPokemonMediaSchemaVersion,
+        'speciesId': speciesId,
+        'defaultFormId': 'base',
+        'variants': {'base': <String, dynamic>{}},
+      };
+    } else {
+      final decoded = jsonDecode(utf8.decode(before));
+      if (decoded is! Map ||
+          !const {1, currentPokemonMediaSchemaVersion}.contains(decoded['schemaVersion']) ||
+          decoded['speciesId'] != speciesId ||
+          decoded['defaultFormId'] is! String || decoded['variants'] is! Map ||
+          (decoded['variants'] as Map)[decoded['defaultFormId']] is! Map) {
+        return false;
+      }
+      document = decoded.cast<String, dynamic>();
+    }
+    final variants = (document['variants'] as Map).cast<String, dynamic>();
+    final variant = (variants[document['defaultFormId']] as Map).cast<String, dynamic>();
+    final existing = variant['cry'];
+    if (existing != null && (existing is! String || existing.trim().isNotEmpty)) return false;
+    final extension = cry.mediaType == 'audio/wav' ? 'wav' : 'mp3';
+    variant['cry'] = 'assets/pokemon/battle-cries/${cry.sha256}.$extension';
+    await PokemonDocumentTransaction(session: session, mapAdapter: mapAdapter, reader: reader)
+        .applyBattleCry(
+      PokemonDocumentWriteRequest(
+        family: PokemonDocumentFamily.media,
+        relativePath: mediaPath,
+        beforeBytes: before,
+        document: document,
+      ),
+      species: (
+        resourceIdentity: pokemonSpeciesResourceIdentity(speciesId),
+        relativePath: speciesPath,
+        beforeBytes: speciesBytes,
+      ),
+      bytes: cry.bytes,
+      mediaType: cry.mediaType,
+    );
+    return true;
   }
 
   Future<bool> _importGifs(
