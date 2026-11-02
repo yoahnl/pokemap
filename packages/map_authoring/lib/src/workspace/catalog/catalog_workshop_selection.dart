@@ -254,8 +254,10 @@ final class CatalogWorkshopSelection {
         'facts'
       else if (pokemon) ...{
         'pokemon',
-        'trainers',
-        'partyCompanion'
+        if (actionId != 'pokemon.media.write') ...{
+          'trainers',
+          'partyCompanion',
+        },
       } else if (regional) ...{
         'maps',
         'regionalMap'

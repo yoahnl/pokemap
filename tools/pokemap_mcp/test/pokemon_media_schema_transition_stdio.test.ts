@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
+import { execFile } from "node:child_process";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { homedir, tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { test } from "node:test";
+import { promisify } from "node:util";
 
 import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
@@ -141,6 +143,164 @@ test("MCP rejects media schema changes before interpreting legacy extensions", {
       }
       await call("pokemap_workspace", { operation: "close", workspaceHandle: workspace.workspaceHandle });
     }
+  } finally {
+    await client.close();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("MCP explicitly migrates unchanged legacy media and can undo it", { timeout: 120_000 }, async () => {
+  const qaRoot = process.env.AVELUNE_QA_ROOT ?? (process.platform === "darwin"
+    ? join(homedir(), "Library/Caches/AveluneQA")
+    : tmpdir());
+  await mkdir(qaRoot, { recursive: true });
+  const root = await mkdtemp(join(qaRoot, "pokemon-media-migration-mcp-"));
+  const entry = resolve(process.env.POKEMAP_TEST_MCP_ENTRY ?? "dist/src/index.js");
+  const args = [entry, "--root", root, "--authoring-timeout-ms", "60000"];
+  if (process.env.POKEMAP_TEST_AUTHORING_PACKAGE) {
+    args.push("--authoring-package", process.env.POKEMAP_TEST_AUTHORING_PACKAGE,
+      "--repository-root", resolve(process.cwd(), "../.."));
+  }
+  const client = new Client({ name: "pokemon-media-migration-test", version: "1.0.0" });
+  const transport = new StdioClientTransport({ command: process.execPath, args, cwd: process.cwd(), stderr: "pipe" });
+  async function call(name: string, input: JsonRecord = {}): Promise<JsonRecord> {
+    const result = await client.callTool({ name, arguments: input });
+    const envelope = record(result.structuredContent);
+    assert.equal(envelope.ok, true, JSON.stringify(envelope));
+    return record(envelope.data);
+  }
+  try {
+    const relativePath = "data/pokemon/media/cyndaquil.json";
+    const mediaPath = join(root, relativePath);
+    const media = {
+      schemaVersion: 1,
+      speciesId: "cyndaquil",
+      defaultFormId: "base",
+      variants: { base: { frontStatic: "assets/front.png", vendorField: { value: 7 } } },
+      vendorExtension: { keep: true },
+    };
+    const before = Buffer.from(`${JSON.stringify(media)}\n`);
+    const authoringRoot = resolve("../../packages/map_authoring");
+    await promisify(execFile)(process.env.POKEMAP_TEST_DART ?? "dart", [
+      `--packages=${join(authoringRoot, ".dart_tool/package_config.json")}`,
+      join(authoringRoot, "test/support/create_working_catalog_fixture.dart"), root,
+    ], { timeout: 60_000 });
+    await mkdir(join(root, "data/pokemon/media"), { recursive: true });
+    await writeFile(mediaPath, before);
+    await client.connect(transport);
+    const description = await call("pokemap_describe", {
+      domain: "battle", view: "full", actionIds: ["pokemon.media.write"],
+    });
+    const action = (description.mutationActions as JsonRecord[])[0];
+    assert.ok(action);
+    assert.equal(record(record(action.extensions).schemaMigration).parameter, "migrateSchema");
+    const workspace = await call("pokemap_workspace", { operation: "open", projectRoot: root });
+    await call("pokemap_workshop", { operation: "prepare", projectHandle: workspace.projectHandle });
+    const migrationScope = await call("pokemap_workshop", {
+      operation: "read", projectHandle: workspace.projectHandle, actionId: "pokemon.media.write",
+      parameters: { relativePath, document: media },
+    });
+    const forged = { ...media, vendorExtension: { keep: false } };
+    const forgedPlan = await call("pokemap_plan", {
+      projectHandle: workspace.projectHandle,
+      request: {
+        requestId: "forged-migration", actionId: "pokemon.media.write", actionVersion: 1,
+        workspaceHandle: workspace.workspaceHandle, expectedRevision: migrationScope.snapshotRevision,
+        extensions: migrationScope.planExtensions,
+        idempotencyKey: "forged-migration", parameters: {
+          relativePath, beforeBytesBase64: Buffer.from(JSON.stringify(forged)).toString("base64"),
+          document: { ...forged, schemaVersion: 2 }, migrateSchema: true,
+        },
+      },
+    });
+    const forgedResult = await client.callTool({ name: "pokemap_apply", arguments: {
+      operation: "apply", projectHandle: workspace.projectHandle,
+      planId: forgedPlan.planId, operationId: "forged-migration",
+    } });
+    const forgedEnvelope = record(forgedResult.structuredContent);
+    assert.equal(forgedEnvelope.ok, false);
+    assert.equal(record(forgedEnvelope.error).domainCode, "revision.conflict");
+    assert.deepEqual(await readFile(mediaPath), before);
+    const planned = await call("pokemap_plan", {
+      projectHandle: workspace.projectHandle,
+      request: {
+        requestId: "migrate-media", actionId: "pokemon.media.write", actionVersion: 1,
+        workspaceHandle: workspace.workspaceHandle, expectedRevision: migrationScope.snapshotRevision,
+        extensions: migrationScope.planExtensions,
+        idempotencyKey: "migrate-media", parameters: {
+          relativePath, beforeBytesBase64: before.toString("base64"),
+          document: { ...media, schemaVersion: 2 }, migrateSchema: true,
+        },
+      },
+    });
+    const applied = await call("pokemap_apply", {
+      operation: "apply", projectHandle: workspace.projectHandle,
+      planId: planned.planId, operationId: "migrate-media",
+    });
+    assert.deepEqual(JSON.parse(await readFile(mediaPath, "utf8")), { ...media, schemaVersion: 2 });
+    const migratedBytes = await readFile(mediaPath);
+    const gifBytes = Buffer.from("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==", "base64");
+    const gifInput = join(root, "source.gif");
+    const gifPath = "assets/pokemon/cyndaquil/front.gif";
+    await writeFile(gifInput, gifBytes);
+    const gifArtifact = await call("pokemap_artifact_stage", {
+      sourcePath: gifInput, declaredMediaType: "image/gif",
+    });
+    const assetRevision = await call("pokemap_validate", { projectHandle: workspace.projectHandle });
+    const assetPlan = await call("pokemap_plan", {
+      projectHandle: workspace.projectHandle,
+      request: {
+        requestId: "import-gif", actionId: "asset.import", actionVersion: 1,
+        workspaceHandle: workspace.workspaceHandle, expectedRevision: assetRevision.snapshotRevision,
+        idempotencyKey: "import-gif", parameters: {
+          artifactHandle: gifArtifact.artifactHandle, assetId: "cyndaquil-front-gif",
+          logicalPath: gifPath, tags: [], usages: [],
+        },
+      },
+    });
+    const imported = await call("pokemap_apply", {
+      operation: "apply", projectHandle: workspace.projectHandle,
+      planId: assetPlan.planId, operationId: "import-gif",
+    });
+    assert.deepEqual(await readFile(join(root, gifPath)), gifBytes);
+    const linked = {
+      ...media, schemaVersion: 2,
+      variants: { base: { ...media.variants.base, frontAnimated: gifPath } },
+    };
+    const linkRevision = await call("pokemap_workshop", {
+      operation: "read", projectHandle: workspace.projectHandle, actionId: "pokemon.media.write",
+      parameters: { relativePath, document: linked },
+    });
+    const linkPlan = await call("pokemap_plan", {
+      projectHandle: workspace.projectHandle,
+      request: {
+        requestId: "link-gif", actionId: "pokemon.media.write", actionVersion: 1,
+        workspaceHandle: workspace.workspaceHandle, expectedRevision: linkRevision.snapshotRevision,
+        extensions: linkRevision.planExtensions,
+        idempotencyKey: "link-gif", parameters: {
+          relativePath, beforeBytesBase64: migratedBytes.toString("base64"), document: linked,
+        },
+      },
+    });
+    const linkedResult = await call("pokemap_apply", {
+      operation: "apply", projectHandle: workspace.projectHandle,
+      planId: linkPlan.planId, operationId: "link-gif",
+    });
+    assert.equal(record(record(record(JSON.parse(await readFile(mediaPath, "utf8"))).variants).base).frontAnimated, gifPath);
+    await call("pokemap_history", {
+      operation: "undo", projectHandle: workspace.projectHandle,
+      entryId: record(linkedResult.receipt).receiptId, idempotencyKey: "undo-link-gif",
+    });
+    await call("pokemap_history", {
+      operation: "undo", projectHandle: workspace.projectHandle,
+      entryId: record(imported.receipt).receiptId, idempotencyKey: "undo-import-gif",
+    });
+    await call("pokemap_history", {
+      operation: "undo", projectHandle: workspace.projectHandle,
+      entryId: record(applied.receipt).receiptId, idempotencyKey: "undo-migration",
+    });
+    assert.deepEqual(await readFile(mediaPath), before);
+    await call("pokemap_workspace", { operation: "close", workspaceHandle: workspace.workspaceHandle });
   } finally {
     await client.close();
     await rm(root, { recursive: true, force: true });

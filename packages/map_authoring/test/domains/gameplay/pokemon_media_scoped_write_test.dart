@@ -67,6 +67,207 @@ void main() {
     }
   });
 
+  for (final catalog in [false, true]) {
+    test(
+        catalog
+            ? 'explicitly migrates v1 catalog media without changing its data'
+            : 'refuses explicit media migration for native projects', () async {
+      final root = await qaDirectory.createTemp('pokemon-media-migrate-');
+      addTearDown(() => root.delete(recursive: true));
+      const project =
+          ProjectManifest(name: 'Media fixture', maps: [], tilesets: []);
+      if (catalog) {
+        final store = await CatalogStorageStore.open(projectRoot: root.path);
+        await WorkingProjectCatalog.create(
+          store: store,
+          projectId: 'pokemon-media-migrate',
+          project: project,
+        );
+      } else {
+        await File('${root.path}/project.json')
+            .writeAsString(jsonEncode(project.toJson()));
+      }
+      const path = 'data/pokemon/media/oshawott.json';
+      final file = File('${root.path}/$path');
+      await file.parent.create(recursive: true);
+      final original = {
+        'schemaVersion': 1,
+        'speciesId': 'oshawott',
+        'defaultFormId': 'base',
+        'variants': {
+          'base': {
+            'frontStatic': 'assets/front.png',
+            'unknownVariantField': {'value': 7},
+          },
+        },
+        'vendorExtension': {'preserve': true},
+      };
+      final before = utf8.encode(jsonEncode(original));
+      await file.writeAsBytes(before);
+      final reader = _CountingReader();
+      final policy = await WorkspacePolicy.create(
+        allowedRootPaths: [root.path],
+        fileReader: reader,
+      );
+      final handles = WorkspaceHandleStore();
+      final opener = ProjectOpenService(
+        policy: policy,
+        fileReader: reader,
+        handles: handles,
+        workshopScope: true,
+        initializeSceneOwners: false,
+      );
+      final opened = await opener.openProject(root.path);
+      final mutations = LocalMapAuthoringMutationApi(
+        policy: policy,
+        snapshotLoader: ProjectSnapshotLoader(handles: handles),
+        catalogFileReader: reader,
+      );
+      await mutations.attachProject(
+        projectRootPath: root.path,
+        workspaceHandle: opened.workspaceHandle,
+        projectHandle: opened.projectHandle,
+      );
+      addTearDown(() async {
+        await mutations.detachWorkspace(opened.workspaceHandle);
+        opener.closeWorkspace(opened.workspaceHandle);
+      });
+      await mutations.prepareWorkshopCatalog(opened.projectHandle);
+      final parameters = {
+        'relativePath': path,
+        'document': {...original, 'schemaVersion': 2},
+        'beforeBytesBase64': base64Encode(before),
+      };
+      var snapshot = await mutations.readWorkshopSnapshot(
+        opened.projectHandle,
+        actionId: 'pokemon.media.write',
+        parameters: parameters,
+      );
+      Future<AuthoringMutationPlanResult> plan(
+              String id, Map<String, Object?> values) =>
+          mutations.planMutation(
+            opened.projectHandle,
+            AuthoringRequest(
+              requestId: id,
+              actionId: 'pokemon.media.write',
+              actionVersion: 1,
+              workspaceHandle: opened.workspaceHandle.value,
+              expectedRevision: snapshot.revision,
+              idempotencyKey: id,
+              parameters: values,
+              extensions: {'workshopScope': true},
+            ),
+          );
+      await expectLater(plan('implicit', parameters), throwsFormatException);
+      await expectLater(
+        plan('changing-data', {
+          ...parameters,
+          'migrateSchema': true,
+          'document': {
+            ...original,
+            'schemaVersion': 2,
+            'defaultFormId': 'other',
+          },
+        }),
+        throwsFormatException,
+      );
+      await expectLater(
+        plan('same-version', {
+          ...parameters,
+          'migrateSchema': true,
+          'document': original,
+        }),
+        throwsFormatException,
+      );
+      if (!catalog) {
+        await expectLater(
+          plan('native-migration', {...parameters, 'migrateSchema': true}),
+          throwsFormatException,
+        );
+        expect(await file.readAsBytes(), before);
+        return;
+      }
+      final planned = await plan('explicit', {
+        ...parameters,
+        'migrateSchema': true,
+      });
+      final applied = await mutations.applyMutation(
+        opened.projectHandle,
+        planId: planned.planId,
+        operationId: 'explicit',
+      );
+      final migrated = jsonDecode(await file.readAsString()) as Map;
+      expect(migrated, {...original, 'schemaVersion': 2});
+      expect(migrated['schemaVersion'], 2);
+      expect(migrated['vendorExtension'], original['vendorExtension']);
+      final variant = (migrated['variants'] as Map)['base'] as Map;
+      expect(variant['frontStatic'], 'assets/front.png');
+      expect(variant['unknownVariantField'], {'value': 7});
+      expect(variant.containsKey('frontAnimated'), isFalse);
+      await mutations.undoMutation(
+        opened.projectHandle,
+        entryId: applied.receipt.receiptId,
+        idempotencyKey: 'undo-explicit-migration',
+      );
+      expect(await file.readAsBytes(), before);
+      await mutations.redoMutation(
+        opened.projectHandle,
+        entryId: applied.receipt.receiptId,
+        idempotencyKey: 'redo-explicit-migration',
+      );
+      expect(jsonDecode(await file.readAsString()), migrated);
+      await mutations.undoMutation(
+        opened.projectHandle,
+        entryId: applied.receipt.receiptId,
+        idempotencyKey: 'undo-migration-again',
+      );
+      final ambiguous = {
+        ...original,
+        'variants': {
+          'base': {
+            ...(original['variants'] as Map)['base'] as Map,
+            'frontAnimated': 'vendor-data-not-a-sprite.gif',
+          },
+        },
+      };
+      final writeAmbiguous = {
+        'relativePath': path,
+        'document': ambiguous,
+        'beforeBytesBase64': base64Encode(before),
+      };
+      snapshot = await mutations.readWorkshopSnapshot(
+        opened.projectHandle,
+        actionId: 'pokemon.media.write',
+        parameters: writeAmbiguous,
+      );
+      final ambiguousPlan = await plan('legacy-extension', writeAmbiguous);
+      await mutations.applyMutation(
+        opened.projectHandle,
+        planId: ambiguousPlan.planId,
+        operationId: 'legacy-extension',
+      );
+      final ambiguousBytes = await file.readAsBytes();
+      final ambiguousDocument =
+          jsonDecode(utf8.decode(ambiguousBytes)) as Map<String, dynamic>;
+      final ambiguousMigration = {
+        'relativePath': path,
+        'document': {...ambiguousDocument, 'schemaVersion': 2},
+        'beforeBytesBase64': base64Encode(ambiguousBytes),
+        'migrateSchema': true,
+      };
+      snapshot = await mutations.readWorkshopSnapshot(
+        opened.projectHandle,
+        actionId: 'pokemon.media.write',
+        parameters: ambiguousMigration,
+      );
+      await expectLater(
+        plan('ambiguous-migration', ambiguousMigration),
+        throwsFormatException,
+      );
+      expect(await file.readAsBytes(), ambiguousBytes);
+    });
+  }
+
   for (final projectChange in ['none', 'moved', 'missing', 'redo']) {
     test(
         projectChange == 'none'

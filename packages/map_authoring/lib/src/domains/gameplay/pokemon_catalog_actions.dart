@@ -361,7 +361,12 @@ final class PokemonCatalogActions {
     final deleting = actionId.endsWith('.delete');
     final allowed = deleting
         ? const {'relativePath', 'resourceId', 'beforeBytesBase64'}
-        : const {'relativePath', 'document', 'beforeBytesBase64'};
+        : {
+            'relativePath',
+            'document',
+            'beforeBytesBase64',
+            if (kind == PokemonDocumentKind.media) 'migrateSchema',
+          };
     final unknown = parameters.keys.where((key) => !allowed.contains(key));
     if (unknown.isNotEmpty) {
       throw ArgumentError.value(unknown.toList(), 'parameters', 'unknown keys');
@@ -376,21 +381,40 @@ final class PokemonCatalogActions {
     if (beforeBytes != null && beforeDocument is! Map) {
       throw const FormatException('Before bytes must contain a JSON object.');
     }
+    if (parameters.containsKey('migrateSchema')) {
+      if (!context.snapshot.materializedCatalogProject) {
+        throw const FormatException(
+            'Pokemon media migration requires a working catalog.');
+      }
+      if (parameters['migrateSchema'] != true || beforeDocument is! Map) {
+        throw const FormatException(
+            'An explicit Pokemon media migration requires an existing document.');
+      }
+      _validatePokemonMediaMigration(
+        Map<String, dynamic>.from(beforeDocument),
+        _object(parameters, 'document'),
+      );
+    }
     if (!deleting &&
         kind == PokemonDocumentKind.media &&
         beforeDocument is Map &&
         beforeDocument['schemaVersion'] !=
-            _object(parameters, 'document')['schemaVersion']) {
+            _object(parameters, 'document')['schemaVersion'] &&
+        parameters['migrateSchema'] != true) {
       throw const FormatException(
         'Changing Pokemon media schema requires an explicit migration.',
       );
     }
-    final PokemonJsonDocument? document = deleting
+    final parsedDocument = deleting
         ? null
         : PokemonJsonDocument.fromJson(
             kind,
             _object(parameters, 'document'),
           );
+    final document =
+        parsedDocument != null && parameters['migrateSchema'] == true
+            ? PokemonJsonDocument._(kind, _object(parameters, 'document'))
+            : parsedDocument;
     final resourceId =
         deleting ? _string(parameters, 'resourceId') : document!.identity;
     if (kind == PokemonDocumentKind.media &&
@@ -495,6 +519,7 @@ final class PokemonCatalogActions {
         'relativePath': relativePath,
         'deleting': deleting,
         'exactPreimageProvided': beforeBytes != null,
+        if (parameters['migrateSchema'] == true) 'schemaMigration': '1-to-2',
       },
     );
   }
@@ -514,7 +539,9 @@ AuthoringActionDescriptor _descriptor(String id, {required bool delete}) =>
                   ? 'Add 1 to 200 new entries to a canonical catalog while preserving every existing definition'
                   : id == 'pokemon.evolution.write'
                       ? 'Write evolution rules; conditional and catalog-only methods preserve source conditions and do not execute in gameplay'
-                      : 'Create or replace one validated Pokemon data document',
+                      : id == 'pokemon.media.write'
+                          ? 'Write one Pokemon media document; migrateSchema explicitly upgrades unchanged v1 media to v2'
+                          : 'Create or replace one validated Pokemon data document',
       inputSchemaId: 'pokemap.authoring/$id.input.v1',
       outputSchemaId: 'pokemap.authoring/$id.output.v1',
       riskLevel: delete ? AuthoringRiskLevel.high : AuthoringRiskLevel.medium,
@@ -528,7 +555,51 @@ AuthoringActionDescriptor _descriptor(String id, {required bool delete}) =>
         AuthoringGuarantee.revisionChecked,
         AuthoringGuarantee.undoable,
       ],
+      extensions: id == 'pokemon.media.write'
+          ? const {
+              'schemaMigration': {
+                'parameter': 'migrateSchema',
+                'from': 1,
+                'to': 2,
+                'preserves': 'all document fields except schemaVersion',
+                'projectStorage': 'working-catalog-only',
+              },
+            }
+          : const {},
     );
+
+void _validatePokemonMediaMigration(
+  Map<String, dynamic> before,
+  Map<String, dynamic> after,
+) {
+  if (before['schemaVersion'] != 1 || after['schemaVersion'] != 2) {
+    throw const FormatException(
+        'Only Pokemon media schema 1 to 2 is supported.');
+  }
+  final variants = before['variants'];
+  const animatedFields = {
+    'frontAnimated',
+    'backAnimated',
+    'frontShinyAnimated',
+    'backShinyAnimated',
+    'frontFemaleAnimated',
+    'backFemaleAnimated',
+    'frontShinyFemaleAnimated',
+    'backShinyFemaleAnimated',
+  };
+  if (variants is Map &&
+      variants.values.any((variant) =>
+          variant is Map && variant.keys.any(animatedFields.contains))) {
+    throw const FormatException(
+        'Legacy media contains fields with ambiguous animated sprite semantics.');
+  }
+  final expected = {...before, 'schemaVersion': 2};
+  if (jsonEncode(freezeContractJsonObject(expected, field: 'document')) !=
+      jsonEncode(freezeContractJsonObject(after, field: 'document'))) {
+    throw const FormatException(
+        'A Pokemon media migration cannot change other document fields.');
+  }
+}
 
 PokemonDocumentKind _kindForAction(String actionId) {
   for (final kind in PokemonDocumentKind.values) {
