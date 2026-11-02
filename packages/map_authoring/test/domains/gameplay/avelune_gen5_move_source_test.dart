@@ -127,6 +127,47 @@ final class _Transport implements PokemonBoundedExternalHttpTransport {
 }
 
 void main() {
+  test('accepts the generic API response with a missing BW2 texture', () async {
+    final encoded =
+        Platform.environment['AVELUNE_BW2_TACKLE_PARTIAL_RESPONSE']!;
+    final transport = _Transport()..overrideBytes = base64.decode(encoded);
+    final snapshot =
+        await AveluneGen5MoveSource(client: transport, release: 'draft')
+            .fetch(moveId: 'tackle', sourceMoveId: 33);
+    expect(snapshot!.reportedDependencyStatus, 'partial');
+    expect(snapshot.effectiveDependencyStatus, 'partial');
+    expect(snapshot.missingTextures, [(particleId: 199, name: 'texture00')]);
+    expect(snapshot.playbackStatus, 'not-supported');
+  }, skip: Platform.environment['AVELUNE_BW2_TACKLE_PARTIAL_RESPONSE'] == null);
+
+  test('accepts the generic API response for the BW2 Thunderbolt source v2',
+      () async {
+    final encoded = Platform.environment['AVELUNE_BW2_THUNDERBOLT_RESPONSE']!;
+    final transport = _Transport()..overrideBytes = base64.decode(encoded);
+    final snapshot =
+        await AveluneGen5MoveSource(client: transport, release: 'draft')
+            .fetch(moveId: 'thunderbolt', sourceMoveId: 85);
+    expect(snapshot!.effectiveDependencyStatus, 'complete');
+    expect(snapshot.particleDependencyInventoryVerified, isTrue);
+    expect(snapshot.particles.keys, [253, 254]);
+    expect(snapshot.playbackStatus, 'not-supported');
+  }, skip: Platform.environment['AVELUNE_BW2_THUNDERBOLT_RESPONSE'] == null);
+
+  test('accepts the generic API response for the BW2 Tackle source v2',
+      () async {
+    final encoded = Platform.environment['AVELUNE_BW2_TACKLE_RESPONSE']!;
+    final transport = _Transport()..overrideBytes = base64.decode(encoded);
+    final snapshot =
+        await AveluneGen5MoveSource(client: transport, release: 'draft')
+            .fetch(moveId: 'tackle', sourceMoveId: 33);
+    expect(snapshot!.reportedDependencyStatus, 'complete');
+    expect(snapshot.effectiveDependencyStatus, 'complete');
+    expect(snapshot.particleDependencyInventoryVerified, isTrue);
+    expect(snapshot.particles.keys, [199]);
+    expect(snapshot.particles[199]!.textureBytes, isNotEmpty);
+    expect(snapshot.playbackStatus, 'not-supported');
+  }, skip: Platform.environment['AVELUNE_BW2_TACKLE_RESPONSE'] == null);
+
   test('accepts the real API response for the BW2 Tail Whip source v2',
       () async {
     final encoded = Platform.environment['AVELUNE_BW2_TAIL_WHIP_RESPONSE']!;
