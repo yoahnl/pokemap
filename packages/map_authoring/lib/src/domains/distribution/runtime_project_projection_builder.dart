@@ -979,7 +979,7 @@ final class RuntimeProjectProjectionBuilder {
               );
             }
             try {
-              const PokemonGifInspector(maxFrames: 256, maxCanvasPixels: 16777216)
+              const PokemonGifInspector(maxCanvasPixels: 16777216)
                   .inspect(bytes is Uint8List ? bytes : Uint8List.fromList(bytes));
             } on FormatException catch (error) {
               throw GamePackageExportException(

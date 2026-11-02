@@ -117,25 +117,37 @@ void main() {
     );
   });
 
-  test('rejects more frames than the runtime can admit', () {
+  test('admits up to 500 frames while retaining the decoded pixel limit', () {
     final frame = image.Image(width: 2, height: 2);
-    final encoder = image.GifEncoder();
-    for (var i = 0; i < 257; i++) {
-      encoder.addFrame(frame);
+    Uint8List gif(int count) {
+      final encoder = image.GifEncoder();
+      for (var i = 0; i < count; i++) {
+        encoder.addFrame(frame);
+      }
+      return Uint8List.fromList(encoder.finish()!);
     }
-    final bytes = Uint8List.fromList(encoder.finish()!);
-    expect(const PokemonGifInspector().inspect(bytes).frameCount, 257);
+    GamePackageFileEntry entry(Uint8List bytes) => GamePackageFileEntry(
+      path: 'project/assets/pokemon/battle.gif',
+      size: bytes.length,
+      sha256: '0' * 64,
+      mediaType: 'image/gif',
+    );
+    const validator = GamePackageContentValidator(GamePackageSecurityPolicy());
+    for (final count in [338, 500]) {
+      final bytes = gif(count);
+      expect(const PokemonGifInspector().inspect(bytes).frameCount, count);
+      expect(() => validator.validate(entry(bytes), bytes), returnsNormally);
+    }
+    final excessive = gif(501);
     expect(
-      () => const GamePackageContentValidator(GamePackageSecurityPolicy())
-          .validate(
-        GamePackageFileEntry(
-          path: 'project/assets/pokemon/battle.gif',
-          size: bytes.length,
-          sha256: '0' * 64,
-          mediaType: 'image/gif',
-        ),
-        bytes,
-      ),
+      () => validator.validate(entry(excessive), excessive),
+      throwsA(isA<GamePackageFormatException>()),
+    );
+    final long = gif(338);
+    expect(
+      () => const GamePackageContentValidator(
+        GamePackageSecurityPolicy(maxImagePixels: 1000),
+      ).validate(entry(long), long),
       throwsA(isA<GamePackageFormatException>()),
     );
   });

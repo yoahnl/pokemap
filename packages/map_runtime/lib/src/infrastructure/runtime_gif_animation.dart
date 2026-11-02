@@ -87,7 +87,7 @@ Future<RuntimeGifAnimation> decodeRuntimeGif(
   Uint8List bytes, {
   RuntimeResourceBudget? resourceBudget,
   bool Function()? isCurrent,
-  int maximumFrames = 256,
+  int maximumFrames = 500,
   RuntimeGifCodecFactory? codecFactory,
 }) async {
   if (maximumFrames < 1 || maximumFrames > 512) {
@@ -115,7 +115,7 @@ Future<RuntimeGifAnimation> loadRuntimeGifFromFilePath(
   String absolutePath, {
   RuntimeResourceBudget? resourceBudget,
   bool Function()? isCurrent,
-  int maximumFrames = 256,
+  int maximumFrames = 500,
   RuntimeGifCodecFactory? codecFactory,
 }) async {
   if (maximumFrames < 1 || maximumFrames > 512) {

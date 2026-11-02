@@ -25,6 +25,23 @@ Uint8List _gif({int repeat = 0}) {
   return encoder.finish()!;
 }
 
+Uint8List _gifWithFrames(int count) {
+  final palette = img.PaletteUint8(2, 4)
+    ..setRgba(0, 0, 0, 0, 255)
+    ..setRgba(1, 255, 255, 255, 255);
+  final frame = img.Image(
+    width: 2,
+    height: 2,
+    withPalette: true,
+    palette: palette,
+  );
+  final encoder = img.GifEncoder();
+  for (var i = 0; i < count; i++) {
+    encoder.addFrame(frame);
+  }
+  return encoder.finish()!;
+}
+
 Uint8List _transparentGif() {
   final palette = img.PaletteUint8(4, 4)
     ..setRgba(0, 0, 0, 0, 0)
@@ -81,6 +98,15 @@ RuntimeResourceBudget _budget(int resident) => RuntimeResourceBudget(
     maximumResidentBytes: resident,
     maximumTransientBytes: 65536,
     maximumEncodedBytes: 65536,
+    maximumConcurrentDecodes: 1,
+  ),
+);
+
+RuntimeResourceBudget _largeFrameBudget(int resident) => RuntimeResourceBudget(
+  profile: RuntimeResourceProfile(
+    maximumResidentBytes: resident,
+    maximumTransientBytes: 2 * 1024 * 1024,
+    maximumEncodedBytes: 1024 * 1024,
     maximumConcurrentDecodes: 1,
   ),
 );
@@ -161,6 +187,64 @@ void main() {
     expect(budget.residentBytes, 0);
     expect(budget.transientBytes, 0);
     expect(budget.activeDecodes, 0);
+  });
+
+  test('plays up to 500 frames without bypassing the resident budget', () async {
+    for (final count in [338, 500]) {
+      final budget = _largeFrameBudget(count * 16);
+      final animation = await decodeRuntimeGif(
+        _gifWithFrames(count),
+        resourceBudget: budget,
+      );
+      expect(animation.frameCount, count);
+      expect(budget.residentBytes, count * 16);
+      animation.dispose();
+      expect(budget.residentBytes, 0);
+    }
+
+    final small = _largeFrameBudget(338 * 16 - 1);
+    await expectLater(
+      decodeRuntimeGif(_gifWithFrames(338), resourceBudget: small),
+      throwsA(isA<RuntimeResourceAdmissionException>()),
+    );
+    expect(small.residentBytes, 0);
+    expect(small.transientBytes, 0);
+  });
+
+  test('keeps the 512 frame explicit override while defaulting to 500', () async {
+    final bytes = _gifWithFrames(501);
+    final budget = _largeFrameBudget(512 * 16);
+    await expectLater(
+      decodeRuntimeGif(bytes, resourceBudget: budget),
+      throwsA(isA<RuntimeResourceAdmissionException>()),
+    );
+    final animation = await decodeRuntimeGif(
+      _gifWithFrames(512),
+      resourceBudget: budget,
+      maximumFrames: 512,
+    );
+    expect(animation.frameCount, 512);
+    animation.dispose();
+    expect(budget.residentBytes, 0);
+    expect(budget.transientBytes, 0);
+  });
+
+  test('loads a GIF with more than 256 frames from a file', () async {
+    final root = Directory(
+      Platform.environment['AVELUNE_QA_ROOT'] ?? Directory.systemTemp.path,
+    );
+    final directory = await root.createTemp('gif-many-frames-');
+    addTearDown(() => directory.delete(recursive: true));
+    final file = File('${directory.path}/sample.gif');
+    await file.writeAsBytes(_gifWithFrames(338));
+    final budget = _largeFrameBudget(338 * 16);
+    final animation = await loadRuntimeGifFromFilePath(
+      file.path,
+      resourceBudget: budget,
+    );
+    expect(animation.frameCount, 338);
+    animation.dispose();
+    expect(budget.residentBytes, 0);
   });
 
   test('loads a bounded GIF from a file and releases its resources', () async {

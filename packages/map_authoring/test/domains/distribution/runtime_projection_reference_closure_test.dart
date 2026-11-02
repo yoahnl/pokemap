@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:archive/archive.dart';
 import 'package:crypto/crypto.dart';
+import 'package:image/image.dart' as image;
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
@@ -520,6 +521,48 @@ void main() {
     )));
     expect(portable.require(record.id).toJson(), record.toJson());
     expect(archive.findFile('project/${assetBlobStorageKey(artifact)}')!.content, gif);
+  });
+
+  test('exports 338-frame Pokemon GIFs and rejects more than 500', () async {
+    final root = await _fixture();
+    const gifPath = 'sprites/seedot/back.gif';
+    final frame = image.Image(width: 2, height: 2);
+    List<int> gif(int count) {
+      final encoder = image.GifEncoder();
+      for (var i = 0; i < count; i++) {
+        encoder.addFrame(frame);
+      }
+      return encoder.finish()!;
+    }
+    final supported = gif(338);
+    final blob = ContentArtifactRef.fromBytes(supported, mediaType: 'image/gif');
+    final blobPath = assetBlobStorageKey(blob);
+    await _write(root, 'data/pokemon/media/seedot.json', {
+      'schemaVersion': 2,
+      'speciesId': 'seedot',
+      'defaultFormId': 'base',
+      'variants': {'base': {'backAnimated': gifPath, 'frontAnimated': blobPath}},
+    });
+    await _write(root, gifPath, supported);
+    await _write(root, blobPath, supported);
+    final result = await const CanonicalGamePackageExportService().build(
+      projectRoot: root, profile: _profile(), mode: GamePackageExportMode.localTest,
+    );
+    expect(const GamePackageInspector().inspect(result.packageBytes).payloadPaths,
+        contains('project/$gifPath'));
+    final archive = ZipDecoder().decodeBytes(result.packageBytes, verify: true);
+    expect(archive.findFile('project/$gifPath')!.content, supported);
+    expect(archive.findFile('project/$blobPath')!.content, supported);
+
+    await _write(root, gifPath, gif(501));
+    await expectLater(
+      const CanonicalGamePackageExportService().build(
+        projectRoot: root, profile: _profile(), mode: GamePackageExportMode.localTest,
+      ),
+      throwsA(isA<GamePackageExportException>().having(
+        (error) => error.code, 'code', 'pokemon.animated_media_invalid',
+      )),
+    );
   });
 
   test('exports referenced GIFs outside asset roots at their exact paths', () async {

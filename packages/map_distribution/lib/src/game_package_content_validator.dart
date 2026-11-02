@@ -111,7 +111,6 @@ final class GamePackageContentValidator {
       }
       try {
         final info = PokemonGifInspector(
-          maxFrames: 256,
           maxCanvasPixels: policy.maxImagePixels < 16777216
               ? policy.maxImagePixels
               : 16777216,
