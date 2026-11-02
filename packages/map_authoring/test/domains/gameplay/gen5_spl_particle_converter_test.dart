@@ -3,6 +3,8 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
+import 'package:map_authoring/src/domains/gameplay/pokemon_external/gen5_battle_script_parameters.dart';
+import 'package:map_authoring/src/domains/gameplay/pokemon_external/gen5_battle_script_source.dart';
 import 'package:map_authoring/src/domains/gameplay/pokemon_external/gen5_spl_particle_converter.dart';
 import 'package:test/test.dart';
 
@@ -153,6 +155,40 @@ void main() {
     expect((emitter['motion'] as Map)['gravity'], {'x': 0, 'y': 1, 'z': 0});
   });
 
+  test('converts an emitter without gravity as zero acceleration', () {
+    final source = _source();
+    final emitter = (source['emitters'] as List).single as Map<String, dynamic>;
+    emitter.remove('gravityBehavior');
+
+    final converted = _convert(source).definition.toJson();
+    final motion =
+        ((converted['emitters'] as List).single as Map)['motion'] as Map;
+    expect(motion['gravity'], {'x': 0, 'y': 0, 'z': 0});
+
+    emitter['gravityBehavior'] = null;
+    expect(() => _convert(source), throwsFormatException);
+  });
+
+  test('ignores source radius and length where BW2 does not use them', () {
+    final source = _source();
+    final emitter = (source['emitters'] as List).single as Map<String, dynamic>;
+    emitter['radius'] = 8222;
+    emitter['length'] = 1234;
+    final point = (_convert(source).definition.toJson()['emitters'] as List)
+        .single as Map;
+    expect((point['emission'] as Map)['radius'], 0);
+
+    emitter['emissionType'] = 'sphere_surface';
+    emitter['radius'] = 2741;
+    emitter['length'] = 0;
+    final sphere = (_convert(source).definition.toJson()['emitters'] as List)
+        .single as Map;
+    expect((sphere['emission'] as Map)['radius'], 2741);
+
+    emitter['length'] = 'invalid';
+    expect(() => _convert(source), throwsFormatException);
+  });
+
   test('rejects altered identities, missing textures and unsupported features',
       () {
     expect(() => _convert(_source(), hash: '0' * 64), throwsFormatException);
@@ -211,5 +247,118 @@ void main() {
     final emitters = result.definition.toJson()['emitters'] as List;
     expect(((emitters[2] as Map)['child'] as Map)['texture'], 'texture05');
     expect(((emitters[3] as Map)['emission'] as Map)['shape'], 'sphereSurface');
+  }, skip: Platform.environment['AVELUNE_BW2_SCRIPT_TEST'] != '1');
+
+  test('reads the BW2 Disable script and converts particle source 215',
+      () async {
+    const path = 'res/particles/btlv_effvm_particles/215/particles.json';
+    const hash =
+        '2c39c15cf21c1ddd6800d1038c874ef54119da684d3e628ede2d2af03b571ffe';
+    final client = HttpClient();
+    addTearDown(() => client.close(force: true));
+    final request = await client
+        .getUrl(Uri.https(
+          'raw.githubusercontent.com',
+          '/fuddlesworth/pokebw2/$_revision/$path',
+        ))
+        .timeout(const Duration(seconds: 20));
+    request.followRedirects = false;
+    final response = await request.close().timeout(const Duration(seconds: 20));
+    expect(response.statusCode, HttpStatus.ok);
+    final bytes = BytesBuilder(copy: false);
+    await for (final chunk in response.timeout(const Duration(seconds: 20))) {
+      if (bytes.length + chunk.length > 262144) {
+        throw const FormatException('Particle source too large');
+      }
+      bytes.add(chunk);
+    }
+    final result = Gen5SplParticleConverter.convert(
+      bytes.takeBytes(),
+      particleId: 215,
+      sourceRevision: _revision,
+      sourcePath: path,
+      expectedSha256: hash,
+      textureResourceIds: const {'texture00': 'texture00'},
+    );
+    expect(result.definition.emitters, hasLength(2));
+    for (final emitter in result.definition.toJson()['emitters'] as List) {
+      expect(((emitter as Map)['motion'] as Map)['gravity'],
+          {'x': 0, 'y': 0, 'z': 0});
+    }
+
+    const scriptPath = 'res/battle/animations/moves/disable.s';
+    final scriptRequest = await client
+        .getUrl(Uri.https(
+          'raw.githubusercontent.com',
+          '/fuddlesworth/pokebw2/$_revision/$scriptPath',
+        ))
+        .timeout(const Duration(seconds: 20));
+    scriptRequest.followRedirects = false;
+    final scriptResponse =
+        await scriptRequest.close().timeout(const Duration(seconds: 20));
+    expect(scriptResponse.statusCode, HttpStatus.ok);
+    final scriptBytes = BytesBuilder(copy: false);
+    await for (final chunk
+        in scriptResponse.timeout(const Duration(seconds: 20))) {
+      if (scriptBytes.length + chunk.length > 65536) {
+        throw const FormatException('Battle script too large');
+      }
+      scriptBytes.add(chunk);
+    }
+    final script = Gen5BattleScriptParameters.read(Gen5BattleScriptSource.read(
+      scriptBytes.takeBytes(),
+      sourceRevision: _revision,
+      sourcePath: scriptPath,
+      expectedSha256:
+          '5e933ee61006fbcb31452e4d0c95c07457f8d6a2f2c9c7edaf2a64c6830e8362',
+    ));
+    final emitters = script.instructions
+        .where((instruction) => instruction.instruction.name == 'EmitterAdd')
+        .toList();
+    expect(emitters, hasLength(2));
+    expect(emitters.map((e) => e.parameters['particle']!.raw), ['215', '215']);
+    expect(emitters.map((e) => e.parameters['emitter']!.raw), ['0', '1']);
+  }, skip: Platform.environment['AVELUNE_BW2_SCRIPT_TEST'] != '1');
+
+  test('rejects unsupported radial velocity in BW2 particle source 199',
+      () async {
+    const path = 'res/particles/btlv_effvm_particles/199/particles.json';
+    const hash =
+        '0a2edc30e578f3f9d7650d6f3b6916fb673b8a494547d22557e2c5a34915955e';
+    final client = HttpClient();
+    addTearDown(() => client.close(force: true));
+    final request = await client
+        .getUrl(Uri.https(
+          'raw.githubusercontent.com',
+          '/fuddlesworth/pokebw2/$_revision/$path',
+        ))
+        .timeout(const Duration(seconds: 20));
+    request.followRedirects = false;
+    final response = await request.close().timeout(const Duration(seconds: 20));
+    expect(response.statusCode, HttpStatus.ok);
+    final bytes = BytesBuilder(copy: false);
+    await for (final chunk in response.timeout(const Duration(seconds: 20))) {
+      if (bytes.length + chunk.length > 262144) {
+        throw const FormatException('Particle source too large');
+      }
+      bytes.add(chunk);
+    }
+    expect(
+      () => Gen5SplParticleConverter.convert(
+        bytes.takeBytes(),
+        particleId: 199,
+        sourceRevision: _revision,
+        sourcePath: path,
+        expectedSha256: hash,
+        textureResourceIds: {
+          for (var i = 0; i < 5; i++) 'texture0$i': 'texture0$i'
+        },
+      ),
+      throwsA(isA<FormatException>().having(
+        (error) => error.message,
+        'message',
+        'Unsupported SPL source field: initVelPositionAmplifier',
+      )),
+    );
   }, skip: Platform.environment['AVELUNE_BW2_SCRIPT_TEST'] != '1');
 }

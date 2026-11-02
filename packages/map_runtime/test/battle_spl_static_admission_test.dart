@@ -38,6 +38,79 @@ BattleSplStaticPreparation prepare(
 );
 
 void main() {
+  test(
+    'admits and simulates the verified BW2 Disable particle source',
+    () async {
+      const revision = '41f42ca1afe6291f00b0ba0ec3f6099b9ff1346c';
+      const path = 'res/particles/btlv_effvm_particles/215/particles.json';
+      const hash =
+          '2c39c15cf21c1ddd6800d1038c874ef54119da684d3e628ede2d2af03b571ffe';
+      final client = HttpClient();
+      addTearDown(() => client.close(force: true));
+      final request = await client
+          .getUrl(
+            Uri.https(
+              'raw.githubusercontent.com',
+              '/fuddlesworth/pokebw2/$revision/$path',
+            ),
+          )
+          .timeout(const Duration(seconds: 20));
+      request.followRedirects = false;
+      final response = await request.close().timeout(
+        const Duration(seconds: 20),
+      );
+      expect(response.statusCode, HttpStatus.ok);
+      final bytes = BytesBuilder(copy: false);
+      await for (final chunk in response.timeout(const Duration(seconds: 20))) {
+        if (bytes.length + chunk.length > 262144) {
+          throw const FormatException('Particle source too large');
+        }
+        bytes.add(chunk);
+      }
+      final converted = Gen5SplParticleConverter.convert(
+        bytes.takeBytes(),
+        particleId: 215,
+        sourceRevision: revision,
+        sourcePath: path,
+        expectedSha256: hash,
+        textureResourceIds: const {'texture00': 'texture00'},
+      );
+      final result = BattleSplStaticAdmission.prepare(
+        definition: converted.definition,
+        textureIndices: const {'texture00': 0},
+        emitters: const [
+          BattleSplStaticEmitter(
+            emitterIndex: 0,
+            startTick: 0,
+            position: (x: 0, y: 0, z: 0),
+          ),
+          BattleSplStaticEmitter(
+            emitterIndex: 1,
+            startTick: 0,
+            position: (x: 0, y: 0, z: 0),
+          ),
+        ],
+        seed: 1,
+        poolCapacity: 16,
+        maxTicks: 80,
+      );
+      expect(result.failure, isNull);
+      final playback = result.playback!;
+      var visible = 0;
+      while (!playback.isComplete) {
+        expect(playback.advance(), isNull);
+        visible += playback.frames.fold<int>(
+          0,
+          (count, frame) => count + frame.particles.length,
+        );
+      }
+      expect(visible, greaterThan(0));
+      expect(playback.activeParticles, 0);
+      playback.cancel();
+    },
+    skip: Platform.environment['AVELUNE_BW2_SCRIPT_TEST'] != '1',
+  );
+
   test('preflights and replays the same deterministic particles', () async {
     final raw = await fixture();
     final result = prepare(raw);

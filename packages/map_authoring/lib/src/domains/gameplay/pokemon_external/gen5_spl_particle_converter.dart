@@ -173,8 +173,8 @@ Map<String, dynamic> _emitter(
   if (!{'x', 'y', 'z'}.contains(source['emissionAxis']) ||
       source['polygonRotAxis'] != 'y' ||
       source['polygonReferencePlane'] != 'xy' ||
-      source['length'] != (shape == 'point' ? 0 : 4096) ||
-      (shape == 'point' && source['radius'] != 0) ||
+      !_isSignedWord(source['length']) ||
+      !_isSignedWord(source['radius']) ||
       source['minRotation'] is! int ||
       source['maxRotation'] is! int) {
     throw const FormatException('Unsupported SPL source geometry');
@@ -231,7 +231,11 @@ Map<String, dynamic> _emitter(
   _keys(alpha,
       {'start', 'mid', 'end', 'randomRange', 'loop', 'in', 'out', 'unused'});
   _optionalUnused(alpha);
-  final gravity = _map(source['gravityBehavior']);
+  final gravity = source.containsKey('gravityBehavior')
+      ? _map(source['gravityBehavior'])
+      : <String, dynamic>{
+          'magnitude': {'x': 0, 'y': 0, 'z': 0},
+        };
   _keys(gravity, {'magnitude'});
   final rawTextureAnimation = source['textureAnim'];
   Map<String, dynamic>? textureAnimation;
@@ -255,7 +259,7 @@ Map<String, dynamic> _emitter(
       'shape': shape,
       'origin': source['emitterBasePos'],
       'axis': source['axis'],
-      'radius': source['radius'],
+      'radius': shape == 'point' ? 0 : source['radius'],
       'axisVelocity': source['initVelAxisAmplifier'],
       'followEmitter': source['followEmitter'],
       'rate': source['emissionCount'],
@@ -424,3 +428,6 @@ String _text(Object? value) {
   }
   return value;
 }
+
+bool _isSignedWord(Object? value) =>
+    value is int && value >= -2147483648 && value <= 2147483647;
