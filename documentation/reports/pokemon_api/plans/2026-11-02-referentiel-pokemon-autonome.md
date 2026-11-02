@@ -4,6 +4,8 @@
 
 **Objectif :** disposer d’un catalogue Pokémon et objets autonome, hébergé chez Yoahn, puis prouver que Studio et un jeu exporté utilisent effectivement ses données, sons et animations.
 
+**Premier POC :** obtenir rapidement un combat HGSS jouable avec les GIF Noir/Blanc et les ressources disponibles, y compris hors ligne après export. Les animations d’attaque incomplètes, le moteur par pièces, les variantes manquantes et les ressources des générations récentes ne bloquent pas ce premier résultat : utiliser les replis existants et noter les manques.
+
 **Architecture :** l’API NestJS et PostgreSQL publient des versions immuables ; les médias sont stockés sur le volume local du serveur. L’import Avelune récupère les ressources depuis une version précise, puis les embarque dans le projet et l’export ; Player ne dépend pas du réseau pour jouer.
 
 **Technologies :** TypeScript/NestJS, PostgreSQL, Dokploy/TrueNAS, Dart/Flutter/Flame ; AnimaEngine C et les sources BW2 indiquées par Yoahn pour le pilote de sprites par pièces.
