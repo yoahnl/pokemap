@@ -94,7 +94,7 @@ void main() {
         tileSize: 16,
         mapWidth: 3,
         mapHeight: 3));
-    expect(result.manifest.pokemon.catalogRelease, 'public-2026-11-02');
+    expect(result.manifest.pokemon.catalogRelease, 'public-2026-11-02-bw2');
     for (final path in payloads.keys.where((path) => path != 'project.json')) {
       expect(await File('${result.projectPath}/$path').readAsBytes(),
           orderedEquals(payloads[path]!),
