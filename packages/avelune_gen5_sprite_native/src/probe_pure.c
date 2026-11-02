@@ -182,7 +182,7 @@ static int use_rectangles(NcerFile *cells, const uint8_t *data, size_t size) {
             if (width == 0 && height == 0) continue;
             if (x % 256 || y % 256 || x < -1048576 || x > 1048576 ||
                 y < -1048576 || y > 1048576 || width <= 0 || height <= 0 ||
-                width % 32768 || height % 32768 || u < 0 || v < 0 ||
+                width % 4096 || height % 4096 || u < 0 || v < 0 ||
                 u % 32768 || v % 32768 ||
                 (int64_t)u + width > 256 * 4096 || (int64_t)v + height > 128 * 4096) return -3;
             NcerOam *oam = &parsed[n++];
@@ -278,10 +278,13 @@ static int render_sample(const AvProbeRequest *request, uint8_t *output,
         if (total_oams > 2048) goto cleanup;
         for (int j = 0; j < cell->oam_count; j++) {
             NcerOam *oam = &cell->oams[j];
-            if (oam->width <= 0 || oam->width > (rectangles ? 256 : 64) || oam->width % 8 ||
-                oam->height <= 0 || oam->height > (rectangles ? 128 : 64) || oam->height % 8 ||
+            if (oam->width <= 0 || oam->width > (rectangles ? 256 : 64) ||
+                (!rectangles && oam->width % 8) ||
+                oam->height <= 0 || oam->height > (rectangles ? 128 : 64) ||
+                (!rectangles && oam->height % 8) ||
                 oam->tile_index < 0 ||
-                oam->tile_index + (oam->height / 8 - 1) * 32 + oam->width / 8 > 512) goto cleanup;
+                oam->tile_index + ((oam->height + 7) / 8 - 1) * 32 +
+                    (oam->width + 7) / 8 > 512) goto cleanup;
         }
         details[8 + i * 2] = map->records[i].animation_index;
         details[9 + i * 2] = cell_id;

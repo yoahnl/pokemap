@@ -80,6 +80,8 @@ int render({
   Uint8List? nmcr,
   Uint8List? nmar,
   Uint8List? info,
+  Uint8List? tiles,
+  Uint8List? output,
 }) {
   final allocations = <Pointer<Void>>[];
   Pointer<T> allocate<T extends NativeType>(int size) {
@@ -88,6 +90,7 @@ int render({
     allocations.add(pointer);
     return pointer.cast<T>();
   }
+
   Pointer<Uint8> copy(Uint8List bytes) {
     final pointer = allocate<Uint8>(bytes.length);
     pointer.asTypedList(bytes.length).setAll(0, bytes);
@@ -101,7 +104,7 @@ int render({
     nmar ??= animations('RAMN');
     final request = allocate<ProbeRequest>(sizeOf<ProbeRequest>());
     request.ref
-      ..tiles = copy(Uint8List(16384))
+      ..tiles = copy(tiles ?? Uint8List(16384))
       ..tileSize = 16384
       ..ncer = copy(ncer)
       ..ncerSize = ncer.length
@@ -120,15 +123,18 @@ int render({
       ..childMode = 0
       ..parentCompleted = 0;
     info ??= rectangles();
-    return probeRenderRectangles(
+    final pixels = allocate<Uint8>(16384);
+    final result = probeRenderRectangles(
       request,
-      allocate<Uint8>(16384),
+      pixels,
       16384,
       allocate<Int32>(264 * sizeOf<Int32>()),
       264,
       copy(info),
       info.length,
     );
+    output?.setAll(0, pixels.asTypedList(16384));
+    return result;
   } finally {
     for (final pointer in allocations.reversed) {
       probeFree(pointer);
@@ -145,9 +151,37 @@ void main() {
     expect(render(info: rectangles(width: 72, height: 80)), 0);
   });
 
+  test('renders whole-pixel rectangles that do not fill their last tile', () {
+    for (final (width, height, u, v) in [
+      (23, 8, 0, 0),
+      (39, 16, 32, 0),
+      (48, 41, 40, 0),
+      (23, 9, 232, 112),
+    ]) {
+      final output = Uint8List(16384);
+      expect(
+        render(
+          info: rectangles(width: width, height: height, u: u, v: v),
+          tiles: Uint8List(16384)..fillRange(0, 16384, 0x11),
+          output: output,
+        ),
+        0,
+      );
+      expect(output.where((pixel) => pixel != 0).length, width * height);
+    }
+  });
+
+  test('rejects fractional-pixel rectangle sizes', () {
+    final info = rectangles(width: 23);
+    ByteData.sublistView(info).setInt32(20, 23 * 4096 + 1, Endian.little);
+    expect(render(info: info), -30);
+  });
+
   test('rejects rectangles that extend beyond the atlas', () {
     expect(render(info: rectangles(width: 256, u: 8)), -30);
     expect(render(info: rectangles(height: 136)), -30);
+    expect(render(info: rectangles(width: 17, u: 240)), -30);
+    expect(render(info: rectangles(height: 17, v: 112)), -30);
   });
 
   test('rejects overlapping map tables with excessive total records', () {
