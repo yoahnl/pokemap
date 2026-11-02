@@ -278,8 +278,8 @@ static int render_sample(const AvProbeRequest *request, uint8_t *output,
         if (total_oams > 2048) goto cleanup;
         for (int j = 0; j < cell->oam_count; j++) {
             NcerOam *oam = &cell->oams[j];
-            if (oam->width <= 0 || oam->width > 64 || oam->width % 8 ||
-                oam->height <= 0 || oam->height > 64 || oam->height % 8 ||
+            if (oam->width <= 0 || oam->width > (rectangles ? 256 : 64) || oam->width % 8 ||
+                oam->height <= 0 || oam->height > (rectangles ? 128 : 64) || oam->height % 8 ||
                 oam->tile_index < 0 ||
                 oam->tile_index + (oam->height / 8 - 1) * 32 + oam->width / 8 > 512) goto cleanup;
         }

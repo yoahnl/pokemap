@@ -63,16 +63,24 @@ Uint8List oversizedTransform(String magic) {
   return bytes;
 }
 
-Uint8List rectangles() {
+Uint8List rectangles({int width = 8, int height = 8, int u = 0, int v = 0}) {
   final bytes = Uint8List(62);
   final data = ByteData.sublistView(bytes);
   data.setInt32(0, 1, Endian.little);
-  data.setInt32(20, 32768, Endian.little);
-  data.setInt32(24, 32768, Endian.little);
+  data.setInt32(20, width * 4096, Endian.little);
+  data.setInt32(24, height * 4096, Endian.little);
+  data.setInt32(28, u * 4096, Endian.little);
+  data.setInt32(32, v * 4096, Endian.little);
   return bytes;
 }
 
-int render({Uint8List? ncer, Uint8List? nanr, Uint8List? nmcr, Uint8List? nmar}) {
+int render({
+  Uint8List? ncer,
+  Uint8List? nanr,
+  Uint8List? nmcr,
+  Uint8List? nmar,
+  Uint8List? info,
+}) {
   final allocations = <Pointer<Void>>[];
   Pointer<T> allocate<T extends NativeType>(int size) {
     final pointer = probeAlloc(size);
@@ -111,7 +119,7 @@ int render({Uint8List? ncer, Uint8List? nanr, Uint8List? nmcr, Uint8List? nmar})
       ..height = 128
       ..childMode = 0
       ..parentCompleted = 0;
-    final info = rectangles();
+    info ??= rectangles();
     return probeRenderRectangles(
       request,
       allocate<Uint8>(16384),
@@ -131,6 +139,15 @@ int render({Uint8List? ncer, Uint8List? nanr, Uint8List? nmcr, Uint8List? nmar})
 void main() {
   test('accepts a small complete synthetic frame', () {
     expect(render(), 0);
+  });
+
+  test('accepts atlas rectangles larger than 64 pixels', () {
+    expect(render(info: rectangles(width: 72, height: 80)), 0);
+  });
+
+  test('rejects rectangles that extend beyond the atlas', () {
+    expect(render(info: rectangles(width: 256, u: 8)), -30);
+    expect(render(info: rectangles(height: 136)), -30);
   });
 
   test('rejects overlapping map tables with excessive total records', () {
