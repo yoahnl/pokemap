@@ -197,6 +197,46 @@ void main() {
     expect(requests, [('localmon', 506)]);
   });
 
+  test('uses the skeleton for an unspecified gender without distinct female artwork', () async {
+    for (final shiny in [false, true]) {
+      final sprite = await resolver().resolve(
+        speciesId: 'localmon',
+        isPlayerSide: true,
+        visualIdentity: RuntimeBattleVisualIdentity(
+          speciesId: 'localmon', formId: 'base', genderId: null, isShiny: shiny,
+        ),
+      );
+      expect(sprite.gen5Source?.shiny, shiny);
+      expect(await sprite.gen5Source!.load(), same(bundle));
+    }
+    expect(requests, [('localmon', 506), ('localmon', 506)]);
+  });
+
+  test('uses the default skeleton for unspecified gender when female artwork differs', () async {
+    final media = File('${project.path}/data/pokemon/media/localmon.json');
+    await media.writeAsString(jsonEncode({
+      'schemaVersion': 2,
+      'defaultFormId': 'base',
+      'variants': {
+        'base': {
+          'frontAnimated': 'assets/front.gif',
+          'frontFemaleAnimated': 'assets/female.gif',
+        },
+      },
+    }));
+    final sprite = await resolver().resolve(
+      speciesId: 'localmon',
+      isPlayerSide: false,
+      visualIdentity: const RuntimeBattleVisualIdentity(
+        speciesId: 'localmon', formId: 'base', genderId: null, isShiny: false,
+      ),
+    );
+    expect(sprite.gen5Source, isNotNull);
+    expect(await sprite.gen5Source!.load(), same(bundle));
+    expect(sprite.explicitAnimatedImageAbsolutePath, endsWith('/front.gif'));
+    expect(requests, [('localmon', 506)]);
+  });
+
   test('keeps distinct female artwork on its image fallback', () async {
     final media = File('${project.path}/data/pokemon/media/localmon.json');
     await media.writeAsString(jsonEncode({

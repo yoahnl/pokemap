@@ -159,7 +159,6 @@ final class BattlePokemonSpriteResolver {
         !pokemon.enabled ||
         identity == null ||
         identity.isShiny == null ||
-        identity.genderId == null ||
         (identity.genderId == 'female' && hasFemaleArtwork) ||
         (form != null &&
             form.isNotEmpty &&
