@@ -29,6 +29,8 @@ class CharacterAnimationSourceEditor extends StatefulWidget {
     this.legacyFrameWidth,
     this.legacyFrameHeight,
     this.legacySourceLoader,
+    this.onPresentationReferenceHeightChanged,
+    this.suggestedPresentationReferenceHeightPx,
   });
 
   final CharacterAnimationMatrixSlot slot;
@@ -45,6 +47,9 @@ class CharacterAnimationSourceEditor extends StatefulWidget {
   final int? legacyFrameWidth;
   final int? legacyFrameHeight;
   final Future<Uint8List> Function(String path)? legacySourceLoader;
+  final Future<bool> Function(int? height)?
+  onPresentationReferenceHeightChanged;
+  final int? suggestedPresentationReferenceHeightPx;
 
   @override
   State<CharacterAnimationSourceEditor> createState() =>
@@ -66,16 +71,28 @@ class _CharacterAnimationSourceEditorState
   String? _sourceIdentity;
   bool _usesLegacyGrid = false;
   String? _gridError;
+  final TextEditingController _referenceHeightController =
+      TextEditingController();
+  String? _referenceHeightError;
 
   @override
   void initState() {
     super.initState();
+    _referenceHeightController.text =
+        widget.slot.presentationReferenceHeightPx?.toString() ?? '';
     _refreshSource();
   }
 
   @override
   void didUpdateWidget(covariant CharacterAnimationSourceEditor oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.slot.key != widget.slot.key ||
+        oldWidget.slot.presentationReferenceHeightPx !=
+            widget.slot.presentationReferenceHeightPx) {
+      _referenceHeightController.text =
+          widget.slot.presentationReferenceHeightPx?.toString() ?? '';
+      _referenceHeightError = null;
+    }
     _refreshSource();
   }
 
@@ -84,6 +101,7 @@ class _CharacterAnimationSourceEditorState
     _columnsController.dispose();
     _rowsController.dispose();
     _durationController.dispose();
+    _referenceHeightController.dispose();
     super.dispose();
   }
 
@@ -197,6 +215,11 @@ class _CharacterAnimationSourceEditorState
             onLoopChanged: widget.onLoopChanged,
           ),
           const SizedBox(height: 10),
+          if (widget.slot.key.kind == CharacterAnimationDefinitionKind.system &&
+              widget.onPresentationReferenceHeightChanged != null) ...[
+            _canvasReferenceControl(),
+            const SizedBox(height: 10),
+          ],
           PokeMapPanel(
             padding: const EdgeInsets.all(12),
             child: Column(
@@ -353,6 +376,95 @@ class _CharacterAnimationSourceEditorState
     }
   }
 
+  Widget _canvasReferenceControl() {
+    final enabled = widget.enabled && widget.slot.frames.isNotEmpty;
+    return PokeMapPanel(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          PokeMapTextField(
+            label: 'Hauteur du cadre de référence (px)',
+            fieldKey: const ValueKey<String>(
+              'animation-canvas-reference-height',
+            ),
+            controller: _referenceHeightController,
+            hintText: 'Automatique',
+            errorText: _referenceHeightError,
+            enabled: enabled,
+            keyboardType: TextInputType.number,
+            inputFormatters: _digitsOnly,
+            onSubmitted: (text) async {
+              if (text.trim().isEmpty) {
+                await _saveReferenceHeight(null);
+              } else {
+                await _saveReferenceHeight(int.tryParse(text) ?? 0);
+              }
+            },
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              PokeMapButton(
+                key: const ValueKey<String>(
+                  'animation-canvas-reference-suggest',
+                ),
+                onPressed:
+                    enabled &&
+                        widget.suggestedPresentationReferenceHeightPx != null
+                    ? () => _saveReferenceHeight(
+                        widget.suggestedPresentationReferenceHeightPx,
+                      )
+                    : null,
+                size: PokeMapButtonSize.small,
+                child: const Text('Conserver l’échelle du personnage'),
+              ),
+              PokeMapButton(
+                key: const ValueKey<String>('animation-canvas-reference-auto'),
+                onPressed: enabled ? () => _saveReferenceHeight(null) : null,
+                size: PokeMapButtonSize.small,
+                variant: PokeMapButtonVariant.secondary,
+                child: const Text('Automatique'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _saveReferenceHeight(int? height) async {
+    try {
+      validateCharacterAnimationPresentationReference(
+        presentationReferenceHeightPx: height,
+        sourceAssetId: widget.slot.sourceAssetId,
+        frames: widget.slot.frames,
+      );
+    } on FormatException {
+      setState(
+        () => _referenceHeightError =
+            'Choisissez une hauteur entre 1 et 8192 px, sans dépasser la hauteur de chaque frame.',
+      );
+      return;
+    }
+    setState(() => _referenceHeightError = null);
+    final saved = await widget.onPresentationReferenceHeightChanged?.call(
+      height,
+    );
+    if (!mounted) return;
+    setState(() {
+      _referenceHeightController.text =
+          (saved == true ? height : widget.slot.presentationReferenceHeightPx)
+              ?.toString() ??
+          '';
+      if (saved == false) {
+        _referenceHeightError = 'La hauteur n’a pas pu être enregistrée.';
+      }
+    });
+  }
+
   void _refreshSource() {
     final assetId = widget.slot.sourceAssetId?.trim();
     final portableAssetId = assetId == null || assetId.isEmpty ? null : assetId;
@@ -463,8 +575,9 @@ class _CharacterAnimationSourceEditorState
     final confirmed = await showPokeMapBinaryConfirmationDialog(
       context,
       title: 'Remplacer cette source ?',
-      message:
-          'Les ${widget.slot.frames.length} frame(s) actuelles seront réinitialisées. Vous devrez ensuite appliquer la grille du nouveau PNG.',
+      message: widget.slot.presentationReferenceHeightPx == null
+          ? 'Les ${widget.slot.frames.length} frame(s) actuelles seront réinitialisées. Vous devrez ensuite appliquer la grille du nouveau PNG.'
+          : 'Le découpage et l’échelle seront conservés si le nouveau PNG est compatible. Sinon, la source actuelle sera préservée.',
       secondaryLabel: 'Annuler',
       primaryLabel: 'Remplacer quand même',
       primaryIsDestructive: true,

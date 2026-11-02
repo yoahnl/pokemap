@@ -149,6 +149,7 @@ final class SpatialExplorationSession {
   MovementMode _surfMode;
   CharacterAnimationState? _surfTransition;
   double _surfAnimationSeconds = 0;
+  double _surfLoopSeconds = 0;
   GridPos? _surfEntryTarget;
   double _surfEntryElapsed = 0;
   bool get surfTransitionActive => _surfTransition != null || _surfEntryTarget != null;
@@ -160,6 +161,7 @@ final class SpatialExplorationSession {
     _surfTransition = null;
     _surfEntryTarget = null;
     _surfAnimationSeconds = 0;
+    _surfLoopSeconds = 0;
   }
 
   void beginSurf(GridPos target) {
@@ -204,9 +206,16 @@ final class SpatialExplorationSession {
           ? ProjectSoundCue.surfEnter : ProjectSoundCue.surfExit));
       _surfMode = movement.movementMode;
       _surfAnimationSeconds = 0;
-      _surfTransition = character.animations.any((clip) =>
-          clip.state == next && clip.direction == movement.facing && clip.frames.isNotEmpty)
-          ? next : null;
+      _surfLoopSeconds = 0;
+      _surfTransition =
+          character.animations.any(
+            (clip) =>
+                clip.state == next &&
+                clip.direction == movement.facing &&
+                clip.frames.isNotEmpty,
+          )
+          ? next
+          : null;
     }
     if (_surfTransition == null || presentationPaused || interactionActive.value ||
         transitioning.value || storyInputLocked) {
@@ -227,8 +236,27 @@ final class SpatialExplorationSession {
     }
   }
 
-  GridPos? get surfTarget => bundle.manifest.settings.surf?.enabled == true &&
-      movement.movementMode != MovementMode.surf
+  void _updateSurfLoop(double dt) {
+    if (movement.movementMode != MovementMode.surf ||
+        _surfMode != movement.movementMode ||
+        _surfClipActive ||
+        presentationPaused ||
+        interactionActive.value ||
+        transitioning.value ||
+        storyInputLocked ||
+        movement.paused ||
+        _fieldMotion.isActive ||
+        _fieldAction.isActive ||
+        !dt.isFinite ||
+        dt <= 0) {
+      return;
+    }
+    _surfLoopSeconds += dt;
+  }
+
+  GridPos? get surfTarget =>
+      bundle.manifest.settings.surf?.enabled == true &&
+          movement.movementMode != MovementMode.surf
       ? surfWater.facingWater(movement.x, movement.z, movement.facing)
       : null;
 
@@ -514,7 +542,13 @@ final class SpatialExplorationSession {
       remaining -= candidate.durationMs;
     }
     final resolved = _resolve(animation, frame, actor: actor);
+    final canvas = resolved.presentationRect(width: 1.92, height: 1.92);
     return SpatialActorVisual(
+      width: resolved.presentationReferenceHeightPx == null
+          ? null
+          : canvas.width,
+      height: canvas.height,
+      billboardVerticalOffset: 1.92 - canvas.bottom,
       x: position.x,
       z: position.z,
       y: (liftHeightAt?.call(bundle.map.id,position.x,position.z) ?? position.groundY) + position.y - position.groundY,
@@ -1340,6 +1374,7 @@ final class SpatialExplorationSession {
         if (door != null) unawaited(enterWarp(door));
       }
       final wasJumping = movement.isJumping;
+      _updateSurfLoop(dt);
       _updateSurfTransition(dt);
       _updateSurfEntry(dt);
       movement.update(_surfClipActive ? 0 : dt);
@@ -1434,10 +1469,22 @@ final class SpatialExplorationSession {
       0,
       (sum, frame) => sum + frame.durationMs,
     );
-    var remaining =
-        ((story?.animationSeconds ?? (_fieldMotion.isActive ? _fieldMotion.elapsedSeconds : _fieldAction.isActive ? _fieldAction.elapsedSeconds : _surfClipActive ? _surfAnimationSeconds : movement.animationSeconds)) * 1000).floor();
-    remaining =
-        animation.loop ? remaining % total : remaining.clamp(0, total - 1);
+    final animationSeconds =
+        story?.animationSeconds ??
+        (_fieldMotion.isActive
+            ? _fieldMotion.elapsedSeconds
+            : _fieldAction.isActive
+            ? _fieldAction.elapsedSeconds
+            : _surfClipActive
+            ? _surfAnimationSeconds
+            : animation.state == CharacterAnimationState.surf ||
+                  animation.state == CharacterAnimationState.surfIdle
+            ? _surfLoopSeconds
+            : movement.animationSeconds);
+    var remaining = (animationSeconds * 1000).floor();
+    remaining = animation.loop
+        ? remaining % total
+        : remaining.clamp(0, total - 1);
     var selected = animation.frames.last;
     for (final frame in animation.frames) {
       if (remaining < frame.durationMs) {
@@ -1447,10 +1494,18 @@ final class SpatialExplorationSession {
       remaining -= frame.durationMs;
     }
     final resolved = _resolve(animation, selected);
+    final canvas = resolved.presentationRect(width: 1.92, height: 1.92);
     return SpatialActorVisual(
-        x: story?.x ?? movement.x,
-        groundY: story == null ? movement.groundY : cinematicHeightAt(story.x, story.z),
-        contactShadow:
+      width: resolved.presentationReferenceHeightPx == null
+          ? null
+          : canvas.width,
+      height: canvas.height,
+      billboardVerticalOffset: 1.92 - canvas.bottom,
+      x: story?.x ?? movement.x,
+      groundY: story == null
+          ? movement.groundY
+          : cinematicHeightAt(story.x, story.z),
+      contactShadow:
           !climbing &&
           (character.contactShadow ?? bundle.manifest.settings.actorContactShadowsByDefault),
         airborne: !climbing && (story == null ? movement.isJumping : story.liftCells > .000001),
@@ -1661,20 +1716,28 @@ final class SpatialExplorationSession {
       elapsed -= frame.durationMs;
     }
     final resolved = _resolve(animation, selected, actor: actor);
+    final canvas = resolved.presentationRect(width: 1.92, height: 1.92);
     final x = (saved?.x ?? entity.pos.x + .5) + (entity.size.width - 1) / 2;
     final z = (saved?.z ?? entity.pos.y + .5) + entity.size.height - 1;
     final groundY = active && containsCinematicPoint(x, z)
         ? cinematicHeightAt(x, z)
         : liftHeightAt?.call(source.map.id,x,z) ?? source.map.spatialScene!.worldHeightAt(x, z);
     return SpatialActorVisual(
-        x: x,
-        z: z,
-        y: groundY + (pose?.liftCells ?? 0),
-        groundY: groundY,
-        contactShadow: actor.contactShadow ?? source.manifest.settings.actorContactShadowsByDefault,
-        airborne: (pose?.liftCells ?? 0) > .000001,
-        landingDust: true,
-        texture: _textures[resolved.imageId]!,
+      width: resolved.presentationReferenceHeightPx == null
+          ? null
+          : canvas.width,
+      height: canvas.height,
+      billboardVerticalOffset: 1.92 - canvas.bottom,
+      x: x,
+      z: z,
+      y: groundY + (pose?.liftCells ?? 0),
+      groundY: groundY,
+      contactShadow:
+          actor.contactShadow ??
+          source.manifest.settings.actorContactShadowsByDefault,
+      airborne: (pose?.liftCells ?? 0) > .000001,
+      landingDust: true,
+      texture: _textures[resolved.imageId]!,
       frame: resolved.sourceRect,
     );
   }
@@ -1895,6 +1958,7 @@ final class SpatialExplorationSession {
       _surfMode = movement.movementMode;
       _surfTransition = null;
       _surfEntryTarget = null;
+      _surfLoopSeconds = 0;
       movement.setPaused(presentationPaused || interactionActive.value);
       _warps = SpatialWarpController(
         map: bundle.map,

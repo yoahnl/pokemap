@@ -40,7 +40,13 @@ final class CharacterAnimationSlotKey {
   Map<String, Object?> get actionParameters => switch (kind) {
     CharacterAnimationDefinitionKind.system => <String, Object?>{
       'kind': 'system',
-      'state': systemState!.name,
+      'state': switch (systemState!) {
+        CharacterAnimationState.bicycleIdle => 'bicycle_idle',
+        CharacterAnimationState.surfIdle => 'surf_idle',
+        CharacterAnimationState.surfEnter => 'surf_enter',
+        CharacterAnimationState.surfExit => 'surf_exit',
+        final state => state.name,
+      },
       'direction': direction!.name,
     },
     CharacterAnimationDefinitionKind.custom => <String, Object?>{
@@ -71,6 +77,7 @@ final class CharacterAnimationMatrixSlot {
     required this.frames,
     required this.sourceAssetId,
     required this.loop,
+    this.presentationReferenceHeightPx,
     this.issue,
   });
 
@@ -80,6 +87,7 @@ final class CharacterAnimationMatrixSlot {
   final List<CharacterAnimationFrame> frames;
   final String? sourceAssetId;
   final bool loop;
+  final int? presentationReferenceHeightPx;
   final String? issue;
 
   int get frameCount => frames.length;
@@ -136,6 +144,19 @@ final class CharacterAnimationMatrixModel {
         state: CharacterAnimationState.run,
         required: false,
       ),
+      for (final entry in const <(String, String, CharacterAnimationState)>[
+        ('surf_idle', 'Surf au repos', CharacterAnimationState.surfIdle),
+        ('surf', 'Surf', CharacterAnimationState.surf),
+        ('surf_enter', 'Entrée dans l’eau', CharacterAnimationState.surfEnter),
+        ('surf_exit', 'Sortie de l’eau', CharacterAnimationState.surfExit),
+      ])
+        _systemRow(
+          character,
+          id: entry.$1,
+          displayName: entry.$2,
+          state: entry.$3,
+          required: false,
+        ),
     ];
     final definitions =
         project.characterStudioCatalog.customAnimationDefinitions.toList()
@@ -228,6 +249,7 @@ CharacterAnimationMatrixSlot _systemSlot(
     label: _directionLabel(direction),
     frames: clip?.frames,
     sourceAssetId: clip?.sourceAssetId,
+    presentationReferenceHeightPx: clip?.presentationReferenceHeightPx,
     loop: clip?.loop ?? true,
     required: required,
     sourceRequired: false,
@@ -274,6 +296,7 @@ CharacterAnimationMatrixSlot _customSlot(
     label: direction == null ? 'Unique' : _directionLabel(direction),
     frames: clip?.frames,
     sourceAssetId: clip?.sourceAssetId,
+    presentationReferenceHeightPx: clip?.presentationReferenceHeightPx,
     loop: clip?.loop ?? true,
     required: false,
     sourceRequired: true,
@@ -288,6 +311,7 @@ CharacterAnimationMatrixSlot _slot({
   required bool loop,
   required bool required,
   required bool sourceRequired,
+  int? presentationReferenceHeightPx,
 }) {
   if (frames == null) {
     return CharacterAnimationMatrixSlot(
@@ -299,6 +323,7 @@ CharacterAnimationMatrixSlot _slot({
       frames: const <CharacterAnimationFrame>[],
       sourceAssetId: sourceAssetId,
       loop: loop,
+      presentationReferenceHeightPx: presentationReferenceHeightPx,
     );
   }
   final issue = _clipIssue(
@@ -315,6 +340,7 @@ CharacterAnimationMatrixSlot _slot({
     frames: List.unmodifiable(frames),
     sourceAssetId: sourceAssetId,
     loop: loop,
+    presentationReferenceHeightPx: presentationReferenceHeightPx,
     issue: issue,
   );
 }

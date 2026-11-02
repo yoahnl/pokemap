@@ -14,6 +14,21 @@ final class CharacterStudioAnimationClipActions {
         'characterStudio.animationClip.upsert',
         'Create or update one Character Studio animation clip slot',
         risk: AuthoringRiskLevel.low,
+        inputSchema: const {
+          'properties': {
+            'presentationReferenceHeightPx': {
+              'type': ['integer', 'null'],
+              'minimum': 1,
+              'maximum': 8192,
+              'description':
+                  'Pixel height used to size and anchor the animation canvas; '
+                      'requires a dedicated source and must fit every frame.',
+              'omittedUpdate': 'preserve',
+              'null': 'clear',
+              'requiredRuntimeCapability': 'character.animation-canvas@1',
+            },
+          },
+        },
       ),
       characterStudioActionDescriptor(
         'characterStudio.animationClip.delete',
@@ -75,6 +90,7 @@ final class CharacterStudioAnimationClipActions {
         'sourceAssetId',
         'loop',
         'frames',
+        'presentationReferenceHeightPx',
       },
     );
     final manifest = context.snapshot.manifest;
@@ -85,6 +101,17 @@ final class CharacterStudioAnimationClipActions {
     final character = manifest.characters[characterIndex];
     final slot = _parseSlot(manifest, parameters);
     final loop = parameters.optionalBoolean('loop');
+    final requestedReference =
+        parameters.values['presentationReferenceHeightPx'];
+    if (requestedReference != null &&
+        (requestedReference is! int ||
+            requestedReference < 1 ||
+            requestedReference > 8192)) {
+      throw CharacterStudioActionException(
+        'character_studio.animation.canvas_reference_invalid',
+        'presentationReferenceHeightPx must be an integer from 1 to 8192.',
+      );
+    }
     final requestedFrames = parameters.contains('frames')
         ? <CharacterAnimationFrame>[
             for (final frame in parameters.objects('frames'))
@@ -104,6 +131,10 @@ final class CharacterStudioAnimationClipActions {
         state: slot.state!,
         direction: slot.direction!,
         sourceAssetId: sourceAssetId,
+        presentationReferenceHeightPx:
+            parameters.contains('presentationReferenceHeightPx')
+                ? requestedReference as int?
+                : current?.presentationReferenceHeightPx,
         frames: requestedFrames ??
             current?.frames ??
             const <CharacterAnimationFrame>[],
@@ -135,6 +166,10 @@ final class CharacterStudioAnimationClipActions {
         definitionId: slot.definitionId!,
         direction: slot.direction,
         sourceAssetId: sourceAssetId,
+        presentationReferenceHeightPx:
+            parameters.contains('presentationReferenceHeightPx')
+                ? requestedReference as int?
+                : current?.presentationReferenceHeightPx,
         frames: requestedFrames ??
             current?.frames ??
             const <CharacterAnimationFrame>[],

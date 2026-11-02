@@ -6,6 +6,84 @@ import 'package:test/test.dart';
 
 void main() {
   group('Character Studio animation clip actions', () {
+    for (final kind in ['system', 'custom']) {
+      final slot = <String, Object?>{
+        'characterId': 'elia',
+        'kind': kind,
+        if (kind == 'system') ...{'state': 'base', 'direction': 'south'},
+        if (kind == 'custom') 'definitionId': 'sleep',
+      };
+      test('$kind canvas reference supports set preserve and clear', () {
+        final created = const CharacterStudioAnimationClipActions().build(
+            _context(
+                snapshot: _snapshot(),
+                actionId: 'characterStudio.animationClip.upsert',
+                parameters: {
+              ...slot,
+              'sourceAssetId': 'surf-source',
+              'presentationReferenceHeightPx': 32,
+              'frames': [
+                {
+                  'source': {'x': 0, 'y': 0, 'width': 32, 'height': 56},
+                  'durationMs': 100
+                }
+              ],
+            }));
+        Map<String, dynamic> clip(ProjectCharacterEntry character) =>
+            kind == 'system'
+                ? character.animations.single.toJson()
+                : character.customAnimations.single.toJson();
+        final character = _character(created);
+        expect(clip(character)['presentationReferenceHeightPx'], 32);
+        final preserved = const CharacterStudioAnimationClipActions().build(
+            _context(
+                snapshot: _snapshot(character: character),
+                actionId: 'characterStudio.animationClip.upsert',
+                parameters: {...slot, 'loop': false}));
+        expect(
+            clip(_character(preserved))['presentationReferenceHeightPx'], 32);
+        final cleared = const CharacterStudioAnimationClipActions().build(
+            _context(
+                snapshot: _snapshot(character: character),
+                actionId: 'characterStudio.animationClip.upsert',
+                parameters: {...slot, 'presentationReferenceHeightPx': null}));
+        expect(clip(_character(cleared)),
+            isNot(contains('presentationReferenceHeightPx')));
+        expect(
+            () => const CharacterStudioAnimationClipActions().build(_context(
+                    snapshot: _snapshot(character: character),
+                    actionId: 'characterStudio.animationFrame.update',
+                    parameters: {
+                      ...slot,
+                      'frameIndex': 0,
+                      'frame': {
+                        'source': {'x': 0, 'y': 0, 'width': 32, 'height': 31},
+                        'durationMs': 100
+                      },
+                    })),
+            throwsA(isA<CharacterStudioActionException>()));
+      });
+      for (final value in <Object>[0, -1, 8193, 32.5, '32', true, 9]) {
+        test('$kind upsert rejects invalid canvas reference $value', () {
+          expect(
+              () => const CharacterStudioAnimationClipActions().build(_context(
+                      snapshot: _snapshot(),
+                      actionId: 'characterStudio.animationClip.upsert',
+                      parameters: {
+                        ...slot,
+                        'sourceAssetId': 'surf-source',
+                        'presentationReferenceHeightPx': value,
+                        'frames': [
+                          {
+                            'source': {'x': 0, 'y': 0, 'width': 4, 'height': 8},
+                            'durationMs': 100
+                          }
+                        ],
+                      })),
+              throwsA(isA<CharacterStudioActionException>()));
+        });
+      }
+    }
     test('registers clip and frame semantic actions', () {
       final ids = AuthoringMutationDispatcher.canonical()
           .descriptors
@@ -23,6 +101,27 @@ void main() {
           'characterStudio.animationFrame.delete',
         }),
       );
+    });
+
+    test('discovers canvas semantics on the canonical clip action', () {
+      final descriptor = AuthoringMutationDispatcher.canonical()
+          .descriptors
+          .singleWhere(
+              (action) => action.id == 'characterStudio.animationClip.upsert');
+      final schema = descriptor.extensions['inputSchema'] as Map;
+      final reference =
+          (schema['properties'] as Map)['presentationReferenceHeightPx'] as Map;
+      expect(reference['type'], ['integer', 'null']);
+      expect(reference['omittedUpdate'], 'preserve');
+      expect(reference['null'], 'clear');
+      expect(reference['requiredRuntimeCapability'],
+          'character.animation-canvas@1');
+      final resource = AuthoringResourceKindRegistry.canonical().resourceKinds
+          .singleWhere((kind) => kind.id == 'characterStudioCharacter');
+      final canvas = resource.extensions['animationCanvas'] as Map;
+      expect(canvas['clips'], ['animations', 'customAnimations']);
+      expect(canvas['requiresDedicatedSource'], isTrue);
+      expect(canvas['configureAction'], descriptor.id);
     });
 
     for (final state in ['bicycle_idle', 'bicycle', 'climb', 'surf_idle', 'surf', 'surf_enter', 'surf_exit']) {
@@ -301,7 +400,7 @@ AuthoringPlanningContext _context({
   );
 }
 
-ProjectSnapshot _snapshot() {
+ProjectSnapshot _snapshot({ProjectCharacterEntry? character}) {
   final manifest = ProjectManifest(
     name: 'Animation clip fixture',
     maps: const <ProjectMapEntry>[],
@@ -327,7 +426,8 @@ ProjectSnapshot _snapshot() {
         ),
       ],
     ),
-    characters: const <ProjectCharacterEntry>[
+    characters: <ProjectCharacterEntry>[
+      if (character != null) character else
       ProjectCharacterEntry(
         id: 'elia',
         name: 'Élia',

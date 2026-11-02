@@ -2768,6 +2768,11 @@ class ProjectValidator {
           animationLabel: 'animation[$i]',
           frames: anim.frames,
         );
+        _validateCharacterAnimationCanvas(
+          anim.presentationReferenceHeightPx,
+          anim.sourceAssetId,
+          anim.frames,
+        );
       }
       final customAnimationSlots = <String>{};
       for (var i = 0; i < char.customAnimations.length; i++) {
@@ -2815,6 +2820,11 @@ class ProjectValidator {
           characterId: id,
           animationLabel: 'customAnimations[$i]',
           frames: animation.frames,
+        );
+        _validateCharacterAnimationCanvas(
+          animation.presentationReferenceHeightPx,
+          animation.sourceAssetId,
+          animation.frames,
         );
       }
     }
@@ -2876,6 +2886,25 @@ class ProjectValidator {
           code: 'character_studio.animation_definition.duplicate_id',
         );
       }
+    }
+  }
+
+  static void _validateCharacterAnimationCanvas(
+    int? reference,
+    String? sourceAssetId,
+    List<CharacterAnimationFrame> frames,
+  ) {
+    try {
+      validateCharacterAnimationPresentationReference(
+        presentationReferenceHeightPx: reference,
+        sourceAssetId: sourceAssetId,
+        frames: frames,
+      );
+    } on FormatException catch (error) {
+      throw ValidationException(
+        error.message,
+        code: 'character_studio.animation.canvas_reference_invalid',
+      );
     }
   }
 

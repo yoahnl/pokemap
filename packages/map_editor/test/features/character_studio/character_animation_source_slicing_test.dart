@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -15,6 +16,179 @@ import 'package:map_editor/src/features/character_studio/presentation/animations
 import 'package:map_editor/src/theme/theme.dart';
 
 void main() {
+  testWidgets('canvas authoring stays within system workshop slots', (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      theme: PokeMapTheme.dark(),
+      home: Scaffold(body: CharacterAnimationSourceEditor(
+        slot: const CharacterAnimationMatrixSlot(
+          key: CharacterAnimationSlotKey.custom(definitionId: 'ride', direction: null),
+          label: 'Ride', status: CharacterAnimationSlotStatus.missingOptional,
+          frames: [], sourceAssetId: null, loop: true,
+        ),
+        projectRootPath: '/project', projectRevision: 'r',
+        mediaResolver: _MediaResolver(Uint8List(0)), enabled: true,
+        onPresentationReferenceHeightChanged: (_) async => true,
+        onImportSource: () async {}, onFramesChanged: (_) async {},
+        onLoopChanged: (_) async {},
+      )),
+    ));
+    expect(find.byKey(const ValueKey<String>('animation-canvas-reference-height')), findsNothing);
+  });
+  test(
+    'reimporting a canvas clip preserves its reference and frame binding',
+    () async {
+      final gateway = _AssetGateway();
+      final project = _project(withPortableSource: true);
+      final character = project.characters.single;
+      final clip = character.animations.single.copyWith(
+        presentationReferenceHeightPx: 32,
+        frames: const [
+          CharacterAnimationFrame(
+            source: TilesetSourceRect(x: 0, y: 0, width: 32, height: 56),
+          ),
+        ],
+      );
+      await CharacterAnimationSourceImportService(gateway: gateway).import(
+        projectRootPath: '/project',
+        project: project.copyWith(
+          characters: [
+            character.copyWith(animations: [clip]),
+          ],
+        ),
+        characterId: 'elia',
+        slotKey: const CharacterAnimationSlotKey.system(
+          state: CharacterAnimationState.idle,
+          direction: EntityFacing.north,
+        ),
+        sourcePath: '/source/replacement.png',
+        loop: true,
+      );
+      final binding = gateway.parameters.single['binding']! as Map;
+      expect(binding, isNot(contains('frames')));
+      expect(binding, isNot(contains('presentationReferenceHeightPx')));
+      expect(gateway.actions.single, 'characterStudio.asset.replace');
+    },
+  );
+  testWidgets(
+    'canvas control edits rereads validates and restores automatic size',
+    (tester) async {
+      final bytes = (await tester.runAsync(() async {
+        final recorder = ui.PictureRecorder();
+        ui.Canvas(recorder);
+        final picture = recorder.endRecording();
+        final image = await picture.toImage(32, 56);
+        final data = await image.toByteData(format: ui.ImageByteFormat.png);
+        image.dispose();
+        picture.dispose();
+        return data!.buffer.asUint8List();
+      }))!;
+      int? reference;
+      var saveSucceeds = true;
+      final writes = <int?>[];
+      late StateSetter update;
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: PokeMapTheme.dark(),
+          home: Scaffold(
+            body: StatefulBuilder(
+              builder: (context, setState) {
+                update = setState;
+                return CharacterAnimationSourceEditor(
+                  slot: CharacterAnimationMatrixSlot(
+                    key: const CharacterAnimationSlotKey.system(
+                      state: CharacterAnimationState.surf,
+                      direction: EntityFacing.south,
+                    ),
+                    label: 'Sud',
+                    status: CharacterAnimationSlotStatus.defined,
+                    frames: const [
+                      CharacterAnimationFrame(
+                        source: TilesetSourceRect(
+                          x: 0,
+                          y: 0,
+                          width: 32,
+                          height: 56,
+                        ),
+                      ),
+                    ],
+                    sourceAssetId: 'surf',
+                    loop: true,
+                    presentationReferenceHeightPx: reference,
+                  ),
+                  projectRootPath: '/project',
+                  projectRevision: '${writes.length}',
+                  mediaResolver: _MediaResolver(bytes),
+                  enabled: true,
+                  suggestedPresentationReferenceHeightPx: 32,
+                  onPresentationReferenceHeightChanged: (value) async {
+                    if (!saveSucceeds) return false;
+                    writes.add(value);
+                    update(() => reference = value);
+                    return true;
+                  },
+                  onImportSource: () async {},
+                  onFramesChanged: (_) async {},
+                  onLoopChanged: (_) async {},
+                );
+              },
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+      final input = find.byKey(
+        const ValueKey<String>('animation-canvas-reference-height'),
+      );
+      await tester.ensureVisible(
+        find.byKey(
+          const ValueKey<String>('animation-canvas-reference-suggest'),
+        ),
+      );
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('animation-canvas-reference-suggest'),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(reference, 32);
+      expect(tester.widget<TextField>(input).controller!.text, '32');
+      await tester.enterText(input, '40');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(reference, 40);
+      await tester.enterText(input, '57');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pump();
+      expect(reference, 40);
+      expect(writes, [32, 40]);
+      expect(find.textContaining('sans dépasser la hauteur'), findsOneWidget);
+      await tester.ensureVisible(
+        find.byKey(const ValueKey<String>('animation-canvas-reference-auto')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('animation-canvas-reference-auto')),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(reference, isNull);
+      expect(tester.widget<TextField>(input).controller!.text, isEmpty);
+      expect(writes, [32, 40, null]);
+      saveSucceeds = false;
+      await tester.enterText(input, '24');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pump();
+      expect(reference, isNull);
+      expect(tester.widget<TextField>(input).controller!.text, isEmpty);
+      expect(
+        find.text('La hauteur n’a pas pu être enregistrée.'),
+        findsOneWidget,
+      );
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
   test('reads exact PNG dimensions and slices a row-major grid', () {
     final dimensions = CharacterAnimationSourceDimensions.fromPng(
       _pngHeader(width: 96, height: 64),

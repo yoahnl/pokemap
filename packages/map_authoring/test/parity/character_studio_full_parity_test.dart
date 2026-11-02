@@ -98,6 +98,7 @@ void main() {
       expect(directEvidence['customClipDefinitionId'], 'acclamer');
       expect(directEvidence['customClipDirection'], 'south');
       expect(directEvidence['customClipFrameCount'], 2);
+      expect(directEvidence['canvasReferenceHeightPx'], 4);
       expect(directEvidence['assetIds'], <Object?>['elia-sheet']);
       expect(directEvidence['serializedAbsolutePath'], isFalse);
       expect(directEvidence['reopenedQueryCount'], 1);
@@ -299,6 +300,7 @@ List<_TransportStep> _animationSteps({
           'direction': 'south',
           'sourceAssetId': 'elia-sheet',
           'loop': false,
+          'presentationReferenceHeightPx': 4,
           'frames': <Object?>[
             <String, Object?>{
               'source': <String, Object?>{
@@ -1442,6 +1444,7 @@ final class _CharacterStudioParityFixture {
       'customClipDefinitionId': clip.definitionId,
       'customClipDirection': clip.direction?.name,
       'customClipFrameCount': clip.frames.length,
+      'canvasReferenceHeightPx': clip.presentationReferenceHeightPx,
       'assetIds': catalog.records.map((record) => record.id).toList(),
       'serializedAbsolutePath':
           projectJson.contains(root.path) || catalogJson.contains(root.path),

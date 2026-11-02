@@ -23,6 +23,14 @@ void main() {
     expect(find.text('Optionnel manquant'), findsWidgets);
     expect(find.text('Invalide'), findsOneWidget);
     expect(find.text('2 frames'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey<String>('animation-slot-custom-jump-single')),
+      200,
+      scrollable: find.byWidgetPredicate(
+        (widget) =>
+            widget is Scrollable && widget.axisDirection == AxisDirection.down,
+      ),
+    );
     expect(
       find.byKey(const ValueKey<String>('animation-slot-custom-jump-single')),
       findsOneWidget,

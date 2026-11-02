@@ -102,6 +102,9 @@ bool _isScopedPokemonMediaWrite(AuthoringRequest request) =>
 
 bool _usesNativeWorkshop(AuthoringRequest request) =>
     _nativeLocalWorkshopActions.contains(request.actionId) ||
+    (request.actionId == 'characterStudio.animationClip.upsert' &&
+        request.parameters['kind'] == 'system' &&
+        request.extensions['workshopScope'] == true) ||
     _isScopedPokemonMediaWrite(request);
 
 final class LocalMapAuthoringMutationApi

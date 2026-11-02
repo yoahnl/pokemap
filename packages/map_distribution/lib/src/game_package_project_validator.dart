@@ -284,6 +284,12 @@ final class GamePackageProjectValidator {
           !packageManifest.compatibility.requiredCapabilities.contains(SurfGameplayCapabilities.capabilityId)) {
         _fail('Surf requires ${SurfGameplayCapabilities.capabilityId}.');
       }
+      if (CharacterAnimationCanvasCapabilities.requiresCapability(project) &&
+          !packageManifest.compatibility.requiredCapabilities.contains(
+            CharacterAnimationCanvasCapabilities.capabilityId,
+          )) {
+        _fail('Animation canvases require ${CharacterAnimationCanvasCapabilities.capabilityId}.');
+      }
       if (project.battleSavings != null &&
           !packageManifest.compatibility.requiredCapabilities
               .contains(ProjectBattleSavingsConfig.capabilityId)) {

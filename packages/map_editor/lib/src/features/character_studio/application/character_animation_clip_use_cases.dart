@@ -18,6 +18,8 @@ class SaveCharacterAnimationClipUseCase {
     required String? sourceAssetId,
     required List<CharacterAnimationFrame> frames,
     required bool loop,
+    int? presentationReferenceHeightPx,
+    bool clearPresentationReferenceHeight = false,
   }) {
     _validateFrames(frames);
     final source = sourceAssetId?.trim();
@@ -37,6 +39,10 @@ class SaveCharacterAnimationClipUseCase {
         'sourceAssetId': source,
         'frames': <Object?>[for (final frame in frames) frame.toJson()],
         'loop': loop,
+        if (clearPresentationReferenceHeight)
+          'presentationReferenceHeightPx': null
+        else
+          'presentationReferenceHeightPx': ?presentationReferenceHeightPx,
       },
       operationLabel: 'animation_clip_${characterId}_${slotKey.stableId}',
     );

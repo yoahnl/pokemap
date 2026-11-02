@@ -213,6 +213,16 @@ class _CharacterStudioWorkspaceState
                     frames: frames,
                     loop: loop,
                   ),
+              onPresentationReferenceHeightChanged: (slot, height) =>
+                  notifier.saveCharacterAnimationClip(
+                    characterId: character.id,
+                    slotKey: slot.key,
+                    sourceAssetId: slot.sourceAssetId,
+                    frames: slot.frames,
+                    loop: slot.loop,
+                    presentationReferenceHeightPx: height,
+                    clearPresentationReferenceHeight: height == null,
+                  ),
             ),
           _ => _CharacterStudioSectionPlaceholder(section: _section),
         },

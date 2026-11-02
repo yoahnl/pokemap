@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
+import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring.dart';
@@ -15,6 +16,71 @@ void main() {
       frameWidth: 2,
       frameHeight: 3,
     );
+    test(
+      'extended canvases preserve pixel density and bottom anchoring',
+      () {
+        const frame = CharacterAnimationFrame(
+          source: TilesetSourceRect(x: 0, y: 0, width: 32, height: 56),
+        );
+        final resolver = CharacterAnimationSourceResolver();
+        final animation = CharacterAnimation(
+          state: CharacterAnimationState.surfIdle,
+          direction: EntityFacing.south,
+          sourceAssetId: 'surf',
+          presentationReferenceHeightPx: 32,
+          frames: [frame],
+        );
+        final resolved = resolver.resolveFrame(
+          character: character,
+          animation: animation,
+          frame: frame,
+          tileWidth: 16,
+          tileHeight: 16,
+          availableImageIds: {characterAnimationRuntimeImageId('surf')},
+        )!;
+        expect(
+          resolved.presentationRect(width: 32, height: 32),
+          const Rect.fromLTWH(0, -24, 32, 56),
+        );
+        final spatial = resolved.presentationRect(width: 1.92, height: 1.92);
+        expect(spatial.width, closeTo(1.92, 1e-9));
+        expect(spatial.height, closeTo(3.36, 1e-9));
+        expect(1.92 - spatial.bottom, closeTo(0, 1e-9));
+      },
+    );
+
+    test('legacy non-square sources preserve their stretched presentation', () {
+      const source = ResolvedCharacterAnimationFrameSource(
+        imageId: 'old',
+        sourceRect: Rect.fromLTWH(0, 0, 21, 29),
+        usesLegacyGrid: false,
+      );
+      expect(
+        source.presentationRect(width: 32, height: 48),
+        const Rect.fromLTWH(0, 0, 32, 48),
+      );
+    });
+
+    test('custom animation sources retain their explicit canvas reference', () {
+      const frame = CharacterAnimationFrame(
+        source: TilesetSourceRect(x: 0, y: 0, width: 64, height: 56),
+      );
+      final source = CharacterAnimationSourceResolver().resolveCustomFrame(
+        character: character,
+        clip: const CharacterCustomAnimationClip(
+          definitionId: 'ride',
+          sourceAssetId: 'surf',
+          presentationReferenceHeightPx: 32,
+          frames: [frame],
+        ),
+        frame: frame,
+        availableImageIds: {characterAnimationRuntimeImageId('surf')},
+      )!;
+      expect(
+        source.presentationRect(width: 32, height: 32),
+        const Rect.fromLTWH(-16, -24, 64, 56),
+      );
+    });
 
     test('keeps legacy grid coordinates unchanged', () {
       const animation = CharacterAnimation(

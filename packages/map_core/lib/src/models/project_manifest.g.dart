@@ -1099,6 +1099,9 @@ _CharacterAnimation _$CharacterAnimationFromJson(Map<String, dynamic> json) =>
       state: $enumDecode(_$CharacterAnimationStateEnumMap, json['state']),
       direction: $enumDecode(_$EntityFacingEnumMap, json['direction']),
       sourceAssetId: json['sourceAssetId'] as String?,
+      presentationReferenceHeightPx: _characterPresentationReferenceFromJson(
+        json['presentationReferenceHeightPx'],
+      ),
       frames:
           (json['frames'] as List<dynamic>?)
               ?.map(
@@ -1115,6 +1118,7 @@ Map<String, dynamic> _$CharacterAnimationToJson(_CharacterAnimation instance) =>
       'state': _$CharacterAnimationStateEnumMap[instance.state]!,
       'direction': _$EntityFacingEnumMap[instance.direction]!,
       'sourceAssetId': ?instance.sourceAssetId,
+      'presentationReferenceHeightPx': ?instance.presentationReferenceHeightPx,
       'frames': instance.frames.map((e) => e.toJson()).toList(),
       'loop': ?_characterAnimationLoopToJson(instance.loop),
     };
@@ -1149,6 +1153,9 @@ _CharacterCustomAnimationClip _$CharacterCustomAnimationClipFromJson(
   definitionId: json['definitionId'] as String,
   direction: $enumDecodeNullable(_$EntityFacingEnumMap, json['direction']),
   sourceAssetId: json['sourceAssetId'] as String,
+  presentationReferenceHeightPx: _characterPresentationReferenceFromJson(
+    json['presentationReferenceHeightPx'],
+  ),
   frames:
       (json['frames'] as List<dynamic>?)
           ?.map(
@@ -1165,6 +1172,7 @@ Map<String, dynamic> _$CharacterCustomAnimationClipToJson(
   'definitionId': instance.definitionId,
   'direction': ?_$EntityFacingEnumMap[instance.direction],
   'sourceAssetId': instance.sourceAssetId,
+  'presentationReferenceHeightPx': ?instance.presentationReferenceHeightPx,
   'frames': instance.frames.map((e) => e.toJson()).toList(),
   'loop': instance.loop,
 };

@@ -1279,6 +1279,38 @@ abstract class ProjectCharacterEntry with _$ProjectCharacterEntry {
 
 bool? _characterAnimationLoopToJson(bool loop) => loop ? null : false;
 
+int? _characterPresentationReferenceFromJson(Object? value) {
+  if (value == null) return null;
+  if (value is! int || value < 1 || value > 8192) {
+    throw const FormatException(
+      'presentationReferenceHeightPx must be an integer from 1 to 8192.',
+    );
+  }
+  return value;
+}
+
+void validateCharacterAnimationPresentationReference({
+  required int? presentationReferenceHeightPx,
+  required String? sourceAssetId,
+  required Iterable<CharacterAnimationFrame> frames,
+}) {
+  final reference = _characterPresentationReferenceFromJson(
+    presentationReferenceHeightPx,
+  );
+  if (reference == null) return;
+  if (sourceAssetId == null || sourceAssetId.trim().isEmpty) {
+    throw const FormatException(
+      'An animation canvas reference requires a dedicated sourceAssetId.',
+    );
+  }
+  if (frames.isEmpty ||
+      frames.any((frame) => frame.source.height < reference)) {
+    throw const FormatException(
+      'An animation canvas reference must fit every frame of a nonempty clip.',
+    );
+  }
+}
+
 @freezed
 abstract class CharacterAnimation with _$CharacterAnimation {
   @JsonSerializable(explicitToJson: true)
@@ -1286,6 +1318,11 @@ abstract class CharacterAnimation with _$CharacterAnimation {
     required CharacterAnimationState state,
     required EntityFacing direction,
     @JsonKey(includeIfNull: false) String? sourceAssetId,
+    @JsonKey(
+      includeIfNull: false,
+      fromJson: _characterPresentationReferenceFromJson,
+    )
+    int? presentationReferenceHeightPx,
     @Default([]) List<CharacterAnimationFrame> frames,
     @Default(true)
     @JsonKey(toJson: _characterAnimationLoopToJson, includeIfNull: false)
@@ -1293,7 +1330,7 @@ abstract class CharacterAnimation with _$CharacterAnimation {
   }) = _CharacterAnimation;
 
   factory CharacterAnimation.fromJson(Map<String, dynamic> json) =>
-      _$CharacterAnimationFromJson(json);
+      _validatedCharacterAnimation(_$CharacterAnimationFromJson(json));
 }
 
 @freezed
@@ -1304,12 +1341,39 @@ abstract class CharacterCustomAnimationClip
     required String definitionId,
     @JsonKey(includeIfNull: false) EntityFacing? direction,
     required String sourceAssetId,
+    @JsonKey(
+      includeIfNull: false,
+      fromJson: _characterPresentationReferenceFromJson,
+    )
+    int? presentationReferenceHeightPx,
     @Default([]) List<CharacterAnimationFrame> frames,
     @Default(true) bool loop,
   }) = _CharacterCustomAnimationClip;
 
   factory CharacterCustomAnimationClip.fromJson(Map<String, dynamic> json) =>
-      _$CharacterCustomAnimationClipFromJson(json);
+      _validatedCharacterCustomAnimation(
+        _$CharacterCustomAnimationClipFromJson(json),
+      );
+}
+
+CharacterAnimation _validatedCharacterAnimation(CharacterAnimation animation) {
+  validateCharacterAnimationPresentationReference(
+    presentationReferenceHeightPx: animation.presentationReferenceHeightPx,
+    sourceAssetId: animation.sourceAssetId,
+    frames: animation.frames,
+  );
+  return animation;
+}
+
+CharacterCustomAnimationClip _validatedCharacterCustomAnimation(
+  CharacterCustomAnimationClip animation,
+) {
+  validateCharacterAnimationPresentationReference(
+    presentationReferenceHeightPx: animation.presentationReferenceHeightPx,
+    sourceAssetId: animation.sourceAssetId,
+    frames: animation.frames,
+  );
+  return animation;
 }
 
 @freezed

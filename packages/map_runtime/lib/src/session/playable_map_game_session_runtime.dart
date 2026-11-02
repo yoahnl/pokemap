@@ -318,6 +318,16 @@ final class PlayableMapGameSessionRuntime
         bundle = preloadedBundle;
       }
       _ensureNotDisposed();
+      if (CharacterAnimationCanvasCapabilities.requiresCapability(
+            bundle.manifest,
+          ) &&
+          !descriptor.grantedCapabilities.contains(
+            CharacterAnimationCanvasCapabilities.capabilityId,
+          )) {
+        throw StateError(
+          'The project requires ${CharacterAnimationCanvasCapabilities.capabilityId}.',
+        );
+      }
       if (SpatialGameplayCapabilities.requiresPeriodicRewardCondition(
             bundle.manifest,
             maps: [bundle.map],

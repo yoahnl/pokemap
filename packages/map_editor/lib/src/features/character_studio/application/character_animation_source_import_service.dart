@@ -73,6 +73,20 @@ final class CharacterAnimationSourceImportService {
         currentAssetId ??
         'sprite-${_safeSegment(characterId)}-'
             '${_safeSegment(slotKey.stableId)}-$digestSuffix-${suffix!}';
+    final preserveCanvas = switch (slotKey.kind) {
+      CharacterAnimationDefinitionKind.system => character.animations.any(
+        (clip) =>
+            clip.state == slotKey.systemState &&
+            clip.direction == slotKey.direction &&
+            clip.presentationReferenceHeightPx != null,
+      ),
+      CharacterAnimationDefinitionKind.custom => character.customAnimations.any(
+        (clip) =>
+            clip.definitionId == slotKey.definitionId &&
+            clip.direction == slotKey.direction &&
+            clip.presentationReferenceHeightPx != null,
+      ),
+    };
     return gateway.apply(
       projectRootPath: projectRootPath,
       expectedProject: project,
@@ -94,7 +108,7 @@ final class CharacterAnimationSourceImportService {
           'slotKind': slotKey.actionParameters['kind'],
           for (final entry in slotKey.actionParameters.entries)
             if (entry.key != 'kind') entry.key: entry.value,
-          'frames': const <Object?>[],
+          if (!preserveCanvas) 'frames': const <Object?>[],
           'loop': loop,
         },
       },

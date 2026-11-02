@@ -1,6 +1,7 @@
 part of 'project_snapshot_loader.dart';
 
 const _nativeWorkshopActions = {
+  'characterStudio.animationClip.upsert',
   'scene.condition.set',
   'world_rule.create',
   'world_rule.update',
@@ -102,6 +103,11 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
   required Map<String, Object?> parameters,
   required Map<String, String> readDependencies,
 }) async {
+  final characterClip = actionId == 'characterStudio.animationClip.upsert';
+  if (characterClip && parameters['kind'] != 'system') {
+    throw const ProjectSnapshotException('project.workshop_scope_required',
+        'Only system animation slots have a native workshop scope.');
+  }
   final mapEdit = actionId == 'map3d.edit_batch' ||
       Map3dEditProjection.admittedActions.contains(actionId);
   if (!mapEdit && !_nativeWorkshopActions.contains(actionId)) {
@@ -578,7 +584,7 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
               'project.audio.cue.configure'
             }.contains(actionId))
               'maps',
-            'tilesets',
+            if (!characterClip) 'tilesets',
             'models3d',
             'trainers',
             'shops',
@@ -632,6 +638,34 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
   collect();
   for (final entry in selected.entries) {
     projected[entry.key] = entry.value.values.toList();
+  }
+  final studioCatalog = characterClip ? raw['characterStudioCatalog'] : null;
+  if (studioCatalog case final Map catalog) {
+    final characters = selected['characters']?.values ?? const <Map<String, dynamic>>[];
+    final portraitIds = _nativeReferenceIds(
+        [for (final character in characters) character['portraits']],
+        const {'portraitStateId'});
+    final customIds = _nativeReferenceIds(
+        [for (final character in characters) character['customAnimations']],
+        const {'definitionId'});
+    List<Map<String, dynamic>> definitions(String field, Set<String> referenced) {
+      final rows = catalog[field];
+      if (rows is! List) return const [];
+      final found = <String>{};
+      return [
+        for (final row in rows)
+          if (row is Map && row['id'] is String && referenced.contains(row['id']))
+            if (found.add(row['id'] as String))
+              Map<String, dynamic>.from(row)
+            else
+              throw const ProjectSnapshotException('project.definition_ambiguous',
+                  'A selected character definition has duplicate identities.'),
+      ];
+    }
+    projected['characterStudioCatalog'] = {
+      'portraitStates': definitions('portraitStates', portraitIds),
+      'customAnimationDefinitions': definitions('customAnimationDefinitions', customIds),
+    };
   }
   if (guided) {
     sections.add('eventRegistry');

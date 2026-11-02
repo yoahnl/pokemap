@@ -435,7 +435,7 @@ class OverworldActorComponent extends PositionComponent with HasVisibility {
     image.drawImageRect(
       canvas,
       srcRect,
-      Rect.fromLTWH(0, 0, size.x, size.y),
+      resolved.presentationRect(width: size.x, height: size.y),
       Paint()..filterQuality = FilterQuality.none,
     );
     canvas.restore();
@@ -469,7 +469,7 @@ class OverworldActorComponent extends PositionComponent with HasVisibility {
     image.drawImageRect(
       canvas,
       resolved.sourceRect,
-      Rect.fromLTWH(0, 0, size.x, size.y),
+      resolved.presentationRect(width: size.x, height: size.y),
       Paint()..filterQuality = FilterQuality.none,
     );
   }

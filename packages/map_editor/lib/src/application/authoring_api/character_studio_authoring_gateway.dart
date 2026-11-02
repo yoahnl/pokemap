@@ -47,6 +47,30 @@ final class CanonicalCharacterStudioAuthoringGateway
   }) async {
     final operationId = _nextOperationId(operationLabel);
     try {
+      if (actionId == 'characterStudio.animationClip.upsert' &&
+          parameters['kind'] == 'system') {
+        final expectedCharacter = expectedProject.characters
+            .where((character) => character.id == parameters['characterId'])
+            .singleOrNull;
+        if (expectedCharacter == null) {
+          throw const EditorConflictException(
+            'The character is unavailable in the current editor draft.',
+          );
+        }
+        final updated = await _mutations.upsertSystemCharacterAnimation(
+          projectRootPath,
+          expectedCharacter: expectedCharacter,
+          parameters: parameters,
+          operationId: operationId,
+          requiresConfirmation: requiresConfirmation,
+        );
+        return expectedProject.copyWith(
+          characters: [
+            for (final character in expectedProject.characters)
+              character.id == updated.id ? updated : character,
+          ],
+        );
+      }
       final before = await _requireExpectedProject(
         projectRootPath,
         expectedProject,

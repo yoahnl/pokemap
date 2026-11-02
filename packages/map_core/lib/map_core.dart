@@ -44,6 +44,7 @@ export 'src/read_models/spatial_gameplay_capabilities.dart';
 export 'src/operations/spatial_actor_occlusion_capabilities.dart';
 export 'src/read_models/game_completion_party_capabilities.dart';
 export 'src/read_models/surf_gameplay_capabilities.dart';
+export 'src/read_models/character_animation_canvas_capabilities.dart';
 export 'src/read_models/project_audio_capabilities.dart';
 export 'src/read_models/field_ability_activation_capabilities.dart';
 

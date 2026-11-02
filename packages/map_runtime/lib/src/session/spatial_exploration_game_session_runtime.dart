@@ -1515,6 +1515,10 @@ final class SpatialExplorationGameSessionRuntime
           !descriptor.grantedCapabilities.contains(SurfGameplayCapabilities.capabilityId)) {
         throw StateError('The project requires ${SurfGameplayCapabilities.capabilityId}.');
       }
+      if (CharacterAnimationCanvasCapabilities.requiresCapability(bundle.manifest) &&
+          !descriptor.grantedCapabilities.contains(CharacterAnimationCanvasCapabilities.capabilityId)) {
+        throw StateError('The project requires ${CharacterAnimationCanvasCapabilities.capabilityId}.');
+      }
       _bagItemCatalog = await const RuntimeItemCatalogLoader().loadSnapshot(
         projectRootDirectory: bundle.projectRootDirectory,
         pokemonConfig: manifest.pokemon,

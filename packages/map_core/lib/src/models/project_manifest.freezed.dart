@@ -7993,7 +7993,7 @@ as int,
 /// @nodoc
 mixin _$CharacterAnimation {
 
- CharacterAnimationState get state; EntityFacing get direction;@JsonKey(includeIfNull: false) String? get sourceAssetId; List<CharacterAnimationFrame> get frames;@JsonKey(toJson: _characterAnimationLoopToJson, includeIfNull: false) bool get loop;
+ CharacterAnimationState get state; EntityFacing get direction;@JsonKey(includeIfNull: false) String? get sourceAssetId;@JsonKey(includeIfNull: false, fromJson: _characterPresentationReferenceFromJson) int? get presentationReferenceHeightPx; List<CharacterAnimationFrame> get frames;@JsonKey(toJson: _characterAnimationLoopToJson, includeIfNull: false) bool get loop;
 /// Create a copy of CharacterAnimation
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -8006,16 +8006,16 @@ $CharacterAnimationCopyWith<CharacterAnimation> get copyWith => _$CharacterAnima
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CharacterAnimation&&(identical(other.state, state) || other.state == state)&&(identical(other.direction, direction) || other.direction == direction)&&(identical(other.sourceAssetId, sourceAssetId) || other.sourceAssetId == sourceAssetId)&&const DeepCollectionEquality().equals(other.frames, frames)&&(identical(other.loop, loop) || other.loop == loop));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CharacterAnimation&&(identical(other.state, state) || other.state == state)&&(identical(other.direction, direction) || other.direction == direction)&&(identical(other.sourceAssetId, sourceAssetId) || other.sourceAssetId == sourceAssetId)&&(identical(other.presentationReferenceHeightPx, presentationReferenceHeightPx) || other.presentationReferenceHeightPx == presentationReferenceHeightPx)&&const DeepCollectionEquality().equals(other.frames, frames)&&(identical(other.loop, loop) || other.loop == loop));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,state,direction,sourceAssetId,const DeepCollectionEquality().hash(frames),loop);
+int get hashCode => Object.hash(runtimeType,state,direction,sourceAssetId,presentationReferenceHeightPx,const DeepCollectionEquality().hash(frames),loop);
 
 @override
 String toString() {
-  return 'CharacterAnimation(state: $state, direction: $direction, sourceAssetId: $sourceAssetId, frames: $frames, loop: $loop)';
+  return 'CharacterAnimation(state: $state, direction: $direction, sourceAssetId: $sourceAssetId, presentationReferenceHeightPx: $presentationReferenceHeightPx, frames: $frames, loop: $loop)';
 }
 
 
@@ -8026,7 +8026,7 @@ abstract mixin class $CharacterAnimationCopyWith<$Res>  {
   factory $CharacterAnimationCopyWith(CharacterAnimation value, $Res Function(CharacterAnimation) _then) = _$CharacterAnimationCopyWithImpl;
 @useResult
 $Res call({
- CharacterAnimationState state, EntityFacing direction,@JsonKey(includeIfNull: false) String? sourceAssetId, List<CharacterAnimationFrame> frames,@JsonKey(toJson: _characterAnimationLoopToJson, includeIfNull: false) bool loop
+ CharacterAnimationState state, EntityFacing direction,@JsonKey(includeIfNull: false) String? sourceAssetId,@JsonKey(includeIfNull: false, fromJson: _characterPresentationReferenceFromJson) int? presentationReferenceHeightPx, List<CharacterAnimationFrame> frames,@JsonKey(toJson: _characterAnimationLoopToJson, includeIfNull: false) bool loop
 });
 
 
@@ -8043,12 +8043,13 @@ class _$CharacterAnimationCopyWithImpl<$Res>
 
 /// Create a copy of CharacterAnimation
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? state = null,Object? direction = null,Object? sourceAssetId = freezed,Object? frames = null,Object? loop = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? state = null,Object? direction = null,Object? sourceAssetId = freezed,Object? presentationReferenceHeightPx = freezed,Object? frames = null,Object? loop = null,}) {
   return _then(_self.copyWith(
 state: null == state ? _self.state : state // ignore: cast_nullable_to_non_nullable
 as CharacterAnimationState,direction: null == direction ? _self.direction : direction // ignore: cast_nullable_to_non_nullable
 as EntityFacing,sourceAssetId: freezed == sourceAssetId ? _self.sourceAssetId : sourceAssetId // ignore: cast_nullable_to_non_nullable
-as String?,frames: null == frames ? _self.frames : frames // ignore: cast_nullable_to_non_nullable
+as String?,presentationReferenceHeightPx: freezed == presentationReferenceHeightPx ? _self.presentationReferenceHeightPx : presentationReferenceHeightPx // ignore: cast_nullable_to_non_nullable
+as int?,frames: null == frames ? _self.frames : frames // ignore: cast_nullable_to_non_nullable
 as List<CharacterAnimationFrame>,loop: null == loop ? _self.loop : loop // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
@@ -8135,10 +8136,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( CharacterAnimationState state,  EntityFacing direction, @JsonKey(includeIfNull: false)  String? sourceAssetId,  List<CharacterAnimationFrame> frames, @JsonKey(toJson: _characterAnimationLoopToJson, includeIfNull: false)  bool loop)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( CharacterAnimationState state,  EntityFacing direction, @JsonKey(includeIfNull: false)  String? sourceAssetId, @JsonKey(includeIfNull: false, fromJson: _characterPresentationReferenceFromJson)  int? presentationReferenceHeightPx,  List<CharacterAnimationFrame> frames, @JsonKey(toJson: _characterAnimationLoopToJson, includeIfNull: false)  bool loop)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _CharacterAnimation() when $default != null:
-return $default(_that.state,_that.direction,_that.sourceAssetId,_that.frames,_that.loop);case _:
+return $default(_that.state,_that.direction,_that.sourceAssetId,_that.presentationReferenceHeightPx,_that.frames,_that.loop);case _:
   return orElse();
 
 }
@@ -8156,10 +8157,10 @@ return $default(_that.state,_that.direction,_that.sourceAssetId,_that.frames,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( CharacterAnimationState state,  EntityFacing direction, @JsonKey(includeIfNull: false)  String? sourceAssetId,  List<CharacterAnimationFrame> frames, @JsonKey(toJson: _characterAnimationLoopToJson, includeIfNull: false)  bool loop)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( CharacterAnimationState state,  EntityFacing direction, @JsonKey(includeIfNull: false)  String? sourceAssetId, @JsonKey(includeIfNull: false, fromJson: _characterPresentationReferenceFromJson)  int? presentationReferenceHeightPx,  List<CharacterAnimationFrame> frames, @JsonKey(toJson: _characterAnimationLoopToJson, includeIfNull: false)  bool loop)  $default,) {final _that = this;
 switch (_that) {
 case _CharacterAnimation():
-return $default(_that.state,_that.direction,_that.sourceAssetId,_that.frames,_that.loop);case _:
+return $default(_that.state,_that.direction,_that.sourceAssetId,_that.presentationReferenceHeightPx,_that.frames,_that.loop);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -8176,10 +8177,10 @@ return $default(_that.state,_that.direction,_that.sourceAssetId,_that.frames,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( CharacterAnimationState state,  EntityFacing direction, @JsonKey(includeIfNull: false)  String? sourceAssetId,  List<CharacterAnimationFrame> frames, @JsonKey(toJson: _characterAnimationLoopToJson, includeIfNull: false)  bool loop)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( CharacterAnimationState state,  EntityFacing direction, @JsonKey(includeIfNull: false)  String? sourceAssetId, @JsonKey(includeIfNull: false, fromJson: _characterPresentationReferenceFromJson)  int? presentationReferenceHeightPx,  List<CharacterAnimationFrame> frames, @JsonKey(toJson: _characterAnimationLoopToJson, includeIfNull: false)  bool loop)?  $default,) {final _that = this;
 switch (_that) {
 case _CharacterAnimation() when $default != null:
-return $default(_that.state,_that.direction,_that.sourceAssetId,_that.frames,_that.loop);case _:
+return $default(_that.state,_that.direction,_that.sourceAssetId,_that.presentationReferenceHeightPx,_that.frames,_that.loop);case _:
   return null;
 
 }
@@ -8191,12 +8192,13 @@ return $default(_that.state,_that.direction,_that.sourceAssetId,_that.frames,_th
 
 @JsonSerializable(explicitToJson: true)
 class _CharacterAnimation implements CharacterAnimation {
-  const _CharacterAnimation({required this.state, required this.direction, @JsonKey(includeIfNull: false) this.sourceAssetId, final  List<CharacterAnimationFrame> frames = const [], @JsonKey(toJson: _characterAnimationLoopToJson, includeIfNull: false) this.loop = true}): _frames = frames;
+  const _CharacterAnimation({required this.state, required this.direction, @JsonKey(includeIfNull: false) this.sourceAssetId, @JsonKey(includeIfNull: false, fromJson: _characterPresentationReferenceFromJson) this.presentationReferenceHeightPx, final  List<CharacterAnimationFrame> frames = const [], @JsonKey(toJson: _characterAnimationLoopToJson, includeIfNull: false) this.loop = true}): _frames = frames;
   factory _CharacterAnimation.fromJson(Map<String, dynamic> json) => _$CharacterAnimationFromJson(json);
 
 @override final  CharacterAnimationState state;
 @override final  EntityFacing direction;
 @override@JsonKey(includeIfNull: false) final  String? sourceAssetId;
+@override@JsonKey(includeIfNull: false, fromJson: _characterPresentationReferenceFromJson) final  int? presentationReferenceHeightPx;
  final  List<CharacterAnimationFrame> _frames;
 @override@JsonKey() List<CharacterAnimationFrame> get frames {
   if (_frames is EqualUnmodifiableListView) return _frames;
@@ -8219,16 +8221,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CharacterAnimation&&(identical(other.state, state) || other.state == state)&&(identical(other.direction, direction) || other.direction == direction)&&(identical(other.sourceAssetId, sourceAssetId) || other.sourceAssetId == sourceAssetId)&&const DeepCollectionEquality().equals(other._frames, _frames)&&(identical(other.loop, loop) || other.loop == loop));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CharacterAnimation&&(identical(other.state, state) || other.state == state)&&(identical(other.direction, direction) || other.direction == direction)&&(identical(other.sourceAssetId, sourceAssetId) || other.sourceAssetId == sourceAssetId)&&(identical(other.presentationReferenceHeightPx, presentationReferenceHeightPx) || other.presentationReferenceHeightPx == presentationReferenceHeightPx)&&const DeepCollectionEquality().equals(other._frames, _frames)&&(identical(other.loop, loop) || other.loop == loop));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,state,direction,sourceAssetId,const DeepCollectionEquality().hash(_frames),loop);
+int get hashCode => Object.hash(runtimeType,state,direction,sourceAssetId,presentationReferenceHeightPx,const DeepCollectionEquality().hash(_frames),loop);
 
 @override
 String toString() {
-  return 'CharacterAnimation(state: $state, direction: $direction, sourceAssetId: $sourceAssetId, frames: $frames, loop: $loop)';
+  return 'CharacterAnimation(state: $state, direction: $direction, sourceAssetId: $sourceAssetId, presentationReferenceHeightPx: $presentationReferenceHeightPx, frames: $frames, loop: $loop)';
 }
 
 
@@ -8239,7 +8241,7 @@ abstract mixin class _$CharacterAnimationCopyWith<$Res> implements $CharacterAni
   factory _$CharacterAnimationCopyWith(_CharacterAnimation value, $Res Function(_CharacterAnimation) _then) = __$CharacterAnimationCopyWithImpl;
 @override @useResult
 $Res call({
- CharacterAnimationState state, EntityFacing direction,@JsonKey(includeIfNull: false) String? sourceAssetId, List<CharacterAnimationFrame> frames,@JsonKey(toJson: _characterAnimationLoopToJson, includeIfNull: false) bool loop
+ CharacterAnimationState state, EntityFacing direction,@JsonKey(includeIfNull: false) String? sourceAssetId,@JsonKey(includeIfNull: false, fromJson: _characterPresentationReferenceFromJson) int? presentationReferenceHeightPx, List<CharacterAnimationFrame> frames,@JsonKey(toJson: _characterAnimationLoopToJson, includeIfNull: false) bool loop
 });
 
 
@@ -8256,12 +8258,13 @@ class __$CharacterAnimationCopyWithImpl<$Res>
 
 /// Create a copy of CharacterAnimation
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? state = null,Object? direction = null,Object? sourceAssetId = freezed,Object? frames = null,Object? loop = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? state = null,Object? direction = null,Object? sourceAssetId = freezed,Object? presentationReferenceHeightPx = freezed,Object? frames = null,Object? loop = null,}) {
   return _then(_CharacterAnimation(
 state: null == state ? _self.state : state // ignore: cast_nullable_to_non_nullable
 as CharacterAnimationState,direction: null == direction ? _self.direction : direction // ignore: cast_nullable_to_non_nullable
 as EntityFacing,sourceAssetId: freezed == sourceAssetId ? _self.sourceAssetId : sourceAssetId // ignore: cast_nullable_to_non_nullable
-as String?,frames: null == frames ? _self._frames : frames // ignore: cast_nullable_to_non_nullable
+as String?,presentationReferenceHeightPx: freezed == presentationReferenceHeightPx ? _self.presentationReferenceHeightPx : presentationReferenceHeightPx // ignore: cast_nullable_to_non_nullable
+as int?,frames: null == frames ? _self._frames : frames // ignore: cast_nullable_to_non_nullable
 as List<CharacterAnimationFrame>,loop: null == loop ? _self.loop : loop // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
@@ -8274,7 +8277,7 @@ as bool,
 /// @nodoc
 mixin _$CharacterCustomAnimationClip {
 
- String get definitionId;@JsonKey(includeIfNull: false) EntityFacing? get direction; String get sourceAssetId; List<CharacterAnimationFrame> get frames; bool get loop;
+ String get definitionId;@JsonKey(includeIfNull: false) EntityFacing? get direction; String get sourceAssetId;@JsonKey(includeIfNull: false, fromJson: _characterPresentationReferenceFromJson) int? get presentationReferenceHeightPx; List<CharacterAnimationFrame> get frames; bool get loop;
 /// Create a copy of CharacterCustomAnimationClip
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -8287,16 +8290,16 @@ $CharacterCustomAnimationClipCopyWith<CharacterCustomAnimationClip> get copyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CharacterCustomAnimationClip&&(identical(other.definitionId, definitionId) || other.definitionId == definitionId)&&(identical(other.direction, direction) || other.direction == direction)&&(identical(other.sourceAssetId, sourceAssetId) || other.sourceAssetId == sourceAssetId)&&const DeepCollectionEquality().equals(other.frames, frames)&&(identical(other.loop, loop) || other.loop == loop));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CharacterCustomAnimationClip&&(identical(other.definitionId, definitionId) || other.definitionId == definitionId)&&(identical(other.direction, direction) || other.direction == direction)&&(identical(other.sourceAssetId, sourceAssetId) || other.sourceAssetId == sourceAssetId)&&(identical(other.presentationReferenceHeightPx, presentationReferenceHeightPx) || other.presentationReferenceHeightPx == presentationReferenceHeightPx)&&const DeepCollectionEquality().equals(other.frames, frames)&&(identical(other.loop, loop) || other.loop == loop));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,definitionId,direction,sourceAssetId,const DeepCollectionEquality().hash(frames),loop);
+int get hashCode => Object.hash(runtimeType,definitionId,direction,sourceAssetId,presentationReferenceHeightPx,const DeepCollectionEquality().hash(frames),loop);
 
 @override
 String toString() {
-  return 'CharacterCustomAnimationClip(definitionId: $definitionId, direction: $direction, sourceAssetId: $sourceAssetId, frames: $frames, loop: $loop)';
+  return 'CharacterCustomAnimationClip(definitionId: $definitionId, direction: $direction, sourceAssetId: $sourceAssetId, presentationReferenceHeightPx: $presentationReferenceHeightPx, frames: $frames, loop: $loop)';
 }
 
 
@@ -8307,7 +8310,7 @@ abstract mixin class $CharacterCustomAnimationClipCopyWith<$Res>  {
   factory $CharacterCustomAnimationClipCopyWith(CharacterCustomAnimationClip value, $Res Function(CharacterCustomAnimationClip) _then) = _$CharacterCustomAnimationClipCopyWithImpl;
 @useResult
 $Res call({
- String definitionId,@JsonKey(includeIfNull: false) EntityFacing? direction, String sourceAssetId, List<CharacterAnimationFrame> frames, bool loop
+ String definitionId,@JsonKey(includeIfNull: false) EntityFacing? direction, String sourceAssetId,@JsonKey(includeIfNull: false, fromJson: _characterPresentationReferenceFromJson) int? presentationReferenceHeightPx, List<CharacterAnimationFrame> frames, bool loop
 });
 
 
@@ -8324,12 +8327,13 @@ class _$CharacterCustomAnimationClipCopyWithImpl<$Res>
 
 /// Create a copy of CharacterCustomAnimationClip
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? definitionId = null,Object? direction = freezed,Object? sourceAssetId = null,Object? frames = null,Object? loop = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? definitionId = null,Object? direction = freezed,Object? sourceAssetId = null,Object? presentationReferenceHeightPx = freezed,Object? frames = null,Object? loop = null,}) {
   return _then(_self.copyWith(
 definitionId: null == definitionId ? _self.definitionId : definitionId // ignore: cast_nullable_to_non_nullable
 as String,direction: freezed == direction ? _self.direction : direction // ignore: cast_nullable_to_non_nullable
 as EntityFacing?,sourceAssetId: null == sourceAssetId ? _self.sourceAssetId : sourceAssetId // ignore: cast_nullable_to_non_nullable
-as String,frames: null == frames ? _self.frames : frames // ignore: cast_nullable_to_non_nullable
+as String,presentationReferenceHeightPx: freezed == presentationReferenceHeightPx ? _self.presentationReferenceHeightPx : presentationReferenceHeightPx // ignore: cast_nullable_to_non_nullable
+as int?,frames: null == frames ? _self.frames : frames // ignore: cast_nullable_to_non_nullable
 as List<CharacterAnimationFrame>,loop: null == loop ? _self.loop : loop // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
@@ -8416,10 +8420,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String definitionId, @JsonKey(includeIfNull: false)  EntityFacing? direction,  String sourceAssetId,  List<CharacterAnimationFrame> frames,  bool loop)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String definitionId, @JsonKey(includeIfNull: false)  EntityFacing? direction,  String sourceAssetId, @JsonKey(includeIfNull: false, fromJson: _characterPresentationReferenceFromJson)  int? presentationReferenceHeightPx,  List<CharacterAnimationFrame> frames,  bool loop)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _CharacterCustomAnimationClip() when $default != null:
-return $default(_that.definitionId,_that.direction,_that.sourceAssetId,_that.frames,_that.loop);case _:
+return $default(_that.definitionId,_that.direction,_that.sourceAssetId,_that.presentationReferenceHeightPx,_that.frames,_that.loop);case _:
   return orElse();
 
 }
@@ -8437,10 +8441,10 @@ return $default(_that.definitionId,_that.direction,_that.sourceAssetId,_that.fra
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String definitionId, @JsonKey(includeIfNull: false)  EntityFacing? direction,  String sourceAssetId,  List<CharacterAnimationFrame> frames,  bool loop)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String definitionId, @JsonKey(includeIfNull: false)  EntityFacing? direction,  String sourceAssetId, @JsonKey(includeIfNull: false, fromJson: _characterPresentationReferenceFromJson)  int? presentationReferenceHeightPx,  List<CharacterAnimationFrame> frames,  bool loop)  $default,) {final _that = this;
 switch (_that) {
 case _CharacterCustomAnimationClip():
-return $default(_that.definitionId,_that.direction,_that.sourceAssetId,_that.frames,_that.loop);case _:
+return $default(_that.definitionId,_that.direction,_that.sourceAssetId,_that.presentationReferenceHeightPx,_that.frames,_that.loop);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -8457,10 +8461,10 @@ return $default(_that.definitionId,_that.direction,_that.sourceAssetId,_that.fra
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String definitionId, @JsonKey(includeIfNull: false)  EntityFacing? direction,  String sourceAssetId,  List<CharacterAnimationFrame> frames,  bool loop)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String definitionId, @JsonKey(includeIfNull: false)  EntityFacing? direction,  String sourceAssetId, @JsonKey(includeIfNull: false, fromJson: _characterPresentationReferenceFromJson)  int? presentationReferenceHeightPx,  List<CharacterAnimationFrame> frames,  bool loop)?  $default,) {final _that = this;
 switch (_that) {
 case _CharacterCustomAnimationClip() when $default != null:
-return $default(_that.definitionId,_that.direction,_that.sourceAssetId,_that.frames,_that.loop);case _:
+return $default(_that.definitionId,_that.direction,_that.sourceAssetId,_that.presentationReferenceHeightPx,_that.frames,_that.loop);case _:
   return null;
 
 }
@@ -8472,12 +8476,13 @@ return $default(_that.definitionId,_that.direction,_that.sourceAssetId,_that.fra
 
 @JsonSerializable(explicitToJson: true)
 class _CharacterCustomAnimationClip implements CharacterCustomAnimationClip {
-  const _CharacterCustomAnimationClip({required this.definitionId, @JsonKey(includeIfNull: false) this.direction, required this.sourceAssetId, final  List<CharacterAnimationFrame> frames = const [], this.loop = true}): _frames = frames;
+  const _CharacterCustomAnimationClip({required this.definitionId, @JsonKey(includeIfNull: false) this.direction, required this.sourceAssetId, @JsonKey(includeIfNull: false, fromJson: _characterPresentationReferenceFromJson) this.presentationReferenceHeightPx, final  List<CharacterAnimationFrame> frames = const [], this.loop = true}): _frames = frames;
   factory _CharacterCustomAnimationClip.fromJson(Map<String, dynamic> json) => _$CharacterCustomAnimationClipFromJson(json);
 
 @override final  String definitionId;
 @override@JsonKey(includeIfNull: false) final  EntityFacing? direction;
 @override final  String sourceAssetId;
+@override@JsonKey(includeIfNull: false, fromJson: _characterPresentationReferenceFromJson) final  int? presentationReferenceHeightPx;
  final  List<CharacterAnimationFrame> _frames;
 @override@JsonKey() List<CharacterAnimationFrame> get frames {
   if (_frames is EqualUnmodifiableListView) return _frames;
@@ -8500,16 +8505,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CharacterCustomAnimationClip&&(identical(other.definitionId, definitionId) || other.definitionId == definitionId)&&(identical(other.direction, direction) || other.direction == direction)&&(identical(other.sourceAssetId, sourceAssetId) || other.sourceAssetId == sourceAssetId)&&const DeepCollectionEquality().equals(other._frames, _frames)&&(identical(other.loop, loop) || other.loop == loop));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CharacterCustomAnimationClip&&(identical(other.definitionId, definitionId) || other.definitionId == definitionId)&&(identical(other.direction, direction) || other.direction == direction)&&(identical(other.sourceAssetId, sourceAssetId) || other.sourceAssetId == sourceAssetId)&&(identical(other.presentationReferenceHeightPx, presentationReferenceHeightPx) || other.presentationReferenceHeightPx == presentationReferenceHeightPx)&&const DeepCollectionEquality().equals(other._frames, _frames)&&(identical(other.loop, loop) || other.loop == loop));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,definitionId,direction,sourceAssetId,const DeepCollectionEquality().hash(_frames),loop);
+int get hashCode => Object.hash(runtimeType,definitionId,direction,sourceAssetId,presentationReferenceHeightPx,const DeepCollectionEquality().hash(_frames),loop);
 
 @override
 String toString() {
-  return 'CharacterCustomAnimationClip(definitionId: $definitionId, direction: $direction, sourceAssetId: $sourceAssetId, frames: $frames, loop: $loop)';
+  return 'CharacterCustomAnimationClip(definitionId: $definitionId, direction: $direction, sourceAssetId: $sourceAssetId, presentationReferenceHeightPx: $presentationReferenceHeightPx, frames: $frames, loop: $loop)';
 }
 
 
@@ -8520,7 +8525,7 @@ abstract mixin class _$CharacterCustomAnimationClipCopyWith<$Res> implements $Ch
   factory _$CharacterCustomAnimationClipCopyWith(_CharacterCustomAnimationClip value, $Res Function(_CharacterCustomAnimationClip) _then) = __$CharacterCustomAnimationClipCopyWithImpl;
 @override @useResult
 $Res call({
- String definitionId,@JsonKey(includeIfNull: false) EntityFacing? direction, String sourceAssetId, List<CharacterAnimationFrame> frames, bool loop
+ String definitionId,@JsonKey(includeIfNull: false) EntityFacing? direction, String sourceAssetId,@JsonKey(includeIfNull: false, fromJson: _characterPresentationReferenceFromJson) int? presentationReferenceHeightPx, List<CharacterAnimationFrame> frames, bool loop
 });
 
 
@@ -8537,12 +8542,13 @@ class __$CharacterCustomAnimationClipCopyWithImpl<$Res>
 
 /// Create a copy of CharacterCustomAnimationClip
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? definitionId = null,Object? direction = freezed,Object? sourceAssetId = null,Object? frames = null,Object? loop = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? definitionId = null,Object? direction = freezed,Object? sourceAssetId = null,Object? presentationReferenceHeightPx = freezed,Object? frames = null,Object? loop = null,}) {
   return _then(_CharacterCustomAnimationClip(
 definitionId: null == definitionId ? _self.definitionId : definitionId // ignore: cast_nullable_to_non_nullable
 as String,direction: freezed == direction ? _self.direction : direction // ignore: cast_nullable_to_non_nullable
 as EntityFacing?,sourceAssetId: null == sourceAssetId ? _self.sourceAssetId : sourceAssetId // ignore: cast_nullable_to_non_nullable
-as String,frames: null == frames ? _self._frames : frames // ignore: cast_nullable_to_non_nullable
+as String,presentationReferenceHeightPx: freezed == presentationReferenceHeightPx ? _self.presentationReferenceHeightPx : presentationReferenceHeightPx // ignore: cast_nullable_to_non_nullable
+as int?,frames: null == frames ? _self._frames : frames // ignore: cast_nullable_to_non_nullable
 as List<CharacterAnimationFrame>,loop: null == loop ? _self.loop : loop // ignore: cast_nullable_to_non_nullable
 as bool,
   ));

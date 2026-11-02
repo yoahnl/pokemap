@@ -405,6 +405,8 @@ final class CanonicalGamePackageExportService {
         if (SurfGameplayCapabilities.requiresCapability(projection.project,
             maps: spatialMaps))
           SurfGameplayCapabilities.capabilityId,
+        if (CharacterAnimationCanvasCapabilities.requiresCapability(projection.project))
+          CharacterAnimationCanvasCapabilities.capabilityId,
         if (FieldAbilityActivationCapabilities.requiresCapability(
             projection.project))
           FieldAbilityActivationCapabilities.capabilityId,

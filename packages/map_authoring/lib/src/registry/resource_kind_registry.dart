@@ -890,6 +890,19 @@ final class AuthoringResourceKindRegistry {
         displayName: 'Character Studio character',
         summary: 'Character identity, media coverage and selection status',
         extensions: const {
+          'animationCanvas': {
+            'field': 'presentationReferenceHeightPx',
+            'clips': ['animations', 'customAnimations'],
+            'type': ['integer', 'null'],
+            'minimum': 1,
+            'maximum': 8192,
+            'requiresDedicatedSource': true,
+            'maximumPerFrame': 'source.height',
+            'omittedUpdate': 'preserve',
+            'null': 'clear',
+            'configureAction': 'characterStudio.animationClip.upsert',
+            'requiredRuntimeCapability': 'character.animation-canvas@1',
+          },
           'contactShadow': {
             'field': 'contactShadow',
             'type': ['boolean', 'null'],

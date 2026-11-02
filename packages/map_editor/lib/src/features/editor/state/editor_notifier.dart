@@ -15373,6 +15373,8 @@ class EditorNotifier extends _$EditorNotifier
     required String? sourceAssetId,
     required List<CharacterAnimationFrame> frames,
     required bool loop,
+    int? presentationReferenceHeightPx,
+    bool clearPresentationReferenceHeight = false,
   }) async {
     final workspace = _projectWorkspace;
     final project = state.project;
@@ -15389,6 +15391,8 @@ class EditorNotifier extends _$EditorNotifier
             sourceAssetId: sourceAssetId,
             frames: frames,
             loop: loop,
+            presentationReferenceHeightPx: presentationReferenceHeightPx,
+            clearPresentationReferenceHeight: clearPresentationReferenceHeight,
           );
       _projectSessionRevision += 1;
       state = state.copyWith(

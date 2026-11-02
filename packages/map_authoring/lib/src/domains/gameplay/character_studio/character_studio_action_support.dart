@@ -167,6 +167,7 @@ AuthoringMutationDraft characterStudioProjectDraft(
     );
   }
   return AuthoringMutationDraft(
+    projectedProject: operation == 'characterStudio.animationClip.upsert' ? projected : null,
     changeSet: AuthoringChangeSet(
       changes: <AuthoringResourceChange>[
         AuthoringResourceChange(
@@ -176,7 +177,9 @@ AuthoringMutationDraft characterStudioProjectDraft(
           afterBytes: operation == 'characterStudio.character.delete' ||
                   operation == 'characterStudio.character.deletePlan'
               ? encodeResourceInformationDocument(snapshot, projected)
-              : _encodeCharacterStudioProject(snapshot, projected),
+              : operation == 'characterStudio.animationClip.upsert'
+                  ? encodeProjectAuthoringDocument(snapshot, projected)
+                  : _encodeCharacterStudioProject(snapshot, projected),
         ),
         ...mapChanges,
         ...dialogueChanges,

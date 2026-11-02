@@ -130,6 +130,7 @@ final class AuthoringMutationAdapter
   final void Function(String projectRoot) _invalidatePokemonSpeciesSnapshot;
   final Map<String, Future<_EditorMutationSession>> _sessions = {};
   final Set<String> _openingRoots = {};
+  final Set<String> _locallyMutatedRoots = {};
   String? _retainedRoot;
   String? _candidateRoot;
   int _retiringSessions = 0;
@@ -316,6 +317,110 @@ final class AuthoringMutationAdapter
         after: projected,
         receipt: applied.receipt,
       );
+    } finally {
+      await mutations.detachWorkspace(opened.workspaceHandle);
+      opener.closeWorkspace(opened.workspaceHandle);
+    }
+  }
+
+  Future<ProjectCharacterEntry> upsertSystemCharacterAnimation(
+    String projectRootPath, {
+    required ProjectCharacterEntry expectedCharacter,
+    required Map<String, Object?> parameters,
+    required String operationId,
+    bool requiresConfirmation = false,
+  }) async {
+    if (parameters['kind'] != 'system' ||
+        parameters['characterId'] != expectedCharacter.id) {
+      throw ArgumentError.value(parameters);
+    }
+    final root = await _fileReader.canonicalizeDirectory(projectRootPath);
+    _requireAllowedRoot(root);
+    final policy = await WorkspacePolicy.create(
+      allowedRootPaths: [root],
+      fileReader: _fileReader,
+    );
+    final handles = _workspaceHandles();
+    final opener = ProjectOpenService(
+      policy: policy,
+      fileReader: _fileReader,
+      handles: handles,
+      catalogMetadataFields: const {},
+      workshopScope: true,
+      initializeSceneOwners: false,
+    );
+    final opened = await opener.openProject(root);
+    final mutations = LocalMapAuthoringMutationApi(
+      policy: policy,
+      snapshotLoader: ProjectSnapshotLoader(handles: handles),
+      catalogFileReader: _fileReader,
+      authorizationLimits: editorAuthoringSecurityLimits,
+    );
+    try {
+      await mutations.attachProject(
+        projectRootPath: root,
+        workspaceHandle: opened.workspaceHandle,
+        projectHandle: opened.projectHandle,
+      );
+      const actionId = 'characterStudio.animationClip.upsert';
+      final snapshot = await mutations.readWorkshopSnapshot(
+        opened.projectHandle,
+        actionId: actionId,
+        parameters: parameters,
+      );
+      final current = snapshot.manifest.characters
+          .where((character) => character.id == expectedCharacter.id)
+          .singleOrNull;
+      if (current != expectedCharacter) {
+        throw const EditorConflictException(
+          'This character changed outside Character Studio. Reload before saving.',
+        );
+      }
+      final plan = await mutations.planMutation(
+        opened.projectHandle,
+        AuthoringRequest(
+          requestId: operationId,
+          actionId: actionId,
+          actionVersion: 1,
+          workspaceHandle: opened.workspaceHandle.value,
+          parameters: parameters,
+          expectedRevision: snapshot.revision,
+          idempotencyKey: operationId,
+          extensions: const {'workshopScope': true},
+        ),
+      );
+      var updated = plan.projectedProject?.characters
+          .where((character) => character.id == expectedCharacter.id)
+          .singleOrNull;
+      final confirmation = requiresConfirmation
+          ? await mutations.confirmMutation(
+              opened.projectHandle,
+              planId: plan.planId,
+            )
+          : null;
+      final applied = await mutations.applyMutation(
+        opened.projectHandle,
+        planId: plan.planId,
+        operationId: operationId,
+        confirmationToken: confirmation?.confirmationToken,
+      );
+      _lastAppliedReceipt = applied.receipt;
+      _locallyMutatedRoots.add(root);
+      if (updated == null) {
+        final durable = await mutations.readWorkshopSnapshot(
+          opened.projectHandle,
+          actionId: actionId,
+          parameters: parameters,
+        );
+        updated = durable.manifest.characters
+            .where((character) => character.id == expectedCharacter.id)
+            .single;
+      }
+      return updated;
+    } on EditorConflictException {
+      rethrow;
+    } on Object catch (error) {
+      throw EditorAuthoringMutationFailure.capture(error);
     } finally {
       await mutations.detachWorkspace(opened.workspaceHandle);
       opener.closeWorkspace(opened.workspaceHandle);
@@ -602,7 +707,9 @@ final class AuthoringMutationAdapter
     bool dryRun = false,
   }) async {
     final snapshot = await session.snapshot(
-      cacheValidation: ProjectSnapshotCacheValidation.session,
+      cacheValidation: _locallyMutatedRoots.remove(session.canonicalRoot)
+          ? ProjectSnapshotCacheValidation.canonical
+          : ProjectSnapshotCacheValidation.session,
     );
     final response = await session.mutations.planMutation(
       session.projectHandle,

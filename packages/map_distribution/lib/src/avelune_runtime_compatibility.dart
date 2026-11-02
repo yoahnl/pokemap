@@ -51,6 +51,7 @@ abstract final class AveluneRuntimeCompatibility {
           ProjectContactDeviceConfig.capabilityId,
           ProjectBattleSavingsConfig.capabilityId,
           SurfGameplayCapabilities.capabilityId,
+          CharacterAnimationCanvasCapabilities.capabilityId,
           FieldAbilityActivationCapabilities.capabilityId,
           FieldAbilityActivationCapabilities.extendedCapabilityId,
           ProjectAudioCapabilities.capabilityId,

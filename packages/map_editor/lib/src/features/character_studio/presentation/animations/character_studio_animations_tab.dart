@@ -26,6 +26,7 @@ class CharacterStudioAnimationsTab extends StatefulWidget {
     required this.onSaveClip,
     this.onCreateDefinition,
     this.legacySourceLoader,
+    this.onPresentationReferenceHeightChanged,
   });
 
   final ProjectManifest project;
@@ -44,6 +45,8 @@ class CharacterStudioAnimationsTab extends StatefulWidget {
     bool loop,
   )
   onSaveClip;
+  final Future<bool> Function(CharacterAnimationMatrixSlot slot, int? height)?
+  onPresentationReferenceHeightChanged;
 
   @override
   State<CharacterStudioAnimationsTab> createState() =>
@@ -176,6 +179,18 @@ class _CharacterStudioAnimationsTabState
                             widget.character.frameHeight *
                             widget.project.settings.tileHeight,
                         legacySourceLoader: widget.legacySourceLoader,
+                        suggestedPresentationReferenceHeightPx:
+                            _suggestedReferenceHeight(selectedSlot),
+                        onPresentationReferenceHeightChanged:
+                            widget.onPresentationReferenceHeightChanged == null
+                            ? null
+                            : (height) async {
+                                return await widget
+                                    .onPresentationReferenceHeightChanged!(
+                                  selectedSlot,
+                                  height,
+                                );
+                              },
                         onImportSource: () async {
                           await widget.onImportSource(selectedSlot);
                         },
@@ -233,6 +248,30 @@ class _CharacterStudioAnimationsTabState
         .firstOrNull;
     if (tileset == null) return null;
     return p.normalize(p.join(root, tileset.relativePath));
+  }
+
+  int? _suggestedReferenceHeight(CharacterAnimationMatrixSlot slot) {
+    if (slot.frames.isEmpty) return null;
+    final walk = widget.character.animations
+        .where(
+          (clip) =>
+              clip.state == CharacterAnimationState.walk &&
+              clip.direction == slot.key.direction &&
+              clip.frames.isNotEmpty,
+        )
+        .firstOrNull;
+    final height =
+        walk?.presentationReferenceHeightPx ??
+        (walk?.sourceAssetId != null
+            ? walk?.frames.first.source.height
+            : null) ??
+        widget.character.frameHeight * widget.project.settings.tileHeight;
+    final minimumFrameHeight = slot.frames
+        .map((frame) => frame.source.height)
+        .reduce((left, right) => left < right ? left : right);
+    return height >= 1 && height <= 8192 && height <= minimumFrameHeight
+        ? height
+        : null;
   }
 
   Widget? _animationThumbnail(CharacterAnimationMatrixSlot slot) {

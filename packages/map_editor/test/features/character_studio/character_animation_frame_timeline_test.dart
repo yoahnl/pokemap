@@ -182,6 +182,41 @@ void main() {
       expect(frames.first.durationMs, 150);
     },
   );
+
+  test('canvas edits distinguish a value, automatic and unchanged', () async {
+    final gateway = _RecordingGateway();
+    final useCase = SaveCharacterAnimationClipUseCase(gateway);
+    for (final mode in ['set', 'clear', 'preserve']) {
+      await useCase.execute(
+        _Workspace(),
+        _project(),
+        characterId: 'elia',
+        slotKey: const CharacterAnimationSlotKey.system(
+          state: CharacterAnimationState.surf,
+          direction: EntityFacing.south,
+        ),
+        sourceAssetId: 'surf',
+        frames: const [
+          CharacterAnimationFrame(
+            source: TilesetSourceRect(x: 0, y: 0, width: 32, height: 56),
+          ),
+        ],
+        loop: true,
+        presentationReferenceHeightPx: mode == 'set' ? 32 : null,
+        clearPresentationReferenceHeight: mode == 'clear',
+      );
+      expect(
+        gateway.parameters!.containsKey('presentationReferenceHeightPx'),
+        mode != 'preserve',
+      );
+      if (mode != 'preserve') {
+        expect(
+          gateway.parameters!['presentationReferenceHeightPx'],
+          mode == 'set' ? 32 : null,
+        );
+      }
+    }
+  });
 }
 
 final class _RecordingGateway implements CharacterStudioAuthoringGateway {

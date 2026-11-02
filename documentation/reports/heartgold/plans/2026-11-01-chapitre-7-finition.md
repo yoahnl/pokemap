@@ -129,13 +129,127 @@ Limites et autocritique : le profil combat générique conserve ses règles actu
 
 **Point de départ :** déplacement et consentement Surf opérationnels dans le test Puits ; quatre poses natives du cavalier préparées. Le modèle natif `sea_ride` est séparé et n'est pas encore composé avec le cavalier.
 
-**Fichiers et frontières :** `revisites_surf_preparer.py`, `revisites/assets/surf/` du chantier ; configurations de personnage par authoring ; `packages/map_runtime/lib/src/application/runtime_player_avatar.dart` et `packages/map_runtime/lib/src/spatial/spatial_field_action_presentation.dart` si un raccord runtime manque.
+**Fichiers et frontières :** `c7_02_preparer.py`, `c7_02_publier.py` et `revisites/c7-02/` du chantier privé ; clips et médias par authoring canonique. Contrat de canvas dans Core, édition ciblée dans Authoring/Editor, consommateurs 2D/3D dans Runtime et capability dans Distribution. Les mécanismes Surf existants sont réutilisés ; aucune règle HGSS n'entre dans le moteur.
 
-- [ ] Préparer la monture native et sa composition avec le cavalier sans remplacer les anciens médias ni inventer de représentation.
-- [ ] Configurer les poses et transitions prises en charge : entrée dans l'eau, déplacement, arrêt et sortie ; conserver les identités et le mode de déplacement.
-- [ ] Observer le rendu natif puis vérifier le parcours rive → eau → seconde rive, sauvegarde en Surf et reprise, sans perte de collision ni avatar mal positionné.
+- [x] Préparer la monture native et sa composition avec le cavalier sans remplacer les anciens médias ni inventer de représentation.
+- [x] Configurer les poses et transitions prises en charge : entrée dans l'eau, déplacement, arrêt et sortie ; conserver les identités et le mode de déplacement.
+- [x] Observer le rendu natif puis vérifier le parcours rive → eau → seconde rive, sauvegarde en Surf et reprise, sans perte de collision ni avatar mal positionné.
 
 **Fermé quand :** présentation et déplacement sont cohérents dans le Player sur le parcours concerné ; les avatars pris en charge ont une couverture explicite. Ce lot ne crée pas une nouvelle mécanique Surf. Rattachements : FG-120, FG-129.
+
+### Exécution du 2 novembre 2026 — C7-02 implémenté et proposé TO REVIEW
+
+Audit initial : les consentements, transitions, verrous, déplacements et la restauration Surf existaient déjà. `spatial_field_action_presentation.dart` appartient aux autres actions de terrain et n'a pas été modifié. Deux défauts de présentation restaient : animation au repos figée sur l'horloge du déplacement, et impossibilité de conserver l'échelle du cavalier dans un cadre contenant la monture complète. La matrice Studio n'exposait pas les quatre états Surf ; ses clés camelCase ne correspondaient pas aux états snake_case canoniques.
+
+État Git initial : branche `main`, HEAD `dba2ecad46add1cb4facec631c616f90a1cdb72d`, index vide, 56 chemins étrangers modifiés/non suivis. Les chantiers concurrents ont ensuite avancé `main` ; le HEAD observé avant le gel est `29de4bedb`. Les changements étrangers `packages/map_editor/pubspec.lock` et `packages/map_authoring/test/domains/gameplay/avelune_gen5_move_source_test.dart` sont exclus du commit. La livraison C7-02 sélectionne uniquement les 43 fichiers moteur/tests ci-dessous et ce plan ; aucun push moteur.
+
+Décision : `presentationReferenceHeightPx` est facultatif et omis des anciens JSON. Une valeur explicite conserve la densité des pixels, centre horizontalement le canvas et l'ancre par le bas. Le contrat accepte un entier 1..8192, une source dédiée et une référence ne dépassant aucune frame. API : absence = conserver, `null` = effacer, entier = définir. Capability conditionnelle `character.animation-canvas@1`. Les packages sans ce champ conservent leur contrat et leur géométrie historiques. Le contrôle Studio livré concerne les slots système ; l'édition des slots personnalisés dans les catalogues partitionnés reste hors de ce lot.
+
+La monture entière `sea_ride` est issue du membre natif `a/1/0/3:86`, 48 triangles, sans recentrage, autofit ou redimensionnement du cavalier. Les quatre textures des deux avatars sont composées à échelle constante avec le bob natif. Le canvas final 32×48 retire huit lignes transparentes d'un raster 32×56 ; aucun pixel opaque n'est perdu. Les 24 phases totalisent 400 ms, dérivés de 60 mises à jour/s nominales, sans prétendre à une mesure matérielle DS. Entrée et sortie utilisent les transitions existantes et le cycle de pose préparé, sans nouvelle mécanique de saut.
+
+Le premier candidat conservait à tort le baseline historique comme origine de présentation : l'eau coupait la monture. Cette observation native est conservée comme échec ; l'ancrage inférieur a été corrigé puis les deux avatars requalifiés. Recette finale gelée : `78849495eda4abb628a705c8fab647eef4aa4f3e91a0696ff52f9445072809e2` dans `revisites/c7-02/preparation-contact.json`.
+
+**Intégration :** 33 opérations canoniques QA, puis 34 opérations LIVE : deux atlas, 32 slots, et configuration Surf auparavant absente exigeant progression et attaque connue, vitesse 4. Préimages et postimages vérifiées, relecture indépendante exacte et reprise du publisher avec `additionalApply: 0`. Les deux atlas utilisent de nouvelles identités et de nouveaux chemins. Les 178 165 fichiers stables préexistants, soit 2 640 857 492 octets, sont contrôlés ; seuls `catalog/HEAD.json` et `assets/.pokemap-assets.json` préexistants changent. Les 12 122 anciens records d'assets et les métadonnées du catalogue sont préservés. Cartes et sauvegarde authentique intactes ; le checkpoint conserve ses trois Pokémon et refuse toujours Surf. Le publisher gèle la recette, les 32 intentions et les hashes des sources observées, exige QA et preuve native avant LIVE et refuse une reprise incertaine.
+
+**Preuve native :** macOS Metal Release, runtime `SpatialExplorationGameSessionRuntime` et vue `SpatialExplorationView` de production dans un hôte isolé. Pour chacun des deux avatars : consentement, entrée, quatre directions avec captures pendant déplacement, animation au repos sans déplacement, traversée rive/eau/seconde rive, checkpoint Surf, arrêt du processus, Continue à froid et sortie restaurant le cadre à pied. La fixture ajoute uniquement un Ramoloss issu de la recette source et l'autorisation Surf pour ce parcours ; les identités initiales, objets et faits sont conservés. Elle ne prouve pas l'acquisition narrative future. Le refus du consentement est aussi contrôlé. Le shell Hub, les overlays Player complets et l'appareil mobile ne sont pas certifiés par cet hôte.
+
+**Localité Studio :** le gateway précédent invalidait et ouvrait un snapshot global avant/après chaque clip. Les upserts système passent désormais par le workshop canonique du personnage, préimage et CAS conservés, puis fusion du seul personnage dans le brouillon. Une session globale retenue est rafraîchie seulement à sa prochaine commande globale. Les projets plats préservent leurs données brutes et ne projettent que les définitions portrait/custom référencées. Les tests comptent les lectures avec 0/80 cartes et personnages étrangers, 12 mutations historiques et des données étrangères non décodables. Aucune carte ni définition étrangère n'est lue.
+
+Mesure réelle du contrôle DS rendu et de ses callbacks vers le vrai use case/gateway, application macOS Release AOT, Apple M1 Pro arm64, macOS 27.2, Flutter 3.47.5/Dart 3.13.4. Deux avatars HGSS complets : 30 slots et 428 frames chacun, slot édité de 24 frames, PNG réel 768×192 ; 80 cartes/personnages et 12 mutations historiques étrangers ajoutés. L'ouverture initiale, séparée, vaut 335,369 ms. Le driver déclenche les callbacks des contrôles rendus, sans dispatch physique clavier/souris ; le retour visible correspond au premier frame Saving/contrôles désactivés. Cette preuve ne certifie pas l'ensemble du Studio.
+
+| Opération | Premier retour rendu | Persistance acquittée | Lectures |
+| --- | ---: | ---: | ---: |
+| Premier SET après ouverture | 12,362 ms | 339,087 ms | 100 |
+| Boucle seule, référence préservée | 26,049 ms | 353,632 ms | 100 |
+| CLEAR | 11,944 ms | 348,715 ms | 100 |
+| SET répété | 9,975 ms | 371,965 ms | 100 |
+
+Réouverture indépendante des personnages et cartes : PASS. Neuf fingerprints de sources compilées concordants. Les 1 025 fichiers/22 977 807 octets du gate QA d'origine sont strictement identiques avant/après ; les mutations de mesure n'ont touché qu'une copie possédée. Les cibles 100/500 ms passent sur ce projet documenté, sans utiliser la dérogation arbres.
+
+### Inventaire moteur C7-02
+
+Chaque chemin ci-dessous appartient au lot ; le diff Git est l'inventaire précis des zones modifiées. Les outils, médias, reçus et sauvegardes HeartGold restent hors du dépôt moteur.
+
+| Fichier | Zone et effet |
+| --- | --- |
+| `packages/map_core/lib/map_core.dart` | Export du contrat de capability |
+| `packages/map_core/lib/src/models/project_manifest.dart` | Champs facultatifs et validation des clips |
+| `packages/map_core/lib/src/models/project_manifest.freezed.dart` | Génération limitée aux deux modèles modifiés |
+| `packages/map_core/lib/src/models/project_manifest.g.dart` | Codecs des deux champs facultatifs |
+| `packages/map_core/lib/src/read_models/character_animation_canvas_capabilities.dart` | Détection conditionnelle du besoin runtime |
+| `packages/map_core/lib/src/validation/validators.dart` | Validation contextuelle des références |
+| `packages/map_core/test/character_animation_canvas_test.dart` | Bornes, codecs et absence du champ historique |
+| `packages/map_authoring/lib/src/api/local_map_authoring_mutation_api.dart` | Opt-in workshop système sur projet plat |
+| `packages/map_authoring/lib/src/workspace/native_workshop_snapshot.dart` | Dépendances ciblées, portraits/custom référencés |
+| `packages/map_authoring/lib/src/domains/gameplay/character_studio/character_studio_action_support.dart` | Projection fournie et catalogue brut préservé |
+| `packages/map_authoring/lib/src/domains/gameplay/character_studio/character_studio_animation_clip_actions.dart` | Définir/conserver/effacer et contrat découvrable |
+| `packages/map_authoring/lib/src/registry/resource_kind_registry.dart` | Métadonnées sémantiques du canvas |
+| `packages/map_authoring/lib/src/domains/distribution/game_package_export_service.dart` | Capability d'export dérivée du contenu |
+| `packages/map_authoring/test/domains/gameplay/character_studio_animation_clip_actions_test.dart` | Validation et non-régressions de mutation |
+| `packages/map_authoring/test/parity/character_studio_full_parity_test.dart` | Transport JSONL du champ |
+| `packages/map_authoring/test/domains/distribution/character_animation_canvas_export_test.dart` | Export conditionnel et octets source inchangés |
+| `packages/map_distribution/lib/src/avelune_runtime_compatibility.dart` | Capacité du host actuel |
+| `packages/map_distribution/lib/src/game_package_project_validator.dart` | Refus des packages sans déclaration nécessaire |
+| `packages/map_distribution/test/character_animation_canvas_package_test.dart` | Packages plats/portables et historiques |
+| `packages/map_editor/lib/src/application/authoring_api/authoring_mutation_adapter.dart` | Session locale et révision retenue |
+| `packages/map_editor/lib/src/application/authoring_api/character_studio_authoring_gateway.dart` | Route système ciblée et fusion du brouillon |
+| `packages/map_editor/lib/src/features/character_studio/application/character_animation_clip_use_cases.dart` | Transmission du champ sans effacement implicite |
+| `packages/map_editor/lib/src/features/character_studio/application/character_animation_matrix_model.dart` | Quatre états Surf et clés canoniques |
+| `packages/map_editor/lib/src/features/character_studio/application/character_animation_source_import_service.dart` | Préservation du découpage lors du remplacement |
+| `packages/map_editor/lib/src/features/character_studio/presentation/animations/character_animation_source_editor.dart` | Contrôle DS système, erreurs et retour automatique |
+| `packages/map_editor/lib/src/features/character_studio/presentation/animations/character_studio_animations_tab.dart` | Guidage de référence et callbacks |
+| `packages/map_editor/lib/src/features/character_studio/presentation/character_studio_workspace.dart` | Raccord à la sauvegarde canonique |
+| `packages/map_editor/lib/src/features/editor/state/editor_notifier.dart` | Valeur persistée et état de sauvegarde |
+| `packages/map_editor/test/authoring_api/character_studio_local_clip_test.dart` | Comptages, préimages, projet plat et dépendances |
+| `packages/map_editor/test/features/character_studio/character_animation_frame_timeline_test.dart` | Préservation de la référence sur édition de frames |
+| `packages/map_editor/test/features/character_studio/character_animation_matrix_model_test.dart` | Couverture Surf et états transportés |
+| `packages/map_editor/test/features/character_studio/character_animation_matrix_widget_test.dart` | Accessibilité de la matrice étendue |
+| `packages/map_editor/test/features/character_studio/character_animation_source_slicing_test.dart` | Champ, validation, échec durable et périmètre système |
+| `packages/map_editor/test/features/character_studio/character_studio_authoring_adapter_test.dart` | Persistance, conservation et effacement relus |
+| `packages/map_runtime/lib/src/application/character_animation_source_resolver.dart` | Échelle et rectangle ancré en bas, défaut historique intact |
+| `packages/map_runtime/lib/src/presentation/flame/overworld_actor_component.dart` | Rectangle consommé pour les clips 2D |
+| `packages/map_runtime/lib/src/spatial/spatial_exploration_session.dart` | Géométrie 3D et horloge Surf indépendante |
+| `packages/map_runtime/lib/src/session/playable_map_game_session_runtime.dart` | Gate capability sur bundle matérialisé |
+| `packages/map_runtime/lib/src/session/spatial_exploration_game_session_runtime.dart` | Gate capability sur bundle 3D |
+| `packages/map_runtime/test/character_animation_source_resolver_test.dart` | Densité des pixels et ancrage, héritage préservé |
+| `packages/map_runtime/test/spatial_surf_water_test.dart` | Repos, phase, verrous, transitions et origine de mouvement |
+| `packages/map_runtime/test/session/character_animation_canvas_capability_test.dart` | Catalogue partitionné 2D sans préchargement |
+| `tools/pokemap_mcp/test/character_animation_canvas_stdio.test.ts` | MCP réel, valeurs invalides et relecture froide |
+
+### Commandes et résultats C7-02
+
+Les tests ont été lancés depuis chaque package via le wrapper privé `executer_tests.py`, avec TMPDIR dans le seul enfant QA du lot. Chaque runner et ses descendants sont suivis ; tous les reçus finaux indiquent `remaining=[]`. Les journaux exacts sont sous `revisites/c7-02/`.
+
+| Commande | Résultat exact |
+| --- | --- |
+| Core `dart test test/character_animation_canvas_test.dart --reporter expanded` | `00:00 +25: All tests passed!` |
+| Authoring `dart test test/domains/gameplay/character_studio_animation_clip_actions_test.dart test/parity/character_studio_full_parity_test.dart --reporter expanded` | 56 PASS après correction de projection |
+| Authoring `dart test test/domains/distribution/character_animation_canvas_export_test.dart --reporter expanded` | `00:00 +2: All tests passed!` ; export de fixture seulement |
+| Editor `flutter test --no-pub test/features/character_studio/character_animation_frame_timeline_test.dart test/features/character_studio/character_animation_matrix_model_test.dart test/features/character_studio/character_animation_matrix_widget_test.dart test/features/character_studio/character_animation_source_slicing_test.dart test/features/character_studio/character_studio_authoring_adapter_test.dart test/authoring_api/character_studio_local_clip_test.dart --reporter expanded` | `00:24 +36: All tests passed!` |
+| Runtime `flutter test --no-pub test/spatial_surf_water_test.dart test/character_animation_source_resolver_test.dart test/surf_character_2d_test.dart test/overworld_actor_custom_animation_test.dart test/session/character_animation_canvas_capability_test.dart test/phase_a_golden_battle_slice_smoke_test.dart --reporter expanded` | `00:03 +37: All tests passed!` |
+| Distribution `dart test test/character_animation_canvas_package_test.dart test/avelune_runtime_compatibility_test.dart test/avelune_compatibility_baseline_package_test.dart --reporter expanded` | `00:00 +18: All tests passed!`, dont exports gelés de la baseline |
+| Host `flutter test --no-pub test/phase_a_golden_slice_launch_test.dart --reporter expanded` | `00:00 +14: All tests passed!` |
+| MCP `npm run check` et `npm run build` | exit 0 |
+| MCP `node --import tsx --test --test-concurrency=1 test/character_animation_canvas_stdio.test.ts` | 1 PASS, 0 FAIL ; clips système/custom, nouveaux processus stdio |
+| Authoring `dart test test/parity/full_authoring_parity_test.dart` | 28 PASS |
+| Publisher `python3 -B c7_02_publication_test.py` via wrapper | 8 PASS ; 14 mutations de scope et reprises invalides couvertes |
+| Préparateur `PYTHONPATH=<QA>/python-deps python3.14 -B c7_02_preparer.py --check` | deux avatars, 32 clips, 32×48, cycle 400 ms, sources vérifiées |
+| Publisher `python3 -B c7_02_publier.py --live` et répétition | 34 actions durables, relecture/préservation vérifiées ; `additionalApply: 0` |
+| `dart --packages=packages/map_runtime/.dart_tool/package_config.json c7_02_verifier_live.dart` | `LIVE_PRESENTATION_READBACK_PASS`, 32 slots, deux atlas, checkpoint authentique refusé |
+| `flutter build macos --release` dans chacun des deux hosts isolés | exit 0 ; `FLTEnableFlutterGPU=true` dans le host natif, Metal et AOT authoring réellement exécutés |
+| Analyses ciblées Core, Authoring, Editor, Runtime et Distribution | Aucune erreur ni warning ; infos préexistantes conservées, détail dans les logs ; Distribution sans problème |
+| `git diff --check` | exit 0 |
+| `bash tools/scripts/check_markdown_hygiene.sh` | exit 1 sur les deux Markdown ignorés étrangers préexistants ; aucun nouveau Markdown C7-02 |
+
+Le MCP connecté expose effectivement le champ dans l'action et la ressource `characterStudioCharacter` ; reçu `mcp-live-catalog.json`. Aucun serveur récent interrompu. Les cinq contrôles de sécurité ciblés passent. Limites élargies conservées : conformance MCP générale avec deux échecs d'outillage (liste des outils et golden receipt map.create) ; PMCP085 découvre 104 ressources/471 actions sans case manquante mais ne certifie pas tous les transports ; suite runtime session élargie 146 PASS/6 FAIL sur le nombre d'appels à l'horloge des rencontres, origine non tranchée par ce lot. Aucune annonce de suite globalement verte.
+
+Revues : Audit/Architecture PASS pour la réutilisation de Surf ; SPEC Core/Authoring et composition native PASS ; Tests/Build PASS sur les gates ciblés ; critique finale QUALITY PASS après deux P2 réellement reproduits puis corrigés (dépendances portrait/custom du projet plat, gate 2D évalué trop tôt). Le parent a relu la dernière correction 2D et ses trois cas partitionnés avant sélection Git.
+
+Autocritique et frontières : composition fixe 2,5D pour la caméra native, pas une monture GLB orientable librement ; durée dérivée et transitions existantes explicitement conservées. Le parcours QA ne certifie ni le Puits source complet avec ses vrais PNJ/events ni le shell/overlays/appareil. C7-03 reste le prochain lot ; Fargas/capture et Élixir restent séparés. FG-120 et FG-129 restent PARTIAL, sans modification de la roadmap ni promotion globale. Aucun nouvel export, téléchargement toujours 0.1.11 et annexes toujours 2/7.
+
+Carnet actualisé : 29 tests PASS, `verify-site` PASS, 258 fichiers publics contrôlés ; version 109 déployée avec statut terminal `succeeded`, source `4fd094fab58a8deef9457a8c6f64db8a80e6adda`. Archive locale SHA-256 `98a3ba4be5fb80869c27d304ac3af553721bf3beb3d16c77bae78fcb93dd520d`, archive normalisée conservée par Sites SHA-256 `805e1995d5f4839ddb42a7194ea807c5acb8e174da1ce89268b0e69c695f6d20`. Pas de ROM, sauvegarde, projet source ou nouvel export inclus. Le suivi Notion utilise le contexte existant Monde & narration, proposé TO REVIEW après commit ; DONE reste une décision de Yoahn.
+
+Nettoyage terminé avant sélection Git : hôtes, builds, copies de projets, dépendances Python, TMPDIR, checkout Site et archive locale C7-02 supprimés après suivi des processus, absence de consommateurs ouverts et égalité SHA des 258 fichiers publics. Le dernier enfant `AveluneQA/ecorcia-chapitre7-annexes/c7-02` occupait 311 975 936 octets alloués ; son absence et la lecture des preuves conservées sont vérifiées. Espace libre SSD mesuré séparément : 60 397 289 472 → 60 711 026 688 octets. Aucun environnement temporaire C7-02 retenu. La copie préexistante `AveluneQA/ecorcia-chapitre7-annexes/revisites-content`, 110 920 KiB, appartient à la qualification de navigation des revisites antérieure à ce lot : elle est conservée intacte comme source de C7-03 et pourra être retirée après admission des revisites et conservation de ses preuves. Les sources du vrai jeu, la sauvegarde authentique, les médias et les reçus privés restent présents.
 
 ## C7-03 — Intégrer la revisite du Puits sans casser l'histoire
 

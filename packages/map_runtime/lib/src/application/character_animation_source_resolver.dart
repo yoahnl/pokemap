@@ -38,11 +38,29 @@ final class ResolvedCharacterAnimationFrameSource {
     required this.imageId,
     required this.sourceRect,
     required this.usesLegacyGrid,
+    this.presentationReferenceHeightPx,
   });
 
   final String imageId;
   final Rect sourceRect;
   final bool usesLegacyGrid;
+  final int? presentationReferenceHeightPx;
+
+  Rect presentationRect({required double width, required double height}) {
+    final reference = presentationReferenceHeightPx;
+    if (reference == null) return Rect.fromLTWH(0, 0, width, height);
+    if (reference <= 0 || reference > sourceRect.height) {
+      throw StateError('The animation canvas reference is invalid.');
+    }
+    final renderedWidth = height * sourceRect.width / reference;
+    final renderedHeight = height * sourceRect.height / reference;
+    return Rect.fromLTWH(
+      (width - renderedWidth) / 2,
+      height - renderedHeight,
+      renderedWidth,
+      renderedHeight,
+    );
+  }
 }
 
 final class CharacterAnimationSourceResolver {
@@ -86,6 +104,7 @@ final class CharacterAnimationSourceResolver {
           source.height.toDouble(),
         ),
         usesLegacyGrid: false,
+        presentationReferenceHeightPx: animation.presentationReferenceHeightPx,
       );
     }
     final width = character.frameWidth.clamp(2, 1 << 20) * tileWidth;
@@ -132,6 +151,7 @@ final class CharacterAnimationSourceResolver {
         source.height.toDouble(),
       ),
       usesLegacyGrid: false,
+      presentationReferenceHeightPx: clip.presentationReferenceHeightPx,
     );
   }
 

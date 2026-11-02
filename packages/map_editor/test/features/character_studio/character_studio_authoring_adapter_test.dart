@@ -9,6 +9,8 @@ import 'package:map_editor/src/application/authoring_api/character_studio_author
 import 'package:map_editor/src/application/authoring_api/editor_receipt_presenter.dart';
 import 'package:map_editor/src/application/errors/application_errors.dart';
 import 'package:map_editor/src/application/use_cases/character_use_cases.dart';
+import 'package:map_editor/src/features/character_studio/application/character_animation_clip_use_cases.dart';
+import 'package:map_editor/src/features/character_studio/application/character_animation_matrix_model.dart';
 import 'package:map_editor/src/infrastructure/authoring_api/editor_project_file_reader.dart';
 import 'package:map_editor/src/infrastructure/filesystem/project_filesystem.dart';
 import 'package:map_editor/src/infrastructure/repositories/file_repositories.dart';
@@ -16,6 +18,32 @@ import 'package:path/path.dart' as p;
 
 void main() {
   group('Character Studio canonical editor adapter', () {
+    test('canvas use case persists preserves and clears through a fresh disk read', () async {
+      final fixture = await _CharacterStudioFixture.create();
+      addTearDown(fixture.dispose);
+      var project = await CreateCharacterUseCase(fixture.gateway).execute(
+        fixture.workspace, fixture.project, name: 'Élia', tilesetId: 'characters');
+      final useCase = SaveCharacterAnimationClipUseCase(fixture.gateway);
+      const key = CharacterAnimationSlotKey.system(
+        state: CharacterAnimationState.surfIdle, direction: EntityFacing.south);
+      const frames = [CharacterAnimationFrame(source:
+        TilesetSourceRect(x: 0, y: 0, width: 32, height: 56))];
+      for (final mode in ['set', 'preserve', 'clear']) {
+        project = await useCase.execute(fixture.workspace, project,
+          characterId: 'elia', slotKey: key, sourceAssetId: 'surf-source',
+          frames: frames, loop: mode != 'preserve',
+          presentationReferenceHeightPx: mode == 'set' ? 32 : null,
+          clearPresentationReferenceHeight: mode == 'clear');
+        final durable = await FileProjectRepository().loadProject(
+          p.join(fixture.root.path, 'project.json'));
+        expect(durable, project);
+        expect(durable.characters.single.animations.single.presentationReferenceHeightPx,
+          mode == 'clear' ? null : 32);
+        expect(durable.characters.single.animations.single.frames, frames);
+        expect(fixture.mutations.lastAppliedReceipt?.actionId,
+          'characterStudio.animationClip.upsert');
+      }
+    });
     test(
       'legacy editor use cases persist only through semantic actions',
       () async {
