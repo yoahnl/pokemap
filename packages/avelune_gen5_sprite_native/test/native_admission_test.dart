@@ -12,12 +12,15 @@ Uint8List bank(String header, String section, int sectionLength) {
   return bytes;
 }
 
-Uint8List cells() {
-  final bytes = bank('RECN', 'KBEC', 46);
+Uint8List cells({int count = 1}) {
+  final bytes = bank('RECN', 'KBEC', 32 + count * 14);
   final data = ByteData.sublistView(bytes);
-  data.setUint16(24, 1, Endian.little);
+  data.setUint16(24, count, Endian.little);
   data.setUint32(28, 24, Endian.little);
-  data.setUint16(48, 1, Endian.little);
+  for (var i = 0; i < count; i++) {
+    data.setUint16(48 + i * 8, 1, Endian.little);
+    data.setUint32(52 + i * 8, i * 6, Endian.little);
+  }
   return bytes;
 }
 
@@ -74,6 +77,32 @@ Uint8List rectangles({int width = 8, int height = 8, int u = 0, int v = 0}) {
   return bytes;
 }
 
+Uint8List rectanglesWithInvalidSecondCell() {
+  final bytes = Uint8List(110);
+  bytes.setRange(0, 60, rectangles());
+  final data = ByteData.sublistView(bytes);
+  data.setInt32(0, 2, Endian.little);
+  data.setInt32(68, 17 * 4096, Endian.little);
+  data.setInt32(72, 8 * 4096, Endian.little);
+  data.setInt32(76, 240 * 4096, Endian.little);
+  return bytes;
+}
+
+Uint8List twoFrameCellSwitch() {
+  final bytes = bank('RNAN', 'KNBA', 60);
+  final data = ByteData.sublistView(bytes);
+  data.setUint16(24, 1, Endian.little);
+  data.setUint32(28, 16, Endian.little);
+  data.setUint32(32, 32, Endian.little);
+  data.setUint32(36, 48, Endian.little);
+  data.setUint16(40, 2, Endian.little);
+  data.setUint16(60, 1, Endian.little);
+  data.setUint32(64, 2, Endian.little);
+  data.setUint16(68, 1, Endian.little);
+  data.setUint16(74, 1, Endian.little);
+  return bytes;
+}
+
 int render({
   Uint8List? ncer,
   Uint8List? nanr,
@@ -82,6 +111,7 @@ int render({
   Uint8List? info,
   Uint8List? tiles,
   Uint8List? output,
+  int tick = 0,
 }) {
   final allocations = <Pointer<Void>>[];
   Pointer<T> allocate<T extends NativeType>(int size) {
@@ -115,7 +145,7 @@ int render({
       ..nmar = copy(nmar)
       ..nmarSize = nmar.length
       ..timeline = 0
-      ..tick = 0
+      ..tick = tick
       ..minX = -64
       ..minY = -64
       ..width = 128
@@ -175,6 +205,14 @@ void main() {
     final info = rectangles(width: 23);
     ByteData.sublistView(info).setInt32(20, 23 * 4096 + 1, Endian.little);
     expect(render(info: info), -30);
+  });
+
+  test('only rejects an invalid atlas cell when a frame selects it', () {
+    final ncer = cells(count: 2);
+    final nanr = twoFrameCellSwitch();
+    final info = rectanglesWithInvalidSecondCell();
+    expect(render(ncer: ncer, nanr: nanr, info: info), 0);
+    expect(render(ncer: ncer, nanr: nanr, info: info, tick: 1), -30);
   });
 
   test('rejects rectangles that extend beyond the atlas', () {

@@ -184,7 +184,10 @@ static int use_rectangles(NcerFile *cells, const uint8_t *data, size_t size) {
                 y < -1048576 || y > 1048576 || width <= 0 || height <= 0 ||
                 width % 4096 || height % 4096 || u < 0 || v < 0 ||
                 u % 32768 || v % 32768 ||
-                (int64_t)u + width > 256 * 4096 || (int64_t)v + height > 128 * 4096) return -3;
+                (int64_t)u + width > 256 * 4096 || (int64_t)v + height > 128 * 4096) {
+                n = -1;
+                break;
+            }
             NcerOam *oam = &parsed[n++];
             oam->x = x / 256;
             oam->y = (int)(-(int64_t)y / 256);
@@ -192,9 +195,9 @@ static int use_rectangles(NcerFile *cells, const uint8_t *data, size_t size) {
             oam->height = height / 4096;
             oam->tile_index = (v / 32768) * 32 + (u / 32768);
         }
-        NcerOam *replacement = n ? malloc((size_t)n * sizeof(NcerOam)) : NULL;
-        if (n && replacement == NULL) return -4;
-        if (n) memcpy(replacement, parsed, (size_t)n * sizeof(NcerOam));
+        NcerOam *replacement = n > 0 ? malloc((size_t)n * sizeof(NcerOam)) : NULL;
+        if (n > 0 && replacement == NULL) return -4;
+        if (n > 0) memcpy(replacement, parsed, (size_t)n * sizeof(NcerOam));
         free(cells->cells[i].oams);
         cells->cells[i].oams = replacement;
         cells->cells[i].oam_count = n;
@@ -272,7 +275,11 @@ static int render_sample(const AvProbeRequest *request, uint8_t *output,
             goto cleanup;
         }
         NcerCell *cell = &cells.cells[cell_id];
-        if (cell->oam_count < 0 || cell->oam_count > 128 ||
+        if (cell->oam_count < 0) {
+            result = -30;
+            goto cleanup;
+        }
+        if (cell->oam_count > 128 ||
             (cell->oam_count && cell->oams == NULL)) goto cleanup;
         total_oams += cell->oam_count;
         if (total_oams > 2048) goto cleanup;
