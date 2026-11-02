@@ -197,7 +197,7 @@ static int use_rectangles(NcerFile *cells, const uint8_t *data, size_t size) {
         }
         NcerOam *replacement = n > 0 ? malloc((size_t)n * sizeof(NcerOam)) : NULL;
         if (n > 0 && replacement == NULL) return -4;
-        if (n > 0) memcpy(replacement, parsed, (size_t)n * sizeof(NcerOam));
+        for (int j = 0; j < n; j++) replacement[j] = parsed[n - 1 - j];
         free(cells->cells[i].oams);
         cells->cells[i].oams = replacement;
         cells->cells[i].oam_count = n;

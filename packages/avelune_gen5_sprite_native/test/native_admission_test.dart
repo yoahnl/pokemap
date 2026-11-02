@@ -177,6 +177,68 @@ void main() {
     expect(render(), 0);
   });
 
+  test('draws the second cell rectangle above the first', () {
+    final info = rectangles();
+    ByteData.sublistView(info)
+      ..setInt32(44, 8 * 4096, Endian.little)
+      ..setInt32(48, 8 * 4096, Endian.little)
+      ..setInt32(52, 8 * 4096, Endian.little);
+    final tiles = Uint8List(16384)
+      ..fillRange(0, 32, 0x11)
+      ..fillRange(32, 64, 0x22)
+      ..[32] = 0x20;
+    final output = Uint8List(16384);
+
+    expect(render(info: info, tiles: tiles, output: output), 0);
+    expect(output[64 * 128 + 64], 1);
+    expect(output[64 * 128 + 65], 2);
+  });
+
+  test('preserves the layering between separate animation records', () {
+    final info = Uint8List(110)..setRange(0, 60, rectangles());
+    ByteData.sublistView(info)
+      ..setInt32(0, 2, Endian.little)
+      ..setInt32(44, 8 * 4096, Endian.little)
+      ..setInt32(48, 8 * 4096, Endian.little)
+      ..setInt32(52, 8 * 4096, Endian.little)
+      ..setInt32(68, 8 * 4096, Endian.little)
+      ..setInt32(72, 8 * 4096, Endian.little)
+      ..setInt32(76, 16 * 4096, Endian.little);
+    final nanr = bank('RNAN', 'KNBA', 76);
+    ByteData.sublistView(nanr)
+      ..setUint16(24, 2, Endian.little)
+      ..setUint32(28, 16, Endian.little)
+      ..setUint32(32, 48, Endian.little)
+      ..setUint32(36, 64, Endian.little)
+      ..setUint16(40, 1, Endian.little)
+      ..setUint16(56, 1, Endian.little)
+      ..setUint32(68, 8, Endian.little)
+      ..setUint16(76, 1, Endian.little)
+      ..setUint32(80, 2, Endian.little)
+      ..setUint16(84, 1, Endian.little)
+      ..setUint16(90, 1, Endian.little);
+    final nmcr = maps(records: 2);
+    ByteData.sublistView(nmcr).setUint16(56, 1, Endian.little);
+    final tiles = Uint8List(16384)
+      ..fillRange(0, 32, 0x11)
+      ..fillRange(32, 64, 0x22)
+      ..fillRange(64, 96, 0x33);
+    final output = Uint8List(16384);
+
+    expect(
+      render(
+        ncer: cells(count: 2),
+        nanr: nanr,
+        nmcr: nmcr,
+        info: info,
+        tiles: tiles,
+        output: output,
+      ),
+      0,
+    );
+    expect(output[64 * 128 + 64], 2);
+  });
+
   test('accepts atlas rectangles larger than 64 pixels', () {
     expect(render(info: rectangles(width: 72, height: 80)), 0);
   });
