@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:archive/archive.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image/image.dart' as img;
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
@@ -21,6 +22,80 @@ typedef FetchedBattleRecipe = ({
   String catalogMoveId,
   String recipeMediaId,
 });
+
+Future<FetchedBattleRecipe> groupedSplRecipeFixture({String? fixtureRoot}) async {
+  late final Uint8List recipe;
+  late final Map<String, Uint8List> media;
+  if (fixtureRoot != null) {
+    recipe = await File(p.join(fixtureRoot, 'recipe.json')).readAsBytes();
+    final paths = jsonDecode(
+      await File(p.join(fixtureRoot, 'media-paths.json')).readAsString(),
+    ) as Map;
+    media = {
+      for (final entry in paths.entries)
+        entry.key as String: await File(entry.value as String).readAsBytes(),
+    };
+  } else {
+    final sound = await File('assets/audio/overworld/jump.wav').readAsBytes();
+    final pixels = img.Image(width: 2, height: 2);
+    img.fill(pixels, color: img.ColorRgba8(255, 255, 255, 255));
+    final texture = Uint8List.fromList(img.encodePng(pixels));
+    final particle = await File('../map_core/test/fixtures/spl_particle_v2.json').readAsBytes();
+    media = {'tex': texture, 'from': particle, 'to': particle, 'cue': sound};
+    recipe = Uint8List.fromList(utf8.encode(jsonEncode({
+      'schemaVersion': 2, 'recipeId': 'grouped', 'revision': '1',
+      'moveSourceId': 'flamethrower', 'variant': 'default',
+      'requiredCapabilities': [
+        'sequence', 'parallel', 'startParticle', 'waitEffects',
+        'splParticleV2', 'sound', 'audioSelectionV2',
+      ],
+      'provenance': {
+        'source': 'synthetic', 'sourceRevision': '1',
+        'sourcePaths': <String>[], 'converter': 'test',
+      },
+      'resources': [
+        {'id': 'tex', 'role': 'texture', 'mediaType': 'image/png',
+          'sizeBytes': texture.length, 'sha256': sha256.convert(texture).toString()},
+        for (final id in ['from', 'to'])
+          {'id': id, 'role': 'particleDefinition',
+            'mediaType': 'application/vnd.avelune.particle+json',
+            'sizeBytes': particle.length, 'sha256': sha256.convert(particle).toString(),
+            'definitionVersion': 2, 'dependencies': ['tex']},
+        {'id': 'cue', 'role': 'sound', 'mediaType': 'audio/wav',
+          'sizeBytes': sound.length, 'sha256': sha256.convert(sound).toString()},
+      ],
+      'audio': {'kind': 'clip', 'resourceId': 'cue'},
+      'program': {'kind': 'sequence', 'steps': [
+        {'kind': 'parallel', 'steps': [
+          {'kind': 'startParticle', 'resourceId': 'from',
+            'from': 'userMouth', 'to': 'targetImpact'},
+          {'kind': 'startParticle', 'resourceId': 'to',
+            'from': 'targetImpact', 'to': 'targetImpact'},
+        ]},
+        {'kind': 'waitEffects'},
+      ]},
+    })));
+  }
+  final decoded = jsonDecode(utf8.decode(recipe)) as Map;
+  final binding = BattleMoveRecipeBinding.fromJson({
+    'schemaVersion': 1, 'projectMoveId': 'tackle',
+    'sourceMoveId': decoded['moveSourceId'], 'catalogReleaseId': 'fixture',
+    'recipeId': decoded['recipeId'], 'variant': decoded['variant'],
+    'revision': decoded['revision'], 'recipeSha256': sha256.convert(recipe).toString(),
+  });
+  final inspected = const BattleRecipeBundleInspector().inspect(
+    binding, recipe, media,
+    limits: const BattleRecipeBundleLimits(
+      maxTextures: 16, maxTextureBytes: 8 * 1024 * 1024,
+      maxBundleBytes: 32 * 1024 * 1024, maxDimension: 2048,
+      maxTexturePixels: 4000000, maxTotalPixels: 16000000,
+    ),
+    availableCapabilities: BattleMoveAnimationRecipe.recognizedCapabilities,
+    expectedProjectMoveId: 'tackle', expectedCatalogReleaseId: 'fixture',
+  );
+  return (binding: binding, bundle: inspected,
+    catalogMoveId: 'fixture', recipeMediaId: 'fixture-grouped');
+}
 
 final class _RecipeTransport implements PokemonBoundedExternalHttpTransport {
   _RecipeTransport(this.recipe);

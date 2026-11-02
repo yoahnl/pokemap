@@ -155,6 +155,7 @@ import 'battle_animation_plan.dart';
 import 'battle_overlay_component.dart';
 import 'battle_move_recipe_compiler.dart';
 import 'battle_offline_move_recipe_loader.dart';
+import 'battle_offline_grouped_turn.dart';
 import 'battle_motion_policy.dart';
 import 'post_battle_scene_plan_builder.dart';
 import 'battle_music_resolver.dart';
@@ -10389,6 +10390,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         maxConcurrentVoices: testSpeed.value == PlaytestSpeed.normal ? null : 4,
           ))
               .play,
+          onStartRecoverableTrackedEffect: (step, done, fail) =>
+              overlay.startGroupedSplEffect(step, done, fail),
           // BETA-BAT-028 : les cris viennent de la DONNÉE du projet
           // (assets/pokemon/cries/<espèce>.ogg, 721 fichiers dans le Train),
           // pas des assets embarqués — d'où le chemin projet. Un cri absent
@@ -10783,8 +10786,35 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           if (result.prepared != null) recipes[moveId] = result.prepared!;
         }
         if (!current()) return;
-        overlay.updateState(turnSession, gameState: _battleOverlayGameState,
-          presentation: psdkSession?.presentation, importedRecipes: recipes);
+        final player = _battleSfxPlayer;
+        if (player == null) {
+          overlay.updateState(turnSession, gameState: _battleOverlayGameState,
+            presentation: psdkSession?.presentation, importedRecipes: recipes);
+        } else {
+          final requests = await prepareOfflineGroupedSplTurn(
+            session: turnSession,
+            loader: loader,
+            results: _offlineRecipeResults,
+            overlay: overlay,
+            player: player,
+            isCurrent: current,
+          );
+          if (!current()) {
+            for (final request in requests) {
+              overlay.discardGroupedSplTurn(request);
+            }
+            return;
+          }
+          final applied = await overlay.prepareTurnAudioAndUpdateState(
+            turnSession,
+            audioRequests: requests,
+            gameState: _battleOverlayGameState,
+            presentation: psdkSession?.presentation,
+            importedRecipes: recipes,
+            isCurrent: current,
+          );
+          if (!applied || !current()) return;
+        }
         if (psdkSession != null && psdkSession.state.isFinished) {
           final request = context.request;
           final isTrainerBattle = request is TrainerBattleStartRequest;

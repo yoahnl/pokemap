@@ -27,9 +27,11 @@ import 'package:map_runtime/src/infrastructure/runtime_tileset_image.dart';
 import 'package:map_runtime/src/presentation/flame/battle_animation_plan.dart';
 import 'package:map_runtime/src/presentation/flame/battle_scene_layout.dart';
 import 'package:map_runtime/src/presentation/flame/battle_offline_move_recipe_loader.dart';
+import 'package:map_runtime/src/presentation/flame/battle_spl_static_component.dart';
 import 'package:path/path.dart' as p;
 
 import 'support/offline_recipe_package_fixture.dart';
+import 'source_converted_gym_reward_journey_test.dart' show installConvertedQaHeadlessAudio;
 
 const _warpTargetMapEnterFlag = 'test.warp.target.map_enter';
 const _failedWarpTargetMapEnterFlag = 'test.warp.failed_target.map_enter';
@@ -40,6 +42,55 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('PlayableMapGame runtime input seam', () {
+    test('2D battle plays a packaged grouped SPL recipe without HTTP', () =>
+        HttpOverrides.runZoned(() async {
+      installConvertedQaHeadlessAudio(completePlayback: true);
+      final fetched = await groupedSplRecipeFixture(
+        fixtureRoot: Platform.environment['AVELUNE_BW2_PILOT_FIXTURE'],
+      );
+      final fixture = await offlineRecipePackageFixture(
+        spatial: false, fetchedRecipe: fetched,
+      );
+      final game = _TestPlayableMapGame(
+        bundle: fixture.bundle,
+        projectFilePath: p.join(fixture.bundle.projectRootDirectory, 'project.json'),
+        initialGameState: fixture.state,
+      );
+      addTearDown(() async { await game.debugWaitForBattlePrewarm(); game.onRemove(); });
+      game.onGameResize(_testViewportSize);
+      await game.onLoad();
+      await game.debugOpenBattleForTest(const WildBattleStartRequest(
+        requestId: 'grouped-recipe', createdAtEpochMs: 1,
+        returnContext: OverworldReturnContext(mapId: 'map',
+          playerPos: GridPos(x: 1, y: 1), playerFacing: Direction.east),
+        mapId: 'map', encounterSourceId: 'grass',
+        encounterSourceKind: EncounterSourceKind.gameplayZone, tableId: 'wild',
+        encounterKind: EncounterKind.walk, speciesId: 'clockbird',
+        level: 2, minLevel: 2, maxLevel: 2, weight: 1,
+        playerPos: GridPos(x: 1, y: 1),
+      ));
+      await _pumpUntil(game, () => game.battleCommandOverlayListenable.value?.interactionsEnabled == true);
+      bool choose(int index) {
+        final snapshot = game.battleCommandOverlayListenable.value!;
+        return game.dispatchBattlePresentationCommand(BattleSelectEntryCommand(
+          snapshotRevision: snapshot.revision, expectedMode: snapshot.mode, entryIndex: index));
+      }
+      expect(choose(0), isTrue);
+      expect(choose(0), isTrue);
+      await _pumpUntil(game, () => game.debugBattleOverlayComponent
+          ?.debugActiveAnimationPlan.flattenedSteps.whereType<StartTrackedEffectStep>().isNotEmpty == true,
+          maxTicks: 2000);
+      final overlay = game.debugBattleOverlayComponent!;
+      final tracked = overlay.debugActiveAnimationPlan.flattenedSteps
+          .whereType<StartTrackedEffectStep>().length;
+      expect(overlay.debugActiveAnimationPlan.audioScopes, hasLength(tracked));
+      final scopes = overlay.debugActiveAnimationPlan.audioScopes.toList();
+      await _pumpUntil(game, () => overlay.children.whereType<BattleSplStaticComponent>()
+          .any((effect) => effect.playback.activeParticles > 0), maxTicks: 2000);
+      await _pumpUntil(game, () => !overlay.isTurnPresentationActive, maxTicks: 2000);
+      expect(scopes.every((scope) => scope.fullyDispatched && scope.cues.length == 1), isTrue);
+    }, createHttpClient: (_) => throw StateError('Network disabled for this test')));
+
     test('2D battle reads an imported exported package without HTTP', () =>
         HttpOverrides.runZoned(() async {
       final fixture = await offlineRecipePackageFixture(spatial: false, cameraRecipe: true);

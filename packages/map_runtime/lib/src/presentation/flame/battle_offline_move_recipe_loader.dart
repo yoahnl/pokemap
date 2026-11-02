@@ -34,10 +34,17 @@ final class BattleOfflineMoveRecipeResult {
 }
 
 final class BattleOfflineVerifiedMedia {
-  BattleOfflineVerifiedMedia._(this._bundle, this._reservation);
+  BattleOfflineVerifiedMedia._(
+    this._bundle,
+    this._reservation,
+    this._budget,
+    this._textureDecodeBytes,
+  );
 
   InspectedBattleRecipeBundle? _bundle;
   RuntimeResourceReservation? _reservation;
+  final RuntimeResourceBudget _budget;
+  final int _textureDecodeBytes;
 
   InspectedBattleRecipeBundle get bundle {
     final bundle = _bundle;
@@ -47,6 +54,28 @@ final class BattleOfflineVerifiedMedia {
     }
     reservation.ensureCurrent();
     return bundle;
+  }
+
+  Future<RuntimeResourceReservation> acquireTextureDecode({
+    bool Function()? isCurrent,
+  }) {
+    final reservation = _reservation;
+    if (reservation == null) {
+      throw StateError('Battle recipe media already released');
+    }
+    reservation.ensureCurrent();
+    return _budget.acquire(
+      transientBytes: _textureDecodeBytes,
+      isCurrent: () {
+        try {
+          if (!identical(_reservation, reservation)) return false;
+          reservation.ensureCurrent();
+          return isCurrent?.call() ?? true;
+        } on Object {
+          return false;
+        }
+      },
+    );
   }
 
   void release() {
@@ -285,7 +314,12 @@ final class BattleOfflineMoveRecipeLoader {
       );
       _checkCurrent(isCurrent);
       reservation.commit();
-      verifiedMedia = BattleOfflineVerifiedMedia._(inspected, reservation);
+      verifiedMedia = BattleOfflineVerifiedMedia._(
+        inspected,
+        reservation,
+        _resourceBudget,
+        largestTexturePixels * 16,
+      );
     }
     return BattleOfflineMoveRecipeResult(
       fallbackReason: unavailable.isNotEmpty

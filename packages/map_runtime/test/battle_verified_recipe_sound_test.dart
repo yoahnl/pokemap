@@ -23,6 +23,7 @@ import 'package:map_runtime/src/application/runtime_move_catalog_loader.dart';
 import 'package:map_runtime/src/presentation/flame/battle_recipe_audio_program.dart';
 import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_offline_move_recipe_loader.dart';
+import 'package:map_runtime/src/presentation/flame/battle_spl_static_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_verified_recipe_sound_loader.dart';
 import 'package:path/path.dart' as p;
 
@@ -91,8 +92,71 @@ Future<InspectedBattleRecipeBundle> _bundle({
   );
 }
 
+Future<BattleOfflineVerifiedMedia> _groupedOfflineMedia(
+  Directory root,
+  RuntimeResourceBudget budget, {
+  String? fixtureRoot,
+}) async {
+  final fetched = await groupedSplRecipeFixture(fixtureRoot: fixtureRoot);
+  Future<void> write(String path, List<int> bytes) async {
+    final file = File(p.join(root.path, path));
+    await file.parent.create(recursive: true);
+    await file.writeAsBytes(bytes);
+  }
+
+  await write(
+    battleRecipeBindingPath('tackle'),
+    utf8.encode(jsonEncode(BattleRecipeProjectBinding(binding: fetched.binding).toJson())),
+  );
+  await write(
+    battleRecipeBlobPath(
+      fetched.binding.recipeSha256,
+      'application/vnd.avelune.battle-recipe+json',
+      projectMoveId: 'tackle',
+    ),
+    fetched.bundle.recipeBytes,
+  );
+  for (final resource in fetched.bundle.recipe.resources) {
+    await write(
+      battleRecipeBlobPath(resource.sha256Hex, resource.mediaType, projectMoveId: 'tackle'),
+      fetched.bundle.media[resource.id]!,
+    );
+  }
+  final result = await BattleOfflineMoveRecipeLoader(
+    projectRootDirectory: root.path,
+    resourceBudget: budget,
+  ).load('tackle', retainVerifiedMedia: true);
+  return result.verifiedMedia!;
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('audio preparation releases its verified bundle reference', () async {
+    final bundle = await _bundle();
+    final voice = _Voice();
+    final player = FlameAudioBattleSfxPlayer(playerFactory: () => voice);
+    addTearDown(player.dispose);
+    final coordinator = BattleRecipeAudioCoordinator(
+      player: player,
+      bundle: bundle,
+      preparationTimeout: const Duration(seconds: 1),
+      startTimeout: const Duration(seconds: 1),
+    );
+    addTearDown(coordinator.cancel);
+    expect(identical(coordinator.bundle, bundle), isTrue);
+    final result = await coordinator.prepare(const BattleMoveClipAudio('cue'));
+    expect(result.status, BattleRecipeAudioStatus.ready);
+    expect(() => coordinator.bundle, throwsStateError);
+    final cancelled = BattleRecipeAudioCoordinator(
+      player: player,
+      bundle: bundle,
+      preparationTimeout: const Duration(seconds: 1),
+      startTimeout: const Duration(seconds: 1),
+    );
+    await cancelled.cancel();
+    expect(() => cancelled.bundle, throwsStateError);
+  });
 
   test('runs a complete clip once without replaying SEQ sounds', () async {
     final bundle = await _bundle();
@@ -2388,6 +2452,360 @@ void main() {
       expect(voice.resumes, 1);
     },
   );
+
+  test('grouped SPL media plays with its clip and releases after both finish', () async {
+    final root = await Directory.systemTemp.createTemp('grouped-spl-turn-');
+    addTearDown(() => root.delete(recursive: true));
+    final budget = RuntimeResourceBudget();
+    addTearDown(budget.dispose);
+    final media = await _groupedOfflineMedia(
+      root,
+      budget,
+      fixtureRoot: Platform.environment['AVELUNE_BW2_PILOT_FIXTURE'],
+    );
+    final turn = _realTurn();
+    final event = turn.events.firstWhere(
+      (entry) => entry.execution.attackerSide == BattleSideId.player,
+    );
+    final voice = _Voice();
+    final player = FlameAudioBattleSfxPlayer(playerFactory: () => voice);
+    addTearDown(player.dispose);
+    final sounds = <String>[];
+    final hpTransitions = <int>{};
+    late final BattleOverlayComponent overlay;
+    overlay = BattleOverlayComponent(
+      session: turn.before,
+      viewportSize: Vector2(390, 844),
+      onPlayerChoice: (_) {},
+      playSfx: (name, {required volume, required pitch}) => sounds.add(name),
+      onStartRecoverableTrackedEffect: (step, done, fail) =>
+          overlay.startGroupedSplEffect(step, done, fail),
+      onCommandOverlaySnapshotChanged: (snapshot) {
+        final hud = snapshot?.enemyHud;
+        if (hud?.targetDisplayedHp == turn.after.state.enemy.currentHp) {
+          hpTransitions.add(hud!.hpTweenRevision);
+        }
+      },
+    );
+    await loadFlameComponent(overlay);
+    await overlay.waitForPendingVisualSync();
+    addTearDown(overlay.onRemove);
+    final request = await overlay.prepareGroupedSplTurn(
+      event: event, media: media, player: player,
+    );
+    expect(request, isNotNull);
+    expect(await overlay.prepareTurnAudioAndUpdateState(
+      turn.after, audioRequests: [request!],
+    ), isTrue);
+    await overlay.waitForPendingVisualSync();
+    var sawParticles = false;
+    var sawPixels = false;
+    bool? bothCombatantsVisibleAtStart;
+    var completedAudio = false;
+    for (var i = 0; i < 400; i++) {
+      overlay.updateTree(1 / 60);
+      overlay.findGame()!.processLifecycleEvents();
+      await Future<void>.delayed(Duration.zero);
+      for (final effect in overlay.children.whereType<BattleSplStaticComponent>()) {
+        sawParticles = sawParticles || effect.playback.activeParticles > 0;
+        if (effect.playback.activeParticles > 0 &&
+            bothCombatantsVisibleAtStart == null) {
+          final playerRect =
+              overlay.debugPlayerCombatant?.currentEffectAttachmentSpriteRect;
+          final enemyRect =
+              overlay.debugEnemyCombatant?.currentEffectAttachmentSpriteRect;
+          final viewport = ui.Rect.fromLTWH(0, 0, 390, 844);
+          bothCombatantsVisibleAtStart =
+              playerRect != null &&
+              enemyRect != null &&
+              viewport.contains(playerRect.center) &&
+              viewport.contains(enemyRect.center);
+        }
+        if (!sawPixels && effect.playback.tick >= 4 && effect.playback.activeParticles > 0) {
+          final recorder = ui.PictureRecorder();
+          effect.render(ui.Canvas(recorder));
+          final picture = recorder.endRecording();
+          final image = await picture.toImage(390, 844);
+          try {
+            final bytes = (await image.toByteData(format: ui.ImageByteFormat.rawRgba))!
+                .buffer.asUint8List();
+            for (var j = 3; j < bytes.length; j += 4) {
+              if (bytes[j] != 0) {
+                sawPixels = true;
+                break;
+              }
+            }
+          } finally {
+            image.dispose();
+            picture.dispose();
+          }
+        }
+      }
+      if (!completedAudio && voice.resumes > 0) {
+        completedAudio = true;
+        voice.complete.add(null);
+        expect(budget.residentBytes, greaterThan(0));
+      }
+    }
+    expect(voice.resumes, 1);
+    expect(sawParticles, isTrue);
+    expect(sawPixels, isTrue);
+    expect(bothCombatantsVisibleAtStart, isTrue);
+    expect(sounds.where((name) => name == 'hit'), hasLength(1));
+    expect(hpTransitions, hasLength(1));
+    expect(budget.residentBytes, 0);
+  });
+
+  test('removing the scene releases an unstarted grouped SPL effect', () async {
+    final root = await Directory.systemTemp.createTemp('grouped-spl-cancel-');
+    addTearDown(() => root.delete(recursive: true));
+    final budget = RuntimeResourceBudget();
+    addTearDown(budget.dispose);
+    final media = await _groupedOfflineMedia(root, budget);
+    final turn = _realTurn();
+    final event = turn.events.firstWhere(
+      (entry) => entry.execution.attackerSide == BattleSideId.player,
+    );
+    final voice = _Voice();
+    final player = FlameAudioBattleSfxPlayer(playerFactory: () => voice);
+    addTearDown(player.dispose);
+    final overlay = BattleOverlayComponent(
+      session: turn.before,
+      viewportSize: Vector2(390, 844),
+      onPlayerChoice: (_) {},
+    );
+    await loadFlameComponent(overlay);
+    await overlay.waitForPendingVisualSync();
+    addTearDown(overlay.onRemove);
+    final request = await overlay.prepareGroupedSplTurn(
+      event: event, media: media, player: player,
+    );
+    expect(request, isNotNull);
+    expect(budget.residentBytes, greaterThan(0));
+    overlay.onRemove();
+    for (var i = 0; i < 100 && budget.residentBytes != 0; i++) {
+      await Future<void>.delayed(Duration.zero);
+    }
+    expect(budget.residentBytes, 0);
+    expect(voice.resumes, 0);
+  });
+
+  for (final failAudio in [true, false]) {
+    test('grouped SPL releases media when ${failAudio ? 'audio preparation fails' : 'the running scene closes'}', () async {
+      final root = await Directory.systemTemp.createTemp('grouped-spl-failure-');
+      addTearDown(() => root.delete(recursive: true));
+      final budget = RuntimeResourceBudget();
+      addTearDown(budget.dispose);
+      final media = await _groupedOfflineMedia(root, budget);
+      final turn = _realTurn();
+      final event = turn.events.firstWhere(
+        (entry) => entry.execution.attackerSide == BattleSideId.player,
+      );
+      final voice = _Voice(failSource: failAudio);
+      final player = FlameAudioBattleSfxPlayer(playerFactory: () => voice);
+      addTearDown(player.dispose);
+      late final BattleOverlayComponent overlay;
+      overlay = BattleOverlayComponent(
+        session: turn.before,
+        viewportSize: Vector2(390, 844),
+        onPlayerChoice: (_) {},
+        onStartRecoverableTrackedEffect: (step, done, fail) =>
+            overlay.startGroupedSplEffect(step, done, fail),
+      );
+      await loadFlameComponent(overlay);
+      await overlay.waitForPendingVisualSync();
+      addTearDown(overlay.onRemove);
+      final request = await overlay.prepareGroupedSplTurn(
+        event: event, media: media, player: player,
+      );
+      expect(request, isNotNull);
+      expect(await overlay.prepareTurnAudioAndUpdateState(
+        turn.after, audioRequests: [request!],
+      ), isTrue);
+      await overlay.waitForPendingVisualSync();
+      if (!failAudio) {
+        for (var i = 0; i < 300 && voice.resumes == 0; i++) {
+          overlay.updateTree(1 / 60);
+          overlay.findGame()!.processLifecycleEvents();
+          await Future<void>.delayed(Duration.zero);
+        }
+        expect(voice.resumes, 1);
+        expect(budget.residentBytes, greaterThan(0));
+        overlay.onRemove();
+      }
+      await voice.disposed.future.timeout(const Duration(seconds: 2));
+      for (var i = 0; i < 100 && budget.residentBytes != 0; i++) {
+        await Future<void>.delayed(Duration.zero);
+      }
+      expect(budget.residentBytes, 0);
+      expect(voice.resumes, failAudio ? 0 : 1);
+    });
+  }
+
+  test('reducing motion during grouped SPL restores the silent fallback', () async {
+    final root = await Directory.systemTemp.createTemp('grouped-spl-motion-');
+    addTearDown(() => root.delete(recursive: true));
+    final budget = RuntimeResourceBudget();
+    addTearDown(budget.dispose);
+    final media = await _groupedOfflineMedia(root, budget);
+    final turn = _realTurn();
+    final event = turn.events.firstWhere(
+      (entry) => entry.execution.attackerSide == BattleSideId.player,
+    );
+    final voice = _Voice();
+    final player = FlameAudioBattleSfxPlayer(playerFactory: () => voice);
+    addTearDown(player.dispose);
+    final sounds = <String>[];
+    final hpTransitions = <int>{};
+    late final BattleOverlayComponent overlay;
+    overlay = BattleOverlayComponent(
+      session: turn.before,
+      viewportSize: Vector2(390, 844),
+      onPlayerChoice: (_) {},
+      playSfx: (name, {required volume, required pitch}) => sounds.add(name),
+      onStartRecoverableTrackedEffect: (step, done, fail) =>
+          overlay.startGroupedSplEffect(step, done, fail),
+      onCommandOverlaySnapshotChanged: (snapshot) {
+        final hud = snapshot?.enemyHud;
+        if (hud?.targetDisplayedHp == turn.after.state.enemy.currentHp) {
+          hpTransitions.add(hud!.hpTweenRevision);
+        }
+      },
+    );
+    await loadFlameComponent(overlay);
+    await overlay.waitForPendingVisualSync();
+    addTearDown(overlay.onRemove);
+    final request = await overlay.prepareGroupedSplTurn(
+      event: event, media: media, player: player,
+    );
+    expect(request, isNotNull);
+    expect(await overlay.prepareTurnAudioAndUpdateState(
+      turn.after, audioRequests: [request!],
+    ), isTrue);
+    await overlay.waitForPendingVisualSync();
+    for (var i = 0; i < 300 && voice.resumes == 0; i++) {
+      overlay.updateTree(1 / 60);
+      overlay.findGame()!.processLifecycleEvents();
+      await Future<void>.delayed(Duration.zero);
+    }
+    expect(voice.resumes, 1);
+    expect(overlay.children.whereType<BattleSplStaticComponent>(), isNotEmpty);
+    overlay.applyMotionPolicy(BattleMotionPolicy(reducedMotion: true, effectIntensity: 0));
+    overlay.updateTree(1 / 60);
+    overlay.findGame()!.processLifecycleEvents();
+    expect(overlay.children.whereType<BattleSplStaticComponent>(), isEmpty);
+    voice.complete.add(null);
+    for (var i = 0; i < 300; i++) {
+      overlay.updateTree(1 / 60);
+      await Future<void>.delayed(Duration.zero);
+    }
+    expect(voice.resumes, 1);
+    expect(sounds.where((name) => name == 'hit'), hasLength(1));
+    expect(hpTransitions, hasLength(1));
+    expect(budget.residentBytes, 0);
+  });
+
+  for (final closeWhileWaiting in [false, true]) {
+    test('grouped SPL ${closeWhileWaiting ? 'cancels' : 'waits'} while the shared decode slot is busy', () async {
+      final root = await Directory.systemTemp.createTemp('grouped-spl-budget-');
+      addTearDown(() => root.delete(recursive: true));
+      final budget = RuntimeResourceBudget(
+        profile: const RuntimeResourceProfile(maximumConcurrentDecodes: 1),
+      );
+      addTearDown(budget.dispose);
+      final media = await _groupedOfflineMedia(root, budget);
+      final turn = _realTurn();
+      final event = turn.events.firstWhere(
+        (entry) => entry.execution.attackerSide == BattleSideId.player,
+      );
+      final player = FlameAudioBattleSfxPlayer(playerFactory: () => _Voice());
+      addTearDown(player.dispose);
+      final overlay = BattleOverlayComponent(
+        session: turn.before,
+        viewportSize: Vector2(390, 844),
+        onPlayerChoice: (_) {},
+      );
+      await loadFlameComponent(overlay);
+      await overlay.waitForPendingVisualSync();
+      addTearDown(overlay.onRemove);
+      final occupied = await budget.acquire(transientBytes: 1024);
+      addTearDown(occupied.release);
+      var completed = false;
+      final preparing = overlay.prepareGroupedSplTurn(
+        event: event, media: media, player: player,
+      )..then((_) => completed = true);
+      await Future<void>.delayed(const Duration(milliseconds: 30));
+      expect(completed, isFalse);
+      if (closeWhileWaiting) {
+        overlay.onRemove();
+        expect(await preparing.timeout(const Duration(seconds: 1)), isNull);
+      } else {
+        occupied.release();
+        final request = await preparing.timeout(const Duration(seconds: 1));
+        expect(request, isNotNull);
+        expect(budget.activeDecodes, 0);
+        expect(budget.transientBytes, 0);
+        overlay.discardGroupedSplTurn(request!);
+      }
+      occupied.release();
+      for (var i = 0; i < 100 && budget.residentBytes != 0; i++) {
+        await Future<void>.delayed(Duration.zero);
+      }
+      expect(budget.residentBytes, 0);
+      expect(budget.activeDecodes, 0);
+      expect(budget.transientBytes, 0);
+      expect(budget.pendingDecodes, 0);
+    });
+  }
+
+  test('a stale turn is not applied after audio preparation', () async {
+    final turn = _realTurn();
+    final event = turn.events.firstWhere(
+      (entry) => entry.execution.attackerSide == BattleSideId.player,
+    );
+    final gate = Completer<void>();
+    final voice = _Voice(sourceGate: gate);
+    final player = FlameAudioBattleSfxPlayer(playerFactory: () => voice);
+    addTearDown(player.dispose);
+    final coordinator = BattleRecipeAudioCoordinator(
+      player: player,
+      bundle: await _bundle(),
+      preparationTimeout: const Duration(seconds: 1),
+      startTimeout: const Duration(seconds: 1),
+    );
+    addTearDown(coordinator.cancel);
+    final overlay = BattleOverlayComponent(
+      session: turn.before,
+      viewportSize: Vector2(390, 844),
+      onPlayerChoice: (_) {},
+    );
+    await loadFlameComponent(overlay);
+    await overlay.waitForPendingVisualSync();
+    addTearDown(overlay.onRemove);
+    var current = true;
+    final pending = overlay.prepareTurnAudioAndUpdateState(
+      turn.after,
+      isCurrent: () => current,
+      audioRequests: [
+        BattleTurnAudioRequest(
+          event: event,
+          coordinator: coordinator,
+          audio: const BattleMoveClipAudio('cue'),
+          silentVisuals: const AnimationGroupStep(
+            mode: BattleAnimationGroupMode.parallel,
+            steps: [WaitStep(durationSeconds: 0)],
+          ),
+        ),
+      ],
+    );
+    await voice.sourceSet.future.timeout(const Duration(seconds: 1));
+    current = false;
+    gate.complete();
+    expect(await pending, isFalse);
+    expect(identical(overlay.debugSession, turn.before), isTrue);
+    await voice.disposed.future.timeout(const Duration(seconds: 1));
+    expect(voice.resumes, 0);
+  });
 
   test(
     'post-audio fallback does not replay sounds embedded in RMXP visuals',

@@ -146,13 +146,15 @@ final class _PreparedAudioCue {
 final class BattleRecipeAudioCoordinator {
   BattleRecipeAudioCoordinator({
     required this.player,
-    required this.bundle,
+    required InspectedBattleRecipeBundle bundle,
     required this.preparationTimeout,
     required this.startTimeout,
-  });
+  }) : _bundle = bundle;
 
   final FlameAudioBattleSfxPlayer player;
-  final InspectedBattleRecipeBundle bundle;
+  InspectedBattleRecipeBundle? _bundle;
+  InspectedBattleRecipeBundle get bundle =>
+      _bundle ?? (throw StateError('Battle recipe audio bundle released'));
   final Duration preparationTimeout;
   final Duration startTimeout;
   static int _nextToken = 0;
@@ -171,6 +173,7 @@ final class BattleRecipeAudioCoordinator {
     if (_requested) throw StateError('Audio preparation already requested');
     _requested = true;
     if (_cancelled) {
+      _bundle = null;
       return const BattleRecipeAudioResult._(
         BattleRecipeAudioStatus.cancelled,
         null,
@@ -195,6 +198,7 @@ final class BattleRecipeAudioCoordinator {
             audio.events.any(
               (event) => event.sourceId.isEmpty || event.sourceId.length > 160,
             ))) {
+      _bundle = null;
       return const BattleRecipeAudioResult._(
         BattleRecipeAudioStatus.fallback,
         null,
@@ -206,6 +210,7 @@ final class BattleRecipeAudioCoordinator {
       if (cue.resourceId.isEmpty ||
           cue.offset < previous ||
           cue.offset > const Duration(seconds: 30)) {
+        _bundle = null;
         return const BattleRecipeAudioResult._(
           BattleRecipeAudioStatus.fallback,
           null,
@@ -255,8 +260,10 @@ final class BattleRecipeAudioCoordinator {
         cancel,
       );
       _program = program;
+      _bundle = null;
       return BattleRecipeAudioResult._(BattleRecipeAudioStatus.ready, program);
     } on Object catch (error) {
+      _bundle = null;
       final status = _cancelled
           ? BattleRecipeAudioStatus.cancelled
           : BattleRecipeAudioStatus.fallback;
@@ -277,9 +284,13 @@ final class BattleRecipeAudioCoordinator {
     final existing = _cancelling;
     if (existing != null) return existing;
     _cancelled = true;
+    _bundle = null;
     _program?._disabled = true;
+    _program = null;
     _cancelSignal.complete();
-    return _cancelling = Future.wait(_pending.map((entry) => entry.cancel()))
+    final pending = List<BattleRecipeSoundPreparation>.of(_pending);
+    _pending.clear();
+    return _cancelling = Future.wait(pending.map((entry) => entry.cancel()))
         .then<void>((_) {});
   }
 }

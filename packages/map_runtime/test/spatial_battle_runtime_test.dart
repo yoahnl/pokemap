@@ -31,7 +31,9 @@ import 'package:map_runtime/src/presentation/flutter/battle_command_overlay_snap
 import 'package:map_runtime/src/spatial/spatial_battle_runtime.dart';
 import 'package:map_runtime/src/presentation/flame/battle_motion_policy.dart';
 import 'package:map_runtime/src/presentation/flame/battle_animation_plan.dart';
+import 'package:map_runtime/src/presentation/flame/battle_move_recipe_compiler.dart';
 import 'package:map_runtime/src/presentation/flame/battle_offline_move_recipe_loader.dart';
+import 'package:map_runtime/src/presentation/flame/battle_spl_static_component.dart';
 import 'package:map_runtime/src/spatial/spatial_battle_view.dart';
 import 'package:path/path.dart' as p;
 
@@ -58,6 +60,54 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUp(() => installConvertedQaHeadlessAudio(completePlayback: true));
   tearDownAll(() => loopbackTransport?.close());
+  testWidgets('spatial battle plays a packaged grouped SPL recipe offline', (tester) =>
+      HttpOverrides.runZoned(() async {
+    final fetched = (await tester.runAsync(() => groupedSplRecipeFixture(
+      fixtureRoot: Platform.environment['AVELUNE_BW2_PILOT_FIXTURE'],
+    )))!;
+    final fixture = (await tester.runAsync(
+      () => offlineRecipePackageFixture(fetchedRecipe: fetched),
+    ))!;
+    final runtime = SpatialBattleRuntime(
+      readGameState: () => fixture.state,
+      commitGameState: (_, _) => true,
+    );
+    addTearDown(runtime.dispose);
+    unawaited(runtime.start(bundle: fixture.bundle, request: _packagedWild()));
+    await _readyInView(tester, runtime);
+    final fight = runtime.displaySession!.decisionRequest.allowedChoices
+        .whereType<PlayerBattleChoiceFight>().first;
+    bool? accepted;
+    var sawTracked = false;
+    var sawParticles = false;
+    var sawAudio = false;
+    final submitted = runtime.submitChoice(fight).then((value) {
+      accepted = value;
+      return value;
+    });
+    for (var i = 0; i < 2000 && accepted == null; i++) {
+      await _pumpPresentation(tester);
+      final overlay = runtime.battleOverlay;
+      if (overlay != null) {
+        final plan = overlay.debugActiveAnimationPlan;
+        sawTracked = sawTracked || plan.flattenedSteps.whereType<StartTrackedEffectStep>().isNotEmpty;
+        sawAudio = sawAudio || plan.audioScopes.isNotEmpty;
+        sawParticles = sawParticles || overlay.children.whereType<BattleSplStaticComponent>()
+            .any((effect) => effect.playback.activeParticles > 0);
+        if (runtime.phase == SpatialBattlePhase.battle && overlay.isTurnPresentationActive) {
+          runtime.handleInput(const RuntimeInputEvent.press(RuntimeInputControl.primary));
+        }
+      }
+    }
+    expect(accepted, isNotNull, reason: '${runtime.error}');
+    expect(await submitted, isTrue);
+    expect(sawTracked, isTrue);
+    expect(sawAudio, isTrue);
+    expect(sawParticles, isTrue);
+    expect(runtime.error, isNull);
+    runtime.cancel();
+  }, createHttpClient: (_) => throw StateError('Network disabled for this test')));
+
   testWidgets('imports a real API recipe and uses it offline in battle',
       (tester) async {
     final fetched = await tester.runAsync(() async {
@@ -89,6 +139,9 @@ void main() {
       }
     });
     expect(fetched, isNotNull);
+    final grouped = const BattleMoveRecipeCompiler()
+            .selectGroupedSpl(fetched!.bundle.recipe) !=
+        null;
     await HttpOverrides.runZoned(() async {
       final fixture = (await tester.runAsync(
         () => offlineRecipePackageFixture(fetchedRecipe: fetched),
@@ -108,16 +161,39 @@ void main() {
       await _readyInView(tester, runtime);
       final fight = runtime.displaySession!.decisionRequest.allowedChoices
           .whereType<PlayerBattleChoiceFight>().first;
-      expect(await _submit(tester, runtime, fight), isTrue);
+      var sawTracked = false;
+      var sawAudio = false;
+      var sawParticles = false;
+      expect(await _submit(tester, runtime, fight, onFrame: () {
+        final overlay = runtime.battleOverlay;
+        if (overlay == null) return;
+        final plan = overlay.debugActiveAnimationPlan;
+        sawTracked = sawTracked ||
+            plan.flattenedSteps.whereType<StartTrackedEffectStep>().isNotEmpty;
+        sawAudio = sawAudio || plan.audioScopes.isNotEmpty;
+        sawParticles = sawParticles ||
+            overlay.children.whereType<BattleSplStaticComponent>()
+                .any((effect) => effect.playback.activeParticles > 0);
+      }), isTrue);
       final result = runtime.debugOfflineRecipeResults['tackle'];
       expect(
         result?.fallbackReason,
         BattleRecipeFallbackReason.unavailableCapabilities,
       );
-      expect(
-        result?.unavailableCapabilities,
-        {'startParticle'},
-      );
+      if (grouped) {
+        expect(result?.unavailableCapabilities, containsAll({
+          'startParticle',
+          'waitEffects',
+          'splParticleV2',
+          'sound',
+          'audioSelectionV2',
+        }));
+        expect(sawTracked, isTrue);
+        expect(sawAudio, isTrue);
+        expect(sawParticles, isTrue);
+      } else {
+        expect(result?.unavailableCapabilities, {'startParticle'});
+      }
       expect(runtime.error, isNull);
       expect(commitCount, 0);
       runtime.cancel();
@@ -2031,7 +2107,7 @@ Future<void> _pumpPresentation(WidgetTester tester) async {
 }
 
 Future<bool> _submit(WidgetTester tester, SpatialBattleRuntime runtime,
-    PlayerBattleChoice choice) async {
+    PlayerBattleChoice choice, {void Function()? onFrame}) async {
   bool? result;
   final future = runtime.submitChoice(choice).then((accepted) {
     result = accepted;
@@ -2039,6 +2115,7 @@ Future<bool> _submit(WidgetTester tester, SpatialBattleRuntime runtime,
   });
   for (var i = 0; i < 2000 && result == null; i++) {
     await _pumpPresentation(tester);
+    onFrame?.call();
     if (runtime.phase == SpatialBattlePhase.battle &&
         runtime.battleOverlay?.isTurnPresentationActive == true) {
       runtime.handleInput(

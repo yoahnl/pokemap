@@ -345,7 +345,9 @@ final class BattlePreparedRecipeSound {
     await _settle(Future.sync(_player.stop));
     await _settle(Future.sync(_player.dispose));
     try {
-      await _source?.dispose();
+      final source = _source;
+      _source = null;
+      await source?.dispose();
     } finally {
       _owner._recipeSounds.remove(this);
       _owner._livePlayers.remove(_player);

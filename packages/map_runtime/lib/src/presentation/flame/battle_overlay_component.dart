@@ -54,6 +54,11 @@ import 'battle_turn_animation_planner.dart';
 import 'battle_sfx_player.dart';
 import 'battle_move_visual_resolver.dart';
 import 'battle_move_recipe_compiler.dart';
+import 'battle_offline_move_recipe_loader.dart';
+import 'battle_spl_camera_projection.dart';
+import 'battle_spl_static_admission.dart';
+import 'battle_spl_static_component.dart';
+import 'battle_verified_spl_loader.dart';
 
 /// Retourne le prompt de décision à afficher pour la requête courante.
 ///
@@ -708,6 +713,9 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
   bool get _reducedBattleMotion => _motionPolicy.reducedMotion || _systemReducedMotion;
   bool get _reducedBattleEffects =>
       (_hasExplicitMotionPolicy && _motionPolicy.reducedMotion) || _systemReducedMotion;
+  bool get _canPlayGroupedSpl =>
+      !_isDoubles && !_reducedBattleEffects &&
+      _motionPolicy.effectIntensity == 1 && _motionPolicy.playbackSpeed == 1;
 
   void applyMotionPolicy(BattleMotionPolicy? policy, {double? legacyMotionScale}) {
     _motionPolicy = policy ?? BattleMotionPolicy.legacy(legacyMotionScale ?? motionScale);
@@ -756,6 +764,10 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
   BattleAnimationPlan? _pendingTurnAudioPlan;
   _PendingTurnAudioPreparation? _pendingTurnAudioPreparation;
   _PendingTurnAudioPreparation? _turnAudioSettlement;
+  final Map<String, _PreparedGroupedSpl> _groupedSplEffects = {};
+  final Set<BattleVerifiedSplLoader> _groupedSplLoads = {};
+  final Completer<void> _groupedSplClosed = Completer<void>();
+  var _nextGroupedSplId = 0;
   // BETA-BAT-011 : le planner reçoit les MÊMES résolveurs que le HUD et le
   // menu. `late` parce qu'un initialiseur de champ ne peut pas lire `this`, et
   // c'est exactement pour ça que le plan d'animation s'en passait.
@@ -868,6 +880,194 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     _syncPanelsOnly();
   }
 
+  Future<BattleTurnAudioRequest?> prepareGroupedSplTurn({
+    required BattleTurnExecutionEvent event,
+    required BattleOfflineVerifiedMedia media,
+    required FlameAudioBattleSfxPlayer player,
+  }) async {
+    BattleVerifiedSplLoader? loader;
+    BattleSplStaticComponent? component;
+    RuntimeResourceReservation? decodeReservation;
+    var abandoned = false;
+    var handedOff = false;
+    try {
+      if (_ballImagesDisposed || !_canPlayGroupedSpl) {
+        return null;
+      }
+      final camera = _perspectiveCamera;
+      final targetSlot = event.execution.targetSlot;
+      if (camera == null || targetSlot == null) return null;
+      final attackerSlot = event.execution.attackerSlot;
+      final attacker = _effectSubjectAt(attackerSlot);
+      final target = _effectSubjectAt(targetSlot);
+      if (attacker == null || target == null) return null;
+      BattleSplCameraBinding binding(
+        BattleSlotRef slot,
+        ({BattleSceneCombatantComponent actor, int lineupIndex, String? combatantId}) identity,
+      ) {
+        bool current() {
+          final value = _effectSubjectAt(slot);
+          return value != null &&
+              identical(value.actor, identity.actor) &&
+              value.lineupIndex == identity.lineupIndex &&
+              value.combatantId == identity.combatantId;
+        }
+        return BattleSplCameraBinding(
+          resolveNeutralFoot: () => current() ? _geometryFor(slot).footAnchor : null,
+          resolveAnchor: () {
+            if (!current()) return null;
+            final rect = identity.actor.currentEffectAttachmentSpriteRect;
+            return rect.isEmpty ? null : Vector2(rect.center.dx, rect.center.dy);
+          },
+        );
+      }
+
+      final bindings = {
+        'userMouth': binding(attackerSlot, attacker),
+        'targetImpact': binding(targetSlot, target),
+      };
+      final bundle = media.bundle;
+      final selection = const BattleMoveRecipeCompiler().selectGroupedSpl(bundle.recipe);
+      if (selection == null) return null;
+      final definitions = bundle.recipe.readVerifiedSplParticleDefinitions(
+        bundle.media,
+        availableCapabilities: BattleMoveAnimationRecipe.recognizedCapabilities,
+      );
+      final directions = selection.particles
+          .where((item) => item.from != item.to)
+          .map((item) => (from: item.from, to: item.to))
+          .toSet();
+      if (directions.length > 1) return null;
+      final anchors = BattleSplCameraProjection(
+        camera: camera,
+        bindings: [bindings['userMouth']!, bindings['targetImpact']!],
+      ).capture();
+      if (anchors == null) return null;
+      final anchorByName = {'userMouth': anchors[0], 'targetImpact': anchors[1]};
+      var yaw = 0.0;
+      if (directions.isNotEmpty) {
+        final direction = directions.single;
+        final from = anchorByName[direction.from]!;
+        final to = anchorByName[direction.to]!;
+        final dx = to.x - from.x;
+        final dz = to.z - from.z;
+        if (dx.abs() + dz.abs() < .000001) return null;
+        yaw = math.atan2(dz, dx);
+      }
+      final emitters = <BattleSplStaticEmitter>[];
+      final emitterBindings = <BattleSplCameraBinding>[];
+      for (final part in selection.particles) {
+        final definition = definitions[part.resourceId];
+        if (definition == null) return null;
+        for (var i = 0; i < definition.emitters.length; i++) {
+          emitters.add(BattleSplStaticEmitter(
+            emitterIndex: emitters.length,
+            startTick: 0,
+            position: (x: 0, y: 0, z: 0),
+          ));
+          emitterBindings.add(bindings[part.from]!);
+        }
+      }
+      if (emitters.isEmpty || emitters.length > 32) return null;
+      final projection = BattleSplCameraProjection(
+        camera: camera,
+        bindings: emitterBindings,
+        worldTransform: BattleSplWorldTransform(
+          worldUnitsPerUnit: anchors[0].unit * 5,
+          yawRadians: yaw,
+        ),
+      );
+      final pendingDecode = media.acquireTextureDecode(
+        isCurrent: () => !_ballImagesDisposed,
+      );
+      unawaited(pendingDecode.then<void>((reservation) {
+        if (abandoned || _ballImagesDisposed) reservation.release();
+      }, onError: (Object _) {}));
+      decodeReservation = await Future.any<RuntimeResourceReservation>([
+        pendingDecode,
+        _groupedSplClosed.future.then((_) =>
+            throw const BattleOfflineRecipeLoadCancelled()),
+      ]).timeout(const Duration(seconds: 2));
+      if (_ballImagesDisposed) return null;
+      loader = BattleVerifiedSplLoader(bundle);
+      _groupedSplLoads.add(loader);
+      late _PreparedGroupedSpl prepared;
+      final result = await loader.createGrouped(
+        selection.particles.map((item) => item.resourceId).toList(),
+        emitters: emitters,
+        seed: 0,
+        poolCapacity: 128,
+        maxTicks: 200,
+        origin: Offset.zero,
+        pixelsPerUnit: 5,
+        projection: projection,
+        onComplete: () => prepared.visualCompleted(),
+        onFailure: (_) => prepared.visualFailed(),
+      );
+      component = result.component;
+      if (_ballImagesDisposed || component == null) return null;
+      final coordinator = BattleRecipeAudioCoordinator(
+        player: player,
+        bundle: bundle,
+        preparationTimeout: const Duration(seconds: 2),
+        startTimeout: const Duration(seconds: 1),
+      );
+      final id = 'grouped-spl-${_nextGroupedSplId++}';
+      prepared = _PreparedGroupedSpl(
+        component: component,
+        media: media,
+        coordinator: coordinator,
+        onClosed: () => _groupedSplEffects.remove(id),
+      );
+      _groupedSplEffects[id] = prepared;
+      handedOff = true;
+      return BattleTurnAudioRequest(
+        event: event,
+        coordinator: coordinator,
+        audio: selection.audio,
+        trackedEffectId: id,
+        silentVisuals: const AnimationGroupStep(
+          mode: BattleAnimationGroupMode.parallel,
+          steps: [
+            CameraFocusStep(
+              target: BattleCameraFocusTarget.scene,
+              durationSeconds: 0,
+            ),
+          ],
+        ),
+      );
+    } on Object catch (error) {
+      debugPrint('[battle] grouped SPL unavailable: $error');
+      return null;
+    } finally {
+      abandoned = true;
+      decodeReservation?.release();
+      if (loader != null) _groupedSplLoads.remove(loader);
+      if (!handedOff) {
+        component?.dispose();
+        media.release();
+      }
+    }
+  }
+
+  void discardGroupedSplTurn(BattleTurnAudioRequest request) {
+    final effect = _groupedSplEffects[request.trackedEffectId];
+    if (effect != null) unawaited(effect.cancel());
+  }
+
+  void Function() startGroupedSplEffect(
+    StartTrackedEffectStep step,
+    void Function() onComplete,
+    void Function() onFailure,
+  ) {
+    final effect = _groupedSplEffects[step.effectId];
+    if (effect == null) {
+      onFailure();
+      return () {};
+    }
+    return effect.start(this, onComplete, onFailure, allowed: _canPlayGroupedSpl);
+  }
+
   Future<bool> prepareTurnAudioAndUpdateState(
     BattleSession newSession, {
     required List<BattleTurnAudioRequest> audioRequests,
@@ -875,6 +1075,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     GameState? gameState,
     RuntimeBattlePresentation? presentation,
     Map<String, PreparedBattleMoveRecipe>? importedRecipes,
+    bool Function()? isCurrent,
   }) async {
     final requests = List<BattleTurnAudioRequest>.unmodifiable(audioRequests);
     final events = Set<BattleTurnExecutionEvent>.identity();
@@ -893,6 +1094,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     if (!valid || _ballImagesDisposed) {
       final seen = Set<Object>.identity();
       for (final request in requests) {
+        discardGroupedSplTurn(request);
         if (request.coordinator.canRequest && seen.add(request.coordinator)) {
           unawaited(Future.sync(request.coordinator.cancel).then<void>(
             (_) {},
@@ -904,6 +1106,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
       throw StateError('Invalid turn audio preparation');
     }
     if (requests.isEmpty) {
+      if (isCurrent?.call() == false) return false;
       updateState(
         newSession,
         gameState: gameState,
@@ -913,13 +1116,15 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
       return true;
     }
     _cancelPendingTurnAudioPreparation();
-    final pending = _PendingTurnAudioPreparation(requests);
+    final pending = _PendingTurnAudioPreparation(requests, discardGroupedSplTurn);
     _pendingTurnAudioPreparation = pending;
     _turnAudioSettlement = pending;
     final clock = Stopwatch()..start();
     final selections = <BattleTurnAudioSelection>[];
     bool current() =>
-        !_ballImagesDisposed && identical(_pendingTurnAudioPreparation, pending);
+        !_ballImagesDisposed &&
+        identical(_pendingTurnAudioPreparation, pending) &&
+        (isCurrent?.call() ?? true);
     void abort({required bool unlock}) {
       final shouldUnlock = unlock &&
           !_ballImagesDisposed &&
@@ -958,6 +1163,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
         if (!current() || result.status == BattleRecipeAudioStatus.cancelled) {
           throw const _TurnAudioInterrupted();
         }
+        _groupedSplEffects[request.trackedEffectId]?.audioPrepared(result);
         selections.add(
           BattleTurnAudioSelection(
             event: request.event,
@@ -1425,10 +1631,17 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     _resetSceneClock();
     if (_ballImagesDisposed) return;
     _ballImagesDisposed = true;
+    if (!_groupedSplClosed.isCompleted) _groupedSplClosed.complete();
     _presentationGeneration++;
     _cancelPendingTurnAudioPreparation();
     _discardPendingTurnAudio();
     _animationRunner?.cancel(notify: false);
+    for (final loader in _groupedSplLoads) {
+      loader.cancel();
+    }
+    for (final effect in _groupedSplEffects.values.toList()) {
+      unawaited(effect.cancel());
+    }
     for (final lease in _sheetLeases.values) {
       lease.dispose();
     }
@@ -2801,6 +3014,11 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
   void _advanceSceneWithinBudget(double dt, {required bool updateChildren}) {
     if (_ballImagesDisposed || !dt.isFinite || dt < 0) return;
     _syncReducedBattleEffects();
+    if (!_canPlayGroupedSpl) {
+      for (final effect in _groupedSplEffects.values.toList()) {
+        effect.failIfStarted();
+      }
+    }
     if (_reducedBattleMotion && isBattleCameraActive) _resetBattleCamera();
     if (_introTrainerExitPending &&
         (_introTrainerSprite?.isMotionComplete ?? false)) {
@@ -5372,16 +5590,135 @@ final class _TurnAudioPreparationTimedOut implements Exception {
   const _TurnAudioPreparationTimedOut();
 }
 
+final class _PreparedGroupedSpl {
+  _PreparedGroupedSpl({
+    required this.component,
+    required this.media,
+    required this.coordinator,
+    required this.onClosed,
+  });
+
+  final BattleSplStaticComponent component;
+  final BattleOfflineVerifiedMedia media;
+  final BattleRecipeAudioCoordinator coordinator;
+  final void Function() onClosed;
+  void Function()? _onComplete;
+  void Function()? _onFailure;
+  Future<void>? _cancelling;
+  bool _started = false;
+  bool _visualFinished = false;
+  bool _audioFinished = false;
+  bool _closed = false;
+
+  void audioPrepared(BattleRecipeAudioResult result) {
+    final program = result.program;
+    if (result.status != BattleRecipeAudioStatus.ready || program == null) {
+      unawaited(cancel());
+      return;
+    }
+    unawaited(program.finished.then<void>((_) async {
+      try {
+        await coordinator.cancel();
+      } on Object catch (error) {
+        debugPrint('[battle] grouped audio cleanup failed: $error');
+      } finally {
+        _audioFinished = true;
+        if (!program.anyDispatched && !_started) _cancelVisual();
+        _finishIfDone();
+      }
+    }, onError: (Object _) async {
+      await cancel();
+    }));
+  }
+
+  void Function() start(
+    BattleOverlayComponent overlay,
+    void Function() onComplete,
+    void Function() onFailure, {
+    required bool allowed,
+  }
+  ) {
+    if (_closed || _visualFinished || _started) {
+      onFailure();
+      return () {};
+    }
+    _started = true;
+    _onComplete = onComplete;
+    _onFailure = onFailure;
+    if (!allowed) {
+      visualFailed();
+      return _cancelVisual;
+    }
+    if (!component.refreshAttachment()) return _cancelVisual;
+    try {
+      component.priority = 9999;
+      overlay.add(component);
+    } on Object {
+      visualFailed();
+    }
+    return _cancelVisual;
+  }
+
+  void failIfStarted() {
+    if (_started && !_visualFinished) visualFailed();
+  }
+
+  void visualCompleted() {
+    if (_visualFinished) return;
+    _visualFinished = true;
+    _onComplete?.call();
+    _finishIfDone();
+  }
+
+  void visualFailed() {
+    if (_visualFinished) return;
+    _visualFinished = true;
+    component.dispose();
+    _onFailure?.call();
+    _finishIfDone();
+  }
+
+  void _cancelVisual() {
+    if (_visualFinished) return;
+    _visualFinished = true;
+    component.dispose();
+    _finishIfDone();
+  }
+
+  Future<void> cancel() => _cancelling ??= _cancel();
+
+  Future<void> _cancel() async {
+    _cancelVisual();
+    try {
+      await coordinator.cancel();
+    } on Object catch (error) {
+      debugPrint('[battle] grouped audio cleanup failed: $error');
+    } finally {
+      _audioFinished = true;
+      _finishIfDone();
+    }
+  }
+
+  void _finishIfDone() {
+    if (_closed || !_visualFinished || !_audioFinished) return;
+    _closed = true;
+    media.release();
+    onClosed();
+  }
+}
+
 final class _PendingTurnAudioPreparation {
-  _PendingTurnAudioPreparation(this.requests);
+  _PendingTurnAudioPreparation(this.requests, this.cancelEffect);
 
   final List<BattleTurnAudioRequest> requests;
+  final void Function(BattleTurnAudioRequest) cancelEffect;
   final Completer<void> interrupted = Completer<void>();
   final Completer<void> settled = Completer<void>();
 
   void cancel() {
     if (!interrupted.isCompleted) interrupted.complete();
     for (final request in requests) {
+      cancelEffect(request);
       unawaited(Future.sync(request.coordinator.cancel).then<void>(
         (_) {},
         onError: (Object _) {},

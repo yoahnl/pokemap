@@ -43,6 +43,8 @@ import '../presentation/flame/battle_overlay_component.dart';
 import '../presentation/flame/battle_motion_policy.dart';
 import '../presentation/flame/battle_move_recipe_compiler.dart';
 import '../presentation/flame/battle_offline_move_recipe_loader.dart';
+import '../presentation/flame/battle_offline_grouped_turn.dart';
+import '../presentation/flame/battle_move_audio_scope.dart';
 import '../presentation/flame/battle_pokemon_sprite_resolver.dart';
 import '../presentation/flame/battle_visual_asset_cache.dart';
 import '../presentation/flame/post_battle_progression_overlay_component.dart';
@@ -419,6 +421,8 @@ final class SpatialBattleRuntime extends ChangeNotifier {
         motionPolicy: _motionPolicy,
         resourceBudget: bundle.resourceBudget,
         playSfx: sounds.play,
+        onStartRecoverableTrackedEffect: (step, done, fail) =>
+            overlay.startGroupedSplEffect(step, done, fail),
         playCry: _playCry,
         onOutcomePresented: (outcome) => onOutcomePresented?.call(outcome),
         session: displaySession!,
@@ -705,11 +709,46 @@ final class SpatialBattleRuntime extends ChangeNotifier {
         }
         if (result.prepared != null) recipes[moveId] = result.prepared!;
       }
-      if (!overlay.isMounted) return;
-      overlay.updateState(turnSession,
-        gameState: _overlayGameState, presentation: _engine!.presentation,
-        importedRecipes: recipes,
-      );
+      bool current() => _current(generation) &&
+          identical(battleOverlay, overlay) &&
+          identical(displaySession, turnSession) && overlay.isMounted;
+      if (!current()) return;
+      final player = _sounds;
+      if (player == null) {
+        overlay.updateState(turnSession,
+          gameState: _overlayGameState, presentation: _engine!.presentation,
+          importedRecipes: recipes,
+        );
+      } else {
+        late final List<BattleTurnAudioRequest> requests;
+        try {
+          requests = await prepareOfflineGroupedSplTurn(
+            session: turnSession,
+            loader: loader,
+            results: _offlineRecipeResults,
+            overlay: overlay,
+            player: player,
+            isCurrent: current,
+          );
+        } on BattleOfflineRecipeLoadCancelled {
+          return;
+        }
+        if (!current()) {
+          for (final request in requests) {
+            overlay.discardGroupedSplTurn(request);
+          }
+          return;
+        }
+        final applied = await overlay.prepareTurnAudioAndUpdateState(
+          turnSession,
+          audioRequests: requests,
+          gameState: _overlayGameState,
+          presentation: _engine!.presentation,
+          importedRecipes: recipes,
+          isCurrent: current,
+        );
+        if (!applied || !current()) return;
+      }
       await overlay.waitForTurnPresentationComplete();
     }
     await _waitUntilResumed(generation);
