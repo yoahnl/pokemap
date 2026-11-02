@@ -127,6 +127,27 @@ final class _Transport implements PokemonBoundedExternalHttpTransport {
 }
 
 void main() {
+  test('accepts the real API response for the BW2 Disable source v2', () async {
+    final encoded = Platform.environment['AVELUNE_BW2_INTEROP_RESPONSE']!;
+    final transport = _Transport()..overrideBytes = base64.decode(encoded);
+    final snapshot =
+        await AveluneGen5MoveSource(client: transport, release: 'draft')
+            .fetch(moveId: 'disable', sourceMoveId: 50);
+    expect(snapshot!.effectiveDependencyStatus, 'complete');
+    expect(snapshot.particles.keys, [215]);
+    expect(snapshot.playbackStatus, 'not-supported');
+    final particle = snapshot.particles[215]!;
+    final converted = Gen5SplParticleConverter.convert(
+      particle.definitionBytes,
+      particleId: 215,
+      sourceRevision: snapshot.sourceRevision,
+      sourcePath: 'res/particles/btlv_effvm_particles/215/particles.json',
+      expectedSha256: particle.definitionSha256,
+      textureResourceIds: const {'texture00': 'texture00'},
+    );
+    expect(converted.definition.emitters, hasLength(2));
+  }, skip: Platform.environment['AVELUNE_BW2_INTEROP_RESPONSE'] == null);
+
   test('loads a bounded snapshot and diagnoses its verified dependencies',
       () async {
     final transport = _Transport();
