@@ -58,6 +58,22 @@ End''');
     expect(result.requireAllSymbolsResolved, returnsNormally);
   });
 
+  test('resolves individual BW2 wait constants', () {
+    final result = Gen5BattleScriptSymbols.resolve(_script('''
+Wait EFFVM_WAIT_CAMERA
+Wait EFFVM_WAIT_PARTICLES
+Wait EFFVM_WAIT_MCSS
+Wait EFFVM_WAIT_SE
+End'''));
+    expect(result.resolvedSymbols, {
+      'EFFVM_WAIT_CAMERA': 1,
+      'EFFVM_WAIT_PARTICLES': 2,
+      'EFFVM_WAIT_MCSS': 3,
+      'EFFVM_WAIT_SE': 10,
+    });
+    expect(result.unresolvedSymbols, isEmpty);
+  });
+
   test('rejects an unrecognized declared source revision', () {
     final parameters = _script(
       'End',

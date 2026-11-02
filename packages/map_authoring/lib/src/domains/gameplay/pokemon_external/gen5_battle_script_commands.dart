@@ -1,5 +1,13 @@
 const gen5BattleCommandFields = <String, List<String>>{
   'CameraMovePreset': ['moveType', 'camera', 'frames', 'wait', 'brake'],
+  'CameraShake': [
+    'direction',
+    'amplitude',
+    'unused',
+    'frames',
+    'wait',
+    'count'
+  ],
   'ParticleLoad': ['particle'],
   'EmitterMove': [
     'particle',
@@ -29,6 +37,21 @@ const gen5BattleCommandFields = <String, List<String>>{
   ],
   'McssPalFade': ['targets', 'startEvy', 'endEvy', 'wait', 'color'],
   'McssMoveXY': ['targets', 'type', 'x', 'y', 'frames', 'wait', 'times'],
+  'McssCircle': [
+    'targets',
+    'mode',
+    'start',
+    'radius1',
+    'radius2',
+    'frames',
+    'wait',
+    'count',
+    'turnWait',
+  ],
+  'McssRotate': ['targets', 'type', 'angle', 'frames', 'wait', 'times'],
+  'McssScale': ['targets', 'type', 'x', 'y', 'frames', 'wait', 'times'],
+  'McssSetVanish': ['targets', 'vanish'],
+  'McssSetValue': ['targets', 'value'],
   'PaletteFade': ['fade', 'evy', 'targetEvy', 'wait', 'color'],
   'PlaySE': [
     'se',

@@ -28,7 +28,32 @@ enum Gen5BattleWaitCheck {
   paletteAnimation,
   backgroundWave,
   sound,
+  soundDelay,
+  soundAutomation,
 }
+
+const _waitChecksByKind = <String, Set<Gen5BattleWaitCheck>>{
+  'EFFVM_WAIT_ALL': {
+    Gen5BattleWaitCheck.camera,
+    Gen5BattleWaitCheck.mcss,
+    Gen5BattleWaitCheck.background,
+    Gen5BattleWaitCheck.particles,
+    Gen5BattleWaitCheck.stageFade,
+    Gen5BattleWaitCheck.fieldFade,
+    Gen5BattleWaitCheck.paletteFade,
+    Gen5BattleWaitCheck.window,
+    Gen5BattleWaitCheck.paletteAnimation,
+    Gen5BattleWaitCheck.backgroundWave,
+  },
+  'EFFVM_WAIT_CAMERA': {Gen5BattleWaitCheck.camera},
+  'EFFVM_WAIT_PARTICLES': {Gen5BattleWaitCheck.particles},
+  'EFFVM_WAIT_MCSS': {Gen5BattleWaitCheck.mcss},
+  'EFFVM_WAIT_SE': {
+    Gen5BattleWaitCheck.sound,
+    Gen5BattleWaitCheck.soundDelay,
+    Gen5BattleWaitCheck.soundAutomation,
+  },
+};
 
 final class Gen5BattleScriptBlock {
   Gen5BattleScriptBlock._({
@@ -52,18 +77,7 @@ final class Gen5BattleScriptBlock {
 
   Set<Gen5BattleWaitCheck> get waitChecks =>
       boundary == Gen5BattleScriptBoundary.waitCondition
-          ? const {
-              Gen5BattleWaitCheck.camera,
-              Gen5BattleWaitCheck.mcss,
-              Gen5BattleWaitCheck.background,
-              Gen5BattleWaitCheck.particles,
-              Gen5BattleWaitCheck.stageFade,
-              Gen5BattleWaitCheck.fieldFade,
-              Gen5BattleWaitCheck.paletteFade,
-              Gen5BattleWaitCheck.window,
-              Gen5BattleWaitCheck.paletteAnimation,
-              Gen5BattleWaitCheck.backgroundWave,
-            }
+          ? _waitChecksByKind[instructions.last.arguments.single]!
           : const {};
 }
 
@@ -112,7 +126,7 @@ final class Gen5BattleScriptControlFlow {
           yields = true;
           finish(Gen5BattleScriptBoundary.waitFrames);
         case 'Wait':
-          if (instruction.arguments.single != 'EFFVM_WAIT_ALL') {
+          if (!_waitChecksByKind.containsKey(instruction.arguments.single)) {
             throw FormatException(
               'Unsupported wait condition at line ${instruction.line}',
             );

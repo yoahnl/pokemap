@@ -71,6 +71,7 @@ final class Gen5BattleScriptSource {
     String? variant;
     var labelSeen = false;
     var ended = false;
+    var alignmentSeen = false;
     final instructions = <Gen5BattleScriptInstruction>[];
     for (var index = 0; index < lines.length; index++) {
       final raw = lines[index];
@@ -79,7 +80,13 @@ final class Gen5BattleScriptSource {
       }
       final line = raw.split('//').first.trim();
       if (line.isEmpty) continue;
-      if (ended) throw const FormatException('Content after battle script end');
+      if (ended) {
+        if (!alignmentSeen && line == '.balign 4') {
+          alignmentSeen = true;
+          continue;
+        }
+        throw const FormatException('Content after battle script end');
+      }
       if (line.startsWith('#')) {
         if (includeSeen ||
             headerSeen ||

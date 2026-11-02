@@ -27,6 +27,10 @@ final class Gen5BattleScriptSymbols {
     'EFFVM_EMIT_ATTACKER': 9,
     'EFFVM_EMIT_DEFENDER': 11,
     'EFFVM_WAIT_ALL': 0,
+    'EFFVM_WAIT_CAMERA': 1,
+    'EFFVM_WAIT_PARTICLES': 2,
+    'EFFVM_WAIT_MCSS': 3,
+    'EFFVM_WAIT_SE': 10,
   };
 
   static Gen5BattleScriptSymbols resolve(

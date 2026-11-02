@@ -11,14 +11,117 @@ enum Gen5BattleSourceBlocker {
   recipeConverter,
   scriptScheduling,
   cameraPresets,
+  cameraMotion,
   paletteEffects,
   combatantMotion,
+  combatantVisualState,
   particleRuntime,
   childParticles,
   missingTextures,
   soundPlayback,
   soundAutomation,
   unresolvedSymbols,
+}
+
+final class Gen5BattleParticleInventory {
+  Gen5BattleParticleInventory._({
+    required Map<String, String> textureFormats,
+    required Map<int, Set<String>> texturesByEmitter,
+    required Set<int> childEmitters,
+  })  : textureFormats = Map.unmodifiable(textureFormats),
+        texturesByEmitter = Map.unmodifiable({
+          for (final entry in texturesByEmitter.entries)
+            entry.key: Set<String>.unmodifiable(entry.value),
+        }),
+        childEmitters = Set.unmodifiable(childEmitters);
+
+  final Map<String, String> textureFormats;
+  final Map<int, Set<String>> texturesByEmitter;
+  final Set<int> childEmitters;
+
+  static final _textureName = RegExp(r'^[A-Za-z0-9_]{1,64}$');
+
+  static Gen5BattleParticleInventory read(Uint8List bytes,
+      {required String path}) {
+    final source = utf8.decode(bytes);
+    try {
+      const StrictJsonStructureValidator().validate(
+        source,
+        path: path,
+        maxDepth: 16,
+        maxNodes: 30000,
+      );
+    } on GamePackageFormatException {
+      throw const FormatException('Invalid particle source JSON');
+    }
+    final decoded = jsonDecode(source);
+    if (decoded is! Map<String, dynamic>) {
+      throw const FormatException('Invalid particle source document');
+    }
+    final rawEmitters = decoded['emitters'];
+    final rawTextures = decoded['textures'];
+    if (rawEmitters is! List ||
+        rawEmitters.isEmpty ||
+        rawEmitters.length > 32 ||
+        rawTextures is! List ||
+        rawTextures.isEmpty ||
+        rawTextures.length > 64) {
+      throw const FormatException('Invalid particle source inventory');
+    }
+    final declaredTextures = <String, String>{};
+    for (final raw in rawTextures) {
+      if (raw is! Map ||
+          raw['name'] is! String ||
+          !_textureName.hasMatch(raw['name'] as String) ||
+          raw['format'] is! String ||
+          !_textureName.hasMatch(raw['format'] as String) ||
+          declaredTextures.containsKey(raw['name'])) {
+        throw const FormatException('Invalid particle texture declaration');
+      }
+      declaredTextures[raw['name'] as String] = raw['format'] as String;
+    }
+    final texturesByEmitter = <int, Set<String>>{};
+    final childEmitters = <int>{};
+    for (var index = 0; index < rawEmitters.length; index++) {
+      final raw = rawEmitters[index];
+      if (raw is! Map) throw const FormatException('Invalid particle emitter');
+      final required = <String>{};
+      void addTexture(Object? name) {
+        if (name is! String || !declaredTextures.containsKey(name)) {
+          throw const FormatException('Undeclared particle texture');
+        }
+        required.add(name);
+      }
+
+      addTexture(raw['texture']);
+      if (raw.containsKey('textureAnim')) {
+        final animation = raw['textureAnim'];
+        if (animation is! Map ||
+            animation['textures'] is! List ||
+            (animation['textures'] as List).isEmpty ||
+            (animation['textures'] as List).length > 8) {
+          throw const FormatException('Invalid particle texture animation');
+        }
+        for (final name in animation['textures'] as List) {
+          addTexture(name);
+        }
+      }
+      if (raw.containsKey('childResource')) {
+        final child = raw['childResource'];
+        if (child is! Map) {
+          throw const FormatException('Invalid child particle resource');
+        }
+        addTexture(child['texture']);
+        childEmitters.add(index);
+      }
+      texturesByEmitter[index] = required;
+    }
+    return Gen5BattleParticleInventory._(
+      textureFormats: declaredTextures,
+      texturesByEmitter: texturesByEmitter,
+      childEmitters: childEmitters,
+    );
+  }
 }
 
 final class Gen5BattleTextureSource {
@@ -91,7 +194,6 @@ final class Gen5BattleSourceDependencies {
   }
 
   static final _sha256Pattern = RegExp(r'^[0-9a-f]{64}$');
-  static final _textureName = RegExp(r'^[A-Za-z0-9_]{1,64}$');
 
   static Gen5BattleSourceDependencies inspect({
     required Gen5BattleScriptParameters script,
@@ -116,83 +218,14 @@ final class Gen5BattleSourceDependencies {
     if (sha256.convert(bytes).toString() != particleSha256) {
       throw const FormatException('Invalid particle source digest');
     }
-    final source = utf8.decode(bytes);
-    try {
-      const StrictJsonStructureValidator().validate(
-        source,
-        path: particlePath,
-        maxDepth: 16,
-        maxNodes: 30000,
-      );
-    } on GamePackageFormatException {
-      throw const FormatException('Invalid particle source JSON');
-    }
-    final decoded = jsonDecode(source);
-    if (decoded is! Map<String, dynamic>) {
-      throw const FormatException('Invalid particle source document');
-    }
-    final rawEmitters = decoded['emitters'];
-    final rawTextures = decoded['textures'];
-    if (rawEmitters is! List ||
-        rawEmitters.isEmpty ||
-        rawEmitters.length > 32 ||
-        rawTextures is! List ||
-        rawTextures.isEmpty ||
-        rawTextures.length > 64 ||
-        textures.length > 64) {
+    if (textures.length > 64) {
       throw const FormatException('Invalid particle source inventory');
     }
-    final declaredTextures = <String, String>{};
-    for (final raw in rawTextures) {
-      if (raw is! Map ||
-          raw['name'] is! String ||
-          !_textureName.hasMatch(raw['name'] as String) ||
-          raw['format'] is! String ||
-          !_textureName.hasMatch(raw['format'] as String) ||
-          declaredTextures.containsKey(raw['name'])) {
-        throw const FormatException('Invalid particle texture declaration');
-      }
-      declaredTextures[raw['name'] as String] = raw['format'] as String;
-    }
-
-    final allEmitterTextures = <int, Set<String>>{};
-    final childEmitters = <int>{};
-    for (var index = 0; index < rawEmitters.length; index++) {
-      final raw = rawEmitters[index];
-      if (raw is! Map) {
-        throw const FormatException('Invalid particle emitter');
-      }
-      final dependencies = <String>{};
-      void addTexture(Object? name) {
-        if (name is! String || !declaredTextures.containsKey(name)) {
-          throw const FormatException('Undeclared particle texture');
-        }
-        dependencies.add(name);
-      }
-
-      addTexture(raw['texture']);
-      if (raw.containsKey('textureAnim')) {
-        final animation = raw['textureAnim'];
-        if (animation is! Map ||
-            animation['textures'] is! List ||
-            (animation['textures'] as List).isEmpty ||
-            (animation['textures'] as List).length > 8) {
-          throw const FormatException('Invalid particle texture animation');
-        }
-        for (final name in animation['textures'] as List) {
-          addTexture(name);
-        }
-      }
-      if (raw.containsKey('childResource')) {
-        final child = raw['childResource'];
-        if (child is! Map) {
-          throw const FormatException('Invalid child particle resource');
-        }
-        addTexture(child['texture']);
-        childEmitters.add(index);
-      }
-      allEmitterTextures[index] = dependencies;
-    }
+    final inventory =
+        Gen5BattleParticleInventory.read(bytes, path: particlePath);
+    final declaredTextures = inventory.textureFormats;
+    final allEmitterTextures = inventory.texturesByEmitter;
+    final childEmitters = inventory.childEmitters;
 
     final emitterOrder = <int>[];
     final soundReferences = <String>[];
@@ -239,13 +272,26 @@ final class Gen5BattleSourceDependencies {
         case 'MoveSE':
         case 'PanSE':
           blockers.add(Gen5BattleSourceBlocker.soundAutomation);
+        case 'Wait':
+          if (instruction.parameters['what']!.raw == 'EFFVM_WAIT_SE') {
+            blockers.add(Gen5BattleSourceBlocker.soundPlayback);
+            blockers.add(Gen5BattleSourceBlocker.soundAutomation);
+          }
         case 'CameraMovePreset':
           blockers.add(Gen5BattleSourceBlocker.cameraPresets);
+        case 'CameraShake':
+          blockers.add(Gen5BattleSourceBlocker.cameraMotion);
         case 'PaletteFade':
         case 'McssPalFade':
           blockers.add(Gen5BattleSourceBlocker.paletteEffects);
         case 'McssMoveXY':
+        case 'McssCircle':
+        case 'McssRotate':
           blockers.add(Gen5BattleSourceBlocker.combatantMotion);
+        case 'McssSetVanish':
+        case 'McssScale':
+        case 'McssSetValue':
+          blockers.add(Gen5BattleSourceBlocker.combatantVisualState);
       }
     }
     if (!loaded || emitterOrder.isEmpty) {

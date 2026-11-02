@@ -117,6 +117,26 @@ End''');
     expect(blocks.first.instructions.single.arguments, ['0x14']);
   });
 
+  test('preserves the specific BW2 wait condition and sound dependencies', () {
+    final cases = <String, Set<String>>{
+      'EFFVM_WAIT_CAMERA': {'camera'},
+      'EFFVM_WAIT_PARTICLES': {'particles'},
+      'EFFVM_WAIT_MCSS': {'mcss'},
+      'EFFVM_WAIT_SE': {'sound', 'soundDelay', 'soundAutomation'},
+    };
+    for (final entry in cases.entries) {
+      final blocks = Gen5BattleScriptControlFlow.analyze(
+        _script('Wait ${entry.key}\nEnd'),
+      ).blocks;
+      expect(blocks.first.boundary, Gen5BattleScriptBoundary.waitCondition);
+      expect(blocks.first.resume,
+          Gen5BattleScriptResume.afterNativeCompletionThenNextCall);
+      expect(blocks.first.waitChecks.map((check) => check.name).toSet(),
+          entry.value,
+          reason: entry.key);
+    }
+  });
+
   test('rejects unknown commands and malformed known commands', () {
     for (final body in [
       'FutureCommand 1\nEnd',

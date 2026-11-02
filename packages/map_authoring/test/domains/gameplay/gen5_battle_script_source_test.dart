@@ -88,6 +88,23 @@ void main() {
     }
   });
 
+  test('accepts a single trailing four-byte assembler alignment', () {
+    final parsed = _read('$_source  .balign 4\n');
+    expect(parsed.instructions.map((item) => item.name), [
+      'WaitFrames',
+      'FutureCommand',
+      'End',
+    ]);
+    for (final source in [
+      '$_source  .balign 2\n',
+      '$_source  .balign 4\n  .balign 4\n',
+      '$_source  .balign 4\n  WaitFrames 1\n',
+      _source.replaceFirst('  End', '  .balign 4\n  End'),
+    ]) {
+      expect(() => _read(source), throwsFormatException, reason: source);
+    }
+  });
+
   test('bounds input size and rejects invalid UTF-8', () {
     final oversized = ' ' * (64 * 1024 + 1);
     expect(() => _read(oversized), throwsFormatException);

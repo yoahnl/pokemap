@@ -178,6 +178,60 @@ End''');
     expect(result.soundReferences, isEmpty);
   });
 
+  test('reports unimplemented combatant visual state as a conversion blocker',
+      () {
+    for (final command in [
+      'McssSetVanish EFFVM_DEFENDER, TRUE',
+      'McssScale EFFVM_DEFENDER, 2, 0x19a, -0x19a, 2, 0, 1',
+      'McssSetValue EFFVM_ATTACKER, 7',
+    ]) {
+      final script = _script('''
+ParticleLoad 218
+EmitterAdd 218, 0, EFFVM_EMIT_DEFENDER, 0, 0, 0, 0, 4096, 4096, 4096, 4096
+$command
+End''');
+      final result = _inspect(script: script);
+      expect(result.blockers.map((blocker) => blocker.name),
+          contains('combatantVisualState'),
+          reason: command);
+      expect(result.requireConvertible, throwsStateError, reason: command);
+    }
+  });
+
+  test('reports sound playback and automation dependencies for sound waits',
+      () {
+    final script = _script('''
+ParticleLoad 218
+EmitterAdd 218, 0, EFFVM_EMIT_DEFENDER, 0, 0, 0, 0, 4096, 4096, 4096, 4096
+Wait EFFVM_WAIT_SE
+End''');
+    final result = _inspect(script: script);
+    expect(result.blockers, contains(Gen5BattleSourceBlocker.soundPlayback));
+    expect(result.blockers, contains(Gen5BattleSourceBlocker.soundAutomation));
+    expect(result.requireConvertible, throwsStateError);
+  });
+
+  test('reports camera shake and combatant motion as conversion blockers', () {
+    final cases = {
+      'CameraShake 0, 0x19a, 4096, 1, 1, 14': 'cameraMotion',
+      'McssCircle EFFVM_DEFENDER, 0, 0, 100, 200, 4, 1, 2, 3':
+          'combatantMotion',
+      'McssRotate EFFVM_DEFENDER, 1, -4096, 80, 0, 0': 'combatantMotion',
+    };
+    for (final entry in cases.entries) {
+      final script = _script('''
+ParticleLoad 218
+EmitterAdd 218, 0, EFFVM_EMIT_DEFENDER, 0, 0, 0, 0, 4096, 4096, 4096, 4096
+${entry.key}
+End''');
+      final result = _inspect(script: script);
+      expect(
+          result.blockers.map((blocker) => blocker.name), contains(entry.value),
+          reason: entry.key);
+      expect(result.requireConvertible, throwsStateError, reason: entry.key);
+    }
+  });
+
   test('does not hide a non-audio occurrence of a sound symbol', () {
     final script = _script('''
 ParticleLoad 218
