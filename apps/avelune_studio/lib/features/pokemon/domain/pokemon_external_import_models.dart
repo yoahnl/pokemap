@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:map_authoring/map_authoring.dart'
+    show PokemonBattleGifSelection;
 import 'package:map_core/map_core.dart';
 
 import 'pokemon_workspace_models.dart';
@@ -54,6 +56,7 @@ final class PokemonExternalImportPreview {
     required this.documents,
     required this.warnings,
     this.gen5Bundle,
+    this.gifSelection,
   });
 
   final String speciesId;
@@ -63,6 +66,7 @@ final class PokemonExternalImportPreview {
   final List<PokemonExternalDocument> documents;
   final List<String> warnings;
   final Gen5BattleSourceBundle? gen5Bundle;
+  final PokemonBattleGifSelection? gifSelection;
   bool get hasConflicts => documents.any((item) => item.conflict);
 
   PokemonExternalImportPlan plan(PokemonExternalConflictPolicy policy) {
@@ -138,6 +142,7 @@ final class PokemonExternalImportResult {
     this.excluded = 0,
     required this.warnings,
     this.gen5Imported = false,
+    this.gifImported = false,
     this.requiresReopen = false,
   });
 
@@ -148,6 +153,8 @@ final class PokemonExternalImportResult {
   final int excluded;
   final List<String> warnings;
   final bool gen5Imported;
+  final bool gifImported;
   final bool requiresReopen;
-  bool get noChange => created == 0 && overwritten == 0 && !gen5Imported;
+  bool get noChange =>
+      created == 0 && overwritten == 0 && !gen5Imported && !gifImported;
 }

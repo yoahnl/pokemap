@@ -90,10 +90,24 @@ final class PokemonDocumentTransaction {
     await _apply(documents, expectedDependencies: expectedDependencies);
   });
 
+  Future<void> applyBattleGifs(
+    PokemonDocumentWriteRequest media, {
+    required PokemonDocumentReadDependency species,
+    required Map<String, List<int>> gifs,
+  }) => mapAdapter.withResourceMutation(() async {
+    await _apply(
+      [media],
+      scopedMedia: true,
+      expectedDependencies: [species],
+      battleGifs: gifs,
+    );
+  });
+
   Future<List<int>?> _apply(
     List<PokemonDocumentWriteRequest> documents, {
     List<PokemonDocumentReadDependency> expectedDependencies = const [],
     bool scopedMedia = false,
+    Map<String, List<int>> battleGifs = const {},
   }) async {
     if (documents.isEmpty || documents.length > 200) {
       throw const PokemonWorkspaceFailure('Lot Pokémon vide ou trop grand.');
@@ -102,6 +116,12 @@ final class PokemonDocumentTransaction {
         scopedMedia &&
         documents.length == 1 &&
         documents.single.family == PokemonDocumentFamily.media;
+    if (battleGifs.isNotEmpty &&
+        (!mediaOnly || session.storage != ProjectSessionStorage.workingCatalog)) {
+      throw const PokemonWorkspaceFailure(
+        'Les GIF nécessitent un catalogue de travail.',
+      );
+    }
     final baseline = await mapAdapter.resourceBaseline(session);
     final writes = <Map<String, Object?>>[];
     final changedPaths = <String>{};
@@ -248,6 +268,13 @@ final class PokemonDocumentTransaction {
       }
       final operation =
           'pokemon_${DateTime.now().microsecondsSinceEpoch}_${Random.secure().nextInt(1 << 32)}';
+      final gifHandles = <String, String>{};
+      for (final entry in battleGifs.entries) {
+        gifHandles[entry.key] = (await api.artifacts.put(
+          entry.value,
+          declaredMediaType: 'image/gif',
+        )).reference.handle;
+      }
       final planned = await api.planMutation(
         opened.projectHandle,
         AuthoringRequest(
@@ -263,6 +290,7 @@ final class PokemonDocumentTransaction {
                     for (final dependency in dependencies)
                       dependency.resourceIdentity: dependency.relativePath,
                   },
+                  if (gifHandles.isNotEmpty) 'battleGifArtifacts': gifHandles,
                 }
               : const {},
           workspaceHandle: opened.workspaceHandle.value,

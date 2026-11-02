@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_authoring/map_authoring.dart'
     show
+        AveluneBattleGifSource,
         AveluneGen5BattleSource,
         AvelunePokemonMediaSource,
         PokemonExternalSourceRepository;
@@ -44,6 +45,7 @@ final class LocalPokemonWorkspaceAdapter
     this._movesSource,
     this._externalSource,
     this._gen5Source,
+    this._gifSource,
     this._recipeMediaSource,
   }) : _reader = reader ?? const LocalProjectFileReader();
 
@@ -53,6 +55,7 @@ final class LocalPokemonWorkspaceAdapter
   final PokemonMovesSnapshotSource? _movesSource;
   final PokemonExternalSourceRepository? _externalSource;
   final AveluneGen5BattleSource? _gen5Source;
+  final AveluneBattleGifSource? _gifSource;
   final AvelunePokemonMediaSource? _recipeMediaSource;
   http.Client? _gen5Client;
   http.Client? _recipeClient;
@@ -90,6 +93,16 @@ final class LocalPokemonWorkspaceAdapter
                       _gen5Client ??= http.Client(),
                     ),
                   )
+            : null,
+        gifSource: session.storage == ProjectSessionStorage.workingCatalog
+            ? _gifSource ??
+                  (_externalSource == null
+                      ? AveluneBattleGifSource(
+                          client: HttpPokemonExternalTransport(
+                            _gen5Client ??= http.Client(),
+                          ),
+                        )
+                      : null)
             : null,
         isCurrent: () => !_closed,
         loadIndex: loadIndex,
