@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:map_core/map_core.dart';
+
 import 'pokemon_workspace_models.dart';
 
 enum PokemonExternalConflictPolicy {
@@ -51,6 +53,7 @@ final class PokemonExternalImportPreview {
     required this.inventorySignature,
     required this.documents,
     required this.warnings,
+    this.gen5Bundle,
   });
 
   final String speciesId;
@@ -59,6 +62,7 @@ final class PokemonExternalImportPreview {
   final String inventorySignature;
   final List<PokemonExternalDocument> documents;
   final List<String> warnings;
+  final Gen5BattleSourceBundle? gen5Bundle;
   bool get hasConflicts => documents.any((item) => item.conflict);
 
   PokemonExternalImportPlan plan(PokemonExternalConflictPolicy policy) {
@@ -133,6 +137,8 @@ final class PokemonExternalImportResult {
     required this.skipped,
     this.excluded = 0,
     required this.warnings,
+    this.gen5Imported = false,
+    this.requiresReopen = false,
   });
 
   final String speciesId;
@@ -141,5 +147,7 @@ final class PokemonExternalImportResult {
   final int skipped;
   final int excluded;
   final List<String> warnings;
-  bool get noChange => created == 0 && overwritten == 0;
+  final bool gen5Imported;
+  final bool requiresReopen;
+  bool get noChange => created == 0 && overwritten == 0 && !gen5Imported;
 }

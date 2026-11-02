@@ -219,10 +219,29 @@ class PokemonExternalPreviewPane extends StatelessWidget {
             children: [
               const PokemonSectionHeading(title: 'À savoir'),
               const Text(
-                'La préparation distante fournit les documents Pokémon. '
-                'Elle ne télécharge pas les images ni les cris. '
-                'Après import, associez les PNG disponibles dans Médias.',
+                'Les images de secours et les cris restent à associer '
+                'dans Médias.',
               ),
+              if (preview.gen5Bundle != null &&
+                  preview
+                      .plan(policy)
+                      .selected
+                      .any((item) => item.family.name == 'species'))
+                const Padding(
+                  padding: EdgeInsets.only(top: 8),
+                  child: Text(
+                    'Animation Noir/Blanc 2 prête à être importée. '
+                    'Les animations déjà présentes sont conservées.',
+                  ),
+                ),
+              if (preview.gen5Bundle != null &&
+                  !preview
+                      .plan(policy)
+                      .selected
+                      .any((item) => item.family.name == 'species'))
+                const Text(
+                  'La fiche conservée ne recevra pas de nouvelle animation.',
+                ),
               for (final warning in preview.warnings)
                 Padding(
                   padding: const EdgeInsets.only(top: 8),

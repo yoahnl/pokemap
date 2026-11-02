@@ -4,7 +4,10 @@ import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_authoring/map_authoring.dart'
-    show AvelunePokemonMediaSource, PokemonExternalSourceRepository;
+    show
+        AveluneGen5BattleSource,
+        AvelunePokemonMediaSource,
+        PokemonExternalSourceRepository;
 import 'package:map_core/map_core.dart';
 
 import '../../map_workspace/data/local_map_workspace_adapter.dart';
@@ -40,6 +43,7 @@ final class LocalPokemonWorkspaceAdapter
     ProjectFileReader? reader,
     this._movesSource,
     this._externalSource,
+    this._gen5Source,
     this._recipeMediaSource,
   }) : _reader = reader ?? const LocalProjectFileReader();
 
@@ -48,7 +52,9 @@ final class LocalPokemonWorkspaceAdapter
   final ProjectFileReader _reader;
   final PokemonMovesSnapshotSource? _movesSource;
   final PokemonExternalSourceRepository? _externalSource;
+  final AveluneGen5BattleSource? _gen5Source;
   final AvelunePokemonMediaSource? _recipeMediaSource;
+  http.Client? _gen5Client;
   http.Client? _recipeClient;
   Future<PokemonMoveRecipeImport>? _recipeOpening;
   Future<void>? _closing;
@@ -66,6 +72,15 @@ final class LocalPokemonWorkspaceAdapter
         source: (_externalSession ??= PokemonExternalSourceSession(
           _externalSource,
         )).source,
+        gen5Source: session.storage == ProjectSessionStorage.workingCatalog
+            ? _gen5Source ??
+                  AveluneGen5BattleSource(
+                    client: HttpPokemonExternalTransport(
+                      _gen5Client ??= http.Client(),
+                    ),
+                  )
+            : null,
+        isCurrent: () => !_closed,
         loadIndex: loadIndex,
       );
 
@@ -133,6 +148,7 @@ final class LocalPokemonWorkspaceAdapter
   Future<void> _close() async {
     _closed = true;
     _externalSession?.dispose();
+    _gen5Client?.close();
     _recipeClient?.close();
     final opening = _recipeOpening;
     if (opening != null) {

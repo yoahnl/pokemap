@@ -55,15 +55,29 @@ extension PokemonExternalCommands on PokemonWorkspaceController {
       if (_disposed) return false;
       externalPreview = null;
       externalResult = result;
+      if (result.requiresReopen) {
+        error =
+            'Import partiel ou état incertain : rouvrez le projet '
+            'et vérifiez les données avant de réessayer.';
+        return true;
+      }
       if (result.noChange) return true;
       await load(refresh: true);
       if (_disposed) return false;
+      if (error != null) {
+        error =
+            'Import enregistré, mais actualisation impossible. '
+            'Rouvrez le projet avant de continuer : $error';
+        return true;
+      }
       selectedId = null;
       _drafts.remove(result.speciesId);
       await selectSpecies(result.speciesId);
       return !_disposed;
     } on Object catch (failure) {
-      if (!_disposed) error = 'Import externe refusé : $failure';
+      if (!_disposed) {
+        error = 'Import externe interrompu : $failure';
+      }
       return false;
     } finally {
       externalBusy = false;

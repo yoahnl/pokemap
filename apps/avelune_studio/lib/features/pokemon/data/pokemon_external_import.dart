@@ -11,6 +11,7 @@ import 'pokemon_document_transaction.dart';
 import 'pokemon_index_projection.dart';
 import 'pokemon_companion_projection.dart';
 import 'pokemon_external_import_helpers.dart';
+import 'pokemon_gen5_battle_import.dart';
 
 final class PokemonExternalImport {
   PokemonExternalImport({
@@ -19,6 +20,8 @@ final class PokemonExternalImport {
     required this.reader,
     required this.source,
     required this.loadIndex,
+    this.gen5Source,
+    this.isCurrent,
   }) : _search = SearchExternalPokemonSpeciesUseCase(
          externalSourceRepository: source,
          queryResolver: const PokemonExternalQueryResolver(),
@@ -28,6 +31,8 @@ final class PokemonExternalImport {
   final LocalMapWorkspaceAdapter mapAdapter;
   final ProjectFileReader reader;
   final PokemonExternalSourceRepository source;
+  final AveluneGen5BattleSource? gen5Source;
+  final bool Function()? isCurrent;
   final Future<PokemonWorkspaceIndex> Function() loadIndex;
   final SearchExternalPokemonSpeciesUseCase _search;
 
@@ -95,6 +100,34 @@ final class PokemonExternalImport {
       pokemonSpeciesPayload: pokeApiSpecies,
       pokemonPayload: pokemon,
     );
+    Gen5BattleSourceBundle? gen5Bundle;
+    final gen5 = gen5Source;
+    if (session.storage != ProjectSessionStorage.workingCatalog) {
+      warnings.add(
+        'L’animation Noir/Blanc 2 nécessite un catalogue de travail.',
+      );
+    } else if (gen5 == null ||
+        species.nationalDex < 1 ||
+        species.nationalDex > 649 ||
+        !species.forms.isBaseForm) {
+      warnings.add(
+        'L’animation Noir/Blanc 2 n’est pas disponible pour cette espèce.',
+      );
+    } else {
+      try {
+        final snapshot = await gen5.fetch(
+          species: canonicalId,
+          nationalDex: species.nationalDex,
+        );
+        if (snapshot == null) {
+          warnings.add('L’animation Noir/Blanc 2 est absente de la source.');
+        } else {
+          gen5Bundle = gen5BattleSourceBundleFromSnapshot(snapshot);
+        }
+      } on Object {
+        warnings.add('L’animation Noir/Blanc 2 est indisponible ou invalide.');
+      }
+    }
     PokemonLearnsetFile? learnset;
     PokemonEvolutionFile? evolution;
     if (pokemon != null) {
@@ -118,7 +151,7 @@ final class PokemonExternalImport {
       }
     }
     warnings.add(
-      'Les images et cris externes ne sont pas téléchargés par cet import.',
+      'Les images de secours et les cris ne sont pas téléchargés par cet import.',
     );
     final config = baseline.manifest.pokemon;
     final indexed = (await loadIndex()).entries;
@@ -229,6 +262,7 @@ final class PokemonExternalImport {
       inventorySignature: pokemonInventorySignature(indexed),
       documents: List.unmodifiable(documents),
       warnings: List.unmodifiable(warnings),
+      gen5Bundle: gen5Bundle,
     );
   }
 
@@ -282,13 +316,62 @@ final class PokemonExternalImport {
         ),
       );
     }
+    final warnings = [...preview.warnings];
+    var gen5Imported = false;
+    var requiresReopen = false;
+    final bundle = preview.gen5Bundle;
+    final gen5 = gen5Source;
+    final importsSpecies = selected.any(
+      (item) => item.family == PokemonDocumentFamily.species,
+    );
+    if (bundle != null && !importsSpecies) {
+      warnings.add(
+        'Aucune animation ajoutée : la fiche Pokémon existante a été conservée.',
+      );
+    } else if (bundle != null && gen5 != null) {
+      try {
+        final speciesPath = preview.documents
+            .firstWhere((item) => item.family == PokemonDocumentFamily.species)
+            .relativePath;
+        final result =
+            await PokemonGen5BattleImport(
+              session: session,
+              mapAdapter: mapAdapter,
+              reader: reader,
+              source: gen5,
+            ).apply(
+              bundle: bundle,
+              projectSpeciesId: preview.speciesId,
+              speciesPath: speciesPath,
+              isCurrent: isCurrent ?? () => true,
+            );
+        gen5Imported = result.status == AveluneGen5ImportStatus.imported;
+        warnings.add(
+          gen5Imported
+              ? 'Animation Noir/Blanc 2 importée.'
+              : 'Animation Noir/Blanc 2 déjà présente.',
+        );
+        if (result.refreshRequired) {
+          requiresReopen = true;
+          warnings.add('Rouvrez le projet pour vérifier l’animation importée.');
+        }
+      } on Object {
+        requiresReopen = true;
+        warnings.add(
+          'L’état de l’import de l’animation Noir/Blanc 2 est incertain. '
+          'Rouvrez le projet et vérifiez les données existantes avant de réessayer.',
+        );
+      }
+    }
     return PokemonExternalImportResult(
       speciesId: preview.speciesId,
       created: plan.created,
       overwritten: plan.overwritten,
       skipped: plan.kept,
       excluded: plan.excluded.length,
-      warnings: preview.warnings,
+      warnings: List.unmodifiable(warnings),
+      gen5Imported: gen5Imported,
+      requiresReopen: requiresReopen,
     );
   }
 }

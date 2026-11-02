@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:map_core/map_core.dart';
 
 import '../../../api/local_map_authoring_mutation_api.dart';
+import '../../../catalog_storage/catalog_storage_store.dart';
 import '../../../contracts/authoring_request.dart';
 import '../../../workspace/workspace_handle_store.dart';
 import 'avelune_gen5_battle_source.dart';
@@ -27,7 +28,8 @@ final class AveluneGen5BattleSourceImport {
       ({
         AveluneGen5ImportStatus status,
         String? receiptId,
-        bool refreshRequired
+        bool refreshRequired,
+        List<int>? headAfterBytes,
       })> import({
     required String sourceSpecies,
     required String projectSpeciesId,
@@ -45,15 +47,47 @@ final class AveluneGen5BattleSourceImport {
     requireCurrent();
     final fetched =
         await source.fetch(species: sourceSpecies, nationalDex: nationalDex);
-    requireCurrent();
     if (fetched == null) {
+      requireCurrent();
       return (
         status: AveluneGen5ImportStatus.unavailable,
         receiptId: null,
-        refreshRequired: false
+        refreshRequired: false,
+        headAfterBytes: null,
       );
     }
     final bundle = gen5BattleSourceBundleFromSnapshot(fetched);
+    return importBundle(
+      bundle: bundle,
+      projectSpeciesId: projectSpeciesId,
+      nationalDex: nationalDex,
+      speciesPath: speciesPath,
+      operationId: operationId,
+      isCurrent: isCurrent,
+    );
+  }
+
+  Future<
+      ({
+        AveluneGen5ImportStatus status,
+        String? receiptId,
+        bool refreshRequired,
+        List<int>? headAfterBytes,
+      })> importBundle({
+    required Gen5BattleSourceBundle bundle,
+    required String projectSpeciesId,
+    required int nationalDex,
+    required String speciesPath,
+    required String operationId,
+    bool Function()? isCurrent,
+  }) async {
+    void requireCurrent() {
+      if (isCurrent?.call() == false) {
+        throw StateError('The selected species changed before import.');
+      }
+    }
+
+    requireCurrent();
     final binding = Gen5BattleSourceBinding.fromBundle(
       projectSpeciesId: projectSpeciesId,
       projectNationalDex: nationalDex,
@@ -96,8 +130,16 @@ final class AveluneGen5BattleSourceImport {
           status: AveluneGen5ImportStatus.alreadyPresent,
           receiptId: null,
           refreshRequired: false,
+          headAfterBytes: null,
         );
       }
+      final heads = plan.plan.changeSet.changes.where(
+          (change) => change.storageKey == CatalogStorageStore.headStorageKey);
+      if (plan.plan.catalogDelta == null || heads.length != 1) {
+        throw StateError('Gen 5 import is missing the catalog update.');
+      }
+      plan.plan.requireCatalogDelta();
+      final headAfterBytes = List<int>.unmodifiable(heads.single.afterBytes!);
       final applied = await authoring.applyMutation(projectHandle,
           planId: plan.planId,
           operationId: operationId,
@@ -106,6 +148,7 @@ final class AveluneGen5BattleSourceImport {
         status: AveluneGen5ImportStatus.imported,
         receiptId: applied.receipt.receiptId,
         refreshRequired: applied.diagnostic != null,
+        headAfterBytes: headAfterBytes,
       );
     } finally {
       await authoring.artifacts.release(staged.reference.handle);
