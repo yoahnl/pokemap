@@ -1005,7 +1005,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
         poolCapacity: 128,
         maxTicks: 200,
         origin: Offset.zero,
-        pixelsPerUnit: 5,
+        pixelsPerUnit: 25 * currentSceneLayout.scale,
         projection: projection,
         onComplete: () => prepared.visualCompleted(),
         onFailure: (_) => prepared.visualFailed(),
