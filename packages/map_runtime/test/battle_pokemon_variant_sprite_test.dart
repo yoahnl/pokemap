@@ -141,6 +141,49 @@ void main() {
     expect(sprite.explicitAnimatedImageAbsolutePath, isNull);
   });
 
+  test('uses normal static artwork when the shiny GIF is unreadable', () async {
+    final root = await Directory.systemTemp.createTemp('battle-variants-');
+    addTearDown(() => root.delete(recursive: true));
+    final image = img.Image(width: 2, height: 2);
+    img.fill(image, color: img.ColorRgb8(0, 255, 0));
+    await _write(root, 'assets/normal.png', img.encodePng(image));
+    await _write(root, 'assets/shiny.gif', [1, 2, 3]);
+    await _media(root, {
+      'base': {
+        'frontStatic': 'assets/normal.png',
+        'frontShinyAnimated': 'assets/shiny.gif',
+      },
+    });
+    final sprite = await _resolver(root).resolve(
+      speciesId: 'oshawott',
+      isPlayerSide: false,
+      visualIdentity: const RuntimeBattleVisualIdentity(
+        speciesId: 'oshawott',
+        formId: 'base',
+        genderId: 'male',
+        isShiny: true,
+      ),
+    );
+    final component = BattleSceneCombatantComponent(
+      sceneSpriteRect: const ui.Rect.fromLTWH(0, 0, 40, 40),
+      scenePlatformRect: const ui.Rect.fromLTWH(0, 40, 40, 10),
+      sceneFootAnchor: const ui.Offset(20, 40),
+      spriteFootXRatio: 0.5,
+      isPlayerSide: false,
+      speciesLabel: 'test',
+      resourceBudget: RuntimeResourceBudget(),
+      initialSpriteSpec: sprite,
+    );
+    addTearDown(component.onRemove);
+    await component.onLoad();
+    component.onMount();
+    await component.sync(speciesLabel: 'test', spriteSpec: sprite);
+
+    expect(component.currentSpriteSourcePath, '${root.path}/assets/normal.png');
+    expect(component.stageImage, isNotNull);
+    expect(component.didExplicitSpriteLoadFail, isFalse);
+  });
+
   test(
     'uses the historical default when identity or requested media is missing',
     () async {

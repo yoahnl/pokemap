@@ -223,12 +223,12 @@ final class BattlePokemonSpriteResolver {
         : null;
     final useShiny =
         shiny && (animatedAbsolutePath != null || shinyStaticPath != null);
-    final absolutePath = useShiny
-        ? shinyStaticPath
-        : await _resolveProjectFile(
-            relativeField('Static'),
-            allowMissing: allowMissingStatic,
-          );
+    final absolutePath =
+        shinyStaticPath ??
+        await _resolveProjectFile(
+          relativeField('Static'),
+          allowMissing: allowMissingStatic,
+        );
     if (shiny && !useShiny && media.readAnimated) {
       animatedAbsolutePath = await _resolveProjectFile(
         relativeField('Animated'),
