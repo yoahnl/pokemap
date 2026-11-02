@@ -249,7 +249,10 @@ final class BattlePokemonSpriteResolver {
     return (staticPath: absolutePath, animatedPath: animatedAbsolutePath);
   }
 
-  Future<String?> resolveCry(String speciesId) async {
+  Future<String?> resolveCry(
+    String speciesId, {
+    bool requireExisting = false,
+  }) async {
     final id = speciesId.trim().toLowerCase();
     if (!_isSafeSpeciesId(id)) return null;
     final media = await _mediaCache.putIfAbsent(id, () => _readMedia(id));
@@ -257,7 +260,7 @@ final class BattlePokemonSpriteResolver {
     final relativePath = rawCry is String ? rawCry : null;
     final authored = await _resolveProjectFile(
       relativePath,
-      allowMissing: true,
+      allowMissing: !requireExisting,
     );
     if (authored != null) return authored;
     for (final extension in const ['.ogg', '.mp3', '.wav']) {
