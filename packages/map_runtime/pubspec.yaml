@@ -23,6 +23,8 @@ dependencies:
     sdk: flutter
   avelune_rendering:
     path: ../avelune_rendering
+  avelune_gen5_sprite_native:
+    path: ../avelune_gen5_sprite_native
   flame: 2.0.0-dev.1
   flame_audio: 2.13.0-dev.1
   http: ^1.6.0

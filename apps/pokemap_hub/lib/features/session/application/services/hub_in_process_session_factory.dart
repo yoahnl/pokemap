@@ -4,6 +4,7 @@ import 'package:map_runtime/map_runtime.dart';
 import 'package:pokemap_hub/features/session/domain/entities/save_read_handle.dart';
 import 'package:pokemap_hub/features/session/domain/entities/installed_game_launch_context.dart';
 import 'package:pokemap_hub/features/saves/domain/repositories/save_repository_interface.dart';
+import '../../data/repositories/installed_gen5_battle_source_loader.dart';
 import 'hub_session_checkpoint_committer.dart';
 
 /// Composition bridge from verified Hub handles to the production Flame graph.
@@ -57,6 +58,10 @@ final class HubInProcessSessionFactory {
         'The project dimension does not match its runtime capability.',
       );
     }
+    final gen5Loader = InstalledGen5BattleSourceLoader(
+      manifest: launch.manifest,
+      assets: launch.assets,
+    );
     if (dimension == ProjectDimension.threeD) {
       final mount = mountSpatialSession;
       final unmount = unmountSpatialSession;
@@ -67,6 +72,7 @@ final class HubInProcessSessionFactory {
         runtimeFactory:
             (prepared) => SpatialExplorationGameSessionRuntime(
               descriptor: prepared,
+              gen5BattleSourceLoader: gen5Loader.load,
               projectFilePath:
                   () async =>
                       (await launch.assets.resolveReference(
@@ -88,6 +94,7 @@ final class HubInProcessSessionFactory {
       runtimeFactory:
           (preparedDescriptor) => PlayableMapGameSessionRuntime(
             descriptor: preparedDescriptor,
+            gen5BattleSourceLoader: gen5Loader.load,
             projectFilePath: () async {
               final file = await launch.assets.resolveReference(launch.project);
               return file.path;

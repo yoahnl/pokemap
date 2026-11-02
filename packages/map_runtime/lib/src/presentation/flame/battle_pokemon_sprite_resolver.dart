@@ -5,19 +5,38 @@ import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
 import '../../application/runtime_battle_presentation.dart';
+import '../../application/runtime_pokemon_species_loader.dart';
+import '../../infrastructure/gen5_battle_source_loader.dart';
 
 enum BattleCombatantSpriteFacing { front, back }
+
+final class BattleGen5SpriteSource {
+  BattleGen5SpriteSource({
+    required this.speciesId,
+    required this.shiny,
+    required this.loader,
+  });
+
+  final String speciesId;
+  final bool shiny;
+  final Future<Gen5BattleSourceBundle?> Function(bool Function()?) loader;
+
+  Future<Gen5BattleSourceBundle?> load({bool Function()? isCurrent}) =>
+      loader(isCurrent);
+}
 
 final class BattleCombatantSpriteSpec {
   const BattleCombatantSpriteSpec({
     required this.facing,
     this.explicitImageAbsolutePath,
     this.explicitAnimatedImageAbsolutePath,
+    this.gen5Source,
   });
 
   final BattleCombatantSpriteFacing facing;
   final String? explicitImageAbsolutePath;
   final String? explicitAnimatedImageAbsolutePath;
+  final BattleGen5SpriteSource? gen5Source;
 
   bool get hasExplicitImage =>
       (explicitImageAbsolutePath?.trim().isNotEmpty ?? false);
@@ -33,10 +52,15 @@ final class BattlePokemonSpriteResolver {
   BattlePokemonSpriteResolver({
     required this.manifest,
     required this.projectRootDirectory,
-  });
+    this.gen5SourceLoader,
+    RuntimePokemonSpeciesLoader? pokemonSpeciesLoader,
+  }) : _pokemonSpeciesLoader =
+           pokemonSpeciesLoader ?? RuntimePokemonSpeciesLoader();
 
   final ProjectManifest manifest;
   final String projectRootDirectory;
+  final RuntimeGen5BattleSourceLoader? gen5SourceLoader;
+  final RuntimePokemonSpeciesLoader _pokemonSpeciesLoader;
   final Map<String, Future<_BattlePokemonMediaRecord?>> _mediaCache =
       <String, Future<_BattlePokemonMediaRecord?>>{};
   late final Future<String?> _canonicalProjectRoot = _resolveProjectRoot();
@@ -104,6 +128,58 @@ final class BattlePokemonSpriteResolver {
       facing: facing,
       explicitImageAbsolutePath: paths.staticPath,
       explicitAnimatedImageAbsolutePath: paths.animatedPath,
+      gen5Source: _gen5Source(trimmedSpeciesId, identity, media),
+    );
+  }
+
+  BattleGen5SpriteSource? _gen5Source(
+    String speciesId,
+    RuntimeBattleVisualIdentity? identity,
+    _BattlePokemonMediaRecord media,
+  ) {
+    final loader = gen5SourceLoader;
+    final pokemon = manifest.pokemon;
+    final form = identity?.formId?.trim();
+    if (loader == null ||
+        !pokemon.enabled ||
+        identity == null ||
+        identity.isShiny == null ||
+        identity.genderId == null ||
+        identity.genderId == 'female' ||
+        (form != null && form.isNotEmpty && form != media.defaultFormId)) {
+      return null;
+    }
+    return BattleGen5SpriteSource(
+      speciesId: speciesId,
+      shiny: identity.isShiny!,
+      loader: (isCurrent) async {
+        void checkCurrent() {
+          if (isCurrent != null && !isCurrent()) {
+            throw StateError('Gen 5 battle source load is no longer current');
+          }
+        }
+
+        checkCurrent();
+        final species = await _pokemonSpeciesLoader.loadById(
+          projectRootDirectory: projectRootDirectory,
+          pokemonConfig: pokemon,
+          speciesId: speciesId,
+        );
+        checkCurrent();
+        if (!species.isBaseForm) return null;
+        final index = await _pokemonSpeciesLoader.loadIndex(
+          projectRootDirectory: projectRootDirectory,
+          pokemonConfig: pokemon,
+        );
+        checkCurrent();
+        final dex = index.byId(speciesId)?.nationalDex;
+        if (dex == null || dex < 1 || dex > 649) return null;
+        return loader(
+          projectSpeciesId: speciesId,
+          projectNationalDex: dex,
+          isCurrent: isCurrent,
+        );
+      },
     );
   }
 

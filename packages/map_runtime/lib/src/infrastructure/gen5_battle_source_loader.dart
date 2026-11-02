@@ -5,6 +5,13 @@ import 'package:map_core/map_core.dart';
 typedef RuntimeGen5BattleSourceAssetOpener =
     Future<Stream<List<int>>?> Function(String projectRelativePath);
 
+typedef RuntimeGen5BattleSourceLoader =
+    Future<Gen5BattleSourceBundle?> Function({
+      required String projectSpeciesId,
+      required int projectNationalDex,
+      bool Function()? isCurrent,
+    });
+
 Future<Gen5BattleSourceBundle?> loadRuntimeGen5BattleSource({
   required RuntimeGen5BattleSourceAssetOpener openAsset,
   required String projectSpeciesId,

@@ -181,7 +181,7 @@ final class BattleStage3DComponent extends Component {
   ) {
     final world = camera.tryBillboardWorldGeometry(
       foot,
-      actor.currentCameraNeutralRenderedSpriteRect,
+      actor.currentCameraNeutralRenderedImageRect,
     );
     if (world == null) return null;
     final shadowRect = actor.currentCameraNeutralShadowRect;

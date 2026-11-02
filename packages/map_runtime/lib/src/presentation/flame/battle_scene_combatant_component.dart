@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'dart:math' as math;
 
+import 'package:avelune_gen5_sprite_native/avelune_gen5_sprite_native.dart';
 import 'package:flame/components.dart';
 import 'package:flame/text.dart';
 import 'package:flutter/material.dart';
@@ -77,8 +79,8 @@ class BattleSceneCombatantComponent extends PositionComponent {
   ui.Image? _ownedStaticSpriteImage;
   Rect? _spriteOpaqueSourceRect;
   String? _spriteSourcePath;
-  (String?, String?)? _loadedSpritePaths;
-  (String?, String?)? _pendingSpritePaths;
+  (String?, String?, String?, bool?)? _loadedSpritePaths;
+  (String?, String?, String?, bool?)? _pendingSpritePaths;
   Future<void>? _pendingSpriteLoad;
   bool Function()? _pendingSpriteIsCurrent;
   int _spriteGeneration = 0;
@@ -87,6 +89,14 @@ class BattleSceneCombatantComponent extends PositionComponent {
   RuntimeGifAnimation? _gifAnimation;
   RuntimeGifAtlas? _gifAtlas;
   double _gifElapsedSeconds = 0;
+  Gen5NativeSprite? _gen5Sprite;
+  ui.Image? _ownedGen5Image;
+  Rect? _gen5ReferenceRect;
+  RuntimeResourceReservation? _gen5Reservation;
+  (String, bool)? _failedGen5Source;
+  double _gen5ElapsedSeconds = 0;
+  int _gen5RenderedTick = 0;
+  bool _gen5FramePending = false;
   bool _didSpriteLoadFail = false;
   double _hitFlashRemaining = 0;
   double _hitFlashIntensity = 1;
@@ -213,7 +223,7 @@ class BattleSceneCombatantComponent extends PositionComponent {
   List<({Rect rect, Color tint})> get currentCameraNeutralDashTrails => [
     for (final trail in _currentDashTrails())
       (
-        rect: trail.rect.shift(_cameraNeutralPosition),
+        rect: _imageRectForReference(trail.rect).shift(_cameraNeutralPosition),
         tint: _spriteModulationColor(trail.opacity),
       ),
   ];
@@ -250,6 +260,10 @@ class BattleSceneCombatantComponent extends PositionComponent {
 
   Rect get currentCameraNeutralRenderedSpriteRect =>
       _currentRenderedSpriteRectLocal().shift(_cameraNeutralPosition);
+
+  Rect get currentCameraNeutralRenderedImageRect =>
+      _imageRectForReference(_currentRenderedSpriteRectLocal())
+          .shift(_cameraNeutralPosition);
 
   Rect get currentCameraNeutralPlatformRect =>
       _platformRect.shift(_cameraNeutralPosition);
@@ -344,7 +358,7 @@ class BattleSceneCombatantComponent extends PositionComponent {
       _spriteClosed = false;
       if (_ownsResourceBudget) _resourceBudget = RuntimeResourceBudget();
     }
-    if (wasClosed ||
+    if (wasClosed || _spriteSpec.gen5Source != null ||
         _spritePath(_spriteSpec.explicitAnimatedImageAbsolutePath) != null) {
       unawaited(_syncSpriteImage());
     }
@@ -360,6 +374,7 @@ class BattleSceneCombatantComponent extends PositionComponent {
       _pendingSpriteLoad = null;
       _pendingSpriteIsCurrent = null;
       _spriteMounted = false;
+      _releaseGen5();
       _releaseGif();
       _spriteImage = null;
       _releaseOwnedStaticSprite();
@@ -778,6 +793,13 @@ class BattleSceneCombatantComponent extends PositionComponent {
     }
     _updateTone(dt);
     _updateAnimation(dt);
+    if (dt.isFinite && dt > 0 && _gen5Sprite != null) {
+      _gen5ElapsedSeconds += dt;
+      final tick = (_gen5ElapsedSeconds * 60).floor();
+      if (!_gen5FramePending && tick != _gen5RenderedTick && tick <= 0x7fffffff) {
+        unawaited(_updateGen5Frame(tick, _spriteGeneration));
+      }
+    }
     if (dt.isFinite && dt > 0 && (_gifAtlas != null || _gifAnimation != null)) {
       _gifElapsedSeconds += dt;
       final animation = _gifAnimation;
@@ -842,9 +864,12 @@ class BattleSceneCombatantComponent extends PositionComponent {
 
   Future<void> _syncSpriteImage() {
     if (_spriteClosed) return Future.value();
+    final source = _spriteSpec.gen5Source;
     final paths = (
       _spritePath(_spriteSpec.explicitImageAbsolutePath),
       _spritePath(_spriteSpec.explicitAnimatedImageAbsolutePath),
+      source?.speciesId,
+      source?.shiny,
     );
     if (_loadedSpritePaths == paths) return Future.value();
     if (_pendingSpritePaths == paths &&
@@ -867,8 +892,9 @@ class BattleSceneCombatantComponent extends PositionComponent {
     _pendingSpritePaths = paths;
     _pendingSpriteIsCurrent = isCurrent;
     _loadedSpritePaths = null;
+    _releaseGen5();
     _releaseGif();
-    final pending = _loadSprite(paths.$1, paths.$2, generation, isCurrent);
+    final pending = _loadSprite(paths, source, generation, isCurrent);
     _pendingSpriteLoad = pending;
     return pending.whenComplete(() {
       if (_spriteGeneration == generation) {
@@ -880,15 +906,24 @@ class BattleSceneCombatantComponent extends PositionComponent {
   }
 
   Future<void> _loadSprite(
-    String? staticPath,
-    String? animatedPath,
+    (String?, String?, String?, bool?) paths,
+    BattleGen5SpriteSource? source,
     int generation,
     bool Function() isCurrent,
   ) async {
+    final staticPath = paths.$1;
+    final animatedPath = paths.$2;
     try {
       await _loadStaticSprite(staticPath, isCurrent);
       if (!isCurrent()) return;
-      if (animatedPath != null && !_spriteMounted) return;
+      if ((source != null || animatedPath != null) && !_spriteMounted) return;
+      if (source != null && _failedGen5Source != (source.speciesId, source.shiny)) {
+        if (await _loadGen5(source, isCurrent)) {
+          if (isCurrent()) _loadedSpritePaths = paths;
+          return;
+        }
+        if (!isCurrent()) return;
+      }
       if (animatedPath != null) {
         RuntimeGifAnimation? animation;
         RuntimeGifAtlas? atlas;
@@ -926,10 +961,11 @@ class BattleSceneCombatantComponent extends PositionComponent {
       if (isCurrent() &&
           (_spriteImage != null ||
               (staticPath == null && animatedPath == null))) {
-        _loadedSpritePaths = (staticPath, animatedPath);
+        _loadedSpritePaths = paths;
       }
     } finally {
       if (_spriteGeneration == generation && !isCurrent()) {
+        _releaseGen5();
         _releaseGif();
         _spriteImage = null;
         _releaseOwnedStaticSprite();
@@ -937,6 +973,109 @@ class BattleSceneCombatantComponent extends PositionComponent {
         _spriteSourcePath = null;
       }
     }
+  }
+
+  Future<bool> _loadGen5(
+    BattleGen5SpriteSource source,
+    bool Function() isCurrent,
+  ) async {
+    Gen5NativeSprite? sprite;
+    RuntimeResourceReservation? reservation;
+    ui.Image? frame;
+    try {
+      final bundle = await source.load(isCurrent: isCurrent);
+      if (bundle == null || !isCurrent()) return false;
+      final bytes = bundle.assets.values.fold<int>(0, (sum, value) => sum + value.length);
+      if (bytes > 2 * 1024 * 1024) return false;
+      reservation = await _resourceBudget.acquire(
+        residentBytes: bytes * 2 + 6 * 1024 * 1024,
+        transientBytes: bytes * 2 + 2 * 1024 * 1024,
+        isCurrent: isCurrent,
+      );
+      sprite = Gen5NativeSprite(
+        assets: bundle.assets,
+        side: isPlayerSide ? Gen5SpriteSide.back : Gen5SpriteSide.front,
+        shiny: source.shiny,
+        normalizeFiveBitPalette: true,
+      );
+      final rgba = sprite.renderRgba(0);
+      final referenceRect = _opaqueSourceRect(rgba, 128, 128);
+      if (referenceRect == null) return false;
+      frame = await _gen5Image(rgba);
+      reservation.ensureCurrent();
+      reservation.commit();
+      _gen5Sprite = sprite;
+      _gen5Reservation = reservation;
+      _ownedGen5Image = frame;
+      _gen5ReferenceRect = referenceRect;
+      _spriteImage = frame;
+      _spriteOpaqueSourceRect = null;
+      _spriteSourcePath = 'gen5:${source.speciesId}';
+      _gen5ElapsedSeconds = 0;
+      _gen5RenderedTick = 0;
+      _didSpriteLoadFail = false;
+      _releaseOwnedStaticSprite();
+      _syncTextVisibility();
+      sprite = null;
+      reservation = null;
+      frame = null;
+      return true;
+    } catch (error) {
+      if (isCurrent()) debugPrint('Gen 5 sprite unavailable: $error');
+      return false;
+    } finally {
+      frame?.dispose();
+      sprite?.dispose();
+      reservation?.release();
+    }
+  }
+
+  Future<void> _updateGen5Frame(int tick, int generation) async {
+    final sprite = _gen5Sprite;
+    if (sprite == null) return;
+    _gen5FramePending = true;
+    ui.Image? frame;
+    try {
+      frame = await _gen5Image(sprite.renderRgba(tick));
+      if (_spriteClosed || generation != _spriteGeneration || !identical(sprite, _gen5Sprite)) return;
+      final previous = _ownedGen5Image;
+      _ownedGen5Image = frame;
+      _spriteImage = frame;
+      _gen5RenderedTick = tick;
+      frame = null;
+      previous?.dispose();
+    } catch (error) {
+      if (!_spriteClosed && generation == _spriteGeneration && identical(sprite, _gen5Sprite)) {
+        debugPrint('Gen 5 sprite playback failed: $error');
+        final source = _spriteSpec.gen5Source;
+        if (source != null) _failedGen5Source = (source.speciesId, source.shiny);
+        _loadedSpritePaths = null;
+        unawaited(_syncSpriteImage());
+      }
+    } finally {
+      frame?.dispose();
+      _gen5FramePending = false;
+    }
+  }
+
+  Future<ui.Image> _gen5Image(Uint8List rgba) {
+    final result = Completer<ui.Image>();
+    ui.decodeImageFromPixels(rgba, 128, 128, ui.PixelFormat.rgba8888, result.complete);
+    return result.future;
+  }
+
+  void _releaseGen5() {
+    final image = _ownedGen5Image;
+    if (identical(_spriteImage, image)) _spriteImage = null;
+    _ownedGen5Image = null;
+    _gen5ReferenceRect = null;
+    image?.dispose();
+    _gen5Sprite?.dispose();
+    _gen5Sprite = null;
+    _gen5Reservation?.release();
+    _gen5Reservation = null;
+    _gen5ElapsedSeconds = 0;
+    _gen5RenderedTick = 0;
   }
 
   Future<void> _loadStaticSprite(
@@ -1015,8 +1154,10 @@ class BattleSceneCombatantComponent extends PositionComponent {
   void _renderSprite(Canvas canvas) {
     final image = _spriteImage!;
     final inputSubrect = _currentSpriteInputSubrect();
-    final outputSubrect = _computeRenderedSpriteRect(
-      destinationSize: _currentRenderedSpriteDestinationSize(),
+    final outputSubrect = _imageRectForReference(
+      _computeRenderedSpriteRect(
+        destinationSize: _currentRenderedSpriteDestinationSize(),
+      ),
     );
     canvas.drawImageRect(image, inputSubrect, outputSubrect, _spritePaint());
   }
@@ -1075,7 +1216,7 @@ class BattleSceneCombatantComponent extends PositionComponent {
     canvas.drawImageRect(
       image,
       inputSubrect,
-      outputSubrect,
+      _imageRectForReference(outputSubrect),
       _spritePaint(opacityOverride: opacity),
     );
   }
@@ -1214,9 +1355,20 @@ class BattleSceneCombatantComponent extends PositionComponent {
     if (image == null) {
       return _fallbackDestinationSize();
     }
-    final inputSubrect = _currentSpriteInputSubrect();
+    final inputSubrect = _gen5ReferenceRect ?? _currentSpriteInputSubrect();
     return applyBoxFit(BoxFit.contain, inputSubrect.size, _spriteRect.size)
         .destination;
+  }
+
+  Rect _imageRectForReference(Rect visibleRect) {
+    final reference = _gen5ReferenceRect;
+    final image = _spriteImage;
+    if (reference == null || image == null) return visibleRect;
+    return gen5SpriteCanvasRectForReference(
+      visibleRect,
+      reference,
+      Size(image.width.toDouble(), image.height.toDouble()),
+    );
   }
 
   Rect _currentSpriteInputSubrect() {
@@ -1600,9 +1752,14 @@ Future<Rect?> _computeOpaqueSourceRect(ui.Image image) async {
   if (byteData == null) {
     return null;
   }
-  final rgba = byteData.buffer.asUint8List();
-  final width = image.width;
-  final height = image.height;
+  return _opaqueSourceRect(
+    byteData.buffer.asUint8List(),
+    image.width,
+    image.height,
+  );
+}
+
+Rect? _opaqueSourceRect(Uint8List rgba, int width, int height) {
   var minX = width;
   var minY = height;
   var maxX = -1;
@@ -1635,5 +1792,21 @@ Future<Rect?> _computeOpaqueSourceRect(ui.Image image) async {
     minY.toDouble(),
     (maxX + 1).toDouble(),
     (maxY + 1).toDouble(),
+  );
+}
+
+@visibleForTesting
+Rect gen5SpriteCanvasRectForReference(
+  Rect visibleRect,
+  Rect referenceRect,
+  Size canvasSize,
+) {
+  final scaleX = visibleRect.width / referenceRect.width;
+  final scaleY = visibleRect.height / referenceRect.height;
+  return Rect.fromLTWH(
+    visibleRect.left - referenceRect.left * scaleX,
+    visibleRect.top - referenceRect.top * scaleY,
+    canvasSize.width * scaleX,
+    canvasSize.height * scaleY,
   );
 }

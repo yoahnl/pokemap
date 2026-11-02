@@ -145,6 +145,7 @@ import '../../border/border_runtime_asset_cache.dart';
 import '../../border/border_runtime_readiness.dart';
 import '../../infrastructure/runtime_tileset_image.dart';
 import '../../infrastructure/tile_image_loader.dart';
+import '../../infrastructure/gen5_battle_source_loader.dart';
 import '../../infrastructure/battle_transition_image_loader.dart';
 import '../../infrastructure/runtime_ui_image.dart';
 import 'battle_bag_menu_model.dart';
@@ -313,6 +314,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   PlayableMapGame({
     required RuntimeMapBundle bundle,
     required this.projectFilePath,
+    this.gen5BattleSourceLoader,
     SaveData? saveData,
     GameState? initialGameState,
     GameSaveRepository? saveRepository,
@@ -478,6 +480,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     _battleSpriteResolver = BattlePokemonSpriteResolver(
       manifest: _bundle.manifest,
       projectRootDirectory: _bundle.projectRootDirectory,
+      gen5SourceLoader: gen5BattleSourceLoader,
+      pokemonSpeciesLoader: _battleSpeciesLoader,
     );
     _battleBagItemIconResolver = BattleBagItemIconResolver(
       manifest: _bundle.manifest,
@@ -624,6 +628,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   @visibleForTesting
   final RailJourneySpatialTransition? railJourneySpatialTransition;
   RuntimeMapBundle _bundle;
+  final RuntimeGen5BattleSourceLoader? gen5BattleSourceLoader;
   RuntimeResourceBudget get resourceBudget => _bundle.resourceBudget;
   GameState _gameState;
   late final bool _isProjectNewGameBoot;

@@ -31,6 +31,7 @@ import '../application/runtime_psdk_battle_setup_mapper.dart';
 import '../application/runtime_trainer_battle_image.dart';
 import '../application/runtime_trainer_ball_items.dart';
 import '../infrastructure/battle_transition_image_loader.dart';
+import '../infrastructure/gen5_battle_source_loader.dart';
 import '../presentation/flame/battle_background_resolver.dart';
 import '../presentation/flame/battle_sfx_player.dart';
 import '../player/runtime_audio_mixer.dart';
@@ -61,6 +62,7 @@ final class SpatialBattleRuntime extends ChangeNotifier {
   SpatialBattleRuntime({
     required this.readGameState,
     required this.commitGameState,
+    this.gen5BattleSourceLoader,
     this.onCompleted,
     this.onError,
     this.audioMixer,
@@ -76,6 +78,7 @@ final class SpatialBattleRuntime extends ChangeNotifier {
   }
 
   final GameState Function() readGameState;
+  final RuntimeGen5BattleSourceLoader? gen5BattleSourceLoader;
   final bool Function(GameState expected, GameState next) commitGameState;
   final FutureOr<void> Function(BattleOutcome outcome)? onCompleted;
   final void Function(Object error)? onError;
@@ -410,7 +413,10 @@ final class SpatialBattleRuntime extends ChangeNotifier {
         ),
       );
       final media = _media = BattlePokemonSpriteResolver(
-        manifest: bundle.manifest, projectRootDirectory: bundle.projectRootDirectory);
+        manifest: bundle.manifest,
+        projectRootDirectory: bundle.projectRootDirectory,
+        gen5SourceLoader: gen5BattleSourceLoader,
+        pokemonSpeciesLoader: _speciesLoader);
       final sounds = _sounds ??= FlameAudioBattleSfxPlayer(mixer: audioMixer);
       final startSound = bundle.manifest.battleAudio?.battleStartSePath;
       if (startSound != null && startSound.trim().isNotEmpty) {

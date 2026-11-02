@@ -16,6 +16,7 @@ import '../application/runtime_bag_capacity.dart';
 import '../application/narrative_runtime_activity_gate.dart';
 import '../application/player_service_runtime_controller.dart';
 import '../application/runtime_map_bundle.dart';
+import '../infrastructure/gen5_battle_source_loader.dart';
 import '../application/battle_start_request.dart';
 import '../application/encounter_to_battle_request.dart';
 import '../application/map_activation.dart';
@@ -81,6 +82,7 @@ final class SpatialExplorationGameSessionRuntime
         RuntimeOverworldInteractionPort {
   SpatialExplorationGameSessionRuntime({
     required this.descriptor,
+    this.gen5BattleSourceLoader,
     required SessionProjectFilePathLoader projectFilePath,
     required SpatialExplorationSessionMount mountSession,
     required SpatialExplorationSessionMount unmountSession,
@@ -111,6 +113,7 @@ final class SpatialExplorationGameSessionRuntime
   }
 
   final GameSessionDescriptor descriptor;
+  final RuntimeGen5BattleSourceLoader? gen5BattleSourceLoader;
   final RuntimeCommittedMovementSink? onCommittedMovement;
   int _committedMovementRevision = 0;
   final RuntimeAudioMixer _audioMixer;
@@ -841,6 +844,7 @@ final class SpatialExplorationGameSessionRuntime
       return;
     }
     _battle = SpatialBattleRuntime(
+        gen5BattleSourceLoader: gen5BattleSourceLoader,
         motionPolicy: _preferences?.battleMotion,
         audioMixer: _audioMixer,
         onOutcomePresented: _battleOutcomePresented,

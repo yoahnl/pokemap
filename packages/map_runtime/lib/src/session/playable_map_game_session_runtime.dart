@@ -15,6 +15,7 @@ import '../application/scene_runtime/scene_presentation_cinematic_runtime_awaita
 import '../application/player_service_runtime_controller.dart';
 import '../application/runtime_move_catalog_loader.dart';
 import '../application/runtime_pokemon_species_loader.dart';
+import '../infrastructure/gen5_battle_source_loader.dart';
 import '../player/runtime_player_pause_data.dart';
 import '../player/runtime_player_host.dart';
 import '../player/runtime_player_pause_data_builder.dart';
@@ -75,6 +76,7 @@ final class PlayableMapGameSessionRuntime
     this.resourceProfile = const RuntimeResourceProfile(),
     this.audioMixer,
     this.presentationCinematicPlayer,
+    this.gen5BattleSourceLoader,
     DateTime Function()? now,
   }) : _projectFilePath = projectFilePath,
        _initialSave = initialSave,
@@ -94,6 +96,7 @@ final class PlayableMapGameSessionRuntime
   final RuntimeResourceProfile resourceProfile;
   final RuntimeAudioMixer? audioMixer;
   final ScenePresentationCinematicRuntimePlayer? presentationCinematicPlayer;
+  final RuntimeGen5BattleSourceLoader? gen5BattleSourceLoader;
   final DateTime Function() _now;
   final _events = StreamController<GameSessionAdapterEvent>.broadcast();
   final _worldServiceSnapshots =
@@ -361,6 +364,7 @@ final class PlayableMapGameSessionRuntime
       try {
         game = PlayableMapGame(
           bundle: bundle,
+          gen5BattleSourceLoader: gen5BattleSourceLoader,
           encounterClock: _now,
           projectFilePath: projectFilePath,
           saveData: saveData,

@@ -11,7 +11,7 @@ export 'src/infrastructure/runtime_ui_image.dart'
     show RuntimeUiImageLease, loadRuntimeUiImageFromFilePath;
 
 export 'src/infrastructure/gen5_battle_source_loader.dart'
-    show RuntimeGen5BattleSourceAssetOpener, loadRuntimeGen5BattleSource;
+    show RuntimeGen5BattleSourceAssetOpener, RuntimeGen5BattleSourceLoader, loadRuntimeGen5BattleSource;
 
 export 'src/application/runtime_project_catalog.dart';
 

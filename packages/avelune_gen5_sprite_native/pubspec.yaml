@@ -1,0 +1,17 @@
+name: avelune_gen5_sprite_native
+description: Experimental native Gen 5 battle sprite composition for Avelune.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: '>=3.13.0 <4.0.0'
+
+dependencies:
+  code_assets: ^2.0.0
+  hooks: ^2.0.0
+  image: ^4.2.0
+  logging: ^1.3.0
+  native_toolchain_c: 0.19.4
+
+dev_dependencies:
+  test: ^1.24.0
