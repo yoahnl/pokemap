@@ -63,11 +63,12 @@
 
 - [ ] Importer par lots vérifiés et reprenables : sprites GBA, GIF de combat Noir et Blanc face/dos et variantes, sprites overworld pour les Pokémon suiveurs, icônes de menus, cris, sons généraux, images d’objets et modèles 3D disponibles.
 - [ ] Pour le suivi 2D, enregistrer directions, grille, animations et ancrage lorsqu’ils sont connus. Pour les modèles 3D, conserver maillage, textures, squelette et animations disponibles ; distinguer un sprite 2D dressé dans une scène 3D d’un véritable modèle 3D.
+- [ ] Si une forme alternative n’a pas son propre sprite, utiliser celui de la forme de base ; ne pas bloquer le POC pour compléter ces variantes.
 - [ ] Prioriser les ressources nécessaires au pilote HGSS et à Noir et Blanc ; poursuivre ensuite les autres références réellement présentes dans les sources. Les fichiers WebP existent à la source mais le schéma média courant accepte PNG/GIF : choisir et tester une prise en charge qui conserve transparence et animation lorsque nécessaire.
 - [ ] Pour chaque média, conserver source, révision, empreinte, variante et statut de disponibilité ; vérifier les octets stockés et les liens locaux. Ne pas inventer une ressource officielle absente et ne pas exposer les 74 modèles réservés au privé.
 - [ ] Si la taille dépasse l’espace vérifié, présenter un besoin chiffré et une solution de stockage concrète avant de changer l’infrastructure.
 
-**Fini quand :** les fichiers existants des sources retenues sont importés et servis, les absences réelles sont distinguées des imports manquants, et chaque représentation demandée possède un état de couverture vérifiable par espèce et forme.
+**Fini quand :** les ressources prioritaires sont importées et servies, les absences sont connues et les formes alternatives sans sprite dédié utilisent le repli prévu.
 
 ### 3 — Jouer les attaques BW2
 
