@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
@@ -21,7 +22,6 @@ import '../domain/pokemon_move_recipe_choice.dart';
 import '../domain/pokemon_move_recipe_port.dart';
 import 'http_pokemon_external_transport.dart';
 import 'pokemon_document_transaction.dart';
-import 'pokemon_companion_projection.dart';
 import 'pokemon_bundle_projection.dart';
 import 'pokemon_external_import.dart';
 import 'pokemon_external_source_session.dart';
@@ -63,6 +63,17 @@ final class LocalPokemonWorkspaceAdapter
   PokemonExternalImport? _externalImport;
   Set<String>? _knownSpeciesIds;
   List<PokemonSpeciesSummary>? _indexedSpecies;
+  Map<String, Set<String>> _mediaReferenceOwners = const {};
+
+  void _acceptSpeciesIndex(List<PokemonSpeciesSummary> entries) {
+    _indexedSpecies = entries;
+    _knownSpeciesIds = {for (final entry in entries) entry.id};
+    final owners = <String, Set<String>>{};
+    for (final entry in entries) {
+      owners.putIfAbsent(entry.mediaReference, () => {}).add(entry.id);
+    }
+    _mediaReferenceOwners = owners;
+  }
 
   PokemonExternalImport get _external =>
       _externalImport ??= PokemonExternalImport(
@@ -248,8 +259,7 @@ final class LocalPokemonWorkspaceAdapter
       projectRoot: session.directoryPath,
       config: manifest.pokemon,
     );
-    _knownSpeciesIds = {for (final entry in entries) entry.id};
-    _indexedSpecies = entries;
+    _acceptSpeciesIndex(entries);
     final language = await readPokemonProjectLocale(session.directoryPath);
     final moves = await loadPokemonMoves(
       reader: _reader,
@@ -318,18 +328,45 @@ final class LocalPokemonWorkspaceAdapter
 
   @override
   Future<PokemonSpeciesBundle> save(PokemonSpeciesDraft draft) async {
-    await PokemonDocumentTransaction(
+    final changed = draft.changedFamilies;
+    final mediaOnly =
+        changed.length == 1 && changed.single == PokemonDocumentFamily.media;
+    final savedBytes = await PokemonDocumentTransaction(
       session: session,
       mapAdapter: mapAdapter,
       reader: _reader,
     ).save(draft);
+    if (mediaOnly) {
+      final source = draft.base.media!;
+      try {
+        final bytes = savedBytes!;
+        final document = Map<String, dynamic>.from(
+          jsonDecode(utf8.decode(bytes)) as Map,
+        );
+        return PokemonSpeciesBundle(
+          species: draft.base.species,
+          learnset: draft.base.learnset,
+          evolution: draft.base.evolution,
+          media: PokemonDocumentSource(
+            family: PokemonDocumentFamily.media,
+            relativePath: source.relativePath,
+            bytes: bytes,
+            document: document,
+          ),
+        );
+      } on Object catch (error) {
+        throw PokemonWorkspaceFailure(
+          'Enregistrement confirmé, mais actualisation impossible. '
+          'Rouvrez le projet avant de continuer : $error',
+        );
+      }
+    }
     final entries = await loadPokemonSpeciesIndex(
       reader: _reader,
       projectRoot: session.directoryPath,
       config: (await _manifest).pokemon,
     );
-    _indexedSpecies = entries;
-    _knownSpeciesIds = {for (final entry in entries) entry.id};
+    _acceptSpeciesIndex(entries);
     final entry = entries.where((entry) => entry.id == draft.id).firstOrNull;
     if (entry == null) {
       throw const PokemonWorkspaceFailure(
@@ -353,19 +390,18 @@ final class LocalPokemonWorkspaceAdapter
         projectRoot: session.directoryPath,
         entry: entry,
         knownSpeciesIds: await _speciesIdentities(),
-        referencingSpeciesIds: pokemonReferenceOwners(
-          _indexedSpecies ?? const [],
-          PokemonDocumentFamily.media,
-          entry.mediaReference,
-        ),
+        referencingSpeciesIds:
+            _mediaReferenceOwners[entry.mediaReference] ?? const {},
       );
 
-  Future<Set<String>> _speciesIdentities() async => _knownSpeciesIds ??= {
-    for (final entry in await loadPokemonSpeciesIndex(
+  Future<Set<String>> _speciesIdentities() async {
+    if (_knownSpeciesIds case final ids?) return ids;
+    final entries = await loadPokemonSpeciesIndex(
       reader: _reader,
       projectRoot: session.directoryPath,
       config: (await _manifest).pokemon,
-    ))
-      entry.id,
-  };
+    );
+    _acceptSpeciesIndex(entries);
+    return _knownSpeciesIds!;
+  }
 }

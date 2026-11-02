@@ -33,6 +33,7 @@ final class PokemonWorkspaceController {
   final PokemonCommerceController? commerce;
   final PokemonCombatController? combat;
   final _drafts = <String, PokemonSpeciesDraft>{};
+  final _mediaRevisions = <String, int>{};
   PokemonWorkspaceIndex? index;
   PokemonWorkspaceView view = PokemonWorkspaceView.pokedex;
   PokemonDetailSection section = PokemonDetailSection.overview;
@@ -79,6 +80,8 @@ final class PokemonWorkspaceController {
       commerce?.saving == true ||
       commerce?.importing == true ||
       combat?.operationActive == true;
+
+  int mediaRevision(String relativePath) => _mediaRevisions[relativePath] ?? 0;
   bool get mutationActive =>
       saving ||
       committing ||

@@ -6,6 +6,8 @@ import 'package:map_authoring/map_authoring.dart'
     show
         PokemonDocumentKind,
         PokemonJsonDocument,
+        LocalTransactionFileGateway,
+        readPendingTransactionJournals,
         pokemonMediaResourceIdentity,
         pokemonSpeciesResourceIdentity;
 
@@ -45,37 +47,61 @@ final class PokemonDocumentTransaction {
   final LocalMapWorkspaceAdapter mapAdapter;
   final ProjectFileReader reader;
 
-  Future<void> save(PokemonSpeciesDraft draft) =>
+  Future<List<int>?> save(PokemonSpeciesDraft draft) =>
       mapAdapter.withResourceMutation(() => _save(draft));
 
-  Future<void> _save(PokemonSpeciesDraft draft) async {
+  Future<List<int>?> _save(PokemonSpeciesDraft draft) async {
     final families = draft.changedFamilies;
-    if (families.isEmpty) return;
-    await _apply([
-      for (final family in families)
-        PokemonDocumentWriteRequest(
-          family: family,
-          relativePath: draft.base.source(family)!.relativePath,
-          beforeBytes: draft.base.source(family)!.bytes,
-          document: draft.document(family)!,
-        ),
-    ]);
+    if (families.isEmpty) return null;
+    final mediaOnly =
+        families.length == 1 && families.single == PokemonDocumentFamily.media;
+    final speciesBytes = draft.base.species.bytes;
+    if (mediaOnly && speciesBytes == null) {
+      throw const PokemonWorkspaceFailure(
+        'La préimage de la fiche Pokémon est absente.',
+      );
+    }
+    return _apply(
+      [
+        for (final family in families)
+          PokemonDocumentWriteRequest(
+            family: family,
+            relativePath: draft.base.source(family)!.relativePath,
+            beforeBytes: draft.base.source(family)!.bytes,
+            document: draft.document(family)!,
+          ),
+      ],
+      scopedMedia: mediaOnly,
+      expectedDependencies: [
+        if (mediaOnly)
+          (
+            resourceIdentity: pokemonSpeciesResourceIdentity(draft.id),
+            relativePath: draft.base.species.relativePath,
+            beforeBytes: speciesBytes!,
+          ),
+      ],
+    );
   }
 
   Future<void> apply(
     List<PokemonDocumentWriteRequest> documents, {
     List<PokemonDocumentReadDependency> expectedDependencies = const [],
-  }) => mapAdapter.withResourceMutation(
-    () => _apply(documents, expectedDependencies: expectedDependencies),
-  );
+  }) => mapAdapter.withResourceMutation(() async {
+    await _apply(documents, expectedDependencies: expectedDependencies);
+  });
 
-  Future<void> _apply(
+  Future<List<int>?> _apply(
     List<PokemonDocumentWriteRequest> documents, {
     List<PokemonDocumentReadDependency> expectedDependencies = const [],
+    bool scopedMedia = false,
   }) async {
     if (documents.isEmpty || documents.length > 200) {
       throw const PokemonWorkspaceFailure('Lot Pokémon vide ou trop grand.');
     }
+    final mediaOnly =
+        scopedMedia &&
+        documents.length == 1 &&
+        documents.single.family == PokemonDocumentFamily.media;
     final baseline = await mapAdapter.resourceBaseline(session);
     final writes = <Map<String, Object?>>[];
     final changedPaths = <String>{};
@@ -140,22 +166,38 @@ final class PokemonDocumentTransaction {
           );
         }
       }
-      return;
+      return mediaOnly ? documents.single.beforeBytes : null;
     }
     final policy = await WorkspacePolicy.create(
       allowedRootPaths: [session.directoryPath],
       fileReader: reader,
     );
     final handles = WorkspaceHandleStore();
-    final opened = await ProjectOpenService(
+    final opener = ProjectOpenService(
       policy: policy,
       fileReader: reader,
       handles: handles,
+      workshopScope: mediaOnly,
+      initializeSceneOwners: !mediaOnly,
       catalogMetadataFields:
           session.storage == ProjectSessionStorage.workingCatalog
           ? const {}
           : null,
-    ).openProject(session.directoryPath);
+    );
+    final gateway = mediaOnly
+        ? await LocalTransactionFileGateway.open(
+            projectRoot: session.directoryPath,
+          )
+        : null;
+    final opened = gateway == null
+        ? await opener.openProject(session.directoryPath)
+        : await gateway.withExclusiveWriteLock(() async {
+            await readPendingTransactionJournals(
+              gateway,
+              requirePrepared: true,
+            );
+            return opener.openProject(session.directoryPath);
+          });
     final snapshots = ProjectSnapshotLoader(handles: handles);
     final api = LocalMapAuthoringMutationApi(
       policy: policy,
@@ -170,11 +212,18 @@ final class PokemonDocumentTransaction {
         projectHandle: opened.projectHandle,
       );
       attached = true;
-      final snapshot = session.storage == ProjectSessionStorage.workingCatalog
+      final actionId = mediaOnly
+          ? 'pokemon.media.write'
+          : 'pokemon.documents.write';
+      final parameters = mediaOnly
+          ? Map<String, Object?>.from(writes.single['parameters'] as Map)
+          : <String, Object?>{'documents': writes};
+      final snapshot =
+          mediaOnly || session.storage == ProjectSessionStorage.workingCatalog
           ? await api.readWorkshopSnapshot(
               opened.projectHandle,
-              actionId: 'pokemon.documents.write',
-              parameters: {'documents': writes},
+              actionId: actionId,
+              parameters: parameters,
               readDependencies: {
                 for (final dependency in dependencies)
                   dependency.resourceIdentity: dependency.relativePath,
@@ -203,9 +252,11 @@ final class PokemonDocumentTransaction {
         opened.projectHandle,
         AuthoringRequest(
           requestId: operation,
-          actionId: 'pokemon.documents.write',
+          actionId: actionId,
           actionVersion: 1,
-          extensions: session.storage == ProjectSessionStorage.workingCatalog
+          extensions:
+              mediaOnly ||
+                  session.storage == ProjectSessionStorage.workingCatalog
               ? {
                   'workshopScope': true,
                   'workshopReadDependencies': {
@@ -217,11 +268,13 @@ final class PokemonDocumentTransaction {
           workspaceHandle: opened.workspaceHandle.value,
           expectedRevision: snapshot.revision,
           idempotencyKey: operation,
-          parameters: {'documents': writes},
+          parameters: parameters,
         ),
       );
       if (!planned.applicable) {
-        if (planned.nonApplicableReason == 'no_changes') return;
+        if (planned.nonApplicableReason == 'no_changes') {
+          return mediaOnly ? documents.single.beforeBytes : null;
+        }
         throw PokemonWorkspaceFailure(
           'La transaction Pokémon ne peut pas être préparée : '
           '${planned.nonApplicableReason ?? "raison inconnue"}.',
@@ -265,13 +318,23 @@ final class PokemonDocumentTransaction {
             }
           },
         );
-      } on Object catch (failure) {
+      } on Object catch (failure, stack) {
+        if (mediaOnly) {
+          final status = await api.recoveryStatus(
+            opened.projectHandle,
+            operationId: operation,
+          );
+          if (status['disposition'] == 'notFound') {
+            Error.throwWithStackTrace(failure, stack);
+          }
+        }
         try {
           final recovered = await api.recoverMutation(
             opened.projectHandle,
             operationId: operation,
           );
-          if (recovered.receipt.extensions['recoveryOutcome'] != 'resumed') {
+          if (recovered.receipt.extensions['recoveryOutcome'] != 'resumed' &&
+              !(mediaOnly && recovered.receipt.status.name == 'applied')) {
             throw PokemonWorkspaceFailure(
               'Transaction interrompue ; vérifiez le projet avant de réessayer : $failure',
             );
@@ -283,6 +346,7 @@ final class PokemonDocumentTransaction {
           );
         }
       }
+      List<int>? savedMediaBytes;
       try {
         for (final change in changes) {
           final actual = await reader.readBytes(
@@ -293,6 +357,9 @@ final class PokemonDocumentTransaction {
             throw StateError(
               'Le document ${change.storageKey} ne correspond pas au reçu.',
             );
+          }
+          if (mediaOnly && change.storageKey == documents.single.relativePath) {
+            savedMediaBytes = List.unmodifiable(actual);
           }
         }
         final revision = await mapAdapter.resourceRevision(session);
@@ -315,7 +382,7 @@ final class PokemonDocumentTransaction {
             revision: revision,
             changedPaths: [for (final change in changes) change.storageKey],
             operationId: operation,
-            actionId: 'pokemon.documents.write',
+            actionId: actionId,
           ),
         );
       } on Object catch (failure) {
@@ -324,6 +391,13 @@ final class PokemonDocumentTransaction {
           'Rouvrez le projet avant de continuer : $failure',
         );
       }
+      if (mediaOnly && savedMediaBytes == null) {
+        throw const PokemonWorkspaceFailure(
+          'Écriture confirmée mais préimage enregistrée indisponible. '
+          'Rouvrez le projet avant de continuer.',
+        );
+      }
+      return savedMediaBytes;
     } finally {
       if (attached) await api.detachWorkspace(opened.workspaceHandle);
       handles.closeWorkspace(opened.workspaceHandle);

@@ -7,6 +7,11 @@ import 'package:map_core/map_core.dart';
 import '../domain/pokemon_workspace_models.dart';
 import 'pokemon_moves_projection.dart';
 
+String pokemonDocumentPath(String directory, String reference) =>
+    directory.isEmpty || directory == '.'
+    ? '$reference.json'
+    : '$directory/$reference.json';
+
 String projectPokemonName(Map<String, dynamic> names, String fallback) {
   for (final key in ['fr', 'en']) {
     final value = names[key];
@@ -67,7 +72,7 @@ Future<List<PokemonSpeciesSummary>> loadPokemonSpeciesIndex({
                 ?.trim() ??
             '') {
           '' => '',
-          final reference => '${config.mediaDir}/$reference.json',
+          final reference => pokemonDocumentPath(config.mediaDir, reference),
         },
         learnsetReference:
             ((json['refs'] as Map?)?['learnset'] as String?) ?? '',

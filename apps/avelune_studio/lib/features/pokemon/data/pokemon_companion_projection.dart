@@ -58,7 +58,7 @@ Future<PokemonDocumentSource?> loadPokemonCompanion({
   bool ownerIsBaseForm = true,
 }) async {
   if (reference.trim().isEmpty) return null;
-  final path = '$directory/$reference.json';
+  final path = pokemonDocumentPath(directory, reference);
   final bytes = await readOptionalPokemonResource(
     reader: reader,
     projectRoot: projectRoot,

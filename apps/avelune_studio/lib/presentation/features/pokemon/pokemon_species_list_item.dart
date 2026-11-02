@@ -13,12 +13,14 @@ class PokemonSpeciesListItem extends StatelessWidget {
     required this.port,
     required this.selected,
     required this.onTap,
+    this.mediaRevision = 0,
   });
 
   final PokemonSpeciesSummary entry;
   final PokemonWorkspacePort port;
   final bool selected;
   final VoidCallback onTap;
+  final int mediaRevision;
 
   @override
   Widget build(BuildContext context) {
@@ -47,6 +49,7 @@ class PokemonSpeciesListItem extends StatelessWidget {
                   key: ValueKey('thumbnail-${entry.id}'),
                   entry: entry,
                   port: port,
+                  mediaRevision: mediaRevision,
                   size: 46,
                 ),
                 const SizedBox(width: 9),

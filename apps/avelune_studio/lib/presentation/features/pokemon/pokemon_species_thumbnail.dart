@@ -11,11 +11,13 @@ class PokemonSpeciesThumbnail extends StatefulWidget {
     required this.entry,
     required this.port,
     this.size = 48,
+    this.mediaRevision = 0,
   });
 
   final PokemonSpeciesSummary entry;
   final PokemonWorkspacePort port;
   final double size;
+  final int mediaRevision;
 
   @override
   State<PokemonSpeciesThumbnail> createState() =>
@@ -28,7 +30,9 @@ class _PokemonSpeciesThumbnailState extends State<PokemonSpeciesThumbnail> {
   @override
   void didUpdateWidget(PokemonSpeciesThumbnail oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.entry != widget.entry || oldWidget.port != widget.port) {
+    if (oldWidget.entry != widget.entry ||
+        oldWidget.port != widget.port ||
+        oldWidget.mediaRevision != widget.mediaRevision) {
       image = widget.port.loadThumbnail(widget.entry);
     }
   }

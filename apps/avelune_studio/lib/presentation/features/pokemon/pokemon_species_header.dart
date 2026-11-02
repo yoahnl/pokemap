@@ -46,6 +46,9 @@ class PokemonSpeciesHeader extends StatelessWidget {
                 : PokemonSpeciesThumbnail(
                     entry: entry,
                     port: controller.port,
+                    mediaRevision: controller.mediaRevision(
+                      entry.mediaRelativePath,
+                    ),
                     size: compact ? 88 : 120,
                   ),
           ),

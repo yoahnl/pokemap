@@ -179,6 +179,9 @@ class _PokemonSpeciesLibraryState extends State<PokemonSpeciesLibrary> {
                             return PokemonSpeciesListItem(
                               entry: entry,
                               port: controller.port,
+                              mediaRevision: controller.mediaRevision(
+                                entry.mediaRelativePath,
+                              ),
                               selected: entry.id == controller.selectedId,
                               onTap: () => _select(entry.id),
                             );

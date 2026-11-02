@@ -22,6 +22,9 @@ extension PokemonWorkspaceOwnerCommands on PokemonWorkspaceController {
     final draft = selectedDraft;
     if (saving) return false;
     if (draft == null) return false;
+    final families = draft.changedFamilies;
+    final mediaOnly =
+        families.length == 1 && families.single == PokemonDocumentFamily.media;
     final id = draft.id;
     saving = true;
     lastSavedSpeciesId = null;
@@ -31,7 +34,12 @@ extension PokemonWorkspaceOwnerCommands on PokemonWorkspaceController {
       final saved = await port.save(draft);
       if (_disposed) return false;
       _drafts[id] = PokemonSpeciesDraft(saved);
-      await load(refresh: true);
+      if (mediaOnly && saved.media != null) {
+        final path = saved.media!.relativePath;
+        _mediaRevisions[path] = (_mediaRevisions[path] ?? 0) + 1;
+      } else {
+        await load(refresh: true);
+      }
       if (!_disposed) lastSavedSpeciesId = id;
       return !_disposed;
     } on Object catch (failure) {
