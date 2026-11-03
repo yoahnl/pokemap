@@ -11,7 +11,17 @@ final class BattleSplParticleDefinition {
   final List<BattleSplEmitterDefinition> emitters;
   final Set<String> textureIds;
 
-  factory BattleSplParticleDefinition.fromJson(Map<String, dynamic> json) {
+  factory BattleSplParticleDefinition.fromJson(Map<String, dynamic> json) =>
+      _parse(json, experimental: false);
+
+  factory BattleSplParticleDefinition.fromExperimentalJson(
+    Map<String, dynamic> json,
+  ) => _parse(json, experimental: true);
+
+  static BattleSplParticleDefinition _parse(
+    Map<String, dynamic> json, {
+    required bool experimental,
+  }) {
     final Map<String, dynamic> copy;
     try {
       copy = (jsonDecode(jsonEncode(json)) as Map).cast<String, dynamic>();
@@ -20,7 +30,7 @@ final class BattleSplParticleDefinition {
     }
     _fields(copy, {'schemaVersion', 'emitters'});
     if (copy['schemaVersion'] is! int ||
-        !{2, 3, 4}.contains(copy['schemaVersion'])) {
+        !(experimental ? {5} : {2, 3, 4}).contains(copy['schemaVersion'])) {
       throw const FormatException('Unsupported SPL particle version');
     }
     final values = _list(copy['emitters']);
@@ -80,8 +90,16 @@ void _validateEmitter(
     'scaleVariance',
     'randomInitialAngle',
     'initialAngle',
+    if (version >= 5) 'emissionAxis',
+    if (version >= 5) 'velocityVariance',
   });
-  _choice(emission['shape'], {'point', 'sphereSurface'});
+  _choice(emission['shape'], {
+    'point',
+    'sphereSurface',
+    if (version >= 5) 'hemisphereSurface',
+    if (version >= 5) 'circleBorder',
+    if (version >= 5) 'circleBorderUniform',
+  });
   _vector(emission['origin'], -2147483648, 2147483647);
   _vector(emission['axis'], -32768, 32767);
   final radius = _integer(emission['radius'], 0, 32767);
@@ -105,6 +123,10 @@ void _validateEmitter(
   final scaleVariance = _integer(emission['scaleVariance'], 0, 255);
   _boolean(emission['randomInitialAngle']);
   _integer(emission['initialAngle'], 0, 65535);
+  if (version >= 5) {
+    _choice(emission['emissionAxis'], {'x', 'y', 'z'});
+    _integer(emission['velocityVariance'], 0, 255);
+  }
 
   final appearance = _map(emitter['appearance']);
   _fields(appearance, {
@@ -119,8 +141,51 @@ void _validateEmitter(
     'alpha',
     'initialTexture',
     'textureAnimation',
+    if (version >= 5) 'hasRotation',
+    if (version >= 5) 'minRotation',
+    if (version >= 5) 'maxRotation',
+    if (version >= 5) 'dirFromPosition',
+    if (version >= 5 && appearance.containsKey('polygonX')) 'polygonX',
+    if (version >= 5 && appearance.containsKey('polygonY')) 'polygonY',
+    if (version >= 5 && appearance.containsKey('relativeToBasePos'))
+      'relativeToBasePos',
   });
-  _choice(appearance['draw'], {'billboard', 'directionalBillboard'});
+  _choice(appearance['draw'], {
+    'billboard',
+    'directionalBillboard',
+    if (version >= 5) 'directionalPolygon',
+  });
+  if (version >= 5) {
+    _boolean(appearance['hasRotation']);
+    _integer(appearance['minRotation'], -32768, 32767);
+    _integer(appearance['maxRotation'], -32768, 32767);
+    _boolean(appearance['dirFromPosition']);
+    if (appearance.containsKey('polygonX')) {
+      _integer(appearance['polygonX'], -32768, 32767);
+    }
+    if (appearance.containsKey('polygonY')) {
+      _integer(appearance['polygonY'], -32768, 32767);
+    }
+    if (appearance.containsKey('relativeToBasePos')) {
+      _boolean(appearance['relativeToBasePos']);
+    }
+    if (appearance['dirFromPosition'] == true &&
+        appearance['draw'] != 'directionalBillboard' &&
+        appearance['draw'] != 'directionalPolygon') {
+      throw const FormatException('Unsupported SPL directional mode');
+    }
+    if (appearance['draw'] == 'directionalPolygon' &&
+        (appearance['dirFromPosition'] != true ||
+            appearance['hasRotation'] != false ||
+            emission['randomInitialAngle'] != false ||
+            emission['initialAngle'] != 0 ||
+            appearance['relativeToBasePos'] == true ||
+            (appearance['polygonX'] ?? 0) != 0 ||
+            (appearance['polygonY'] ?? 0) != 0 ||
+            emitter['child'] != null)) {
+      throw const FormatException('Unsupported SPL directional polygon');
+    }
+  }
   _choice(appearance['scaleAxis'], {'x', 'y', 'xy'});
   final baseScale = _integer(appearance['baseScale'], 0, 32767);
   final maxVariedScale = (baseScale * (255 + scaleVariance)) >> 8;
@@ -150,7 +215,12 @@ void _validateEmitter(
   }
 
   final motion = _map(emitter['motion']);
-  _fields(motion, {'gravity', 'airResistance', if (version >= 4) 'magnet'});
+  _fields(motion, {
+    'gravity',
+    'airResistance',
+    if (version >= 4) 'magnet',
+    if (version >= 5 && motion.containsKey('convergence')) 'convergence',
+  });
   _vector(motion['gravity'], -32768, 32767);
   _integer(motion['airResistance'], 0, 255);
   if (version >= 4 && motion['magnet'] != null) {
@@ -158,6 +228,12 @@ void _validateEmitter(
     _fields(magnet, {'target', 'force'});
     _vector(magnet['target'], -2147483648, 2147483647);
     _integer(magnet['force'], -32768, 32767);
+  }
+  if (version >= 5 && motion.containsKey('convergence')) {
+    final convergence = _map(motion['convergence']);
+    _fields(convergence, {'target', 'force'});
+    _vector(convergence['target'], -2147483648, 2147483647);
+    _integer(convergence['force'], -32768, 32767);
   }
 
   final child = emitter['child'];

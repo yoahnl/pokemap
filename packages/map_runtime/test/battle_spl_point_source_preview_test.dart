@@ -404,7 +404,7 @@ _sourceEmitter(
     emitterVelocity: (x: 0, y: 0, z: 0),
     airResistance: emitter['airResistance'] as int,
     initialTexture: textureIds.first,
-    initializeParent: (_) {
+    initializeParent: (_, _, _) {
       final position = spherical
           ? BattleSplVectorMath.sphereSurface(
               random,

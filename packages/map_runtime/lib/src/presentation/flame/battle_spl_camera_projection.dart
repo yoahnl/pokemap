@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:map_render_3d/battle_projection_contract.dart';
+
 import 'battle_live_attachment.dart';
 import 'battle_perspective_camera.dart';
 import 'battle_spl_particle_motion.dart';
@@ -12,6 +14,10 @@ typedef BattleSplProjectedParticle = ({
   ui.Offset position,
   double scale,
   ui.Offset direction,
+});
+typedef BattleSplProjectedPolygon = ({
+  List<ui.Offset> positions,
+  List<ui.Offset> textureCoordinates,
 });
 
 final class BattleSplWorldTransform {
@@ -137,6 +143,7 @@ final class BattleSplCameraProjection {
     BattleSplPointParticle particle, {
     bool includeDirection = true,
     int emitterIndex = 0,
+    BattleSplVector? relativeBasePosition,
   }) {
     if (emitterTransforms != null &&
         (emitterIndex < 0 || emitterIndex >= emitterTransforms!.length)) {
@@ -146,12 +153,19 @@ final class BattleSplCameraProjection {
     if (transform == null) return null;
     final position = particle.motion.position;
     final emitter = particle.emitterPosition;
+    final relative = relativeBasePosition ?? (x: 0, y: 0, z: 0);
     final offset = transform.apply((
-      x: position.x + emitter.x,
-      y: position.y + emitter.y,
-      z: position.z + emitter.z,
+      x: position.x + emitter.x - relative.x,
+      y: position.y + emitter.y - relative.y,
+      z: position.z + emitter.z - relative.z,
     ));
-    final world = BattleCameraPoint(anchor.x, anchor.y, anchor.z) + offset;
+    final forward = (camera.aim - camera.eye).normalized;
+    final right = forward.cross(const BattleCameraPoint(0, 1, 0)).normalized;
+    final up = right.cross(forward);
+    final units = transform.worldUnitsPerUnit / 4096;
+    final world = BattleCameraPoint(anchor.x, anchor.y, anchor.z) + offset +
+        right * (relative.x * units) + up * (relative.y * units) -
+        forward * (relative.z * units);
     final projected = camera.tryProject(world);
     if (projected == null) return null;
     final scale = camera.focal * anchor.unit / projected.depth;
@@ -164,9 +178,6 @@ final class BattleSplCameraProjection {
       );
     }
 
-    final forward = (camera.aim - camera.eye).normalized;
-    final right = forward.cross(const BattleCameraPoint(0, 1, 0)).normalized;
-    final up = right.cross(forward);
     final delta = world - camera.eye;
     final velocity = transform.apply(particle.motion.velocity);
     final depthVelocity = velocity.dot(forward);
@@ -176,6 +187,131 @@ final class BattleSplCameraProjection {
     );
     if (!_finite(direction)) return null;
     return (position: projected.position, scale: scale, direction: direction);
+  }
+
+  List<ui.Offset>? projectDirectionalPolygon(
+    BattleSplWorldAnchor anchor,
+    BattleSplPointParticle particle, {
+    required int aspectRatio4096,
+    required String scaleAxis,
+    required double pixelsPerUnit,
+    int emitterIndex = 0,
+  }) {
+    final corners = _directionalWorldCorners(anchor, particle,
+      aspectRatio4096: aspectRatio4096, scaleAxis: scaleAxis,
+      pixelsPerUnit: pixelsPerUnit, emitterIndex: emitterIndex);
+    if (corners == null) return null;
+    final projected = <ui.Offset>[];
+    for (final corner in corners) {
+      final value = camera.tryProject(corner);
+      if (value == null || !_finite(value.position)) return null;
+      projected.add(value.position);
+    }
+    return projected;
+  }
+
+  BattleSplProjectedPolygon? projectClippedDirectionalPolygon(
+    BattleSplWorldAnchor anchor,
+    BattleSplPointParticle particle, {
+    required int aspectRatio4096,
+    required String scaleAxis,
+    required double pixelsPerUnit,
+    int emitterIndex = 0,
+  }) {
+    final corners = _directionalWorldCorners(anchor, particle,
+      aspectRatio4096: aspectRatio4096, scaleAxis: scaleAxis,
+      pixelsPerUnit: pixelsPerUnit, emitterIndex: emitterIndex);
+    if (corners == null) return null;
+    if (corners.isEmpty) return (positions: [], textureCoordinates: []);
+    final direction = (camera.aim - camera.eye).normalized;
+    final input = <({BattleCameraPoint point, ui.Offset uv, double depth})>[];
+    const uvs = [ui.Offset(0, 0), ui.Offset(1, 0), ui.Offset(1, 1), ui.Offset(0, 1)];
+    for (var i = 0; i < corners.length; i++) {
+      final depth = (corners[i] - camera.eye).dot(direction);
+      if (!depth.isFinite) return null;
+      input.add((point: corners[i], uv: uvs[i], depth: depth));
+    }
+    final output = <({BattleCameraPoint point, ui.Offset uv, double depth})>[];
+    const near = BattleProjectionContract.near + .001;
+    var previous = input.last;
+    for (final current in input) {
+      final previousInside = previous.depth >= near;
+      final currentInside = current.depth >= near;
+      if (previousInside != currentInside) {
+        final t = (near - previous.depth) / (current.depth - previous.depth);
+        output.add((
+          point: previous.point + (current.point - previous.point) * t,
+          uv: previous.uv + (current.uv - previous.uv) * t,
+          depth: near,
+        ));
+      }
+      if (currentInside) output.add(current);
+      previous = current;
+    }
+    if (output.length < 3) return (positions: [], textureCoordinates: []);
+    final positions = <ui.Offset>[];
+    final coordinates = <ui.Offset>[];
+    for (final vertex in output) {
+      final projected = camera.tryProject(vertex.point);
+      if (projected == null || !_finite(projected.position)) return null;
+      positions.add(projected.position);
+      coordinates.add(vertex.uv);
+    }
+    return (positions: positions, textureCoordinates: coordinates);
+  }
+
+  List<BattleCameraPoint>? _directionalWorldCorners(
+    BattleSplWorldAnchor anchor,
+    BattleSplPointParticle particle, {
+    required int aspectRatio4096,
+    required String scaleAxis,
+    required double pixelsPerUnit,
+    required int emitterIndex,
+  }) {
+    if (emitterTransforms != null &&
+        (emitterIndex < 0 || emitterIndex >= emitterTransforms!.length)) {
+      return null;
+    }
+    final transform = emitterTransforms?[emitterIndex] ?? worldTransform;
+    if (transform == null || !pixelsPerUnit.isFinite || pixelsPerUnit <= 0 ||
+        !{'x', 'y', 'xy'}.contains(scaleAxis)) {
+      return null;
+    }
+    final position = particle.motion.position;
+    final vector = BattleCameraPoint(-position.x.toDouble(),
+        -position.y.toDouble(), -position.z.toDouble());
+    if (vector.length == 0 || particle.alpha5 == 0 || particle.scale4096 == 0) {
+      return const [];
+    }
+    final direction = vector.normalized;
+    final up = direction.y.abs() > .8
+        ? const BattleCameraPoint(1, 0, 0)
+        : const BattleCameraPoint(0, 1, 0);
+    final side = direction.cross(up);
+    final base = particle.baseScale4096 / 4096;
+    final animated = particle.scale4096 / 4096;
+    final scaleX = base * aspectRatio4096 / 4096 *
+        (scaleAxis == 'y' ? 1 : animated);
+    final scaleY = base * (scaleAxis == 'x' ? 1 : animated);
+    final emitter = particle.emitterPosition;
+    final center = BattleCameraPoint(anchor.x, anchor.y, anchor.z) +
+        transform.apply((x: position.x + emitter.x,
+          y: position.y + emitter.y, z: position.z + emitter.z));
+    final cosine = math.cos(transform.yawRadians);
+    final sine = math.sin(transform.yawRadians);
+    final units = pixelsPerUnit * anchor.unit;
+    final corners = <BattleCameraPoint>[];
+    for (final sign in const [(-1, 1), (1, 1), (1, -1), (-1, -1)]) {
+      final local = side * (sign.$1 * scaleX) + direction * (sign.$2 * scaleY);
+      final world = center + BattleCameraPoint(
+        (local.x * cosine - local.z * sine) * units,
+        local.y * units,
+        (local.x * sine + local.z * cosine) * units,
+      );
+      if (!world.isFinite) return null;
+      corners.add(world);
+    }
+    return corners;
   }
 }
 

@@ -1,0 +1,406 @@
+{
+  "kind": "gen5SourceProgram",
+  "timebaseHz": 60,
+  "source": {
+    "revision": "41f42ca1afe6291f00b0ba0ec3f6099b9ff1346c",
+    "path": "res/battle/animations/moves/tackle.s",
+    "sha256": "7e4efb20a66db06afb4611900c65796e60401d02cd49e5d9e7a35fa6e40d441c"
+  },
+  "variants": [
+    "Tackle"
+  ],
+  "labels": [
+    {
+      "name": "Tackle",
+      "instructionIndex": 0,
+      "line": 8
+    }
+  ],
+  "variant": "Tackle",
+  "entryIndex": 0,
+  "conversion": "supported",
+  "verification": "sourceTranscriptionOnly",
+  "diagnostics": [],
+  "instructions": [
+    {
+      "op": "moveCameraPreset",
+      "source": {
+        "index": 0,
+        "line": 9,
+        "name": "CameraMovePreset",
+        "operands": [
+          "1",
+          "11",
+          "16",
+          "0",
+          "8"
+        ]
+      },
+      "args": {
+        "moveType": 1,
+        "camera": 11,
+        "frames": 16,
+        "wait": 0,
+        "brake": 8
+      }
+    },
+    {
+      "op": "waitTasks",
+      "source": {
+        "index": 1,
+        "line": 10,
+        "name": "Wait",
+        "operands": [
+          "EFFVM_WAIT_ALL"
+        ]
+      },
+      "args": {
+        "what": "ALL"
+      }
+    },
+    {
+      "op": "moveCombatant",
+      "source": {
+        "index": 2,
+        "line": 11,
+        "name": "McssMoveXY",
+        "operands": [
+          "EFFVM_ATTACKER",
+          "2",
+          "0x1000",
+          "0",
+          "4",
+          "1",
+          "1"
+        ]
+      },
+      "args": {
+        "targets": "EFFVM_ATTACKER",
+        "type": 2,
+        "x": 4096,
+        "y": 0,
+        "frames": 4,
+        "wait": 1,
+        "times": 1
+      }
+    },
+    {
+      "op": "loadParticle",
+      "source": {
+        "index": 3,
+        "line": 12,
+        "name": "ParticleLoad",
+        "operands": [
+          "199"
+        ]
+      },
+      "args": {
+        "particle": 199
+      }
+    },
+    {
+      "op": "startEmitter",
+      "source": {
+        "index": 4,
+        "line": 13,
+        "name": "EmitterAdd",
+        "operands": [
+          "199",
+          "0",
+          "EFFVM_EMIT_DEFENDER",
+          "8",
+          "0x2000",
+          "0",
+          "0",
+          "0x1000",
+          "0x1000",
+          "0x1000",
+          "0x1000"
+        ]
+      },
+      "args": {
+        "particle": 199,
+        "emitter": 0,
+        "from": "EFFVM_EMIT_DEFENDER",
+        "to": 8,
+        "offsetY": 8192,
+        "unk18": 0,
+        "unused": 0,
+        "radiusScale": 4096,
+        "lifeScale": 4096,
+        "scaleScale": 4096,
+        "cameraScale": 4096
+      }
+    },
+    {
+      "op": "startEmitter",
+      "source": {
+        "index": 5,
+        "line": 14,
+        "name": "EmitterAdd",
+        "operands": [
+          "199",
+          "1",
+          "EFFVM_EMIT_DEFENDER",
+          "8",
+          "0x2000",
+          "0",
+          "0",
+          "0x1000",
+          "0x1000",
+          "0x1000",
+          "0x1000"
+        ]
+      },
+      "args": {
+        "particle": 199,
+        "emitter": 1,
+        "from": "EFFVM_EMIT_DEFENDER",
+        "to": 8,
+        "offsetY": 8192,
+        "unk18": 0,
+        "unused": 0,
+        "radiusScale": 4096,
+        "lifeScale": 4096,
+        "scaleScale": 4096,
+        "cameraScale": 4096
+      }
+    },
+    {
+      "op": "setAnimationState",
+      "source": {
+        "index": 6,
+        "line": 15,
+        "name": "McssSetVanish",
+        "operands": [
+          "EFFVM_DEFENDER",
+          "TRUE"
+        ]
+      },
+      "args": {
+        "targets": "EFFVM_DEFENDER",
+        "mode": 1
+      }
+    },
+    {
+      "op": "scaleCombatant",
+      "source": {
+        "index": 7,
+        "line": 16,
+        "name": "McssScale",
+        "operands": [
+          "EFFVM_DEFENDER",
+          "2",
+          "0x4cd",
+          "-0x4cd",
+          "2",
+          "1",
+          "1"
+        ]
+      },
+      "args": {
+        "targets": "EFFVM_DEFENDER",
+        "type": 2,
+        "x": 1229,
+        "y": -1229,
+        "frames": 2,
+        "wait": 1,
+        "times": 1
+      }
+    },
+    {
+      "op": "setYield",
+      "source": {
+        "index": 8,
+        "line": 17,
+        "name": "SetYield",
+        "operands": [
+          "FALSE"
+        ]
+      },
+      "args": {
+        "value": false
+      }
+    },
+    {
+      "op": "playSound",
+      "source": {
+        "index": 9,
+        "line": 18,
+        "name": "PlaySE",
+        "operands": [
+          "SEQ_SE_W015_01",
+          "1",
+          "EFFVM_DEFENDER",
+          "0",
+          "0",
+          "120",
+          "0",
+          "0",
+          "0"
+        ]
+      },
+      "args": {
+        "se": "SEQ_SE_W015_01",
+        "player": 1,
+        "pan": "EFFVM_DEFENDER",
+        "wait": 0,
+        "pitch": 0,
+        "volume": 120,
+        "modDepth": 0,
+        "modSpeed": 0,
+        "unused": 0
+      }
+    },
+    {
+      "op": "playSound",
+      "source": {
+        "index": 10,
+        "line": 19,
+        "name": "PlaySE",
+        "operands": [
+          "SEQ_SE_W011_01",
+          "2",
+          "EFFVM_DEFENDER",
+          "8",
+          "-300",
+          "115",
+          "0",
+          "0",
+          "0"
+        ]
+      },
+      "args": {
+        "se": "SEQ_SE_W011_01",
+        "player": 2,
+        "pan": "EFFVM_DEFENDER",
+        "wait": 8,
+        "pitch": -300,
+        "volume": 115,
+        "modDepth": 0,
+        "modSpeed": 0,
+        "unused": 0
+      }
+    },
+    {
+      "op": "playSound",
+      "source": {
+        "index": 11,
+        "line": 20,
+        "name": "PlaySE",
+        "operands": [
+          "SEQ_SE_W011_01",
+          "1",
+          "EFFVM_DEFENDER",
+          "12",
+          "-300",
+          "115",
+          "0",
+          "0",
+          "0"
+        ]
+      },
+      "args": {
+        "se": "SEQ_SE_W011_01",
+        "player": 1,
+        "pan": "EFFVM_DEFENDER",
+        "wait": 12,
+        "pitch": -300,
+        "volume": 115,
+        "modDepth": 0,
+        "modSpeed": 0,
+        "unused": 0
+      }
+    },
+    {
+      "op": "setYield",
+      "source": {
+        "index": 12,
+        "line": 21,
+        "name": "SetYield",
+        "operands": [
+          "TRUE"
+        ]
+      },
+      "args": {
+        "value": true
+      }
+    },
+    {
+      "op": "waitTasks",
+      "source": {
+        "index": 13,
+        "line": 22,
+        "name": "Wait",
+        "operands": [
+          "EFFVM_WAIT_ALL"
+        ]
+      },
+      "args": {
+        "what": "ALL"
+      }
+    },
+    {
+      "op": "moveCameraPreset",
+      "source": {
+        "index": 14,
+        "line": 23,
+        "name": "CameraMovePreset",
+        "operands": [
+          "1",
+          "8",
+          "16",
+          "0",
+          "8"
+        ]
+      },
+      "args": {
+        "moveType": 1,
+        "camera": 8,
+        "frames": 16,
+        "wait": 0,
+        "brake": 8
+      }
+    },
+    {
+      "op": "setAnimationState",
+      "source": {
+        "index": 15,
+        "line": 24,
+        "name": "McssSetVanish",
+        "operands": [
+          "EFFVM_DEFENDER",
+          "FALSE"
+        ]
+      },
+      "args": {
+        "targets": "EFFVM_DEFENDER",
+        "mode": 0
+      }
+    },
+    {
+      "op": "waitTasks",
+      "source": {
+        "index": 16,
+        "line": 25,
+        "name": "Wait",
+        "operands": [
+          "EFFVM_WAIT_ALL"
+        ]
+      },
+      "args": {
+        "what": "ALL"
+      }
+    },
+    {
+      "op": "end",
+      "source": {
+        "index": 17,
+        "line": 26,
+        "name": "End",
+        "operands": []
+      },
+      "args": {}
+    }
+  ]
+}

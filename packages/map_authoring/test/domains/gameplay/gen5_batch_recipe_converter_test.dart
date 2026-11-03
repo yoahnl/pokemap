@@ -60,6 +60,8 @@ PlaySE SEQ_EXAMPLE, 0, 0, 0, 0, 0, 0, 0, 0
       sound: sound, soundMediaType: 'audio/wav',
     );
     expect(result.binding.sourceMoveId, 'example');
+    expect(result.binding.revision, '2');
+    expect((result.bundle.recipe.toJson()['provenance'] as Map)['converter'], 'batch-particle-preview/2');
     expect(result.bundle.recipe.resources.map((e) => e.role), containsAll(['particleDefinition', 'texture', 'sound']));
     expect(result.warnings, contains('sound-sequence-not-transcribed'));
     expect(result.bundle.recipe.readVerifiedSplParticleDefinitions(result.bundle.media,
@@ -73,11 +75,28 @@ EmitterAdd 199, 0, SOME_UNKNOWN_TARGET, 8, 0, 0, 0, 0, 0, 0, 0
 '''));
     expect(analysis.particles, isEmpty);
     expect(analysis.warnings, contains('unsupported-emitter-target:SOME_UNKNOWN_TARGET'));
+    final unknownDestination = Gen5BatchRecipeConverter.analyze(script('''
+ParticleLoad 199
+EmitterAdd 199, 0, EFFVM_EMIT_ATTACKER, SOME_UNKNOWN_TARGET, 0, 0, 0, 0, 0, 0, 0
+'''));
+    expect(unknownDestination.particles, isEmpty);
+    expect(unknownDestination.warnings, contains('unsupported-emitter-target:SOME_UNKNOWN_TARGET'));
     expect(() => Gen5BatchRecipeConverter.convert(
       moveId: 'example', sourceMoveId: 99, script: script('''
 ParticleLoad 199
 EmitterAdd 199, 0, SOME_UNKNOWN_TARGET, 8, 0, 0, 0, 0, 0, 0, 0
 '''), particles: const {}), throwsFormatException);
+  });
+
+  test('reports movement and repeated emitters omitted by the preview', () {
+    final result = Gen5BatchRecipeConverter.analyze(script('''
+ParticleLoad 220
+EmitterMove 220, 1, 1, EFFVM_EMIT_ATTACKER, EFFVM_EMIT_DEFENDER, 0, 0x1e000, 0, 0, 0, 0
+WaitFrames 1
+EmitterMove 220, 1, 1, EFFVM_EMIT_ATTACKER, EFFVM_EMIT_DEFENDER, 0, 0x1e000, 0, 0, 0, 0
+'''));
+    expect(result.particles, hasLength(1));
+    expect(result.warnings, containsAll(['emitter-motion-not-transcribed', 'repeated-emitter-omitted']));
   });
 
   test('selects only source emitters actually invoked and reports a missing sound', () async {
@@ -100,6 +119,53 @@ EmitterAdd 199, 1, EFFVM_EMIT_DEFENDER, 8, 0, 0, 0, 0, 0, 0, 0
     expect(result.bundle.recipe.resources.where((item) => item.role == 'sound'), isEmpty);
   });
 
+  test('keeps each source emitter attached to the side that invoked it', () async {
+    final definition = jsonDecode(await File('../map_core/test/fixtures/spl_particle_v2.json').readAsString()) as Map<String, dynamic>;
+    final original = (definition['emitters'] as List).single;
+    definition['emitters'] = [
+      for (var i = 0; i < 6; i++)
+        (jsonDecode(jsonEncode(original)) as Map<String, dynamic>)
+          ..['appearance']['baseScale'] = 4000 + i,
+    ];
+    final texture = Uint8List.fromList(image.encodePng(image.Image(width: 2, height: 2)));
+    final result = Gen5BatchRecipeConverter.convert(moveId: 'surf', sourceMoveId: 57,
+      script: script('''
+ParticleLoad 222
+EmitterAdd 222, 3, EFFVM_EMIT_ATTACKER, 8, 0, 0, 0, 0, 0, 0, 0
+EmitterAdd 222, 1, EFFVM_EMIT_DEFENDER, 8, 0, 0, 0, 0, 0, 0, 0
+EmitterAdd 222, 4, EFFVM_EMIT_ATTACKER, 8, 0, 0, 0, 0, 0, 0, 0
+EmitterAdd 222, 5, EFFVM_EMIT_ATTACKER, EFFVM_EMIT_DEFENDER, 0, 0, 0, 0, 0, 0, 0
+WaitFrames 20
+WaitFrames 30
+WaitFrames 20
+EmitterAdd 222, 2, EFFVM_EMIT_DEFENDER, 8, 0, 0, 0, 0, 0, 0, 0
+'''), particles: {222: Gen5BatchParticle(
+        definition: Uint8List.fromList(utf8.encode(jsonEncode(definition))),
+        textures: {'tex': texture})});
+    final definitions = result.bundle.recipe.readVerifiedSplParticleDefinitions(result.bundle.media,
+      availableCapabilities: BattleMoveAnimationRecipe.recognizedCapabilities);
+    final sequence = result.bundle.recipe.toJson()['program'] as Map;
+    final parallel = (sequence['steps'] as List).first as Map;
+    final actual = <(int, String, String, int)>[];
+    for (final raw in parallel['steps'] as List) {
+      var step = raw as Map;
+      var delay = 0;
+      if (step['kind'] == 'sequence') {
+        final steps = step['steps'] as List;
+        delay = (steps.first as Map)['durationMs'] as int;
+        step = steps.last as Map;
+      }
+      final selected = definitions[step['resourceId']]!.toJson()['emitters'] as List;
+      for (final emitter in selected) {
+        actual.add(((emitter['appearance'] as Map)['baseScale'] as int,
+          step['from'] as String, step['to'] as String, delay));
+      }
+    }
+    expect(actual, [(4003, 'userMouth', 'userMouth', 0),
+      (4001, 'targetImpact', 'targetImpact', 0), (4004, 'userMouth', 'userMouth', 0),
+      (4005, 'userMouth', 'targetImpact', 0), (4002, 'targetImpact', 'targetImpact', 1167)]);
+  });
+
   test('bounds a preview and explicitly lists the emitters it omits', () async {
     final definition = jsonDecode(await File('../map_core/test/fixtures/spl_particle_v2.json').readAsString()) as Map<String, dynamic>;
     final original = (definition['emitters'] as List).single;
@@ -113,7 +179,7 @@ EmitterAdd 199, 1, EFFVM_EMIT_DEFENDER, 8, 0, 0, 0, 0, 0, 0, 0
         textures: {'tex': Uint8List.fromList(image.encodePng(pixels))})});
     final selected = result.bundle.recipe.readVerifiedSplParticleDefinitions(result.bundle.media,
       availableCapabilities: BattleMoveAnimationRecipe.recognizedCapabilities);
-    expect(selected.values.single.emitters, hasLength(5));
+    expect(selected.values.expand((definition) => definition.emitters), hasLength(5));
     expect(result.warnings, containsAll(['preview-omitted-emitter:199:5',
       'preview-omitted-emitter:199:6', 'preview-omitted-emitter:199:7']));
   });

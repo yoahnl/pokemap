@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -8,12 +9,442 @@ import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/src/presentation/flame/battle_spl_configured_emitter.dart';
 import 'package:map_runtime/src/presentation/flame/battle_spl_particle_pool.dart';
+import 'package:map_runtime/src/presentation/flame/battle_spl_point_preview_painter.dart';
 import 'package:map_runtime/src/presentation/flame/battle_spl_random.dart';
+import 'package:map_runtime/src/presentation/flame/battle_spl_static_admission.dart';
 
 void main() {
-  test('applies a v4 magnet to configured parent particles', () async {
+  test('emits a uniform BW2 ring even if the particle pool is exhausted', () async {
     final raw = jsonDecode(
       await File('../map_core/test/fixtures/spl_particle_v2.json').readAsString(),
+    ) as Map<String, dynamic>;
+    raw['schemaVersion'] = 5;
+    final definition = (raw['emitters'] as List).single as Map<String, dynamic>;
+    final emission = definition['emission'] as Map;
+    emission['shape'] = 'circleBorderUniform';
+    emission['radius'] = 4096;
+    emission['axis'] = {'x': 0, 'y': 4096, 'z': 0};
+    emission['rate'] = 4 * 4096;
+    emission['duration'] = 1;
+    emission['axisVelocity'] = 0;
+    emission['positionVelocity'] = 0;
+    emission['emissionAxis'] = 'y';
+    emission['velocityVariance'] = 0;
+    emission['origin'] = {'x': 0, 'y': -3350, 'z': 0};
+    final appearance = definition['appearance'] as Map;
+    appearance['hasRotation'] = false;
+    appearance['minRotation'] = 0;
+    appearance['maxRotation'] = 0;
+    appearance['dirFromPosition'] = false;
+    appearance['relativeToBasePos'] = true;
+    (definition['motion'] as Map)['magnet'] = null;
+    final parsed = BattleSplParticleDefinition.fromExperimentalJson(raw);
+    BattleSplConfiguredEmitter make(int capacity) => BattleSplConfiguredEmitter(
+      definition: parsed.emitters.single,
+      textureIndices: const {'tex': 0},
+      random: BattleSplRandom(seed: 0),
+      pool: BattleSplParticlePool(capacity: capacity),
+    );
+    final full = make(4);
+    expect(full.relativeBasePosition, (x: 0, y: -3350, z: 0));
+    full.step(managerFrame: 0, position: (x: 0, y: 0, z: 0));
+    final positions = [...full.playback.particles]..sort((a, b) => a.id.compareTo(b.id));
+    expect(positions.map((p) => p.motion.position), [
+      (x: -4096, y: 0, z: 0),
+      (x: 0, y: 0, z: -4096),
+      (x: 4096, y: 0, z: 0),
+      (x: 0, y: 0, z: 4096),
+    ]);
+    full.cancel();
+
+    final limited = make(2);
+    final step = limited.step(managerFrame: 0, position: (x: 0, y: 0, z: 0));
+    expect(step.droppedParents, 2);
+    final partial = [...limited.playback.particles]..sort((a, b) => a.id.compareTo(b.id));
+    expect(partial.map((p) => p.motion.position), [
+      (x: -4096, y: 0, z: 0),
+      (x: 0, y: 0, z: -4096),
+    ]);
+    limited.cancel();
+  });
+
+  test(
+    'plays and paints BW2 source emitter 222/2 with its original texture',
+    () async {
+      const revision = '41f42ca1afe6291f00b0ba0ec3f6099b9ff1346c';
+      const path = 'res/particles/btlv_effvm_particles/222';
+      final client = HttpClient();
+      addTearDown(() => client.close(force: true));
+      Future<Uint8List> source(String name, String hash) async {
+        final request = await client
+            .getUrl(
+              Uri.https(
+                'raw.githubusercontent.com',
+                '/fuddlesworth/pokebw2/$revision/$path/$name',
+              ),
+            )
+            .timeout(const Duration(seconds: 20));
+        request.followRedirects = false;
+        final response = await request.close().timeout(
+          const Duration(seconds: 20),
+        );
+        expect(response.statusCode, HttpStatus.ok);
+        final bytes = BytesBuilder(copy: false);
+        await for (final chunk in response.timeout(
+          const Duration(seconds: 20),
+        )) {
+          if (bytes.length + chunk.length > 262144) {
+            throw const FormatException('Particle source too large');
+          }
+          bytes.add(chunk);
+        }
+        final result = bytes.takeBytes();
+        expect(sha256.convert(result).toString(), hash);
+        return result;
+      }
+
+      final original = await source(
+        'particles.json',
+        '3e191c2e53d6eb9ff35b21e232c3ff8371516d09d4a55e8d0595cd43c149b8cc',
+      );
+      final png = await source(
+        'texture00.png',
+        '93949a859e9770ad42aa1c728d157cf9d48f55b12bfad45264db1f0989575cae',
+      );
+      final converted = Gen5SplParticleConverter.convert(
+        original,
+        particleId: 222,
+        sourceRevision: revision,
+        sourcePath: '$path/particles.json',
+        expectedSha256:
+            '3e191c2e53d6eb9ff35b21e232c3ff8371516d09d4a55e8d0595cd43c149b8cc',
+        textureResourceIds: const {
+          'texture00': 'texture00',
+          'texture01': 'texture01',
+          'texture02': 'texture02',
+          'texture03': 'texture03',
+        },
+        experimentalSourceEmitterIndices: const [2],
+      );
+      expect(converted.sourceEmitterIndices, [2]);
+      final prepared = BattleSplStaticAdmission.prepare(
+        definition: converted.definition,
+        textureIndices: const {'texture00': 0},
+        emitters: const [
+          BattleSplStaticEmitter(
+            emitterIndex: 0,
+            startTick: 0,
+            position: (x: 0, y: 0, z: 0),
+          ),
+        ],
+        seed: 0,
+        poolCapacity: 64,
+        maxTicks: 100,
+      );
+      expect(prepared.failure, isNull);
+      final playback = prepared.playback!;
+      for (var tick = 0; tick < 6; tick++) {
+        expect(playback.advance(), isNull);
+      }
+      final frame = playback.frames.single;
+      expect(frame.particles, isNotEmpty);
+      final codec = await ui.instantiateImageCodec(png);
+      final texture = (await codec.getNextFrame()).image;
+      codec.dispose();
+      final recorder = ui.PictureRecorder();
+      BattleSplPointPreviewPainter(
+        textures: {0: texture},
+        pixelsPerUnit: 16,
+        aspectRatio4096: frame.aspectRatio4096,
+        directionalParents: frame.directional,
+        directionalChildren: frame.childDirectional,
+      ).paint(
+        ui.Canvas(recorder),
+        origin: const ui.Offset(64, 64),
+        particles: frame.particles,
+      );
+      final picture = recorder.endRecording();
+      final image = await picture.toImage(128, 128);
+      try {
+        final rgba = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+        expect(rgba, isNotNull);
+        final pixelBytes = rgba!.buffer.asUint8List();
+        expect(
+          [for (var i = 3; i < pixelBytes.length; i += 4) pixelBytes[i]]
+              .any((alpha) => alpha != 0),
+          isTrue,
+        );
+      } finally {
+        image.dispose();
+        picture.dispose();
+        texture.dispose();
+      }
+      while (!playback.isComplete) {
+        expect(playback.advance(), isNull);
+      }
+      playback.cancel();
+    },
+    skip: Platform.environment['AVELUNE_BW2_SCRIPT_TEST'] != '1',
+  );
+
+  test(
+    'samples the BW2 circle border in the declared emission plane',
+    () async {
+      final raw = jsonDecode(
+        await File('../map_core/test/fixtures/spl_particle_v2.json')
+            .readAsString(),
+      ) as Map<String, dynamic>;
+      raw['schemaVersion'] = 5;
+      final source = (raw['emitters'] as List).single as Map<String, dynamic>;
+      final emission = source['emission'] as Map;
+      emission['shape'] = 'circleBorder';
+      emission['radius'] = 4096;
+      emission['axisVelocity'] = 0;
+      emission['positionVelocity'] = 0;
+      emission['emissionAxis'] = 'y';
+      emission['velocityVariance'] = 0;
+      final appearance = source['appearance'] as Map;
+      appearance['hasRotation'] = false;
+      appearance['minRotation'] = 0;
+      appearance['maxRotation'] = 0;
+      appearance['dirFromPosition'] = false;
+      (source['motion'] as Map)['magnet'] = null;
+      final emitter = BattleSplConfiguredEmitter(
+        definition: BattleSplParticleDefinition.fromExperimentalJson(raw)
+            .emitters
+            .single,
+        textureIndices: const {'tex': 0},
+        random: BattleSplRandom(seed: 0),
+        pool: BattleSplParticlePool(capacity: 64),
+      );
+      emitter.step(managerFrame: 0, position: (x: 0, y: 0, z: 0));
+      expect(emitter.playback.particles.single.motion.position, (
+        x: -2417,
+        y: 0,
+        z: -3307,
+      ));
+      emitter.cancel();
+    },
+  );
+
+  test('plays the two selected BW2 220 emitters with deterministic source parameters', () async {
+    const revision = '41f42ca1afe6291f00b0ba0ec3f6099b9ff1346c';
+    const path = 'res/particles/btlv_effvm_particles/220/particles.json';
+    const hash =
+        'c50300370f0a622a514d45bea7cce595d4794d2197122cdc8ee90cb6c8a0afb1';
+    final client = HttpClient();
+    addTearDown(() => client.close(force: true));
+    final request = await client
+        .getUrl(
+          Uri.https(
+            'raw.githubusercontent.com',
+            '/fuddlesworth/pokebw2/$revision/$path',
+          ),
+        )
+        .timeout(const Duration(seconds: 20));
+    request.followRedirects = false;
+    final response = await request.close().timeout(const Duration(seconds: 20));
+    expect(response.statusCode, HttpStatus.ok);
+    final bytes = BytesBuilder(copy: false);
+    await for (final chunk in response.timeout(const Duration(seconds: 20))) {
+      if (bytes.length + chunk.length > 262144) {
+        throw const FormatException('Particle source too large');
+      }
+      bytes.add(chunk);
+    }
+    final result = Gen5SplParticleConverter.convert(
+      bytes.takeBytes(),
+      particleId: 220,
+      sourceRevision: revision,
+      sourcePath: path,
+      expectedSha256: hash,
+      textureResourceIds: const {
+        'texture00': 'texture00',
+        'texture01': 'texture01',
+        'texture02': 'texture02',
+      },
+      experimentalSourceEmitterIndices: const [0, 1],
+    );
+    expect(result.sourceEmitterIndices, [0, 1]);
+    final admission = BattleSplStaticAdmission.prepare(
+      definition: result.definition,
+      textureIndices: const {'texture00': 0, 'texture01': 1},
+      emitters: const [
+        BattleSplStaticEmitter(
+          emitterIndex: 0,
+          startTick: 0,
+          position: (x: 0, y: 0, z: 0),
+        ),
+        BattleSplStaticEmitter(
+          emitterIndex: 1,
+          startTick: 0,
+          position: (x: 0, y: 0, z: 0),
+        ),
+      ],
+      seed: 0,
+      poolCapacity: 128,
+      maxTicks: 150,
+    );
+    expect(admission.failure, isNull);
+    final playback = admission.playback!;
+    final textures = <int, ui.Image>{};
+    addTearDown(() {
+      for (final image in textures.values) {
+        image.dispose();
+      }
+    });
+    const textureHashes = {
+      0: '435763858fb1c993fab93f50bad385f6fcc54e28387df7dcc6763190ed1e64c0',
+      1: 'ebce49dd55ea712ac46fa7032218fce2e8109062ff6380c55257172d6e0d44f0',
+    };
+    for (final entry in textureHashes.entries) {
+      final textureRequest = await client
+          .getUrl(
+            Uri.https(
+              'raw.githubusercontent.com',
+              '/fuddlesworth/pokebw2/$revision/res/particles/btlv_effvm_particles/220/texture0${entry.key}.png',
+            ),
+          )
+          .timeout(const Duration(seconds: 20));
+      textureRequest.followRedirects = false;
+      final textureResponse = await textureRequest.close().timeout(
+        const Duration(seconds: 20),
+      );
+      expect(textureResponse.statusCode, HttpStatus.ok);
+      final input = BytesBuilder(copy: false);
+      await for (final chunk in textureResponse.timeout(
+        const Duration(seconds: 20),
+      )) {
+        if (input.length + chunk.length > 1024 * 1024) {
+          throw const FormatException('Particle texture too large');
+        }
+        input.add(chunk);
+      }
+      final textureBytes = input.takeBytes();
+      expect(sha256.convert(textureBytes).toString(), entry.value);
+      final codec = await ui.instantiateImageCodec(textureBytes);
+      try {
+        textures[entry.key] = (await codec.getNextFrame()).image;
+      } finally {
+        codec.dispose();
+      }
+    }
+    for (var tick = 0; tick < 10; tick++) {
+      expect(playback.advance(), isNull);
+    }
+    for (final frame in playback.frames) {
+      final recorder = ui.PictureRecorder();
+      final canvas = ui.Canvas(recorder);
+      BattleSplPointPreviewPainter(
+        textures: textures,
+        pixelsPerUnit: 16,
+        aspectRatio4096: frame.aspectRatio4096,
+        directionalParents: frame.directional,
+        directionalChildren: frame.childDirectional,
+      ).paint(
+        canvas,
+        origin: const ui.Offset(64, 64),
+        particles: frame.particles,
+      );
+      final picture = recorder.endRecording();
+      final image = await picture.toImage(128, 128);
+      try {
+        final rgba = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+        expect(rgba, isNotNull);
+        final pixelBytes = rgba!.buffer.asUint8List();
+        expect(
+          [for (var i = 3; i < pixelBytes.length; i += 4) pixelBytes[i]]
+              .any((alpha) => alpha != 0),
+          isTrue,
+          reason: 'source emitter ${frame.emitterIndex}',
+        );
+      } finally {
+        image.dispose();
+        picture.dispose();
+      }
+    }
+    final seen = <int>{};
+    while (!playback.isComplete) {
+      expect(playback.advance(), isNull);
+      for (final frame in playback.frames) {
+        if (frame.particles.isNotEmpty) seen.add(frame.emitterIndex);
+      }
+    }
+    expect(seen, {0, 1});
+    playback.cancel();
+    final pool = BattleSplParticlePool(capacity: 128);
+    final first = BattleSplConfiguredEmitter(
+      definition: result.definition.emitters[0],
+      textureIndices: const {'texture00': 0, 'texture01': 1},
+      random: BattleSplRandom(seed: 0),
+      pool: pool,
+    );
+    first.step(managerFrame: 0, position: (x: 0, y: 0, z: 0));
+    final firstParticle = first.playback.particles.single;
+    expect(firstParticle.motion.velocity, (x: -98, y: -110, z: 173));
+    expect(firstParticle.motion.angularVelocity, -2004);
+    expect(firstParticle.motion.rotation, 5622);
+    first.cancel();
+    final second = BattleSplConfiguredEmitter(
+      definition: result.definition.emitters[1],
+      textureIndices: const {'texture00': 0, 'texture01': 1},
+      random: BattleSplRandom(seed: 0),
+      pool: pool,
+    );
+    final emitted = second.step(managerFrame: 0, position: (x: 0, y: 0, z: 0));
+    expect(emitted.droppedParents, 0);
+    expect(
+      second.playback.particles.where((item) => item.parentId == null),
+      hasLength(2),
+    );
+    second.cancel();
+    expect(pool.inUse, 0);
+  }, skip: Platform.environment['AVELUNE_BW2_SCRIPT_TEST'] != '1');
+
+  test('applies BW2 hemisphere sampling, velocity variance, and rotation in source order', () async {
+    final raw = jsonDecode(
+      await File('../map_core/test/fixtures/spl_particle_v2.json')
+          .readAsString(),
+    ) as Map<String, dynamic>;
+    raw['schemaVersion'] = 5;
+    final source = (raw['emitters'] as List).single as Map<String, dynamic>;
+    final emission = source['emission'] as Map;
+    emission['shape'] = 'hemisphereSurface';
+    emission['radius'] = 0;
+    emission['positionVelocity'] = 0;
+    emission['emissionAxis'] = 'x';
+    emission['velocityVariance'] = 27;
+    emission['duration'] = 1;
+    emission['particleLifetime'] = 10;
+    final appearance = source['appearance'] as Map;
+    appearance['draw'] = 'directionalBillboard';
+    appearance['hasRotation'] = true;
+    appearance['minRotation'] = 2558;
+    appearance['maxRotation'] = -2559;
+    appearance['dirFromPosition'] = true;
+    (source['motion'] as Map)['magnet'] = null;
+    final pool = BattleSplParticlePool(capacity: 64);
+    final emitter = BattleSplConfiguredEmitter(
+      definition: BattleSplParticleDefinition.fromExperimentalJson(raw)
+          .emitters
+          .single,
+      textureIndices: const {'tex': 0},
+      random: BattleSplRandom(seed: 0),
+      pool: pool,
+    );
+    emitter.step(managerFrame: 0, position: (x: 0, y: 0, z: 0));
+    final particle = emitter.playback.particles.single;
+    expect(particle.motion.velocity, (x: 996, y: 0, z: 0));
+    expect(particle.motion.angularVelocity, -387);
+    expect(particle.motion.rotation, 65149);
+    emitter.cancel();
+    expect(pool.inUse, 0);
+  });
+
+  test('applies a v4 magnet to configured parent particles', () async {
+    final raw = jsonDecode(
+      await File('../map_core/test/fixtures/spl_particle_v2.json')
+          .readAsString(),
     ) as Map<String, dynamic>;
     raw['schemaVersion'] = 4;
     final source = (raw['emitters'] as List).single as Map<String, dynamic>;

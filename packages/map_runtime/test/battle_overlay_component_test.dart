@@ -3903,6 +3903,160 @@ void main() {
       );
     });
 
+    test('restores the battle layout during and after a voluntary switch', () async {
+      PlayerBattleChoice? choice;
+      final session = _session(
+        player: _combatant(speciesId: 'first', lineupIndex: 0, moves: [_tackle()]),
+        playerReserve: [_combatant(speciesId: 'second', lineupIndex: 1, moves: [_tackle()])],
+        enemy: _combatant(speciesId: 'opponent', lineupIndex: 0, moves: [_waitingMove()]),
+      );
+      final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
+        session: session,
+        viewportSize: Vector2(390, 844),
+        onPlayerChoice: (value) => choice = value,
+      );
+      await loadFlameComponent(overlay);
+      overlay.setCommandPanelPlacement(BattleCommandPanelPlacement.bottom,
+          controllerLayout: true, portraitTouchLayout: true);
+      overlay.moveSelectionDown();
+      expect(overlay.validateSelectedChoice(), isTrue);
+      expect(overlay.currentSceneLayout.commandPanelMode, BattleCommandOverlayMode.pokemon);
+      final collectionArenaHeight = overlay.currentSceneLayout.arenaRect.height;
+      expect(overlay.validateSelectedChoice(), isTrue);
+      overlay.updateState(session.applyChoice(choice!));
+      await overlay.waitForPendingVisualSync();
+      expect(overlay.currentCommandOverlaySnapshot!.phase, BattlePresentationPhase.presentingTurn);
+      expect(overlay.currentSceneLayout.commandPanelMode, isNot(BattleCommandOverlayMode.pokemon));
+      expect(overlay.currentSceneLayout.arenaRect.height, greaterThan(collectionArenaHeight));
+      for (var i = 0; i < 240 && overlay.isTurnPresentationActive; i++) {
+        overlay.updateTree(1 / 60);
+        await Future<void>.delayed(Duration.zero);
+      }
+      expect(overlay.isTurnPresentationActive, isFalse);
+      expect(overlay.currentMenuMode, BattleCommandMenuMode.root);
+    });
+
+    test('switching displays each combatant with its own HP', () async {
+      final session = _session(
+        player: _combatant(speciesId: 'first', lineupIndex: 0, maxHp: 30,
+            currentHp: 17, moves: [_tackle()]),
+        playerReserve: [_combatant(speciesId: 'second', lineupIndex: 1, maxHp: 34,
+            currentHp: 20, moves: [_tackle()])],
+        enemy: _combatant(speciesId: 'opponent', lineupIndex: 0,
+            stats: _stats(attack: 5), moves: [_tackle(power: 1)]),
+      );
+      final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
+        session: session,
+        viewportSize: Vector2(390, 844),
+        onPlayerChoice: (_) {},
+      );
+      await loadFlameComponent(overlay);
+      final after = session.applyChoice(const PlayerBattleChoiceSwitch(0));
+      overlay.updateState(after);
+      await overlay.waitForPendingVisualSync();
+      var hud = overlay.currentCommandOverlaySnapshot!.playerHud;
+      expect(hud.speciesLabel, 'first');
+      expect(hud.effectiveDisplayedHp, 17);
+      for (var i = 0; i < 180 && hud.speciesLabel != 'second'; i++) {
+        overlay.updateTree(1 / 60);
+        await Future<void>.delayed(Duration.zero);
+        hud = overlay.currentCommandOverlaySnapshot!.playerHud;
+      }
+      expect(hud.speciesLabel, 'second');
+      expect(hud.effectiveDisplayedHp, 20);
+      for (var i = 0; i < 400 && overlay.isTurnPresentationActive; i++) {
+        overlay.updateTree(1 / 60);
+        await Future<void>.delayed(Duration.zero);
+      }
+      expect(overlay.isTurnPresentationActive, isFalse);
+      expect(overlay.currentCommandOverlaySnapshot!.playerHud.effectiveDisplayedHp,
+          after.state.player.currentHp);
+    });
+
+    for (final viewport in [Vector2(390, 844), Vector2(844, 390)]) {
+      test('keeps the player in place after the opponent faints at $viewport', () async {
+        final session = _session(
+          player: _combatant(speciesId: 'first', lineupIndex: 0,
+              stats: _stats(speed: 120, attack: 180), moves: [_tackle(power: 180)]),
+          enemy: _combatant(speciesId: 'opponent', lineupIndex: 0, maxHp: 24,
+              currentHp: 1, moves: [_waitingMove()]),
+        );
+        final overlay = BattleOverlayComponent(
+          itemCapabilityResolver: _itemResolver,
+          session: session,
+          viewportSize: viewport,
+          onPlayerChoice: (_) {},
+        );
+        await loadFlameComponent(overlay);
+        final portrait = viewport.y > viewport.x;
+        overlay.setCommandPanelPlacement(portrait
+            ? BattleCommandPanelPlacement.bottom
+            : BattleCommandPanelPlacement.end,
+            controllerLayout: true, portraitTouchLayout: portrait);
+        await overlay.waitForPendingVisualSync();
+        final before = overlay.debugPlayerCombatant!.currentRenderedSpriteRect;
+        final beforeNeutral = overlay.debugPlayerCombatant!.currentCameraNeutralRenderedSpriteRect;
+        final beforeLayout = overlay.currentSceneLayout;
+        final camera = overlay.children.whereType<BattleStage3DComponent>().single.camera;
+        final beforePose = (camera.eye, camera.aim);
+        final after = session.applyChoice(const PlayerBattleChoiceFight(0));
+        expect(after.state.isFinished, isTrue);
+        overlay.updateState(after);
+        await overlay.waitForPendingVisualSync();
+        for (var i = 0; i < 600 && overlay.isTurnPresentationActive; i++) {
+          overlay.updateTree(1 / 60);
+          await Future<void>.delayed(Duration.zero);
+        }
+        expect(overlay.isTurnPresentationActive, isFalse);
+        final end = overlay.debugPlayerCombatant!.currentRenderedSpriteRect;
+        expect((end.center - before.center).distance, lessThan(10),
+            reason: 'initial: $before neutral=$beforeNeutral arena=${beforeLayout.arenaRect} pose=$beforePose; '
+                'after victory: $end neutral=${overlay.debugPlayerCombatant!.currentCameraNeutralRenderedSpriteRect} '
+                'arena=${overlay.currentSceneLayout.arenaRect} mode=${overlay.currentSceneLayout.commandPanelMode} '
+                'pose=${(camera.eye, camera.aim)}');
+      });
+    }
+
+    test('keeps the player in place between a trainer faint and replacement', () async {
+      final session = _session(
+        isTrainerBattle: true,
+        player: _combatant(speciesId: 'first', lineupIndex: 0,
+            stats: _stats(speed: 120, attack: 180), moves: [_tackle(power: 180)]),
+        enemy: _combatant(speciesId: 'opponent', lineupIndex: 0, maxHp: 24,
+            currentHp: 1, moves: [_waitingMove()]),
+        enemyReserve: [_combatant(speciesId: 'reserve', lineupIndex: 1,
+            moves: [_waitingMove()])],
+      );
+      final overlay = BattleOverlayComponent(
+        itemCapabilityResolver: _itemResolver,
+        session: session,
+        viewportSize: Vector2(390, 844),
+        onPlayerChoice: (_) {},
+      );
+      await loadFlameComponent(overlay);
+      await overlay.waitForPendingVisualSync();
+      final before = overlay.debugPlayerCombatant!.currentRenderedSpriteRect.center;
+      final after = session.applyChoice(const PlayerBattleChoiceFight(0));
+      expect(after.state.isFinished, isFalse);
+      overlay.updateState(after);
+      await overlay.waitForPendingVisualSync();
+      var checkedFaint = false;
+      for (var i = 0; i < 800 && overlay.isTurnPresentationActive; i++) {
+        overlay.updateTree(1 / 60);
+        await Future<void>.delayed(Duration.zero);
+        final enemy = overlay.currentCommandOverlaySnapshot!.enemyHud;
+        if (!overlay.isBattleCameraActive && enemy.speciesLabel == 'opponent' &&
+            enemy.effectiveDisplayedHp == 0) {
+          checkedFaint = true;
+          expect((overlay.debugPlayerCombatant!.currentRenderedSpriteRect.center - before).distance,
+              lessThan(10));
+        }
+      }
+      expect(checkedFaint, isTrue);
+    });
+
     test('keeps a visible turn presentation for a switch event', () async {
       final initialSession = _session(
         player: _combatant(

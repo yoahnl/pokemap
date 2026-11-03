@@ -18,10 +18,12 @@ final class Gen5BatchParticle {
 }
 
 final class Gen5BatchParticleRequest {
-  const Gen5BatchParticleRequest(this.id, this.from, this.to);
+  const Gen5BatchParticleRequest(this.id, this.emitterIndex, this.from, this.to, this.delayFrames);
   final int id;
+  final int emitterIndex;
   final String from;
   final String to;
+  final int delayFrames;
 }
 
 final class Gen5BatchAnalysis {
@@ -44,6 +46,8 @@ abstract final class Gen5BatchRecipeConverter {
     final particles = <Gen5BatchParticleRequest>[];
     final emitterIndices = <int, Set<int>>{};
     final warnings = <String>{'script-sequencing-approximated'};
+    var elapsedWaitFrames = 0;
+    int? firstEmitterFrame;
     String? anchor(String value) => switch (value) {
       'EFFVM_EMIT_ATTACKER' => 'userMouth',
       'EFFVM_EMIT_DEFENDER' => 'targetImpact',
@@ -63,7 +67,7 @@ abstract final class Gen5BatchRecipeConverter {
           final move = instruction.name == 'EmitterMove';
           final id = args.isNotEmpty ? int.tryParse(args.first) : null;
           final fromIndex = move ? 3 : 2;
-          final toIndex = move ? 4 : 2;
+          final toIndex = move ? 4 : 3;
           if (id == null || !loaded.contains(id) || args.length <= toIndex) {
             warnings.add('unsupported-emitter-particle');
             continue;
@@ -74,7 +78,8 @@ abstract final class Gen5BatchRecipeConverter {
             continue;
           }
           final from = anchor(args[fromIndex]);
-          final to = anchor(args[toIndex]);
+          final to = !move && int.tryParse(args[toIndex]) == 8
+              ? from : anchor(args[toIndex]);
           if (from == null || to == null) {
             warnings.add('unsupported-emitter-target:${from == null ? args[fromIndex] : args[toIndex]}');
             continue;
@@ -82,11 +87,24 @@ abstract final class Gen5BatchRecipeConverter {
           if (instruction.name == 'EmitterAddOrtho') {
             warnings.add('orthographic-emitter-approximated');
           }
-          if (!particles.any((part) => part.id == id && part.from == from && part.to == to)) {
-            particles.add(Gen5BatchParticleRequest(id, from, to));
+          if (move) warnings.add('emitter-motion-not-transcribed');
+          firstEmitterFrame ??= elapsedWaitFrames;
+          if (particles.any((part) => part.id == id && part.emitterIndex == emitter &&
+              part.from == from && part.to == to)) {
+            warnings.add('repeated-emitter-omitted');
+          } else {
+            particles.add(Gen5BatchParticleRequest(id, emitter, from, to,
+                elapsedWaitFrames - firstEmitterFrame));
           }
           emitterIndices.putIfAbsent(id, () => <int>{}).add(emitter);
           warnings.add('emitter-selection-and-timing-approximated');
+        case 'WaitFrames':
+          final frames = args.length == 1 ? int.tryParse(args.first) : null;
+          if (frames == null || frames < 0 || frames > 3600) {
+            warnings.add('untranslated-command:WaitFrames');
+          } else {
+            elapsedWaitFrames += frames;
+          }
         case 'PlaySE' || 'MoveSE' || 'PanSE':
           warnings.add('sound-sequence-not-transcribed');
         case 'End':
@@ -121,18 +139,24 @@ abstract final class Gen5BatchRecipeConverter {
     }
     final warnings = <String>{...analysis.warnings};
     final activeParticles = analysis.particles.take(5).toList();
+    if (activeParticles.any((part) => part.delayFrames > 3600)) {
+      throw const FormatException('Preview particle delay exceeds one minute');
+    }
+    if (activeParticles.any((part) => part.delayFrames >= 200)) {
+      warnings.add('runtime-fallback-delayed-emitter');
+    }
     for (final part in analysis.particles.skip(5)) {
-      warnings.add('preview-omitted-placement:${part.id}:${part.from}:${part.to}');
+      warnings.add('preview-omitted-emitter:${part.id}:${part.emitterIndex}');
+      warnings.add('preview-omitted-placement:${part.id}:${part.emitterIndex}:${part.from}:${part.to}');
     }
     final requiredIds = activeParticles.map((part) => part.id).toSet();
     if (requiredIds.any((id) => !particles.containsKey(id))) {
       throw const FormatException('Required particle source unavailable');
     }
     final media = <String, Uint8List>{};
-    final definitions = <int, BattleSplParticleDefinition>{};
-    final selectedTextures = <int, Set<String>>{};
-    var remainingEmitters = 5;
-    var remainingPlacements = activeParticles.length;
+    final definitions = <String, BattleSplParticleDefinition>{};
+    final selectedTextures = <String, Set<String>>{};
+    String definitionId(int id, int emitter) => 'particle${id}e$emitter';
     for (final id in requiredIds) {
       final part = particles[id]!;
       warnings.addAll(part.warnings);
@@ -142,15 +166,8 @@ abstract final class Gen5BatchRecipeConverter {
           !original.textureIds.containsAll(part.textures.keys)) {
         throw const FormatException('Particle texture dependencies mismatch');
       }
-      final requestedIndices = analysis.emitterIndices[id]!.toList()..sort();
-      final repetitions = activeParticles.where((part) => part.id == id).length;
-      remainingPlacements -= repetitions;
-      final limit = (remainingEmitters - remainingPlacements) ~/ repetitions;
-      final indices = requestedIndices.take(limit).toList();
-      for (final index in requestedIndices.skip(limit)) {
-        warnings.add('preview-omitted-emitter:$id:$index');
-      }
-      remainingEmitters -= indices.length * repetitions;
+      final indices = activeParticles.where((entry) => entry.id == id)
+          .map((entry) => entry.emitterIndex).toSet();
       if (indices.any((index) => index >= original.emitters.length)) {
         throw const FormatException('Referenced particle emitter unavailable');
       }
@@ -167,27 +184,31 @@ abstract final class Gen5BatchRecipeConverter {
           }
         }
       }
-      final definition = BattleSplParticleDefinition.fromJson({
-        'schemaVersion': original.schemaVersion,
-        'emitters': [for (final index in indices) originalEmitters[index]],
-      });
       if (indices.length != original.emitters.length) warnings.add('unused-emitters-omitted');
-      selectedTextures[id] = definition.textureIds;
-      for (final entry in part.textures.entries.where((entry) => definition.textureIds.contains(entry.key))) {
+      final usedTextures = <String>{};
+      for (final index in indices) {
+        final definition = BattleSplParticleDefinition.fromJson({
+          'schemaVersion': original.schemaVersion,
+          'emitters': [originalEmitters[index]],
+        });
+        final key = definitionId(id, index);
+        selectedTextures[key] = definition.textureIds;
+        usedTextures.addAll(definition.textureIds);
+        if (media.containsKey(key)) {
+          throw const FormatException('Duplicate particle identity');
+        }
+        media[key] = Uint8List.fromList(utf8.encode(jsonEncode(definition.toJson())));
+        definitions[key] = definition;
+      }
+      for (final entry in part.textures.entries.where((entry) => usedTextures.contains(entry.key))) {
         if (media.containsKey(entry.key)) {
           throw const FormatException('Duplicate particle texture identity');
         }
         media[entry.key] = entry.value;
       }
-      final definitionId = 'particle$id';
-      if (media.containsKey(definitionId)) {
-        throw const FormatException('Duplicate particle identity');
-      }
-      media[definitionId] = Uint8List.fromList(utf8.encode(jsonEncode(definition.toJson())));
-      definitions[id] = definition;
     }
     final targetVersion = definitions.values.map((value) => value.schemaVersion).reduce((a, b) => a > b ? a : b);
-    for (final id in requiredIds) {
+    for (final id in definitions.keys.toList()) {
       final definition = definitions[id]!;
       if (definition.schemaVersion == targetVersion) continue;
       final data = definition.toJson();
@@ -208,7 +229,7 @@ abstract final class Gen5BatchRecipeConverter {
       }
       final upgraded = BattleSplParticleDefinition.fromJson(data);
       definitions[id] = upgraded;
-      media['particle$id'] = Uint8List.fromList(utf8.encode(jsonEncode(upgraded.toJson())));
+      media[id] = Uint8List.fromList(utf8.encode(jsonEncode(upgraded.toJson())));
       warnings.add('particle-schema-upgraded:${definition.schemaVersion}->$targetVersion');
     }
     if (sound == null) {
@@ -235,22 +256,23 @@ abstract final class Gen5BatchRecipeConverter {
     };
     final recipeId = 'bw2-$moveId-batch';
     final required = <String>{'sequence', 'parallel', 'startParticle', 'waitEffects', 'audioSelectionV2'};
+    if (activeParticles.any((part) => part.delayFrames > 0)) required.add('wait');
     for (final definition in definitions.values) {
       required.add('splParticleV${definition.schemaVersion}');
     }
     if (sound != null) required.add('sound');
     final recipeBytes = Uint8List.fromList(utf8.encode(jsonEncode({
-      'schemaVersion': 2, 'recipeId': recipeId, 'revision': '1',
+      'schemaVersion': 2, 'recipeId': recipeId, 'revision': '2',
       'moveSourceId': moveId, 'variant': script.variant,
       'requiredCapabilities': required.toList(),
       'provenance': {'source': 'fuddlesworth/pokebw2', 'sourceRevision': script.sourceRevision,
         'sourcePaths': [script.sourcePath, for (final id in requiredIds) 'res/particles/btlv_effvm_particles/$id/particles.json'],
-        'converter': 'batch-particle-preview/1'},
+        'converter': 'batch-particle-preview/2'},
       'resources': [
-        for (final id in requiredIds)
-          for (final texture in selectedTextures[id]!) resource(texture, 'texture', 'image/png'),
-        for (final id in requiredIds)
-          {...resource('particle$id', 'particleDefinition', 'application/vnd.avelune.particle+json'),
+        for (final texture in selectedTextures.values.expand((value) => value).toSet())
+          resource(texture, 'texture', 'image/png'),
+        for (final id in definitions.keys)
+          {...resource(id, 'particleDefinition', 'application/vnd.avelune.particle+json'),
             'definitionVersion': definitions[id]!.schemaVersion,
             'dependencies': selectedTextures[id]!.toList()},
         if (sound != null) resource('cue', 'sound', soundMediaType!),
@@ -258,14 +280,20 @@ abstract final class Gen5BatchRecipeConverter {
       'audio': sound == null ? {'kind': 'none'} : {'kind': 'clip', 'resourceId': 'cue'},
       'program': {'kind': 'sequence', 'steps': [
         {'kind': 'parallel', 'steps': [for (final part in activeParticles)
-          {'kind': 'startParticle', 'resourceId': 'particle${part.id}', 'from': part.from, 'to': part.to}]},
+          if (part.delayFrames == 0)
+            {'kind': 'startParticle', 'resourceId': definitionId(part.id, part.emitterIndex), 'from': part.from, 'to': part.to}
+          else
+            {'kind': 'sequence', 'steps': [
+              {'kind': 'wait', 'durationMs': (part.delayFrames * 1000 + 30) ~/ 60},
+              {'kind': 'startParticle', 'resourceId': definitionId(part.id, part.emitterIndex), 'from': part.from, 'to': part.to},
+            ]}]},
         {'kind': 'waitEffects'},
       ]},
     })));
     final binding = BattleMoveRecipeBinding.fromJson({
       'schemaVersion': 1, 'projectMoveId': moveId, 'sourceMoveId': moveId,
       'catalogReleaseId': 'bw2-batch-local', 'recipeId': recipeId,
-      'variant': script.variant, 'revision': '1', 'recipeSha256': sha256.convert(recipeBytes).toString(),
+      'variant': script.variant, 'revision': '2', 'recipeSha256': sha256.convert(recipeBytes).toString(),
     });
     final inspected = const BattleRecipeBundleInspector().inspect(binding, recipeBytes, media,
       limits: const BattleRecipeBundleLimits(maxTextures: 16, maxTextureBytes: 8 * 1024 * 1024,

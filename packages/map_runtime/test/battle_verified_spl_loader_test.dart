@@ -214,6 +214,29 @@ List<String> runWithManualFallback(BattleVerifiedSplPreparation result) {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('a prepared effect remains still until playback is resumed', () async {
+    final result = await BattleVerifiedSplLoader(await bundle()).create(
+      'particle',
+      emitters: schedule,
+      seed: 0,
+      poolCapacity: 16,
+      maxTicks: 80,
+      origin: ui.Offset.zero,
+      pixelsPerUnit: 4,
+      projection: testProjection(),
+      onComplete: () {},
+      onFailure: (_) => fail('unexpected SPL failure'),
+    );
+    final component = result.component!;
+    addTearDown(component.dispose);
+    component.setPlaybackPaused(true);
+    component.update(1 / 60);
+    expect(component.playback.tick, 0);
+    component.setPlaybackPaused(false);
+    component.update(1 / 60);
+    expect(component.playback.tick, 1);
+  });
+
   test('loads versioned radial emitters into one verified group', () async {
     final inspected = await bundle(grouped: true, radial: true);
     final baseProjection = testProjection();

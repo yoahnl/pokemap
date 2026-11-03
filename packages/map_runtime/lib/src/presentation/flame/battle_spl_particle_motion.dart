@@ -31,6 +31,8 @@ final class BattleSplParticleMotion {
     required int airResistance,
     BattleSplVector? magnetTarget,
     int? magnetForce,
+    BattleSplVector? convergenceTarget,
+    int? convergenceForce,
   }) {
     if (!_fitsVector(gravity, -32768, 32767) ||
         !_fitsVector(emitterVelocity, _minimum32, _maximum32) ||
@@ -38,7 +40,10 @@ final class BattleSplParticleMotion {
         airResistance > 255 ||
         (magnetTarget == null) != (magnetForce == null) ||
         (magnetTarget != null && !_fitsVector(magnetTarget, _minimum32, _maximum32)) ||
-        (magnetForce != null && (magnetForce < -32768 || magnetForce > 32767))) {
+        (magnetForce != null && (magnetForce < -32768 || magnetForce > 32767)) ||
+        (convergenceTarget == null) != (convergenceForce == null) ||
+        (convergenceTarget != null && !_fitsVector(convergenceTarget, _minimum32, _maximum32)) ||
+        (convergenceForce != null && (convergenceForce < -32768 || convergenceForce > 32767))) {
       throw const FormatException('Invalid SPL gravity or resistance');
     }
     final x = _advanceAxis(
@@ -49,6 +54,8 @@ final class BattleSplParticleMotion {
       airResistance,
       magnetTarget?.x,
       magnetForce,
+      convergenceTarget?.x,
+      convergenceForce,
     );
     final y = _advanceAxis(
       position.y,
@@ -58,6 +65,8 @@ final class BattleSplParticleMotion {
       airResistance,
       magnetTarget?.y,
       magnetForce,
+      convergenceTarget?.y,
+      convergenceForce,
     );
     final z = _advanceAxis(
       position.z,
@@ -67,6 +76,8 @@ final class BattleSplParticleMotion {
       airResistance,
       magnetTarget?.z,
       magnetForce,
+      convergenceTarget?.z,
+      convergenceForce,
     );
     return BattleSplParticleMotion(
       position: (x: x.position, y: y.position, z: z.position),
@@ -84,6 +95,8 @@ final class BattleSplParticleMotion {
     int resistance,
     int? magnetTarget,
     int? magnetForce,
+    int? convergenceTarget,
+    int? convergenceForce,
   ) {
     final magneticProduct = magnetTarget == null
         ? 0
@@ -95,8 +108,12 @@ final class BattleSplParticleMotion {
     final damped = product >= 0 ? product ~/ 512 : -((-product + 511) ~/ 512);
     final nextVelocity = _checked(_checked(damped + gravity) + magneticAcceleration);
     final displacement = _checked(nextVelocity + emitterVelocity);
+    final converged = convergenceTarget == null
+        ? position
+        : _checked(position +
+            ((_checked(convergenceTarget - position) * convergenceForce! + 2048) >> 12));
     return (
-      position: _checked(position + displacement),
+      position: _checked(converged + displacement),
       velocity: nextVelocity,
     );
   }

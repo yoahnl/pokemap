@@ -55,6 +55,9 @@ import 'battle_sfx_player.dart';
 import 'battle_move_visual_resolver.dart';
 import 'battle_move_recipe_compiler.dart';
 import 'battle_gen5_motion_playback.dart';
+import 'battle_gen5_actor_motion.dart';
+import 'battle_gen5_camera_motion.dart';
+import 'battle_gen5_source_program_playback.dart';
 import 'battle_offline_move_recipe_loader.dart';
 import 'battle_spl_camera_projection.dart';
 import 'battle_spl_static_admission.dart';
@@ -762,6 +765,16 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
   BattleDebugPanelComponent? _debugPanel;
 
   Future<void>? _pendingVisualSync;
+  bool _visualSyncPending = false;
+
+  void _trackVisualSync(Future<void> future) {
+    _visualSyncPending = true;
+    late final Future<void> tracked;
+    tracked = future.whenComplete(() {
+      if (identical(_pendingVisualSync, tracked)) _visualSyncPending = false;
+    });
+    _pendingVisualSync = tracked;
+  }
   BattleAnimationPlan? _pendingTurnAudioPlan;
   _PendingTurnAudioPreparation? _pendingTurnAudioPreparation;
   _PendingTurnAudioPreparation? _turnAudioSettlement;
@@ -875,6 +888,504 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
 
   bool get acceptsPlayerCommands => _acceptsPlayerCommands;
 
+  BattleGen5SourceProgramPlayback? _gen5SourceProgram;
+  Completer<BattleGen5SourcePlaybackStatus>? _gen5SourceCompletion;
+  void Function(BattleGen5SourcePlaybackStatus)? _gen5SourceDetach;
+  FutureOr<void> Function(BattleGen5SourcePlaybackStatus)? _gen5SourceRelease;
+  void Function()? _gen5SourceAdvance;
+  double _gen5SourceTickElapsed = 0;
+  bool _startingTrackedSourceEffect = false;
+
+  BattleSplCameraProjection experimentalGen5DefenderProjection() =>
+      experimentalGen5Projection(attacker: false);
+
+  BattleSplCameraProjection experimentalGen5Projection({
+    required bool attacker,
+    bool towardOpponent = false,
+    bool matchBattleSpacing = false,
+    bool anchorAtFoot = false,
+  }) {
+    final camera = _perspectiveCamera;
+    final slot = BattleSlotRef.active(
+      attacker ? BattleSideId.player : BattleSideId.enemy,
+    );
+    final identity = _effectSubjectAt(slot);
+    if (camera == null || identity == null) {
+      throw StateError('Experimental source target is unavailable');
+    }
+    bool current() {
+      final value = _effectSubjectAt(slot);
+      return value != null && identical(value.actor, identity.actor) &&
+          value.lineupIndex == identity.lineupIndex &&
+          value.combatantId == identity.combatantId;
+    }
+    final binding = BattleSplCameraBinding(
+      resolveNeutralFoot: () => current() ? _geometryFor(slot).footAnchor : null,
+      resolveAnchor: () {
+        if (!current()) return null;
+        if (anchorAtFoot) {
+          final foot = identity.actor.currentFootAnchor;
+          return Vector2(foot.dx, foot.dy);
+        }
+        final rect = identity.actor.currentEffectAttachmentSpriteRect;
+        return rect.isEmpty ? null : Vector2(rect.center.dx, rect.center.dy);
+      },
+    );
+    final opponentSlot = BattleSlotRef.active(
+      attacker ? BattleSideId.enemy : BattleSideId.player,
+    );
+    final opponent = _effectSubjectAt(opponentSlot);
+    final bindings = [binding];
+    if (towardOpponent || matchBattleSpacing) {
+      if (opponent == null) {
+        throw StateError('Experimental source opponent is unavailable');
+      }
+      bindings.add(BattleSplCameraBinding(
+        resolveNeutralFoot: () => _geometryFor(opponentSlot).footAnchor,
+        resolveAnchor: () {
+          final value = _effectSubjectAt(opponentSlot);
+          if (value == null || !identical(value.actor, opponent.actor) ||
+              value.combatantId != opponent.combatantId ||
+              value.lineupIndex != opponent.lineupIndex) return null;
+          if (anchorAtFoot) {
+            final foot = opponent.actor.currentFootAnchor;
+            return Vector2(foot.dx, foot.dy);
+          }
+          final rect = opponent.actor.currentEffectAttachmentSpriteRect;
+          return rect.isEmpty ? null : Vector2(rect.center.dx, rect.center.dy);
+        },
+      ));
+    }
+    final neutral = BattleSplCameraProjection(camera: camera, bindings: bindings);
+    final anchors = neutral.capture();
+    if (anchors == null) {
+      throw StateError('Experimental source anchor is unavailable');
+    }
+    final spacing = matchBattleSpacing
+        ? math.sqrt(math.pow(anchors.last.x - anchors.first.x, 2) +
+            math.pow(anchors.last.z - anchors.first.z, 2)) /
+            math.sqrt(17 * 17 + math.pow(819 / 4096, 2))
+        : anchors.first.unit * 5;
+    return BattleSplCameraProjection(
+      camera: camera,
+      bindings: [binding],
+      worldTransform: BattleSplWorldTransform(
+        worldUnitsPerUnit: spacing,
+        yawRadians: towardOpponent
+            ? math.atan2(-(anchors.last.x - anchors.first.x),
+                anchors.last.z - anchors.first.z)
+            : 0,
+      ),
+    );
+  }
+
+  Future<BattleGen5SourcePlaybackStatus> presentExperimentalGen5Attack({
+    required Map<String, dynamic> program,
+    required String variant,
+    required bool Function(int particle, int emitter) hasEmitter,
+    required void Function(int particle, int emitter, int offsetY) startEmitter,
+    void Function(Map<String, dynamic> args)? startSourceEmitter,
+    required bool Function() particlesBusy,
+    required void Function() detachParticles,
+    required bool allowSilentAudio,
+    bool allowUnmappedAudioControls = false,
+    bool adaptSourceCamera = false,
+    bool duringTrackedEffect = false,
+  }) {
+    final camera = _perspectiveCamera;
+    final userSlot = const BattleSlotRef.active(BattleSideId.player);
+    final targetSlot = const BattleSlotRef.active(BattleSideId.enemy);
+    final user = _effectSubjectAt(userSlot);
+    final target = _effectSubjectAt(targetSlot);
+    if (camera == null || user == null || target == null || _reducedBattleMotion) {
+      throw StateError('Experimental source scene is unavailable');
+    }
+    final actors = {'EFFVM_ATTACKER': user, 'EFFVM_DEFENDER': target};
+    final slots = {'EFFVM_ATTACKER': userSlot, 'EFFVM_DEFENDER': targetSlot};
+    final paused = <BattleSceneCombatantComponent>{};
+    final pauseOwner = Object();
+    final visualOwner = Object();
+    final paletteJobs = <String, ({int level, int end, int wait, int remaining,
+        int step, Color color})>{};
+    final sourceCamera = Gen5CameraMotion();
+    final initialEye = camera.eye;
+    final initialAim = camera.aim;
+    BattleSplWorldTransform? cameraTransform;
+    if (adaptSourceCamera) {
+      final from = camera.tryGroundAt(_geometryFor(userSlot).footAnchor);
+      final to = camera.tryGroundAt(_geometryFor(targetSlot).footAnchor);
+      if (from == null || to == null) {
+        throw StateError('Experimental camera anchors are unavailable');
+      }
+      final dx = to.x - from.x;
+      final dz = to.z - from.z;
+      const sourceDx = -819 / 4096;
+      const sourceDz = -17.0;
+      cameraTransform = BattleSplWorldTransform(
+        worldUnitsPerUnit: math.sqrt(dx * dx + dz * dz) /
+            math.sqrt(sourceDx * sourceDx + sourceDz * sourceDz),
+        yawRadians: math.atan2(-dx, dz) - math.atan2(-sourceDx, sourceDz),
+      );
+      if (!cameraTransform.isValid) {
+        throw StateError('Experimental camera transform is unavailable');
+      }
+    }
+    bool current(String key) {
+      final identity = actors[key]!;
+      final value = _effectSubjectAt(slots[key]!);
+      return value != null && identical(value.actor, identity.actor) &&
+          value.lineupIndex == identity.lineupIndex &&
+          value.combatantId == identity.combatantId;
+    }
+    final motion = BattleGen5ActorMotionController(
+      claim: (actor, owner) {
+        final key = actor as String;
+        if (!current(key)) return false;
+        final component = actors[key]!.actor;
+        return component.ownsBattleScriptTransform(owner) ||
+            component.applyBattleScriptTransform(
+              offset: Offset.zero, scaleX: 1, scaleY: 1, owner: owner);
+      },
+      apply: (actor, owner, pose) {
+        final key = actor as String;
+        if (!current(key)) return false;
+        return actors[key]!.actor.applyBattleScriptTransform(
+          offset: Offset(pose.offsetXFx32 / 4096 * 5,
+              -pose.offsetYFx32 / 4096 * 5),
+          scaleX: pose.scaleXFx32 / 4096,
+          scaleY: pose.scaleYFx32 / 4096,
+          owner: owner,
+        );
+      },
+      release: (actor, owner) =>
+          actors[actor as String]!.actor.clearBattleScriptTransform(owner: owner),
+    );
+    bool bounded(Object? value, int min, int max) =>
+        value is int && value >= min && value <= max;
+    String? admit(BattleGen5SourceInstruction instruction) {
+      final args = instruction.args;
+      switch (instruction.op) {
+        case 'moveCameraPreset':
+          return args['moveType'] == 1 &&
+                  {8, 9, 11}.contains(args['camera']) &&
+                  bounded(args['frames'], 0, 524287) &&
+                  bounded(args['wait'], 0, 2147483647) &&
+                  bounded(args['brake'], 0, 2147483647)
+              ? null : 'unsupported camera preset';
+        case 'shakeCamera':
+          return args['direction'] == 0 && args['frames'] == 1 &&
+                  bounded(args['amplitude'], -28672, 28672) &&
+                  bounded(args['unused'], -2147483648, 2147483647) &&
+                  bounded(args['wait'], 0, 600) &&
+                  bounded(args['count'], 1, 64)
+              ? null : 'unsupported camera shake';
+        case 'moveCombatant':
+        case 'scaleCombatant':
+          return actors.containsKey(args['targets']) && args['type'] == 2 &&
+                  bounded(args['x'], -28672, 28672) &&
+                  bounded(args['y'], -28672, 28672) &&
+                  bounded(args['frames'], 1, 600) &&
+                  bounded(args['wait'], 0, 600) &&
+                  bounded(args['times'], 1, 64)
+              ? null : 'unsupported combatant motion';
+        case 'setAnimationState':
+          return actors.containsKey(args['targets']) &&
+                  (args['mode'] == 0 || args['mode'] == 1)
+              ? null : 'unsupported animation state';
+        case 'loadParticle':
+          return bounded(args['particle'], 0, 65535)
+              ? null : 'unsupported particle';
+        case 'startEmitter':
+          final particle = args['particle'];
+          final emitter = args['emitter'];
+          return particle is int && emitter is int &&
+                  hasEmitter(particle, emitter) &&
+                  (startSourceEmitter == null
+                      ? args['from'] == 'EFFVM_EMIT_DEFENDER' && args['to'] == 8
+                      : {'EFFVM_EMIT_ATTACKER', 'EFFVM_EMIT_DEFENDER'}
+                              .contains(args['from']) &&
+                          (args['to'] == 8 || args['to'] == 'EFFVM_EMIT_DEFENDER')) &&
+                  bounded(args['offsetY'], -2147483648, 2147483647) &&
+                  args['unk18'] == 0 && args['unused'] == 0 &&
+                  args['radiusScale'] == 4096 && args['lifeScale'] == 4096 &&
+                  (startSourceEmitter == null
+                      ? args['scaleScale'] == 4096
+                      : bounded(args['scaleScale'], 1, 4096)) &&
+                  args['cameraScale'] == 4096
+              ? null : 'unsupported emitter';
+        case 'setShadow':
+          return (args['targets'] == 'EFFVM_ALL' || actors.containsKey(args['targets'])) &&
+                  (args['value'] == 0 || args['value'] == 1)
+              ? null : 'unsupported shadow';
+        case 'fadePalette':
+          return actors.containsKey(args['targets']) &&
+                  bounded(args['startEvy'], 0, 16) &&
+                  bounded(args['endEvy'], 0, 16) &&
+                  bounded(args['wait'], 0, 600) &&
+                  bounded(args['color'], 0, 32767)
+              ? null : 'unsupported palette fade';
+        case 'playSound':
+          return allowSilentAudio ? null : 'source audio unavailable';
+        case 'panSound':
+        case 'moveSound':
+          return allowSilentAudio && allowUnmappedAudioControls
+              ? null : 'source audio controls unavailable';
+        default:
+          return 'operation not connected to this scene';
+      }
+    }
+    BattleGen5SourceDispatchResult dispatch(BattleGen5SourceInstruction instruction) {
+      final args = instruction.args;
+      switch (instruction.op) {
+        case 'moveCameraPreset':
+          sourceCamera.applyPreset(
+            preset: args['camera'] as int,
+            attacker: Gen5CameraSlot.player,
+            defender: Gen5CameraSlot.enemy,
+            frames: args['frames'] as int,
+            wait: args['wait'] as int,
+            brake: args['brake'] as int,
+          );
+        case 'shakeCamera':
+          sourceCamera.shakeVertical(
+            amplitude: args['amplitude'] as int,
+            wait: args['wait'] as int,
+            count: args['count'] as int,
+          );
+        case 'moveCombatant':
+        case 'scaleCombatant':
+          final key = args['targets'] as String;
+          motion.start(
+            actor: key,
+            channel: instruction.op == 'moveCombatant'
+                ? BattleGen5ActorMotionChannel.position
+                : BattleGen5ActorMotionChannel.scale,
+            type: args['type'] as int,
+            xFx32: args['x'] as int,
+            yFx32: args['y'] as int,
+            frames: args['frames'] as int,
+            wait: args['wait'] as int,
+            times: args['times'] as int,
+            mirrorX: instruction.op == 'moveCombatant' &&
+                slots[key]!.side == BattleSideId.enemy,
+          );
+        case 'setAnimationState':
+          final key = args['targets'] as String;
+          if (!current(key)) throw StateError('Battle actor changed');
+          final actor = actors[key]!.actor;
+          if (args['mode'] == 1) {
+            actor.pauseBattleSpriteAnimation(owner: pauseOwner);
+            paused.add(actor);
+          } else {
+            actor.resumeBattleSpriteAnimation(owner: pauseOwner);
+            paused.remove(actor);
+          }
+        case 'startEmitter':
+          if (startSourceEmitter != null) {
+            startSourceEmitter(args);
+          } else {
+            startEmitter(args['particle'] as int, args['emitter'] as int,
+                args['offsetY'] as int);
+          }
+        case 'setShadow':
+          final keys = args['targets'] == 'EFFVM_ALL'
+              ? actors.keys : [args['targets'] as String];
+          for (final key in keys) {
+            if (!current(key)) throw StateError('Battle actor changed');
+            actors[key]!.actor.setBattleScriptShadowHidden(
+              args['value'] == 1, owner: visualOwner);
+          }
+        case 'fadePalette':
+          final key = args['targets'] as String;
+          if (!current(key)) throw StateError('Battle actor changed');
+          final value = args['color'] as int;
+          final start = args['startEvy'] as int;
+          final end = args['endEvy'] as int;
+          paletteJobs[key] = (level: start, end: end, wait: args['wait'] as int,
+            remaining: 0, step: start <= end ? 1 : -1,
+            color: Color.fromARGB(255, (value & 31) * 255 ~/ 31,
+              ((value >> 5) & 31) * 255 ~/ 31,
+              ((value >> 10) & 31) * 255 ~/ 31));
+        case 'loadParticle':
+        case 'playSound':
+        case 'panSound':
+        case 'moveSound':
+          break;
+        default:
+          throw StateError('Unsupported source instruction');
+      }
+      return BattleGen5SourceDispatchResult.completed;
+    }
+    void advance() {
+      motion.tick();
+      for (final entry in paletteJobs.entries.toList()) {
+        final job = entry.value;
+        if (!current(entry.key)) throw StateError('Battle actor changed');
+        if (job.remaining > 0) {
+          paletteJobs[entry.key] = (level: job.level, end: job.end,
+            wait: job.wait, remaining: job.remaining - 1, step: job.step,
+            color: job.color);
+        } else {
+          actors[entry.key]!.actor.setBattleScriptPalette(
+            owner: visualOwner, level: job.level, color: job.color);
+          if (job.level == job.end) {
+            paletteJobs.remove(entry.key);
+          } else {
+            paletteJobs[entry.key] = (level: job.level + job.step, end: job.end,
+              wait: job.wait, remaining: job.wait, step: job.step, color: job.color);
+          }
+        }
+      }
+      final pose = sourceCamera.tick();
+      BattleCameraPoint position(Gen5CameraVector value, Gen5CameraVector base,
+          BattleCameraPoint initial) {
+        final transform = cameraTransform;
+        if (transform == null) {
+          return BattleCameraPoint(value.x / 4096, value.y / 4096, value.z / 4096);
+        }
+        return initial + transform.apply((x: value.x - base.x,
+          y: value.y - base.y, z: value.z - base.z));
+      }
+      camera.moveTo(
+        eye: position(pose.position, Gen5CameraMotion.defaultPose.position, initialEye),
+        aim: position(pose.target, Gen5CameraMotion.defaultPose.target, initialAim),
+        durationSeconds: 0,
+      );
+      _applyBattleCameraTransform();
+    }
+    final playback = BattleGen5SourceProgramPlayback(
+      program: program,
+      variant: variant,
+      admit: admit,
+      dispatch: dispatch,
+      isBusy: (category) => switch (category) {
+        BattleGen5SourceTaskCategory.camera => sourceCamera.isMoving,
+        BattleGen5SourceTaskCategory.mcss => motion.isBusy,
+        BattleGen5SourceTaskCategory.palette => paletteJobs.isNotEmpty,
+        BattleGen5SourceTaskCategory.particles => particlesBusy(),
+        _ => false,
+      },
+      isParticleLoading: () => false,
+    );
+    return presentGen5SourceProgram(playback, advance: advance,
+        duringTrackedEffect: duringTrackedEffect, detach: (_) {
+      try {
+        motion.cancel();
+      } finally {
+        try {
+          for (final actor in paused) {
+            actor.resumeBattleSpriteAnimation(owner: pauseOwner);
+          }
+          paused.clear();
+          for (final actor in actors.values) {
+            actor.actor.setBattleScriptShadowHidden(false, owner: visualOwner);
+            actor.actor.clearBattleScriptPalette(owner: visualOwner);
+          }
+          paletteJobs.clear();
+        } finally {
+          try {
+            detachParticles();
+          } finally {
+            _resetBattleCamera();
+          }
+        }
+      }
+    });
+  }
+
+  Future<BattleGen5SourcePlaybackStatus> presentGen5SourceProgram(
+    BattleGen5SourceProgramPlayback playback, {
+    required void Function(BattleGen5SourcePlaybackStatus) detach,
+    FutureOr<void> Function(BattleGen5SourcePlaybackStatus)? release,
+    void Function()? advance,
+    bool duringTrackedEffect = false,
+  }) {
+    final tracked = duringTrackedEffect && _startingTrackedSourceEffect &&
+        (_animationRunner?.isActive ?? false);
+    if (_ballImagesDisposed ||
+        !isLoaded ||
+        _visualSyncPending ||
+        _gen5SourceCompletion != null ||
+        _preparingTurn ||
+        _pendingIntroPlan != null ||
+        (!tracked && (_animationRunner?.isActive ?? false)) ||
+        (!tracked && _activeAnimationPlan.steps.isNotEmpty) ||
+        (duringTrackedEffect && !tracked) ||
+        playback.status != BattleGen5SourcePlaybackStatus.ready) {
+      throw StateError('Battle scene cannot start the source program');
+    }
+    final completion = Completer<BattleGen5SourcePlaybackStatus>();
+    if (!tracked) _resetSceneClock();
+    _gen5SourceProgram = playback;
+    _gen5SourceCompletion = completion;
+    _gen5SourceDetach = detach;
+    _gen5SourceRelease = release;
+    _gen5SourceAdvance = advance;
+    _gen5SourceTickElapsed = 0;
+    _syncPanelsOnly();
+    return completion.future;
+  }
+
+  void cancelExperimentalGen5Attack() => _cancelGen5SourceProgram();
+
+  void _finishGen5SourceProgram(BattleGen5SourceProgramPlayback playback, {
+    bool syncPanels = true,
+    Object? failure,
+    StackTrace? failureStack,
+  }) {
+    if (!identical(_gen5SourceProgram, playback)) return;
+    _gen5SourceProgram = null;
+    _gen5SourceTickElapsed = 0;
+    final completion = _gen5SourceCompletion;
+    final detach = _gen5SourceDetach;
+    _gen5SourceDetach = null;
+    final release = _gen5SourceRelease;
+    _gen5SourceRelease = null;
+    _gen5SourceAdvance = null;
+    try {
+      detach?.call(playback.status);
+    } on Object catch (error, stack) {
+      failure ??= error;
+      failureStack ??= stack;
+    }
+    unawaited(Future<void>.sync(() => release?.call(playback.status)).then<void>(
+      (_) {
+        if (identical(_gen5SourceCompletion, completion)) {
+          _gen5SourceCompletion = null;
+        }
+        if (completion != null && !completion.isCompleted) {
+          if (failure == null) {
+            completion.complete(playback.status);
+          } else {
+            completion.completeError(failure, failureStack);
+          }
+        }
+        if (syncPanels && !_ballImagesDisposed) _syncPanelsOnly();
+      },
+      onError: (Object error, StackTrace stack) {
+        if (identical(_gen5SourceCompletion, completion)) {
+          _gen5SourceCompletion = null;
+        }
+        if (completion != null && !completion.isCompleted) {
+          completion.completeError(failure ?? error, failureStack ?? stack);
+        }
+        if (syncPanels && !_ballImagesDisposed) _syncPanelsOnly();
+      }
+    ));
+  }
+
+  void _cancelGen5SourceProgram({bool syncPanels = true}) {
+    final playback = _gen5SourceProgram;
+    if (playback == null) return;
+    try {
+      playback.cancel();
+      _finishGen5SourceProgram(playback, syncPanels: syncPanels);
+    } on Object catch (error, stack) {
+      _finishGen5SourceProgram(playback, syncPanels: syncPanels,
+        failure: error, failureStack: stack);
+    }
+  }
+
   void beginTurnPreparation() {
     if (_preparingTurn) return;
     _preparingTurn = true;
@@ -963,7 +1474,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
         for (var i = 0; i < definition.emitters.length; i++) {
           emitters.add(BattleSplStaticEmitter(
             emitterIndex: emitters.length,
-            startTick: 0,
+            startTick: part.startTick,
             position: (x: 0, y: 0, z: 0),
           ));
           emitterBindings.add(bindings[part.from]!);
@@ -1003,7 +1514,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
         emitters: emitters,
         seed: 0,
         poolCapacity: 128,
-        maxTicks: 200,
+        maxTicks: BattleMoveRecipeCompiler.groupedSplMaxTicks,
         origin: Offset.zero,
         pixelsPerUnit: 25 * currentSceneLayout.scale,
         projection: projection,
@@ -1438,6 +1949,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
   void presentPostBattlePlan(BattleAnimationPlan plan) {
     if (_ballImagesDisposed) return;
     if (plan.isEmpty) return;
+    _cancelGen5SourceProgram(syncPanels: false);
     _cancelPendingTurnAudioPreparation();
     _discardPendingTurnAudio();
     _presentationGeneration += 1;
@@ -1705,6 +2217,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
   void onRemove() {
     _resetSceneClock();
     if (_ballImagesDisposed) return;
+    _cancelGen5SourceProgram(syncPanels: false);
     _ballImagesDisposed = true;
     if (!_groupedSplClosed.isCompleted) _groupedSplClosed.complete();
     _presentationGeneration++;
@@ -2004,7 +2517,8 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
   final Map<BattleSlotRef, int> _presentationHeldHp = <BattleSlotRef, int>{};
 
   bool get isTurnPresentationActive =>
-      _preparingTurn || (_animationRunner?.isActive ?? false) || _pendingIntroPlan != null;
+      _gen5SourceCompletion != null || _preparingTurn ||
+      (_animationRunner?.isActive ?? false) || _pendingIntroPlan != null;
 
   /// Une présentation est en cours OU pas encore démarrée.
   ///
@@ -2016,7 +2530,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
   /// Le plan est remis à vide quand le runner a fini, donc « plan non vide ou
   /// runner actif » couvre exactement la durée d'une présentation.
   bool get _presentationPendingOrRunning =>
-      _preparingTurn || (_animationRunner?.isActive ?? false) ||
+      _gen5SourceCompletion != null || _preparingTurn || (_animationRunner?.isActive ?? false) ||
       _activeAnimationPlan.steps.isNotEmpty;
 
   @visibleForTesting
@@ -2197,6 +2711,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     }
     await waitForPendingVisualSync();
     await (_animationRunner?.completionFuture ?? Future<void>.value());
+    await (_gen5SourceCompletion?.future ?? Future<void>.value());
     await waitForPendingVisualSync();
   }
 
@@ -2526,10 +3041,19 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
         pitch: step.pitch,
       ),
       onStartTrackedEffect: onStartTrackedEffect,
-      onStartRecoverableTrackedEffect: onStartRecoverableTrackedEffect,
+      onStartRecoverableTrackedEffect: onStartRecoverableTrackedEffect == null
+          ? null
+          : (step, done, fail) {
+              _startingTrackedSourceEffect = true;
+              try {
+                return onStartRecoverableTrackedEffect!(step, done, fail);
+              } finally {
+                _startingTrackedSourceEffect = false;
+              }
+            },
       onBarrierPulse: _handleBarrierPulseStep,
       onSwapCombatantVisual: _handleSwapCombatantVisualStep,
-      onSwapCombatantVisualSlot: _handleSwapCombatantVisualSlot,
+      onSwapCombatantVisualStep: _handleSwapCombatantVisualSlot,
       onSpriteSheetFx: _handleSpriteSheetFxStep,
       onSpriteSheetOnCombatant: _handleSpriteSheetOnCombatantStep,
       onParticleBurst: _handleParticleBurstStep,
@@ -2566,9 +3090,9 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
 
     final initialSyncStopwatch = Stopwatch()..start();
     final presentationGeneration = _presentationGeneration;
-    _pendingVisualSync = _syncVisualState(
+    _trackVisualSync(_syncVisualState(
       presentationGeneration: presentationGeneration,
-    );
+    ));
     await _pendingVisualSync;
     if (!isLoadingAttached()) return;
     initialSyncStopwatch.stop();
@@ -2607,7 +3131,9 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     RuntimeBattlePresentation? presentation,
     Map<String, PreparedBattleMoveRecipe>? importedRecipes,
     List<BattleTurnAudioSelection> audioSelections = const [],
+    Map<BattleTurnExecutionEvent, String> experimentalSourceEffects = const {},
   }) {
+    _cancelGen5SourceProgram(syncPanels: false);
     _cancelPendingTurnAudioPreparation();
     _discardPendingTurnAudio();
     _preparingTurn = false;
@@ -2631,7 +3157,13 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
       resolver: _moveVisualResolver,
       importedRecipes: importedRecipes,
       audioSelections: audioSelections,
+      experimentalSourceEffects: experimentalSourceEffects,
     );
+    if (animationPlan.flattenedSteps.whereType<SwapCombatantVisualStep>()
+        .any((step) => step.side == BattleSideId.player)) {
+      _menuMode = BattleCommandMenuMode.root;
+      _selectedChoiceIndex = 0;
+    }
     if (animationPlan.audioScopes.isNotEmpty) {
       _pendingTurnAudioPlan = animationPlan;
     }
@@ -2655,7 +3187,9 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
       _presentationLockedCombatantSlots =
           _lockedCombatantSlotsFor(animationPlan).toSet();
       for (final slot in _presentationLockedCombatantSlots) {
-        final previous = previousPresentation?.combatantAt(slot)?.combatant;
+        final previous = previousPresentation?.combatantAt(slot)?.combatant ??
+            (slot.slotIndex != 0 ? null : slot.side == BattleSideId.player
+                ? previousSession.state.player : previousSession.state.enemy);
         if (previous != null) {
           _presentationHeldHp[slot] = previous.currentHp;
         }
@@ -2667,11 +3201,11 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
         notify: false,
       );
       _normalizeMenuSelection();
-      _pendingVisualSync = _prepareAnimationPresentation(
+      _trackVisualSync(_prepareAnimationPresentation(
         previousSession: previousSession,
         animationPlan: animationPlan,
         presentationGeneration: presentationGeneration,
-      );
+      ));
       unawaited(_pendingVisualSync);
     } catch (_) {
       _discardPendingTurnAudio(animationPlan);
@@ -3127,9 +3661,41 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     while (remaining > .000001 && substeps < 32) {
       if (runnerWorkRemaining <= 0) break;
       substeps += 1;
+      final sourceProgram = _gen5SourceProgram;
+      if (sourceProgram != null && _gen5SourceTickElapsed == 0) {
+        try {
+          sourceProgram.tick();
+        } on Object catch (error, stack) {
+          _finishGen5SourceProgram(sourceProgram,
+            failure: error, failureStack: stack);
+        }
+        if (_sceneClockRevision != revision) return;
+        if (!identical(_gen5SourceProgram, sourceProgram)) continue;
+        if (sourceProgram.status != BattleGen5SourcePlaybackStatus.ready &&
+            sourceProgram.status != BattleGen5SourcePlaybackStatus.running) {
+          _finishGen5SourceProgram(sourceProgram);
+          continue;
+        }
+        try {
+          _gen5SourceAdvance?.call();
+        } on Object catch (error, stack) {
+          try {
+            sourceProgram.cancel();
+          } on Object {
+            _finishGen5SourceProgram(sourceProgram,
+              failure: error, failureStack: stack);
+            continue;
+          }
+          _finishGen5SourceProgram(sourceProgram,
+            failure: error, failureStack: stack);
+          continue;
+        }
+      }
       final phaseRemaining = _animationRunner?.secondsUntilNextPhase ?? double.infinity;
-      final tick = math.min(remaining, math.min(1 / 60,
-          phaseRemaining > .000001 ? phaseRemaining : 1 / 60));
+      final sourceRemaining = sourceProgram == null
+          ? double.infinity : 1 / 60 - _gen5SourceTickElapsed;
+      final tick = math.min(remaining, math.min(sourceRemaining, math.min(1 / 60,
+          phaseRemaining > .000001 ? phaseRemaining : 1 / 60)));
       _advanceIdleMotion(tick);
       if (_perspectiveCamera?.isMoving ?? false) {
         _perspectiveCamera?.update(tick);
@@ -3144,6 +3710,16 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
       runnerWorkRemaining -= _animationRunner?.update(tick,
         workBudget: runnerWorkRemaining) ?? 0;
       if (_sceneClockRevision != revision) return;
+      if (sourceProgram != null && identical(_gen5SourceProgram, sourceProgram)) {
+        _gen5SourceTickElapsed += tick;
+        if (_gen5SourceTickElapsed >= 1 / 60 - .000000001) {
+          _gen5SourceTickElapsed = 0;
+          if (sourceProgram.status != BattleGen5SourcePlaybackStatus.ready &&
+              sourceProgram.status != BattleGen5SourcePlaybackStatus.running) {
+            _finishGen5SourceProgram(sourceProgram);
+          }
+        }
+      }
       remaining -= tick;
       if (_animationRunner?.hasImmediateWork ?? false) break;
     }
@@ -4591,9 +5167,9 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     _installActiveAnimationPlan(
         const BattleAnimationPlan(steps: <BattleAnimationStep>[]));
     final presentationGeneration = _presentationGeneration;
-    _pendingVisualSync = _syncVisualState(
+    _trackVisualSync(_syncVisualState(
       presentationGeneration: presentationGeneration,
-    );
+    ));
     unawaited(_pendingVisualSync);
   }
 
@@ -5012,7 +5588,12 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
       const BattleSlotRef.active(BattleSideId.enemy),
       const BattleSlotRef.active(BattleSideId.player),
       ..._additionalCombatants.keys,
-    ].where((slot) => _cameraSubjectAt(slot) != null && !_geometryFor(slot).spriteRect.isEmpty).toList(growable: false);
+    ].where((slot) =>
+        _combatantForSlot(slot) != null &&
+        !_geometryFor(slot).spriteRect.isEmpty &&
+        (_cameraSubjectAt(slot) != null ||
+            (principal == null && _session.state.isFinished && slot.slotIndex == 0)))
+        .toList(growable: false);
     String id(BattleSlotRef slot) => '${slot.side.name}:${slot.slotIndex}';
     BattleCameraSubjectGeometry geometry(BattleSlotRef slot) {
       final stable = _combatantForSlot(slot)!.stableCameraGeometry;
@@ -5236,10 +5817,13 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     );
   }
 
-  void _handleSwapCombatantVisualSlot(BattleSlotRef slot) {
+  void _handleSwapCombatantVisualSlot(SwapCombatantVisualStep step) {
+    final slot = step.slot;
     if (_cameraFocusSubject?.slot == slot) _resetBattleCamera();
     if (!_isDoubles) {
-      _handleSwapCombatantVisualStep(slot.side);
+      unawaited(_syncCombatantVisualForSide(slot.side,
+          presentationGeneration: _presentationGeneration,
+          initialHp: step.initialHp));
       return;
     }
     unawaited(() async {
@@ -5259,10 +5843,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
       if (!_isCurrentPresentationGeneration(generation)) return;
       component.snapToBattlePose();
       _presentationLockedCombatantSlots.remove(slot);
-      _presentationHeldHp[slot] = _activeAnimationPlan.flattenedSteps
-          .whereType<SwapCombatantVisualStep>()
-          .where((step) => step.slot == slot)
-          .firstOrNull?.initialHp ?? data.currentHp;
+      _presentationHeldHp[slot] = step.initialHp ?? data.currentHp;
       _syncPanelsOnly();
     }());
   }
@@ -5428,6 +6009,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
   Future<void> _syncCombatantVisualForSide(
     BattleSideId side, {
     required int presentationGeneration,
+    int? initialHp,
   }) async {
     if (!_isCurrentPresentationGeneration(presentationGeneration)) {
       return;
@@ -5435,6 +6017,8 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     final combatant = side == BattleSideId.player
         ? _session.state.player
         : _session.state.enemy;
+    _presentationHeldHp[BattleSlotRef.active(side)] =
+        initialHp ?? combatant.currentHp;
     if (side == BattleSideId.player) {
       _displayedPlayerCombatant = combatant;
     } else {

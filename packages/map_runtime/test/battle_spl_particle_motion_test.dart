@@ -7,6 +7,26 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_runtime/src/presentation/flame/battle_spl_particle_motion.dart';
 
 void main() {
+  test('applies BW2 convergence to position after sampling magnet force', () {
+    final initial = BattleSplParticleMotion(
+      position: (x: 100, y: -200, z: 300),
+      velocity: (x: 512, y: -512, z: 1024),
+      rotation: 0,
+      angularVelocity: 0,
+    );
+    final next = initial.advanceWithGravity(
+      gravity: (x: 0, y: 0, z: 0),
+      emitterVelocity: (x: 0, y: 0, z: 0),
+      airResistance: 128,
+      magnetTarget: (x: 4096, y: -4096, z: 0),
+      magnetForce: 512,
+      convergenceTarget: (x: 0, y: 0, z: 0),
+      convergenceForce: 274,
+    );
+    expect(next.velocity, (x: 947, y: -935, z: 858));
+    expect(next.position, (x: 1040, y: -1122, z: 1138));
+  });
+
   test('applies BW2 magnet force using the pre-drag position and velocity', () {
     final initial = BattleSplParticleMotion(
       position: (x: 100, y: -200, z: 300),

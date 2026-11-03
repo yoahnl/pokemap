@@ -17,6 +17,7 @@ typedef BattleGroupedSplParticle = ({
   String resourceId,
   String from,
   String to,
+  int startTick,
 });
 typedef BattleGroupedSplSelection = ({
   List<BattleGroupedSplParticle> particles,
@@ -58,6 +59,7 @@ final class BattleMoveRecipeCompiler {
 
   static const _maxSupplementalSteps = 256;
   static const _maxSupplementalDurationMs = 30000;
+  static const groupedSplMaxTicks = 200;
 
   static const availableCapabilities = {
     'sequence',
@@ -77,6 +79,7 @@ final class BattleMoveRecipeCompiler {
     const capabilities = {
       'sequence',
       'parallel',
+      'wait',
       'startParticle',
       'waitEffects',
       'splParticleV2',
@@ -129,7 +132,18 @@ final class BattleMoveRecipeCompiler {
     final swingChannels = <(String, String)>{};
     int? definitionVersion;
     for (final value in steps) {
-      final step = (value as Map).cast<String, dynamic>();
+      var step = (value as Map).cast<String, dynamic>();
+      var startTick = 0;
+      if (step['kind'] == 'sequence') {
+        final delayed = step['steps'] as List;
+        if (delayed.length != 2) return null;
+        final wait = (delayed.first as Map).cast<String, dynamic>();
+        if (wait['kind'] != 'wait') return null;
+        startTick = ((wait['durationMs'] as int) * 60 + 500) ~/ 1000;
+        if (startTick >= groupedSplMaxTicks) return null;
+        step = (delayed.last as Map).cast<String, dynamic>();
+        if (step['kind'] != 'startParticle') return null;
+      }
       if (step['kind'] == 'gen5Swing' && hasMotion) {
         final target = step['target'] as String;
         final channel = step['channel'] as String;
@@ -152,6 +166,7 @@ final class BattleMoveRecipeCompiler {
         resourceId: id,
         from: step['from'] as String,
         to: step['to'] as String,
+        startTick: startTick,
       ));
     }
     if (particles.isEmpty || (hasMotion &&

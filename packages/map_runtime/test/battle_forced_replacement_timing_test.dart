@@ -163,4 +163,40 @@ void main() {
       reason: 'et elle doit apparaître une fois le tour joué',
     );
   });
+
+  test('forced replacement shows the incoming combatant and its own HP', () async {
+    final session = _sessionWithReserve();
+    final overlay = BattleOverlayComponent(
+      session: session,
+      viewportSize: Vector2(390, 844),
+      onPlayerChoice: (_) {},
+    );
+    await loadFlameComponent(overlay);
+    addTearDown(overlay.onRemove);
+    await overlay.waitForPendingVisualSync();
+    final fight = session.decisionRequest.allowedChoices
+        .whereType<PlayerBattleChoiceFight>().first;
+    final afterFight = session.applyChoice(fight);
+    overlay.updateState(afterFight);
+    await overlay.waitForPendingVisualSync();
+    for (var i = 0; i < 600 && overlay.isTurnPresentationActive; i++) {
+      overlay.updateTree(1 / 60);
+      await Future<void>.delayed(Duration.zero);
+    }
+    expect(afterFight.decisionRequest, isA<BattleForcedReplacementRequest>());
+    final replacement = afterFight.decisionRequest.allowedChoices
+        .whereType<PlayerBattleChoiceSwitch>().first;
+    final afterSwitch = afterFight.applyChoice(replacement);
+    overlay.updateState(afterSwitch);
+    await overlay.waitForPendingVisualSync();
+    for (var i = 0; i < 600 && overlay.isTurnPresentationActive; i++) {
+      overlay.updateTree(1 / 60);
+      await Future<void>.delayed(Duration.zero);
+    }
+    expect(overlay.isTurnPresentationActive, isFalse);
+    final hud = overlay.currentCommandOverlaySnapshot!.playerHud;
+    expect(hud.speciesLabel, 'salameche');
+    expect(hud.effectiveDisplayedHp, afterSwitch.state.player.currentHp);
+    expect(hud.effectiveDisplayedHp, 18);
+  });
 }

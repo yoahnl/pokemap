@@ -147,11 +147,30 @@ void main() {
     final recipe = BattleMoveAnimationRecipe.fromJson(groupedSplSource());
     final selected = compiler.selectGroupedSpl(recipe)!;
     expect(selected.particles, [
-      (resourceId: 'from', from: 'userMouth', to: 'targetImpact'),
-      (resourceId: 'to', from: 'targetImpact', to: 'targetImpact'),
+      (resourceId: 'from', from: 'userMouth', to: 'targetImpact', startTick: 0),
+      (resourceId: 'to', from: 'targetImpact', to: 'targetImpact', startTick: 0),
     ]);
     expect(selected.audio.resourceId, 'cue');
     expect(() => selected.particles.clear(), throwsUnsupportedError);
+  });
+
+  test('schedules a delayed emitter without shifting the others', () {
+    final input = groupedSplSource();
+    (input['requiredCapabilities'] as List).add('wait');
+    final steps = (input['program'] as Map)['steps'] as List;
+    final particles = List<dynamic>.from((steps.first as Map)['steps'] as List);
+    (steps.first as Map)['steps'] = particles;
+    particles[1] = {
+      'kind': 'sequence',
+      'steps': [
+        {'kind': 'wait', 'durationMs': 1167},
+        particles[1],
+      ],
+    };
+    final selected = compiler.selectGroupedSpl(BattleMoveAnimationRecipe.fromJson(input))!;
+    expect(selected.particles.map((particle) => particle.startTick), [0, 70]);
+    ((particles[1] as Map)['steps'] as List).first['durationMs'] = 4000;
+    expect(compiler.selectGroupedSpl(BattleMoveAnimationRecipe.fromJson(input)), isNull);
   });
 
   test('selects grouped SPL v3 but refuses mixed definition versions', () {

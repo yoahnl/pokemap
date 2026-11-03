@@ -4,17 +4,19 @@ import 'package:crypto/crypto.dart';
 import 'package:map_core/map_core.dart';
 
 final class Gen5SplParticleConversion {
-  const Gen5SplParticleConversion._({
+  Gen5SplParticleConversion._({
     required this.sourceRevision,
     required this.sourcePath,
     required this.sourceSha256,
     required this.definition,
-  });
+    required List<int> sourceEmitterIndices,
+  }) : sourceEmitterIndices = List.unmodifiable(sourceEmitterIndices);
 
   final String sourceRevision;
   final String sourcePath;
   final String sourceSha256;
   final BattleSplParticleDefinition definition;
+  final List<int> sourceEmitterIndices;
 }
 
 abstract final class Gen5SplParticleConverter {
@@ -25,6 +27,7 @@ abstract final class Gen5SplParticleConverter {
     required String sourcePath,
     required String expectedSha256,
     required Map<String, String> textureResourceIds,
+    List<int>? experimentalSourceEmitterIndices,
   }) {
     if (particleId < 0 ||
         particleId > 65535 ||
@@ -57,6 +60,15 @@ abstract final class Gen5SplParticleConverter {
         rawEmitters.length > 32) {
       throw const FormatException('Invalid SPL source inventory');
     }
+    final indices = experimentalSourceEmitterIndices == null
+        ? List<int>.generate(rawEmitters.length, (index) => index)
+        : List<int>.of(experimentalSourceEmitterIndices);
+    if (indices.isEmpty ||
+        indices.length > rawEmitters.length ||
+        indices.toSet().length != indices.length ||
+        indices.any((index) => index < 0 || index >= rawEmitters.length)) {
+      throw const FormatException('Invalid SPL source emitter selection');
+    }
     final declared = <String>{};
     for (final value in rawTextures) {
       final texture = _map(value);
@@ -64,7 +76,11 @@ abstract final class Gen5SplParticleConverter {
       final name = _text(texture['name']);
       if (!RegExp(r'^[A-Za-z0-9_]{1,64}$').hasMatch(name) ||
           !declared.add(name) ||
-          !{'a3i5', 'a5i3'}.contains(texture['format']) ||
+          !{
+            'a3i5',
+            'a5i3',
+            if (experimentalSourceEmitterIndices != null) 'palette16',
+          }.contains(texture['format']) ||
           texture['repeat'] != 'none' ||
           texture['flip'] != 'none' ||
           texture['palColor0'] is! bool) {
@@ -83,24 +99,31 @@ abstract final class Gen5SplParticleConverter {
       return _text(id);
     }
 
-    final version = rawEmitters
-            .any((raw) => _map(raw).containsKey('magnetBehavior'))
-        ? 4
-        : rawEmitters.any((raw) => _map(raw)['initVelPositionAmplifier'] != 0)
-            ? 3
-            : 2;
+    final selectedEmitters = [for (final index in indices) rawEmitters[index]];
+    final version = experimentalSourceEmitterIndices != null
+        ? 5
+        : rawEmitters.any((raw) => _map(raw).containsKey('magnetBehavior'))
+            ? 4
+            : rawEmitters
+                    .any((raw) => _map(raw)['initVelPositionAmplifier'] != 0)
+                ? 3
+                : 2;
     final converted = [
-      for (final raw in rawEmitters) _emitter(_map(raw), texture, version),
+      for (final raw in selectedEmitters) _emitter(_map(raw), texture, version),
     ];
-    final definition = BattleSplParticleDefinition.fromJson({
+    final output = <String, dynamic>{
       'schemaVersion': version,
       'emitters': converted,
-    });
+    };
+    final definition = experimentalSourceEmitterIndices == null
+        ? BattleSplParticleDefinition.fromJson(output)
+        : BattleSplParticleDefinition.fromExperimentalJson(output);
     return Gen5SplParticleConversion._(
       sourceRevision: sourceRevision,
       sourcePath: sourcePath,
       sourceSha256: expectedSha256,
       definition: definition,
+      sourceEmitterIndices: indices,
     );
   }
 }
@@ -167,15 +190,20 @@ Map<String, dynamic> _emitter(
     'childResource',
     'gravityBehavior',
     'magnetBehavior',
+    'convergenceBehavior',
   });
   final shape = switch (source['emissionType']) {
     'point' => 'point',
     'sphere_surface' => 'sphereSurface',
+    'hemisphere_surface' when version >= 5 => 'hemisphereSurface',
+    'circle_border' when version >= 5 => 'circleBorder',
+    'circle_border_uniform' when version >= 5 => 'circleBorderUniform',
     _ => throw const FormatException('Unsupported SPL emission shape'),
   };
   final draw = switch (source['drawType']) {
     'billboard' => 'billboard',
     'directional_billboard' => 'directionalBillboard',
+    'directional_polygon' when version >= 5 => 'directionalPolygon',
     _ => throw const FormatException('Unsupported SPL draw type'),
   };
   if (!{'x', 'y', 'z'}.contains(source['emissionAxis']) ||
@@ -188,14 +216,13 @@ Map<String, dynamic> _emitter(
     throw const FormatException('Unsupported SPL source geometry');
   }
   for (final field in [
-    'hasRotation',
+    if (version < 5) 'hasRotation',
     'randomLoopOffset',
-    'drawChildrenFirst',
+    if (version < 5 || source['childResource'] != null) 'drawChildrenFirst',
     'hideParent',
-    'relativeToBasePos',
     'fixedPolygonID',
     'childFixedPolygonID',
-    'dirFromPosition',
+    if (version < 5) 'dirFromPosition',
     'flipTextureS',
     'flipTextureT',
   ]) {
@@ -203,21 +230,54 @@ Map<String, dynamic> _emitter(
       throw FormatException('Unsupported SPL source field: $field');
     }
   }
+  if (source['relativeToBasePos'] != false) {
+    if (version < 5 || source['relativeToBasePos'] != true) {
+      throw const FormatException('Unsupported SPL relative base position');
+    }
+  }
   for (final field in [
     'lifeTimeVariance',
-    'velocityVariance',
+    if (version < 5) 'velocityVariance',
     'dirStretch',
     'textureRepeatShiftS',
     'textureRepeatShiftT',
-    'polygonX',
-    'polygonY',
+    if (version < 5) 'polygonX',
+    if (version < 5) 'polygonY',
   ]) {
     if (source[field] is! int || source[field] != 0) {
       throw FormatException('Unsupported SPL source field: $field');
     }
   }
+  if (version >= 5 &&
+      (source['hasRotation'] is! bool ||
+          source['dirFromPosition'] is! bool ||
+          source['drawChildrenFirst'] is! bool ||
+          (source['dirFromPosition'] == true &&
+              draw != 'directionalBillboard' && draw != 'directionalPolygon') ||
+          !_isSignedWord(source['minRotation']) ||
+          !_isSignedWord(source['maxRotation']) ||
+          source['polygonX'] is! int ||
+          (source['polygonX'] as int) < -32768 ||
+          (source['polygonX'] as int) > 32767 ||
+          source['polygonY'] is! int ||
+          (source['polygonY'] as int) < -32768 ||
+          (source['polygonY'] as int) > 32767 ||
+          source['velocityVariance'] is! int ||
+          (source['velocityVariance'] as int) < 0 ||
+          (source['velocityVariance'] as int) > 255)) {
+    throw const FormatException('Unsupported experimental SPL source field');
+  }
   _optionalUnused(source);
-  final scale = _map(source['scaleAnim']);
+  final scale = version >= 5 && !source.containsKey('scaleAnim')
+      ? <String, dynamic>{
+          'start': 4096,
+          'mid': 4096,
+          'end': 4096,
+          'in': 0,
+          'out': 254,
+          'loop': false,
+        }
+      : _map(source['scaleAnim']);
   _keys(scale, {'start', 'mid', 'end', 'in', 'out', 'loop', 'unused'});
   _optionalUnused(scale);
   final color = source['colorAnim'] == null
@@ -261,6 +321,13 @@ Map<String, dynamic> _emitter(
       ? _map(source['magnetBehavior'])
       : null;
   if (magnet != null) _keys(magnet, {'target', 'force'});
+  final convergence = source.containsKey('convergenceBehavior')
+      ? _map(source['convergenceBehavior'])
+      : null;
+  if (convergence != null) {
+    if (version < 5) throw const FormatException('Unsupported SPL convergence');
+    _keys(convergence, {'target', 'force'});
+  }
   final rawTextureAnimation = source['textureAnim'];
   Map<String, dynamic>? textureAnimation;
   if (rawTextureAnimation != null) {
@@ -296,10 +363,18 @@ Map<String, dynamic> _emitter(
       'scaleVariance': source['scaleVariance'],
       'randomInitialAngle': source['randomInitAngle'],
       'initialAngle': source['initAngle'],
+      if (version >= 5) 'emissionAxis': source['emissionAxis'],
+      if (version >= 5) 'velocityVariance': source['velocityVariance'],
     },
     'appearance': {
       'draw': draw,
       'scaleAxis': source['scaleAnimDir'],
+      if (version >= 5 && source['polygonX'] != 0)
+        'polygonX': source['polygonX'],
+      if (version >= 5 && source['polygonY'] != 0)
+        'polygonY': source['polygonY'],
+      if (version >= 5 && source['relativeToBasePos'] == true)
+        'relativeToBasePos': true,
       'baseScale': source['baseScale'],
       'aspectRatio': source['aspectRatio'],
       'baseAlpha': source['baseAlpha'],
@@ -333,11 +408,16 @@ Map<String, dynamic> _emitter(
       },
       'initialTexture': texture(source['texture']),
       'textureAnimation': textureAnimation,
+      if (version >= 5) 'hasRotation': source['hasRotation'],
+      if (version >= 5) 'minRotation': source['minRotation'],
+      if (version >= 5) 'maxRotation': source['maxRotation'],
+      if (version >= 5) 'dirFromPosition': source['dirFromPosition'],
     },
     'motion': {
       'gravity': gravity['magnitude'],
       'airResistance': source['airResistance'],
       if (version >= 4) 'magnet': magnet,
+      if (convergence != null) 'convergence': convergence,
     },
     'child': rawChild == null ? null : _child(_map(rawChild), texture, version),
   };

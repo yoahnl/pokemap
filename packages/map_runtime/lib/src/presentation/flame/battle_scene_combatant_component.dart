@@ -213,7 +213,44 @@ class BattleSceneCombatantComponent extends PositionComponent {
   ui.Image? get stageImage => _gifAnimation == null ? _spriteImage : null;
   Rect get stageSourceRect => _currentSpriteInputSubrect();
   Color get stageTint => _spriteModulationColor(_visualOpacity);
-  Color get stageShadowTint => _applyOpacity(const Color(0x26000000));
+  final Set<Object> _battleScriptShadowOwners = {};
+  Object? _battleScriptPaletteOwner;
+  double _battleScriptPaletteAmount = 0;
+  Color _battleScriptPaletteColor = const Color(0xFFFFFFFF);
+
+  bool get hasBattleScriptPalette => _battleScriptPaletteAmount > 0;
+  Color get stageShadowTint => _battleScriptShadowOwners.isEmpty
+      ? _applyOpacity(const Color(0x26000000))
+      : const Color(0x00000000);
+
+  void setBattleScriptShadowHidden(bool hidden, {required Object owner}) {
+    if (hidden) {
+      _battleScriptShadowOwners.add(owner);
+    } else {
+      _battleScriptShadowOwners.remove(owner);
+    }
+  }
+
+  void setBattleScriptPalette({
+    required Object owner,
+    required int level,
+    required Color color,
+  }) {
+    if (level < 0 || level > 16 ||
+        (_battleScriptPaletteOwner != null &&
+            !identical(_battleScriptPaletteOwner, owner))) {
+      throw StateError('Battle palette is unavailable');
+    }
+    _battleScriptPaletteOwner = owner;
+    _battleScriptPaletteAmount = level / 16;
+    _battleScriptPaletteColor = color;
+  }
+
+  void clearBattleScriptPalette({required Object owner}) {
+    if (!identical(_battleScriptPaletteOwner, owner)) return;
+    _battleScriptPaletteOwner = null;
+    _battleScriptPaletteAmount = 0;
+  }
   Size get stageShadowMaskSize {
     final destination = _currentRenderedSpriteDestinationSize();
     return Size(
@@ -864,12 +901,14 @@ class BattleSceneCombatantComponent extends PositionComponent {
 
     if (_spriteImage != null) {
       if (renderedBy3DStage) return;
-      canvas.drawOval(
-        _currentShadowRectLocal(),
-        Paint()
-          ..color = _applyOpacity(const Color(0x26000000))
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.5),
-      );
+      if (_battleScriptShadowOwners.isEmpty) {
+        canvas.drawOval(
+          _currentShadowRectLocal(),
+          Paint()
+            ..color = _applyOpacity(const Color(0x26000000))
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.5),
+        );
+      }
       _renderDashTrail(canvas);
       _renderSprite(canvas);
       return;
@@ -1444,6 +1483,18 @@ class BattleSceneCombatantComponent extends PositionComponent {
     final paint = Paint()..filterQuality = FilterQuality.none;
     final opacity = (opacityOverride ?? _visualOpacity).clamp(0.0, 1.0);
     final modulationColor = _spriteModulationColor(opacity);
+    if (_battleScriptPaletteAmount > 0) {
+      final amount = _battleScriptPaletteAmount;
+      final remaining = 1 - amount;
+      final color = _battleScriptPaletteColor;
+      paint.colorFilter = ColorFilter.matrix([
+        modulationColor.r * remaining, 0, 0, 0, color.r * 255 * amount,
+        0, modulationColor.g * remaining, 0, 0, color.g * 255 * amount,
+        0, 0, modulationColor.b * remaining, 0, color.b * 255 * amount,
+        0, 0, 0, modulationColor.a, 0,
+      ]);
+      return paint;
+    }
     if (modulationColor == const Color(0xFFFFFFFF)) {
       return paint;
     }

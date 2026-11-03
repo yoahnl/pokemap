@@ -36,6 +36,10 @@ final class BattleSplStaticFrame {
     this.directional,
     this.childDirectional,
     this.scaleAxis,
+    this.polygonX,
+    this.polygonY,
+    this.relativeBasePosition,
+    this.directionalPolygon,
     this.followEmitter,
     this.childFollowsEmitter,
     List<BattleSplPointParticle> particles,
@@ -46,6 +50,10 @@ final class BattleSplStaticFrame {
   final bool directional;
   final bool childDirectional;
   final String scaleAxis;
+  final int polygonX;
+  final int polygonY;
+  final BattleSplVector? relativeBasePosition;
+  final bool directionalPolygon;
   final bool followEmitter;
   final bool childFollowsEmitter;
   final List<BattleSplPointParticle> particles;
@@ -197,6 +205,10 @@ final class BattleSplStaticPlayback {
         entry.emitter.directional,
         entry.emitter.childDirectional,
         entry.emitter.scaleAxis,
+        entry.emitter.polygonX,
+        entry.emitter.polygonY,
+        entry.emitter.relativeBasePosition,
+        entry.emitter.directionalPolygon,
         entry.emitter.playback.followEmitter,
         entry.emitter.playback.childFollowsEmitter,
         entry.emitter.playback.particles,

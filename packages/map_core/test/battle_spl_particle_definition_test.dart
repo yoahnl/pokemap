@@ -91,6 +91,64 @@ Map<String, dynamic> _copy(Map<String, dynamic> value) =>
     (jsonDecode(jsonEncode(value)) as Map).cast<String, dynamic>();
 
 void main() {
+  test(
+    'admits experimental emitter fields only through the explicit reader',
+    () {
+      final raw = _copy(_definition())..['schemaVersion'] = 5;
+      final emitter = (raw['emitters'] as List).single as Map<String, dynamic>;
+      final emission = emitter['emission'] as Map;
+      emission['shape'] = 'hemisphereSurface';
+      emission['radius'] = 0;
+      emission['positionVelocity'] = 228;
+      emission['emissionAxis'] = 'x';
+      emission['velocityVariance'] = 27;
+      final appearance = emitter['appearance'] as Map;
+      appearance['hasRotation'] = true;
+      appearance['minRotation'] = 2558;
+      appearance['maxRotation'] = -2559;
+      appearance['dirFromPosition'] = true;
+      (emitter['motion'] as Map)['magnet'] = null;
+      final child = emitter['child'] as Map;
+      child['scaleEnd'] = null;
+      child['inheritBehaviors'] = false;
+      child['draw'] = 'billboard';
+
+      expect(
+        () => BattleSplParticleDefinition.fromJson(raw),
+        throwsFormatException,
+      );
+      expect(
+        BattleSplParticleDefinition.fromExperimentalJson(raw).toJson(),
+        raw,
+      );
+      final badVariance = _copy(raw);
+      (((badVariance['emitters'] as List).single as Map)['emission']
+              as Map)['velocityVariance'] =
+          256;
+      expect(
+        () => BattleSplParticleDefinition.fromExperimentalJson(badVariance),
+        throwsFormatException,
+      );
+      final badDirection = _copy(raw);
+      (((badDirection['emitters'] as List).single as Map)['appearance']
+              as Map)['draw'] =
+          'billboard';
+      expect(
+        () => BattleSplParticleDefinition.fromExperimentalJson(badDirection),
+        throwsFormatException,
+      );
+      final legacy = _copy(raw)..['schemaVersion'] = 4;
+      expect(
+        () => BattleSplParticleDefinition.fromJson(legacy),
+        throwsFormatException,
+      );
+      expect(
+        () => BattleSplParticleDefinition.fromExperimentalJson(legacy),
+        throwsFormatException,
+      );
+    },
+  );
+
   test('accepts bounded v4 magnets while retaining v2 and v3 semantics', () {
     final v4 = _copy(_definition())..['schemaVersion'] = 4;
     final emitter = (v4['emitters'] as List).single as Map;
@@ -104,9 +162,15 @@ void main() {
     (emitter['child'] as Map)['draw'] = 'directionalBillboard';
     expect(BattleSplParticleDefinition.fromJson(v4).toJson(), v4);
     final v3 = _copy(v4)..['schemaVersion'] = 3;
-    expect(() => BattleSplParticleDefinition.fromJson(v3), throwsFormatException);
+    expect(
+      () => BattleSplParticleDefinition.fromJson(v3),
+      throwsFormatException,
+    );
     ((emitter['motion'] as Map)['magnet'] as Map)['force'] = 32768;
-    expect(() => BattleSplParticleDefinition.fromJson(v4), throwsFormatException);
+    expect(
+      () => BattleSplParticleDefinition.fromJson(v4),
+      throwsFormatException,
+    );
   });
 
   test('retains v3 radial velocity without changing v2 validation', () {

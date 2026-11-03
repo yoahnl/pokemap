@@ -19,6 +19,10 @@ final class BattleSplConfiguredEmitter {
     this.directional,
     this.childDirectional,
     this.scaleAxis,
+    this.polygonX,
+    this.polygonY,
+    this.relativeBasePosition,
+    this.directionalPolygon,
   );
 
   factory BattleSplConfiguredEmitter({
@@ -32,6 +36,7 @@ final class BattleSplConfiguredEmitter {
     final appearance = json['appearance'] as Map<String, dynamic>;
     final motion = json['motion'] as Map<String, dynamic>;
     final magnet = motion['magnet'] as Map<String, dynamic>?;
+    final convergence = motion['convergence'] as Map<String, dynamic>?;
     final scale = appearance['scale'] as Map<String, dynamic>;
     final color = appearance['color'] as Map<String, dynamic>;
     final alpha = appearance['alpha'] as Map<String, dynamic>;
@@ -81,6 +86,10 @@ final class BattleSplConfiguredEmitter {
     final frame = _EmitterFrame();
     final axis = _vector(emission['axis']);
     final spherical = emission['shape'] == 'sphereSurface';
+    final hemispherical = emission['shape'] == 'hemisphereSurface';
+    final circular = emission['shape'] == 'circleBorder';
+    final uniformCircular = emission['shape'] == 'circleBorderUniform';
+    final velocityVariance = emission['velocityVariance'] as int? ?? 0;
     final playback = BattleSplPointEmitterPlayback(
       lifecycle: lifecycle,
       loopTime: appearance['loopTime'] as int,
@@ -88,12 +97,35 @@ final class BattleSplConfiguredEmitter {
       magnet: magnet == null
           ? null
           : (target: _vector(magnet['target']), force: magnet['force'] as int),
+      convergence: convergence == null
+          ? null
+          : (target: _vector(convergence['target']),
+              force: convergence['force'] as int),
       emitterVelocity: (x: 0, y: 0, z: 0),
       airResistance: motion['airResistance'] as int,
       initialTexture: initialTexture,
       followEmitter: emission['followEmitter'] as bool,
-      initializeParent: (_) {
-        final position = spherical
+      initializeParent: (_, index, count) {
+        final position = uniformCircular
+            ? BattleSplVectorMath.uniformCircleBorder(
+                index: index,
+                count: count,
+                radius: emission['radius'] as int,
+                axis: emission['emissionAxis'] as String,
+              )
+            : circular
+            ? BattleSplVectorMath.circleBorder(
+                random,
+                radius: emission['radius'] as int,
+                axis: emission['emissionAxis'] as String,
+              )
+            : hemispherical
+            ? BattleSplVectorMath.hemisphereSurface(
+                random,
+                radius: emission['radius'] as int,
+                axis: emission['emissionAxis'] as String,
+              )
+            : spherical
             ? BattleSplVectorMath.sphereSurface(
                 random,
                 radius: emission['radius'] as int,
@@ -101,9 +133,12 @@ final class BattleSplConfiguredEmitter {
             : (x: 0, y: 0, z: 0);
         final radialSpeed = random.vary(
           emission['positionVelocity'] as int? ?? 0,
-          variance: 0,
+          variance: velocityVariance,
         );
-        final speed = random.vary(emission['axisVelocity'] as int, variance: 0);
+        final speed = random.vary(
+          emission['axisVelocity'] as int,
+          variance: velocityVariance,
+        );
         final direction = emission.containsKey('positionVelocity')
             ? position.x == 0 && position.y == 0 && position.z == 0
                   ? BattleSplVectorMath.randomUnitVector(random)
@@ -118,6 +153,13 @@ final class BattleSplConfiguredEmitter {
         final angle = emission['randomInitialAngle'] as bool
             ? random.next() & 65535
             : emission['initialAngle'] as int;
+        final angularVelocity = appearance['hasRotation'] == true
+            ? (((appearance['maxRotation'] as int) -
+                              (appearance['minRotation'] as int)) *
+                          (random.next() >> 20) +
+                      ((appearance['minRotation'] as int) << 12)) >>
+                  12
+            : 0;
         random.next();
         return (
           motion: BattleSplParticleMotion(
@@ -134,7 +176,7 @@ final class BattleSplConfiguredEmitter {
                   ((axis.z * speed + 2048) >> 12),
             ),
             rotation: angle,
-            angularVelocity: 0,
+            angularVelocity: angularVelocity,
           ),
           emitterPosition: frame.position,
           baseScale4096: baseScale,
@@ -212,6 +254,10 @@ final class BattleSplConfiguredEmitter {
       appearance['draw'] == 'directionalBillboard',
       child?['draw'] == 'directionalBillboard',
       appearance['scaleAxis'] as String,
+      appearance['polygonX'] as int? ?? 0,
+      appearance['polygonY'] as int? ?? 0,
+      appearance['relativeToBasePos'] == true ? _vector(emission['origin']) : null,
+      appearance['draw'] == 'directionalPolygon',
     );
   }
 
@@ -222,6 +268,10 @@ final class BattleSplConfiguredEmitter {
   final bool directional;
   final bool childDirectional;
   final String scaleAxis;
+  final int polygonX;
+  final int polygonY;
+  final BattleSplVector? relativeBasePosition;
+  final bool directionalPolygon;
 
   BattleSplEmitterStep step({
     required int managerFrame,

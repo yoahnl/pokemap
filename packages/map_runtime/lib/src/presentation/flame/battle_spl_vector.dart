@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'battle_spl_particle_motion.dart';
 import 'battle_spl_random.dart';
 
@@ -22,6 +24,79 @@ abstract final class BattleSplVectorMath {
     }
 
     return (x: scale(unit.x), y: scale(unit.y), z: scale(unit.z));
+  }
+
+  static BattleSplVector hemisphereSurface(
+    BattleSplRandom random, {
+    required int radius,
+    required String axis,
+  }) {
+    if (radius < 0 || radius > 2147483647 || !{'x', 'y', 'z'}.contains(axis)) {
+      throw const FormatException('Invalid SPL hemisphere');
+    }
+    final sample = randomUnitVector(random);
+    final component = switch (axis) {
+      'x' => sample.x,
+      'y' => sample.y,
+      _ => sample.z,
+    };
+    final sign = component <= 0 ? -1 : 1;
+    int scale(int value) {
+      final product = value * sign * radius + 2048;
+      return product >= 0 ? product ~/ 4096 : -((-product + 4095) ~/ 4096);
+    }
+
+    return (x: scale(sample.x), y: scale(sample.y), z: scale(sample.z));
+  }
+
+  static BattleSplVector circleBorder(
+    BattleSplRandom random, {
+    required int radius,
+    required String axis,
+  }) {
+    if (radius < 0 || radius > 2147483647 || !{'x', 'y', 'z'}.contains(axis)) {
+      throw const FormatException('Invalid SPL circle');
+    }
+    final sample = normalize((
+      x: random.fixedPoint(bits: 24),
+      y: random.fixedPoint(bits: 24),
+      z: 0,
+    ));
+    int scale(int value) {
+      final product = value * radius + 2048;
+      return product >= 0 ? product ~/ 4096 : -((-product + 4095) ~/ 4096);
+    }
+
+    final x = scale(sample.x);
+    final y = scale(sample.y);
+    return switch (axis) {
+      'x' => (x: 0, y: -y, z: x),
+      'y' => (x: -y, y: 0, z: -x),
+      _ => (x: -x, y: -y, z: 0),
+    };
+  }
+
+  static BattleSplVector uniformCircleBorder({
+    required int index,
+    required int count,
+    required int radius,
+    required String axis,
+  }) {
+    if (count < 1 || count > 64 || index < 0 || index >= count ||
+        radius < 0 || radius > 2147483647 || !{'x', 'y', 'z'}.contains(axis)) {
+      throw const FormatException('Invalid SPL uniform circle');
+    }
+    final angleIndex = ((index * 65536 ~/ count) & 65535) >> 4;
+    final angle = angleIndex * 2 * math.pi / 4096;
+    final sine = (math.sin(angle) * 4096).round();
+    final cosine = (math.cos(angle) * 4096).round();
+    final x = (sine * radius + 2048) >> 12;
+    final y = (cosine * radius + 2048) >> 12;
+    return switch (axis) {
+      'x' => (x: 0, y: -y, z: x),
+      'y' => (x: -y, y: 0, z: -x),
+      _ => (x: -x, y: -y, z: 0),
+    };
   }
 
   static BattleSplVector normalize(BattleSplVector vector) {

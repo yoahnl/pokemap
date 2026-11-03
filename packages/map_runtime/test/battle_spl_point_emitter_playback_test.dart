@@ -528,8 +528,8 @@ BattleSplPointEmitterPlayback _playback(
   childInheritsBehaviors: childInheritsBehaviors,
   childInitializer: childInitializer,
   initialTexture: 10,
-  initializeParent:
-      initializeParent ??
+  initializeParent: (id, _, _) =>
+      (initializeParent ??
       (id) => (
         motion: initialMotion == null
             ? BattleSplParticleMotion(
@@ -541,7 +541,7 @@ BattleSplPointEmitterPlayback _playback(
             : initialMotion(id),
         emitterPosition: emitterPosition,
         baseScale4096: 4096,
-      ),
+      ))(id),
   scale: BattleSplScalarAnimation(
     start: 4096,
     middle: 8192,

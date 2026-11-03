@@ -194,12 +194,13 @@ final class BattleTurnAnimationPlanner {
     Map<BattleSlotRef, BattleCombatant>? combatantsAfter,
     Map<String, PreparedBattleMoveRecipe>? importedRecipes,
     List<BattleTurnAudioSelection> audioSelections = const [],
+    Map<BattleTurnExecutionEvent, String> experimentalSourceEffects = const {},
   }) {
     final turnResult = newSession.state.currentTurn;
     if (turnResult == null) {
-      if (audioSelections.isNotEmpty) {
+      if (audioSelections.isNotEmpty || experimentalSourceEffects.isNotEmpty) {
         _cancelUnclaimedTurnAudio(audioSelections);
-        throw StateError('Audio selection has no battle turn');
+        throw StateError('Presentation selection has no battle turn');
       }
       final outcome = newSession.state.outcome;
       if (!newSession.state.isFinished || outcome == null) {
@@ -236,6 +237,7 @@ final class BattleTurnAnimationPlanner {
       resolver: resolver,
       importedRecipes: importedRecipes,
       audioSelections: audioSelections,
+      experimentalSourceEffects: experimentalSourceEffects,
     );
     final outcome = newSession.state.outcome;
     if (!newSession.state.isFinished || outcome == null) {
@@ -273,6 +275,7 @@ final class BattleTurnAnimationPlanner {
     Map<(BattleSideId, int), int>? partyHpBefore,
     Map<String, PreparedBattleMoveRecipe>? importedRecipes,
     List<BattleTurnAudioSelection> audioSelections = const [],
+    Map<BattleTurnExecutionEvent, String> experimentalSourceEffects = const {},
   }) {
     final selectedAudio =
         HashMap<BattleTurnExecutionEvent, BattleTurnAudioSelection>.identity();
@@ -280,6 +283,14 @@ final class BattleTurnAnimationPlanner {
     try {
       if (audioSelections.length > 16) {
         throw StateError('Too many audio selections');
+      }
+      if (experimentalSourceEffects.length > 16 ||
+          experimentalSourceEffects.entries.any((entry) =>
+              entry.value.isEmpty ||
+              entry.key.execution.move.id.startsWith('effect:') ||
+              turnResult.timeline.where((event) => identical(event, entry.key)).length != 1 ||
+              audioSelections.any((selection) => identical(selection.event, entry.key)))) {
+        throw StateError('Invalid experimental source effects');
       }
       for (final selection in audioSelections) {
         final event = selection.event;
@@ -317,6 +328,7 @@ final class BattleTurnAnimationPlanner {
         partyHpBefore: partyHpBefore,
         importedRecipes: importedRecipes,
         selectedAudio: selectedAudio,
+        experimentalSourceEffects: experimentalSourceEffects,
         audioScopes: audioScopes,
       );
     } catch (_) {
@@ -340,6 +352,7 @@ final class BattleTurnAnimationPlanner {
     required Map<String, PreparedBattleMoveRecipe>? importedRecipes,
     required Map<BattleTurnExecutionEvent, BattleTurnAudioSelection>
         selectedAudio,
+    required Map<BattleTurnExecutionEvent, String> experimentalSourceEffects,
     required List<BattleAnimationAudioScope> audioScopes,
   }) {
     final before = combatantsBefore ?? {
@@ -519,9 +532,19 @@ final class BattleTurnAnimationPlanner {
                 audioScopes.addAll(scoped.audioScopes);
               }
             }
+            final experimentalEffect = experimentalSourceEffects[event];
+            if (experimentalEffect != null) {
+              resolvedSteps = [
+                StartTrackedEffectStep(
+                  effectId: experimentalEffect,
+                  fallbackSteps: resolvedSteps,
+                ),
+                const WaitTrackedEffectsStep(),
+              ];
+            }
             final focusSlot = execution.targetSlot ?? execution.attackerSlot;
             final moveKey = execution.move.id.toLowerCase().replaceAll(RegExp(r'[-_ ]'), '');
-            if (!resolvedSteps.any(_containsCameraStep)) {
+            if (experimentalEffect == null && !resolvedSteps.any(_containsCameraStep)) {
               if (moveKey == 'shadowball') {
                 steps.add(const AnimationGroupStep(
                   mode: BattleAnimationGroupMode.parallel,
@@ -546,10 +569,12 @@ final class BattleTurnAnimationPlanner {
               ));
             }
             steps.addAll(resolvedSteps);
-            steps.add(const AnimationGroupStep(
-              mode: BattleAnimationGroupMode.parallel,
-              steps: [BattleCameraResetStep(durationSeconds: 16 / 60)],
-            ));
+            if (experimentalEffect == null) {
+              steps.add(const AnimationGroupStep(
+                mode: BattleAnimationGroupMode.parallel,
+                steps: [BattleCameraResetStep(durationSeconds: 16 / 60)],
+              ));
+            }
           }
           // Recette du 2026-08-24 : une attaque qui rate se dit — la
           // référence affiche « [cible] évite l'attaque ! » et ne joue ni

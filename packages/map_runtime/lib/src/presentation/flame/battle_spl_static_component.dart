@@ -23,6 +23,10 @@ final class BattleSplStaticComponent extends PositionComponent
     this.maxTicksPerUpdate = 16,
   }) {
     final frames = playback.frames;
+    if (frames.any((frame) => frame.directionalPolygon) &&
+        (projection?.worldTransform == null || origin != ui.Offset.zero)) {
+      throw const FormatException('Directional SPL polygon needs 3D projection');
+    }
     if (textures.length != playback.textureIndices.length ||
         !textures.keys.toSet().containsAll(playback.textureIndices) ||
         !origin.dx.isFinite ||
@@ -72,6 +76,8 @@ final class BattleSplStaticComponent extends PositionComponent
             aspectRatio4096: frame.aspectRatio4096,
             directionalParents: frame.directional,
             directionalChildren: frame.childDirectional,
+            polygonX: frame.polygonX,
+            polygonY: frame.polygonY,
             scaleAxis: switch (frame.scaleAxis) {
               'x' => BattleSplPreviewScaleAxis.x,
               'y' => BattleSplPreviewScaleAxis.y,
@@ -97,6 +103,7 @@ final class BattleSplStaticComponent extends PositionComponent
   final void Function(BattleSplAdmissionFailure) onFailure;
   final BattleSplCameraProjection? projection;
   final int maxTicksPerUpdate;
+  ui.Rect Function()? clipBounds;
   final Map<int, ui.Image> _textures = {};
   final List<BattleSplPointPreviewPainter> _painters = [];
   List<BattleSplWorldAnchor> _anchors = const [];
@@ -104,6 +111,12 @@ final class BattleSplStaticComponent extends PositionComponent
   double _pendingTicks = 0;
   bool _disposed = false;
   bool _notified = false;
+  bool _playbackPaused = false;
+
+  void setPlaybackPaused(bool paused) {
+    if (_disposed) throw StateError('SPL component is disposed');
+    _playbackPaused = paused;
+  }
 
   @override
   bool refreshAttachment() {
@@ -128,7 +141,7 @@ final class BattleSplStaticComponent extends PositionComponent
   @override
   void update(double dt) {
     super.update(dt);
-    if (_disposed || _notified || !dt.isFinite || dt < 0) return;
+    if (_disposed || _notified || _playbackPaused || !dt.isFinite || dt < 0) return;
     if (!refreshAttachment()) return;
     final elapsedTicks = dt >= playback.maxTicks / 60
         ? playback.maxTicks.toDouble()
@@ -168,35 +181,85 @@ final class BattleSplStaticComponent extends PositionComponent
   @override
   void render(ui.Canvas canvas) {
     if (_disposed) return;
+    final bounds = clipBounds?.call();
+    if (bounds == null) {
+      _renderParticles(canvas);
+      return;
+    }
+    canvas.save();
+    try {
+      canvas.clipRect(bounds);
+      _renderParticles(canvas);
+    } finally {
+      canvas.restore();
+    }
+  }
+
+  void _renderParticles(ui.Canvas canvas) {
     final frames = playback.frames;
     final activeProjection = projection;
     if (activeProjection?.worldTransform != null) {
       final projectedFrames =
-          <({int frame, List<BattleSplProjectedParticle> particles})>[];
+          <({int frame, List<BattleSplProjectedParticle> particles,
+              List<List<ui.Offset>?> polygons,
+              List<BattleSplProjectedPolygon?> clippedPolygons})>[];
       for (final i in playback.drawOrder) {
         final frame = frames[i];
         final projected = <BattleSplProjectedParticle>[];
+        final polygons = <List<ui.Offset>?>[];
+        final clippedPolygons = <BattleSplProjectedPolygon?>[];
         for (final particle in frame.particles) {
           final follows = particle.parentId == null
               ? frame.followEmitter
               : frame.childFollowsEmitter;
           final anchor = follows ? _anchors[i] : _snapshots[i][particle.id];
-          final value = anchor == null
+          var value = anchor == null
               ? null
               : activeProjection!.projectParticle(
                   anchor,
                   particle,
                   emitterIndex: i,
+                  relativeBasePosition: frame.relativeBasePosition,
                   includeDirection:
                       particle.parentId == null ? frame.directional : frame.childDirectional,
                 );
+          List<ui.Offset>? polygon;
+          BattleSplProjectedPolygon? clippedPolygon;
+          if (frame.directionalPolygon) {
+            if (anchor == null) {
+              _fail(BattleSplAdmissionFailure.projectionUnavailable);
+              return;
+            }
+            polygon = activeProjection!.projectDirectionalPolygon(
+              anchor, particle, emitterIndex: i,
+              aspectRatio4096: frame.aspectRatio4096,
+              scaleAxis: frame.scaleAxis,
+              pixelsPerUnit: pixelsPerUnit,
+            );
+            if (polygon == null) {
+              clippedPolygon = activeProjection.projectClippedDirectionalPolygon(
+                anchor, particle, emitterIndex: i,
+                aspectRatio4096: frame.aspectRatio4096,
+                scaleAxis: frame.scaleAxis,
+                pixelsPerUnit: pixelsPerUnit,
+              );
+              if (clippedPolygon == null) {
+                _fail(BattleSplAdmissionFailure.projectionUnavailable);
+                return;
+              }
+              value ??= (position: ui.Offset.zero, scale: 1.0, direction: ui.Offset.zero);
+            }
+          }
           if (value == null) {
             _fail(BattleSplAdmissionFailure.projectionUnavailable);
             return;
           }
           projected.add(value);
+          polygons.add(polygon);
+          clippedPolygons.add(clippedPolygon);
         }
-        projectedFrames.add((frame: i, particles: projected));
+        projectedFrames.add((frame: i, particles: projected, polygons: polygons,
+          clippedPolygons: clippedPolygons));
       }
       for (final frame in projectedFrames) {
         _painters[frame.frame].paint(
@@ -204,6 +267,8 @@ final class BattleSplStaticComponent extends PositionComponent
           origin: origin,
           particles: frames[frame.frame].particles,
           projections: frame.particles,
+          polygons: frame.polygons,
+          clippedPolygons: frame.clippedPolygons,
         );
       }
       return;

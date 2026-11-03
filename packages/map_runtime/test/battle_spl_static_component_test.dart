@@ -9,6 +9,8 @@ import 'package:map_core/map_core.dart';
 import 'package:map_runtime/src/presentation/flame/battle_perspective_camera.dart';
 import 'package:map_runtime/src/presentation/flame/battle_scene_layout.dart';
 import 'package:map_runtime/src/presentation/flame/battle_spl_camera_projection.dart';
+import 'package:map_runtime/src/presentation/flame/battle_spl_particle_motion.dart';
+import 'package:map_runtime/src/presentation/flame/battle_spl_point_emitter_playback.dart';
 import 'package:map_runtime/src/presentation/flame/battle_spl_static_admission.dart';
 import 'package:map_runtime/src/presentation/flame/battle_spl_static_component.dart';
 
@@ -175,6 +177,156 @@ Future<ui.Offset> redCentroid(
 }
 
 void main() {
+  test('projects the four corners of a Surf-style oriented polygon', () {
+    final camera = BattlePerspectiveCamera(
+      viewport: const ui.Rect.fromLTWH(0, 0, 390, 844),
+    );
+    camera.moveTo(
+      eye: const BattleCameraPoint(0, 4, 10),
+      aim: const BattleCameraPoint(0, 0, 0),
+      durationSeconds: 0,
+    );
+    final projection = BattleSplCameraProjection(
+      camera: camera,
+      bindings: [BattleSplCameraBinding(
+        resolveAnchor: () => Vector2.zero(),
+        resolveNeutralFoot: () => const ui.Offset(0, 0),
+      )],
+      worldTransform: const BattleSplWorldTransform(
+        worldUnitsPerUnit: 1,
+        yawRadians: 0,
+      ),
+    );
+    final particle = BattleSplPointParticle(
+      id: 1,
+      motion: BattleSplParticleMotion(
+        position: (x: 0, y: 0, z: 4096),
+        velocity: (x: 0, y: 0, z: 1),
+        rotation: 0,
+        angularVelocity: 0,
+      ),
+      emitterPosition: (x: 0, y: 0, z: 0),
+      baseScale4096: 4096,
+      baseAlpha5: 31,
+      animatedAlpha5: 31,
+      scale4096: 4096,
+      color: (red: 31, green: 31, blue: 31),
+      alpha5: 31,
+      texture: 0,
+      parentId: null,
+    );
+    const anchor = (x: 0.0, y: 0.0, z: 0.0, unit: 1.0);
+    final actual = projection.projectDirectionalPolygon(anchor, particle,
+      aspectRatio4096: 4096, scaleAxis: 'xy', pixelsPerUnit: 1)!;
+    final expected = [
+      const BattleCameraPoint(-1, 0, 0),
+      const BattleCameraPoint(1, 0, 0),
+      const BattleCameraPoint(1, 0, 2),
+      const BattleCameraPoint(-1, 0, 2),
+    ].map((point) => camera.project(point).position).toList();
+    expect(actual.length, 4);
+    for (var i = 0; i < 4; i++) {
+      expect((actual[i] - expected[i]).distance, lessThan(1e-8));
+    }
+  });
+
+  test('clips a Surf-style polygon that crosses the camera near plane', () {
+    final camera = BattlePerspectiveCamera(
+      viewport: const ui.Rect.fromLTWH(0, 0, 390, 844),
+    );
+    camera.moveTo(
+      eye: const BattleCameraPoint(0, 4, 10),
+      aim: const BattleCameraPoint(0, 0, 0),
+      durationSeconds: 0,
+    );
+    final projection = BattleSplCameraProjection(
+      camera: camera,
+      bindings: [BattleSplCameraBinding(
+        resolveAnchor: () => Vector2.zero(),
+        resolveNeutralFoot: () => ui.Offset.zero,
+      )],
+      worldTransform: const BattleSplWorldTransform(
+        worldUnitsPerUnit: 1,
+        yawRadians: 0,
+      ),
+    );
+    final particle = BattleSplPointParticle(
+      id: 1,
+      motion: BattleSplParticleMotion(
+        position: (x: 0, y: 0, z: 4096),
+        velocity: (x: 0, y: 0, z: 1),
+        rotation: 0,
+        angularVelocity: 0,
+      ),
+      emitterPosition: (x: 0, y: 0, z: 0),
+      baseScale4096: 4096,
+      baseAlpha5: 31,
+      animatedAlpha5: 31,
+      scale4096: 4096,
+      color: (red: 31, green: 31, blue: 31),
+      alpha5: 31,
+      texture: 0,
+      parentId: null,
+    );
+    const anchor = (x: 0.0, y: 0.0, z: 10.0, unit: 1.0);
+    expect(projection.projectDirectionalPolygon(anchor, particle,
+        aspectRatio4096: 4096, scaleAxis: 'xy', pixelsPerUnit: 1), isNull);
+    final clipped = projection.projectClippedDirectionalPolygon(anchor, particle,
+        aspectRatio4096: 4096, scaleAxis: 'xy', pixelsPerUnit: 1)!;
+    expect(clipped.positions.length, 4);
+    expect(clipped.textureCoordinates.length, clipped.positions.length);
+    expect(clipped.positions.every((p) => p.dx.isFinite && p.dy.isFinite), isTrue);
+    expect(clipped.textureCoordinates.every((p) =>
+        p.dx >= 0 && p.dx <= 1 && p.dy >= 0 && p.dy <= 1), isTrue);
+    expect(clipped.textureCoordinates.any((p) => p.dy > 0 && p.dy < 1), isTrue);
+  });
+
+  test('projects a relative base offset on the camera view axes', () {
+    final camera = BattlePerspectiveCamera(
+      viewport: const ui.Rect.fromLTWH(0, 0, 390, 844),
+    );
+    final projection = BattleSplCameraProjection(
+      camera: camera,
+      bindings: [BattleSplCameraBinding(
+        resolveAnchor: () => Vector2.zero(),
+        resolveNeutralFoot: () => const ui.Offset(0, 0),
+      )],
+      worldTransform: const BattleSplWorldTransform(
+        worldUnitsPerUnit: 1,
+        yawRadians: 0,
+      ),
+    );
+    final particle = BattleSplPointParticle(
+      id: 1,
+      motion: BattleSplParticleMotion(
+        position: (x: 0, y: 0, z: 0),
+        velocity: (x: 0, y: 0, z: 0),
+        rotation: 0,
+        angularVelocity: 0,
+      ),
+      emitterPosition: (x: 0, y: -3350, z: 0),
+      baseScale4096: 4096,
+      baseAlpha5: 31,
+      animatedAlpha5: 31,
+      scale4096: 4096,
+      color: (red: 31, green: 31, blue: 31),
+      alpha5: 31,
+      texture: 0,
+      parentId: null,
+    );
+    const anchor = (x: 0.0, y: 2.6, z: 0.0, unit: 1.0);
+    final actual = projection.projectParticle(anchor, particle,
+        includeDirection: false, relativeBasePosition: (x: 0, y: -3350, z: 0))!;
+    final forward = (camera.aim - camera.eye).normalized;
+    final right = forward.cross(const BattleCameraPoint(0, 1, 0)).normalized;
+    final up = right.cross(forward);
+    final expected = camera.project(
+      const BattleCameraPoint(0, 2.6, 0) + up * (-3350 / 4096),
+    );
+    expect((actual.position - expected.position).distance, lessThan(1e-8));
+    expect(actual.scale, closeTo(camera.focal / expected.depth, 1e-8));
+  });
+
   TestWidgetsFlutterBinding.ensureInitialized();
 
   test('draws newest overlapping emitters first', () async {

@@ -6,6 +6,7 @@ import 'package:crypto/crypto.dart';
 import 'package:map_authoring/src/domains/gameplay/pokemon_external/gen5_battle_script_parameters.dart';
 import 'package:map_authoring/src/domains/gameplay/pokemon_external/gen5_battle_script_source.dart';
 import 'package:map_authoring/src/domains/gameplay/pokemon_external/gen5_spl_particle_converter.dart';
+import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 const _revision = '41f42ca1afe6291f00b0ba0ec3f6099b9ff1346c';
@@ -138,6 +139,373 @@ Gen5SplParticleConversion _convert(
 }
 
 void main() {
+  test('preserves the oriented polygon used by the Surf wave', () {
+    final source = _source();
+    final emitter = (source['emitters'] as List).single as Map<String, dynamic>;
+    emitter['drawType'] = 'directional_polygon';
+    emitter['dirFromPosition'] = true;
+    emitter['randomInitAngle'] = false;
+    final bytes = _bytes(source);
+    final converted = Gen5SplParticleConverter.convert(
+      bytes,
+      particleId: 218,
+      sourceRevision: _revision,
+      sourcePath: _path,
+      expectedSha256: sha256.convert(bytes).toString(),
+      textureResourceIds: const {
+        'base': 'base-id',
+        'first': 'frame-1',
+        'second': 'frame-2',
+      },
+      experimentalSourceEmitterIndices: const [0],
+    );
+    final appearance = converted.definition.emitters.single.toJson()['appearance'] as Map;
+    expect(appearance['draw'], 'directionalPolygon');
+    expect(appearance['dirFromPosition'], isTrue);
+    expect(() => _convert(source), throwsFormatException);
+  });
+
+  test('preserves the uniform circle shape used by the Surf source', () {
+    final source = _source();
+    final emitter = (source['emitters'] as List).single as Map<String, dynamic>;
+    emitter['emissionType'] = 'circle_border_uniform';
+    emitter['emissionAxis'] = 'y';
+    emitter['radius'] = 8832;
+    final bytes = _bytes(source);
+    final converted = Gen5SplParticleConverter.convert(
+      bytes,
+      particleId: 218,
+      sourceRevision: _revision,
+      sourcePath: _path,
+      expectedSha256: sha256.convert(bytes).toString(),
+      textureResourceIds: const {
+        'base': 'base-id',
+        'first': 'frame-1',
+        'second': 'frame-2',
+      },
+      experimentalSourceEmitterIndices: const [0],
+    );
+    final emission = converted.definition.emitters.single.toJson()['emission'] as Map;
+    expect(emission['shape'], 'circleBorderUniform');
+    expect(emission['radius'], 8832);
+    expect(() => _convert(source), throwsFormatException);
+  });
+
+  test('preserves Surf convergence and its relative experimental origin', () {
+    final source = _source();
+    final emitter = (source['emitters'] as List).single as Map<String, dynamic>;
+    emitter['relativeToBasePos'] = true;
+    emitter['convergenceBehavior'] = {
+      'target': {'x': 0, 'y': 0, 'z': 0},
+      'force': 274,
+    };
+    final bytes = _bytes(source);
+    final converted = Gen5SplParticleConverter.convert(
+      bytes,
+      particleId: 218,
+      sourceRevision: _revision,
+      sourcePath: _path,
+      expectedSha256: sha256.convert(bytes).toString(),
+      textureResourceIds: const {
+        'base': 'base-id',
+        'first': 'frame-1',
+        'second': 'frame-2',
+      },
+      experimentalSourceEmitterIndices: const [0],
+    );
+    final motion = converted.definition.emitters.single.toJson()['motion'] as Map;
+    expect(motion['convergence'], {
+      'target': {'x': 0, 'y': 0, 'z': 0},
+      'force': 274,
+    });
+    expect(() => _convert(source), throwsFormatException);
+    (emitter['emitterBasePos'] as Map<String, dynamic>)['y'] = -3350;
+    final nonzeroBytes = _bytes(source);
+    final relative = Gen5SplParticleConverter.convert(
+      nonzeroBytes,
+      particleId: 218,
+      sourceRevision: _revision,
+      sourcePath: _path,
+      expectedSha256: sha256.convert(nonzeroBytes).toString(),
+      textureResourceIds: const {
+        'base': 'base-id',
+        'first': 'frame-1',
+        'second': 'frame-2',
+      },
+      experimentalSourceEmitterIndices: const [0],
+    ).definition.emitters.single.toJson();
+    expect((relative['emission'] as Map)['origin'], {'x': 0, 'y': -3350, 'z': 0});
+    expect((relative['appearance'] as Map)['relativeToBasePos'], isTrue);
+  });
+
+  test('preserves Surf source polygon offsets for experimental emitters', () {
+    final source = _source();
+    final emitter = (source['emitters'] as List).single as Map<String, dynamic>;
+    emitter['polygonX'] = 2048;
+    emitter['polygonY'] = -4096;
+    final bytes = _bytes(source);
+    final converted = Gen5SplParticleConverter.convert(
+      bytes,
+      particleId: 218,
+      sourceRevision: _revision,
+      sourcePath: _path,
+      expectedSha256: sha256.convert(bytes).toString(),
+      textureResourceIds: const {
+        'base': 'base-id',
+        'first': 'frame-1',
+        'second': 'frame-2',
+      },
+      experimentalSourceEmitterIndices: const [0],
+    );
+    final appearance = (converted.definition.emitters.single.toJson()['appearance'] as Map);
+    expect(appearance['polygonX'], 2048);
+    expect(appearance['polygonY'], -4096);
+    expect(() => _convert(source), throwsFormatException);
+  });
+
+  test('admits the five emitters used by the pinned Surf source',
+      () async {
+    const path = 'res/particles/btlv_effvm_particles/222/particles.json';
+    const hash =
+        '3e191c2e53d6eb9ff35b21e232c3ff8371516d09d4a55e8d0595cd43c149b8cc';
+    final client = HttpClient();
+    addTearDown(() => client.close(force: true));
+    final request = await client
+        .getUrl(Uri.https('raw.githubusercontent.com',
+            '/fuddlesworth/pokebw2/$_revision/$path'))
+        .timeout(const Duration(seconds: 20));
+    request.followRedirects = false;
+    final response = await request.close().timeout(const Duration(seconds: 20));
+    expect(response.statusCode, HttpStatus.ok);
+    final input = BytesBuilder(copy: false);
+    await for (final chunk in response.timeout(const Duration(seconds: 20))) {
+      if (input.length + chunk.length > 262144) {
+        throw const FormatException('Particle source too large');
+      }
+      input.add(chunk);
+    }
+    final bytes = input.takeBytes();
+    Gen5SplParticleConversion convert(List<int> indices) =>
+        Gen5SplParticleConverter.convert(
+          bytes,
+          particleId: 222,
+          sourceRevision: _revision,
+          sourcePath: path,
+          expectedSha256: hash,
+          textureResourceIds: const {
+            'texture00': 'texture00',
+            'texture01': 'texture01',
+            'texture02': 'texture02',
+            'texture03': 'texture03'
+          },
+          experimentalSourceEmitterIndices: indices,
+        );
+    final result = convert([2]);
+    expect(result.sourceEmitterIndices, [2]);
+    expect(result.definition.textureIds, {'texture00'});
+    final emitter =
+        (result.definition.toJson()['emitters'] as List).single as Map;
+    expect(emitter['emission']['shape'], 'circleBorder');
+    expect(emitter['emission']['radius'], 9745);
+    expect(emitter['emission']['emissionAxis'], 'y');
+    expect(emitter['appearance']['scale']['start'], 4096);
+    expect(emitter['appearance']['scale']['end'], 4096);
+    final wave = convert([4]).definition.emitters.single.toJson();
+    expect((wave['appearance'] as Map)['polygonY'], -4096);
+    expect((wave['appearance'] as Map)['initialTexture'], 'texture03');
+    final convergence = convert([1]).definition.emitters.single.toJson();
+    expect((convergence['motion'] as Map)['convergence'], {
+      'target': {'x': 0, 'y': 0, 'z': 0},
+      'force': 274,
+    });
+    expect((convergence['appearance'] as Map)['polygonY'], 4096);
+    final ring = convert([3]).definition.emitters.single.toJson();
+    expect((ring['emission'] as Map)['shape'], 'circleBorderUniform');
+    expect((ring['emission'] as Map)['origin'], {'x': 0, 'y': -3350, 'z': 0});
+    expect((ring['appearance'] as Map)['relativeToBasePos'], isTrue);
+    expect((ring['appearance'] as Map)['polygonY'], 4096);
+    final plane = convert([5]).definition.emitters.single.toJson();
+    expect((plane['appearance'] as Map)['draw'], 'directionalPolygon');
+    expect((plane['appearance'] as Map)['dirFromPosition'], isTrue);
+    expect(() => convert([0]), throwsFormatException);
+  }, skip: Platform.environment['AVELUNE_BW2_SCRIPT_TEST'] != '1');
+
+  test('converts a childless source circle with an absent scale animation', () {
+    final source = _source();
+    final emitter = (source['emitters'] as List).single as Map<String, dynamic>;
+    emitter['emissionType'] = 'circle_border';
+    emitter['emissionAxis'] = 'y';
+    emitter['radius'] = 9745;
+    emitter['drawChildrenFirst'] = true;
+    emitter.remove('scaleAnim');
+    (source['textures'] as List).add({
+      'name': 'unselected_palette',
+      'format': 'palette16',
+      'repeat': 'none',
+      'flip': 'none',
+      'palColor0': true,
+    });
+    Gen5SplParticleConversion convert() {
+      final bytes = _bytes(source);
+      return Gen5SplParticleConverter.convert(
+        bytes,
+        particleId: 218,
+        sourceRevision: _revision,
+        sourcePath: _path,
+        expectedSha256: sha256.convert(bytes).toString(),
+        textureResourceIds: const {
+          'base': 'base-id',
+          'first': 'frame-1',
+          'second': 'frame-2'
+        },
+        experimentalSourceEmitterIndices: const [0],
+      );
+    }
+
+    expect(() => _convert(source), throwsFormatException);
+    expect(() => convert(), returnsNormally);
+    final result = convert();
+    final selected =
+        (result.definition.toJson()['emitters'] as List).single as Map;
+    expect(selected['emission']['shape'], 'circleBorder');
+    expect(selected['emission']['emissionAxis'], 'y');
+    expect(selected['appearance']['scale'], {
+      'start': 4096,
+      'middle': 4096,
+      'end': 4096,
+      'fadeIn': 0,
+      'fadeOut': 254,
+      'loop': false,
+    });
+    emitter['childResource'] = <String, dynamic>{};
+    expect(() => convert(), throwsFormatException);
+  });
+
+  test('converts the two selected emitters of pinned BW2 particle source 220',
+      () async {
+    const path = 'res/particles/btlv_effvm_particles/220/particles.json';
+    const hash =
+        'c50300370f0a622a514d45bea7cce595d4794d2197122cdc8ee90cb6c8a0afb1';
+    final client = HttpClient();
+    addTearDown(() => client.close(force: true));
+    final request = await client
+        .getUrl(Uri.https('raw.githubusercontent.com',
+            '/fuddlesworth/pokebw2/$_revision/$path'))
+        .timeout(const Duration(seconds: 20));
+    request.followRedirects = false;
+    final response = await request.close().timeout(const Duration(seconds: 20));
+    expect(response.statusCode, HttpStatus.ok);
+    final input = BytesBuilder(copy: false);
+    await for (final chunk in response.timeout(const Duration(seconds: 20))) {
+      if (input.length + chunk.length > 262144) {
+        throw const FormatException('Particle source too large');
+      }
+      input.add(chunk);
+    }
+    final bytes = input.takeBytes();
+    Gen5SplParticleConversion convert(List<int>? indices) =>
+        Gen5SplParticleConverter.convert(
+          bytes,
+          particleId: 220,
+          sourceRevision: _revision,
+          sourcePath: path,
+          expectedSha256: hash,
+          textureResourceIds: const {
+            'texture00': 'texture00',
+            'texture01': 'texture01',
+            'texture02': 'texture02'
+          },
+          experimentalSourceEmitterIndices: indices,
+        );
+    expect(() => convert(null), throwsFormatException);
+    expect(convert([0, 4]).sourceEmitterIndices, [0, 4]);
+    final result = convert([0, 1]);
+    expect(result.sourceEmitterIndices, [0, 1]);
+    expect(() => result.sourceEmitterIndices.clear(), throwsUnsupportedError);
+    expect(result.definition.textureIds, {'texture00', 'texture01'});
+    final emitters = result.definition.toJson()['emitters'] as List;
+    final first = emitters[0] as Map;
+    final second = emitters[1] as Map;
+    expect(first['emission']['shape'], 'hemisphereSurface');
+    expect(first['emission']['radius'], 0);
+    expect(first['emission']['emissionAxis'], 'x');
+    expect(first['appearance']['hasRotation'], isTrue);
+    expect(first['appearance']['minRotation'], 2558);
+    expect(first['appearance']['maxRotation'], -2559);
+    expect(first['appearance']['dirFromPosition'], isTrue);
+    expect(second['emission']['velocityVariance'], 27);
+    expect(second['child']['texture'], 'texture00');
+    expect(second['child']['rotation'], 'angleAndVelocity');
+    expect(
+        () => BattleSplParticleDefinition.fromJson(result.definition.toJson()),
+        throwsFormatException);
+    final reversed = convert([1, 0]);
+    expect(reversed.sourceEmitterIndices, [1, 0]);
+    final reversedEmitters = reversed.definition.toJson()['emitters'] as List;
+    expect((reversedEmitters.first as Map)['emission']['shape'], 'point');
+    expect((reversedEmitters.last as Map)['emission']['shape'],
+        'hemisphereSurface');
+  }, skip: Platform.environment['AVELUNE_BW2_SCRIPT_TEST'] != '1');
+
+  test(
+      'selects source emitters without admitting experimental data as a legacy SPL definition',
+      () {
+    final source = _source();
+    final values = source['emitters'] as List;
+    final first = values.single as Map<String, dynamic>;
+    first['emissionType'] = 'hemisphere_surface';
+    first['emissionAxis'] = 'x';
+    first['drawType'] = 'directional_billboard';
+    first['hasRotation'] = true;
+    first['minRotation'] = 2558;
+    first['maxRotation'] = -2559;
+    first['dirFromPosition'] = true;
+    final second = jsonDecode(jsonEncode(first)) as Map<String, dynamic>;
+    second['emissionType'] = 'point';
+    second['hasRotation'] = false;
+    second['dirFromPosition'] = false;
+    second['velocityVariance'] = 27;
+    final other = jsonDecode(jsonEncode(second)) as Map<String, dynamic>;
+    other['emissionType'] = 'cylinder_surface';
+    values.addAll([second, other]);
+    final bytes = _bytes(source);
+    Gen5SplParticleConversion selected(List<int> indices) =>
+        Gen5SplParticleConverter.convert(
+          bytes,
+          particleId: 218,
+          sourceRevision: _revision,
+          sourcePath: _path,
+          expectedSha256: sha256.convert(bytes).toString(),
+          textureResourceIds: const {
+            'base': 'base-id',
+            'first': 'frame-1',
+            'second': 'frame-2',
+          },
+          experimentalSourceEmitterIndices: indices,
+        );
+
+    expect(() => _convert(source), throwsFormatException);
+    expect(() => selected([0, 1]), returnsNormally);
+    final result = selected([0, 1]);
+    expect(result.sourceEmitterIndices, [0, 1]);
+    final json = result.definition.toJson();
+    expect(json['schemaVersion'], 5);
+    final emitters = json['emitters'] as List;
+    expect((emitters[0] as Map)['emission']['shape'], 'hemisphereSurface');
+    expect((emitters[0] as Map)['emission']['emissionAxis'], 'x');
+    expect((emitters[0] as Map)['appearance']['hasRotation'], isTrue);
+    expect((emitters[0] as Map)['appearance']['minRotation'], 2558);
+    expect((emitters[0] as Map)['appearance']['maxRotation'], -2559);
+    expect((emitters[0] as Map)['appearance']['dirFromPosition'], isTrue);
+    expect((emitters[1] as Map)['emission']['velocityVariance'], 27);
+    expect(() => BattleSplParticleDefinition.fromJson(json),
+        throwsFormatException);
+    expect(() => selected([0, 2]), throwsFormatException);
+    expect(() => selected([1, 1]), throwsFormatException);
+    expect(() => selected([3]), throwsFormatException);
+    expect(() => selected([]), throwsFormatException);
+  });
+
   test('preserves radial velocity in a versioned particle definition', () {
     final source = _source();
     final emitter = (source['emitters'] as List).single as Map<String, dynamic>;

@@ -33,7 +33,7 @@ function largeWav(): Buffer {
   return bytes;
 }
 
-async function runScenario(spl: boolean, withSound = false, explicitAudio = false, motion = false, splV4 = false): Promise<void> {
+async function runScenario(spl: boolean, withSound = false, explicitAudio = false, motion = false, splV4 = false, timed = false): Promise<void> {
   const root = await mkdtemp(join(tmpdir(), 'battle-recipe-mcp-'));
   const dart = process.env.POKEMAP_TEST_DART ?? 'dart';
   const packageRoot = resolve('../../packages/map_authoring');
@@ -80,7 +80,7 @@ async function runScenario(spl: boolean, withSound = false, explicitAudio = fals
     const soundHash = sound ? createHash('sha256').update(sound).digest('hex') : null;
     const recipe = Buffer.from(JSON.stringify({
       schemaVersion: explicitAudio ? 2 : 1, recipeId: 'visual', revision: '1', moveSourceId: 'source', variant: 'default',
-      requiredCapabilities: ['startParticle', ...(spl ? [splV4 ? 'splParticleV4' : 'splParticleV2'] : []), ...(sound ? ['sequence', 'sound'] : []), ...(explicitAudio ? ['audioSelectionV2'] : []), ...(motion ? ['gen5Swing', 'gen5SpritePause'] : [])], provenance: { source: 'synthetic', sourceRevision: '1', sourcePaths: [], converter: 'test' },
+      requiredCapabilities: ['startParticle', ...(spl ? [splV4 ? 'splParticleV4' : 'splParticleV2'] : []), ...(sound ? ['sequence', 'sound'] : []), ...(explicitAudio ? ['audioSelectionV2'] : []), ...(motion ? ['gen5Swing', 'gen5SpritePause'] : []), ...(timed ? ['parallel', 'wait', 'waitEffects'] : [])], provenance: { source: 'synthetic', sourceRevision: '1', sourcePaths: [], converter: 'test' },
       resources: [
         { id: 'tex', role: 'texture', mediaType: 'image/png', sizeBytes: png.length, sha256: pngHash },
         { id: 'particle', role: 'particleDefinition', mediaType: 'application/vnd.avelune.particle+json',
@@ -88,7 +88,16 @@ async function runScenario(spl: boolean, withSound = false, explicitAudio = fals
         ...(sound ? [{ id: 'sound', role: 'sound', mediaType: 'audio/wav', sizeBytes: sound.length, sha256: soundHash }] : []),
       ],
       ...(explicitAudio ? { audio: { kind: 'clip', resourceId: 'sound' } } : {}),
-      program: motion ? { kind: 'sequence', steps: [
+      program: timed ? { kind: 'sequence', steps: [
+        { kind: 'parallel', steps: [
+          { kind: 'startParticle', resourceId: 'particle', from: 'userMouth', to: 'targetImpact' },
+          { kind: 'sequence', steps: [
+            { kind: 'wait', durationMs: 1167 },
+            { kind: 'startParticle', resourceId: 'particle', from: 'targetImpact', to: 'targetImpact' },
+          ] },
+        ] },
+        { kind: 'waitEffects' },
+      ] } : motion ? { kind: 'sequence', steps: [
         { kind: 'gen5SpritePause', target: 'target', paused: true },
         { kind: 'gen5Swing', target: 'user', channel: 'position', x: 4096, y: 0, frames: 4, wait: 1, count: 1 },
         { kind: 'gen5Swing', target: 'target', channel: 'scale', x: 1229, y: -1229, frames: 2, wait: 1, count: 1 },
@@ -187,3 +196,4 @@ test('MCP stages, imports and undoes a sound and SPL move recipe', { timeout: 12
 test('MCP stages, imports and undoes an explicit audio v2 move recipe', { timeout: 120_000 }, () => runScenario(true, true, true));
 test('MCP stages, imports and undoes a Gen 5 combatant motion recipe', { timeout: 120_000 }, () => runScenario(true, true, true, true));
 test('MCP stages, imports and undoes a SPL v4 magnet recipe', { timeout: 120_000 }, () => runScenario(true, true, true, true, true));
+test('MCP stages, imports and undoes a delayed grouped particle recipe', { timeout: 120_000 }, () => runScenario(true, true, true, false, false, true));

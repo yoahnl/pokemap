@@ -9,6 +9,88 @@ import 'package:map_runtime/src/presentation/flame/battle_spl_point_preview_pain
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('paints a projected directional polygon into its four corners', () async {
+    final texture = await _solidImage(const ui.Color(0xffffffff));
+    addTearDown(texture.dispose);
+    final painter = BattleSplPointPreviewPainter(
+      textures: {1: texture}, pixelsPerUnit: 10, aspectRatio4096: 4096,
+    );
+    final recorder = ui.PictureRecorder();
+    painter.paint(ui.Canvas(recorder), origin: ui.Offset.zero,
+      particles: [_particle()], polygons: const [[
+        ui.Offset(10, 10), ui.Offset(50, 12),
+        ui.Offset(40, 50), ui.Offset(15, 40),
+      ]]);
+    final picture = recorder.endRecording();
+    final image = await picture.toImage(60, 60);
+    addTearDown(image.dispose);
+    picture.dispose();
+    final data = (await image.toByteData(format: ui.ImageByteFormat.rawRgba))!;
+    int alpha(int x, int y) => data.getUint8((y * 60 + x) * 4 + 3);
+    expect(alpha(25, 25), 255);
+    expect(alpha(20, 15), 255);
+    expect(alpha(5, 5), 0);
+    expect(alpha(49, 45), 0);
+  });
+
+  test('paints only the visible part of a clipped textured polygon', () async {
+    final texture = await _solidImage(const ui.Color(0xffffffff));
+    addTearDown(texture.dispose);
+    final painter = BattleSplPointPreviewPainter(
+      textures: {1: texture}, pixelsPerUnit: 10, aspectRatio4096: 4096,
+    );
+    final recorder = ui.PictureRecorder();
+    painter.paint(ui.Canvas(recorder), origin: ui.Offset.zero,
+      particles: [_particle()], clippedPolygons: const [(
+        positions: [ui.Offset(10, 10), ui.Offset(50, 10), ui.Offset(10, 50)],
+        textureCoordinates: [ui.Offset(0, 0), ui.Offset(1, 0), ui.Offset(0, 1)],
+      )]);
+    final picture = recorder.endRecording();
+    final image = await picture.toImage(60, 60);
+    addTearDown(image.dispose);
+    picture.dispose();
+    final data = (await image.toByteData(format: ui.ImageByteFormat.rawRgba))!;
+    int alpha(int x, int y) => data.getUint8((y * 60 + x) * 4 + 3);
+    expect(alpha(20, 20), greaterThan(0));
+    expect(alpha(45, 45), 0);
+    expect(alpha(5, 5), 0);
+  });
+
+  test('offsets the parent quad in its own units while children stay centered', () async {
+    final texture = await _solidImage(const ui.Color(0xffffffff));
+    addTearDown(texture.dispose);
+    final painter = BattleSplPointPreviewPainter(
+      textures: {1: texture},
+      pixelsPerUnit: 10,
+      aspectRatio4096: 4096,
+      polygonX: 2048,
+      polygonY: -4096,
+    );
+    Future<ByteData> render({int? parentId}) async {
+      final recorder = ui.PictureRecorder();
+      painter.paint(ui.Canvas(recorder), origin: const ui.Offset(30, 30),
+          particles: [_particle(parentId: parentId)]);
+      final picture = recorder.endRecording();
+      final image = await picture.toImage(70, 70);
+      try {
+        return (await image.toByteData(format: ui.ImageByteFormat.rawRgba))!;
+      } finally {
+        image.dispose();
+        picture.dispose();
+      }
+    }
+    final parent = await render();
+    final child = await render(parentId: 5);
+    int alpha(ByteData bytes, int x, int y) =>
+        bytes.getUint8((y * 70 + x) * 4 + 3);
+    expect(alpha(parent, 35, 45), 255);
+    expect(alpha(parent, 35, 25), 0);
+    expect(alpha(parent, 44, 40), 255);
+    expect(alpha(parent, 22, 40), 0);
+    expect(alpha(child, 30, 25), 255);
+    expect(alpha(child, 30, 45), 0);
+  });
+
   test(
     'paints the selected texture at the projected particle position',
     () async {

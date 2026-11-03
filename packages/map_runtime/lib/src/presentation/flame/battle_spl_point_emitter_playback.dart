@@ -53,6 +53,7 @@ final class BattleSplPointEmitterPlayback {
     required this.texture,
     required this.nextAlphaByte,
     this.magnet,
+    this.convergence,
     this.childScaleEnd,
     this.childInheritsBehaviors = false,
     this.childInitializer,
@@ -82,12 +83,14 @@ final class BattleSplPointEmitterPlayback {
   final int loopTime;
   final BattleSplVector gravity;
   final ({BattleSplVector target, int force})? magnet;
+  final ({BattleSplVector target, int force})? convergence;
   final int? childScaleEnd;
   final bool childInheritsBehaviors;
   final BattleSplVector emitterVelocity;
   final int airResistance;
   final int initialTexture;
-  final BattleSplInitialParent Function(int id) initializeParent;
+  final BattleSplInitialParent Function(int id, int emissionIndex, int emissionCount)
+      initializeParent;
   final BattleSplInitialChild Function(int id, BattleSplPointParticle parent)?
   childInitializer;
   final bool childFadeAlpha;
@@ -144,10 +147,12 @@ final class BattleSplPointEmitterPlayback {
         terminate: terminate,
       );
       final updatedIds = <int>[];
+      var emissionIndex = 0;
       for (final event in result.events) {
         switch (event.kind) {
           case BattleSplParticleEventKind.parentEmitted:
-            final initial = initializeParent(event.particleId);
+            final initial = initializeParent(event.particleId, emissionIndex++,
+                result.emittedParents + result.droppedParents);
             if (initial.baseScale4096 < 0 ||
                 initial.baseScale4096 > 32767 ||
                 !_validVector(initial.emitterPosition)) {
@@ -187,6 +192,8 @@ final class BattleSplPointEmitterPlayback {
                 airResistance: airResistance,
                 magnetTarget: magnet?.target,
                 magnetForce: magnet?.force,
+                convergenceTarget: convergence?.target,
+                convergenceForce: convergence?.force,
               ),
               emitterPosition: followEmitter
                   ? followingPosition()
@@ -249,6 +256,8 @@ final class BattleSplPointEmitterPlayback {
                 airResistance: airResistance,
                 magnetTarget: childInheritsBehaviors ? magnet?.target : null,
                 magnetForce: childInheritsBehaviors ? magnet?.force : null,
+                convergenceTarget: childInheritsBehaviors ? convergence?.target : null,
+                convergenceForce: childInheritsBehaviors ? convergence?.force : null,
               ),
               emitterPosition: childFollowsEmitter
                   ? followingPosition()

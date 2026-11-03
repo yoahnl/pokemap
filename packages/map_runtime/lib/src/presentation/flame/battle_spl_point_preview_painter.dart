@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'battle_spl_camera_projection.dart';
@@ -14,6 +15,8 @@ final class BattleSplPointPreviewPainter {
     this.directionalParents = false,
     this.directionalChildren = false,
     this.scaleAxis = BattleSplPreviewScaleAxis.xy,
+    this.polygonX = 0,
+    this.polygonY = 0,
   }) : _textures = Map.unmodifiable(textures) {
     if (textures.isEmpty ||
         textures.length > 256 ||
@@ -22,7 +25,9 @@ final class BattleSplPointPreviewPainter {
         pixelsPerUnit <= 0 ||
         pixelsPerUnit > 4096 ||
         aspectRatio4096 < 0 ||
-        aspectRatio4096 > 32767) {
+        aspectRatio4096 > 32767 ||
+        polygonX < -32768 || polygonX > 32767 ||
+        polygonY < -32768 || polygonY > 32767) {
       throw const FormatException('Invalid SPL point preview settings');
     }
   }
@@ -33,17 +38,26 @@ final class BattleSplPointPreviewPainter {
   final bool directionalParents;
   final bool directionalChildren;
   final BattleSplPreviewScaleAxis scaleAxis;
+  final int polygonX;
+  final int polygonY;
 
   void paint(
     ui.Canvas canvas, {
     required ui.Offset origin,
     required List<BattleSplPointParticle> particles,
     List<BattleSplProjectedParticle>? projections,
+    List<List<ui.Offset>?>? polygons,
+    List<BattleSplProjectedPolygon?>? clippedPolygons,
   }) {
     if (!origin.dx.isFinite ||
         !origin.dy.isFinite ||
         particles.length > 4096 ||
-        (projections != null && projections.length != particles.length)) {
+        (projections != null && projections.length != particles.length) ||
+        (clippedPolygons != null && clippedPolygons.length != particles.length) ||
+        (polygons != null && polygons.length != particles.length) ||
+        (polygons != null && polygons.any((p) => p != null &&
+            p.isNotEmpty && (p.length != 4 ||
+                p.any((point) => !point.dx.isFinite || !point.dy.isFinite))))) {
       throw const FormatException('Invalid SPL point preview frame');
     }
     if (projections != null &&
@@ -108,6 +122,40 @@ final class BattleSplPointPreviewPainter {
           ),
           ui.BlendMode.modulate,
         );
+      final polygon = polygons?[index];
+      final clipped = clippedPolygons?[index];
+      if (clipped != null) {
+        if (clipped.positions.length < 3) continue;
+        final vertices = ui.Vertices(
+          ui.VertexMode.triangleFan,
+          clipped.positions,
+          textureCoordinates: [
+            for (final uv in clipped.textureCoordinates)
+              ui.Offset(uv.dx * image.width, uv.dy * image.height),
+          ],
+        );
+        paint.shader = ui.ImageShader(image, ui.TileMode.clamp, ui.TileMode.clamp,
+          Float64List.fromList([1, 0, 0, 0, 0, 1, 0, 0,
+            0, 0, 1, 0, 0, 0, 0, 1]));
+        canvas.drawVertices(vertices, ui.BlendMode.srcOver, paint);
+        vertices.dispose();
+        continue;
+      }
+      if (polygon != null) {
+        if (polygon.isEmpty) continue;
+        final matrix = _quadMatrix(polygon);
+        if (matrix == null) continue;
+        canvas.save();
+        try {
+          canvas.transform(matrix);
+          canvas.drawImageRect(image,
+              ui.Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
+              const ui.Rect.fromLTWH(0, 0, 1, 1), paint);
+        } finally {
+          canvas.restore();
+        }
+        continue;
+      }
       canvas.save();
       try {
         if (projected == null) {
@@ -142,7 +190,10 @@ final class BattleSplPointPreviewPainter {
             image.height.toDouble(),
           ),
           ui.Rect.fromCenter(
-            center: ui.Offset.zero,
+            center: particle.parentId == null
+                ? ui.Offset(polygonX / 4096 * width / 2,
+                    -polygonY / 4096 * height / 2)
+                : ui.Offset.zero,
             width: width,
             height: height,
           ),
@@ -153,4 +204,27 @@ final class BattleSplPointPreviewPainter {
       }
     }
   }
+}
+
+Float64List? _quadMatrix(List<ui.Offset> p) {
+  final dx1 = p[1].dx - p[2].dx;
+  final dx2 = p[3].dx - p[2].dx;
+  final dx3 = p[0].dx - p[1].dx + p[2].dx - p[3].dx;
+  final dy1 = p[1].dy - p[2].dy;
+  final dy2 = p[3].dy - p[2].dy;
+  final dy3 = p[0].dy - p[1].dy + p[2].dy - p[3].dy;
+  final denominator = dx1 * dy2 - dx2 * dy1;
+  if (denominator.abs() < 1e-9) return null;
+  final g = (dx3 * dy2 - dx2 * dy3) / denominator;
+  final h = (dx1 * dy3 - dx3 * dy1) / denominator;
+  return Float64List.fromList([
+    p[1].dx - p[0].dx + g * p[1].dx,
+    p[1].dy - p[0].dy + g * p[1].dy,
+    0, g,
+    p[3].dx - p[0].dx + h * p[3].dx,
+    p[3].dy - p[0].dy + h * p[3].dy,
+    0, h,
+    0, 0, 1, 0,
+    p[0].dx, p[0].dy, 0, 1,
+  ]);
 }

@@ -1,0 +1,37 @@
+name: avelune_attack_compare
+description: Comparateur de combats Avelune
+publish_to: none
+version: 0.1.0+1
+environment:
+  sdk: '>=3.13.0 <4.0.0'
+dependencies:
+  flutter:
+    sdk: flutter
+  archive: 4.0.9
+  flame: 2.0.0-dev.1
+  path: ^1.9.1
+  webview_flutter: ^4.14.1
+  webview_flutter_wkwebview: ^3.26.1
+  map_battle:
+    path: ../../packages/map_battle
+  map_core:
+    path: ../../packages/map_core
+  map_player_ui:
+    path: ../../packages/map_player_ui
+  map_runtime:
+    path: ../../packages/map_runtime
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/runtime_input.zip
+    - assets/bw2/tackle.json
+    - assets/bw2/water_gun.json
+    - assets/bw2/surf.json
+    - assets/bw2/herdier-back.gif.b64
+    - assets/bw2/trubbish-front.gif.b64
+    - assets/bw2/particle199/
+    - assets/bw2/particle222/
