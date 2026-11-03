@@ -5,6 +5,7 @@ import 'package:flame/components.dart';
 
 import 'battle_live_attachment.dart';
 import 'battle_spl_camera_projection.dart';
+import 'battle_spl_particle_motion.dart';
 import 'battle_spl_point_emitter_playback.dart';
 import 'battle_spl_point_preview_painter.dart';
 import 'battle_spl_static_admission.dart';
@@ -25,7 +26,9 @@ final class BattleSplStaticComponent extends PositionComponent
     final frames = playback.frames;
     if (frames.any((frame) => frame.directionalPolygon) &&
         (projection?.worldTransform == null || origin != ui.Offset.zero)) {
-      throw const FormatException('Directional SPL polygon needs 3D projection');
+      throw const FormatException(
+        'Directional SPL polygon needs 3D projection',
+      );
     }
     if (textures.length != playback.textureIndices.length ||
         !textures.keys.toSet().containsAll(playback.textureIndices) ||
@@ -104,6 +107,8 @@ final class BattleSplStaticComponent extends PositionComponent
   final BattleSplCameraProjection? projection;
   final int maxTicksPerUpdate;
   ui.Rect Function()? clipBounds;
+  BattleSplVector Function()? advanceEmitterPosition;
+  bool clipOutOfViewParticles = false;
   final Map<int, ui.Image> _textures = {};
   final List<BattleSplPointPreviewPainter> _painters = [];
   List<BattleSplWorldAnchor> _anchors = const [];
@@ -141,7 +146,8 @@ final class BattleSplStaticComponent extends PositionComponent
   @override
   void update(double dt) {
     super.update(dt);
-    if (_disposed || _notified || _playbackPaused || !dt.isFinite || dt < 0) return;
+    if (_disposed || _notified || _playbackPaused || !dt.isFinite || dt < 0)
+      return;
     if (!refreshAttachment()) return;
     final elapsedTicks = dt >= playback.maxTicks / 60
         ? playback.maxTicks.toDouble()
@@ -160,7 +166,14 @@ final class BattleSplStaticComponent extends PositionComponent
         work < maxTicksPerUpdate &&
         !playback.isComplete) {
       _pendingTicks = math.max(0, _pendingTicks - 1);
-      final failure = playback.advance();
+      BattleSplVector? emitterPosition;
+      try {
+        emitterPosition = advanceEmitterPosition?.call();
+      } on Object {
+        _fail(BattleSplAdmissionFailure.arithmetic);
+        return;
+      }
+      final failure = playback.advance(emitterPosition: emitterPosition);
       if (failure != null) {
         _fail(failure);
         return;
@@ -200,12 +213,19 @@ final class BattleSplStaticComponent extends PositionComponent
     final activeProjection = projection;
     if (activeProjection?.worldTransform != null) {
       final projectedFrames =
-          <({int frame, List<BattleSplProjectedParticle> particles,
+          <
+            ({
+              int frame,
+              List<BattleSplProjectedParticle> particles,
+              List<BattleSplPointParticle> visibleParticles,
               List<List<ui.Offset>?> polygons,
-              List<BattleSplProjectedPolygon?> clippedPolygons})>[];
+              List<BattleSplProjectedPolygon?> clippedPolygons,
+            })
+          >[];
       for (final i in playback.drawOrder) {
         final frame = frames[i];
         final projected = <BattleSplProjectedParticle>[];
+        final visibleParticles = <BattleSplPointParticle>[];
         final polygons = <List<ui.Offset>?>[];
         final clippedPolygons = <BattleSplProjectedPolygon?>[];
         for (final particle in frame.particles) {
@@ -220,8 +240,9 @@ final class BattleSplStaticComponent extends PositionComponent
                   particle,
                   emitterIndex: i,
                   relativeBasePosition: frame.relativeBasePosition,
-                  includeDirection:
-                      particle.parentId == null ? frame.directional : frame.childDirectional,
+                  includeDirection: particle.parentId == null
+                      ? frame.directional
+                      : frame.childDirectional,
                 );
           List<ui.Offset>? polygon;
           BattleSplProjectedPolygon? clippedPolygon;
@@ -231,41 +252,63 @@ final class BattleSplStaticComponent extends PositionComponent
               return;
             }
             polygon = activeProjection!.projectDirectionalPolygon(
-              anchor, particle, emitterIndex: i,
+              anchor,
+              particle,
+              emitterIndex: i,
               aspectRatio4096: frame.aspectRatio4096,
               scaleAxis: frame.scaleAxis,
               pixelsPerUnit: pixelsPerUnit,
             );
             if (polygon == null) {
-              clippedPolygon = activeProjection.projectClippedDirectionalPolygon(
-                anchor, particle, emitterIndex: i,
-                aspectRatio4096: frame.aspectRatio4096,
-                scaleAxis: frame.scaleAxis,
-                pixelsPerUnit: pixelsPerUnit,
-              );
+              clippedPolygon = activeProjection
+                  .projectClippedDirectionalPolygon(
+                    anchor,
+                    particle,
+                    emitterIndex: i,
+                    aspectRatio4096: frame.aspectRatio4096,
+                    scaleAxis: frame.scaleAxis,
+                    pixelsPerUnit: pixelsPerUnit,
+                  );
               if (clippedPolygon == null) {
                 _fail(BattleSplAdmissionFailure.projectionUnavailable);
                 return;
               }
-              value ??= (position: ui.Offset.zero, scale: 1.0, direction: ui.Offset.zero);
+              value ??= (
+                position: ui.Offset.zero,
+                scale: 1.0,
+                direction: ui.Offset.zero,
+              );
             }
           }
           if (value == null) {
+            if (clipOutOfViewParticles && anchor != null &&
+                activeProjection!.particleOutsideDepth(
+                  anchor, particle, emitterIndex: i,
+                  relativeBasePosition: frame.relativeBasePosition,
+                )) {
+              continue;
+            }
             _fail(BattleSplAdmissionFailure.projectionUnavailable);
             return;
           }
           projected.add(value);
+          visibleParticles.add(particle);
           polygons.add(polygon);
           clippedPolygons.add(clippedPolygon);
         }
-        projectedFrames.add((frame: i, particles: projected, polygons: polygons,
-          clippedPolygons: clippedPolygons));
+        projectedFrames.add((
+          frame: i,
+          particles: projected,
+          visibleParticles: visibleParticles,
+          polygons: polygons,
+          clippedPolygons: clippedPolygons,
+        ));
       }
       for (final frame in projectedFrames) {
         _painters[frame.frame].paint(
           canvas,
           origin: origin,
-          particles: frames[frame.frame].particles,
+          particles: frame.visibleParticles,
           projections: frame.particles,
           polygons: frame.polygons,
           clippedPolygons: frame.clippedPolygons,

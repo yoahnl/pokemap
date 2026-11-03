@@ -56,7 +56,9 @@ import 'battle_move_visual_resolver.dart';
 import 'battle_move_recipe_compiler.dart';
 import 'battle_gen5_motion_playback.dart';
 import 'battle_gen5_actor_motion.dart';
+import 'battle_gen5_swing.dart';
 import 'battle_gen5_camera_motion.dart';
+import 'battle_gen5_source_background.dart';
 import 'battle_gen5_source_program_playback.dart';
 import 'battle_offline_move_recipe_loader.dart';
 import 'battle_spl_camera_projection.dart';
@@ -899,6 +901,46 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
   BattleSplCameraProjection experimentalGen5DefenderProjection() =>
       experimentalGen5Projection(attacker: false);
 
+  BattleSplCameraProjection experimentalGen5FieldProjection() {
+    final camera = _perspectiveCamera;
+    if (camera == null) {
+      throw StateError('Experimental source camera is unavailable');
+    }
+    BattleSplCameraBinding binding(BattleSideId side) {
+      final slot = BattleSlotRef.active(side);
+      return BattleSplCameraBinding(
+        resolveNeutralFoot: () => _geometryFor(slot).footAnchor,
+        resolveAnchor: () {
+          final projected = camera.tryBillboardAt(_geometryFor(slot).footAnchor);
+          return projected == null
+              ? null
+              : Vector2(projected.position.dx, projected.position.dy);
+        },
+      );
+    }
+
+    final player = binding(BattleSideId.player);
+    final enemy = binding(BattleSideId.enemy);
+    final anchors = BattleSplCameraProjection(
+      camera: camera, bindings: [player, enemy],
+    ).capture();
+    if (anchors == null) {
+      throw StateError('Experimental source field is unavailable');
+    }
+    final dx = anchors.last.x - anchors.first.x;
+    final dz = anchors.last.z - anchors.first.z;
+    final spacing = math.sqrt(dx * dx + dz * dz) /
+        math.sqrt(17 * 17 + math.pow(819 / 4096, 2));
+    return BattleSplCameraProjection(
+      camera: camera,
+      bindings: [player],
+      worldTransform: BattleSplWorldTransform(
+        worldUnitsPerUnit: spacing,
+        yawRadians: math.atan2(-819, -17 * 4096) - math.atan2(dx, dz),
+      ),
+    );
+  }
+
   BattleSplCameraProjection experimentalGen5Projection({
     required bool attacker,
     bool towardOpponent = false,
@@ -985,10 +1027,18 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     required bool Function(int particle, int emitter) hasEmitter,
     required void Function(int particle, int emitter, int offsetY) startEmitter,
     void Function(Map<String, dynamic> args)? startSourceEmitter,
+    void Function(int particle)? deleteSourceParticle,
     required bool Function() particlesBusy,
     required void Function() detachParticles,
     required bool allowSilentAudio,
+    Map<int, ui.Image> sourceBackgrounds = const {},
+    Map<int, ({int background, List<ui.Image> frames, List<int> durations})>
+        sourceBackgroundAnimations = const {},
     bool allowUnmappedAudioControls = false,
+    bool allowOrthographicEmitters = false,
+    bool allowFieldEmitters = false,
+    bool allowSourceVisibility = false,
+    bool allowApproximateFlatActors = false,
     bool adaptSourceCamera = false,
     bool duringTrackedEffect = false,
   }) {
@@ -1003,10 +1053,41 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     final actors = {'EFFVM_ATTACKER': user, 'EFFVM_DEFENDER': target};
     final slots = {'EFFVM_ATTACKER': userSlot, 'EFFVM_DEFENDER': targetSlot};
     final paused = <BattleSceneCombatantComponent>{};
+    final previouslyHidden = <String>{};
     final pauseOwner = Object();
     final visualOwner = Object();
+    final sourceBackground = BattleGen5SourceBackground(
+      viewport: () => Rect.fromLTWH(0, 0, size.x, size.y),
+    );
+    final initialPlatformsHidden = _stage3D?.sourceHidePlatforms ?? false;
+    final initialFloorHidden = _stage3D?.sourceHideFloor ?? false;
+    var backgroundAdded = false;
+    int? currentSourceBackground;
+    void attachBackground() {
+      if (backgroundAdded) return;
+      add(sourceBackground);
+      backgroundAdded = true;
+    }
     final paletteJobs = <String, ({int level, int end, int wait, int remaining,
         int step, Color color})>{};
+    final alphaValues = <String, int>{};
+    final alphaJobs = <String, ({int value, int target, int step, int wait,
+        int remaining})>{};
+    ({int level, int end, int wait, int remaining, int step, Color color})?
+        stagePaletteJob;
+    RectangleComponent? stagePalette;
+    var stagePaletteTarget = 2;
+    void setStagePalette(int level, Color color) {
+      var component = stagePalette;
+      if (component == null) {
+        component = RectangleComponent(size: size.clone(), priority: 1);
+        stagePalette = component;
+        add(component);
+      }
+      component.size = size.clone();
+      component.priority = switch (stagePaletteTarget) {3 => 3, 4 => 14, _ => 1};
+      component.paint.color = color.withValues(alpha: level / 16);
+    }
     final sourceCamera = Gen5CameraMotion();
     final initialEye = camera.eye;
     final initialAim = camera.aim;
@@ -1049,11 +1130,31 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
       apply: (actor, owner, pose) {
         final key = actor as String;
         if (!current(key)) return false;
+        var offset = Offset(pose.offsetXFx32 / 4096 * 5,
+            -pose.offsetYFx32 / 4096 * 5);
+        var depthScale = 1.0;
+        if (pose.spatialOffset) {
+          final transform = cameraTransform;
+          final foot = _geometryFor(slots[key]!).footAnchor;
+          final ground = camera.tryGroundAt(foot);
+          final billboard = camera.tryBillboardAt(foot);
+          if (transform == null || ground == null || billboard == null ||
+              billboard.scale <= 0) return false;
+          final origin = camera.tryProject(ground);
+          final displaced = camera.tryProject(ground + transform.apply((
+            x: pose.offsetXFx32,
+            y: pose.offsetYFx32,
+            z: pose.offsetZFx32,
+          )));
+          if (origin == null || displaced == null) return false;
+          offset = (displaced.position - origin.position) / billboard.scale;
+          depthScale = origin.depth / displaced.depth;
+        }
         return actors[key]!.actor.applyBattleScriptTransform(
-          offset: Offset(pose.offsetXFx32 / 4096 * 5,
-              -pose.offsetYFx32 / 4096 * 5),
-          scaleX: pose.scaleXFx32 / 4096,
-          scaleY: pose.scaleYFx32 / 4096,
+          offset: offset,
+          scaleX: pose.scaleXFx32 / 4096 * depthScale,
+          scaleY: pose.scaleYFx32 / 4096 * depthScale,
+          rotation: pose.rotationFx32 * (2 * math.pi / (4096 * 65536)),
           owner: owner,
         );
       },
@@ -1064,37 +1165,132 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
         value is int && value >= min && value <= max;
     String? admit(BattleGen5SourceInstruction instruction) {
       final args = instruction.args;
+      bool safeScaleShake() {
+        final frames = args['frames'] as int;
+        final wait = args['wait'] as int;
+        final times = args['times'] as int;
+        bool valid(Object? value) => bounded(value, -4095, 4095) &&
+            (battleGen5SwingStep(value as int, frames) * frames).abs() <= 4095;
+        return times <= 32 && valid(args['x']) && valid(args['y']) &&
+            frames * 4 * times * (wait + 1) - wait <= 1800;
+      }
       switch (instruction.op) {
         case 'moveCameraPreset':
           return args['moveType'] == 1 &&
-                  {8, 9, 11}.contains(args['camera']) &&
+                  ({8, 9, 11}.contains(args['camera']) ||
+                      (!_isDoubles && {10, 12, 14, 15, 16, 17, 21}.contains(args['camera'])) ||
+                      (args['camera'] == 20 && allowApproximateFlatActors)) &&
                   bounded(args['frames'], 0, 524287) &&
                   bounded(args['wait'], 0, 2147483647) &&
                   bounded(args['brake'], 0, 2147483647)
               ? null : 'unsupported camera preset';
+        case 'moveCameraRelative':
+        case 'moveCameraAbsolute':
+          return !_isDoubles &&
+                  args['moveType'] == (instruction.op == 'moveCameraAbsolute' ? 1 : 2) &&
+                  ['x', 'y', 'z', 'targetX', 'targetY', 'targetZ']
+                      .every((field) => bounded(args[field], -131072, 131072)) &&
+                  bounded(args['frames'], 1, 600) &&
+                  bounded(args['wait'], 0, 600) && bounded(args['brake'], 0, 600)
+              ? null : 'unsupported relative camera movement';
         case 'shakeCamera':
-          return args['direction'] == 0 && args['frames'] == 1 &&
+          return {0, 1}.contains(args['direction']) &&
+                  bounded(args['frames'], 1, 600) &&
                   bounded(args['amplitude'], -28672, 28672) &&
                   bounded(args['unused'], -2147483648, 2147483647) &&
                   bounded(args['wait'], 0, 600) &&
-                  bounded(args['count'], 1, 64)
+                  bounded(args['count'], 1, 64) &&
+                  (args['frames'] as int) * 4 * (args['count'] as int) *
+                          ((args['wait'] as int) + 1) - (args['wait'] as int) <=
+                      1800
               ? null : 'unsupported camera shake';
         case 'moveCombatant':
         case 'scaleCombatant':
-          return actors.containsKey(args['targets']) && args['type'] == 2 &&
-                  bounded(args['x'], -28672, 28672) &&
-                  bounded(args['y'], -28672, 28672) &&
+          final scaleStep = instruction.op == 'scaleCombatant' && args['type'] == 1;
+          final positionStep = instruction.op == 'moveCombatant' &&
+              (args['type'] == 1 || args['type'] == 5);
+          final step = scaleStep || positionStep;
+          return actors.containsKey(args['targets']) &&
+                  (step || args['type'] == 2 || args['type'] == 3) &&
+                  bounded(args['x'], scaleStep ? 1 : positionStep ? -131072 : -28672,
+                      scaleStep ? 32768 : positionStep ? 131072 : 28672) &&
+                  bounded(args['y'], scaleStep ? 1 : positionStep ? -131072 : -28672,
+                      scaleStep ? 32768 : positionStep ? 131072 : 28672) &&
                   bounded(args['frames'], 1, 600) &&
                   bounded(args['wait'], 0, 600) &&
-                  bounded(args['times'], 1, 64)
+                  bounded(args['times'], step ? 0 : 1, step ? 32 : 64) &&
+                  (!step || (args['frames'] as int) * ((args['wait'] as int) + 1) <= 900) &&
+                  (args['type'] != 3 ||
+                      (instruction.op == 'scaleCombatant'
+                          ? safeScaleShake()
+                          : (args['times'] as int) <= 32 &&
+                              (args['frames'] as int) * 4 * (args['times'] as int) *
+                                  ((args['wait'] as int) + 1) - (args['wait'] as int) <= 1800))
               ? null : 'unsupported combatant motion';
+        case 'circleCombatant':
+          if (_isDoubles || cameraTransform == null ||
+              !actors.containsKey(args['targets']) ||
+              !bounded(args['mode'], 0, 5) ||
+              !bounded(args['start'], 0, 3) ||
+              !bounded(args['radius1'], -32768, 32768) ||
+              !bounded(args['radius2'], -32768, 32768) ||
+              !bounded(args['frames'], 1, 600) ||
+              !bounded(args['wait'], 0, 600) ||
+              !bounded(args['count'], 1, 32) ||
+              !bounded(args['turnWait'], 0, 600) ||
+              !bounded(args['framesFx32'], 4096, 600 * 4096 + 4095) ||
+              !bounded(args['waitFx32'], 0, 600 * 4096 + 4095) ||
+              !bounded(args['countFx32'], 4096, 32 * 4096 + 4095) ||
+              args['frames'] != (args['framesFx32'] as int) >> 12 ||
+              args['wait'] != (args['waitFx32'] as int) >> 12 ||
+              args['count'] != (args['countFx32'] as int) >> 12) {
+            return 'unsupported circular combatant motion';
+          }
+          final frames = args['frames'] as int;
+          final wait = args['wait'] as int;
+          final count = args['count'] as int;
+          final turnWait = args['turnWait'] as int;
+          final speed = 65536 ~/ frames;
+          return (65536 ~/ speed + 1) * count * (wait + 1) +
+                      (count - 1) * turnWait <=
+                  1800
+              ? null : 'circular combatant motion is too long';
+        case 'rotateCombatant':
+          return actors.containsKey(args['targets']) && {2, 3}.contains(args['type']) &&
+                  bounded(args['angle'], -268435456, 268435456) &&
+                  bounded(args['frames'], 1, 600) &&
+                  bounded(args['wait'], 0, 600) &&
+                  bounded(args['times'], 1, 32) &&
+                  (args['frames'] as int) * (args['type'] == 3 ? 4 : 2) * (args['times'] as int) *
+                          ((args['wait'] as int) + 1) - (args['wait'] as int) <=
+                      1800
+              ? null : 'unsupported combatant rotation';
         case 'setAnimationState':
-          return actors.containsKey(args['targets']) &&
+          return (actors.containsKey(args['targets']) ||
+                      (!_isDoubles && args['targets'] == 'EFFVM_ALL')) &&
                   (args['mode'] == 0 || args['mode'] == 1)
               ? null : 'unsupported animation state';
+        case 'setActorCameraMode':
+          return !_isDoubles && allowApproximateFlatActors &&
+                  args['mode'] == 0 && args['scope'] == 0
+              ? null : 'actor camera mode unavailable';
+        case 'setCombatantVisibility':
+          return !_isDoubles && allowSourceVisibility &&
+                  actors.containsKey(args['targets']) && {3, 4}.contains(args['mode'])
+              ? null : 'unsupported combatant visibility';
+        case 'fadeCombatantAlpha':
+          return !_isDoubles && allowSourceVisibility &&
+                  actors.containsKey(args['targets']) && {0, 1}.contains(args['type']) &&
+                  bounded(args['alpha'], 0, 31) && bounded(args['frames'], 1, 600) &&
+                  bounded(args['wait'], 0, 600) && bounded(args['times'], 0, 32) &&
+                  (args['frames'] as int) * ((args['wait'] as int) + 1) <= 1800
+              ? null : 'unsupported combatant alpha';
         case 'loadParticle':
           return bounded(args['particle'], 0, 65535)
               ? null : 'unsupported particle';
+        case 'deleteParticle':
+          return deleteSourceParticle != null && bounded(args['particle'], 0, 65535)
+              ? null : 'particle deletion unavailable';
         case 'startEmitter':
           final particle = args['particle'];
           final emitter = args['emitter'];
@@ -1102,28 +1298,158 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
                   hasEmitter(particle, emitter) &&
                   (startSourceEmitter == null
                       ? args['from'] == 'EFFVM_EMIT_DEFENDER' && args['to'] == 8
-                      : {'EFFVM_EMIT_ATTACKER', 'EFFVM_EMIT_DEFENDER'}
+                      : !_isDoubles &&
+                          {0, 'EFFVM_EMIT_ATTACKER', 'EFFVM_EMIT_DEFENDER'}
                               .contains(args['from']) &&
-                          (args['to'] == 8 || args['to'] == 'EFFVM_EMIT_DEFENDER')) &&
+                          {8, 'EFFVM_EMIT_ATTACKER', 'EFFVM_EMIT_DEFENDER'}
+                              .contains(args['to'])) &&
                   bounded(args['offsetY'], -2147483648, 2147483647) &&
-                  args['unk18'] == 0 && args['unused'] == 0 &&
-                  args['radiusScale'] == 4096 && args['lifeScale'] == 4096 &&
                   (startSourceEmitter == null
-                      ? args['scaleScale'] == 4096
-                      : bounded(args['scaleScale'], 1, 4096)) &&
-                  args['cameraScale'] == 4096
+                      ? args['unk18'] == 0 && args['unused'] == 0 &&
+                          args['radiusScale'] == 4096 && args['lifeScale'] == 4096 &&
+                          args['scaleScale'] == 4096 && args['cameraScale'] == 4096
+                      : bounded(args['unk18'], 0, 4294967295) &&
+                          bounded(args['unused'], 0, 4294967295) &&
+                          bounded(args['radiusScale'], 0, 8192) &&
+                          bounded(args['lifeScale'], 0, 8192) &&
+                          bounded(args['scaleScale'], 0, 8192) &&
+                          bounded(args['cameraScale'], 0, 12288))
               ? null : 'unsupported emitter';
+        case 'startOrthoEmitter':
+          final particle = args['particle'];
+          final emitter = args['emitter'];
+          final unscaled = args['from'] == 0 || args['from'] == 'EFFVM_EMIT_ATTACKER';
+          return !_isDoubles && allowOrthographicEmitters &&
+                  startSourceEmitter != null &&
+                  particle is int && emitter is int &&
+                  hasEmitter(particle, emitter) &&
+                  {0, 'EFFVM_EMIT_ATTACKER', 'EFFVM_EMIT_DEFENDER'}
+                      .contains(args['from']) &&
+                  {8, 'EFFVM_EMIT_ATTACKER', 'EFFVM_EMIT_DEFENDER'}
+                      .contains(args['to']) &&
+                  bounded(args['offsetX'], -65536, 65536) &&
+                  bounded(args['offsetY'], -65536, 65536) &&
+                  bounded(args['offsetZ'], -65536, 65536) &&
+                  bounded(args['radiusScale'], 0, 8192) &&
+                  bounded(args['lifeScale'], 0, 8192) &&
+                  bounded(args['scaleScale'], 0, 8192) &&
+                  (unscaled || {0, 4096}.contains(args['cameraScale'])) &&
+                  bounded(args['cameraScale'], 0, 8192)
+              ? null : 'unsupported orthographic emitter';
+        case 'startFieldEmitter':
+          final particle = args['particle'];
+          final emitter = args['emitter'];
+          return !_isDoubles && allowFieldEmitters && startSourceEmitter != null &&
+                  particle is int && emitter is int && hasEmitter(particle, emitter) &&
+                  ['fromX', 'fromY', 'fromZ', 'toX', 'toY', 'toZ', 'offsetY']
+                      .every((field) => bounded(args[field], -131072, 131072)) &&
+                  bounded(args['unk18'], 0, 4294967295) &&
+                  bounded(args['unused'], 0, 4294967295) &&
+                  bounded(args['radiusScale'], 0, 8192) &&
+                  bounded(args['lifeScale'], 0, 8192) &&
+                  bounded(args['scaleScale'], 0, 8192) &&
+                  {0, 4096}.contains(args['cameraScale'])
+              ? null : 'unsupported field emitter';
+        case 'startMovingEmitter':
+        case 'startMovingFieldEmitter':
+          final particle = args['particle'];
+          final emitter = args['emitter'];
+          final fieldOrigin = instruction.op == 'startMovingFieldEmitter';
+          return startSourceEmitter != null &&
+                  particle is int && emitter is int &&
+                  hasEmitter(particle, emitter) &&
+                  {1, 2, 5, 6}.contains(args['motion']) &&
+                  (!{5, 6}.contains(args['motion']) ||
+                      bounded(args['turns'], 0, 32768)) &&
+                  {'EFFVM_EMIT_ATTACKER', 'EFFVM_EMIT_DEFENDER'}.contains(args['to']) &&
+                  (fieldOrigin
+                      ? !_isDoubles && allowFieldEmitters &&
+                          ['fromX', 'fromY', 'fromZ'].every(
+                              (field) => bounded(args[field], -131072, 131072))
+                      : {'EFFVM_EMIT_ATTACKER', 'EFFVM_EMIT_DEFENDER'}
+                              .contains(args['from']) && args['from'] != args['to']) &&
+                  bounded(args['offsetY'], -2147483648, 2147483647) &&
+                  bounded(args['height'], -2147483648, 2147483647) &&
+                  bounded(args['turns'], -2147483648, 2147483647) &&
+                  (args['motionFramesFx32'] == 0 ||
+                      bounded(args['motionFramesFx32'], 4096, 600 * 4096)) &&
+                  args['motionFrames'] == ((args['motionFramesFx32'] as int) >> 12) &&
+                  bounded(args['lifeScale'], 0, 8192) &&
+                  {0, 4096}.contains(args['cameraScale'])
+              ? null : 'unsupported moving emitter';
         case 'setShadow':
           return (args['targets'] == 'EFFVM_ALL' || actors.containsKey(args['targets'])) &&
                   (args['value'] == 0 || args['value'] == 1)
               ? null : 'unsupported shadow';
         case 'fadePalette':
-          return actors.containsKey(args['targets']) &&
+          return (actors.containsKey(args['targets']) ||
+                      (!_isDoubles && args['targets'] == 'EFFVM_ALL')) &&
                   bounded(args['startEvy'], 0, 16) &&
                   bounded(args['endEvy'], 0, 16) &&
                   bounded(args['wait'], 0, 600) &&
                   bounded(args['color'], 0, 32767)
               ? null : 'unsupported palette fade';
+        case 'fadeStagePalette':
+          return ({2, 4}.contains(args['fade']) ||
+                      (sourceBackgrounds.isNotEmpty && args['fade'] == 3)) &&
+                  bounded(args['evy'], 0, 16) &&
+                  bounded(args['targetEvy'], 0, 16) &&
+                  bounded(args['wait'], 0, 600) &&
+                  bounded(args['color'], 0, 32767)
+              ? null : 'unsupported stage palette fade';
+        case 'loadBackground':
+          final id = args['background'];
+          final image = id is int ? sourceBackgrounds[id] : null;
+          return image != null && image.width == 512 && image.height == 512
+              ? null : 'source background unavailable';
+        case 'moveBackground':
+          if (sourceBackgrounds.isEmpty ||
+              !bounded(args['x'], -512, 512) ||
+              !bounded(args['y'], -512, 512)) {
+            return 'unsupported background motion';
+          }
+          if (args['mode'] == 4) {
+            return bounded(args['frames'], 0, 60000) &&
+                    bounded(args['wait'], 0, 600) && bounded(args['count'], 0, 32)
+                ? null : 'unsupported background scroll';
+          }
+          if (args['mode'] == 1 && bounded(args['frames'], 1, 600) &&
+              bounded(args['wait'], 0, 600) && bounded(args['count'], 0, 32) &&
+              (args['frames'] as int) * ((args['wait'] as int) + 1) <= 1800) {
+            return null;
+          }
+          if (args['mode'] == 2 && bounded(args['frames'], 1, 600) &&
+              bounded(args['wait'], 0, 600) && bounded(args['count'], 1, 32) &&
+              (args['frames'] as int) * 2 * (args['count'] as int) *
+                      ((args['wait'] as int) + 1) - (args['wait'] as int) <= 1800) {
+            return null;
+          }
+          return 'unsupported background motion';
+        case 'waveBackground':
+          return sourceBackgrounds.isNotEmpty &&
+                  {0, 1}.contains(args['mode']) &&
+                  bounded(args['amplitude'], 0, 65536) &&
+                  bounded(args['step'], 1, 360) &&
+                  bounded(args['frames'], 1, 600) &&
+                  args['fadeMode'] == 0 && args['fadeFrames'] == 0
+              ? null : 'unsupported background wave';
+        case 'setSceneVisibility':
+          return ({0, 1}.contains(args['target']) ||
+                      (sourceBackgrounds.isNotEmpty && args['target'] == 2)) &&
+                  {0, 1}.contains(args['hide'])
+              ? null : 'unsupported scene visibility';
+        case 'animateBackgroundPalette':
+          final id = args['animation'];
+          final animation = id is int ? sourceBackgroundAnimations[id] : null;
+          return animation != null &&
+                  sourceBackgrounds.containsKey(animation.background) &&
+                  animation.frames.isNotEmpty && animation.frames.length <= 32 &&
+                  animation.frames.length == animation.durations.length &&
+                  animation.frames.every((image) => image.width == 512 && image.height == 512) &&
+                  animation.durations.every((duration) => duration >= 0 && duration <= 255) &&
+                  bounded(args['loops'], 0, 32)
+              ? null : 'unsupported background palette animation';
+        case 'playCry':
         case 'playSound':
           return allowSilentAudio ? null : 'source audio unavailable';
         case 'panSound':
@@ -1146,41 +1472,104 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
             wait: args['wait'] as int,
             brake: args['brake'] as int,
           );
+        case 'moveCameraRelative':
+        case 'moveCameraAbsolute':
+          final move = instruction.op == 'moveCameraAbsolute'
+              ? sourceCamera.moveAbsolute : sourceCamera.moveRelative;
+          move(
+            position: (x: args['x'] as int, y: args['y'] as int, z: args['z'] as int),
+            target: (x: args['targetX'] as int, y: args['targetY'] as int,
+                z: args['targetZ'] as int),
+            frames: args['frames'] as int, wait: args['wait'] as int,
+            brake: args['brake'] as int,
+          );
         case 'shakeCamera':
-          sourceCamera.shakeVertical(
+          final shake = args['direction'] == 1
+              ? sourceCamera.shakeHorizontal
+              : sourceCamera.shakeVertical;
+          shake(
             amplitude: args['amplitude'] as int,
+            frames: args['frames'] as int,
             wait: args['wait'] as int,
             count: args['count'] as int,
           );
         case 'moveCombatant':
         case 'scaleCombatant':
+        case 'rotateCombatant':
           final key = args['targets'] as String;
           motion.start(
             actor: key,
             channel: instruction.op == 'moveCombatant'
                 ? BattleGen5ActorMotionChannel.position
-                : BattleGen5ActorMotionChannel.scale,
+                : instruction.op == 'scaleCombatant'
+                    ? BattleGen5ActorMotionChannel.scale
+                    : BattleGen5ActorMotionChannel.rotation,
             type: args['type'] as int,
-            xFx32: args['x'] as int,
-            yFx32: args['y'] as int,
+            xFx32: (instruction.op == 'rotateCombatant'
+                ? args['angle']
+                : args['x']) as int,
+            yFx32: instruction.op == 'rotateCombatant' ? 0 : args['y'] as int,
             frames: args['frames'] as int,
             wait: args['wait'] as int,
             times: args['times'] as int,
-            mirrorX: instruction.op == 'moveCombatant' &&
+            mirrorX: instruction.op != 'scaleCombatant' &&
                 slots[key]!.side == BattleSideId.enemy,
           );
+        case 'circleCombatant':
+          final key = args['targets'] as String;
+          motion.startCircle(
+            actor: key,
+            mode: args['mode'] as int,
+            start: args['start'] as int,
+            radius1Fx32: args['radius1'] as int,
+            radius2Fx32: args['radius2'] as int,
+            frames: args['frames'] as int,
+            wait: args['wait'] as int,
+            count: args['count'] as int,
+            turnWait: args['turnWait'] as int,
+            mirror: slots[key]!.side == BattleSideId.enemy,
+          );
         case 'setAnimationState':
+          final keys = args['targets'] == 'EFFVM_ALL'
+              ? actors.keys : [args['targets'] as String];
+          for (final key in keys) {
+            if (!current(key)) throw StateError('Battle actor changed');
+            final actor = actors[key]!.actor;
+            if (args['mode'] == 1) {
+              actor.pauseBattleSpriteAnimation(owner: pauseOwner);
+              paused.add(actor);
+            } else {
+              actor.resumeBattleSpriteAnimation(owner: pauseOwner);
+              paused.remove(actor);
+            }
+          }
+        case 'setCombatantVisibility':
           final key = args['targets'] as String;
           if (!current(key)) throw StateError('Battle actor changed');
           final actor = actors[key]!.actor;
-          if (args['mode'] == 1) {
-            actor.pauseBattleSpriteAnimation(owner: pauseOwner);
-            paused.add(actor);
-          } else {
-            actor.resumeBattleSpriteAnimation(owner: pauseOwner);
-            paused.remove(actor);
+          if (args['mode'] == 3) {
+            if (actor.isHiddenForBattleScript) previouslyHidden.add(key);
+            actor.setBattleScriptHidden(true, owner: visualOwner);
+          } else if (!previouslyHidden.remove(key)) {
+            actor.setBattleScriptHidden(false, owner: visualOwner);
           }
+        case 'fadeCombatantAlpha':
+          final key = args['targets'] as String;
+          if (!current(key)) throw StateError('Battle actor changed');
+          final start = (alphaValues[key] ?? 31) << 12;
+          final target = (args['alpha'] as int) << 12;
+          final difference = target - start;
+          var step = args['type'] == 0 ? difference : battleGen5SwingStep(
+            difference, args['frames'] as int, maxDelta: 31 * 4096,
+          );
+          if (step == 0 && difference != 0) step = difference.sign;
+          alphaJobs[key] = (value: start, target: target, step: step,
+              wait: args['wait'] as int, remaining: 0);
         case 'startEmitter':
+        case 'startFieldEmitter':
+        case 'startOrthoEmitter':
+        case 'startMovingEmitter':
+        case 'startMovingFieldEmitter':
           if (startSourceEmitter != null) {
             startSourceEmitter(args);
           } else {
@@ -1196,17 +1585,75 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
               args['value'] == 1, owner: visualOwner);
           }
         case 'fadePalette':
-          final key = args['targets'] as String;
-          if (!current(key)) throw StateError('Battle actor changed');
+          final keys = args['targets'] == 'EFFVM_ALL'
+              ? actors.keys : [args['targets'] as String];
           final value = args['color'] as int;
           final start = args['startEvy'] as int;
           final end = args['endEvy'] as int;
-          paletteJobs[key] = (level: start, end: end, wait: args['wait'] as int,
-            remaining: 0, step: start <= end ? 1 : -1,
-            color: Color.fromARGB(255, (value & 31) * 255 ~/ 31,
+          for (final key in keys) {
+            if (!current(key)) throw StateError('Battle actor changed');
+            paletteJobs[key] = (level: start, end: end, wait: args['wait'] as int,
+              remaining: 0, step: start <= end ? 1 : -1,
+              color: Color.fromARGB(255, (value & 31) * 255 ~/ 31,
+                ((value >> 5) & 31) * 255 ~/ 31,
+                ((value >> 10) & 31) * 255 ~/ 31));
+          }
+        case 'fadeStagePalette':
+          final value = args['color'] as int;
+          final start = args['evy'] as int;
+          final end = args['targetEvy'] as int;
+          final color = Color.fromARGB(255, (value & 31) * 255 ~/ 31,
               ((value >> 5) & 31) * 255 ~/ 31,
-              ((value >> 10) & 31) * 255 ~/ 31));
+              ((value >> 10) & 31) * 255 ~/ 31);
+          stagePaletteTarget = args['fade'] as int;
+          setStagePalette(start, color);
+          stagePaletteJob = start == end ? null : (level: start, end: end,
+              wait: args['wait'] as int, remaining: 0,
+              step: start < end ? 1 : -1, color: color);
+        case 'loadBackground':
+          sourceBackground.load(sourceBackgrounds[args['background']]!);
+          currentSourceBackground = args['background'] as int;
+          attachBackground();
+        case 'moveBackground':
+          if (args['mode'] == 4) {
+            sourceBackground.scroll(x: args['x'] as int, y: args['y'] as int,
+                frames: args['frames'] as int);
+          } else if (args['mode'] == 1) {
+            sourceBackground.move(x: args['x'] as int, y: args['y'] as int,
+                frames: args['frames'] as int, wait: args['wait'] as int);
+          } else {
+            sourceBackground.swing(x: args['x'] as int, y: args['y'] as int,
+                frames: args['frames'] as int, wait: args['wait'] as int,
+                count: args['count'] as int);
+          }
+        case 'waveBackground':
+          sourceBackground.startWave(mode: args['mode'] as int,
+              amplitude: args['amplitude'] as int, step: args['step'] as int,
+              frames: args['frames'] as int);
+        case 'setSceneVisibility':
+          final hidden = args['hide'] == 1;
+          switch (args['target']) {
+            case 0:
+              _stage3D?.sourceHidePlatforms = hidden;
+            case 1:
+              _stage3D?.sourceHideFloor = hidden;
+              sourceBackground.hideField = hidden;
+              if (hidden) attachBackground();
+            case 2:
+              sourceBackground.visible = !hidden;
+          }
+        case 'animateBackgroundPalette':
+          final animation = sourceBackgroundAnimations[args['animation']]!;
+          if (currentSourceBackground != animation.background) {
+            throw StateError('Background palette does not match the loaded background');
+          }
+          sourceBackground.animatePalette(frames: animation.frames,
+              durations: animation.durations, loops: args['loops'] as int);
+        case 'deleteParticle':
+          deleteSourceParticle!(args['particle'] as int);
         case 'loadParticle':
+        case 'setActorCameraMode':
+        case 'playCry':
         case 'playSound':
         case 'panSound':
         case 'moveSound':
@@ -1218,6 +1665,43 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     }
     void advance() {
       motion.tick();
+      sourceBackground.tick();
+      for (final entry in alphaJobs.entries.toList()) {
+        final job = entry.value;
+        if (!current(entry.key)) throw StateError('Battle actor changed');
+        if (job.remaining > 0) {
+          alphaJobs[entry.key] = (value: job.value, target: job.target,
+              step: job.step, wait: job.wait, remaining: job.remaining - 1);
+          continue;
+        }
+        final value = job.step < 0
+            ? math.max(job.target, job.value + job.step)
+            : math.min(job.target, job.value + job.step);
+        final alpha = value >> 12;
+        actors[entry.key]!.actor.setBattleScriptAlpha(alpha, owner: visualOwner);
+        alphaValues[entry.key] = alpha;
+        if (value == job.target) {
+          alphaJobs.remove(entry.key);
+        } else {
+          alphaJobs[entry.key] = (value: value, target: job.target,
+              step: job.step, wait: job.wait, remaining: job.wait);
+        }
+      }
+      final stageJob = stagePaletteJob;
+      if (stageJob != null) {
+        if (stageJob.remaining > 0) {
+          stagePaletteJob = (level: stageJob.level, end: stageJob.end,
+              wait: stageJob.wait, remaining: stageJob.remaining - 1,
+              step: stageJob.step, color: stageJob.color);
+        } else {
+          final level = stageJob.level + stageJob.step;
+          setStagePalette(level, stageJob.color);
+          stagePaletteJob = level == stageJob.end ? null : (level: level,
+              end: stageJob.end, wait: stageJob.wait,
+              remaining: stageJob.wait, step: stageJob.step,
+              color: stageJob.color);
+        }
+      }
       for (final entry in paletteJobs.entries.toList()) {
         final job = entry.value;
         if (!current(entry.key)) throw StateError('Battle actor changed');
@@ -1260,15 +1744,24 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
       dispatch: dispatch,
       isBusy: (category) => switch (category) {
         BattleGen5SourceTaskCategory.camera => sourceCamera.isMoving,
-        BattleGen5SourceTaskCategory.mcss => motion.isBusy,
-        BattleGen5SourceTaskCategory.palette => paletteJobs.isNotEmpty,
+        BattleGen5SourceTaskCategory.mcss => motion.isBusy || alphaJobs.isNotEmpty,
+        BattleGen5SourceTaskCategory.background => sourceBackground.isMoving,
+        BattleGen5SourceTaskCategory.backgroundWave => sourceBackground.isWaving,
+        BattleGen5SourceTaskCategory.palette =>
+          paletteJobs.isNotEmpty || stagePaletteJob != null ||
+              sourceBackground.isPaletteAnimating,
+        BattleGen5SourceTaskCategory.stageFieldPalette => stagePaletteJob != null,
         BattleGen5SourceTaskCategory.particles => particlesBusy(),
         _ => false,
       },
       isParticleLoading: () => false,
     );
     return presentGen5SourceProgram(playback, advance: advance,
-        duringTrackedEffect: duringTrackedEffect, detach: (_) {
+        duringTrackedEffect: duringTrackedEffect, detach: (status) {
+      if (status == BattleGen5SourcePlaybackStatus.failed) {
+        debugPrint('[battle] source program failed at instruction '
+            '${playback.instructionIndex}: ${playback.diagnostic}');
+      }
       try {
         motion.cancel();
       } finally {
@@ -1279,9 +1772,19 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
           paused.clear();
           for (final actor in actors.values) {
             actor.actor.setBattleScriptShadowHidden(false, owner: visualOwner);
+            actor.actor.setBattleScriptHidden(false, owner: visualOwner);
+            actor.actor.clearBattleScriptAlpha(owner: visualOwner);
             actor.actor.clearBattleScriptPalette(owner: visualOwner);
           }
           paletteJobs.clear();
+          alphaJobs.clear();
+          stagePaletteJob = null;
+          stagePalette?.removeFromParent();
+          stagePalette = null;
+          sourceBackground.reset();
+          if (backgroundAdded) sourceBackground.removeFromParent();
+          _stage3D?.sourceHidePlatforms = initialPlatformsHidden;
+          _stage3D?.sourceHideFloor = initialFloorHidden;
         } finally {
           try {
             detachParticles();
@@ -2809,6 +3312,8 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     add(BattlePerspectiveGroundComponent(
       camera: _perspectiveCamera!,
       isVisible: () => !(_stage3D?.currentFramePresented ?? false),
+      isFloorVisible: () => !(_stage3D?.sourceHideFloor ?? false),
+      arePlatformsVisible: () => !(_stage3D?.sourceHidePlatforms ?? false),
       paintFloor: !backgroundSpec.hasExplicitImage,
       clipRect: () => currentSceneLayout.arenaRect,
       groundRects: () => [

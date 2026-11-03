@@ -214,6 +214,47 @@ List<String> runWithManualFallback(BattleVerifiedSplPreparation result) {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('experimental screen-space particles render without a world projection', () async {
+    final raw = jsonDecode(
+      await File('../map_core/test/fixtures/spl_particle_v2.json').readAsString(),
+    ) as Map<String, dynamic>;
+    final image = img.Image(width: 2, height: 2);
+    img.fill(image, color: img.ColorRgba8(255, 255, 255, 255));
+    final png = Uint8List.fromList(img.encodePng(image));
+    final budget = RuntimeResourceBudget();
+    final loader = BattleExperimentalSplLoader(resourceBudget: budget);
+    addTearDown(() {
+      loader.cancel();
+      budget.dispose();
+    });
+    final result = await loader.create(
+      definition: BattleSplParticleDefinition.fromJson(raw),
+      sourceEmitterIndices: [0],
+      textureBytes: {'tex': png},
+      textureSha256: {'tex': sha256.convert(png).toString()},
+      emitters: schedule,
+      seed: 0,
+      poolCapacity: 16,
+      maxTicks: 80,
+      origin: const ui.Offset(16, 16),
+      pixelsPerUnit: 4,
+      projection: null,
+      onComplete: () {},
+      onFailure: (_) => fail('unexpected SPL failure'),
+    );
+    final component = result.component!;
+    component.update(1 / 60);
+    expect(component.playback.activeParticles, greaterThan(0));
+    final recorder = ui.PictureRecorder();
+    component.render(ui.Canvas(recorder));
+    final picture = recorder.endRecording();
+    final rendered = await picture.toImage(32, 32);
+    final bytes = await rendered.toByteData(format: ui.ImageByteFormat.rawRgba);
+    expect(bytes!.buffer.asUint8List().any((value) => value != 0), isTrue);
+    rendered.dispose();
+    picture.dispose();
+  });
+
   test('a prepared effect remains still until playback is resumed', () async {
     final result = await BattleVerifiedSplLoader(await bundle()).create(
       'particle',

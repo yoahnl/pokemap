@@ -1,5 +1,9 @@
 const gen5BattleCommandFields = <String, List<String>>{
   'CameraMovePreset': ['moveType', 'camera', 'frames', 'wait', 'brake'],
+  'CameraMove': [
+    'moveType', 'x', 'y', 'z', 'targetX', 'targetY', 'targetZ',
+    'frames', 'wait', 'brake'
+  ],
   'CameraShake': [
     'direction',
     'amplitude',
@@ -9,6 +13,8 @@ const gen5BattleCommandFields = <String, List<String>>{
     'count'
   ],
   'ParticleLoad': ['particle'],
+  'ParticleDelete': ['particle'],
+  'McssCameraMode': ['mode', 'scope'],
   'EmitterMove': [
     'particle',
     'emitter',
@@ -22,6 +28,10 @@ const gen5BattleCommandFields = <String, List<String>>{
     'cameraScale',
     'turns',
   ],
+  'EmitterMoveFrom': [
+    'particle', 'emitter', 'motion', 'fromX', 'fromY', 'fromZ', 'to',
+    'offsetY', 'frames', 'height', 'lifeScale', 'cameraScale', 'turns',
+  ],
   'EmitterAdd': [
     'particle',
     'emitter',
@@ -30,6 +40,24 @@ const gen5BattleCommandFields = <String, List<String>>{
     'offsetY',
     'unk18',
     'unused',
+    'radiusScale',
+    'lifeScale',
+    'scaleScale',
+    'cameraScale',
+  ],
+  'EmitterAddAt': [
+    'particle', 'emitter', 'fromX', 'fromY', 'fromZ', 'toX', 'toY', 'toZ',
+    'offsetY', 'unk18', 'unused', 'radiusScale', 'lifeScale', 'scaleScale',
+    'cameraScale',
+  ],
+  'EmitterAddOrtho': [
+    'particle',
+    'emitter',
+    'from',
+    'to',
+    'offsetX',
+    'offsetY',
+    'offsetZ',
     'radiusScale',
     'lifeScale',
     'scaleScale',
@@ -51,8 +79,16 @@ const gen5BattleCommandFields = <String, List<String>>{
   'McssRotate': ['targets', 'type', 'angle', 'frames', 'wait', 'times'],
   'McssScale': ['targets', 'type', 'x', 'y', 'frames', 'wait', 'times'],
   'McssSetVanish': ['targets', 'vanish'],
+  'McssSetMode': ['targets', 'mode'],
+  'McssAlpha': ['targets', 'type', 'alpha', 'frames', 'wait', 'times'],
   'McssSetValue': ['targets', 'value'],
+  'LoadBg': ['background'],
+  'BgMove': ['mode', 'x', 'y', 'frames', 'wait', 'count'],
+  'BgWave': ['mode', 'amplitude', 'step', 'frames', 'fadeMode', 'fadeFrames'],
+  'BgPalAnim': ['animation', 'loops'],
+  'SetVanish': ['target', 'hide'],
   'PaletteFade': ['fade', 'evy', 'targetEvy', 'wait', 'color'],
+  'PlayCry': ['targets', 'speed', 'volume', 'chorusVolume', 'chorusSpeed', 'reverse', 'delay'],
   'PlaySE': [
     'se',
     'player',

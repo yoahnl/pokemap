@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
+import 'package:map_authoring/src/domains/gameplay/pokemon_external/gen5_batch_particle_approximation.dart';
 import 'package:map_authoring/src/domains/gameplay/pokemon_external/gen5_battle_script_parameters.dart';
 import 'package:map_authoring/src/domains/gameplay/pokemon_external/gen5_battle_script_source.dart';
 import 'package:map_authoring/src/domains/gameplay/pokemon_external/gen5_spl_particle_converter.dart';
@@ -139,6 +140,261 @@ Gen5SplParticleConversion _convert(
 }
 
 void main() {
+  test('preserves random initial textures for the workshop', () {
+    final source = _source();
+    final emitter = (source['emitters'] as List).single as Map<String, dynamic>;
+    (emitter['textureAnim'] as Map)['randomStart'] = true;
+    final result = Gen5BatchParticleApproximation.normalize(
+      source,
+      preserveExperimentalFeatures: true,
+    );
+    final bytes = _bytes(result.document);
+    final converted = Gen5SplParticleConverter.convert(
+      bytes,
+      particleId: 218,
+      sourceRevision: _revision,
+      sourcePath: _path,
+      expectedSha256: sha256.convert(bytes).toString(),
+      textureResourceIds: const {
+        'base': 'base-id', 'first': 'frame-1', 'second': 'frame-2',
+      },
+      experimentalSourceEmitterIndices: const [0],
+    ).definition;
+    expect(converted.schemaVersion, 6);
+    expect(
+      (converted.emitters.single.toJson()['appearance'] as Map)
+          ['randomTextureStart'],
+      isTrue,
+    );
+    expect(result.warnings, isNot(contains('particle-field:textureAnim.randomStart')));
+    expect(
+      Gen5BatchParticleApproximation.normalize(source).warnings,
+      contains('particle-field:textureAnim.randomStart'),
+    );
+  });
+
+  test('preserves random initial particle colors for the workshop', () {
+    final source = _source();
+    final emitter = (source['emitters'] as List).single as Map<String, dynamic>;
+    (emitter['colorAnim'] as Map)['randomStart'] = true;
+    final result = Gen5BatchParticleApproximation.normalize(
+      source,
+      preserveExperimentalFeatures: true,
+    );
+    final bytes = _bytes(result.document);
+    final converted = Gen5SplParticleConverter.convert(
+      bytes,
+      particleId: 218,
+      sourceRevision: _revision,
+      sourcePath: _path,
+      expectedSha256: sha256.convert(bytes).toString(),
+      textureResourceIds: const {
+        'base': 'base-id', 'first': 'frame-1', 'second': 'frame-2',
+      },
+      experimentalSourceEmitterIndices: const [0],
+    ).definition;
+    expect(converted.schemaVersion, 6);
+    expect(
+      (converted.emitters.single.toJson()['appearance'] as Map)
+          ['randomColorStart'],
+      isTrue,
+    );
+    expect(result.warnings, isNot(contains('particle-field:colorAnim.randomStart')));
+    expect(
+      Gen5BatchParticleApproximation.normalize(source).warnings,
+      contains('particle-field:colorAnim.randomStart'),
+    );
+  });
+
+  test('preserves the absence of an alpha animation for the workshop', () {
+    final source = _source();
+    final emitter = (source['emitters'] as List).single as Map<String, dynamic>;
+    emitter.remove('alphaAnim');
+    final result = Gen5BatchParticleApproximation.normalize(
+      source,
+      preserveExperimentalFeatures: true,
+    );
+    final bytes = _bytes(result.document);
+    final converted = Gen5SplParticleConverter.convert(
+      bytes,
+      particleId: 218,
+      sourceRevision: _revision,
+      sourcePath: _path,
+      expectedSha256: sha256.convert(bytes).toString(),
+      textureResourceIds: const {
+        'base': 'base-id', 'first': 'frame-1', 'second': 'frame-2',
+      },
+      experimentalSourceEmitterIndices: const [0],
+    ).definition;
+    expect(converted.schemaVersion, 6);
+    expect(
+      (converted.emitters.single.toJson()['appearance'] as Map)
+          ['hasAlphaAnimation'],
+      isFalse,
+    );
+    expect(result.warnings, isNot(contains('particle-default:alphaAnim')));
+    expect(
+      Gen5BatchParticleApproximation.normalize(source).warnings,
+      contains('particle-default:alphaAnim'),
+    );
+  });
+
+  test('retains source spin only in the experimental workshop format', () {
+    final source = _source();
+    final emitter = (source['emitters'] as List).single as Map<String, dynamic>;
+    emitter['spinBehavior'] = {'axis': 'y', 'angle': 16384};
+    final result = Gen5BatchParticleApproximation.normalize(
+      source,
+      preserveExperimentalFeatures: true,
+    );
+    final bytes = _bytes(result.document);
+    final converted = Gen5SplParticleConverter.convert(
+      bytes,
+      particleId: 218,
+      sourceRevision: _revision,
+      sourcePath: _path,
+      expectedSha256: sha256.convert(bytes).toString(),
+      textureResourceIds: const {
+        'base': 'base-id', 'first': 'frame-1', 'second': 'frame-2',
+      },
+      experimentalSourceEmitterIndices: const [0],
+    ).definition;
+    expect(converted.schemaVersion, 6);
+    expect(
+      (converted.emitters.single.toJson()['motion'] as Map)['spin'],
+      {'axis': 'y', 'angle': 16384},
+    );
+    expect(result.warnings, isNot(contains('particle-field:spinBehavior')));
+    expect(
+      Gen5BatchParticleApproximation.normalize(source).warnings,
+      contains('particle-field:spinBehavior'),
+    );
+    expect(
+      () => BattleSplParticleDefinition.fromJson(converted.toJson()),
+      throwsFormatException,
+    );
+  });
+
+  test('keeps supported child animations in experimental workshop sources', () {
+    final source = _source();
+    final emitter = (source['emitters'] as List).single as Map<String, dynamic>;
+    emitter['drawChildrenFirst'] = true;
+    emitter['childResource'] = {
+      'hasBehaviors': true,
+      'hasScaleAnim': true,
+      'hasAlphaAnim': true,
+      'rotationType': 'none',
+      'followEmitter': false,
+      'useChildColor': false,
+      'drawType': 'directional_billboard',
+      'polygonRotAxis': 'y',
+      'polygonReferencePlane': 'xy',
+      'randomInitVelMag': 0,
+      'endScale': 2048,
+      'lifeTime': 4,
+      'velocityRatio': 0,
+      'scaleRatio': 64,
+      'color': {'red': 31, 'green': 31, 'blue': 31},
+      'emissionCount': 1,
+      'emissionDelay': 0,
+      'emissionInterval': 1,
+      'texture': 'base',
+      'textureRepeatShiftS': 0,
+      'textureRepeatShiftT': 0,
+      'flipTextureS': false,
+      'flipTextureT': false,
+      'dirFromPosition': false,
+    };
+    final result = Gen5BatchParticleApproximation.normalize(
+      source, preserveExperimentalFeatures: true,
+    );
+    final bytes = _bytes(result.document);
+    final converted = Gen5SplParticleConverter.convert(
+      bytes,
+      particleId: 218,
+      sourceRevision: _revision,
+      sourcePath: _path,
+      expectedSha256: sha256.convert(bytes).toString(),
+      textureResourceIds: const {
+        'base': 'base-id', 'first': 'frame-1', 'second': 'frame-2',
+      },
+      experimentalSourceEmitterIndices: const [0],
+    ).definition;
+    final definition = converted.emitters.single.toJson();
+    final child = definition['child'] as Map;
+    expect(converted.schemaVersion, 6);
+    expect((definition['appearance'] as Map)['drawChildrenFirst'], isTrue);
+    expect(child['inheritColor'], isTrue);
+    expect(
+      () => BattleSplParticleDefinition.fromJson(converted.toJson()),
+      throwsFormatException,
+    );
+    expect(child['scaleEnd'], 2048);
+    expect(child['inheritBehaviors'], isTrue);
+    expect(child['draw'], 'directionalBillboard');
+    expect(result.warnings, isNot(contains('particle-child:hasScaleAnim')));
+    expect(result.warnings, isNot(contains('particle-child:hasBehaviors')));
+    expect(result.warnings, isNot(contains('particle-child:drawType')));
+    expect(result.warnings, isNot(contains('particle-child:useChildColor')));
+    expect(result.warnings, isNot(contains('particle-field:drawChildrenFirst')));
+    final stable = Gen5BatchParticleApproximation.normalize(source);
+    expect(stable.warnings, contains('particle-child:useChildColor'));
+    expect(stable.warnings, contains('particle-field:drawChildrenFirst'));
+  });
+
+  test('keeps supported particle features in workshop approximations', () {
+    final source = _source();
+    final emitter = (source['emitters'] as List).single as Map<String, dynamic>;
+    emitter['emissionType'] = 'circle_border';
+    emitter['radius'] = 4096;
+    emitter['hasRotation'] = true;
+    emitter['minRotation'] = -128;
+    emitter['maxRotation'] = 128;
+    emitter['velocityVariance'] = 42;
+    emitter['drawChildrenFirst'] = true;
+    emitter.remove('scaleAnim');
+    emitter.remove('alphaAnim');
+    emitter['spinBehavior'] = {'speed': 1};
+    emitter['convergenceBehavior'] = {
+      'target': {'x': 0, 'y': 0, 'z': 0},
+      'force': 256,
+    };
+
+    final result = Gen5BatchParticleApproximation.normalize(
+      source,
+      preserveExperimentalFeatures: true,
+    );
+    final bytes = _bytes(result.document);
+    final converted = Gen5SplParticleConverter.convert(
+      bytes,
+      particleId: 218,
+      sourceRevision: _revision,
+      sourcePath: _path,
+      expectedSha256: sha256.convert(bytes).toString(),
+      textureResourceIds: const {
+        'base': 'base-id',
+        'first': 'frame-1',
+        'second': 'frame-2',
+      },
+      experimentalSourceEmitterIndices: const [0],
+    ).definition.emitters.single.toJson();
+
+    expect((converted['emission'] as Map)['shape'], 'circleBorder');
+    expect((converted['emission'] as Map)['velocityVariance'], 42);
+    expect((converted['appearance'] as Map)['hasRotation'], isTrue);
+    expect((converted['appearance'] as Map)['minRotation'], -128);
+    expect((converted['appearance'] as Map)['maxRotation'], 128);
+    expect(((converted['motion'] as Map)['convergence'] as Map)['force'], 256);
+    expect(result.warnings, contains('particle-field:spinBehavior'));
+    expect(result.warnings, isNot(contains('particle-field:hasRotation')));
+    expect(result.warnings, isNot(contains('particle-field:velocityVariance')));
+    expect(result.warnings, isNot(contains('particle-field:drawChildrenFirst')));
+    expect(result.warnings, isNot(contains('particle-default:scaleAnim')));
+    expect((converted['appearance'] as Map)['hasAlphaAnimation'], isFalse);
+    expect(result.warnings, isNot(contains('particle-default:alphaAnim')));
+    expect(emitter['spinBehavior'], isNotNull);
+  });
+
   test('preserves the oriented polygon used by the Surf wave', () {
     final source = _source();
     final emitter = (source['emitters'] as List).single as Map<String, dynamic>;

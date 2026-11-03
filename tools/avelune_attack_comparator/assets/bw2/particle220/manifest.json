@@ -1,0 +1,64 @@
+{
+  "kind": "gen5-source-particle-conversion",
+  "version": 1,
+  "moves": [
+    "water-gun"
+  ],
+  "source": {
+    "repository": "fuddlesworth/pokebw2",
+    "revision": "41f42ca1afe6291f00b0ba0ec3f6099b9ff1346c",
+    "path": "res/particles/btlv_effvm_particles/220/particles.json",
+    "localPath": "source.json",
+    "sha256": "c50300370f0a622a514d45bea7cce595d4794d2197122cdc8ee90cb6c8a0afb1",
+    "sizeBytes": 16494
+  },
+  "textures": [
+    {
+      "name": "texture00",
+      "sourcePath": "res/particles/btlv_effvm_particles/220/texture00.png",
+      "path": "texture00.b64",
+      "sha256": "435763858fb1c993fab93f50bad385f6fcc54e28387df7dcc6763190ed1e64c0",
+      "sizeBytes": 1022,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "name": "texture01",
+      "sourcePath": "res/particles/btlv_effvm_particles/220/texture01.png",
+      "path": "texture01.b64",
+      "sha256": "ebce49dd55ea712ac46fa7032218fce2e8109062ff6380c55257172d6e0d44f0",
+      "sizeBytes": 1669,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "name": "texture02",
+      "sourcePath": "res/particles/btlv_effvm_particles/220/texture02.png",
+      "path": "texture02.b64",
+      "sha256": "9c83ad9fe9503947791501b1ecbe2705ccb67564f21e6c7aa26950c338da7e6e",
+      "sizeBytes": 766,
+      "width": 64,
+      "height": 64
+    }
+  ],
+  "requiredSourceEmitterIndices": [
+    0,
+    1
+  ],
+  "sourceEmitterIndices": [
+    0,
+    1
+  ],
+  "unconvertedSourceEmitterIndices": [],
+  "status": "complete",
+  "definition": {
+    "path": "definition.json",
+    "sha256": "08e3f8141052fac39c4a086b4601b9837299d84daf2554ade2c930e1585d502a",
+    "schemaVersion": 5,
+    "textureIds": [
+      "texture00",
+      "texture01"
+    ]
+  },
+  "diagnostics": []
+}

@@ -34,6 +34,79 @@ Gen5CameraPresetEffect start(
 );
 
 void main() {
+  test('absolute source movement reaches the requested pose rather than adding it', () {
+    final camera = Gen5CameraMotion();
+    const position = (x: 0xca6, y: 0x5f33, z: 0x1dcc3);
+    const target = (x: -0xe8d, y: 0xad9a, z: 0x27f6);
+    camera.moveAbsolute(position: position, target: target,
+        frames: 32, wait: 0, brake: 26);
+    for (var tick = 0; tick < 150 && camera.isMoving; tick++) {
+      camera.tick();
+    }
+    expect(camera.isMoving, isFalse);
+    expect(camera.pose, (position: position, target: target));
+  });
+
+  test('relative source movement changes position and aim over four frames', () {
+    final camera = Gen5CameraMotion();
+    camera.moveRelative(
+      position: (x: 4096, y: 0, z: 0), target: (x: 0, y: 4096, z: 0),
+      frames: 4, wait: 0, brake: 0,
+    );
+    for (var tick = 1; tick <= 4; tick++) {
+      final pose = camera.tick();
+      expect(pose.position.x, home.position.x + tick * 1024);
+      expect(pose.target.y, home.target.y + tick * 1024);
+    }
+    expect(camera.isMoving, isFalse);
+  });
+
+  test('solo presets 14, 15 and 16 preserve an in-flight camera movement', () {
+    final camera = Gen5CameraMotion();
+    final control = Gen5CameraMotion();
+    start(camera, preset: 11, frames: 12);
+    start(control, preset: 11, frames: 12);
+    expect(camera.tick(), control.tick());
+    for (final preset in [14, 15, 16]) {
+      final before = camera.pose;
+      start(camera, preset: preset, frames: 24);
+      expect(camera.pose, before);
+      expect(camera.isMoving, isTrue);
+      expect(camera.tick(), control.tick());
+    }
+  });
+
+  test('solo presets 10, 12 and 21 follow their attacker or defender', () {
+    for (final attacker in Gen5CameraSlot.values) {
+      final defender = attacker == Gen5CameraSlot.player
+          ? Gen5CameraSlot.enemy : Gen5CameraSlot.player;
+      for (final pair in [(10, 9), (12, 11), (21, 9)]) {
+        final camera = Gen5CameraMotion();
+        final control = Gen5CameraMotion();
+        start(camera, preset: pair.$1, attacker: attacker, defender: defender,
+            frames: 12, brake: 4);
+        start(control, preset: pair.$2, attacker: attacker, defender: defender,
+            frames: 12, brake: 4);
+        for (var tick = 0; tick < 24; tick++) {
+          expect(camera.tick(), control.tick(),
+              reason: 'preset ${pair.$1}, attacker $attacker, tick $tick');
+        }
+      }
+    }
+  });
+
+  test('solo preset 17 returns to the same home pose as preset 8', () {
+    final camera = Gen5CameraMotion(initialPose: player);
+    final control = Gen5CameraMotion(initialPose: player);
+    start(camera, preset: 17, frames: 24);
+    start(control, preset: 8, frames: 24);
+    for (var tick = 0; tick < 30; tick++) {
+      expect(camera.tick(), control.tick(), reason: 'tick $tick');
+    }
+    expect(camera.pose, home);
+    expect(camera.isMoving, isFalse);
+  });
+
   test('BW2 pinned source default and solo poses use exact fx32 values', () {
     final camera = Gen5CameraMotion();
     expect(camera.pose, home);
@@ -256,6 +329,35 @@ void main() {
     }
     expect(offsets.take(8), [410, 410, 0, 0, -410, -410, 0, 0]);
     expect(offsets.last, 0);
+    expect(camera.pose, home);
+  });
+
+  test('Hydro Pump shake advances twice per leg and returns to zero', () {
+    final camera = Gen5CameraMotion();
+    camera.shakeVertical(amplitude: 819, frames: 2, wait: 0, count: 1);
+    final offsets = <int>[];
+    for (var tick = 1; tick <= 8; tick++) {
+      final pose = camera.tick();
+      offsets.add(pose.position.y - home.position.y);
+      expect(pose.target.y - home.target.y, offsets.last);
+      expect(camera.isMoving, tick < 8);
+    }
+    expect(offsets, [410, 820, 410, 0, -410, -820, -410, 0]);
+    expect(camera.pose, home);
+  });
+
+  test('horizontal shake moves the camera sideways and restores its pose', () {
+    final camera = Gen5CameraMotion();
+    camera.shakeHorizontal(amplitude: 819, frames: 2, wait: 0, count: 1);
+    final offsets = <int>[];
+    for (var tick = 1; tick <= 8; tick++) {
+      final pose = camera.tick();
+      offsets.add(pose.position.x - home.position.x);
+      expect(pose.target.x - home.target.x, offsets.last);
+      expect(pose.position.y, home.position.y);
+      expect(camera.isMoving, tick < 8);
+    }
+    expect(offsets, [410, 820, 410, 0, -410, -820, -410, 0]);
     expect(camera.pose, home);
   });
 

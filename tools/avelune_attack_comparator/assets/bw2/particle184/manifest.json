@@ -1,0 +1,67 @@
+{
+  "kind": "gen5-source-particle-conversion",
+  "version": 1,
+  "moves": [
+    "fly"
+  ],
+  "source": {
+    "repository": "fuddlesworth/pokebw2",
+    "revision": "41f42ca1afe6291f00b0ba0ec3f6099b9ff1346c",
+    "path": "res/particles/btlv_effvm_particles/184/particles.json",
+    "localPath": "source.json",
+    "sha256": "b6935f426008b57dcd036a562446d5353081139587f10ae70dfaee58c71e509d",
+    "sizeBytes": 12277
+  },
+  "textures": [
+    {
+      "name": "texture00",
+      "sourcePath": "res/particles/btlv_effvm_particles/184/texture00.png",
+      "path": "texture00.b64",
+      "sha256": "eea126eacae4c74f6c831e91e312f4093eda92d18b8b8ab1448e8ecbe26be56a",
+      "sizeBytes": 366,
+      "width": 32,
+      "height": 32
+    },
+    {
+      "name": "texture01",
+      "sourcePath": "res/particles/btlv_effvm_particles/184/texture01.png",
+      "path": "texture01.b64",
+      "sha256": "a1122d11c2b998c1007a41c97b94fe5c54b0c6d059931fc8eb895f9ec9a45600",
+      "sizeBytes": 747,
+      "width": 64,
+      "height": 64
+    }
+  ],
+  "requiredSourceEmitterIndices": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "sourceEmitterIndices": [
+    1,
+    4
+  ],
+  "unconvertedSourceEmitterIndices": [
+    0,
+    2,
+    3
+  ],
+  "status": "partial",
+  "definition": {
+    "path": "definition.json",
+    "sha256": "ec55491105f4c63fd5c0ab12d77987398b440a26308f7c2057d466a8712c74bb",
+    "schemaVersion": 5,
+    "textureIds": [
+      "texture00",
+      "texture01"
+    ]
+  },
+  "diagnostics": [
+    "all-selected: FormatException: Invalid SPL source object",
+    "emitter 0: FormatException: Invalid SPL source object",
+    "emitter 2: FormatException: Invalid SPL source object",
+    "emitter 3: FormatException: Invalid SPL source object"
+  ]
+}

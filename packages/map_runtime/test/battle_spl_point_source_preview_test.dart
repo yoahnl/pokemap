@@ -435,6 +435,8 @@ _sourceEmitter(
         ),
         emitterPosition: (x: 0, y: 0, z: 0),
         baseScale4096: initialScale,
+        color: null,
+        texture: null,
       );
     },
     childFadeAlpha: child != null,

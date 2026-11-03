@@ -146,6 +146,7 @@ class BattleSceneCombatantComponent extends PositionComponent {
   double _visualOpacity = 1.0;
   double _visualScaleX = 1.0;
   double _visualScaleY = 1.0;
+  double _visualRotation = 0.0;
   Color? _visualToneColor;
   double _visualToneStrength = 0;
   double _effectIntensity = 1;
@@ -214,11 +215,20 @@ class BattleSceneCombatantComponent extends PositionComponent {
   Rect get stageSourceRect => _currentSpriteInputSubrect();
   Color get stageTint => _spriteModulationColor(_visualOpacity);
   final Set<Object> _battleScriptShadowOwners = {};
+  final Set<Object> _battleScriptHiddenOwners = {};
+  Object? _battleScriptAlphaOwner;
+  int _battleScriptAlphaLevel = 31;
   Object? _battleScriptPaletteOwner;
   double _battleScriptPaletteAmount = 0;
   Color _battleScriptPaletteColor = const Color(0xFFFFFFFF);
 
   bool get hasBattleScriptPalette => _battleScriptPaletteAmount > 0;
+  bool get isHiddenForBattleScript =>
+      _battleScriptHiddenOwners.isNotEmpty || _visualOpacity <= 0;
+  double get _battleScriptOpacity =>
+      _battleScriptHiddenOwners.isEmpty
+          ? _visualOpacity * _battleScriptAlphaLevel / 31
+          : 0;
   Color get stageShadowTint => _battleScriptShadowOwners.isEmpty
       ? _applyOpacity(const Color(0x26000000))
       : const Color(0x00000000);
@@ -229,6 +239,36 @@ class BattleSceneCombatantComponent extends PositionComponent {
     } else {
       _battleScriptShadowOwners.remove(owner);
     }
+  }
+
+  void setBattleScriptHidden(bool hidden, {required Object owner}) {
+    final wasHidden = _battleScriptHiddenOwners.isNotEmpty;
+    if (hidden) {
+      _battleScriptHiddenOwners.add(owner);
+    } else {
+      _battleScriptHiddenOwners.remove(owner);
+    }
+    if (wasHidden != _battleScriptHiddenOwners.isNotEmpty) {
+      _updateTextOpacity();
+    }
+  }
+
+  void setBattleScriptAlpha(int level, {required Object owner}) {
+    if (level < 0 || level > 31 ||
+        (_battleScriptAlphaOwner != null &&
+            !identical(_battleScriptAlphaOwner, owner))) {
+      throw StateError('Battle alpha is unavailable');
+    }
+    _battleScriptAlphaOwner = owner;
+    _battleScriptAlphaLevel = level;
+    _updateTextOpacity();
+  }
+
+  void clearBattleScriptAlpha({required Object owner}) {
+    if (!identical(_battleScriptAlphaOwner, owner)) return;
+    _battleScriptAlphaOwner = null;
+    _battleScriptAlphaLevel = 31;
+    _updateTextOpacity();
   }
 
   void setBattleScriptPalette({
@@ -329,6 +369,9 @@ class BattleSceneCombatantComponent extends PositionComponent {
 
   @visibleForTesting
   Offset get currentVisualOffset => _visualOffset;
+
+  @visibleForTesting
+  double get currentVisualRotation => _visualRotation;
 
   @visibleForTesting
   double get currentVisualOpacity => _visualOpacity;
@@ -663,6 +706,7 @@ class BattleSceneCombatantComponent extends PositionComponent {
     _visualOpacity = 1;
     _visualScaleX = 1;
     _visualScaleY = 1;
+    _visualRotation = 0;
     _beginMaterializeGlow();
     _applyVisualPresentation();
     _animation = _CombatantPresentationAnimation.materializeOut;
@@ -774,6 +818,7 @@ class BattleSceneCombatantComponent extends PositionComponent {
     _visualOpacity = 1;
     _visualScaleX = 1;
     _visualScaleY = 1;
+    _visualRotation = 0;
     _visualToneColor = null;
     _visualToneStrength = 0;
     _toneElapsed = 0;
@@ -793,6 +838,7 @@ class BattleSceneCombatantComponent extends PositionComponent {
     _visualOffset = offset;
     _visualScaleX = scale;
     _visualScaleY = scale;
+    _visualRotation = 0;
     _visualOpacity = 1;
     _applyVisualPresentation();
   }
@@ -801,10 +847,11 @@ class BattleSceneCombatantComponent extends PositionComponent {
     required Offset offset,
     required double scaleX,
     required double scaleY,
+    double rotation = 0,
     required Object owner,
   }) {
     if (!offset.dx.isFinite || !offset.dy.isFinite ||
-        !scaleX.isFinite || !scaleY.isFinite ||
+        !scaleX.isFinite || !scaleY.isFinite || !rotation.isFinite ||
         scaleX <= 0 || scaleX > 8 || scaleY <= 0 || scaleY > 8 ||
         _animation != _CombatantPresentationAnimation.none ||
         (_rmxpTransformApplied && !identical(_rmxpTransformOwner, owner))) {
@@ -815,6 +862,7 @@ class BattleSceneCombatantComponent extends PositionComponent {
     _visualOffset = offset;
     _visualScaleX = scaleX;
     _visualScaleY = scaleY;
+    _visualRotation = rotation;
     _applyVisualPresentation();
     return true;
   }
@@ -850,6 +898,7 @@ class BattleSceneCombatantComponent extends PositionComponent {
     _visualOffset = Offset.zero;
     _visualScaleX = 1;
     _visualScaleY = 1;
+    _visualRotation = 0;
     _applyVisualPresentation();
   }
 
@@ -910,7 +959,17 @@ class BattleSceneCombatantComponent extends PositionComponent {
         );
       }
       _renderDashTrail(canvas);
-      _renderSprite(canvas);
+      if (_visualRotation == 0) {
+        _renderSprite(canvas);
+      } else {
+        final center = _currentRenderedSpriteRectLocal().center;
+        canvas.save();
+        canvas.translate(center.dx, center.dy);
+        canvas.rotate(_visualRotation);
+        canvas.translate(-center.dx, -center.dy);
+        _renderSprite(canvas);
+        canvas.restore();
+      }
       return;
     }
 
@@ -1511,7 +1570,7 @@ class BattleSceneCombatantComponent extends PositionComponent {
         ? toneAdjustedColor
         : (Color.lerp(toneAdjustedColor, const Color(0xFFF7FBFF), 0.45 * _hitFlashIntensity) ??
             toneAdjustedColor);
-    if (_visualOpacity >= 0.999) {
+    if (_battleScriptOpacity >= 0.999) {
       return adjustedColor;
     }
     return _applyOpacity(adjustedColor);
@@ -1530,7 +1589,10 @@ class BattleSceneCombatantComponent extends PositionComponent {
     if (_shouldRenderFlashTint) {
       color = Color.lerp(color, const Color(0xFFFFFFFF), 0.45 * _hitFlashIntensity) ?? color;
     }
-    return color.withValues(alpha: color.a * opacity);
+    return color.withValues(
+      alpha: color.a * (_battleScriptHiddenOwners.isEmpty
+          ? opacity * _battleScriptAlphaLevel / 31 : 0),
+    );
   }
 
   Color _toneAdjustedColor(Color color) {
@@ -1748,7 +1810,7 @@ class BattleSceneCombatantComponent extends PositionComponent {
   }
 
   void _updateTextOpacity() {
-    final quantized = (_visualOpacity.clamp(0.0, 1.0) * 255).round();
+    final quantized = (_battleScriptOpacity.clamp(0.0, 1.0) * 255).round();
     if (quantized == _lastTextOpacityQuantized) {
       return;
     }
@@ -1776,14 +1838,14 @@ class BattleSceneCombatantComponent extends PositionComponent {
   }
 
   Color _applyOpacity(Color color) {
-    return color.withValues(alpha: color.a * _visualOpacity);
+    return color.withValues(alpha: color.a * _battleScriptOpacity);
   }
 
   /// Le shader d'aura ne dépend que du rect du sprite, du côté et de
   /// l'opacité visible : reconstruit uniquement quand l'un d'eux change au
   /// lieu d'un `createShader` par combattant par frame.
   Paint _auraPaintFor(Rect auraRect) {
-    final alpha = (_visualOpacity.clamp(0.0, 1.0) * 255).round();
+    final alpha = (_battleScriptOpacity.clamp(0.0, 1.0) * 255).round();
     final cached = _auraPaint;
     if (cached != null &&
         _auraPaintRect == auraRect &&

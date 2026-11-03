@@ -165,7 +165,7 @@ final class BattleExperimentalSplLoader {
     required int maxTicks,
     required ui.Offset origin,
     required double pixelsPerUnit,
-    required BattleSplCameraProjection projection,
+    required BattleSplCameraProjection? projection,
     required void Function() onComplete,
     required void Function(BattleSplAdmissionFailure) onFailure,
     bool Function()? isCurrent,
@@ -190,7 +190,7 @@ final class BattleExperimentalSplLoader {
     final bytesById = Map<String, Uint8List>.unmodifiable(textureBytes);
     final hashesById = Map<String, String>.unmodifiable(textureSha256);
     final ids = definition.textureIds;
-    if (!{2, 3, 4, 5}.contains(definition.schemaVersion) ||
+    if (!{2, 3, 4, 5, 6}.contains(definition.schemaVersion) ||
         indices.length != definition.emitters.length ||
         indices.toSet().length != indices.length ||
         indices.any((index) => index < 0 || index > 31) ||
@@ -297,6 +297,7 @@ final class BattleExperimentalSplLoader {
         origin: origin,
         pixelsPerUnit: pixelsPerUnit,
         projection: projection,
+        allowScreenSpace: true,
         onComplete: () {
           try {
             onComplete();
@@ -347,13 +348,15 @@ Future<BattleVerifiedSplPreparation> _prepareSplComponent({
   required ui.Offset origin,
   required double pixelsPerUnit,
   required BattleSplCameraProjection? projection,
+  bool allowScreenSpace = false,
   required void Function() onComplete,
   required void Function(BattleSplAdmissionFailure) onFailure,
   required void Function() checkActive,
 }) async {
-  if (projection == null ||
-      projection.bindings.length != emitters.length ||
-      projection.capture() == null) {
+  if ((projection == null && !allowScreenSpace) ||
+      (projection != null &&
+          (projection.bindings.length != emitters.length ||
+              projection.capture() == null))) {
     return const BattleVerifiedSplPreparation._(
       failure: BattleSplAdmissionFailure.projectionUnavailable,
     );
@@ -430,9 +433,10 @@ Future<BattleVerifiedSplPreparation> _prepareSplComponent({
       }
     }
     checkActive();
-    final anchors = projection.capture();
-    if (anchors == null ||
-        anchors.any((anchor) => projection.project(anchor) == null)) {
+    final anchors = projection?.capture();
+    if (projection != null &&
+        (anchors == null ||
+            anchors.any((anchor) => projection.project(anchor) == null))) {
       return const BattleVerifiedSplPreparation._(
         failure: BattleSplAdmissionFailure.projectionUnavailable,
       );

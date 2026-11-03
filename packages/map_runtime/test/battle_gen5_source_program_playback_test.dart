@@ -43,6 +43,145 @@ BattleGen5SourceProgramPlayback _playback(
 );
 
 void main() {
+  test('cry wait conservatively follows current audio activity', () {
+    var audioBusy = true;
+    final trace = <String>[];
+    final playback = _playback(
+      [
+        _instruction('playCry'),
+        _instruction('waitTasks', {'what': 'CRY'}),
+        _instruction('startEmitter'),
+        _instruction('end'),
+      ],
+      isBusy: (category) =>
+          category == BattleGen5SourceTaskCategory.audio && audioBusy,
+      dispatch: (instruction) {
+        trace.add(instruction.op);
+        return BattleGen5SourceDispatchResult.completed;
+      },
+    );
+    playback.tick();
+    playback.tick();
+    playback.tick();
+    expect(trace, ['playCry']);
+    audioBusy = false;
+    playback.tick();
+    playback.tick();
+    expect(trace, ['playCry', 'startEmitter']);
+  });
+
+  test('player one audio wait conservatively follows current audio activity', () {
+    var audioBusy = true;
+    final trace = <String>[];
+    final playback = _playback(
+      [
+        _instruction('waitTasks', {'what': 'SE_PLAYER_1'}),
+        _instruction('startEmitter'),
+        _instruction('end'),
+      ],
+      isBusy: (category) =>
+          category == BattleGen5SourceTaskCategory.audio && audioBusy,
+      dispatch: (instruction) {
+        trace.add(instruction.op);
+        return BattleGen5SourceDispatchResult.completed;
+      },
+    );
+    playback.tick();
+    playback.tick();
+    expect(trace, isEmpty);
+    audioBusy = false;
+    playback.tick();
+    playback.tick();
+    expect(trace, ['startEmitter']);
+  });
+
+  test('stage and field fade wait resumes after the combined fade', () {
+    final matching = BattleGen5SourceTaskCategory.values.where(
+      (category) => category.name == 'stageFieldPalette',
+    );
+    expect(matching, hasLength(1));
+    final stageFade = matching.single;
+    var busy = true;
+    final trace = <String>[];
+    final playback = _playback(
+      [
+        _instruction('waitTasks', {'what': 'STAGE_FIELD_FADE'}),
+        _instruction('startEmitter'),
+        _instruction('end'),
+      ],
+      isBusy: (category) => category == stageFade && busy,
+      dispatch: (instruction) {
+        trace.add(instruction.op);
+        return BattleGen5SourceDispatchResult.completed;
+      },
+    );
+    playback.tick();
+    playback.tick();
+    expect(trace, isEmpty);
+    busy = false;
+    playback.tick();
+    playback.tick();
+    expect(trace, ['startEmitter']);
+  });
+
+  test('ALL waits for a background wave while BG only waits for movement', () {
+    final waves = BattleGen5SourceTaskCategory.values.where(
+      (category) => category.name == 'backgroundWave',
+    );
+    expect(waves, hasLength(1));
+    final wave = waves.single;
+    var waveBusy = true;
+    final trace = <String>[];
+    final playback = _playback(
+      [
+        _instruction('waveBackground'),
+        _instruction('waitTasks', {'what': 'BG'}),
+        _instruction('startEmitter'),
+        _instruction('waitTasks', {'what': 'ALL'}),
+        _instruction('startEmitter'),
+        _instruction('end'),
+      ],
+      isBusy: (category) => category == wave && waveBusy,
+      dispatch: (instruction) {
+        trace.add(instruction.op);
+        return BattleGen5SourceDispatchResult.completed;
+      },
+    );
+    for (var i = 0; i < 6; i++) {
+      playback.tick();
+    }
+    expect(trace, ['waveBackground', 'startEmitter']);
+    waveBusy = false;
+    playback.tick();
+    playback.tick();
+    expect(trace, ['waveBackground', 'startEmitter', 'startEmitter']);
+  });
+
+  test('BG waits for background motion independently of the camera', () {
+    var backgroundBusy = true;
+    final trace = <String>[];
+    final playback = _playback(
+      [
+        _instruction('waitTasks', {'what': 'BG'}),
+        _instruction('startEmitter'),
+        _instruction('end'),
+      ],
+      isBusy: (category) =>
+          category == BattleGen5SourceTaskCategory.background && backgroundBusy,
+      dispatch: (instruction) {
+        trace.add(instruction.op);
+        return BattleGen5SourceDispatchResult.completed;
+      },
+    );
+    playback.tick();
+    playback.tick();
+    expect(trace, isEmpty);
+    backgroundBusy = false;
+    playback.tick();
+    playback.tick();
+    expect(trace, ['startEmitter']);
+  });
+
   test('yield begins enabled and FALSE batches until TRUE', () {
     var call = 0;
     final trace = <String>[];

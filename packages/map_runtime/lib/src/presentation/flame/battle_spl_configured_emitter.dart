@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:map_core/map_core.dart';
 
 import 'battle_spl_child_initializer.dart';
@@ -37,6 +39,10 @@ final class BattleSplConfiguredEmitter {
     final motion = json['motion'] as Map<String, dynamic>;
     final magnet = motion['magnet'] as Map<String, dynamic>?;
     final convergence = motion['convergence'] as Map<String, dynamic>?;
+    final spin = motion['spin'] as Map<String, dynamic>?;
+    final spinAngle = spin == null
+        ? null
+        : ((spin['angle'] as int) >> 4) * 2 * math.pi / 4096;
     final scale = appearance['scale'] as Map<String, dynamic>;
     final color = appearance['color'] as Map<String, dynamic>;
     final alpha = appearance['alpha'] as Map<String, dynamic>;
@@ -150,6 +156,13 @@ final class BattleSplConfiguredEmitter {
           appearance['baseScale'] as int,
           variance: emission['scaleVariance'] as int,
         );
+        final initialColor = appearance['randomColorStart'] == true
+            ? [
+                _color(color['start']),
+                _color(color['middle']),
+                _color(color['end']),
+              ][(random.next() >> 20) % 3]
+            : null;
         final angle = emission['randomInitialAngle'] as bool
             ? random.next() & 65535
             : emission['initialAngle'] as int;
@@ -161,6 +174,9 @@ final class BattleSplConfiguredEmitter {
                   12
             : 0;
         random.next();
+        final selectedTexture = appearance['randomTextureStart'] == true
+            ? frames[(random.next() >> 20) % frames.length]
+            : null;
         return (
           motion: BattleSplParticleMotion(
             position: position,
@@ -180,11 +196,24 @@ final class BattleSplConfiguredEmitter {
           ),
           emitterPosition: frame.position,
           baseScale4096: baseScale,
+          color: initialColor,
+          texture: selectedTexture,
         );
       },
       childFadeAlpha: child?['fadeAlpha'] as bool? ?? false,
       childScaleEnd: child?['scaleEnd'] as int?,
       childInheritsBehaviors: child?['inheritBehaviors'] as bool? ?? false,
+      drawChildrenFirst: appearance['drawChildrenFirst'] as bool? ?? false,
+      alphaAnimationEnabled: appearance['hasAlphaAnimation'] as bool? ?? true,
+      randomColorStart: appearance['randomColorStart'] as bool? ?? false,
+      randomTextureStart: appearance['randomTextureStart'] as bool? ?? false,
+      spin: spinAngle == null
+          ? null
+          : (
+              axis: spin!['axis'] as String,
+              sine: (math.sin(spinAngle) * 4096).round(),
+              cosine: (math.cos(spinAngle) * 4096).round(),
+            ),
       childInitializer: child == null
           ? null
           : (_, parent) => BattleSplChildInitializer.create(
@@ -199,7 +228,9 @@ final class BattleSplConfiguredEmitter {
               velocityRatio: child['velocityRatio'] as int,
               randomVelocityMagnitude: child['randomVelocityMagnitude'] as int,
               scaleRatio: child['scaleRatio'] as int,
-              colorOverride: _color(child['color']),
+              colorOverride: child['inheritColor'] == true
+                  ? null
+                  : _color(child['color']),
               rotation: switch (child['rotation']) {
                 'none' => BattleSplChildRotation.none,
                 'angle' => BattleSplChildRotation.angle,

@@ -151,21 +151,12 @@ final class BattleSplCameraProjection {
     }
     final transform = emitterTransforms?[emitterIndex] ?? worldTransform;
     if (transform == null) return null;
-    final position = particle.motion.position;
-    final emitter = particle.emitterPosition;
-    final relative = relativeBasePosition ?? (x: 0, y: 0, z: 0);
-    final offset = transform.apply((
-      x: position.x + emitter.x - relative.x,
-      y: position.y + emitter.y - relative.y,
-      z: position.z + emitter.z - relative.z,
-    ));
+    final world = _particleWorldPosition(
+      anchor, particle, transform, relativeBasePosition,
+    );
     final forward = (camera.aim - camera.eye).normalized;
     final right = forward.cross(const BattleCameraPoint(0, 1, 0)).normalized;
     final up = right.cross(forward);
-    final units = transform.worldUnitsPerUnit / 4096;
-    final world = BattleCameraPoint(anchor.x, anchor.y, anchor.z) + offset +
-        right * (relative.x * units) + up * (relative.y * units) -
-        forward * (relative.z * units);
     final projected = camera.tryProject(world);
     if (projected == null) return null;
     final scale = camera.focal * anchor.unit / projected.depth;
@@ -187,6 +178,51 @@ final class BattleSplCameraProjection {
     );
     if (!_finite(direction)) return null;
     return (position: projected.position, scale: scale, direction: direction);
+  }
+
+  bool particleOutsideDepth(
+    BattleSplWorldAnchor anchor,
+    BattleSplPointParticle particle, {
+    int emitterIndex = 0,
+    BattleSplVector? relativeBasePosition,
+  }) {
+    if (emitterTransforms != null &&
+        (emitterIndex < 0 || emitterIndex >= emitterTransforms!.length)) {
+      return false;
+    }
+    final transform = emitterTransforms?[emitterIndex] ?? worldTransform;
+    if (transform == null || !anchor.unit.isFinite || anchor.unit <= 0) {
+      return false;
+    }
+    final world = _particleWorldPosition(
+      anchor, particle, transform, relativeBasePosition,
+    );
+    if (!world.isFinite) return false;
+    final depth = (world - camera.eye).dot((camera.aim - camera.eye).normalized);
+    return depth.isFinite && !BattleProjectionContract.containsDepth(depth);
+  }
+
+  BattleCameraPoint _particleWorldPosition(
+    BattleSplWorldAnchor anchor,
+    BattleSplPointParticle particle,
+    BattleSplWorldTransform transform,
+    BattleSplVector? relativeBasePosition,
+  ) {
+    final position = particle.motion.position;
+    final emitter = particle.emitterPosition;
+    final relative = relativeBasePosition ?? (x: 0, y: 0, z: 0);
+    final offset = transform.apply((
+      x: position.x + emitter.x - relative.x,
+      y: position.y + emitter.y - relative.y,
+      z: position.z + emitter.z - relative.z,
+    ));
+    final forward = (camera.aim - camera.eye).normalized;
+    final right = forward.cross(const BattleCameraPoint(0, 1, 0)).normalized;
+    final up = right.cross(forward);
+    final units = transform.worldUnitsPerUnit / 4096;
+    return BattleCameraPoint(anchor.x, anchor.y, anchor.z) + offset +
+        right * (relative.x * units) + up * (relative.y * units) -
+        forward * (relative.z * units);
   }
 
   List<ui.Offset>? projectDirectionalPolygon(

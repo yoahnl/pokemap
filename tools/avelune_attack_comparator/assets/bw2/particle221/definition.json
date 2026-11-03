@@ -1,0 +1,508 @@
+{
+  "schemaVersion": 5,
+  "emitters": [
+    {
+      "emission": {
+        "shape": "sphereSurface",
+        "origin": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "axis": {
+          "x": 4096,
+          "y": 0,
+          "z": 0
+        },
+        "radius": 914,
+        "axisVelocity": 0,
+        "positionVelocity": 1827,
+        "followEmitter": false,
+        "rate": 4096,
+        "startDelay": 0,
+        "interval": 2,
+        "duration": 40,
+        "particleLifetime": 20,
+        "autoTerminate": true,
+        "scaleVariance": 0,
+        "randomInitialAngle": true,
+        "initialAngle": 0,
+        "emissionAxis": "z",
+        "velocityVariance": 0
+      },
+      "appearance": {
+        "draw": "directionalBillboard",
+        "scaleAxis": "xy",
+        "baseScale": 1462,
+        "aspectRatio": 4096,
+        "baseAlpha": 31,
+        "loopTime": 1,
+        "scale": {
+          "start": 2436,
+          "middle": 1462,
+          "end": 731,
+          "fadeIn": 128,
+          "fadeOut": 128,
+          "loop": false
+        },
+        "color": {
+          "start": {
+            "red": 31,
+            "green": 31,
+            "blue": 31
+          },
+          "middle": {
+            "red": 31,
+            "green": 31,
+            "blue": 31
+          },
+          "end": {
+            "red": 13,
+            "green": 19,
+            "blue": 31
+          },
+          "fadeIn": 51,
+          "peak": 128,
+          "fadeOut": 204,
+          "interpolate": true,
+          "loop": false
+        },
+        "alpha": {
+          "start": 1,
+          "middle": 31,
+          "end": 1,
+          "fadeIn": 21,
+          "fadeOut": 128,
+          "randomRange": 0,
+          "loop": false
+        },
+        "initialTexture": "texture00",
+        "textureAnimation": null,
+        "hasRotation": true,
+        "minRotation": 3532,
+        "maxRotation": -3533,
+        "dirFromPosition": false
+      },
+      "motion": {
+        "gravity": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "airResistance": 68,
+        "magnet": null
+      },
+      "child": null
+    },
+    {
+      "emission": {
+        "shape": "hemisphereSurface",
+        "origin": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "axis": {
+          "x": 0,
+          "y": 4096,
+          "z": 0
+        },
+        "radius": 0,
+        "axisVelocity": 0,
+        "positionVelocity": 305,
+        "followEmitter": false,
+        "rate": 4096,
+        "startDelay": 0,
+        "interval": 1,
+        "duration": 10,
+        "particleLifetime": 40,
+        "autoTerminate": true,
+        "scaleVariance": 51,
+        "randomInitialAngle": true,
+        "initialAngle": 0,
+        "emissionAxis": "x",
+        "velocityVariance": 0
+      },
+      "appearance": {
+        "draw": "directionalBillboard",
+        "scaleAxis": "xy",
+        "baseScale": 7309,
+        "aspectRatio": 4096,
+        "baseAlpha": 25,
+        "loopTime": 1,
+        "scale": {
+          "start": 2436,
+          "middle": 3776,
+          "end": 4994,
+          "fadeIn": 128,
+          "fadeOut": 128,
+          "loop": false
+        },
+        "color": {
+          "start": {
+            "red": 19,
+            "green": 25,
+            "blue": 31
+          },
+          "middle": {
+            "red": 10,
+            "green": 18,
+            "blue": 22
+          },
+          "end": {
+            "red": 29,
+            "green": 31,
+            "blue": 31
+          },
+          "fadeIn": 72,
+          "peak": 158,
+          "fadeOut": 215,
+          "interpolate": true,
+          "loop": false
+        },
+        "alpha": {
+          "start": 26,
+          "middle": 31,
+          "end": 1,
+          "fadeIn": 107,
+          "fadeOut": 165,
+          "randomRange": 0,
+          "loop": false
+        },
+        "initialTexture": "texture03",
+        "textureAnimation": null,
+        "hasRotation": true,
+        "minRotation": 2558,
+        "maxRotation": -2559,
+        "dirFromPosition": true
+      },
+      "motion": {
+        "gravity": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "airResistance": 67,
+        "magnet": null
+      },
+      "child": null
+    },
+    {
+      "emission": {
+        "shape": "point",
+        "origin": {
+          "x": -2132,
+          "y": 0,
+          "z": 0
+        },
+        "axis": {
+          "x": 4096,
+          "y": 0,
+          "z": 0
+        },
+        "radius": 0,
+        "axisVelocity": 2056,
+        "positionVelocity": 76,
+        "followEmitter": false,
+        "rate": 4096,
+        "startDelay": 0,
+        "interval": 1,
+        "duration": 20,
+        "particleLifetime": 20,
+        "autoTerminate": true,
+        "scaleVariance": 0,
+        "randomInitialAngle": true,
+        "initialAngle": 0,
+        "emissionAxis": "z",
+        "velocityVariance": 0
+      },
+      "appearance": {
+        "draw": "billboard",
+        "scaleAxis": "xy",
+        "baseScale": 5324,
+        "aspectRatio": 4385,
+        "baseAlpha": 31,
+        "loopTime": 1,
+        "scale": {
+          "start": 1218,
+          "middle": 3654,
+          "end": 6091,
+          "fadeIn": 128,
+          "fadeOut": 128,
+          "loop": false
+        },
+        "color": {
+          "start": {
+            "red": 14,
+            "green": 26,
+            "blue": 31
+          },
+          "middle": {
+            "red": 14,
+            "green": 26,
+            "blue": 31
+          },
+          "end": {
+            "red": 2,
+            "green": 14,
+            "blue": 31
+          },
+          "fadeIn": 16,
+          "peak": 130,
+          "fadeOut": 204,
+          "interpolate": true,
+          "loop": false
+        },
+        "alpha": {
+          "start": 1,
+          "middle": 30,
+          "end": 2,
+          "fadeIn": 26,
+          "fadeOut": 128,
+          "randomRange": 0,
+          "loop": false
+        },
+        "initialTexture": "texture04",
+        "textureAnimation": null,
+        "hasRotation": false,
+        "minRotation": -2559,
+        "maxRotation": 0,
+        "dirFromPosition": false
+      },
+      "motion": {
+        "gravity": {
+          "x": 0,
+          "y": 2,
+          "z": 0
+        },
+        "airResistance": 157,
+        "magnet": null
+      },
+      "child": null
+    },
+    {
+      "emission": {
+        "shape": "point",
+        "origin": {
+          "x": -2132,
+          "y": 0,
+          "z": 0
+        },
+        "axis": {
+          "x": 4096,
+          "y": 0,
+          "z": 0
+        },
+        "radius": 0,
+        "axisVelocity": 2208,
+        "positionVelocity": 76,
+        "followEmitter": false,
+        "rate": 4096,
+        "startDelay": 0,
+        "interval": 1,
+        "duration": 12,
+        "particleLifetime": 20,
+        "autoTerminate": true,
+        "scaleVariance": 0,
+        "randomInitialAngle": true,
+        "initialAngle": 0,
+        "emissionAxis": "z",
+        "velocityVariance": 0
+      },
+      "appearance": {
+        "draw": "billboard",
+        "scaleAxis": "xy",
+        "baseScale": 3686,
+        "aspectRatio": 4385,
+        "baseAlpha": 31,
+        "loopTime": 1,
+        "scale": {
+          "start": 1218,
+          "middle": 3654,
+          "end": 6091,
+          "fadeIn": 128,
+          "fadeOut": 128,
+          "loop": false
+        },
+        "color": {
+          "start": {
+            "red": 14,
+            "green": 26,
+            "blue": 31
+          },
+          "middle": {
+            "red": 14,
+            "green": 26,
+            "blue": 31
+          },
+          "end": {
+            "red": 2,
+            "green": 14,
+            "blue": 31
+          },
+          "fadeIn": 16,
+          "peak": 130,
+          "fadeOut": 204,
+          "interpolate": true,
+          "loop": false
+        },
+        "alpha": {
+          "start": 1,
+          "middle": 30,
+          "end": 2,
+          "fadeIn": 26,
+          "fadeOut": 128,
+          "randomRange": 0,
+          "loop": false
+        },
+        "initialTexture": "texture01",
+        "textureAnimation": null,
+        "hasRotation": false,
+        "minRotation": -2559,
+        "maxRotation": 0,
+        "dirFromPosition": false
+      },
+      "motion": {
+        "gravity": {
+          "x": 0,
+          "y": 2,
+          "z": 0
+        },
+        "airResistance": 121,
+        "magnet": null
+      },
+      "child": {
+        "velocityRatio": 0,
+        "randomVelocityMagnitude": 0,
+        "scaleRatio": 46,
+        "color": {
+          "red": 28,
+          "green": 31,
+          "blue": 31
+        },
+        "rotation": "angleAndVelocity",
+        "lifetime": 1,
+        "texture": "texture01",
+        "emissionCount": 1,
+        "emissionDelay": 0,
+        "emissionInterval": 1,
+        "fadeAlpha": true,
+        "scaleEnd": null,
+        "inheritBehaviors": true,
+        "draw": "billboard"
+      }
+    },
+    {
+      "emission": {
+        "shape": "point",
+        "origin": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "axis": {
+          "x": 0,
+          "y": 4096,
+          "z": 0
+        },
+        "radius": 0,
+        "axisVelocity": 0,
+        "positionVelocity": 0,
+        "followEmitter": false,
+        "rate": 4096,
+        "startDelay": 0,
+        "interval": 1,
+        "duration": 1,
+        "particleLifetime": 65,
+        "autoTerminate": true,
+        "scaleVariance": 0,
+        "randomInitialAngle": false,
+        "initialAngle": 0,
+        "emissionAxis": "z",
+        "velocityVariance": 0
+      },
+      "appearance": {
+        "draw": "billboard",
+        "scaleAxis": "xy",
+        "baseScale": 5847,
+        "aspectRatio": 4096,
+        "baseAlpha": 31,
+        "loopTime": 1,
+        "scale": {
+          "start": 974,
+          "middle": 4096,
+          "end": 9745,
+          "fadeIn": 9,
+          "fadeOut": 235,
+          "loop": false
+        },
+        "color": {
+          "start": {
+            "red": 0,
+            "green": 31,
+            "blue": 31
+          },
+          "middle": {
+            "red": 0,
+            "green": 31,
+            "blue": 31
+          },
+          "end": {
+            "red": 0,
+            "green": 31,
+            "blue": 31
+          },
+          "fadeIn": 0,
+          "peak": 128,
+          "fadeOut": 255,
+          "interpolate": true,
+          "loop": false
+        },
+        "alpha": {
+          "start": 1,
+          "middle": 31,
+          "end": 1,
+          "fadeIn": 49,
+          "fadeOut": 179,
+          "randomRange": 0,
+          "loop": false
+        },
+        "initialTexture": "texture02",
+        "textureAnimation": null,
+        "hasRotation": true,
+        "minRotation": 3500,
+        "maxRotation": 3500,
+        "dirFromPosition": false
+      },
+      "motion": {
+        "gravity": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "airResistance": 128,
+        "magnet": null
+      },
+      "child": {
+        "velocityRatio": 0,
+        "randomVelocityMagnitude": 0,
+        "scaleRatio": 60,
+        "color": {
+          "red": 31,
+          "green": 31,
+          "blue": 31
+        },
+        "rotation": "angle",
+        "lifetime": 1,
+        "texture": "texture02",
+        "emissionCount": 1,
+        "emissionDelay": 0,
+        "emissionInterval": 1,
+        "fadeAlpha": false,
+        "scaleEnd": null,
+        "inheritBehaviors": false,
+        "draw": "billboard"
+      }
+    }
+  ]
+}

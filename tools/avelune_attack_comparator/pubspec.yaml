@@ -30,8 +30,16 @@ flutter:
     - assets/runtime_input.zip
     - assets/bw2/tackle.json
     - assets/bw2/water_gun.json
+    - assets/bw2/acid.json
+    - assets/bw2/flamethrower.json
+    - assets/bw2/quick_attack.json
     - assets/bw2/surf.json
     - assets/bw2/herdier-back.gif.b64
     - assets/bw2/trubbish-front.gif.b64
     - assets/bw2/particle199/
+    - assets/bw2/particle216/
+    - assets/bw2/particle218/
+    - assets/bw2/particle220/
     - assets/bw2/particle222/
+    - assets/bw2/particle270/
+    - assets/bw2/batch/

@@ -215,9 +215,13 @@ final class BattleSplStaticPlayback {
       ),
   ]);
 
-  BattleSplAdmissionFailure? advance() {
+  BattleSplAdmissionFailure? advance({BattleSplVector? emitterPosition}) {
     if (isComplete) return _failure;
     if (_tick >= maxTicks) return _fail(BattleSplAdmissionFailure.frameLimit);
+    if (emitterPosition != null &&
+        (_emitters.length != 1 || !_validVector(emitterPosition))) {
+      return _fail(BattleSplAdmissionFailure.arithmetic);
+    }
     try {
       for (final entry in _updateOrder) {
         if (_tick < entry.schedule.startTick ||
@@ -226,7 +230,7 @@ final class BattleSplStaticPlayback {
         }
         final result = entry.emitter.step(
           managerFrame: _tick & 1,
-          position: entry.schedule.position,
+          position: emitterPosition ?? entry.schedule.position,
           velocity: entry.schedule.velocity,
         );
         if (result.droppedParents != 0 || result.droppedChildren != 0) {

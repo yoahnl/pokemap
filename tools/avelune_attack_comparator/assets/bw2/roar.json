@@ -1,0 +1,430 @@
+{
+  "kind": "gen5SourceProgram",
+  "timebaseHz": 60,
+  "source": {
+    "revision": "41f42ca1afe6291f00b0ba0ec3f6099b9ff1346c",
+    "path": "res/battle/animations/moves/roar.s",
+    "sha256": "cdff081c7f32019ff920421f7a943d5140349456cfe4f28160e0e8d70c0af3df"
+  },
+  "variants": [
+    "Roar"
+  ],
+  "labels": [
+    {
+      "name": "Roar",
+      "instructionIndex": 0,
+      "line": 8
+    }
+  ],
+  "variant": "Roar",
+  "entryIndex": 0,
+  "conversion": "unsupported",
+  "verification": "sourceTranscriptionOnly",
+  "diagnostics": [
+    {
+      "instructionIndex": 4,
+      "line": 13,
+      "code": "unsupportedOpcode"
+    },
+    {
+      "instructionIndex": 5,
+      "line": 14,
+      "code": "unsupportedOpcode"
+    },
+    {
+      "instructionIndex": 12,
+      "line": 21,
+      "code": "unsupportedOperand"
+    },
+    {
+      "instructionIndex": 14,
+      "line": 23,
+      "code": "unsupportedOpcode"
+    },
+    {
+      "instructionIndex": 18,
+      "line": 27,
+      "code": "unsupportedOperand"
+    }
+  ],
+  "instructions": [
+    {
+      "op": "moveCameraPreset",
+      "source": {
+        "index": 0,
+        "line": 9,
+        "name": "CameraMovePreset",
+        "operands": [
+          "1",
+          "20",
+          "24",
+          "0",
+          "0"
+        ]
+      },
+      "args": {
+        "moveType": 1,
+        "camera": 20,
+        "frames": 24,
+        "wait": 0,
+        "brake": 0
+      }
+    },
+    {
+      "op": "waitTasks",
+      "source": {
+        "index": 1,
+        "line": 10,
+        "name": "Wait",
+        "operands": [
+          "EFFVM_WAIT_ALL"
+        ]
+      },
+      "args": {
+        "what": "ALL"
+      }
+    },
+    {
+      "op": "setAnimationState",
+      "source": {
+        "index": 2,
+        "line": 11,
+        "name": "McssSetVanish",
+        "operands": [
+          "EFFVM_DEFENDER",
+          "TRUE"
+        ]
+      },
+      "args": {
+        "targets": "EFFVM_DEFENDER",
+        "mode": 1
+      }
+    },
+    {
+      "op": "scaleCombatant",
+      "source": {
+        "index": 3,
+        "line": 12,
+        "name": "McssScale",
+        "operands": [
+          "EFFVM_ATTACKER",
+          "2",
+          "0",
+          "0x333",
+          "3",
+          "0",
+          "6"
+        ]
+      },
+      "args": {
+        "targets": "EFFVM_ATTACKER",
+        "type": 2,
+        "x": 0,
+        "y": 819,
+        "frames": 3,
+        "wait": 0,
+        "times": 6
+      }
+    },
+    {
+      "op": "unsupported",
+      "source": {
+        "index": 4,
+        "line": 13,
+        "name": "PlayCry",
+        "operands": [
+          "EFFVM_ATTACKER",
+          "-128",
+          "127",
+          "0",
+          "0",
+          "0",
+          "0"
+        ]
+      },
+      "args": {}
+    },
+    {
+      "op": "unsupported",
+      "source": {
+        "index": 5,
+        "line": 14,
+        "name": "PlayCry",
+        "operands": [
+          "EFFVM_ATTACKER",
+          "60",
+          "127",
+          "0",
+          "0",
+          "0",
+          "12"
+        ]
+      },
+      "args": {}
+    },
+    {
+      "op": "loadParticle",
+      "source": {
+        "index": 6,
+        "line": 15,
+        "name": "ParticleLoad",
+        "operands": [
+          "211"
+        ]
+      },
+      "args": {
+        "particle": 211
+      }
+    },
+    {
+      "op": "startEmitter",
+      "source": {
+        "index": 7,
+        "line": 16,
+        "name": "EmitterAdd",
+        "operands": [
+          "211",
+          "0",
+          "EFFVM_EMIT_ATTACKER",
+          "EFFVM_EMIT_DEFENDER",
+          "0x2000",
+          "0",
+          "0",
+          "0x1000",
+          "0x1000",
+          "0x1000",
+          "0x1000"
+        ]
+      },
+      "args": {
+        "particle": 211,
+        "emitter": 0,
+        "from": "EFFVM_EMIT_ATTACKER",
+        "to": "EFFVM_EMIT_DEFENDER",
+        "offsetY": 8192,
+        "unk18": 0,
+        "unused": 0,
+        "radiusScale": 4096,
+        "lifeScale": 4096,
+        "scaleScale": 4096,
+        "cameraScale": 4096
+      }
+    },
+    {
+      "op": "startMovingEmitter",
+      "source": {
+        "index": 8,
+        "line": 17,
+        "name": "EmitterMove",
+        "operands": [
+          "211",
+          "1",
+          "1",
+          "EFFVM_EMIT_ATTACKER",
+          "EFFVM_EMIT_DEFENDER",
+          "0x2000",
+          "0xb4000",
+          "0",
+          "0x1000",
+          "0x1000",
+          "0"
+        ]
+      },
+      "args": {
+        "particle": 211,
+        "emitter": 1,
+        "motion": 1,
+        "from": "EFFVM_EMIT_ATTACKER",
+        "to": "EFFVM_EMIT_DEFENDER",
+        "offsetY": 8192,
+        "height": 0,
+        "lifeScale": 4096,
+        "cameraScale": 4096,
+        "turns": 0,
+        "motionFramesFx32": 737280,
+        "motionFrames": 180
+      }
+    },
+    {
+      "op": "moveCombatant",
+      "source": {
+        "index": 9,
+        "line": 18,
+        "name": "McssMoveXY",
+        "operands": [
+          "EFFVM_DEFENDER",
+          "2",
+          "0x4cd",
+          "0",
+          "1",
+          "1",
+          "8"
+        ]
+      },
+      "args": {
+        "targets": "EFFVM_DEFENDER",
+        "type": 2,
+        "x": 1229,
+        "y": 0,
+        "frames": 1,
+        "wait": 1,
+        "times": 8
+      }
+    },
+    {
+      "op": "moveCameraPreset",
+      "source": {
+        "index": 10,
+        "line": 19,
+        "name": "CameraMovePreset",
+        "operands": [
+          "1",
+          "11",
+          "26",
+          "0",
+          "22"
+        ]
+      },
+      "args": {
+        "moveType": 1,
+        "camera": 11,
+        "frames": 26,
+        "wait": 0,
+        "brake": 22
+      }
+    },
+    {
+      "op": "waitFrames",
+      "source": {
+        "index": 11,
+        "line": 20,
+        "name": "WaitFrames",
+        "operands": [
+          "26"
+        ]
+      },
+      "args": {
+        "frames": 26
+      }
+    },
+    {
+      "op": "unsupported",
+      "source": {
+        "index": 12,
+        "line": 21,
+        "name": "McssMoveXY",
+        "operands": [
+          "EFFVM_DEFENDER",
+          "1",
+          "-0x1e000",
+          "0",
+          "16",
+          "1",
+          "1"
+        ]
+      },
+      "args": {}
+    },
+    {
+      "op": "waitTasks",
+      "source": {
+        "index": 13,
+        "line": 22,
+        "name": "Wait",
+        "operands": [
+          "EFFVM_WAIT_ALL"
+        ]
+      },
+      "args": {
+        "what": "ALL"
+      }
+    },
+    {
+      "op": "unsupported",
+      "source": {
+        "index": 14,
+        "line": 23,
+        "name": "Gauge",
+        "operands": [
+          "2",
+          "4"
+        ]
+      },
+      "args": {}
+    },
+    {
+      "op": "moveCameraPreset",
+      "source": {
+        "index": 15,
+        "line": 24,
+        "name": "CameraMovePreset",
+        "operands": [
+          "1",
+          "8",
+          "16",
+          "0",
+          "12"
+        ]
+      },
+      "args": {
+        "moveType": 1,
+        "camera": 8,
+        "frames": 16,
+        "wait": 0,
+        "brake": 12
+      }
+    },
+    {
+      "op": "setAnimationState",
+      "source": {
+        "index": 16,
+        "line": 25,
+        "name": "McssSetVanish",
+        "operands": [
+          "EFFVM_DEFENDER",
+          "FALSE"
+        ]
+      },
+      "args": {
+        "targets": "EFFVM_DEFENDER",
+        "mode": 0
+      }
+    },
+    {
+      "op": "waitTasks",
+      "source": {
+        "index": 17,
+        "line": 26,
+        "name": "Wait",
+        "operands": [
+          "EFFVM_WAIT_ALL"
+        ]
+      },
+      "args": {
+        "what": "ALL"
+      }
+    },
+    {
+      "op": "unsupported",
+      "source": {
+        "index": 18,
+        "line": 27,
+        "name": "Wait",
+        "operands": [
+          "EFFVM_WAIT_CRY"
+        ]
+      },
+      "args": {}
+    },
+    {
+      "op": "end",
+      "source": {
+        "index": 19,
+        "line": 28,
+        "name": "End",
+        "operands": []
+      },
+      "args": {}
+    }
+  ]
+}

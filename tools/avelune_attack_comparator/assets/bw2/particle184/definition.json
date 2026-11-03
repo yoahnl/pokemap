@@ -1,0 +1,191 @@
+{
+  "schemaVersion": 5,
+  "emitters": [
+    {
+      "emission": {
+        "shape": "point",
+        "origin": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "axis": {
+          "x": 0,
+          "y": 4096,
+          "z": 0
+        },
+        "radius": 0,
+        "axisVelocity": 0,
+        "positionVelocity": 0,
+        "followEmitter": false,
+        "rate": 4096,
+        "startDelay": 16,
+        "interval": 1,
+        "duration": 1,
+        "particleLifetime": 20,
+        "autoTerminate": true,
+        "scaleVariance": 0,
+        "randomInitialAngle": false,
+        "initialAngle": 0,
+        "emissionAxis": "z",
+        "velocityVariance": 0
+      },
+      "appearance": {
+        "draw": "billboard",
+        "scaleAxis": "xy",
+        "baseScale": 4096,
+        "aspectRatio": 4096,
+        "baseAlpha": 31,
+        "loopTime": 1,
+        "scale": {
+          "start": 5481,
+          "middle": 3898,
+          "end": 5603,
+          "fadeIn": 82,
+          "fadeOut": 108,
+          "loop": false
+        },
+        "color": {
+          "start": {
+            "red": 25,
+            "green": 25,
+            "blue": 31
+          },
+          "middle": {
+            "red": 31,
+            "green": 31,
+            "blue": 31
+          },
+          "end": {
+            "red": 25,
+            "green": 25,
+            "blue": 31
+          },
+          "fadeIn": 51,
+          "peak": 128,
+          "fadeOut": 204,
+          "interpolate": true,
+          "loop": false
+        },
+        "alpha": {
+          "start": 31,
+          "middle": 24,
+          "end": 0,
+          "fadeIn": 27,
+          "fadeOut": 246,
+          "randomRange": 0,
+          "loop": false
+        },
+        "initialTexture": "texture00",
+        "textureAnimation": null,
+        "hasRotation": false,
+        "minRotation": 0,
+        "maxRotation": 0,
+        "dirFromPosition": false
+      },
+      "motion": {
+        "gravity": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "airResistance": 128,
+        "magnet": null
+      },
+      "child": null
+    },
+    {
+      "emission": {
+        "shape": "point",
+        "origin": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "axis": {
+          "x": 0,
+          "y": 4096,
+          "z": 0
+        },
+        "radius": 0,
+        "axisVelocity": 0,
+        "positionVelocity": 0,
+        "followEmitter": false,
+        "rate": 4096,
+        "startDelay": 0,
+        "interval": 1,
+        "duration": 1,
+        "particleLifetime": 16,
+        "autoTerminate": true,
+        "scaleVariance": 0,
+        "randomInitialAngle": false,
+        "initialAngle": 0,
+        "emissionAxis": "z",
+        "velocityVariance": 0
+      },
+      "appearance": {
+        "draw": "billboard",
+        "scaleAxis": "xy",
+        "baseScale": 3411,
+        "aspectRatio": 4096,
+        "baseAlpha": 31,
+        "loopTime": 1,
+        "scale": {
+          "start": 8039,
+          "middle": 5116,
+          "end": 5116,
+          "fadeIn": 77,
+          "fadeOut": 77,
+          "loop": false
+        },
+        "color": {
+          "start": {
+            "red": 31,
+            "green": 31,
+            "blue": 31
+          },
+          "middle": {
+            "red": 31,
+            "green": 31,
+            "blue": 31
+          },
+          "end": {
+            "red": 31,
+            "green": 31,
+            "blue": 31
+          },
+          "fadeIn": 0,
+          "peak": 0,
+          "fadeOut": 0,
+          "interpolate": false,
+          "loop": false
+        },
+        "alpha": {
+          "start": 1,
+          "middle": 31,
+          "end": 1,
+          "fadeIn": 77,
+          "fadeOut": 128,
+          "randomRange": 0,
+          "loop": false
+        },
+        "initialTexture": "texture01",
+        "textureAnimation": null,
+        "hasRotation": true,
+        "minRotation": -4995,
+        "maxRotation": -4995,
+        "dirFromPosition": false
+      },
+      "motion": {
+        "gravity": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "airResistance": 128,
+        "magnet": null
+      },
+      "child": null
+    }
+  ]
+}

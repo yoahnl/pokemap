@@ -1,0 +1,91 @@
+{
+  "kind": "gen5-source-particle-conversion",
+  "version": 1,
+  "moves": [
+    "hydro-pump"
+  ],
+  "source": {
+    "repository": "fuddlesworth/pokebw2",
+    "revision": "41f42ca1afe6291f00b0ba0ec3f6099b9ff1346c",
+    "path": "res/particles/btlv_effvm_particles/221/particles.json",
+    "localPath": "source.json",
+    "sha256": "188bd5db8a01f32992e943197be4be69e294ff1048ed2f347a01dbd6cb724412",
+    "sizeBytes": 16107
+  },
+  "textures": [
+    {
+      "name": "texture00",
+      "sourcePath": "res/particles/btlv_effvm_particles/221/texture00.png",
+      "path": "texture00.b64",
+      "sha256": "93949a859e9770ad42aa1c728d157cf9d48f55b12bfad45264db1f0989575cae",
+      "sizeBytes": 927,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "name": "texture01",
+      "sourcePath": "res/particles/btlv_effvm_particles/221/texture01.png",
+      "path": "texture01.b64",
+      "sha256": "435763858fb1c993fab93f50bad385f6fcc54e28387df7dcc6763190ed1e64c0",
+      "sizeBytes": 1022,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "name": "texture02",
+      "sourcePath": "res/particles/btlv_effvm_particles/221/texture02.png",
+      "path": "texture02.b64",
+      "sha256": "2f33521d538533c400f96a96a8da571a9474cf95c836982360804f544c790027",
+      "sizeBytes": 1886,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "name": "texture03",
+      "sourcePath": "res/particles/btlv_effvm_particles/221/texture03.png",
+      "path": "texture03.b64",
+      "sha256": "ebce49dd55ea712ac46fa7032218fce2e8109062ff6380c55257172d6e0d44f0",
+      "sizeBytes": 1669,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "name": "texture04",
+      "sourcePath": "res/particles/btlv_effvm_particles/221/texture04.png",
+      "path": "texture04.b64",
+      "sha256": "0dc292027e9aa8000b6c1e36c0223f955d3f00f3c21d3afd95cd631a669ce1de",
+      "sizeBytes": 937,
+      "width": 64,
+      "height": 64
+    }
+  ],
+  "requiredSourceEmitterIndices": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "sourceEmitterIndices": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "unconvertedSourceEmitterIndices": [],
+  "status": "complete",
+  "definition": {
+    "path": "definition.json",
+    "sha256": "6e868d1813faf14097314635c7e42ebb90122c036ef26175529c858ef8db3d39",
+    "schemaVersion": 5,
+    "textureIds": [
+      "texture00",
+      "texture01",
+      "texture02",
+      "texture03",
+      "texture04"
+    ]
+  },
+  "diagnostics": []
+}

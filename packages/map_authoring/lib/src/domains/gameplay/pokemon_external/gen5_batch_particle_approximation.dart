@@ -7,7 +7,11 @@ final class Gen5ApproximateParticleSource {
 }
 
 abstract final class Gen5BatchParticleApproximation {
-  static Gen5ApproximateParticleSource normalize(Map<String, dynamic> input, {bool omitChildren = false}) {
+  static Gen5ApproximateParticleSource normalize(
+    Map<String, dynamic> input, {
+    bool omitChildren = false,
+    bool preserveExperimentalFeatures = false,
+  }) {
     final document = jsonDecode(jsonEncode(input)) as Map<String, dynamic>;
     final warnings = <String>{};
     void set(Map value, String key, Object? replacement, String warning) {
@@ -32,8 +36,9 @@ abstract final class Gen5BatchParticleApproximation {
       set(texture, 'flip', 'none', 'texture-field:flip');
     }
     final emitters = (document['emitters'] as List).cast<Map>();
-    final version4 = emitters.any((emitter) => emitter.containsKey('magnetBehavior'));
-    const allowed = {
+    final version4 = preserveExperimentalFeatures ||
+        emitters.any((emitter) => emitter.containsKey('magnetBehavior'));
+    final allowed = {
       'emissionType', 'drawType', 'emissionAxis', 'hasRotation', 'randomInitAngle',
       'autoTerminate', 'followEmitter', 'polygonRotAxis', 'polygonReferencePlane',
       'randomLoopOffset', 'drawChildrenFirst', 'hideParent', 'relativeToBasePos',
@@ -47,6 +52,8 @@ abstract final class Gen5BatchParticleApproximation {
       'flipTextureS', 'flipTextureT', 'polygonX', 'polygonY', 'unused',
       'scaleAnim', 'colorAnim', 'alphaAnim', 'textureAnim', 'childResource',
       'gravityBehavior', 'magnetBehavior',
+      if (preserveExperimentalFeatures) 'convergenceBehavior',
+      if (preserveExperimentalFeatures) 'spinBehavior',
     };
     for (final emitter in emitters) {
       if (omitChildren && emitter.containsKey('childResource')) {
@@ -57,8 +64,28 @@ abstract final class Gen5BatchParticleApproximation {
         emitter.remove(field);
         warnings.add('particle-field:$field');
       }
+      if (emitter.containsKey('spinBehavior')) {
+        final spin = emitter['spinBehavior'];
+        if (spin is! Map ||
+            spin.keys.any((key) => key != 'angle' && key != 'axis') ||
+            spin['angle'] is! int ||
+            (spin['angle'] as int) < 0 ||
+            (spin['angle'] as int) > 65535 ||
+            !{'x', 'y', 'z'}.contains(spin['axis'])) {
+          emitter.remove('spinBehavior');
+          warnings.add('particle-field:spinBehavior');
+        }
+      }
       final shape = emitter['emissionType'];
-      if (!{'point', 'sphere_surface'}.contains(shape)) {
+      if (!{
+        'point',
+        'sphere_surface',
+        if (preserveExperimentalFeatures) ...{
+          'hemisphere_surface',
+          'circle_border',
+          'circle_border_uniform',
+        },
+      }.contains(shape)) {
         emitter['emissionType'] = 'sphere_surface';
         warnings.add('particle-shape:$shape->sphere_surface');
       }
@@ -73,12 +100,16 @@ abstract final class Gen5BatchParticleApproximation {
       }
       set(emitter, 'polygonRotAxis', 'y', 'particle-field:polygonRotAxis');
       set(emitter, 'polygonReferencePlane', 'xy', 'particle-field:polygonReferencePlane');
-      for (final field in ['hasRotation', 'randomLoopOffset', 'drawChildrenFirst', 'hideParent',
+      for (final field in [if (!preserveExperimentalFeatures) 'hasRotation',
+          'randomLoopOffset',
+          if (!preserveExperimentalFeatures) 'drawChildrenFirst',
+          'hideParent',
           'relativeToBasePos', 'fixedPolygonID', 'childFixedPolygonID', 'dirFromPosition',
           'flipTextureS', 'flipTextureT']) {
         if (emitter.containsKey(field)) set(emitter, field, false, 'particle-field:$field');
       }
-      for (final field in ['lifeTimeVariance', 'velocityVariance', 'dirStretch',
+      for (final field in ['lifeTimeVariance',
+          if (!preserveExperimentalFeatures) 'velocityVariance', 'dirStretch',
           'textureRepeatShiftS', 'textureRepeatShiftT', 'polygonX', 'polygonY']) {
         if (emitter.containsKey(field)) set(emitter, field, 0, 'particle-field:$field');
       }
@@ -108,11 +139,11 @@ abstract final class Gen5BatchParticleApproximation {
           (baseScale * (255 + scaleVariance)) >> 8 > 32767) {
         set(emitter, 'baseScale', (32767 * 256) ~/ (255 + scaleVariance), 'particle-bound:variedScale');
       }
-      if (!emitter.containsKey('scaleAnim')) {
+      if (!preserveExperimentalFeatures && !emitter.containsKey('scaleAnim')) {
         emitter['scaleAnim'] = {'start': 4096, 'mid': 4096, 'end': 4096, 'in': 0, 'out': 254, 'loop': false};
         warnings.add('particle-default:scaleAnim');
       }
-      if (!emitter.containsKey('alphaAnim')) {
+      if (!preserveExperimentalFeatures && !emitter.containsKey('alphaAnim')) {
         emitter['alphaAnim'] = {'start': 31, 'mid': 31, 'end': 31, 'randomRange': 0, 'loop': false, 'in': 0, 'out': 254};
         warnings.add('particle-default:alphaAnim');
       }
@@ -133,7 +164,9 @@ abstract final class Gen5BatchParticleApproximation {
       }
       final color = emitter['colorAnim'];
       if (color is Map) {
-        set(color, 'randomStart', false, 'particle-field:colorAnim.randomStart');
+        if (!preserveExperimentalFeatures) {
+          set(color, 'randomStart', false, 'particle-field:colorAnim.randomStart');
+        }
         final start = color['in'];
         final peak = color['peak'];
         final end = color['out'];
@@ -146,7 +179,9 @@ abstract final class Gen5BatchParticleApproximation {
         }
       }
       final animation = emitter['textureAnim'];
-      if (animation is Map) set(animation, 'randomStart', false, 'particle-field:textureAnim.randomStart');
+      if (animation is Map && !preserveExperimentalFeatures) {
+        set(animation, 'randomStart', false, 'particle-field:textureAnim.randomStart');
+      }
       final child = emitter['childResource'];
       if (child is Map) {
         for (final field in ['followEmitter', 'flipTextureS', 'flipTextureT', 'dirFromPosition']) {
@@ -160,7 +195,9 @@ abstract final class Gen5BatchParticleApproximation {
           set(child, 'hasScaleAnim', false, 'particle-child:hasScaleAnim');
         }
         if (child['hasScaleAnim'] == false) set(child, 'endScale', 0, 'particle-child:endScale');
-        set(child, 'useChildColor', true, 'particle-child:useChildColor');
+        if (!preserveExperimentalFeatures) {
+          set(child, 'useChildColor', true, 'particle-child:useChildColor');
+        }
         if (child['drawType'] != 'billboard' && !(version4 && child['drawType'] == 'directional_billboard')) {
           set(child, 'drawType', 'billboard', 'particle-child:drawType');
         }

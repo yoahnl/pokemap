@@ -2,6 +2,33 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_runtime/src/presentation/flame/battle_gen5_swing.dart';
 
 void main() {
+  test('shakes on both sides before returning to its starting angle', () {
+    final swing = BattleGen5Swing(
+      startX: 0,
+      startY: 0,
+      deltaX: 0xaaaa00,
+      deltaY: 0,
+      frames: 2,
+      wait: 0,
+      count: 1,
+      shake: true,
+      maxDelta: 0x10000000,
+    );
+    final values = [for (var i = 0; i < 8; i++) swing.advance()];
+    expect(values.map((value) => value.x), [
+      0x555500,
+      0xaaaa00,
+      0x555500,
+      0,
+      -0x555500,
+      -0xaaaa00,
+      -0x555500,
+      0,
+    ]);
+    expect(values.take(7).map((value) => value.done), everyElement(isFalse));
+    expect(values.last.done, isTrue);
+  });
+
   test(
     'oscillates in fixed-point steps with a wait and returns to its origin',
     () {

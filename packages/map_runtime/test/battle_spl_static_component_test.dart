@@ -177,6 +177,33 @@ Future<ui.Offset> redCentroid(
 }
 
 void main() {
+  test(
+    'moving emitter preserves detached particles at their birth position',
+    () async {
+      final particles = await playback(follows: false);
+      addTearDown(particles.cancel);
+      expect(particles.advance(emitterPosition: (x: 4096, y: 0, z: 0)), isNull);
+      final first = particles.frames.single.particles.single;
+      expect(first.emitterPosition.x, 4096);
+      expect(particles.advance(emitterPosition: (x: 8192, y: 0, z: 0)), isNull);
+      final frame = particles.frames.single.particles;
+      expect(frame, hasLength(2));
+      expect(frame.firstWhere((p) => p.id == first.id).emitterPosition.x, 4096);
+      expect(frame.firstWhere((p) => p.id != first.id).emitterPosition.x, 8192);
+    },
+  );
+
+  test('moving emitter carries particles that follow it', () async {
+    final particles = await playback();
+    addTearDown(particles.cancel);
+    expect(particles.advance(emitterPosition: (x: 4096, y: 0, z: 0)), isNull);
+    expect(particles.advance(emitterPosition: (x: 8192, y: 0, z: 0)), isNull);
+    expect(
+      particles.frames.single.particles.map((p) => p.emitterPosition.x),
+      everyElement(8192),
+    );
+  });
+
   test('projects the four corners of a Surf-style oriented polygon', () {
     final camera = BattlePerspectiveCamera(
       viewport: const ui.Rect.fromLTWH(0, 0, 390, 844),
@@ -188,10 +215,12 @@ void main() {
     );
     final projection = BattleSplCameraProjection(
       camera: camera,
-      bindings: [BattleSplCameraBinding(
-        resolveAnchor: () => Vector2.zero(),
-        resolveNeutralFoot: () => const ui.Offset(0, 0),
-      )],
+      bindings: [
+        BattleSplCameraBinding(
+          resolveAnchor: () => Vector2.zero(),
+          resolveNeutralFoot: () => const ui.Offset(0, 0),
+        ),
+      ],
       worldTransform: const BattleSplWorldTransform(
         worldUnitsPerUnit: 1,
         yawRadians: 0,
@@ -216,8 +245,13 @@ void main() {
       parentId: null,
     );
     const anchor = (x: 0.0, y: 0.0, z: 0.0, unit: 1.0);
-    final actual = projection.projectDirectionalPolygon(anchor, particle,
-      aspectRatio4096: 4096, scaleAxis: 'xy', pixelsPerUnit: 1)!;
+    final actual = projection.projectDirectionalPolygon(
+      anchor,
+      particle,
+      aspectRatio4096: 4096,
+      scaleAxis: 'xy',
+      pixelsPerUnit: 1,
+    )!;
     final expected = [
       const BattleCameraPoint(-1, 0, 0),
       const BattleCameraPoint(1, 0, 0),
@@ -241,10 +275,12 @@ void main() {
     );
     final projection = BattleSplCameraProjection(
       camera: camera,
-      bindings: [BattleSplCameraBinding(
-        resolveAnchor: () => Vector2.zero(),
-        resolveNeutralFoot: () => ui.Offset.zero,
-      )],
+      bindings: [
+        BattleSplCameraBinding(
+          resolveAnchor: () => Vector2.zero(),
+          resolveNeutralFoot: () => ui.Offset.zero,
+        ),
+      ],
       worldTransform: const BattleSplWorldTransform(
         worldUnitsPerUnit: 1,
         yawRadians: 0,
@@ -269,15 +305,35 @@ void main() {
       parentId: null,
     );
     const anchor = (x: 0.0, y: 0.0, z: 10.0, unit: 1.0);
-    expect(projection.projectDirectionalPolygon(anchor, particle,
-        aspectRatio4096: 4096, scaleAxis: 'xy', pixelsPerUnit: 1), isNull);
-    final clipped = projection.projectClippedDirectionalPolygon(anchor, particle,
-        aspectRatio4096: 4096, scaleAxis: 'xy', pixelsPerUnit: 1)!;
+    expect(
+      projection.projectDirectionalPolygon(
+        anchor,
+        particle,
+        aspectRatio4096: 4096,
+        scaleAxis: 'xy',
+        pixelsPerUnit: 1,
+      ),
+      isNull,
+    );
+    final clipped = projection.projectClippedDirectionalPolygon(
+      anchor,
+      particle,
+      aspectRatio4096: 4096,
+      scaleAxis: 'xy',
+      pixelsPerUnit: 1,
+    )!;
     expect(clipped.positions.length, 4);
     expect(clipped.textureCoordinates.length, clipped.positions.length);
-    expect(clipped.positions.every((p) => p.dx.isFinite && p.dy.isFinite), isTrue);
-    expect(clipped.textureCoordinates.every((p) =>
-        p.dx >= 0 && p.dx <= 1 && p.dy >= 0 && p.dy <= 1), isTrue);
+    expect(
+      clipped.positions.every((p) => p.dx.isFinite && p.dy.isFinite),
+      isTrue,
+    );
+    expect(
+      clipped.textureCoordinates.every(
+        (p) => p.dx >= 0 && p.dx <= 1 && p.dy >= 0 && p.dy <= 1,
+      ),
+      isTrue,
+    );
     expect(clipped.textureCoordinates.any((p) => p.dy > 0 && p.dy < 1), isTrue);
   });
 
@@ -287,10 +343,12 @@ void main() {
     );
     final projection = BattleSplCameraProjection(
       camera: camera,
-      bindings: [BattleSplCameraBinding(
-        resolveAnchor: () => Vector2.zero(),
-        resolveNeutralFoot: () => const ui.Offset(0, 0),
-      )],
+      bindings: [
+        BattleSplCameraBinding(
+          resolveAnchor: () => Vector2.zero(),
+          resolveNeutralFoot: () => const ui.Offset(0, 0),
+        ),
+      ],
       worldTransform: const BattleSplWorldTransform(
         worldUnitsPerUnit: 1,
         yawRadians: 0,
@@ -315,8 +373,12 @@ void main() {
       parentId: null,
     );
     const anchor = (x: 0.0, y: 2.6, z: 0.0, unit: 1.0);
-    final actual = projection.projectParticle(anchor, particle,
-        includeDirection: false, relativeBasePosition: (x: 0, y: -3350, z: 0))!;
+    final actual = projection.projectParticle(
+      anchor,
+      particle,
+      includeDirection: false,
+      relativeBasePosition: (x: 0, y: -3350, z: 0),
+    )!;
     final forward = (camera.aim - camera.eye).normalized;
     final right = forward.cross(const BattleCameraPoint(0, 1, 0)).normalized;
     final up = right.cross(forward);
@@ -479,84 +541,95 @@ void main() {
     }
   });
 
-  test('world projection fails before drawing any invalid particle', () async {
-    final value = jsonDecode(
-      await File('../map_core/test/fixtures/spl_particle_v2.json')
-          .readAsString(),
-    ) as Map<String, dynamic>;
-    final emitter = (value['emitters'] as List).single as Map<String, dynamic>;
-    (emitter['emission'] as Map<String, dynamic>)['axisVelocity'] = 0;
-    final result = BattleSplStaticAdmission.prepare(
-      definition: BattleSplParticleDefinition.fromJson(value),
-      textureIndices: const {'tex': 0},
-      emitters: const [
-        BattleSplStaticEmitter(
-          emitterIndex: 0,
-          startTick: 0,
-          position: (x: 0, y: 0, z: 409600),
-        ),
-        BattleSplStaticEmitter(
-          emitterIndex: 0,
-          startTick: 0,
-          position: (x: 0, y: 0, z: 0),
-        ),
-      ],
-      seed: 0,
-      poolCapacity: 16,
-      maxTicks: 80,
-    );
-    expect(result.failure, isNull);
-    final camera = BattlePerspectiveCamera(
-      viewport: const ui.Rect.fromLTWH(0, 0, 390, 844),
-    );
-    const foot = ui.Offset(190, 600);
-    final projection = BattleSplCameraProjection(
-      camera: camera,
-      worldTransform: const BattleSplWorldTransform(
-        worldUnitsPerUnit: 1,
-        yawRadians: 0,
-      ),
-      bindings: [
-        for (var i = 0; i < 2; i++)
-          BattleSplCameraBinding(
-            resolveNeutralFoot: () => foot,
-            resolveAnchor: () => Vector2(foot.dx, foot.dy),
+  for (final clipOutside in [false, true]) {
+    test(clipOutside
+        ? 'preview clips a particle behind the camera while drawing the visible one'
+        : 'world projection fails before drawing any invalid particle', () async {
+      final value = jsonDecode(
+        await File('../map_core/test/fixtures/spl_particle_v2.json')
+            .readAsString(),
+      ) as Map<String, dynamic>;
+      final emitter = (value['emitters'] as List).single as Map<String, dynamic>;
+      (emitter['emission'] as Map<String, dynamic>)['axisVelocity'] = 0;
+      final result = BattleSplStaticAdmission.prepare(
+        definition: BattleSplParticleDefinition.fromJson(value),
+        textureIndices: const {'tex': 0},
+        emitters: const [
+          BattleSplStaticEmitter(
+            emitterIndex: 0,
+            startTick: 0,
+            position: (x: 0, y: 0, z: 409600),
           ),
-      ],
-    );
-    final image = await redImage();
-    final failures = <BattleSplAdmissionFailure>[];
-    final component = BattleSplStaticComponent(
-      playback: result.playback!,
-      textures: {0: image},
-      origin: ui.Offset.zero,
-      pixelsPerUnit: 12,
-      projection: projection,
-      onComplete: () => fail('unexpected completion'),
-      onFailure: failures.add,
-    );
-    image.dispose();
-    addTearDown(component.dispose);
-    component.update(1 / 60);
-    expect(result.playback!.activeParticles, 2);
-    final recorder = ui.PictureRecorder();
-    component.render(ui.Canvas(recorder));
-    final picture = recorder.endRecording();
-    final frame = await picture.toImage(390, 844);
-    try {
-      final bytes = (await frame.toByteData(
-        format: ui.ImageByteFormat.rawRgba,
-      ))!.buffer.asUint8List();
-      expect(bytes.every((byte) => byte == 0), isTrue);
-      expect(failures, [BattleSplAdmissionFailure.projectionUnavailable]);
-      expect(result.playback!.activeParticles, 0);
-      component.refreshAttachment();
-      expect(failures, hasLength(1));
-    } finally {
-      frame.dispose();
-      picture.dispose();
-    }
-  });
+          BattleSplStaticEmitter(
+            emitterIndex: 0,
+            startTick: 0,
+            position: (x: 0, y: 0, z: 0),
+          ),
+        ],
+        seed: 0,
+        poolCapacity: 16,
+        maxTicks: 80,
+      );
+      expect(result.failure, isNull);
+      final camera = BattlePerspectiveCamera(
+        viewport: const ui.Rect.fromLTWH(0, 0, 390, 844),
+      );
+      const foot = ui.Offset(190, 600);
+      final projection = BattleSplCameraProjection(
+        camera: camera,
+        worldTransform: const BattleSplWorldTransform(
+          worldUnitsPerUnit: 1,
+          yawRadians: 0,
+        ),
+        bindings: [
+          for (var i = 0; i < 2; i++)
+            BattleSplCameraBinding(
+              resolveNeutralFoot: () => foot,
+              resolveAnchor: () => Vector2(foot.dx, foot.dy),
+            ),
+        ],
+      );
+      final image = await redImage();
+      final failures = <BattleSplAdmissionFailure>[];
+      final component = BattleSplStaticComponent(
+        playback: result.playback!,
+        textures: {0: image},
+        origin: ui.Offset.zero,
+        pixelsPerUnit: 12,
+        projection: projection,
+        onComplete: () => fail('unexpected completion'),
+        onFailure: failures.add,
+      );
+      component.clipOutOfViewParticles = clipOutside;
+      image.dispose();
+      addTearDown(component.dispose);
+      component.update(1 / 60);
+      expect(result.playback!.activeParticles, 2);
+      final recorder = ui.PictureRecorder();
+      component.render(ui.Canvas(recorder));
+      final picture = recorder.endRecording();
+      final frame = await picture.toImage(390, 844);
+      try {
+        final bytes = (await frame.toByteData(
+          format: ui.ImageByteFormat.rawRgba,
+        ))!.buffer.asUint8List();
+        if (clipOutside) {
+          expect(bytes.any((byte) => byte != 0), isTrue);
+          expect(failures, isEmpty);
+          expect(result.playback!.activeParticles, 2);
+        } else {
+          expect(bytes.every((byte) => byte == 0), isTrue);
+          expect(failures, [BattleSplAdmissionFailure.projectionUnavailable]);
+          expect(result.playback!.activeParticles, 0);
+          component.refreshAttachment();
+          expect(failures, hasLength(1));
+        }
+      } finally {
+        frame.dispose();
+        picture.dispose();
+      }
+    });
+  }
 
   test('renders admitted particles and notifies completion once', () async {
     final effect = await playback();

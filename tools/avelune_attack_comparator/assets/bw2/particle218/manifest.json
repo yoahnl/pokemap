@@ -1,0 +1,99 @@
+{
+  "kind": "gen5-source-particle-conversion",
+  "version": 1,
+  "moves": [
+    "flamethrower"
+  ],
+  "source": {
+    "repository": "fuddlesworth/pokebw2",
+    "revision": "41f42ca1afe6291f00b0ba0ec3f6099b9ff1346c",
+    "path": "res/particles/btlv_effvm_particles/218/particles.json",
+    "localPath": "source.json",
+    "sha256": "c69c571dbb9f9f20fe0a85bcba82aac97333e9c2c69ca968c597fe4f77b2f0e9",
+    "sizeBytes": 13095
+  },
+  "textures": [
+    {
+      "name": "texture00",
+      "sourcePath": "res/particles/btlv_effvm_particles/218/texture00.png",
+      "path": "texture00.b64",
+      "sha256": "d03979b4d9e7cc4146cd28313006fc7e770e8aa83c8bffb06797f8cb5076bab1",
+      "sizeBytes": 394,
+      "width": 32,
+      "height": 32
+    },
+    {
+      "name": "texture01",
+      "sourcePath": "res/particles/btlv_effvm_particles/218/texture01.png",
+      "path": "texture01.b64",
+      "sha256": "a3dbf0ea435572f668f8ba2beb676587036035fdb6989a4583605dfa68d9e06e",
+      "sizeBytes": 745,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "name": "texture02",
+      "sourcePath": "res/particles/btlv_effvm_particles/218/texture02.png",
+      "path": "texture02.b64",
+      "sha256": "3d10133124483c7c68bf8ef9df9e50d8a2bab9ed4c0f9882b5291ce8bc96260f",
+      "sizeBytes": 763,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "name": "texture03",
+      "sourcePath": "res/particles/btlv_effvm_particles/218/texture03.png",
+      "path": "texture03.b64",
+      "sha256": "3eee20e4f1adbc946d4623f42fe12203fcd4919ec23988aa8fb2b932203bf137",
+      "sizeBytes": 675,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "name": "texture04",
+      "sourcePath": "res/particles/btlv_effvm_particles/218/texture04.png",
+      "path": "texture04.b64",
+      "sha256": "ebce49dd55ea712ac46fa7032218fce2e8109062ff6380c55257172d6e0d44f0",
+      "sizeBytes": 1669,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "name": "texture05",
+      "sourcePath": "res/particles/btlv_effvm_particles/218/texture05.png",
+      "path": "texture05.b64",
+      "sha256": "9c83ad9fe9503947791501b1ecbe2705ccb67564f21e6c7aa26950c338da7e6e",
+      "sizeBytes": 766,
+      "width": 64,
+      "height": 64
+    }
+  ],
+  "requiredSourceEmitterIndices": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "sourceEmitterIndices": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "unconvertedSourceEmitterIndices": [],
+  "status": "complete",
+  "definition": {
+    "path": "definition.json",
+    "sha256": "8dfbe5b044e7e149d19925e9d962c8dd06f9c0a1d3cb1702d43fd4ba5e0a26ab",
+    "schemaVersion": 2,
+    "textureIds": [
+      "texture00",
+      "texture01",
+      "texture02",
+      "texture03",
+      "texture04",
+      "texture05"
+    ]
+  },
+  "diagnostics": []
+}

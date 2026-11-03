@@ -100,8 +100,21 @@ abstract final class Gen5SplParticleConverter {
     }
 
     final selectedEmitters = [for (final index in indices) rawEmitters[index]];
+    final needsExperimentalV6 = selectedEmitters.any((raw) {
+      final emitter = _map(raw);
+      final child = emitter['childResource'];
+      final color = emitter['colorAnim'];
+      final textureAnimation = emitter['textureAnim'];
+      return !emitter.containsKey('alphaAnim') ||
+          emitter.containsKey('spinBehavior') ||
+          (color is Map && color['randomStart'] == true) ||
+          (textureAnimation is Map && textureAnimation['randomStart'] == true) ||
+          (child is Map &&
+              (emitter['drawChildrenFirst'] == true ||
+                  child['useChildColor'] == false));
+    });
     final version = experimentalSourceEmitterIndices != null
-        ? 5
+        ? (needsExperimentalV6 ? 6 : 5)
         : rawEmitters.any((raw) => _map(raw).containsKey('magnetBehavior'))
             ? 4
             : rawEmitters
@@ -191,6 +204,7 @@ Map<String, dynamic> _emitter(
     'gravityBehavior',
     'magnetBehavior',
     'convergenceBehavior',
+    'spinBehavior',
   });
   final shape = switch (source['emissionType']) {
     'point' => 'point',
@@ -218,7 +232,8 @@ Map<String, dynamic> _emitter(
   for (final field in [
     if (version < 5) 'hasRotation',
     'randomLoopOffset',
-    if (version < 5 || source['childResource'] != null) 'drawChildrenFirst',
+    if (version < 5 || (version < 6 && source['childResource'] != null))
+      'drawChildrenFirst',
     'hideParent',
     'fixedPolygonID',
     'childFixedPolygonID',
@@ -304,10 +319,21 @@ Map<String, dynamic> _emitter(
     'unused'
   });
   _optionalUnused(color);
-  if (color['randomStart'] != false) {
+  if (color['randomStart'] is! bool ||
+      (version < 6 && color['randomStart'] != false)) {
     throw const FormatException('Unsupported SPL random color start');
   }
-  final alpha = _map(source['alphaAnim']);
+  final alpha = version >= 6 && !source.containsKey('alphaAnim')
+      ? <String, dynamic>{
+          'start': 31,
+          'mid': 31,
+          'end': 31,
+          'randomRange': 0,
+          'loop': false,
+          'in': 0,
+          'out': 254,
+        }
+      : _map(source['alphaAnim']);
   _keys(alpha,
       {'start', 'mid', 'end', 'randomRange', 'loop', 'in', 'out', 'unused'});
   _optionalUnused(alpha);
@@ -328,12 +354,20 @@ Map<String, dynamic> _emitter(
     if (version < 5) throw const FormatException('Unsupported SPL convergence');
     _keys(convergence, {'target', 'force'});
   }
+  final spin = source.containsKey('spinBehavior')
+      ? _map(source['spinBehavior'])
+      : null;
+  if (spin != null) {
+    if (version < 6) throw const FormatException('Unsupported SPL spin');
+    _keys(spin, {'axis', 'angle'});
+  }
   final rawTextureAnimation = source['textureAnim'];
   Map<String, dynamic>? textureAnimation;
   if (rawTextureAnimation != null) {
     final animation = _map(rawTextureAnimation);
     _keys(animation, {'textures', 'step', 'randomStart', 'loop'});
-    if (animation['randomStart'] != false) {
+    if (animation['randomStart'] is! bool ||
+        (version < 6 && animation['randomStart'] != false)) {
       throw const FormatException('Unsupported SPL random texture start');
     }
     textureAnimation = {
@@ -412,12 +446,21 @@ Map<String, dynamic> _emitter(
       if (version >= 5) 'minRotation': source['minRotation'],
       if (version >= 5) 'maxRotation': source['maxRotation'],
       if (version >= 5) 'dirFromPosition': source['dirFromPosition'],
+      if (version >= 6) 'drawChildrenFirst': source['drawChildrenFirst'],
+      if (version >= 6 && !source.containsKey('alphaAnim'))
+        'hasAlphaAnimation': false,
+      if (version >= 6 && color['randomStart'] == true)
+        'randomColorStart': true,
+      if (version >= 6 && rawTextureAnimation is Map &&
+          rawTextureAnimation['randomStart'] == true)
+        'randomTextureStart': true,
     },
     'motion': {
       'gravity': gravity['magnitude'],
       'airResistance': source['airResistance'],
       if (version >= 4) 'magnet': magnet,
       if (convergence != null) 'convergence': convergence,
+      if (spin != null) 'spin': spin,
     },
     'child': rawChild == null ? null : _child(_map(rawChild), texture, version),
   };
@@ -479,7 +522,9 @@ Map<String, dynamic> _child(Map<String, dynamic> source,
       (source['hasScaleAnim'] == false && source['endScale'] != 0)) {
     throw const FormatException('Unsupported SPL child field: endScale');
   }
-  if (source['useChildColor'] != true ||
+  if ((version < 6
+          ? source['useChildColor'] != true
+          : source['useChildColor'] is! bool) ||
       !(source['drawType'] == 'billboard' ||
           (version >= 4 && source['drawType'] == 'directional_billboard')) ||
       source['polygonRotAxis'] != 'y' ||
@@ -508,6 +553,7 @@ Map<String, dynamic> _child(Map<String, dynamic> source,
     if (version >= 4)
       'scaleEnd': source['hasScaleAnim'] == true ? source['endScale'] : null,
     if (version >= 4) 'inheritBehaviors': source['hasBehaviors'],
+    if (version >= 6) 'inheritColor': source['useChildColor'] == false,
     if (version >= 4)
       'draw': source['drawType'] == 'billboard'
           ? 'billboard'

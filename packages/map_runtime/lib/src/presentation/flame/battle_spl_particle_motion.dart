@@ -33,6 +33,7 @@ final class BattleSplParticleMotion {
     int? magnetForce,
     BattleSplVector? convergenceTarget,
     int? convergenceForce,
+    ({String axis, int sine, int cosine})? spin,
   }) {
     if (!_fitsVector(gravity, -32768, 32767) ||
         !_fitsVector(emitterVelocity, _minimum32, _maximum32) ||
@@ -43,10 +44,35 @@ final class BattleSplParticleMotion {
         (magnetForce != null && (magnetForce < -32768 || magnetForce > 32767)) ||
         (convergenceTarget == null) != (convergenceForce == null) ||
         (convergenceTarget != null && !_fitsVector(convergenceTarget, _minimum32, _maximum32)) ||
-        (convergenceForce != null && (convergenceForce < -32768 || convergenceForce > 32767))) {
+        (convergenceForce != null && (convergenceForce < -32768 || convergenceForce > 32767)) ||
+        (spin != null &&
+            (!{'x', 'y', 'z'}.contains(spin.axis) ||
+                spin.sine.abs() > 4096 || spin.cosine.abs() > 4096))) {
       throw const FormatException('Invalid SPL gravity or resistance');
     }
+    int rotate(int first, int second, int firstScale, int secondScale) =>
+        _checked((first * firstScale + second * secondScale) >> 12);
+    final rotated = spin == null
+        ? position
+        : switch (spin.axis) {
+            'x' => (
+                x: position.x,
+                y: rotate(position.y, position.z, spin.cosine, -spin.sine),
+                z: rotate(position.y, position.z, spin.sine, spin.cosine),
+              ),
+            'y' => (
+                x: rotate(position.x, position.z, spin.cosine, spin.sine),
+                y: position.y,
+                z: rotate(position.x, position.z, -spin.sine, spin.cosine),
+              ),
+            _ => (
+                x: rotate(position.x, position.y, spin.cosine, -spin.sine),
+                y: rotate(position.x, position.y, spin.sine, spin.cosine),
+                z: position.z,
+              ),
+          };
     final x = _advanceAxis(
+      rotated.x,
       position.x,
       velocity.x,
       gravity.x,
@@ -58,6 +84,7 @@ final class BattleSplParticleMotion {
       convergenceForce,
     );
     final y = _advanceAxis(
+      rotated.y,
       position.y,
       velocity.y,
       gravity.y,
@@ -69,6 +96,7 @@ final class BattleSplParticleMotion {
       convergenceForce,
     );
     final z = _advanceAxis(
+      rotated.z,
       position.z,
       velocity.z,
       gravity.z,
@@ -89,6 +117,7 @@ final class BattleSplParticleMotion {
 
   static ({int position, int velocity}) _advanceAxis(
     int position,
+    int magnetPosition,
     int velocity,
     int gravity,
     int emitterVelocity,
@@ -100,7 +129,7 @@ final class BattleSplParticleMotion {
   ) {
     final magneticProduct = magnetTarget == null
         ? 0
-        : _checked(_checked(_checked(magnetTarget - position) - velocity) * magnetForce!);
+        : _checked(_checked(_checked(magnetTarget - magnetPosition) - velocity) * magnetForce!);
     final magneticAcceleration = magneticProduct >= 0
         ? magneticProduct ~/ 4096
         : -((-magneticProduct + 4095) ~/ 4096);

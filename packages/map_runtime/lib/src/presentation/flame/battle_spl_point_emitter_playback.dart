@@ -8,6 +8,8 @@ typedef BattleSplInitialParent = ({
   BattleSplParticleMotion motion,
   BattleSplVector emitterPosition,
   int baseScale4096,
+  BattleSplRgb5? color,
+  int? texture,
 });
 
 final class BattleSplPointParticle {
@@ -54,8 +56,13 @@ final class BattleSplPointEmitterPlayback {
     required this.nextAlphaByte,
     this.magnet,
     this.convergence,
+    this.spin,
     this.childScaleEnd,
     this.childInheritsBehaviors = false,
+    this.drawChildrenFirst = false,
+    this.alphaAnimationEnabled = true,
+    this.randomColorStart = false,
+    this.randomTextureStart = false,
     this.childInitializer,
     this.childFadeAlpha = false,
     this.followEmitter = false,
@@ -84,8 +91,13 @@ final class BattleSplPointEmitterPlayback {
   final BattleSplVector gravity;
   final ({BattleSplVector target, int force})? magnet;
   final ({BattleSplVector target, int force})? convergence;
+  final ({String axis, int sine, int cosine})? spin;
   final int? childScaleEnd;
   final bool childInheritsBehaviors;
+  final bool drawChildrenFirst;
+  final bool alphaAnimationEnabled;
+  final bool randomColorStart;
+  final bool randomTextureStart;
   final BattleSplVector emitterVelocity;
   final int airResistance;
   final int initialTexture;
@@ -166,9 +178,9 @@ final class BattleSplPointEmitterPlayback {
               baseAlpha5: baseAlpha,
               animatedAlpha5: 31,
               scale4096: 4096,
-              color: color.start,
+              color: initial.color ?? color.start,
               alpha5: baseAlpha,
-              texture: initialTexture,
+              texture: initial.texture ?? initialTexture,
             );
           case BattleSplParticleEventKind.parentUpdated:
             final previous = _particles[event.particleId];
@@ -180,10 +192,12 @@ final class BattleSplPointEmitterPlayback {
               lifetime: _lifecycle.particleLifetime,
               loopTime: loopTime,
             );
-            final animatedAlpha = alpha.valueAt(
-              lifeRate: alphaLoops ? phase.loop : phase.life,
-              randomByte: nextAlphaByte(),
-            );
+            final animatedAlpha = alphaAnimationEnabled
+                ? alpha.valueAt(
+                    lifeRate: alphaLoops ? phase.loop : phase.life,
+                    randomByte: nextAlphaByte(),
+                  )
+                : 31;
             _particles[event.particleId] = BattleSplPointParticle(
               id: event.particleId,
               motion: previous.motion.advanceWithGravity(
@@ -194,6 +208,7 @@ final class BattleSplPointEmitterPlayback {
                 magnetForce: magnet?.force,
                 convergenceTarget: convergence?.target,
                 convergenceForce: convergence?.force,
+                spin: spin,
               ),
               emitterPosition: followEmitter
                   ? followingPosition()
@@ -202,12 +217,16 @@ final class BattleSplPointEmitterPlayback {
               baseAlpha5: previous.baseAlpha5,
               animatedAlpha5: animatedAlpha,
               scale4096: scale.valueAt(scaleLoops ? phase.loop : phase.life),
-              color: color.valueAt(colorLoops ? phase.loop : phase.life),
+              color: randomColorStart
+                  ? previous.color
+                  : color.valueAt(colorLoops ? phase.loop : phase.life),
               alpha5: (baseAlpha * (animatedAlpha + 1)) >> 5,
-              texture: texture.valueAt(
-                lifeRate: textureLoops ? phase.loop : phase.life,
-                previousTexture: previous.texture,
-              ),
+              texture: randomTextureStart
+                  ? previous.texture
+                  : texture.valueAt(
+                      lifeRate: textureLoops ? phase.loop : phase.life,
+                      previousTexture: previous.texture,
+                    ),
             );
             updatedIds.add(event.particleId);
           case BattleSplParticleEventKind.parentExpired:
@@ -258,6 +277,7 @@ final class BattleSplPointEmitterPlayback {
                 magnetForce: childInheritsBehaviors ? magnet?.force : null,
                 convergenceTarget: childInheritsBehaviors ? convergence?.target : null,
                 convergenceForce: childInheritsBehaviors ? convergence?.force : null,
+                spin: childInheritsBehaviors ? spin : null,
               ),
               emitterPosition: childFollowsEmitter
                   ? followingPosition()
@@ -276,8 +296,17 @@ final class BattleSplPointEmitterPlayback {
         }
       }
       if (updatedIds.isNotEmpty) {
+        final particles = updatedIds
+            .where(_particles.containsKey)
+            .map((id) => _particles[id]!)
+            .toList();
         _drawOrder = List.unmodifiable(
-          updatedIds.where(_particles.containsKey).map((id) => _particles[id]!),
+          drawChildrenFirst
+              ? [
+                  ...particles.where((particle) => particle.parentId != null),
+                  ...particles.where((particle) => particle.parentId == null),
+                ]
+              : particles,
         );
       }
       if (result.complete) {

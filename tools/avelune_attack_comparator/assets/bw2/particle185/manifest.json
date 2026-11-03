@@ -1,0 +1,100 @@
+{
+  "kind": "gen5-source-particle-conversion",
+  "version": 1,
+  "moves": [
+    "fly"
+  ],
+  "source": {
+    "repository": "fuddlesworth/pokebw2",
+    "revision": "41f42ca1afe6291f00b0ba0ec3f6099b9ff1346c",
+    "path": "res/particles/btlv_effvm_particles/185/particles.json",
+    "localPath": "source.json",
+    "sha256": "c55de650b66a41cd54460329ec29d6f5754851c41a12d7dd3de08cda3d7117d5",
+    "sizeBytes": 10460
+  },
+  "textures": [
+    {
+      "name": "texture00",
+      "sourcePath": "res/particles/btlv_effvm_particles/185/texture00.png",
+      "path": "texture00.b64",
+      "sha256": "93949a859e9770ad42aa1c728d157cf9d48f55b12bfad45264db1f0989575cae",
+      "sizeBytes": 927,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "name": "texture01",
+      "sourcePath": "res/particles/btlv_effvm_particles/185/texture01.png",
+      "path": "texture01.b64",
+      "sha256": "41153ea1651959f9991dc52dade2e5070dc635ea51fe0370ed40beb2f81dfae9",
+      "sizeBytes": 329,
+      "width": 32,
+      "height": 32
+    },
+    {
+      "name": "texture02",
+      "sourcePath": "res/particles/btlv_effvm_particles/185/texture02.png",
+      "path": "texture02.b64",
+      "sha256": "d03979b4d9e7cc4146cd28313006fc7e770e8aa83c8bffb06797f8cb5076bab1",
+      "sizeBytes": 394,
+      "width": 32,
+      "height": 32
+    },
+    {
+      "name": "texture03",
+      "sourcePath": "res/particles/btlv_effvm_particles/185/texture03.png",
+      "path": "texture03.b64",
+      "sha256": "93ced19a99ab479e47dc9493885b064ec2f173b6b678b99b7e4c735612f5fd6e",
+      "sizeBytes": 971,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "name": "texture04",
+      "sourcePath": "res/particles/btlv_effvm_particles/185/texture04.png",
+      "path": "texture04.b64",
+      "sha256": "1b467f4c3e2079b0997af43f43bbc7a0d4d01a983cb924e2cfcea01f7262f80a",
+      "sizeBytes": 898,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "name": "texture05",
+      "sourcePath": "res/particles/btlv_effvm_particles/185/texture05.png",
+      "path": "texture05.b64",
+      "sha256": "ff3981a5f0a6df5dd2204a5ad560a13e82e13ea2d145324d00585f7448f55c87",
+      "sizeBytes": 1106,
+      "width": 64,
+      "height": 64
+    }
+  ],
+  "requiredSourceEmitterIndices": [
+    0,
+    1,
+    2
+  ],
+  "sourceEmitterIndices": [
+    1,
+    2
+  ],
+  "unconvertedSourceEmitterIndices": [
+    0
+  ],
+  "status": "partial",
+  "definition": {
+    "path": "definition.json",
+    "sha256": "1d13082ca6e733bfc67f7b12ddb0285ac8910930b94ea1ebb9888ba742f6085e",
+    "schemaVersion": 5,
+    "textureIds": [
+      "texture00",
+      "texture01",
+      "texture03",
+      "texture04",
+      "texture05"
+    ]
+  },
+  "diagnostics": [
+    "all-selected: FormatException: Unsupported SPL source field: drawChildrenFirst",
+    "emitter 0: FormatException: Unsupported SPL source field: drawChildrenFirst"
+  ]
+}

@@ -3,7 +3,9 @@ enum BattleGen5SourceTaskCategory {
   particles,
   mcss,
   palette,
+  stageFieldPalette,
   background,
+  backgroundWave,
   window,
   otherVisual,
   audio,
@@ -170,6 +172,11 @@ final class BattleGen5SourceProgramPlayback {
             throw FormatException('Invalid particle reference at $index');
           }
           endsCall = true;
+        case 'deleteParticle':
+          final particle = args['particle'];
+          if (particle is! int || particle < 0 || particle > 65535) {
+            throw FormatException('Invalid particle reference at $index');
+          }
         case 'setAnimationState':
           final mode = args['mode'];
           if (mode is! int || (mode != 0 && mode != 1)) {
@@ -207,15 +214,33 @@ final class BattleGen5SourceProgramPlayback {
   static const int maxInstructionsPerTick = 256;
   static const _operations = {
     'moveCameraPreset',
+    'moveCameraRelative',
+    'moveCameraAbsolute',
     'shakeCamera',
     'loadParticle',
+    'deleteParticle',
     'startEmitter',
+    'startFieldEmitter',
+    'startOrthoEmitter',
     'startMovingEmitter',
+    'startMovingFieldEmitter',
     'moveCombatant',
+    'setActorCameraMode',
+    'circleCombatant',
     'scaleCombatant',
+    'rotateCombatant',
     'setAnimationState',
+    'setCombatantVisibility',
+    'fadeCombatantAlpha',
     'fadePalette',
+    'fadeStagePalette',
     'setShadow',
+    'loadBackground',
+    'moveBackground',
+    'waveBackground',
+    'animateBackgroundPalette',
+    'setSceneVisibility',
+    'playCry',
     'playSound',
     'panSound',
     'moveSound',
@@ -230,7 +255,10 @@ final class BattleGen5SourceProgramPlayback {
     'setYield',
     'end',
   };
-  static const _waitKinds = {'ALL', 'PARTICLES', 'CAMERA', 'MCSS', 'SE'};
+  static const _waitKinds = {
+    'ALL', 'PARTICLES', 'CAMERA', 'MCSS', 'BG', 'SE', 'SE_PLAYER_1', 'CRY',
+    'STAGE_FIELD_FADE'
+  };
 
   final BattleGen5SourceDispatchResult Function(BattleGen5SourceInstruction)
   dispatch;
@@ -329,7 +357,10 @@ final class BattleGen5SourceProgramPlayback {
     'PARTICLES' => isBusy(BattleGen5SourceTaskCategory.particles),
     'CAMERA' => isBusy(BattleGen5SourceTaskCategory.camera),
     'MCSS' => isBusy(BattleGen5SourceTaskCategory.mcss),
-    'SE' => isBusy(BattleGen5SourceTaskCategory.audio),
+    'BG' => isBusy(BattleGen5SourceTaskCategory.background),
+    'SE' || 'SE_PLAYER_1' || 'CRY' => isBusy(BattleGen5SourceTaskCategory.audio),
+    'STAGE_FIELD_FADE' =>
+      isBusy(BattleGen5SourceTaskCategory.stageFieldPalette),
     _ => throw StateError('Unknown source wait category'),
   };
 

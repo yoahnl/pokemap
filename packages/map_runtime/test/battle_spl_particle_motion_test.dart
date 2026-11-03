@@ -7,6 +7,45 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_runtime/src/presentation/flame/battle_spl_particle_motion.dart';
 
 void main() {
+  test('spins around each axis after sampling magnet and before convergence', () {
+    final initial = BattleSplParticleMotion(
+      position: (x: 4096, y: 8192, z: 12288),
+      velocity: (x: 0, y: 0, z: 0),
+      rotation: 0,
+      angularVelocity: 0,
+    );
+    final expected = {
+      'x': (x: 4096, y: -12288, z: 8192),
+      'y': (x: 12288, y: 8192, z: -4096),
+      'z': (x: -8192, y: 4096, z: 12288),
+    };
+    for (final entry in expected.entries) {
+      final result = initial.advanceWithGravity(
+        gravity: (x: 0, y: 0, z: 0),
+        emitterVelocity: (x: 0, y: 0, z: 0),
+        airResistance: 128,
+        spin: (axis: entry.key, sine: 4096, cosine: 0),
+      );
+      expect(result.position, entry.value);
+    }
+    final combined = BattleSplParticleMotion(
+      position: (x: 4096, y: 0, z: 0),
+      velocity: (x: 0, y: 0, z: 0),
+      rotation: 0,
+      angularVelocity: 0,
+    ).advanceWithGravity(
+      gravity: (x: 0, y: 0, z: 0),
+      emitterVelocity: (x: 0, y: 0, z: 0),
+      airResistance: 128,
+      magnetTarget: (x: 0, y: 0, z: 0),
+      magnetForce: 4096,
+      spin: (axis: 'z', sine: 4096, cosine: 0),
+      convergenceTarget: (x: 0, y: 0, z: 0),
+      convergenceForce: 2048,
+    );
+    expect(combined.position, (x: -4096, y: 2048, z: 0));
+  });
+
   test('applies BW2 convergence to position after sampling magnet force', () {
     final initial = BattleSplParticleMotion(
       position: (x: 100, y: -200, z: 300),

@@ -28,18 +28,22 @@ void main() {
       final initial = component.currentRenderedSpriteRect;
       final owner = Object();
       component.applyBattleScriptTransform(
-        offset: const Offset(12, -4), scaleX: 1.25, scaleY: .75, owner: owner,
+        offset: const Offset(12, -4), scaleX: 1.25, scaleY: .75,
+        rotation: .25, owner: owner,
       );
       expect(component.applyBattleScriptTransform(
         offset: Offset.zero, scaleX: 1, scaleY: 1, owner: Object(),
       ), isFalse);
       expect(component.currentVisualOffset, const Offset(12, -4));
+      expect(component.currentVisualRotation, .25);
       expect(component.currentRenderedSpriteRect.width, closeTo(initial.width * 1.25, .01));
       expect(component.currentRenderedSpriteRect.height, closeTo(initial.height * .75, .01));
       component.clearBattleScriptTransform(owner: Object());
       expect(component.currentVisualOffset, const Offset(12, -4));
+      expect(component.currentVisualRotation, .25);
       component.clearBattleScriptTransform(owner: owner);
       expect(component.currentVisualOffset, Offset.zero);
+      expect(component.currentVisualRotation, 0);
       expect(component.currentRenderedSpriteRect, initial);
       component.pauseBattleSpriteAnimation(owner: owner);
       expect(component.applyBattleScriptTransform(

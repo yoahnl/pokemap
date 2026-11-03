@@ -1,0 +1,1396 @@
+{
+  "kind": "gen5SourceProgram",
+  "timebaseHz": 60,
+  "source": {
+    "revision": "41f42ca1afe6291f00b0ba0ec3f6099b9ff1346c",
+    "path": "res/battle/animations/moves/thief.s",
+    "sha256": "d2121e9b8dc539f910459a0ef4cfca725e3546db1307623c022313bc783ce9d8"
+  },
+  "variants": [
+    "Thief",
+    "Thief_Variant1"
+  ],
+  "labels": [
+    {
+      "name": "Thief",
+      "instructionIndex": 0,
+      "line": 9
+    },
+    {
+      "name": "Thief_Variant1",
+      "instructionIndex": 25,
+      "line": 36
+    },
+    {
+      "name": "Thief_044A",
+      "instructionIndex": 51,
+      "line": 64
+    },
+    {
+      "name": "Thief_0460",
+      "instructionIndex": 52,
+      "line": 67
+    }
+  ],
+  "variant": "Thief",
+  "entryIndex": 0,
+  "conversion": "unsupported",
+  "verification": "sourceTranscriptionOnly",
+  "diagnostics": [
+    {
+      "instructionIndex": 0,
+      "line": 10,
+      "code": "unsupportedOperand"
+    },
+    {
+      "instructionIndex": 25,
+      "line": 37,
+      "code": "unsupportedOperand"
+    },
+    {
+      "instructionIndex": 47,
+      "line": 59,
+      "code": "unsupportedOpcode"
+    },
+    {
+      "instructionIndex": 48,
+      "line": 60,
+      "code": "unsupportedOpcode"
+    },
+    {
+      "instructionIndex": 50,
+      "line": 62,
+      "code": "unsupportedOpcode"
+    },
+    {
+      "instructionIndex": 54,
+      "line": 70,
+      "code": "unsupportedOperand"
+    },
+    {
+      "instructionIndex": 60,
+      "line": 76,
+      "code": "unsupportedOperand"
+    }
+  ],
+  "instructions": [
+    {
+      "op": "unsupported",
+      "source": {
+        "index": 0,
+        "line": 10,
+        "name": "CameraMovePreset",
+        "operands": [
+          "1",
+          "15",
+          "24",
+          "0",
+          "0"
+        ]
+      },
+      "args": {}
+    },
+    {
+      "op": "waitTasks",
+      "source": {
+        "index": 1,
+        "line": 11,
+        "name": "Wait",
+        "operands": [
+          "EFFVM_WAIT_ALL"
+        ]
+      },
+      "args": {
+        "what": "ALL"
+      }
+    },
+    {
+      "op": "setYield",
+      "source": {
+        "index": 2,
+        "line": 12,
+        "name": "SetYield",
+        "operands": [
+          "FALSE"
+        ]
+      },
+      "args": {
+        "value": false
+      }
+    },
+    {
+      "op": "playSound",
+      "source": {
+        "index": 3,
+        "line": 13,
+        "name": "PlaySE",
+        "operands": [
+          "SEQ_SE_W028_02",
+          "1",
+          "EFFVM_ATTACKER",
+          "0",
+          "1000",
+          "110",
+          "0",
+          "0",
+          "0"
+        ]
+      },
+      "args": {
+        "se": "SEQ_SE_W028_02",
+        "player": 1,
+        "pan": "EFFVM_ATTACKER",
+        "wait": 0,
+        "pitch": 1000,
+        "volume": 110,
+        "modDepth": 0,
+        "modSpeed": 0,
+        "unused": 0
+      }
+    },
+    {
+      "op": "setYield",
+      "source": {
+        "index": 4,
+        "line": 14,
+        "name": "SetYield",
+        "operands": [
+          "TRUE"
+        ]
+      },
+      "args": {
+        "value": true
+      }
+    },
+    {
+      "op": "moveCombatant",
+      "source": {
+        "index": 5,
+        "line": 15,
+        "name": "McssMoveXY",
+        "operands": [
+          "EFFVM_ATTACKER",
+          "2",
+          "0x1000",
+          "0",
+          "6",
+          "1",
+          "1"
+        ]
+      },
+      "args": {
+        "targets": "EFFVM_ATTACKER",
+        "type": 2,
+        "x": 4096,
+        "y": 0,
+        "frames": 6,
+        "wait": 1,
+        "times": 1
+      }
+    },
+    {
+      "op": "waitTasks",
+      "source": {
+        "index": 6,
+        "line": 16,
+        "name": "Wait",
+        "operands": [
+          "EFFVM_WAIT_ALL"
+        ]
+      },
+      "args": {
+        "what": "ALL"
+      }
+    },
+    {
+      "op": "moveCameraPreset",
+      "source": {
+        "index": 7,
+        "line": 17,
+        "name": "CameraMovePreset",
+        "operands": [
+          "1",
+          "11",
+          "16",
+          "0",
+          "8"
+        ]
+      },
+      "args": {
+        "moveType": 1,
+        "camera": 11,
+        "frames": 16,
+        "wait": 0,
+        "brake": 8
+      }
+    },
+    {
+      "op": "waitFrames",
+      "source": {
+        "index": 8,
+        "line": 18,
+        "name": "WaitFrames",
+        "operands": [
+          "16"
+        ]
+      },
+      "args": {
+        "frames": 16
+      }
+    },
+    {
+      "op": "loadParticle",
+      "source": {
+        "index": 9,
+        "line": 19,
+        "name": "ParticleLoad",
+        "operands": [
+          "338"
+        ]
+      },
+      "args": {
+        "particle": 338
+      }
+    },
+    {
+      "op": "setAnimationState",
+      "source": {
+        "index": 10,
+        "line": 20,
+        "name": "McssSetVanish",
+        "operands": [
+          "EFFVM_DEFENDER",
+          "TRUE"
+        ]
+      },
+      "args": {
+        "targets": "EFFVM_DEFENDER",
+        "mode": 1
+      }
+    },
+    {
+      "op": "fadePalette",
+      "source": {
+        "index": 11,
+        "line": 21,
+        "name": "McssPalFade",
+        "operands": [
+          "EFFVM_DEFENDER",
+          "0",
+          "12",
+          "2",
+          "0x5294"
+        ]
+      },
+      "args": {
+        "targets": "EFFVM_DEFENDER",
+        "startEvy": 0,
+        "endEvy": 12,
+        "wait": 2,
+        "color": 21140
+      }
+    },
+    {
+      "op": "startEmitter",
+      "source": {
+        "index": 12,
+        "line": 22,
+        "name": "EmitterAdd",
+        "operands": [
+          "338",
+          "0",
+          "EFFVM_EMIT_DEFENDER",
+          "8",
+          "0x2000",
+          "0",
+          "0",
+          "0x1000",
+          "0x1000",
+          "0x1000",
+          "0x1000"
+        ]
+      },
+      "args": {
+        "particle": 338,
+        "emitter": 0,
+        "from": "EFFVM_EMIT_DEFENDER",
+        "to": 8,
+        "offsetY": 8192,
+        "unk18": 0,
+        "unused": 0,
+        "radiusScale": 4096,
+        "lifeScale": 4096,
+        "scaleScale": 4096,
+        "cameraScale": 4096
+      }
+    },
+    {
+      "op": "startEmitter",
+      "source": {
+        "index": 13,
+        "line": 23,
+        "name": "EmitterAdd",
+        "operands": [
+          "338",
+          "1",
+          "EFFVM_EMIT_DEFENDER",
+          "8",
+          "0x2000",
+          "0",
+          "0",
+          "0x1000",
+          "0x1000",
+          "0x1000",
+          "0x1000"
+        ]
+      },
+      "args": {
+        "particle": 338,
+        "emitter": 1,
+        "from": "EFFVM_EMIT_DEFENDER",
+        "to": 8,
+        "offsetY": 8192,
+        "unk18": 0,
+        "unused": 0,
+        "radiusScale": 4096,
+        "lifeScale": 4096,
+        "scaleScale": 4096,
+        "cameraScale": 4096
+      }
+    },
+    {
+      "op": "startEmitter",
+      "source": {
+        "index": 14,
+        "line": 24,
+        "name": "EmitterAdd",
+        "operands": [
+          "338",
+          "2",
+          "EFFVM_EMIT_DEFENDER",
+          "8",
+          "0x2000",
+          "0",
+          "0",
+          "0x1000",
+          "0x1000",
+          "0x1000",
+          "0x1000"
+        ]
+      },
+      "args": {
+        "particle": 338,
+        "emitter": 2,
+        "from": "EFFVM_EMIT_DEFENDER",
+        "to": 8,
+        "offsetY": 8192,
+        "unk18": 0,
+        "unused": 0,
+        "radiusScale": 4096,
+        "lifeScale": 4096,
+        "scaleScale": 4096,
+        "cameraScale": 4096
+      }
+    },
+    {
+      "op": "setYield",
+      "source": {
+        "index": 15,
+        "line": 25,
+        "name": "SetYield",
+        "operands": [
+          "FALSE"
+        ]
+      },
+      "args": {
+        "value": false
+      }
+    },
+    {
+      "op": "playSound",
+      "source": {
+        "index": 16,
+        "line": 26,
+        "name": "PlaySE",
+        "operands": [
+          "SEQ_SE_W123_01",
+          "1",
+          "EFFVM_DEFENDER",
+          "0",
+          "0",
+          "115",
+          "0",
+          "0",
+          "0"
+        ]
+      },
+      "args": {
+        "se": "SEQ_SE_W123_01",
+        "player": 1,
+        "pan": "EFFVM_DEFENDER",
+        "wait": 0,
+        "pitch": 0,
+        "volume": 115,
+        "modDepth": 0,
+        "modSpeed": 0,
+        "unused": 0
+      }
+    },
+    {
+      "op": "playSound",
+      "source": {
+        "index": 17,
+        "line": 27,
+        "name": "PlaySE",
+        "operands": [
+          "SEQ_SE_W001_01",
+          "2",
+          "EFFVM_DEFENDER",
+          "0",
+          "0",
+          "90",
+          "0",
+          "0",
+          "0"
+        ]
+      },
+      "args": {
+        "se": "SEQ_SE_W001_01",
+        "player": 2,
+        "pan": "EFFVM_DEFENDER",
+        "wait": 0,
+        "pitch": 0,
+        "volume": 90,
+        "modDepth": 0,
+        "modSpeed": 0,
+        "unused": 0
+      }
+    },
+    {
+      "op": "setYield",
+      "source": {
+        "index": 18,
+        "line": 28,
+        "name": "SetYield",
+        "operands": [
+          "TRUE"
+        ]
+      },
+      "args": {
+        "value": true
+      }
+    },
+    {
+      "op": "waitTasks",
+      "source": {
+        "index": 19,
+        "line": 29,
+        "name": "Wait",
+        "operands": [
+          "EFFVM_WAIT_ALL"
+        ]
+      },
+      "args": {
+        "what": "ALL"
+      }
+    },
+    {
+      "op": "fadePalette",
+      "source": {
+        "index": 20,
+        "line": 30,
+        "name": "McssPalFade",
+        "operands": [
+          "EFFVM_DEFENDER",
+          "12",
+          "0",
+          "2",
+          "0x5294"
+        ]
+      },
+      "args": {
+        "targets": "EFFVM_DEFENDER",
+        "startEvy": 12,
+        "endEvy": 0,
+        "wait": 2,
+        "color": 21140
+      }
+    },
+    {
+      "op": "setAnimationState",
+      "source": {
+        "index": 21,
+        "line": 31,
+        "name": "McssSetVanish",
+        "operands": [
+          "EFFVM_DEFENDER",
+          "FALSE"
+        ]
+      },
+      "args": {
+        "targets": "EFFVM_DEFENDER",
+        "mode": 0
+      }
+    },
+    {
+      "op": "moveCameraPreset",
+      "source": {
+        "index": 22,
+        "line": 32,
+        "name": "CameraMovePreset",
+        "operands": [
+          "1",
+          "8",
+          "16",
+          "0",
+          "8"
+        ]
+      },
+      "args": {
+        "moveType": 1,
+        "camera": 8,
+        "frames": 16,
+        "wait": 0,
+        "brake": 8
+      }
+    },
+    {
+      "op": "waitTasks",
+      "source": {
+        "index": 23,
+        "line": 33,
+        "name": "Wait",
+        "operands": [
+          "EFFVM_WAIT_ALL"
+        ]
+      },
+      "args": {
+        "what": "ALL"
+      }
+    },
+    {
+      "op": "end",
+      "source": {
+        "index": 24,
+        "line": 34,
+        "name": "End",
+        "operands": []
+      },
+      "args": {}
+    },
+    {
+      "op": "unsupported",
+      "source": {
+        "index": 25,
+        "line": 37,
+        "name": "CameraMovePreset",
+        "operands": [
+          "1",
+          "15",
+          "24",
+          "0",
+          "0"
+        ]
+      },
+      "args": {}
+    },
+    {
+      "op": "waitTasks",
+      "source": {
+        "index": 26,
+        "line": 38,
+        "name": "Wait",
+        "operands": [
+          "EFFVM_WAIT_ALL"
+        ]
+      },
+      "args": {
+        "what": "ALL"
+      }
+    },
+    {
+      "op": "setYield",
+      "source": {
+        "index": 27,
+        "line": 39,
+        "name": "SetYield",
+        "operands": [
+          "FALSE"
+        ]
+      },
+      "args": {
+        "value": false
+      }
+    },
+    {
+      "op": "playSound",
+      "source": {
+        "index": 28,
+        "line": 40,
+        "name": "PlaySE",
+        "operands": [
+          "SEQ_SE_W028_02",
+          "1",
+          "EFFVM_ATTACKER",
+          "0",
+          "1000",
+          "110",
+          "0",
+          "0",
+          "0"
+        ]
+      },
+      "args": {
+        "se": "SEQ_SE_W028_02",
+        "player": 1,
+        "pan": "EFFVM_ATTACKER",
+        "wait": 0,
+        "pitch": 1000,
+        "volume": 110,
+        "modDepth": 0,
+        "modSpeed": 0,
+        "unused": 0
+      }
+    },
+    {
+      "op": "setYield",
+      "source": {
+        "index": 29,
+        "line": 41,
+        "name": "SetYield",
+        "operands": [
+          "TRUE"
+        ]
+      },
+      "args": {
+        "value": true
+      }
+    },
+    {
+      "op": "moveCombatant",
+      "source": {
+        "index": 30,
+        "line": 42,
+        "name": "McssMoveXY",
+        "operands": [
+          "EFFVM_ATTACKER",
+          "2",
+          "0x1000",
+          "0",
+          "6",
+          "1",
+          "1"
+        ]
+      },
+      "args": {
+        "targets": "EFFVM_ATTACKER",
+        "type": 2,
+        "x": 4096,
+        "y": 0,
+        "frames": 6,
+        "wait": 1,
+        "times": 1
+      }
+    },
+    {
+      "op": "waitTasks",
+      "source": {
+        "index": 31,
+        "line": 43,
+        "name": "Wait",
+        "operands": [
+          "EFFVM_WAIT_ALL"
+        ]
+      },
+      "args": {
+        "what": "ALL"
+      }
+    },
+    {
+      "op": "moveCameraPreset",
+      "source": {
+        "index": 32,
+        "line": 44,
+        "name": "CameraMovePreset",
+        "operands": [
+          "1",
+          "11",
+          "16",
+          "0",
+          "8"
+        ]
+      },
+      "args": {
+        "moveType": 1,
+        "camera": 11,
+        "frames": 16,
+        "wait": 0,
+        "brake": 8
+      }
+    },
+    {
+      "op": "waitFrames",
+      "source": {
+        "index": 33,
+        "line": 45,
+        "name": "WaitFrames",
+        "operands": [
+          "16"
+        ]
+      },
+      "args": {
+        "frames": 16
+      }
+    },
+    {
+      "op": "loadParticle",
+      "source": {
+        "index": 34,
+        "line": 46,
+        "name": "ParticleLoad",
+        "operands": [
+          "339"
+        ]
+      },
+      "args": {
+        "particle": 339
+      }
+    },
+    {
+      "op": "setAnimationState",
+      "source": {
+        "index": 35,
+        "line": 47,
+        "name": "McssSetVanish",
+        "operands": [
+          "EFFVM_DEFENDER",
+          "TRUE"
+        ]
+      },
+      "args": {
+        "targets": "EFFVM_DEFENDER",
+        "mode": 1
+      }
+    },
+    {
+      "op": "fadePalette",
+      "source": {
+        "index": 36,
+        "line": 48,
+        "name": "McssPalFade",
+        "operands": [
+          "EFFVM_DEFENDER",
+          "0",
+          "12",
+          "2",
+          "0x5294"
+        ]
+      },
+      "args": {
+        "targets": "EFFVM_DEFENDER",
+        "startEvy": 0,
+        "endEvy": 12,
+        "wait": 2,
+        "color": 21140
+      }
+    },
+    {
+      "op": "startEmitter",
+      "source": {
+        "index": 37,
+        "line": 49,
+        "name": "EmitterAdd",
+        "operands": [
+          "339",
+          "0",
+          "EFFVM_EMIT_DEFENDER",
+          "8",
+          "0x2000",
+          "0",
+          "0",
+          "0x1000",
+          "0x1000",
+          "0x1000",
+          "0x1000"
+        ]
+      },
+      "args": {
+        "particle": 339,
+        "emitter": 0,
+        "from": "EFFVM_EMIT_DEFENDER",
+        "to": 8,
+        "offsetY": 8192,
+        "unk18": 0,
+        "unused": 0,
+        "radiusScale": 4096,
+        "lifeScale": 4096,
+        "scaleScale": 4096,
+        "cameraScale": 4096
+      }
+    },
+    {
+      "op": "startEmitter",
+      "source": {
+        "index": 38,
+        "line": 50,
+        "name": "EmitterAdd",
+        "operands": [
+          "339",
+          "2",
+          "EFFVM_EMIT_DEFENDER",
+          "8",
+          "0x2000",
+          "0",
+          "0",
+          "0x1000",
+          "0x1000",
+          "0x1000",
+          "0x1000"
+        ]
+      },
+      "args": {
+        "particle": 339,
+        "emitter": 2,
+        "from": "EFFVM_EMIT_DEFENDER",
+        "to": 8,
+        "offsetY": 8192,
+        "unk18": 0,
+        "unused": 0,
+        "radiusScale": 4096,
+        "lifeScale": 4096,
+        "scaleScale": 4096,
+        "cameraScale": 4096
+      }
+    },
+    {
+      "op": "startEmitter",
+      "source": {
+        "index": 39,
+        "line": 51,
+        "name": "EmitterAdd",
+        "operands": [
+          "339",
+          "3",
+          "EFFVM_EMIT_DEFENDER",
+          "8",
+          "0x2000",
+          "0",
+          "0",
+          "0x1000",
+          "0x1000",
+          "0x1000",
+          "0x1000"
+        ]
+      },
+      "args": {
+        "particle": 339,
+        "emitter": 3,
+        "from": "EFFVM_EMIT_DEFENDER",
+        "to": 8,
+        "offsetY": 8192,
+        "unk18": 0,
+        "unused": 0,
+        "radiusScale": 4096,
+        "lifeScale": 4096,
+        "scaleScale": 4096,
+        "cameraScale": 4096
+      }
+    },
+    {
+      "op": "setYield",
+      "source": {
+        "index": 40,
+        "line": 52,
+        "name": "SetYield",
+        "operands": [
+          "FALSE"
+        ]
+      },
+      "args": {
+        "value": false
+      }
+    },
+    {
+      "op": "playSound",
+      "source": {
+        "index": 41,
+        "line": 53,
+        "name": "PlaySE",
+        "operands": [
+          "SEQ_SE_W123_01",
+          "1",
+          "EFFVM_DEFENDER",
+          "0",
+          "0",
+          "115",
+          "0",
+          "0",
+          "0"
+        ]
+      },
+      "args": {
+        "se": "SEQ_SE_W123_01",
+        "player": 1,
+        "pan": "EFFVM_DEFENDER",
+        "wait": 0,
+        "pitch": 0,
+        "volume": 115,
+        "modDepth": 0,
+        "modSpeed": 0,
+        "unused": 0
+      }
+    },
+    {
+      "op": "playSound",
+      "source": {
+        "index": 42,
+        "line": 54,
+        "name": "PlaySE",
+        "operands": [
+          "SEQ_SE_W001_01",
+          "2",
+          "EFFVM_DEFENDER",
+          "0",
+          "0",
+          "90",
+          "0",
+          "0",
+          "0"
+        ]
+      },
+      "args": {
+        "se": "SEQ_SE_W001_01",
+        "player": 2,
+        "pan": "EFFVM_DEFENDER",
+        "wait": 0,
+        "pitch": 0,
+        "volume": 90,
+        "modDepth": 0,
+        "modSpeed": 0,
+        "unused": 0
+      }
+    },
+    {
+      "op": "setYield",
+      "source": {
+        "index": 43,
+        "line": 55,
+        "name": "SetYield",
+        "operands": [
+          "TRUE"
+        ]
+      },
+      "args": {
+        "value": true
+      }
+    },
+    {
+      "op": "waitTasks",
+      "source": {
+        "index": 44,
+        "line": 56,
+        "name": "Wait",
+        "operands": [
+          "EFFVM_WAIT_ALL"
+        ]
+      },
+      "args": {
+        "what": "ALL"
+      }
+    },
+    {
+      "op": "fadePalette",
+      "source": {
+        "index": 45,
+        "line": 57,
+        "name": "McssPalFade",
+        "operands": [
+          "EFFVM_DEFENDER",
+          "12",
+          "0",
+          "2",
+          "0x5294"
+        ]
+      },
+      "args": {
+        "targets": "EFFVM_DEFENDER",
+        "startEvy": 12,
+        "endEvy": 0,
+        "wait": 2,
+        "color": 21140
+      }
+    },
+    {
+      "op": "setAnimationState",
+      "source": {
+        "index": 46,
+        "line": 58,
+        "name": "McssSetVanish",
+        "operands": [
+          "EFFVM_DEFENDER",
+          "FALSE"
+        ]
+      },
+      "args": {
+        "targets": "EFFVM_DEFENDER",
+        "mode": 0
+      }
+    },
+    {
+      "op": "unsupported",
+      "source": {
+        "index": 47,
+        "line": 59,
+        "name": "IfVarConst",
+        "operands": [
+          "EFFVM_VAR_BATTLE_STYLE",
+          "EFFVM_CMP_EQ",
+          "1",
+          "Thief_044A"
+        ]
+      },
+      "args": {}
+    },
+    {
+      "op": "unsupported",
+      "source": {
+        "index": 48,
+        "line": 60,
+        "name": "IfVarConst",
+        "operands": [
+          "EFFVM_VAR_BATTLE_STYLE",
+          "EFFVM_CMP_EQ",
+          "2",
+          "Thief_044A"
+        ]
+      },
+      "args": {}
+    },
+    {
+      "op": "moveCameraPreset",
+      "source": {
+        "index": 49,
+        "line": 61,
+        "name": "CameraMovePreset",
+        "operands": [
+          "1",
+          "8",
+          "16",
+          "0",
+          "8"
+        ]
+      },
+      "args": {
+        "moveType": 1,
+        "camera": 8,
+        "frames": 16,
+        "wait": 0,
+        "brake": 8
+      }
+    },
+    {
+      "op": "unsupported",
+      "source": {
+        "index": 50,
+        "line": 62,
+        "name": "Jump",
+        "operands": [
+          "Thief_0460"
+        ]
+      },
+      "args": {}
+    },
+    {
+      "op": "moveCameraPreset",
+      "source": {
+        "index": 51,
+        "line": 65,
+        "name": "CameraMovePreset",
+        "operands": [
+          "1",
+          "20",
+          "16",
+          "0",
+          "8"
+        ]
+      },
+      "args": {
+        "moveType": 1,
+        "camera": 20,
+        "frames": 16,
+        "wait": 0,
+        "brake": 8
+      }
+    },
+    {
+      "op": "waitTasks",
+      "source": {
+        "index": 52,
+        "line": 68,
+        "name": "Wait",
+        "operands": [
+          "EFFVM_WAIT_ALL"
+        ]
+      },
+      "args": {
+        "what": "ALL"
+      }
+    },
+    {
+      "op": "setYield",
+      "source": {
+        "index": 53,
+        "line": 69,
+        "name": "SetYield",
+        "operands": [
+          "FALSE"
+        ]
+      },
+      "args": {
+        "value": false
+      }
+    },
+    {
+      "op": "unsupported",
+      "source": {
+        "index": 54,
+        "line": 70,
+        "name": "PlaySE",
+        "operands": [
+          "SEQ_SE_W319_02",
+          "1",
+          "EFFVM_PAN_CENTER",
+          "0",
+          "0",
+          "120",
+          "0",
+          "0",
+          "0"
+        ]
+      },
+      "args": {}
+    },
+    {
+      "op": "panSound",
+      "source": {
+        "index": 55,
+        "line": 71,
+        "name": "PanSE",
+        "operands": [
+          "1",
+          "0",
+          "EFFVM_DEFENDER",
+          "EFFVM_ATTACKER",
+          "0",
+          "40",
+          "0",
+          "0"
+        ]
+      },
+      "args": {
+        "player": 1,
+        "type": 0,
+        "from": "EFFVM_DEFENDER",
+        "to": "EFFVM_ATTACKER",
+        "delay": 0,
+        "frames": 40,
+        "stepWait": 0,
+        "count": 0
+      }
+    },
+    {
+      "op": "setYield",
+      "source": {
+        "index": 56,
+        "line": 72,
+        "name": "SetYield",
+        "operands": [
+          "TRUE"
+        ]
+      },
+      "args": {
+        "value": true
+      }
+    },
+    {
+      "op": "setYield",
+      "source": {
+        "index": 57,
+        "line": 73,
+        "name": "SetYield",
+        "operands": [
+          "FALSE"
+        ]
+      },
+      "args": {
+        "value": false
+      }
+    },
+    {
+      "op": "playSound",
+      "source": {
+        "index": 58,
+        "line": 74,
+        "name": "PlaySE",
+        "operands": [
+          "SEQ_SE_DECIDE3",
+          "2",
+          "EFFVM_ATTACKER",
+          "50",
+          "0",
+          "120",
+          "0",
+          "0",
+          "0"
+        ]
+      },
+      "args": {
+        "se": "SEQ_SE_DECIDE3",
+        "player": 2,
+        "pan": "EFFVM_ATTACKER",
+        "wait": 50,
+        "pitch": 0,
+        "volume": 120,
+        "modDepth": 0,
+        "modSpeed": 0,
+        "unused": 0
+      }
+    },
+    {
+      "op": "setYield",
+      "source": {
+        "index": 59,
+        "line": 75,
+        "name": "SetYield",
+        "operands": [
+          "TRUE"
+        ]
+      },
+      "args": {
+        "value": true
+      }
+    },
+    {
+      "op": "unsupported",
+      "source": {
+        "index": 60,
+        "line": 76,
+        "name": "EmitterMove",
+        "operands": [
+          "339",
+          "1",
+          "2",
+          "EFFVM_EMIT_DEFENDER",
+          "EFFVM_EMIT_ATTACKER",
+          "0x2000",
+          "0x2e000",
+          "0x4000",
+          "0x1000",
+          "0x1000",
+          "0"
+        ]
+      },
+      "args": {}
+    },
+    {
+      "op": "waitFrames",
+      "source": {
+        "index": 61,
+        "line": 77,
+        "name": "WaitFrames",
+        "operands": [
+          "40"
+        ]
+      },
+      "args": {
+        "frames": 40
+      }
+    },
+    {
+      "op": "scaleCombatant",
+      "source": {
+        "index": 62,
+        "line": 78,
+        "name": "McssScale",
+        "operands": [
+          "EFFVM_ATTACKER",
+          "2",
+          "0x4cd",
+          "-0x4cd",
+          "4",
+          "0",
+          "1"
+        ]
+      },
+      "args": {
+        "targets": "EFFVM_ATTACKER",
+        "type": 2,
+        "x": 1229,
+        "y": -1229,
+        "frames": 4,
+        "wait": 0,
+        "times": 1
+      }
+    },
+    {
+      "op": "waitFrames",
+      "source": {
+        "index": 63,
+        "line": 79,
+        "name": "WaitFrames",
+        "operands": [
+          "30"
+        ]
+      },
+      "args": {
+        "frames": 30
+      }
+    },
+    {
+      "op": "moveCameraPreset",
+      "source": {
+        "index": 64,
+        "line": 80,
+        "name": "CameraMovePreset",
+        "operands": [
+          "1",
+          "8",
+          "24",
+          "0",
+          "0"
+        ]
+      },
+      "args": {
+        "moveType": 1,
+        "camera": 8,
+        "frames": 24,
+        "wait": 0,
+        "brake": 0
+      }
+    },
+    {
+      "op": "waitTasks",
+      "source": {
+        "index": 65,
+        "line": 81,
+        "name": "Wait",
+        "operands": [
+          "EFFVM_WAIT_ALL"
+        ]
+      },
+      "args": {
+        "what": "ALL"
+      }
+    },
+    {
+      "op": "end",
+      "source": {
+        "index": 66,
+        "line": 82,
+        "name": "End",
+        "operands": []
+      },
+      "args": {}
+    }
+  ]
+}

@@ -1,0 +1,82 @@
+{
+  "kind": "gen5-source-particle-conversion",
+  "version": 1,
+  "moves": [
+    "thief"
+  ],
+  "source": {
+    "repository": "fuddlesworth/pokebw2",
+    "revision": "41f42ca1afe6291f00b0ba0ec3f6099b9ff1346c",
+    "path": "res/particles/btlv_effvm_particles/339/particles.json",
+    "localPath": "source.json",
+    "sha256": "072e311a54fd16a9818754e485fa6a722ddc6bdb804c2ba8ce45110ad0578058",
+    "sizeBytes": 12334
+  },
+  "textures": [
+    {
+      "name": "texture00",
+      "sourcePath": "res/particles/btlv_effvm_particles/339/texture00.png",
+      "path": "texture00.b64",
+      "sha256": "d03979b4d9e7cc4146cd28313006fc7e770e8aa83c8bffb06797f8cb5076bab1",
+      "sizeBytes": 394,
+      "width": 32,
+      "height": 32
+    },
+    {
+      "name": "texture01",
+      "sourcePath": "res/particles/btlv_effvm_particles/339/texture01.png",
+      "path": "texture01.b64",
+      "sha256": "94bf4cdc1e57dd2f3543a284767379aff09bec187e3864ab564dcefa21728279",
+      "sizeBytes": 402,
+      "width": 32,
+      "height": 32
+    },
+    {
+      "name": "texture02",
+      "sourcePath": "res/particles/btlv_effvm_particles/339/texture02.png",
+      "path": "texture02.b64",
+      "sha256": "f4d9a1b683e976b15188bf28c843f18dd24a8299c26d160d2a65ff5e0b646f39",
+      "sizeBytes": 568,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "name": "texture03",
+      "sourcePath": "res/particles/btlv_effvm_particles/339/texture03.png",
+      "path": "texture03.b64",
+      "sha256": "ebce49dd55ea712ac46fa7032218fce2e8109062ff6380c55257172d6e0d44f0",
+      "sizeBytes": 1669,
+      "width": 64,
+      "height": 64
+    }
+  ],
+  "requiredSourceEmitterIndices": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "sourceEmitterIndices": [
+    2,
+    3
+  ],
+  "unconvertedSourceEmitterIndices": [
+    0,
+    1
+  ],
+  "status": "partial",
+  "definition": {
+    "path": "definition.json",
+    "sha256": "34473fd3f7dd299a725ed3110930425de497f19b89e05cdc3a57228ca6b05ff2",
+    "schemaVersion": 5,
+    "textureIds": [
+      "texture01",
+      "texture03"
+    ]
+  },
+  "diagnostics": [
+    "all-selected: FormatException: Unsupported SPL source field: lifeTimeVariance",
+    "emitter 0: FormatException: Unsupported SPL source field: lifeTimeVariance",
+    "emitter 1: FormatException: Invalid SPL source object"
+  ]
+}

@@ -1,3 +1,5 @@
+import 'battle_gen5_swing.dart';
+
 typedef Gen5CameraVector = ({int x, int y, int z});
 typedef Gen5CameraPose = ({Gen5CameraVector position, Gen5CameraVector target});
 
@@ -43,7 +45,10 @@ final class Gen5CameraMotion {
   int _shakeCount = 0;
   int _shakeWait = 0;
   int _shakeWaitReset = 0;
+  int _shakeStepX = 0;
   int _shakeStepY = 0;
+  int _shakeFrames = 1;
+  int _shakeRemainingSteps = 0;
   Gen5CameraVector _shakeOffset = _zero;
 
   Gen5CameraPose get pose => (
@@ -62,13 +67,39 @@ final class Gen5CameraMotion {
 
   void shakeVertical({
     required int amplitude,
+    int frames = 1,
     required int wait,
     required int count,
+  }) => _shake(amplitude: amplitude, frames: frames, wait: wait, count: count,
+      horizontal: false);
+
+  void shakeHorizontal({
+    required int amplitude,
+    int frames = 1,
+    required int wait,
+    required int count,
+  }) => _shake(amplitude: amplitude, frames: frames, wait: wait, count: count,
+      horizontal: true);
+
+  void _shake({
+    required int amplitude,
+    required int frames,
+    required int wait,
+    required int count,
+    required bool horizontal,
   }) {
     _validateRange(amplitude, -28672, 28672, 'amplitude');
+    _validateRange(frames, 1, 600, 'frames');
     _validateRange(wait, 0, 600, 'wait');
     _validateRange(count, 1, 64, 'count');
-    _shakeStepY = amplitude;
+    if (frames * 4 * count * (wait + 1) - wait > 1800) {
+      throw ArgumentError('Camera shake is too long');
+    }
+    final step = battleGen5SwingStep(amplitude, frames);
+    _shakeStepX = horizontal ? step : 0;
+    _shakeStepY = horizontal ? 0 : step;
+    _shakeFrames = frames;
+    _shakeRemainingSteps = frames;
     _shakeWait = 0;
     _shakeWaitReset = wait;
     _shakeCount = count * 4;
@@ -83,18 +114,21 @@ final class Gen5CameraMotion {
     required int brake,
     Gen5CameraMoveType moveType = Gen5CameraMoveType.step,
   }) {
-    if (preset != 8 && preset != 9 && preset != 11 && preset != 20) {
+    if (!{8, 9, 10, 11, 12, 14, 15, 16, 17, 20, 21}.contains(preset)) {
       throw ArgumentError.value(preset, 'preset');
     }
     _validateRange(frames, 0, _maxFrames, 'frames');
     _validateRange(wait, 0, _maxInt32, 'wait');
     _validateRange(brake, 0, _maxInt32, 'brake');
+    if (preset == 14 || preset == 15 || preset == 16) {
+      return Gen5CameraPresetEffect.camera;
+    }
     if (preset == 20) return Gen5CameraPresetEffect.setFlatActors;
 
     final goal = switch (preset) {
-      8 => defaultPose,
-      9 => _slotPose(attacker),
-      11 => _slotPose(defender),
+      8 || 17 => defaultPose,
+      9 || 10 || 21 => _slotPose(attacker),
+      11 || 12 => _slotPose(defender),
       _ => throw StateError('Unsupported camera preset'),
     };
     if (moveType == Gen5CameraMoveType.immediate) {
@@ -102,6 +136,58 @@ final class Gen5CameraMotion {
       return Gen5CameraPresetEffect.camera;
     }
 
+    _moveTo(goal, frames: frames, wait: wait, brake: brake);
+    return Gen5CameraPresetEffect.camera;
+  }
+
+  void moveRelative({
+    required Gen5CameraVector position,
+    required Gen5CameraVector target,
+    required int frames,
+    required int wait,
+    required int brake,
+  }) {
+    for (final point in [position, target]) {
+      _validateRange(point.x, -131072, 131072, 'x');
+      _validateRange(point.y, -131072, 131072, 'y');
+      _validateRange(point.z, -131072, 131072, 'z');
+    }
+    _validateRange(frames, 1, 600, 'frames');
+    _validateRange(wait, 0, 600, 'wait');
+    _validateRange(brake, 0, 600, 'brake');
+    final current = pose;
+    final goal = (
+      position: (x: current.position.x + position.x,
+          y: current.position.y + position.y, z: current.position.z + position.z),
+      target: (x: current.target.x + target.x,
+          y: current.target.y + target.y, z: current.target.z + target.z),
+    );
+    _validatePose(goal);
+    _moveTo(goal, frames: frames, wait: wait, brake: brake);
+  }
+
+  void moveAbsolute({
+    required Gen5CameraVector position,
+    required Gen5CameraVector target,
+    required int frames,
+    required int wait,
+    required int brake,
+  }) {
+    for (final point in [position, target]) {
+      _validateRange(point.x, -131072, 131072, 'x');
+      _validateRange(point.y, -131072, 131072, 'y');
+      _validateRange(point.z, -131072, 131072, 'z');
+    }
+    _validateRange(frames, 1, 600, 'frames');
+    _validateRange(wait, 0, 600, 'wait');
+    _validateRange(brake, 0, 600, 'brake');
+    _moveTo((position: position, target: target),
+        frames: frames, wait: wait, brake: brake);
+  }
+
+  void _moveTo(Gen5CameraPose goal, {
+    required int frames, required int wait, required int brake,
+  }) {
     final divisor = frames == 0 ? 1 : frames;
     final positionStep = _calculateStep(_pose.position, goal.position, divisor);
     final targetStep = _calculateStep(_pose.target, goal.target, divisor);
@@ -113,7 +199,6 @@ final class Gen5CameraMotion {
     _brake = brake;
     _positionMoving = true;
     _targetMoving = true;
-    return Gen5CameraPresetEffect.camera;
   }
 
   Gen5CameraPose tick() {
@@ -148,13 +233,23 @@ final class Gen5CameraMotion {
       if (_shakeWait == 0) {
         _shakeWait = _shakeWaitReset;
         _shakeOffset = (
-          x: _shakeOffset.x,
+          x: _shakeOffset.x + _shakeStepX,
           y: _shakeOffset.y + _shakeStepY,
           z: _shakeOffset.z,
         );
-        _shakeCount--;
-        if (_shakeCount.isOdd) _shakeStepY = -_shakeStepY;
-        if (_shakeCount == 0) _shakeOffset = _zero;
+        _shakeRemainingSteps--;
+        if (_shakeRemainingSteps == 0) {
+          _shakeCount--;
+          if (_shakeCount.isOdd) {
+            _shakeStepX = -_shakeStepX;
+            _shakeStepY = -_shakeStepY;
+          }
+          if (_shakeCount == 0) {
+            _shakeOffset = _zero;
+          } else {
+            _shakeRemainingSteps = _shakeFrames;
+          }
+        }
       } else {
         _shakeWait--;
       }

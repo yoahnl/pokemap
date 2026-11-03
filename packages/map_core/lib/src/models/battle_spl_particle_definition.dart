@@ -30,7 +30,7 @@ final class BattleSplParticleDefinition {
     }
     _fields(copy, {'schemaVersion', 'emitters'});
     if (copy['schemaVersion'] is! int ||
-        !(experimental ? {5} : {2, 3, 4}).contains(copy['schemaVersion'])) {
+        !(experimental ? {5, 6} : {2, 3, 4}).contains(copy['schemaVersion'])) {
       throw const FormatException('Unsupported SPL particle version');
     }
     final values = _list(copy['emitters']);
@@ -145,6 +145,13 @@ void _validateEmitter(
     if (version >= 5) 'minRotation',
     if (version >= 5) 'maxRotation',
     if (version >= 5) 'dirFromPosition',
+    if (version >= 6) 'drawChildrenFirst',
+    if (version >= 6 && appearance.containsKey('hasAlphaAnimation'))
+      'hasAlphaAnimation',
+    if (version >= 6 && appearance.containsKey('randomColorStart'))
+      'randomColorStart',
+    if (version >= 6 && appearance.containsKey('randomTextureStart'))
+      'randomTextureStart',
     if (version >= 5 && appearance.containsKey('polygonX')) 'polygonX',
     if (version >= 5 && appearance.containsKey('polygonY')) 'polygonY',
     if (version >= 5 && appearance.containsKey('relativeToBasePos'))
@@ -160,6 +167,20 @@ void _validateEmitter(
     _integer(appearance['minRotation'], -32768, 32767);
     _integer(appearance['maxRotation'], -32768, 32767);
     _boolean(appearance['dirFromPosition']);
+    if (version >= 6) _boolean(appearance['drawChildrenFirst']);
+    if (version >= 6 && appearance.containsKey('hasAlphaAnimation')) {
+      _boolean(appearance['hasAlphaAnimation']);
+    }
+    if (version >= 6 && appearance.containsKey('randomColorStart')) {
+      _boolean(appearance['randomColorStart']);
+    }
+    if (version >= 6 && appearance.containsKey('randomTextureStart')) {
+      _boolean(appearance['randomTextureStart']);
+      if (appearance['randomTextureStart'] == true &&
+          appearance['textureAnimation'] == null) {
+        throw const FormatException('Random SPL texture needs animation frames');
+      }
+    }
     if (appearance.containsKey('polygonX')) {
       _integer(appearance['polygonX'], -32768, 32767);
     }
@@ -220,6 +241,7 @@ void _validateEmitter(
     'airResistance',
     if (version >= 4) 'magnet',
     if (version >= 5 && motion.containsKey('convergence')) 'convergence',
+    if (version >= 6 && motion.containsKey('spin')) 'spin',
   });
   _vector(motion['gravity'], -32768, 32767);
   _integer(motion['airResistance'], 0, 255);
@@ -234,6 +256,12 @@ void _validateEmitter(
     _fields(convergence, {'target', 'force'});
     _vector(convergence['target'], -2147483648, 2147483647);
     _integer(convergence['force'], -32768, 32767);
+  }
+  if (version >= 6 && motion.containsKey('spin')) {
+    final spin = _map(motion['spin']);
+    _fields(spin, {'axis', 'angle'});
+    _choice(spin['axis'], {'x', 'y', 'z'});
+    _integer(spin['angle'], 0, 65535);
   }
 
   final child = emitter['child'];
@@ -254,6 +282,7 @@ void _validateEmitter(
       if (version >= 4) 'scaleEnd',
       if (version >= 4) 'inheritBehaviors',
       if (version >= 4) 'draw',
+      if (version >= 6) 'inheritColor',
     });
     _integer(fields['velocityRatio'], 0, 255);
     _integer(fields['randomVelocityMagnitude'], 0, 32767);
@@ -273,6 +302,7 @@ void _validateEmitter(
       _boolean(fields['inheritBehaviors']);
       _choice(fields['draw'], {'billboard', 'directionalBillboard'});
     }
+    if (version >= 6) _boolean(fields['inheritColor']);
     final effectiveLifetime = ((lifetime * 255) >> 8) + 1;
     if (effectiveLifetime < 2 || effectiveLifetime * delay > 524287) {
       throw const FormatException('Invalid SPL child timing');

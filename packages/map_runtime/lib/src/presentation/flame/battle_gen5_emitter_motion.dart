@@ -13,8 +13,9 @@ final class BattleGen5EmitterMotion {
     required int heightFx32,
     required int turnsFx32,
   }) {
-    if (motionType != 1 ||
-        motionFramesFx32 < 4096 ||
+    if (!{1, 2, 5, 6}.contains(motionType) ||
+        ((motionType == 5 || motionType == 6) && turnsFx32.abs() > 32768) ||
+        (motionFramesFx32 != 0 && motionFramesFx32 < 4096) ||
         motionFramesFx32 > 0x7fffffff ||
         !_isSourceVector(from) ||
         !_isSourceVector(to) ||
@@ -46,18 +47,42 @@ final class BattleGen5EmitterMotion {
       y: (sine * axis.z) >> 12,
       z: -((sine * axis.y) >> 12),
     );
+    final heightRotation = (
+      x: -rotation.y,
+      y: rotation.x + ((axis.y * axis.y * (4096 - rotation.x)) >> 24),
+      z: (axis.y * axis.z * (4096 - rotation.x)) >> 24,
+    );
+    final depthRotation = (
+      x: -rotation.z,
+      y: heightRotation.z,
+      z: rotation.x + ((axis.z * axis.z * (4096 - rotation.x)) >> 24),
+    );
     final squared =
         BigInt.from(delta.x) * BigInt.from(delta.x) +
         BigInt.from(delta.y) * BigInt.from(delta.y) +
         BigInt.from(delta.z) * BigInt.from(delta.z);
     final distance = ((_integerSquareRoot(squared << 2).toInt() + 1) >> 1);
-    final division = (((0x8000 * 4096) << 32) ~/ motionFramesFx32);
-    final step = math.max(1, (division + 0x80000) >> 20);
+    final division = motionFramesFx32 == 0
+        ? 0
+        : (((0x8000 * 4096) << 32) ~/ motionFramesFx32);
+    final step = motionFramesFx32 == 0
+        ? 0
+        : math.max(1, (division + 0x80000) >> 20);
+    final secondDivision = motionFramesFx32 == 0
+        ? 0
+        : (((0x10000 * 4096) << 32) ~/ motionFramesFx32);
+    final secondStep = (secondDivision + 0x80000) >> 20;
+    final turns = turnsFx32 == 0 ? 1 : turnsFx32;
     return BattleGen5EmitterMotion._(
       start: start,
       rotation: rotation,
+      heightRotation: heightRotation,
+      depthRotation: depthRotation,
+      motionType: motionType,
+      height: motionType == 1 ? 0 : heightFx32,
       radius: distance ~/ 2,
       angleStep: step,
+      secondAngleStep: ((secondStep * turns + 2048) >> 12).toSigned(32),
       frames: motionFramesFx32 >> 12,
     );
   }
@@ -65,8 +90,13 @@ final class BattleGen5EmitterMotion {
   BattleGen5EmitterMotion._({
     required BattleSplVector start,
     required this._rotation,
+    required this._heightRotation,
+    required this._depthRotation,
+    required this._motionType,
+    required this._height,
     required this._radius,
     required this._angleStep,
+    required this._secondAngleStep,
     required int frames,
   }) : _start = start,
        _remainingFrames = frames,
@@ -74,10 +104,16 @@ final class BattleGen5EmitterMotion {
 
   final BattleSplVector _start;
   final BattleSplVector _rotation;
+  final BattleSplVector _heightRotation;
+  final BattleSplVector _depthRotation;
+  final int _motionType;
+  final int _height;
   final int _radius;
   final int _angleStep;
+  final int _secondAngleStep;
   int _remainingFrames;
   int _angle = 0;
+  int _secondAngle = 0;
   BattleSplVector _position;
   bool _cancelled = false;
 
@@ -89,12 +125,19 @@ final class BattleGen5EmitterMotion {
     if (isComplete || !active) return _position;
     _remainingFrames--;
     _angle += _angleStep;
+    _secondAngle = (_secondAngle + _secondAngleStep).toSigned(32);
     final angleIndex = ((_angle >> 12) + 0xc000) & 0xffff;
+    final waveAngleIndex = ((_secondAngle >> 12) + 0xc000) & 0xffff;
     final localX = ((_sinIndex(angleIndex) * _radius + 0x800) >> 12) + _radius;
+    final waveAngle = _motionType == 5 || _motionType == 6
+        ? waveAngleIndex : angleIndex;
+    final wave = (_sinIndex(waveAngle + 0x4000) * _height + 0x800) >> 12;
+    final localY = _motionType == 6 ? 0 : wave;
+    final localZ = _motionType == 6 ? wave : 0;
     _position = (
-      x: _start.x + ((localX * _rotation.x) >> 12),
-      y: _start.y + ((localX * _rotation.y) >> 12),
-      z: _start.z + ((localX * _rotation.z) >> 12),
+      x: _start.x + ((localX * _rotation.x + localY * _heightRotation.x + localZ * _depthRotation.x) >> 12),
+      y: _start.y + ((localX * _rotation.y + localY * _heightRotation.y + localZ * _depthRotation.y) >> 12),
+      z: _start.z + ((localX * _rotation.z + localY * _heightRotation.z + localZ * _depthRotation.z) >> 12),
     );
     return _position;
   }

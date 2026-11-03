@@ -1,0 +1,45 @@
+{
+  "kind": "gen5-source-particle-conversion",
+  "version": 1,
+  "moves": [
+    "quick-attack"
+  ],
+  "source": {
+    "repository": "fuddlesworth/pokebw2",
+    "revision": "41f42ca1afe6291f00b0ba0ec3f6099b9ff1346c",
+    "path": "res/particles/btlv_effvm_particles/270/particles.json",
+    "localPath": "source.json",
+    "sha256": "6f2f2699491e27068878744a5bc2a92a005a58474345fcf9dbcdf936b792834e",
+    "sizeBytes": 6390
+  },
+  "textures": [
+    {
+      "name": "texture00",
+      "sourcePath": "res/particles/btlv_effvm_particles/270/texture00.png",
+      "path": "texture00.b64",
+      "sha256": "94bf4cdc1e57dd2f3543a284767379aff09bec187e3864ab564dcefa21728279",
+      "sizeBytes": 402,
+      "width": 32,
+      "height": 32
+    }
+  ],
+  "requiredSourceEmitterIndices": [
+    0,
+    1
+  ],
+  "sourceEmitterIndices": [
+    0,
+    1
+  ],
+  "unconvertedSourceEmitterIndices": [],
+  "status": "complete",
+  "definition": {
+    "path": "definition.json",
+    "sha256": "36ea32897be603a88c914e90b9bd64d35534275bf503696ee97b619f1fa8c2af",
+    "schemaVersion": 5,
+    "textureIds": [
+      "texture00"
+    ]
+  },
+  "diagnostics": []
+}

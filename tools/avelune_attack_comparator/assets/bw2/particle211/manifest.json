@@ -1,0 +1,55 @@
+{
+  "kind": "gen5-source-particle-conversion",
+  "version": 1,
+  "moves": [
+    "roar"
+  ],
+  "source": {
+    "repository": "fuddlesworth/pokebw2",
+    "revision": "41f42ca1afe6291f00b0ba0ec3f6099b9ff1346c",
+    "path": "res/particles/btlv_effvm_particles/211/particles.json",
+    "localPath": "source.json",
+    "sha256": "2ce554f5147253978586fd46a325096da8042d1979538f904f9b17f41ddda04b",
+    "sizeBytes": 5733
+  },
+  "textures": [
+    {
+      "name": "texture00",
+      "sourcePath": "res/particles/btlv_effvm_particles/211/texture00.png",
+      "path": "texture00.b64",
+      "sha256": "46d9c9f1d21b5957af67018f724967cbff89715ef85be101e9abaaa5310a6f6b",
+      "sizeBytes": 238,
+      "width": 32,
+      "height": 32
+    },
+    {
+      "name": "texture01",
+      "sourcePath": "res/particles/btlv_effvm_particles/211/texture01.png",
+      "path": "texture01.b64",
+      "sha256": "315ec5a93828cfbfd62c3738df0b5d36545afa9cf2b9b96f0b7aa02d692a2149",
+      "sizeBytes": 937,
+      "width": 64,
+      "height": 64
+    }
+  ],
+  "requiredSourceEmitterIndices": [
+    0,
+    1
+  ],
+  "sourceEmitterIndices": [
+    0,
+    1
+  ],
+  "unconvertedSourceEmitterIndices": [],
+  "status": "complete",
+  "definition": {
+    "path": "definition.json",
+    "sha256": "c1186bb78d2052a8570460cdee26e2a9d0925097594e95a0bc43641bdad12680",
+    "schemaVersion": 5,
+    "textureIds": [
+      "texture00",
+      "texture01"
+    ]
+  },
+  "diagnostics": []
+}

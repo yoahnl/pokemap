@@ -9,6 +9,23 @@ import 'package:map_runtime/src/presentation/flame/battle_spl_random.dart';
 import 'package:map_runtime/src/presentation/flame/battle_spl_scalar_animation.dart';
 
 void main() {
+  test('does not consume alpha randomness when there is no alpha animation', () {
+    var calls = 0;
+    final playback = _playback(
+      _lifecycle(),
+      alphaAnimationEnabled: false,
+      nextAlphaByte: () {
+        calls++;
+        return 0;
+      },
+    );
+    playback.step(managerFrame: 0);
+    playback.step(managerFrame: 1);
+    expect(calls, 0);
+    expect(playback.particles.every((particle) => particle.animatedAlpha5 == 31), isTrue);
+    playback.cancel();
+  });
+
   test('applies parent forces to children only when configured', () {
     BattleSplPointEmitterPlayback create(bool inherit) => _playback(
       _lifecycle(child: const BattleSplChildTiming(
@@ -114,6 +131,8 @@ void main() {
         ),
         emitterPosition: (x: id * 10, y: 0, z: 0),
         baseScale4096: id * 2048,
+        color: null,
+        texture: null,
       ),
     );
 
@@ -510,6 +529,7 @@ BattleSplPointEmitterPlayback _playback(
   bool followEmitter = false,
   bool childFollowsEmitter = false,
   bool childFadeAlpha = false,
+  bool alphaAnimationEnabled = true,
   int? childScaleEnd,
   ({BattleSplVector target, int force})? magnet,
   bool childInheritsBehaviors = false,
@@ -523,6 +543,7 @@ BattleSplPointEmitterPlayback _playback(
   childFollowsEmitter: childFollowsEmitter,
   airResistance: 128,
   childFadeAlpha: childFadeAlpha,
+  alphaAnimationEnabled: alphaAnimationEnabled,
   childScaleEnd: childScaleEnd,
   magnet: magnet,
   childInheritsBehaviors: childInheritsBehaviors,
@@ -541,6 +562,8 @@ BattleSplPointEmitterPlayback _playback(
             : initialMotion(id),
         emitterPosition: emitterPosition,
         baseScale4096: 4096,
+        color: null,
+        texture: null,
       ))(id),
   scale: BattleSplScalarAnimation(
     start: 4096,

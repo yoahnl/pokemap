@@ -37,6 +37,8 @@ final class BattleStage3DComponent extends Component {
   int _loadGeneration = 0;
   bool _currentFramePresented = false;
   bool _renderFailureReported = false;
+  bool sourceHidePlatforms = false;
+  bool sourceHideFloor = false;
   List<Object>? _groundKey;
   List<BattleStageGround> _ground = const [];
 
@@ -102,13 +104,15 @@ final class BattleStage3DComponent extends Component {
       final groundKey = <Object>[
         camera.viewport,
         camera.focal,
+        sourceHidePlatforms,
+        sourceHideFloor,
         for (final entry in geometry.entries)
           (entry.key, entry.value.footAnchor, entry.value.platformRect),
       ];
       if (!listEquals(groundKey, _groundKey)) {
         _groundKey = groundKey;
         _ground = [
-          if (paintFloor)
+          if (paintFloor && !sourceHideFloor)
             BattleStageGround(
               points: [
                 Model3dVector3(x: -150, y: -.04, z: -250),
@@ -118,7 +122,7 @@ final class BattleStage3DComponent extends Component {
               ],
               color: const Color(0xff64875a),
             ),
-          for (final entry in geometry.entries) ...[
+          if (!sourceHidePlatforms) for (final entry in geometry.entries) ...[
             _ellipse(entry.value, .0, 1, const Color(0xff635d3c)),
             _ellipse(entry.value, .015, .94, const Color(0xff819269)),
           ],
