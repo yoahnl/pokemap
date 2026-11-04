@@ -12,6 +12,7 @@ import 'package:map_runtime/src/presentation/flame/battle_gen5_source_program_pl
 import 'package:map_runtime/src/presentation/flame/battle_gen5_source_emitter.dart';
 import 'package:map_runtime/src/presentation/flame/battle_gen5_source_background.dart';
 import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
+import 'package:map_runtime/src/presentation/flame/battle_scene_backdrop_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_stage_3d_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_spl_static_admission.dart';
 
@@ -699,6 +700,46 @@ void main() {
     picture.dispose();
     overlay.cancelExperimentalGen5Attack();
     expect(await finished, BattleGen5SourcePlaybackStatus.cancelled);
+  });
+
+  testWidgets('stage palette fade also affects the field backdrop', (tester) async {
+    final overlay = await _scene();
+    final backdrop = overlay.children.whereType<BattleSceneBackdropComponent>().single;
+    Future<List<int>> fieldPixel() async {
+      final recorder = ui.PictureRecorder();
+      backdrop.render(ui.Canvas(recorder));
+      final picture = recorder.endRecording();
+      final image = picture.toImageSync(390, 844);
+      final bytes = await tester.runAsync(
+        () => image.toByteData(format: ui.ImageByteFormat.rawRgba),
+      );
+      final pixel = (100 * 390 + 100) * 4;
+      final color = [for (var i = 0; i < 4; i++) bytes!.getUint8(pixel + i)];
+      image.dispose();
+      picture.dispose();
+      return color;
+    }
+    final original = await fieldPixel();
+    expect(original, isNot([0, 0, 0, 255]));
+    final finished = overlay.presentExperimentalGen5Attack(
+      program: _program([
+        _instruction('setYield', {'value': false}),
+        _instruction('fadeStagePalette', {
+          'fade': 2, 'evy': 16, 'targetEvy': 16, 'wait': 0, 'color': 0,
+        }),
+        _instruction('waitFrames', {'frames': 100}),
+        _instruction('end'),
+      ]),
+      variant: 'Tackle', hasEmitter: (_, _) => false,
+      startEmitter: (_, _, _) {}, particlesBusy: () => false,
+      detachParticles: () {}, allowSilentAudio: true,
+    );
+    overlay.updateTree(1 / 60);
+    overlay.findGame()!.processLifecycleEvents();
+    expect(await fieldPixel(), [0, 0, 0, 255]);
+    overlay.cancelExperimentalGen5Attack();
+    expect(await finished, BattleGen5SourcePlaybackStatus.cancelled);
+    expect(await fieldPixel(), original);
   });
 
   testWidgets('stage and background palette fades keep separate targets', (tester) async {

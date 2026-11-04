@@ -22,6 +22,7 @@ class BattleSceneBackdropComponent extends PositionComponent {
     this.visualAssetCache,
     this.artworkRect,
     this.perspectiveGround = false,
+    this.colorFilter,
     BattleBackgroundSpec backgroundSpec =
         const BattleBackgroundSpec.fallbackField(),
   }) : _backgroundSpec = backgroundSpec,
@@ -32,6 +33,7 @@ class BattleSceneBackdropComponent extends PositionComponent {
   Rect? artworkRect;
   Offset cameraParallax = Offset.zero;
   final bool perspectiveGround;
+  final ColorFilter? Function()? colorFilter;
   ui.Image? _explicitImage;
   String? _explicitImageSourcePath;
   bool _didExplicitImageLoadFail = false;
@@ -89,19 +91,25 @@ class BattleSceneBackdropComponent extends PositionComponent {
       _cachedBackdropImage = _explicitImage;
       _cachedArtworkRect = artworkRect;
     }
+    final filter = colorFilter?.call();
+    if (filter != null) {
+      canvas.saveLayer(Offset.zero & currentSize, Paint()..colorFilter = filter);
+    }
     canvas.drawPicture(_cachedBackdrop!);
-    if (cameraParallax == Offset.zero) return;
-    canvas.save();
-    final frame = artworkRect ?? (Offset.zero & currentSize);
-    canvas.clipRect(frame);
-    canvas.translate(frame.center.dx + cameraParallax.dx,
-        frame.center.dy + cameraParallax.dy);
-    final overscan = 1 + 2 * (cameraParallax.dx.abs() / frame.width +
-        cameraParallax.dy.abs() / frame.height);
-    canvas.scale(overscan);
-    canvas.translate(-frame.center.dx, -frame.center.dy);
-    canvas.drawPicture(_cachedBackdrop!);
-    canvas.restore();
+    if (cameraParallax != Offset.zero) {
+      canvas.save();
+      final frame = artworkRect ?? (Offset.zero & currentSize);
+      canvas.clipRect(frame);
+      canvas.translate(frame.center.dx + cameraParallax.dx,
+          frame.center.dy + cameraParallax.dy);
+      final overscan = 1 + 2 * (cameraParallax.dx.abs() / frame.width +
+          cameraParallax.dy.abs() / frame.height);
+      canvas.scale(overscan);
+      canvas.translate(-frame.center.dx, -frame.center.dy);
+      canvas.drawPicture(_cachedBackdrop!);
+      canvas.restore();
+    }
+    if (filter != null) canvas.restore();
   }
 
   @override

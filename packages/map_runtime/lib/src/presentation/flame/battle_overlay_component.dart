@@ -3326,6 +3326,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     _backdrop = BattleSceneBackdropComponent(
       size: Vector2(size.x, size.y),
       perspectiveGround: true,
+      colorFilter: () => _stage3D?.sourcePaletteFilter,
       backgroundSpec: backgroundSpec,
       visualAssetCache: visualAssetCache,
       artworkRect: layout.backdropArtworkRect,
