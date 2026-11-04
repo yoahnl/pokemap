@@ -2101,15 +2101,23 @@ void main() {
     },
   );
 
+  for (final pilot in [
+    (name: 'Charge', file: 'tackle', variant: 'Tackle', particle: 199,
+      indices: [0, 1], expected: [0, 1], sounds: 3),
+    (name: 'Pistolet à O', file: 'water_gun', variant: 'WaterGun', particle: 220,
+      indices: [0, 1], expected: [...List.filled(10, 1), 0, 1, 0, ...List.filled(4, 1)], sounds: 5),
+    (name: 'Surf', file: 'surf', variant: 'Surf', particle: 222,
+      indices: [3, 1, 4, 5, 2], expected: [3, 1, 4, 5, 2], sounds: 6),
+  ]) {
   test(
-    'real Charge source program finishes before tracked turn damage',
+    'real ${pilot.name} source program finishes before damage in a tracked Charge turn',
     () async {
       final root = Directory('../../tools/avelune_attack_comparator/assets/bw2');
       final program = jsonDecode(
-        File('${root.path}/tackle.json').readAsStringSync(),
+        File('${root.path}/${pilot.file}.json').readAsStringSync(),
       ) as Map<String, dynamic>;
       final originalDefinition = jsonDecode(
-        File('${root.path}/particle199/definition.json').readAsStringSync(),
+        File('${root.path}/particle${pilot.particle}/definition.json').readAsStringSync(),
       ) as Map<String, dynamic>;
       final active = <BattleSplStaticPlayback>[];
       final emitterIndices = <int>[];
@@ -2123,12 +2131,13 @@ void main() {
           started = true;
           final result = overlay.presentExperimentalGen5Attack(
             program: program,
-            variant: 'Tackle',
+            variant: pilot.variant,
             hasEmitter: (particle, emitter) =>
-                particle == 199 && (emitter == 0 || emitter == 1),
+                particle == pilot.particle && pilot.indices.contains(emitter),
             startEmitter: (_, _, _) => fail(),
             startSourceEmitter: (args) {
-              final index = args['emitter'] as int;
+              final sourceIndex = args['emitter'] as int;
+              final index = pilot.indices.indexOf(sourceIndex);
               final json = jsonDecode(jsonEncode(originalDefinition))
                   as Map<String, dynamic>;
               final emitter = (json['emitters'] as List)[index] as Map;
@@ -2147,7 +2156,7 @@ void main() {
                 seed: 0, poolCapacity: 256, maxTicks: 300,
               );
               if (prepared.failure != null) throw StateError('${prepared.failure}');
-              emitterIndices.add(index);
+              emitterIndices.add(sourceIndex);
               active.add(prepared.playback!);
             },
             onSourceSound: (args) => soundEvents.add(args['se'] as String),
@@ -2158,6 +2167,8 @@ void main() {
               detached = true;
             },
             allowSilentAudio: true,
+            allowUnmappedAudioControls: true,
+            allowApproximateFlatActors: true,
             adaptSourceCamera: true,
             duringTrackedEffect: true,
           );
@@ -2193,13 +2204,14 @@ void main() {
         await Future<void>.delayed(Duration.zero);
       }
       expect(started && completed && detached, isTrue);
-      expect(emitterIndices, [0, 1]);
-      expect(soundEvents, hasLength(3));
+      expect(emitterIndices, pilot.expected);
+      expect(soundEvents, hasLength(pilot.sounds));
       expect(overlay.isTurnPresentationActive, isFalse);
       expect(overlay.currentCommandOverlaySnapshot!.enemyHud.effectiveDisplayedHp,
           turn.state.enemy.currentHp);
     },
   );
+  }
 
   test(
     'replacing a turn cancels its tracked source effect and resumes the actor',
