@@ -23,6 +23,8 @@ Future<BattleSplStaticPlayback> playback({
   int axisZ = 0,
   bool directional = false,
   int? sourcePolygonAngle,
+  String sourcePolygonAxis = 'xyz',
+  String sourcePolygonPlane = 'xy',
 }) async {
   final value = jsonDecode(
     await File('../map_core/test/fixtures/spl_particle_v2.json').readAsString(),
@@ -79,7 +81,10 @@ Future<BattleSplStaticPlayback> playback({
     }
   }
   if (sourcePolygonAngle != null) {
-    value['schemaVersion'] = 15;
+    value['schemaVersion'] = child ||
+            sourcePolygonAxis != 'xyz' || sourcePolygonPlane != 'xy'
+        ? 16
+        : 15;
     emission['positionVelocity'] = 0;
     emission['emissionAxis'] = 'z';
     emission['velocityVariance'] = 0;
@@ -88,14 +93,23 @@ Future<BattleSplStaticPlayback> playback({
     emission['initialAngle'] = sourcePolygonAngle;
     final appearance = emitter['appearance'] as Map<String, dynamic>;
     appearance['draw'] = 'polygon';
-    appearance['polygonRotationAxis'] = 'xyz';
-    appearance['polygonReferencePlane'] = 'xy';
+    appearance['polygonRotationAxis'] = sourcePolygonAxis;
+    appearance['polygonReferencePlane'] = sourcePolygonPlane;
     appearance['hasRotation'] = false;
     appearance['minRotation'] = 0;
     appearance['maxRotation'] = 0;
     appearance['dirFromPosition'] = false;
     appearance['drawChildrenFirst'] = false;
     (emitter['motion'] as Map<String, dynamic>)['magnet'] = null;
+    if (child) {
+      (emitter['child'] as Map<String, dynamic>).addAll({
+        'scaleEnd': null,
+        'inheritBehaviors': false,
+        'draw': 'billboard',
+        'inheritColor': false,
+        'followEmitter': childFollowsEmitter,
+      });
+    }
   }
   final result = BattleSplStaticAdmission.prepare(
     definition: childFollowsEmitter || hideParent || sourcePolygonAngle != null
@@ -227,7 +241,7 @@ Future<ui.Offset> redCentroid(
 }
 
 void main() {
-  test('renders a source polygon edge-on after rotation around xyz', () async {
+  test('renders source polygons on their configured planes', () async {
     final camera = BattlePerspectiveCamera(
       viewport: const ui.Rect.fromLTWH(0, 0, 390, 844),
     );
@@ -244,8 +258,12 @@ void main() {
         yawRadians: 0,
       ),
     );
-    Future<int> redPixels(int angle) async {
-      final effect = await playback(sourcePolygonAngle: angle);
+    Future<int> redPixels(int angle, {String axis = 'xyz', String plane = 'xy'}) async {
+      final effect = await playback(
+        sourcePolygonAngle: angle,
+        sourcePolygonAxis: axis,
+        sourcePolygonPlane: plane,
+      );
       final red = await redImage();
       final component = BattleSplStaticComponent(
         playback: effect,
@@ -280,8 +298,52 @@ void main() {
 
     final front = await redPixels(0);
     final edge = await redPixels(21845);
+    final groundPlane = await redPixels(0, axis: 'y', plane: 'xz');
     expect(front, greaterThan(100));
     expect(edge, lessThan(front ~/ 5));
+    expect(groundPlane, lessThan(front ~/ 5));
+  });
+
+  test('draws billboard children independently of the parent polygon', () async {
+    final camera = BattlePerspectiveCamera(
+      viewport: const ui.Rect.fromLTWH(0, 0, 390, 844),
+    );
+    camera.moveTo(
+      eye: const BattleCameraPoint(0, 0, 10),
+      aim: const BattleCameraPoint(0, 0, 0),
+      durationSeconds: 0,
+    );
+    final effect = await playback(
+      child: true,
+      sourcePolygonAngle: 0,
+      sourcePolygonAxis: 'y',
+      sourcePolygonPlane: 'xz',
+    );
+    final red = await redImage();
+    final green = await greenImage();
+    final component = BattleSplStaticComponent(
+      playback: effect,
+      textures: {0: red, 1: green},
+      origin: ui.Offset.zero,
+      pixelsPerUnit: 12,
+      projection: cameraProjection(
+        camera,
+        () => const ui.Offset(195, 422),
+        worldTransform: const BattleSplWorldTransform(
+          worldUnitsPerUnit: 1,
+          yawRadians: 0,
+        ),
+      ),
+      onComplete: () {},
+      onFailure: (_) => fail('unexpected polygon projection failure'),
+    );
+    red.dispose();
+    green.dispose();
+    addTearDown(component.dispose);
+    component.update(1 / 60);
+    component.update(1 / 60);
+    expect(effect.frames.single.particles.any((p) => p.parentId != null), isTrue);
+    expect(await hasRedPixels(component, width: 390, height: 844, channel: 1), isTrue);
   });
 
   for (final mode in ['flat', 'camera', 'world']) {
@@ -422,6 +484,28 @@ void main() {
       clipped.positions.every((point) => point.dx.isFinite && point.dy.isFinite),
       isTrue,
     );
+    final horizontal = projection.projectSourcePolygon(
+      (x: 0, y: 0, z: 0, unit: 1),
+      particle,
+      aspectRatio4096: 4096,
+      scaleAxis: 'xy',
+      pixelsPerUnit: 1,
+      rotationAxis: 'y',
+      referencePlane: 'xz',
+    )!;
+    final angle = 21845 * 2 * math.pi / 65536;
+    final expectedHorizontal = [
+      for (final (x, z) in [(-1, 1), (1, 1), (1, -1), (-1, -1)])
+        camera.project(BattleCameraPoint(
+          x * math.cos(angle) + z * math.sin(angle),
+          0,
+          -x * math.sin(angle) + z * math.cos(angle),
+        )).position,
+    ];
+    expect(horizontal, hasLength(4));
+    for (var i = 0; i < 4; i++) {
+      expect((horizontal[i] - expectedHorizontal[i]).distance, lessThan(1e-8));
+    }
   });
 
   test('projects the four corners of a Surf-style oriented polygon', () {

@@ -248,12 +248,13 @@ final class BattleSplStaticComponent extends PositionComponent
                 );
           List<ui.Offset>? polygon;
           BattleSplProjectedPolygon? clippedPolygon;
-          if (frame.directionalPolygon || frame.sourcePolygon) {
+          final sourcePolygon = frame.sourcePolygon && particle.parentId == null;
+          if (frame.directionalPolygon || sourcePolygon) {
             if (anchor == null) {
               _fail(BattleSplAdmissionFailure.projectionUnavailable);
               return;
             }
-            polygon = frame.sourcePolygon
+            polygon = sourcePolygon
                 ? activeProjection!.projectSourcePolygon(
                     anchor,
                     particle,
@@ -261,6 +262,8 @@ final class BattleSplStaticComponent extends PositionComponent
                     aspectRatio4096: frame.aspectRatio4096,
                     scaleAxis: frame.scaleAxis,
                     pixelsPerUnit: pixelsPerUnit,
+                    rotationAxis: frame.polygonRotationAxis,
+                    referencePlane: frame.polygonReferencePlane,
                   )
                 : activeProjection!.projectDirectionalPolygon(
               anchor,
@@ -271,7 +274,7 @@ final class BattleSplStaticComponent extends PositionComponent
               pixelsPerUnit: pixelsPerUnit,
             );
             if (polygon == null) {
-              clippedPolygon = frame.sourcePolygon
+              clippedPolygon = sourcePolygon
                   ? activeProjection.projectClippedSourcePolygon(
                       anchor,
                       particle,
@@ -279,6 +282,8 @@ final class BattleSplStaticComponent extends PositionComponent
                       aspectRatio4096: frame.aspectRatio4096,
                       scaleAxis: frame.scaleAxis,
                       pixelsPerUnit: pixelsPerUnit,
+                      rotationAxis: frame.polygonRotationAxis,
+                      referencePlane: frame.polygonReferencePlane,
                     )
                   : activeProjection.projectClippedDirectionalPolygon(
                     anchor,

@@ -252,12 +252,15 @@ final class BattleSplCameraProjection {
     required int aspectRatio4096,
     required String scaleAxis,
     required double pixelsPerUnit,
+    String rotationAxis = 'xyz',
+    String referencePlane = 'xy',
     int emitterIndex = 0,
   }) {
     final corners = _sourceWorldCorners(
       anchor, particle,
       aspectRatio4096: aspectRatio4096, scaleAxis: scaleAxis,
       pixelsPerUnit: pixelsPerUnit, emitterIndex: emitterIndex,
+      rotationAxis: rotationAxis, referencePlane: referencePlane,
     );
     if (corners == null) return null;
     final projected = <ui.Offset>[];
@@ -275,11 +278,14 @@ final class BattleSplCameraProjection {
     required int aspectRatio4096,
     required String scaleAxis,
     required double pixelsPerUnit,
+    String rotationAxis = 'xyz',
+    String referencePlane = 'xy',
     int emitterIndex = 0,
   }) => _projectClippedCorners(_sourceWorldCorners(
     anchor, particle,
     aspectRatio4096: aspectRatio4096, scaleAxis: scaleAxis,
     pixelsPerUnit: pixelsPerUnit, emitterIndex: emitterIndex,
+    rotationAxis: rotationAxis, referencePlane: referencePlane,
   ));
 
   BattleSplProjectedPolygon? projectClippedDirectionalPolygon(
@@ -345,6 +351,8 @@ final class BattleSplCameraProjection {
     required String scaleAxis,
     required double pixelsPerUnit,
     required int emitterIndex,
+    required String rotationAxis,
+    required String referencePlane,
   }) {
     if (emitterTransforms != null &&
         (emitterIndex < 0 || emitterIndex >= emitterTransforms!.length)) {
@@ -352,7 +360,9 @@ final class BattleSplCameraProjection {
     }
     final transform = emitterTransforms?[emitterIndex] ?? worldTransform;
     if (transform == null || !pixelsPerUnit.isFinite || pixelsPerUnit <= 0 ||
-        !{'x', 'y', 'xy'}.contains(scaleAxis)) {
+        !{'x', 'y', 'xy'}.contains(scaleAxis) ||
+        !{'xyz', 'y'}.contains(rotationAxis) ||
+        !{'xy', 'xz'}.contains(referencePlane)) {
       return null;
     }
     if (particle.alpha5 == 0 || particle.scale4096 == 0) return const [];
@@ -375,12 +385,19 @@ final class BattleSplCameraProjection {
     final corners = <BattleCameraPoint>[];
     for (final sign in const [(-1, 1), (1, 1), (1, -1), (-1, -1)]) {
       final x = sign.$1 * scaleX;
-      final y = sign.$2 * scaleY;
-      final rotated = BattleCameraPoint(
-        x * diagonal + y * sum,
-        x * difference + y * diagonal,
-        x * sum + y * difference,
-      );
+      final y = referencePlane == 'xy' ? sign.$2 * scaleY : 0.0;
+      final z = referencePlane == 'xz' ? sign.$2 * scaleY : 0.0;
+      final rotated = rotationAxis == 'y'
+          ? BattleCameraPoint(
+              x * cosine + z * math.sin(angle),
+              y,
+              -x * math.sin(angle) + z * cosine,
+            )
+          : BattleCameraPoint(
+              x * diagonal + y * sum + z * difference,
+              x * difference + y * diagonal + z * sum,
+              x * sum + y * difference + z * diagonal,
+            );
       final world = center + BattleCameraPoint(
         (rotated.x * yawCosine - rotated.z * yawSine) * units,
         rotated.y * units,

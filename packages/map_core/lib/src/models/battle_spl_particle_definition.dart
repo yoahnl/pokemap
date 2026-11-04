@@ -30,7 +30,7 @@ final class BattleSplParticleDefinition {
     }
     _fields(copy, {'schemaVersion', 'emitters'});
     if (copy['schemaVersion'] is! int ||
-        !(experimental ? {5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15} : {2, 3, 4}).contains(copy['schemaVersion'])) {
+        !(experimental ? {5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16} : {2, 3, 4}).contains(copy['schemaVersion'])) {
       throw const FormatException('Unsupported SPL particle version');
     }
     final values = _list(copy['emitters']);
@@ -230,13 +230,13 @@ void _validateEmitter(
       throw const FormatException('Unsupported SPL directional polygon');
     }
     if (appearance['draw'] == 'polygon') {
-      _choice(appearance['polygonRotationAxis'], {'xyz'});
-      _choice(appearance['polygonReferencePlane'], {'xy'});
+      _choice(appearance['polygonRotationAxis'], {'xyz', if (version >= 16) 'y'});
+      _choice(appearance['polygonReferencePlane'], {'xy', if (version >= 16) 'xz'});
       if (appearance['dirFromPosition'] != false ||
           appearance['relativeToBasePos'] == true ||
           (appearance['polygonX'] ?? 0) != 0 ||
           (appearance['polygonY'] ?? 0) != 0 ||
-          emitter['child'] != null) {
+          (version < 16 && emitter['child'] != null)) {
         throw const FormatException('Unsupported SPL polygon');
       }
     }

@@ -41,6 +41,8 @@ final class BattleSplStaticFrame {
     this.relativeBasePosition,
     this.directionalPolygon,
     this.sourcePolygon,
+    this.polygonRotationAxis,
+    this.polygonReferencePlane,
     this.hideParent,
     this.followEmitter,
     this.childFollowsEmitter,
@@ -57,6 +59,8 @@ final class BattleSplStaticFrame {
   final BattleSplVector? relativeBasePosition;
   final bool directionalPolygon;
   final bool sourcePolygon;
+  final String polygonRotationAxis;
+  final String polygonReferencePlane;
   final bool hideParent;
   final bool followEmitter;
   final bool childFollowsEmitter;
@@ -214,6 +218,8 @@ final class BattleSplStaticPlayback {
         entry.emitter.relativeBasePosition,
         entry.emitter.directionalPolygon,
         entry.emitter.sourcePolygon,
+        entry.emitter.polygonRotationAxis,
+        entry.emitter.polygonReferencePlane,
         entry.emitter.hideParent,
         entry.emitter.playback.followEmitter,
         entry.emitter.playback.childFollowsEmitter,

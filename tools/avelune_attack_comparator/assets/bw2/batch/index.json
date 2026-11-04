@@ -668,12 +668,9 @@
     "particle": 651,
     "approximations": [
       "particle-child:drawType",
-      "particle-child:followEmitter",
       "particle-child:polygonReferencePlane",
       "particle-child:polygonRotAxis",
-      "particle-field:drawType",
-      "particle-field:polygonReferencePlane",
-      "particle-shape:cylinder_surface->sphere_surface",
+      "particle-polygon:projection-experimental",
       "particle-spin:trigonometry-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/5/5a/Venoshock_V.png",
@@ -848,9 +845,7 @@
     "category": "status",
     "particle": 683,
     "approximations": [
-      "particle-field:drawType",
-      "particle-field:polygonReferencePlane",
-      "particle-field:polygonRotAxis"
+      "particle-polygon:projection-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/c/cf/Reflect_Type_V.png",
     "bundleAsset": "assets/bw2/batch/reflect-type.json"
@@ -1133,12 +1128,9 @@
       "particle-child:drawType",
       "particle-child:polygonReferencePlane",
       "particle-child:polygonRotAxis",
-      "particle-field:drawType",
       "particle-field:emissionAxis",
-      "particle-field:hideParent",
       "particle-field:polygonReferencePlane",
-      "particle-field:polygonRotAxis",
-      "particle-shape:cylinder_surface->sphere_surface",
+      "particle-polygon:projection-experimental",
       "particle-spin:trigonometry-experimental",
       "scene-palette-fade:layer-approximation"
     ],
@@ -1528,10 +1520,7 @@
     "category": "status",
     "particle": 664,
     "approximations": [
-      "particle-field:drawType",
-      "particle-field:polygonReferencePlane",
-      "particle-field:polygonRotAxis",
-      "particle-shape:cylinder_surface->sphere_surface",
+      "particle-polygon:projection-experimental",
       "particle-spin:trigonometry-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/b/ba/Coil_V.png",
@@ -1559,8 +1548,7 @@
     "category": "special",
     "particle": 557,
     "approximations": [
-      "particle-field:drawType",
-      "particle-field:polygonRotAxis",
+      "particle-polygon:projection-experimental",
       "particle-spin:trigonometry-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/4/40/Wring_Out_V.png",
@@ -2043,8 +2031,7 @@
     "category": "special",
     "particle": null,
     "approximations": [
-      "particle-field:drawType",
-      "particle-polygon:xyz-projection-experimental",
+      "particle-polygon:projection-experimental",
       "particle-spin:trigonometry-experimental",
       "scene-palette-fade:layer-approximation"
     ],
@@ -2297,16 +2284,8 @@
     "approximations": [
       "particle-child:drawType",
       "particle-child:polygonReferencePlane",
-      "particle-child:textureRepeatShiftS",
-      "particle-child:textureRepeatShiftT",
-      "particle-field:drawType",
-      "particle-field:polygonReferencePlane",
-      "particle-field:textureRepeatShiftS",
-      "particle-field:textureRepeatShiftT",
-      "particle-shape:cylinder_surface->sphere_surface",
-      "particle-spin:trigonometry-experimental",
-      "texture-field:flip",
-      "texture-field:repeat"
+      "particle-polygon:projection-experimental",
+      "particle-spin:trigonometry-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/5/55/Twister_V.png",
     "bundleAsset": "assets/bw2/batch/twister.json"
@@ -3293,9 +3272,7 @@
       "particle-child:drawType",
       "particle-child:polygonReferencePlane",
       "particle-child:polygonRotAxis",
-      "particle-field:drawType",
-      "particle-field:polygonReferencePlane",
-      "particle-shape:cylinder_surface->sphere_surface"
+      "particle-polygon:projection-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/7/76/Toxic_V.png",
     "bundleAsset": "assets/bw2/batch/toxic.json"
@@ -3398,9 +3375,7 @@
     "approximations": [
       "particle-child:drawType",
       "particle-child:polygonRotAxis",
-      "particle-field:drawType",
-      "particle-field:polygonRotAxis",
-      "particle-polygon:xyz-projection-experimental"
+      "particle-polygon:projection-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/6/6f/Heal_Pulse_V.png",
     "bundleAsset": "assets/bw2/batch/heal-pulse.json"
@@ -3819,9 +3794,7 @@
     "category": "physical",
     "particle": 201,
     "approximations": [
-      "particle-field:drawType",
-      "particle-field:polygonReferencePlane",
-      "particle-shape:cylinder_surface->sphere_surface",
+      "particle-polygon:projection-experimental",
       "particle-spin:trigonometry-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/9/9d/Wrap_V.png",
@@ -5873,10 +5846,7 @@
       "background-palette-fade:layer-approximation",
       "particle-child:drawType",
       "particle-child:polygonRotAxis",
-      "particle-field:drawType",
-      "particle-field:lifeTimeVariance",
-      "particle-field:polygonRotAxis",
-      "particle-field:polygonY",
+      "particle-polygon:projection-experimental",
       "scene-palette-fade:layer-approximation"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/0/0e/Cosmic_Power_V.png",
@@ -6099,10 +6069,7 @@
     "particle": 723,
     "approximations": [
       "background-palette-fade:layer-approximation",
-      "particle-field:drawType",
-      "particle-field:polygonReferencePlane",
-      "particle-field:polygonRotAxis",
-      "particle-shape:circle->sphere_surface",
+      "particle-polygon:projection-experimental",
       "scene-palette-fade:layer-approximation"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/f/fc/Bolt_Strike_B2W2.png",

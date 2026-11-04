@@ -190,7 +190,7 @@ final class BattleExperimentalSplLoader {
     final bytesById = Map<String, Uint8List>.unmodifiable(textureBytes);
     final hashesById = Map<String, String>.unmodifiable(textureSha256);
     final ids = definition.textureIds;
-    if (!{2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}.contains(definition.schemaVersion) ||
+    if (!{2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}.contains(definition.schemaVersion) ||
         indices.length != definition.emitters.length ||
         indices.toSet().length != indices.length ||
         indices.any((index) => index < 0 || index > 31) ||

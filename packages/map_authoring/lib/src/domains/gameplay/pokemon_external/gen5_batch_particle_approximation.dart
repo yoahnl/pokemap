@@ -114,9 +114,8 @@ abstract final class Gen5BatchParticleApproximation {
       }
       final sourcePolygon = preserveExperimentalFeatures &&
           emitter['drawType'] == 'polygon' &&
-          emitter['polygonRotAxis'] == 'xyz' &&
-          emitter['polygonReferencePlane'] == 'xy' &&
-          emitter['childResource'] == null &&
+          {'xyz', 'y'}.contains(emitter['polygonRotAxis']) &&
+          {'xy', 'xz'}.contains(emitter['polygonReferencePlane']) &&
           emitter['relativeToBasePos'] == false &&
           emitter['dirFromPosition'] == false &&
           emitter['polygonX'] == 0 &&
@@ -131,7 +130,9 @@ abstract final class Gen5BatchParticleApproximation {
       if (!sourcePolygon) {
         set(emitter, 'polygonRotAxis', 'y', 'particle-field:polygonRotAxis');
       }
-      set(emitter, 'polygonReferencePlane', 'xy', 'particle-field:polygonReferencePlane');
+      if (!sourcePolygon) {
+        set(emitter, 'polygonReferencePlane', 'xy', 'particle-field:polygonReferencePlane');
+      }
       for (final field in [if (!preserveExperimentalFeatures) 'hasRotation',
           'randomLoopOffset',
           if (!preserveExperimentalFeatures) 'drawChildrenFirst',

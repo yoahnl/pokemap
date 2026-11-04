@@ -676,7 +676,7 @@ class BattlePreviewGame extends FlameGame {
         applyGen5SourceEmitterParameters(
           emitter, args, orthographic: command.orthographic,
         );
-        final definition = {5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}.contains(definitionJson['schemaVersion'])
+        final definition = {5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}.contains(definitionJson['schemaVersion'])
             ? BattleSplParticleDefinition.fromExperimentalJson(definitionJson)
             : BattleSplParticleDefinition.fromJson(definitionJson);
         final loader = BattleExperimentalSplLoader(resourceBudget: budget);

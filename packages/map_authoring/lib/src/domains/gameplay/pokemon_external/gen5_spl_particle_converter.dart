@@ -100,6 +100,13 @@ abstract final class Gen5SplParticleConverter {
     }
 
     final selectedEmitters = [for (final index in indices) rawEmitters[index]];
+    final needsExperimentalV16 = selectedEmitters.any((raw) {
+      final emitter = _map(raw);
+      return emitter['drawType'] == 'polygon' &&
+          (emitter['polygonRotAxis'] != 'xyz' ||
+              emitter['polygonReferencePlane'] != 'xy' ||
+              emitter['childResource'] != null);
+    });
     final needsExperimentalV15 = selectedEmitters.any(
       (raw) => _map(raw)['drawType'] == 'polygon',
     );
@@ -167,7 +174,7 @@ abstract final class Gen5SplParticleConverter {
                   child['useChildColor'] == false));
     });
     final version = experimentalSourceEmitterIndices != null
-        ? (needsExperimentalV15 ? 15 : needsExperimentalV14 ? 14 : needsExperimentalV13 ? 13 : needsExperimentalV12 ? 12 : needsExperimentalV11 ? 11 : needsExperimentalV10 ? 10 : needsExperimentalV9 ? 9 : needsExperimentalV8 ? 8 : needsExperimentalV7 ? 7 : needsExperimentalV6 ? 6 : 5)
+        ? (needsExperimentalV16 ? 16 : needsExperimentalV15 ? 15 : needsExperimentalV14 ? 14 : needsExperimentalV13 ? 13 : needsExperimentalV12 ? 12 : needsExperimentalV11 ? 11 : needsExperimentalV10 ? 10 : needsExperimentalV9 ? 9 : needsExperimentalV8 ? 8 : needsExperimentalV7 ? 7 : needsExperimentalV6 ? 6 : 5)
         : rawEmitters.any((raw) => _map(raw).containsKey('magnetBehavior'))
             ? 4
             : rawEmitters
@@ -281,8 +288,12 @@ Map<String, dynamic> _emitter(
     _ => throw const FormatException('Unsupported SPL draw type'),
   };
   if (!{'x', 'y', 'z'}.contains(source['emissionAxis']) ||
-      source['polygonRotAxis'] != (draw == 'polygon' ? 'xyz' : 'y') ||
-      source['polygonReferencePlane'] != 'xy' ||
+      !(draw == 'polygon' && version >= 16
+          ? {'xyz', 'y'}.contains(source['polygonRotAxis'])
+          : source['polygonRotAxis'] == (draw == 'polygon' ? 'xyz' : 'y')) ||
+      !(draw == 'polygon' && version >= 16
+          ? {'xy', 'xz'}.contains(source['polygonReferencePlane'])
+          : source['polygonReferencePlane'] == 'xy') ||
       !_isSignedWord(source['length']) ||
       !_isSignedWord(source['radius']) ||
       source['minRotation'] is! int ||
@@ -290,7 +301,7 @@ Map<String, dynamic> _emitter(
     throw const FormatException('Unsupported SPL source geometry');
   }
   if (draw == 'polygon' &&
-      (source['childResource'] != null ||
+      ((version < 16 && source['childResource'] != null) ||
           source['relativeToBasePos'] != false ||
           source['dirFromPosition'] != false ||
           source['polygonX'] != 0 ||
