@@ -58,6 +58,29 @@ void main() {
         bundleAsset: 'assets/bw2/batch/air-cutter.json',
       ),
     ),
+    (
+      delayed: false,
+      move: const PreviewMove(
+        'double-kick',
+        'Double Pied',
+        null,
+        'fighting',
+        PsdkBattleMoveCategory.physical,
+        bundleAsset: 'assets/bw2/batch/double-kick.json',
+      ),
+    ),
+    (
+      delayed: false,
+      move: const PreviewMove(
+        'present',
+        'Cadeau soin',
+        null,
+        'normal',
+        PsdkBattleMoveCategory.physical,
+        bundleAsset: 'assets/bw2/batch/present--variant-2.json',
+        sourceVariant: 'Present_Variant1',
+      ),
+    ),
   ]) {
     final delayed = scenario.delayed;
     testWidgets(

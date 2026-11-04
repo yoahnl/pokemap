@@ -44,6 +44,7 @@ class PreviewMove {
     this.particle,
     this.bundleAsset,
     this.approximations = const [],
+    this.sourceVariant,
     this.unavailableReason,
   });
 
@@ -216,6 +217,7 @@ class PreviewMove {
   final PsdkBattleMoveCategory category;
   final int? particle;
   final String? bundleAsset;
+  final String? sourceVariant;
   final List<String> approximations;
   final String? unavailableReason;
 }
@@ -227,7 +229,8 @@ class BattlePreviewGame extends FlameGame {
     required this.status,
     Future<Uint8List?> Function(String)? loadMoveAudio,
     FlameAudioBattleSfxPlayer? soundPlayer,
-  }) : _loadMoveAudio = loadMoveAudio ?? WorkshopMoveAudio().load,
+  }) : _loadMoveAudio = loadMoveAudio ??
+           ((id) => WorkshopMoveAudio().load(id, sourceVariant: move.sourceVariant)),
        _sound = soundPlayer ?? FlameAudioBattleSfxPlayer();
   final String projectRoot;
   final PreviewMove move;

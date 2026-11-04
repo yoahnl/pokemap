@@ -48,6 +48,7 @@ Future<void> main() async {
         },
         particle: item['particle'] as int?,
         bundleAsset: item['bundleAsset'] as String,
+        sourceVariant: item['sourceVariant'] as String?,
         approximations: (item['approximations'] as List? ?? const [])
             .cast<String>(),
       ),
@@ -220,10 +221,10 @@ class _ComparePageState extends State<ComparePage> {
               _move.unavailableReason != null
                   ? '${_move.label} : aperçu Avelune indisponible. ${_move.unavailableReason}'
                   : _move == PreviewMove.tackle
-                  ? 'Charge : programme BW2 expérimental dans le moteur Avelune. Son source non raccordé.'
+                  ? 'Charge : programme BW2 expérimental dans le moteur Avelune. Son enregistré si disponible, synchronisation approximative.'
                   : _move == PreviewMove.surf
                   ? 'Surf : programme BW2 expérimental. Son et rendu à vérifier.'
-                  : '${_move.label} : programme BW2 expérimental. Caméra simplifiée, sans son source.'
+                  : '${_move.label} : programme BW2 expérimental. Caméra simplifiée ; son enregistré si disponible, synchronisation approximative.'
                         '${_move.approximations.contains('source-variant:first-only') ? ' Cet aperçu ne montre qu’une variante de l’attaque.' : ''}'
                         '${_move.approximations.contains('source-branch:player-side-only') ? ' Seul le côté joueur est disponible dans cet aperçu.' : ''}'
                         '${_move.approximations.contains('source-audio:cry-and-timing-unavailable') ? ' Le cri et sa synchronisation restent à intégrer.' : ''}'

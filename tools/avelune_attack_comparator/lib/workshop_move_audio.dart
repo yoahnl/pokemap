@@ -16,7 +16,7 @@ final class WorkshopMoveAudio {
 
   final Uri _origin;
 
-  Future<Uint8List?> load(String moveId) async {
+  Future<Uint8List?> load(String moveId, {String? sourceVariant}) async {
     if (!_idPattern.hasMatch(moveId)) return null;
     final client = HttpClient()..connectionTimeout = _timeout;
     try {
@@ -32,18 +32,36 @@ final class WorkshopMoveAudio {
         final candidates = raw.whereType<Map>().where((entry) {
           final metadata = entry['metadata'];
           final provenance = metadata is Map ? metadata['provenance'] : null;
-          final kind = provenance is Map ? provenance['kind'] : null;
           return entry['usage'] == 'battle' &&
               entry['representation'] == 'audio' &&
               entry['style'] == 'gen5-local-clip' &&
               entry['contentType'] == 'audio/mpeg' &&
-              (kind == 'move-clip' ||
-                  (kind == null &&
-                      provenance is Map &&
-                      provenance['source'] == 'user-upload'));
+              provenance is Map;
         }).toList();
-        if (candidates.length != 1) return null;
-        final media = candidates.single;
+        final generic = candidates.where((entry) {
+          final provenance = (entry['metadata'] as Map)['provenance'] as Map;
+          return provenance['kind'] == 'move-clip' ||
+              (provenance['kind'] == null && provenance['source'] == 'user-upload');
+        }).toList();
+        if (generic.length > 1) return null;
+        final variants = candidates.where((entry) {
+          final metadata = entry['metadata'] as Map;
+          final provenance = metadata['provenance'] as Map;
+          if (provenance['kind'] != 'move-variant') return false;
+          final label = metadata['label'];
+          if (label is! String) return false;
+          if (moveId == 'present') {
+            final expected = switch (sourceVariant) {
+              null || 'Present' => 'Present damage.mp3',
+              'Present_Variant1' => 'Present heal.mp3',
+              _ => null,
+            };
+            return expected != null && label == expected;
+          }
+          return label.toLowerCase().endsWith(' 1hit.mp3');
+        }).toList();
+        if (generic.isEmpty && variants.length != 1) return null;
+        final media = generic.isNotEmpty ? generic.single : variants.single;
         final id = media['id'];
         final hash = media['sha256'];
         if (id is! String || !_idPattern.hasMatch(id) || hash is! String) {
