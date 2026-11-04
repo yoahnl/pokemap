@@ -2102,6 +2102,106 @@ void main() {
   );
 
   test(
+    'real Charge source program finishes before tracked turn damage',
+    () async {
+      final root = Directory('../../tools/avelune_attack_comparator/assets/bw2');
+      final program = jsonDecode(
+        File('${root.path}/tackle.json').readAsStringSync(),
+      ) as Map<String, dynamic>;
+      final originalDefinition = jsonDecode(
+        File('${root.path}/particle199/definition.json').readAsStringSync(),
+      ) as Map<String, dynamic>;
+      final active = <BattleSplStaticPlayback>[];
+      final emitterIndices = <int>[];
+      final soundEvents = <String>[];
+      late BattleOverlayComponent overlay;
+      var started = false;
+      var completed = false;
+      var detached = false;
+      overlay = await _scene(
+        onStartRecoverableTrackedEffect: (step, done, fail) {
+          started = true;
+          final result = overlay.presentExperimentalGen5Attack(
+            program: program,
+            variant: 'Tackle',
+            hasEmitter: (particle, emitter) =>
+                particle == 199 && (emitter == 0 || emitter == 1),
+            startEmitter: (_, _, _) => fail(),
+            startSourceEmitter: (args) {
+              final index = args['emitter'] as int;
+              final json = jsonDecode(jsonEncode(originalDefinition))
+                  as Map<String, dynamic>;
+              final emitter = (json['emitters'] as List)[index] as Map;
+              applyGen5SourceEmitterParameters(emitter, args, orthographic: false);
+              final definition = BattleSplParticleDefinition.fromJson(json);
+              final textures = definition.textureIds.toList();
+              final prepared = BattleSplStaticAdmission.prepare(
+                definition: definition,
+                textureIndices: {
+                  for (var i = 0; i < textures.length; i++) textures[i]: i,
+                },
+                emitters: [BattleSplStaticEmitter(
+                  emitterIndex: index, startTick: 0,
+                  position: (x: 0, y: args['offsetY'] as int, z: 0),
+                )],
+                seed: 0, poolCapacity: 256, maxTicks: 300,
+              );
+              if (prepared.failure != null) throw StateError('${prepared.failure}');
+              emitterIndices.add(index);
+              active.add(prepared.playback!);
+            },
+            onSourceSound: (args) => soundEvents.add(args['se'] as String),
+            particlesBusy: () => active.isNotEmpty,
+            detachParticles: () {
+              for (final playback in active) { playback.cancel(); }
+              active.clear();
+              detached = true;
+            },
+            allowSilentAudio: true,
+            adaptSourceCamera: true,
+            duringTrackedEffect: true,
+          );
+          unawaited(result.then((status) {
+            if (status == BattleGen5SourcePlaybackStatus.finished) {
+              completed = true;
+              done();
+            } else {
+              fail();
+            }
+          }, onError: (Object _) => fail()));
+          return overlay.cancelExperimentalGen5Attack;
+        },
+      );
+      final initial = overlay.debugSession;
+      final turn = initial.applyChoice(const PlayerBattleChoiceFight(0));
+      final event = turn.state.currentTurn!.timeline
+          .whereType<BattleTurnExecutionEvent>()
+          .firstWhere((event) => event.execution.attackerSide == BattleSideId.player);
+      overlay.updateState(turn, experimentalSourceEffects: {event: 'source-tackle'});
+      await overlay.waitForPendingVisualSync();
+      for (var tick = 0; tick < 1000 && overlay.isTurnPresentationActive; tick++) {
+        overlay.updateTree(1 / 60);
+        for (final playback in active.toList()) {
+          final failure = playback.advance();
+          if (failure != null) throw StateError('$failure');
+          if (playback.isComplete) active.remove(playback);
+        }
+        if (started && !completed) {
+          expect(overlay.currentCommandOverlaySnapshot!.enemyHud.effectiveDisplayedHp,
+              initial.state.enemy.currentHp);
+        }
+        await Future<void>.delayed(Duration.zero);
+      }
+      expect(started && completed && detached, isTrue);
+      expect(emitterIndices, [0, 1]);
+      expect(soundEvents, hasLength(3));
+      expect(overlay.isTurnPresentationActive, isFalse);
+      expect(overlay.currentCommandOverlaySnapshot!.enemyHud.effectiveDisplayedHp,
+          turn.state.enemy.currentHp);
+    },
+  );
+
+  test(
     'replacing a turn cancels its tracked source effect and resumes the actor',
     () async {
       late BattleOverlayComponent overlay;
