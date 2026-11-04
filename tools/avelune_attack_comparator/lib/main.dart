@@ -13,6 +13,7 @@ import 'package:path/path.dart' as p;
 import 'package:webview_flutter/webview_flutter.dart';
 
 import 'preview_game.dart';
+import 'workshop_reference_pokemon.dart';
 
 enum PhoneOrientation {
   portrait(Size(393, 852), 'Portrait', Icons.stay_current_portrait),
@@ -34,6 +35,10 @@ Future<void> main() async {
   final index = jsonDecode(
     await rootBundle.loadString('assets/bw2/batch/index.json'),
   ) as List;
+  final referenceCatalog = jsonDecode(
+    await rootBundle.loadString('assets/bw2/reference_pokemon.json'),
+  ) as Map<String, dynamic>;
+  final references = Map<String, dynamic>.from(referenceCatalog['references'] as Map);
   final batchMoves = [
     for (final item in index.cast<Map<String, dynamic>>())
       PreviewMove(
@@ -55,7 +60,8 @@ Future<void> main() async {
   ];
   debugPrint('[compare] resource root ${root.path}');
   runApp(
-    AttackComparator(root: root, moves: [...PreviewMove.values, ...batchMoves]),
+    AttackComparator(root: root, moves: [...PreviewMove.values, ...batchMoves],
+        references: references),
   );
 }
 
@@ -107,9 +113,11 @@ Future<Directory> extractPreviewResources({Directory? parent}) async {
 }
 
 class AttackComparator extends StatelessWidget {
-  const AttackComparator({super.key, required this.root, required this.moves});
+  const AttackComparator({super.key, required this.root, required this.moves,
+      required this.references});
   final Directory root;
   final List<PreviewMove> moves;
+  final Map<String, dynamic> references;
 
   @override
   Widget build(BuildContext context) => MaterialApp(
@@ -124,14 +132,16 @@ class AttackComparator extends StatelessWidget {
       scaffoldBackgroundColor: const Color(0xff111522),
       useMaterial3: true,
     ),
-    home: ComparePage(root: root, moves: moves),
+    home: ComparePage(root: root, moves: moves, references: references),
   );
 }
 
 class ComparePage extends StatefulWidget {
-  const ComparePage({super.key, required this.root, required this.moves});
+  const ComparePage({super.key, required this.root, required this.moves,
+      required this.references});
   final Directory root;
   final List<PreviewMove> moves;
+  final Map<String, dynamic> references;
 
   @override
   State<ComparePage> createState() => _ComparePageState();
@@ -139,20 +149,25 @@ class ComparePage extends StatefulWidget {
 
 class _ComparePageState extends State<ComparePage> {
   late final WebViewController _reference;
-  late BattlePreviewGame _game;
+  late final WorkshopReferencePokemonStore _referencePokemonStore;
+  BattlePreviewGame? _game;
+  PreparedReferencePair? _preparedPokemon;
   late ValueNotifier<String> _status;
   PreviewMove _move = PreviewMove.tackle;
+  String _pokemonNotice = 'Chargement des Pokémon de la référence…';
   String _search = '';
   PhoneOrientation _orientation = PhoneOrientation.portrait;
   int _version = 0;
+  int _loadVersion = 0;
 
   @override
   void initState() {
     super.initState();
     _status = ValueNotifier('Préparation du combat…');
     _reference = WebViewController();
+    _referencePokemonStore = WorkshopReferencePokemonStore(root: widget.root);
     _showReference();
-    _newGame();
+    unawaited(_prepareGame(_move));
   }
 
   void _showReference() {
@@ -173,23 +188,54 @@ class _ComparePageState extends State<ComparePage> {
       projectRoot: widget.root.path,
       move: _move,
       status: _status,
+      referencePokemon: _preparedPokemon,
     );
+  }
+
+  Future<void> _prepareGame(PreviewMove move) async {
+    final version = ++_loadVersion;
+    final special = move == PreviewMove.surf ||
+        move.id == 'transform' || move.id == 'ally-switch';
+    final requested = special ? null : referencePokemonForUrl(
+      widget.references, move.referenceUrl,
+    );
+    final pair = requested == null ? null : await _referencePokemonStore.prepare(
+      requested, isCurrent: () => mounted && version == _loadVersion,
+    );
+    if (!mounted || version != _loadVersion) return;
+    setState(() {
+      _preparedPokemon = pair;
+      _pokemonNotice = pair != null
+          ? 'Pokémon de la référence : ${pair.attacker.name} / ${pair.target.name}'
+          : move == PreviewMove.surf
+          ? 'Pokémon de la référence : Ponchien / Miamiasme'
+          : move.id == 'ally-switch'
+          ? 'Aperçu spécial : Kaiminus, Roucool et leurs alliés'
+          : 'Pokémon de remplacement : Kaiminus / Roucool';
+      _newGame();
+    });
   }
 
   void _changeMove(PreviewMove move) {
     setState(() {
       _move = move;
+      _game = null;
+      _preparedPokemon = null;
+      _pokemonNotice = 'Chargement des Pokémon de la référence…';
       _status.value = 'Préparation du combat…';
-      _newGame();
       _showReference();
     });
+    unawaited(_prepareGame(move));
   }
 
   @override
   void dispose() {
+    _loadVersion++;
     _status.dispose();
     unawaited(
-      widget.root.delete(recursive: true).catchError((_) => widget.root),
+      _referencePokemonStore.close().then((_) async {
+        if (await widget.root.exists()) await widget.root.delete(recursive: true);
+      }).catchError((Object _) {}),
     );
     super.dispose();
   }
@@ -238,6 +284,7 @@ class _ComparePageState extends State<ComparePage> {
                         '${_move.approximations.contains('particle-projection:billboard-center-clipping') ? ' Les particules passant derrière la caméra sont masquées.' : ''}'
                         '${_move.approximations.isEmpty ? '' : ' ${_move.approximations.length} approximation(s) signalée(s).'}',
             ),
+            Text(_pokemonNotice, style: Theme.of(context).textTheme.bodySmall),
             const SizedBox(height: 18),
             Wrap(
               spacing: 14,
@@ -275,15 +322,15 @@ class _ComparePageState extends State<ComparePage> {
                 ),
                 FilledButton.icon(
                   key: const ValueKey('play-attack'),
-                  onPressed: _move.unavailableReason != null
+                  onPressed: _move.unavailableReason != null || _game == null
                       ? null
                       : () async {
-                          if (_game.played) {
+                          if (_game!.played) {
                             setState(() {
                               _newGame();
                             });
                           }
-                          await _game.play(onStart: _showReference);
+                          await _game!.play(onStart: _showReference);
                         },
                   icon: const Icon(Icons.play_arrow),
                   label: const Text('Lancer / rejouer'),
@@ -338,11 +385,14 @@ class _ComparePageState extends State<ComparePage> {
                             child: Stack(
                               fit: StackFit.expand,
                               children: [
-                                GameWidget(key: ObjectKey(_game), game: _game),
+                                if (_game == null)
+                                  const Center(child: CircularProgressIndicator())
+                                else ...[
+                                GameWidget(key: ObjectKey(_game), game: _game!),
                                 ValueListenableBuilder<
                                   BattleCommandOverlaySnapshot?
                                 >(
-                                  valueListenable: _game.snapshot,
+                                  valueListenable: _game!.snapshot,
                                   builder: (context, snapshot, _) =>
                                       snapshot == null
                                       ? const SizedBox.shrink()
@@ -354,12 +404,13 @@ class _ComparePageState extends State<ComparePage> {
                                           child: IgnorePointer(
                                             child: PlayerBattleOverlay(
                                               snapshot: snapshot,
-                                              onCommand: _game
+                                              onCommand: _game!
                                                   .handlePresentationCommand,
                                             ),
                                           ),
                                         ),
                                 ),
+                                ],
                               ],
                             ),
                           ),

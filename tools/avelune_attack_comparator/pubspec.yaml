@@ -8,6 +8,7 @@ dependencies:
   flutter:
     sdk: flutter
   archive: 4.0.9
+  crypto: ^3.0.7
   flame: 2.0.0-dev.1
   path: ^1.9.1
   webview_flutter: ^4.14.1
@@ -35,6 +36,7 @@ flutter:
     - assets/bw2/flamethrower.json
     - assets/bw2/quick_attack.json
     - assets/bw2/surf.json
+    - assets/bw2/reference_pokemon.json
     - assets/bw2/herdier-back.gif.b64
     - assets/bw2/trubbish-front.gif.b64
     - assets/bw2/particle199/

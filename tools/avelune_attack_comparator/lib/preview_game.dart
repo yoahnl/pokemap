@@ -33,6 +33,7 @@ import 'package:map_runtime/src/presentation/flutter/battle_command_overlay_snap
 import 'package:path/path.dart' as p;
 
 import 'workshop_move_audio.dart';
+import 'workshop_reference_pokemon.dart';
 
 class PreviewMove {
   const PreviewMove(
@@ -227,6 +228,7 @@ class BattlePreviewGame extends FlameGame {
     required this.projectRoot,
     required this.move,
     required this.status,
+    this.referencePokemon,
     Future<Uint8List?> Function(String)? loadMoveAudio,
     FlameAudioBattleSfxPlayer? soundPlayer,
   }) : _loadMoveAudio = loadMoveAudio ??
@@ -235,6 +237,7 @@ class BattlePreviewGame extends FlameGame {
   final String projectRoot;
   final PreviewMove move;
   final ValueNotifier<String> status;
+  final PreparedReferencePair? referencePokemon;
   final Future<Uint8List?> Function(String) _loadMoveAudio;
   final Completer<void> _ready = Completer<void>();
   final FlameAudioBattleSfxPlayer _sound;
@@ -253,7 +256,7 @@ class BattlePreviewGame extends FlameGame {
 
   @override
   Future<void> onLoad() async {
-    _adapter = _makeAdapter(move);
+    _adapter = _makeAdapter(move, referencePokemon: referencePokemon);
     final session = _adapter.createLegacyDisplaySession(isTrainerBattle: false);
     final resolver = BattlePokemonSpriteResolver(
       manifest: const ProjectManifest(
@@ -368,12 +371,17 @@ class BattlePreviewGame extends FlameGame {
           if (!_closed) snapshot.value = value;
         });
       },
-      resolveSpeciesDisplayName: (species) => switch (species) {
-        'totodile' => 'Kaiminus',
-        'pidgey' => 'Roucool',
-        'herdier' => 'Ponchien',
-        'trubbish' => 'Miamiasme',
-        _ => species,
+      resolveSpeciesDisplayName: (species) {
+        final pair = referencePokemon;
+        if (pair?.attacker.id == species) return pair!.attacker.name;
+        if (pair?.target.id == species) return pair!.target.name;
+        return switch (species) {
+          'totodile' => 'Kaiminus',
+          'pidgey' => 'Roucool',
+          'herdier' => 'Ponchien',
+          'trubbish' => 'Miamiasme',
+          _ => species,
+        };
       },
       onPlayerChoice: (_) {},
     );
@@ -985,10 +993,15 @@ class BattlePreviewGame extends FlameGame {
   }
 }
 
-RuntimePsdkBattleSessionAdapter _makeAdapter(PreviewMove move) {
+RuntimePsdkBattleSessionAdapter _makeAdapter(
+  PreviewMove move, {
+  PreparedReferencePair? referencePokemon,
+}) {
   final referencePair = move == PreviewMove.surf;
-  final playerSpecies = referencePair ? 'herdier' : 'totodile';
-  final enemySpecies = referencePair ? 'trubbish' : 'pidgey';
+  final specialPreview = referencePair || move.id == 'transform' || move.id == 'ally-switch';
+  final pair = specialPreview ? null : referencePokemon;
+  final playerSpecies = pair?.attacker.id ?? (referencePair ? 'herdier' : 'totodile');
+  final enemySpecies = pair?.target.id ?? (referencePair ? 'trubbish' : 'pidgey');
   PsdkBattleMoveData attack(PreviewMove move, int power) => PsdkBattleMoveData(
     id: move.id,
     dbSymbol: move.id,
@@ -1039,7 +1052,7 @@ RuntimePsdkBattleSessionAdapter _makeAdapter(PreviewMove move) {
     player: pokemon(
       'player',
       playerSpecies,
-      referencePair ? 'Ponchien' : 'Kaiminus',
+      pair?.attacker.name ?? (referencePair ? 'Ponchien' : 'Kaiminus'),
       attack(move, 40),
       100,
       level: referencePair ? 20 : 25,
@@ -1048,7 +1061,7 @@ RuntimePsdkBattleSessionAdapter _makeAdapter(PreviewMove move) {
     opponent: pokemon(
       'enemy',
       enemySpecies,
-      referencePair ? 'Miamiasme' : 'Roucool',
+      pair?.target.name ?? (referencePair ? 'Miamiasme' : 'Roucool'),
       attack(PreviewMove.tackle, 0),
       10,
       level: referencePair ? 19 : 25,
