@@ -1054,6 +1054,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     }
     final actors = {'EFFVM_ATTACKER': user, 'EFFVM_DEFENDER': target};
     final slots = {'EFFVM_ATTACKER': userSlot, 'EFFVM_DEFENDER': targetSlot};
+    final projectionOwner = Object();
     final paused = <BattleSceneCombatantComponent>{};
     final pauseOwner = Object();
     final visualOwner = Object();
@@ -1079,6 +1080,9 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     final delayedSounds =
         <({int remaining, Map<String, dynamic> args, bool isCry})>[];
     final sourceCamera = Gen5CameraMotion();
+    final referenceCamera = BattlePerspectiveCamera(
+      viewport: const Rect.fromLTWH(0, 0, 256, 192),
+    );
     final initialEye = camera.eye;
     final initialAim = camera.aim;
     BattleSplWorldTransform? cameraTransform;
@@ -1122,34 +1126,64 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
         if (!current(key)) return false;
         var offset = Offset(pose.offsetXFx32 / 4096 * 5,
             -pose.offsetYFx32 / 4096 * 5);
-        var depthScale = 1.0;
-        if (pose.spatialOffset) {
-          final transform = cameraTransform;
-          final foot = _geometryFor(slots[key]!).footAnchor;
-          final ground = camera.tryGroundAt(foot);
-          final billboard = camera.tryBillboardAt(foot);
-          if (transform == null || ground == null || billboard == null ||
-              billboard.scale <= 0) return false;
-          final origin = camera.tryProject(ground);
-          final displaced = camera.tryProject(ground + transform.apply((
-            x: pose.offsetXFx32,
-            y: pose.offsetYFx32,
-            z: pose.offsetZFx32,
-          )));
-          if (origin == null || displaced == null) return false;
-          offset = (displaced.position - origin.position) / billboard.scale;
-          depthScale = origin.depth / displaced.depth;
+        if (cameraTransform != null) {
+          final sourcePose = sourceCamera.pose;
+          BattleCameraPoint point(Gen5CameraVector value) => BattleCameraPoint(
+            value.x / 4096, value.y / 4096, value.z / 4096,
+          );
+          referenceCamera.moveTo(
+            eye: point(sourcePose.position),
+            aim: point(sourcePose.target),
+            durationSeconds: 0,
+          );
+          final sourceFoot = key == 'EFFVM_ATTACKER'
+              ? const BattleCameraPoint(0.5, 0x666 / 4096, 7)
+              : const BattleCameraPoint(0x4cd / 4096, 0x666 / 4096, -10);
+          final sourceOffset = BattleCameraPoint(
+            pose.offsetXFx32 / 4096,
+            pose.offsetYFx32 / 4096,
+            pose.offsetZFx32 / 4096,
+          );
+          final origin = referenceCamera.tryProject(sourceFoot);
+          final displaced = referenceCamera.tryProject(sourceFoot + sourceOffset);
+          final billboard = camera.tryBillboardAt(_geometryFor(slots[key]!).footAnchor);
+          if (billboard == null || billboard.scale <= 0) return false;
+          final component = actors[key]!.actor;
+          component.setBattleScriptHidden(
+            origin == null || displaced == null, owner: projectionOwner,
+          );
+          component.setBattleScriptGroundClip(
+            pose.offsetYFx32 < 0, owner: projectionOwner,
+          );
+          component.setBattleScriptShadowHidden(
+            pose.offsetYFx32 < 0, owner: projectionOwner,
+          );
+          if (origin != null && displaced != null) {
+            final fit = math.min(
+              camera.viewport.width / 256, camera.viewport.height / 192,
+            );
+            const sourceFocal = 96 * 0xf97 / 0x399;
+            offset = (displaced.position - origin.position) *
+                (sourceFocal / referenceCamera.focal) * fit / billboard.scale;
+          }
+        } else if (pose.spatialOffset) {
+          return false;
         }
         return actors[key]!.actor.applyBattleScriptTransform(
           offset: offset,
-          scaleX: pose.scaleXFx32 / 4096 * depthScale,
-          scaleY: pose.scaleYFx32 / 4096 * depthScale,
+          scaleX: pose.scaleXFx32 / 4096,
+          scaleY: pose.scaleYFx32 / 4096,
           rotation: pose.rotationFx32 * (2 * math.pi / (4096 * 65536)),
           owner: owner,
         );
       },
-      release: (actor, owner) =>
-          actors[actor as String]!.actor.clearBattleScriptTransform(owner: owner),
+      release: (actor, owner) {
+        final component = actors[actor as String]!.actor;
+        component.setBattleScriptHidden(false, owner: projectionOwner);
+        component.setBattleScriptGroundClip(false, owner: projectionOwner);
+        component.setBattleScriptShadowHidden(false, owner: projectionOwner);
+        component.clearBattleScriptTransform(owner: owner);
+      },
     );
     bool bounded(Object? value, int min, int max) =>
         value is int && value >= min && value <= max;
@@ -1691,6 +1725,21 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
           index++;
         }
       }
+      final pose = sourceCamera.tick();
+      BattleCameraPoint position(Gen5CameraVector value, Gen5CameraVector base,
+          BattleCameraPoint initial) {
+        final transform = cameraTransform;
+        if (transform == null) {
+          return BattleCameraPoint(value.x / 4096, value.y / 4096, value.z / 4096);
+        }
+        return initial + transform.apply((x: value.x - base.x,
+          y: value.y - base.y, z: value.z - base.z));
+      }
+      camera.moveTo(
+        eye: position(pose.position, Gen5CameraMotion.defaultPose.position, initialEye),
+        aim: position(pose.target, Gen5CameraMotion.defaultPose.target, initialAim),
+        durationSeconds: 0,
+      );
       motion.tick();
       sourceBackground.tick();
       for (final entry in alphaJobs.entries.toList()) {
@@ -1753,21 +1802,6 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
           }
         }
       }
-      final pose = sourceCamera.tick();
-      BattleCameraPoint position(Gen5CameraVector value, Gen5CameraVector base,
-          BattleCameraPoint initial) {
-        final transform = cameraTransform;
-        if (transform == null) {
-          return BattleCameraPoint(value.x / 4096, value.y / 4096, value.z / 4096);
-        }
-        return initial + transform.apply((x: value.x - base.x,
-          y: value.y - base.y, z: value.z - base.z));
-      }
-      camera.moveTo(
-        eye: position(pose.position, Gen5CameraMotion.defaultPose.position, initialEye),
-        aim: position(pose.target, Gen5CameraMotion.defaultPose.target, initialAim),
-        durationSeconds: 0,
-      );
       _applyBattleCameraTransform();
     }
     final playback = BattleGen5SourceProgramPlayback(

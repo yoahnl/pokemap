@@ -215,6 +215,20 @@ class BattleSceneCombatantComponent extends PositionComponent {
   Rect get stageSourceRect => _currentSpriteInputSubrect();
   Color get stageTint => _spriteModulationColor(_visualOpacity);
   final Set<Object> _battleScriptShadowOwners = {};
+  Object? _battleScriptGroundClipOwner;
+
+  double? get cameraNeutralBattleGroundClipY =>
+      _battleScriptGroundClipOwner != null && _visualOffset.dy > 0
+          ? _basePosition.y + _footAnchor.dy : null;
+
+  void setBattleScriptGroundClip(bool enabled, {required Object owner}) {
+    if (enabled) {
+      _battleScriptGroundClipOwner = owner;
+    } else if (identical(_battleScriptGroundClipOwner, owner)) {
+      _battleScriptGroundClipOwner = null;
+    }
+  }
+
   final Set<Object> _battleScriptHiddenOwners = {};
   Object? _battleScriptAlphaOwner;
   int _battleScriptAlphaLevel = 31;
@@ -959,6 +973,14 @@ class BattleSceneCombatantComponent extends PositionComponent {
         );
       }
       _renderDashTrail(canvas);
+      final clipGround =
+          _battleScriptGroundClipOwner != null && _visualOffset.dy > 0;
+      if (clipGround) {
+        canvas.save();
+        canvas.clipRect(Rect.fromLTRB(
+          -100000, -100000, 100000, _footAnchor.dy - _visualOffset.dy,
+        ));
+      }
       if (_visualRotation == 0) {
         _renderSprite(canvas);
       } else {
@@ -970,6 +992,7 @@ class BattleSceneCombatantComponent extends PositionComponent {
         _renderSprite(canvas);
         canvas.restore();
       }
+      if (clipGround) canvas.restore();
       return;
     }
 

@@ -208,10 +208,19 @@ final class BattleStage3DComponent extends Component {
     BattleSceneCombatantComponent actor,
     Offset foot,
   ) {
-    final world = camera.tryBillboardWorldGeometry(
-      foot,
-      actor.currentCameraNeutralRenderedImageRect,
+    final imageRect = actor.currentCameraNeutralRenderedImageRect;
+    final clipY = actor.cameraNeutralBattleGroundClipY;
+    final clipFraction = clipY == null || imageRect.height <= 0
+        ? 1.0
+        : ((clipY - imageRect.top) / imageRect.height).clamp(0.0, 1.0);
+    final visibleRect = clipFraction == 0 ? imageRect : Rect.fromLTWH(
+      imageRect.left, imageRect.top, imageRect.width, imageRect.height * clipFraction,
     );
+    final source = actor.stageSourceRect;
+    final visibleSource = clipFraction == 0 ? source : Rect.fromLTWH(
+      source.left, source.top, source.width, source.height * clipFraction,
+    );
+    final world = camera.tryBillboardWorldGeometry(foot, visibleRect);
     if (world == null) return null;
     final shadowRect = actor.currentCameraNeutralShadowRect;
     final maskSize = actor.stageShadowMaskSize;
@@ -241,11 +250,11 @@ final class BattleStage3DComponent extends Component {
     return BattleStageBillboard(
       id: slot,
       image: actor.stageImage!,
-      source: actor.stageSourceRect,
+      source: visibleSource,
       position: _point(world.position),
       width: world.width,
       height: world.height,
-      tint: actor.stageTint,
+      tint: clipFraction == 0 ? actor.stageTint.withValues(alpha: 0) : actor.stageTint,
       shadow: BattleStageSoftShadow(
         maskSize: maskSize,
         position: _point(shadow.position),

@@ -22,6 +22,35 @@ import 'package:map_runtime/src/presentation/flame/battle_stage_3d_component.dar
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  testWidgets('source ground clipping crops the GPU sprite and restores it', (tester) async {
+    final fixture = await _mountFixture(tester);
+    final actor = fixture.actors[_player]!;
+    final owner = Object();
+    _render(fixture.stage.render);
+    final initial = fixture.renderer.lastBillboards.firstWhere((item) => item.id == _player);
+    final height = actor.currentCameraNeutralRenderedImageRect.height;
+    expect(actor.applyBattleScriptTransform(offset: Offset(0, height / 2),
+        scaleX: 1, scaleY: 1, owner: owner), isTrue);
+    actor.setBattleScriptGroundClip(true, owner: owner);
+    _render(fixture.stage.render);
+    final partial = fixture.renderer.lastBillboards.firstWhere((item) => item.id == _player);
+    expect(partial.source.height, lessThan(initial.source.height));
+    expect(partial.source.height, greaterThan(0));
+    expect(partial.height, lessThan(initial.height));
+    expect(actor.applyBattleScriptTransform(offset: Offset(0, height * 2),
+        scaleX: 1, scaleY: 1, owner: owner), isTrue);
+    _render(fixture.stage.render);
+    final hidden = fixture.renderer.lastBillboards.firstWhere((item) => item.id == _player);
+    expect(hidden.tint.a, 0);
+    actor.setBattleScriptGroundClip(false, owner: owner);
+    actor.clearBattleScriptTransform(owner: owner);
+    _render(fixture.stage.render);
+    final restored = fixture.renderer.lastBillboards.firstWhere((item) => item.id == _player);
+    expect(restored.source, initial.source);
+    expect(restored.height, closeTo(initial.height, .0001));
+    expect(restored.tint, initial.tint);
+  });
+
   test('an unavailable current frame clears stale actor submission flags', () {
     final actor = _actor()..renderedBy3DStage = true;
     final scene = _layout();

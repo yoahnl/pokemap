@@ -2103,6 +2103,108 @@ void main() {
     expect(emitted, [0]);
   });
 
+  test('source displacement scales consistently across phone orientations', () async {
+    final ratios = <double>[];
+    for (final viewport in [Vector2(393, 852), Vector2(852, 393)]) {
+      final overlay = await _scene(viewport: viewport);
+      final actor = overlay.debugPlayerCombatant!;
+      final width = actor.currentCameraNeutralRenderedSpriteRect.width;
+      final finished = overlay.presentExperimentalGen5Attack(
+        program: _program([
+          _instruction('moveCombatant', {'targets': 'EFFVM_ATTACKER', 'type': 2,
+            'x': 4096, 'y': 0, 'frames': 6, 'wait': 1, 'times': 1}),
+          _instruction('waitTasks', {'what': 'MCSS'}),
+          _instruction('end'),
+        ]),
+        variant: 'Tackle', hasEmitter: (_, _) => false,
+        startEmitter: (_, _, _) {}, particlesBusy: () => false,
+        detachParticles: () {}, allowSilentAudio: true, adaptSourceCamera: true,
+      );
+      var maximum = 0.0;
+      for (var tick = 0; tick < 120 && overlay.isTurnPresentationActive; tick++) {
+        overlay.updateTree(1 / 60);
+        if (actor.currentVisualOffset.dx.abs() > maximum) {
+          maximum = actor.currentVisualOffset.dx.abs();
+        }
+      }
+      expect(await finished, BattleGen5SourcePlaybackStatus.finished);
+      expect(maximum, greaterThan(10));
+      expect(actor.currentVisualOffset, ui.Offset.zero);
+      ratios.add(maximum / width);
+    }
+    expect((ratios.first - ratios.last).abs(), lessThan(.03));
+  });
+
+  for (final target in ['EFFVM_ATTACKER', 'EFFVM_DEFENDER']) {
+    for (final viewport in [Vector2(393, 852), Vector2(852, 393)]) {
+      test('cancelled underground motion restores $target at $viewport', () async {
+        final overlay = await _scene(viewport: viewport);
+        final actor = target == 'EFFVM_ATTACKER'
+            ? overlay.debugPlayerCombatant! : overlay.debugEnemyCombatant!;
+        final untouched = target == 'EFFVM_ATTACKER'
+            ? overlay.debugEnemyCombatant! : overlay.debugPlayerCombatant!;
+        final other = Object();
+        final shadow = actor.stageShadowTint;
+        actor.setBattleScriptHidden(true, owner: other);
+        final finished = overlay.presentExperimentalGen5Attack(
+          program: _program([
+            _instruction('moveCombatant', {'targets': target, 'type': 1,
+              'x': 0, 'y': -24576, 'frames': 30, 'wait': 1, 'times': 1}),
+            _instruction('waitFrames', {'frames': 120}),
+            _instruction('end'),
+          ]),
+          variant: 'Tackle', hasEmitter: (_, _) => false,
+          startEmitter: (_, _, _) {}, particlesBusy: () => false,
+          detachParticles: () {}, allowSilentAudio: true, adaptSourceCamera: true,
+        );
+        for (var tick = 0; tick < 12; tick++) {
+          overlay.updateTree(1 / 60);
+        }
+        expect(actor.cameraNeutralBattleGroundClipY, isNotNull);
+        expect(actor.stageShadowTint.a, 0);
+        expect(untouched.cameraNeutralBattleGroundClipY, isNull);
+        expect(untouched.currentVisualOffset, ui.Offset.zero);
+        overlay.cancelExperimentalGen5Attack();
+        expect(await finished, BattleGen5SourcePlaybackStatus.cancelled);
+        expect(actor.cameraNeutralBattleGroundClipY, isNull);
+        expect(actor.isHiddenForBattleScript, isTrue);
+        expect(actor.currentVisualOffset, ui.Offset.zero);
+        actor.setBattleScriptHidden(false, owner: other);
+        expect(actor.isHiddenForBattleScript, isFalse);
+        expect(actor.stageShadowTint, shadow);
+      });
+    }
+  }
+
+  test('a source combatant passing the camera does not interrupt the attack', () async {
+    final overlay = await _scene();
+    final actor = overlay.debugPlayerCombatant!;
+    final finished = overlay.presentExperimentalGen5Attack(
+      program: _program([
+        _instruction('moveCameraPreset', {'moveType': 1, 'camera': 11,
+          'frames': 1, 'wait': 0, 'brake': 0}),
+        _instruction('waitTasks', {'what': 'CAMERA'}),
+        _instruction('circleCombatant', {'targets': 'EFFVM_ATTACKER', 'mode': 3,
+          'start': 0, 'radius1': 0, 'radius2': 32768, 'frames': 6,
+          'wait': 1, 'count': 1, 'turnWait': 0,
+          'framesFx32': 24576, 'waitFx32': 4096, 'countFx32': 4096}),
+        _instruction('waitTasks', {'what': 'MCSS'}),
+        _instruction('end'),
+      ]),
+      variant: 'Tackle', hasEmitter: (_, _) => false,
+      startEmitter: (_, _, _) {}, particlesBusy: () => false,
+      detachParticles: () {}, allowSilentAudio: true, adaptSourceCamera: true,
+    );
+    var hidden = false;
+    for (var tick = 0; tick < 120 && overlay.isTurnPresentationActive; tick++) {
+      overlay.updateTree(1 / 60);
+      hidden |= actor.isHiddenForBattleScript;
+    }
+    expect(await finished, BattleGen5SourcePlaybackStatus.finished);
+    expect(hidden, isTrue);
+    expect(actor.isHiddenForBattleScript, isFalse);
+  });
+
   test('workshop batch programs complete in the source scene', () async {
     final overlay = await _scene();
     final root = Directory('../../tools/avelune_attack_comparator');
