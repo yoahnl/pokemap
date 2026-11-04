@@ -1779,7 +1779,8 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
       dispatch: dispatch,
       isBusy: (category) => switch (category) {
         BattleGen5SourceTaskCategory.camera => sourceCamera.isMoving,
-        BattleGen5SourceTaskCategory.mcss => motion.isBusy || alphaJobs.isNotEmpty,
+        BattleGen5SourceTaskCategory.mcss =>
+          motion.isBusy || alphaJobs.isNotEmpty || paletteJobs.isNotEmpty,
         BattleGen5SourceTaskCategory.background => sourceBackground.isMoving,
         BattleGen5SourceTaskCategory.backgroundWave => sourceBackground.isWaving,
         BattleGen5SourceTaskCategory.palette =>
