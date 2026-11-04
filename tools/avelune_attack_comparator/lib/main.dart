@@ -224,7 +224,7 @@ class _ComparePageState extends State<ComparePage> {
                   : _move == PreviewMove.surf
                   ? 'Surf : programme BW2 expérimental. Son et rendu à vérifier.'
                   : '${_move.label} : programme BW2 expérimental. Caméra simplifiée, sans son source.'
-                        '${_move.approximations.contains('source-variant:first-only') ? ' Seule la première variante de l’attaque est disponible.' : ''}'
+                        '${_move.approximations.contains('source-variant:first-only') ? ' Cet aperçu ne montre qu’une variante de l’attaque.' : ''}'
                         '${_move.approximations.contains('source-branch:player-side-only') ? ' Seul le côté joueur est disponible dans cet aperçu.' : ''}'
                         '${_move.approximations.contains('source-audio:cry-and-timing-unavailable') ? ' Le cri et sa synchronisation restent à intégrer.' : ''}'
                         '${_move.approximations.contains('background-palette-animation:missing-bank-base') ? ' Une palette manquante est remplacée par les couleurs de base.' : ''}'

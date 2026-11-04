@@ -1,5 +1,35 @@
 [
   {
+    "id": "fly",
+    "label": "Vol · Variante 2",
+    "englishName": "Fly",
+    "type": "flying",
+    "category": "physical",
+    "particle": 185,
+    "approximations": [
+      "actor-position:screen-space-approximation",
+      "actor-visibility:shadow-hidden",
+      "camera:relative-adapted-to-workshop"
+    ],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/7/7f/Fly_V.png",
+    "bundleAsset": "assets/bw2/batch/fly--variant-2.json",
+    "sourceVariant": "Fly_Variant1"
+  },
+  {
+    "id": "thief",
+    "label": "Larcin · Variante 2",
+    "englishName": "Thief",
+    "type": "dark",
+    "category": "physical",
+    "particle": 339,
+    "approximations": [
+      "source-branch:single-battle-only"
+    ],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/4/43/Thief_V.png",
+    "bundleAsset": "assets/bw2/batch/thief--variant-2.json",
+    "sourceVariant": "Thief_Variant1"
+  },
+  {
     "id": "quash",
     "label": "À la Queue",
     "englishName": "Quash",
@@ -350,6 +380,62 @@
     "bundleAsset": "assets/bw2/batch/weather-ball.json"
   },
   {
+    "id": "weather-ball",
+    "label": "Ball’Météo · Variante 2",
+    "englishName": "Weather Ball",
+    "type": "normal",
+    "category": "special",
+    "particle": 483,
+    "approximations": [
+      "particle-spin:trigonometry-experimental"
+    ],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/1/17/Weather_Ball_V.png",
+    "bundleAsset": "assets/bw2/batch/weather-ball--variant-2.json",
+    "sourceVariant": "WeatherBall_Variant1"
+  },
+  {
+    "id": "weather-ball",
+    "label": "Ball’Météo · Variante 3",
+    "englishName": "Weather Ball",
+    "type": "normal",
+    "category": "special",
+    "particle": 484,
+    "approximations": [
+      "particle-spin:trigonometry-experimental"
+    ],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/1/17/Weather_Ball_V.png",
+    "bundleAsset": "assets/bw2/batch/weather-ball--variant-3.json",
+    "sourceVariant": "WeatherBall_Variant2"
+  },
+  {
+    "id": "weather-ball",
+    "label": "Ball’Météo · Variante 4",
+    "englishName": "Weather Ball",
+    "type": "normal",
+    "category": "special",
+    "particle": 485,
+    "approximations": [
+      "particle-spin:trigonometry-experimental"
+    ],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/1/17/Weather_Ball_V.png",
+    "bundleAsset": "assets/bw2/batch/weather-ball--variant-4.json",
+    "sourceVariant": "WeatherBall_Variant3"
+  },
+  {
+    "id": "weather-ball",
+    "label": "Ball’Météo · Variante 5",
+    "englishName": "Weather Ball",
+    "type": "normal",
+    "category": "special",
+    "particle": 486,
+    "approximations": [
+      "particle-spin:trigonometry-experimental"
+    ],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/1/17/Weather_Ball_V.png",
+    "bundleAsset": "assets/bw2/batch/weather-ball--variant-5.json",
+    "sourceVariant": "WeatherBall_Variant4"
+  },
+  {
     "id": "bullet-seed",
     "label": "Balle Graine",
     "englishName": "Bullet Seed",
@@ -557,6 +643,18 @@
     "bundleAsset": "assets/bw2/batch/present.json"
   },
   {
+    "id": "present",
+    "label": "Cadeau · Variante 2",
+    "englishName": "Present",
+    "type": "normal",
+    "category": "physical",
+    "particle": 388,
+    "approximations": [],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/a/ae/Present_V.png",
+    "bundleAsset": "assets/bw2/batch/present--variant-2.json",
+    "sourceVariant": "Present_Variant1"
+  },
+  {
     "id": "thunder-wave",
     "label": "Cage Éclair",
     "englishName": "Thunder Wave",
@@ -610,6 +708,20 @@
     "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/f/f8/Brick_Break_V.png",
     "bundleAsset": "assets/bw2/batch/brick-break.json"
+  },
+  {
+    "id": "brick-break",
+    "label": "Casse-Brique · Variante 2",
+    "englishName": "Brick Break",
+    "type": "fighting",
+    "category": "physical",
+    "particle": 451,
+    "approximations": [
+      "particle-field:randomLoopOffset"
+    ],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/f/f8/Brick_Break_V.png",
+    "bundleAsset": "assets/bw2/batch/brick-break--variant-2.json",
+    "sourceVariant": "BrickBreak_Variant1"
   },
   {
     "id": "volt-switch",
@@ -702,6 +814,20 @@
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/9/9d/Sky_Drop_V.png",
     "bundleAsset": "assets/bw2/batch/sky-drop.json"
+  },
+  {
+    "id": "sky-drop",
+    "label": "Chute Libre · Variante 2",
+    "englishName": "Sky Drop",
+    "type": "flying",
+    "category": "physical",
+    "particle": 185,
+    "approximations": [
+      "actor-visibility:shadow-hidden"
+    ],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/9/9d/Sky_Drop_V.png",
+    "bundleAsset": "assets/bw2/batch/sky-drop--variant-2.json",
+    "sourceVariant": "SkyDrop_Variant1"
   },
   {
     "id": "foresight",
@@ -954,6 +1080,18 @@
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/a/af/Razor_Wind_V.png",
     "bundleAsset": "assets/bw2/batch/razor-wind.json"
+  },
+  {
+    "id": "razor-wind",
+    "label": "Coupe-Vent · Variante 2",
+    "englishName": "Razor Wind",
+    "type": "normal",
+    "category": "special",
+    "particle": 178,
+    "approximations": [],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/a/af/Razor_Wind_V.png",
+    "bundleAsset": "assets/bw2/batch/razor-wind--variant-2.json",
+    "sourceVariant": "RazorWind_Variant1"
   },
   {
     "id": "heart-stamp",
@@ -2013,6 +2151,18 @@
     "bundleAsset": "assets/bw2/batch/solar-beam.json"
   },
   {
+    "id": "solar-beam",
+    "label": "Lance-Soleil · Variante 2",
+    "englishName": "Solar Beam",
+    "type": "grass",
+    "category": "special",
+    "particle": 244,
+    "approximations": [],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/0/0f/SolarBeam_V.png",
+    "bundleAsset": "assets/bw2/batch/solar-beam--variant-2.json",
+    "sourceVariant": "SolarBeam_Variant1"
+  },
+  {
     "id": "lick",
     "label": "Léchouille",
     "englishName": "Lick",
@@ -2105,6 +2255,18 @@
     ],
     "referenceUrl": null,
     "bundleAsset": "assets/bw2/batch/curse.json"
+  },
+  {
+    "id": "curse",
+    "label": "Malédiction · Variante 2",
+    "englishName": "Curse",
+    "type": "ghost",
+    "category": "status",
+    "particle": 345,
+    "approximations": [],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/c/cb/Curse_V_other.png",
+    "bundleAsset": "assets/bw2/batch/curse--variant-2.json",
+    "sourceVariant": "Curse_Variant1"
   },
   {
     "id": "hammer-arm",
@@ -5243,6 +5405,18 @@
     "bundleAsset": "assets/bw2/batch/covet.json"
   },
   {
+    "id": "covet",
+    "label": "Implore · Variante 2",
+    "englishName": "Covet",
+    "type": "normal",
+    "category": "physical",
+    "particle": 520,
+    "approximations": [],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/3/3a/Covet_V.png",
+    "bundleAsset": "assets/bw2/batch/covet--variant-2.json",
+    "sourceVariant": "Covet_Variant1"
+  },
+  {
     "id": "water-sport",
     "label": "Tourniquet",
     "englishName": "Water Sport",
@@ -5553,6 +5727,22 @@
     "bundleAsset": "assets/bw2/batch/freeze-shock.json"
   },
   {
+    "id": "freeze-shock",
+    "label": "Éclair Gelé · Variante 2",
+    "englishName": "Freeze Shock",
+    "type": "ice",
+    "category": "physical",
+    "particle": null,
+    "approximations": [
+      "background-palette-animation:timing-experimental",
+      "background-palette-fade:layer-approximation",
+      "scene-palette-fade:layer-approximation"
+    ],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/9/9d/Freeze_Shock_B2W2.png",
+    "bundleAsset": "assets/bw2/batch/freeze-shock--variant-2.json",
+    "sourceVariant": "FreezeShock_Variant1"
+  },
+  {
     "id": "bulk-up",
     "label": "Gonflette",
     "englishName": "Bulk Up",
@@ -5600,6 +5790,20 @@
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/e/ed/Future_Sight_V.png",
     "bundleAsset": "assets/bw2/batch/future-sight.json"
+  },
+  {
+    "id": "future-sight",
+    "label": "Prescience · Variante 2",
+    "englishName": "Future Sight",
+    "type": "psychic",
+    "category": "special",
+    "particle": null,
+    "approximations": [
+      "scene-palette-fade:layer-approximation"
+    ],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/e/ed/Future_Sight_V.png",
+    "bundleAsset": "assets/bw2/batch/future-sight--variant-2.json",
+    "sourceVariant": "FutureSight_Variant1"
   },
   {
     "id": "minimize",
@@ -6103,6 +6307,23 @@
     "bundleAsset": "assets/bw2/batch/ice-burn.json"
   },
   {
+    "id": "ice-burn",
+    "label": "Feu Glacé · Variante 2",
+    "englishName": "Ice Burn",
+    "type": "ice",
+    "category": "special",
+    "particle": 731,
+    "approximations": [
+      "background-palette-animation:timing-experimental",
+      "background-palette-fade:layer-approximation",
+      "particle-spin:trigonometry-experimental",
+      "scene-palette-fade:layer-approximation"
+    ],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/9/98/Ice_Burn_B2W2.png",
+    "bundleAsset": "assets/bw2/batch/ice-burn--variant-2.json",
+    "sourceVariant": "IceBurn_Variant1"
+  },
+  {
     "id": "snarl",
     "label": "Aboiement",
     "englishName": "Snarl",
@@ -6175,6 +6396,62 @@
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/7/7e/Techno_Blast_V.png",
     "bundleAsset": "assets/bw2/batch/techno-blast.json"
+  },
+  {
+    "id": "techno-blast",
+    "label": "Techno-Buster · Variante 2",
+    "englishName": "Techno Blast",
+    "type": "normal",
+    "category": "special",
+    "particle": 716,
+    "approximations": [
+      "particle-spin:trigonometry-experimental"
+    ],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/7/7e/Techno_Blast_V.png",
+    "bundleAsset": "assets/bw2/batch/techno-blast--variant-2.json",
+    "sourceVariant": "TechnoBlast_Variant1"
+  },
+  {
+    "id": "techno-blast",
+    "label": "Techno-Buster · Variante 3",
+    "englishName": "Techno Blast",
+    "type": "normal",
+    "category": "special",
+    "particle": 717,
+    "approximations": [
+      "particle-spin:trigonometry-experimental"
+    ],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/7/7e/Techno_Blast_V.png",
+    "bundleAsset": "assets/bw2/batch/techno-blast--variant-3.json",
+    "sourceVariant": "TechnoBlast_Variant2"
+  },
+  {
+    "id": "techno-blast",
+    "label": "Techno-Buster · Variante 4",
+    "englishName": "Techno Blast",
+    "type": "normal",
+    "category": "special",
+    "particle": 718,
+    "approximations": [
+      "particle-spin:trigonometry-experimental"
+    ],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/7/7e/Techno_Blast_V.png",
+    "bundleAsset": "assets/bw2/batch/techno-blast--variant-4.json",
+    "sourceVariant": "TechnoBlast_Variant3"
+  },
+  {
+    "id": "techno-blast",
+    "label": "Techno-Buster · Variante 5",
+    "englishName": "Techno Blast",
+    "type": "normal",
+    "category": "special",
+    "particle": 719,
+    "approximations": [
+      "particle-spin:trigonometry-experimental"
+    ],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/7/7e/Techno_Blast_V.png",
+    "bundleAsset": "assets/bw2/batch/techno-blast--variant-5.json",
+    "sourceVariant": "TechnoBlast_Variant4"
   },
   {
     "id": "absorb",
@@ -6825,6 +7102,20 @@
     "bundleAsset": "assets/bw2/batch/bounce.json"
   },
   {
+    "id": "bounce",
+    "label": "Rebond · Variante 2",
+    "englishName": "Bounce",
+    "type": "flying",
+    "category": "physical",
+    "particle": 516,
+    "approximations": [
+      "actor-visibility:shadow-hidden"
+    ],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/d/d5/Bounce_V.png",
+    "bundleAsset": "assets/bw2/batch/bounce--variant-2.json",
+    "sourceVariant": "Bounce_Variant1"
+  },
+  {
     "id": "u-turn",
     "label": "Demi-Tour",
     "englishName": "U-turn",
@@ -6867,6 +7158,22 @@
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/1/10/Shadow_Force_V.png",
     "bundleAsset": "assets/bw2/batch/shadow-force.json"
+  },
+  {
+    "id": "shadow-force",
+    "label": "Revenant · Variante 2",
+    "englishName": "Shadow Force",
+    "type": "ghost",
+    "category": "physical",
+    "particle": 647,
+    "approximations": [
+      "actor-visibility:shadow-hidden",
+      "particle-projection:orthographic-experimental",
+      "scene-palette-fade:layer-approximation"
+    ],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/1/10/Shadow_Force_V.png",
+    "bundleAsset": "assets/bw2/batch/shadow-force--variant-2.json",
+    "sourceVariant": "ShadowForce_Variant1"
   },
   {
     "id": "acid-armor",
@@ -6947,6 +7254,22 @@
     "bundleAsset": "assets/bw2/batch/sky-attack.json"
   },
   {
+    "id": "sky-attack",
+    "label": "Piqué · Variante 2",
+    "englishName": "Sky Attack",
+    "type": "flying",
+    "category": "physical",
+    "particle": 313,
+    "approximations": [
+      "actor-visibility:shadow-hidden",
+      "background-palette-fade:layer-approximation",
+      "scene-palette-fade:layer-approximation"
+    ],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/d/dc/Sky_Attack_V.png",
+    "bundleAsset": "assets/bw2/batch/sky-attack--variant-2.json",
+    "sourceVariant": "SkyAttack_Variant1"
+  },
+  {
     "id": "snatch",
     "label": "Saisie",
     "englishName": "Snatch",
@@ -6958,6 +7281,20 @@
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/3/32/Snatch_V.png",
     "bundleAsset": "assets/bw2/batch/snatch.json"
+  },
+  {
+    "id": "snatch",
+    "label": "Saisie · Variante 2",
+    "englishName": "Snatch",
+    "type": "dark",
+    "category": "status",
+    "particle": 460,
+    "approximations": [
+      "actor-visibility:shadow-hidden"
+    ],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/3/32/Snatch_V.png",
+    "bundleAsset": "assets/bw2/batch/snatch--variant-2.json",
+    "sourceVariant": "Snatch_Variant1"
   },
   {
     "id": "doom-desire",
@@ -6974,6 +7311,21 @@
     "bundleAsset": "assets/bw2/batch/doom-desire.json"
   },
   {
+    "id": "doom-desire",
+    "label": "Vœu Destructeur · Variante 2",
+    "englishName": "Doom Desire",
+    "type": "steel",
+    "category": "special",
+    "particle": 530,
+    "approximations": [
+      "scene-palette-fade:layer-approximation",
+      "source-emitter:field-coordinate-calibration"
+    ],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/8/8a/Doom_Desire_V.png",
+    "bundleAsset": "assets/bw2/batch/doom-desire--variant-2.json",
+    "sourceVariant": "DoomDesire_Variant1"
+  },
+  {
     "id": "dragon-rush",
     "label": "Draco-Charge",
     "englishName": "Dragon Rush",
@@ -6985,6 +7337,21 @@
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/0/01/Dragon_Rush_V.png",
     "bundleAsset": "assets/bw2/batch/dragon-rush.json"
+  },
+  {
+    "id": "dragon-rush",
+    "label": "Draco-Charge · Variante 2",
+    "englishName": "Dragon Rush",
+    "type": "dragon",
+    "category": "physical",
+    "particle": null,
+    "approximations": [
+      "actor-position:screen-space-approximation",
+      "actor-visibility:shadow-hidden"
+    ],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/0/01/Dragon_Rush_V.png",
+    "bundleAsset": "assets/bw2/batch/dragon-rush--variant-2.json",
+    "sourceVariant": "DragonRush_Variant1"
   },
   {
     "id": "dig",
@@ -7002,6 +7369,21 @@
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/5/5d/Dig_V.png",
     "bundleAsset": "assets/bw2/batch/dig.json"
+  },
+  {
+    "id": "dig",
+    "label": "Tunnel · Variante 2",
+    "englishName": "Dig",
+    "type": "ground",
+    "category": "physical",
+    "particle": 264,
+    "approximations": [
+      "actor-position:screen-space-approximation",
+      "actor-visibility:shadow-hidden"
+    ],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/5/5d/Dig_V.png",
+    "bundleAsset": "assets/bw2/batch/dig--variant-2.json",
+    "sourceVariant": "Dig_Variant1"
   },
   {
     "id": "extreme-speed",
@@ -7054,6 +7436,20 @@
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/5/57/Skull_Bash_V.png",
     "bundleAsset": "assets/bw2/batch/skull-bash.json"
+  },
+  {
+    "id": "skull-bash",
+    "label": "Coud’Krâne · Variante 2",
+    "englishName": "Skull Bash",
+    "type": "normal",
+    "category": "physical",
+    "particle": 299,
+    "approximations": [
+      "scene-palette-fade:layer-approximation"
+    ],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/5/57/Skull_Bash_V.png",
+    "bundleAsset": "assets/bw2/batch/skull-bash--variant-2.json",
+    "sourceVariant": "SkullBash_Variant1"
   },
   {
     "id": "entrainment",

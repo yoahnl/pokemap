@@ -390,13 +390,14 @@ Map<String, Object?>? selectSupportedVariant(Map<String, Object?> program) {
 
 Future<Map<String, Object?>?> convert(
     Map document, Map move, HttpClient client,
-    {Future<Uint8List> Function(String path, int limit)? fetchResource}) async {
+    {Future<Uint8List> Function(String path, int limit)? fetchResource,
+    String? selectedVariant}) async {
   Future<Uint8List> read(String path, int limit) =>
       fetchResource?.call(path, limit) ?? fetch(client, path, limit);
   final script = document['script'] as Map;
   final bytes = base64Decode(script['data'] as String);
   final source = utf8.decode(bytes);
-  final variant = RegExp(r'^\s*ScriptVariant\s+(\w+)', multiLine: true)
+  final variant = selectedVariant ?? RegExp(r'^\s*ScriptVariant\s+(\w+)', multiLine: true)
       .firstMatch(source)
       ?.group(1);
   if (variant == null) return null;
@@ -493,7 +494,7 @@ Future<Map<String, Object?>?> convert(
       (item['args'] as Map)['what'] == 'STAGE_FIELD_FADE')) {
     approximations.add('source-fade:stage-field-shared-job');
   }
-  if (sourceVariantCount > 1) {
+  if (sourceVariantCount > 1 && selectedVariant == null) {
     approximations.add('source-variant:first-only');
   }
   if (selected.any((item) => item['op'] == 'waveBackground')) {
@@ -725,8 +726,8 @@ Future<void> main() async {
       final index = cursor++;
       final item = records[index];
       try {
-        output[index] =
-            await convert(item['script'] as Map, item['move'] as Map, client);
+        output[index] = await convert(item['script'] as Map, item['move'] as Map,
+            client, selectedVariant: item['variant'] as String?);
       } on Object catch (error) {
         final script = item['script'] as Map;
         failures.add(
