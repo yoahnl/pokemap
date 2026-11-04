@@ -438,8 +438,10 @@ Future<Map<String, Object?>?> convert(
     'moveCombatant', 'scaleCombatant', 'rotateCombatant', 'circleCombatant',
     'fadePalette', 'fadeStagePalette', 'shakeCamera', 'loadBackground',
   };
+  const cameraEffects = {'moveCameraPreset', 'moveCameraRelative', 'moveCameraAbsolute'};
   if (particleIds.isEmpty &&
-      !selected.any((item) => actorOrSceneEffects.contains(item['op']))) {
+      !selected.any((item) => actorOrSceneEffects.contains(item['op'])) &&
+      !(selectedVariant != null && selected.any((item) => cameraEffects.contains(item['op'])))) {
     return null;
   }
   final particle = particleIds.length == 1 ? particleIds.single : null;

@@ -52,4 +52,38 @@ Example_Impact:
     expect(impactBundle['approximations'],
         isNot(contains('source-variant:first-only')));
   });
+
+  test('admits an explicitly selected camera-only variant', () async {
+    final bytes = utf8.encode('''
+#include "asm/btlv_effvm.inc"
+ScriptHeader 2
+ScriptVariant Example
+ScriptVariant Example_Camera
+Example:
+  End
+Example_Camera:
+  CameraMovePreset 1, 9, 16, 0, 8
+  Wait EFFVM_WAIT_CAMERA
+  End
+''');
+    final document = {
+      'move': {'id': 'example', 'sourceId': 1},
+      'source': {'revision': '41f42ca1afe6291f00b0ba0ec3f6099b9ff1346c'},
+      'script': {
+        'path': 'res/battle/animations/moves/example.s',
+        'sha256': sha256.convert(bytes).toString(),
+        'data': base64Encode(bytes),
+      },
+    };
+    final client = HttpClient();
+    addTearDown(() => client.close(force: true));
+    final bundle = await workshop.convert(
+      document,
+      {},
+      client,
+      selectedVariant: 'Example_Camera',
+    );
+    expect(bundle, isNotNull);
+    expect((bundle!['program'] as Map)['variant'], 'Example_Camera');
+  });
 }

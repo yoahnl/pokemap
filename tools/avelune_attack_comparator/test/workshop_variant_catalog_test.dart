@@ -13,7 +13,7 @@ void main() {
     final variants = index.cast<Map>().where(
       (item) => item['sourceVariant'] is String,
     );
-    expect(variants.length, greaterThanOrEqualTo(28));
+    expect(variants.length, greaterThanOrEqualTo(37));
     expect(
       variants.map((item) => item['bundleAsset']).toSet(),
       hasLength(variants.length),
@@ -23,7 +23,11 @@ void main() {
       final bundle = jsonDecode(await rootBundle.loadString(path)) as Map;
       final program = bundle['program'] as Map;
       expect(bundle['id'], entry['id'], reason: path);
-      expect(program['variant'], entry['sourceVariant'], reason: path);
+      expect(
+        program['variant'],
+        entry['resolvedVariant'] ?? entry['sourceVariant'],
+        reason: path,
+      );
       expect(program['conversion'], 'supported', reason: path);
       final labels = (program['labels'] as List).cast<Map>();
       expect(
@@ -36,5 +40,27 @@ void main() {
         reason: path,
       );
     }
+  });
+
+  test('delegated variants use the referenced source programs', () async {
+    final index = jsonDecode(
+      await rootBundle.loadString('assets/bw2/batch/index.json'),
+    ) as List;
+    final entry = index.cast<Map>().singleWhere(
+      (item) =>
+          item['originMoveId'] == 'secret-power' &&
+          item['sourceVariant'] == 'SecretPower_Variant1',
+    );
+    expect(entry['id'], 'mud-slap');
+    expect(entry['resolvedVariant'], 'MudSlap');
+    expect(entry['bundleAsset'], 'assets/bw2/batch/mud-slap.json');
+    final bide = index.cast<Map>().singleWhere(
+      (item) =>
+          item['originMoveId'] == 'bide' &&
+          item['sourceVariant'] == 'Bide_Variant1',
+    );
+    expect(bide['id'], 'tackle');
+    expect(bide['resolvedVariant'], 'Tackle');
+    expect(bide['bundleAsset'], 'assets/bw2/batch/tackle--delegated.json');
   });
 }

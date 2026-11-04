@@ -1,5 +1,130 @@
 [
   {
+    "id": "mud-slap",
+    "label": "Force Cachée · Variante 2 (Coud’Boue)",
+    "englishName": "Mud-Slap",
+    "type": "ground",
+    "category": "special",
+    "particle": 359,
+    "approximations": [],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/0/09/Mud-Slap_V.png",
+    "bundleAsset": "assets/bw2/batch/mud-slap.json",
+    "sourceVariant": "SecretPower_Variant1",
+    "resolvedVariant": "MudSlap",
+    "originMoveId": "secret-power",
+    "sourceScriptSha256": "961b433e0fa193f776067de085612bd346b83bcadf975c704f4d1918903a729a"
+  },
+  {
+    "id": "mud-shot",
+    "label": "Force Cachée · Variante 3 (Tir de Boue)",
+    "englishName": "Mud Shot",
+    "type": "ground",
+    "category": "special",
+    "particle": 517,
+    "approximations": [],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/8/83/Mud_Shot_V.png",
+    "bundleAsset": "assets/bw2/batch/mud-shot.json",
+    "sourceVariant": "SecretPower_Variant2",
+    "resolvedVariant": "MudShot",
+    "originMoveId": "secret-power",
+    "sourceScriptSha256": "961b433e0fa193f776067de085612bd346b83bcadf975c704f4d1918903a729a"
+  },
+  {
+    "id": "avalanche",
+    "label": "Force Cachée · Variante 4 (Avalanche)",
+    "englishName": "Avalanche",
+    "type": "ice",
+    "category": "physical",
+    "particle": 598,
+    "approximations": [
+      "camera:relative-adapted-to-workshop",
+      "particle-field:emissionAxis",
+      "particle-field:hideParent",
+      "particle-field:lifeTimeVariance",
+      "particle-shape:cylinder_surface->sphere_surface",
+      "scene-palette-fade:layer-approximation"
+    ],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/4/42/Avalanche_V.png",
+    "bundleAsset": "assets/bw2/batch/avalanche.json",
+    "sourceVariant": "SecretPower_Variant3",
+    "resolvedVariant": "Avalanche",
+    "originMoveId": "secret-power",
+    "sourceScriptSha256": "961b433e0fa193f776067de085612bd346b83bcadf975c704f4d1918903a729a"
+  },
+  {
+    "id": "ice-shard",
+    "label": "Force Cachée · Variante 5 (Éclats Glace)",
+    "englishName": "Ice Shard",
+    "type": "ice",
+    "category": "physical",
+    "particle": 599,
+    "approximations": [
+      "particle-random:sequence-experimental",
+      "scene-palette-fade:layer-approximation"
+    ],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/1/13/Ice_Shard_V.png",
+    "bundleAsset": "assets/bw2/batch/ice-shard.json",
+    "sourceVariant": "SecretPower_Variant4",
+    "resolvedVariant": "IceShard",
+    "originMoveId": "secret-power",
+    "sourceScriptSha256": "961b433e0fa193f776067de085612bd346b83bcadf975c704f4d1918903a729a"
+  },
+  {
+    "id": "water-pulse",
+    "label": "Force Cachée · Variante 6 (Vibraqua)",
+    "englishName": "Water Pulse",
+    "type": "water",
+    "category": "special",
+    "particle": 529,
+    "approximations": [
+      "background-palette-fade:layer-approximation",
+      "background-wave:trigonometry-experimental",
+      "particle-random:sequence-experimental",
+      "scene-palette-fade:layer-approximation",
+      "source-emitter:field-coordinate-calibration"
+    ],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/b/b0/Water_Pulse_B2W2.png",
+    "bundleAsset": "assets/bw2/batch/water-pulse.json",
+    "sourceVariant": "SecretPower_Variant5",
+    "resolvedVariant": "WaterPulse",
+    "originMoveId": "secret-power",
+    "sourceScriptSha256": "961b433e0fa193f776067de085612bd346b83bcadf975c704f4d1918903a729a"
+  },
+  {
+    "id": "rock-throw",
+    "label": "Force Cachée · Variante 7 (Jet-Pierres)",
+    "englishName": "Rock Throw",
+    "type": "rock",
+    "category": "physical",
+    "particle": 259,
+    "approximations": [
+      "particle-field:emissionAxis",
+      "particle-shape:cylinder_surface->sphere_surface",
+      "particle-zero-radius:point"
+    ],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/0/00/Rock_Throw_V.png",
+    "bundleAsset": "assets/bw2/batch/rock-throw.json",
+    "sourceVariant": "SecretPower_Variant6",
+    "resolvedVariant": "RockThrow",
+    "originMoveId": "secret-power",
+    "sourceScriptSha256": "961b433e0fa193f776067de085612bd346b83bcadf975c704f4d1918903a729a"
+  },
+  {
+    "id": "needle-arm",
+    "label": "Force Cachée · Variante 8 (Poing Dard)",
+    "englishName": "Needle Arm",
+    "type": "grass",
+    "category": "physical",
+    "particle": 472,
+    "approximations": [],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/5/53/Needle_Arm_V.png",
+    "bundleAsset": "assets/bw2/batch/needle-arm.json",
+    "sourceVariant": "SecretPower_Variant7",
+    "resolvedVariant": "NeedleArm",
+    "originMoveId": "secret-power",
+    "sourceScriptSha256": "961b433e0fa193f776067de085612bd346b83bcadf975c704f4d1918903a729a"
+  },
+  {
     "id": "fly",
     "label": "Vol · Variante 2",
     "englishName": "Fly",
@@ -1554,6 +1679,20 @@
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/d/df/Fusion_Bolt_V.png",
     "bundleAsset": "assets/bw2/batch/fusion-bolt.json"
+  },
+  {
+    "id": "fusion-bolt",
+    "label": "Éclair Croix · Variante 3 (caméra)",
+    "englishName": "Fusion Bolt",
+    "type": "electric",
+    "category": "physical",
+    "particle": null,
+    "approximations": [
+      "camera:relative-adapted-to-workshop"
+    ],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/d/df/Fusion_Bolt_V.png",
+    "bundleAsset": "assets/bw2/batch/fusion-bolt--variant-3.json",
+    "sourceVariant": "FusionBolt_Variant2"
   },
   {
     "id": "crush-claw",
@@ -7238,6 +7377,21 @@
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/3/38/Bide_V.png",
     "bundleAsset": "assets/bw2/batch/bide.json"
+  },
+  {
+    "id": "tackle",
+    "label": "Patience · Variante 2 (Charge)",
+    "englishName": "Tackle",
+    "type": "normal",
+    "category": "physical",
+    "particle": 199,
+    "approximations": [],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/e/ec/Tackle_V.png",
+    "bundleAsset": "assets/bw2/batch/tackle--delegated.json",
+    "sourceVariant": "Bide_Variant1",
+    "resolvedVariant": "Tackle",
+    "originMoveId": "bide",
+    "sourceScriptSha256": "dc170d61fcedb1df0d9fceaf817582a99186fbf41c947d95f1f5b11a53228b21"
   },
   {
     "id": "sky-attack",
