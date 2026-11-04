@@ -1205,7 +1205,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
                       scaleStep ? 32768 : positionStep ? 131072 : 28672) &&
                   bounded(args['y'], scaleStep ? 1 : positionStep ? -131072 : -28672,
                       scaleStep ? 32768 : positionStep ? 131072 : 28672) &&
-                  bounded(args['frames'], 1, 600) &&
+                  bounded(args['frames'], positionStep ? 0 : 1, 600) &&
                   bounded(args['wait'], 0, 600) &&
                   bounded(args['times'], step ? 0 : 1, step ? 32 : 64) &&
                   (!step || (args['frames'] as int) * ((args['wait'] as int) + 1) <= 900) &&

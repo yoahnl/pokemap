@@ -407,7 +407,7 @@ abstract final class Gen5SourceProgramConverter {
                 positionStep ? 131072 : 65536) &&
             bounded('y', positionStep ? -131072 : -65536,
                 positionStep ? 131072 : 65536) &&
-            bounded('frames', 1, 600) &&
+            bounded('frames', positionStep ? 0 : 1, 600) &&
             bounded('wait', 0, 600) &&
             bounded('times', step ? 0 : 1, 32));
         final frames = args['frames'] as int;

@@ -7578,6 +7578,22 @@
     "bundleAsset": "assets/bw2/batch/dive.json"
   },
   {
+    "id": "dive",
+    "label": "Plongée · Variante 2",
+    "englishName": "Dive",
+    "type": "water",
+    "category": "physical",
+    "particle": 462,
+    "approximations": [
+      "actor-position:screen-space-approximation",
+      "actor-visibility:shadow-hidden",
+      "particle-projection:orthographic-experimental"
+    ],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/0/04/Dive_V.png",
+    "bundleAsset": "assets/bw2/batch/dive--variant-2.json",
+    "sourceVariant": "Dive_Variant1"
+  },
+  {
     "id": "skull-bash",
     "label": "Coud’Krâne",
     "englishName": "Skull Bash",

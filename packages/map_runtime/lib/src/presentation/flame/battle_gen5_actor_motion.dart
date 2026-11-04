@@ -94,7 +94,8 @@ final class BattleGen5ActorMotionController {
       targetX: scaleStepMode ? xFx32 : type == 5 ? 0 :
           startX + (mirrorX ? -xFx32 : xFx32),
       targetY: scaleStepMode ? yFx32 : type == 5 ? 0 : startY + yFx32,
-      frames: frames, wait: wait, times: times,
+      frames: positionStepMode && frames == 0 ? 1 : frames,
+      wait: wait, times: times,
       minTarget: scaleStepMode ? 1 : -131072,
       maxTarget: scaleStepMode ? 32768 : 131072,
       maxDelta: scaleStepMode ? 65536 : 262144,

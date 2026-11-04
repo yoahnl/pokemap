@@ -13,7 +13,7 @@ void main() {
     final variants = index.cast<Map>().where(
       (item) => item['sourceVariant'] is String,
     );
-    expect(variants.length, greaterThanOrEqualTo(37));
+    expect(variants.length, greaterThanOrEqualTo(38));
     expect(
       variants.map((item) => item['bundleAsset']).toSet(),
       hasLength(variants.length),

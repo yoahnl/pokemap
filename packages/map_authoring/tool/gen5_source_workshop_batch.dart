@@ -55,7 +55,7 @@ bool admitted(List<Map<String, dynamic>> instructions) {
                 scaleStep ? 32768 : positionStep ? 131072 : 28672) ||
             !bounded(a['y'], scaleStep ? 1 : positionStep ? -131072 : -28672,
                 scaleStep ? 32768 : positionStep ? 131072 : 28672) ||
-            !bounded(a['frames'], 1, 600) ||
+            !bounded(a['frames'], positionStep ? 0 : 1, 600) ||
             !bounded(a['wait'], 0, 600) ||
             !bounded(a['times'], step ? 0 : 1, step ? 32 : 64)) {
           return false;

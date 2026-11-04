@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
+import 'package:map_authoring/src/domains/gameplay/pokemon_external/gen5_source_program_converter.dart';
 import 'package:test/test.dart';
 
 import '../../../tool/gen5_source_workshop_batch.dart' as workshop;
@@ -85,5 +86,33 @@ Example_Camera:
     );
     expect(bundle, isNotNull);
     expect((bundle!['program'] as Map)['variant'], 'Example_Camera');
+  });
+
+  test('admits a zero-frame position step but not a zero-frame swing', () {
+    Map<String, Object?> convert(int type) {
+      final bytes = utf8.encode('''
+#include "asm/btlv_effvm.inc"
+ScriptHeader 1
+ScriptVariant Example
+Example:
+  McssMoveXY EFFVM_ATTACKER, $type, 0, -0x14000, 0, 0, 0
+  End
+''');
+      return Gen5SourceProgramConverter.convert(
+        bytes,
+        sourceRevision: '41f42ca1afe6291f00b0ba0ec3f6099b9ff1346c',
+        sourcePath: 'res/battle/animations/moves/example.s',
+        expectedSha256: sha256.convert(bytes).toString(),
+        variant: 'Example',
+      );
+    }
+
+    final program = convert(1);
+    expect(program['conversion'], 'supported');
+    expect(
+        workshop.admitted(
+            (program['instructions'] as List).cast<Map<String, dynamic>>()),
+        isTrue);
+    expect(convert(3)['conversion'], isNot('supported'));
   });
 }
