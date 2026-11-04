@@ -207,7 +207,7 @@ packages:
     source: path
     version: "0.4.0-dev.1"
   flame_audio:
-    dependency: transitive
+    dependency: "direct dev"
     description:
       name: flame_audio
       sha256: "9eb71d334107df5b0acd4da65e630e4fed3b9a9d4e7b8b1b88bd4b9c2ca7f727"

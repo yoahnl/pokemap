@@ -21,6 +21,7 @@ dependencies:
   map_runtime:
     path: ../../packages/map_runtime
 dev_dependencies:
+  flame_audio: 2.13.0-dev.1
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0

@@ -1028,6 +1028,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     required void Function(int particle, int emitter, int offsetY) startEmitter,
     void Function(Map<String, dynamic> args)? startSourceEmitter,
     void Function(int particle)? deleteSourceParticle,
+    void Function(Map<String, dynamic> args)? onSourceSound,
     required bool Function() particlesBusy,
     required void Function() detachParticles,
     required bool allowSilentAudio,
@@ -1642,10 +1643,11 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
               durations: animation.durations, loops: args['loops'] as int);
         case 'deleteParticle':
           deleteSourceParticle!(args['particle'] as int);
+        case 'playSound':
+          onSourceSound?.call(args);
         case 'loadParticle':
         case 'setActorCameraMode':
         case 'playCry':
-        case 'playSound':
         case 'panSound':
         case 'moveSound':
           break;

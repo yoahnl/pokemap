@@ -32,6 +32,8 @@ import 'package:map_runtime/src/presentation/flame/battle_verified_spl_loader.da
 import 'package:map_runtime/src/presentation/flutter/battle_command_overlay_snapshot.dart';
 import 'package:path/path.dart' as p;
 
+import 'workshop_move_audio.dart';
+
 class PreviewMove {
   const PreviewMove(
     this.id,
@@ -223,12 +225,16 @@ class BattlePreviewGame extends FlameGame {
     required this.projectRoot,
     required this.move,
     required this.status,
-  });
+    Future<Uint8List?> Function(String)? loadMoveAudio,
+    FlameAudioBattleSfxPlayer? soundPlayer,
+  }) : _loadMoveAudio = loadMoveAudio ?? WorkshopMoveAudio().load,
+       _sound = soundPlayer ?? FlameAudioBattleSfxPlayer();
   final String projectRoot;
   final PreviewMove move;
   final ValueNotifier<String> status;
+  final Future<Uint8List?> Function(String) _loadMoveAudio;
   final Completer<void> _ready = Completer<void>();
-  final FlameAudioBattleSfxPlayer _sound = FlameAudioBattleSfxPlayer();
+  final FlameAudioBattleSfxPlayer _sound;
   late final RuntimePsdkBattleSessionAdapter _adapter;
   late final BattleOverlayComponent _overlay;
   final ValueNotifier<BattleCommandOverlaySnapshot?> snapshot = ValueNotifier(
@@ -507,9 +513,34 @@ class BattlePreviewGame extends FlameGame {
         <int, ({int background, List<ui.Image> frames, List<int> durations})>{};
     Object? failure;
     var disposed = false;
+    BattleRecipeSoundPreparation? soundPreparation;
+    var soundRequested = false;
+    var soundStarted = false;
+    Future<BattlePreparedRecipeSound?> prepareSound() async {
+      try {
+        final bytes = await _loadMoveAudio(move.id);
+        if (bytes == null || _closed || disposed) return null;
+        final preparation = _sound.beginRecipeSound(bytes, 'audio/mpeg');
+        soundPreparation = preparation;
+        final sound = await preparation.ready;
+        if (_closed || disposed) {
+          await sound.dispose();
+          return null;
+        }
+        return sound;
+      } on Object catch (error) {
+        debugPrint('[compare] move audio unavailable: $error');
+        return null;
+      }
+    }
+    final preparedSound = isSurf
+        ? Future<BattlePreparedRecipeSound?>.value()
+        : prepareSound();
     void dispose() {
       if (disposed) return;
       disposed = true;
+      final pendingSound = soundPreparation;
+      if (pendingSound != null) unawaited(pendingSound.cancel());
       for (final entry in prepared) {
         entry.result.component?.removeFromParent();
         entry.result.dispose();
@@ -778,7 +809,7 @@ class BattlePreviewGame extends FlameGame {
         }
         status.value = isSurf
             ? 'Surf · programme BW2 expérimental · son approximatif'
-            : '${move.label} · programme BW2 expérimental · sans son source';
+            : '${move.label} · programme BW2 expérimental';
         return _overlay.presentExperimentalGen5Attack(
           program: program,
           variant: program['variant'] as String,
@@ -828,6 +859,19 @@ class BattlePreviewGame extends FlameGame {
           },
           detachParticles: dispose,
           allowSilentAudio: true,
+          onSourceSound: isSurf ? null : (_) {
+            if (soundRequested) return;
+            soundRequested = true;
+            unawaited(preparedSound.then((sound) async {
+              if (sound == null || _closed || disposed) return;
+              try {
+                await sound.start();
+                soundStarted = true;
+              } on Object catch (error) {
+                debugPrint('[compare] move audio failed: $error');
+              }
+            }));
+          },
           sourceBackgrounds: backgrounds,
           sourceBackgroundAnimations: backgroundAnimations,
           allowUnmappedAudioControls: isSurf || isMovingExample,
@@ -854,7 +898,7 @@ class BattlePreviewGame extends FlameGame {
       final result = await completion.future;
       if (!_closed) {
         status.value = result == BattleGen5SourcePlaybackStatus.finished
-            ? '${move.label} terminée · programme BW2 expérimental · ${isSurf ? 'son approximatif' : 'sans son source'}'
+            ? '${move.label} terminée · programme BW2 expérimental · ${isSurf || soundStarted ? 'son approximatif' : 'sans son source'}'
             : '${move.label} interrompue : ${result.name}';
       }
     } finally {
