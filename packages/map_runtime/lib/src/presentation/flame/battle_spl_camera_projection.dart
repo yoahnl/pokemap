@@ -14,6 +14,7 @@ typedef BattleSplProjectedParticle = ({
   ui.Offset position,
   double scale,
   ui.Offset direction,
+  double viewAlignment,
 });
 typedef BattleSplProjectedPolygon = ({
   List<ui.Offset> positions,
@@ -142,6 +143,7 @@ final class BattleSplCameraProjection {
     BattleSplWorldAnchor anchor,
     BattleSplPointParticle particle, {
     bool includeDirection = true,
+    bool includeViewAlignment = false,
     int emitterIndex = 0,
     BattleSplVector? relativeBasePosition,
   }) {
@@ -166,18 +168,25 @@ final class BattleSplCameraProjection {
         position: projected.position,
         scale: scale,
         direction: ui.Offset.zero,
+        viewAlignment: 0,
       );
     }
 
     final delta = world - camera.eye;
     final velocity = transform.apply(particle.motion.velocity);
     final depthVelocity = velocity.dot(forward);
+    var viewAlignment = 0.0;
+    if (includeViewAlignment) {
+      final speed = velocity.length;
+      if (speed != 0) viewAlignment = (depthVelocity.abs() / speed).clamp(0.0, 1.0);
+    }
     final direction = ui.Offset(
       velocity.dot(right) * projected.depth - delta.dot(right) * depthVelocity,
       -velocity.dot(up) * projected.depth + delta.dot(up) * depthVelocity,
     );
     if (!_finite(direction)) return null;
-    return (position: projected.position, scale: scale, direction: direction);
+    return (position: projected.position, scale: scale, direction: direction,
+      viewAlignment: viewAlignment);
   }
 
   bool particleOutsideDepth(

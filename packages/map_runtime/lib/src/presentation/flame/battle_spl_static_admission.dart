@@ -33,6 +33,7 @@ final class BattleSplStaticFrame {
   BattleSplStaticFrame._(
     this.emitterIndex,
     this.aspectRatio4096,
+    this.directionStretch4096,
     this.directional,
     this.childDirectional,
     this.scaleAxis,
@@ -51,6 +52,7 @@ final class BattleSplStaticFrame {
 
   final int emitterIndex;
   final int aspectRatio4096;
+  final int directionStretch4096;
   final bool directional;
   final bool childDirectional;
   final String scaleAxis;
@@ -210,6 +212,7 @@ final class BattleSplStaticPlayback {
       BattleSplStaticFrame._(
         entry.schedule.emitterIndex,
         entry.emitter.aspectRatio4096,
+        entry.emitter.directionStretch4096,
         entry.emitter.directional,
         entry.emitter.childDirectional,
         entry.emitter.scaleAxis,

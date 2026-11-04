@@ -9,6 +9,39 @@ import 'package:map_runtime/src/presentation/flame/battle_spl_point_preview_pain
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('stretches directional particles based on camera alignment', () async {
+    final texture = await _solidImage(const ui.Color(0xffffffff));
+    addTearDown(texture.dispose);
+    Future<ByteData> render(double alignment, {int? parentId}) async {
+      final painter = BattleSplPointPreviewPainter(
+        textures: {1: texture}, pixelsPerUnit: 5, aspectRatio4096: 4096,
+        directionalParents: true, directionalChildren: true,
+        directionStretch4096: 4096,
+      );
+      final recorder = ui.PictureRecorder();
+      painter.paint(ui.Canvas(recorder), origin: ui.Offset.zero,
+        particles: [_particle(parentId: parentId, velocity: (x: 0, y: 4096, z: 0))],
+        projections: [(position: const ui.Offset(30, 30), scale: 1.0,
+          direction: const ui.Offset(0, -1), viewAlignment: alignment)]);
+      final picture = recorder.endRecording();
+      final image = await picture.toImage(60, 60);
+      try {
+        return (await image.toByteData(format: ui.ImageByteFormat.rawRgba))!;
+      } finally {
+        image.dispose();
+        picture.dispose();
+      }
+    }
+    int alpha(ByteData data, int x, int y) => data.getUint8((y * 60 + x) * 4 + 3);
+    final across = await render(0);
+    final toward = await render(1);
+    final child = await render(0, parentId: 3);
+    expect(alpha(across, 30, 38), 255);
+    expect(alpha(toward, 30, 38), 0);
+    expect(alpha(child, 30, 38), 255);
+    expect(alpha(across, 38, 30), 0);
+  });
+
   test('paints a projected directional polygon into its four corners', () async {
     final texture = await _solidImage(const ui.Color(0xffffffff));
     addTearDown(texture.dispose);
@@ -231,7 +264,7 @@ void main() {
       origin: ui.Offset.zero,
       particles: [_particle(velocity: (x: 0, y: 0, z: 4096))],
       projections: const [
-        (position: ui.Offset(30, 30), scale: 1.0, direction: ui.Offset(1, 0)),
+        (position: ui.Offset(30, 30), scale: 1.0, direction: ui.Offset(1, 0), viewAlignment: 0.0),
       ],
     );
     final picture = recorder.endRecording();
@@ -269,6 +302,7 @@ void main() {
             position: const ui.Offset(30, 30),
             scale: scale,
             direction: ui.Offset.zero,
+            viewAlignment: 0.0,
           ),
         ],
       );
@@ -320,11 +354,12 @@ void main() {
         origin: ui.Offset.zero,
         particles: [_particle(), _particle()],
         projections: const [
-          (position: ui.Offset(30, 30), scale: 1.0, direction: ui.Offset.zero),
+          (position: ui.Offset(30, 30), scale: 1.0, direction: ui.Offset.zero, viewAlignment: 0.0),
           (
             position: ui.Offset(30, 30),
             scale: double.nan,
             direction: ui.Offset.zero,
+            viewAlignment: 0.0,
           ),
         ],
       ),

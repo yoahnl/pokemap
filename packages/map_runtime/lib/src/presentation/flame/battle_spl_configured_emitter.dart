@@ -18,6 +18,7 @@ final class BattleSplConfiguredEmitter {
     this._frame,
     this._origin,
     this.aspectRatio4096,
+    this.directionStretch4096,
     this.directional,
     this.childDirectional,
     this.scaleAxis,
@@ -330,6 +331,7 @@ final class BattleSplConfiguredEmitter {
       frame,
       _vector(emission['origin']),
       appearance['aspectRatio'] as int,
+      appearance['directionStretch'] as int? ?? 0,
       appearance['draw'] == 'directionalBillboard',
       child?['draw'] == 'directionalBillboard',
       appearance['scaleAxis'] as String,
@@ -348,6 +350,7 @@ final class BattleSplConfiguredEmitter {
   final _EmitterFrame _frame;
   final BattleSplVector _origin;
   final int aspectRatio4096;
+  final int directionStretch4096;
   final bool directional;
   final bool childDirectional;
   final String scaleAxis;

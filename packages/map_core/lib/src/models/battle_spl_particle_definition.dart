@@ -30,7 +30,7 @@ final class BattleSplParticleDefinition {
     }
     _fields(copy, {'schemaVersion', 'emitters'});
     if (copy['schemaVersion'] is! int ||
-        !(experimental ? {5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17} : {2, 3, 4}).contains(copy['schemaVersion'])) {
+        !(experimental ? {5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18} : {2, 3, 4}).contains(copy['schemaVersion'])) {
       throw const FormatException('Unsupported SPL particle version');
     }
     final values = _list(copy['emitters']);
@@ -181,6 +181,7 @@ void _validateEmitter(
     if (version >= 5 && appearance.containsKey('polygonY')) 'polygonY',
     if (version >= 15 && appearance['draw'] == 'polygon') 'polygonRotationAxis',
     if (version >= 15 && appearance['draw'] == 'polygon') 'polygonReferencePlane',
+    if (version >= 18 && appearance.containsKey('directionStretch')) 'directionStretch',
     if (version >= 5 && appearance.containsKey('relativeToBasePos'))
       'relativeToBasePos',
   });
@@ -190,6 +191,14 @@ void _validateEmitter(
     if (version >= 5) 'directionalPolygon',
     if (version >= 15) 'polygon',
   });
+  if (appearance.containsKey('directionStretch')) {
+    _integer(appearance['directionStretch'], 1, 65535);
+    final child = emitter['child'];
+    if (appearance['draw'] != 'directionalBillboard' &&
+        (child is! Map || child['draw'] != 'directionalBillboard')) {
+      throw const FormatException('Unsupported SPL directional stretch');
+    }
+  }
   if (version >= 5) {
     _boolean(appearance['hasRotation']);
     _integer(appearance['minRotation'], -32768, 32767);

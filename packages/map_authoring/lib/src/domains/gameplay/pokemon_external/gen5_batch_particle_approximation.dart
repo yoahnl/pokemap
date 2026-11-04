@@ -151,8 +151,15 @@ abstract final class Gen5BatchParticleApproximation {
           'flipTextureS', 'flipTextureT']) {
         if (emitter.containsKey(field)) set(emitter, field, false, 'particle-field:$field');
       }
+      final childSource = emitter['childResource'];
+      final stretch = emitter['dirStretch'];
+      final preserveStretch = preserveExperimentalFeatures && stretch is int &&
+          stretch >= 0 && stretch <= 65535 &&
+          (emitter['drawType'] == 'directional_billboard' ||
+              (childSource is Map && childSource['drawType'] == 'directional_billboard'));
       for (final field in [if (!preserveExperimentalFeatures) 'lifeTimeVariance',
-          if (!preserveExperimentalFeatures) 'velocityVariance', 'dirStretch',
+          if (!preserveExperimentalFeatures) 'velocityVariance',
+          if (!preserveStretch) 'dirStretch',
           'textureRepeatShiftS', 'textureRepeatShiftT',
           if (!preserveExperimentalFeatures) ...['polygonX', 'polygonY']]) {
         if (emitter.containsKey(field)) set(emitter, field, 0, 'particle-field:$field');

@@ -167,6 +167,44 @@ Gen5SplParticleConversion _convert(
 }
 
 void main() {
+  test('preserves directional stretch in the experimental workshop', () {
+    final source = _source();
+    final emitter = (source['emitters'] as List).single as Map<String, dynamic>;
+    emitter['drawType'] = 'directional_billboard';
+    emitter['dirStretch'] = 15714;
+    final workshop = Gen5BatchParticleApproximation.normalize(
+      source, preserveExperimentalFeatures: true,
+    );
+    final normalized = (workshop.document['emitters'] as List).single as Map;
+    expect(normalized['dirStretch'], 15714);
+    expect(workshop.warnings, isNot(contains('particle-field:dirStretch')));
+    final bytes = _bytes(workshop.document);
+    final definition = Gen5SplParticleConverter.convert(
+      bytes, particleId: 218, sourceRevision: _revision, sourcePath: _path,
+      expectedSha256: sha256.convert(bytes).toString(),
+      textureResourceIds: const {
+        'base': 'base-id', 'first': 'frame-1', 'second': 'frame-2',
+      },
+      experimentalSourceEmitterIndices: const [0],
+    ).definition;
+    expect(definition.schemaVersion, 18);
+    expect((definition.emitters.single.toJson()['appearance'] as Map)['directionStretch'], 15714);
+    expect(() => BattleSplParticleDefinition.fromJson(definition.toJson()),
+        throwsFormatException);
+    final old = definition.toJson()..['schemaVersion'] = 17;
+    expect(() => BattleSplParticleDefinition.fromExperimentalJson(old),
+        throwsFormatException);
+    for (final invalid in [-1, 65536]) {
+      final bad = definition.toJson();
+      (((bad['emitters'] as List).single as Map)['appearance'] as Map)['directionStretch'] = invalid;
+      expect(() => BattleSplParticleDefinition.fromExperimentalJson(bad),
+          throwsFormatException);
+    }
+    final ordinary = Gen5BatchParticleApproximation.normalize(source);
+    expect((ordinary.document['emitters'] as List).single['dirStretch'], 0);
+    expect(ordinary.warnings, contains('particle-field:dirStretch'));
+  });
+
   test('preserves bounded source emitter axes for workshop circles', () {
     final source = _source();
     final emitter = (source['emitters'] as List).single as Map<String, dynamic>;

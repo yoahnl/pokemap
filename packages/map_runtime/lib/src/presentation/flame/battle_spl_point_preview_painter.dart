@@ -14,6 +14,7 @@ final class BattleSplPointPreviewPainter {
     required this.aspectRatio4096,
     this.directionalParents = false,
     this.directionalChildren = false,
+    this.directionStretch4096 = 0,
     this.scaleAxis = BattleSplPreviewScaleAxis.xy,
     this.polygonX = 0,
     this.polygonY = 0,
@@ -26,6 +27,7 @@ final class BattleSplPointPreviewPainter {
         pixelsPerUnit > 4096 ||
         aspectRatio4096 < 0 ||
         aspectRatio4096 > 32767 ||
+        directionStretch4096 < 0 || directionStretch4096 > 65535 ||
         polygonX < -32768 || polygonX > 32767 ||
         polygonY < -32768 || polygonY > 32767) {
       throw const FormatException('Invalid SPL point preview settings');
@@ -37,6 +39,7 @@ final class BattleSplPointPreviewPainter {
   final int aspectRatio4096;
   final bool directionalParents;
   final bool directionalChildren;
+  final int directionStretch4096;
   final BattleSplPreviewScaleAxis scaleAxis;
   final int polygonX;
   final int polygonY;
@@ -68,7 +71,9 @@ final class BattleSplPointPreviewPainter {
               !value.scale.isFinite ||
               value.scale <= 0 ||
               !value.direction.dx.isFinite ||
-              !value.direction.dy.isFinite,
+              !value.direction.dy.isFinite ||
+              !value.viewAlignment.isFinite ||
+              value.viewAlignment < 0 || value.viewAlignment > 1,
         )) {
       throw const FormatException('Invalid SPL particle projection');
     }
@@ -104,8 +109,15 @@ final class BattleSplPointPreviewPainter {
       }
       final base = 2 * pixelsPerUnit * (particle.baseScale4096 / 4096);
       final animatedScale = particle.scale4096 / 4096;
-      final height =
+      final baseHeight =
           base * (scaleAxis == BattleSplPreviewScaleAxis.x ? 1 : animatedScale);
+      var height = baseHeight;
+      if (directional && directionStretch4096 != 0) {
+        final speed = math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y + velocity.z * velocity.z);
+        final viewAlignment = projected?.viewAlignment ??
+            (speed == 0 ? 0.0 : velocity.z.abs() / speed);
+        height *= 1 + (1 - viewAlignment) * directionStretch4096 / 4096;
+      }
       final width =
           base *
           (aspectRatio4096 / 4096) *

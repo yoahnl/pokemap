@@ -241,6 +241,42 @@ Future<ui.Offset> redCentroid(
 }
 
 void main() {
+  test('projects particle velocity alignment with the camera', () {
+    final camera = BattlePerspectiveCamera(
+      viewport: const ui.Rect.fromLTWH(0, 0, 390, 844),
+    );
+    camera.moveTo(
+      eye: const BattleCameraPoint(0, 0, 10),
+      aim: const BattleCameraPoint(0, 0, 0),
+      durationSeconds: 0,
+    );
+    final projection = cameraProjection(
+      camera, () => const ui.Offset(195, 422),
+      worldTransform: const BattleSplWorldTransform(
+        worldUnitsPerUnit: 1, yawRadians: 0,
+      ),
+    );
+    BattleSplPointParticle particle(BattleSplVector velocity) => BattleSplPointParticle(
+      id: 1,
+      motion: BattleSplParticleMotion(position: (x: 0, y: 0, z: 0),
+        velocity: velocity, rotation: 0, angularVelocity: 0),
+      emitterPosition: (x: 0, y: 0, z: 0), baseScale4096: 4096,
+      baseAlpha5: 31, animatedAlpha5: 31, scale4096: 4096,
+      color: (red: 31, green: 31, blue: 31), alpha5: 31, texture: 0,
+      parentId: null,
+    );
+    const anchor = (x: 0.0, y: 0.0, z: 0.0, unit: 1.0);
+    expect(projection.projectParticle(anchor, particle((x: 4096, y: 0, z: 0)),
+        includeViewAlignment: true)!
+        .viewAlignment, closeTo(0, 1e-8));
+    expect(projection.projectParticle(anchor, particle((x: 0, y: 0, z: 4096)),
+        includeViewAlignment: true)!
+        .viewAlignment, closeTo(1, 1e-8));
+    expect(projection.projectParticle(anchor, particle((x: 4096, y: 0, z: 4096)),
+        includeViewAlignment: true)!
+        .viewAlignment, closeTo(math.sqrt(.5), 1e-8));
+  });
+
   test('renders source polygons on their configured planes', () async {
     final camera = BattlePerspectiveCamera(
       viewport: const ui.Rect.fromLTWH(0, 0, 390, 844),

@@ -1348,7 +1348,7 @@
     "category": "special",
     "particle": 395,
     "approximations": [
-      "particle-field:dirStretch"
+      "particle-stretch:camera-projection-experimental"
     ],
     "referenceUrl": null,
     "bundleAsset": "assets/bw2/batch/dragon-breath.json"
@@ -3896,10 +3896,10 @@
     "approximations": [
       "background-palette-animation:timing-experimental",
       "background-palette-fade:layer-approximation",
-      "particle-field:dirStretch",
       "particle-field:drawType",
       "particle-field:polygonReferencePlane",
-      "particle-field:polygonRotAxis"
+      "particle-field:polygonRotAxis",
+      "particle-stretch:camera-projection-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/b/b4/Aeroblast_BW.png",
     "bundleAsset": "assets/bw2/batch/aeroblast.json"
@@ -4056,8 +4056,8 @@
     "approximations": [
       "background-palette-animation:timing-experimental",
       "background-palette-fade:layer-approximation",
-      "particle-field:dirStretch",
-      "particle-polygon:xyz-projection-experimental"
+      "particle-polygon:xyz-projection-experimental",
+      "particle-stretch:camera-projection-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/8/82/Selfdestruct_BW.png",
     "bundleAsset": "assets/bw2/batch/self-destruct.json"
@@ -4293,7 +4293,7 @@
     "category": "special",
     "particle": 628,
     "approximations": [
-      "particle-field:dirStretch",
+      "particle-stretch:camera-projection-experimental",
       "scene-palette-fade:layer-approximation"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/4/46/Judgment_V.png",
@@ -5726,7 +5726,7 @@
       "background-palette-animation:timing-experimental",
       "background-palette-fade:layer-approximation",
       "background-wave:trigonometry-experimental",
-      "particle-field:dirStretch",
+      "particle-stretch:camera-projection-experimental",
       "scene-palette-fade:layer-approximation"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/2/2f/Flare_Blitz_B2W2.png",

@@ -77,6 +77,7 @@ final class BattleSplStaticComponent extends PositionComponent
             textures: _textures,
             pixelsPerUnit: pixelsPerUnit,
             aspectRatio4096: frame.aspectRatio4096,
+            directionStretch4096: frame.directionStretch4096,
             directionalParents: frame.directional,
             directionalChildren: frame.childDirectional,
             polygonX: frame.polygonX,
@@ -245,6 +246,7 @@ final class BattleSplStaticComponent extends PositionComponent
                   includeDirection: particle.parentId == null
                       ? frame.directional
                       : frame.childDirectional,
+                  includeViewAlignment: frame.directionStretch4096 != 0,
                 );
           List<ui.Offset>? polygon;
           BattleSplProjectedPolygon? clippedPolygon;
@@ -301,6 +303,7 @@ final class BattleSplStaticComponent extends PositionComponent
                 position: ui.Offset.zero,
                 scale: 1.0,
                 direction: ui.Offset.zero,
+                viewAlignment: 0.0,
               );
             }
           }

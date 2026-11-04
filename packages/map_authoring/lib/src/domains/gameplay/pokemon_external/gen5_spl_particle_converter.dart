@@ -100,6 +100,9 @@ abstract final class Gen5SplParticleConverter {
     }
 
     final selectedEmitters = [for (final index in indices) rawEmitters[index]];
+    final needsExperimentalV18 = selectedEmitters.any(
+      (raw) => _map(raw)['dirStretch'] != 0,
+    );
     final needsExperimentalV17 = selectedEmitters.any(
       (raw) => _map(raw)['emissionAxis'] == 'emitter',
     );
@@ -177,7 +180,7 @@ abstract final class Gen5SplParticleConverter {
                   child['useChildColor'] == false));
     });
     final version = experimentalSourceEmitterIndices != null
-        ? (needsExperimentalV17 ? 17 : needsExperimentalV16 ? 16 : needsExperimentalV15 ? 15 : needsExperimentalV14 ? 14 : needsExperimentalV13 ? 13 : needsExperimentalV12 ? 12 : needsExperimentalV11 ? 11 : needsExperimentalV10 ? 10 : needsExperimentalV9 ? 9 : needsExperimentalV8 ? 8 : needsExperimentalV7 ? 7 : needsExperimentalV6 ? 6 : 5)
+        ? (needsExperimentalV18 ? 18 : needsExperimentalV17 ? 17 : needsExperimentalV16 ? 16 : needsExperimentalV15 ? 15 : needsExperimentalV14 ? 14 : needsExperimentalV13 ? 13 : needsExperimentalV12 ? 12 : needsExperimentalV11 ? 11 : needsExperimentalV10 ? 10 : needsExperimentalV9 ? 9 : needsExperimentalV8 ? 8 : needsExperimentalV7 ? 7 : needsExperimentalV6 ? 6 : 5)
         : rawEmitters.any((raw) => _map(raw).containsKey('magnetBehavior'))
             ? 4
             : rawEmitters
@@ -331,6 +334,10 @@ Map<String, dynamic> _emitter(
       throw FormatException('Unsupported SPL source field: $field');
     }
   }
+  if (version >= 18 && (source['dirStretch'] is! int ||
+      (source['dirStretch'] as int) < 0 || (source['dirStretch'] as int) > 65535)) {
+    throw const FormatException('Unsupported SPL directional stretch');
+  }
   if (source['relativeToBasePos'] != false) {
     if (version < 5 || source['relativeToBasePos'] != true) {
       throw const FormatException('Unsupported SPL relative base position');
@@ -339,7 +346,7 @@ Map<String, dynamic> _emitter(
   for (final field in [
     if (version < 7) 'lifeTimeVariance',
     if (version < 5) 'velocityVariance',
-    'dirStretch',
+    if (version < 18) 'dirStretch',
     'textureRepeatShiftS',
     'textureRepeatShiftT',
     if (version < 5) 'polygonX',
@@ -516,6 +523,8 @@ Map<String, dynamic> _emitter(
         'relativeToBasePos': true,
       'baseScale': source['baseScale'],
       'aspectRatio': source['aspectRatio'],
+      if (version >= 18 && source['dirStretch'] != 0)
+        'directionStretch': source['dirStretch'],
       'baseAlpha': source['baseAlpha'],
       'loopTime': source['loopTime'],
       'scale': {

@@ -15,6 +15,41 @@ import 'package:map_runtime/src/presentation/flame/battle_spl_random.dart';
 import 'package:map_runtime/src/presentation/flame/battle_spl_static_admission.dart';
 
 void main() {
+  test('keeps directional stretch through the experimental emitter frame', () async {
+    final raw = jsonDecode(
+      await File('../map_core/test/fixtures/spl_particle_v2.json').readAsString(),
+    ) as Map<String, dynamic>;
+    raw['schemaVersion'] = 18;
+    final source = (raw['emitters'] as List).single as Map<String, dynamic>;
+    final emission = source['emission'] as Map;
+    emission['positionVelocity'] = 0;
+    emission['emissionAxis'] = 'z';
+    emission['velocityVariance'] = 0;
+    emission['particleLifetimeVariance'] = 0;
+    final appearance = source['appearance'] as Map;
+    appearance['draw'] = 'directionalBillboard';
+    appearance['directionStretch'] = 15714;
+    appearance['hasRotation'] = false;
+    appearance['minRotation'] = 0;
+    appearance['maxRotation'] = 0;
+    appearance['dirFromPosition'] = false;
+    appearance['drawChildrenFirst'] = false;
+    (source['motion'] as Map)['magnet'] = null;
+    source['child'] = null;
+    final prepared = BattleSplStaticAdmission.prepare(
+      definition: BattleSplParticleDefinition.fromExperimentalJson(raw),
+      textureIndices: const {'tex': 0},
+      emitters: const [BattleSplStaticEmitter(
+        emitterIndex: 0, startTick: 0, position: (x: 0, y: 0, z: 0),
+      )],
+      seed: 0, poolCapacity: 64, maxTicks: 120,
+    );
+    expect(prepared.failure, isNull);
+    final playback = prepared.playback!;
+    expect(playback.frames.single.directionStretch4096, 15714);
+    playback.cancel();
+  });
+
   test('emits the source ring perpendicular to a tilted emitter axis', () async {
     final raw = jsonDecode(
       await File('../map_core/test/fixtures/spl_particle_v2.json').readAsString(),
