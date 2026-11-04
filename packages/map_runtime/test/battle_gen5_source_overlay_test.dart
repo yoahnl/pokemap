@@ -832,6 +832,112 @@ void main() {
     expect(moved, isTrue);
   });
 
+  test('source commands follow the attacking side and restore both actors', () async {
+    final overlay = await _scene();
+    final player = overlay.debugPlayerCombatant!;
+    final enemy = overlay.debugEnemyCombatant!;
+    final playerInitial = player.currentVisualOffset;
+    final enemyInitial = enemy.currentVisualOffset;
+    final finished = overlay.presentExperimentalGen5Attack(
+      program: _program([
+        _instruction('moveCombatant', {
+          'targets': 'EFFVM_ATTACKER', 'type': 1, 'x': 8192, 'y': 0,
+          'frames': 2, 'wait': 0, 'times': 0,
+        }),
+        _instruction('waitTasks', {'what': 'MCSS'}),
+        _instruction('waitFrames', {'frames': 8}),
+        _instruction('end'),
+      ]),
+      variant: 'Tackle', attackerSide: BattleSideId.enemy,
+      hasEmitter: (_, _) => false, startEmitter: (_, _, _) {},
+      particlesBusy: () => false, detachParticles: () {},
+      allowSilentAudio: true,
+    );
+    var enemyMoved = false;
+    for (var tick = 0; tick < 30 && overlay.isTurnPresentationActive; tick++) {
+      overlay.updateTree(1 / 60);
+      enemyMoved |= enemy.currentVisualOffset != enemyInitial;
+      expect(player.currentVisualOffset, playerInitial);
+    }
+    expect(await finished, BattleGen5SourcePlaybackStatus.finished);
+    expect(enemyMoved, isTrue);
+    expect(enemy.currentVisualOffset, enemyInitial);
+    expect(player.currentVisualOffset, playerInitial);
+  });
+
+  test('source camera focuses the same side when attacker and defender swap', () async {
+    Future<List<double>> capture(BattleSideId attacker, int preset) async {
+      final overlay = await _scene();
+      final finished = overlay.presentExperimentalGen5Attack(
+        program: _program([
+          _instruction('moveCameraPreset', {
+            'moveType': 1, 'camera': preset, 'frames': 2, 'wait': 0, 'brake': 0,
+          }),
+          _instruction('waitFrames', {'frames': 20}),
+          _instruction('end'),
+        ]),
+        variant: 'Tackle', attackerSide: attacker,
+        hasEmitter: (_, _) => false, startEmitter: (_, _, _) {},
+        particlesBusy: () => false, detachParticles: () {},
+        allowSilentAudio: true, adaptSourceCamera: true,
+      );
+      for (var tick = 0; tick < 5; tick++) {
+        overlay.updateTree(1 / 60);
+      }
+      final pose = overlay.battleCameraPose!;
+      final values = [pose.eye.x, pose.eye.y, pose.eye.z,
+        pose.aim.x, pose.aim.y, pose.aim.z];
+      overlay.cancelExperimentalGen5Attack();
+      expect(await finished, BattleGen5SourcePlaybackStatus.cancelled);
+      return values;
+    }
+
+    final playerAsAttacker = await capture(BattleSideId.player, 9);
+    final playerAsDefender = await capture(BattleSideId.enemy, 11);
+    final enemyAsAttacker = await capture(BattleSideId.enemy, 9);
+    final enemyAsDefender = await capture(BattleSideId.player, 11);
+    for (var index = 0; index < playerAsAttacker.length; index++) {
+      expect(playerAsAttacker[index], closeTo(playerAsDefender[index], .001));
+      expect(enemyAsAttacker[index], closeTo(enemyAsDefender[index], .001));
+    }
+  });
+
+  test('source movement uses the same projection for the same physical actor', () async {
+    Future<List<double>> capture(BattleSideId attacker, String target) async {
+      final overlay = await _scene();
+      final enemy = overlay.debugEnemyCombatant!;
+      final initial = enemy.currentVisualOffset;
+      final finished = overlay.presentExperimentalGen5Attack(
+        program: _program([
+          _instruction('moveCombatant', {
+            'targets': target, 'type': 1, 'x': 8192, 'y': 4096,
+            'frames': 2, 'wait': 0, 'times': 0,
+          }),
+          _instruction('waitTasks', {'what': 'MCSS'}),
+          _instruction('waitFrames', {'frames': 8}),
+          _instruction('end'),
+        ]),
+        variant: 'Tackle', attackerSide: attacker,
+        hasEmitter: (_, _) => false, startEmitter: (_, _, _) {},
+        particlesBusy: () => false, detachParticles: () {},
+        allowSilentAudio: true, adaptSourceCamera: true,
+      );
+      for (var tick = 0; tick < 5; tick++) {
+        overlay.updateTree(1 / 60);
+      }
+      final delta = enemy.currentVisualOffset - initial;
+      overlay.cancelExperimentalGen5Attack();
+      expect(await finished, BattleGen5SourcePlaybackStatus.cancelled);
+      return [delta.dx, delta.dy];
+    }
+
+    final asAttacker = await capture(BattleSideId.enemy, 'EFFVM_ATTACKER');
+    final asDefender = await capture(BattleSideId.player, 'EFFVM_DEFENDER');
+    expect(asDefender.any((value) => value.abs() > .001), isTrue);
+    expect(asAttacker[0], closeTo(asDefender[0], .001));
+    expect(asAttacker[1], closeTo(asDefender[1], .001));
+  });
+
   test('relative source movement holds the actor and returns it to rest', () async {
     final overlay = await _scene();
     final actor = overlay.debugPlayerCombatant!;

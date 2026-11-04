@@ -1025,6 +1025,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
   Future<BattleGen5SourcePlaybackStatus> presentExperimentalGen5Attack({
     required Map<String, dynamic> program,
     required String variant,
+    BattleSideId attackerSide = BattleSideId.player,
     required bool Function(int particle, int emitter) hasEmitter,
     required void Function(int particle, int emitter, int offsetY) startEmitter,
     void Function(Map<String, dynamic> args)? startSourceEmitter,
@@ -1047,8 +1048,10 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     bool duringTrackedEffect = false,
   }) {
     final camera = _perspectiveCamera;
-    final userSlot = const BattleSlotRef.active(BattleSideId.player);
-    final targetSlot = const BattleSlotRef.active(BattleSideId.enemy);
+    final userSlot = BattleSlotRef.active(attackerSide);
+    final targetSlot = BattleSlotRef.active(
+      attackerSide == BattleSideId.player ? BattleSideId.enemy : BattleSideId.player,
+    );
     final user = _effectSubjectAt(userSlot);
     final target = _effectSubjectAt(targetSlot);
     if (camera == null || user == null || target == null || _reducedBattleMotion) {
@@ -1090,8 +1093,12 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     final initialAim = camera.aim;
     BattleSplWorldTransform? cameraTransform;
     if (adaptSourceCamera) {
-      final from = camera.tryGroundAt(_geometryFor(userSlot).footAnchor);
-      final to = camera.tryGroundAt(_geometryFor(targetSlot).footAnchor);
+      final from = camera.tryGroundAt(
+        _geometryFor(const BattleSlotRef.active(BattleSideId.player)).footAnchor,
+      );
+      final to = camera.tryGroundAt(
+        _geometryFor(const BattleSlotRef.active(BattleSideId.enemy)).footAnchor,
+      );
       if (from == null || to == null) {
         throw StateError('Experimental camera anchors are unavailable');
       }
@@ -1139,7 +1146,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
             aim: point(sourcePose.target),
             durationSeconds: 0,
           );
-          final sourceFoot = key == 'EFFVM_ATTACKER'
+          final sourceFoot = slots[key]!.side == BattleSideId.player
               ? const BattleCameraPoint(0.5, 0x666 / 4096, 7)
               : const BattleCameraPoint(0x4cd / 4096, 0x666 / 4096, -10);
           final sourceOffset = BattleCameraPoint(
@@ -1521,8 +1528,10 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
         case 'moveCameraPreset':
           sourceCamera.applyPreset(
             preset: args['camera'] as int,
-            attacker: Gen5CameraSlot.player,
-            defender: Gen5CameraSlot.enemy,
+            attacker: attackerSide == BattleSideId.player
+                ? Gen5CameraSlot.player : Gen5CameraSlot.enemy,
+            defender: attackerSide == BattleSideId.player
+                ? Gen5CameraSlot.enemy : Gen5CameraSlot.player,
             frames: args['frames'] as int,
             wait: args['wait'] as int,
             brake: args['brake'] as int,
