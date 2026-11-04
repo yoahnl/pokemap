@@ -279,6 +279,17 @@ void main() {
         particle: 682, requireMovement: true),
     (size: const Size(852, 393), id: 'acrobatics', label: 'Acrobatie',
         particle: 682, requireMovement: true),
+    for (final move in [
+      (id: 'fake-tears', label: 'Croco Larme', particle: 488),
+      (id: 'telekinesis', label: 'Lévikinésie', particle: 367),
+      (id: 'captivate', label: 'Séduction', particle: 624),
+      (id: 'attract', label: 'Attraction', particle: 383),
+      (id: 'covet', label: 'Implore', particle: 519),
+      (id: 'tickle', label: 'Chatouille', particle: 495),
+    ])
+      for (final size in [const Size(393, 852), const Size(852, 393)])
+        (size: size, id: move.id, label: move.label,
+          particle: move.particle, requireMovement: false),
     (size: const Size(393, 852), id: 'skull-bash', label: 'Coud’Krâne',
         particle: null, requireMovement: true),
     (size: const Size(852, 393), id: 'skull-bash', label: 'Coud’Krâne',
@@ -712,7 +723,8 @@ void main() {
       if (scenario.id == 'fly') {
         expect(sawHidden, isTrue, reason: status.value);
       }
-      if ({'skull-bash', 'entrainment', 'after-you'}.contains(scenario.id)) {
+      if ({'fake-tears', 'telekinesis', 'captivate', 'attract', 'covet', 'tickle',
+          'skull-bash', 'entrainment', 'after-you'}.contains(scenario.id)) {
         expect(sawRotation, isTrue, reason: status.value);
       }
       if (scenario.id == 'defog') {
@@ -749,7 +761,8 @@ void main() {
       if ({'dig', 'extreme-speed', 'dive'}.contains(scenario.id)) {
         expect(overlay()!.debugEnemyCombatant!.currentVisualOffset, initialEnemy);
       }
-      if ({'skull-bash', 'entrainment', 'after-you'}.contains(scenario.id)) {
+      if ({'fake-tears', 'telekinesis', 'captivate', 'attract', 'covet', 'tickle',
+          'skull-bash', 'entrainment', 'after-you'}.contains(scenario.id)) {
         expect(overlay()!.debugPlayerCombatant!.currentVisualRotation, closeTo(initialRotation, .001));
         expect(overlay()!.debugEnemyCombatant!.currentVisualRotation, closeTo(initialEnemyRotation, .001));
       }
