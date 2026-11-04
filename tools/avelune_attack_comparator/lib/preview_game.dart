@@ -431,7 +431,7 @@ class BattlePreviewGame extends FlameGame {
       }
       _overlay.beginTurnPreparation();
       _adapter.submitPlayerChoice(const PlayerBattleChoiceFight(0));
-      final turn = _adapter.createLegacyDisplaySession(isTrainerBattle: false);
+      final turn = _attackPreviewSession();
       final loader = BattleOfflineMoveRecipeLoader(
         projectRootDirectory: projectRoot,
       );
@@ -840,7 +840,7 @@ class BattlePreviewGame extends FlameGame {
         );
       };
       _adapter.submitPlayerChoice(const PlayerBattleChoiceFight(0));
-      final turn = _adapter.createLegacyDisplaySession(isTrainerBattle: false);
+      final turn = _attackPreviewSession();
       final event = turn.state.currentTurn!.timeline
           .whereType<BattleTurnExecutionEvent>()
           .firstWhere(
@@ -862,6 +862,50 @@ class BattlePreviewGame extends FlameGame {
       _sourceCompletion = null;
       dispose();
     }
+  }
+
+  BattleSession _attackPreviewSession() {
+    final session = _adapter.createLegacyDisplaySession(isTrainerBattle: false);
+    final turn = session.state.currentTurn!;
+    final timeline = turn.timeline.takeWhile(
+      (event) => event is! BattleTurnExecutionEvent ||
+          event.execution.attackerSide != BattleSideId.enemy,
+    ).toList(growable: false);
+    return session.withRuntimeDisplayState(
+      currentTurn: BattleTurnResult(
+        playerAction: turn.playerAction,
+        enemyAction: turn.enemyAction,
+        executions: [
+          for (final event in timeline.whereType<BattleTurnExecutionEvent>())
+            event.execution,
+        ],
+        statusEvents: [
+          for (final event in timeline.whereType<BattleTurnStatusEvent>()) event.event,
+        ],
+        volatileEvents: [
+          for (final event in timeline.whereType<BattleTurnVolatileEvent>()) event.event,
+        ],
+        fieldEvents: [
+          for (final event in timeline.whereType<BattleTurnFieldEvent>()) event.event,
+        ],
+        stealthRockEvents: [
+          for (final event in timeline.whereType<BattleTurnStealthRockEvent>()) event.event,
+        ],
+        spikesEvents: [
+          for (final event in timeline.whereType<BattleTurnSpikesEvent>()) event.event,
+        ],
+        bagHpHealItemEvents: [
+          for (final event in timeline.whereType<BattleTurnBagHpHealItemEvent>()) event.event,
+        ],
+        switchEvents: [
+          for (final event in timeline.whereType<BattleTurnSwitchEvent>()) event.event,
+        ],
+        captureAttemptEvents: [
+          for (final event in timeline.whereType<BattleTurnCaptureAttemptEvent>()) event.event,
+        ],
+        timeline: timeline,
+      ),
+    );
   }
 
   @override
@@ -956,7 +1000,7 @@ RuntimePsdkBattleSessionAdapter _makeAdapter(PreviewMove move) {
       'enemy',
       enemySpecies,
       referencePair ? 'Miamiasme' : 'Roucool',
-      attack(PreviewMove.tackle, 1),
+      attack(PreviewMove.tackle, 0),
       10,
       level: referencePair ? 19 : 25,
       gender: referencePair ? PsdkBattleGender.female : PsdkBattleGender.male,

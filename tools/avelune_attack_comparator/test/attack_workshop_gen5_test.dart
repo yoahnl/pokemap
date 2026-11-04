@@ -760,6 +760,66 @@ void main() {
   }
 
   for (final scenario in [
+    (move: PreviewMove.waterGun, enemy: 'Roucool'),
+    (move: PreviewMove.surf, enemy: 'Miamiasme'),
+  ]) {
+    testWidgets('preview shows only ${scenario.move.label}', (tester) async {
+      final root = (await tester.runAsync(
+        () => extractPreviewResources(parent: Directory(rootPath!)),
+      ))!;
+      addTearDown(() async {
+        if (await root.exists()) await root.delete(recursive: true);
+      });
+      final status = ValueNotifier<String>('Preparing');
+      addTearDown(status.dispose);
+      final game = BattlePreviewGame(
+        projectRoot: root.path,
+        move: scenario.move,
+        status: status,
+      );
+      await tester.pumpWidget(Directionality(
+        textDirection: TextDirection.ltr,
+        child: SizedBox(width: 393, height: 852, child: GameWidget(game: game)),
+      ));
+      BattleOverlayComponent? overlay() {
+        final values = game.children.whereType<BattleOverlayComponent>();
+        return values.isEmpty ? null : values.first;
+      }
+
+      for (var tick = 0;
+          tick < 360 && status.value != 'Combat prêt · appuie sur Lancer';
+          tick++) {
+        await tester.pump(const Duration(milliseconds: 16));
+        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 3)));
+      }
+      expect(status.value, 'Combat prêt · appuie sur Lancer');
+      final initialHp = overlay()!.debugSession.state.player.currentHp;
+      final messages = <String>{};
+      int? finishedAt;
+      unawaited(game.play());
+      for (var tick = 0; tick < 1000; tick++) {
+        await tester.pump(const Duration(milliseconds: 16));
+        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 3)));
+        final message = overlay()?.debugCurrentAnimationMessage;
+        if (message != null) messages.add(message);
+        if (status.value.contains('terminée')) finishedAt ??= tick;
+        if (finishedAt != null && tick - finishedAt >= 180) break;
+      }
+      expect(status.value, contains('terminée'));
+      expect(messages.any((message) => message.contains(scenario.move.label)), isTrue);
+      expect(messages.any((message) => message.contains('${scenario.enemy} utilise')), isFalse);
+      final turn = overlay()!.debugSession.state.currentTurn!;
+      expect(
+        turn.timeline.whereType<BattleTurnExecutionEvent>()
+            .map((event) => event.execution.attackerSide),
+        [BattleSideId.player],
+      );
+      expect(overlay()!.debugSession.state.player.currentHp, initialHp);
+      await tester.pumpWidget(const SizedBox());
+    }, skip: rootPath == null);
+  }
+
+  for (final scenario in [
     (move: PreviewMove.tackle, player: 'gen5:totodile', enemy: 'gen5:pidgey'),
     (
       move: PreviewMove.surf,
