@@ -496,7 +496,12 @@ class BattlePreviewGame extends FlameGame {
     }
   }
 
-  Future<void> play({void Function()? onStart}) async {
+  Future<bool> _waitForStart(FutureOr<bool> Function()? onStart) async {
+    final allowed = onStart == null ? true : await onStart();
+    return allowed && !_closed;
+  }
+
+  Future<void> play({FutureOr<bool> Function()? onStart}) async {
     if (played) return;
     played = true;
     try {
@@ -542,7 +547,7 @@ class BattlePreviewGame extends FlameGame {
         '[compare] ${move.id} fallback=${result.fallbackReason} requests=${requests.length}',
       );
       if (_closed) return;
-      onStart?.call();
+      if (!await _waitForStart(onStart)) return;
       final applied = await _overlay.prepareTurnAudioAndUpdateState(
         turn,
         audioRequests: requests,
@@ -566,11 +571,11 @@ class BattlePreviewGame extends FlameGame {
     }
   }
 
-  Future<void> _playAllySwitch({void Function()? onStart}) async {
+  Future<void> _playAllySwitch({FutureOr<bool> Function()? onStart}) async {
     final bundle = jsonDecode(await rootBundle.loadString(move.bundleAsset!)) as Map;
     if (_closed) return;
     final program = Map<String, dynamic>.from(bundle['program'] as Map);
-    onStart?.call();
+    if (!await _waitForStart(onStart)) return;
     status.value = 'Interversion · programme BW2 expérimental · sans son source';
     final result = await _overlay.presentExperimentalGen5Attack(
       program: program,
@@ -599,7 +604,7 @@ class BattlePreviewGame extends FlameGame {
     }
   }
 
-  Future<void> _playTransform({void Function()? onStart}) async {
+  Future<void> _playTransform({FutureOr<bool> Function()? onStart}) async {
     final target = _adapter.presentation.combatantAt(
       const BattleSlotRef.active(BattleSideId.enemy),
     );
@@ -617,6 +622,7 @@ class BattlePreviewGame extends FlameGame {
         sprite.explicitImageAbsolutePath == null) {
       throw StateError('Sprite de la cible indisponible');
     }
+    if (!await _waitForStart(onStart)) return;
     final actor = _overlay.children
         .whereType<BattleSceneCombatantComponent>()
         .singleWhere((value) => value.isPlayerSide);
@@ -634,7 +640,6 @@ class BattlePreviewGame extends FlameGame {
       actor.setBattleScriptAlpha(16, owner: owner);
       actor.setBattleScriptMosaic(0, owner: owner);
       actor.pauseBattleSpriteAnimation(owner: owner);
-      onStart?.call();
       await completion.future;
       if (!_closed) {
         status.value = 'Morphing terminée · mosaïque expérimentale · sans son source';
@@ -712,7 +717,7 @@ class BattlePreviewGame extends FlameGame {
     }
   }
 
-  Future<void> _playSourceAttack({void Function()? onStart}) async {
+  Future<void> _playSourceAttack({FutureOr<bool> Function()? onStart}) async {
     final isSurf = move == PreviewMove.surf;
     final isWaterGun = move == PreviewMove.waterGun;
     final isAcid = move == PreviewMove.acid;
@@ -1083,11 +1088,11 @@ class BattlePreviewGame extends FlameGame {
             screenAnchor: command.orthographic ? projection : null));
       }
       if (_closed) return;
+      if (!await _waitForStart(onStart)) return;
       final completion = Completer<BattleGen5SourcePlaybackStatus>();
       _sourceCompletion = completion;
       var nextInvocation = 0;
       _startSourceAttack = () {
-        onStart?.call();
         if (isSurf) {
           _sound.playProjectFile(
             p.join(

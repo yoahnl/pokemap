@@ -330,6 +330,68 @@ void main() {
   });
 
   final rootPath = Platform.environment['AVELUNE_ATTACK_WORKSHOP_QA'];
+  for (final cancel in [false, true]) {
+    testWidgets(cancel
+        ? 'does not start a source attack after leaving while the reference loads'
+        : 'waits for the reference before starting a source attack', (tester) async {
+      final root = (await tester.runAsync(
+        () => extractPreviewResources(parent: Directory(rootPath!)),
+      ))!;
+      addTearDown(() async {
+        if (await root.exists()) await root.delete(recursive: true);
+      });
+      final status = ValueNotifier<String>('Preparing');
+      final game = BattlePreviewGame(
+        projectRoot: root.path,
+        move: PreviewMove.surf,
+        status: status,
+      );
+      final gate = Completer<void>();
+      addTearDown(() {
+        if (!gate.isCompleted) gate.complete();
+      });
+      await tester.pumpWidget(Directionality(
+        textDirection: TextDirection.ltr,
+        child: SizedBox(width: 393, height: 852, child: GameWidget(game: game)),
+      ));
+      for (var i = 0; i < 360 && status.value != 'Combat prêt · appuie sur Lancer'; i++) {
+        await tester.pump(const Duration(milliseconds: 16));
+        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 3)));
+      }
+      expect(status.value, 'Combat prêt · appuie sur Lancer');
+      var referenceRequested = false;
+      var finished = false;
+      unawaited(game.play(onStart: () async {
+        referenceRequested = true;
+        await gate.future;
+        return true;
+      }).whenComplete(() => finished = true));
+      for (var i = 0; i < 360 && !referenceRequested; i++) {
+        await tester.pump(const Duration(milliseconds: 16));
+        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 3)));
+      }
+      expect(referenceRequested, isTrue);
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(status.value, 'Chargement de Surf…');
+      if (cancel) {
+        await tester.pumpWidget(const SizedBox());
+      }
+      gate.complete();
+      for (var i = 0; i < 500 && !finished; i++) {
+        await tester.pump(const Duration(milliseconds: 16));
+        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 3)));
+      }
+      expect(finished, isTrue);
+      if (cancel) {
+        expect(status.value, 'Chargement de Surf…');
+      } else {
+        expect(status.value, contains('terminée'));
+      }
+      await tester.pumpWidget(const SizedBox());
+      status.dispose();
+    }, skip: rootPath == null);
+  }
+
   for (final scenario in [
     (size: const Size(393, 852), cancel: false),
     (size: const Size(852, 393), cancel: false),

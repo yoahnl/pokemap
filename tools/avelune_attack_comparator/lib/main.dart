@@ -13,7 +13,59 @@ import 'package:path/path.dart' as p;
 import 'package:webview_flutter/webview_flutter.dart';
 
 import 'preview_game.dart';
+import 'workshop_reference_playback.dart';
 import 'workshop_reference_pokemon.dart';
+
+const _referenceHtml = '''
+<!doctype html><html><head>
+<meta name="referrer" content="no-referrer">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src https:; script-src 'unsafe-inline'; style-src 'unsafe-inline'">
+<style>
+html,body{height:100%;margin:0;background:#0b0e16}
+body{display:flex;align-items:center;justify-content:center;position:relative}
+img{width:100%;height:100%;object-fit:contain;image-rendering:pixelated}
+img:not([src]){display:none}
+#notice{position:absolute;color:white;background:#0b0e16cc;padding:8px;font:14px sans-serif}
+#notice[hidden]{display:none}
+</style></head><body>
+<img id="reference" alt="Référence Noir et Blanc 1 et 2">
+<span id="notice">Chargement de la référence…</span>
+<script>
+let latestReference = 0;
+window.showReference = (url, requestId) => {
+  if (requestId < latestReference) return;
+  latestReference = requestId;
+  const current = document.getElementById('reference');
+  const notice = document.getElementById('notice');
+  if (!url) {
+    current.removeAttribute('src');
+    notice.textContent = 'Référence BW indisponible.';
+    notice.hidden = false;
+    return;
+  }
+  notice.textContent = 'Chargement de la référence…';
+  notice.hidden = false;
+  const next = new Image();
+  next.id = 'reference';
+  next.alt = 'Référence Noir et Blanc 1 et 2';
+  next.onload = () => {
+    if (latestReference !== requestId) return;
+    document.getElementById('reference').replaceWith(next);
+    notice.hidden = true;
+    WorkshopReference.postMessage(requestId + ':ready');
+  };
+  next.onerror = () => {
+    if (latestReference !== requestId) return;
+    document.getElementById('reference').removeAttribute('src');
+    notice.textContent = 'Référence BW indisponible.';
+    notice.hidden = false;
+    WorkshopReference.postMessage(requestId + ':error');
+  };
+  next.src = url + (url.includes('?') ? '&' : '?') + 'replay=' + requestId;
+};
+</script></body></html>
+''';
 
 enum PhoneOrientation {
   portrait(Size(393, 852), 'Portrait', Icons.stay_current_portrait),
@@ -149,15 +201,18 @@ class ComparePage extends StatefulWidget {
 
 class _ComparePageState extends State<ComparePage> {
   late final WebViewController _reference;
+  late final WorkshopReferencePlayback _referencePlayback;
+  late final Future<void> _referenceSetup;
   late final WorkshopReferencePokemonStore _referencePokemonStore;
   BattlePreviewGame? _game;
   PreparedReferencePair? _preparedPokemon;
   late ValueNotifier<String> _status;
   PreviewMove _move = PreviewMove.tackle;
   String _pokemonNotice = 'Chargement des Pokémon de la référence…';
+  String _referenceNotice = 'Chargement de la référence BW…';
   String _search = '';
   PhoneOrientation _orientation = PhoneOrientation.portrait;
-  int _version = 0;
+  int _referenceVersion = 0;
   int _loadVersion = 0;
 
   @override
@@ -165,22 +220,53 @@ class _ComparePageState extends State<ComparePage> {
     super.initState();
     _status = ValueNotifier('Préparation du combat…');
     _reference = WebViewController();
+    _referencePlayback = WorkshopReferencePlayback(display: (url, requestId) async {
+      await _referenceSetup;
+      if (!_referencePlayback.isCurrent(requestId)) return;
+      await _reference.runJavaScript(
+        'window.showReference(${jsonEncode(url)}, $requestId);',
+      );
+    });
+    _referenceSetup = _prepareReferenceView();
     _referencePokemonStore = WorkshopReferencePokemonStore(root: widget.root);
-    _showReference();
+    unawaited(_showReference(_move));
     unawaited(_prepareGame(_move));
   }
 
-  void _showReference() {
-    final url = _move.referenceUrl;
-    if (url == null) {
-      _reference.loadHtmlString(
-        '<html><body style="background:#0b0e16;color:white;font-family:sans-serif">Référence BW non disponible pour cette attaque.</body></html>',
-      );
-      return;
+  Future<void> _prepareReferenceView() async {
+    await _reference.setJavaScriptMode(JavaScriptMode.unrestricted);
+    await _reference.addJavaScriptChannel('WorkshopReference', onMessageReceived: (message) {
+      final parts = message.message.split(':');
+      if (parts.length != 2) return;
+      final requestId = int.tryParse(parts[0]);
+      if (requestId == null || !{'ready', 'error'}.contains(parts[1])) return;
+      _referencePlayback.report(requestId, loaded: parts[1] == 'ready');
+    });
+    final ready = Completer<void>();
+    await _reference.setNavigationDelegate(NavigationDelegate(onPageFinished: (_) {
+      if (!ready.isCompleted) ready.complete();
+    }));
+    await _reference.loadHtmlString(_referenceHtml);
+    await ready.future.timeout(const Duration(seconds: 5));
+  }
+
+  Future<bool> _showReference(PreviewMove move, {BattlePreviewGame? game}) async {
+    if (!mounted || !identical(_move, move) ||
+        (game != null && !identical(_game, game))) {
+      return false;
     }
-    _reference.loadHtmlString(
-      '''<!doctype html><html><head><meta name="referrer" content="no-referrer"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body{height:100%;margin:0;background:#0b0e16}body{display:flex;align-items:center;justify-content:center}img{width:100%;height:100%;object-fit:contain;image-rendering:pixelated}</style></head><body><img alt="Référence Noir et Blanc 1 et 2" src="$url?replay=${_version++}"></body></html>''',
-    );
+    final version = ++_referenceVersion;
+    setState(() => _referenceNotice = move.referenceUrl == null
+        ? 'Référence BW indisponible.' : 'Chargement de la référence BW…');
+    final loaded = await _referencePlayback.show(move.referenceUrl);
+    if (!mounted || version != _referenceVersion || !identical(_move, move) ||
+        (game != null && !identical(_game, game))) {
+      return false;
+    }
+    setState(() => _referenceNotice = loaded
+        ? 'Référence prête · synchronisation approximative.'
+        : 'Référence indisponible · aperçu Avelune seul.');
+    return true;
   }
 
   void _newGame() {
@@ -223,14 +309,15 @@ class _ComparePageState extends State<ComparePage> {
       _preparedPokemon = null;
       _pokemonNotice = 'Chargement des Pokémon de la référence…';
       _status.value = 'Préparation du combat…';
-      _showReference();
     });
+    unawaited(_showReference(move));
     unawaited(_prepareGame(move));
   }
 
   @override
   void dispose() {
     _loadVersion++;
+    _referencePlayback.close();
     _status.dispose();
     unawaited(
       _referencePokemonStore.close().then((_) async {
@@ -293,6 +380,7 @@ class _ComparePageState extends State<ComparePage> {
                         '${_move.approximations.isEmpty ? '' : ' ${_move.approximations.length} approximation(s) signalée(s).'}',
             ),
             Text(_pokemonNotice, style: Theme.of(context).textTheme.bodySmall),
+            Text(_referenceNotice, style: Theme.of(context).textTheme.bodySmall),
             const SizedBox(height: 18),
             Wrap(
               spacing: 14,
@@ -340,7 +428,8 @@ class _ComparePageState extends State<ComparePage> {
                             });
                             playback = _game!;
                           }
-                          await playback.play(onStart: _showReference);
+                          final active = playback;
+                          await playback.play(onStart: () => _showReference(active.move, game: active));
                         },
                   icon: const Icon(Icons.play_arrow),
                   label: const Text('Lancer / rejouer'),
