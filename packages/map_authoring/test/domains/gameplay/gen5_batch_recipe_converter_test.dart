@@ -12,6 +12,8 @@ import 'package:map_authoring/src/domains/gameplay/pokemon_external/gen5_batch_a
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
+import '../../../tool/gen5_batch_convert.dart' as batch_cli;
+
 Gen5BattleScriptSource script(String instructions) {
   final bytes = Uint8List.fromList(utf8.encode('''
 #include "asm/btlv_effvm.inc"
@@ -117,6 +119,58 @@ EmitterAdd 199, 1, EFFVM_EMIT_DEFENDER, 8, 0, 0, 0, 0, 0, 0, 0
     expect(selected.values.single.emitters, hasLength(1));
     expect(result.warnings, containsAll(['unused-emitters-omitted', 'missing-move-audio', 'runtime-fallback-silent-audio']));
     expect(result.bundle.recipe.resources.where((item) => item.role == 'sound'), isEmpty);
+  });
+
+  test('maps original emitter indices to a compact particle definition', () async {
+    final definition = jsonDecode(await File('../map_core/test/fixtures/spl_particle_v2.json').readAsString()) as Map<String, dynamic>;
+    final first = (definition['emitters'] as List).single;
+    final second = jsonDecode(jsonEncode(first)) as Map<String, dynamic>;
+    (second['appearance'] as Map<String, dynamic>)['baseScale'] = 3000;
+    definition['emitters'] = [first, second];
+    final pixels = Uint8List.fromList(image.encodePng(image.Image(width: 2, height: 2)));
+    final source = script('''
+ParticleLoad 222
+EmitterAdd 222, 5, EFFVM_EMIT_DEFENDER, 8, 0, 0, 0, 0, 0, 0, 0
+''');
+    Gen5BatchParticle particle(List<int> indices) => Gen5BatchParticle(
+      definition: Uint8List.fromList(utf8.encode(jsonEncode(definition))),
+      textures: {'tex': pixels}, sourceEmitterIndices: indices);
+    final result = Gen5BatchRecipeConverter.convert(moveId: 'example', sourceMoveId: 99,
+      script: source, particles: {222: particle([3, 5])});
+    final selected = result.bundle.recipe.readVerifiedSplParticleDefinitions(result.bundle.media,
+      availableCapabilities: BattleMoveAnimationRecipe.recognizedCapabilities);
+    final emitter = (selected['particle222e5']!.toJson()['emitters'] as List).single as Map;
+    expect((emitter['appearance'] as Map)['baseScale'], 3000);
+    expect(() => Gen5BatchRecipeConverter.convert(moveId: 'example', sourceMoveId: 99,
+      script: source, particles: {222: particle([3, 3])}), throwsFormatException);
+    expect(() => Gen5BatchRecipeConverter.convert(moveId: 'example', sourceMoveId: 99,
+      script: source, particles: {222: particle([1, 2])}), throwsFormatException);
+  });
+
+  test('batch source loading selects the real Water Gun emitters', () async {
+    final root = await Directory.systemTemp.createTemp('bw2-batch-source-');
+    addTearDown(() => root.delete(recursive: true));
+    final directory = await Directory('${root.path}/220').create();
+    final sourceRoot = Directory('../../tools/avelune_attack_comparator/assets/bw2/particle220');
+    final source = await File('${sourceRoot.path}/source.json').readAsBytes();
+    await File('${directory.path}/particles.json').writeAsBytes(source);
+    for (final texture in ['texture00', 'texture01', 'texture02']) {
+      final data = (await File('${sourceRoot.path}/$texture.b64').readAsString()).trim();
+      await File('${directory.path}/$texture.png').writeAsBytes(base64Decode(data));
+    }
+    final result = await batch_cli.loadBatchParticle(root, 220, [0, 1]);
+    final definition = BattleSplParticleDefinition.fromJson(jsonDecode(utf8.decode(result.definition)) as Map<String, dynamic>);
+    expect(definition.schemaVersion, 5);
+    expect(result.sourceEmitterIndices, [0, 1]);
+    expect(result.warnings, contains('selected-source-emitters-v5'));
+    final converted = Gen5BatchRecipeConverter.convert(moveId: 'water-gun', sourceMoveId: 55,
+      script: script('''
+ParticleLoad 220
+EmitterMove 220, 1, 1, EFFVM_EMIT_ATTACKER, EFFVM_EMIT_DEFENDER, 0, 0x1e000, 0, 0, 0, 0
+'''), particles: {220: result});
+    expect(converted.bundle.recipe.resources.where((item) => item.role == 'particleDefinition')
+        .map((item) => item.definitionVersion), everyElement(5));
+    expect(converted.warnings, containsAll(['selected-source-emitters-v5', 'emitter-motion-not-transcribed']));
   });
 
   test('keeps each source emitter attached to the side that invoked it', () async {
@@ -273,6 +327,42 @@ EmitterAdd 200, 0, EFFVM_EMIT_DEFENDER, 8, 0, 0, 0, 0, 0, 0, 0
     expect(result.bundle.recipe.resources.where((r) => r.role == 'particleDefinition').map((r) => r.definitionVersion), everyElement(3));
     expect(result.warnings, contains('particle-schema-upgraded:2->3'));
     expect(result.warnings, isNot(contains('runtime-fallback-mixed-particle-versions')));
+  });
+
+  test('upgrades v2 and v4 to v5 without discarding v4 motion', () async {
+    final source = jsonDecode(await File('../map_core/test/fixtures/spl_particle_v2.json').readAsString()) as Map<String, dynamic>;
+    final v4 = jsonDecode(jsonEncode(source)) as Map<String, dynamic>;
+    v4['schemaVersion'] = 4;
+    final v4Emitter = (v4['emitters'] as List).single as Map;
+    (v4Emitter['emission'] as Map)['positionVelocity'] = 0;
+    (v4Emitter['appearance'] as Map)['initialTexture'] = 'tex4';
+    (v4Emitter['motion'] as Map)['magnet'] = {'target': {'x': 4, 'y': 8, 'z': 12}, 'force': 128};
+    final v5 = jsonDecode(jsonEncode(v4)) as Map<String, dynamic>;
+    v5['schemaVersion'] = 5;
+    final v5Emitter = (v5['emitters'] as List).single as Map;
+    (v5Emitter['appearance'] as Map<String, dynamic>).addAll({'initialTexture': 'tex5', 'hasRotation': false, 'minRotation': 0, 'maxRotation': 0, 'dirFromPosition': false});
+    (v5Emitter['emission'] as Map<String, dynamic>).addAll({'emissionAxis': 'z', 'velocityVariance': 0});
+    final pixels = Uint8List.fromList(image.encodePng(image.Image(width: 2, height: 2)));
+    final result = Gen5BatchRecipeConverter.convert(moveId: 'example', sourceMoveId: 99,
+      script: script('''
+ParticleLoad 199
+EmitterAdd 199, 0, EFFVM_EMIT_DEFENDER, 8, 0, 0, 0, 0, 0, 0, 0
+ParticleLoad 200
+EmitterAdd 200, 0, EFFVM_EMIT_DEFENDER, 8, 0, 0, 0, 0, 0, 0, 0
+ParticleLoad 201
+EmitterAdd 201, 0, EFFVM_EMIT_DEFENDER, 8, 0, 0, 0, 0, 0, 0, 0
+'''), particles: {
+        199: Gen5BatchParticle(definition: Uint8List.fromList(utf8.encode(jsonEncode(source))), textures: {'tex': pixels}),
+        200: Gen5BatchParticle(definition: Uint8List.fromList(utf8.encode(jsonEncode(v4))), textures: {'tex4': pixels}),
+        201: Gen5BatchParticle(definition: Uint8List.fromList(utf8.encode(jsonEncode(v5))), textures: {'tex5': pixels}),
+      });
+    final definitions = result.bundle.recipe.readVerifiedSplParticleDefinitions(result.bundle.media,
+      availableCapabilities: BattleMoveAnimationRecipe.recognizedCapabilities);
+    expect(definitions.values.map((value) => value.schemaVersion), everyElement(5));
+    final upgradedV4 = definitions['particle200e0']!.toJson()['emitters'][0] as Map;
+    expect((upgradedV4['motion'] as Map)['magnet'], {'target': {'x': 4, 'y': 8, 'z': 12}, 'force': 128});
+    expect((upgradedV4['emission'] as Map)['emissionAxis'], 'z');
+    expect(result.warnings, containsAll(['particle-schema-upgraded:2->5', 'particle-schema-upgraded:4->5']));
   });
 
   test('limits particle workload only for explicitly requested previews', () async {

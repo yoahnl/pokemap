@@ -48,9 +48,9 @@ final class _CountingReader
 }
 
 final class _RecipeApi implements PokemonBoundedExternalHttpTransport {
-  _RecipeApi(this.recipe, this.particle, this.png, {this.sound});
-  final List<int> recipe, particle, png;
-  final List<int>? sound;
+  _RecipeApi(this.recipe, this.resources);
+  final List<int> recipe;
+  final Map<String, List<int>> resources;
   final requestedLimits = <String, int>{};
   @override
   Future<PokemonExternalHttpResponse> getBounded(Uri uri,
@@ -69,33 +69,39 @@ final class _RecipeApi implements PokemonBoundedExternalHttpTransport {
           'style': 'synthetic',
           'metadata': metadata
         };
+    final definition = jsonDecode(utf8.decode(recipe)) as Map<String, dynamic>;
+    final declared =
+        (definition['resources'] as List).cast<Map<String, dynamic>>();
     final owner = uri.path.endsWith('/owners/move/catalog');
     final data = owner
         ? utf8.encode(jsonEncode([
             item('recipe', recipe, 'application/vnd.avelune.battle-recipe+json',
                 'recipe', {
-              'recipeId': 'visual',
-              'revision': '1',
-              'moveSourceId': 'source',
-              'variant': 'default',
+              'recipeId': definition['recipeId'],
+              'revision': definition['revision'],
+              'moveSourceId': definition['moveSourceId'],
+              'variant': definition['variant'],
               'bindings': {
-                'tex': 'texture',
-                'particle': 'particle',
-                if (sound != null) 'sound': 'sound',
+                for (final resource in declared) resource['id']: resource['id'],
               },
             }),
-            item('texture', png, 'image/png', 'sprite2d', {}),
-            item('particle', particle, 'application/vnd.avelune.particle+json',
-                'particle', {}),
-            if (sound != null) item('sound', sound!, 'audio/wav', 'audio', {}),
+            for (final resource in declared)
+              item(
+                resource['id'] as String,
+                resources[resource['id']]!,
+                resource['mediaType'] as String,
+                switch (resource['role']) {
+                  'texture' => 'sprite2d',
+                  'particleDefinition' => 'particle',
+                  'sound' => 'audio',
+                  _ => throw StateError('Unexpected test resource'),
+                },
+                {},
+              ),
           ]))
         : uri.path.endsWith('/recipe')
             ? recipe
-            : uri.path.endsWith('/particle')
-                ? particle
-                : uri.path.endsWith('/sound')
-                    ? sound!
-                    : png;
+            : resources[uri.pathSegments.last]!;
     return PokemonExternalHttpResponse(
         statusCode: 200,
         headers: const {},
@@ -109,6 +115,9 @@ void main() {
     required bool spl,
     bool withSound = false,
     bool explicitAudio = false,
+    bool gen5 = false,
+    bool splV5 = false,
+    String? bundlePath,
   }) async {
     final root = await Directory.systemTemp.createTemp('battle-recipe-import-');
     final handles = WorkspaceHandleStore();
@@ -193,9 +202,28 @@ void main() {
         projectHandle: current.projectHandle);
     final png = img.encodePng(img.Image(width: 2, height: 2));
     final pngHash = sha256.convert(png).toString();
-    final particle = spl
+    final splBytes = spl
         ? await File('../map_core/test/fixtures/spl_particle_v2.json')
             .readAsBytes()
+        : null;
+    final splData = splBytes == null
+        ? null
+        : jsonDecode(utf8.decode(splBytes)) as Map<String, dynamic>;
+    if (gen5 || splV5) {
+      splData!['schemaVersion'] = splV5 ? 5 : 3;
+      for (final emitter in splData['emitters'] as List) {
+        (emitter['emission'] as Map<String, dynamic>)['positionVelocity'] = 0;
+        if (splV5) {
+          (emitter['emission'] as Map<String, dynamic>).addAll({'emissionAxis': 'z', 'velocityVariance': 0});
+          (emitter['appearance'] as Map<String, dynamic>).addAll({'hasRotation': false, 'minRotation': 0, 'maxRotation': 0, 'dirFromPosition': false});
+          (emitter['motion'] as Map<String, dynamic>)['magnet'] = null;
+        }
+      }
+    }
+    final particle = spl
+        ? gen5 || splV5
+            ? utf8.encode(jsonEncode(splData))
+            : splBytes!
         : utf8.encode(jsonEncode({
             'schemaVersion': 1,
             'emitters': [
@@ -214,18 +242,20 @@ void main() {
             .readAsBytes()
         : null;
     final soundHash = sound == null ? null : sha256.convert(sound).toString();
-    final recipe = utf8.encode(jsonEncode({
-      'schemaVersion': explicitAudio ? 2 : 1,
+    final syntheticRecipe = utf8.encode(jsonEncode({
+      'schemaVersion': explicitAudio || gen5 ? 2 : 1,
       'recipeId': 'visual',
       'revision': '1',
       'moveSourceId': 'source',
       'variant': 'default',
       'requiredCapabilities': [
         'startParticle',
-        if (spl) 'splParticleV2',
-        if (withSound) 'sequence',
+        if (spl) splV5 ? 'splParticleV5' : gen5 ? 'splParticleV3' : 'splParticleV2',
+        if (withSound || gen5) 'sequence',
         if (withSound) 'sound',
-        if (explicitAudio) 'audioSelectionV2',
+        if (explicitAudio || gen5) 'audioSelectionV2',
+        if (gen5) 'gen5Swing',
+        if (gen5) 'gen5SpritePause',
       ],
       'provenance': {
         'source': 'synthetic',
@@ -247,7 +277,7 @@ void main() {
           'mediaType': 'application/vnd.avelune.particle+json',
           'sizeBytes': particle.length,
           'sha256': particleHash,
-          'definitionVersion': spl ? 2 : 1,
+          'definitionVersion': spl ? (splV5 ? 5 : gen5 ? 3 : 2) : 1,
           'dependencies': ['tex']
         },
         if (sound != null)
@@ -260,45 +290,90 @@ void main() {
           },
       ],
       if (explicitAudio) 'audio': {'kind': 'clip', 'resourceId': 'sound'},
-      'program': withSound && !explicitAudio
+      if (gen5) 'audio': {'kind': 'none'},
+      'program': gen5
           ? {
               'kind': 'sequence',
               'steps': [
-                {'kind': 'sound', 'resourceId': 'sound'},
+                {
+                  'kind': 'gen5Swing',
+                  'target': 'user',
+                  'channel': 'position',
+                  'x': 4096,
+                  'y': 0,
+                  'frames': 4,
+                  'wait': 1,
+                  'count': 1
+                },
                 {
                   'kind': 'startParticle',
                   'resourceId': 'particle',
                   'from': 'userMouth',
                   'to': 'targetImpact'
                 },
+                {'kind': 'gen5SpritePause', 'target': 'target', 'paused': true},
               ],
             }
-          : {
-              'kind': 'startParticle',
-              'resourceId': 'particle',
-              'from': 'userMouth',
-              'to': 'targetImpact'
-            },
+          : withSound && !explicitAudio
+              ? {
+                  'kind': 'sequence',
+                  'steps': [
+                    {'kind': 'sound', 'resourceId': 'sound'},
+                    {
+                      'kind': 'startParticle',
+                      'resourceId': 'particle',
+                      'from': 'userMouth',
+                      'to': 'targetImpact'
+                    },
+                  ],
+                }
+              : {
+                  'kind': 'startParticle',
+                  'resourceId': 'particle',
+                  'from': 'userMouth',
+                  'to': 'targetImpact'
+                },
     }));
+    final bundle = bundlePath == null
+        ? null
+        : jsonDecode(await File(bundlePath).readAsString())
+            as Map<String, dynamic>;
+    final recipe = bundle == null
+        ? syntheticRecipe
+        : base64.decode(bundle['recipe'] as String);
+    final resources = bundle == null
+        ? <String, List<int>>{
+            'tex': png,
+            'particle': particle,
+            if (sound != null) 'sound': sound,
+          }
+        : <String, List<int>>{
+            for (final entry
+                in (bundle['media'] as Map<String, dynamic>).entries)
+              entry.key: base64.decode(entry.value as String),
+          };
+    final recipeData = jsonDecode(utf8.decode(recipe)) as Map<String, dynamic>;
+    final declaredResources =
+        (recipeData['resources'] as List).cast<Map<String, dynamic>>();
     final digest = sha256.convert(recipe).toString();
-    final external = _RecipeApi(recipe, particle, png, sound: sound);
+    final external = _RecipeApi(recipe, resources);
     final fetched = await AveluneMoveRecipeSource(
       AvelunePokemonMediaSource(client: external, release: 'test'),
     ).fetch(
         catalogMoveId: 'catalog',
-        sourceMoveId: 'source',
+        sourceMoveId: recipeData['moveSourceId'] as String,
         projectMoveId: 'one',
         mediaId: 'recipe',
-        limits: const BattleRecipeBundleLimits(
-            maxTextures: 2,
-            maxTextureBytes: 10000,
+        limits: BattleRecipeBundleLimits(
+            maxTextures: bundle == null ? 2 : 16,
+            maxTextureBytes: bundle == null ? 10000 : 1024 * 1024,
             maxBundleBytes: 64 * 1024 * 1024,
-            maxDimension: 16,
-            maxTexturePixels: 256,
-            maxTotalPixels: 256),
+            maxDimension: bundle == null ? 16 : 2048,
+            maxTexturePixels: bundle == null ? 256 : 4000000,
+            maxTotalPixels: bundle == null ? 256 : 16000000),
         availableCapabilities:
             BattleMoveAnimationRecipe.recognizedCapabilities);
-    if (sound != null) {
+    if (sound != null && bundle == null) {
       expect(
           external.requestedLimits.entries
               .singleWhere((entry) => entry.key.endsWith('/test/sound'))
@@ -306,21 +381,20 @@ void main() {
           BattleRecipeBundleInspector.maxSoundBytes);
     }
     final staged = await service.artifacts.put(fetched.bundle.recipeBytes);
-    final stagedPng = await service.artifacts.put(fetched.bundle.media['tex']!);
-    final stagedParticle =
-        await service.artifacts.put(fetched.bundle.media['particle']!);
-    final stagedSound = sound == null
-        ? null
-        : await service.artifacts.put(fetched.bundle.media['sound']!);
+    final resourceHandles = <String, String>{};
+    for (final entry in fetched.bundle.media.entries) {
+      resourceHandles[entry.key] =
+          (await service.artifacts.put(entry.value)).reference.handle;
+    }
     Map<String, Object?> parametersFor(String id) {
       final binding = BattleMoveRecipeBinding.fromJson({
         'schemaVersion': 1,
         'projectMoveId': id,
-        'sourceMoveId': 'source',
+        'sourceMoveId': recipeData['moveSourceId'],
         'catalogReleaseId': 'test',
-        'recipeId': 'visual',
-        'variant': 'default',
-        'revision': '1',
+        'recipeId': recipeData['recipeId'],
+        'variant': recipeData['variant'],
+        'revision': recipeData['revision'],
         'recipeSha256': digest,
       });
       return <String, Object?>{
@@ -331,24 +405,12 @@ void main() {
             .toJson(),
         'recipeHandle': staged.reference.handle,
         'resources': [
-          {
-            'id': 'tex',
-            'sha256': pngHash,
-            'mediaType': 'image/png',
-            'artifactHandle': stagedPng.reference.handle
-          },
-          {
-            'id': 'particle',
-            'sha256': particleHash,
-            'mediaType': 'application/vnd.avelune.particle+json',
-            'artifactHandle': stagedParticle.reference.handle
-          },
-          if (sound != null)
+          for (final resource in declaredResources)
             {
-              'id': 'sound',
-              'sha256': soundHash,
-              'mediaType': 'audio/wav',
-              'artifactHandle': stagedSound!.reference.handle
+              'id': resource['id'],
+              'sha256': resource['sha256'],
+              'mediaType': resource['mediaType'],
+              'artifactHandle': resourceHandles[resource['id']],
             },
         ],
       };
@@ -397,16 +459,12 @@ void main() {
         '${root.path}/${battleRecipeBlobPath(digest, 'application/vnd.avelune.battle-recipe+json', projectMoveId: 'two')}');
     expect(await one.readAsBytes(), recipe);
     expect(await two.readAsBytes(), recipe);
-    final particleOne = File(
-        '${root.path}/${battleRecipeBlobPath(particleHash, 'application/vnd.avelune.particle+json', projectMoveId: 'one')}');
-    final textureOne = File(
-        '${root.path}/${battleRecipeBlobPath(pngHash, 'image/png', projectMoveId: 'one')}');
-    expect(await particleOne.readAsBytes(), particle);
-    expect(await textureOne.readAsBytes(), png);
-    if (sound != null) {
-      final soundOne = File(
-          '${root.path}/${battleRecipeBlobPath(soundHash!, 'audio/wav', projectMoveId: 'one')}');
-      expect(await soundOne.readAsBytes(), sound);
+    for (final resource in declaredResources) {
+      final path = battleRecipeBlobPath(
+          resource['sha256'] as String, resource['mediaType'] as String,
+          projectMoveId: 'one');
+      expect(await File('${root.path}/$path').readAsBytes(),
+          resources[resource['id']]);
     }
     await service.undoMutation(current.projectHandle,
         entryId: second.receipt.receiptId, idempotencyKey: 'undo-two');
@@ -530,18 +588,31 @@ void main() {
     }
     final archive =
         ZipDecoder().decodeBytes(exported.packageBytes, verify: true);
-    final particlePath = battleRecipeBlobPath(
-        particleHash, 'application/vnd.avelune.particle+json',
-        projectMoveId: 'two');
-    final texturePath =
-        battleRecipeBlobPath(pngHash, 'image/png', projectMoveId: 'two');
+    if (splV5) {
+      final inspected = const GamePackageInspector().inspect(exported.packageBytes);
+      expect(inspected.manifest.compatibility.requiredCapabilities,
+          contains(BattleMoveAnimationRecipe.splV5RuntimeCapability));
+      final manifestJson = inspected.manifest.toJson();
+      (manifestJson['compatibility'] as Map)['requiredCapabilities'] = inspected
+          .manifest.compatibility.requiredCapabilities
+          .where((value) => value != BattleMoveAnimationRecipe.splV5RuntimeCapability)
+          .toList();
+      final stripped = const GamePackageManifestCodec().decodeJson(manifestJson);
+      final payload = <String, List<int>>{for (final file in archive.files)
+        if (file.name != 'game-manifest.json') file.name: file.content as List<int>};
+      expect(() => const GamePackageProjectValidator(GamePackageSecurityPolicy()).validate(
+        stripped, Uint8List.fromList(payload['project/project.json']!),
+        payloadPaths: payload.keys.toSet(), readPayload: (path) => payload[path],
+      ), throwsA(isA<GamePackageFormatException>().having((error) => error.message,
+        'message', contains(BattleMoveAnimationRecipe.splV5RuntimeCapability))));
+    }
     expect(archive.findFile('project/$recipePath')!.content, recipe);
-    expect(archive.findFile('project/$particlePath')!.content, particle);
-    expect(archive.findFile('project/$texturePath')!.content, png);
-    if (sound != null) {
-      final soundPath =
-          battleRecipeBlobPath(soundHash!, 'audio/wav', projectMoveId: 'two');
-      expect(archive.findFile('project/$soundPath')!.content, sound);
+    for (final resource in declaredResources) {
+      final path = battleRecipeBlobPath(
+          resource['sha256'] as String, resource['mediaType'] as String,
+          projectMoveId: 'two');
+      expect(archive.findFile('project/$path')!.content,
+          resources[resource['id']]);
     }
     final archivedBinding = BattleRecipeProjectBinding.fromJson(jsonDecode(
       utf8.decode(archive
@@ -559,4 +630,14 @@ void main() {
       () => runScenario(spl: true, withSound: true));
   test('imports and exports an explicit audio v2 recipe through API and JSONL',
       () => runScenario(spl: true, withSound: true, explicitAudio: true));
+  test('imports and exports Gen 5 motion with SPL v3 through API and JSONL',
+      () => runScenario(spl: true, gen5: true));
+  test('imports and exports SPL v5 with an explicit Player capability',
+      () => runScenario(spl: true, splV5: true));
+  test(
+      'imports and exports a converted BW2 Tackle bundle through API and JSONL',
+      () => runScenario(
+          spl: true,
+          bundlePath: Platform.environment['AVELUNE_BW2_TACKLE_BUNDLE']),
+      skip: Platform.environment['AVELUNE_BW2_TACKLE_BUNDLE'] == null);
 }

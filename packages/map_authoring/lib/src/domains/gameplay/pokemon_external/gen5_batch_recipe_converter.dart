@@ -9,12 +9,14 @@ import 'gen5_battle_script_source.dart';
 
 final class Gen5BatchParticle {
   const Gen5BatchParticle({required this.definition, required this.textures,
-    this.warnings = const {}, this.sourceSha256, this.normalizedSha256});
+    this.warnings = const {}, this.sourceSha256, this.normalizedSha256,
+    this.sourceEmitterIndices});
   final Uint8List definition;
   final Map<String, Uint8List> textures;
   final Set<String> warnings;
   final String? sourceSha256;
   final String? normalizedSha256;
+  final List<int>? sourceEmitterIndices;
 }
 
 final class Gen5BatchParticleRequest {
@@ -168,13 +170,21 @@ abstract final class Gen5BatchRecipeConverter {
       }
       final indices = activeParticles.where((entry) => entry.id == id)
           .map((entry) => entry.emitterIndex).toSet();
-      if (indices.any((index) => index >= original.emitters.length)) {
+      final sourceIndices = part.sourceEmitterIndices;
+      if (sourceIndices != null &&
+          (sourceIndices.length != original.emitters.length ||
+              sourceIndices.toSet().length != sourceIndices.length ||
+              sourceIndices.any((index) => index < 0 || index > 31))) {
+        throw const FormatException('Invalid source emitter mapping');
+      }
+      int localIndex(int index) => sourceIndices?.indexOf(index) ?? index;
+      if (indices.any((index) => localIndex(index) < 0 || localIndex(index) >= original.emitters.length)) {
         throw const FormatException('Referenced particle emitter unavailable');
       }
       final originalEmitters = original.toJson()['emitters'] as List;
       if (boundedPreview) {
         for (final index in indices) {
-          final emission = (originalEmitters[index] as Map)['emission'] as Map;
+          final emission = (originalEmitters[localIndex(index)] as Map)['emission'] as Map;
           for (final (field, maximum) in [('rate', 2048), ('particleLifetime', 24)]) {
             final value = emission[field];
             if (value is int && value > maximum) {
@@ -189,7 +199,7 @@ abstract final class Gen5BatchRecipeConverter {
       for (final index in indices) {
         final definition = BattleSplParticleDefinition.fromJson({
           'schemaVersion': original.schemaVersion,
-          'emitters': [originalEmitters[index]],
+          'emitters': [originalEmitters[localIndex(index)]],
         });
         final key = definitionId(id, index);
         selectedTextures[key] = definition.textureIds;
@@ -217,7 +227,7 @@ abstract final class Gen5BatchRecipeConverter {
         if (definition.schemaVersion < 3 && targetVersion >= 3) {
           (emitter['emission'] as Map)['positionVelocity'] = 0;
         }
-        if (targetVersion >= 4) {
+        if (definition.schemaVersion < 4 && targetVersion >= 4) {
           (emitter['motion'] as Map)['magnet'] = null;
           final child = emitter['child'];
           if (child is Map) {
@@ -225,6 +235,16 @@ abstract final class Gen5BatchRecipeConverter {
             child['inheritBehaviors'] = false;
             child['draw'] = 'billboard';
           }
+        }
+        if (definition.schemaVersion < 5 && targetVersion >= 5) {
+          final emission = emitter['emission'] as Map;
+          emission['emissionAxis'] = 'z';
+          emission['velocityVariance'] = 0;
+          final appearance = emitter['appearance'] as Map;
+          appearance['hasRotation'] = false;
+          appearance['minRotation'] = 0;
+          appearance['maxRotation'] = 0;
+          appearance['dirFromPosition'] = false;
         }
       }
       final upgraded = BattleSplParticleDefinition.fromJson(data);

@@ -338,6 +338,9 @@ final class CanonicalGamePackageExportService {
         if (recipe.resources.any((resource) => resource.definitionVersion == 4)) {
           battleCapabilities.add(BattleMoveAnimationRecipe.splV4RuntimeCapability);
         }
+        if (recipe.resources.any((resource) => resource.definitionVersion == 5)) {
+          battleCapabilities.add(BattleMoveAnimationRecipe.splV5RuntimeCapability);
+        }
         if (recipe.usesGen5Motion) {
           battleCapabilities.add(BattleMoveAnimationRecipe.gen5MotionRuntimeCapability);
         }

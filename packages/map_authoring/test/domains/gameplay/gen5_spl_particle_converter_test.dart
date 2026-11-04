@@ -497,8 +497,7 @@ void main() {
     expect(production.warnings, containsAll([
       'particle-field:polygonX', 'particle-field:polygonY',
     ]));
-    expect(() => BattleSplParticleDefinition.fromJson(definition.toJson()),
-        throwsFormatException);
+    expect(BattleSplParticleDefinition.fromJson(definition.toJson()).schemaVersion, 5);
   });
 
   test('preserves BW2 child emitter following only for the experimental workshop', () {
@@ -1295,7 +1294,7 @@ void main() {
   }, skip: Platform.environment['AVELUNE_BW2_SCRIPT_TEST'] != '1');
 
   test(
-      'selects source emitters without admitting experimental data as a legacy SPL definition',
+      'selects source emitters and preserves their v5 definition',
       () {
     final source = _source();
     final values = source['emitters'] as List;
@@ -1345,8 +1344,7 @@ void main() {
     expect((emitters[0] as Map)['appearance']['maxRotation'], -2559);
     expect((emitters[0] as Map)['appearance']['dirFromPosition'], isTrue);
     expect((emitters[1] as Map)['emission']['velocityVariance'], 27);
-    expect(() => BattleSplParticleDefinition.fromJson(json),
-        throwsFormatException);
+    expect(BattleSplParticleDefinition.fromJson(json).schemaVersion, 5);
     expect(() => selected([0, 2]), throwsFormatException);
     expect(() => selected([1, 1]), throwsFormatException);
     expect(() => selected([3]), throwsFormatException);

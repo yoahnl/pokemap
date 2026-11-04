@@ -149,6 +149,50 @@ Future<InspectedBattleRecipeBundle> bundle({
   );
 }
 
+Future<InspectedBattleRecipeBundle> waterBundle(int id) async {
+  final root = Directory('../../tools/avelune_attack_comparator/assets/bw2/particle$id');
+  final particle = Uint8List.fromList(await File('${root.path}/definition.json').readAsBytes());
+  final definition = BattleSplParticleDefinition.fromJson(jsonDecode(utf8.decode(particle)) as Map<String, dynamic>);
+  final media = <String, Uint8List>{
+    'particle': particle,
+    for (final texture in definition.textureIds)
+      texture: base64Decode((await File('${root.path}/$texture.b64').readAsString()).trim()),
+  };
+  Map<String, dynamic> resource(String id, String role, String mediaType) => {
+    'id': id,
+    'role': role,
+    'mediaType': mediaType,
+    'sizeBytes': media[id]!.length,
+    'sha256': sha256.convert(media[id]!).toString(),
+  };
+  final recipeBytes = Uint8List.fromList(utf8.encode(jsonEncode({
+    'schemaVersion': 1,
+    'recipeId': 'water',
+    'revision': '1',
+    'moveSourceId': 'water',
+    'variant': 'default',
+    'requiredCapabilities': ['startParticle', 'splParticleV5'],
+    'provenance': {'source': 'test', 'sourceRevision': '1', 'sourcePaths': [], 'converter': 'test'},
+    'resources': [
+      for (final texture in definition.textureIds) resource(texture, 'texture', 'image/png'),
+      {...resource('particle', 'particleDefinition', 'application/vnd.avelune.particle+json'),
+        'definitionVersion': 5, 'dependencies': definition.textureIds.toList()},
+    ],
+    'program': {'kind': 'startParticle', 'resourceId': 'particle', 'from': 'userMouth', 'to': 'targetImpact'},
+  })));
+  final binding = BattleMoveRecipeBinding.fromJson({
+    'schemaVersion': 1, 'projectMoveId': 'water', 'sourceMoveId': 'water',
+    'catalogReleaseId': 'test', 'recipeId': 'water', 'variant': 'default',
+    'revision': '1', 'recipeSha256': sha256.convert(recipeBytes).toString(),
+  });
+  return const BattleRecipeBundleInspector().inspect(binding, recipeBytes, media,
+    limits: const BattleRecipeBundleLimits(maxTextures: 16, maxTextureBytes: 8 * 1024 * 1024,
+      maxBundleBytes: 32 * 1024 * 1024, maxDimension: 2048,
+      maxTexturePixels: 4000000, maxTotalPixels: 16000000),
+    availableCapabilities: BattleMoveAnimationRecipe.recognizedCapabilities,
+    expectedProjectMoveId: 'water', expectedCatalogReleaseId: 'test');
+}
+
 const schedule = [
   BattleSplStaticEmitter(
     emitterIndex: 0,
@@ -213,6 +257,33 @@ List<String> runWithManualFallback(BattleVerifiedSplPreparation result) {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('loads Water Gun and Surf v5 resources through the verified Player loader', () async {
+    for (final (id, emitterIndex) in [(220, 0), (222, 3)]) {
+      final inspected = await waterBundle(id);
+      final baseProjection = testProjection();
+      final result = await BattleVerifiedSplLoader(inspected).create(
+        'particle',
+        emitters: [BattleSplStaticEmitter(emitterIndex: emitterIndex, startTick: 0,
+          position: (x: 0, y: 0, z: 0))],
+        seed: 0, poolCapacity: 512, maxTicks: 200,
+        origin: ui.Offset.zero, pixelsPerUnit: 4,
+        projection: BattleSplCameraProjection(camera: baseProjection.camera,
+          bindings: baseProjection.bindings,
+          worldTransform: const BattleSplWorldTransform(worldUnitsPerUnit: 1, yawRadians: 0)),
+        onComplete: () {}, onFailure: (_) => fail('unexpected SPL failure for $id'),
+      );
+      expect(result.failure, isNull, reason: 'particle $id');
+      final component = result.component!;
+      addTearDown(component.dispose);
+      var seenParticles = false;
+      for (var tick = 0; tick < 100 && !component.playback.isComplete; tick++) {
+        expect(component.playback.advance(), isNull, reason: 'particle $id, tick $tick');
+        if (component.playback.frames.any((frame) => frame.particles.isNotEmpty)) seenParticles = true;
+      }
+      expect(seenParticles, isTrue, reason: 'particle $id');
+    }
+  });
 
   test('experimental screen-space particles render without a world projection', () async {
     final raw = jsonDecode(

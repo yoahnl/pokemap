@@ -35,7 +35,7 @@ Future<List<BattleTurnAudioRequest>> prepareOfflineGroupedSplTurn({
           }) ||
           !previous.unavailableCapabilities.any(
             (capability) =>
-                capability == 'splParticleV2' || capability == 'splParticleV3' || capability == 'splParticleV4',
+                capability == 'splParticleV2' || capability == 'splParticleV3' || capability == 'splParticleV4' || capability == 'splParticleV5',
           )) {
         continue;
       }

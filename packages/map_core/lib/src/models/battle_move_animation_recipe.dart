@@ -47,6 +47,7 @@ final class BattleMoveAnimationRecipe {
 
   static const splV3RuntimeCapability = 'battle.spl-particle-v3@1';
   static const splV4RuntimeCapability = 'battle.spl-particle-v4@1';
+  static const splV5RuntimeCapability = 'battle.spl-particle-v5@1';
   static const gen5MotionRuntimeCapability = 'battle.gen5-combatant-motion@1';
 
   static const recognizedCapabilities = {
@@ -61,6 +62,7 @@ final class BattleMoveAnimationRecipe {
     'splParticleV2',
     'splParticleV3',
     'splParticleV4',
+    'splParticleV5',
     'audioSelectionV2',
     'gen5Swing',
     'gen5SpritePause',
@@ -143,6 +145,10 @@ final class BattleMoveAnimationRecipe {
       }
       if (resource.definitionVersion == 4 &&
           !capabilities.contains('splParticleV4')) {
+        throw const FormatException('SPL particle capability not declared');
+      }
+      if (resource.definitionVersion == 5 &&
+          !capabilities.contains('splParticleV5')) {
         throw const FormatException('SPL particle capability not declared');
       }
       for (final dependency in resource.dependencies) {
@@ -401,7 +407,7 @@ final class BattleMoveAnimationRecipe {
           definition['schemaVersion'] != resource.definitionVersion) {
         throw const FormatException('Particle version mismatch');
       }
-      if ({2, 3, 4}.contains(resource.definitionVersion)) {
+      if ({2, 3, 4, 5}.contains(resource.definitionVersion)) {
         final particle = BattleSplParticleDefinition.fromJson(definition);
         final declared = resource.dependencies.toSet();
         if (particle.textureIds.length != declared.length ||
@@ -537,7 +543,8 @@ final class BattleMoveAnimationResource {
                 (definitionVersion != 1 &&
                     definitionVersion != 2 &&
                     definitionVersion != 3 &&
-                    definitionVersion != 4))) ||
+                    definitionVersion != 4 &&
+                    definitionVersion != 5))) ||
         (role != 'particleDefinition' && definitionVersion != null)) {
       throw const FormatException('Unsupported particle definition version');
     }

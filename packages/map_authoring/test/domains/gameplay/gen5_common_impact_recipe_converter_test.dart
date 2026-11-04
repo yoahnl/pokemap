@@ -262,7 +262,9 @@ void main() {
       final result = batch.last.recipe!;
       final bundleRoot = Platform.environment['AVELUNE_BW2_BUNDLE_QA_DIR'];
       if (bundleRoot != null) {
-        if (bundleRoot != '/Users/karim/Library/Caches/AveluneQA/bw2-pilot-api') {
+        if (bundleRoot != '/Users/karim/Library/Caches/AveluneQA/bw2-pilot-api' &&
+            await Directory(bundleRoot).resolveSymbolicLinks() !=
+                await Directory.systemTemp.resolveSymbolicLinks()) {
           throw StateError('Invalid bundle QA directory');
         }
         final bundle = {

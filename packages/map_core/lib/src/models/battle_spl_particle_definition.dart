@@ -30,7 +30,7 @@ final class BattleSplParticleDefinition {
     }
     _fields(copy, {'schemaVersion', 'emitters'});
     if (copy['schemaVersion'] is! int ||
-        !(experimental ? {5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19} : {2, 3, 4}).contains(copy['schemaVersion'])) {
+        !(experimental ? {5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19} : {2, 3, 4, 5}).contains(copy['schemaVersion'])) {
       throw const FormatException('Unsupported SPL particle version');
     }
     final values = _list(copy['emitters']);

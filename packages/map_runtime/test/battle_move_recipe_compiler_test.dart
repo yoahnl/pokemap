@@ -192,6 +192,19 @@ void main() {
     expect(selected?.particles, hasLength(2));
   });
 
+  test('selects grouped SPL v5 while retaining the mixed-version guard', () {
+    final input = groupedSplSource();
+    (input['requiredCapabilities'] as List).add('splParticleV5');
+    final definitions = (input['resources'] as List)
+        .where((item) => (item as Map)['role'] == 'particleDefinition')
+        .cast<Map<String, dynamic>>()
+        .toList();
+    definitions.first['definitionVersion'] = 5;
+    expect(compiler.selectGroupedSpl(BattleMoveAnimationRecipe.fromJson(input)), isNull);
+    definitions.last['definitionVersion'] = 5;
+    expect(compiler.selectGroupedSpl(BattleMoveAnimationRecipe.fromJson(input))?.particles, hasLength(2));
+  });
+
   test('keeps camera movements around a grouped particle effect', () {
     final input = groupedSplSource();
     (input['requiredCapabilities'] as List).addAll(<String>['cameraFocus', 'cameraReset']);

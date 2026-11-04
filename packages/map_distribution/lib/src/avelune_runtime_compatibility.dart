@@ -52,6 +52,7 @@ abstract final class AveluneRuntimeCompatibility {
           ProjectBattleSavingsConfig.capabilityId,
           BattleMoveAnimationRecipe.splV3RuntimeCapability,
           BattleMoveAnimationRecipe.splV4RuntimeCapability,
+          BattleMoveAnimationRecipe.splV5RuntimeCapability,
           BattleMoveAnimationRecipe.gen5MotionRuntimeCapability,
           SurfGameplayCapabilities.capabilityId,
           CharacterAnimationCanvasCapabilities.capabilityId,

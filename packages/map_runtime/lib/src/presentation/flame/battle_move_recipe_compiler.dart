@@ -85,6 +85,7 @@ final class BattleMoveRecipeCompiler {
       'splParticleV2',
       'splParticleV3',
       'splParticleV4',
+      'splParticleV5',
       'sound',
       'audioSelectionV2',
       'cameraFocus',
@@ -157,7 +158,7 @@ final class BattleMoveRecipeCompiler {
       if (step['kind'] != 'startParticle') return null;
       final id = step['resourceId'] as String;
       final resource = resources[id];
-      if (resource == null || !{2, 3, 4}.contains(resource.definitionVersion)) {
+      if (resource == null || !{2, 3, 4, 5}.contains(resource.definitionVersion)) {
         return null;
       }
       definitionVersion ??= resource.definitionVersion;

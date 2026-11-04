@@ -14,6 +14,71 @@ import 'package:path/path.dart' as p;
 const _revision = '41f42ca1afe6291f00b0ba0ec3f6099b9ff1346c';
 const _release = 'public-2026-11-02-bw2';
 
+Future<Gen5BatchParticle> loadBatchParticle(
+  Directory particleRoot, int id, List<int> sourceEmitterIndices,
+) async {
+  final directory = p.join(particleRoot.path, '$id');
+  final bytes = await File(p.join(directory, 'particles.json')).readAsBytes();
+  final source = jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
+  final rawTextures = source['textures'] as List;
+  final mappings = <String, String>{
+    for (var index = 0; index < rawTextures.length; index++)
+      (rawTextures[index] as Map)['name'] as String: 'p$id-texture$index',
+  };
+  if (mappings.length != rawTextures.length) {
+    throw const FormatException('Duplicate particle texture name');
+  }
+  final sourceHash = sha256.convert(bytes).toString();
+  var normalizedHash = sourceHash;
+  final changes = <String>{};
+  Gen5SplParticleConversion convert(Uint8List data, String hash, {List<int>? indices}) =>
+    Gen5SplParticleConverter.convert(data, particleId: id, sourceRevision: _revision,
+      sourcePath: 'res/particles/btlv_effvm_particles/$id/particles.json',
+      expectedSha256: hash, textureResourceIds: mappings,
+      experimentalSourceEmitterIndices: indices);
+  late final Gen5SplParticleConversion converted;
+  try {
+    converted = convert(bytes, sourceHash);
+  } on FormatException {
+    Gen5SplParticleConversion? selected;
+    try {
+      final candidate = convert(bytes, sourceHash, indices: sourceEmitterIndices);
+      if (candidate.definition.schemaVersion == 5) selected = candidate;
+    } on FormatException {
+      selected = null;
+    }
+    if (selected != null) {
+      converted = selected;
+      changes.add('selected-source-emitters-v5');
+    } else {
+      final normalized = Gen5BatchParticleApproximation.normalize(source);
+      changes.addAll(normalized.warnings);
+      final normalizedBytes = Uint8List.fromList(utf8.encode(jsonEncode(normalized.document)));
+      normalizedHash = sha256.convert(normalizedBytes).toString();
+      try {
+        converted = convert(normalizedBytes, normalizedHash);
+      } on FormatException catch (error) {
+        if (!error.message.toString().contains('SPL child')) rethrow;
+        final withoutChildren = Gen5BatchParticleApproximation.normalize(source, omitChildren: true);
+        changes.addAll(withoutChildren.warnings);
+        final fallbackBytes = Uint8List.fromList(utf8.encode(jsonEncode(withoutChildren.document)));
+        normalizedHash = sha256.convert(fallbackBytes).toString();
+        converted = convert(fallbackBytes, normalizedHash);
+      }
+    }
+  }
+  final used = converted.definition.textureIds;
+  final textures = <String, Uint8List>{};
+  for (final entry in mappings.entries.where((item) => used.contains(item.value))) {
+    textures[entry.value] = await File(p.join(directory, '${entry.key}.png')).readAsBytes();
+  }
+  return Gen5BatchParticle(
+    definition: Uint8List.fromList(utf8.encode(jsonEncode(converted.definition.toJson()))),
+    textures: textures, sourceEmitterIndices: converted.sourceEmitterIndices,
+    warnings: changes, sourceSha256: sourceHash, normalizedSha256: normalizedHash,
+  );
+}
+
 Future<void> main(List<String> args) async {
   if ((args.length != 3 && args.length != 4) || args.any((value) => !p.isAbsolute(value))) {
     throw ArgumentError('Usage: gen5_batch_convert <particle-source-root> <sound-directory> <new-output-directory> [previous-runtime-qualification]');
@@ -47,63 +112,11 @@ Future<void> main(List<String> args) async {
   }
   final client = HttpClient()..maxConnectionsPerHost = 4;
   final rows = <int, Map<String, Object?>>{};
-  final particleCache = <int, Future<Gen5BatchParticle>>{};
+  final particleCache = <String, Future<Gen5BatchParticle>>{};
   var next = 1;
-  Future<Gen5BatchParticle> loadParticle(int id) => particleCache.putIfAbsent(id, () async {
-    final directory = p.join(particleRoot.path, '$id');
-    final sourceFile = File(p.join(directory, 'particles.json'));
-    final bytes = await sourceFile.readAsBytes();
-    final source = jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
-    final rawTextures = source['textures'] as List;
-    final mappings = <String, String>{
-      for (var index = 0; index < rawTextures.length; index++)
-        (rawTextures[index] as Map)['name'] as String: 'p$id-texture$index',
-    };
-    if (mappings.length != rawTextures.length) {
-      throw const FormatException('Duplicate particle texture name');
-    }
-    final sourceHash = sha256.convert(bytes).toString();
-    var normalizedHash = sourceHash;
-    final changes = <String>{};
-    late final Gen5SplParticleConversion converted;
-    try {
-      converted = Gen5SplParticleConverter.convert(bytes,
-        particleId: id, sourceRevision: _revision,
-        sourcePath: 'res/particles/btlv_effvm_particles/$id/particles.json',
-        expectedSha256: sourceHash, textureResourceIds: mappings);
-    } on FormatException {
-      final normalized = Gen5BatchParticleApproximation.normalize(source);
-      changes.addAll(normalized.warnings);
-      final normalizedBytes = Uint8List.fromList(utf8.encode(jsonEncode(normalized.document)));
-      normalizedHash = sha256.convert(normalizedBytes).toString();
-      try {
-        converted = Gen5SplParticleConverter.convert(normalizedBytes,
-          particleId: id, sourceRevision: _revision,
-          sourcePath: 'res/particles/btlv_effvm_particles/$id/particles.json',
-          expectedSha256: normalizedHash, textureResourceIds: mappings);
-      } on FormatException catch (error) {
-        if (!error.message.toString().contains('SPL child')) rethrow;
-        final withoutChildren = Gen5BatchParticleApproximation.normalize(source, omitChildren: true);
-        changes.addAll(withoutChildren.warnings);
-        final fallbackBytes = Uint8List.fromList(utf8.encode(jsonEncode(withoutChildren.document)));
-        normalizedHash = sha256.convert(fallbackBytes).toString();
-        converted = Gen5SplParticleConverter.convert(fallbackBytes,
-          particleId: id, sourceRevision: _revision,
-          sourcePath: 'res/particles/btlv_effvm_particles/$id/particles.json',
-          expectedSha256: normalizedHash, textureResourceIds: mappings);
-      }
-    }
-    final used = converted.definition.textureIds;
-    final textures = <String, Uint8List>{};
-    for (final entry in mappings.entries.where((item) => used.contains(item.value))) {
-      textures[entry.value] = await File(p.join(directory, '${entry.key}.png')).readAsBytes();
-    }
-    return Gen5BatchParticle(
-      definition: Uint8List.fromList(utf8.encode(jsonEncode(converted.definition.toJson()))),
-      textures: textures,
-      warnings: changes, sourceSha256: sourceHash, normalizedSha256: normalizedHash,
-    );
-  });
+  Future<Gen5BatchParticle> loadParticle(int id, List<int> indices) =>
+    particleCache.putIfAbsent('$id:${indices.join(',')}',
+      () => loadBatchParticle(particleRoot, id, indices));
   Future<void> worker() async {
     while (next <= 559) {
       final id = next++;
@@ -141,10 +154,13 @@ Future<void> main(List<String> args) async {
         final analysis = Gen5BatchRecipeConverter.analyze(script);
         if (analysis.particles.isEmpty) throw const FormatException('No supported particle placement');
         stage = 'particle';
-        final ids = analysis.particles.map((part) => part.id).toSet();
+        final active = analysis.particles.take(5).toList();
+        final ids = active.map((part) => part.id).toSet();
         final particles = <int, Gen5BatchParticle>{};
         for (final particleId in ids) {
-          particles[particleId] = await loadParticle(particleId);
+          final indices = active.where((part) => part.id == particleId)
+              .map((part) => part.emitterIndex).toSet().toList()..sort();
+          particles[particleId] = await loadParticle(particleId, indices);
         }
         stage = 'audio';
         final match = Gen5BatchAudioMatcher.select(move, sounds.keys);
