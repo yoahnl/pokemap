@@ -112,6 +112,9 @@ void main() {
         overlay.updateTree(1 / 60);
         await Future<void>.delayed(Duration.zero);
       }
+      if (overlay.isTurnPresentationActive) {
+        overlay.cancelExperimentalGen5Attack();
+      }
       expect(await finished, BattleGen5SourcePlaybackStatus.finished);
       expect(soundTick, isNotNull);
       expect(
