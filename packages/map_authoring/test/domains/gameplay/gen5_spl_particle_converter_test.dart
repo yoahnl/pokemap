@@ -167,6 +167,60 @@ Gen5SplParticleConversion _convert(
 }
 
 void main() {
+  test('preserves source xyz polygons in the experimental workshop', () {
+    final source = _source();
+    final emitter = (source['emitters'] as List).single as Map<String, dynamic>;
+    emitter['drawType'] = 'polygon';
+    emitter['polygonRotAxis'] = 'xyz';
+    emitter['polygonReferencePlane'] = 'xy';
+    final workshop = Gen5BatchParticleApproximation.normalize(
+      source, preserveExperimentalFeatures: true,
+    );
+    final normalized = (workshop.document['emitters'] as List).single as Map;
+    expect(normalized['drawType'], 'polygon');
+    expect(normalized['polygonRotAxis'], 'xyz');
+    expect(workshop.warnings, isNot(contains('particle-field:drawType')));
+    final bytes = _bytes(workshop.document);
+    final definition = Gen5SplParticleConverter.convert(
+      bytes, particleId: 218, sourceRevision: _revision, sourcePath: _path,
+      expectedSha256: sha256.convert(bytes).toString(),
+      textureResourceIds: const {
+        'base': 'base-id', 'first': 'frame-1', 'second': 'frame-2',
+      },
+      experimentalSourceEmitterIndices: const [0],
+    ).definition;
+    expect(definition.schemaVersion, 15);
+    final appearance = definition.emitters.single.toJson()['appearance'] as Map;
+    expect(appearance['draw'], 'polygon');
+    expect(appearance['polygonRotationAxis'], 'xyz');
+    expect(appearance['polygonReferencePlane'], 'xy');
+    expect(() => BattleSplParticleDefinition.fromJson(definition.toJson()),
+        throwsFormatException);
+    final old = definition.toJson()..['schemaVersion'] = 14;
+    expect(() => BattleSplParticleDefinition.fromExperimentalJson(old),
+        throwsFormatException);
+    expect(Gen5BatchParticleApproximation.normalize(source).warnings,
+        contains('particle-field:drawType'));
+  });
+
+  test('keeps unsupported source polygons on the existing fallback', () {
+    for (final variant in ['axis', 'plane', 'child', 'offset']) {
+      final source = _source();
+      final emitter = (source['emitters'] as List).single as Map<String, dynamic>;
+      emitter['drawType'] = 'polygon';
+      emitter['polygonRotAxis'] = variant == 'axis' ? 'y' : 'xyz';
+      emitter['polygonReferencePlane'] = variant == 'plane' ? 'xz' : 'xy';
+      if (variant == 'child') emitter['childResource'] = _childSource();
+      if (variant == 'offset') emitter['polygonX'] = 128;
+      final workshop = Gen5BatchParticleApproximation.normalize(
+        source, preserveExperimentalFeatures: true,
+      );
+      final normalized = (workshop.document['emitters'] as List).single as Map;
+      expect(normalized['drawType'], 'billboard', reason: variant);
+      expect(workshop.warnings, contains('particle-field:drawType'), reason: variant);
+    }
+  });
+
   test('preserves bounded random particle forces for the workshop', () {
     final source = _source();
     final emitter = (source['emitters'] as List).single as Map<String, dynamic>;

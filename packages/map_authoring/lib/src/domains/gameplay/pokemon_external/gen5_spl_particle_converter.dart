@@ -100,6 +100,9 @@ abstract final class Gen5SplParticleConverter {
     }
 
     final selectedEmitters = [for (final index in indices) rawEmitters[index]];
+    final needsExperimentalV15 = selectedEmitters.any(
+      (raw) => _map(raw)['drawType'] == 'polygon',
+    );
     final needsExperimentalV14 = selectedEmitters.any(
       (raw) => _map(raw).containsKey('randomBehavior'),
     );
@@ -164,7 +167,7 @@ abstract final class Gen5SplParticleConverter {
                   child['useChildColor'] == false));
     });
     final version = experimentalSourceEmitterIndices != null
-        ? (needsExperimentalV14 ? 14 : needsExperimentalV13 ? 13 : needsExperimentalV12 ? 12 : needsExperimentalV11 ? 11 : needsExperimentalV10 ? 10 : needsExperimentalV9 ? 9 : needsExperimentalV8 ? 8 : needsExperimentalV7 ? 7 : needsExperimentalV6 ? 6 : 5)
+        ? (needsExperimentalV15 ? 15 : needsExperimentalV14 ? 14 : needsExperimentalV13 ? 13 : needsExperimentalV12 ? 12 : needsExperimentalV11 ? 11 : needsExperimentalV10 ? 10 : needsExperimentalV9 ? 9 : needsExperimentalV8 ? 8 : needsExperimentalV7 ? 7 : needsExperimentalV6 ? 6 : 5)
         : rawEmitters.any((raw) => _map(raw).containsKey('magnetBehavior'))
             ? 4
             : rawEmitters
@@ -274,16 +277,25 @@ Map<String, dynamic> _emitter(
     'billboard' => 'billboard',
     'directional_billboard' => 'directionalBillboard',
     'directional_polygon' when version >= 5 => 'directionalPolygon',
+    'polygon' when version >= 15 => 'polygon',
     _ => throw const FormatException('Unsupported SPL draw type'),
   };
   if (!{'x', 'y', 'z'}.contains(source['emissionAxis']) ||
-      source['polygonRotAxis'] != 'y' ||
+      source['polygonRotAxis'] != (draw == 'polygon' ? 'xyz' : 'y') ||
       source['polygonReferencePlane'] != 'xy' ||
       !_isSignedWord(source['length']) ||
       !_isSignedWord(source['radius']) ||
       source['minRotation'] is! int ||
       source['maxRotation'] is! int) {
     throw const FormatException('Unsupported SPL source geometry');
+  }
+  if (draw == 'polygon' &&
+      (source['childResource'] != null ||
+          source['relativeToBasePos'] != false ||
+          source['dirFromPosition'] != false ||
+          source['polygonX'] != 0 ||
+          source['polygonY'] != 0)) {
+    throw const FormatException('Unsupported SPL source polygon');
   }
   if ({'cylinderSurface', 'cylinderVolume'}.contains(shape) &&
       (source['length'] as int) < 0) {
@@ -479,6 +491,8 @@ Map<String, dynamic> _emitter(
     },
     'appearance': {
       'draw': draw,
+      if (draw == 'polygon') 'polygonRotationAxis': source['polygonRotAxis'],
+      if (draw == 'polygon') 'polygonReferencePlane': source['polygonReferencePlane'],
       'scaleAxis': source['scaleAnimDir'],
       if (version >= 5 && source['polygonX'] != 0)
         'polygonX': source['polygonX'],

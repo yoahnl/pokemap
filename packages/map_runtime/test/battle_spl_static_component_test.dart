@@ -22,6 +22,7 @@ Future<BattleSplStaticPlayback> playback({
   int childDelay = 0,
   int axisZ = 0,
   bool directional = false,
+  int? sourcePolygonAngle,
 }) async {
   final value = jsonDecode(
     await File('../map_core/test/fixtures/spl_particle_v2.json').readAsString(),
@@ -77,8 +78,27 @@ Future<BattleSplStaticPlayback> playback({
       });
     }
   }
+  if (sourcePolygonAngle != null) {
+    value['schemaVersion'] = 15;
+    emission['positionVelocity'] = 0;
+    emission['emissionAxis'] = 'z';
+    emission['velocityVariance'] = 0;
+    emission['particleLifetimeVariance'] = 0;
+    emission['axisVelocity'] = 0;
+    emission['initialAngle'] = sourcePolygonAngle;
+    final appearance = emitter['appearance'] as Map<String, dynamic>;
+    appearance['draw'] = 'polygon';
+    appearance['polygonRotationAxis'] = 'xyz';
+    appearance['polygonReferencePlane'] = 'xy';
+    appearance['hasRotation'] = false;
+    appearance['minRotation'] = 0;
+    appearance['maxRotation'] = 0;
+    appearance['dirFromPosition'] = false;
+    appearance['drawChildrenFirst'] = false;
+    (emitter['motion'] as Map<String, dynamic>)['magnet'] = null;
+  }
   final result = BattleSplStaticAdmission.prepare(
-    definition: childFollowsEmitter || hideParent
+    definition: childFollowsEmitter || hideParent || sourcePolygonAngle != null
         ? BattleSplParticleDefinition.fromExperimentalJson(value)
         : BattleSplParticleDefinition.fromJson(value),
     textureIndices: {'tex': 0, if (child) 'spark': 1},
@@ -207,6 +227,63 @@ Future<ui.Offset> redCentroid(
 }
 
 void main() {
+  test('renders a source polygon edge-on after rotation around xyz', () async {
+    final camera = BattlePerspectiveCamera(
+      viewport: const ui.Rect.fromLTWH(0, 0, 390, 844),
+    );
+    camera.moveTo(
+      eye: const BattleCameraPoint(0, 0, 10),
+      aim: const BattleCameraPoint(0, 0, 0),
+      durationSeconds: 0,
+    );
+    final projection = cameraProjection(
+      camera,
+      () => const ui.Offset(195, 422),
+      worldTransform: const BattleSplWorldTransform(
+        worldUnitsPerUnit: 1,
+        yawRadians: 0,
+      ),
+    );
+    Future<int> redPixels(int angle) async {
+      final effect = await playback(sourcePolygonAngle: angle);
+      final red = await redImage();
+      final component = BattleSplStaticComponent(
+        playback: effect,
+        textures: {0: red},
+        origin: ui.Offset.zero,
+        pixelsPerUnit: 12,
+        projection: projection,
+        onComplete: () {},
+        onFailure: (_) => fail('unexpected polygon projection failure'),
+      );
+      red.dispose();
+      component.update(1 / 60);
+      final recorder = ui.PictureRecorder();
+      component.render(ui.Canvas(recorder));
+      final picture = recorder.endRecording();
+      final image = await picture.toImage(390, 844);
+      try {
+        final bytes = (await image.toByteData(format: ui.ImageByteFormat.rawRgba))!
+            .buffer
+            .asUint8List();
+        var count = 0;
+        for (var i = 0; i < bytes.length; i += 4) {
+          if (bytes[i] > 0 && bytes[i + 3] > 0) count++;
+        }
+        return count;
+      } finally {
+        image.dispose();
+        picture.dispose();
+        component.dispose();
+      }
+    }
+
+    final front = await redPixels(0);
+    final edge = await redPixels(21845);
+    expect(front, greaterThan(100));
+    expect(edge, lessThan(front ~/ 5));
+  });
+
   for (final mode in ['flat', 'camera', 'world']) {
     test('hides parent particles without hiding their children in $mode', () async {
       for (final hidden in [false, true]) {
@@ -277,6 +354,73 @@ void main() {
     expect(
       particles.frames.single.particles.map((p) => p.emitterPosition.x),
       everyElement(8192),
+    );
+  });
+
+  test('projects a source polygon around the xyz axis', () {
+    final camera = BattlePerspectiveCamera(
+      viewport: const ui.Rect.fromLTWH(0, 0, 390, 844),
+    );
+    camera.moveTo(
+      eye: const BattleCameraPoint(0, 0, 10),
+      aim: const BattleCameraPoint(0, 0, 0),
+      durationSeconds: 0,
+    );
+    final projection = cameraProjection(
+      camera,
+      () => const ui.Offset(195, 422),
+      worldTransform: const BattleSplWorldTransform(
+        worldUnitsPerUnit: 1,
+        yawRadians: 0,
+      ),
+    );
+    final particle = BattleSplPointParticle(
+      id: 1,
+      motion: BattleSplParticleMotion(
+        position: (x: 0, y: 0, z: 0),
+        velocity: (x: 0, y: 0, z: 0),
+        rotation: 21845,
+        angularVelocity: 0,
+      ),
+      emitterPosition: (x: 0, y: 0, z: 0),
+      baseScale4096: 4096,
+      baseAlpha5: 31,
+      animatedAlpha5: 31,
+      scale4096: 4096,
+      color: (red: 31, green: 31, blue: 31),
+      alpha5: 31,
+      texture: 0,
+      parentId: null,
+    );
+    final actual = projection.projectSourcePolygon(
+      (x: 0, y: 0, z: 0, unit: 1),
+      particle,
+      aspectRatio4096: 4096,
+      scaleAxis: 'xy',
+      pixelsPerUnit: 1,
+    )!;
+    final expected = [
+      const BattleCameraPoint(1, 0, -1),
+      const BattleCameraPoint(1, 0, 1),
+      const BattleCameraPoint(-1, 0, 1),
+      const BattleCameraPoint(-1, 0, -1),
+    ].map((point) => camera.project(point).position).toList();
+    expect(actual, hasLength(4));
+    for (var i = 0; i < 4; i++) {
+      expect((actual[i] - expected[i]).distance, lessThan(.1));
+    }
+    final clipped = projection.projectClippedSourcePolygon(
+      (x: 0, y: 0, z: 10, unit: 1),
+      particle,
+      aspectRatio4096: 4096,
+      scaleAxis: 'xy',
+      pixelsPerUnit: 1,
+    )!;
+    expect(clipped.positions.length, greaterThanOrEqualTo(3));
+    expect(clipped.textureCoordinates, hasLength(clipped.positions.length));
+    expect(
+      clipped.positions.every((point) => point.dx.isFinite && point.dy.isFinite),
+      isTrue,
     );
   });
 

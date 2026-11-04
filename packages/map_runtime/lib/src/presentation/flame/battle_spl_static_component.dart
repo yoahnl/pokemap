@@ -24,7 +24,7 @@ final class BattleSplStaticComponent extends PositionComponent
     this.maxTicksPerUpdate = 16,
   }) {
     final frames = playback.frames;
-    if (frames.any((frame) => frame.directionalPolygon) &&
+    if (frames.any((frame) => frame.directionalPolygon || frame.sourcePolygon) &&
         (projection?.worldTransform == null || origin != ui.Offset.zero)) {
       throw const FormatException(
         'Directional SPL polygon needs 3D projection',
@@ -248,12 +248,21 @@ final class BattleSplStaticComponent extends PositionComponent
                 );
           List<ui.Offset>? polygon;
           BattleSplProjectedPolygon? clippedPolygon;
-          if (frame.directionalPolygon) {
+          if (frame.directionalPolygon || frame.sourcePolygon) {
             if (anchor == null) {
               _fail(BattleSplAdmissionFailure.projectionUnavailable);
               return;
             }
-            polygon = activeProjection!.projectDirectionalPolygon(
+            polygon = frame.sourcePolygon
+                ? activeProjection!.projectSourcePolygon(
+                    anchor,
+                    particle,
+                    emitterIndex: i,
+                    aspectRatio4096: frame.aspectRatio4096,
+                    scaleAxis: frame.scaleAxis,
+                    pixelsPerUnit: pixelsPerUnit,
+                  )
+                : activeProjection!.projectDirectionalPolygon(
               anchor,
               particle,
               emitterIndex: i,
@@ -262,8 +271,16 @@ final class BattleSplStaticComponent extends PositionComponent
               pixelsPerUnit: pixelsPerUnit,
             );
             if (polygon == null) {
-              clippedPolygon = activeProjection
-                  .projectClippedDirectionalPolygon(
+              clippedPolygon = frame.sourcePolygon
+                  ? activeProjection.projectClippedSourcePolygon(
+                      anchor,
+                      particle,
+                      emitterIndex: i,
+                      aspectRatio4096: frame.aspectRatio4096,
+                      scaleAxis: frame.scaleAxis,
+                      pixelsPerUnit: pixelsPerUnit,
+                    )
+                  : activeProjection.projectClippedDirectionalPolygon(
                     anchor,
                     particle,
                     emitterIndex: i,

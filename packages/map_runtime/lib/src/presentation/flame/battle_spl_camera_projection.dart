@@ -246,6 +246,42 @@ final class BattleSplCameraProjection {
     return projected;
   }
 
+  List<ui.Offset>? projectSourcePolygon(
+    BattleSplWorldAnchor anchor,
+    BattleSplPointParticle particle, {
+    required int aspectRatio4096,
+    required String scaleAxis,
+    required double pixelsPerUnit,
+    int emitterIndex = 0,
+  }) {
+    final corners = _sourceWorldCorners(
+      anchor, particle,
+      aspectRatio4096: aspectRatio4096, scaleAxis: scaleAxis,
+      pixelsPerUnit: pixelsPerUnit, emitterIndex: emitterIndex,
+    );
+    if (corners == null) return null;
+    final projected = <ui.Offset>[];
+    for (final corner in corners) {
+      final value = camera.tryProject(corner);
+      if (value == null || !_finite(value.position)) return null;
+      projected.add(value.position);
+    }
+    return projected;
+  }
+
+  BattleSplProjectedPolygon? projectClippedSourcePolygon(
+    BattleSplWorldAnchor anchor,
+    BattleSplPointParticle particle, {
+    required int aspectRatio4096,
+    required String scaleAxis,
+    required double pixelsPerUnit,
+    int emitterIndex = 0,
+  }) => _projectClippedCorners(_sourceWorldCorners(
+    anchor, particle,
+    aspectRatio4096: aspectRatio4096, scaleAxis: scaleAxis,
+    pixelsPerUnit: pixelsPerUnit, emitterIndex: emitterIndex,
+  ));
+
   BattleSplProjectedPolygon? projectClippedDirectionalPolygon(
     BattleSplWorldAnchor anchor,
     BattleSplPointParticle particle, {
@@ -257,6 +293,12 @@ final class BattleSplCameraProjection {
     final corners = _directionalWorldCorners(anchor, particle,
       aspectRatio4096: aspectRatio4096, scaleAxis: scaleAxis,
       pixelsPerUnit: pixelsPerUnit, emitterIndex: emitterIndex);
+    return _projectClippedCorners(corners);
+  }
+
+  BattleSplProjectedPolygon? _projectClippedCorners(
+    List<BattleCameraPoint>? corners,
+  ) {
     if (corners == null) return null;
     if (corners.isEmpty) return (positions: [], textureCoordinates: []);
     final direction = (camera.aim - camera.eye).normalized;
@@ -294,6 +336,60 @@ final class BattleSplCameraProjection {
       coordinates.add(vertex.uv);
     }
     return (positions: positions, textureCoordinates: coordinates);
+  }
+
+  List<BattleCameraPoint>? _sourceWorldCorners(
+    BattleSplWorldAnchor anchor,
+    BattleSplPointParticle particle, {
+    required int aspectRatio4096,
+    required String scaleAxis,
+    required double pixelsPerUnit,
+    required int emitterIndex,
+  }) {
+    if (emitterTransforms != null &&
+        (emitterIndex < 0 || emitterIndex >= emitterTransforms!.length)) {
+      return null;
+    }
+    final transform = emitterTransforms?[emitterIndex] ?? worldTransform;
+    if (transform == null || !pixelsPerUnit.isFinite || pixelsPerUnit <= 0 ||
+        !{'x', 'y', 'xy'}.contains(scaleAxis)) {
+      return null;
+    }
+    if (particle.alpha5 == 0 || particle.scale4096 == 0) return const [];
+    final base = particle.baseScale4096 / 4096;
+    final animated = particle.scale4096 / 4096;
+    final scaleX = base * aspectRatio4096 / 4096 *
+        (scaleAxis == 'y' ? 1 : animated);
+    final scaleY = base * (scaleAxis == 'x' ? 1 : animated);
+    final angle = (particle.motion.rotation & 65535) * 2 * math.pi / 65536;
+    final cosine = math.cos(angle);
+    final a = (1 - cosine) / 3;
+    final b = math.sin(angle) / math.sqrt(3);
+    final diagonal = a + cosine;
+    final sum = a + b;
+    final difference = a - b;
+    final yawCosine = math.cos(transform.yawRadians);
+    final yawSine = math.sin(transform.yawRadians);
+    final center = _particleWorldPosition(anchor, particle, transform, null);
+    final units = pixelsPerUnit * anchor.unit;
+    final corners = <BattleCameraPoint>[];
+    for (final sign in const [(-1, 1), (1, 1), (1, -1), (-1, -1)]) {
+      final x = sign.$1 * scaleX;
+      final y = sign.$2 * scaleY;
+      final rotated = BattleCameraPoint(
+        x * diagonal + y * sum,
+        x * difference + y * diagonal,
+        x * sum + y * difference,
+      );
+      final world = center + BattleCameraPoint(
+        (rotated.x * yawCosine - rotated.z * yawSine) * units,
+        rotated.y * units,
+        (rotated.x * yawSine + rotated.z * yawCosine) * units,
+      );
+      if (!world.isFinite) return null;
+      corners.add(world);
+    }
+    return corners;
   }
 
   List<BattleCameraPoint>? _directionalWorldCorners(

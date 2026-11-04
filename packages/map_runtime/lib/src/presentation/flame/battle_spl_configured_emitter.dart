@@ -25,6 +25,7 @@ final class BattleSplConfiguredEmitter {
     this.polygonY,
     this.relativeBasePosition,
     this.directionalPolygon,
+    this.sourcePolygon,
     this.hideParent,
   );
 
@@ -328,6 +329,7 @@ final class BattleSplConfiguredEmitter {
       appearance['polygonY'] as int? ?? 0,
       appearance['relativeToBasePos'] == true ? _vector(emission['origin']) : null,
       appearance['draw'] == 'directionalPolygon',
+      appearance['draw'] == 'polygon',
       appearance['hideParent'] == true,
     );
   }
@@ -343,6 +345,7 @@ final class BattleSplConfiguredEmitter {
   final int polygonY;
   final BattleSplVector? relativeBasePosition;
   final bool directionalPolygon;
+  final bool sourcePolygon;
   final bool hideParent;
 
   BattleSplEmitterStep step({

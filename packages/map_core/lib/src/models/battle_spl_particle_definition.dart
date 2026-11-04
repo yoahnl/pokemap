@@ -30,7 +30,7 @@ final class BattleSplParticleDefinition {
     }
     _fields(copy, {'schemaVersion', 'emitters'});
     if (copy['schemaVersion'] is! int ||
-        !(experimental ? {5, 6, 7, 8, 9, 10, 11, 12, 13, 14} : {2, 3, 4}).contains(copy['schemaVersion'])) {
+        !(experimental ? {5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15} : {2, 3, 4}).contains(copy['schemaVersion'])) {
       throw const FormatException('Unsupported SPL particle version');
     }
     final values = _list(copy['emitters']);
@@ -171,6 +171,8 @@ void _validateEmitter(
       'randomTextureStart',
     if (version >= 5 && appearance.containsKey('polygonX')) 'polygonX',
     if (version >= 5 && appearance.containsKey('polygonY')) 'polygonY',
+    if (version >= 15 && appearance['draw'] == 'polygon') 'polygonRotationAxis',
+    if (version >= 15 && appearance['draw'] == 'polygon') 'polygonReferencePlane',
     if (version >= 5 && appearance.containsKey('relativeToBasePos'))
       'relativeToBasePos',
   });
@@ -178,6 +180,7 @@ void _validateEmitter(
     'billboard',
     'directionalBillboard',
     if (version >= 5) 'directionalPolygon',
+    if (version >= 15) 'polygon',
   });
   if (version >= 5) {
     _boolean(appearance['hasRotation']);
@@ -225,6 +228,17 @@ void _validateEmitter(
             (appearance['polygonY'] ?? 0) != 0 ||
             emitter['child'] != null)) {
       throw const FormatException('Unsupported SPL directional polygon');
+    }
+    if (appearance['draw'] == 'polygon') {
+      _choice(appearance['polygonRotationAxis'], {'xyz'});
+      _choice(appearance['polygonReferencePlane'], {'xy'});
+      if (appearance['dirFromPosition'] != false ||
+          appearance['relativeToBasePos'] == true ||
+          (appearance['polygonX'] ?? 0) != 0 ||
+          (appearance['polygonY'] ?? 0) != 0 ||
+          emitter['child'] != null) {
+        throw const FormatException('Unsupported SPL polygon');
+      }
     }
   }
   _choice(appearance['scaleAxis'], {'x', 'y', 'xy'});

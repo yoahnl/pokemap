@@ -112,13 +112,25 @@ abstract final class Gen5BatchParticleApproximation {
       if (emitter['emissionType'] == 'sphere_surface' && emitter['radius'] == 0) {
         set(emitter, 'emissionType', 'point', 'particle-zero-radius:point');
       }
-      if (!{'billboard', 'directional_billboard'}.contains(emitter['drawType'])) {
+      final sourcePolygon = preserveExperimentalFeatures &&
+          emitter['drawType'] == 'polygon' &&
+          emitter['polygonRotAxis'] == 'xyz' &&
+          emitter['polygonReferencePlane'] == 'xy' &&
+          emitter['childResource'] == null &&
+          emitter['relativeToBasePos'] == false &&
+          emitter['dirFromPosition'] == false &&
+          emitter['polygonX'] == 0 &&
+          emitter['polygonY'] == 0;
+      if (!sourcePolygon &&
+          !{'billboard', 'directional_billboard'}.contains(emitter['drawType'])) {
         set(emitter, 'drawType', 'billboard', 'particle-field:drawType');
       }
       if (emitter['emissionAxis'] == 'emitter') {
         set(emitter, 'emissionAxis', 'z', 'particle-field:emissionAxis');
       }
-      set(emitter, 'polygonRotAxis', 'y', 'particle-field:polygonRotAxis');
+      if (!sourcePolygon) {
+        set(emitter, 'polygonRotAxis', 'y', 'particle-field:polygonRotAxis');
+      }
       set(emitter, 'polygonReferencePlane', 'xy', 'particle-field:polygonReferencePlane');
       for (final field in [if (!preserveExperimentalFeatures) 'hasRotation',
           'randomLoopOffset',

@@ -953,9 +953,9 @@
     "category": "special",
     "particle": 177,
     "approximations": [
-      "particle-field:drawType",
-      "particle-field:polygonRotAxis",
-      "particle-spin:trigonometry-experimental"
+      "particle-polygon:xyz-projection-experimental",
+      "particle-spin:trigonometry-experimental",
+      "source-variant:first-only"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/a/af/Razor_Wind_V.png",
     "bundleAsset": "assets/bw2/batch/razor-wind.json"
@@ -1413,11 +1413,9 @@
       "actor-position:screen-space-approximation",
       "actor-visibility:shadow-hidden",
       "camera:absolute-adapted-to-workshop",
-      "particle-child:followEmitter",
-      "particle-child:omitted-for-preview",
+      "particle-child:scale-range-experimental",
       "particle-field:collisionPlaneBehavior",
-      "particle-field:drawType",
-      "particle-field:polygonRotAxis",
+      "particle-polygon:xyz-projection-experimental",
       "particle-spin:trigonometry-experimental",
       "scene-palette-fade:layer-approximation",
       "source-emitter:field-coordinate-calibration",
@@ -1669,8 +1667,7 @@
     "approximations": [
       "camera:absolute-adapted-to-workshop",
       "particle-child:scale-range-experimental",
-      "particle-field:drawType",
-      "particle-field:polygonRotAxis",
+      "particle-polygon:xyz-projection-experimental",
       "particle-random:sequence-experimental",
       "particle-spin:trigonometry-experimental",
       "scene-palette-fade:layer-approximation",
@@ -1747,8 +1744,7 @@
     "particle": null,
     "approximations": [
       "particle-bound:baseScale",
-      "particle-field:drawType",
-      "particle-field:polygonRotAxis",
+      "particle-polygon:xyz-projection-experimental",
       "particle-spin:trigonometry-experimental",
       "scene-palette-fade:layer-approximation",
       "source-emitter:absolute-player-in-workshop"
@@ -2047,11 +2043,8 @@
     "category": "special",
     "particle": null,
     "approximations": [
-      "particle-child:followEmitter",
-      "particle-curve:scaleAnim.order",
       "particle-field:drawType",
-      "particle-field:hideParent",
-      "particle-field:polygonRotAxis",
+      "particle-polygon:xyz-projection-experimental",
       "particle-spin:trigonometry-experimental",
       "scene-palette-fade:layer-approximation"
     ],
@@ -2145,8 +2138,7 @@
     "category": "physical",
     "particle": 631,
     "approximations": [
-      "particle-field:drawType",
-      "particle-field:polygonRotAxis",
+      "particle-polygon:xyz-projection-experimental",
       "particle-random:sequence-experimental",
       "particle-spin:trigonometry-experimental"
     ],
@@ -3389,8 +3381,7 @@
     "category": "special",
     "particle": null,
     "approximations": [
-      "particle-field:drawType",
-      "particle-field:polygonRotAxis",
+      "particle-polygon:xyz-projection-experimental",
       "particle-spin:trigonometry-experimental",
       "scene-palette-fade:layer-approximation"
     ],
@@ -3408,7 +3399,8 @@
       "particle-child:drawType",
       "particle-child:polygonRotAxis",
       "particle-field:drawType",
-      "particle-field:polygonRotAxis"
+      "particle-field:polygonRotAxis",
+      "particle-polygon:xyz-projection-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/6/6f/Heal_Pulse_V.png",
     "bundleAsset": "assets/bw2/batch/heal-pulse.json"
@@ -3649,8 +3641,7 @@
     "category": "special",
     "particle": 705,
     "approximations": [
-      "particle-field:drawType",
-      "particle-field:polygonRotAxis",
+      "particle-polygon:xyz-projection-experimental",
       "particle-random:sequence-experimental",
       "particle-spin:trigonometry-experimental"
     ],
@@ -3699,8 +3690,7 @@
     "category": "special",
     "particle": 248,
     "approximations": [
-      "particle-field:drawType",
-      "particle-field:polygonRotAxis",
+      "particle-polygon:xyz-projection-experimental",
       "particle-random:sequence-experimental",
       "particle-spin:trigonometry-experimental"
     ],
@@ -3715,8 +3705,8 @@
     "category": "status",
     "particle": 658,
     "approximations": [
-      "particle-field:drawType",
       "particle-field:polygonRotAxis",
+      "particle-polygon:xyz-projection-experimental",
       "particle-random:sequence-experimental",
       "particle-spin:trigonometry-experimental"
     ],
@@ -3991,8 +3981,7 @@
     "category": "status",
     "particle": 212,
     "approximations": [
-      "particle-field:drawType",
-      "particle-field:polygonRotAxis",
+      "particle-polygon:xyz-projection-experimental",
       "particle-random:sequence-experimental",
       "scene-palette-fade:layer-approximation"
     ],
@@ -4048,11 +4037,9 @@
     "approximations": [
       "background-palette-animation:timing-experimental",
       "background-palette-fade:layer-approximation",
-      "particle-field:drawType",
-      "particle-field:lifeTimeVariance",
       "particle-field:polygonReferencePlane",
       "particle-field:polygonRotAxis",
-      "particle-shape:circle->sphere_surface",
+      "particle-polygon:xyz-projection-experimental",
       "scene-palette-fade:layer-approximation"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/e/e2/V-create_BW.png",
@@ -4097,8 +4084,7 @@
       "background-palette-animation:timing-experimental",
       "background-palette-fade:layer-approximation",
       "particle-field:dirStretch",
-      "particle-field:drawType",
-      "particle-field:polygonRotAxis"
+      "particle-polygon:xyz-projection-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/8/82/Selfdestruct_BW.png",
     "bundleAsset": "assets/bw2/batch/self-destruct.json"
@@ -4246,10 +4232,8 @@
     "approximations": [
       "background-palette-animation:timing-experimental",
       "background-palette-fade:layer-approximation",
-      "particle-child:followEmitter",
       "particle-curve:colorAnim.order",
-      "particle-field:drawType",
-      "particle-field:polygonRotAxis",
+      "particle-polygon:xyz-projection-experimental",
       "particle-spin:trigonometry-experimental",
       "scene-palette-fade:layer-approximation"
     ],
@@ -4676,8 +4660,7 @@
     "category": "status",
     "particle": 459,
     "approximations": [
-      "particle-field:drawType",
-      "particle-field:polygonRotAxis",
+      "particle-polygon:xyz-projection-experimental",
       "particle-random:sequence-experimental",
       "particle-spin:trigonometry-experimental",
       "scene-palette-fade:layer-approximation"
@@ -4951,11 +4934,8 @@
     "category": "special",
     "particle": 578,
     "approximations": [
-      "particle-child:followEmitter",
-      "particle-field:drawType",
       "particle-field:emissionAxis",
-      "particle-field:lifeTimeVariance",
-      "particle-field:polygonRotAxis",
+      "particle-polygon:xyz-projection-experimental",
       "scene-palette-fade:layer-approximation"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/9/9e/Dark_Pulse_V.png",
@@ -5117,8 +5097,7 @@
     "particle": 371,
     "approximations": [
       "particle-bound:radius",
-      "particle-field:drawType",
-      "particle-field:polygonRotAxis",
+      "particle-polygon:xyz-projection-experimental",
       "particle-spin:trigonometry-experimental",
       "scene-palette-fade:layer-approximation"
     ],
@@ -5468,9 +5447,8 @@
     "category": "special",
     "particle": 660,
     "approximations": [
-      "particle-field:drawType",
-      "particle-field:lifeTimeVariance",
       "particle-field:polygonRotAxis",
+      "particle-polygon:xyz-projection-experimental",
       "scene-palette-fade:layer-approximation"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/d/d4/Synchronoise_V.png",
@@ -5539,9 +5517,7 @@
     "category": "status",
     "particle": 241,
     "approximations": [
-      "particle-field:drawType",
-      "particle-field:lifeTimeVariance",
-      "particle-field:polygonRotAxis",
+      "particle-polygon:xyz-projection-experimental",
       "particle-spin:trigonometry-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/1/10/Growth_V.png",
@@ -5569,9 +5545,7 @@
     "particle": 514,
     "approximations": [
       "background-palette-fade:layer-approximation",
-      "particle-field:drawType",
-      "particle-field:polygonRotAxis",
-      "particle-field:polygonX",
+      "particle-polygon:xyz-projection-experimental",
       "particle-spin:trigonometry-experimental",
       "scene-palette-fade:layer-approximation"
     ],
@@ -5586,9 +5560,7 @@
     "category": "physical",
     "particle": 580,
     "approximations": [
-      "particle-field:drawType",
-      "particle-field:lifeTimeVariance",
-      "particle-field:polygonRotAxis",
+      "particle-polygon:xyz-projection-experimental",
       "particle-spin:trigonometry-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/c/cf/Aqua_Tail_V.png",
@@ -6620,14 +6592,8 @@
     "category": "special",
     "particle": 720,
     "approximations": [
-      "particle-curve:alphaAnim.order",
-      "particle-field:drawType",
-      "particle-field:lifeTimeVariance",
-      "particle-field:polygonRotAxis",
       "particle-motion:sinusoid-phase-assumed",
-      "particle-shape:cylinder_surface->sphere_surface",
-      "particle-shape:sphere->sphere_surface",
-      "particle-zero-radius:point",
+      "particle-polygon:xyz-projection-experimental",
       "scene-palette-fade:layer-approximation"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/a/ac/Relic_Song_V.png",
@@ -7257,9 +7223,8 @@
     "category": "special",
     "particle": 668,
     "approximations": [
-      "particle-field:drawType",
-      "particle-field:polygonRotAxis",
       "particle-motion:sinusoid-phase-assumed",
+      "particle-polygon:xyz-projection-experimental",
       "particle-random:sequence-experimental",
       "source-emitter:camera-position-scale-approximation"
     ],
@@ -7274,8 +7239,7 @@
     "category": "special",
     "particle": 708,
     "approximations": [
-      "particle-field:drawType",
-      "particle-field:polygonRotAxis",
+      "particle-polygon:xyz-projection-experimental",
       "scene-palette-fade:layer-approximation",
       "source-emitter:camera-position-scale-approximation"
     ],
