@@ -1728,15 +1728,13 @@ final class RuntimeProjectProjectionBuilder {
         );
       }
     }
-    for (final path in payload.keys.where((path) => path.startsWith('${prefix}blobs/'))) {
+    for (final path in payload.keys
+        .where((path) => path.startsWith('${prefix}blobs/'))
+        .toList()) {
       final rest = path.substring('${prefix}blobs/'.length);
       final owner = rest.split('/').first;
       if (bindings.containsKey(owner) && !referenced.contains(path)) {
-        throw GamePackageExportException(
-          code: 'battle_recipe.orphan_blob',
-          path: path,
-          message: 'Battle recipe resource has no binding.',
-        );
+        payload.remove(path);
       }
     }
   }

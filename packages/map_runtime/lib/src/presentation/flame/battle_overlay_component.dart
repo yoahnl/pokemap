@@ -60,6 +60,7 @@ import 'battle_gen5_swing.dart';
 import 'battle_gen5_camera_motion.dart';
 import 'battle_gen5_source_background.dart';
 import 'battle_gen5_source_program_playback.dart';
+import 'battle_gen5_source_particles.dart';
 import 'battle_offline_move_recipe_loader.dart';
 import 'battle_spl_camera_projection.dart';
 import 'battle_spl_static_admission.dart';
@@ -781,6 +782,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
   _PendingTurnAudioPreparation? _pendingTurnAudioPreparation;
   _PendingTurnAudioPreparation? _turnAudioSettlement;
   final Map<String, _PreparedGroupedSpl> _groupedSplEffects = {};
+  final Map<String, _PreparedSourceProgram> _sourceProgramEffects = {};
   final Set<BattleVerifiedSplLoader> _groupedSplLoads = {};
   final Completer<void> _groupedSplClosed = Completer<void>();
   var _nextGroupedSplId = 0;
@@ -2275,7 +2277,83 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     }
   }
 
+  Future<BattleTurnAudioRequest?> prepareSourceProgramTurn({
+    required BattleTurnExecutionEvent event,
+    required BattleOfflineVerifiedMedia media,
+    required FlameAudioBattleSfxPlayer player,
+  }) async {
+    BattleGen5SourceParticleSet? particles;
+    var abandoned = false;
+    var handedOff = false;
+    try {
+      if (_ballImagesDisposed || !_canPlayGroupedSpl ||
+          event.execution.targetSlot == null) {
+        return null;
+      }
+      final bundle = media.bundle;
+      if ((bundle.recipe.toJson()['program'] as Map)['kind'] != 'gen5SourceProgram') {
+        return null;
+      }
+      final audio = const BattleMoveRecipeCompiler().compileAudioSelection(bundle.recipe);
+      if (audio.status != BattleRecipeAudioCompileStatus.ready || audio.selection == null) {
+        return null;
+      }
+      final pending = BattleGen5SourceParticleSet.prepare(
+        bundle: bundle,
+        overlay: this,
+        budget: _resourceBudget,
+        attackerSide: event.execution.attackerSide,
+        isCurrent: () => !abandoned && !_ballImagesDisposed,
+      );
+      unawaited(pending.then<void>((value) {
+        if (abandoned || _ballImagesDisposed) value.dispose();
+      }, onError: (Object _) {}));
+      particles = await Future.any<BattleGen5SourceParticleSet>([
+        pending,
+        _groupedSplClosed.future.then((_) =>
+            throw const BattleOfflineRecipeLoadCancelled()),
+      ]).timeout(const Duration(seconds: 2));
+      if (_ballImagesDisposed) return null;
+      final coordinator = BattleRecipeAudioCoordinator(
+        player: player,
+        bundle: bundle,
+        preparationTimeout: const Duration(seconds: 2),
+        startTimeout: const Duration(seconds: 1),
+      );
+      final id = 'source-program-${_nextGroupedSplId++}';
+      _sourceProgramEffects[id] = _PreparedSourceProgram(
+        particles: particles,
+        media: media,
+        coordinator: coordinator,
+        attackerSide: event.execution.attackerSide,
+        onClosed: () => _sourceProgramEffects.remove(id),
+      );
+      handedOff = true;
+      return BattleTurnAudioRequest(
+        event: event,
+        coordinator: coordinator,
+        audio: audio.selection!,
+        trackedEffectId: id,
+        silentVisuals: const AnimationGroupStep(
+          mode: BattleAnimationGroupMode.parallel,
+          steps: [CameraFocusStep(target: BattleCameraFocusTarget.scene, durationSeconds: 0)],
+        ),
+      );
+    } on Object catch (error) {
+      debugPrint('[battle] source program unavailable: $error');
+      return null;
+    } finally {
+      abandoned = true;
+      if (!handedOff) {
+        particles?.dispose();
+        media.release();
+      }
+    }
+  }
+
   void discardGroupedSplTurn(BattleTurnAudioRequest request) {
+    final source = _sourceProgramEffects[request.trackedEffectId];
+    if (source != null) unawaited(source.cancel());
     final effect = _groupedSplEffects[request.trackedEffectId];
     if (effect != null) unawaited(effect.cancel());
   }
@@ -2285,6 +2363,10 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     void Function() onComplete,
     void Function() onFailure,
   ) {
+    final source = _sourceProgramEffects[step.effectId];
+    if (source != null) {
+      return source.start(this, onComplete, onFailure, allowed: _canPlayGroupedSpl);
+    }
     final effect = _groupedSplEffects[step.effectId];
     if (effect == null) {
       onFailure();
@@ -2389,6 +2471,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
           throw const _TurnAudioInterrupted();
         }
         _groupedSplEffects[request.trackedEffectId]?.audioPrepared(result);
+        _sourceProgramEffects[request.trackedEffectId]?.audioPrepared(result);
         selections.add(
           BattleTurnAudioSelection(
             event: request.event,
@@ -2869,6 +2952,9 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
       loader.cancel();
     }
     for (final effect in _groupedSplEffects.values.toList()) {
+      unawaited(effect.cancel());
+    }
+    for (final effect in _sourceProgramEffects.values.toList()) {
       unawaited(effect.cancel());
     }
     for (final lease in _sheetLeases.values) {
@@ -4270,6 +4356,9 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     _syncReducedBattleEffects();
     if (!_canPlayGroupedSpl) {
       for (final effect in _groupedSplEffects.values.toList()) {
+        effect.failIfStarted();
+      }
+      for (final effect in _sourceProgramEffects.values.toList()) {
         effect.failIfStarted();
       }
     }
@@ -6893,6 +6982,151 @@ final class _TurnAudioInterrupted implements Exception {
 
 final class _TurnAudioPreparationTimedOut implements Exception {
   const _TurnAudioPreparationTimedOut();
+}
+
+final class _PreparedSourceProgram {
+  _PreparedSourceProgram({
+    required this.particles,
+    required this.media,
+    required this.coordinator,
+    required this.attackerSide,
+    required this.onClosed,
+  });
+
+  final BattleGen5SourceParticleSet particles;
+  final BattleOfflineVerifiedMedia media;
+  final BattleRecipeAudioCoordinator coordinator;
+  final BattleSideId attackerSide;
+  final void Function() onClosed;
+  void Function()? _onComplete;
+  void Function()? _onFailure;
+  void Function()? _cancelRunning;
+  Future<void>? _cancelling;
+  bool _started = false;
+  bool _visualFinished = false;
+  bool _audioFinished = false;
+  bool _closed = false;
+
+  void audioPrepared(BattleRecipeAudioResult result) {
+    final program = result.program;
+    if (result.status != BattleRecipeAudioStatus.ready || program == null) {
+      unawaited(cancel());
+      return;
+    }
+    unawaited(program.finished.then<void>((_) async {
+      try {
+        await coordinator.cancel();
+      } on Object catch (error) {
+        debugPrint('[battle] source audio cleanup failed: $error');
+      } finally {
+        _audioFinished = true;
+        if (!program.anyDispatched && !_started) _cancelVisual();
+        _finishIfDone();
+      }
+    }, onError: (Object _) async {
+      await cancel();
+    }));
+  }
+
+  void Function() start(
+    BattleOverlayComponent overlay,
+    void Function() onComplete,
+    void Function() onFailure, {
+    required bool allowed,
+  }) {
+    if (_closed || _visualFinished || _started) {
+      onFailure();
+      return () {};
+    }
+    _started = true;
+    _onComplete = onComplete;
+    _onFailure = onFailure;
+    if (!allowed) {
+      visualFailed();
+      return _cancelVisual;
+    }
+    try {
+      final finished = overlay.presentExperimentalGen5Attack(
+        program: particles.program,
+        variant: particles.variant,
+        attackerSide: attackerSide,
+        hasEmitter: particles.hasEmitter,
+        startEmitter: (_, _, _) => throw StateError('Missing source emitter'),
+        startSourceEmitter: particles.start,
+        deleteSourceParticle: particles.delete,
+        particlesBusy: particles.isBusy,
+        detachParticles: particles.dispose,
+        allowSilentAudio: true,
+        sourceBackgrounds: particles.backgrounds,
+        allowUnmappedAudioControls: true,
+        allowSourceVisibility: true,
+        allowSourceGauge: true,
+        allowApproximateFlatActors: true,
+        adaptSourceCamera: true,
+        duringTrackedEffect: true,
+      );
+      _cancelRunning = overlay.cancelExperimentalGen5Attack;
+      unawaited(finished.then<void>((status) {
+        if (_visualFinished) return;
+        if (status != BattleGen5SourcePlaybackStatus.finished) {
+          visualFailed();
+          return;
+        }
+        _visualFinished = true;
+        _cancelRunning = null;
+        _onComplete?.call();
+        _finishIfDone();
+      }, onError: (Object _) => visualFailed()));
+    } on Object {
+      visualFailed();
+    }
+    return _cancelVisual;
+  }
+
+  void failIfStarted() {
+    if (_started && !_visualFinished) visualFailed();
+  }
+
+  void visualFailed() {
+    if (_closed || _visualFinished) return;
+    _visualFinished = true;
+    _cancelRunning?.call();
+    _cancelRunning = null;
+    particles.dispose();
+    _onFailure?.call();
+    _finishIfDone();
+  }
+
+  void _cancelVisual() {
+    if (_visualFinished) return;
+    _visualFinished = true;
+    _cancelRunning?.call();
+    _cancelRunning = null;
+    particles.dispose();
+    _finishIfDone();
+  }
+
+  Future<void> cancel() => _cancelling ??= _cancel();
+
+  Future<void> _cancel() async {
+    _cancelVisual();
+    try {
+      await coordinator.cancel();
+    } on Object catch (error) {
+      debugPrint('[battle] source audio cleanup failed: $error');
+    } finally {
+      _audioFinished = true;
+      _finishIfDone();
+    }
+  }
+
+  void _finishIfDone() {
+    if (_closed || !_visualFinished || !_audioFinished) return;
+    _closed = true;
+    particles.dispose();
+    media.release();
+    onClosed();
+  }
 }
 
 final class _PreparedGroupedSpl {

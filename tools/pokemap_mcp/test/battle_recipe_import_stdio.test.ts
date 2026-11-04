@@ -179,6 +179,32 @@ async function runScenario(spl: boolean, withSound = false, explicitAudio = fals
     assert.deepEqual(await readFile(pngPath), png);
     const soundPath = join(root, 'data/pokemon/battle_recipes/blobs', owner, `${soundHash}.wav`);
     if (sound) assert.deepEqual(await readFile(soundPath), sound);
+    if (sourceProgram) {
+      const detail = await call('pokemap_describe', { domain: 'battle', view: 'full', actionIds: ['pokemon.move_recipe.import'] });
+      const action = (detail.mutationActions as JsonRecord[]).find(value => value.id === 'pokemon.move_recipe.import');
+      const properties = record(record(record(action!.extensions).inputSchema).properties);
+      assert.equal(record(properties.replaceExisting).type, 'boolean');
+      const bindingPath = join(root, 'data/pokemon/battle_recipes/bindings', `${owner}.json`);
+      const original = await readFile(bindingPath);
+      const replacement = {
+        ...parameters,
+        projectBinding: { ...parameters.projectBinding, catalogMoveId: 'updated-catalog', recipeMediaId: 'updated-recipe' },
+        replaceExisting: true,
+      };
+      const replacementScope = await call('pokemap_workshop', { operation: 'read', projectHandle: opened.projectHandle,
+        actionId: 'pokemon.move_recipe.import', parameters: replacement });
+      const replacementPlan = await call('pokemap_plan', { projectHandle: opened.projectHandle, request: {
+        requestId: 'replace', actionId: 'pokemon.move_recipe.import', actionVersion: 1,
+        workspaceHandle: opened.workspaceHandle, expectedRevision: replacementScope.snapshotRevision,
+        idempotencyKey: 'replace', parameters: replacement,
+      } });
+      const replaced = await call('pokemap_apply', { operation: 'apply', projectHandle: opened.projectHandle,
+        planId: replacementPlan.planId, operationId: 'replace' });
+      assert.equal(JSON.parse(await readFile(bindingPath, 'utf8')).catalogMoveId, 'updated-catalog');
+      await call('pokemap_history', { operation: 'undo', projectHandle: opened.projectHandle,
+        entryId: record(replaced.receipt).receiptId, idempotencyKey: 'undo-replace' });
+      assert.deepEqual(await readFile(bindingPath), original);
+    }
     if (sound) await call('pokemap_workshop', { operation: 'read', projectHandle: opened.projectHandle,
       actionId: 'pokemon.move_recipe.import', parameters });
     await call('pokemap_history', { operation: 'undo', projectHandle: opened.projectHandle,

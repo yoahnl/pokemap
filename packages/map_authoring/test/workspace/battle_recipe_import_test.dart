@@ -118,6 +118,7 @@ void main() {
     bool gen5 = false,
     bool splV5 = false,
     bool sourceProgram = false,
+    bool replaceExisting = false,
     String? bundlePath,
   }) async {
     final root = await Directory.systemTemp.createTemp('battle-recipe-import-');
@@ -444,6 +445,49 @@ void main() {
 
     reader.paths.clear();
     await add('one');
+    if (replaceExisting) {
+      final bindingFile = File('${root.path}/${battleRecipeBindingPath('one')}');
+      final original = await bindingFile.readAsBytes();
+      final replacement = parametersFor('one');
+      replacement['projectBinding'] = {
+        ...(replacement['projectBinding'] as Map<String, dynamic>),
+        'catalogMoveId': 'updated-catalog',
+      };
+      await expectLater(
+        planFor('one', 'preserve-existing', override: replacement),
+        throwsFormatException,
+      );
+      expect(await bindingFile.readAsBytes(), original);
+      replacement['replaceExisting'] = true;
+      await service.readWorkshopDocument(current.projectHandle,
+          actionId: 'pokemon.move_recipe.import', parameters: replacement);
+      final worker = JsonlWorker(
+        api: AuthoringReadApi(openService: opener, snapshotLoader: snapshots),
+        mutations: service,
+      );
+      final readLine = await worker.processLine(jsonEncode({
+        'id': 'replacement-read',
+        'command': 'workshop_snapshot',
+        'args': {
+          'projectHandle': current.projectHandle.value,
+          'actionId': 'pokemon.move_recipe.import',
+          'parameters': replacement,
+        },
+      }));
+      expect(AuthoringResult.fromJson(jsonDecode(readLine) as Map<String, dynamic>).status,
+          AuthoringResultStatus.success, reason: readLine);
+      final plan = await planFor('one', 'replace-existing', override: replacement);
+      final result = await service.applyMutation(
+        current.projectHandle,
+        planId: plan.planId,
+        operationId: 'replace-existing',
+      );
+      expect(jsonDecode(await bindingFile.readAsString())['catalogMoveId'],
+          'updated-catalog');
+      await service.undoMutation(current.projectHandle,
+          entryId: result.receipt.receiptId, idempotencyKey: 'undo-replacement');
+      expect(await bindingFile.readAsBytes(), original);
+    }
     expect(reader.paths.where((path) => path.startsWith('maps/foreign-')),
         isEmpty);
     expect(
@@ -570,21 +614,6 @@ void main() {
         digest, 'application/vnd.avelune.battle-recipe+json',
         projectMoveId: 'two');
     expect(reread.findResourceBytes('battleRecipe:$recipePath'), recipe);
-    if (sourceProgram) {
-      await expectLater(
-        const CanonicalGamePackageExportService().build(
-          projectRoot: root,
-          profile: GamePackageExportProfile(
-            gameId: 'games.example.recipe', gameVersion: '0.1.0', title: 'Recipe',
-            authorName: 'Yoahn', defaultLocale: 'fr', supportedLocales: ['fr'],
-          ),
-          mode: GamePackageExportMode.localTest,
-        ),
-        throwsA(isA<GamePackageExportException>()
-            .having((error) => error.code, 'code', 'capabilityUnsupported')),
-      );
-      return;
-    }
     late final GamePackageExportArtifact exported;
     try {
       exported = await const CanonicalGamePackageExportService().build(
@@ -604,6 +633,11 @@ void main() {
     }
     final archive =
         ZipDecoder().decodeBytes(exported.packageBytes, verify: true);
+    if (sourceProgram) {
+      final inspected = const GamePackageInspector().inspect(exported.packageBytes);
+      expect(inspected.manifest.compatibility.requiredCapabilities,
+          contains(BattleMoveAnimationRecipe.gen5SourceRuntimeCapability));
+    }
     if (splV5) {
       final inspected = const GamePackageInspector().inspect(exported.packageBytes);
       expect(inspected.manifest.compatibility.requiredCapabilities,
@@ -640,6 +674,8 @@ void main() {
 
   test('imports, exports and undoes version 1 move recipes',
       () => runScenario(spl: false));
+  test('replaces a move binding only when requested and supports undo',
+      () => runScenario(spl: false, replaceExisting: true));
   test('imports, exports and undoes version 2 SPL move recipes',
       () => runScenario(spl: true));
   test('imports and exports a mixed sound and SPL recipe through API and JSONL',
@@ -656,8 +692,12 @@ void main() {
           spl: true,
           bundlePath: Platform.environment['AVELUNE_BW2_TACKLE_BUNDLE']),
       skip: Platform.environment['AVELUNE_BW2_TACKLE_BUNDLE'] == null);
-  test('imports a complete BW2 source bundle and blocks unsupported export',
+  test('imports and exports a complete BW2 source bundle with its capability',
       () => runScenario(spl: true, sourceProgram: true,
+          bundlePath: Platform.environment['AVELUNE_BW2_SOURCE_BUNDLE']),
+      skip: Platform.environment['AVELUNE_BW2_SOURCE_BUNDLE'] == null);
+  test('replaces a BW2 source bundle through the workspace and JSONL',
+      () => runScenario(spl: true, sourceProgram: true, replaceExisting: true,
           bundlePath: Platform.environment['AVELUNE_BW2_SOURCE_BUNDLE']),
       skip: Platform.environment['AVELUNE_BW2_SOURCE_BUNDLE'] == null);
 }

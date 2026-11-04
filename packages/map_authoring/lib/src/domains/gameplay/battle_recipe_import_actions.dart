@@ -41,7 +41,7 @@ final class BattleRecipeImportActions {
     extensions: const {
       'constraints': {
         'projectStorage': 'working-catalog-only',
-        'conflictPolicy': 'preserve',
+        'conflictPolicy': 'preserve-unless-explicit-binding-replacement',
         'soundResources': 'validated-structure',
         'soundCodecs': [
           'wav-pcm',
@@ -103,6 +103,7 @@ final class BattleRecipeImportActions {
             },
           },
           'recipeHandle': {'type': 'string'},
+          'replaceExisting': {'type': 'boolean'},
           'resources': {
             'type': 'array',
             'maxItems': 256,
@@ -133,10 +134,13 @@ final class BattleRecipeImportActions {
 
   Future<AuthoringMutationDraft> build(AuthoringPlanningContext context) async {
     final args = context.request.parameters;
-    if (args.length != 3 ||
+    if (args.keys.any((key) => !{
+          'projectBinding', 'recipeHandle', 'resources', 'replaceExisting',
+        }.contains(key)) ||
         args['projectBinding'] is! Map ||
         args['recipeHandle'] is! String ||
-        args['resources'] is! List) {
+        args['resources'] is! List ||
+        (args.containsKey('replaceExisting') && args['replaceExisting'] is! bool)) {
       throw const FormatException('Invalid battle recipe import');
     }
     final projectBinding = BattleRecipeProjectBinding.fromJson(
@@ -243,10 +247,11 @@ final class BattleRecipeImportActions {
         throw const FormatException('Battle recipe storage scope changed');
       }
       if (before != null) {
-        if (!_sameBytes(before, entry.value)) {
+        if (_sameBytes(before, entry.value)) continue;
+        if (entry.key != battleRecipeBindingPath(binding.projectMoveId) ||
+            args['replaceExisting'] != true) {
           throw const FormatException('Existing battle recipe data differs');
         }
-        continue;
       }
       final resource = AuthoringResourceRef(
         kind: 'battleRecipeFile',
@@ -255,13 +260,20 @@ final class BattleRecipeImportActions {
       changes.add(AuthoringResourceChange(
           resource: resource,
           storageKey: entry.key,
-          beforeBytes: null,
+          beforeBytes: before,
           afterBytes: entry.value));
-      diffs.add(AuthoringDiffEntry(
-          operation: AuthoringDiffOperation.add,
-          resource: resource,
-          path: '/',
-          after: {'byteLength': entry.value.length}));
+      diffs.add(before == null
+          ? AuthoringDiffEntry(
+              operation: AuthoringDiffOperation.add,
+              resource: resource,
+              path: '/',
+              after: {'byteLength': entry.value.length})
+          : AuthoringDiffEntry(
+              operation: AuthoringDiffOperation.replace,
+              resource: resource,
+              path: '/',
+              before: {'byteLength': before.length},
+              after: {'byteLength': entry.value.length}));
     }
     return AuthoringMutationDraft(
       changeSet: changes.isEmpty

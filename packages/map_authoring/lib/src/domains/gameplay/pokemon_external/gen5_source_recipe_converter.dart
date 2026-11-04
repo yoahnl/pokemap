@@ -13,6 +13,7 @@ abstract final class Gen5SourceRecipeConverter {
     required String moveId,
     required Map<String, dynamic> sourceProgram,
     required Map<int, Gen5BatchParticle> particles,
+    Map<int, Uint8List> backgrounds = const {},
     Uint8List? sound,
     String? soundMediaType,
   }) {
@@ -39,9 +40,11 @@ abstract final class Gen5SourceRecipeConverter {
       if (id < 0 || id > 65535) throw const FormatException('Invalid source particle');
       final particle = particles[id]!;
       warnings.addAll(particle.warnings);
-      final definition = BattleSplParticleDefinition.fromJson(
-        jsonDecode(utf8.decode(particle.definition)) as Map<String, dynamic>,
-      );
+      final definitionJson =
+          jsonDecode(utf8.decode(particle.definition)) as Map<String, dynamic>;
+      final definition = (definitionJson['schemaVersion'] as int) > 5
+          ? BattleSplParticleDefinition.fromExperimentalJson(definitionJson)
+          : BattleSplParticleDefinition.fromJson(definitionJson);
       if (definition.textureIds.length != particle.textures.length ||
           !definition.textureIds.containsAll(particle.textures.keys)) {
         throw const FormatException('Particle texture dependencies mismatch');
@@ -70,6 +73,13 @@ abstract final class Gen5SourceRecipeConverter {
       if (media.containsKey('cue')) throw const FormatException('Conflicting audio resource');
       media['cue'] = Uint8List.fromList(sound);
     }
+    final orderedBackgrounds = backgrounds.keys.toList()..sort();
+    for (final id in orderedBackgrounds) {
+      if (id < 0 || id > 65535) throw const FormatException('Invalid source background');
+      final resourceId = 'gen5-background-$id';
+      if (media.containsKey(resourceId)) throw const FormatException('Conflicting background resource');
+      media[resourceId] = Uint8List.fromList(backgrounds[id]!);
+    }
     Map<String, Object> resource(String id, String role, String mediaType) => {
       'id': id, 'role': role, 'mediaType': mediaType,
       'sizeBytes': media[id]!.length, 'sha256': sha256.convert(media[id]!).toString(),
@@ -78,6 +88,7 @@ abstract final class Gen5SourceRecipeConverter {
     final recipeId = 'bw2-$moveId-source';
     final capabilities = <String>{'audioSelectionV2', 'gen5SourceProgram',
       for (final definition in definitions.values) 'splParticleV${definition.schemaVersion}',
+      if (backgrounds.isNotEmpty) 'gen5SourceBackground',
       if (sound != null) 'sound'};
     final recipeBytes = Uint8List.fromList(utf8.encode(jsonEncode({
       'schemaVersion': 2, 'recipeId': recipeId, 'revision': '1',
@@ -87,6 +98,7 @@ abstract final class Gen5SourceRecipeConverter {
         'sourcePaths': [source['path']], 'converter': 'gen5-source-recipe/1'},
       'resources': [
         for (final texture in textures) resource(texture, 'texture', 'image/png'),
+        for (final id in orderedBackgrounds) resource('gen5-background-$id', 'texture', 'image/png'),
         for (final id in orderedParticles)
           {...resource('gen5-particle-$id', 'particleDefinition', 'application/vnd.avelune.particle+json'),
             'definitionVersion': definitions[id]!.schemaVersion,
@@ -97,7 +109,11 @@ abstract final class Gen5SourceRecipeConverter {
       'program': {'kind': 'gen5SourceProgram', 'sourceProgram': sourceProgram,
         'particleBindings': [for (final id in orderedParticles) {
           'particle': id, 'resourceId': 'gen5-particle-$id', 'sourceEmitterIndices': indices[id],
-        }]},
+        }],
+        if (orderedBackgrounds.isNotEmpty) 'backgroundBindings': [
+          for (final id in orderedBackgrounds)
+            {'background': id, 'resourceId': 'gen5-background-$id'},
+        ]},
     })));
     final binding = BattleMoveRecipeBinding.fromJson({
       'schemaVersion': 1, 'projectMoveId': moveId, 'sourceMoveId': moveId,

@@ -43,16 +43,23 @@ void main() {
         return built;
       },
     );
-    await expectLater(
-      service.build(projectRoot: root, profile: _profile(), mode: GamePackageExportMode.localTest),
-      throwsA(isA<GamePackageExportException>().having((error) => error.code, 'code', 'capabilityUnsupported')),
-    );
+    await service.build(projectRoot: root, profile: _profile(), mode: GamePackageExportMode.localTest);
     final inspection = const GamePackageInspector().inspect(built.packageBytes);
     const capability = BattleMoveAnimationRecipe.gen5SourceRuntimeCapability;
     expect(inspection.manifest.compatibility.requiredCapabilities, contains(capability));
-    expect(AveluneRuntimeCompatibility.host().capabilities, isNot(contains(capability)));
+    final current = AveluneRuntimeCompatibility.host();
+    expect(current.capabilities, contains(capability));
+    final older = GamePackageHostCompatibility(
+      hubVersion: current.hubVersion, runtimeApiVersion: current.runtimeApiVersion,
+      supportedRuntimeApiVersions: current.supportedRuntimeApiVersions,
+      capabilities: {...current.capabilities}..remove(capability),
+      supportedProjectFormats: current.supportedProjectFormats,
+      currentProjectFormat: current.currentProjectFormat,
+      currentProjectFormats: current.currentProjectFormats,
+      supportedSaveFormats: current.supportedSaveFormats,
+    );
     final compatibility = const GamePackageCompatibilityEvaluator()
-        .evaluate(inspection.manifest, AveluneRuntimeCompatibility.host());
+        .evaluate(inspection.manifest, older);
     expect(compatibility.decision, GamePackageCompatibilityDecision.reject);
     expect(compatibility.missingCapabilities, contains(capability));
     final manifest = inspection.manifest.toJson();
@@ -316,7 +323,7 @@ void main() {
       throwsA(isA<GamePackageExportException>().having((e) => e.code, 'code', 'battle_recipe.invalid_binding')));
   });
 
-  test('rejects orphan battle recipe blobs in a marked project', () async {
+  test('omits superseded battle recipe blobs while preserving project files', () async {
     final root = await _fixture();
     final bytes = utf8.encode('{"schemaVersion":1}');
     final path = battleRecipeBlobPath(sha256.convert(bytes).toString(),
@@ -332,11 +339,12 @@ void main() {
     await _write(root, battleRecipeBlobPath(recipeHash,
       'application/vnd.avelune.battle-recipe+json', projectMoveId: 'custom'), recipe);
     await _write(root, path, bytes);
-    await expectLater(
-      _build(root),
-      throwsA(isA<GamePackageExportException>()
-          .having((e) => e.code, 'code', 'battle_recipe.orphan_blob')),
-    );
+    final projected = await _build(root);
+    expect(projected.payloadFiles, isNot(contains('project/$path')));
+    expect(await File('${root.path}/$path').readAsBytes(), bytes);
+    final current = battleRecipeBlobPath(recipeHash,
+        'application/vnd.avelune.battle-recipe+json', projectMoveId: 'custom');
+    expect(projected.payloadFiles['project/$current'], recipe);
   });
 
   test('each move owns its binding and recipe even for identical bytes', () async {

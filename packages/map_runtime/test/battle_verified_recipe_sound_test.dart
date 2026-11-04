@@ -9,6 +9,8 @@ import 'package:flame/components.dart';
 import 'package:flame_audio/flame_audio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_battle/map_battle.dart';
+import 'package:map_authoring/src/domains/gameplay/pokemon_external/gen5_batch_recipe_converter.dart';
+import 'package:map_authoring/src/domains/gameplay/pokemon_external/gen5_source_recipe_converter.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:map_runtime/map_runtime.dart';
@@ -23,6 +25,7 @@ import 'package:map_runtime/src/application/runtime_move_catalog_loader.dart';
 import 'package:map_runtime/src/presentation/flame/battle_recipe_audio_program.dart';
 import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_offline_move_recipe_loader.dart';
+import 'package:map_runtime/src/presentation/flame/battle_offline_grouped_turn.dart';
 import 'package:map_runtime/src/presentation/flame/battle_spl_static_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_verified_recipe_sound_loader.dart';
 import 'package:path/path.dart' as p;
@@ -127,6 +130,76 @@ Future<BattleOfflineVerifiedMedia> _groupedOfflineMedia(
     resourceBudget: budget,
   ).load('tackle', retainVerifiedMedia: true);
   return result.verifiedMedia!;
+}
+
+Future<void> _writeSourceOfflineBundle(
+  Directory root, {
+  String moveId = 'tackle',
+}) async {
+  final assets = Directory('../../tools/avelune_attack_comparator/assets/bw2');
+  final batch = moveId == 'dragon-breath' || moveId == 'hyper-beam'
+      ? jsonDecode(await File('${assets.path}/batch/$moveId.json').readAsString())
+          as Map<String, dynamic>
+      : null;
+  final program = batch == null
+      ? jsonDecode(await File('${assets.path}/$moveId.json').readAsString())
+          as Map<String, dynamic>
+      : (batch['program'] as Map).cast<String, dynamic>();
+  final particle = batch?['particle'] as int? ?? (moveId == 'surf' ? 222 : 199);
+  final directory = Directory('${assets.path}/particle$particle');
+  final definitionBytes = batch == null
+      ? await File('${directory.path}/definition.json').readAsBytes()
+      : Uint8List.fromList(utf8.encode(jsonEncode(batch['definition'])));
+  final definitionJson = jsonDecode(utf8.decode(definitionBytes)) as Map<String, dynamic>;
+  final definition = (definitionJson['schemaVersion'] as int) > 5
+      ? BattleSplParticleDefinition.fromExperimentalJson(definitionJson)
+      : BattleSplParticleDefinition.fromJson(definitionJson);
+  final textures = <String, Uint8List>{};
+  for (final id in definition.textureIds) {
+    if (batch != null) {
+      textures[id] = base64Decode((batch['textures'] as Map)[id] as String);
+      continue;
+    }
+    final png = File('${directory.path}/$id.png');
+    textures[id] = await png.exists()
+        ? await png.readAsBytes()
+        : base64Decode((await File('${directory.path}/$id.b64').readAsString()).trim());
+  }
+  final converted = Gen5SourceRecipeConverter.convert(
+    moveId: moveId, sourceProgram: program,
+    particles: {particle: Gen5BatchParticle(
+      definition: definitionBytes, textures: textures,
+      sourceEmitterIndices: batch != null
+          ? (batch['sourceEmitterIndices'] as List).cast<int>()
+          : moveId == 'surf' ? [3, 1, 4, 5, 2] : [0, 1],
+    )},
+    backgrounds: {
+      for (final entry in (batch?['backgrounds'] as Map? ?? const {}).entries)
+        int.parse(entry.key as String): base64Decode(entry.value as String),
+    },
+    sound: await File('assets/audio/overworld/jump.wav').readAsBytes(),
+    soundMediaType: 'audio/wav',
+  );
+  Future<void> write(String path, List<int> bytes) async {
+    final file = File(p.join(root.path, path));
+    await file.parent.create(recursive: true);
+    await file.writeAsBytes(bytes);
+  }
+  await write(
+    battleRecipeBindingPath(moveId),
+    utf8.encode(jsonEncode(BattleRecipeProjectBinding(binding: converted.binding).toJson())),
+  );
+  await write(
+    battleRecipeBlobPath(converted.binding.recipeSha256,
+        'application/vnd.avelune.battle-recipe+json', projectMoveId: moveId),
+    converted.bundle.recipeBytes,
+  );
+  for (final resource in converted.bundle.recipe.resources) {
+    await write(
+      battleRecipeBlobPath(resource.sha256Hex, resource.mediaType, projectMoveId: moveId),
+      converted.bundle.media[resource.id]!,
+    );
+  }
 }
 
 void main() {
@@ -2574,6 +2647,79 @@ void main() {
     expect(budget.residentBytes, 0);
   });
 
+  for (final moveId in ['tackle', 'surf', 'dragon-breath', 'hyper-beam']) {
+  for (final viewport in [Vector2(390, 844), Vector2(844, 390)]) {
+    test('verified BW2 $moveId plays particles and audio in a tracked turn at $viewport', () async {
+      final root = await Directory.systemTemp.createTemp('source-turn-');
+      addTearDown(() => root.delete(recursive: true));
+      final budget = RuntimeResourceBudget();
+      addTearDown(budget.dispose);
+      final turn = _realTurn(moveId: moveId);
+      final event = turn.events.firstWhere(
+        (entry) => entry.execution.attackerSide == BattleSideId.player,
+      );
+      final voice = _Voice();
+      final player = FlameAudioBattleSfxPlayer(playerFactory: () => voice);
+      addTearDown(player.dispose);
+      late final BattleOverlayComponent overlay;
+      overlay = BattleOverlayComponent(
+        session: turn.before,
+        viewportSize: viewport,
+        resourceBudget: budget,
+        onPlayerChoice: (_) {},
+        onStartRecoverableTrackedEffect: (step, done, fail) =>
+            overlay.startGroupedSplEffect(step, done, fail),
+      );
+      await loadFlameComponent(overlay);
+      await overlay.waitForPendingVisualSync();
+      addTearDown(overlay.onRemove);
+      await _writeSourceOfflineBundle(root, moveId: moveId);
+      final loader = BattleOfflineMoveRecipeLoader(
+        projectRootDirectory: root.path, resourceBudget: budget,
+      );
+      final result = await loader.load(moveId);
+      expect(result.unavailableCapabilities, contains('gen5SourceProgram'));
+      final requests = await prepareOfflineGroupedSplTurn(
+        session: turn.after, loader: loader, results: {moveId: result},
+        overlay: overlay, player: player, isCurrent: () => true,
+      );
+      expect(requests, hasLength(1));
+      expect(requests.single.event, same(event));
+      expect(await overlay.prepareTurnAudioAndUpdateState(
+        turn.after, audioRequests: requests,
+      ), isTrue);
+      await overlay.waitForPendingVisualSync();
+      var sawParticles = false;
+      var completedAudio = false;
+      for (var tick = 0; tick < 600 && overlay.isTurnPresentationActive; tick++) {
+        overlay.updateTree(1 / 60);
+        overlay.findGame()!.processLifecycleEvents();
+        await Future<void>.delayed(Duration.zero);
+        if (overlay.children.whereType<BattleSplStaticComponent>()
+            .any((effect) => effect.playback.activeParticles > 0)) {
+          sawParticles = true;
+          expect(overlay.currentCommandOverlaySnapshot!.enemyHud.effectiveDisplayedHp,
+              turn.before.state.enemy.currentHp);
+        }
+        if (!completedAudio && voice.resumes > 0) {
+          completedAudio = true;
+          voice.complete.add(null);
+        }
+      }
+      expect(voice.resumes, 1);
+      expect(sawParticles, isTrue);
+      expect(overlay.isTurnPresentationActive, isFalse);
+      expect(overlay.currentCommandOverlaySnapshot!.enemyHud.effectiveDisplayedHp,
+          turn.after.state.enemy.currentHp);
+      overlay.onRemove();
+      for (var i = 0; i < 100 && budget.residentBytes != 0; i++) {
+        await Future<void>.delayed(Duration.zero);
+      }
+      expect(budget.residentBytes, 0);
+    });
+  }
+  }
+
   test('removing the scene releases an unstarted grouped SPL effect', () async {
     final root = await Directory.systemTemp.createTemp('grouped-spl-cancel-');
     addTearDown(() => root.delete(recursive: true));
@@ -4333,7 +4479,7 @@ void main() {
   BattleSession after,
   List<BattleTurnExecutionEvent> events,
 })
-_realTurn({bool enemyAttacks = false, int enemyHp = 80}) {
+_realTurn({bool enemyAttacks = false, int enemyHp = 80, String moveId = 'tackle'}) {
   const stats = BattleStatsSnapshot(
     attack: 20,
     defense: 20,
@@ -4341,8 +4487,8 @@ _realTurn({bool enemyAttacks = false, int enemyHp = 80}) {
     specialDefense: 20,
     speed: 20,
   );
-  const attack = BattleMoveData(
-    id: 'tackle',
+  final attack = BattleMoveData(
+    id: moveId,
     name: 'Charge',
     power: 40,
     accuracy: BattleMoveAccuracy.alwaysHits(),
@@ -4357,7 +4503,7 @@ _realTurn({bool enemyAttacks = false, int enemyHp = 80}) {
   );
   final before = createBattleSession(
     BattleSetup.pokeMapBetaV1ForTest(
-      playerPokemon: const BattleCombatantData(
+      playerPokemon: BattleCombatantData(
         speciesId: 'one',
         level: 7,
         maxHp: 80,

@@ -76,10 +76,25 @@ final class BattleMoveAnimationRecipe {
     'splParticleV3',
     'splParticleV4',
     'splParticleV5',
+    'splParticleV6',
+    'splParticleV7',
+    'splParticleV8',
+    'splParticleV9',
+    'splParticleV10',
+    'splParticleV11',
+    'splParticleV12',
+    'splParticleV13',
+    'splParticleV14',
+    'splParticleV15',
+    'splParticleV16',
+    'splParticleV17',
+    'splParticleV18',
+    'splParticleV19',
     'audioSelectionV2',
     'gen5Swing',
     'gen5SpritePause',
     'gen5SourceProgram',
+    'gen5SourceBackground',
   };
   final Map<String, dynamic> _json;
   final List<BattleMoveAnimationResource> resources;
@@ -149,21 +164,14 @@ final class BattleMoveAnimationRecipe {
       resources.add(resource);
     }
     for (final resource in resources) {
-      if (resource.definitionVersion == 2 &&
-          !capabilities.contains('splParticleV2')) {
+      final definitionVersion = resource.definitionVersion;
+      if (definitionVersion != null && definitionVersion >= 2 &&
+          !capabilities.contains('splParticleV$definitionVersion')) {
         throw const FormatException('SPL particle capability not declared');
       }
-      if (resource.definitionVersion == 3 &&
-          !capabilities.contains('splParticleV3')) {
-        throw const FormatException('SPL particle capability not declared');
-      }
-      if (resource.definitionVersion == 4 &&
-          !capabilities.contains('splParticleV4')) {
-        throw const FormatException('SPL particle capability not declared');
-      }
-      if (resource.definitionVersion == 5 &&
-          !capabilities.contains('splParticleV5')) {
-        throw const FormatException('SPL particle capability not declared');
+      if (definitionVersion != null && definitionVersion > 5 &&
+          (version != 2 || _map(copy['program'], 'step')['kind'] != 'gen5SourceProgram')) {
+        throw const FormatException('Experimental particles require a source program');
       }
       for (final dependency in resource.dependencies) {
         if (!resources.any(
@@ -330,6 +338,10 @@ final class BattleMoveAnimationRecipe {
           if (version != 2 || depth != 0) {
             throw const FormatException('Invalid Gen 5 source program location');
           }
+          if (step.containsKey('backgroundBindings') &&
+              !capabilities.contains('gen5SourceBackground')) {
+            throw const FormatException('Source background capability not declared');
+          }
           _validateGen5SourceProgram(step, copy['variant'] as String, resources);
         default:
           throw const FormatException('Unsupported step');
@@ -434,8 +446,11 @@ final class BattleMoveAnimationRecipe {
           definition['schemaVersion'] != resource.definitionVersion) {
         throw const FormatException('Particle version mismatch');
       }
-      if ({2, 3, 4, 5}.contains(resource.definitionVersion)) {
-        final particle = BattleSplParticleDefinition.fromJson(definition);
+      final definitionVersion = resource.definitionVersion!;
+      if (definitionVersion >= 2 && definitionVersion <= 19) {
+        final particle = definitionVersion > 5
+            ? BattleSplParticleDefinition.fromExperimentalJson(definition)
+            : BattleSplParticleDefinition.fromJson(definition);
         final declared = resource.dependencies.toSet();
         if (particle.textureIds.length != declared.length ||
             !declared.containsAll(particle.textureIds)) {
@@ -578,11 +593,7 @@ final class BattleMoveAnimationResource {
     final definitionVersion = json['definitionVersion'];
     if ((role == 'particleDefinition' &&
             (definitionVersion is! int ||
-                (definitionVersion != 1 &&
-                    definitionVersion != 2 &&
-                    definitionVersion != 3 &&
-                    definitionVersion != 4 &&
-                    definitionVersion != 5))) ||
+                definitionVersion < 1 || definitionVersion > 19)) ||
         (role != 'particleDefinition' && definitionVersion != null)) {
       throw const FormatException('Unsupported particle definition version');
     }
@@ -655,7 +666,7 @@ void _validateGen5SourceProgram(
   String variant,
   List<BattleMoveAnimationResource> resources,
 ) {
-  _keys(step, {'kind', 'sourceProgram', 'particleBindings'});
+  _keys(step, {'kind', 'sourceProgram', 'particleBindings', 'backgroundBindings'});
   final source = _map(step['sourceProgram'], 'source program');
   var valueCount = 0;
   var stringUnits = 0;
@@ -742,7 +753,8 @@ void _validateGen5SourceProgram(
     final id = _audioText(binding['resourceId'], 'particle resourceId');
     if (particleIndices.containsKey(particle) || !resources.any(
       (resource) => resource.id == id && resource.role == 'particleDefinition' &&
-          {2, 3, 4, 5}.contains(resource.definitionVersion),
+          resource.definitionVersion != null &&
+          resource.definitionVersion! >= 2 && resource.definitionVersion! <= 19,
     )) {
       throw const FormatException('Invalid source particle binding');
     }
@@ -757,6 +769,24 @@ void _validateGen5SourceProgram(
       }
     }
     particleIndices[particle] = unique;
+  }
+  final backgrounds = step['backgroundBindings'];
+  if (backgrounds != null) {
+    if (backgrounds is! List || backgrounds.length > 256) {
+      throw const FormatException('Invalid source background bindings');
+    }
+    final ids = <int>{};
+    for (final value in backgrounds) {
+      final binding = _map(value, 'background binding');
+      _keys(binding, {'background', 'resourceId'});
+      final background = _boundedInt(binding['background'], 0, 65535);
+      final resourceId = _audioText(binding['resourceId'], 'background resourceId');
+      if (!ids.add(background) || !resources.any(
+        (resource) => resource.id == resourceId && resource.role == 'texture',
+      )) {
+        throw const FormatException('Invalid source background binding');
+      }
+    }
   }
   for (final value in instructions) {
     final instruction = _map(value, 'source instruction');

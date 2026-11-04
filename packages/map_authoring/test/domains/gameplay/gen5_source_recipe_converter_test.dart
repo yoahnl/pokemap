@@ -61,4 +61,85 @@ void main() {
       ), throwsFormatException);
     });
   }
+
+  test('preserves a version 18 source effect with verified dependencies', () {
+    final workshop = jsonDecode(
+      File('${root.path}/batch/dragon-breath.json').readAsStringSync(),
+    ) as Map<String, dynamic>;
+    final definition = Uint8List.fromList(
+      utf8.encode(jsonEncode(workshop['definition'])),
+    );
+    final textures = {
+      for (final entry in (workshop['textures'] as Map).entries)
+        entry.key as String: base64Decode(entry.value as String),
+    };
+    final result = Gen5SourceRecipeConverter.convert(
+      moveId: 'dragon-breath',
+      sourceProgram: (workshop['program'] as Map).cast<String, dynamic>(),
+      particles: {
+        workshop['particle'] as int: Gen5BatchParticle(
+          definition: definition,
+          textures: textures,
+          sourceEmitterIndices:
+              (workshop['sourceEmitterIndices'] as List).cast<int>(),
+        ),
+      },
+    );
+    final recipe = result.bundle.recipe;
+    expect(recipe.toJson()['requiredCapabilities'], contains('splParticleV18'));
+    expect(
+      recipe.readVerifiedSplParticleDefinitions(
+        result.bundle.media,
+        availableCapabilities: BattleMoveAnimationRecipe.recognizedCapabilities,
+      ).values.single.schemaVersion,
+      18,
+    );
+    final missingCapability = recipe.toJson();
+    (missingCapability['requiredCapabilities'] as List).remove('splParticleV18');
+    expect(
+      () => BattleMoveAnimationRecipe.fromJson(missingCapability),
+      throwsFormatException,
+    );
+    final alteredMedia = Map<String, Uint8List>.from(result.bundle.media);
+    alteredMedia[textures.keys.first] = Uint8List.fromList([0]);
+    expect(
+      () => recipe.readVerifiedSplParticleDefinitions(
+        alteredMedia,
+        availableCapabilities: BattleMoveAnimationRecipe.recognizedCapabilities,
+      ),
+      throwsFormatException,
+    );
+  });
+
+  test('preserves the background needed by the Hyper Beam source program', () {
+    final workshop = jsonDecode(
+      File('${root.path}/batch/hyper-beam.json').readAsStringSync(),
+    ) as Map<String, dynamic>;
+    final backgrounds = {
+      for (final entry in (workshop['backgrounds'] as Map).entries)
+        int.parse(entry.key as String): base64Decode(entry.value as String),
+    };
+    final result = Gen5SourceRecipeConverter.convert(
+      moveId: 'hyper-beam',
+      sourceProgram: (workshop['program'] as Map).cast<String, dynamic>(),
+      particles: {
+        workshop['particle'] as int: Gen5BatchParticle(
+          definition: Uint8List.fromList(utf8.encode(jsonEncode(workshop['definition']))),
+          textures: {
+            for (final entry in (workshop['textures'] as Map).entries)
+              entry.key as String: base64Decode(entry.value as String),
+          },
+          sourceEmitterIndices:
+              (workshop['sourceEmitterIndices'] as List).cast<int>(),
+        ),
+      },
+      backgrounds: backgrounds,
+    );
+    final recipe = result.bundle.recipe.toJson();
+    expect(recipe['requiredCapabilities'], contains('gen5SourceBackground'));
+    final bindings = (recipe['program'] as Map)['backgroundBindings'] as List;
+    expect(bindings, hasLength(1));
+    expect((bindings.single as Map)['background'], 33);
+    expect(result.bundle.media[(bindings.single as Map)['resourceId']], backgrounds[33]);
+  });
 }
