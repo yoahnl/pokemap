@@ -25,16 +25,20 @@ final class BattleSplWorldTransform {
   const BattleSplWorldTransform({
     required this.worldUnitsPerUnit,
     required this.yawRadians,
+    this.verticalSlope = 0,
   });
 
   final double worldUnitsPerUnit;
   final double yawRadians;
+  final double verticalSlope;
 
   bool get isValid =>
       worldUnitsPerUnit.isFinite &&
       worldUnitsPerUnit > 0 &&
       worldUnitsPerUnit <= 4096 &&
-      yawRadians.isFinite;
+      yawRadians.isFinite &&
+      verticalSlope.isFinite &&
+      verticalSlope.abs() <= 4096;
 
   BattleCameraPoint apply(BattleSplVector value) {
     final cosine = math.cos(yawRadians);
@@ -42,7 +46,7 @@ final class BattleSplWorldTransform {
     final scale = worldUnitsPerUnit / 4096;
     return BattleCameraPoint(
       (value.x * cosine - value.z * sine) * scale,
-      value.y * scale,
+      (value.y + value.z * verticalSlope) * scale,
       (value.x * sine + value.z * cosine) * scale,
     );
   }
@@ -62,17 +66,23 @@ final class BattleSplCameraProjection {
   BattleSplCameraProjection({
     required this.camera,
     required List<BattleSplCameraBinding> bindings,
-    this.worldTransform,
+    BattleSplWorldTransform? worldTransform,
+    this.resolveWorldTransform,
     List<BattleSplWorldTransform>? emitterTransforms,
   }) : bindings = List.unmodifiable(bindings),
+       _worldTransform = worldTransform,
        emitterTransforms = emitterTransforms == null
            ? null
            : List.unmodifiable(emitterTransforms) {
     if (bindings.isEmpty || bindings.length > 32) {
       throw const FormatException('Invalid SPL camera bindings');
     }
-    if (worldTransform != null && !worldTransform!.isValid) {
+    if (worldTransform != null && !worldTransform.isValid) {
       throw const FormatException('Invalid SPL world transform');
+    }
+    if (resolveWorldTransform != null &&
+        (worldTransform == null || emitterTransforms != null)) {
+      throw const FormatException('Invalid dynamic SPL world transform');
     }
     if (emitterTransforms != null &&
         (worldTransform == null ||
@@ -84,7 +94,9 @@ final class BattleSplCameraProjection {
 
   final BattlePerspectiveCamera camera;
   final List<BattleSplCameraBinding> bindings;
-  final BattleSplWorldTransform? worldTransform;
+  BattleSplWorldTransform? _worldTransform;
+  BattleSplWorldTransform? get worldTransform => _worldTransform;
+  final BattleSplWorldTransform? Function()? resolveWorldTransform;
   final List<BattleSplWorldTransform>? emitterTransforms;
 
   List<BattleSplWorldAnchor>? capture() {
@@ -123,6 +135,11 @@ final class BattleSplCameraProjection {
         z: geometry.position.z,
         unit: geometry.width,
       ));
+    }
+    if (resolveWorldTransform != null) {
+      final transform = resolveWorldTransform!();
+      if (transform == null || !transform.isValid) return null;
+      _worldTransform = transform;
     }
     return List.unmodifiable(values);
   }

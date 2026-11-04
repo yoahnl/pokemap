@@ -943,6 +943,32 @@ class BattlePreviewGame extends FlameGame {
             texture.key as String: base64Decode(texture.value as String),
         };
       }
+      final centeredBeamOrigins = <(Object?, int)>{};
+      if (_overlay.size.y > _overlay.size.x) {
+        for (final command in commands) {
+          final args = command.args;
+          if (command.orthographic || command.orbit || args['from'] == args['to'] ||
+              args['from'] == 8 || args['to'] == 8 || args['offsetY'] is! int) {
+            continue;
+          }
+          final particle = args['particle'] as int;
+          final selectedIndices = groupIndices[particle] ?? indices;
+          final definition = groupDefinitions[particle] ?? originalDefinition;
+          final index = selectedIndices.indexOf(args['emitter'] as int);
+          if (definition == null || index < 0) continue;
+          final emitters = definition['emitters'] as List;
+          if (index >= emitters.length) continue;
+          final emitter = emitters[index] as Map;
+          final appearance = emitter['appearance'] as Map;
+          final emission = emitter['emission'] as Map;
+          if (appearance['draw'] == 'directionalBillboard' &&
+              appearance['directionStretch'] is int &&
+              emission['axisVelocity'] is int && emission['axisVelocity'] != 0) {
+            centeredBeamOrigins.add((args['from'], args['offsetY'] as int));
+            centeredBeamOrigins.add((args['to'], args['offsetY'] as int));
+          }
+        }
+      }
       for (final command in commands) {
         if (_closed) return;
         final args = command.args;
@@ -963,6 +989,15 @@ class BattlePreviewGame extends FlameGame {
         final towardOpponent = !command.orbit && !fieldPositioned &&
             args['from'] != 8 && args['to'] != 8 && args['to'] != args['from'] &&
             !(args['from'] == 0 && args['to'] == 'EFFVM_EMIT_ATTACKER');
+        final centeredBeam = !command.orthographic && !fieldPositioned &&
+            centeredBeamOrigins.contains((args['from'], args['offsetY']));
+        final appearance = emitter['appearance'] as Map;
+        final emission = emitter['emission'] as Map;
+        final portraitBeam = centeredBeam &&
+            appearance['draw'] == 'directionalBillboard' &&
+            appearance['directionStretch'] is int &&
+            emission['axisVelocity'] is int && emission['axisVelocity'] != 0;
+        final emitterOffsetY = centeredBeam ? 0 : args['offsetY'] as int;
         applyGen5SourceEmitterParameters(
           emitter,
           movingOrthographic ? {...args, 'radiusScale': 3072, 'scaleScale': 3072} : args,
@@ -983,14 +1018,19 @@ class BattlePreviewGame extends FlameGame {
           towardOpponent: towardOpponent,
           matchBattleSpacing: isSurf || isMovingExample,
           anchorAtFoot: isSurf || isMovingExample,
+          centerTargetedBeam: centeredBeam,
         );
-        final pixelsPerUnit = command.orthographic
+        final basePixelsPerUnit = command.orthographic
             ? math.min(projection.camera.viewport.width / 8,
                 projection.camera.viewport.height / 6)
             : isSurf || isMovingExample
             ? projection.worldTransform!.worldUnitsPerUnit /
                   projection.capture()!.single.unit
             : 25.0;
+        final beamScale = portraitBeam
+            ? (_overlay.size.y / _overlay.size.x).clamp(1.0, 2.0)
+            : 1.0;
+        final pixelsPerUnit = basePixelsPerUnit * beamScale;
         late final BattleExperimentalSplPreparation result;
         result = await loader.create(
           definition: definition,
@@ -1007,7 +1047,7 @@ class BattlePreviewGame extends FlameGame {
               startTick: 0,
               position: fieldPositioned
                   ? gen5SourceFieldEmitterOffset(args)
-                  : (x: 0, y: command.orthographic ? 0 : args['offsetY'] as int, z: 0),
+                  : (x: 0, y: command.orthographic ? 0 : emitterOffsetY, z: 0),
             ),
           ],
           seed: 0,
@@ -1058,7 +1098,7 @@ class BattlePreviewGame extends FlameGame {
             to: endpoints.to,
             motionType: args['motion'] as int,
             motionFramesFx32: args['motionFramesFx32'] as int,
-            offsetYFx32: args['offsetY'] as int,
+            offsetYFx32: emitterOffsetY,
             heightFx32: args['height'] as int,
             turnsFx32: args['turns'] as int,
           );

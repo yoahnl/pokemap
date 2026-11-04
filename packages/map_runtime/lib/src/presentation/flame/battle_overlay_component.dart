@@ -947,6 +947,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     bool towardOpponent = false,
     bool matchBattleSpacing = false,
     bool anchorAtFoot = false,
+    bool centerTargetedBeam = false,
   }) {
     final camera = _perspectiveCamera;
     final slot = BattleSlotRef.active(
@@ -966,7 +967,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
       resolveNeutralFoot: () => current() ? _geometryFor(slot).footAnchor : null,
       resolveAnchor: () {
         if (!current()) return null;
-        if (anchorAtFoot) {
+        if (anchorAtFoot && !centerTargetedBeam) {
           final foot = identity.actor.currentFootAnchor;
           return Vector2(foot.dx, foot.dy);
         }
@@ -990,7 +991,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
           if (value == null || !identical(value.actor, opponent.actor) ||
               value.combatantId != opponent.combatantId ||
               value.lineupIndex != opponent.lineupIndex) return null;
-          if (anchorAtFoot) {
+          if (anchorAtFoot && !centerTargetedBeam) {
             final foot = opponent.actor.currentFootAnchor;
             return Vector2(foot.dx, foot.dy);
           }
@@ -1000,25 +1001,34 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
       ));
     }
     final neutral = BattleSplCameraProjection(camera: camera, bindings: bindings);
-    final anchors = neutral.capture();
-    if (anchors == null) {
-      throw StateError('Experimental source anchor is unavailable');
-    }
-    final spacing = matchBattleSpacing
-        ? math.sqrt(math.pow(anchors.last.x - anchors.first.x, 2) +
-            math.pow(anchors.last.z - anchors.first.z, 2)) /
-            math.sqrt(17 * 17 + math.pow(819 / 4096, 2))
-        : anchors.first.unit * 5;
-    return BattleSplCameraProjection(
-      camera: camera,
-      bindings: [binding],
-      worldTransform: BattleSplWorldTransform(
+    BattleSplWorldTransform? resolveTransform() {
+      final anchors = neutral.capture();
+      if (anchors == null) return null;
+      final horizontalDistance = math.sqrt(math.pow(anchors.last.x - anchors.first.x, 2) +
+          math.pow(anchors.last.z - anchors.first.z, 2));
+      final spacing = matchBattleSpacing
+          ? horizontalDistance / math.sqrt(17 * 17 + math.pow(819 / 4096, 2))
+          : anchors.first.unit * 5;
+      return BattleSplWorldTransform(
         worldUnitsPerUnit: spacing,
         yawRadians: towardOpponent
             ? math.atan2(-(anchors.last.x - anchors.first.x),
                 anchors.last.z - anchors.first.z)
             : 0,
-      ),
+        verticalSlope: centerTargetedBeam && towardOpponent && horizontalDistance > 0
+            ? (anchors.last.y - anchors.first.y) / horizontalDistance
+            : 0,
+      );
+    }
+    final transform = resolveTransform();
+    if (transform == null) {
+      throw StateError('Experimental source anchor is unavailable');
+    }
+    return BattleSplCameraProjection(
+      camera: camera,
+      bindings: [binding],
+      worldTransform: transform,
+      resolveWorldTransform: centerTargetedBeam && towardOpponent ? resolveTransform : null,
     );
   }
 

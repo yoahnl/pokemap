@@ -6,6 +6,7 @@ import 'dart:ui' as ui;
 
 import 'package:avelune_attack_compare/main.dart' show PreviewPanel, extractPreviewResources;
 import 'package:avelune_attack_compare/preview_game.dart';
+import 'package:avelune_attack_compare/workshop_reference_pokemon.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -331,10 +332,12 @@ void main() {
 
   final rootPath = Platform.environment['AVELUNE_ATTACK_WORKSHOP_QA'];
   for (final scenario in [
-    (id: 'dragon-breath', label: 'Draco-Souffle', particle: 395),
-    (id: 'hyper-beam', label: 'Ultralaser', particle: 228),
+    (id: 'dragon-breath', label: 'Draco-Souffle', particle: 395,
+      attacker: 'archen', target: 'gurdurr'),
+    (id: 'hyper-beam', label: 'Ultralaser', particle: 228,
+      attacker: 'swoobat', target: 'buizel'),
   ]) {
-    for (final size in [const Size(393, 852), const Size(852, 393)]) {
+    for (final size in [const Size(393, 852), const Size(600, 800), const Size(852, 393)]) {
       testWidgets('${scenario.label} aims at the opponent at $size', (tester) async {
         tester.view.physicalSize = size;
         tester.view.devicePixelRatio = 1;
@@ -348,6 +351,31 @@ void main() {
         addTearDown(() async {
           if (await root.exists()) await root.delete(recursive: true);
         });
+        PreparedReferencePair? referencePokemon;
+        if (Platform.environment['AVELUNE_ATTACK_REFERENCE_QA'] == '1') {
+          final previousOverrides = HttpOverrides.current;
+          HttpOverrides.global = null;
+          addTearDown(() => HttpOverrides.global = previousOverrides);
+          final store = WorkshopReferencePokemonStore(root: root);
+          addTearDown(store.close);
+          referencePokemon = await tester.runAsync<PreparedReferencePair?>(() => store.prepare(
+            (attacker: scenario.attacker, target: scenario.target),
+          ));
+          expect(referencePokemon, isNotNull, reason: 'Pokémon de référence indisponibles');
+          final captureDir = Platform.environment['AVELUNE_ATTACK_AIM_CAPTURES'];
+          if (captureDir != null) {
+            await tester.runAsync(() async {
+              for (final (id, view) in [
+                (scenario.attacker, 'back'), (scenario.target, 'front'),
+              ]) {
+                for (final ext in ['gif', 'png']) {
+                  final file = File('${root.path}/assets/pokemon/comparator/$id-$view.$ext');
+                  if (await file.exists()) await file.copy('$captureDir/$id-$view.$ext');
+                }
+              }
+            });
+          }
+        }
         final status = ValueNotifier<String>('Preparing');
         addTearDown(status.dispose);
         final game = BattlePreviewGame(
@@ -359,11 +387,17 @@ void main() {
             bundleAsset: 'assets/bw2/batch/${scenario.id}.json',
           ),
           status: status,
+          referencePokemon: referencePokemon,
+          loadMoveAudio: (_) async => null,
         );
+        const boundaryKey = ValueKey('laser-portrait-proof');
         await tester.pumpWidget(Directionality(
           textDirection: TextDirection.ltr,
-          child: SizedBox(
-            width: size.width, height: size.height, child: GameWidget(game: game),
+          child: RepaintBoundary(
+            key: boundaryKey,
+            child: SizedBox(
+              width: size.width, height: size.height, child: GameWidget(game: game),
+            ),
           ),
         ));
         for (var tick = 0;
@@ -372,11 +406,30 @@ void main() {
           await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 3)));
         }
         expect(status.value, 'Combat prêt · appuie sur Lancer');
+        final scene = game.children.whereType<BattleOverlayComponent>().single;
+        final movingTargetProjection = scene.experimentalGen5Projection(
+          attacker: true,
+          towardOpponent: true,
+          centerTargetedBeam: true,
+        );
+        expect(movingTargetProjection.capture(), isNotNull);
+        final initialYaw = movingTargetProjection.worldTransform!.yawRadians;
+        scene.debugEnemyCombatant!.setIdleLateralOffset(40);
+        expect(movingTargetProjection.capture(), isNotNull);
+        expect(movingTargetProjection.worldTransform!.yawRadians,
+            isNot(closeTo(initialYaw, .000001)));
+        scene.debugEnemyCombatant!.setIdleLateralOffset(0);
+        expect(movingTargetProjection.capture(), isNotNull);
+        expect(movingTargetProjection.worldTransform!.yawRadians,
+            closeTo(initialYaw, .000001));
         unawaited(game.play());
         var measured = 0;
         var towardTarget = 0;
         var afterFirstParticle = 0;
         var reachedTarget = false;
+        int? beamCorePixels;
+        final impactHeights = <double>[];
+        final initialImpactHeights = <double>[];
         for (var tick = 0; tick < 400; tick++) {
           await tester.pump(const Duration(milliseconds: 16));
           await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 3)));
@@ -396,19 +449,76 @@ void main() {
                       anchors.first, particle,
                       relativeBasePosition: frame.relativeBasePosition,
                     );
-                    reachedTarget |= projected != null &&
-                        target.inflate(12).contains(projected.position);
+                    final impact = Rect.fromLTWH(
+                      target.left + target.width * .2,
+                      target.top + target.height * .2,
+                      target.width * .6, target.height * .6,
+                    );
+                    reachedTarget |= projected != null && impact.contains(projected.position);
+                    if (projected != null &&
+                        (projected.position.dx - target.center.dx).abs() < target.width * .15) {
+                      final offset = (projected.position.dy - target.center.dy) / target.height;
+                      impactHeights.add(offset);
+                      if (afterFirstParticle < 30) initialImpactHeights.add(offset);
+                    }
                   }
                 }
               }
             }
           }
           if (measured > 0) afterFirstParticle++;
-          if (afterFirstParticle == 30) break;
+          final captureDir = Platform.environment['AVELUNE_ATTACK_AIM_CAPTURES'];
+          final captureFrame = captureDir != null && afterFirstParticle > 0 &&
+              afterFirstParticle <= 60 && afterFirstParticle % 10 == 0;
+          final measureBeam = scenario.id == 'hyper-beam' && size.height > size.width &&
+              afterFirstParticle == 20;
+          if (captureFrame || measureBeam) {
+            final boundary = tester.renderObject<RenderRepaintBoundary>(find.byKey(boundaryKey));
+            final image = (await tester.runAsync(() => boundary.toImage(pixelRatio: 1)))!;
+            if (measureBeam) {
+              final rgba = (await tester.runAsync(() => image.toByteData(
+                format: ui.ImageByteFormat.rawRgba,
+              )))!.buffer.asUint8List();
+              final attacker = scene.debugPlayerCombatant!.currentEffectAttachmentSpriteRect;
+              final target = scene.debugEnemyCombatant!.currentEffectAttachmentSpriteRect;
+              final middle = Offset.lerp(attacker.center, target.center, .5)!;
+              final x = middle.dx.round().clamp(0, image.width - 1);
+              final top = (middle.dy - target.height * .6).floor().clamp(0, image.height - 1);
+              final bottom = (middle.dy + target.height * .6).ceil().clamp(0, image.height - 1);
+              beamCorePixels = 0;
+              for (var y = top; y <= bottom; y++) {
+                final pixel = (y * image.width + x) * 4;
+                if (rgba[pixel] > 215 && rgba[pixel + 1] < 190 && rgba[pixel + 2] < 190) {
+                  beamCorePixels = beamCorePixels! + 1;
+                }
+              }
+            }
+            if (captureFrame) {
+              final bytes = await tester.runAsync(() => image.toByteData(format: ui.ImageByteFormat.png));
+              await tester.runAsync(() => File(
+                '$captureDir/${scenario.id}-${size.width.toInt()}-$afterFirstParticle.png',
+              ).writeAsBytes(bytes!.buffer.asUint8List()));
+            }
+            image.dispose();
+          }
+          if (afterFirstParticle == 80) break;
         }
         expect(measured, greaterThan(0), reason: status.value);
         expect(towardTarget / measured, greaterThan(.9));
-        expect(reachedTarget, isTrue, reason: 'Le faisceau doit atteindre le Pokémon adverse');
+        expect(reachedTarget, isTrue, reason: 'Le faisceau doit atteindre le centre du Pokémon adverse');
+        impactHeights.sort();
+        initialImpactHeights.sort();
+        debugPrint('[laser-aim] ${scenario.id} $size count=${impactHeights.length} '
+            'median=${impactHeights.isEmpty ? null : impactHeights[impactHeights.length ~/ 2]}');
+        expect(impactHeights, isNotEmpty);
+        expect(initialImpactHeights, isNotEmpty);
+        final maxImpactOffset = size.height > size.width ? .12 : .22;
+        expect(impactHeights[impactHeights.length ~/ 2].abs(), lessThan(maxImpactOffset));
+        expect(initialImpactHeights[initialImpactHeights.length ~/ 2].abs(), lessThan(maxImpactOffset));
+        if (scenario.id == 'hyper-beam' && size.height > size.width) {
+          expect(beamCorePixels, greaterThanOrEqualTo(16),
+              reason: 'Le cœur du rayon doit rester visible en portrait');
+        }
         await tester.pumpWidget(const SizedBox());
       }, skip: rootPath == null);
     }
