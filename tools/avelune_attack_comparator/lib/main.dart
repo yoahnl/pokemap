@@ -10,11 +10,14 @@ import 'package:map_battle/map_battle.dart' show PsdkBattleMoveCategory;
 import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart' show BattleCommandOverlaySnapshot;
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import 'preview_game.dart';
 import 'workshop_reference_playback.dart';
 import 'workshop_reference_pokemon.dart';
+import 'workshop_review.dart';
+import 'workshop_review_controls.dart';
 
 const _referenceHtml = '''
 <!doctype html><html><head>
@@ -203,6 +206,7 @@ class _ComparePageState extends State<ComparePage> {
   late final WebViewController _reference;
   late final WorkshopReferencePlayback _referencePlayback;
   late final Future<void> _referenceSetup;
+  late final Future<WorkshopReviewStore> _reviewStore;
   late final WorkshopReferencePokemonStore _referencePokemonStore;
   BattlePreviewGame? _game;
   PreparedReferencePair? _preparedPokemon;
@@ -210,6 +214,8 @@ class _ComparePageState extends State<ComparePage> {
   PreviewMove _move = PreviewMove.tackle;
   String _pokemonNotice = 'Chargement des Pokémon de la référence…';
   String _referenceNotice = 'Chargement de la référence BW…';
+  String? _reviewError;
+  bool _savingReview = false;
   String _search = '';
   PhoneOrientation _orientation = PhoneOrientation.portrait;
   int _referenceVersion = 0;
@@ -228,9 +234,33 @@ class _ComparePageState extends State<ComparePage> {
       );
     });
     _referenceSetup = _prepareReferenceView();
+    _reviewStore = _loadReviewStore();
     _referencePokemonStore = WorkshopReferencePokemonStore(root: widget.root);
     unawaited(_showReference(_move));
     unawaited(_prepareGame(_move));
+  }
+
+  Future<WorkshopReviewStore> _loadReviewStore() async {
+    final directory = await getApplicationSupportDirectory();
+    final store = WorkshopReviewStore(File(p.join(directory.path, 'attack-reviews.json')));
+    await store.load();
+    return store;
+  }
+
+  String _reviewKey(PreviewMove move) => workshopReviewKey(
+    move.id, variant: move.sourceVariant, asset: move.bundleAsset,
+  );
+
+  Future<void> _saveReview(WorkshopReviewStore store, WorkshopReviewStatus status) async {
+    final key = _reviewKey(_move);
+    setState(() { _savingReview = true; _reviewError = null; });
+    try {
+      await store.save(key, status);
+    } on Object {
+      if (mounted) setState(() => _reviewError = 'Impossible d’enregistrer la revue. Réessaie.');
+    } finally {
+      if (mounted) setState(() => _savingReview = false);
+    }
   }
 
   Future<void> _prepareReferenceView() async {
@@ -330,6 +360,11 @@ class _ComparePageState extends State<ComparePage> {
   @override
   Widget build(BuildContext context) {
     final game = _game;
+    final visibleMoves = widget.moves.where((move) =>
+        move == _move || _search.isEmpty ||
+        move.label.toLowerCase().contains(_search) ||
+        move.id.toLowerCase().contains(_search)).toList();
+    final currentIndex = visibleMoves.indexOf(_move);
     return Scaffold(
     body: SafeArea(
       child: Padding(
@@ -403,17 +438,26 @@ class _ComparePageState extends State<ComparePage> {
                   key: const ValueKey('attack-select'),
                   value: _move,
                   items: [
-                    for (final move in widget.moves.where(
-                      (move) =>
-                          move == _move ||
-                          _search.isEmpty ||
-                          move.label.toLowerCase().contains(_search) ||
-                          move.id.toLowerCase().contains(_search),
-                    ))
+                    for (final move in visibleMoves)
                       DropdownMenuItem(value: move, child: Text(move.label)),
                   ],
                   onChanged: (move) {
                     if (move != null && move != _move) _changeMove(move);
+                  },
+                ),
+                FutureBuilder<WorkshopReviewStore>(
+                  future: _reviewStore,
+                  builder: (context, snapshot) {
+                    final store = snapshot.data;
+                    return WorkshopReviewControls(
+                      status: store?.statusFor(_reviewKey(_move)) ?? WorkshopReviewStatus.toReview,
+                      enabled: store != null && !_savingReview,
+                      canGoPrevious: currentIndex > 0,
+                      canGoNext: currentIndex >= 0 && currentIndex < visibleMoves.length - 1,
+                      onPrevious: () => _changeMove(visibleMoves[currentIndex - 1]),
+                      onNext: () => _changeMove(visibleMoves[currentIndex + 1]),
+                      onChanged: (status) { if (store != null) unawaited(_saveReview(store, status)); },
+                    );
                   },
                 ),
                 FilledButton.icon(
@@ -450,6 +494,15 @@ class _ComparePageState extends State<ComparePage> {
                   },
                 ),
               ],
+            ),
+            FutureBuilder<WorkshopReviewStore>(
+              future: _reviewStore,
+              builder: (context, snapshot) {
+                final message = snapshot.hasError
+                    ? 'Impossible de charger les revues enregistrées.'
+                    : _reviewError;
+                return message == null ? const SizedBox.shrink() : Text(message);
+              },
             ),
             const SizedBox(height: 12),
             Expanded(

@@ -88,6 +88,8 @@ Le lot 7 est volontairement commencé après le constat initial du lot 1 : le pi
 
 **Fichiers candidats :** `battle_gen5_actor_motion.dart`, `battle_gen5_camera_motion.dart`, `battle_perspective_camera.dart`, `battle_scene_combatant_component.dart`, `battle_pokemon_sprite_resolver.dart`, `battle_overlay_component.dart` et `tools/avelune_attack_comparator/lib/preview_game.dart`.
 
+**Avancement :** le lecteur expérimental accepte le côté de l’attaquant pour ses acteurs et ses cadrages. Son repère de caméra reste attaché aux places physiques joueur/adversaire. Trois tests vérifient le déplacement adverse et sa restitution, l’équivalence des cadrages et celle de la projection d’un même acteur lorsque les rôles sont inversés. La suite de scène et le smoke runtime passent : 79 tests ; le smoke de l’hôte passe : 14 tests. Les émetteurs, la revue visuelle des deux sens et le raccord au Player ne sont pas démontrés par ces tests ; les appels existants continuent à utiliser le côté joueur par défaut.
+
 **Fin du lot :** acteurs et caméra restent cohérents sur les exemples ciblés et après interruption ; les différences restantes entre squelette, GIF et rendu GPU sont indiquées.
 
 ## Lot 4 — Sons et synchronisation
@@ -127,6 +129,8 @@ Le lot 7 est volontairement commencé après le constat initial du lot 1 : le pi
 - [ ] Afficher les manques connus en langage simple, notamment variante, Pokémon de remplacement, son approximatif et effet non reproduit. En l’absence de référence, montrer la limite plutôt qu’une comparaison vide présentée comme réussie.
 
 **Fichiers candidats :** `tools/avelune_attack_comparator/lib/main.dart`, les tests `tools/avelune_attack_comparator/test/`, et un petit module local de persistance seulement si le code existant ne suffit pas.
+
+**QA partielle :** les commandes précédent/suivant et l’état de revue sont implémentés ; quatre tests couvrent les décisions, les variantes, le fichier mal formé, les écritures simultanées et les contrôles. L’analyse ciblée est sans diagnostic. Une copie macOS signée a affiché ces commandes et la comparaison, mais l’outil de contrôle n’a pas pu cliquer dans sa fenêtre (`noWindowsAvailable`) : la modification d’un avis et sa conservation après fermeture n’ont pas été observées en natif. La copie de test et son conteneur ont été supprimés après arrêt de leur processus ; l’atelier précédent reste ouvert et le raccourci du Bureau n’a pas été mis à jour.
 
 **Fin du lot :** Yoahn peut retrouver une attaque, la rejouer, changer de format et reprendre ses décisions après fermeture. Les captures automatiques ne valident pas les attaques à sa place.
 
