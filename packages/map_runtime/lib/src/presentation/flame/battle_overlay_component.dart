@@ -1055,7 +1055,6 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     final actors = {'EFFVM_ATTACKER': user, 'EFFVM_DEFENDER': target};
     final slots = {'EFFVM_ATTACKER': userSlot, 'EFFVM_DEFENDER': targetSlot};
     final paused = <BattleSceneCombatantComponent>{};
-    final previouslyHidden = <String>{};
     final pauseOwner = Object();
     final visualOwner = Object();
     final sourceBackground = BattleGen5SourceBackground(
@@ -1539,9 +1538,8 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
           if (!current(key)) throw StateError('Battle actor changed');
           final actor = actors[key]!.actor;
           if (args['mode'] == 3) {
-            if (actor.isHiddenForBattleScript) previouslyHidden.add(key);
             actor.setBattleScriptHidden(true, owner: visualOwner);
-          } else if (!previouslyHidden.remove(key)) {
+          } else {
             actor.setBattleScriptHidden(false, owner: visualOwner);
           }
         case 'fadeCombatantAlpha':

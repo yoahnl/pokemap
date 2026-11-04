@@ -398,6 +398,33 @@ void main() {
     expect(actor.stageTint.a, greaterThan(0));
   });
 
+  test('source visibility releases its own hide when another owner hides first', () async {
+    final overlay = await _scene();
+    final actor = overlay.debugPlayerCombatant!;
+    final other = Object();
+    actor.setBattleScriptHidden(true, owner: other);
+    final finished = overlay.presentExperimentalGen5Attack(
+      program: _program([
+        _instruction('setCombatantVisibility', {'targets': 'EFFVM_ATTACKER', 'mode': 3}),
+        _instruction('waitFrames', {'frames': 2}),
+        _instruction('setCombatantVisibility', {'targets': 'EFFVM_ATTACKER', 'mode': 4}),
+        _instruction('waitFrames', {'frames': 60}),
+        _instruction('end'),
+      ]),
+      variant: 'Tackle', hasEmitter: (_, _) => false,
+      startEmitter: (_, _, _) {}, particlesBusy: () => false,
+      detachParticles: () {}, allowSilentAudio: true, allowSourceVisibility: true,
+    );
+    for (var tick = 0; tick < 12; tick++) {
+      overlay.updateTree(1 / 60);
+    }
+    expect(overlay.isTurnPresentationActive, isTrue);
+    actor.setBattleScriptHidden(false, owner: other);
+    expect(actor.stageTint.a, greaterThan(0));
+    overlay.cancelExperimentalGen5Attack();
+    expect(await finished, BattleGen5SourcePlaybackStatus.cancelled);
+  });
+
   test('relative source camera movement runs and restores the scene', () async {
     final overlay = await _scene();
     final initial = overlay.battleCameraPose!;
