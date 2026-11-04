@@ -6,6 +6,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_runtime/src/application/runtime_psdk_battle_session_adapter.dart';
 import 'package:map_runtime/src/application/runtime_move_catalog_loader.dart';
 import 'package:map_runtime/src/presentation/flame/battle_animation_plan.dart';
+import 'package:map_runtime/src/presentation/flame/battle_gen5_source_program_playback.dart';
 import 'package:map_runtime/src/presentation/flame/battle_turn_animation_planner.dart';
 import 'package:map_runtime/src/presentation/flame/battle_move_visual_resolver.dart';
 import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
@@ -19,6 +20,58 @@ import 'support/load_flame_component.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('source alpha in doubles only affects its actor and restores on cancellation', () async {
+    final adapter = _adapter();
+    final overlay = BattleOverlayComponent(
+      session: adapter.createLegacyDisplaySession(isTrainerBattle: true),
+      presentation: adapter.presentation,
+      viewportSize: Vector2(436, 800),
+      onPlayerChoice: (_) {},
+    );
+    await loadFlameComponent(overlay);
+    await overlay.waitForPendingVisualSync();
+    addTearDown(overlay.onRemove);
+    final actor = overlay.debugPlayerCombatant!;
+    final others = overlay.children.whereType<BattleSceneCombatantComponent>()
+        .where((item) => !identical(item, actor)).toList();
+    final initial = {for (final item in [actor, ...others]) item: item.stageTint.a};
+    Map<String, dynamic> instruction(String op, Map<String, dynamic> args) => {
+      'op': op, 'args': args,
+      'source': {'index': 0, 'line': 1, 'name': op, 'operands': <String>[]},
+    };
+    final program = <String, dynamic>{
+      'kind': 'gen5SourceProgram', 'timebaseHz': 60, 'source': {'path': 'ally_switch.s'},
+      'variants': ['AllySwitch'],
+      'labels': [{'name': 'AllySwitch', 'instructionIndex': 0, 'line': 1}],
+      'variant': 'AllySwitch', 'entryIndex': 0, 'conversion': 'supported',
+      'instructions': [
+        instruction('fadeCombatantAlpha', {
+          'targets': 'EFFVM_ATTACKER', 'type': 0, 'alpha': 2,
+          'frames': 0, 'wait': 0, 'times': 0,
+        }),
+        instruction('waitFrames', {'frames': 60}),
+        instruction('end', {}),
+      ],
+    };
+    final finished = overlay.presentExperimentalGen5Attack(
+      program: program, variant: 'AllySwitch', hasEmitter: (_, _) => false,
+      startEmitter: (_, _, _) {}, particlesBusy: () => false,
+      detachParticles: () {}, allowSilentAudio: true, allowSourceVisibility: true,
+    );
+    for (var tick = 0; tick < 4; tick++) {
+      overlay.updateTree(1 / 60);
+    }
+    expect(actor.stageTint.a, closeTo(2 / 31, .01));
+    for (final item in others) {
+      expect(item.stageTint.a, initial[item]);
+    }
+    overlay.cancelExperimentalGen5Attack();
+    expect(await finished, BattleGen5SourcePlaybackStatus.cancelled);
+    for (final item in [actor, ...others]) {
+      expect(item.stageTint.a, initial[item]);
+    }
+  });
 
   test('camera diagnostics use the active slot geometry in doubles', () async {
     final adapter = _adapter();

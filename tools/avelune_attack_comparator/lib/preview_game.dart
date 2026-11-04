@@ -21,19 +21,20 @@ import 'package:map_runtime/src/presentation/flame/battle_offline_move_recipe_lo
 import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_perspective_camera.dart';
 import 'package:map_runtime/src/presentation/flame/battle_pokemon_sprite_resolver.dart';
+import 'package:map_runtime/src/presentation/flame/battle_scene_combatant_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_sfx_player.dart';
 import 'package:map_runtime/src/presentation/flame/battle_gen5_source_emitter.dart';
 import 'package:map_runtime/src/presentation/flame/battle_gen5_source_program_playback.dart';
 import 'package:map_runtime/src/presentation/flame/battle_gen5_emitter_motion.dart';
 import 'package:map_runtime/src/presentation/flame/battle_spl_static_admission.dart';
 import 'package:map_runtime/src/presentation/flame/battle_spl_camera_projection.dart';
+import 'workshop_reference_pokemon.dart';
 import 'package:map_runtime/src/presentation/flame/battle_spl_static_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_verified_spl_loader.dart';
 import 'package:map_runtime/src/presentation/flutter/battle_command_overlay_snapshot.dart';
 import 'package:path/path.dart' as p;
 
 import 'workshop_move_audio.dart';
-import 'workshop_reference_pokemon.dart';
 
 class PreviewMove {
   const PreviewMove(
@@ -143,7 +144,6 @@ class PreviewMove {
     bundleAsset: 'assets/bw2/batch/shadow-ball.json',
     approximations: [
       'camera:relative-adapted-to-workshop',
-      'particle-child:followEmitter',
       'particle-field:lifeTimeVariance',
       'particle-spin:trigonometry-experimental',
       'source-emitter:field-coordinate-calibration',
@@ -192,7 +192,60 @@ class PreviewMove {
     'https://archives.bulbagarden.net/media/upload/d/dc/Roar_V.png',
     'normal',
     PsdkBattleMoveCategory.status,
-    unavailableReason: 'Cri et déplacement du Pokémon à intégrer.',
+    particle: 211,
+    bundleAsset: 'assets/bw2/batch/roar.json',
+    approximations: [
+      'actor-position:screen-space-approximation',
+      'source-audio:cry-and-timing-unavailable',
+      'source-gauge:preview-restored',
+    ],
+  );
+  static const mirrorMove = PreviewMove(
+    'mirror-move',
+    'Mimique',
+    'https://archives.bulbagarden.net/media/upload/a/ad/Mirror_Move_V.png',
+    'flying',
+    PsdkBattleMoveCategory.status,
+    particle: 192,
+    bundleAsset: 'assets/bw2/batch/jump-kick.json',
+    approximations: ['source-context:copied-jump-kick'],
+  );
+  static const naturePower = PreviewMove(
+    'nature-power',
+    'Force Nature',
+    'https://archives.bulbagarden.net/media/upload/b/bc/Nature_Power_V.png',
+    'normal',
+    PsdkBattleMoveCategory.status,
+    particle: 325,
+    bundleAsset: 'assets/bw2/batch/rock-slide.json',
+    approximations: [
+      'particle-axis:source-basis-experimental',
+      'source-context:cave-rock-slide',
+    ],
+  );
+  static const transform = PreviewMove(
+    'transform',
+    'Morphing',
+    'https://archives.bulbagarden.net/media/upload/7/78/Transform_V.png',
+    'normal',
+    PsdkBattleMoveCategory.status,
+    approximations: [
+      'source-effect:prelude-unavailable',
+      'rendering:software-during-mosaic',
+    ],
+  );
+  static const allySwitch = PreviewMove(
+    'ally-switch',
+    'Interversion',
+    'https://archives.bulbagarden.net/media/upload/1/1f/Ally_Switch_V.png',
+    'psychic',
+    PsdkBattleMoveCategory.status,
+    bundleAsset: 'assets/bw2/batch/ally-switch.json',
+    approximations: [
+      'actor-position:screen-space-approximation',
+      'source-audio:unavailable',
+      'preview:simulated-position-swap',
+    ],
   );
 
   static const values = [
@@ -210,6 +263,10 @@ class PreviewMove {
     thief,
     charm,
     roar,
+    mirrorMove,
+    naturePower,
+    transform,
+    allySwitch,
   ];
   final String id;
   final String label;
@@ -242,6 +299,7 @@ class BattlePreviewGame extends FlameGame {
   final Completer<void> _ready = Completer<void>();
   final FlameAudioBattleSfxPlayer _sound;
   late final RuntimePsdkBattleSessionAdapter _adapter;
+  late final BattlePokemonSpriteResolver _spriteResolver;
   late final BattleOverlayComponent _overlay;
   final ValueNotifier<BattleCommandOverlaySnapshot?> snapshot = ValueNotifier(
     null,
@@ -253,6 +311,14 @@ class BattlePreviewGame extends FlameGame {
   bool _closed = false;
   Future<BattleGen5SourcePlaybackStatus> Function()? _startSourceAttack;
   Completer<BattleGen5SourcePlaybackStatus>? _sourceCompletion;
+  BattleSceneCombatantComponent? _transformActor;
+  BattleCombatantSpriteSpec? _transformSprite;
+  String? _transformLabel;
+  Object? _transformOwner;
+  Completer<void>? _transformCompletion;
+  int _transformTick = 0;
+  double _transformElapsed = 0;
+  bool _transformLoading = false;
 
   @override
   Future<void> onLoad() async {
@@ -287,6 +353,7 @@ class BattlePreviewGame extends FlameGame {
             );
           },
     );
+    _spriteResolver = resolver;
     late final BattleOverlayComponent overlay;
     overlay = BattleOverlayComponent(
       session: session,
@@ -436,6 +503,14 @@ class BattlePreviewGame extends FlameGame {
       await _ready.future;
       if (_closed) return;
       status.value = 'Chargement de ${move.label}…';
+      if (move == PreviewMove.transform) {
+        await _playTransform(onStart: onStart);
+        return;
+      }
+      if (move == PreviewMove.allySwitch) {
+        await _playAllySwitch(onStart: onStart);
+        return;
+      }
       if (move == PreviewMove.tackle ||
           move == PreviewMove.surf ||
           move == PreviewMove.waterGun ||
@@ -488,6 +563,152 @@ class BattlePreviewGame extends FlameGame {
       }
     } catch (error) {
       if (!_closed) status.value = 'Impossible de lancer l’attaque : $error';
+    }
+  }
+
+  Future<void> _playAllySwitch({void Function()? onStart}) async {
+    final bundle = jsonDecode(await rootBundle.loadString(move.bundleAsset!)) as Map;
+    if (_closed) return;
+    final program = Map<String, dynamic>.from(bundle['program'] as Map);
+    onStart?.call();
+    status.value = 'Interversion · programme BW2 expérimental · sans son source';
+    final result = await _overlay.presentExperimentalGen5Attack(
+      program: program,
+      variant: program['variant'] as String,
+      hasEmitter: (_, _) => false,
+      startEmitter: (_, _, _) {},
+      particlesBusy: () => false,
+      detachParticles: () {},
+      allowSilentAudio: true,
+      allowSourceVisibility: true,
+      adaptSourceCamera: true,
+    );
+    if (_closed) return;
+    if (result != BattleGen5SourcePlaybackStatus.finished) {
+      status.value = 'Interversion interrompue : ${result.name}';
+      return;
+    }
+    final swapped = _makeAdapter(move, allySwapped: true);
+    _overlay.updateState(
+      swapped.createLegacyDisplaySession(isTrainerBattle: false),
+      presentation: swapped.presentation,
+    );
+    await _overlay.waitForPendingVisualSync();
+    if (!_closed) {
+      status.value = 'Interversion terminée · échange simulé · sans son source';
+    }
+  }
+
+  Future<void> _playTransform({void Function()? onStart}) async {
+    final target = _adapter.presentation.combatantAt(
+      const BattleSlotRef.active(BattleSideId.enemy),
+    );
+    if (target == null) throw StateError('Cible indisponible');
+    final identity = target.currentVisualIdentity;
+    final species = identity?.speciesId ?? target.combatant.speciesId;
+    final sprite = await _spriteResolver.resolve(
+      speciesId: species,
+      isPlayerSide: true,
+      visualIdentity: identity,
+    );
+    if (_closed) return;
+    if (sprite.gen5Source == null &&
+        sprite.explicitAnimatedImageAbsolutePath == null &&
+        sprite.explicitImageAbsolutePath == null) {
+      throw StateError('Sprite de la cible indisponible');
+    }
+    final actor = _overlay.children
+        .whereType<BattleSceneCombatantComponent>()
+        .singleWhere((value) => value.isPlayerSide);
+    final owner = Object();
+    _transformActor = actor;
+    _transformSprite = sprite;
+    _transformLabel = species;
+    _transformOwner = owner;
+    _transformTick = 0;
+    _transformElapsed = 0;
+    _transformLoading = false;
+    final completion = Completer<void>();
+    _transformCompletion = completion;
+    try {
+      actor.setBattleScriptAlpha(16, owner: owner);
+      actor.setBattleScriptMosaic(0, owner: owner);
+      actor.pauseBattleSpriteAnimation(owner: owner);
+      onStart?.call();
+      await completion.future;
+      if (!_closed) {
+        status.value = 'Morphing terminée · mosaïque expérimentale · sans son source';
+      }
+    } catch (_) {
+      _finishTransform();
+      rethrow;
+    }
+  }
+
+  void _advanceTransform(double dt) {
+    final actor = _transformActor;
+    final owner = _transformOwner;
+    if (actor == null || owner == null || _transformLoading ||
+        !dt.isFinite || dt <= 0) {
+      return;
+    }
+    _transformElapsed += dt;
+    const frame = 1 / 60;
+    while (_transformElapsed >= frame && _transformActor != null) {
+      _transformElapsed -= frame;
+      _transformTick++;
+      actor.setBattleScriptMosaic(
+        _transformTick <= 8 ? _transformTick : 16 - _transformTick,
+        owner: owner,
+      );
+      if (_transformTick == 8) {
+        _transformLoading = true;
+        unawaited(_swapTransformSprite(actor));
+        return;
+      }
+      if (_transformTick == 16) {
+        _finishTransform();
+        return;
+      }
+    }
+  }
+
+  Future<void> _swapTransformSprite(BattleSceneCombatantComponent actor) async {
+    try {
+      await actor.sync(speciesLabel: _transformLabel!, spriteSpec: _transformSprite!);
+      if (_closed || !identical(actor, _transformActor)) return;
+      if (!actor.hasBattleSpriteImage) {
+        throw StateError('Impossible de charger le sprite de la cible');
+      }
+      _transformLoading = false;
+    } catch (error, stack) {
+      if (!_closed && identical(actor, _transformActor)) {
+        _finishTransform(error: error, stack: stack);
+      }
+    }
+  }
+
+  void _finishTransform({Object? error, StackTrace? stack}) {
+    final actor = _transformActor;
+    final owner = _transformOwner;
+    if (actor != null && owner != null) {
+      actor.clearBattleScriptMosaic(owner: owner);
+      actor.clearBattleScriptAlpha(owner: owner);
+      actor.resumeBattleSpriteAnimation(owner: owner);
+    }
+    _transformActor = null;
+    _transformSprite = null;
+    _transformLabel = null;
+    _transformOwner = null;
+    _transformLoading = false;
+    final completion = _transformCompletion;
+    _transformCompletion = null;
+    if (completion != null && !completion.isCompleted) {
+      if (error == null) {
+        completion.complete();
+      } else {
+        completion.completeError(error, stack);
+      }
     }
   }
 
@@ -662,7 +883,7 @@ class BattlePreviewGame extends FlameGame {
               'texture03': '1b467f4c3e2079b0997af43f43bbc7a0d4d01a983cb924e2cfcea01f7262f80a',
               'texture04': 'ff3981a5f0a6df5dd2204a5ad560a13e82e13ea2d145324d00585f7448f55c87',
             };
-      final commands = <({Map<String, dynamic> args, bool orthographic})>[];
+      final commands = <({Map<String, dynamic> args, bool orthographic, bool orbit})>[];
       final instructions = program['instructions'] as List;
       for (
         var index = program['entryIndex'] as int;
@@ -675,10 +896,14 @@ class BattlePreviewGame extends FlameGame {
             instruction['op'] == 'startFieldEmitter' ||
             instruction['op'] == 'startOrthoEmitter' ||
             instruction['op'] == 'startMovingEmitter' ||
-            instruction['op'] == 'startMovingFieldEmitter') {
+            instruction['op'] == 'startMovingOrthoEmitter' ||
+            instruction['op'] == 'startMovingFieldEmitter' ||
+            instruction['op'] == 'startOrbitEmitter') {
           commands.add((
             args: Map<String, dynamic>.from(instruction['args'] as Map),
-            orthographic: instruction['op'] == 'startOrthoEmitter',
+            orthographic: instruction['op'] == 'startOrthoEmitter' ||
+                instruction['op'] == 'startMovingOrthoEmitter',
+            orbit: instruction['op'] == 'startOrbitEmitter',
           ));
         }
       }
@@ -728,8 +953,11 @@ class BattlePreviewGame extends FlameGame {
             jsonDecode(jsonEncode(groupDefinitions[particleId] ?? originalDefinition))
                 as Map<String, dynamic>;
         final emitter = (definitionJson['emitters'] as List)[selectedIndices.indexOf(index)] as Map;
+        final movingOrthographic = command.orthographic && args.containsKey('motion');
         applyGen5SourceEmitterParameters(
-          emitter, args, orthographic: command.orthographic,
+          emitter,
+          movingOrthographic ? {...args, 'radiusScale': 3072, 'scaleScale': 3072} : args,
+          orthographic: command.orthographic && !movingOrthographic,
         );
         final definition = {5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19}.contains(definitionJson['schemaVersion'])
             ? BattleSplParticleDefinition.fromExperimentalJson(definitionJson)
@@ -737,11 +965,13 @@ class BattlePreviewGame extends FlameGame {
         final loader = BattleExperimentalSplLoader(resourceBudget: budget);
         loaders.add(loader);
         final fieldPositioned = args.containsKey('fromX');
+        final orbitEnemy = command.orbit && (args['type'] as int) >= 2;
         final projection = fieldPositioned
             ? _overlay.experimentalGen5FieldProjection()
             : _overlay.experimentalGen5Projection(
-          attacker: args['from'] == 0 || args['from'] == 'EFFVM_EMIT_ATTACKER',
-          towardOpponent: args['to'] != 8 && args['to'] != args['from'] &&
+          attacker: command.orbit ? !orbitEnemy :
+              args['from'] == 0 || args['from'] == 'EFFVM_EMIT_ATTACKER',
+          towardOpponent: !command.orbit && args['to'] != 8 && args['to'] != args['from'] &&
               !(args['from'] == 0 && args['to'] == 'EFFVM_EMIT_ATTACKER'),
           matchBattleSpacing: isSurf || isMovingExample,
           anchorAtFoot: isSurf || isMovingExample,
@@ -799,7 +1029,19 @@ class BattlePreviewGame extends FlameGame {
           _overlay.size.x,
           _overlay.size.y,
         );
-        if (args.containsKey('motion')) {
+        if (command.orbit) {
+          final motion = BattleGen5OrbitEmitterMotion(
+            radiusX: args['radiusX'] as int,
+            radiusZ: args['radiusZ'] as int,
+            offsetY: args['offsetY'] as int,
+            frames: args['frames'] as int,
+            wait: args['wait'] as int,
+            delay: args['delay'] as int,
+            reverse: (args['type'] as int).isOdd,
+            enemySide: orbitEnemy,
+          );
+          result.component!.advanceEmitterPosition = motion.advance;
+        } else if (args.containsKey('motion')) {
           final endpoints = fieldPositioned
               ? gen5SourceFieldMotionEndpoints(args)
               : (from: (x: 0, y: 0, z: 0), to: (x: 0, y: 0, z: 17 * 4096));
@@ -812,7 +1054,30 @@ class BattlePreviewGame extends FlameGame {
             heightFx32: args['height'] as int,
             turnsFx32: args['turns'] as int,
           );
-          result.component!.advanceEmitterPosition = motion.advance;
+          if (movingOrthographic) {
+            result.component!.advanceEmitterPosition = () {
+              final anchors = projection.capture();
+              final transform = projection.worldTransform;
+              if (anchors == null || anchors.length != 1 || transform == null) {
+                throw StateError('Point de départ de l’effet indisponible');
+              }
+              final anchor = anchors.single;
+              final base = BattleCameraPoint(anchor.x, anchor.y, anchor.z);
+              final origin = projection.camera.tryProject(base);
+              final point = projection.camera.tryProject(base + transform.apply(motion.advance()));
+              if (origin == null || point == null) {
+                throw StateError('Projection de l’effet indisponible');
+              }
+              result.component!.position = Vector2(origin.position.dx, origin.position.dy);
+              return (
+                x: ((point.position.dx - origin.position.dx) * 4096 / pixelsPerUnit).round(),
+                y: ((origin.position.dy - point.position.dy) * 4096 / pixelsPerUnit).round(),
+                z: 0,
+              );
+            };
+          } else {
+            result.component!.advanceEmitterPosition = motion.advance;
+          }
         }
         prepared.add((args: args, result: result,
             screenAnchor: command.orthographic ? projection : null));
@@ -864,8 +1129,9 @@ class BattlePreviewGame extends FlameGame {
               }
               final anchor = anchors.single;
               final point = BattleCameraPoint(anchor.x, anchor.y, anchor.z) +
-                  transform.apply((x: args['offsetX'] as int,
-                      y: args['offsetY'] as int, z: args['offsetZ'] as int));
+                  transform.apply((x: (args['offsetX'] as int?) ?? 0,
+                      y: args.containsKey('motion') ? 0 : args['offsetY'] as int,
+                      z: (args['offsetZ'] as int?) ?? 0));
               final projected = screenAnchor.camera.tryProject(point);
               if (projected == null) {
                 throw StateError('Projection de l’effet indisponible');
@@ -891,6 +1157,7 @@ class BattlePreviewGame extends FlameGame {
           allowOrthographicEmitters: commands.any((command) => command.orthographic),
           allowFieldEmitters: commands.any((command) => command.args.containsKey('fromX')),
           allowSourceVisibility: true,
+          allowSourceGauge: true,
           allowApproximateFlatActors: isMovingExample,
           adaptSourceCamera: isSurf || isMovingExample,
           duringTrackedEffect: true,
@@ -968,6 +1235,7 @@ class BattlePreviewGame extends FlameGame {
   @override
   void update(double dt) {
     super.update(dt);
+    _advanceTransform(dt);
     if (_overlayCreated && !_reportedParticles) {
       for (final effect
           in _overlay.children.whereType<BattleSplStaticComponent>()) {
@@ -984,6 +1252,8 @@ class BattlePreviewGame extends FlameGame {
   @override
   void onRemove() {
     _closed = true;
+    _finishTransform();
+    if (_overlayCreated) _overlay.cancelExperimentalGen5Attack();
     final completion = _sourceCompletion;
     if (completion != null && !completion.isCompleted) {
       completion.complete(BattleGen5SourcePlaybackStatus.cancelled);
@@ -995,16 +1265,17 @@ class BattlePreviewGame extends FlameGame {
 
 RuntimePsdkBattleSessionAdapter _makeAdapter(
   PreviewMove move, {
+  bool allySwapped = false,
   PreparedReferencePair? referencePokemon,
 }) {
-  final referencePair = move == PreviewMove.surf;
-  final specialPreview = referencePair || move.id == 'transform' || move.id == 'ally-switch';
+  final isSurf = move == PreviewMove.surf;
+  final specialPreview = isSurf || move.id == 'transform' || move.id == 'ally-switch';
   final pair = specialPreview ? null : referencePokemon;
-  final playerSpecies = pair?.attacker.id ?? (referencePair ? 'herdier' : 'totodile');
-  final enemySpecies = pair?.target.id ?? (referencePair ? 'trubbish' : 'pidgey');
+  final playerSpecies = pair?.attacker.id ?? (isSurf ? 'herdier' : 'totodile');
+  final enemySpecies = pair?.target.id ?? (isSurf ? 'trubbish' : 'pidgey');
   PsdkBattleMoveData attack(PreviewMove move, int power) => PsdkBattleMoveData(
     id: move.id,
-    dbSymbol: move.id,
+    dbSymbol: move.id.replaceAll('-', '_'),
     name: move.label,
     type: move.type,
     category: move.category,
@@ -1048,48 +1319,54 @@ RuntimePsdkBattleSessionAdapter _makeAdapter(
     ),
     moves: [attack],
   );
-  final setup = PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
-    player: pokemon(
-      'player',
-      playerSpecies,
-      pair?.attacker.name ?? (referencePair ? 'Ponchien' : 'Kaiminus'),
-      attack(move, 40),
-      100,
-      level: referencePair ? 20 : 25,
-      maxHp: referencePair ? 57 : 500,
-    ),
-    opponent: pokemon(
-      'enemy',
-      enemySpecies,
-      pair?.target.name ?? (referencePair ? 'Miamiasme' : 'Roucool'),
-      attack(PreviewMove.tackle, 0),
-      10,
-      level: referencePair ? 19 : 25,
-      gender: referencePair ? PsdkBattleGender.female : PsdkBattleGender.male,
-    ),
-    rngSeeds: const PsdkBattleRngSeeds(
-      moveDamage: 1,
-      moveCritical: 99999,
-      moveAccuracy: 1,
-      generic: 1,
-    ),
+  final player = pokemon(
+    'player', playerSpecies, pair?.attacker.name ?? (isSurf ? 'Ponchien' : 'Kaiminus'),
+    attack(move, 40), 100, level: isSurf ? 20 : 25,
+    maxHp: isSurf ? 57 : 500,
+  );
+  final partner = pokemon('player_ally', 'pidgey', 'Roucool',
+      attack(PreviewMove.tackle, 1), 90);
+  final opponent = pokemon(
+    'enemy', enemySpecies, pair?.target.name ?? (isSurf ? 'Miamiasme' : 'Roucool'),
+    attack(PreviewMove.tackle, 0), 10,
+    level: isSurf ? 19 : 25,
+    gender: isSurf ? PsdkBattleGender.female : PsdkBattleGender.male,
+  );
+  const seeds = PsdkBattleRngSeeds(
+    moveDamage: 1, moveCritical: 99999, moveAccuracy: 1, generic: 1,
+  );
+  final setup = move == PreviewMove.allySwitch ? PsdkBattleSetup.doubles(
+    ruleset: PokemonRulesetProfile.standardV1,
+    player: allySwapped ? [partner, player] : [player, partner],
+    opponent: [opponent, pokemon('enemy_ally', 'totodile', 'Kaiminus',
+        attack(PreviewMove.tackle, 1), 9)],
+    rngSeeds: seeds,
+  ) : PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
+    player: player,
+    opponent: opponent,
+    rngSeeds: seeds,
   );
   return RuntimePsdkBattleSessionAdapter.fromSetup(
     setup,
     visualIdentitiesByBank: {
       0: [
+        for (final species in move == PreviewMove.allySwitch
+            ? (allySwapped ? ['pidgey', playerSpecies] : [playerSpecies, 'pidgey'])
+            : [playerSpecies])
         RuntimeBattleVisualIdentity(
-          speciesId: playerSpecies,
+          speciesId: species,
           formId: 'base',
           genderId: 'male',
           isShiny: false,
         ),
       ],
       1: [
+        for (final species in move == PreviewMove.allySwitch
+            ? [enemySpecies, 'totodile'] : [enemySpecies])
         RuntimeBattleVisualIdentity(
-          speciesId: enemySpecies,
+          speciesId: species,
           formId: 'base',
-          genderId: referencePair ? 'female' : 'male',
+          genderId: isSurf ? 'female' : 'male',
           isShiny: false,
         ),
       ],

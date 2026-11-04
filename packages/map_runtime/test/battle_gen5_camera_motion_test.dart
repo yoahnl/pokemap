@@ -34,6 +34,16 @@ Gen5CameraPresetEffect start(
 );
 
 void main() {
+  test('source presets 0 and 1 select absolute player and enemy positions', () {
+    final camera = Gen5CameraMotion();
+    start(camera, preset: 0, attacker: Gen5CameraSlot.enemy,
+        defender: Gen5CameraSlot.player, moveType: Gen5CameraMoveType.immediate);
+    expect(camera.pose, player);
+    start(camera, preset: 1, attacker: Gen5CameraSlot.enemy,
+        defender: Gen5CameraSlot.player, moveType: Gen5CameraMoveType.immediate);
+    expect(camera.pose, enemy);
+  });
+
   test('absolute source movement reaches the requested pose rather than adding it', () {
     final camera = Gen5CameraMotion();
     const position = (x: 0xca6, y: 0x5f33, z: 0x1dcc3);

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:avelune_attack_compare/main.dart' show PreviewPanel, extractPreviewResources;
@@ -12,6 +13,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_battle/map_battle.dart';
 import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
+import 'package:map_runtime/src/presentation/flame/battle_scene_combatant_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_gen5_source_background.dart';
 import 'package:map_runtime/src/presentation/flame/battle_spl_static_component.dart';
 
@@ -126,6 +128,154 @@ void main() {
     }
   });
 
+  test('multi-variant source programs disclose that only one variant is shown', () async {
+    final index = jsonDecode(
+      await rootBundle.loadString('assets/bw2/batch/index.json'),
+    ) as List;
+    final missing = <String>[];
+    for (final row in index.cast<Map>()) {
+      final bundle = jsonDecode(await rootBundle.loadString(row['bundleAsset'] as String)) as Map;
+      final program = bundle['program'] as Map;
+      if ((program['variants'] as List).length > 1 &&
+          (!(row['approximations'] as List).contains('source-variant:first-only') ||
+           !(bundle['approximations'] as List).contains('source-variant:first-only'))) {
+        missing.add(row['id'] as String);
+      }
+    }
+    expect(missing, isEmpty);
+  });
+
+  test('Roar bundles its source visuals and declares its preview limitations', () async {
+    final move = PreviewMove.roar;
+    expect(move.unavailableReason, isNull);
+    expect(move.bundleAsset, 'assets/bw2/batch/roar.json');
+    expect(move.approximations, contains('source-audio:cry-and-timing-unavailable'));
+    expect(move.approximations, contains('source-gauge:preview-restored'));
+    final bundle = jsonDecode(await rootBundle.loadString(move.bundleAsset!)) as Map;
+    expect(bundle['sourceId'], 46);
+    expect(bundle['particle'], 211);
+    final program = bundle['program'] as Map;
+    expect(program['conversion'], 'supported');
+    final instructions = (program['instructions'] as List).cast<Map>();
+    expect(instructions.any((item) => item['op'] == 'setSourceGauge'), isTrue);
+    expect(instructions.any((item) => item['op'] == 'startMovingEmitter'), isTrue);
+  });
+
+  test('Whirlwind bundles its source rotation and particles', () async {
+    final index = jsonDecode(await rootBundle.loadString(
+      'assets/bw2/batch/index.json',
+    )) as List;
+    final row = index.cast<Map>().singleWhere((item) => item['id'] == 'whirlwind');
+    expect(row['particle'], 183);
+    expect(row['approximations'], contains('source-gauge:preview-restored'));
+    final bundle = jsonDecode(await rootBundle.loadString(row['bundleAsset'] as String)) as Map;
+    final program = bundle['program'] as Map;
+    expect(bundle['sourceId'], 18);
+    expect(program['conversion'], 'supported');
+    final instructions = (program['instructions'] as List).cast<Map>();
+    expect(instructions.any((item) => item['op'] == 'rotateCombatant' &&
+        (item['args'] as Map)['type'] == 1), isTrue);
+  });
+
+  test('Dark Void bundles its source background and particles', () async {
+    final index = jsonDecode(await rootBundle.loadString(
+      'assets/bw2/batch/index.json',
+    )) as List;
+    final row = index.cast<Map>().singleWhere((item) => item['id'] == 'dark-void');
+    expect(row['particle'], 644);
+    final bundle = jsonDecode(await rootBundle.loadString(row['bundleAsset'] as String)) as Map;
+    expect(bundle['sourceId'], 464);
+    expect((bundle['program'] as Map)['conversion'], 'supported');
+    expect((bundle['backgrounds'] as Map).containsKey('192'), isTrue);
+  });
+
+  test('context-dependent moves use the same examples as their BW references', () async {
+    for (final example in [
+      (id: 'mirror-move', bundle: 'jump-kick',
+          source: 'res/battle/animations/moves/jump_kick.s',
+          context: 'source-context:copied-jump-kick'),
+      (id: 'nature-power', bundle: 'rock-slide',
+          source: 'res/battle/animations/moves/rock_slide.s',
+          context: 'source-context:cave-rock-slide'),
+    ]) {
+      final move = PreviewMove.values.singleWhere((item) => item.id == example.id);
+      expect(move.unavailableReason, isNull);
+      expect(move.referenceUrl, isNotNull);
+      expect(move.bundleAsset, 'assets/bw2/batch/${example.bundle}.json');
+      expect(move.approximations, contains(example.context));
+      final bundle = jsonDecode(await rootBundle.loadString(move.bundleAsset!)) as Map;
+      expect(((bundle['program'] as Map)['source'] as Map)['path'], example.source);
+      expect((bundle['program'] as Map)['conversion'], 'supported');
+    }
+  });
+
+  test('Ally Switch bundles the original source program', () async {
+    final move = PreviewMove.allySwitch;
+    expect(move.unavailableReason, isNull);
+    final bundle = jsonDecode(await rootBundle.loadString(move.bundleAsset!)) as Map;
+    final program = bundle['program'] as Map;
+    expect((program['source'] as Map)['path'], 'res/battle/animations/moves/ally_switch.s');
+    expect(program['conversion'], 'supported');
+    expect(program['instructions'], hasLength(36));
+  });
+
+  test('Secret Power first source variant follows its Body Slam redirect', () async {
+    final alias = jsonDecode(await rootBundle.loadString(
+      'assets/bw2/batch/secret-power.json',
+    )) as Map;
+    final target = jsonDecode(await rootBundle.loadString(
+      'assets/bw2/batch/body-slam.json',
+    )) as Map;
+    expect(alias['sourceId'], 290);
+    expect(alias['sourceRedirect'], {
+      'path': 'res/battle/animations/moves/secret_power.s',
+      'sha256': '961b433e0fa193f776067de085612bd346b83bcadf975c704f4d1918903a729a',
+      'variant': 'SecretPower', 'target': 'body-slam',
+    });
+    expect(alias['program'], target['program']);
+    expect(alias['approximations'], contains('source-variant:first-only'));
+  });
+
+  test('retains BW2 cylinder particles even when their radius is zero', () async {
+    final ember = jsonDecode(
+      await rootBundle.loadString('assets/bw2/batch/ember.json'),
+    ) as Map;
+    final definition = ember['definition'] as Map;
+    final emission = (((definition['emitters'] as List).single as Map)
+        ['emission']) as Map;
+    expect(definition['schemaVersion'], 8);
+    expect(emission['shape'], 'cylinderSurface');
+    expect(emission['radius'], 0);
+    expect(emission['length'], 0);
+    expect(ember['approximations'],
+        isNot(contains('particle-shape:cylinder_surface->sphere_surface')));
+    expect(ember['approximations'], isNot(contains('particle-zero-radius:point')));
+  });
+
+  test('retains source particle lifetime variance in single and grouped attacks', () async {
+    final bubble = jsonDecode(
+      await rootBundle.loadString('assets/bw2/batch/bubble.json'),
+    ) as Map;
+    final bubbleDefinition = bubble['definition'] as Map;
+    expect(bubbleDefinition['schemaVersion'], 7);
+    expect(
+      [for (final emitter in bubbleDefinition['emitters'] as List)
+        ((emitter as Map)['emission'] as Map)['particleLifetimeVariance']],
+      [9, 0],
+    );
+    final fissure = jsonDecode(
+      await rootBundle.loadString('assets/bw2/batch/fissure.json'),
+    ) as Map;
+    final groups = fissure['particleGroups'] as Map;
+    final first = (groups['261'] as Map)['definition'] as Map;
+    expect(first['schemaVersion'], 7);
+    expect(
+      ((((first['emitters'] as List).single as Map)['emission']) as Map)
+          ['particleLifetimeVariance'],
+      20,
+    );
+  });
+
   test('all batch textures decode from the bundled workshop catalog', () async {
     final index = jsonDecode(
       await rootBundle.loadString('assets/bw2/batch/index.json'),
@@ -181,11 +331,238 @@ void main() {
 
   final rootPath = Platform.environment['AVELUNE_ATTACK_WORKSHOP_QA'];
   for (final scenario in [
+    (size: const Size(393, 852), cancel: false),
+    (size: const Size(852, 393), cancel: false),
+    (size: const Size(393, 852), cancel: true),
+    (size: const Size(852, 393), cancel: true),
+  ]) {
+    testWidgets('Ally Switch preserves allies ${scenario.cancel ? 'on interruption' : 'after swapping'} at ${scenario.size}', (tester) async {
+      tester.view.physicalSize = scenario.size;
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      final root = (await tester.runAsync(
+        () => extractPreviewResources(parent: Directory(rootPath!)),
+      ))!;
+      addTearDown(() async {
+        if (await root.exists()) await root.delete(recursive: true);
+      });
+      final status = ValueNotifier<String>('Preparing');
+      final game = BattlePreviewGame(projectRoot: root.path,
+          move: PreviewMove.allySwitch, status: status);
+      await tester.pumpWidget(Directionality(textDirection: TextDirection.ltr,
+        child: SizedBox(width: scenario.size.width, height: scenario.size.height,
+          child: GameWidget(game: game))));
+      BattleOverlayComponent? overlay() =>
+          game.children.whereType<BattleOverlayComponent>().firstOrNull;
+      for (var tick = 0; tick < 360 && status.value != 'Combat prêt · appuie sur Lancer'; tick++) {
+        await tester.pump(const Duration(milliseconds: 16));
+        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 3)));
+      }
+      expect(status.value, 'Combat prêt · appuie sur Lancer');
+      final scene = overlay()!;
+      final actors = scene.children.whereType<BattleSceneCombatantComponent>().toList();
+      expect(actors, hasLength(4));
+      final player = scene.debugPlayerCombatant!;
+      final partner = actors.singleWhere((actor) => actor.isPlayerSide && !identical(actor, player));
+      expect(player.currentSpeciesLabel, 'Kaiminus');
+      expect(partner.currentSpeciesLabel, 'Roucool');
+      for (var tick = 0; tick < 360; tick++) {
+        if (player.currentSpriteSourcePath == 'gen5:totodile' &&
+            partner.currentSpriteSourcePath == 'gen5:pidgey') {
+          break;
+        }
+        await tester.pump(const Duration(milliseconds: 16));
+        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 3)));
+      }
+      expect(player.currentSpriteSourcePath, 'gen5:totodile');
+      expect(partner.currentSpriteSourcePath, 'gen5:pidgey');
+      final initialOffset = player.currentVisualOffset;
+      final initialPartnerOffset = partner.currentVisualOffset;
+      var started = false;
+      var moved = false;
+      var faded = false;
+      unawaited(game.play(onStart: () => started = true));
+      for (var tick = 0; tick < 600; tick++) {
+        await tester.pump(const Duration(milliseconds: 16));
+        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 3)));
+        moved |= player.currentVisualOffset != initialOffset;
+        faded |= player.stageTint.a < .99;
+        if (scenario.cancel && faded) break;
+        if (status.value.contains('terminée') || status.value.contains('Impossible')) break;
+      }
+      expect(started, isTrue, reason: status.value);
+      expect(moved, isTrue, reason: status.value);
+      expect(faded, isTrue, reason: status.value);
+      if (scenario.cancel) {
+        await tester.pumpWidget(const SizedBox());
+        expect(player.currentSpeciesLabel, 'Kaiminus');
+        expect(partner.currentSpeciesLabel, 'Roucool');
+        expect(player.stageTint.a, closeTo(1, .01));
+        expect(partner.stageTint.a, closeTo(1, .01));
+        expect(player.currentVisualOffset, initialOffset);
+        expect(partner.currentVisualOffset, initialPartnerOffset);
+      } else {
+        expect(status.value, contains('terminée'));
+        expect(player.currentSpeciesLabel, 'Roucool');
+        expect(partner.currentSpeciesLabel, 'Kaiminus');
+        for (var tick = 0; tick < 360; tick++) {
+          if (player.currentSpriteSourcePath == 'gen5:pidgey' &&
+              partner.currentSpriteSourcePath == 'gen5:totodile') {
+            break;
+          }
+          await tester.pump(const Duration(milliseconds: 16));
+          await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 3)));
+        }
+        expect(player.currentSpriteSourcePath, 'gen5:pidgey');
+        expect(partner.currentSpriteSourcePath, 'gen5:totodile');
+        final huds = scene.currentCommandOverlaySnapshot!.combatantHuds;
+        expect(huds.singleWhere((hud) => hud.effectiveSlot ==
+            const BattleSlotRef.active(BattleSideId.player)).combatantId, 'player_ally');
+        expect(huds.singleWhere((hud) => hud.effectiveSlot ==
+            const BattleSlotRef(side: BattleSideId.player, slotIndex: 1)).combatantId, 'player');
+        expect(player.stageTint.a, closeTo(1, .01));
+        await tester.pumpWidget(const SizedBox());
+      }
+      status.dispose();
+    }, skip: rootPath == null);
+  }
+
+  for (final scenario in [
+    (size: const Size(393, 852), cancel: false),
+    (size: const Size(852, 393), cancel: false),
+    (size: const Size(393, 852), cancel: true),
+  ]) {
+    testWidgets('Morphing ${scenario.cancel ? 'cleans up when interrupted' : 'copies the target with mosaic'} at ${scenario.size}',
+        (tester) async {
+      tester.view.physicalSize = scenario.size;
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      expect(PreviewMove.transform.unavailableReason, isNull);
+      final root = (await tester.runAsync(
+        () => extractPreviewResources(parent: Directory(rootPath!)),
+      ))!;
+      addTearDown(() async {
+        if (await root.exists()) await root.delete(recursive: true);
+      });
+      final status = ValueNotifier<String>('Preparing');
+      final game = BattlePreviewGame(
+        projectRoot: root.path,
+        move: PreviewMove.transform,
+        status: status,
+      );
+      await tester.pumpWidget(Directionality(
+        textDirection: TextDirection.ltr,
+        child: SizedBox(
+          width: scenario.size.width,
+          height: scenario.size.height,
+          child: GameWidget(game: game),
+        ),
+      ));
+      BattleOverlayComponent? overlay() =>
+          game.children.whereType<BattleOverlayComponent>().firstOrNull;
+      for (var tick = 0; tick < 360 && status.value != 'Combat prêt · appuie sur Lancer'; tick++) {
+        await tester.pump(const Duration(milliseconds: 16));
+        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 3)));
+      }
+      expect(status.value, 'Combat prêt · appuie sur Lancer');
+      final actor = overlay()!.debugPlayerCombatant!;
+      final enemy = overlay()!.debugEnemyCombatant!;
+      for (var tick = 0; tick < 360; tick++) {
+        if (actor.currentSpriteSourcePath == 'gen5:totodile' &&
+            enemy.currentSpriteSourcePath == 'gen5:pidgey') {
+          break;
+        }
+        await tester.pump(const Duration(milliseconds: 16));
+        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 3)));
+      }
+      expect(actor.currentSpriteSourcePath, 'gen5:totodile');
+      expect(enemy.currentSpriteSourcePath, 'gen5:pidgey');
+      var started = false;
+      var largestMosaic = 0;
+      var sawAlpha = false;
+      unawaited(game.play(onStart: () => started = true));
+      for (var tick = 0; tick < 600; tick++) {
+        await tester.pump(const Duration(milliseconds: 16));
+        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 3)));
+        largestMosaic = math.max(largestMosaic, actor.debugBattleScriptMosaicLevel);
+        sawAlpha |= actor.stageTint.a < .99;
+        if (scenario.cancel && largestMosaic > 0) break;
+        if (status.value.contains('terminée') || status.value.contains('Impossible')) break;
+      }
+      expect(started, isTrue, reason: status.value);
+      expect(largestMosaic, greaterThan(0), reason: status.value);
+      expect(sawAlpha, isTrue);
+      if (scenario.cancel) {
+        await tester.pumpWidget(const SizedBox());
+        expect(actor.debugBattleScriptMosaicLevel, 0);
+        expect(actor.debugBattleSpriteAnimationPaused, isFalse);
+        expect(actor.stageTint.a, closeTo(1, .01));
+      } else {
+        expect(status.value, contains('terminée'));
+        expect(status.value, contains('sans son source'));
+        expect(largestMosaic, 8);
+        expect(actor.currentSpriteSourcePath, 'gen5:pidgey');
+        expect(actor.debugBattleScriptMosaicLevel, 0);
+        expect(actor.debugBattleSpriteAnimationPaused, isFalse);
+        expect(actor.stageTint.a, closeTo(1, .01));
+        expect(actor.isPlayerSide, isTrue);
+        final playerBytes = await tester.runAsync(
+          () async => (await actor.stageImage!.toByteData())!.buffer.asUint8List(),
+        );
+        final enemyBytes = await tester.runAsync(
+          () async => (await enemy.stageImage!.toByteData())!.buffer.asUint8List(),
+        );
+        expect(playerBytes, isNot(equals(enemyBytes)));
+        await tester.pumpWidget(const SizedBox());
+      }
+      status.dispose();
+    }, skip: rootPath == null);
+  }
+
+  for (final scenario in [
+    (size: const Size(393, 852), id: 'harden', label: 'Armure',
+        particle: 276, requireMovement: false),
+    (size: const Size(852, 393), id: 'harden', label: 'Armure',
+        particle: 276, requireMovement: false),
+    (size: const Size(393, 852), id: 'double-kick', label: 'Double Pied',
+        particle: 190, requireMovement: false),
+    (size: const Size(852, 393), id: 'double-kick', label: 'Double Pied',
+        particle: 190, requireMovement: false),
     (size: const Size(393, 852), id: 'surf', label: 'Surf',
         particle: 222, requireMovement: false),
     (size: const Size(852, 393), id: 'surf', label: 'Surf',
         particle: 222, requireMovement: false),
+    (size: const Size(393, 852), id: 'roar', label: 'Hurlement',
+        particle: 211, requireMovement: false),
+    (size: const Size(852, 393), id: 'roar', label: 'Hurlement',
+        particle: 211, requireMovement: false),
+    (size: const Size(393, 852), id: 'whirlwind', label: 'Cyclone',
+        particle: 183, requireMovement: false),
+    (size: const Size(852, 393), id: 'whirlwind', label: 'Cyclone',
+        particle: 183, requireMovement: false),
+    (size: const Size(393, 852), id: 'dark-void', label: 'Trou Noir',
+        particle: 644, requireMovement: false),
+    (size: const Size(852, 393), id: 'dark-void', label: 'Trou Noir',
+        particle: 644, requireMovement: false),
+    (size: const Size(393, 852), id: 'mirror-move', label: 'Mimique',
+        particle: 192, requireMovement: false),
+    (size: const Size(852, 393), id: 'mirror-move', label: 'Mimique',
+        particle: 192, requireMovement: false),
+    (size: const Size(393, 852), id: 'nature-power', label: 'Force Nature',
+        particle: 325, requireMovement: false),
+    (size: const Size(852, 393), id: 'nature-power', label: 'Force Nature',
+        particle: 325, requireMovement: false),
     for (final move in <({String id, String label, int particle})>[
+      (id: 'trump-card', label: 'Atout', particle: 555),
+      (id: 'hone-claws', label: 'Aiguisage', particle: 648),
+      (id: 'scald', label: 'Ébullition', particle: 674),
+      (id: 'hidden-power', label: 'Puissance Cachée', particle: 408),
       (id: 'flash-cannon', label: 'Luminocanon', particle: 609),
       (id: 'thunderbolt', label: 'Tonnerre', particle: 253),
       (id: 'thunder', label: 'Fatal-Foudre', particle: 256),
@@ -198,7 +575,21 @@ void main() {
       (id: 'gravity', label: 'Gravité', particle: 533),
       (id: 'echoed-voice', label: 'Écho', particle: 212),
       (id: 'struggle-bug', label: 'Survinsecte', particle: 425),
+      (id: 'agility', label: 'Hâte', particle: 269),
+      (id: 'swords-dance', label: 'Danse Lames', particle: 179),
+      (id: 'psybeam', label: 'Rafale Psy', particle: 225),
+      (id: 'sky-uppercut', label: 'Stratopercut', particle: 501),
+      (id: 'night-slash', label: 'Tranche-Nuit', particle: 579),
+      (id: 'searing-shot', label: 'Incendie', particle: 714),
+      (id: 'ice-ball', label: 'Ball’Glace', particle: 471),
+      (id: 'avalanche', label: 'Avalanche', particle: 598),
       (id: 'mist-ball', label: 'Ball’Brume', particle: 466),
+      (id: 'electro-ball', label: 'Boule Élek', particle: 661),
+      (id: 'volt-switch', label: 'Change Éclair', particle: 692),
+      (id: 'secret-sword', label: 'Lame Ointe', particle: 721),
+      (id: 'mirror-shot', label: 'Miroi-Tir', particle: 608),
+      (id: 'psycho-boost', label: 'Psycho-Boost', particle: 531),
+      (id: 'explosion', label: 'Explosion', particle: 321),
       (id: 'aqua-jet', label: 'Aqua-Jet', particle: 632),
       (id: 'eruption', label: 'Éruption', particle: 455),
       (id: 'guard-split', label: 'Partage Garde', particle: 564),
@@ -209,12 +600,33 @@ void main() {
       (id: 'shadow_ball', label: 'Ball’Ombre', particle: 418),
       (id: 'fusion-flare', label: 'Flamme Croix', particle: 735),
       (id: 'fusion-bolt', label: 'Éclair Croix', particle: 737),
+      (id: 'heart-swap', label: 'Permucœur', particle: 570),
+      (id: 'magma-storm', label: 'Vortex Magma', particle: 643),
+      (id: 'hurricane', label: 'Vent Violent', particle: 711),
+      (id: 'spikes', label: 'Picots', particle: 361),
+      (id: 'toxic-spikes', label: 'Pics Toxik', particle: 569),
+      (id: 'stealth-rock', label: 'Piège de Roc', particle: 625),
+      (id: 'leech-seed', label: 'Vampigraine', particle: 238),
+      (id: 'secret-power', label: 'Force Cachée', particle: 200),
       (id: 'sweet-scent', label: 'Doux Parfum', particle: 400),
       (id: 'crush-grip', label: 'Presse', particle: 641),
     ])
       for (final size in [const Size(393, 852), const Size(852, 393)])
         (size: size, id: move.id, label: move.label,
             particle: move.particle, requireMovement: false),
+    for (final size in [const Size(393, 852), const Size(852, 393)])
+      (size: size, id: 'wonder-room', label: 'Zone Étrange',
+          particle: null, requireMovement: false),
+    for (final move in <({String id, String label, int particle})>[
+      (id: 'fusion-bolt--variant-2', label: 'Éclair Croix renforcée', particle: 738),
+      (id: 'fusion-flare--variant-2', label: 'Flamme Croix renforcée', particle: 736),
+    ])
+      for (final size in [const Size(393, 852), const Size(852, 393)])
+        (size: size, id: move.id, label: move.label,
+            particle: move.particle, requireMovement: false),
+    for (final size in [const Size(393, 852), const Size(852, 393)])
+      (size: size, id: 'magic-room', label: 'Zone Magique',
+          particle: null, requireMovement: false),
     (size: const Size(393, 852), id: 'defog', label: 'Anti-Brume',
         particle: 612, requireMovement: false),
     (size: const Size(852, 393), id: 'defog', label: 'Anti-Brume',
@@ -570,6 +982,8 @@ void main() {
         particle: 616, requireMovement: false),
     (size: const Size(393, 852), id: 'lunar-dance', label: 'Danse Lune',
         particle: 640, requireMovement: false),
+    (size: const Size(852, 393), id: 'lunar-dance', label: 'Danse Lune',
+        particle: 640, requireMovement: false),
     (size: const Size(393, 852), id: 'psychic', label: 'Psyko',
         particle: null, requireMovement: false),
     (size: const Size(852, 393), id: 'psychic', label: 'Psyko',
@@ -594,6 +1008,16 @@ void main() {
         particle: 351, requireMovement: false),
     (size: const Size(393, 852), id: 'frost-breath', label: 'Souffle Glacé',
         particle: 694, requireMovement: false),
+    (size: const Size(393, 852), id: 'ember', label: 'Flammèche',
+        particle: 217, requireMovement: false),
+    (size: const Size(852, 393), id: 'ember', label: 'Flammèche',
+        particle: 217, requireMovement: false),
+    (size: const Size(393, 852), id: 'bind', label: 'Étreinte',
+        particle: 186, requireMovement: false),
+    (size: const Size(852, 393), id: 'bind', label: 'Étreinte',
+        particle: 186, requireMovement: false),
+    (size: const Size(393, 852), id: 'bubble', label: 'Écume',
+        particle: 314, requireMovement: false),
     (size: const Size(393, 852), id: 'megahorn', label: 'Mégacorne',
         particle: 394, requireMovement: false),
     (size: const Size(852, 393), id: 'megahorn', label: 'Mégacorne',
@@ -633,6 +1057,9 @@ void main() {
       final game = BattlePreviewGame(
         projectRoot: root.path,
         move: scenario.id == 'surf' ? PreviewMove.surf :
+            scenario.id == 'roar' ? PreviewMove.roar :
+            {'mirror-move', 'nature-power'}.contains(scenario.id)
+                ? PreviewMove.values.singleWhere((move) => move.id == scenario.id) :
             scenario.id == 'shadow_ball' ? PreviewMove.shadowBall :
             scenario.id == 'quick_attack' ? PreviewMove.quickAttack :
             scenario.id == 'hydro_pump' ? PreviewMove.hydroPump :
@@ -640,7 +1067,7 @@ void main() {
             scenario.id == 'psychic' ? PreviewMove.psychic :
             scenario.id == 'fly' ? PreviewMove.fly :
             scenario.id == 'thief' ? PreviewMove.thief : PreviewMove(
-          scenario.id, scenario.label, null, 'normal', PsdkBattleMoveCategory.physical,
+          scenario.id.split('--').first, scenario.label, null, 'normal', PsdkBattleMoveCategory.physical,
           particle: scenario.particle,
           bundleAsset: 'assets/bw2/batch/${scenario.id}.json',
         ),
@@ -672,7 +1099,11 @@ void main() {
       var started = false;
       var sawParticles = false;
       var sawMovement = false;
+      var sawEnemyMovement = false;
       var sawScale = false;
+      var sawChildParticle = false;
+      var sawPolygonOffset = false;
+      var sawHiddenParentEmitter = false;
       var sawBackground = false;
       var sawWave = false;
       var sawPaletteAnimation = false;
@@ -681,6 +1112,7 @@ void main() {
       var sawHidden = false;
       var sawRotation = false;
       var sawBothPalettes = false;
+      final emitterPositions = <BattleSplStaticComponent, Set<(int, int, int)>>{};
       unawaited(game.play(onStart: () => started = true));
       for (var tick = 0; tick < 600; tick++) {
         await tester.pump(const Duration(milliseconds: 16));
@@ -693,7 +1125,30 @@ void main() {
           }
           sawParticles |= scene.children.whereType<BattleSplStaticComponent>()
               .any((effect) => effect.playback.activeParticles > 0);
+          sawChildParticle |= scene.children.whereType<BattleSplStaticComponent>()
+              .any((effect) => effect.playback.frames.any((frame) =>
+                  frame.particles.any((particle) => particle.parentId != null)));
+          sawPolygonOffset |= scene.children.whereType<BattleSplStaticComponent>()
+              .any((effect) => effect.playback.frames.any((frame) =>
+                  frame.polygonX != 0 || frame.polygonY != 0));
+          sawHiddenParentEmitter |= scene.children.whereType<BattleSplStaticComponent>()
+              .any((effect) => effect.playback.frames.any((frame) =>
+                  frame.hideParent && frame.particles.any((particle) => particle.parentId == null)));
+          if ({'magma-storm', 'hurricane', 'leech-seed'}.contains(scenario.id)) {
+            for (final effect in scene.children.whereType<BattleSplStaticComponent>()) {
+              if (effect.advanceEmitterPosition == null) continue;
+              for (final frame in effect.playback.frames) {
+                for (final particle in frame.particles) {
+                  emitterPositions.putIfAbsent(effect, () => {}).add(
+                    (particle.emitterPosition.x, particle.emitterPosition.y,
+                        particle.emitterPosition.z),
+                  );
+                }
+              }
+            }
+          }
           sawMovement |= scene.debugPlayerCombatant!.currentVisualOffset != initial;
+          sawEnemyMovement |= scene.debugEnemyCombatant!.currentVisualOffset != initialEnemy;
           sawAlpha |= scene.debugPlayerCombatant!.stageTint.a < initialPlayerAlpha - 0.05 ||
               scene.debugEnemyCombatant!.stageTint.a < initialEnemyAlpha - 0.05;
           sawHidden |= scene.debugPlayerCombatant!.isHiddenForBattleScript;
@@ -724,7 +1179,7 @@ void main() {
         expect(sawHidden, isTrue, reason: status.value);
       }
       if ({'fake-tears', 'telekinesis', 'captivate', 'attract', 'covet', 'tickle',
-          'skull-bash', 'entrainment', 'after-you'}.contains(scenario.id)) {
+          'skull-bash', 'entrainment', 'after-you', 'whirlwind'}.contains(scenario.id)) {
         expect(sawRotation, isTrue, reason: status.value);
       }
       if (scenario.id == 'defog') {
@@ -733,19 +1188,42 @@ void main() {
       if (scenario.particle != null) {
         expect(sawParticles, isTrue, reason: status.value);
       }
+      if ({'mist-ball', 'electro-ball', 'volt-switch', 'fusion-bolt', 'fusion-flare',
+        'fusion-bolt--variant-2', 'fusion-flare--variant-2',
+        'secret-sword', 'mirror-shot', 'thunderbolt', 'psycho-boost', 'explosion'}
+          .contains(scenario.id)) {
+        expect(sawChildParticle, isTrue, reason: status.value);
+      }
+      if ({'agility', 'swords-dance', 'fissure', 'fusion-flare', 'extreme-speed'}
+          .contains(scenario.id)) {
+        expect(sawPolygonOffset, isTrue, reason: status.value);
+      }
+      if ({'lunar-dance', 'flash-cannon', 'psybeam', 'sky-uppercut', 'night-slash',
+        'agility', 'searing-shot', 'ice-ball', 'avalanche', 'sketch', 'extreme-speed'}
+          .contains(scenario.id)) {
+        expect(sawHiddenParentEmitter, isTrue, reason: status.value);
+      }
+      if ({'magma-storm', 'hurricane', 'leech-seed'}.contains(scenario.id)) {
+        expect(emitterPositions.values.any((positions) => positions.length > 1),
+            isTrue, reason: 'Les particules doivent suivre leur trajectoire.');
+      }
       if (scenario.requireMovement) {
         expect(sawMovement, isTrue, reason: status.value);
       }
-      if ({'magnitude', 'water-spout', 'draco-meteor', 'fusion-flare', 'fusion-bolt'}.contains(scenario.id)) {
+      if ({'roar', 'whirlwind', 'dark-void'}.contains(scenario.id)) {
+        expect(sawEnemyMovement, isTrue, reason: status.value);
+      }
+      if ({'magnitude', 'water-spout', 'draco-meteor', 'fusion-flare', 'fusion-bolt',
+        'fusion-bolt--variant-2', 'fusion-flare--variant-2'}.contains(scenario.id)) {
         expect(sawCameraMovement, isTrue, reason: status.value);
       }
       if ({'bulk-up', 'minimize', 'meditate', 'night-shade', 'doom-desire',
-        'shell-smash', 'spit-up'}.contains(scenario.id)) {
+        'shell-smash', 'spit-up', 'wonder-room', 'magic-room'}.contains(scenario.id)) {
         expect(sawScale, isTrue, reason: status.value);
       }
       if ({'hydro_pump', 'focus-punch', 'close-combat', 'leaf-storm', 'lunar-dance', 'fire_blast', 'psychic',
         'waterfall', 'sacred-fire', 'whirlpool', 'inferno', 'blue-flare', 'megahorn', 'overheat',
-        'flare-blitz', 'aerial-ace', 'fissure'}
+        'flare-blitz', 'aerial-ace', 'fissure', 'wonder-room', 'magic-room', 'dark-void'}
           .contains(scenario.id)) {
         expect(sawBackground, isTrue, reason: status.value);
       }
@@ -758,11 +1236,11 @@ void main() {
       }
       expect(status.value, contains('terminée'));
       expect(overlay()!.debugPlayerCombatant!.currentVisualOffset, initial);
-      if ({'dig', 'extreme-speed', 'dive'}.contains(scenario.id)) {
+      if ({'dig', 'extreme-speed', 'dive', 'roar', 'whirlwind', 'dark-void'}.contains(scenario.id)) {
         expect(overlay()!.debugEnemyCombatant!.currentVisualOffset, initialEnemy);
       }
       if ({'fake-tears', 'telekinesis', 'captivate', 'attract', 'covet', 'tickle',
-          'skull-bash', 'entrainment', 'after-you'}.contains(scenario.id)) {
+          'skull-bash', 'entrainment', 'after-you', 'whirlwind'}.contains(scenario.id)) {
         expect(overlay()!.debugPlayerCombatant!.currentVisualRotation, closeTo(initialRotation, .001));
         expect(overlay()!.debugEnemyCombatant!.currentVisualRotation, closeTo(initialEnemyRotation, .001));
       }
@@ -772,8 +1250,7 @@ void main() {
       }
       await tester.pumpWidget(const SizedBox());
       status.dispose();
-    }, skip: rootPath == null ||
-        (scenario.id == 'heat-wave' && scenario.size.width > scenario.size.height));
+    }, skip: rootPath == null);
   }
 
   for (final scenario in [

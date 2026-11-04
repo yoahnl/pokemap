@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
+import 'package:image/image.dart' as image;
 import 'package:map_authoring/src/domains/gameplay/pokemon_external/gen5_source_program_converter.dart';
 import 'package:test/test.dart';
 
@@ -37,6 +38,62 @@ Map<String, Object?> _args(Map<String, Object?> instruction) =>
     instruction['args'] as Map<String, Object?>;
 
 void main() {
+  test('transcribes source gauge movement for a single combatant', () {
+    final program = _convert(_source.replaceFirst('WaitFrames 2', 'Gauge 2, 4'));
+    expect(program['conversion'], 'supported');
+    expect(_instructions(program).first['op'], 'setSourceGauge');
+    expect(_args(_instructions(program).first), {'mode': 2, 'target': 4});
+    expect(workshop.admitted(_instructions(program)), isTrue);
+    final unsafe = _convert(_source.replaceFirst('WaitFrames 2', 'Gauge 4, 4'));
+    expect(unsafe['conversion'], isNot('supported'));
+  });
+
+  test('transcribes simultaneous source motions down to zero scale', () {
+    final source = _source.replaceFirst('WaitFrames 2', '''
+  McssScale EFFVM_ALL, 2, -0x1000, -0x1000, 1, 0, 40
+  McssMoveXY EFFVM_ALL, 2, 0x800, 0, 60, 0, 1''');
+    final program = _convert(source);
+    expect(program['conversion'], 'supported');
+    expect(workshop.admitted(_instructions(program)), isTrue);
+    final unsafe = _convert(source.replaceFirst('-0x1000, -0x1000', '-0x1001, -0x1000'));
+    expect(unsafe['conversion'], isNot('supported'));
+  });
+
+  test('transcribes moving orthographic emitters with their source trajectory', () {
+    final program = _convert(_source.replaceFirst('WaitFrames 2',
+        'EmitterMoveOrtho 238, 2, 2, EFFVM_EMIT_ATTACKER, EFFVM_EMIT_DEFENDER, 0x2000, 0x2d000, 0x4000, 0x1000, 0x1000, 0'));
+    expect(program['conversion'], 'supported');
+    final instruction = _instructions(program).first;
+    expect(instruction['op'], 'startMovingOrthoEmitter');
+    expect(_args(instruction)['motion'], 2);
+    expect(_args(instruction)['motionFrames'], 45);
+    expect(_args(instruction)['height'], 0x4000);
+    expect(workshop.admitted(_instructions(program)), isTrue);
+  });
+
+  test('transcribes bounded BW2 orbiting emitters', () {
+    for (final type in [2, 3]) {
+      final program = _convert(_source.replaceFirst('WaitFrames 2',
+          'OrbitEmitters 711, 2, $type, 0x2000, 0x1800, -0x1000, 120, 1, 3, 2'));
+      expect(program['conversion'], 'supported');
+      final instruction = _instructions(program).first;
+      expect(instruction['op'], 'startOrbitEmitter');
+      expect(_args(instruction), {
+        'particle': 711, 'emitter': 2, 'type': type,
+        'radiusX': 8192, 'radiusZ': 6144, 'offsetY': -4096,
+        'frames': 120, 'wait': 1, 'unknown': 3, 'delay': 2,
+      });
+      expect(workshop.admitted(_instructions(program)), isTrue);
+    }
+    for (final command in [
+      'OrbitEmitters 711, 2, 2, 0x2000, 0x1800, 0, 0, 0, 3, 0',
+      'OrbitEmitters 711, 2, 4, 0x2000, 0x1800, 0, 120, 0, 3, 0',
+    ]) {
+      expect(_convert(_source.replaceFirst('WaitFrames 2', command))['conversion'],
+          isNot('supported'));
+    }
+  });
+
   test('preserves absolute BW2 camera moves separately from relative moves', () {
     final program = _convert(_source.replaceFirst('WaitFrames 2',
         'CameraMove 1, 0xca6, 0x5f33, 0x1dcc3, -0xe8d, 0xad9a, 0x27f6, 32, 0, 26'));
@@ -147,6 +204,51 @@ void main() {
     });
     expect(result, isNotNull);
     expect(result!['approximations'], contains('source-emitter:scaled-size-clamped'));
+  });
+
+  test('bakes the BW2 texture wrapping during workshop conversion', () async {
+    final source = _source.replaceFirst('WaitFrames 2',
+        'EmitterAdd 218, 0, EFFVM_EMIT_ATTACKER, EFFVM_EMIT_DEFENDER, 0, 0, 0, 0x1000, 0x1000, 0x1000, 0x1000');
+    final bytes = utf8.encode(source);
+    final document = {
+      'move': {'id': 'wrapped-texture', 'sourceId': 1},
+      'source': {'revision': _revision},
+      'script': {
+        'path': _path,
+        'sha256': sha256.convert(bytes).toString(),
+        'data': base64Encode(bytes),
+      },
+    };
+    const directory = '../../tools/avelune_attack_comparator/assets/bw2/particle218';
+    final client = HttpClient();
+    addTearDown(() => client.close(force: true));
+    final result = await workshop.convert(document, {'names': []}, client,
+        fetchResource: (path, limit) async {
+      if (path.endsWith('particles.json')) {
+        final json = jsonDecode(await File('$directory/source.json').readAsString()) as Map;
+        for (final texture in (json['textures'] as List).cast<Map>()) {
+          texture['repeat'] = 't';
+          texture['flip'] = 't';
+        }
+        ((json['emitters'] as List).first as Map)['textureRepeatShiftT'] = 1;
+        return Uint8List.fromList(utf8.encode(jsonEncode(json)));
+      }
+      final name = path.split('/').last.replaceFirst('.png', '.b64');
+      return base64Decode((await File('$directory/$name').readAsString()).trim());
+    });
+    final group = result!;
+    final emitter = (((group['definition'] as Map)['emitters'] as List).single as Map);
+    final texture = (emitter['appearance'] as Map)['initialTexture'] as String;
+    expect(texture, contains('__bw2_'));
+    final baked = image.decodePng(base64Decode((group['textures'] as Map)[texture] as String))!;
+    final original = image.decodePng(base64Decode(
+        (await File('$directory/texture00.b64').readAsString()).trim()))!;
+    expect(baked.width, original.width);
+    expect(baked.height, original.height * 2);
+    expect(baked.getPixel(0, baked.height - 1).toList(),
+        original.getPixel(0, 0).toList());
+    expect(result['approximations'], isNot(contains('texture-field:repeat')));
+    expect(result['approximations'], isNot(contains('particle-field:textureRepeatShiftT')));
   });
 
   test('converts separate particle groups with independent textures', () async {
@@ -271,6 +373,34 @@ void main() {
     expect(unsafe['conversion'], isNot('supported'));
   });
 
+  test('transcribes the zero-frame movement and alpha used by Ally Switch', () {
+    final source = _source.replaceFirst('WaitFrames 2', '''
+  McssMoveXY EFFVM_ATTACKER, 1, 0, -0x20000, 0, 0, 0
+  McssAlpha EFFVM_ATTACKER, 0, 31, 0, 0, 0''');
+    final program = _convert(source);
+    final instructions = _instructions(program);
+    expect(program['conversion'], 'supported');
+    expect(_args(instructions[0])['frames'], 0);
+    expect(_args(instructions[1])['frames'], 0);
+    expect(workshop.admitted(instructions), isTrue);
+    for (final invalid in [
+      'McssMoveXY EFFVM_ATTACKER, 3, 0, 0, 0, 0, 1',
+      'McssAlpha EFFVM_ATTACKER, 1, 31, 0, 0, 0',
+    ]) {
+      expect(_convert(_source.replaceFirst('WaitFrames 2', invalid))['conversion'],
+          isNot('supported'));
+    }
+  });
+
+  test('transcribes a source rotation step', () {
+    final program = _convert(_source.replaceFirst('WaitFrames 2',
+        'McssRotate EFFVM_DEFENDER, 1, 0xffff000, 80, 0, 0'));
+    expect(program['conversion'], 'supported');
+    expect(_instructions(program).first['op'], 'rotateCombatant');
+    expect(_args(_instructions(program).first)['angle'], 268431360);
+    expect(workshop.admitted(_instructions(program)), isTrue);
+  });
+
   test('transcribes a source rotation swing', () {
     final program = _convert(_source.replaceFirst('WaitFrames 2',
         'McssRotate EFFVM_ATTACKER, 2, 0xff8e3955, 6, 2, 2'));
@@ -348,8 +478,20 @@ Middle:
       expect(workshop.admitted(_instructions(program)), isTrue);
     }
     final unsupported = _convert(_source.replaceFirst('WaitFrames 2',
-        'McssAlpha EFFVM_ATTACKER, 2, 2, 20, 1, 0'));
+        'McssAlpha EFFVM_ATTACKER, 2, 2, 20, 1, 1'));
     expect(unsupported['conversion'], isNot('supported'));
+  });
+
+  test('admits the bounded emitter, alpha and movement used by Dark Void', () {
+    for (final command in [
+      'McssAlpha EFFVM_DEFENDER, 2, 1, 4, 0, 0',
+      'McssMoveXY EFFVM_DEFENDER, 2, 0, -0xc000, 60, 0, 1',
+      'EmitterAdd 644, 2, EFFVM_EMIT_DEFENDER, 8, 0x333, 0, 0, 0x1000, 0x1000, 0x5000, 0x1000',
+    ]) {
+      final program = _convert(_source.replaceFirst('WaitFrames 2', command));
+      expect(program['conversion'], 'supported', reason: command);
+      expect(workshop.admitted(_instructions(program)), isTrue, reason: command);
+    }
   });
 
   test('transcribes temporary source combatant visibility', () {
@@ -429,13 +571,73 @@ Done:''');
       expect(_args(instructions.first)['x'], 4096);
       expect(bundle['approximations'], contains('source-branch:player-side-only'));
       final unsupported = source.replaceAll('EFFVM_VAR_ATTACKER_SIDE',
-          'EFFVM_VAR_BATTLE_STYLE');
+          'EFFVM_VAR_UNKNOWN');
       expect(await workshop.convert(document(unsupported), {}, client), isNull);
       final loop = source.replaceFirst('1, Enemy', '0, Example');
       expect(await workshop.convert(document(loop), {}, client), isNull);
     } finally {
       client.close(force: true);
     }
+  });
+
+  test('workshop resolves source battle style for a single battle', () async {
+    final client = HttpClient();
+    try {
+      for (final (condition, value, expected) in [
+        ('EFFVM_CMP_NE', '2', 4096),
+        ('EFFVM_CMP_EQ', '0', 4096),
+        ('EFFVM_CMP_EQ', '2', 8192),
+        ('EFFVM_CMP_NE', '0', 8192),
+      ]) {
+        final source = _source.replaceFirst('WaitFrames 2', '''
+  IfVarConst EFFVM_VAR_BATTLE_STYLE, $condition, $value, Single
+  McssMoveXY EFFVM_ATTACKER, 2, 0x2000, 0, 2, 0, 1
+  End
+Single:
+  McssMoveXY EFFVM_ATTACKER, 2, 0x1000, 0, 2, 0, 1''');
+        final bytes = utf8.encode(source);
+        final document = {
+          'move': {'id': 'example', 'sourceId': 1},
+          'source': {'revision': _revision},
+          'script': {
+            'data': base64Encode(bytes),
+            'path': _path,
+            'sha256': sha256.convert(bytes).toString(),
+          },
+        };
+        final bundle = await workshop.convert(document, {}, client);
+        expect(bundle, isNotNull, reason: '$condition $value');
+        final program = bundle!['program'] as Map<String, Object?>;
+        expect(_args(_instructions(program).first)['x'], expected);
+        expect(bundle['approximations'], contains('source-branch:single-battle-only'));
+        expect(bundle['approximations'], isNot(contains('source-branch:player-side-only')));
+      }
+    } finally {
+      client.close(force: true);
+    }
+  });
+
+  test('workshop preserves the player-side route through a forward jump', () {
+    final source = _source.replaceFirst('WaitFrames 2', '''
+  IfVarConst EFFVM_VAR_ATTACKER_SIDE, EFFVM_CMP_EQ, 1, Enemy
+  CameraMovePreset 1, 1, 32, 0, 12
+  EmitterMove 361, 0, 2, EFFVM_EMIT_ATTACKER, 1, 0x1000, 0x14000, 0x2000, 0x1000, 0x1000, 0
+  EmitterAdd 361, 1, 1, 8, 0x1000, 0, 0, 0x1000, 0x1000, 0x1000, 0x1000
+  Jump Done
+Enemy:
+  CameraMovePreset 1, 0, 32, 0, 12
+Done:''');
+    final specialized = workshop.specializeWorkshopContext(_convert(source));
+    expect(specialized, isNotNull);
+    final instructions = _instructions(specialized!);
+    expect(instructions.map((item) => item['op']),
+        ['moveCameraPreset', 'startMovingEmitter', 'startEmitter', 'end']);
+    expect(_args(instructions[0])['camera'], 1);
+    expect(_args(instructions[1])['to'], 'EFFVM_EMIT_DEFENDER');
+    expect(_args(instructions[2])['from'], 'EFFVM_EMIT_DEFENDER');
+    expect(workshop.admitted(instructions), isTrue);
+    final backwards = source.replaceFirst('Jump Done', 'Jump Example');
+    expect(workshop.specializeWorkshopContext(_convert(backwards)), isNull);
   });
 
   test('transcribes a source position shake', () {

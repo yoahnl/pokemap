@@ -61,6 +61,9 @@ documentation/
 /documentation/*
 !/documentation/reports/
 /documentation/reports/*
+!/documentation/reports/avelune_studio/
+/documentation/reports/avelune_studio/*
+!/documentation/reports/avelune_studio/audit_ergonomie_studio_2026-11-03.md
 !/documentation/reports/battle/
 /documentation/reports/battle/*
 !/documentation/reports/battle/battle_camera_3d_consolidation.md

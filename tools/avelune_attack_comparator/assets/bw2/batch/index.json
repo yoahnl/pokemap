@@ -1,130 +1,5 @@
 [
   {
-    "id": "mud-slap",
-    "label": "Force Cachée · Variante 2 (Coud’Boue)",
-    "englishName": "Mud-Slap",
-    "type": "ground",
-    "category": "special",
-    "particle": 359,
-    "approximations": [],
-    "referenceUrl": "https://archives.bulbagarden.net/media/upload/0/09/Mud-Slap_V.png",
-    "bundleAsset": "assets/bw2/batch/mud-slap.json",
-    "sourceVariant": "SecretPower_Variant1",
-    "resolvedVariant": "MudSlap",
-    "originMoveId": "secret-power",
-    "sourceScriptSha256": "961b433e0fa193f776067de085612bd346b83bcadf975c704f4d1918903a729a"
-  },
-  {
-    "id": "mud-shot",
-    "label": "Force Cachée · Variante 3 (Tir de Boue)",
-    "englishName": "Mud Shot",
-    "type": "ground",
-    "category": "special",
-    "particle": 517,
-    "approximations": [],
-    "referenceUrl": "https://archives.bulbagarden.net/media/upload/8/83/Mud_Shot_V.png",
-    "bundleAsset": "assets/bw2/batch/mud-shot.json",
-    "sourceVariant": "SecretPower_Variant2",
-    "resolvedVariant": "MudShot",
-    "originMoveId": "secret-power",
-    "sourceScriptSha256": "961b433e0fa193f776067de085612bd346b83bcadf975c704f4d1918903a729a"
-  },
-  {
-    "id": "avalanche",
-    "label": "Force Cachée · Variante 4 (Avalanche)",
-    "englishName": "Avalanche",
-    "type": "ice",
-    "category": "physical",
-    "particle": 598,
-    "approximations": [
-      "camera:relative-adapted-to-workshop",
-      "particle-field:emissionAxis",
-      "particle-field:hideParent",
-      "particle-field:lifeTimeVariance",
-      "particle-shape:cylinder_surface->sphere_surface",
-      "scene-palette-fade:layer-approximation"
-    ],
-    "referenceUrl": "https://archives.bulbagarden.net/media/upload/4/42/Avalanche_V.png",
-    "bundleAsset": "assets/bw2/batch/avalanche.json",
-    "sourceVariant": "SecretPower_Variant3",
-    "resolvedVariant": "Avalanche",
-    "originMoveId": "secret-power",
-    "sourceScriptSha256": "961b433e0fa193f776067de085612bd346b83bcadf975c704f4d1918903a729a"
-  },
-  {
-    "id": "ice-shard",
-    "label": "Force Cachée · Variante 5 (Éclats Glace)",
-    "englishName": "Ice Shard",
-    "type": "ice",
-    "category": "physical",
-    "particle": 599,
-    "approximations": [
-      "particle-random:sequence-experimental",
-      "scene-palette-fade:layer-approximation"
-    ],
-    "referenceUrl": "https://archives.bulbagarden.net/media/upload/1/13/Ice_Shard_V.png",
-    "bundleAsset": "assets/bw2/batch/ice-shard.json",
-    "sourceVariant": "SecretPower_Variant4",
-    "resolvedVariant": "IceShard",
-    "originMoveId": "secret-power",
-    "sourceScriptSha256": "961b433e0fa193f776067de085612bd346b83bcadf975c704f4d1918903a729a"
-  },
-  {
-    "id": "water-pulse",
-    "label": "Force Cachée · Variante 6 (Vibraqua)",
-    "englishName": "Water Pulse",
-    "type": "water",
-    "category": "special",
-    "particle": 529,
-    "approximations": [
-      "background-palette-fade:layer-approximation",
-      "background-wave:trigonometry-experimental",
-      "particle-random:sequence-experimental",
-      "scene-palette-fade:layer-approximation",
-      "source-emitter:field-coordinate-calibration"
-    ],
-    "referenceUrl": "https://archives.bulbagarden.net/media/upload/b/b0/Water_Pulse_B2W2.png",
-    "bundleAsset": "assets/bw2/batch/water-pulse.json",
-    "sourceVariant": "SecretPower_Variant5",
-    "resolvedVariant": "WaterPulse",
-    "originMoveId": "secret-power",
-    "sourceScriptSha256": "961b433e0fa193f776067de085612bd346b83bcadf975c704f4d1918903a729a"
-  },
-  {
-    "id": "rock-throw",
-    "label": "Force Cachée · Variante 7 (Jet-Pierres)",
-    "englishName": "Rock Throw",
-    "type": "rock",
-    "category": "physical",
-    "particle": 259,
-    "approximations": [
-      "particle-field:emissionAxis",
-      "particle-shape:cylinder_surface->sphere_surface",
-      "particle-zero-radius:point"
-    ],
-    "referenceUrl": "https://archives.bulbagarden.net/media/upload/0/00/Rock_Throw_V.png",
-    "bundleAsset": "assets/bw2/batch/rock-throw.json",
-    "sourceVariant": "SecretPower_Variant6",
-    "resolvedVariant": "RockThrow",
-    "originMoveId": "secret-power",
-    "sourceScriptSha256": "961b433e0fa193f776067de085612bd346b83bcadf975c704f4d1918903a729a"
-  },
-  {
-    "id": "needle-arm",
-    "label": "Force Cachée · Variante 8 (Poing Dard)",
-    "englishName": "Needle Arm",
-    "type": "grass",
-    "category": "physical",
-    "particle": 472,
-    "approximations": [],
-    "referenceUrl": "https://archives.bulbagarden.net/media/upload/5/53/Needle_Arm_V.png",
-    "bundleAsset": "assets/bw2/batch/needle-arm.json",
-    "sourceVariant": "SecretPower_Variant7",
-    "resolvedVariant": "NeedleArm",
-    "originMoveId": "secret-power",
-    "sourceScriptSha256": "961b433e0fa193f776067de085612bd346b83bcadf975c704f4d1918903a729a"
-  },
-  {
     "id": "fly",
     "label": "Vol · Variante 2",
     "englishName": "Fly",
@@ -201,8 +76,7 @@
     "category": "status",
     "particle": 545,
     "approximations": [
-      "particle-field:dirStretch",
-      "particle-field:polygonY"
+      "particle-stretch:camera-projection-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/1/13/Acupressure_V.png",
     "bundleAsset": "assets/bw2/batch/acupressure.json"
@@ -225,9 +99,7 @@
     "type": "dark",
     "category": "status",
     "particle": 648,
-    "approximations": [
-      "particle-shape:sphere->sphere_surface"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/b/b1/Hone_Claws_V.png",
     "bundleAsset": "assets/bw2/batch/hone-claws.json"
   },
@@ -238,11 +110,7 @@
     "type": "water",
     "category": "special",
     "particle": 688,
-    "approximations": [
-      "particle-curve:scaleAnim.order",
-      "particle-field:polygonY",
-      "particle-shape:cylinder_surface->sphere_surface"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/9/93/Water_Pledge_V.png",
     "bundleAsset": "assets/bw2/batch/water-pledge.json"
   },
@@ -254,7 +122,6 @@
     "category": "special",
     "particle": 690,
     "approximations": [
-      "particle-shape:cylinder_surface->sphere_surface",
       "particle-spin:trigonometry-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/7/7f/Grass_Pledge_V.png",
@@ -268,11 +135,8 @@
     "category": "special",
     "particle": 689,
     "approximations": [
-      "particle-field:lifeTimeVariance",
       "particle-field:polygonReferencePlane",
-      "particle-field:polygonRotAxis",
-      "particle-shape:cylinder->sphere_surface",
-      "particle-shape:cylinder_surface->sphere_surface"
+      "particle-field:polygonRotAxis"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/e/ef/Fire_Pledge_V.png",
     "bundleAsset": "assets/bw2/batch/fire-pledge.json"
@@ -346,10 +210,7 @@
     "category": "physical",
     "particle": 632,
     "approximations": [
-      "actor-visibility:shadow-hidden",
-      "particle-curve:scaleAnim.order",
-      "particle-field:polygonY",
-      "particle-shape:cylinder_surface->sphere_surface"
+      "actor-visibility:shadow-hidden"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/0/0e/Aqua_Jet_V.png",
     "bundleAsset": "assets/bw2/batch/aqua-jet.json"
@@ -361,9 +222,7 @@
     "type": "normal",
     "category": "status",
     "particle": 276,
-    "approximations": [
-      "particle-curve:scaleAnim.order"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/2/20/Harden_V.png",
     "bundleAsset": "assets/bw2/batch/harden.json"
   },
@@ -387,9 +246,7 @@
     "type": "dark",
     "category": "physical",
     "particle": 551,
-    "approximations": [
-      "particle-field:lifeTimeVariance"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/d/d2/Assurance_V.png",
     "bundleAsset": "assets/bw2/batch/assurance.json"
   },
@@ -412,12 +269,7 @@
     "category": "special",
     "particle": 555,
     "approximations": [
-      "particle-child:textureRepeatShiftT",
-      "particle-field:lifeTimeVariance",
-      "particle-shape:circle->sphere_surface",
-      "particle-spin:trigonometry-experimental",
-      "texture-field:flip",
-      "texture-field:repeat"
+      "particle-spin:trigonometry-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/a/a0/Trump_Card_V.png",
     "bundleAsset": "assets/bw2/batch/trump-card.json"
@@ -442,10 +294,7 @@
     "type": "normal",
     "category": "status",
     "particle": 426,
-    "approximations": [
-      "particle-curve:scaleAnim.order",
-      "particle-shape:sphere->sphere_surface"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/5/5d/Swallow_V.png",
     "bundleAsset": "assets/bw2/batch/swallow.json"
   },
@@ -481,7 +330,7 @@
     "approximations": [
       "background-palette-fade:layer-approximation",
       "particle-bound:baseScale",
-      "particle-child:omitted-for-preview",
+      "particle-child:short-parent-lifetime-experimental",
       "particle-field:dirFromPosition",
       "particle-projection:billboard-center-clipping",
       "scene-palette-fade:layer-approximation",
@@ -499,7 +348,8 @@
     "category": "special",
     "particle": 482,
     "approximations": [
-      "particle-spin:trigonometry-experimental"
+      "particle-spin:trigonometry-experimental",
+      "source-variant:first-only"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/1/17/Weather_Ball_V.png",
     "bundleAsset": "assets/bw2/batch/weather-ball.json"
@@ -646,13 +496,7 @@
     "type": "normal",
     "category": "physical",
     "particle": 290,
-    "approximations": [
-      "particle-child:textureRepeatShiftS",
-      "particle-child:textureRepeatShiftT",
-      "particle-field:lifeTimeVariance",
-      "particle-field:textureRepeatShiftS",
-      "particle-field:textureRepeatShiftT"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/1/11/Egg_Bomb_V.png",
     "bundleAsset": "assets/bw2/batch/egg-bomb.json"
   },
@@ -674,10 +518,7 @@
     "type": "normal",
     "category": "status",
     "particle": 280,
-    "approximations": [
-      "particle-curve:scaleAnim.order",
-      "particle-shape:sphere->sphere_surface"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/4/4b/Defense_Curl_V.png",
     "bundleAsset": "assets/bw2/batch/defense-curl.json"
   },
@@ -689,7 +530,7 @@
     "category": "special",
     "particle": 661,
     "approximations": [
-      "particle-child:omitted-for-preview"
+      "particle-child:short-parent-lifetime-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/e/ea/Electro_Ball_V.png",
     "bundleAsset": "assets/bw2/batch/electro-ball.json"
@@ -737,10 +578,8 @@
     "type": "normal",
     "category": "status",
     "particle": 277,
-    "approximations": [
-      "particle-child:followEmitter"
-    ],
-    "referenceUrl": null,
+    "approximations": [],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/7/74/SmokeScreen_V.png",
     "bundleAsset": "assets/bw2/batch/smokescreen.json"
   },
   {
@@ -753,7 +592,7 @@
     "approximations": [
       "particle-random:sequence-experimental"
     ],
-    "referenceUrl": null,
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/1/15/BubbleBeam_V.png",
     "bundleAsset": "assets/bw2/batch/bubble-beam.json"
   },
   {
@@ -763,7 +602,9 @@
     "type": "normal",
     "category": "physical",
     "particle": 387,
-    "approximations": [],
+    "approximations": [
+      "source-variant:first-only"
+    ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/a/ae/Present_V.png",
     "bundleAsset": "assets/bw2/batch/present.json"
   },
@@ -801,8 +642,7 @@
     "particle": 680,
     "approximations": [
       "particle-field:polygonReferencePlane",
-      "particle-field:polygonRotAxis",
-      "particle-shape:cylinder->sphere_surface"
+      "particle-field:polygonRotAxis"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/c/c7/Incinerate_V.png",
     "bundleAsset": "assets/bw2/batch/incinerate.json"
@@ -814,12 +654,7 @@
     "type": "grass",
     "category": "physical",
     "particle": 581,
-    "approximations": [
-      "particle-field:lifeTimeVariance",
-      "particle-field:textureRepeatShiftS",
-      "particle-field:textureRepeatShiftT",
-      "particle-shape:sphere->sphere_surface"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/6/64/Seed_Bomb_V.png",
     "bundleAsset": "assets/bw2/batch/seed-bomb.json"
   },
@@ -830,7 +665,9 @@
     "type": "fighting",
     "category": "physical",
     "particle": 450,
-    "approximations": [],
+    "approximations": [
+      "source-variant:first-only"
+    ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/f/f8/Brick_Break_V.png",
     "bundleAsset": "assets/bw2/batch/brick-break.json"
   },
@@ -856,8 +693,7 @@
     "category": "special",
     "particle": 692,
     "approximations": [
-      "particle-child:omitted-for-preview",
-      "particle-shape:sphere->sphere_surface",
+      "particle-child:short-parent-lifetime-experimental",
       "particle-spin:trigonometry-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/d/d2/Volt_Switch_V.png",
@@ -972,9 +808,7 @@
     "type": "water",
     "category": "physical",
     "particle": 297,
-    "approximations": [
-      "particle-shape:cylinder_surface->sphere_surface"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/0/00/Clamp_V.png",
     "bundleAsset": "assets/bw2/batch/clamp.json"
   },
@@ -1013,8 +847,7 @@
     "category": "physical",
     "particle": 463,
     "approximations": [
-      "particle-field:convergenceBehavior",
-      "particle-shape:circle->sphere_surface"
+      "particle-field:convergenceBehavior"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/b/bd/Arm_Thrust_V.png",
     "bundleAsset": "assets/bw2/batch/arm-thrust.json"
@@ -1037,10 +870,7 @@
     "type": "normal",
     "category": "physical",
     "particle": 322,
-    "approximations": [
-      "particle-field:lifeTimeVariance",
-      "particle-field:polygonY"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/9/9b/Fury_Swipes_V.png",
     "bundleAsset": "assets/bw2/batch/fury-swipes.json"
   },
@@ -1237,8 +1067,7 @@
     "category": "physical",
     "particle": 326,
     "approximations": [
-      "particle-child:followEmitter",
-      "particle-field:emissionAxis"
+      "particle-axis:source-basis-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/8/84/Hyper_Fang_V.png",
     "bundleAsset": "assets/bw2/batch/hyper-fang.json"
@@ -1296,10 +1125,7 @@
     "type": "ice",
     "category": "physical",
     "particle": 602,
-    "approximations": [
-      "particle-field:lifeTimeVariance",
-      "particle-field:polygonY"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/7/72/Ice_Fang_V.png",
     "bundleAsset": "assets/bw2/batch/ice-fang.json"
   },
@@ -1311,9 +1137,7 @@
     "category": "physical",
     "particle": 182,
     "approximations": [
-      "particle-field:lifeTimeVariance",
       "particle-field:polygonRotAxis",
-      "particle-field:polygonY",
       "particle-spin:trigonometry-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/8/83/Wing_Attack_V.png",
@@ -1341,7 +1165,6 @@
     "category": "special",
     "particle": 251,
     "approximations": [
-      "particle-shape:cylinder_surface->sphere_surface",
       "particle-spin:trigonometry-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/1/1f/Fire_Spin_V.png",
@@ -1368,11 +1191,8 @@
     "category": "status",
     "particle": 179,
     "approximations": [
-      "particle-curve:scaleAnim.order",
       "particle-field:drawType",
       "particle-field:polygonRotAxis",
-      "particle-field:polygonY",
-      "particle-shape:cylinder_surface->sphere_surface",
       "particle-spin:trigonometry-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/a/a8/Swords_Dance_V.png",
@@ -1428,9 +1248,7 @@
     "type": "dark",
     "category": "physical",
     "particle": 553,
-    "approximations": [
-      "particle-field:lifeTimeVariance"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/f/f6/Fling_V.png",
     "bundleAsset": "assets/bw2/batch/fling.json"
   },
@@ -1455,10 +1273,7 @@
     "type": "water",
     "category": "status",
     "particle": 662,
-    "approximations": [
-      "particle-field:lifeTimeVariance",
-      "particle-shape:cylinder_surface->sphere_surface"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/9/9f/Soak_V.png",
     "bundleAsset": "assets/bw2/batch/soak.json"
   },
@@ -1526,9 +1341,7 @@
     "particle": 190,
     "approximations": [
       "particle-child:polygonRotAxis",
-      "particle-curve:alphaAnim.order",
       "particle-field:polygonRotAxis",
-      "particle-shape:circle->sphere_surface",
       "particle-spin:trigonometry-experimental",
       "particle-zero-radius:point"
     ],
@@ -1572,9 +1385,7 @@
     "type": "dragon",
     "category": "physical",
     "particle": null,
-    "approximations": [
-      "particle-shape:cylinder_surface->sphere_surface"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/a/a0/Dragon_Claw_V.png",
     "bundleAsset": "assets/bw2/batch/dragon-claw.json"
   },
@@ -1596,10 +1407,7 @@
     "type": "dragon",
     "category": "special",
     "particle": 250,
-    "approximations": [
-      "particle-field:lifeTimeVariance",
-      "particle-shape:cylinder_surface->sphere_surface"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/6/63/Dragon_Rage_V.png",
     "bundleAsset": "assets/bw2/batch/dragon-rage.json"
   },
@@ -1613,7 +1421,7 @@
     "approximations": [
       "particle-stretch:camera-projection-experimental"
     ],
-    "referenceUrl": null,
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/a/a8/DragonBreath_V.png",
     "bundleAsset": "assets/bw2/batch/dragon-breath.json"
   },
   {
@@ -1626,7 +1434,7 @@
     "approximations": [
       "particle-spin:trigonometry-experimental"
     ],
-    "referenceUrl": null,
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/2/2d/Softboiled_V.png",
     "bundleAsset": "assets/bw2/batch/soft-boiled.json"
   },
   {
@@ -1636,9 +1444,7 @@
     "type": "water",
     "category": "special",
     "particle": 674,
-    "approximations": [
-      "particle-shape:cylinder->sphere_surface"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/3/3f/Scald_V.png",
     "bundleAsset": "assets/bw2/batch/scald.json"
   },
@@ -1650,8 +1456,6 @@
     "category": "special",
     "particle": null,
     "approximations": [
-      "particle-child:textureRepeatShiftS",
-      "particle-child:textureRepeatShiftT",
       "scene-palette-fade:layer-approximation"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/0/0d/Echoed_Voice_V.png",
@@ -1679,6 +1483,31 @@
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/d/df/Fusion_Bolt_V.png",
     "bundleAsset": "assets/bw2/batch/fusion-bolt.json"
+  },
+  {
+    "id": "fusion-bolt",
+    "label": "Éclair Croix · Variante 2 (renforcée)",
+    "englishName": "Fusion Bolt",
+    "type": "electric",
+    "category": "physical",
+    "particle": 738,
+    "approximations": [
+      "actor-position:screen-space-approximation",
+      "actor-visibility:shadow-hidden",
+      "camera:absolute-adapted-to-workshop",
+      "camera:relative-adapted-to-workshop",
+      "particle-bounce:world-alignment-experimental",
+      "particle-child:scale-range-experimental",
+      "particle-polygon:xyz-projection-experimental",
+      "particle-spin:trigonometry-experimental",
+      "scene-palette-fade:layer-approximation",
+      "source-emitter:camera-position-scale-approximation",
+      "source-emitter:field-coordinate-calibration",
+      "source-emitter:field-motion-calibration"
+    ],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/d/df/Fusion_Bolt_V.png",
+    "bundleAsset": "assets/bw2/batch/fusion-bolt--variant-2.json",
+    "sourceVariant": "FusionBolt_Variant1"
   },
   {
     "id": "fusion-bolt",
@@ -1712,9 +1541,7 @@
     "type": "fighting",
     "category": "physical",
     "particle": 419,
-    "approximations": [
-      "particle-child:followEmitter"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/e/ed/Rock_Smash_V.png",
     "bundleAsset": "assets/bw2/batch/rock-smash.json"
   },
@@ -1725,12 +1552,7 @@
     "type": "normal",
     "category": "physical",
     "particle": 165,
-    "approximations": [
-      "particle-child:textureRepeatShiftS",
-      "particle-child:textureRepeatShiftT",
-      "texture-field:flip",
-      "texture-field:repeat"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/6/69/Pound_V.png",
     "bundleAsset": "assets/bw2/batch/pound.json"
   },
@@ -1743,7 +1565,6 @@
     "particle": 189,
     "approximations": [
       "particle-field:polygonRotAxis",
-      "particle-shape:circle->sphere_surface",
       "particle-zero-radius:point"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/1/1c/Stomp_V.png",
@@ -1757,8 +1578,7 @@
     "category": "special",
     "particle": 314,
     "approximations": [
-      "particle-field:convergenceBehavior",
-      "particle-field:lifeTimeVariance"
+      "particle-field:convergenceBehavior"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/9/9b/Bubble_V.png",
     "bundleAsset": "assets/bw2/batch/bubble.json"
@@ -1811,7 +1631,6 @@
     "category": "special",
     "particle": 455,
     "approximations": [
-      "particle-field:lifeTimeVariance",
       "scene-palette-fade:layer-approximation"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/d/db/Eruption_V.png",
@@ -1838,14 +1657,7 @@
     "type": "electric",
     "category": "physical",
     "particle": 379,
-    "approximations": [
-      "particle-child:textureRepeatShiftS",
-      "particle-child:textureRepeatShiftT",
-      "particle-field:textureRepeatShiftS",
-      "particle-field:textureRepeatShiftT",
-      "texture-field:flip",
-      "texture-field:repeat"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/5/53/Spark_V.png",
     "bundleAsset": "assets/bw2/batch/spark.json"
   },
@@ -1857,9 +1669,7 @@
     "category": "physical",
     "particle": 186,
     "approximations": [
-      "particle-field:polygonReferencePlane",
-      "particle-shape:cylinder_surface->sphere_surface",
-      "particle-zero-radius:point"
+      "particle-field:polygonReferencePlane"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/f/f0/Bind_V.png",
     "bundleAsset": "assets/bw2/batch/bind.json"
@@ -1874,8 +1684,6 @@
     "approximations": [
       "background-palette-fade:layer-approximation",
       "camera:relative-adapted-to-workshop",
-      "particle-field:lifeTimeVariance",
-      "particle-shape:cylinder_surface->sphere_surface",
       "scene-palette-fade:layer-approximation"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/1/17/Thunder_V.png",
@@ -1888,10 +1696,7 @@
     "type": "normal",
     "category": "physical",
     "particle": 376,
-    "approximations": [
-      "particle-child:textureRepeatShiftS",
-      "particle-child:textureRepeatShiftT"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/f/f8/False_Swipe_V.png",
     "bundleAsset": "assets/bw2/batch/false-swipe.json"
   },
@@ -1944,16 +1749,37 @@
     "bundleAsset": "assets/bw2/batch/fusion-flare.json"
   },
   {
+    "id": "fusion-flare",
+    "label": "Flamme Croix · Variante 2 (renforcée)",
+    "englishName": "Fusion Flare",
+    "type": "fire",
+    "category": "special",
+    "particle": 736,
+    "approximations": [
+      "camera:absolute-adapted-to-workshop",
+      "camera:relative-adapted-to-workshop",
+      "particle-child:scale-range-experimental",
+      "particle-polygon:xyz-projection-experimental",
+      "particle-random:sequence-experimental",
+      "particle-spin:trigonometry-experimental",
+      "scene-palette-fade:layer-approximation",
+      "source-emitter:camera-position-scale-approximation",
+      "source-emitter:field-coordinate-calibration",
+      "source-emitter:field-motion-calibration",
+      "source-emitter:scaled-size-clamped"
+    ],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/f/f7/Fusion_Flare_V.png",
+    "bundleAsset": "assets/bw2/batch/fusion-flare--variant-2.json",
+    "sourceVariant": "FusionFlare_Variant1"
+  },
+  {
     "id": "ember",
     "label": "Flammèche",
     "englishName": "Ember",
     "type": "fire",
     "category": "special",
     "particle": 217,
-    "approximations": [
-      "particle-shape:cylinder_surface->sphere_surface",
-      "particle-zero-radius:point"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/5/54/Ember_V.png",
     "bundleAsset": "assets/bw2/batch/ember.json"
   },
@@ -1965,10 +1791,8 @@
     "category": "special",
     "particle": 672,
     "approximations": [
-      "particle-child:followEmitter",
-      "particle-child:polygonRotAxis",
-      "particle-field:emissionAxis",
-      "particle-field:lifeTimeVariance"
+      "particle-axis:source-basis-experimental",
+      "particle-child:polygonRotAxis"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/f/fa/Stored_Power_V.png",
     "bundleAsset": "assets/bw2/batch/stored-power.json"
@@ -1981,10 +1805,9 @@
     "category": "physical",
     "particle": 175,
     "approximations": [
-      "particle-field:lifeTimeVariance",
       "particle-spin:trigonometry-experimental"
     ],
-    "referenceUrl": null,
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/5/5b/ViceGrip_V.png",
     "bundleAsset": "assets/bw2/batch/vice-grip.json"
   },
   {
@@ -1994,9 +1817,7 @@
     "type": "fighting",
     "category": "physical",
     "particle": 574,
-    "approximations": [
-      "particle-field:lifeTimeVariance"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/9/9d/Force_Palm_V.png",
     "bundleAsset": "assets/bw2/batch/force-palm.json"
   },
@@ -2046,16 +1867,7 @@
     "type": "ghost",
     "category": "physical",
     "particle": 600,
-    "approximations": [
-      "particle-child:textureRepeatShiftS",
-      "particle-child:textureRepeatShiftT",
-      "particle-field:lifeTimeVariance",
-      "particle-field:polygonY",
-      "particle-field:textureRepeatShiftS",
-      "particle-field:textureRepeatShiftT",
-      "texture-field:flip",
-      "texture-field:repeat"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/9/91/Shadow_Claw_B2W2.png",
     "bundleAsset": "assets/bw2/batch/shadow-claw.json"
   },
@@ -2089,8 +1901,7 @@
     "category": "physical",
     "particle": 176,
     "approximations": [
-      "particle-field:polygonRotAxis",
-      "particle-field:polygonY"
+      "particle-field:polygonRotAxis"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/3/39/Guillotine_V.png",
     "bundleAsset": "assets/bw2/batch/guillotine.json"
@@ -2116,15 +1927,7 @@
     "category": "special",
     "particle": 638,
     "approximations": [
-      "particle-child:textureRepeatShiftS",
-      "particle-child:textureRepeatShiftT",
-      "particle-field:polygonY",
-      "particle-field:textureRepeatShiftS",
-      "particle-field:textureRepeatShiftT",
-      "particle-shape:cylinder_surface->sphere_surface",
-      "scene-palette-fade:layer-approximation",
-      "texture-field:flip",
-      "texture-field:repeat"
+      "scene-palette-fade:layer-approximation"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/9/92/Roar_of_Time_V.png",
     "bundleAsset": "assets/bw2/batch/roar-of-time.json"
@@ -2137,8 +1940,6 @@
     "category": "status",
     "particle": 268,
     "approximations": [
-      "particle-child:followEmitter",
-      "particle-shape:cylinder->sphere_surface",
       "particle-zero-radius:point"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/8/88/Hypnosis_V.png",
@@ -2151,11 +1952,7 @@
     "type": "normal",
     "category": "physical",
     "particle": 170,
-    "approximations": [
-      "particle-curve:scaleAnim.order",
-      "particle-field:lifeTimeVariance",
-      "particle-shape:sphere->sphere_surface"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/a/a7/Pay_Day_V.png",
     "bundleAsset": "assets/bw2/batch/pay-day.json"
   },
@@ -2167,9 +1964,7 @@
     "category": "physical",
     "particle": 259,
     "approximations": [
-      "particle-field:emissionAxis",
-      "particle-shape:cylinder_surface->sphere_surface",
-      "particle-zero-radius:point"
+      "particle-axis:source-basis-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/0/00/Rock_Throw_V.png",
     "bundleAsset": "assets/bw2/batch/rock-throw.json"
@@ -2181,10 +1976,7 @@
     "type": "normal",
     "category": "physical",
     "particle": 196,
-    "approximations": [
-      "particle-child:textureRepeatShiftS",
-      "particle-child:textureRepeatShiftT"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/a/ae/Horn_Attack_V.png",
     "bundleAsset": "assets/bw2/batch/horn-attack.json"
   },
@@ -2206,11 +1998,7 @@
     "type": "flying",
     "category": "special",
     "particle": 582,
-    "approximations": [
-      "particle-field:textureRepeatShiftT",
-      "texture-field:flip",
-      "texture-field:repeat"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/7/79/Air_Slash_V.png",
     "bundleAsset": "assets/bw2/batch/air-slash.json"
   },
@@ -2247,9 +2035,7 @@
     "category": "special",
     "particle": 721,
     "approximations": [
-      "particle-child:omitted-for-preview",
-      "particle-field:polygonY",
-      "particle-shape:cylinder_surface->sphere_surface"
+      "particle-child:scale-range-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/f/fd/Secret_Sword_V.png",
     "bundleAsset": "assets/bw2/batch/secret-sword.json"
@@ -2284,9 +2070,10 @@
     "category": "special",
     "particle": 243,
     "approximations": [
-      "particle-projection:orthographic-experimental"
+      "particle-projection:orthographic-experimental",
+      "source-variant:first-only"
     ],
-    "referenceUrl": null,
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/0/0f/SolarBeam_V.png",
     "bundleAsset": "assets/bw2/batch/solar-beam.json"
   },
   {
@@ -2334,9 +2121,7 @@
     "type": "normal",
     "category": "physical",
     "particle": 335,
-    "approximations": [
-      "particle-curve:alphaAnim.order"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/3/32/Struggle_V.png",
     "bundleAsset": "assets/bw2/batch/struggle.json"
   },
@@ -2348,9 +2133,7 @@
     "category": "physical",
     "particle": 353,
     "approximations": [
-      "particle-bound:variedScale",
-      "particle-field:lifeTimeVariance",
-      "particle-field:polygonY"
+      "particle-bound:variedScale"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/7/7b/Mach_Punch_V.png",
     "bundleAsset": "assets/bw2/batch/mach-punch.json"
@@ -2362,9 +2145,7 @@
     "type": "dark",
     "category": "status",
     "particle": 596,
-    "approximations": [
-      "particle-shape:circle->sphere_surface"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/2/2a/Nasty_Plot_V.png",
     "bundleAsset": "assets/bw2/batch/nasty-plot.json"
   },
@@ -2375,10 +2156,7 @@
     "type": "dark",
     "category": "physical",
     "particle": 413,
-    "approximations": [
-      "particle-field:lifeTimeVariance",
-      "particle-field:polygonY"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/3/37/Crunch_V.png",
     "bundleAsset": "assets/bw2/batch/crunch.json"
   },
@@ -2390,9 +2168,9 @@
     "category": "status",
     "particle": 344,
     "approximations": [
-      "particle-field:lifeTimeVariance"
+      "source-variant:first-only"
     ],
-    "referenceUrl": null,
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/c/cb/Curse_V_other.png",
     "bundleAsset": "assets/bw2/batch/curse.json"
   },
   {
@@ -2454,8 +2232,7 @@
     "category": "special",
     "particle": 608,
     "approximations": [
-      "particle-child:omitted-for-preview",
-      "particle-curve:scaleAnim.order"
+      "particle-child:scale-range-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/b/b7/Mirror_Shot_V.png",
     "bundleAsset": "assets/bw2/batch/mirror-shot.json"
@@ -2469,12 +2246,7 @@
     "particle": 434,
     "approximations": [
       "background-palette-fade:layer-approximation",
-      "particle-field:lifeTimeVariance",
-      "particle-field:polygonY",
-      "particle-field:textureRepeatShiftT",
-      "particle-spin:trigonometry-experimental",
-      "texture-field:flip",
-      "texture-field:repeat"
+      "particle-spin:trigonometry-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/a/ae/Focus_Punch_V.png",
     "bundleAsset": "assets/bw2/batch/focus-punch.json"
@@ -2497,11 +2269,7 @@
     "type": "dark",
     "category": "physical",
     "particle": 209,
-    "approximations": [
-      "particle-child:textureRepeatShiftS",
-      "particle-child:textureRepeatShiftT",
-      "particle-field:polygonY"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/0/07/Bite_V.png",
     "bundleAsset": "assets/bw2/batch/bite.json"
   },
@@ -2743,9 +2511,7 @@
     "category": "physical",
     "particle": 469,
     "approximations": [
-      "particle-shape:cylinder_surface->sphere_surface",
-      "particle-spin:trigonometry-experimental",
-      "particle-zero-radius:point"
+      "particle-spin:trigonometry-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/6/6a/Blaze_Kick_V.png",
     "bundleAsset": "assets/bw2/batch/blaze-kick.json"
@@ -2769,7 +2535,6 @@
     "category": "physical",
     "particle": 629,
     "approximations": [
-      "particle-curve:alphaAnim.order",
       "particle-field:relativeToBasePos"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/b/b6/Bug_Bite_V.png",
@@ -2793,9 +2558,7 @@
     "type": "bug",
     "category": "physical",
     "particle": 583,
-    "approximations": [
-      "particle-field:lifeTimeVariance"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/4/47/X-Scissor_V.png",
     "bundleAsset": "assets/bw2/batch/x-scissor.json"
   },
@@ -2861,12 +2624,7 @@
     "type": "poison",
     "category": "physical",
     "particle": 619,
-    "approximations": [
-      "particle-child:textureRepeatShiftT",
-      "particle-field:textureRepeatShiftT",
-      "texture-field:flip",
-      "texture-field:repeat"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/6/66/Cross_Poison_V.png",
     "bundleAsset": "assets/bw2/batch/cross-poison.json"
   },
@@ -2877,10 +2635,7 @@
     "type": "psychic",
     "category": "status",
     "particle": 457,
-    "approximations": [
-      "particle-curve:alphaAnim.order",
-      "particle-field:lifeTimeVariance"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/1/16/Imprison_V.png",
     "bundleAsset": "assets/bw2/batch/imprison.json"
   },
@@ -2920,7 +2675,7 @@
     "approximations": [
       "particle-spin:trigonometry-experimental"
     ],
-    "referenceUrl": null,
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/e/ee/PoisonPowder_V.png",
     "bundleAsset": "assets/bw2/batch/poison-powder.json"
   },
   {
@@ -2930,10 +2685,8 @@
     "type": "rock",
     "category": "special",
     "particle": 417,
-    "approximations": [
-      "particle-field:lifeTimeVariance"
-    ],
-    "referenceUrl": null,
+    "approximations": [],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/e/e1/AncientPower_V.png",
     "bundleAsset": "assets/bw2/batch/ancient-power.json"
   },
   {
@@ -2944,7 +2697,6 @@
     "category": "physical",
     "particle": null,
     "approximations": [
-      "particle-field:lifeTimeVariance",
       "source-branch:player-side-only"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/f/f9/Crush_Grip_V.png",
@@ -2958,7 +2710,6 @@
     "category": "status",
     "particle": null,
     "approximations": [
-      "particle-shape:circle->sphere_surface",
       "source-branch:player-side-only"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/f/fb/Taunt_V.png",
@@ -2972,12 +2723,9 @@
     "category": "special",
     "particle": 408,
     "approximations": [
-      "particle-child:followEmitter",
+      "particle-axis:source-basis-experimental",
       "particle-field:childFixedPolygonID",
-      "particle-field:emissionAxis",
-      "particle-field:lifeTimeVariance",
       "particle-field:polygonReferencePlane",
-      "particle-shape:hemisphere->sphere_surface",
       "scene-palette-fade:layer-approximation"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/1/1b/Hidden_Power_V.png",
@@ -2990,11 +2738,7 @@
     "type": "dark",
     "category": "physical",
     "particle": 565,
-    "approximations": [
-      "particle-child:textureRepeatShiftS",
-      "particle-child:textureRepeatShiftT",
-      "particle-field:lifeTimeVariance"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/1/1c/Punishment_V.png",
     "bundleAsset": "assets/bw2/batch/punishment.json"
   },
@@ -3006,7 +2750,6 @@
     "category": "special",
     "particle": 292,
     "approximations": [
-      "particle-shape:sphere->sphere_surface",
       "particle-zero-radius:point"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/1/16/Smog_V.png",
@@ -3043,9 +2786,7 @@
     "type": "grass",
     "category": "status",
     "particle": null,
-    "approximations": [
-      "particle-shape:cylinder_surface->sphere_surface"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/7/75/Ingrain_V.png",
     "bundleAsset": "assets/bw2/batch/ingrain.json"
   },
@@ -3056,9 +2797,7 @@
     "type": "psychic",
     "category": "special",
     "particle": 225,
-    "approximations": [
-      "particle-field:hideParent"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/0/0c/Psybeam_V.png",
     "bundleAsset": "assets/bw2/batch/psybeam.json"
   },
@@ -3105,7 +2844,6 @@
     "category": "status",
     "particle": 324,
     "approximations": [
-      "particle-shape:cylinder->sphere_surface",
       "particle-zero-radius:point"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/7/7b/Rest_V.png",
@@ -3140,9 +2878,7 @@
     "type": "fighting",
     "category": "physical",
     "particle": 536,
-    "approximations": [
-      "particle-curve:alphaAnim.order"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/3/3a/Wake-Up_Slap_V.png",
     "bundleAsset": "assets/bw2/batch/wake-up-slap.json"
   },
@@ -3155,7 +2891,6 @@
     "particle": 618,
     "approximations": [
       "background-palette-fade:layer-approximation",
-      "particle-field:lifeTimeVariance",
       "scene-palette-fade:layer-approximation"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/4/4d/Rock_Wrecker_V.png",
@@ -3169,10 +2904,8 @@
     "category": "physical",
     "particle": 342,
     "approximations": [
-      "particle-field:lifeTimeVariance",
       "particle-field:polygonReferencePlane",
       "particle-field:polygonRotAxis",
-      "particle-shape:cylinder_surface->sphere_surface",
       "particle-spin:trigonometry-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/a/a6/Flame_Wheel_V.png",
@@ -3185,9 +2918,7 @@
     "type": "normal",
     "category": "physical",
     "particle": 542,
-    "approximations": [
-      "particle-field:lifeTimeVariance"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/5/5e/Feint_V.png",
     "bundleAsset": "assets/bw2/batch/feint.json"
   },
@@ -3209,12 +2940,7 @@
     "type": "water",
     "category": "special",
     "particle": 540,
-    "approximations": [
-      "particle-curve:scaleAnim.order",
-      "particle-field:lifeTimeVariance",
-      "particle-field:polygonY",
-      "particle-shape:cylinder_surface->sphere_surface"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/e/ee/Brine_V.png",
     "bundleAsset": "assets/bw2/batch/brine.json"
   },
@@ -3227,7 +2953,6 @@
     "particle": 249,
     "approximations": [
       "particle-field:polygonReferencePlane",
-      "particle-field:polygonY",
       "particle-spin:trigonometry-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/5/51/String_Shot_V.png",
@@ -3251,7 +2976,7 @@
     "type": "normal",
     "category": "special",
     "particle": 214,
-    "referenceUrl": null,
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/4/49/SonicBoom_V.png",
     "bundleAsset": "assets/bw2/batch/sonic-boom.json"
   },
   {
@@ -3272,9 +2997,7 @@
     "type": "normal",
     "category": "physical",
     "particle": 187,
-    "approximations": [
-      "particle-field:lifeTimeVariance"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/1/1c/Slam_V.png",
     "bundleAsset": "assets/bw2/batch/slam.json"
   },
@@ -3321,11 +3044,9 @@
     "category": "physical",
     "particle": 435,
     "approximations": [
-      "particle-field:textureRepeatShiftS",
-      "particle-field:textureRepeatShiftT",
       "particle-spin:trigonometry-experimental"
     ],
-    "referenceUrl": null,
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/7/7d/SmellingSalt_V.png",
     "bundleAsset": "assets/bw2/batch/smelling-salts.json"
   },
   {
@@ -3350,10 +3071,7 @@
       "background-palette-fade:layer-approximation",
       "particle-child:endScale",
       "particle-child:polygonRotAxis",
-      "particle-field:hideParent",
       "particle-field:polygonRotAxis",
-      "particle-shape:circle->sphere_surface",
-      "particle-shape:cylinder_surface->sphere_surface",
       "particle-zero-radius:point",
       "scene-palette-fade:layer-approximation"
     ],
@@ -3378,9 +3096,7 @@
     "type": "bug",
     "category": "special",
     "particle": null,
-    "approximations": [
-      "particle-shape:cylinder_surface->sphere_surface"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/5/5e/Struggle_Bug_V.png",
     "bundleAsset": "assets/bw2/batch/struggle-bug.json"
   },
@@ -3392,8 +3108,6 @@
     "category": "status",
     "particle": 406,
     "approximations": [
-      "particle-field:polygonY",
-      "particle-shape:sphere->sphere_surface",
       "particle-spin:trigonometry-experimental",
       "particle-zero-radius:point"
     ],
@@ -3407,9 +3121,7 @@
     "type": "steel",
     "category": "physical",
     "particle": 659,
-    "approximations": [
-      "particle-shape:circle->sphere_surface"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/7/7d/Heavy_Slam_V.png",
     "bundleAsset": "assets/bw2/batch/heavy-slam.json"
   },
@@ -3436,7 +3148,6 @@
     "approximations": [
       "background-palette-fade:layer-approximation",
       "particle-child:endScale",
-      "particle-curve:scaleAnim.order",
       "scene-palette-fade:layer-approximation"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/b/b3/Leaf_Storm_V.png",
@@ -3449,9 +3160,7 @@
     "type": "normal",
     "category": "status",
     "particle": 373,
-    "approximations": [
-      "particle-field:lifeTimeVariance"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/e/ef/Endure_V.png",
     "bundleAsset": "assets/bw2/batch/endure.json"
   },
@@ -3462,12 +3171,7 @@
     "type": "steel",
     "category": "physical",
     "particle": 621,
-    "approximations": [
-      "particle-field:textureRepeatShiftS",
-      "particle-field:textureRepeatShiftT",
-      "texture-field:flip",
-      "texture-field:repeat"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/b/b9/Iron_Head_V.png",
     "bundleAsset": "assets/bw2/batch/iron-head.json"
   },
@@ -3501,8 +3205,7 @@
     "category": "special",
     "particle": null,
     "approximations": [
-      "particle-child:omitted-for-preview",
-      "particle-field:polygonY",
+      "particle-child:short-parent-lifetime-experimental",
       "scene-palette-fade:layer-approximation"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/b/bd/Thunderbolt_V.png",
@@ -3515,10 +3218,8 @@
     "type": "normal",
     "category": "physical",
     "particle": 167,
-    "approximations": [
-      "particle-curve:alphaAnim.order"
-    ],
-    "referenceUrl": null,
+    "approximations": [],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/d/d6/DoubleSlap_V.png",
     "bundleAsset": "assets/bw2/batch/double-slap.json"
   },
   {
@@ -3529,8 +3230,6 @@
     "category": "special",
     "particle": 181,
     "approximations": [
-      "particle-field:lifeTimeVariance",
-      "particle-shape:cylinder_surface->sphere_surface",
       "particle-spin:trigonometry-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/2/26/Gust_V.png",
@@ -3544,8 +3243,6 @@
     "category": "physical",
     "particle": 502,
     "approximations": [
-      "particle-field:lifeTimeVariance",
-      "particle-shape:cylinder_surface->sphere_surface",
       "particle-spin:trigonometry-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/6/61/Sand_Tomb_V.png",
@@ -3585,10 +3282,7 @@
     "type": "flying",
     "category": "special",
     "particle": 489,
-    "approximations": [
-      "particle-field:polygonY",
-      "particle-shape:cylinder_surface->sphere_surface"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/1/16/Air_Cutter_V.png",
     "bundleAsset": "assets/bw2/batch/air-cutter.json"
   },
@@ -3600,8 +3294,7 @@
     "category": "physical",
     "particle": 242,
     "approximations": [
-      "particle-field:polygonRotAxis",
-      "particle-shape:cylinder_surface->sphere_surface"
+      "particle-field:polygonRotAxis"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/2/2d/Razor_Leaf_V.png",
     "bundleAsset": "assets/bw2/batch/razor-leaf.json"
@@ -3613,9 +3306,7 @@
     "type": "normal",
     "category": "physical",
     "particle": 333,
-    "approximations": [
-      "particle-field:lifeTimeVariance"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/2/2e/Slash_V.png",
     "bundleAsset": "assets/bw2/batch/slash.json"
   },
@@ -3626,17 +3317,7 @@
     "type": "dark",
     "category": "physical",
     "particle": 579,
-    "approximations": [
-      "particle-child:textureRepeatShiftT",
-      "particle-curve:scaleAnim.order",
-      "particle-field:hideParent",
-      "particle-field:lifeTimeVariance",
-      "particle-field:polygonY",
-      "particle-field:textureRepeatShiftT",
-      "particle-shape:cylinder_surface->sphere_surface",
-      "texture-field:flip",
-      "texture-field:repeat"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/c/ce/Night_Slash_V.png",
     "bundleAsset": "assets/bw2/batch/night-slash.json"
   },
@@ -3663,7 +3344,7 @@
       "particle-spin:trigonometry-experimental",
       "scene-palette-fade:layer-approximation"
     ],
-    "referenceUrl": null,
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/2/28/Tri_Attack_V.png",
     "bundleAsset": "assets/bw2/batch/tri-attack.json"
   },
   {
@@ -3713,9 +3394,7 @@
     "category": "physical",
     "particle": 655,
     "approximations": [
-      "particle-field:polygonReferencePlane",
-      "particle-shape:cylinder_surface->sphere_surface",
-      "particle-zero-radius:point"
+      "particle-field:polygonReferencePlane"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/9/91/Storm_Throw_V.png",
     "bundleAsset": "assets/bw2/batch/storm-throw.json"
@@ -3727,9 +3406,7 @@
     "type": "ghost",
     "category": "physical",
     "particle": 481,
-    "approximations": [
-      "particle-field:lifeTimeVariance"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/2/2f/Astonish_V.png",
     "bundleAsset": "assets/bw2/batch/astonish.json"
   },
@@ -3741,8 +3418,7 @@
     "category": "physical",
     "particle": 200,
     "approximations": [
-      "particle-field:emissionAxis",
-      "particle-field:lifeTimeVariance"
+      "particle-axis:source-basis-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/3/35/Body_Slam_V.png",
     "bundleAsset": "assets/bw2/batch/body-slam.json"
@@ -3756,7 +3432,6 @@
     "particle": 670,
     "approximations": [
       "particle-field:polygonRotAxis",
-      "particle-shape:circle->sphere_surface",
       "particle-zero-radius:point"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/0/0f/Chip_Away_V.png",
@@ -3780,9 +3455,7 @@
     "type": "fighting",
     "category": "physical",
     "particle": 233,
-    "approximations": [
-      "particle-field:lifeTimeVariance"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/3/38/Counter_V.png",
     "bundleAsset": "assets/bw2/batch/counter.json"
   },
@@ -3807,9 +3480,7 @@
     "category": "physical",
     "particle": 433,
     "approximations": [
-      "particle-field:lifeTimeVariance",
-      "particle-projection:orthographic-experimental",
-      "particle-shape:circle->sphere_surface"
+      "particle-projection:orthographic-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/8/82/Facade_V.png",
     "bundleAsset": "assets/bw2/batch/facade.json"
@@ -3823,10 +3494,9 @@
     "particle": 467,
     "approximations": [
       "particle-child:endScale",
-      "particle-shape:cylinder_surface->sphere_surface",
       "particle-spin:trigonometry-experimental"
     ],
-    "referenceUrl": null,
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/6/68/FeatherDance_V.png",
     "bundleAsset": "assets/bw2/batch/feather-dance.json"
   },
   {
@@ -3850,13 +3520,7 @@
     "category": "physical",
     "particle": 389,
     "approximations": [
-      "particle-child:textureRepeatShiftS",
-      "particle-child:textureRepeatShiftT",
-      "particle-field:textureRepeatShiftS",
-      "particle-field:textureRepeatShiftT",
-      "particle-projection:orthographic-experimental",
-      "texture-field:flip",
-      "texture-field:repeat"
+      "particle-projection:orthographic-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/b/b7/Frustration_V.png",
     "bundleAsset": "assets/bw2/batch/frustration.json"
@@ -3891,11 +3555,9 @@
     "category": "physical",
     "particle": 305,
     "approximations": [
-      "particle-child:textureRepeatShiftS",
-      "particle-child:textureRepeatShiftT",
       "particle-projection:orthographic-experimental"
     ],
-    "referenceUrl": null,
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/9/9e/Hi_Jump_Kick_V.png",
     "bundleAsset": "assets/bw2/batch/high-jump-kick.json"
   },
   {
@@ -3933,7 +3595,6 @@
     "particle": 189,
     "approximations": [
       "particle-field:polygonRotAxis",
-      "particle-shape:circle->sphere_surface",
       "particle-zero-radius:point"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/5/56/Low_Sweep_V.png",
@@ -3947,13 +3608,7 @@
     "category": "status",
     "particle": 572,
     "approximations": [
-      "particle-child:textureRepeatShiftS",
-      "particle-child:textureRepeatShiftT",
-      "particle-field:textureRepeatShiftS",
-      "particle-field:textureRepeatShiftT",
-      "particle-spin:trigonometry-experimental",
-      "texture-field:flip",
-      "texture-field:repeat"
+      "particle-spin:trigonometry-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/0/05/Magnet_Rise_V.png",
     "bundleAsset": "assets/bw2/batch/magnet-rise.json"
@@ -4020,11 +3675,8 @@
     "type": "ground",
     "category": "status",
     "particle": 194,
-    "approximations": [
-      "particle-field:lifeTimeVariance",
-      "particle-shape:sphere->sphere_surface"
-    ],
-    "referenceUrl": null,
+    "approximations": [],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/b/b4/Sand-Attack_V.png",
     "bundleAsset": "assets/bw2/batch/sand-attack.json"
   },
   {
@@ -4035,15 +3687,9 @@
     "category": "physical",
     "particle": 499,
     "approximations": [
-      "particle-field:lifeTimeVariance",
       "particle-field:polygonRotAxis",
-      "particle-field:textureRepeatShiftS",
-      "particle-field:textureRepeatShiftT",
       "particle-projection:orthographic-experimental",
-      "particle-shape:circle->sphere_surface",
-      "particle-zero-radius:point",
-      "texture-field:flip",
-      "texture-field:repeat"
+      "particle-zero-radius:point"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/e/e8/Shadow_Punch_V.png",
     "bundleAsset": "assets/bw2/batch/shadow-punch.json"
@@ -4067,9 +3713,7 @@
     "category": "physical",
     "particle": 188,
     "approximations": [
-      "particle-curve:scaleAnim.order",
-      "particle-field:polygonRotAxis",
-      "particle-shape:cylinder_surface->sphere_surface"
+      "particle-field:polygonRotAxis"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/5/56/Vine_Whip_V.png",
     "bundleAsset": "assets/bw2/batch/vine-whip.json"
@@ -4143,8 +3787,6 @@
     "approximations": [
       "background-palette-fade:layer-approximation",
       "background-wave:trigonometry-experimental",
-      "particle-field:lifeTimeVariance",
-      "particle-shape:cylinder_surface->sphere_surface",
       "particle-spin:trigonometry-experimental",
       "scene-palette-fade:layer-approximation"
     ],
@@ -4161,8 +3803,6 @@
     "approximations": [
       "background-palette-fade:layer-approximation",
       "background-wave:trigonometry-experimental",
-      "particle-shape:cylinder->sphere_surface",
-      "particle-shape:cylinder_surface->sphere_surface",
       "particle-spin:trigonometry-experimental",
       "scene-palette-fade:layer-approximation"
     ],
@@ -4180,7 +3820,6 @@
       "background-palette-fade:layer-approximation",
       "background-wave:trigonometry-experimental",
       "particle-bound:radius",
-      "particle-shape:cylinder_surface->sphere_surface",
       "particle-spin:trigonometry-experimental",
       "scene-palette-fade:layer-approximation"
     ],
@@ -4239,8 +3878,6 @@
     "category": "status",
     "particle": 405,
     "approximations": [
-      "particle-field:polygonY",
-      "particle-shape:sphere->sphere_surface",
       "particle-zero-radius:point",
       "scene-palette-fade:layer-approximation"
     ],
@@ -4340,8 +3977,6 @@
     "approximations": [
       "background-palette-animation:timing-experimental",
       "background-palette-fade:layer-approximation",
-      "particle-field:lifeTimeVariance",
-      "particle-shape:circle->sphere_surface",
       "scene-palette-fade:layer-approximation"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/e/e0/Double-Edge_BW.png",
@@ -4385,11 +4020,7 @@
     "particle": 585,
     "approximations": [
       "particle-field:polygonRotAxis",
-      "particle-field:textureRepeatShiftS",
-      "particle-field:textureRepeatShiftT",
-      "scene-palette-fade:layer-approximation",
-      "texture-field:flip",
-      "texture-field:repeat"
+      "scene-palette-fade:layer-approximation"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/1/1e/Dragon_Pulse_V.png",
     "bundleAsset": "assets/bw2/batch/dragon-pulse.json"
@@ -4404,7 +4035,6 @@
     "approximations": [
       "background-palette-fade:layer-approximation",
       "particle-curve:alphaAnim:out",
-      "particle-curve:scaleAnim.order",
       "scene-palette-fade:layer-approximation"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/7/77/DynamicPunch_BW.png",
@@ -4418,8 +4048,7 @@
     "category": "physical",
     "particle": 325,
     "approximations": [
-      "particle-field:emissionAxis",
-      "particle-shape:cylinder_surface->sphere_surface"
+      "particle-axis:source-basis-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/0/0d/Rock_Slide_V.png",
     "bundleAsset": "assets/bw2/batch/rock-slide.json"
@@ -4462,7 +4091,6 @@
     "approximations": [
       "background-palette-animation:timing-experimental",
       "background-palette-fade:layer-approximation",
-      "particle-field:lifeTimeVariance",
       "scene-palette-fade:layer-approximation"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/e/e0/Zap_Cannon_BW.png",
@@ -4490,7 +4118,6 @@
     "particle": 636,
     "approximations": [
       "background-palette-fade:layer-approximation",
-      "particle-shape:circle->sphere_surface",
       "scene-palette-fade:layer-approximation"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/b/b0/Head_Smash_V.png",
@@ -4561,10 +4188,7 @@
     "category": "status",
     "particle": 269,
     "approximations": [
-      "background-palette-fade:layer-approximation",
-      "particle-field:hideParent",
-      "particle-field:polygonX",
-      "particle-shape:cylinder_surface->sphere_surface"
+      "background-palette-fade:layer-approximation"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/b/b6/Agility_BW.png",
     "bundleAsset": "assets/bw2/batch/agility.json"
@@ -4578,9 +4202,6 @@
     "particle": 714,
     "approximations": [
       "background-palette-fade:layer-approximation",
-      "particle-field:hideParent",
-      "particle-shape:circle->sphere_surface",
-      "particle-shape:cylinder->sphere_surface",
       "scene-palette-fade:layer-approximation"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/3/3e/Searing_Shot_BW.png",
@@ -4608,7 +4229,6 @@
     "category": "special",
     "particle": 223,
     "approximations": [
-      "particle-field:lifeTimeVariance",
       "scene-palette-fade:layer-approximation"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/f/fc/Ice_Beam_V.png",
@@ -4648,9 +4268,7 @@
     "category": "special",
     "particle": 465,
     "approximations": [
-      "particle-field:polygonY",
       "particle-projection:orthographic-experimental",
-      "particle-shape:cylinder_surface->sphere_surface",
       "scene-palette-fade:layer-approximation"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/e/ed/Luster_Purge_V.png",
@@ -4679,9 +4297,6 @@
     "approximations": [
       "background-palette-animation:timing-experimental",
       "background-palette-fade:layer-approximation",
-      "particle-child:textureRepeatShiftS",
-      "particle-child:textureRepeatShiftT",
-      "particle-field:polygonY",
       "scene-palette-fade:layer-approximation"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/e/e1/Power_Whip_BW.png",
@@ -4767,8 +4382,6 @@
     "approximations": [
       "background-palette-animation:timing-experimental",
       "background-palette-fade:layer-approximation",
-      "particle-child:followEmitter",
-      "particle-curve:scaleAnim.order",
       "scene-palette-fade:layer-approximation"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/4/4c/Head_Charge_BW.png",
@@ -4795,10 +4408,8 @@
     "category": "physical",
     "particle": 173,
     "approximations": [
-      "particle-field:dirStretch",
-      "particle-field:lifeTimeVariance",
-      "particle-shape:circle->sphere_surface",
       "particle-spin:trigonometry-experimental",
+      "particle-stretch:camera-projection-experimental",
       "particle-zero-radius:point",
       "scene-palette-fade:layer-approximation"
     ],
@@ -4813,9 +4424,7 @@
     "category": "physical",
     "particle": 171,
     "approximations": [
-      "particle-shape:cylinder_surface->sphere_surface",
       "particle-spin:trigonometry-experimental",
-      "particle-zero-radius:point",
       "scene-palette-fade:layer-approximation"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/6/66/Fire_Punch_V.png",
@@ -4829,7 +4438,6 @@
     "category": "physical",
     "particle": 172,
     "approximations": [
-      "particle-field:lifeTimeVariance",
       "particle-spin:trigonometry-experimental",
       "scene-palette-fade:layer-approximation"
     ],
@@ -4858,13 +4466,7 @@
     "category": "status",
     "particle": 576,
     "approximations": [
-      "particle-child:followEmitter",
-      "particle-field:polygonY",
-      "particle-field:textureRepeatShiftT",
-      "particle-shape:cylinder_surface->sphere_surface",
-      "scene-palette-fade:layer-approximation",
-      "texture-field:flip",
-      "texture-field:repeat"
+      "scene-palette-fade:layer-approximation"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/7/72/Rock_Polish_V.png",
     "bundleAsset": "assets/bw2/batch/rock-polish.json"
@@ -4906,7 +4508,7 @@
     "approximations": [
       "background-palette-animation:timing-experimental",
       "background-palette-fade:layer-approximation",
-      "particle-child:omitted-for-preview",
+      "particle-child:scale-range-experimental",
       "particle-curve:alphaAnim:out",
       "scene-palette-fade:layer-approximation"
     ],
@@ -4963,7 +4565,6 @@
     "category": "special",
     "particle": 587,
     "approximations": [
-      "particle-shape:cylinder_surface->sphere_surface",
       "scene-palette-fade:layer-approximation"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/e/e2/Power_Gem_V.png",
@@ -5041,9 +4642,7 @@
     "type": "normal",
     "category": "status",
     "particle": 624,
-    "approximations": [
-      "particle-curve:scaleAnim.order"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/5/53/Captivate_V.png",
     "bundleAsset": "assets/bw2/batch/captivate.json"
   },
@@ -5099,7 +4698,6 @@
     "category": "physical",
     "particle": 169,
     "approximations": [
-      "particle-field:lifeTimeVariance",
       "particle-spin:trigonometry-experimental",
       "scene-palette-fade:layer-approximation"
     ],
@@ -5115,7 +4713,6 @@
     "particle": 191,
     "approximations": [
       "background-palette-fade:layer-approximation",
-      "particle-field:lifeTimeVariance",
       "particle-spin:trigonometry-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/a/a1/Mega_Kick_V.png",
@@ -5130,8 +4727,7 @@
     "particle": 228,
     "approximations": [
       "background-palette-fade:layer-approximation",
-      "particle-field:dirStretch",
-      "particle-field:polygonY"
+      "particle-stretch:camera-projection-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/1/1b/Hyper_Beam_V.png",
     "bundleAsset": "assets/bw2/batch/hyper-beam.json"
@@ -5168,7 +4764,6 @@
     "category": "physical",
     "particle": 449,
     "approximations": [
-      "particle-field:lifeTimeVariance",
       "scene-palette-fade:layer-approximation"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/2/22/Revenge_V.png",
@@ -5225,12 +4820,8 @@
     "approximations": [
       "background-palette-animation:timing-experimental",
       "background-palette-fade:layer-approximation",
-      "particle-child:textureRepeatShiftS",
-      "particle-child:textureRepeatShiftT",
       "particle-field:dirFromPosition",
-      "particle-field:dirStretch",
-      "particle-field:lifeTimeVariance",
-      "particle-shape:circle->sphere_surface",
+      "particle-stretch:camera-projection-experimental",
       "scene-palette-fade:layer-approximation"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/1/11/Megahorn_B2W2.png",
@@ -5244,7 +4835,6 @@
     "category": "physical",
     "particle": 203,
     "approximations": [
-      "particle-curve:scaleAnim.order",
       "particle-projection:orthographic-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/4/4c/Thrash_V.png",
@@ -5273,7 +4863,6 @@
     "particle": 231,
     "approximations": [
       "particle-projection:orthographic-experimental",
-      "particle-shape:circle->sphere_surface",
       "particle-spin:trigonometry-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/0/05/Submission_V.png",
@@ -5311,8 +4900,6 @@
     "category": "status",
     "particle": 286,
     "approximations": [
-      "particle-field:polygonY",
-      "particle-shape:cylinder->sphere_surface",
       "particle-spin:trigonometry-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/d/d0/Focus_Energy_V.png",
@@ -5327,9 +4914,8 @@
     "particle": 321,
     "approximations": [
       "background-palette-fade:layer-approximation",
-      "particle-child:omitted-for-preview",
-      "particle-field:emissionAxis",
-      "particle-field:polygonY"
+      "particle-axis:source-basis-experimental",
+      "particle-child:scale-range-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/c/ca/Explosion_V.png",
     "bundleAsset": "assets/bw2/batch/explosion.json"
@@ -5421,10 +5007,7 @@
     "category": "status",
     "particle": 383,
     "approximations": [
-      "particle-curve:scaleAnim.order",
-      "particle-field:lifeTimeVariance",
-      "particle-projection:orthographic-experimental",
-      "particle-shape:sphere->sphere_surface"
+      "particle-projection:orthographic-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/0/06/Attract_V.png",
     "bundleAsset": "assets/bw2/batch/attract.json"
@@ -5477,7 +5060,6 @@
     "category": "physical",
     "particle": 454,
     "approximations": [
-      "particle-field:lifeTimeVariance",
       "particle-projection:orthographic-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/3/30/Endeavor_V.png",
@@ -5510,9 +5092,6 @@
       "background-palette-fade:layer-approximation",
       "background-wave:trigonometry-experimental",
       "particle-projection:orthographic-experimental",
-      "particle-shape:cylinder->sphere_surface",
-      "particle-shape:cylinder_surface->sphere_surface",
-      "particle-zero-radius:point",
       "scene-palette-fade:layer-approximation"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/2/21/Overheat_B2W2.png",
@@ -5539,7 +5118,9 @@
     "type": "normal",
     "category": "physical",
     "particle": 519,
-    "approximations": [],
+    "approximations": [
+      "source-variant:first-only"
+    ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/3/3a/Covet_V.png",
     "bundleAsset": "assets/bw2/batch/covet.json"
   },
@@ -5563,10 +5144,7 @@
     "category": "status",
     "particle": 523,
     "approximations": [
-      "particle-field:lifeTimeVariance",
-      "particle-field:polygonY",
-      "particle-projection:orthographic-experimental",
-      "particle-shape:cylinder_surface->sphere_surface"
+      "particle-projection:orthographic-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/1/1a/Water_Sport_V.png",
     "bundleAsset": "assets/bw2/batch/water-sport.json"
@@ -5592,8 +5170,6 @@
     "category": "physical",
     "particle": 546,
     "approximations": [
-      "particle-field:lifeTimeVariance",
-      "particle-field:polygonY",
       "particle-projection:orthographic-experimental",
       "scene-palette-fade:layer-approximation"
     ],
@@ -5636,7 +5212,6 @@
     "particle": 575,
     "approximations": [
       "background-palette-fade:layer-approximation",
-      "particle-child:flipTextureT",
       "scene-palette-fade:layer-approximation"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/e/e9/Aura_Sphere_V.png",
@@ -5665,7 +5240,6 @@
     "approximations": [
       "background-palette-animation:timing-experimental",
       "background-palette-fade:layer-approximation",
-      "particle-field:lifeTimeVariance",
       "scene-palette-fade:layer-approximation"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/8/89/Giga_Impact_B2W2.png",
@@ -5784,14 +5358,7 @@
     "type": "electric",
     "category": "physical",
     "particle": 379,
-    "approximations": [
-      "particle-child:textureRepeatShiftS",
-      "particle-child:textureRepeatShiftT",
-      "particle-field:textureRepeatShiftS",
-      "particle-field:textureRepeatShiftT",
-      "texture-field:flip",
-      "texture-field:repeat"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/8/80/Wild_Charge_V.png",
     "bundleAsset": "assets/bw2/batch/wild-charge.json"
   },
@@ -6013,9 +5580,7 @@
     "category": "status",
     "particle": 470,
     "approximations": [
-      "particle-field:lifeTimeVariance",
-      "particle-projection:orthographic-experimental",
-      "particle-shape:circle->sphere_surface"
+      "particle-projection:orthographic-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/5/5b/Mud_Sport_V.png",
     "bundleAsset": "assets/bw2/batch/mud-sport.json"
@@ -6052,8 +5617,7 @@
     "category": "special",
     "particle": 425,
     "approximations": [
-      "particle-projection:orthographic-experimental",
-      "particle-shape:cylinder_surface->sphere_surface"
+      "particle-projection:orthographic-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/5/5e/Spit_Up_V.png",
     "bundleAsset": "assets/bw2/batch/spit-up.json"
@@ -6152,9 +5716,7 @@
     "particle": 442,
     "approximations": [
       "background-palette-fade:layer-approximation",
-      "particle-field:lifeTimeVariance",
       "particle-projection:orthographic-experimental",
-      "particle-shape:cylinder_surface->sphere_surface",
       "scene-palette-fade:layer-approximation",
       "source-emitter:absolute-player-in-workshop"
     ],
@@ -6171,7 +5733,6 @@
     "approximations": [
       "particle-field:polygonReferencePlane",
       "particle-field:polygonRotAxis",
-      "particle-field:polygonY",
       "particle-spin:trigonometry-experimental",
       "scene-palette-fade:layer-approximation"
     ],
@@ -6203,8 +5764,6 @@
     "category": "special",
     "particle": 503,
     "approximations": [
-      "particle-shape:circle->sphere_surface",
-      "particle-shape:cylinder_surface->sphere_surface",
       "scene-palette-fade:layer-approximation"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/5/55/Sheer_Cold_V.png",
@@ -6233,8 +5792,6 @@
     "particle": 589,
     "approximations": [
       "particle-bound:variedScale",
-      "particle-field:polygonY",
-      "particle-shape:circle->sphere_surface",
       "particle-spin:trigonometry-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/2/23/Vacuum_Wave_V.png",
@@ -6262,7 +5819,6 @@
     "particle": 620,
     "approximations": [
       "background-palette-fade:layer-approximation",
-      "particle-field:lifeTimeVariance",
       "scene-palette-fade:layer-approximation"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/e/ea/Gunk_Shot_V.png",
@@ -6291,8 +5847,6 @@
     "category": "special",
     "particle": 650,
     "approximations": [
-      "particle-child:followEmitter",
-      "particle-shape:circle->sphere_surface",
       "particle-spin:trigonometry-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/7/7b/Psyshock_V.png",
@@ -6327,9 +5881,7 @@
     "type": "normal",
     "category": "status",
     "particle": 696,
-    "approximations": [
-      "particle-shape:cylinder->sphere_surface"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/b/b6/Work_Up_V.png",
     "bundleAsset": "assets/bw2/batch/work-up.json"
   },
@@ -6378,10 +5930,7 @@
     "type": "grass",
     "category": "status",
     "particle": 707,
-    "approximations": [
-      "particle-child:followEmitter",
-      "particle-shape:cylinder_surface->sphere_surface"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/2/27/Cotton_Guard_V.png",
     "bundleAsset": "assets/bw2/batch/cotton-guard.json"
   },
@@ -6393,11 +5942,7 @@
     "category": "special",
     "particle": 722,
     "approximations": [
-      "particle-curve:scaleAnim.order",
       "particle-field:polygonRotAxis",
-      "particle-field:polygonY",
-      "particle-shape:cylinder_surface->sphere_surface",
-      "particle-shape:sphere->sphere_surface",
       "particle-spin:trigonometry-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/8/8b/Glaciate_B2W2.png",
@@ -6426,7 +5971,6 @@
     "category": "special",
     "particle": 725,
     "approximations": [
-      "particle-shape:cylinder_surface->sphere_surface",
       "particle-spin:trigonometry-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/e/e3/Fiery_Dance_V.png",
@@ -6469,9 +6013,7 @@
     "type": "dark",
     "category": "special",
     "particle": 732,
-    "approximations": [
-      "particle-shape:circle->sphere_surface"
-    ],
+    "approximations": [],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/4/4d/Snarl_V.png",
     "bundleAsset": "assets/bw2/batch/snarl.json"
   },
@@ -6616,15 +6158,9 @@
     "particle": 237,
     "approximations": [
       "particle-child:endScale",
-      "particle-child:textureRepeatShiftS",
-      "particle-child:textureRepeatShiftT",
-      "particle-field:textureRepeatShiftS",
-      "particle-field:textureRepeatShiftT",
       "particle-projection:orthographic-experimental",
       "scene-palette-fade:layer-approximation",
-      "source-emitter:orthographic-direction-approximation",
-      "texture-field:flip",
-      "texture-field:repeat"
+      "source-emitter:orthographic-direction-approximation"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/1/18/Mega_Drain_V.png",
     "bundleAsset": "assets/bw2/batch/mega-drain.json"
@@ -6666,18 +6202,10 @@
     "category": "physical",
     "particle": 350,
     "approximations": [
-      "particle-child:textureRepeatShiftS",
-      "particle-child:textureRepeatShiftT",
-      "particle-field:emissionAxis",
-      "particle-field:textureRepeatShiftS",
-      "particle-field:textureRepeatShiftT",
-      "particle-shape:cylinder_surface->sphere_surface",
+      "particle-axis:source-basis-experimental",
       "particle-spin:trigonometry-experimental",
-      "particle-zero-radius:point",
       "scene-palette-fade:layer-approximation",
-      "source-fade:stage-field-shared-job",
-      "texture-field:flip",
-      "texture-field:repeat"
+      "source-fade:stage-field-shared-job"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/1/1e/Reversal_V.png",
     "bundleAsset": "assets/bw2/batch/reversal.json"
@@ -6690,7 +6218,6 @@
     "category": "physical",
     "particle": 380,
     "approximations": [
-      "particle-field:lifeTimeVariance",
       "scene-palette-fade:layer-approximation",
       "source-fade:stage-field-shared-job"
     ],
@@ -6705,9 +6232,7 @@
     "category": "physical",
     "particle": 260,
     "approximations": [
-      "particle-field:emissionAxis",
-      "particle-field:lifeTimeVariance",
-      "particle-shape:cylinder_surface->sphere_surface"
+      "particle-axis:source-basis-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/e/ed/Earthquake_V.png",
     "bundleAsset": "assets/bw2/batch/earthquake.json"
@@ -6744,10 +6269,7 @@
     "category": "physical",
     "particle": 234,
     "approximations": [
-      "background-palette-fade:layer-approximation",
-      "particle-child:textureRepeatShiftS",
-      "particle-child:textureRepeatShiftT",
-      "particle-shape:cylinder_surface->sphere_surface"
+      "background-palette-fade:layer-approximation"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/2/2b/Seismic_Toss_V.png",
     "bundleAsset": "assets/bw2/batch/seismic-toss.json"
@@ -6832,9 +6354,6 @@
     "particle": 224,
     "approximations": [
       "background-palette-fade:layer-approximation",
-      "particle-field:lifeTimeVariance",
-      "particle-shape:circle->sphere_surface",
-      "particle-shape:cylinder->sphere_surface",
       "source-branch:player-side-only"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/1/1d/Blizzard_B2W2.png",
@@ -6848,7 +6367,6 @@
     "category": "status",
     "particle": 288,
     "approximations": [
-      "particle-shape:circle->sphere_surface",
       "source-branch:player-side-only"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/7/70/Metronome_V.png",
@@ -6888,8 +6406,6 @@
     "category": "physical",
     "particle": 471,
     "approximations": [
-      "particle-child:followEmitter",
-      "particle-field:hideParent",
       "source-branch:player-side-only"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/5/53/Ice_Ball_V.png",
@@ -6961,7 +6477,6 @@
     "approximations": [
       "particle-child:endScale",
       "particle-motion:sinusoid-phase-assumed",
-      "particle-shape:circle->sphere_surface",
       "particle-spin:trigonometry-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/9/9a/Clear_Smog_V.png",
@@ -7018,9 +6533,7 @@
     "category": "special",
     "particle": 497,
     "approximations": [
-      "camera:relative-adapted-to-workshop",
-      "particle-field:lifeTimeVariance",
-      "particle-shape:cylinder_surface->sphere_surface"
+      "camera:relative-adapted-to-workshop"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/f/ff/Water_Spout_V.png",
     "bundleAsset": "assets/bw2/batch/water-spout.json"
@@ -7034,10 +6547,7 @@
     "particle": 598,
     "approximations": [
       "camera:relative-adapted-to-workshop",
-      "particle-field:emissionAxis",
-      "particle-field:hideParent",
-      "particle-field:lifeTimeVariance",
-      "particle-shape:cylinder_surface->sphere_surface",
+      "particle-axis:source-basis-experimental",
       "scene-palette-fade:layer-approximation"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/4/42/Avalanche_V.png",
@@ -7052,7 +6562,6 @@
     "particle": 613,
     "approximations": [
       "camera:relative-adapted-to-workshop",
-      "particle-field:lifeTimeVariance",
       "particle-zero-radius:point",
       "scene-palette-fade:layer-approximation"
     ],
@@ -7098,8 +6607,6 @@
     "category": "status",
     "particle": 412,
     "approximations": [
-      "particle-field:polygonY",
-      "particle-shape:sphere->sphere_surface",
       "particle-zero-radius:point",
       "scene-palette-fade:layer-approximation",
       "source-emitter:field-coordinate-calibration"
@@ -7116,7 +6623,6 @@
     "particle": 428,
     "approximations": [
       "particle-bound:radius",
-      "particle-shape:circle->sphere_surface",
       "scene-palette-fade:layer-approximation",
       "source-emitter:field-coordinate-calibration"
     ],
@@ -7215,7 +6721,6 @@
     "particle": 355,
     "approximations": [
       "actor-visibility:shadow-hidden",
-      "particle-field:lifeTimeVariance",
       "particle-projection:orthographic-experimental",
       "particle-spin:trigonometry-experimental",
       "scene-palette-fade:layer-approximation"
@@ -7233,8 +6738,6 @@
     "approximations": [
       "actor-visibility:shadow-hidden",
       "camera:relative-adapted-to-workshop",
-      "particle-child:textureRepeatShiftS",
-      "particle-child:textureRepeatShiftT",
       "source-variant:first-only"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/d/d5/Bounce_V.png",
@@ -7277,7 +6780,6 @@
     "approximations": [
       "actor-visibility:shadow-hidden",
       "background-palette-fade:layer-approximation",
-      "particle-shape:circle->sphere_surface",
       "scene-palette-fade:layer-approximation"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/5/54/Brave_Bird_V.png",
@@ -7333,7 +6835,6 @@
     "category": "status",
     "particle": 336,
     "approximations": [
-      "particle-field:hideParent",
       "particle-spin:trigonometry-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/4/4c/Sketch_V.png",
@@ -7517,8 +7018,6 @@
     "approximations": [
       "actor-position:screen-space-approximation",
       "actor-visibility:shadow-hidden",
-      "particle-field:lifeTimeVariance",
-      "particle-shape:cylinder_surface->sphere_surface",
       "source-variant:first-only"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/5/5d/Dig_V.png",
@@ -7550,12 +7049,7 @@
       "actor-position:screen-space-approximation",
       "actor-visibility:shadow-hidden",
       "background-palette-fade:layer-approximation",
-      "particle-child:followEmitter",
-      "particle-field:hideParent",
-      "particle-field:lifeTimeVariance",
-      "particle-field:polygonX",
       "particle-projection:orthographic-experimental",
-      "particle-shape:cylinder_surface->sphere_surface",
       "scene-palette-fade:layer-approximation",
       "source-emitter:field-coordinate-calibration"
     ],
@@ -7680,7 +7174,6 @@
     "category": "status",
     "particle": 493,
     "approximations": [
-      "particle-child:followEmitter",
       "particle-child:polygonReferencePlane",
       "scene-palette-fade:layer-approximation"
     ],
@@ -7696,7 +7189,6 @@
     "particle": 590,
     "approximations": [
       "background-palette-fade:layer-approximation",
-      "particle-shape:cylinder_surface->sphere_surface",
       "particle-spin:trigonometry-experimental",
       "source-audio:channel-wait-uses-all-audio"
     ],
@@ -7803,9 +7295,7 @@
     "category": "physical",
     "particle": 491,
     "approximations": [
-      "particle-field:lifeTimeVariance",
       "particle-projection:orthographic-experimental",
-      "particle-shape:cylinder_surface->sphere_surface",
       "source-emitter:absolute-player-in-workshop"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/f/f1/Rock_Tomb_V.png",
@@ -7832,7 +7322,6 @@
     "category": "special",
     "particle": 474,
     "approximations": [
-      "particle-child:followEmitter",
       "scene-palette-fade:layer-approximation",
       "source-audio:cry-and-timing-unavailable"
     ],
@@ -7847,9 +7336,7 @@
     "category": "status",
     "particle": 510,
     "approximations": [
-      "particle-field:lifeTimeVariance",
       "particle-projection:orthographic-experimental",
-      "particle-shape:circle->sphere_surface",
       "source-audio:cry-and-timing-unavailable",
       "source-branch:player-side-only"
     ],
@@ -7878,12 +7365,315 @@
     "category": "status",
     "particle": 612,
     "approximations": [
-      "particle-shape:cylinder_surface->sphere_surface",
-      "particle-zero-radius:point",
       "scene-palette-fade:layer-approximation",
       "source-emitter:camera-position-scale-approximation"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/e/e1/Defog_V.png",
     "bundleAsset": "assets/bw2/batch/defog.json"
+  },
+  {
+    "id": "heart-swap",
+    "label": "Permucœur",
+    "englishName": "Heart Swap",
+    "type": "psychic",
+    "category": "status",
+    "particle": 570,
+    "approximations": [
+      "particle-projection:orthographic-experimental",
+      "particle-spin:trigonometry-experimental",
+      "source-branch:single-battle-only"
+    ],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/0/04/Heart_Swap_V.png",
+    "bundleAsset": "assets/bw2/batch/heart-swap.json"
+  },
+  {
+    "id": "magma-storm",
+    "label": "Vortex Magma",
+    "englishName": "Magma Storm",
+    "type": "fire",
+    "category": "special",
+    "particle": 643,
+    "approximations": [
+      "background-palette-fade:layer-approximation",
+      "particle-spin:trigonometry-experimental",
+      "scene-palette-fade:layer-approximation",
+      "source-emitter:orbit-geometry-experimental"
+    ],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/c/ce/Magma_Storm_V.png",
+    "bundleAsset": "assets/bw2/batch/magma-storm.json"
+  },
+  {
+    "id": "hurricane",
+    "label": "Vent Violent",
+    "englishName": "Hurricane",
+    "type": "flying",
+    "category": "special",
+    "particle": 711,
+    "approximations": [
+      "background-palette-fade:layer-approximation",
+      "particle-spin:trigonometry-experimental",
+      "scene-palette-fade:layer-approximation",
+      "source-emitter:orbit-geometry-experimental"
+    ],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/6/61/Hurricane_V.png",
+    "bundleAsset": "assets/bw2/batch/hurricane.json"
+  },
+  {
+    "id": "spikes",
+    "label": "Picots",
+    "englishName": "Spikes",
+    "type": "ground",
+    "category": "status",
+    "particle": 361,
+    "approximations": [
+      "source-branch:player-side-only"
+    ],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/4/41/Spikes_V.png",
+    "bundleAsset": "assets/bw2/batch/spikes.json"
+  },
+  {
+    "id": "toxic-spikes",
+    "label": "Pics Toxik",
+    "englishName": "Toxic Spikes",
+    "type": "poison",
+    "category": "status",
+    "particle": 569,
+    "approximations": [
+      "source-branch:player-side-only"
+    ],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/3/38/Toxic_Spikes_V.png",
+    "bundleAsset": "assets/bw2/batch/toxic-spikes.json"
+  },
+  {
+    "id": "stealth-rock",
+    "label": "Piège de Roc",
+    "englishName": "Stealth Rock",
+    "type": "rock",
+    "category": "status",
+    "particle": 625,
+    "approximations": [
+      "source-branch:player-side-only"
+    ],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/e/e6/Stealth_Rock_V.png",
+    "bundleAsset": "assets/bw2/batch/stealth-rock.json"
+  },
+  {
+    "id": "leech-seed",
+    "label": "Vampigraine",
+    "englishName": "Leech Seed",
+    "type": "grass",
+    "category": "status",
+    "particle": null,
+    "approximations": [
+      "particle-projection:orthographic-motion-experimental",
+      "particle-spin:trigonometry-experimental"
+    ],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/c/cd/Leech_Seed_V.png",
+    "bundleAsset": "assets/bw2/batch/leech-seed.json"
+  },
+  {
+    "id": "wonder-room",
+    "label": "Zone Étrange",
+    "englishName": "Wonder Room",
+    "type": "psychic",
+    "category": "status",
+    "particle": null,
+    "approximations": [
+      "background-palette-fade:layer-approximation",
+      "scene-palette-fade:layer-approximation",
+      "source-actor:zero-scale-clamped"
+    ],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/4/4a/Wonder_Room_V.png",
+    "bundleAsset": "assets/bw2/batch/wonder-room.json"
+  },
+  {
+    "id": "magic-room",
+    "label": "Zone Magique",
+    "englishName": "Magic Room",
+    "type": "psychic",
+    "category": "status",
+    "particle": null,
+    "approximations": [
+      "background-palette-fade:layer-approximation",
+      "scene-palette-fade:layer-approximation",
+      "source-actor:zero-scale-clamped"
+    ],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/6/6c/Magic_Room_V.png",
+    "bundleAsset": "assets/bw2/batch/magic-room.json"
+  },
+  {
+    "id": "secret-power",
+    "label": "Force Cachée",
+    "englishName": "Secret Power",
+    "type": "normal",
+    "category": "physical",
+    "particle": 200,
+    "approximations": [
+      "particle-axis:source-basis-experimental",
+      "source-variant:first-only"
+    ],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/c/ce/Secret_Power_V_building.png",
+    "bundleAsset": "assets/bw2/batch/secret-power.json"
+  },
+  {
+    "id": "mud-slap",
+    "label": "Force Cachée · Variante 2 (Coud’Boue)",
+    "englishName": "Mud-Slap",
+    "type": "ground",
+    "category": "special",
+    "particle": 359,
+    "approximations": [],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/0/09/Mud-Slap_V.png",
+    "bundleAsset": "assets/bw2/batch/mud-slap.json",
+    "sourceVariant": "SecretPower_Variant1",
+    "resolvedVariant": "MudSlap",
+    "originMoveId": "secret-power",
+    "sourceScriptSha256": "961b433e0fa193f776067de085612bd346b83bcadf975c704f4d1918903a729a"
+  },
+  {
+    "id": "mud-shot",
+    "label": "Force Cachée · Variante 3 (Tir de Boue)",
+    "englishName": "Mud Shot",
+    "type": "ground",
+    "category": "special",
+    "particle": 517,
+    "approximations": [],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/8/83/Mud_Shot_V.png",
+    "bundleAsset": "assets/bw2/batch/mud-shot.json",
+    "sourceVariant": "SecretPower_Variant2",
+    "resolvedVariant": "MudShot",
+    "originMoveId": "secret-power",
+    "sourceScriptSha256": "961b433e0fa193f776067de085612bd346b83bcadf975c704f4d1918903a729a"
+  },
+  {
+    "id": "avalanche",
+    "label": "Force Cachée · Variante 4 (Avalanche)",
+    "englishName": "Avalanche",
+    "type": "ice",
+    "category": "physical",
+    "particle": 598,
+    "approximations": [
+      "camera:relative-adapted-to-workshop",
+      "particle-field:emissionAxis",
+      "particle-field:hideParent",
+      "particle-field:lifeTimeVariance",
+      "particle-shape:cylinder_surface->sphere_surface",
+      "scene-palette-fade:layer-approximation"
+    ],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/4/42/Avalanche_V.png",
+    "bundleAsset": "assets/bw2/batch/avalanche.json",
+    "sourceVariant": "SecretPower_Variant3",
+    "resolvedVariant": "Avalanche",
+    "originMoveId": "secret-power",
+    "sourceScriptSha256": "961b433e0fa193f776067de085612bd346b83bcadf975c704f4d1918903a729a"
+  },
+  {
+    "id": "ice-shard",
+    "label": "Force Cachée · Variante 5 (Éclats Glace)",
+    "englishName": "Ice Shard",
+    "type": "ice",
+    "category": "physical",
+    "particle": 599,
+    "approximations": [
+      "particle-random:sequence-experimental",
+      "scene-palette-fade:layer-approximation"
+    ],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/1/13/Ice_Shard_V.png",
+    "bundleAsset": "assets/bw2/batch/ice-shard.json",
+    "sourceVariant": "SecretPower_Variant4",
+    "resolvedVariant": "IceShard",
+    "originMoveId": "secret-power",
+    "sourceScriptSha256": "961b433e0fa193f776067de085612bd346b83bcadf975c704f4d1918903a729a"
+  },
+  {
+    "id": "water-pulse",
+    "label": "Force Cachée · Variante 6 (Vibraqua)",
+    "englishName": "Water Pulse",
+    "type": "water",
+    "category": "special",
+    "particle": 529,
+    "approximations": [
+      "background-palette-fade:layer-approximation",
+      "background-wave:trigonometry-experimental",
+      "particle-random:sequence-experimental",
+      "scene-palette-fade:layer-approximation",
+      "source-emitter:field-coordinate-calibration"
+    ],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/b/b0/Water_Pulse_B2W2.png",
+    "bundleAsset": "assets/bw2/batch/water-pulse.json",
+    "sourceVariant": "SecretPower_Variant5",
+    "resolvedVariant": "WaterPulse",
+    "originMoveId": "secret-power",
+    "sourceScriptSha256": "961b433e0fa193f776067de085612bd346b83bcadf975c704f4d1918903a729a"
+  },
+  {
+    "id": "rock-throw",
+    "label": "Force Cachée · Variante 7 (Jet-Pierres)",
+    "englishName": "Rock Throw",
+    "type": "rock",
+    "category": "physical",
+    "particle": 259,
+    "approximations": [
+      "particle-field:emissionAxis",
+      "particle-shape:cylinder_surface->sphere_surface",
+      "particle-zero-radius:point"
+    ],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/0/00/Rock_Throw_V.png",
+    "bundleAsset": "assets/bw2/batch/rock-throw.json",
+    "sourceVariant": "SecretPower_Variant6",
+    "resolvedVariant": "RockThrow",
+    "originMoveId": "secret-power",
+    "sourceScriptSha256": "961b433e0fa193f776067de085612bd346b83bcadf975c704f4d1918903a729a"
+  },
+  {
+    "id": "needle-arm",
+    "label": "Force Cachée · Variante 8 (Poing Dard)",
+    "englishName": "Needle Arm",
+    "type": "grass",
+    "category": "physical",
+    "particle": 472,
+    "approximations": [],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/5/53/Needle_Arm_V.png",
+    "bundleAsset": "assets/bw2/batch/needle-arm.json",
+    "sourceVariant": "SecretPower_Variant7",
+    "resolvedVariant": "NeedleArm",
+    "originMoveId": "secret-power",
+    "sourceScriptSha256": "961b433e0fa193f776067de085612bd346b83bcadf975c704f4d1918903a729a"
+  },
+  {
+    "id": "whirlwind",
+    "label": "Cyclone",
+    "englishName": "Whirlwind",
+    "type": "normal",
+    "category": "status",
+    "particle": 183,
+    "approximations": [
+      "actor-position:screen-space-approximation",
+      "actor-visibility:shadow-hidden",
+      "particle-polygon:xyz-projection-experimental",
+      "particle-spin:trigonometry-experimental",
+      "source-gauge:preview-restored"
+    ],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/c/c7/Whirlwind_V.png",
+    "bundleAsset": "assets/bw2/batch/whirlwind.json"
+  },
+  {
+    "id": "dark-void",
+    "label": "Trou Noir",
+    "englishName": "Dark Void",
+    "type": "dark",
+    "category": "status",
+    "particle": 644,
+    "approximations": [
+      "actor-visibility:shadow-hidden",
+      "background-palette-fade:layer-approximation",
+      "particle-child:drawType",
+      "particle-child:polygonRotAxis",
+      "particle-polygon:projection-experimental",
+      "scene-palette-fade:layer-approximation",
+      "source-emitter:scaled-size-clamped"
+    ],
+    "referenceUrl": "https://archives.bulbagarden.net/media/upload/7/78/Dark_Void_V.png",
+    "bundleAsset": "assets/bw2/batch/dark-void.json"
   }
 ]

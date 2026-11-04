@@ -120,6 +120,246 @@ BattleGen5SourceProgramPlayback _playback(List<int> trace) {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('boosted cross-move emitters run within bounded experimental limits', () async {
+    final overlay = await _scene();
+    final standard = <String, dynamic>{
+      'particle': 738, 'emitter': 4,
+      'from': 'EFFVM_EMIT_DEFENDER', 'to': 8,
+      'offsetY': 4096, 'unk18': 0, 'unused': 0,
+      'radiusScale': 8192, 'lifeScale': 12288,
+      'scaleScale': 12288, 'cameraScale': 4096,
+    };
+    final field = <String, dynamic>{
+      'particle': 738, 'emitter': 3,
+      'fromX': 0, 'fromY': 53248, 'fromZ': 0,
+      'toX': 0, 'toY': 0, 'toZ': 0, 'offsetY': 0,
+      'unk18': 0, 'unused': 0, 'radiusScale': 4096,
+      'lifeScale': 12288, 'scaleScale': 12288, 'cameraScale': 4096,
+    };
+    final moving = <String, dynamic>{
+      'particle': 738, 'emitter': 2, 'motion': 2,
+      'fromX': 0, 'fromY': 53248, 'fromZ': 0,
+      'to': 'EFFVM_EMIT_DEFENDER', 'offsetY': 12288,
+      'height': -28672, 'lifeScale': 8192, 'cameraScale': 8192,
+      'turns': 0, 'motionFramesFx32': 81920, 'motionFrames': 20,
+    };
+    final calls = <Map<String, dynamic>>[];
+    final program = _program([
+      _instruction('startEmitter', standard),
+      _instruction('startFieldEmitter', field),
+      _instruction('startMovingFieldEmitter', moving),
+      _instruction('end'),
+    ]);
+    Future<BattleGen5SourcePlaybackStatus> play(Map<String, dynamic> value) =>
+        overlay.presentExperimentalGen5Attack(
+          program: value, variant: 'Tackle', hasEmitter: (_, _) => true,
+          startEmitter: (_, _, _) {}, startSourceEmitter: calls.add,
+          particlesBusy: () => false, detachParticles: () {},
+          allowSilentAudio: true, allowFieldEmitters: true,
+        );
+    final finished = play(program);
+    for (var tick = 0; tick < 10 && overlay.isTurnPresentationActive; tick++) {
+      overlay.updateTree(1 / 60);
+    }
+    expect(await finished, BattleGen5SourcePlaybackStatus.finished);
+    expect(calls, [standard, field, moving]);
+    for (final instruction in [
+      _instruction('startEmitter', {...standard, 'lifeScale': 12289}),
+      _instruction('startFieldEmitter', {...field, 'scaleScale': 12289}),
+      _instruction('startMovingFieldEmitter', {...moving, 'cameraScale': 8193}),
+    ]) {
+      expect(() => play(_program([instruction, _instruction('end')])),
+          throwsFormatException);
+    }
+  });
+
+  test('source gauge changes affect the target and restore on completion or cancellation', () async {
+    final overlay = await _scene();
+    final program = _program([
+      _instruction('setSourceGauge', {'mode': 2, 'target': 4}),
+      _instruction('waitFrames', {'frames': 6}),
+      _instruction('setSourceGauge', {'mode': 3, 'target': 4}),
+      _instruction('end'),
+    ]);
+    expect(() => overlay.presentExperimentalGen5Attack(
+      program: program, variant: 'Tackle', hasEmitter: (_, _) => false,
+      startEmitter: (_, _, _) {}, particlesBusy: () => false,
+      detachParticles: () {}, allowSilentAudio: true,
+    ), throwsFormatException);
+    Future<BattleGen5SourcePlaybackStatus> play(Map<String, dynamic> script) =>
+        overlay.presentExperimentalGen5Attack(
+          program: script, variant: 'Tackle', hasEmitter: (_, _) => false,
+          startEmitter: (_, _, _) {}, particlesBusy: () => false,
+          detachParticles: () {}, allowSilentAudio: true, allowSourceGauge: true,
+        );
+    final finished = play(program);
+    var sawTargetHidden = false;
+    for (var tick = 0; tick < 30 && overlay.isTurnPresentationActive; tick++) {
+      overlay.updateTree(1 / 60);
+      final snapshot = overlay.currentCommandOverlaySnapshot;
+      if (snapshot != null && !snapshot.enemyHud.isVisible) {
+        expect(snapshot.playerHud.isVisible, isTrue);
+        sawTargetHidden = true;
+      }
+    }
+    expect(await finished, BattleGen5SourcePlaybackStatus.finished);
+    expect(sawTargetHidden, isTrue);
+    expect(overlay.currentCommandOverlaySnapshot!.enemyHud.isVisible, isTrue);
+
+    final cancelled = play(_program([
+      _instruction('setSourceGauge', {'mode': 2, 'target': 4}),
+      _instruction('waitFrames', {'frames': 60}),
+      _instruction('end'),
+    ]));
+    for (var tick = 0; tick < 3; tick++) { overlay.updateTree(1 / 60); }
+    expect(overlay.currentCommandOverlaySnapshot!.enemyHud.isVisible, isFalse);
+    overlay.cancelExperimentalGen5Attack();
+    expect(await cancelled, BattleGen5SourcePlaybackStatus.cancelled);
+    expect(overlay.currentCommandOverlaySnapshot!.enemyHud.isVisible, isTrue);
+  });
+
+  test('Dark Void source commands preserve their emitter and bounded movement', () async {
+    final overlay = await _scene();
+    final enemy = overlay.debugEnemyCombatant!;
+    final initial = enemy.currentVisualOffset;
+    final alpha = enemy.stageTint.a;
+    final calls = <Map<String, dynamic>>[];
+    final finished = overlay.presentExperimentalGen5Attack(
+      program: _program([
+        _instruction('startEmitter', {
+          'particle': 644, 'emitter': 2,
+          'from': 'EFFVM_EMIT_DEFENDER', 'to': 8, 'offsetY': 0x333,
+          'unk18': 0, 'unused': 0, 'radiusScale': 4096, 'lifeScale': 4096,
+          'scaleScale': 20480, 'cameraScale': 4096,
+        }),
+        _instruction('fadeCombatantAlpha', {
+          'targets': 'EFFVM_DEFENDER', 'type': 2, 'alpha': 1,
+          'frames': 4, 'wait': 0, 'times': 0,
+        }),
+        _instruction('moveCombatant', {
+          'targets': 'EFFVM_DEFENDER', 'type': 2, 'x': 0, 'y': -0xc000,
+          'frames': 60, 'wait': 0, 'times': 1,
+        }),
+        _instruction('waitTasks', {'what': 'MCSS'}),
+        _instruction('end'),
+      ]),
+      variant: 'Tackle', hasEmitter: (_, _) => true,
+      startEmitter: (_, _, _) => fail('Source arguments must be preserved'),
+      startSourceEmitter: calls.add, particlesBusy: () => false,
+      detachParticles: () {}, allowSilentAudio: true, allowSourceVisibility: true,
+    );
+    var moved = false;
+    for (var tick = 0; tick < 200 && overlay.isTurnPresentationActive; tick++) {
+      overlay.updateTree(1 / 60);
+      moved |= enemy.currentVisualOffset != initial;
+      expect(enemy.stageTint.a, closeTo(alpha, .001));
+    }
+    expect(await finished, BattleGen5SourcePlaybackStatus.finished);
+    expect(moved, isTrue);
+    expect(calls.single['scaleScale'], 20480);
+    expect(enemy.currentVisualOffset, initial);
+  });
+
+  test('both combatants shrink together and recover after source motion', () async {
+    final overlay = await _scene();
+    final player = overlay.debugPlayerCombatant!;
+    final enemy = overlay.debugEnemyCombatant!;
+    final playerRect = player.currentCameraNeutralRenderedSpriteRect;
+    final enemyRect = enemy.currentCameraNeutralRenderedSpriteRect;
+    final finished = overlay.presentExperimentalGen5Attack(
+      program: _program([
+        _instruction('scaleCombatant', {
+          'targets': 'EFFVM_ALL', 'type': 2, 'x': -4096, 'y': -4096,
+          'frames': 1, 'wait': 0, 'times': 40,
+        }),
+        _instruction('moveCombatant', {
+          'targets': 'EFFVM_ALL', 'type': 2, 'x': 2048, 'y': 0,
+          'frames': 60, 'wait': 0, 'times': 1,
+        }),
+        _instruction('waitTasks', {'what': 'MCSS'}),
+        _instruction('end'),
+      ]),
+      variant: 'Tackle', hasEmitter: (_, _) => false,
+      startEmitter: (_, _, _) {}, particlesBusy: () => false,
+      detachParticles: () {}, allowSilentAudio: true,
+    );
+    var sawBothSmall = false;
+    for (var tick = 0; tick < 200 && overlay.isTurnPresentationActive; tick++) {
+      overlay.updateTree(1 / 60);
+      final playerRatio = player.currentCameraNeutralRenderedSpriteRect.width / playerRect.width;
+      final enemyRatio = enemy.currentCameraNeutralRenderedSpriteRect.width / enemyRect.width;
+      if (playerRatio < .06) {
+        expect(enemyRatio, lessThan(.06));
+        sawBothSmall = true;
+      }
+    }
+    expect(await finished, BattleGen5SourcePlaybackStatus.finished);
+    expect(sawBothSmall, isTrue);
+    expect(player.currentCameraNeutralRenderedSpriteRect, playerRect);
+    expect(enemy.currentCameraNeutralRenderedSpriteRect, enemyRect);
+  });
+
+  test('moving orthographic emitters require the matching preview handler', () async {
+    final overlay = await _scene();
+    final args = <String, dynamic>{
+      'particle': 238, 'emitter': 2, 'motion': 2,
+      'from': 'EFFVM_EMIT_ATTACKER', 'to': 'EFFVM_EMIT_DEFENDER',
+      'offsetY': 0x2000, 'height': 0x4000, 'turns': 0,
+      'motionFramesFx32': 45 * 4096, 'motionFrames': 45,
+      'lifeScale': 4096, 'cameraScale': 4096,
+    };
+    final program = _program([_instruction('startMovingOrthoEmitter', args), _instruction('end')]);
+    final calls = <Map<String, dynamic>>[];
+    expect(() => overlay.presentExperimentalGen5Attack(
+      program: program, variant: 'Tackle', hasEmitter: (_, _) => true,
+      startEmitter: (_, _, _) {}, startSourceEmitter: calls.add,
+      particlesBusy: () => false, detachParticles: () {}, allowSilentAudio: true,
+    ), throwsFormatException);
+    final finished = overlay.presentExperimentalGen5Attack(
+      program: program, variant: 'Tackle', hasEmitter: (_, _) => true,
+      startEmitter: (_, _, _) {}, startSourceEmitter: calls.add,
+      particlesBusy: () => false, detachParticles: () {}, allowSilentAudio: true,
+      allowOrthographicEmitters: true,
+    );
+    for (var tick = 0; tick < 10 && overlay.isTurnPresentationActive; tick++) {
+      overlay.updateTree(1 / 60);
+    }
+    expect(await finished, BattleGen5SourcePlaybackStatus.finished);
+    expect(calls, [args]);
+  });
+
+  test('source orbit emits only with a bounded supported handler', () async {
+    final overlay = await _scene();
+    final args = <String, dynamic>{
+      'particle': 711, 'emitter': 2, 'type': 2,
+      'radiusX': 8192, 'radiusZ': 8192, 'offsetY': -4096,
+      'frames': 120, 'wait': 0, 'unknown': 1, 'delay': 0,
+    };
+    final program = _program([_instruction('startOrbitEmitter', args), _instruction('end')]);
+    final calls = <Map<String, dynamic>>[];
+    expect(() => overlay.presentExperimentalGen5Attack(
+      program: program, variant: 'Tackle', hasEmitter: (_, _) => true,
+      startEmitter: (_, _, _) {}, particlesBusy: () => false,
+      detachParticles: () {}, allowSilentAudio: true,
+    ), throwsFormatException);
+    expect(() => overlay.presentExperimentalGen5Attack(
+      program: _program([_instruction('startOrbitEmitter', {...args, 'frames': 0}), _instruction('end')]),
+      variant: 'Tackle', hasEmitter: (_, _) => true, startEmitter: (_, _, _) {},
+      startSourceEmitter: calls.add, particlesBusy: () => false,
+      detachParticles: () {}, allowSilentAudio: true,
+    ), throwsFormatException);
+    final finished = overlay.presentExperimentalGen5Attack(
+      program: program, variant: 'Tackle', hasEmitter: (_, _) => true,
+      startEmitter: (_, _, _) {}, startSourceEmitter: calls.add,
+      particlesBusy: () => false, detachParticles: () {}, allowSilentAudio: true,
+    );
+    for (var tick = 0; tick < 10 && overlay.isTurnPresentationActive; tick++) {
+      overlay.updateTree(1 / 60);
+    }
+    expect(await finished, BattleGen5SourcePlaybackStatus.finished);
+    expect(calls, [args]);
+  });
+
   test('absolute source camera movement runs and restores the scene', () async {
     final overlay = await _scene();
     final initial = overlay.battleCameraPose!;
@@ -347,6 +587,39 @@ void main() {
     expect(actor.stageTint.a, closeTo(2 / 31, .01));
     overlay.cancelExperimentalGen5Attack();
     expect(await finished, BattleGen5SourcePlaybackStatus.cancelled);
+    expect(actor.stageTint.a, initialAlpha);
+  });
+
+  test('zero-frame source position and alpha play and restore on cancellation', () async {
+    final overlay = await _scene();
+    final actor = overlay.debugPlayerCombatant!;
+    final initialAlpha = actor.stageTint.a;
+    final initialPosition = actor.currentVisualOffset;
+    final finished = overlay.presentExperimentalGen5Attack(
+      program: _program([
+        _instruction('moveCombatant', {
+          'targets': 'EFFVM_ATTACKER', 'type': 1, 'x': 8192, 'y': 0,
+          'frames': 0, 'wait': 0, 'times': 0,
+        }),
+        _instruction('fadeCombatantAlpha', {
+          'targets': 'EFFVM_ATTACKER', 'type': 0, 'alpha': 2,
+          'frames': 0, 'wait': 0, 'times': 0,
+        }),
+        _instruction('waitFrames', {'frames': 60}),
+        _instruction('end'),
+      ]),
+      variant: 'Tackle', hasEmitter: (_, _) => false,
+      startEmitter: (_, _, _) {}, particlesBusy: () => false,
+      detachParticles: () {}, allowSilentAudio: true, allowSourceVisibility: true,
+    );
+    for (var tick = 0; tick < 4; tick++) {
+      overlay.updateTree(1 / 60);
+    }
+    expect(actor.currentVisualOffset.dx - initialPosition.dx, closeTo(10, .001));
+    expect(actor.stageTint.a, closeTo(2 / 31, .01));
+    overlay.cancelExperimentalGen5Attack();
+    expect(await finished, BattleGen5SourcePlaybackStatus.cancelled);
+    expect(actor.currentVisualOffset, initialPosition);
     expect(actor.stageTint.a, initialAlpha);
   });
 
@@ -2315,6 +2588,7 @@ void main() {
           allowOrthographicEmitters: true,
           allowFieldEmitters: true,
           allowSourceVisibility: true,
+          allowSourceGauge: true,
           allowApproximateFlatActors: true,
           adaptSourceCamera: true,
         );

@@ -8,6 +8,50 @@ import 'package:test/test.dart';
 import '../../../tool/gen5_source_workshop_batch.dart' as workshop;
 
 void main() {
+  test('admits the boosted cross-move emitter parameters within bounded limits', () {
+    Map<String, dynamic> instruction(String op, Map<String, dynamic> args) =>
+        {'op': op, 'args': args};
+
+    final standard = <String, dynamic>{
+      'particle': 738, 'emitter': 4,
+      'from': 'EFFVM_EMIT_DEFENDER', 'to': 8,
+      'offsetY': 4096, 'unk18': 0, 'unused': 0,
+      'radiusScale': 8192, 'lifeScale': 12288,
+      'scaleScale': 12288, 'cameraScale': 4096,
+    };
+    final field = <String, dynamic>{
+      'particle': 738, 'emitter': 3,
+      'fromX': 0, 'fromY': 53248, 'fromZ': 0,
+      'toX': 0, 'toY': 0, 'toZ': 0, 'offsetY': 0,
+      'unk18': 0, 'unused': 0, 'radiusScale': 4096,
+      'lifeScale': 12288, 'scaleScale': 12288, 'cameraScale': 4096,
+    };
+    final moving = <String, dynamic>{
+      'particle': 738, 'emitter': 2, 'motion': 2,
+      'fromX': 0, 'fromY': 53248, 'fromZ': 0,
+      'to': 'EFFVM_EMIT_DEFENDER', 'offsetY': 12288,
+      'height': -28672, 'lifeScale': 8192, 'cameraScale': 8192,
+      'turns': 0, 'motionFramesFx32': 81920, 'motionFrames': 20,
+    };
+    for (final entry in [
+      ('startEmitter', standard),
+      ('startFieldEmitter', field),
+      ('startMovingFieldEmitter', moving),
+    ]) {
+      expect(workshop.admitted([instruction(entry.$1, entry.$2)]), isTrue,
+          reason: entry.$1);
+    }
+    expect(workshop.admitted([
+      instruction('startEmitter', {...standard, 'lifeScale': 12289}),
+    ]), isFalse);
+    expect(workshop.admitted([
+      instruction('startFieldEmitter', {...field, 'scaleScale': 12289}),
+    ]), isFalse);
+    expect(workshop.admitted([
+      instruction('startMovingFieldEmitter', {...moving, 'cameraScale': 8193}),
+    ]), isFalse);
+  });
+
   test('converts the requested source variant and keeps the default', () async {
     final bytes = utf8.encode('''
 #include "asm/btlv_effvm.inc"

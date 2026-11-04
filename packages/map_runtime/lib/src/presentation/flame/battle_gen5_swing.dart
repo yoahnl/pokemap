@@ -17,6 +17,7 @@ final class BattleGen5Swing {
     bool mirrorX = false,
     this.shake = false,
     int maxDelta = 65536,
+    int maxCount = 32,
   }) : _x = startX,
        _y = startY,
        _remainingSteps = frames,
@@ -29,7 +30,7 @@ final class BattleGen5Swing {
         wait < 0 ||
         wait > 600 ||
         count < 1 ||
-        count > 32 ||
+        maxCount < 1 || maxCount > 64 || count > maxCount ||
         maxDelta < 1 || maxDelta > 268435456 ||
         frames * (shake ? 4 : 2) * count * (wait + 1) - wait > 1800 ||
         startX < -limit ||

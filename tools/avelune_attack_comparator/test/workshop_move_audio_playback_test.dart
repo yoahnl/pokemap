@@ -103,6 +103,7 @@ void main() {
         bundleAsset: 'assets/bw2/batch/howl.json',
       ),
     ),
+    (delayed: false, move: PreviewMove.roar),
     (
       delayed: false,
       move: const PreviewMove(

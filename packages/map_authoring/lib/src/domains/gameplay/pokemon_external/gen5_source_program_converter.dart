@@ -25,11 +25,14 @@ abstract final class Gen5SourceProgramConverter {
     'CameraShake': 'shakeCamera',
     'ParticleLoad': 'loadParticle',
     'ParticleDelete': 'deleteParticle',
+    'Gauge': 'setSourceGauge',
     'EmitterAdd': 'startEmitter',
     'EmitterAddAt': 'startFieldEmitter',
     'EmitterAddOrtho': 'startOrthoEmitter',
     'EmitterMove': 'startMovingEmitter',
+    'EmitterMoveOrtho': 'startMovingOrthoEmitter',
     'EmitterMoveFrom': 'startMovingFieldEmitter',
+    'OrbitEmitters': 'startOrbitEmitter',
     'McssMoveXY': 'moveCombatant',
     'McssCameraMode': 'setActorCameraMode',
     'McssCircle': 'circleCombatant',
@@ -82,7 +85,9 @@ abstract final class Gen5SourceProgramConverter {
     'EmitterAddAt': {'particle', 'unk18', 'unused'},
     'EmitterAddOrtho': {'particle', 'from', 'to'},
     'EmitterMove': {'particle', 'motion', 'from', 'to'},
+    'EmitterMoveOrtho': {'particle', 'motion', 'from', 'to'},
     'EmitterMoveFrom': {'particle', 'motion', 'to'},
+    'OrbitEmitters': {'particle', 'type'},
     'McssPalFade': {'color'},
     'PlaySE': {'se', 'player'},
     'PanSE': {'player', 'type'},
@@ -338,7 +343,7 @@ abstract final class Gen5SourceProgramConverter {
       case 'CameraMovePreset':
         requireNumericExcept({});
         require(args['moveType'] == 1 &&
-            inSet('camera', {8, 9, 10, 11, 12, 14, 15, 16, 17, 20, 21}));
+            inSet('camera', {0, 1, 8, 9, 10, 11, 12, 14, 15, 16, 17, 20, 21}));
         require(boundedTiming('frames') &&
             boundedTiming('wait') &&
             boundedTiming('brake'));
@@ -358,13 +363,15 @@ abstract final class Gen5SourceProgramConverter {
       case 'ParticleLoad':
       case 'ParticleDelete':
         require(bounded('particle', 0, 65535));
+      case 'Gauge':
+        require(inSet('mode', {2, 3}) && inSet('target', {3, 4}));
       case 'McssCameraMode':
         require(args['mode'] == 0 && args['scope'] == 0);
       case 'EmitterAdd':
         requireNumericExcept({'from', 'to'});
         require(bounded('particle', 0, 65535) && bounded('emitter', 0, 31));
-        require((args['from'] == 0 || inSet('from', _emitterPositions)) &&
-            (args['to'] == 8 || inSet('to', _emitterPositions)));
+        require(({0, 1}.contains(args['from']) || inSet('from', _emitterPositions)) &&
+            ({0, 1, 8}.contains(args['to']) || inSet('to', _emitterPositions)));
         require(['radiusScale', 'lifeScale', 'scaleScale', 'cameraScale']
             .every((field) => bounded(field, 0, 2147483647)));
       case 'EmitterAddAt':
@@ -379,15 +386,24 @@ abstract final class Gen5SourceProgramConverter {
             (args['to'] == 8 || inSet('to', _emitterPositions)));
         require(['radiusScale', 'lifeScale', 'scaleScale', 'cameraScale']
             .every((field) => bounded(field, 0, 2147483647)));
-      case 'EmitterMove' || 'EmitterMoveFrom':
-        requireNumericExcept(name == 'EmitterMove' ? {'from', 'to'} : {'to'});
+      case 'OrbitEmitters':
+        requireNumericExcept({});
+        require(bounded('particle', 0, 65535) &&
+            bounded('emitter', 0, 31) && bounded('type', 0, 3) &&
+            bounded('radiusX', -32768, 32768) &&
+            bounded('radiusZ', -32768, 32768) &&
+            bounded('offsetY', -131072, 131072) &&
+            bounded('frames', 1, 600) && bounded('wait', 0, 600) &&
+            bounded('unknown', 0, 600) && bounded('delay', 0, 600));
+      case 'EmitterMove' || 'EmitterMoveOrtho' || 'EmitterMoveFrom':
+        requireNumericExcept(name == 'EmitterMoveFrom' ? {'to'} : {'from', 'to'});
         require(bounded('particle', 0, 65535) && bounded('emitter', 0, 31));
         require(inSet('motion', {1, 2, 5, 6}) &&
-            (name == 'EmitterMove'
-                ? inSet('from', _emitterPositions)
+            (name != 'EmitterMoveFrom'
+                ? ({0, 1}.contains(args['from']) || inSet('from', _emitterPositions))
                 : ['fromX', 'fromY', 'fromZ']
                     .every((field) => bounded(field, -131072, 131072))) &&
-            inSet('to', _emitterPositions));
+            ({0, 1}.contains(args['to']) || inSet('to', _emitterPositions)));
         require(args['frames'] == 0 || bounded('frames', 4096, 2147483647));
         require(['lifeScale', 'cameraScale', 'turns']
             .every((field) => bounded(field, 0, 2147483647)));
@@ -409,7 +425,7 @@ abstract final class Gen5SourceProgramConverter {
                 positionStep ? 131072 : 65536) &&
             bounded('frames', positionStep ? 0 : 1, 600) &&
             bounded('wait', 0, 600) &&
-            bounded('times', step ? 0 : 1, 32));
+            bounded('times', step ? 0 : 1, args['type'] == 2 ? 64 : 32));
         final frames = args['frames'] as int;
         final wait = args['wait'] as int;
         final times = args['times'] as int;
@@ -431,9 +447,9 @@ abstract final class Gen5SourceProgramConverter {
                 (((value * 1048576) ~/ frames + 524288) / 1048576).floor();
             final peak = step * frames;
             if (shake) return value.abs() <= 4095 && peak.abs() <= 4095;
-            return value >= -4095 &&
+            return value >= -4096 &&
                 value <= 28672 &&
-                peak >= -4095 &&
+                peak >= -4096 &&
                 peak <= 28672;
           }
 
@@ -466,17 +482,18 @@ abstract final class Gen5SourceProgramConverter {
       case 'McssRotate':
         requireNumericExcept({'targets'});
         require(inSet('targets', _combatants) &&
-            (args['type'] == 2 || args['type'] == 3) &&
+            (args['type'] == 1 || args['type'] == 2 || args['type'] == 3) &&
             bounded('angle', -268435456, 268435456) &&
             bounded('frames', 1, 600) &&
             bounded('wait', 0, 600) &&
-            bounded('times', 1, 32));
+            bounded('times', args['type'] == 1 ? 0 : 1, 32));
         final frames = args['frames'] as int;
         final wait = args['wait'] as int;
         final times = args['times'] as int;
-        require(frames * (args['type'] == 3 ? 4 : 2) * times *
-                (wait + 1) - wait <=
-            1800);
+        require(args['type'] == 1
+            ? frames * (wait + 1) <= 1800
+            : frames * (args['type'] == 3 ? 4 : 2) * times *
+                    (wait + 1) - wait <= 1800);
       case 'McssSetVanish':
         require(inSet('targets', _targets));
         final value = args.remove('vanish');
@@ -489,8 +506,10 @@ abstract final class Gen5SourceProgramConverter {
         require(inSet('targets', _combatants) && inSet('mode', {3, 4}));
       case 'McssAlpha':
         requireNumericExcept({'targets'});
-        require(inSet('targets', _combatants) && inSet('type', {0, 1}) &&
-            bounded('alpha', 0, 31) && bounded('frames', 1, 600) &&
+        require(inSet('targets', _combatants) && inSet('type', {0, 1, 2}) &&
+            (args['type'] != 2 || args['times'] == 0) &&
+            bounded('alpha', 0, 31) &&
+            bounded('frames', args['type'] == 0 ? 0 : 1, 600) &&
             bounded('wait', 0, 600) && bounded('times', 0, 32) &&
             (args['frames'] as int) * ((args['wait'] as int) + 1) <= 1800);
       case 'McssPalFade':

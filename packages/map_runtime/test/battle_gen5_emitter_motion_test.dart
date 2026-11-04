@@ -22,6 +22,32 @@ BattleGen5EmitterMotion _motion({
 );
 
 void main() {
+  test('orbiting emitters follow source direction, wait and repeat delay', () {
+    BattleGen5OrbitEmitterMotion orbit(bool reverse) => BattleGen5OrbitEmitterMotion(
+      radiusX: 4096, radiusZ: 8192, offsetY: 2048, frames: 4,
+      wait: 1, delay: 2, reverse: reverse, enemySide: true,
+    );
+    final forward = orbit(false);
+    final reverse = orbit(true);
+    expect(forward.position, (x: 0, y: 2048, z: 0));
+    expect(forward.advance(), (x: -4096, y: 2048, z: 0));
+    expect(reverse.advance(), (x: 4096, y: 2048, z: 0));
+    expect(forward.advance(), (x: -4096, y: 2048, z: 0));
+    expect(forward.advance(), (x: 0, y: 2048, z: 8192));
+    for (var tick = 0; tick < 6; tick++) {
+      forward.advance();
+    }
+    final atDelay = forward.position;
+    expect(forward.advance(), atDelay);
+    expect(forward.advance(), atDelay);
+    expect(forward.advance(), atDelay);
+    expect(forward.advance(), isNot(atDelay));
+    expect(() => BattleGen5OrbitEmitterMotion(
+      radiusX: 0, radiusZ: 0, offsetY: 0, frames: 0,
+      wait: 0, delay: 0, reverse: false, enemySide: false,
+    ), throwsFormatException);
+  });
+
   test('field-origin projectile travels from its source point to the defender', () {
     final endpoints = gen5SourceFieldMotionEndpoints({
       'fromX': 0, 'fromY': 0x2000, 'fromZ': 0,

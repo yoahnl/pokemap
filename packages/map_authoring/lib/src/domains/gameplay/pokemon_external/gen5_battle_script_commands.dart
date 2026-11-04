@@ -14,7 +14,12 @@ const gen5BattleCommandFields = <String, List<String>>{
   ],
   'ParticleLoad': ['particle'],
   'ParticleDelete': ['particle'],
+  'Gauge': ['mode', 'target'],
   'McssCameraMode': ['mode', 'scope'],
+  'OrbitEmitters': [
+    'particle', 'emitter', 'type', 'radiusX', 'radiusZ', 'offsetY',
+    'frames', 'wait', 'unknown', 'delay',
+  ],
   'EmitterMove': [
     'particle',
     'emitter',
@@ -27,6 +32,10 @@ const gen5BattleCommandFields = <String, List<String>>{
     'lifeScale',
     'cameraScale',
     'turns',
+  ],
+  'EmitterMoveOrtho': [
+    'particle', 'emitter', 'motion', 'from', 'to', 'offsetY', 'frames',
+    'height', 'lifeScale', 'cameraScale', 'turns',
   ],
   'EmitterMoveFrom': [
     'particle', 'emitter', 'motion', 'fromX', 'fromY', 'fromZ', 'to',

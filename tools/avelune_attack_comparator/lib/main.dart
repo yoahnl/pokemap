@@ -272,10 +272,16 @@ class _ComparePageState extends State<ComparePage> {
                   ? 'Charge : programme BW2 expérimental dans le moteur Avelune. Son enregistré si disponible, synchronisation approximative.'
                   : _move == PreviewMove.surf
                   ? 'Surf : programme BW2 expérimental. Son et rendu à vérifier.'
+                  : _move == PreviewMove.transform
+                  ? 'Morphing : changement de sprite et mosaïque expérimentaux. Son et effet préparatoire BW2 non reproduits ; rendu logiciel pendant la transformation.'
                   : '${_move.label} : programme BW2 expérimental. Caméra simplifiée ; son enregistré si disponible, synchronisation approximative.'
                         '${_move.approximations.contains('source-variant:first-only') ? ' Cet aperçu ne montre qu’une variante de l’attaque.' : ''}'
                         '${_move.approximations.contains('source-branch:player-side-only') ? ' Seul le côté joueur est disponible dans cet aperçu.' : ''}'
+                        '${_move.approximations.contains('source-branch:single-battle-only') ? ' Seule la version en combat simple est disponible.' : ''}'
                         '${_move.approximations.contains('source-audio:cry-and-timing-unavailable') ? ' Le cri et sa synchronisation restent à intégrer.' : ''}'
+                        '${_move.approximations.contains('source-gauge:preview-restored') ? ' La jauge est réaffichée à la fin de l’aperçu.' : ''}'
+                        '${_move.approximations.contains('source-context:copied-jump-kick') ? ' Exemple de la référence : Pied Sauté copié. L’attaque dépend du dernier mouvement adverse.' : ''}'
+                        '${_move.approximations.contains('source-context:cave-rock-slide') ? ' Exemple de la référence : Éboulement en grotte. L’attaque dépend du terrain.' : ''}'
                         '${_move.approximations.contains('background-palette-animation:missing-bank-base') ? ' Une palette manquante est remplacée par les couleurs de base.' : ''}'
                         '${_move.approximations.contains('projection:landscape-interrupts') ? ' En paysage, cette attaque s’interrompt actuellement.' : ''}'
                         '${_move.approximations.contains('source-emitter:orthographic-direction-approximation') ? ' Direction des particules approximative.' : ''}'

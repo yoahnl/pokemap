@@ -147,6 +147,67 @@ final class BattleGen5EmitterMotion {
   }
 }
 
+final class BattleGen5OrbitEmitterMotion {
+  BattleGen5OrbitEmitterMotion({
+    required this.radiusX,
+    required this.radiusZ,
+    required this.offsetY,
+    required this.frames,
+    required this.wait,
+    required this.delay,
+    required this.reverse,
+    required bool enemySide,
+  }) : _angle = enemySide ? 0x8000 : 0,
+       _remainingFrames = frames,
+       _position = (x: 0, y: offsetY, z: 0) {
+    if (radiusX.abs() > 32768 || radiusZ.abs() > 32768 ||
+        offsetY.abs() > 131072 || frames < 1 || frames > 600 ||
+        wait < 0 || wait > 600 || delay < 0 || delay > 600) {
+      throw const FormatException('Unsupported Gen 5 emitter orbit');
+    }
+  }
+
+  final int radiusX;
+  final int radiusZ;
+  final int offsetY;
+  final int frames;
+  final int wait;
+  final int delay;
+  final bool reverse;
+  int _angle;
+  int _remainingFrames;
+  int _remainingWait = 0;
+  int _remainingDelay = 0;
+  BattleSplVector _position;
+
+  BattleSplVector get position => _position;
+
+  BattleSplVector advance({bool active = true}) {
+    if (!active) return _position;
+    if (_remainingDelay > 0) {
+      _remainingDelay--;
+    } else if (_remainingWait > 0) {
+      _remainingWait--;
+    } else {
+      _remainingWait = wait;
+      final step = 0x10000 ~/ frames;
+      _angle = (_angle + (reverse ? -step : step)) & 0xffff;
+      _position = (
+        x: (_sinIndex(_angle) * radiusX + 2048) >> 12,
+        y: offsetY,
+        z: (_sinIndex(_angle + 0x4000) * radiusZ + 2048) >> 12,
+      );
+      if (_remainingFrames > 0) {
+        _remainingFrames--;
+      } else {
+        _remainingFrames = frames;
+        _remainingDelay = delay;
+      }
+    }
+    return _position;
+  }
+}
+
 bool _isSigned32(int value) => value >= -0x80000000 && value <= 0x7fffffff;
 
 bool _isSourceVector(BattleSplVector value) =>

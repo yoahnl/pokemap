@@ -39,6 +39,8 @@ final class BattleGen5ActorMotionController {
       (_actors[actor]?.jobs.containsKey(channel) ?? false) ||
       (channel == BattleGen5ActorMotionChannel.scale &&
           _actors[actor]?.scaleStep != null) ||
+      (channel == BattleGen5ActorMotionChannel.rotation &&
+          _actors[actor]?.rotationStep != null) ||
       (channel == BattleGen5ActorMotionChannel.position &&
           (_actors[actor]?.circle != null ||
               _actors[actor]?.positionStep != null));
@@ -59,7 +61,7 @@ final class BattleGen5ActorMotionController {
       BattleGen5ActorMotionChannel.position =>
         type == 1 || type == 2 || type == 3 || type == 5,
       BattleGen5ActorMotionChannel.scale => type == 1 || type == 2 || type == 3,
-      BattleGen5ActorMotionChannel.rotation => type == 2 || type == 3,
+      BattleGen5ActorMotionChannel.rotation => type == 1 || type == 2 || type == 3,
     };
     if (!validType ||
         (channel == BattleGen5ActorMotionChannel.rotation && yFx32 != 0) ||
@@ -70,6 +72,7 @@ final class BattleGen5ActorMotionController {
     if ((channel != BattleGen5ActorMotionChannel.position &&
             (state?.jobs.containsKey(channel) ?? false)) ||
         (channel == BattleGen5ActorMotionChannel.scale && state?.scaleStep != null) ||
+        (channel == BattleGen5ActorMotionChannel.rotation && state?.rotationStep != null) ||
         (channel == BattleGen5ActorMotionChannel.position &&
             state?.circle != null)) {
       throw StateError('Gen 5 actor motion channel is already active');
@@ -80,25 +83,26 @@ final class BattleGen5ActorMotionController {
     final scaleStepMode = channel == BattleGen5ActorMotionChannel.scale && type == 1;
     final positionStepMode = channel == BattleGen5ActorMotionChannel.position &&
         (type == 1 || type == 5);
-    final stepMode = scaleStepMode || positionStepMode;
+    final rotationStepMode = channel == BattleGen5ActorMotionChannel.rotation && type == 1;
+    final stepMode = scaleStepMode || positionStepMode || rotationStepMode;
     final startX = channel == BattleGen5ActorMotionChannel.scale
         ? (state?.scaleX ?? 4096)
         : channel == BattleGen5ActorMotionChannel.position
-            ? (state?.offsetX ?? 0) : 0;
+            ? (state?.offsetX ?? 0) : (state?.rotation ?? 0);
     final startY = channel == BattleGen5ActorMotionChannel.scale
         ? (state?.scaleY ?? 4096)
         : channel == BattleGen5ActorMotionChannel.position
             ? (state?.offsetY ?? 0) : 0;
     final step = stepMode ? _ActorStep(
       startX: startX, startY: startY,
-      targetX: scaleStepMode ? xFx32 : type == 5 ? 0 :
+      targetX: scaleStepMode || rotationStepMode ? xFx32 : type == 5 ? 0 :
           startX + (mirrorX ? -xFx32 : xFx32),
-      targetY: scaleStepMode ? yFx32 : type == 5 ? 0 : startY + yFx32,
+      targetY: scaleStepMode || rotationStepMode ? yFx32 : type == 5 ? 0 : startY + yFx32,
       frames: positionStepMode && frames == 0 ? 1 : frames,
       wait: wait, times: times,
-      minTarget: scaleStepMode ? 1 : -131072,
-      maxTarget: scaleStepMode ? 32768 : 131072,
-      maxDelta: scaleStepMode ? 65536 : 262144,
+      minTarget: scaleStepMode ? 1 : rotationStepMode ? -268435456 : -131072,
+      maxTarget: scaleStepMode ? 32768 : rotationStepMode ? 268435456 : 131072,
+      maxDelta: scaleStepMode ? 65536 : rotationStepMode ? 536870912 : 262144,
     ) : null;
     final swing = stepMode ? null : BattleGen5Swing(
       startX: channel == BattleGen5ActorMotionChannel.scale ? startX - 4096 : startX,
@@ -113,6 +117,7 @@ final class BattleGen5ActorMotionController {
       maxDelta: channel == BattleGen5ActorMotionChannel.rotation
           ? 268435456
           : 65536,
+      maxCount: type == 2 ? 64 : 32,
     );
     if (channel == BattleGen5ActorMotionChannel.scale && !scaleStepMode &&
         (!_validScale(xFx32, frames, start: startX, shake: type == 3) ||
@@ -137,6 +142,8 @@ final class BattleGen5ActorMotionController {
     if (step != null) {
       if (positionStepMode) {
         state.positionStep = step;
+      } else if (rotationStepMode) {
+        state.rotationStep = step;
       } else {
         state.scaleStep = step;
       }
@@ -229,6 +236,12 @@ final class BattleGen5ActorMotionController {
           state.offsetY = value.y;
           if (value.done) state.positionStep = null;
         }
+        final rotationStep = state.rotationStep;
+        if (rotationStep != null) {
+          final value = rotationStep.advance();
+          state.rotation = value.x;
+          if (value.done) state.rotationStep = null;
+        }
         final circle = state.circle;
         if (circle != null) {
           final value = circle.advance();
@@ -296,7 +309,7 @@ bool _validScale(int delta, int frames, {required int start, required bool shake
   final peak = battleGen5SwingStep(delta, frames) * frames;
   final low = shake ? -peak.abs() : math.min(0, peak);
   final high = shake ? peak.abs() : math.max(0, peak);
-  return start + low >= 1 && start + high <= 32768;
+  return start + low >= (shake ? 1 : 0) && start + high <= 32768;
 }
 
 final class _ActorMotion {
@@ -304,8 +317,9 @@ final class _ActorMotion {
   _ActorCircle? circle;
   _ActorStep? scaleStep;
   _ActorStep? positionStep;
+  _ActorStep? rotationStep;
   bool get isBusy => jobs.isNotEmpty || circle != null ||
-      scaleStep != null || positionStep != null;
+      scaleStep != null || positionStep != null || rotationStep != null;
   int circleOriginX = 0;
   int circleOriginY = 0;
   int circleOriginZ = 0;

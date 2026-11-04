@@ -114,7 +114,8 @@ final class BattleStage3DComponent extends Component {
     final context = findGame()?.buildContext;
     if (_closed || stage == null || context == null ||
         actors.values.any((actor) =>
-            actor.hasBattleScriptPalette || actor.hasBattleScriptRotation)) {
+            actor.hasBattleScriptPalette || actor.hasBattleScriptMosaic ||
+            actor.hasBattleScriptRotation)) {
       return;
     }
     final recorder = PictureRecorder();

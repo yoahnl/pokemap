@@ -114,7 +114,7 @@ final class Gen5CameraMotion {
     required int brake,
     Gen5CameraMoveType moveType = Gen5CameraMoveType.step,
   }) {
-    if (!{8, 9, 10, 11, 12, 14, 15, 16, 17, 20, 21}.contains(preset)) {
+    if (!{0, 1, 8, 9, 10, 11, 12, 14, 15, 16, 17, 20, 21}.contains(preset)) {
       throw ArgumentError.value(preset, 'preset');
     }
     _validateRange(frames, 0, _maxFrames, 'frames');
@@ -126,6 +126,8 @@ final class Gen5CameraMotion {
     if (preset == 20) return Gen5CameraPresetEffect.setFlatActors;
 
     final goal = switch (preset) {
+      0 => playerPose,
+      1 => enemyPose,
       8 || 17 => defaultPose,
       9 || 10 || 21 => _slotPose(attacker),
       11 || 12 => _slotPose(defender),

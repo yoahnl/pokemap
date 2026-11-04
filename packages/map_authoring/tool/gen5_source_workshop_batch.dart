@@ -8,6 +8,9 @@ import 'package:map_authoring/src/domains/gameplay/pokemon_external/gen5_batch_p
 import 'package:map_authoring/src/domains/gameplay/pokemon_external/gen5_battle_background_converter.dart';
 import 'package:map_authoring/src/domains/gameplay/pokemon_external/gen5_source_program_converter.dart';
 import 'package:map_authoring/src/domains/gameplay/pokemon_external/gen5_spl_particle_converter.dart';
+import 'package:map_core/map_core.dart' show BattleSplParticleDefinition;
+
+import 'gen5_workshop_texture_baker.dart';
 
 const revision = '41f42ca1afe6291f00b0ba0ec3f6099b9ff1346c';
 const root = 'https://raw.githubusercontent.com/fuddlesworth/pokebw2/$revision';
@@ -23,7 +26,7 @@ bool admitted(List<Map<String, dynamic>> instructions) {
     switch (op) {
       case 'moveCameraPreset':
         if (a['moveType'] != 1 ||
-            !{8, 9, 10, 11, 12, 14, 15, 16, 17, 20, 21}.contains(a['camera'])) {
+            !{0, 1, 8, 9, 10, 11, 12, 14, 15, 16, 17, 20, 21}.contains(a['camera'])) {
           return false;
         }
       case 'moveCameraRelative' || 'moveCameraAbsolute':
@@ -49,12 +52,14 @@ bool admitted(List<Map<String, dynamic>> instructions) {
         final positionStep = op == 'moveCombatant' &&
             (a['type'] == 1 || a['type'] == 5);
         final step = scaleStep || positionStep;
-        if (!actors.contains(a['targets']) ||
+        final minCoordinate = scaleStep ? 1 : positionStep ? -131072 :
+            op == 'moveCombatant' ? -65536 : -28672;
+        final maxCoordinate = scaleStep ? 32768 : positionStep ? 131072 :
+            op == 'moveCombatant' ? 65536 : 28672;
+        if (!(a['targets'] == 'EFFVM_ALL' || actors.contains(a['targets'])) ||
             !(step || a['type'] == 2 || a['type'] == 3) ||
-            !bounded(a['x'], scaleStep ? 1 : positionStep ? -131072 : -28672,
-                scaleStep ? 32768 : positionStep ? 131072 : 28672) ||
-            !bounded(a['y'], scaleStep ? 1 : positionStep ? -131072 : -28672,
-                scaleStep ? 32768 : positionStep ? 131072 : 28672) ||
+            !bounded(a['x'], minCoordinate, maxCoordinate) ||
+            !bounded(a['y'], minCoordinate, maxCoordinate) ||
             !bounded(a['frames'], positionStep ? 0 : 1, 600) ||
             !bounded(a['wait'], 0, 600) ||
             !bounded(a['times'], step ? 0 : 1, step ? 32 : 64)) {
@@ -103,14 +108,16 @@ bool admitted(List<Map<String, dynamic>> instructions) {
             1800) return false;
       case 'rotateCombatant':
         if (!actors.contains(a['targets']) ||
-            !{2, 3}.contains(a['type']) ||
+            !{1, 2, 3}.contains(a['type']) ||
             !bounded(a['angle'], -268435456, 268435456) ||
             !bounded(a['frames'], 1, 600) ||
             !bounded(a['wait'], 0, 600) ||
-            !bounded(a['times'], 1, 32) ||
-            (a['frames'] as int) * (a['type'] == 3 ? 4 : 2) * (a['times'] as int) *
-                    ((a['wait'] as int) + 1) - (a['wait'] as int) >
-                1800) {
+            !bounded(a['times'], a['type'] == 1 ? 0 : 1, 32) ||
+            (a['type'] == 1
+                ? (a['frames'] as int) * ((a['wait'] as int) + 1)
+                : (a['frames'] as int) * (a['type'] == 3 ? 4 : 2) *
+                    (a['times'] as int) * ((a['wait'] as int) + 1) -
+                    (a['wait'] as int)) > 1800) {
           return false;
         }
       case 'setAnimationState' || 'fadePalette':
@@ -124,8 +131,10 @@ bool admitted(List<Map<String, dynamic>> instructions) {
           return false;
         }
       case 'fadeCombatantAlpha':
-        if (!actors.contains(a['targets']) || !{0, 1}.contains(a['type']) ||
-            !bounded(a['alpha'], 0, 31) || !bounded(a['frames'], 1, 600) ||
+        if (!actors.contains(a['targets']) || !{0, 1, 2}.contains(a['type']) ||
+            (a['type'] == 2 && a['times'] != 0) ||
+            !bounded(a['alpha'], 0, 31) ||
+            !bounded(a['frames'], a['type'] == 0 ? 0 : 1, 600) ||
             !bounded(a['wait'], 0, 600) || !bounded(a['times'], 0, 32) ||
             (a['frames'] as int) * ((a['wait'] as int) + 1) > 1800) {
           return false;
@@ -136,8 +145,8 @@ bool admitted(List<Map<String, dynamic>> instructions) {
             !bounded(a['unk18'], 0, 4294967295) ||
             !bounded(a['unused'], 0, 4294967295) ||
             !bounded(a['radiusScale'], 0, 8192) ||
-            !bounded(a['lifeScale'], 0, 8192) ||
-            !bounded(a['scaleScale'], 0, 8192) ||
+            !bounded(a['lifeScale'], 0, 12288) ||
+            !bounded(a['scaleScale'], 0, 20480) ||
             !bounded(a['cameraScale'], 0, 12288)) {
           return false;
         }
@@ -147,8 +156,8 @@ bool admitted(List<Map<String, dynamic>> instructions) {
             !bounded(a['unk18'], 0, 4294967295) ||
             !bounded(a['unused'], 0, 4294967295) ||
             !bounded(a['radiusScale'], 0, 8192) ||
-            !bounded(a['lifeScale'], 0, 8192) ||
-            !bounded(a['scaleScale'], 0, 8192) ||
+            !bounded(a['lifeScale'], 0, 12288) ||
+            !bounded(a['scaleScale'], 0, 12288) ||
             !{0, 4096}.contains(a['cameraScale'])) {
           return false;
         }
@@ -166,7 +175,21 @@ bool admitted(List<Map<String, dynamic>> instructions) {
             (!unscaled && !{0, 4096}.contains(a['cameraScale']))) {
           return false;
         }
-      case 'startMovingEmitter':
+      case 'startOrbitEmitter':
+        if (!bounded(a['particle'], 0, 65535) ||
+            !bounded(a['emitter'], 0, 31) || !bounded(a['type'], 0, 3) ||
+            !bounded(a['radiusX'], -32768, 32768) ||
+            !bounded(a['radiusZ'], -32768, 32768) ||
+            !bounded(a['offsetY'], -131072, 131072) ||
+            !bounded(a['frames'], 1, 600) || !bounded(a['wait'], 0, 600) ||
+            !bounded(a['unknown'], 0, 600) || !bounded(a['delay'], 0, 600)) {
+          return false;
+        }
+      case 'setSourceGauge':
+        if (!{2, 3}.contains(a['mode']) || !{3, 4}.contains(a['target'])) {
+          return false;
+        }
+      case 'startMovingEmitter' || 'startMovingOrthoEmitter':
         if (!anchors.contains(a['from']) ||
             !anchors.contains(a['to']) ||
             a['from'] == a['to'] ||
@@ -185,7 +208,7 @@ bool admitted(List<Map<String, dynamic>> instructions) {
             !{1, 2, 5, 6}.contains(a['motion']) ||
             ({5, 6}.contains(a['motion']) && !bounded(a['turns'], 0, 32768)) ||
             !bounded(a['lifeScale'], 0, 8192) ||
-            !{0, 4096}.contains(a['cameraScale']) ||
+            !{0, 4096, 8192}.contains(a['cameraScale']) ||
             !(a['motionFramesFx32'] == 0 ||
                 bounded(a['motionFramesFx32'], 4096, 600 * 4096))) {
           return false;
@@ -285,7 +308,7 @@ String nameFor(Map move, String language, String fallback) {
   return fallback;
 }
 
-Map<String, Object?>? specializePlayerSide(Map<String, Object?> program) {
+Map<String, Object?>? specializeWorkshopContext(Map<String, Object?> program) {
   final variant = program['variant'] as String;
   final variants = (program['variants'] as List).cast<String>();
   final labels = (program['labels'] as List).cast<Map>();
@@ -302,31 +325,59 @@ Map<String, Object?>? specializePlayerSide(Map<String, Object?> program) {
   final selected = <Map<String, dynamic>>[];
   final visited = <int>{};
   var index = entry;
-  var specialized = false;
+  final assumptions = <String>{};
   while (index < end && visited.add(index)) {
-    final instruction = instructions[index];
+    var instruction = instructions[index];
     if (instruction['op'] == 'unsupported') {
       final source = instruction['source'] as Map;
       final operands = source['operands'] as List;
-      if (source['name'] != 'IfVarConst' || operands.length != 4 ||
-          operands[0] != 'EFFVM_VAR_ATTACKER_SIDE' ||
-          operands[1] != 'EFFVM_CMP_EQ' ||
-          !{'0', '1'}.contains(operands[2])) {
+      if (source['name'] == 'Jump' && operands.length == 1) {
+        final targets = labels.where((label) => label['name'] == operands[0]);
+        if (targets.length != 1) return null;
+        final target = targets.single['instructionIndex'] as int;
+        if (target <= index || target >= end) return null;
+        index = target;
+        continue;
+      }
+      if (source['name'] != 'IfVarConst' || operands.length != 4) return null;
+      final variable = operands[0];
+      final comparison = operands[1];
+      final value = operands[2];
+      if (variable == 'EFFVM_VAR_ATTACKER_SIDE' &&
+          comparison == 'EFFVM_CMP_EQ' && {'0', '1'}.contains(value)) {
+        assumptions.add('player-side-only');
+      } else if (variable == 'EFFVM_VAR_BATTLE_STYLE' &&
+          {'EFFVM_CMP_EQ', 'EFFVM_CMP_NE'}.contains(comparison) &&
+          {'0', '1', '2', '3'}.contains(value)) {
+        assumptions.add('single-battle-only');
+      } else {
         return null;
       }
       final targets = labels.where((label) => label['name'] == operands[3]);
       if (targets.length != 1) return null;
       final target = targets.single['instructionIndex'] as int;
       if (target <= index || target >= end) return null;
-      specialized = true;
-      index = operands[2] == '0' ? target : index + 1;
+      final equal = value == '0';
+      final shouldJump = comparison == 'EFFVM_CMP_EQ' ? equal : !equal;
+      index = shouldJump ? target : index + 1;
       continue;
+    }
+    if ({'startEmitter', 'startMovingEmitter'}.contains(instruction['op'])) {
+      final args = Map<String, dynamic>.from(instruction['args'] as Map);
+      for (final key in ['from', 'to']) {
+        final value = args[key];
+        if (value == 0 || value == 1) {
+          args[key] = value == 0 ? 'EFFVM_EMIT_ATTACKER' : 'EFFVM_EMIT_DEFENDER';
+          assumptions.add('player-side-only');
+        }
+      }
+      instruction = {...instruction, 'args': args};
     }
     selected.add(instruction);
     if (instruction['op'] == 'end') break;
     index++;
   }
-  if (!specialized || selected.isEmpty || selected.last['op'] != 'end') {
+  if (assumptions.isEmpty || selected.isEmpty || selected.last['op'] != 'end') {
     return null;
   }
   return {
@@ -337,7 +388,8 @@ Map<String, Object?>? specializePlayerSide(Map<String, Object?> program) {
     ],
     'entryIndex': 0,
     'conversion': 'supported',
-    'verification': 'sourcePlayerSideSpecialization',
+    'verification': 'sourceWorkshopContextSpecialization',
+    'assumptions': assumptions.toList(),
     'diagnostics': <Object>[],
     'instructions': selected,
   };
@@ -407,10 +459,8 @@ Future<Map<String, Object?>?> convert(
       expectedSha256: script['sha256'] as String,
       variant: variant);
   final sourceVariantCount = (program['variants'] as List).length;
-  var specialized = false;
   if (program['conversion'] != 'supported') {
-    var selected = specializePlayerSide(program);
-    specialized = selected != null;
+    var selected = specializeWorkshopContext(program);
     selected ??= selectSupportedVariant(program);
     if (selected == null) return null;
     program = selected;
@@ -428,7 +478,8 @@ Future<Map<String, Object?>?> convert(
   final emitters = selected
       .where((item) =>
           item['op'] == 'startEmitter' || item['op'] == 'startMovingEmitter' ||
-          item['op'] == 'startMovingFieldEmitter' ||
+          item['op'] == 'startMovingFieldEmitter' || item['op'] == 'startOrbitEmitter' ||
+          item['op'] == 'startMovingOrthoEmitter' ||
           item['op'] == 'startOrthoEmitter' || item['op'] == 'startFieldEmitter')
       .toList();
   if (emitters.length > 32) return null;
@@ -455,7 +506,13 @@ Future<Map<String, Object?>?> convert(
   if (selected.any((item) => item['op'] == 'setActorCameraMode')) {
     approximations.add('source-actor:camera-mode-approximation');
   }
-  if (specialized) approximations.add('source-branch:player-side-only');
+  if (selected.any((item) => item['op'] == 'scaleCombatant' &&
+      ((item['args'] as Map)['x'] == -4096 || (item['args'] as Map)['y'] == -4096))) {
+    approximations.add('source-actor:zero-scale-clamped');
+  }
+  for (final assumption in (program['assumptions'] as List? ?? const [])) {
+    approximations.add('source-branch:$assumption');
+  }
   if (selected.any((item) => item['op'] == 'setCombatantVisibility')) {
     approximations.add('actor-visibility:shadow-hidden');
   }
@@ -470,11 +527,20 @@ Future<Map<String, Object?>?> convert(
   if (selected.any((item) => item['op'] == 'playCry')) {
     approximations.add('source-audio:cry-and-timing-unavailable');
   }
+  if (selected.any((item) => item['op'] == 'setSourceGauge')) {
+    approximations.add('source-gauge:preview-restored');
+  }
   if (emitters.any((item) => item['op'] == 'startFieldEmitter')) {
     approximations.add('source-emitter:field-coordinate-calibration');
   }
   if (emitters.any((item) => item['op'] == 'startMovingFieldEmitter')) {
     approximations.add('source-emitter:field-motion-calibration');
+  }
+  if (emitters.any((item) => item['op'] == 'startOrbitEmitter')) {
+    approximations.add('source-emitter:orbit-geometry-experimental');
+  }
+  if (emitters.any((item) => item['op'] == 'startMovingOrthoEmitter')) {
+    approximations.add('particle-projection:orthographic-motion-experimental');
   }
   if (emitters.any((item) => item['op'] == 'startEmitter' &&
       !{0, 4096}.contains((item['args'] as Map)['cameraScale']))) {
@@ -590,6 +656,7 @@ Future<Map<String, Object?>?> convert(
   }
   final particleGroups = <String, Map<String, Object?>>{};
   for (final id in particleIds) {
+    final particleWarnings = <String>{};
     final indices = emitters
         .where((item) => (item['args'] as Map)['particle'] == id)
         .map((item) => (item['args'] as Map)['emitter'] as int)
@@ -628,7 +695,7 @@ Future<Map<String, Object?>?> convert(
       for (var i = 0; i < indices.length; i++) {
         allEmitters[indices[i]] = (normalized.document['emitters'] as List)[i];
       }
-      approximations.addAll(normalized.warnings);
+      particleWarnings.addAll(normalized.warnings);
       try {
         particleDefinition = convertParticle(
             Uint8List.fromList(utf8.encode(jsonEncode(original))));
@@ -642,7 +709,7 @@ Future<Map<String, Object?>?> convert(
           allEmitters[indices[i]] =
               (withoutChildren.document['emitters'] as List)[i];
         }
-        approximations.addAll(withoutChildren.warnings);
+        particleWarnings.addAll(withoutChildren.warnings);
         particleDefinition = convertParticle(
             Uint8List.fromList(utf8.encode(jsonEncode(original))));
       }
@@ -666,23 +733,51 @@ Future<Map<String, Object?>?> convert(
         approximations.add('source-emitter:scaled-size-clamped');
       }
     }
-    final textures = <String, String>{};
-    final hashes = <String, String>{};
+    final sourceTextures = <String, Uint8List>{};
     if (particleDefinition.definition.emitters.any(
         (emitter) => (emitter.toJson()['motion'] as Map).containsKey('spin'))) {
       approximations.add('particle-spin:trigonometry-experimental');
     }
     for (final texture in particleDefinition.definition.textureIds) {
       final png = await read('$directory/$texture.png', 8 * 1024 * 1024);
-      textures[texture] = base64Encode(png);
-      hashes[texture] = sha256.convert(png).toString();
+      sourceTextures[texture] = png;
     }
+    final baked = Gen5WorkshopTextureBaker.bake(
+      source: Map<String, dynamic>.from(rawJson),
+      sourceEmitterIndices: indices,
+      definition: particleDefinition.definition.toJson(),
+      textures: sourceTextures,
+    );
+    BattleSplParticleDefinition.fromExperimentalJson(baked.definition);
+    particleWarnings.removeAll({
+      'texture-field:repeat', 'texture-field:flip',
+      'particle-field:textureRepeatShiftS', 'particle-field:textureRepeatShiftT',
+      'particle-field:flipTextureS', 'particle-field:flipTextureT',
+    });
+    final rawEmitters = rawJson['emitters'] as List;
+    final bakedEmitters = baked.definition['emitters'] as List;
+    final omittedChild = indices.indexed.any((entry) =>
+        (rawEmitters[entry.$2] as Map)['childResource'] != null &&
+        (bakedEmitters[entry.$1] as Map)['child'] == null);
+    if (!omittedChild) {
+      particleWarnings.removeAll({
+        'particle-child:textureRepeatShiftS', 'particle-child:textureRepeatShiftT',
+        'particle-child:flipTextureS', 'particle-child:flipTextureT',
+      });
+    }
+    approximations.addAll(particleWarnings);
     particleGroups['$id'] = {
       'sourceParticleSha256': sha256.convert(raw).toString(),
       'sourceEmitterIndices': indices,
-      'definition': particleDefinition.definition.toJson(),
-      'textureSha256': hashes,
-      'textures': textures,
+      'definition': baked.definition,
+      'textureSha256': {
+        for (final entry in baked.textures.entries)
+          entry.key: sha256.convert(entry.value).toString(),
+      },
+      'textures': {
+        for (final entry in baked.textures.entries)
+          entry.key: base64Encode(entry.value),
+      },
     };
   }
   final singleGroup = particle == null ? null : particleGroups['$particle'];

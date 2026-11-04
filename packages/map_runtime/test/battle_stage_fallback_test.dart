@@ -261,6 +261,25 @@ void main() {
     });
   }
 
+  testWidgets('mosaic uses the software scene and restores the GPU afterward', (
+    tester,
+  ) async {
+    final fixture = await _mountFixture(tester, sprites: true);
+    final actor = fixture.actors[_player]!;
+    final owner = Object();
+    _render(fixture.stage.render);
+    expect(fixture.stage.currentFramePresented, isTrue);
+    expect(actor.renderedBy3DStage, isTrue);
+    actor.setBattleScriptMosaic(8, owner: owner);
+    _render(fixture.stage.render);
+    expect(fixture.stage.currentFramePresented, isFalse);
+    expect(fixture.actors.values.every((value) => !value.renderedBy3DStage), isTrue);
+    actor.clearBattleScriptMosaic(owner: owner);
+    _render(fixture.stage.render);
+    expect(fixture.stage.currentFramePresented, isTrue);
+    expect(actor.renderedBy3DStage, isTrue);
+  });
+
   testWidgets(
     'a ground-only presentation suppresses duplicate software ground',
     (tester) async {

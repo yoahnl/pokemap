@@ -61,6 +61,35 @@ void _start(
 );
 
 void main() {
+  test('source rotation step reaches its absolute angle and can be released', () {
+    final scene = _Scene();
+    final controller = scene.create();
+    _start(controller, 'enemy', BattleGen5ActorMotionChannel.rotation,
+        type: 1, x: 268431360, frames: 4, times: 0, mirrorX: true);
+    controller.tick();
+    expect(scene.poses['enemy']!.rotationFx32, 67107840);
+    expect(controller.isChannelBusy('enemy', BattleGen5ActorMotionChannel.rotation), isTrue);
+    controller.tick();
+    controller.tick();
+    controller.tick();
+    expect(scene.poses['enemy']!.rotationFx32, 268431360);
+    expect(controller.isBusy, isFalse);
+    controller.cancel();
+    expect(scene.poses, isEmpty);
+  });
+
+  test('a zero-frame relative position reaches its destination in one tick', () {
+    final scene = _Scene();
+    final controller = scene.create();
+    _start(controller, 'user', BattleGen5ActorMotionChannel.position,
+        type: 1, x: 0, y: -131072, frames: 0, times: 0);
+    controller.tick();
+    expect(scene.poses['user']!.offsetYFx32, -131072);
+    expect(controller.isBusy, isFalse);
+    controller.cancel();
+    expect(scene.owners, isEmpty);
+  });
+
   test('relative positions persist and return to the battle position', () {
     final scene = _Scene();
     final controller = scene.create();

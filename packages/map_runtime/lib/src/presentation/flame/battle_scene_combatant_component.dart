@@ -13,6 +13,7 @@ import '../../infrastructure/runtime_gif_animation.dart';
 import '../../infrastructure/runtime_gif_atlas.dart';
 import '../../infrastructure/tile_image_loader.dart';
 import 'battle_pokemon_sprite_resolver.dart';
+import 'battle_gen5_mosaic.dart';
 import 'battle_camera_subject_geometry.dart';
 import 'battle_visual_asset_cache.dart';
 
@@ -212,6 +213,7 @@ class BattleSceneCombatantComponent extends PositionComponent {
       _projectLocalRect(_currentRenderedSpriteRectLocal());
 
   ui.Image? get stageImage => _gifAnimation == null ? _spriteImage : null;
+  bool get hasBattleSpriteImage => _spriteImage != null;
   Rect get stageSourceRect => _currentSpriteInputSubrect();
   Color get stageTint => _spriteModulationColor(_visualOpacity);
   final Set<Object> _battleScriptShadowOwners = {};
@@ -232,6 +234,8 @@ class BattleSceneCombatantComponent extends PositionComponent {
   final Set<Object> _battleScriptHiddenOwners = {};
   Object? _battleScriptAlphaOwner;
   int _battleScriptAlphaLevel = 31;
+  Object? _battleScriptMosaicOwner;
+  int _battleScriptMosaicLevel = 0;
   Object? _battleScriptPaletteOwner;
   double _battleScriptPaletteAmount = 0;
   Color _battleScriptPaletteColor = const Color(0xFFFFFFFF);
@@ -284,6 +288,27 @@ class BattleSceneCombatantComponent extends PositionComponent {
     _battleScriptAlphaOwner = null;
     _battleScriptAlphaLevel = 31;
     _updateTextOpacity();
+  }
+
+  @visibleForTesting
+  int get debugBattleScriptMosaicLevel => _battleScriptMosaicLevel;
+
+  bool get hasBattleScriptMosaic => _battleScriptMosaicOwner != null;
+
+  void setBattleScriptMosaic(int level, {required Object owner}) {
+    if (level < 0 || level > 15 ||
+        (_battleScriptMosaicOwner != null &&
+            !identical(_battleScriptMosaicOwner, owner))) {
+      throw StateError('Battle mosaic is unavailable');
+    }
+    _battleScriptMosaicOwner = owner;
+    _battleScriptMosaicLevel = level;
+  }
+
+  void clearBattleScriptMosaic({required Object owner}) {
+    if (!identical(_battleScriptMosaicOwner, owner)) return;
+    _battleScriptMosaicOwner = null;
+    _battleScriptMosaicLevel = 0;
   }
 
   void setBattleScriptPalette({
@@ -1333,7 +1358,8 @@ class BattleSceneCombatantComponent extends PositionComponent {
         destinationSize: _currentRenderedSpriteDestinationSize(),
       ),
     );
-    canvas.drawImageRect(image, inputSubrect, outputSubrect, _spritePaint());
+    drawBattleGen5Mosaic(canvas, image, inputSubrect, outputSubrect,
+        _spritePaint(), _battleScriptMosaicLevel);
   }
 
   void _renderDashTrail(Canvas canvas) {

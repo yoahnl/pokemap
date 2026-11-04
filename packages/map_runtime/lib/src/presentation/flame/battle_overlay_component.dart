@@ -883,6 +883,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
   BattleBagMenuActionMedicineTarget? _selectedMedicineAction;
   BattleEngineDecisionRequest? _selectedMedicineRequest;
   BattleCommandOverlaySnapshot? _currentCommandOverlaySnapshot;
+  final Set<BattleSlotRef> _sourceHiddenGauges = {};
   int _commandOverlayRevision = 0;
   final Map<String, String?> _bagIconAssetPathByItemId = <String, String?>{};
   final Map<String, Future<void>> _pendingBagIconPathsByItemId =
@@ -1040,6 +1041,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     bool allowOrthographicEmitters = false,
     bool allowFieldEmitters = false,
     bool allowSourceVisibility = false,
+    bool allowSourceGauge = false,
     bool allowApproximateFlatActors = false,
     bool adaptSourceCamera = false,
     bool duringTrackedEffect = false,
@@ -1055,6 +1057,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     final actors = {'EFFVM_ATTACKER': user, 'EFFVM_DEFENDER': target};
     final slots = {'EFFVM_ATTACKER': userSlot, 'EFFVM_DEFENDER': targetSlot};
     final projectionOwner = Object();
+    final sourceGaugeSlots = <BattleSlotRef>{};
     final paused = <BattleSceneCombatantComponent>{};
     final pauseOwner = Object();
     final visualOwner = Object();
@@ -1171,8 +1174,8 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
         }
         return actors[key]!.actor.applyBattleScriptTransform(
           offset: offset,
-          scaleX: pose.scaleXFx32 / 4096,
-          scaleY: pose.scaleYFx32 / 4096,
+          scaleX: math.max(1, pose.scaleXFx32) / 4096,
+          scaleY: math.max(1, pose.scaleYFx32) / 4096,
           rotation: pose.rotationFx32 * (2 * math.pi / (4096 * 65536)),
           owner: owner,
         );
@@ -1202,7 +1205,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
         case 'moveCameraPreset':
           return args['moveType'] == 1 &&
                   ({8, 9, 11}.contains(args['camera']) ||
-                      (!_isDoubles && {10, 12, 14, 15, 16, 17, 21}.contains(args['camera'])) ||
+                      (!_isDoubles && {0, 1, 10, 12, 14, 15, 16, 17, 21}.contains(args['camera'])) ||
                       (args['camera'] == 20 && allowApproximateFlatActors)) &&
                   bounded(args['frames'], 0, 524287) &&
                   bounded(args['wait'], 0, 2147483647) &&
@@ -1234,12 +1237,15 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
           final positionStep = instruction.op == 'moveCombatant' &&
               (args['type'] == 1 || args['type'] == 5);
           final step = scaleStep || positionStep;
-          return actors.containsKey(args['targets']) &&
+          final minCoordinate = scaleStep ? 1 : positionStep ? -131072 :
+              instruction.op == 'moveCombatant' ? -65536 : -28672;
+          final maxCoordinate = scaleStep ? 32768 : positionStep ? 131072 :
+              instruction.op == 'moveCombatant' ? 65536 : 28672;
+          return (actors.containsKey(args['targets']) ||
+                      (!_isDoubles && args['targets'] == 'EFFVM_ALL')) &&
                   (step || args['type'] == 2 || args['type'] == 3) &&
-                  bounded(args['x'], scaleStep ? 1 : positionStep ? -131072 : -28672,
-                      scaleStep ? 32768 : positionStep ? 131072 : 28672) &&
-                  bounded(args['y'], scaleStep ? 1 : positionStep ? -131072 : -28672,
-                      scaleStep ? 32768 : positionStep ? 131072 : 28672) &&
+                  bounded(args['x'], minCoordinate, maxCoordinate) &&
+                  bounded(args['y'], minCoordinate, maxCoordinate) &&
                   bounded(args['frames'], positionStep ? 0 : 1, 600) &&
                   bounded(args['wait'], 0, 600) &&
                   bounded(args['times'], step ? 0 : 1, step ? 32 : 64) &&
@@ -1280,14 +1286,16 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
                   1800
               ? null : 'circular combatant motion is too long';
         case 'rotateCombatant':
-          return actors.containsKey(args['targets']) && {2, 3}.contains(args['type']) &&
+          return actors.containsKey(args['targets']) && {1, 2, 3}.contains(args['type']) &&
                   bounded(args['angle'], -268435456, 268435456) &&
                   bounded(args['frames'], 1, 600) &&
                   bounded(args['wait'], 0, 600) &&
-                  bounded(args['times'], 1, 32) &&
-                  (args['frames'] as int) * (args['type'] == 3 ? 4 : 2) * (args['times'] as int) *
-                          ((args['wait'] as int) + 1) - (args['wait'] as int) <=
-                      1800
+                  bounded(args['times'], args['type'] == 1 ? 0 : 1, 32) &&
+                  (args['type'] == 1
+                      ? (args['frames'] as int) * ((args['wait'] as int) + 1)
+                      : (args['frames'] as int) * (args['type'] == 3 ? 4 : 2) *
+                          (args['times'] as int) * ((args['wait'] as int) + 1) -
+                          (args['wait'] as int)) <= 1800
               ? null : 'unsupported combatant rotation';
         case 'setAnimationState':
           return (actors.containsKey(args['targets']) ||
@@ -1303,15 +1311,21 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
                   actors.containsKey(args['targets']) && {3, 4}.contains(args['mode'])
               ? null : 'unsupported combatant visibility';
         case 'fadeCombatantAlpha':
-          return !_isDoubles && allowSourceVisibility &&
-                  actors.containsKey(args['targets']) && {0, 1}.contains(args['type']) &&
-                  bounded(args['alpha'], 0, 31) && bounded(args['frames'], 1, 600) &&
+          return allowSourceVisibility &&
+                  actors.containsKey(args['targets']) && {0, 1, 2}.contains(args['type']) &&
+                  (args['type'] != 2 || args['times'] == 0) &&
+                  bounded(args['alpha'], 0, 31) &&
+                  bounded(args['frames'], args['type'] == 0 ? 0 : 1, 600) &&
                   bounded(args['wait'], 0, 600) && bounded(args['times'], 0, 32) &&
                   (args['frames'] as int) * ((args['wait'] as int) + 1) <= 1800
               ? null : 'unsupported combatant alpha';
         case 'loadParticle':
           return bounded(args['particle'], 0, 65535)
               ? null : 'unsupported particle';
+        case 'setSourceGauge':
+          return !_isDoubles && allowSourceGauge &&
+                  {2, 3}.contains(args['mode']) && {3, 4}.contains(args['target'])
+              ? null : 'source gauge unavailable';
         case 'deleteParticle':
           return deleteSourceParticle != null && bounded(args['particle'], 0, 65535)
               ? null : 'particle deletion unavailable';
@@ -1335,8 +1349,8 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
                       : bounded(args['unk18'], 0, 4294967295) &&
                           bounded(args['unused'], 0, 4294967295) &&
                           bounded(args['radiusScale'], 0, 8192) &&
-                          bounded(args['lifeScale'], 0, 8192) &&
-                          bounded(args['scaleScale'], 0, 8192) &&
+                          bounded(args['lifeScale'], 0, 12288) &&
+                          bounded(args['scaleScale'], 0, 20480) &&
                           bounded(args['cameraScale'], 0, 12288))
               ? null : 'unsupported emitter';
         case 'startOrthoEmitter':
@@ -1370,16 +1384,31 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
                   bounded(args['unk18'], 0, 4294967295) &&
                   bounded(args['unused'], 0, 4294967295) &&
                   bounded(args['radiusScale'], 0, 8192) &&
-                  bounded(args['lifeScale'], 0, 8192) &&
-                  bounded(args['scaleScale'], 0, 8192) &&
+                  bounded(args['lifeScale'], 0, 12288) &&
+                  bounded(args['scaleScale'], 0, 12288) &&
                   {0, 4096}.contains(args['cameraScale'])
               ? null : 'unsupported field emitter';
+        case 'startOrbitEmitter':
+          final particle = args['particle'];
+          final emitter = args['emitter'];
+          return !_isDoubles && startSourceEmitter != null &&
+                  particle is int && emitter is int && hasEmitter(particle, emitter) &&
+                  bounded(args['type'], 0, 3) &&
+                  bounded(args['radiusX'], -32768, 32768) &&
+                  bounded(args['radiusZ'], -32768, 32768) &&
+                  bounded(args['offsetY'], -131072, 131072) &&
+                  bounded(args['frames'], 1, 600) && bounded(args['wait'], 0, 600) &&
+                  bounded(args['unknown'], 0, 600) && bounded(args['delay'], 0, 600)
+              ? null : 'unsupported orbit emitter';
         case 'startMovingEmitter':
+        case 'startMovingOrthoEmitter':
         case 'startMovingFieldEmitter':
           final particle = args['particle'];
           final emitter = args['emitter'];
           final fieldOrigin = instruction.op == 'startMovingFieldEmitter';
           return startSourceEmitter != null &&
+                  (instruction.op != 'startMovingOrthoEmitter' ||
+                      (!_isDoubles && allowOrthographicEmitters)) &&
                   particle is int && emitter is int &&
                   hasEmitter(particle, emitter) &&
                   {1, 2, 5, 6}.contains(args['motion']) &&
@@ -1399,7 +1428,9 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
                       bounded(args['motionFramesFx32'], 4096, 600 * 4096)) &&
                   args['motionFrames'] == ((args['motionFramesFx32'] as int) >> 12) &&
                   bounded(args['lifeScale'], 0, 8192) &&
-                  {0, 4096}.contains(args['cameraScale'])
+                  (fieldOrigin
+                      ? {0, 4096, 8192}.contains(args['cameraScale'])
+                      : {0, 4096}.contains(args['cameraScale']))
               ? null : 'unsupported moving emitter';
         case 'setShadow':
           return (args['targets'] == 'EFFVM_ALL' || actors.containsKey(args['targets'])) &&
@@ -1520,25 +1551,28 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
         case 'moveCombatant':
         case 'scaleCombatant':
         case 'rotateCombatant':
-          final key = args['targets'] as String;
-          motion.start(
-            actor: key,
-            channel: instruction.op == 'moveCombatant'
-                ? BattleGen5ActorMotionChannel.position
-                : instruction.op == 'scaleCombatant'
-                    ? BattleGen5ActorMotionChannel.scale
-                    : BattleGen5ActorMotionChannel.rotation,
-            type: args['type'] as int,
-            xFx32: (instruction.op == 'rotateCombatant'
-                ? args['angle']
-                : args['x']) as int,
-            yFx32: instruction.op == 'rotateCombatant' ? 0 : args['y'] as int,
-            frames: args['frames'] as int,
-            wait: args['wait'] as int,
-            times: args['times'] as int,
-            mirrorX: instruction.op != 'scaleCombatant' &&
-                slots[key]!.side == BattleSideId.enemy,
-          );
+          final keys = args['targets'] == 'EFFVM_ALL'
+              ? actors.keys : [args['targets'] as String];
+          for (final key in keys) {
+            motion.start(
+              actor: key,
+              channel: instruction.op == 'moveCombatant'
+                  ? BattleGen5ActorMotionChannel.position
+                  : instruction.op == 'scaleCombatant'
+                      ? BattleGen5ActorMotionChannel.scale
+                      : BattleGen5ActorMotionChannel.rotation,
+              type: args['type'] as int,
+              xFx32: (instruction.op == 'rotateCombatant'
+                  ? args['angle']
+                  : args['x']) as int,
+              yFx32: instruction.op == 'rotateCombatant' ? 0 : args['y'] as int,
+              frames: args['frames'] as int,
+              wait: args['wait'] as int,
+              times: args['times'] as int,
+              mirrorX: instruction.op != 'scaleCombatant' &&
+                  slots[key]!.side == BattleSideId.enemy,
+            );
+          }
         case 'circleCombatant':
           final key = args['targets'] as String;
           motion.startCircle(
@@ -1580,7 +1614,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
           final key = args['targets'] as String;
           if (!current(key)) throw StateError('Battle actor changed');
           final start = (alphaValues[key] ?? 31) << 12;
-          final target = (args['alpha'] as int) << 12;
+          final target = args['type'] == 2 ? start : (args['alpha'] as int) << 12;
           final difference = target - start;
           var step = args['type'] == 0 ? difference : battleGen5SwingStep(
             difference, args['frames'] as int, maxDelta: 31 * 4096,
@@ -1592,13 +1626,23 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
         case 'startFieldEmitter':
         case 'startOrthoEmitter':
         case 'startMovingEmitter':
+        case 'startMovingOrthoEmitter':
         case 'startMovingFieldEmitter':
+        case 'startOrbitEmitter':
           if (startSourceEmitter != null) {
             startSourceEmitter(args);
           } else {
             startEmitter(args['particle'] as int, args['emitter'] as int,
                 args['offsetY'] as int);
           }
+        case 'setSourceGauge':
+          final slot = args['target'] == 3 ? userSlot : targetSlot;
+          if (args['mode'] == 2) {
+            if (_sourceHiddenGauges.add(slot)) sourceGaugeSlots.add(slot);
+          } else if (sourceGaugeSlots.remove(slot)) {
+            _sourceHiddenGauges.remove(slot);
+          }
+          _syncPanelsOnly();
         case 'setShadow':
           final keys = args['targets'] == 'EFFVM_ALL'
               ? actors.keys : [args['targets'] as String];
@@ -1855,6 +1899,11 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
           if (backgroundAdded) sourceBackground.removeFromParent();
           _stage3D?.sourceHidePlatforms = initialPlatformsHidden;
           _stage3D?.sourceHideFloor = initialFloorHidden;
+          if (sourceGaugeSlots.isNotEmpty) {
+            _sourceHiddenGauges.removeAll(sourceGaugeSlots);
+            sourceGaugeSlots.clear();
+            _syncPanelsOnly();
+          }
         } finally {
           try {
             detachParticles();
@@ -4822,7 +4871,8 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
       isRevealed: _teamInfoRevealed,
       isVisible:
           !(_animationRunner?.areGaugesHidden ?? false) &&
-          !(_perspectiveCamera?.isMoving ?? false),
+          !(_perspectiveCamera?.isMoving ?? false) &&
+          !_sourceHiddenGauges.contains(targetSide),
       remainingTeamCount: !isPlayerSide && _session.setup.isTrainerBattle
           ? _remainingEnemyTeamCount() : null,
       teamSize: !isPlayerSide && _session.setup.isTrainerBattle
