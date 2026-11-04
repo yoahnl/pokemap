@@ -241,7 +241,9 @@ class _ComparePageState extends State<ComparePage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) {
+    final game = _game;
+    return Scaffold(
     body: SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -322,15 +324,17 @@ class _ComparePageState extends State<ComparePage> {
                 ),
                 FilledButton.icon(
                   key: const ValueKey('play-attack'),
-                  onPressed: _move.unavailableReason != null || _game == null
+                  onPressed: _move.unavailableReason != null || game == null
                       ? null
                       : () async {
-                          if (_game!.played) {
+                          var playback = game;
+                          if (playback.played) {
                             setState(() {
                               _newGame();
                             });
+                            playback = _game!;
                           }
-                          await _game!.play(onStart: _showReference);
+                          await playback.play(onStart: _showReference);
                         },
                   icon: const Icon(Icons.play_arrow),
                   label: const Text('Lancer / rejouer'),
@@ -385,14 +389,14 @@ class _ComparePageState extends State<ComparePage> {
                             child: Stack(
                               fit: StackFit.expand,
                               children: [
-                                if (_game == null)
+                                if (game == null)
                                   const Center(child: CircularProgressIndicator())
                                 else ...[
-                                GameWidget(key: ObjectKey(_game), game: _game!),
+                                GameWidget(key: ObjectKey(game), game: game),
                                 ValueListenableBuilder<
                                   BattleCommandOverlaySnapshot?
                                 >(
-                                  valueListenable: _game!.snapshot,
+                                  valueListenable: game.snapshot,
                                   builder: (context, snapshot, _) =>
                                       snapshot == null
                                       ? const SizedBox.shrink()
@@ -404,7 +408,7 @@ class _ComparePageState extends State<ComparePage> {
                                           child: IgnorePointer(
                                             child: PlayerBattleOverlay(
                                               snapshot: snapshot,
-                                              onCommand: _game!
+                                              onCommand: game
                                                   .handlePresentationCommand,
                                             ),
                                           ),
@@ -441,7 +445,8 @@ class _ComparePageState extends State<ComparePage> {
         ),
       ),
     ),
-  );
+    );
+  }
 }
 
 class PreviewPanel extends StatelessWidget {

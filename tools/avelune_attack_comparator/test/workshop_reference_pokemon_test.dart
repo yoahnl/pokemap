@@ -199,5 +199,21 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 20));
       expect(await root.exists(), isFalse);
     });
+
+    test('ignores an obsolete selection after downloads finish', () async {
+      responseGate = Completer<void>();
+      requestArrived = Completer<void>();
+      var current = true;
+      final pending = store.prepare(
+        (attacker: 'dugtrio', target: 'jigglypuff'),
+        isCurrent: () => current,
+      );
+      await requestArrived!.future.timeout(const Duration(seconds: 2));
+      current = false;
+      responseGate!.complete();
+      expect(await pending, isNull);
+      expect(await File('${root.path}/data/pokemon/media/dugtrio.json').exists(), isFalse);
+      expect(await File('${root.path}/data/pokemon/media/jigglypuff.json').exists(), isFalse);
+    });
   }, skip: qaRoot == null);
 }
