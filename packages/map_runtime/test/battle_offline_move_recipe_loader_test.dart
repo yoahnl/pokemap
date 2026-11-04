@@ -6,6 +6,8 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 import 'package:map_authoring/map_authoring.dart';
+import 'package:map_authoring/src/domains/gameplay/pokemon_external/gen5_batch_recipe_converter.dart';
+import 'package:map_authoring/src/domains/gameplay/pokemon_external/gen5_source_recipe_converter.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/src/presentation/flame/battle_offline_move_recipe_loader.dart';
 
@@ -14,7 +16,9 @@ void main() {
   late Directory project;
 
   setUp(() async {
-    owner = await Directory.systemTemp.createTemp('offline-battle-recipe-');
+    final qaRoot = Platform.environment['AVELUNE_ATTACK_WORKSHOP_QA'];
+    owner = await (qaRoot == null ? Directory.systemTemp : Directory(qaRoot))
+        .createTemp('offline-battle-recipe-');
     project = await Directory('${owner.path}/project').create();
   });
 
@@ -90,6 +94,53 @@ void main() {
 
   BattleOfflineMoveRecipeLoader loader() =>
       BattleOfflineMoveRecipeLoader(projectRootDirectory: project.path);
+
+  test('falls back safely for an unsupported complete BW2 source recipe', () async {
+    final assets = Directory('../../tools/avelune_attack_comparator/assets/bw2');
+    final source = jsonDecode(await File('${assets.path}/tackle.json').readAsString())
+        as Map<String, dynamic>;
+    final directory = Directory('${assets.path}/particle199');
+    final definitionBytes = await File('${directory.path}/definition.json').readAsBytes();
+    final definition = BattleSplParticleDefinition.fromJson(
+      jsonDecode(utf8.decode(definitionBytes)) as Map<String, dynamic>,
+    );
+    final textures = <String, Uint8List>{};
+    for (final id in definition.textureIds) {
+      final png = File('${directory.path}/$id.png');
+      textures[id] = await png.exists()
+          ? await png.readAsBytes()
+          : base64Decode(await File('${directory.path}/$id.b64').readAsString());
+    }
+    final converted = Gen5SourceRecipeConverter.convert(
+      moveId: 'tackle',
+      sourceProgram: source,
+      particles: {199: Gen5BatchParticle(
+        definition: definitionBytes,
+        textures: textures,
+        sourceEmitterIndices: [0, 1],
+      )},
+    );
+    final binding = converted.binding;
+    await write(
+      battleRecipeBindingPath('tackle'),
+      utf8.encode(jsonEncode(BattleRecipeProjectBinding(binding: binding).toJson())),
+    );
+    await write(
+      battleRecipeBlobPath(binding.recipeSha256,
+          'application/vnd.avelune.battle-recipe+json', projectMoveId: 'tackle'),
+      converted.bundle.recipeBytes,
+    );
+    for (final resource in converted.bundle.recipe.resources) {
+      await write(
+        battleRecipeBlobPath(resource.sha256Hex, resource.mediaType, projectMoveId: 'tackle'),
+        converted.bundle.media[resource.id]!,
+      );
+    }
+    final result = await loader().load('tackle');
+    expect(result.fallbackReason, BattleRecipeFallbackReason.unavailableCapabilities);
+    expect(result.unavailableCapabilities, contains('gen5SourceProgram'));
+    expect(result.prepared, isNull);
+  });
 
   test(
     'retains verified media under the shared budget until released',

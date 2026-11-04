@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
+import 'package:map_core/map_core.dart' show BattleSplParticleDefinition;
 import 'package:map_core/src/models/battle_move_animation_recipe.dart';
 import 'package:map_core/src/models/battle_move_recipe_binding.dart';
 import 'package:test/test.dart';
@@ -76,13 +77,123 @@ void main() {
     'offset': {'ticks': ticks, 'ticksPerSecond': ticksPerSecond},
   };
 
+  test('retains the real Gen 5 source sequence and its emitter mapping', () {
+    final source = jsonDecode(File(
+      '../../tools/avelune_attack_comparator/assets/bw2/tackle.json',
+    ).readAsStringSync()) as Map<String, dynamic>;
+    final input = explicitAudioRecipe({'kind': 'none'});
+    input['variant'] = 'Tackle';
+    input['requiredCapabilities'] = [
+      'audioSelectionV2', 'gen5SourceProgram', 'splParticleV3',
+    ];
+    input['resources'] = [
+      {
+        'id': 'particle-199', 'role': 'particleDefinition',
+        'mediaType': 'application/vnd.avelune.particle+json',
+        'definitionVersion': 3, 'sizeBytes': bytes.length,
+        'sha256': hash, 'dependencies': <String>[],
+      },
+    ];
+    input['program'] = {
+      'kind': 'gen5SourceProgram', 'sourceProgram': source,
+      'particleBindings': [
+        {'particle': 199, 'resourceId': 'particle-199',
+          'sourceEmitterIndices': [0, 1]},
+      ],
+    };
+    final parsed = BattleMoveAnimationRecipe.fromJson(input);
+    expect(parsed.toJson(), input);
+    expect(parsed.unsupportedCapabilities({'audioSelectionV2', 'splParticleV3'}),
+        {'gen5SourceProgram'});
+    expect(parsed.usesGen5SourceProgram, isTrue);
+
+    Map<String, dynamic> copy() => jsonDecode(jsonEncode(input)) as Map<String, dynamic>;
+    for (final pilot in [
+      (file: 'water_gun', variant: 'WaterGun', particle: 220, indices: [0, 1]),
+      (file: 'surf', variant: 'Surf', particle: 222, indices: [3, 1, 4, 5, 2]),
+    ]) {
+      final candidate = copy();
+      candidate['variant'] = pilot.variant;
+      candidate['requiredCapabilities'] = ['audioSelectionV2', 'gen5SourceProgram', 'splParticleV5'];
+      ((candidate['resources'] as List).single as Map)['definitionVersion'] = 5;
+      final program = candidate['program'] as Map;
+      program['sourceProgram'] = jsonDecode(File(
+        '../../tools/avelune_attack_comparator/assets/bw2/${pilot.file}.json',
+      ).readAsStringSync());
+      final binding = (program['particleBindings'] as List).single as Map;
+      binding['particle'] = pilot.particle;
+      binding['sourceEmitterIndices'] = pilot.indices;
+      expect(BattleMoveAnimationRecipe.fromJson(candidate).toJson(), candidate);
+    }
+    final missing = copy();
+    (missing['program'] as Map)['particleBindings'] = [];
+    final wrongResource = copy();
+    (((wrongResource['program'] as Map)['particleBindings'] as List).single as Map)
+        ['resourceId'] = 'missing';
+    final duplicate = copy();
+    (((duplicate['program'] as Map)['particleBindings'] as List).single as Map)
+        ['sourceEmitterIndices'] = [0, 0];
+    final wrongVariant = copy();
+    wrongVariant['variant'] = 'WaterGun';
+    final wrongEmitter = copy();
+    final wrongInstructions = (((wrongEmitter['program'] as Map)['sourceProgram'] as Map)
+        ['instructions'] as List);
+    final emitter = wrongInstructions.cast<Map>().firstWhere((item) => item['op'] == 'startEmitter');
+    (emitter['args'] as Map)['emitter'] = 9;
+    final missingEnd = copy();
+    final instructions = (((missingEnd['program'] as Map)['sourceProgram'] as Map)
+        ['instructions'] as List);
+    (instructions.last as Map)['op'] = 'waitFrames';
+    final unknown = copy();
+    final unknownInstructions = (((unknown['program'] as Map)['sourceProgram'] as Map)
+        ['instructions'] as List);
+    (unknownInstructions.first as Map)['op'] = 'unknownCommand';
+    final nested = copy();
+    nested['requiredCapabilities'] = [
+      'audioSelectionV2', 'gen5SourceProgram', 'splParticleV3', 'sequence',
+    ];
+    nested['program'] = {'kind': 'sequence', 'steps': [input['program']]};
+    for (final invalid in [missing, wrongResource, duplicate, wrongVariant, wrongEmitter, missingEnd, unknown, nested]) {
+      expect(() => BattleMoveAnimationRecipe.fromJson(invalid), throwsFormatException);
+    }
+
+    final definitionBytes = File(
+      '../../tools/avelune_attack_comparator/assets/bw2/particle199/definition.json',
+    ).readAsBytesSync();
+    final definition = BattleSplParticleDefinition.fromJson(
+      jsonDecode(utf8.decode(definitionBytes)) as Map<String, dynamic>,
+    );
+    final textureIds = definition.textureIds.toList();
+    input['resources'] = [
+      {
+        'id': 'particle-199', 'role': 'particleDefinition',
+        'mediaType': 'application/vnd.avelune.particle+json',
+        'definitionVersion': 3, 'sizeBytes': definitionBytes.length,
+        'sha256': sha256.convert(definitionBytes).toString(), 'dependencies': textureIds,
+      },
+      for (final id in textureIds)
+        {'id': id, 'role': 'texture', 'mediaType': 'image/png',
+          'sizeBytes': bytes.length, 'sha256': hash},
+    ];
+    final media = <String, List<int>>{
+      'particle-199': definitionBytes,
+      for (final id in textureIds) id: bytes,
+    };
+    final available = {'audioSelectionV2', 'gen5SourceProgram', 'splParticleV3'};
+    BattleMoveAnimationRecipe.fromJson(input).validateBundle(media, availableCapabilities: available);
+    (((input['program'] as Map)['particleBindings'] as List).single as Map)
+        ['sourceEmitterIndices'] = [0, 1, 5];
+    expect(() => BattleMoveAnimationRecipe.fromJson(input)
+        .validateBundle(media, availableCapabilities: available), throwsFormatException);
+  });
+
   test('matches the shared API recipe contract vectors on Dart VM', () {
     final fixture = File(
       'test/fixtures/recipe-contract-vectors.json',
     ).readAsBytesSync();
     expect(
       sha256.convert(fixture).toString(),
-      'c8b09588ff2b097090a9939098516aaa9a2d4fd145ff3c6b9385015d7e93a010',
+      '9976ffd4ed1c8c3cb4e596a0d95e8cb8db1bbe032ca18eb95a7f1978f462fea7',
     );
     final corpus = jsonDecode(utf8.decode(fixture)) as Map<String, dynamic>;
     final base = corpus['base'] as Map<String, dynamic>;

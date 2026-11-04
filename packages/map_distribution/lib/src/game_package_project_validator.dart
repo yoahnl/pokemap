@@ -43,7 +43,9 @@ final class GamePackageProjectValidator {
           .contains(BattleMoveAnimationRecipe.splV5RuntimeCapability);
       final missingMotionCapability = !packageManifest.compatibility.requiredCapabilities
           .contains(BattleMoveAnimationRecipe.gen5MotionRuntimeCapability);
-      if (missingSplCapability || missingSplV4Capability || missingSplV5Capability || missingMotionCapability) {
+      final missingSourceCapability = !packageManifest.compatibility.requiredCapabilities
+          .contains(BattleMoveAnimationRecipe.gen5SourceRuntimeCapability);
+      if (missingSplCapability || missingSplV4Capability || missingSplV5Capability || missingMotionCapability || missingSourceCapability) {
         final bindingPattern = RegExp(r'^project/data/pokemon/battle_recipes/bindings/[0-9a-f]{64}\.json$');
         final bindings = payloadPaths.where(bindingPattern.hasMatch);
         for (final path in bindings) {
@@ -75,6 +77,9 @@ final class GamePackageProjectValidator {
           }
           if (missingMotionCapability && recipe.usesGen5Motion) {
             _fail('Gen 5 motion requires ${BattleMoveAnimationRecipe.gen5MotionRuntimeCapability}.');
+          }
+          if (missingSourceCapability && recipe.usesGen5SourceProgram) {
+            _fail('Gen 5 source program requires ${BattleMoveAnimationRecipe.gen5SourceRuntimeCapability}.');
           }
         }
       }

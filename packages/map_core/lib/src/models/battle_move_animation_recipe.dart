@@ -49,6 +49,19 @@ final class BattleMoveAnimationRecipe {
   static const splV4RuntimeCapability = 'battle.spl-particle-v4@1';
   static const splV5RuntimeCapability = 'battle.spl-particle-v5@1';
   static const gen5MotionRuntimeCapability = 'battle.gen5-combatant-motion@1';
+  static const gen5SourceRuntimeCapability = 'battle.gen5-source-program@1';
+  static const gen5SourceOperations = {
+    'moveCameraPreset', 'moveCameraRelative', 'moveCameraAbsolute', 'shakeCamera',
+    'loadParticle', 'deleteParticle', 'setSourceGauge', 'startEmitter',
+    'startFieldEmitter', 'startOrthoEmitter', 'startMovingEmitter',
+    'startMovingOrthoEmitter', 'startMovingFieldEmitter', 'startOrbitEmitter',
+    'moveCombatant', 'setActorCameraMode', 'circleCombatant', 'scaleCombatant',
+    'rotateCombatant', 'setAnimationState', 'setCombatantVisibility',
+    'fadeCombatantAlpha', 'fadePalette', 'fadeStagePalette', 'setShadow',
+    'loadBackground', 'moveBackground', 'waveBackground', 'animateBackgroundPalette',
+    'setSceneVisibility', 'playCry', 'playSound', 'panSound', 'moveSound',
+    'waitTasks', 'waitFrames', 'setYield', 'end',
+  };
 
   static const recognizedCapabilities = {
     'sequence',
@@ -66,6 +79,7 @@ final class BattleMoveAnimationRecipe {
     'audioSelectionV2',
     'gen5Swing',
     'gen5SpritePause',
+    'gen5SourceProgram',
   };
   final Map<String, dynamic> _json;
   final List<BattleMoveAnimationResource> resources;
@@ -312,11 +326,20 @@ final class BattleMoveAnimationRecipe {
           if (!{'user', 'target'}.contains(step['target']) || step['paused'] is! bool) {
             throw const FormatException('Invalid Gen 5 sprite pause');
           }
+        case 'gen5SourceProgram':
+          if (version != 2 || depth != 0) {
+            throw const FormatException('Invalid Gen 5 source program location');
+          }
+          _validateGen5SourceProgram(step, copy['variant'] as String, resources);
         default:
           throw const FormatException('Unsupported step');
       }
     }
 
+    if (capabilities.contains('gen5SourceProgram') !=
+        (_map(copy['program'], 'program')['kind'] == 'gen5SourceProgram')) {
+      throw const FormatException('Gen 5 source capability does not match program');
+    }
     validate(copy['program'], 0, false);
     return BattleMoveAnimationRecipe._(
       copy,
@@ -330,6 +353,10 @@ final class BattleMoveAnimationRecipe {
 
   bool get usesGen5Motion => _list(_json['requiredCapabilities'], 'requiredCapabilities')
       .any((value) => value == 'gen5Swing' || value == 'gen5SpritePause');
+
+  bool get usesGen5SourceProgram =>
+      _list(_json['requiredCapabilities'], 'requiredCapabilities')
+          .contains('gen5SourceProgram');
 
   Set<String> unsupportedCapabilities(Set<String> available) => _list(
     _json['requiredCapabilities'],
@@ -462,6 +489,17 @@ final class BattleMoveAnimationRecipe {
       result[resource.id] = BattleParticleDefinition._(
         List.unmodifiable(typedEmitters),
       );
+    }
+    if (usesGen5SourceProgram) {
+      final program = _map(_json['program'], 'source program step');
+      for (final value in _list(program['particleBindings'], 'particle bindings')) {
+        final binding = _map(value, 'particle binding');
+        final definition = splResult[binding['resourceId']];
+        if (definition == null || definition.emitters.length !=
+            _list(binding['sourceEmitterIndices'], 'source emitter indices').length) {
+          throw const FormatException('Source emitter mapping does not match definition');
+        }
+      }
     }
     return (legacy: Map.unmodifiable(result), spl: Map.unmodifiable(splResult));
   }
@@ -611,6 +649,146 @@ String _audioText(Object? value, String name) {
 }
 
 final _audioControlCharacters = RegExp(r'[\x00-\x1f\x7f]');
+
+void _validateGen5SourceProgram(
+  Map<String, dynamic> step,
+  String variant,
+  List<BattleMoveAnimationResource> resources,
+) {
+  _keys(step, {'kind', 'sourceProgram', 'particleBindings'});
+  final source = _map(step['sourceProgram'], 'source program');
+  var valueCount = 0;
+  var stringUnits = 0;
+  void bounded(Object? value, int depth) {
+    if (depth > 16 || ++valueCount > 65536) {
+      throw const FormatException('Source program exceeds limits');
+    }
+    if (value is String) {
+      stringUnits += value.length;
+      if (value.length > 4096 || stringUnits > 262144) {
+        throw const FormatException('Source program exceeds string limits');
+      }
+    } else if (value is Map) {
+      if (value.length > 4096) throw const FormatException('Source program map too large');
+      for (final entry in value.entries) {
+        if (entry.key is! String) throw const FormatException('Invalid source program key');
+        bounded(entry.key, depth + 1);
+        bounded(entry.value, depth + 1);
+      }
+    } else if (value is List) {
+      if (value.length > 4096) throw const FormatException('Source program list too large');
+      for (final item in value) { bounded(item, depth + 1); }
+    } else if (value is int) {
+      if (value.abs() > 9007199254740991) {
+        throw const FormatException('Invalid source program integer');
+      }
+    } else if (value != null && value is! bool) {
+      throw const FormatException('Invalid source program value');
+    }
+  }
+  bounded(source, 0);
+  if (source['kind'] != 'gen5SourceProgram' || source['timebaseHz'] != 60 ||
+      source['conversion'] != 'supported' || source['variant'] != variant) {
+    throw const FormatException('Invalid source program identity');
+  }
+  final variants = _list(source['variants'], 'source variants');
+  final labels = _list(source['labels'], 'source labels');
+  final instructions = _list(source['instructions'], 'source instructions');
+  final entry = source['entryIndex'];
+  if (variants.isEmpty || variants.length > 1024 || labels.isEmpty ||
+      labels.length > 1024 || instructions.isEmpty || instructions.length > 1024 ||
+      entry is! int || entry < 0 || entry >= instructions.length) {
+    throw const FormatException('Invalid source program bounds');
+  }
+  final names = <String>{};
+  for (final value in variants) {
+    if (!names.add(_audioText(value, 'source variant'))) {
+      throw const FormatException('Duplicate source variant');
+    }
+  }
+  if (!names.contains(variant)) throw const FormatException('Unknown source variant');
+  final labelNames = <String>{};
+  final variantEntries = <String, int>{};
+  final variantIndices = <int>{};
+  var lastIndex = -1;
+  var variantEnd = instructions.length;
+  for (final value in labels) {
+    final label = _map(value, 'source label');
+    final name = _audioText(label['name'], 'source label name');
+    final index = label['instructionIndex'];
+    if (!labelNames.add(name) || index is! int || index < lastIndex ||
+        index < 0 || index > instructions.length) {
+      throw const FormatException('Invalid source label');
+    }
+    lastIndex = index;
+    if (names.contains(name)) {
+      if (index >= instructions.length || !variantIndices.add(index)) {
+        throw const FormatException('Invalid source variant entry');
+      }
+      variantEntries[name] = index;
+      if (index > entry && index < variantEnd) variantEnd = index;
+    }
+  }
+  if (variantEntries.length != names.length || variantEntries[variant] != entry) {
+    throw const FormatException('Invalid source variant entry');
+  }
+  final bindings = _list(step['particleBindings'], 'particle bindings');
+  if (bindings.length > 256) throw const FormatException('Too many particle bindings');
+  final particleIndices = <int, Set<int>>{};
+  for (final value in bindings) {
+    final binding = _map(value, 'particle binding');
+    _keys(binding, {'particle', 'resourceId', 'sourceEmitterIndices'});
+    final particle = _boundedInt(binding['particle'], 0, 65535);
+    final id = _audioText(binding['resourceId'], 'particle resourceId');
+    if (particleIndices.containsKey(particle) || !resources.any(
+      (resource) => resource.id == id && resource.role == 'particleDefinition' &&
+          {2, 3, 4, 5}.contains(resource.definitionVersion),
+    )) {
+      throw const FormatException('Invalid source particle binding');
+    }
+    final indices = _list(binding['sourceEmitterIndices'], 'source emitter indices');
+    if (indices.isEmpty || indices.length > 32) {
+      throw const FormatException('Invalid source emitter indices');
+    }
+    final unique = <int>{};
+    for (final index in indices) {
+      if (!unique.add(_boundedInt(index, 0, 65535))) {
+        throw const FormatException('Duplicate source emitter index');
+      }
+    }
+    particleIndices[particle] = unique;
+  }
+  for (final value in instructions) {
+    final instruction = _map(value, 'source instruction');
+    _audioText(instruction['op'], 'source operation');
+    _map(instruction['args'], 'source arguments');
+    _map(instruction['source'], 'source instruction metadata');
+  }
+  var ended = false;
+  for (var index = entry; index < variantEnd; index++) {
+    final instruction = _map(instructions[index], 'source instruction');
+    final op = instruction['op'] as String;
+    final args = _map(instruction['args'], 'source arguments');
+    if (!BattleMoveAnimationRecipe.gen5SourceOperations.contains(op)) {
+      throw const FormatException('Unsupported source operation');
+    }
+    if (op == 'loadParticle' || op == 'deleteParticle' ||
+        (op.startsWith('start') && op.endsWith('Emitter'))) {
+      final particle = _boundedInt(args['particle'], 0, 65535);
+      final indices = particleIndices[particle];
+      if (indices == null || (op.startsWith('start') &&
+          !indices.contains(_boundedInt(args['emitter'], 0, 65535)))) {
+        throw const FormatException('Missing source particle or emitter binding');
+      }
+    }
+    if (op == 'end') {
+      if (args.isNotEmpty) throw const FormatException('Invalid source end');
+      ended = true;
+      break;
+    }
+  }
+  if (!ended) throw const FormatException('Source variant has no end');
+}
 
 void _keys(Map<String, dynamic> object, Set<String> allowed) {
   if (object.keys.any((key) => !allowed.contains(key))) {

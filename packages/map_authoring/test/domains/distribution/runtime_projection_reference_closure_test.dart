@@ -13,6 +13,60 @@ import 'package:test/test.dart';
 import '../../../../map_distribution/test/support/spatial_package_fixture.dart';
 
 void main() {
+  test('requires the source-program capability for an exported game', () async {
+    final root = await _fixture();
+    final recipe = utf8.encode(jsonEncode({
+      'schemaVersion': 2, 'recipeId': 'source', 'revision': '1',
+      'moveSourceId': 'source', 'variant': 'Tackle',
+      'requiredCapabilities': ['gen5SourceProgram', 'audioSelectionV2'],
+      'provenance': {'source': 'synthetic', 'sourceRevision': '1', 'sourcePaths': [], 'converter': 'test'},
+      'resources': [], 'audio': {'kind': 'none'},
+      'program': {'kind': 'gen5SourceProgram', 'sourceProgram': {
+        'kind': 'gen5SourceProgram', 'timebaseHz': 60, 'conversion': 'supported',
+        'variant': 'Tackle', 'variants': ['Tackle'],
+        'labels': [{'name': 'Tackle', 'instructionIndex': 0}], 'entryIndex': 0,
+        'instructions': [{'op': 'end', 'args': {}, 'source': {}}],
+      }, 'particleBindings': []},
+    }));
+    final digest = sha256.convert(recipe).toString();
+    final binding = BattleMoveRecipeBinding.fromJson({
+      'schemaVersion': 1, 'projectMoveId': 'custom', 'sourceMoveId': 'source',
+      'catalogReleaseId': 'test', 'recipeId': 'source', 'variant': 'Tackle',
+      'revision': '1', 'recipeSha256': digest,
+    });
+    await _write(root, battleRecipeBindingPath('custom'), BattleRecipeProjectBinding(binding: binding).toJson());
+    await _write(root, battleRecipeBlobPath(digest, 'application/vnd.avelune.battle-recipe+json', projectMoveId: 'custom'), recipe);
+    late GamePackageBuildResult built;
+    final service = CanonicalGamePackageExportService(
+      packageArchiveBuilder: ({required manifest, required payloadFiles}) {
+        built = const GamePackageBuilder().build(manifest: manifest, payloadFiles: payloadFiles);
+        return built;
+      },
+    );
+    await expectLater(
+      service.build(projectRoot: root, profile: _profile(), mode: GamePackageExportMode.localTest),
+      throwsA(isA<GamePackageExportException>().having((error) => error.code, 'code', 'capabilityUnsupported')),
+    );
+    final inspection = const GamePackageInspector().inspect(built.packageBytes);
+    const capability = BattleMoveAnimationRecipe.gen5SourceRuntimeCapability;
+    expect(inspection.manifest.compatibility.requiredCapabilities, contains(capability));
+    expect(AveluneRuntimeCompatibility.host().capabilities, isNot(contains(capability)));
+    final compatibility = const GamePackageCompatibilityEvaluator()
+        .evaluate(inspection.manifest, AveluneRuntimeCompatibility.host());
+    expect(compatibility.decision, GamePackageCompatibilityDecision.reject);
+    expect(compatibility.missingCapabilities, contains(capability));
+    final manifest = inspection.manifest.toJson();
+    (manifest['compatibility'] as Map)['requiredCapabilities'] = inspection.manifest.compatibility.requiredCapabilities
+        .where((value) => value != capability).toList();
+    final stripped = const GamePackageManifestCodec().decodeJson(manifest);
+    final archive = ZipDecoder().decodeBytes(built.packageBytes);
+    final files = {for (final file in archive.files) file.name: file.content as List<int>};
+    expect(() => const GamePackageProjectValidator(GamePackageSecurityPolicy()).validate(
+      stripped, Uint8List.fromList(files['project/project.json']!),
+      payloadPaths: files.keys.toSet(), readPayload: (path) => files[path],
+    ), throwsA(isA<GamePackageFormatException>().having((error) => error.message, 'message', contains(capability))));
+  });
+
   test('declares and enforces the Player capability for Gen 5 combatant motion', () async {
     final root = await _fixture();
     final recipe = utf8.encode(jsonEncode({

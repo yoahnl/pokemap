@@ -1,3 +1,5 @@
+import 'package:map_core/map_core.dart' show BattleMoveAnimationRecipe;
+
 enum BattleGen5SourceTaskCategory {
   camera,
   particles,
@@ -212,46 +214,7 @@ final class BattleGen5SourceProgramPlayback {
   }
 
   static const int maxInstructionsPerTick = 256;
-  static const _operations = {
-    'moveCameraPreset',
-    'moveCameraRelative',
-    'moveCameraAbsolute',
-    'shakeCamera',
-    'loadParticle',
-    'deleteParticle',
-    'setSourceGauge',
-    'startEmitter',
-    'startFieldEmitter',
-    'startOrthoEmitter',
-    'startMovingEmitter',
-    'startMovingOrthoEmitter',
-    'startMovingFieldEmitter',
-    'startOrbitEmitter',
-    'moveCombatant',
-    'setActorCameraMode',
-    'circleCombatant',
-    'scaleCombatant',
-    'rotateCombatant',
-    'setAnimationState',
-    'setCombatantVisibility',
-    'fadeCombatantAlpha',
-    'fadePalette',
-    'fadeStagePalette',
-    'setShadow',
-    'loadBackground',
-    'moveBackground',
-    'waveBackground',
-    'animateBackgroundPalette',
-    'setSceneVisibility',
-    'playCry',
-    'playSound',
-    'panSound',
-    'moveSound',
-    'waitTasks',
-    'waitFrames',
-    'setYield',
-    'end',
-  };
+  static const _operations = BattleMoveAnimationRecipe.gen5SourceOperations;
   static const _controlOperations = {
     'waitTasks',
     'waitFrames',

@@ -24,7 +24,7 @@ void main() {
     final fixture = utf8.encode((await response.text().toDart).toDart);
     expect(
       sha256.convert(fixture).toString(),
-      'c8b09588ff2b097090a9939098516aaa9a2d4fd145ff3c6b9385015d7e93a010',
+      '9976ffd4ed1c8c3cb4e596a0d95e8cb8db1bbe032ca18eb95a7f1978f462fea7',
     );
     final corpus = jsonDecode(utf8.decode(fixture)) as Map<String, dynamic>;
     final base = corpus['base'] as Map<String, dynamic>;

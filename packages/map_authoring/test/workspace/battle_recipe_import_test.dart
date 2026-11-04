@@ -117,6 +117,7 @@ void main() {
     bool explicitAudio = false,
     bool gen5 = false,
     bool splV5 = false,
+    bool sourceProgram = false,
     String? bundlePath,
   }) async {
     final root = await Directory.systemTemp.createTemp('battle-recipe-import-');
@@ -569,6 +570,21 @@ void main() {
         digest, 'application/vnd.avelune.battle-recipe+json',
         projectMoveId: 'two');
     expect(reread.findResourceBytes('battleRecipe:$recipePath'), recipe);
+    if (sourceProgram) {
+      await expectLater(
+        const CanonicalGamePackageExportService().build(
+          projectRoot: root,
+          profile: GamePackageExportProfile(
+            gameId: 'games.example.recipe', gameVersion: '0.1.0', title: 'Recipe',
+            authorName: 'Yoahn', defaultLocale: 'fr', supportedLocales: ['fr'],
+          ),
+          mode: GamePackageExportMode.localTest,
+        ),
+        throwsA(isA<GamePackageExportException>()
+            .having((error) => error.code, 'code', 'capabilityUnsupported')),
+      );
+      return;
+    }
     late final GamePackageExportArtifact exported;
     try {
       exported = await const CanonicalGamePackageExportService().build(
@@ -640,4 +656,8 @@ void main() {
           spl: true,
           bundlePath: Platform.environment['AVELUNE_BW2_TACKLE_BUNDLE']),
       skip: Platform.environment['AVELUNE_BW2_TACKLE_BUNDLE'] == null);
+  test('imports a complete BW2 source bundle and blocks unsupported export',
+      () => runScenario(spl: true, sourceProgram: true,
+          bundlePath: Platform.environment['AVELUNE_BW2_SOURCE_BUNDLE']),
+      skip: Platform.environment['AVELUNE_BW2_SOURCE_BUNDLE'] == null);
 }
