@@ -39,11 +39,31 @@ final class BattleStage3DComponent extends Component {
   bool _renderFailureReported = false;
   bool sourceHidePlatforms = false;
   bool sourceHideFloor = false;
+  int _sourcePaletteLevel = 0;
+  Color _sourcePaletteColor = const Color(0xff000000);
   List<Object>? _groundKey;
   List<BattleStageGround> _ground = const [];
 
   bool get isReady => _stage != null;
   bool get currentFramePresented => _currentFramePresented;
+
+  ColorFilter? get sourcePaletteFilter => _sourcePaletteLevel == 0
+      ? null
+      : ColorFilter.mode(
+          _sourcePaletteColor.withValues(alpha: _sourcePaletteLevel / 16),
+          BlendMode.srcATop,
+        );
+
+  void setSourcePaletteFade(int level, Color color) {
+    _sourcePaletteLevel = level;
+    _sourcePaletteColor = color;
+  }
+
+  Color _sourceGroundColor(Color color) => Color.lerp(
+        color,
+        _sourcePaletteColor.withValues(alpha: color.a),
+        _sourcePaletteLevel / 16,
+      )!;
 
   @override
   Future<void> onLoad() async {
@@ -106,6 +126,8 @@ final class BattleStage3DComponent extends Component {
         camera.focal,
         sourceHidePlatforms,
         sourceHideFloor,
+        _sourcePaletteLevel,
+        _sourcePaletteColor,
         for (final entry in geometry.entries)
           (entry.key, entry.value.footAnchor, entry.value.platformRect),
       ];
@@ -120,11 +142,11 @@ final class BattleStage3DComponent extends Component {
                 Model3dVector3(x: 150, y: -.04, z: 150),
                 Model3dVector3(x: -150, y: -.04, z: 150),
               ],
-              color: const Color(0xff64875a),
+              color: _sourceGroundColor(const Color(0xff64875a)),
             ),
           if (!sourceHidePlatforms) for (final entry in geometry.entries) ...[
-            _ellipse(entry.value, .0, 1, const Color(0xff635d3c)),
-            _ellipse(entry.value, .015, .94, const Color(0xff819269)),
+            _ellipse(entry.value, .0, 1, _sourceGroundColor(const Color(0xff635d3c))),
+            _ellipse(entry.value, .015, .94, _sourceGroundColor(const Color(0xff819269))),
           ],
         ];
       }

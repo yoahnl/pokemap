@@ -4,6 +4,43 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_runtime/src/presentation/flame/battle_gen5_source_background.dart';
 
 void main() {
+  testWidgets('palette fade blends the source background and resets', (tester) async {
+    await tester.runAsync(() async {
+      final sourceRecorder = ui.PictureRecorder();
+      ui.Canvas(sourceRecorder).drawColor(const ui.Color(0xff0040c0), ui.BlendMode.src);
+      final sourcePicture = sourceRecorder.endRecording();
+      final source = sourcePicture.toImageSync(512, 512);
+      final background = BattleGen5SourceBackground(
+        viewport: () => const ui.Rect.fromLTWH(0, 0, 256, 192),
+      );
+      background.load(source);
+      background.visible = true;
+      Future<List<int>> pixel() async {
+        final recorder = ui.PictureRecorder();
+        background.render(ui.Canvas(recorder));
+        final picture = recorder.endRecording();
+        final image = picture.toImageSync(256, 192);
+        final bytes = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+        final color = [for (var i = 0; i < 4; i++) bytes!.getUint8(i)];
+        image.dispose();
+        picture.dispose();
+        return color;
+      }
+      background.setPaletteFade(8, const ui.Color(0xffff0000));
+      final faded = await pixel();
+      expect(faded[0], closeTo(128, 1));
+      expect(faded[1], closeTo(32, 1));
+      expect(faded[2], closeTo(96, 1));
+      expect(faded[3], 255);
+      background.reset();
+      background.load(source);
+      background.visible = true;
+      expect(await pixel(), [0, 64, 192, 255]);
+      source.dispose();
+      sourcePicture.dispose();
+    });
+  });
+
   test('moves relative to its starting offset with source step delays', () {
     final background = BattleGen5SourceBackground(
       viewport: () => const ui.Rect.fromLTWH(0, 0, 256, 192),

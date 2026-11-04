@@ -660,6 +660,154 @@ void main() {
     expect(calls, hasLength(1));
   });
 
+  testWidgets('scene palette fade leaves attack particles unchanged', (tester) async {
+    final overlay = await _scene();
+    final particle = RectangleComponent(
+      position: Vector2(10, 10),
+      size: Vector2.all(20),
+      priority: 10,
+      paint: ui.Paint()..color = const ui.Color(0xffff00ff),
+    );
+    overlay.add(particle);
+    overlay.findGame()!.processLifecycleEvents();
+    final finished = overlay.presentExperimentalGen5Attack(
+      program: _program([
+        _instruction('setYield', {'value': false}),
+        _instruction('fadeStagePalette', {
+          'fade': 4, 'evy': 16, 'targetEvy': 16, 'wait': 0, 'color': 0,
+        }),
+        _instruction('waitFrames', {'frames': 100}),
+        _instruction('end'),
+      ]),
+      variant: 'Tackle', hasEmitter: (_, _) => false,
+      startEmitter: (_, _, _) {}, particlesBusy: () => false,
+      detachParticles: () {}, allowSilentAudio: true,
+    );
+    overlay.updateTree(1 / 60);
+    overlay.findGame()!.processLifecycleEvents();
+    final recorder = ui.PictureRecorder();
+    overlay.renderTree(ui.Canvas(recorder));
+    final picture = recorder.endRecording();
+    final image = picture.toImageSync(390, 844);
+    final bytes = await tester.runAsync(
+      () => image.toByteData(format: ui.ImageByteFormat.rawRgba),
+    );
+    final pixel = (15 * 390 + 15) * 4;
+    expect([bytes!.getUint8(pixel), bytes.getUint8(pixel + 1),
+      bytes.getUint8(pixel + 2), bytes.getUint8(pixel + 3)], [255, 0, 255, 255]);
+    image.dispose();
+    picture.dispose();
+    overlay.cancelExperimentalGen5Attack();
+    expect(await finished, BattleGen5SourcePlaybackStatus.cancelled);
+  });
+
+  testWidgets('stage and background palette fades keep separate targets', (tester) async {
+    final recorder = ui.PictureRecorder();
+    ui.Canvas(recorder).drawColor(const ui.Color(0xff0000ff), ui.BlendMode.src);
+    final picture = recorder.endRecording();
+    final image = picture.toImageSync(512, 512);
+    addTearDown(image.dispose);
+    addTearDown(picture.dispose);
+    final overlay = await _scene();
+    final finished = overlay.presentExperimentalGen5Attack(
+      program: _program([
+        _instruction('setYield', {'value': false}),
+        _instruction('loadBackground', {'background': 18}),
+        _instruction('setSceneVisibility', {'target': 2, 'hide': 0}),
+        _instruction('fadeStagePalette', {
+          'fade': 2, 'evy': 16, 'targetEvy': 16, 'wait': 0, 'color': 0,
+        }),
+        _instruction('fadeStagePalette', {
+          'fade': 3, 'evy': 16, 'targetEvy': 16, 'wait': 0, 'color': 31,
+        }),
+        _instruction('waitFrames', {'frames': 100}),
+        _instruction('end'),
+      ]),
+      variant: 'Tackle', hasEmitter: (_, _) => false,
+      startEmitter: (_, _, _) {}, particlesBusy: () => false,
+      detachParticles: () {}, allowSilentAudio: true,
+      sourceBackgrounds: {18: image},
+    );
+    overlay.updateTree(1 / 60);
+    overlay.findGame()!.processLifecycleEvents();
+    final stage = overlay.children.whereType<BattleStage3DComponent>().single;
+    final background = overlay.children.whereType<BattleGen5SourceBackground>().single;
+    expect(stage.sourcePaletteFilter, isNotNull);
+    final output = ui.PictureRecorder();
+    background.render(ui.Canvas(output));
+    final frame = output.endRecording();
+    final rendered = frame.toImageSync(390, 844);
+    final bytes = await tester.runAsync(
+      () => rendered.toByteData(format: ui.ImageByteFormat.rawRgba),
+    );
+    final pixel = (100 * 390 + 100) * 4;
+    expect([bytes!.getUint8(pixel), bytes.getUint8(pixel + 1),
+      bytes.getUint8(pixel + 2), bytes.getUint8(pixel + 3)], [255, 0, 0, 255]);
+    rendered.dispose();
+    frame.dispose();
+    overlay.cancelExperimentalGen5Attack();
+    expect(await finished, BattleGen5SourcePlaybackStatus.cancelled);
+    expect(stage.sourcePaletteFilter, isNull);
+  });
+
+  testWidgets('waiting for the stage does not wait for a separate background fade', (tester) async {
+    final sourceRecorder = ui.PictureRecorder();
+    ui.Canvas(sourceRecorder).drawColor(const ui.Color(0xff0000ff), ui.BlendMode.src);
+    final sourcePicture = sourceRecorder.endRecording();
+    final image = sourcePicture.toImageSync(512, 512);
+    addTearDown(image.dispose);
+    addTearDown(sourcePicture.dispose);
+    final overlay = await _scene();
+    final calls = <Map<String, dynamic>>[];
+    final finished = overlay.presentExperimentalGen5Attack(
+      program: _program([
+        _instruction('setYield', {'value': false}),
+        _instruction('loadBackground', {'background': 18}),
+        _instruction('setSceneVisibility', {'target': 2, 'hide': 0}),
+        _instruction('fadeStagePalette', {
+          'fade': 2, 'evy': 0, 'targetEvy': 3, 'wait': 1, 'color': 0,
+        }),
+        _instruction('fadeStagePalette', {
+          'fade': 3, 'evy': 0, 'targetEvy': 16, 'wait': 1, 'color': 31,
+        }),
+        _instruction('waitTasks', {'what': 'STAGE_FIELD_FADE'}),
+        _instruction('startEmitter', {
+          'particle': 1, 'emitter': 0,
+          'from': 'EFFVM_EMIT_DEFENDER', 'to': 8, 'offsetY': 0,
+          'unk18': 0, 'unused': 0, 'radiusScale': 4096,
+          'lifeScale': 4096, 'scaleScale': 4096, 'cameraScale': 4096,
+        }),
+        _instruction('waitFrames', {'frames': 100}),
+        _instruction('end'),
+      ]),
+      variant: 'Tackle', hasEmitter: (_, _) => true,
+      startEmitter: (_, _, _) => fail('source arguments must be preserved'),
+      startSourceEmitter: calls.add, particlesBusy: () => false,
+      detachParticles: () {}, allowSilentAudio: true,
+      sourceBackgrounds: {18: image},
+    );
+    for (var tick = 0; tick < 25 && calls.isEmpty; tick++) {
+      overlay.updateTree(1 / 60);
+      overlay.findGame()!.processLifecycleEvents();
+    }
+    expect(calls, hasLength(1));
+    final background = overlay.children.whereType<BattleGen5SourceBackground>().single;
+    final output = ui.PictureRecorder();
+    background.render(ui.Canvas(output));
+    final frame = output.endRecording();
+    final rendered = frame.toImageSync(390, 844);
+    final bytes = await tester.runAsync(
+      () => rendered.toByteData(format: ui.ImageByteFormat.rawRgba),
+    );
+    final red = bytes!.getUint8((100 * 390 + 100) * 4);
+    expect(red, greaterThan(0));
+    expect(red, lessThan(255));
+    rendered.dispose();
+    frame.dispose();
+    overlay.cancelExperimentalGen5Attack();
+    expect(await finished, BattleGen5SourcePlaybackStatus.cancelled);
+  });
+
   test('orthographic source emitter can target the opposite combatant', () async {
     final overlay = await _scene();
     final arguments = <String, dynamic>{
@@ -1838,8 +1986,8 @@ void main() {
     for (var tick = 0; tick < 500 && overlay.isTurnPresentationActive; tick++) {
       overlay.updateTree(1 / 60);
       overlay.findGame()!.processLifecycleEvents();
-      sawStageFade |= overlay.children.whereType<RectangleComponent>()
-          .any((component) => component.priority == 1 && component.paint.color.a > 0);
+      sawStageFade |= overlay.children.whereType<BattleStage3DComponent>()
+          .single.sourcePaletteFilter != null;
       await Future<void>.delayed(Duration.zero);
     }
     expect(await finished, BattleGen5SourcePlaybackStatus.finished);
@@ -1847,8 +1995,8 @@ void main() {
     expect(sawStageFade, isTrue);
     expect(calls.where((args) => args['motionFramesFx32'] == 0), hasLength(2));
     expect(calls.where((args) => !args.containsKey('motion')), hasLength(2));
-    expect(overlay.children.whereType<RectangleComponent>()
-        .where((component) => component.priority == 1), isEmpty);
+    expect(overlay.children.whereType<BattleStage3DComponent>()
+        .single.sourcePaletteFilter, isNull);
   });
 
   test('Charm rotates the attacker and restores its battle pose', () async {

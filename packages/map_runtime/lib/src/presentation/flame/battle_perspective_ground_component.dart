@@ -13,6 +13,7 @@ final class BattlePerspectiveGroundComponent extends Component {
     this.isVisible,
     this.isFloorVisible,
     this.arePlatformsVisible,
+    this.colorFilter,
   }) : super(priority: 7);
 
   final BattlePerspectiveCamera camera;
@@ -22,6 +23,7 @@ final class BattlePerspectiveGroundComponent extends Component {
   final bool Function()? isVisible;
   final bool Function()? isFloorVisible;
   final bool Function()? arePlatformsVisible;
+  final ColorFilter? Function()? colorFilter;
   final Paint _rim = Paint()..color = const Color(0x70544232);
   final Paint _ground = Paint()..color = const Color(0x905F7950);
 
@@ -30,6 +32,10 @@ final class BattlePerspectiveGroundComponent extends Component {
     if (!(isVisible?.call() ?? true)) return;
     canvas.save();
     canvas.clipRect(clipRect?.call() ?? camera.viewport);
+    final filter = colorFilter?.call();
+    if (filter != null) {
+      canvas.saveLayer(clipRect?.call() ?? camera.viewport, Paint()..colorFilter = filter);
+    }
     if (paintFloor && (isFloorVisible?.call() ?? true)) _paintFloor(canvas);
     for (final rect in (arePlatformsVisible?.call() ?? true)
         ? groundRects() : <Rect>[]) {
@@ -42,6 +48,7 @@ final class BattlePerspectiveGroundComponent extends Component {
         _ground,
       );
     }
+    if (filter != null) canvas.restore();
     canvas.restore();
   }
 

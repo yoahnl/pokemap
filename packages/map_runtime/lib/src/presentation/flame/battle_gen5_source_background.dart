@@ -40,6 +40,13 @@ final class BattleGen5SourceBackground extends Component {
   bool get isWaving => _waveFrames != null;
   bool get isPaletteAnimating => _paletteFrames != null;
 
+  void setPaletteFade(int level, ui.Color color) {
+    _paint.colorFilter = level == 0
+        ? null
+        : ui.ColorFilter.mode(
+            color.withValues(alpha: level / 16), ui.BlendMode.srcATop);
+  }
+
   void load(ui.Image image) {
     if (image.width != 512 || image.height != 512) {
       throw const FormatException('Invalid source background dimensions');
@@ -206,6 +213,7 @@ final class BattleGen5SourceBackground extends Component {
     _paletteFrames = null;
     _paletteDurations = null;
     _step = ui.Offset.zero;
+    _paint.colorFilter = null;
   }
 
   @override

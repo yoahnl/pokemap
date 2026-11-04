@@ -1073,21 +1073,8 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     final alphaValues = <String, int>{};
     final alphaJobs = <String, ({int value, int target, int step, int wait,
         int remaining})>{};
-    ({int level, int end, int wait, int remaining, int step, Color color})?
-        stagePaletteJob;
-    RectangleComponent? stagePalette;
-    var stagePaletteTarget = 2;
-    void setStagePalette(int level, Color color) {
-      var component = stagePalette;
-      if (component == null) {
-        component = RectangleComponent(size: size.clone(), priority: 1);
-        stagePalette = component;
-        add(component);
-      }
-      component.size = size.clone();
-      component.priority = switch (stagePaletteTarget) {3 => 3, 4 => 14, _ => 1};
-      component.paint.color = color.withValues(alpha: level / 16);
-    }
+    final stagePaletteJobs = <String, ({int level, int end, int wait,
+        int remaining, int step, Color color})>{};
     final sourceCamera = Gen5CameraMotion();
     final initialEye = camera.eye;
     final initialAim = camera.aim;
@@ -1605,11 +1592,15 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
           final color = Color.fromARGB(255, (value & 31) * 255 ~/ 31,
               ((value >> 5) & 31) * 255 ~/ 31,
               ((value >> 10) & 31) * 255 ~/ 31);
-          stagePaletteTarget = args['fade'] as int;
-          setStagePalette(start, color);
-          stagePaletteJob = start == end ? null : (level: start, end: end,
+          final job = (level: start, end: end,
               wait: args['wait'] as int, remaining: 0,
-              step: start < end ? 1 : -1, color: color);
+              step: start <= end ? 1 : -1, color: color);
+          if (args['fade'] == 2 || args['fade'] == 4) {
+            stagePaletteJobs['stage'] = job;
+          }
+          if (args['fade'] == 3 || args['fade'] == 4) {
+            stagePaletteJobs['background'] = job;
+          }
         case 'loadBackground':
           sourceBackground.load(sourceBackgrounds[args['background']]!);
           currentSourceBackground = args['background'] as int;
@@ -1687,19 +1678,25 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
               step: job.step, wait: job.wait, remaining: job.wait);
         }
       }
-      final stageJob = stagePaletteJob;
-      if (stageJob != null) {
-        if (stageJob.remaining > 0) {
-          stagePaletteJob = (level: stageJob.level, end: stageJob.end,
-              wait: stageJob.wait, remaining: stageJob.remaining - 1,
-              step: stageJob.step, color: stageJob.color);
+      for (final entry in stagePaletteJobs.entries.toList()) {
+        final job = entry.value;
+        if (job.remaining > 0) {
+          stagePaletteJobs[entry.key] = (level: job.level, end: job.end,
+              wait: job.wait, remaining: job.remaining - 1,
+              step: job.step, color: job.color);
         } else {
-          final level = stageJob.level + stageJob.step;
-          setStagePalette(level, stageJob.color);
-          stagePaletteJob = level == stageJob.end ? null : (level: level,
-              end: stageJob.end, wait: stageJob.wait,
-              remaining: stageJob.wait, step: stageJob.step,
-              color: stageJob.color);
+          if (entry.key == 'stage') {
+            _stage3D?.setSourcePaletteFade(job.level, job.color);
+          } else {
+            sourceBackground.setPaletteFade(job.level, job.color);
+          }
+          if (job.level == job.end) {
+            stagePaletteJobs.remove(entry.key);
+          } else {
+            stagePaletteJobs[entry.key] = (level: job.level + job.step,
+                end: job.end, wait: job.wait, remaining: job.wait,
+                step: job.step, color: job.color);
+          }
         }
       }
       for (final entry in paletteJobs.entries.toList()) {
@@ -1748,9 +1745,10 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
         BattleGen5SourceTaskCategory.background => sourceBackground.isMoving,
         BattleGen5SourceTaskCategory.backgroundWave => sourceBackground.isWaving,
         BattleGen5SourceTaskCategory.palette =>
-          paletteJobs.isNotEmpty || stagePaletteJob != null ||
+          paletteJobs.isNotEmpty || stagePaletteJobs.isNotEmpty ||
               sourceBackground.isPaletteAnimating,
-        BattleGen5SourceTaskCategory.stageFieldPalette => stagePaletteJob != null,
+        BattleGen5SourceTaskCategory.stageFieldPalette =>
+          stagePaletteJobs.containsKey('stage'),
         BattleGen5SourceTaskCategory.particles => particlesBusy(),
         _ => false,
       },
@@ -1778,9 +1776,8 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
           }
           paletteJobs.clear();
           alphaJobs.clear();
-          stagePaletteJob = null;
-          stagePalette?.removeFromParent();
-          stagePalette = null;
+          stagePaletteJobs.clear();
+          _stage3D?.setSourcePaletteFade(0, const Color(0xff000000));
           sourceBackground.reset();
           if (backgroundAdded) sourceBackground.removeFromParent();
           _stage3D?.sourceHidePlatforms = initialPlatformsHidden;
@@ -3314,6 +3311,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
       isVisible: () => !(_stage3D?.currentFramePresented ?? false),
       isFloorVisible: () => !(_stage3D?.sourceHideFloor ?? false),
       arePlatformsVisible: () => !(_stage3D?.sourceHidePlatforms ?? false),
+      colorFilter: () => _stage3D?.sourcePaletteFilter,
       paintFloor: !backgroundSpec.hasExplicitImage,
       clipRect: () => currentSceneLayout.arenaRect,
       groundRects: () => [

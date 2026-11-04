@@ -335,6 +335,46 @@ void main() {
     },
   );
 
+  testWidgets('source palette fade colors ground without tinting billboards', (tester) async {
+    final fixture = await _mountFixture(tester);
+    _render(fixture.stage.render);
+    final original = fixture.renderer.lastGround.map((ground) => ground.color).toList();
+    final billboards = fixture.renderer.lastBillboards.map((billboard) => billboard.tint).toList();
+    expect(billboards, hasLength(2));
+    fixture.stage.setSourcePaletteFade(16, const Color(0xff000000));
+    _render(fixture.stage.render);
+    expect(fixture.renderer.lastGround.map((ground) => ground.color),
+        everyElement(const Color(0xff000000)));
+    expect(fixture.renderer.lastBillboards.map((billboard) => billboard.tint), billboards);
+    fixture.stage.setSourcePaletteFade(0, const Color(0xff000000));
+    _render(fixture.stage.render);
+    expect(fixture.renderer.lastGround.map((ground) => ground.color), original);
+  });
+
+  testWidgets('software ground applies the source palette fade', (tester) async {
+    final fixture = await _mountFixture(tester);
+    final ground = BattlePerspectiveGroundComponent(
+      camera: fixture.stage.camera,
+      groundRects: () => fixture.geometry.values.map((geometry) => geometry.platformRect),
+      colorFilter: () => fixture.stage.sourcePaletteFilter,
+    );
+    final before = (await tester.runAsync(() => _pixels(ground.render)))!;
+    fixture.stage.setSourcePaletteFade(16, const Color(0xff000000));
+    final after = (await tester.runAsync(() => _pixels(ground.render)))!;
+    var found = false;
+    for (var i = 0; i < before.length; i += 4) {
+      if (before[i + 3] > 200 && before[i] > 20) {
+        expect(after[i], lessThan(3));
+        expect(after[i + 1], lessThan(3));
+        expect(after[i + 2], lessThan(3));
+        expect(after[i + 3], closeTo(before[i + 3], 1));
+        found = true;
+        break;
+      }
+    }
+    expect(found, isTrue);
+  });
+
   testWidgets('removal clears frame ownership and disposes the stage once', (
     tester,
   ) async {
