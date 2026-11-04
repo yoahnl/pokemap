@@ -539,6 +539,19 @@ class BattlePreviewGame extends FlameGame {
     final preparedSound = isSurf
         ? Future<BattlePreparedRecipeSound?>.value()
         : prepareSound();
+    void playPreparedSound(Map<String, dynamic> _) {
+      if (soundRequested) return;
+      soundRequested = true;
+      unawaited(preparedSound.then((sound) async {
+        if (sound == null || _closed || disposed) return;
+        try {
+          await sound.start();
+          soundStarted = true;
+        } on Object catch (error) {
+          debugPrint('[compare] move audio failed: $error');
+        }
+      }));
+    }
     void dispose() {
       if (disposed) return;
       disposed = true;
@@ -862,19 +875,8 @@ class BattlePreviewGame extends FlameGame {
           },
           detachParticles: dispose,
           allowSilentAudio: true,
-          onSourceSound: isSurf ? null : (_) {
-            if (soundRequested) return;
-            soundRequested = true;
-            unawaited(preparedSound.then((sound) async {
-              if (sound == null || _closed || disposed) return;
-              try {
-                await sound.start();
-                soundStarted = true;
-              } on Object catch (error) {
-                debugPrint('[compare] move audio failed: $error');
-              }
-            }));
-          },
+          onSourceSound: isSurf ? null : playPreparedSound,
+          onSourceCry: isSurf ? null : playPreparedSound,
           sourceBackgrounds: backgrounds,
           sourceBackgroundAnimations: backgroundAnimations,
           allowUnmappedAudioControls: isSurf || isMovingExample,

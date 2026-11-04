@@ -1029,6 +1029,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
     void Function(Map<String, dynamic> args)? startSourceEmitter,
     void Function(int particle)? deleteSourceParticle,
     void Function(Map<String, dynamic> args)? onSourceSound,
+    void Function(Map<String, dynamic> args)? onSourceCry,
     required bool Function() particlesBusy,
     required void Function() detachParticles,
     required bool allowSilentAudio,
@@ -1076,7 +1077,8 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
         int remaining})>{};
     final stagePaletteJobs = <String, ({int level, int end, int wait,
         int remaining, int step, Color color})>{};
-    final delayedSounds = <({int remaining, Map<String, dynamic> args})>[];
+    final delayedSounds =
+        <({int remaining, Map<String, dynamic> args, bool isCry})>[];
     final sourceCamera = Gen5CameraMotion();
     final initialEye = camera.eye;
     final initialAim = camera.aim;
@@ -1648,14 +1650,22 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
           if (onSourceSound != null) {
             final wait = args['wait'];
             if (wait is int && wait > 0) {
-              delayedSounds.add((remaining: wait + 1, args: args));
+              delayedSounds.add((remaining: wait + 1, args: args, isCry: false));
             } else {
               onSourceSound(args);
             }
           }
+        case 'playCry':
+          if (onSourceCry != null) {
+            final delay = args['delay'];
+            if (delay is int && delay > 0) {
+              delayedSounds.add((remaining: delay + 1, args: args, isCry: true));
+            } else {
+              onSourceCry(args);
+            }
+          }
         case 'loadParticle':
         case 'setActorCameraMode':
-        case 'playCry':
         case 'panSound':
         case 'moveSound':
           break;
@@ -1669,11 +1679,16 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
         final sound = delayedSounds[index];
         if (sound.remaining == 1) {
           delayedSounds.removeAt(index);
-          onSourceSound?.call(sound.args);
+          if (sound.isCry) {
+            onSourceCry?.call(sound.args);
+          } else {
+            onSourceSound?.call(sound.args);
+          }
         } else {
           delayedSounds[index] = (
             remaining: sound.remaining - 1,
             args: sound.args,
+            isCry: sound.isCry,
           );
           index++;
         }
@@ -1773,6 +1788,8 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
         BattleGen5SourceTaskCategory.stageFieldPalette =>
           stagePaletteJobs.containsKey('stage'),
         BattleGen5SourceTaskCategory.particles => particlesBusy(),
+        BattleGen5SourceTaskCategory.audio =>
+          delayedSounds.any((sound) => sound.isCry),
         _ => false,
       },
       isParticleLoading: () => false,

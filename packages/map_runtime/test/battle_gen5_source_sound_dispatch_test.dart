@@ -120,6 +120,89 @@ void main() {
       }
       expect(await cancelled, BattleGen5SourcePlaybackStatus.cancelled);
       expect(calls, isEmpty);
+
+      final cries = <(String, int)>[];
+      final criesFinished = overlay.presentExperimentalGen5Attack(
+        program: {
+          ...program,
+          'instructions': [
+            _instruction('setYield', {'value': false}),
+            _instruction('playCry', {'targets': 'EFFVM_DEFENDER', 'delay': 3}),
+            _instruction('playCry', {'targets': 'EFFVM_ATTACKER', 'delay': 0}),
+            _instruction('setYield', {'value': true}),
+            _instruction('waitFrames', {'frames': 8}),
+            _instruction('end'),
+          ],
+        },
+        variant: 'Attack',
+        hasEmitter: (_, _) => false,
+        startEmitter: (_, _, _) {},
+        particlesBusy: () => false,
+        detachParticles: () {},
+        allowSilentAudio: true,
+        onSourceCry: (args) => cries.add((args['targets'] as String, tick)),
+      );
+      for (tick = 0; tick < 80 && overlay.isTurnPresentationActive; tick++) {
+        overlay.updateTree(1 / 60);
+        await Future<void>.delayed(Duration.zero);
+      }
+      expect(await criesFinished, BattleGen5SourcePlaybackStatus.finished);
+      expect(cries.map((value) => value.$1), [
+        'EFFVM_ATTACKER',
+        'EFFVM_DEFENDER',
+      ]);
+      expect(cries[1].$2 - cries[0].$2, 3);
+
+      cries.clear();
+      final criesWaited = overlay.presentExperimentalGen5Attack(
+        program: {
+          ...program,
+          'instructions': [
+            _instruction('playCry', {'targets': 'EFFVM_ATTACKER', 'delay': 5}),
+            _instruction('waitTasks', {'what': 'CRY'}),
+            _instruction('end'),
+          ],
+        },
+        variant: 'Attack',
+        hasEmitter: (_, _) => false,
+        startEmitter: (_, _, _) {},
+        particlesBusy: () => false,
+        detachParticles: () {},
+        allowSilentAudio: true,
+        onSourceCry: (args) => cries.add((args['targets'] as String, tick)),
+      );
+      for (tick = 0; tick < 80 && overlay.isTurnPresentationActive; tick++) {
+        overlay.updateTree(1 / 60);
+        await Future<void>.delayed(Duration.zero);
+      }
+      expect(await criesWaited, BattleGen5SourcePlaybackStatus.finished);
+      expect(cries.map((value) => value.$1), ['EFFVM_ATTACKER']);
+
+      cries.clear();
+      final criesCancelled = overlay.presentExperimentalGen5Attack(
+        program: {
+          ...program,
+          'instructions': [
+            _instruction('playCry', {'targets': 'EFFVM_ATTACKER', 'delay': 5}),
+            _instruction('waitFrames', {'frames': 20}),
+            _instruction('end'),
+          ],
+        },
+        variant: 'Attack',
+        hasEmitter: (_, _) => false,
+        startEmitter: (_, _, _) {},
+        particlesBusy: () => false,
+        detachParticles: () {},
+        allowSilentAudio: true,
+        onSourceCry: (args) => cries.add((args['targets'] as String, tick)),
+      );
+      overlay.updateTree(1 / 60);
+      overlay.cancelExperimentalGen5Attack();
+      for (var frame = 0; frame < 10; frame++) {
+        overlay.updateTree(1 / 60);
+      }
+      expect(await criesCancelled, BattleGen5SourcePlaybackStatus.cancelled);
+      expect(cries, isEmpty);
     },
   );
 }

@@ -81,6 +81,50 @@ void main() {
         sourceVariant: 'Present_Variant1',
       ),
     ),
+    (
+      delayed: false,
+      move: const PreviewMove(
+        'growl',
+        'Rugissement',
+        null,
+        'normal',
+        PsdkBattleMoveCategory.status,
+        bundleAsset: 'assets/bw2/batch/growl.json',
+      ),
+    ),
+    (
+      delayed: false,
+      move: const PreviewMove(
+        'howl',
+        'Grondement',
+        null,
+        'normal',
+        PsdkBattleMoveCategory.status,
+        bundleAsset: 'assets/bw2/batch/howl.json',
+      ),
+    ),
+    (
+      delayed: false,
+      move: const PreviewMove(
+        'hyper-voice',
+        'Mégaphone',
+        null,
+        'normal',
+        PsdkBattleMoveCategory.special,
+        bundleAsset: 'assets/bw2/batch/hyper-voice.json',
+      ),
+    ),
+    (
+      delayed: false,
+      move: const PreviewMove(
+        'chatter',
+        'Babil',
+        null,
+        'flying',
+        PsdkBattleMoveCategory.special,
+        bundleAsset: 'assets/bw2/batch/chatter.json',
+      ),
+    ),
   ]) {
     final delayed = scenario.delayed;
     testWidgets(
