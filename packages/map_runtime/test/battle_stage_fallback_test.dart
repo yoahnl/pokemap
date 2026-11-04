@@ -234,6 +234,33 @@ void main() {
     }
   });
 
+  for (final slot in [_player, _enemy]) {
+    testWidgets('rotating $slot uses the software scene until restored', (tester) async {
+      final fixture = await _mountFixture(tester, sprites: true);
+      final actor = fixture.actors[slot]!;
+      final owner = Object();
+      _render(fixture.stage.render);
+      expect(fixture.stage.currentFramePresented, isTrue);
+      expect(actor.renderedBy3DStage, isTrue);
+      final attempts = fixture.renderer.attempts;
+      expect(actor.applyBattleScriptTransform(
+        offset: Offset.zero, scaleX: 1, scaleY: 1, rotation: .4, owner: owner,
+      ), isTrue);
+      _render(fixture.stage.render);
+      expect(fixture.stage.currentFramePresented, isFalse);
+      expect(fixture.renderer.attempts, attempts);
+      expect(fixture.actors.values.every((value) => !value.renderedBy3DStage), isTrue);
+      final pixels = await tester.runAsync(() => _pixels(actor.renderTree));
+      expect(_coloredPixels(pixels!), greaterThan(0));
+      actor.clearBattleScriptTransform(owner: owner);
+      final restoredPixels = await tester.runAsync(() => _pixels(actor.renderTree));
+      expect(pixels, isNot(orderedEquals(restoredPixels!)));
+      _render(fixture.stage.render);
+      expect(fixture.stage.currentFramePresented, isTrue);
+      expect(actor.renderedBy3DStage, isTrue);
+    });
+  }
+
   testWidgets(
     'a ground-only presentation suppresses duplicate software ground',
     (tester) async {

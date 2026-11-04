@@ -237,6 +237,7 @@ class BattleSceneCombatantComponent extends PositionComponent {
   Color _battleScriptPaletteColor = const Color(0xFFFFFFFF);
 
   bool get hasBattleScriptPalette => _battleScriptPaletteAmount > 0;
+  bool get hasBattleScriptRotation => _visualRotation != 0;
   bool get isHiddenForBattleScript =>
       _battleScriptHiddenOwners.isNotEmpty || _visualOpacity <= 0;
   double get _battleScriptOpacity =>
