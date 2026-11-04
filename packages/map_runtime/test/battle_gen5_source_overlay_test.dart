@@ -785,6 +785,26 @@ void main() {
     expect(overlay.experimentalGen5FieldProjection().capture(), isNotNull);
   });
 
+  test('targeted projection points toward either combatant in both orientations', () async {
+    for (final viewport in [Vector2(390, 844), Vector2(844, 390)]) {
+      final overlay = await _scene(viewport: viewport);
+      for (final attacker in [true, false]) {
+        final projection = overlay.experimentalGen5Projection(
+          attacker: attacker, towardOpponent: true,
+        );
+        final origin = projection.capture()!.single;
+        final target = overlay.experimentalGen5Projection(
+          attacker: !attacker,
+        ).capture()!.single;
+        final direction = projection.worldTransform!.apply((x: 0, y: 0, z: 4096));
+        final dx = target.x - origin.x;
+        final dz = target.z - origin.z;
+        expect(direction.x * dz - direction.z * dx, closeTo(0, .001));
+        expect(direction.x * dx + direction.z * dz, greaterThan(0));
+      }
+    }
+  });
+
   test('field projection preserves the BW2 positions of both combatants', () async {
     for (final viewport in [Vector2(390, 844), Vector2(844, 390)]) {
       final overlay = await _scene(viewport: viewport);

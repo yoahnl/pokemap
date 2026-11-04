@@ -330,6 +330,89 @@ void main() {
   });
 
   final rootPath = Platform.environment['AVELUNE_ATTACK_WORKSHOP_QA'];
+  for (final scenario in [
+    (id: 'dragon-breath', label: 'Draco-Souffle', particle: 395),
+    (id: 'hyper-beam', label: 'Ultralaser', particle: 228),
+  ]) {
+    for (final size in [const Size(393, 852), const Size(852, 393)]) {
+      testWidgets('${scenario.label} aims at the opponent at $size', (tester) async {
+        tester.view.physicalSize = size;
+        tester.view.devicePixelRatio = 1;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+        final root = (await tester.runAsync(
+          () => extractPreviewResources(parent: Directory(rootPath!)),
+        ))!;
+        addTearDown(() async {
+          if (await root.exists()) await root.delete(recursive: true);
+        });
+        final status = ValueNotifier<String>('Preparing');
+        addTearDown(status.dispose);
+        final game = BattlePreviewGame(
+          projectRoot: root.path,
+          move: PreviewMove(
+            scenario.id, scenario.label, null, 'normal',
+            PsdkBattleMoveCategory.special,
+            particle: scenario.particle,
+            bundleAsset: 'assets/bw2/batch/${scenario.id}.json',
+          ),
+          status: status,
+        );
+        await tester.pumpWidget(Directionality(
+          textDirection: TextDirection.ltr,
+          child: SizedBox(
+            width: size.width, height: size.height, child: GameWidget(game: game),
+          ),
+        ));
+        for (var tick = 0;
+            tick < 360 && status.value != 'Combat prêt · appuie sur Lancer'; tick++) {
+          await tester.pump(const Duration(milliseconds: 16));
+          await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 3)));
+        }
+        expect(status.value, 'Combat prêt · appuie sur Lancer');
+        unawaited(game.play());
+        var measured = 0;
+        var towardTarget = 0;
+        var afterFirstParticle = 0;
+        var reachedTarget = false;
+        for (var tick = 0; tick < 400; tick++) {
+          await tester.pump(const Duration(milliseconds: 16));
+          await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 3)));
+          for (final overlay in game.children.whereType<BattleOverlayComponent>()) {
+            final target = overlay.debugEnemyCombatant?.currentEffectAttachmentSpriteRect;
+            for (final effect in overlay.children.whereType<BattleSplStaticComponent>()) {
+              final projection = effect.projection;
+              final anchors = projection?.capture();
+              for (final frame in effect.playback.frames) {
+                for (final particle in frame.particles.where((item) => item.parentId == null)) {
+                  final velocity = particle.motion.velocity;
+                  if (math.max(velocity.x.abs(), velocity.z.abs()) < 2000) continue;
+                  measured++;
+                  if (velocity.z > velocity.x.abs() * 2) towardTarget++;
+                  if (target != null && projection != null && anchors != null) {
+                    final projected = projection.projectParticle(
+                      anchors.first, particle,
+                      relativeBasePosition: frame.relativeBasePosition,
+                    );
+                    reachedTarget |= projected != null &&
+                        target.inflate(12).contains(projected.position);
+                  }
+                }
+              }
+            }
+          }
+          if (measured > 0) afterFirstParticle++;
+          if (afterFirstParticle == 30) break;
+        }
+        expect(measured, greaterThan(0), reason: status.value);
+        expect(towardTarget / measured, greaterThan(.9));
+        expect(reachedTarget, isTrue, reason: 'Le faisceau doit atteindre le Pokémon adverse');
+        await tester.pumpWidget(const SizedBox());
+      }, skip: rootPath == null);
+    }
+  }
   for (final cancel in [false, true]) {
     testWidgets(cancel
         ? 'does not start a source attack after leaving while the reference loads'

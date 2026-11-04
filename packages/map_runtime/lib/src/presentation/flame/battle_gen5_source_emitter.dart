@@ -1,4 +1,7 @@
+import 'dart:math' as math;
+
 import 'battle_spl_particle_motion.dart';
+import 'battle_spl_vector.dart';
 
 ({int x, int y, int z}) gen5SourceFieldEmitterOffset(Map<String, dynamic> args) => (
   x: (args['fromX'] as int) - 0x800,
@@ -22,7 +25,24 @@ void applyGen5SourceEmitterParameters(
   Map<dynamic, dynamic> emitter,
   Map<String, dynamic> args, {
   required bool orthographic,
+  bool aimAtOpponent = false,
 }) {
+  if (aimAtOpponent) {
+    final emission = emitter['emission'] as Map;
+    final axis = emission['axis'];
+    if (axis is Map && axis['x'] is int && axis['y'] is int && axis['z'] is int) {
+      final x = axis['x'] as int;
+      final y = axis['y'] as int;
+      final z = axis['z'] as int;
+      final horizontal = math.sqrt(x * x + z * z).round();
+      if (horizontal != 0) {
+        final aimed = BattleSplVectorMath.normalize((x: 0, y: y, z: horizontal));
+        axis['x'] = aimed.x;
+        axis['y'] = aimed.y;
+        axis['z'] = aimed.z;
+      }
+    }
+  }
   if (orthographic &&
       (args['from'] == 0 || args['from'] == 'EFFVM_EMIT_ATTACKER')) {
     return;

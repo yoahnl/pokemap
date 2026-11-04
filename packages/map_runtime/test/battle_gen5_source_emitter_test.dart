@@ -2,6 +2,37 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_runtime/src/presentation/flame/battle_gen5_source_emitter.dart';
 
 void main() {
+  test('aims a targeted source emitter without losing its vertical angle', () {
+    final emitter = <dynamic, dynamic>{
+      'emission': <dynamic, dynamic>{
+        'axis': <dynamic, dynamic>{'x': 4096, 'y': 2048, 'z': 0},
+      },
+      'appearance': <dynamic, dynamic>{},
+    };
+    applyGen5SourceEmitterParameters(
+      emitter, {}, orthographic: false, aimAtOpponent: true,
+    );
+    final axis = (emitter['emission'] as Map)['axis'] as Map;
+    expect(axis['x'], 0);
+    expect(axis['y'], closeTo(1832, 2));
+    expect(axis['z'], closeTo(3664, 2));
+  });
+
+  test('keeps vertical and untargeted source axes unchanged', () {
+    for (final (axis, targeted) in [
+      (<dynamic, dynamic>{'x': 4096, 'y': 0, 'z': 0}, false),
+      (<dynamic, dynamic>{'x': 0, 'y': 4096, 'z': 0}, true),
+      (<dynamic, dynamic>{'x': 0, 'y': 0, 'z': 0}, true),
+    ]) {
+      final original = Map<dynamic, dynamic>.from(axis);
+      applyGen5SourceEmitterParameters(
+        {'emission': {'axis': axis}, 'appearance': {}}, {},
+        orthographic: false, aimAtOpponent: targeted,
+      );
+      expect(axis, original);
+    }
+  });
+
   test('aligns a source collision plane with the workshop origin', () {
     for (final args in [
       <String, dynamic>{'from': 'EFFVM_EMIT_DEFENDER'},

@@ -959,25 +959,28 @@ class BattlePreviewGame extends FlameGame {
                 as Map<String, dynamic>;
         final emitter = (definitionJson['emitters'] as List)[selectedIndices.indexOf(index)] as Map;
         final movingOrthographic = command.orthographic && args.containsKey('motion');
+        final fieldPositioned = args.containsKey('fromX');
+        final towardOpponent = !command.orbit && !fieldPositioned &&
+            args['from'] != 8 && args['to'] != 8 && args['to'] != args['from'] &&
+            !(args['from'] == 0 && args['to'] == 'EFFVM_EMIT_ATTACKER');
         applyGen5SourceEmitterParameters(
           emitter,
           movingOrthographic ? {...args, 'radiusScale': 3072, 'scaleScale': 3072} : args,
           orthographic: command.orthographic && !movingOrthographic,
+          aimAtOpponent: towardOpponent && !command.orthographic,
         );
         final definition = {5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19}.contains(definitionJson['schemaVersion'])
             ? BattleSplParticleDefinition.fromExperimentalJson(definitionJson)
             : BattleSplParticleDefinition.fromJson(definitionJson);
         final loader = BattleExperimentalSplLoader(resourceBudget: budget);
         loaders.add(loader);
-        final fieldPositioned = args.containsKey('fromX');
         final orbitEnemy = command.orbit && (args['type'] as int) >= 2;
         final projection = fieldPositioned
             ? _overlay.experimentalGen5FieldProjection()
             : _overlay.experimentalGen5Projection(
           attacker: command.orbit ? !orbitEnemy :
               args['from'] == 0 || args['from'] == 'EFFVM_EMIT_ATTACKER',
-          towardOpponent: !command.orbit && args['to'] != 8 && args['to'] != args['from'] &&
-              !(args['from'] == 0 && args['to'] == 'EFFVM_EMIT_ATTACKER'),
+          towardOpponent: towardOpponent,
           matchBattleSpacing: isSurf || isMovingExample,
           anchorAtFoot: isSurf || isMovingExample,
         );
