@@ -1028,7 +1028,7 @@ class BattlePreviewGame extends FlameGame {
                   projection.capture()!.single.unit
             : 25.0;
         final beamScale = portraitBeam
-            ? (_overlay.size.y / _overlay.size.x).clamp(1.0, 2.0)
+            ? (1 + (_overlay.size.y / _overlay.size.x - 1) * 1.1).clamp(1.0, 2.25)
             : 1.0;
         final pixelsPerUnit = basePixelsPerUnit * beamScale;
         late final BattleExperimentalSplPreparation result;

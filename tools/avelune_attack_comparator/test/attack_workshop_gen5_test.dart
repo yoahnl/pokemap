@@ -516,7 +516,9 @@ void main() {
         expect(impactHeights[impactHeights.length ~/ 2].abs(), lessThan(maxImpactOffset));
         expect(initialImpactHeights[initialImpactHeights.length ~/ 2].abs(), lessThan(maxImpactOffset));
         if (scenario.id == 'hyper-beam' && size.height > size.width) {
-          expect(beamCorePixels, greaterThanOrEqualTo(16),
+          debugPrint('[laser-width] $size core=$beamCorePixels');
+          final minimumCorePixels = size.width == 393 ? 24 : 16;
+          expect(beamCorePixels, greaterThanOrEqualTo(minimumCorePixels),
               reason: 'Le cœur du rayon doit rester visible en portrait');
         }
         await tester.pumpWidget(const SizedBox());
