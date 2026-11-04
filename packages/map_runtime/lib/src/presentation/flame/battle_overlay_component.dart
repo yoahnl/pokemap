@@ -1076,6 +1076,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
         int remaining})>{};
     final stagePaletteJobs = <String, ({int level, int end, int wait,
         int remaining, int step, Color color})>{};
+    final delayedSounds = <({int remaining, Map<String, dynamic> args})>[];
     final sourceCamera = Gen5CameraMotion();
     final initialEye = camera.eye;
     final initialAim = camera.aim;
@@ -1644,7 +1645,14 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
         case 'deleteParticle':
           deleteSourceParticle!(args['particle'] as int);
         case 'playSound':
-          onSourceSound?.call(args);
+          if (onSourceSound != null) {
+            final wait = args['wait'];
+            if (wait is int && wait > 0) {
+              delayedSounds.add((remaining: wait + 1, args: args));
+            } else {
+              onSourceSound(args);
+            }
+          }
         case 'loadParticle':
         case 'setActorCameraMode':
         case 'playCry':
@@ -1657,6 +1665,19 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
       return BattleGen5SourceDispatchResult.completed;
     }
     void advance() {
+      for (var index = 0; index < delayedSounds.length;) {
+        final sound = delayedSounds[index];
+        if (sound.remaining == 1) {
+          delayedSounds.removeAt(index);
+          onSourceSound?.call(sound.args);
+        } else {
+          delayedSounds[index] = (
+            remaining: sound.remaining - 1,
+            args: sound.args,
+          );
+          index++;
+        }
+      }
       motion.tick();
       sourceBackground.tick();
       for (final entry in alphaJobs.entries.toList()) {

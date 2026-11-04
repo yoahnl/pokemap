@@ -36,12 +36,34 @@ final class _Voice implements AudioPlayer {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUp(rootBundle.clear);
-
-  for (final delayed in [false, true]) {
+  const fissure = PreviewMove(
+    'fissure',
+    'Abîme',
+    null,
+    'ground',
+    PsdkBattleMoveCategory.physical,
+    bundleAsset: 'assets/bw2/batch/fissure.json',
+  );
+  for (final scenario in [
+    (delayed: false, move: fissure),
+    (delayed: true, move: fissure),
+    (
+      delayed: false,
+      move: const PreviewMove(
+        'air-cutter',
+        'Tranch’Air',
+        null,
+        'flying',
+        PsdkBattleMoveCategory.special,
+        bundleAsset: 'assets/bw2/batch/air-cutter.json',
+      ),
+    ),
+  ]) {
+    final delayed = scenario.delayed;
     testWidgets(
       delayed
           ? 'does not start a clip that arrives after the attack'
-          : 'plays one move clip at a source sound event and releases it',
+          : 'plays one ${scenario.move.label} clip and releases it',
       (tester) async {
         tester.view.physicalSize = const Size(393, 852);
         tester.view.devicePixelRatio = 1;
@@ -64,14 +86,7 @@ void main() {
         final status = ValueNotifier<String>('Preparing');
         final game = BattlePreviewGame(
           projectRoot: root!.path,
-          move: const PreviewMove(
-            'fissure',
-            'Abîme',
-            null,
-            'ground',
-            PsdkBattleMoveCategory.physical,
-            bundleAsset: 'assets/bw2/batch/fissure.json',
-          ),
+          move: scenario.move,
           status: status,
           loadMoveAudio: (_) async {
             loads++;

@@ -19,7 +19,7 @@ Map<String, dynamic> _instruction(
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   test(
-    'dispatches BW2 sound commands when the source program reaches them',
+    'dispatches BW2 sound commands after their scheduled frame delay',
     () async {
       const pokemon = BattleCombatantData(
         speciesId: 'totodile',
@@ -65,9 +65,12 @@ void main() {
         'conversion': 'supported',
         'instructions': [
           _instruction('waitFrames', {'frames': 3}),
-          _instruction('playSound', {'se': 'first'}),
-          _instruction('waitFrames', {'frames': 2}),
-          _instruction('playSound', {'se': 'second'}),
+          _instruction('setYield', {'value': false}),
+          _instruction('playSound', {'se': 'slow', 'wait': 4}),
+          _instruction('playSound', {'se': 'fast', 'wait': 2}),
+          _instruction('playSound', {'se': 'immediate', 'wait': 0}),
+          _instruction('setYield', {'value': true}),
+          _instruction('waitFrames', {'frames': 8}),
           _instruction('end'),
         ],
       };
@@ -88,8 +91,35 @@ void main() {
         await Future<void>.delayed(Duration.zero);
       }
       expect(await finished, BattleGen5SourcePlaybackStatus.finished);
-      expect(calls.map((value) => value.$1), ['first', 'second']);
-      expect(calls[1].$2, greaterThan(calls[0].$2));
+      expect(calls.map((value) => value.$1), ['immediate', 'fast', 'slow']);
+      expect(calls[1].$2 - calls[0].$2, 2);
+      expect(calls[2].$2 - calls[0].$2, 4);
+
+      calls.clear();
+      final cancelled = overlay.presentExperimentalGen5Attack(
+        program: {
+          ...program,
+          'instructions': [
+            _instruction('playSound', {'se': 'cancelled', 'wait': 5}),
+            _instruction('waitFrames', {'frames': 20}),
+            _instruction('end'),
+          ],
+        },
+        variant: 'Attack',
+        hasEmitter: (_, _) => false,
+        startEmitter: (_, _, _) {},
+        particlesBusy: () => false,
+        detachParticles: () {},
+        allowSilentAudio: true,
+        onSourceSound: (args) => calls.add((args['se'] as String, tick)),
+      );
+      overlay.updateTree(1 / 60);
+      overlay.cancelExperimentalGen5Attack();
+      for (var frame = 0; frame < 10; frame++) {
+        overlay.updateTree(1 / 60);
+      }
+      expect(await cancelled, BattleGen5SourcePlaybackStatus.cancelled);
+      expect(calls, isEmpty);
     },
   );
 }
