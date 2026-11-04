@@ -8,12 +8,355 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/src/presentation/flame/battle_spl_configured_emitter.dart';
+import 'package:map_runtime/src/presentation/flame/battle_spl_emitter_lifecycle.dart';
 import 'package:map_runtime/src/presentation/flame/battle_spl_particle_pool.dart';
 import 'package:map_runtime/src/presentation/flame/battle_spl_point_preview_painter.dart';
 import 'package:map_runtime/src/presentation/flame/battle_spl_random.dart';
 import 'package:map_runtime/src/presentation/flame/battle_spl_static_admission.dart';
 
 void main() {
+  test('applies BW2 random forces and consumes all three random values', () async {
+    final raw = jsonDecode(
+      await File('../map_core/test/fixtures/spl_particle_v2.json').readAsString(),
+    ) as Map<String, dynamic>;
+    raw['schemaVersion'] = 14;
+    final source = (raw['emitters'] as List).single as Map<String, dynamic>;
+    final emission = source['emission'] as Map;
+    emission['shape'] = 'point';
+    emission['radius'] = 0;
+    emission['axisVelocity'] = 0;
+    emission['positionVelocity'] = 0;
+    emission['emissionAxis'] = 'z';
+    emission['velocityVariance'] = 0;
+    emission['particleLifetimeVariance'] = 0;
+    emission['duration'] = 1;
+    emission['particleLifetime'] = 3;
+    final appearance = source['appearance'] as Map;
+    appearance['hasRotation'] = false;
+    appearance['minRotation'] = 0;
+    appearance['maxRotation'] = 0;
+    appearance['dirFromPosition'] = false;
+    appearance['drawChildrenFirst'] = false;
+    appearance['hasAlphaAnimation'] = false;
+    final motion = source['motion'] as Map;
+    motion['magnet'] = null;
+    motion['gravity'] = {'x': 0, 'y': 0, 'z': 0};
+    motion['airResistance'] = 128;
+    source['child'] = null;
+    ({BattleSplConfiguredEmitter emitter, BattleSplRandom random}) create(int? magnitude) {
+      if (magnitude == null) {
+        motion.remove('random');
+      } else {
+        motion['random'] = {
+          'magnitude': {'x': magnitude, 'y': 0, 'z': 0},
+          'applyInterval': 2,
+        };
+      }
+      final random = BattleSplRandom(seed: 0);
+      return (
+        emitter: BattleSplConfiguredEmitter(
+          definition: BattleSplParticleDefinition.fromExperimentalJson(raw).emitters.single,
+          textureIndices: const {'tex': 0}, random: random,
+          pool: BattleSplParticlePool(capacity: 64),
+        ),
+        random: random,
+      );
+    }
+    final baseline = create(null);
+    final zero = create(0);
+    final moving = create(1000);
+    for (final item in [baseline, zero, moving]) {
+      item.emitter.step(managerFrame: 0, position: (x: 0, y: 0, z: 0));
+    }
+    final expected = BattleSplRandom(seed: baseline.random.state);
+    final x = expected.range(1000);
+    expected.range(0);
+    expected.range(0);
+    expect(moving.emitter.playback.particles.single.motion.position.x, x);
+    expect(moving.random.state, expected.state);
+    expect(zero.random.state, expected.state);
+    final afterFirst = expected.state;
+    for (final item in [baseline, zero, moving]) {
+      item.emitter.step(managerFrame: 1, position: (x: 0, y: 0, z: 0));
+    }
+    expect(moving.random.state, afterFirst);
+    expect(zero.random.state, afterFirst);
+    final nextX = expected.range(1000);
+    expected.range(0);
+    expected.range(0);
+    for (final item in [baseline, zero, moving]) {
+      item.emitter.step(managerFrame: 0, position: (x: 0, y: 0, z: 0));
+    }
+    expect(moving.random.state, expected.state);
+    expect(zero.random.state, expected.state);
+    expect(moving.emitter.playback.particles.single.motion.position.x,
+        3 * x + nextX);
+    for (final item in [baseline, zero, moving]) { item.emitter.cancel(); }
+  });
+
+  test('applies parsed BW2 child following independently of the parent', () async {
+    final fixture = await File('../map_core/test/fixtures/spl_particle_v2.json')
+        .readAsString();
+    for (final follows in [false, true]) {
+      final raw = jsonDecode(fixture) as Map<String, dynamic>;
+      raw['schemaVersion'] = 11;
+      final source = (raw['emitters'] as List).single as Map<String, dynamic>;
+      final emission = source['emission'] as Map;
+      emission['positionVelocity'] = 0;
+      emission['emissionAxis'] = 'z';
+      emission['velocityVariance'] = 0;
+      emission['particleLifetimeVariance'] = 0;
+      emission['duration'] = 1;
+      emission['particleLifetime'] = 3;
+      emission['followEmitter'] = false;
+      final appearance = source['appearance'] as Map;
+      appearance['hasRotation'] = false;
+      appearance['minRotation'] = 0;
+      appearance['maxRotation'] = 0;
+      appearance['dirFromPosition'] = false;
+      appearance['drawChildrenFirst'] = false;
+      (source['motion'] as Map)['magnet'] = null;
+      source['child'] = {
+        'velocityRatio': 0,
+        'randomVelocityMagnitude': 0,
+        'scaleRatio': 16,
+        'color': {'red': 19, 'green': 23, 'blue': 27},
+        'rotation': 'none',
+        'lifetime': 3,
+        'texture': 'tex',
+        'emissionCount': 1,
+        'emissionDelay': 0,
+        'emissionInterval': 1,
+        'fadeAlpha': false,
+        'scaleEnd': null,
+        'inheritBehaviors': false,
+        'draw': 'billboard',
+        'inheritColor': false,
+        'followEmitter': follows,
+      };
+      final emitter = BattleSplConfiguredEmitter(
+        definition: BattleSplParticleDefinition.fromExperimentalJson(raw)
+            .emitters.single,
+        textureIndices: const {'tex': 0},
+        random: BattleSplRandom(seed: 0),
+        pool: BattleSplParticlePool(capacity: 64),
+      );
+      emitter.step(managerFrame: 0, position: (x: 10, y: 0, z: 0));
+      final childId = emitter.playback.particles.firstWhere(
+        (particle) => particle.parentId != null,
+      ).id;
+      emitter.step(managerFrame: 1, position: (x: 30, y: 0, z: 0));
+      final child = emitter.playback.particles.singleWhere(
+        (particle) => particle.id == childId,
+      );
+      expect(child.emitterPosition.x, follows ? 30 : 10);
+      emitter.cancel();
+    }
+  });
+
+  test('places BW2 volume emitters and directs cylinder particles from their full position', () async {
+    final raw = jsonDecode(
+      await File('../map_core/test/fixtures/spl_particle_v2.json').readAsString(),
+    ) as Map<String, dynamic>;
+    raw['schemaVersion'] = 9;
+    final source = (raw['emitters'] as List).single as Map<String, dynamic>;
+    final emission = source['emission'] as Map;
+    emission['radius'] = 4096;
+    emission['positionVelocity'] = 0;
+    emission['axisVelocity'] = 0;
+    emission['emissionAxis'] = 'y';
+    emission['velocityVariance'] = 0;
+    emission['particleLifetimeVariance'] = 0;
+    emission['duration'] = 1;
+    final appearance = source['appearance'] as Map;
+    appearance['hasRotation'] = false;
+    appearance['minRotation'] = 0;
+    appearance['maxRotation'] = 0;
+    appearance['dirFromPosition'] = false;
+    appearance['drawChildrenFirst'] = false;
+    appearance['hasAlphaAnimation'] = false;
+    (source['motion'] as Map)['magnet'] = null;
+
+    for (final entry in {
+      'circleDisk': (x: 330, y: 0, z: -3152),
+      'sphereVolume': (x: -446, y: 614, z: -510),
+      'hemisphereVolume': (x: 1408, y: 1499, z: -593),
+      'cylinderVolume': (x: 330, y: 1056, z: -3152),
+    }.entries) {
+      emission['shape'] = entry.key;
+      if (entry.key == 'cylinderVolume') emission['length'] = 4096;
+      final emitter = BattleSplConfiguredEmitter(
+        definition: BattleSplParticleDefinition.fromExperimentalJson(raw).emitters.single,
+        textureIndices: const {'tex': 0},
+        random: BattleSplRandom(seed: 0),
+        pool: BattleSplParticlePool(capacity: 64),
+      );
+      emitter.step(managerFrame: 0, position: (x: 0, y: 0, z: 0));
+      expect(emitter.playback.particles.single.motion.position, entry.value);
+      emitter.cancel();
+    }
+
+    emission['positionVelocity'] = 4096;
+    final moving = BattleSplConfiguredEmitter(
+      definition: BattleSplParticleDefinition.fromExperimentalJson(raw).emitters.single,
+      textureIndices: const {'tex': 0},
+      random: BattleSplRandom(seed: 0),
+      pool: BattleSplParticlePool(capacity: 64),
+    );
+    moving.step(managerFrame: 0, position: (x: 0, y: 0, z: 0));
+    expect(moving.playback.particles.single.motion.velocity.y, greaterThan(0));
+    moving.cancel();
+  });
+
+  test('places BW2 cylinder particles with a deterministic radial direction', () async {
+    final raw = jsonDecode(
+      await File('../map_core/test/fixtures/spl_particle_v2.json').readAsString(),
+    ) as Map<String, dynamic>;
+    raw['schemaVersion'] = 8;
+    final source = (raw['emitters'] as List).single as Map<String, dynamic>;
+    final emission = source['emission'] as Map;
+    emission['shape'] = 'cylinderSurface';
+    emission['radius'] = 4096;
+    emission['length'] = 4096;
+    emission['positionVelocity'] = 0;
+    emission['axisVelocity'] = 0;
+    emission['emissionAxis'] = 'y';
+    emission['velocityVariance'] = 0;
+    emission['particleLifetimeVariance'] = 0;
+    emission['duration'] = 1;
+    final appearance = source['appearance'] as Map;
+    appearance['hasRotation'] = false;
+    appearance['minRotation'] = 0;
+    appearance['maxRotation'] = 0;
+    appearance['dirFromPosition'] = false;
+    appearance['drawChildrenFirst'] = false;
+    appearance['hasAlphaAnimation'] = false;
+    (source['motion'] as Map)['magnet'] = null;
+    final random = BattleSplRandom(seed: 0);
+    final emitter = BattleSplConfiguredEmitter(
+      definition: BattleSplParticleDefinition.fromExperimentalJson(raw)
+          .emitters.single,
+      textureIndices: const {'tex': 0},
+      random: random,
+      pool: BattleSplParticlePool(capacity: 64),
+    );
+    emitter.step(managerFrame: 0, position: (x: 0, y: 0, z: 0));
+    expect(emitter.playback.particles.single.motion.position,
+        (x: -2417, y: 3904, z: -3307));
+    expect(random.state, 0xdd3de521);
+    emitter.cancel();
+
+    emission['radius'] = 0;
+    emission['length'] = 0;
+    emission['positionVelocity'] = 4096;
+    final zeroRadius = BattleSplConfiguredEmitter(
+      definition: BattleSplParticleDefinition.fromExperimentalJson(raw)
+          .emitters.single,
+      textureIndices: const {'tex': 0},
+      random: BattleSplRandom(seed: 0),
+      pool: BattleSplParticlePool(capacity: 64),
+    );
+    zeroRadius.step(managerFrame: 0, position: (x: 0, y: 0, z: 0));
+    final moved = zeroRadius.playback.particles.single.motion.position;
+    expect(moved.y, 0);
+    expect(moved.x.abs(), greaterThan(0));
+    expect(moved.z.abs(), greaterThan(0));
+    zeroRadius.cancel();
+  });
+
+  test('uses each BW2 particle lifetime for animation and child timing', () async {
+    final raw = jsonDecode(
+      await File('../map_core/test/fixtures/spl_particle_v2.json').readAsString(),
+    ) as Map<String, dynamic>;
+    raw['schemaVersion'] = 7;
+    final source = (raw['emitters'] as List).single as Map<String, dynamic>;
+    final emission = source['emission'] as Map;
+    emission['positionVelocity'] = 0;
+    emission['emissionAxis'] = 'z';
+    emission['velocityVariance'] = 0;
+    emission['particleLifetimeVariance'] = 255;
+    emission['particleLifetime'] = 12;
+    emission['rate'] = 8192;
+    emission['duration'] = 1;
+    final appearance = source['appearance'] as Map;
+    appearance['hasRotation'] = false;
+    appearance['minRotation'] = 0;
+    appearance['maxRotation'] = 0;
+    appearance['dirFromPosition'] = false;
+    appearance['drawChildrenFirst'] = false;
+    appearance['hasAlphaAnimation'] = false;
+    appearance['randomTextureStart'] = true;
+    appearance['textureAnimation'] = {
+      'textures': ['tex', 'tex2', 'tex3'],
+      'step': 64,
+      'loop': true,
+    };
+    appearance['scale'] = {
+      'start': 0,
+      'middle': 4096,
+      'end': 4096,
+      'fadeIn': 128,
+      'fadeOut': 128,
+      'loop': false,
+    };
+    (source['motion'] as Map)['magnet'] = null;
+    source['child'] = {
+      'velocityRatio': 0,
+      'randomVelocityMagnitude': 0,
+      'scaleRatio': 64,
+      'color': {'red': 31, 'green': 0, 'blue': 0},
+      'rotation': 'none',
+      'lifetime': 1,
+      'texture': 'tex',
+      'emissionCount': 1,
+      'emissionDelay': 128,
+      'emissionInterval': 20,
+      'fadeAlpha': false,
+      'scaleEnd': null,
+      'inheritBehaviors': false,
+      'draw': 'billboard',
+      'inheritColor': false,
+    };
+    final random = BattleSplRandom(seed: 0);
+    final emitter = BattleSplConfiguredEmitter(
+      definition: BattleSplParticleDefinition.fromExperimentalJson(raw)
+          .emitters.single,
+      textureIndices: const {'tex': 0, 'tex2': 1, 'tex3': 2},
+      random: random,
+      pool: BattleSplParticlePool(capacity: 64),
+    );
+    final expired = <int, int>{};
+    final childFrames = <int, int>{};
+    for (var frame = 0; frame <= 9; frame++) {
+      final result = emitter.step(
+        managerFrame: frame % 2,
+        position: (x: 0, y: 0, z: 0),
+      );
+      if (frame == 0) {
+        expect(
+          {for (final p in emitter.playback.particles) p.id: p.texture},
+          {1: 0, 2: 2},
+        );
+        expect(random.state, 0x1df33750);
+      }
+      if (frame == 1) {
+        final parents = emitter.playback.particles.where((p) => p.parentId == null);
+        expect({for (final p in parents) p.id: p.scale4096}, {1: 4064, 2: 896});
+      }
+      for (final event in result.events) {
+        if (event.kind == BattleSplParticleEventKind.parentExpired) {
+          expired[event.particleId] = frame;
+        }
+        if (event.kind == BattleSplParticleEventKind.childEmitted) {
+          childFrames[event.parentId!] = frame;
+        }
+      }
+    }
+    expect(expired, {1: 2, 2: 9});
+    expect(childFrames, {1: 1, 2: 5});
+    emitter.cancel();
+  });
+
   test('keeps each randomly selected BW2 texture for the particle lifetime', () async {
     final raw = jsonDecode(
       await File('../map_core/test/fixtures/spl_particle_v2.json').readAsString(),

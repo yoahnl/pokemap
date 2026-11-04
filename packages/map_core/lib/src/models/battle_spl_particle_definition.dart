@@ -30,7 +30,7 @@ final class BattleSplParticleDefinition {
     }
     _fields(copy, {'schemaVersion', 'emitters'});
     if (copy['schemaVersion'] is! int ||
-        !(experimental ? {5, 6} : {2, 3, 4}).contains(copy['schemaVersion'])) {
+        !(experimental ? {5, 6, 7, 8, 9, 10, 11, 12, 13, 14} : {2, 3, 4}).contains(copy['schemaVersion'])) {
       throw const FormatException('Unsupported SPL particle version');
     }
     final values = _list(copy['emitters']);
@@ -42,7 +42,7 @@ final class BattleSplParticleDefinition {
     for (final value in values) {
       final emitter = _map(value);
       _validateEmitter(emitter, textures, copy['schemaVersion'] as int);
-      emitters.add(BattleSplEmitterDefinition._(emitter));
+      emitters.add(BattleSplEmitterDefinition._(emitter, copy['schemaVersion'] as int));
     }
     return BattleSplParticleDefinition._(
       copy['schemaVersion'] as int,
@@ -58,9 +58,10 @@ final class BattleSplParticleDefinition {
 }
 
 final class BattleSplEmitterDefinition {
-  const BattleSplEmitterDefinition._(this._json);
+  const BattleSplEmitterDefinition._(this._json, this.schemaVersion);
 
   final Map<String, dynamic> _json;
+  final int schemaVersion;
 
   Map<String, dynamic> toJson() =>
       (jsonDecode(jsonEncode(_json)) as Map).cast<String, dynamic>();
@@ -92,6 +93,10 @@ void _validateEmitter(
     'initialAngle',
     if (version >= 5) 'emissionAxis',
     if (version >= 5) 'velocityVariance',
+    if (version >= 7) 'particleLifetimeVariance',
+    if (version >= 8 &&
+        {'cylinderSurface', 'cylinderVolume'}.contains(emission['shape']))
+      'length',
   });
   _choice(emission['shape'], {
     'point',
@@ -99,10 +104,20 @@ void _validateEmitter(
     if (version >= 5) 'hemisphereSurface',
     if (version >= 5) 'circleBorder',
     if (version >= 5) 'circleBorderUniform',
+    if (version >= 8) 'cylinderSurface',
+    if (version >= 9) ...{
+      'circleDisk',
+      'sphereVolume',
+      'hemisphereVolume',
+      'cylinderVolume',
+    },
   });
   _vector(emission['origin'], -2147483648, 2147483647);
   _vector(emission['axis'], -32768, 32767);
   final radius = _integer(emission['radius'], 0, 32767);
+  if ({'cylinderSurface', 'cylinderVolume'}.contains(emission['shape'])) {
+    _integer(emission['length'], 0, 65535);
+  }
   if (emission['shape'] == 'point' && radius != 0) {
     throw const FormatException('Point SPL emitter cannot have a radius');
   }
@@ -127,6 +142,7 @@ void _validateEmitter(
     _choice(emission['emissionAxis'], {'x', 'y', 'z'});
     _integer(emission['velocityVariance'], 0, 255);
   }
+  if (version >= 7) _integer(emission['particleLifetimeVariance'], 0, 255);
 
   final appearance = _map(emitter['appearance']);
   _fields(appearance, {
@@ -146,6 +162,7 @@ void _validateEmitter(
     if (version >= 5) 'maxRotation',
     if (version >= 5) 'dirFromPosition',
     if (version >= 6) 'drawChildrenFirst',
+    if (version >= 13 && appearance.containsKey('hideParent')) 'hideParent',
     if (version >= 6 && appearance.containsKey('hasAlphaAnimation'))
       'hasAlphaAnimation',
     if (version >= 6 && appearance.containsKey('randomColorStart'))
@@ -168,6 +185,9 @@ void _validateEmitter(
     _integer(appearance['maxRotation'], -32768, 32767);
     _boolean(appearance['dirFromPosition']);
     if (version >= 6) _boolean(appearance['drawChildrenFirst']);
+    if (version >= 13 && appearance.containsKey('hideParent')) {
+      _boolean(appearance['hideParent']);
+    }
     if (version >= 6 && appearance.containsKey('hasAlphaAnimation')) {
       _boolean(appearance['hasAlphaAnimation']);
     }
@@ -216,8 +236,8 @@ void _validateEmitter(
   _integer(appearance['aspectRatio'], 0, 32767);
   _integer(appearance['baseAlpha'], 0, 31);
   _integer(appearance['loopTime'], 1, 65535);
-  _curve(appearance['scale'], 32767);
-  _curve(appearance['alpha'], 31, alpha: true);
+  _curve(appearance['scale'], 32767, allowOverlap: version >= 10);
+  _curve(appearance['alpha'], 31, alpha: true, allowOverlap: version >= 10);
   _colorCurve(appearance['color']);
   textures.add(_texture(appearance['initialTexture']));
   final textureAnimation = appearance['textureAnimation'];
@@ -242,6 +262,7 @@ void _validateEmitter(
     if (version >= 4) 'magnet',
     if (version >= 5 && motion.containsKey('convergence')) 'convergence',
     if (version >= 6 && motion.containsKey('spin')) 'spin',
+    if (version >= 14 && motion.containsKey('random')) 'random',
   });
   _vector(motion['gravity'], -32768, 32767);
   _integer(motion['airResistance'], 0, 255);
@@ -263,6 +284,12 @@ void _validateEmitter(
     _choice(spin['axis'], {'x', 'y', 'z'});
     _integer(spin['angle'], 0, 65535);
   }
+  if (version >= 14 && motion.containsKey('random')) {
+    final random = _map(motion['random']);
+    _fields(random, {'magnitude', 'applyInterval'});
+    _vector(random['magnitude'], 0, 32767);
+    _integer(random['applyInterval'], 1, 65535);
+  }
 
   final child = emitter['child'];
   if (child != null) {
@@ -283,6 +310,7 @@ void _validateEmitter(
       if (version >= 4) 'inheritBehaviors',
       if (version >= 4) 'draw',
       if (version >= 6) 'inheritColor',
+      if (version >= 11) 'followEmitter',
     });
     _integer(fields['velocityRatio'], 0, 255);
     _integer(fields['randomVelocityMagnitude'], 0, 32767);
@@ -303,8 +331,9 @@ void _validateEmitter(
       _choice(fields['draw'], {'billboard', 'directionalBillboard'});
     }
     if (version >= 6) _boolean(fields['inheritColor']);
+    if (version >= 11) _boolean(fields['followEmitter']);
     final effectiveLifetime = ((lifetime * 255) >> 8) + 1;
-    if (effectiveLifetime < 2 || effectiveLifetime * delay > 524287) {
+    if ((version < 12 && effectiveLifetime < 2) || effectiveLifetime * delay > 524287) {
       throw const FormatException('Invalid SPL child timing');
     }
     final curve = _map(appearance['scale']);
@@ -315,13 +344,13 @@ void _validateEmitter(
     ].reduce((first, second) => first > second ? first : second);
     final childScale =
         ((maxVariedScale * maxScale) ~/ 4096 * (scaleRatio + 1)) ~/ 64;
-    if (childScale > 32767) {
+    if (childScale > (version >= 12 ? 1048512 : 32767)) {
       throw const FormatException('SPL child scale exceeds supported range');
     }
   }
 }
 
-void _curve(Object? value, int maximum, {bool alpha = false}) {
+void _curve(Object? value, int maximum, {bool alpha = false, bool allowOverlap = false}) {
   final curve = _map(value);
   _fields(curve, {
     'start',
@@ -337,7 +366,9 @@ void _curve(Object? value, int maximum, {bool alpha = false}) {
   }
   final fadeIn = _integer(curve['fadeIn'], 0, 254);
   final fadeOut = _integer(curve['fadeOut'], 0, 254);
-  if (fadeIn > fadeOut) throw const FormatException('Invalid SPL curve');
+  if (!allowOverlap && fadeIn > fadeOut) {
+    throw const FormatException('Invalid SPL curve');
+  }
   if (alpha) _integer(curve['randomRange'], 0, 255);
   _boolean(curve['loop']);
 }

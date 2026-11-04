@@ -9,6 +9,68 @@ import 'package:map_runtime/src/presentation/flame/battle_spl_random.dart';
 import 'package:map_runtime/src/presentation/flame/battle_spl_scalar_animation.dart';
 
 void main() {
+  test('alpha randomness is consumed before the BW2 random force', () {
+    final random = BattleSplRandom(seed: 0);
+    final playback = _playback(
+      _lifecycle(),
+      nextAlphaByte: () => random.next() >> 24,
+      randomForce: (magnitude: (x: 100, y: 0, z: 0), interval: 1),
+      random: random,
+    );
+    final expected = BattleSplRandom(seed: 0);
+    expected.next();
+    final x = expected.range(100);
+    expected.range(0);
+    expected.range(0);
+    playback.step(managerFrame: 0);
+    expect(playback.particles.single.motion.velocity.x, 100 + x);
+    expect(random.state, expected.state);
+    playback.cancel();
+  });
+
+  test('random behavior affects children only when they inherit behaviors', () {
+    ({BattleSplPointEmitterPlayback playback, BattleSplRandom random}) create(bool inherit) {
+      final random = BattleSplRandom(seed: 0);
+      final playback = _playback(
+        _lifecycle(child: const BattleSplChildTiming(
+          emissionCount: 1, emissionDelay256: 0, emissionInterval: 1, lifetime: 4,
+        )),
+        alphaAnimationEnabled: false,
+        childInheritsBehaviors: inherit,
+        randomForce: (magnitude: (x: 100, y: 0, z: 0), interval: 1),
+        random: random,
+        childInitializer: (_, parent) => (
+          motion: BattleSplParticleMotion(position: (x: 0, y: 0, z: 0),
+              velocity: (x: 0, y: 0, z: 0), rotation: 0, angularVelocity: 0),
+          emitterPosition: parent.emitterPosition, baseScale4096: 4096,
+          baseAlpha5: 31, color: parent.color, lifetime: 4, texture: 10,
+        ),
+      );
+      return (playback: playback, random: random);
+    }
+    final inherited = create(true);
+    final independent = create(false);
+    inherited.playback.step(managerFrame: 0);
+    independent.playback.step(managerFrame: 0);
+    final expected = BattleSplRandom(seed: 0);
+    final parentForce = expected.range(100);
+    expected.range(0);
+    expected.range(0);
+    expect(independent.random.state, expected.state);
+    final childForce = expected.range(100);
+    expected.range(0);
+    expected.range(0);
+    expect(inherited.random.state, expected.state);
+    expect(inherited.playback.particles.singleWhere((p) => p.parentId == null)
+        .motion.velocity.x, 100 + parentForce);
+    expect(inherited.playback.particles.singleWhere((p) => p.parentId != null)
+        .motion.velocity.x, childForce);
+    expect(independent.playback.particles.singleWhere((p) => p.parentId != null)
+        .motion.velocity.x, 0);
+    inherited.playback.cancel();
+    independent.playback.cancel();
+  });
+
   test('does not consume alpha randomness when there is no alpha animation', () {
     var calls = 0;
     final playback = _playback(
@@ -133,6 +195,7 @@ void main() {
         baseScale4096: id * 2048,
         color: null,
         texture: null,
+        lifetime: null,
       ),
     );
 
@@ -303,6 +366,40 @@ void main() {
     expect(pool.inUse, 0);
     expect(playback.particles, isEmpty);
     expect(() => playback.step(managerFrame: 1), throwsStateError);
+  });
+
+  test('returns the shared pool when a varied lifetime is invalid', () {
+    final pool = BattleSplParticlePool(capacity: 8);
+    final lifecycle = BattleSplEmitterLifecycle(
+      emitterLifetime: 1,
+      emissionInterval: 1,
+      emissionRate4096: 8192,
+      particleLifetime: 10,
+      particleLifetimeVariance: 255,
+      maxParticles: 8,
+      particlePool: pool,
+      captureEvents: true,
+    );
+    final playback = _playback(
+      lifecycle,
+      initializeParent: (_) => (
+        motion: BattleSplParticleMotion(
+          position: (x: 0, y: 0, z: 0),
+          velocity: (x: 0, y: 0, z: 0),
+          rotation: 0,
+          angularVelocity: 0,
+        ),
+        emitterPosition: (x: 0, y: 0, z: 0),
+        baseScale4096: 4096,
+        color: null,
+        texture: null,
+        lifetime: 0,
+      ),
+    );
+
+    expect(() => playback.step(managerFrame: 0), throwsFormatException);
+    expect(pool.inUse, 0);
+    expect(playback.particles, isEmpty);
   });
 
   test('cancelling a playback releases its shared particles once', () {
@@ -532,6 +629,8 @@ BattleSplPointEmitterPlayback _playback(
   bool alphaAnimationEnabled = true,
   int? childScaleEnd,
   ({BattleSplVector target, int force})? magnet,
+  ({BattleSplVector magnitude, int interval})? randomForce,
+  BattleSplRandom? random,
   bool childInheritsBehaviors = false,
   BattleSplInitialChild Function(int, BattleSplPointParticle)? childInitializer,
 }) => BattleSplPointEmitterPlayback(
@@ -546,6 +645,8 @@ BattleSplPointEmitterPlayback _playback(
   alphaAnimationEnabled: alphaAnimationEnabled,
   childScaleEnd: childScaleEnd,
   magnet: magnet,
+  randomForce: randomForce,
+  random: random,
   childInheritsBehaviors: childInheritsBehaviors,
   childInitializer: childInitializer,
   initialTexture: 10,
@@ -564,6 +665,7 @@ BattleSplPointEmitterPlayback _playback(
         baseScale4096: 4096,
         color: null,
         texture: null,
+        lifetime: null,
       ))(id),
   scale: BattleSplScalarAnimation(
     start: 4096,

@@ -54,6 +54,7 @@ abstract final class Gen5BatchParticleApproximation {
       'gravityBehavior', 'magnetBehavior',
       if (preserveExperimentalFeatures) 'convergenceBehavior',
       if (preserveExperimentalFeatures) 'spinBehavior',
+      if (preserveExperimentalFeatures) 'randomBehavior',
     };
     for (final emitter in emitters) {
       if (omitChildren && emitter.containsKey('childResource')) {
@@ -63,6 +64,20 @@ abstract final class Gen5BatchParticleApproximation {
       for (final field in emitter.keys.where((key) => !allowed.contains(key)).toList()) {
         emitter.remove(field);
         warnings.add('particle-field:$field');
+      }
+      if (emitter.containsKey('randomBehavior')) {
+        final random = emitter['randomBehavior'];
+        final magnitude = random is Map ? random['magnitude'] : null;
+        final interval = random is Map ? random['applyInterval'] : null;
+        if (random is! Map || random.keys.any((key) =>
+                key != 'magnitude' && key != 'applyInterval') ||
+            magnitude is! Map || magnitude.length != 3 ||
+            !['x', 'y', 'z'].every((axis) => magnitude[axis] is int &&
+                (magnitude[axis] as int) >= 0 && (magnitude[axis] as int) <= 32767) ||
+            interval is! int || interval < 1 || interval > 65535) {
+          emitter.remove('randomBehavior');
+          warnings.add('particle-field:randomBehavior');
+        }
       }
       if (emitter.containsKey('spinBehavior')) {
         final spin = emitter['spinBehavior'];
@@ -84,6 +99,11 @@ abstract final class Gen5BatchParticleApproximation {
           'hemisphere_surface',
           'circle_border',
           'circle_border_uniform',
+          'cylinder_surface',
+          'circle',
+          'sphere',
+          'hemisphere',
+          'cylinder',
         },
       }.contains(shape)) {
         emitter['emissionType'] = 'sphere_surface';
@@ -103,14 +123,15 @@ abstract final class Gen5BatchParticleApproximation {
       for (final field in [if (!preserveExperimentalFeatures) 'hasRotation',
           'randomLoopOffset',
           if (!preserveExperimentalFeatures) 'drawChildrenFirst',
-          'hideParent',
+          if (!preserveExperimentalFeatures) 'hideParent',
           'relativeToBasePos', 'fixedPolygonID', 'childFixedPolygonID', 'dirFromPosition',
           'flipTextureS', 'flipTextureT']) {
         if (emitter.containsKey(field)) set(emitter, field, false, 'particle-field:$field');
       }
-      for (final field in ['lifeTimeVariance',
+      for (final field in [if (!preserveExperimentalFeatures) 'lifeTimeVariance',
           if (!preserveExperimentalFeatures) 'velocityVariance', 'dirStretch',
-          'textureRepeatShiftS', 'textureRepeatShiftT', 'polygonX', 'polygonY']) {
+          'textureRepeatShiftS', 'textureRepeatShiftT',
+          if (!preserveExperimentalFeatures) ...['polygonX', 'polygonY']]) {
         if (emitter.containsKey(field)) set(emitter, field, 0, 'particle-field:$field');
       }
       if (emitter['autoTerminate'] == false) {
@@ -120,11 +141,11 @@ abstract final class Gen5BatchParticleApproximation {
         set(emitter, 'emitterLifeTime', 60, 'particle-default:emitterLifeTime');
       }
       for (final (field, min, max) in <(String, int, int)>[
-        ('radius', 0, 32767), ('initVelPositionAmplifier', -32768, 32767),
+        ('radius', 0, 32767), ('length', 0, 32767), ('initVelPositionAmplifier', -32768, 32767),
         ('initVelAxisAmplifier', -32768, 32767), ('emissionCount', 0, 262144),
         ('startDelay', 0, 65535), ('emissionInterval', 1, 255),
         ('emitterLifeTime', 1, 65534), ('particleLifeTime', 1, 65535),
-        ('scaleVariance', 0, 255), ('initAngle', 0, 65535),
+        ('scaleVariance', 0, 255), ('lifeTimeVariance', 0, 255), ('initAngle', 0, 65535),
         ('baseScale', 0, 32767), ('aspectRatio', 0, 32767),
         ('baseAlpha', 0, 31), ('loopTime', 1, 65535), ('airResistance', 0, 255),
       ]) {
@@ -155,7 +176,7 @@ abstract final class Gen5BatchParticleApproximation {
         }
         final start = curve['in'];
         final end = curve['out'];
-        if (start is int && end is int && start > end) {
+        if (!preserveExperimentalFeatures && start is int && end is int && start > end) {
           set(curve, 'out', start, 'particle-curve:$key.order');
         }
         for (final field in ['start', 'mid', 'end']) {
@@ -184,7 +205,10 @@ abstract final class Gen5BatchParticleApproximation {
       }
       final child = emitter['childResource'];
       if (child is Map) {
-        for (final field in ['followEmitter', 'flipTextureS', 'flipTextureT', 'dirFromPosition']) {
+        for (final field in [
+          if (!preserveExperimentalFeatures) 'followEmitter',
+          'flipTextureS', 'flipTextureT', 'dirFromPosition',
+        ]) {
           set(child, field, false, 'particle-child:$field');
         }
         for (final field in ['textureRepeatShiftS', 'textureRepeatShiftT']) {

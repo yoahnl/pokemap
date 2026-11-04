@@ -118,6 +118,33 @@ Map<String, dynamic> _source() => jsonDecode(jsonEncode({
 Uint8List _bytes(Map<String, dynamic> source) =>
     Uint8List.fromList(utf8.encode(jsonEncode(source)));
 
+Map<String, dynamic> _childSource({bool follows = false, int scaleRatio = 64}) => {
+  'hasBehaviors': false,
+  'hasScaleAnim': false,
+  'hasAlphaAnim': true,
+  'rotationType': 'none',
+  'followEmitter': follows,
+  'useChildColor': true,
+  'drawType': 'billboard',
+  'polygonRotAxis': 'y',
+  'polygonReferencePlane': 'xy',
+  'randomInitVelMag': 0,
+  'endScale': 0,
+  'lifeTime': 4,
+  'velocityRatio': 0,
+  'scaleRatio': scaleRatio,
+  'color': {'red': 31, 'green': 0, 'blue': 0},
+  'emissionCount': 1,
+  'emissionDelay': 0,
+  'emissionInterval': 1,
+  'texture': 'base',
+  'textureRepeatShiftS': 0,
+  'textureRepeatShiftT': 0,
+  'flipTextureS': false,
+  'flipTextureT': false,
+  'dirFromPosition': false,
+};
+
 Gen5SplParticleConversion _convert(
   Map<String, dynamic> source, {
   String? hash,
@@ -140,6 +167,348 @@ Gen5SplParticleConversion _convert(
 }
 
 void main() {
+  test('preserves bounded random particle forces for the workshop', () {
+    final source = _source();
+    final emitter = (source['emitters'] as List).single as Map<String, dynamic>;
+    emitter['randomBehavior'] = {
+      'magnitude': {'x': 122, 'y': 183, 'z': 0},
+      'applyInterval': 3,
+    };
+    final workshop = Gen5BatchParticleApproximation.normalize(
+      source, preserveExperimentalFeatures: true,
+    );
+    expect((workshop.document['emitters'] as List).single['randomBehavior'],
+        emitter['randomBehavior']);
+    final bytes = _bytes(workshop.document);
+    final definition = Gen5SplParticleConverter.convert(
+      bytes, particleId: 218, sourceRevision: _revision, sourcePath: _path,
+      expectedSha256: sha256.convert(bytes).toString(),
+      textureResourceIds: const {
+        'base': 'base-id', 'first': 'frame-1', 'second': 'frame-2',
+      },
+      experimentalSourceEmitterIndices: const [0],
+    ).definition;
+    expect(definition.schemaVersion, 14);
+    expect((definition.emitters.single.toJson()['motion'] as Map)['random'],
+        emitter['randomBehavior']);
+    expect(() => BattleSplParticleDefinition.fromJson(definition.toJson()),
+        throwsFormatException);
+    final previous = definition.toJson()..['schemaVersion'] = 13;
+    expect(() => BattleSplParticleDefinition.fromExperimentalJson(previous),
+        throwsFormatException);
+    for (final interval in [0, 65536, null]) {
+      final invalid = jsonDecode(jsonEncode(definition.toJson())) as Map<String, dynamic>;
+      final random = (((invalid['emitters'] as List).single as Map)['motion'] as Map)['random'] as Map;
+      random['applyInterval'] = interval;
+      expect(() => BattleSplParticleDefinition.fromExperimentalJson(invalid),
+          throwsFormatException);
+    }
+    final invalidMagnitude = jsonDecode(jsonEncode(definition.toJson())) as Map<String, dynamic>;
+    final random = (((invalidMagnitude['emitters'] as List).single as Map)['motion'] as Map)['random'] as Map;
+    (random['magnitude'] as Map)['x'] = -1;
+    expect(() => BattleSplParticleDefinition.fromExperimentalJson(invalidMagnitude),
+        throwsFormatException);
+    expect(Gen5BatchParticleApproximation.normalize(source).warnings,
+        contains('particle-field:randomBehavior'));
+  });
+
+  test('preserves hidden parents only in the experimental workshop format', () {
+    final source = _source();
+    final emitter = (source['emitters'] as List).single as Map<String, dynamic>;
+    emitter['hideParent'] = true;
+    emitter['childResource'] = _childSource();
+    final workshop = Gen5BatchParticleApproximation.normalize(
+      source, preserveExperimentalFeatures: true,
+    );
+    expect((workshop.document['emitters'] as List).single['hideParent'], isTrue);
+    expect(workshop.warnings, isNot(contains('particle-field:hideParent')));
+    final bytes = _bytes(workshop.document);
+    final definition = Gen5SplParticleConverter.convert(
+      bytes,
+      particleId: 218,
+      sourceRevision: _revision,
+      sourcePath: _path,
+      expectedSha256: sha256.convert(bytes).toString(),
+      textureResourceIds: const {
+        'base': 'base-id', 'first': 'frame-1', 'second': 'frame-2',
+      },
+      experimentalSourceEmitterIndices: const [0],
+    ).definition;
+    expect(definition.schemaVersion, 13);
+    expect((definition.emitters.single.toJson()['appearance'] as Map)['hideParent'], isTrue);
+    final old = definition.toJson()..['schemaVersion'] = 12;
+    expect(() => BattleSplParticleDefinition.fromExperimentalJson(old), throwsFormatException);
+    expect(() => BattleSplParticleDefinition.fromJson(definition.toJson()), throwsFormatException);
+    expect(Gen5BatchParticleApproximation.normalize(source).warnings,
+        contains('particle-field:hideParent'));
+  });
+
+  test('retains source polygon offsets when normalizing for the workshop', () {
+    final source = _source();
+    final emitter = (source['emitters'] as List).single as Map<String, dynamic>;
+    emitter['polygonX'] = 2048;
+    emitter['polygonY'] = -4096;
+    final workshop = Gen5BatchParticleApproximation.normalize(
+      source, preserveExperimentalFeatures: true,
+    );
+    final normalizedEmitter = (workshop.document['emitters'] as List).single as Map;
+    expect(normalizedEmitter['polygonX'], 2048);
+    expect(normalizedEmitter['polygonY'], -4096);
+    expect(workshop.warnings, isNot(contains('particle-field:polygonX')));
+    expect(workshop.warnings, isNot(contains('particle-field:polygonY')));
+    final bytes = _bytes(workshop.document);
+    final definition = Gen5SplParticleConverter.convert(
+      bytes,
+      particleId: 218,
+      sourceRevision: _revision,
+      sourcePath: _path,
+      expectedSha256: sha256.convert(bytes).toString(),
+      textureResourceIds: const {
+        'base': 'base-id', 'first': 'frame-1', 'second': 'frame-2',
+      },
+      experimentalSourceEmitterIndices: const [0],
+    ).definition;
+    final appearance = definition.emitters.single.toJson()['appearance'] as Map;
+    expect(appearance['polygonX'], 2048);
+    expect(appearance['polygonY'], -4096);
+    final production = Gen5BatchParticleApproximation.normalize(source);
+    expect(production.warnings, containsAll([
+      'particle-field:polygonX', 'particle-field:polygonY',
+    ]));
+    expect(() => BattleSplParticleDefinition.fromJson(definition.toJson()),
+        throwsFormatException);
+  });
+
+  test('preserves BW2 child emitter following only for the experimental workshop', () {
+    final source = _source();
+    final emitter = (source['emitters'] as List).single as Map<String, dynamic>;
+    emitter['childResource'] = _childSource(follows: true);
+    final normalized = Gen5BatchParticleApproximation.normalize(
+      source,
+      preserveExperimentalFeatures: true,
+    );
+    expect(normalized.warnings, isNot(contains('particle-child:followEmitter')));
+    final bytes = _bytes(normalized.document);
+    final converted = Gen5SplParticleConverter.convert(
+      bytes,
+      particleId: 218,
+      sourceRevision: _revision,
+      sourcePath: _path,
+      expectedSha256: sha256.convert(bytes).toString(),
+      textureResourceIds: const {
+        'base': 'base-id', 'first': 'frame-1', 'second': 'frame-2',
+      },
+      experimentalSourceEmitterIndices: const [0],
+    ).definition;
+    expect(converted.schemaVersion, 11);
+    final data = converted.toJson();
+    final child = ((data['emitters'] as List).single as Map)['child'] as Map;
+    expect(child['followEmitter'], isTrue);
+    expect(() => BattleSplParticleDefinition.fromJson(data), throwsFormatException);
+    final oldVersion = jsonDecode(jsonEncode(data)) as Map<String, dynamic>
+      ..['schemaVersion'] = 10;
+    expect(() => BattleSplParticleDefinition.fromExperimentalJson(oldVersion),
+        throwsFormatException);
+    for (final invalid in [null, 1]) {
+      final bad = jsonDecode(jsonEncode(data)) as Map<String, dynamic>;
+      (((bad['emitters'] as List).single as Map)['child'] as Map)['followEmitter'] = invalid;
+      expect(() => BattleSplParticleDefinition.fromExperimentalJson(bad),
+          throwsFormatException);
+    }
+    expect(Gen5BatchParticleApproximation.normalize(source).warnings,
+        contains('particle-child:followEmitter'));
+    expect(() => _convert(source), throwsFormatException);
+  });
+
+  test('retains short parent lifetimes and large child scales only in the workshop', () {
+    for (final shortParent in [false, true]) {
+      final source = _source();
+      final emitter = (source['emitters'] as List).single as Map<String, dynamic>;
+      emitter['childResource'] = _childSource(follows: true, scaleRatio: 62);
+      if (shortParent) {
+        emitter['particleLifeTime'] = 1;
+      } else {
+        emitter['baseScale'] = 10720;
+        (emitter['scaleAnim'] as Map)['end'] = 21317;
+      }
+      final normalized = Gen5BatchParticleApproximation.normalize(
+        source, preserveExperimentalFeatures: true,
+      );
+      final bytes = _bytes(normalized.document);
+      final converted = Gen5SplParticleConverter.convert(
+        bytes,
+        particleId: 218,
+        sourceRevision: _revision,
+        sourcePath: _path,
+        expectedSha256: sha256.convert(bytes).toString(),
+        textureResourceIds: const {
+          'base': 'base-id', 'first': 'frame-1', 'second': 'frame-2',
+        },
+        experimentalSourceEmitterIndices: const [0],
+      ).definition;
+      expect(converted.schemaVersion, 12);
+      final value = converted.toJson();
+      final result = (value['emitters'] as List).single as Map;
+      expect((result['child'] as Map)['followEmitter'], isTrue);
+      expect((result['emission'] as Map)['particleLifetime'], shortParent ? 1 : 10);
+      expect(() => BattleSplParticleDefinition.fromJson(value), throwsFormatException);
+      final oldVersion = jsonDecode(jsonEncode(value)) as Map<String, dynamic>
+        ..['schemaVersion'] = 11;
+      expect(() => BattleSplParticleDefinition.fromExperimentalJson(oldVersion),
+          throwsFormatException);
+    }
+  });
+
+  test('preserves overlapping BW2 scale and alpha phases only for the workshop', () {
+    final source = _source();
+    final emitter = (source['emitters'] as List).single as Map<String, dynamic>;
+    (emitter['scaleAnim'] as Map)['in'] = 49;
+    (emitter['scaleAnim'] as Map)['out'] = 26;
+    (emitter['alphaAnim'] as Map)['in'] = 81;
+    (emitter['alphaAnim'] as Map)['out'] = 78;
+    final normalized = Gen5BatchParticleApproximation.normalize(
+      source,
+      preserveExperimentalFeatures: true,
+    );
+    expect(normalized.warnings, isNot(contains('particle-curve:scaleAnim.order')));
+    expect(normalized.warnings, isNot(contains('particle-curve:alphaAnim.order')));
+    final bytes = _bytes(normalized.document);
+    final converted = Gen5SplParticleConverter.convert(
+      bytes,
+      particleId: 218,
+      sourceRevision: _revision,
+      sourcePath: _path,
+      expectedSha256: sha256.convert(bytes).toString(),
+      textureResourceIds: const {
+        'base': 'base-id', 'first': 'frame-1', 'second': 'frame-2',
+      },
+      experimentalSourceEmitterIndices: const [0],
+    );
+    expect(converted.definition.schemaVersion, 10);
+    final appearance = converted.definition.emitters.single.toJson()['appearance'] as Map;
+    expect((appearance['scale'] as Map)['fadeOut'], 26);
+    expect((appearance['alpha'] as Map)['fadeOut'], 78);
+    expect(() => BattleSplParticleDefinition.fromJson(converted.definition.toJson()),
+        throwsFormatException);
+    final oldVersion = converted.definition.toJson()..['schemaVersion'] = 9;
+    expect(() => BattleSplParticleDefinition.fromExperimentalJson(oldVersion),
+        throwsFormatException);
+    expect(Gen5BatchParticleApproximation.normalize(source).warnings,
+        containsAll(['particle-curve:scaleAnim.order', 'particle-curve:alphaAnim.order']));
+  });
+
+  test('preserves BW2 filled emitter shapes only for the workshop', () {
+    for (final entry in {
+      'circle': 'circleDisk',
+      'sphere': 'sphereVolume',
+      'hemisphere': 'hemisphereVolume',
+      'cylinder': 'cylinderVolume',
+    }.entries) {
+      final source = _source();
+      final emitter = (source['emitters'] as List).single as Map<String, dynamic>;
+      emitter['emissionType'] = entry.key;
+      emitter['radius'] = 4096;
+      emitter['length'] = 609;
+      final normalized = Gen5BatchParticleApproximation.normalize(
+        source,
+        preserveExperimentalFeatures: true,
+      );
+      expect(normalized.warnings,
+          isNot(contains('particle-shape:${entry.key}->sphere_surface')));
+      final bytes = _bytes(normalized.document);
+      final converted = Gen5SplParticleConverter.convert(
+        bytes,
+        particleId: 218,
+        sourceRevision: _revision,
+        sourcePath: _path,
+        expectedSha256: sha256.convert(bytes).toString(),
+        textureResourceIds: const {
+          'base': 'base-id', 'first': 'frame-1', 'second': 'frame-2',
+        },
+        experimentalSourceEmitterIndices: const [0],
+      );
+      final emission = converted.definition.emitters.single.toJson()['emission'] as Map;
+      expect(converted.definition.schemaVersion, 9);
+      expect(emission['shape'], entry.value);
+      if (entry.key == 'cylinder') expect(emission['length'], 609);
+      expect(Gen5BatchParticleApproximation.normalize(source).warnings,
+          contains('particle-shape:${entry.key}->sphere_surface'));
+      expect(() => _convert(source), throwsFormatException);
+    }
+  });
+
+  test('retains BW2 cylinder surfaces for the workshop', () {
+    final source = _source();
+    final emitter = (source['emitters'] as List).single as Map<String, dynamic>;
+    emitter['emissionType'] = 'cylinder_surface';
+    emitter['radius'] = 0;
+    emitter['length'] = 609;
+    final normalized = Gen5BatchParticleApproximation.normalize(
+      source,
+      preserveExperimentalFeatures: true,
+    );
+    expect(normalized.warnings,
+        isNot(contains('particle-shape:cylinder_surface->sphere_surface')));
+    final bytes = _bytes(normalized.document);
+    final converted = Gen5SplParticleConverter.convert(
+      bytes,
+      particleId: 218,
+      sourceRevision: _revision,
+      sourcePath: _path,
+      expectedSha256: sha256.convert(bytes).toString(),
+      textureResourceIds: const {
+        'base': 'base-id', 'first': 'frame-1', 'second': 'frame-2',
+      },
+      experimentalSourceEmitterIndices: const [0],
+    );
+    final emission = converted.definition.emitters.single.toJson()['emission'] as Map;
+    expect(converted.definition.schemaVersion, 8);
+    expect(emission['shape'], 'cylinderSurface');
+    expect(emission['length'], 609);
+    expect(emission['radius'], 0);
+    expect(
+      Gen5BatchParticleApproximation.normalize(source).warnings,
+      contains('particle-shape:cylinder_surface->sphere_surface'),
+    );
+    expect(() => _convert(source), throwsFormatException);
+  });
+
+  test('preserves BW2 particle lifetime variance only for the workshop', () {
+    final source = _source();
+    final emitter = (source['emitters'] as List).single as Map<String, dynamic>;
+    emitter['lifeTimeVariance'] = 180;
+    final normalized = Gen5BatchParticleApproximation.normalize(
+      source,
+      preserveExperimentalFeatures: true,
+    );
+    expect(normalized.warnings, isNot(contains('particle-field:lifeTimeVariance')));
+    final bytes = _bytes(normalized.document);
+    final converted = Gen5SplParticleConverter.convert(
+      bytes,
+      particleId: 218,
+      sourceRevision: _revision,
+      sourcePath: _path,
+      expectedSha256: sha256.convert(bytes).toString(),
+      textureResourceIds: const {
+        'base': 'base-id',
+        'first': 'frame-1',
+        'second': 'frame-2',
+      },
+      experimentalSourceEmitterIndices: const [0],
+    );
+    expect(converted.definition.schemaVersion, 7);
+    expect(
+      (converted.definition.emitters.single.toJson()['emission'] as Map)
+          ['particleLifetimeVariance'],
+      180,
+    );
+    expect(
+      Gen5BatchParticleApproximation.normalize(source).warnings,
+      contains('particle-field:lifeTimeVariance'),
+    );
+    expect(() => _convert(source), throwsFormatException);
+  });
+
   test('preserves random initial textures for the workshop', () {
     final source = _source();
     final emitter = (source['emitters'] as List).single as Map<String, dynamic>;
@@ -722,7 +1091,7 @@ void main() {
     second['dirFromPosition'] = false;
     second['velocityVariance'] = 27;
     final other = jsonDecode(jsonEncode(second)) as Map<String, dynamic>;
-    other['emissionType'] = 'cylinder_surface';
+    other['emissionType'] = 'unsupported-shape';
     values.addAll([second, other]);
     final bytes = _bytes(source);
     Gen5SplParticleConversion selected(List<int> indices) =>

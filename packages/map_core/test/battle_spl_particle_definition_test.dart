@@ -91,6 +91,122 @@ Map<String, dynamic> _copy(Map<String, dynamic> value) =>
     (jsonDecode(jsonEncode(value)) as Map).cast<String, dynamic>();
 
 void main() {
+  test('accepts filled source shapes only in experimental v9', () {
+    final raw = _copy(_definition())..['schemaVersion'] = 9;
+    final emitter = (raw['emitters'] as List).single as Map;
+    final emission = emitter['emission'] as Map;
+    emission['radius'] = 4096;
+    emission['positionVelocity'] = 0;
+    emission['emissionAxis'] = 'z';
+    emission['velocityVariance'] = 0;
+    emission['particleLifetimeVariance'] = 0;
+    final appearance = emitter['appearance'] as Map;
+    appearance['hasRotation'] = false;
+    appearance['minRotation'] = 0;
+    appearance['maxRotation'] = 0;
+    appearance['dirFromPosition'] = false;
+    appearance['drawChildrenFirst'] = false;
+    (emitter['motion'] as Map)['magnet'] = null;
+    final child = emitter['child'] as Map;
+    child['scaleEnd'] = null;
+    child['inheritBehaviors'] = false;
+    child['draw'] = 'billboard';
+    child['inheritColor'] = false;
+
+    for (final shape in ['circleDisk', 'sphereVolume', 'hemisphereVolume', 'cylinderVolume']) {
+      emission['shape'] = shape;
+      if (shape == 'cylinderVolume') emission['length'] = 609;
+      expect(BattleSplParticleDefinition.fromExperimentalJson(raw).toJson(), raw);
+      expect(() => BattleSplParticleDefinition.fromJson(raw), throwsFormatException);
+      final oldVersion = _copy(raw)..['schemaVersion'] = 8;
+      expect(() => BattleSplParticleDefinition.fromExperimentalJson(oldVersion),
+          throwsFormatException);
+    }
+    for (final value in [-1, 65536, null]) {
+      final invalid = _copy(raw);
+      (((invalid['emitters'] as List).single as Map)['emission'] as Map)['length'] = value;
+      expect(() => BattleSplParticleDefinition.fromExperimentalJson(invalid),
+          throwsFormatException);
+    }
+  });
+
+  test('admits bounded cylinder surfaces only in experimental v8', () {
+    final raw = _copy(_definition())..['schemaVersion'] = 8;
+    final emitter = (raw['emitters'] as List).single as Map;
+    final emission = emitter['emission'] as Map;
+    emission['shape'] = 'cylinderSurface';
+    emission['radius'] = 0;
+    emission['length'] = 609;
+    emission['positionVelocity'] = 0;
+    emission['emissionAxis'] = 'z';
+    emission['velocityVariance'] = 0;
+    emission['particleLifetimeVariance'] = 0;
+    final appearance = emitter['appearance'] as Map;
+    appearance['hasRotation'] = false;
+    appearance['minRotation'] = 0;
+    appearance['maxRotation'] = 0;
+    appearance['dirFromPosition'] = false;
+    appearance['drawChildrenFirst'] = false;
+    (emitter['motion'] as Map)['magnet'] = null;
+    final child = emitter['child'] as Map;
+    child['scaleEnd'] = null;
+    child['inheritBehaviors'] = false;
+    child['draw'] = 'billboard';
+    child['inheritColor'] = false;
+
+    expect(BattleSplParticleDefinition.fromExperimentalJson(raw).toJson(), raw);
+    expect(() => BattleSplParticleDefinition.fromJson(raw), throwsFormatException);
+    for (final value in [-1, 65536, null]) {
+      final invalid = _copy(raw);
+      (((invalid['emitters'] as List).single as Map)['emission']
+          as Map)['length'] = value;
+      expect(() => BattleSplParticleDefinition.fromExperimentalJson(invalid),
+          throwsFormatException);
+    }
+    final oldVersion = _copy(raw)..['schemaVersion'] = 7;
+    expect(() => BattleSplParticleDefinition.fromExperimentalJson(oldVersion),
+        throwsFormatException);
+  });
+
+  test('retains bounded particle lifetime variance only in experimental v7', () {
+    final raw = _copy(_definition())..['schemaVersion'] = 7;
+    final emitter = (raw['emitters'] as List).single as Map;
+    final emission = emitter['emission'] as Map;
+    emission['positionVelocity'] = 0;
+    emission['emissionAxis'] = 'z';
+    emission['velocityVariance'] = 0;
+    emission['particleLifetimeVariance'] = 192;
+    final appearance = emitter['appearance'] as Map;
+    appearance['hasRotation'] = false;
+    appearance['minRotation'] = 0;
+    appearance['maxRotation'] = 0;
+    appearance['dirFromPosition'] = false;
+    appearance['drawChildrenFirst'] = false;
+    (emitter['motion'] as Map)['magnet'] = null;
+    final child = emitter['child'] as Map;
+    child['scaleEnd'] = null;
+    child['inheritBehaviors'] = false;
+    child['draw'] = 'billboard';
+    child['inheritColor'] = false;
+
+    expect(BattleSplParticleDefinition.fromExperimentalJson(raw).toJson(), raw);
+    expect(() => BattleSplParticleDefinition.fromJson(raw), throwsFormatException);
+    for (final value in [-1, 256, null]) {
+      final invalid = _copy(raw);
+      (((invalid['emitters'] as List).single as Map)['emission']
+          as Map)['particleLifetimeVariance'] = value;
+      expect(
+        () => BattleSplParticleDefinition.fromExperimentalJson(invalid),
+        throwsFormatException,
+      );
+    }
+    final oldVersion = _copy(raw)..['schemaVersion'] = 6;
+    expect(
+      () => BattleSplParticleDefinition.fromExperimentalJson(oldVersion),
+      throwsFormatException,
+    );
+  });
+
   test(
     'admits experimental emitter fields only through the explicit reader',
     () {

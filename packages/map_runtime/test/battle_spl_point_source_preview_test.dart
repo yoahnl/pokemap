@@ -437,6 +437,7 @@ _sourceEmitter(
         baseScale4096: initialScale,
         color: null,
         texture: null,
+        lifetime: null,
       );
     },
     childFadeAlpha: child != null,

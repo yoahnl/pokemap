@@ -7,6 +7,32 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_runtime/src/presentation/flame/battle_spl_scalar_animation.dart';
 
 void main() {
+  test('samples overlapping BW2 scalar and alpha phases without reordering', () {
+    final scale = BattleSplScalarAnimation(
+      start: 1584,
+      middle: 4096,
+      end: 0,
+      fadeIn: 49,
+      fadeOut: 26,
+    );
+    expect([0, 48, 49, 128, 255].map(scale.valueAt),
+        [1584, 4044, 3684, 2271, 0]);
+
+    final alpha = BattleSplAlphaAnimation(
+      start: 1,
+      middle: 29,
+      end: 0,
+      fadeIn: 81,
+      fadeOut: 78,
+      randomRange: 0,
+    );
+    expect(
+      [0, 80, 81, 128, 255]
+          .map((rate) => alpha.valueAt(lifeRate: rate, randomByte: 0)),
+      [0, 27, 27, 19, 0],
+    );
+  });
+
   test('evaluates the three scalar segments at their boundaries', () {
     final animation = BattleSplScalarAnimation(
       start: 1000,

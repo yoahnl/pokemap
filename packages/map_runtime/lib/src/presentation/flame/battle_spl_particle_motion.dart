@@ -29,6 +29,7 @@ final class BattleSplParticleMotion {
     required BattleSplVector gravity,
     required BattleSplVector emitterVelocity,
     required int airResistance,
+    BattleSplVector randomAcceleration = (x: 0, y: 0, z: 0),
     BattleSplVector? magnetTarget,
     int? magnetForce,
     BattleSplVector? convergenceTarget,
@@ -36,6 +37,7 @@ final class BattleSplParticleMotion {
     ({String axis, int sine, int cosine})? spin,
   }) {
     if (!_fitsVector(gravity, -32768, 32767) ||
+        !_fitsVector(randomAcceleration, -32768, 32767) ||
         !_fitsVector(emitterVelocity, _minimum32, _maximum32) ||
         airResistance < 0 ||
         airResistance > 255 ||
@@ -76,6 +78,7 @@ final class BattleSplParticleMotion {
       position.x,
       velocity.x,
       gravity.x,
+      randomAcceleration.x,
       emitterVelocity.x,
       airResistance,
       magnetTarget?.x,
@@ -88,6 +91,7 @@ final class BattleSplParticleMotion {
       position.y,
       velocity.y,
       gravity.y,
+      randomAcceleration.y,
       emitterVelocity.y,
       airResistance,
       magnetTarget?.y,
@@ -100,6 +104,7 @@ final class BattleSplParticleMotion {
       position.z,
       velocity.z,
       gravity.z,
+      randomAcceleration.z,
       emitterVelocity.z,
       airResistance,
       magnetTarget?.z,
@@ -120,6 +125,7 @@ final class BattleSplParticleMotion {
     int magnetPosition,
     int velocity,
     int gravity,
+    int randomAcceleration,
     int emitterVelocity,
     int resistance,
     int? magnetTarget,
@@ -135,7 +141,8 @@ final class BattleSplParticleMotion {
         : -((-magneticProduct + 4095) ~/ 4096);
     final product = _checked(velocity * (resistance + 384));
     final damped = product >= 0 ? product ~/ 512 : -((-product + 511) ~/ 512);
-    final nextVelocity = _checked(_checked(damped + gravity) + magneticAcceleration);
+    final nextVelocity = _checked(
+        _checked(_checked(damped + gravity) + randomAcceleration) + magneticAcceleration);
     final displacement = _checked(nextVelocity + emitterVelocity);
     final converged = convergenceTarget == null
         ? position

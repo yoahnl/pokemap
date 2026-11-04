@@ -7,6 +7,32 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_runtime/src/presentation/flame/battle_spl_emitter_lifecycle.dart';
 
 void main() {
+  test('emits children from a short parent only when explicitly enabled', () {
+    final lifecycle = BattleSplEmitterLifecycle(
+      emitterLifetime: 1,
+      emissionInterval: 1,
+      emissionRate4096: 4096,
+      particleLifetime: 1,
+      particleLifetimeVariance: 0,
+      maxParticles: 8,
+      captureEvents: true,
+      allowShortLivedParent: true,
+      child: const BattleSplChildTiming(
+        emissionCount: 1,
+        emissionDelay256: 0,
+        emissionInterval: 1,
+        lifetime: 1,
+      ),
+    );
+    final first = lifecycle.step(managerFrame: 0);
+    final second = lifecycle.step(managerFrame: 1);
+    expect(first.emittedParents, 1);
+    expect(first.emittedChildren, 1);
+    expect(second.emittedChildren, 1);
+    for (var tick = 0; tick < 4 && !lifecycle.step(managerFrame: tick % 2).complete; tick++) {}
+    expect(lifecycle.step(managerFrame: 0).complete, isTrue);
+  });
+
   test('records ordered parent and child events with stable identities', () {
     final lifecycle = BattleSplEmitterLifecycle(
       emitterLifetime: 1,

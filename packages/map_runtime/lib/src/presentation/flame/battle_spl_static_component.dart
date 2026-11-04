@@ -146,8 +146,9 @@ final class BattleSplStaticComponent extends PositionComponent
   @override
   void update(double dt) {
     super.update(dt);
-    if (_disposed || _notified || _playbackPaused || !dt.isFinite || dt < 0)
+    if (_disposed || _notified || _playbackPaused || !dt.isFinite || dt < 0) {
       return;
+    }
     if (!refreshAttachment()) return;
     final elapsedTicks = dt >= playback.maxTicks / 60
         ? playback.maxTicks.toDouble()
@@ -229,6 +230,7 @@ final class BattleSplStaticComponent extends PositionComponent
         final polygons = <List<ui.Offset>?>[];
         final clippedPolygons = <BattleSplProjectedPolygon?>[];
         for (final particle in frame.particles) {
+          if (frame.hideParent && particle.parentId == null) continue;
           final follows = particle.parentId == null
               ? frame.followEmitter
               : frame.childFollowsEmitter;
@@ -331,6 +333,7 @@ final class BattleSplStaticComponent extends PositionComponent
       for (final i in playback.drawOrder) {
         final frame = frames[i];
         for (final particle in frame.particles) {
+          if (frame.hideParent && particle.parentId == null) continue;
           final follows = particle.parentId == null
               ? frame.followEmitter
               : frame.childFollowsEmitter;
@@ -380,10 +383,13 @@ final class BattleSplStaticComponent extends PositionComponent
       return;
     }
     for (final i in playback.drawOrder) {
+      final frame = frames[i];
       _painters[i].paint(
         canvas,
         origin: origin,
-        particles: frames[i].particles,
+        particles: frame.hideParent
+            ? frame.particles.where((particle) => particle.parentId != null).toList(growable: false)
+            : frame.particles,
       );
     }
   }

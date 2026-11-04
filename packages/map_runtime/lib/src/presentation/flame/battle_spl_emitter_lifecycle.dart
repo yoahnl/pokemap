@@ -29,12 +29,14 @@ final class BattleSplParticleEvent {
     required this.particleId,
     required this.parentId,
     required this.age,
+    required this.lifetime,
   });
 
   final BattleSplParticleEventKind kind;
   final int particleId;
   final int? parentId;
   final int age;
+  final int lifetime;
 }
 
 final class BattleSplEmitterStep {
@@ -73,6 +75,7 @@ final class BattleSplEmitterLifecycle {
     this.updateCycle = 0,
     this.autoTerminate = true,
     this.captureEvents = false,
+    this.allowShortLivedParent = false,
     this.child,
     BattleSplParticlePool? particlePool,
   }) : _particleLifetime = ((particleLifetime * 255) >> 8) + 1 {
@@ -88,7 +91,9 @@ final class BattleSplEmitterLifecycle {
         emissionRate4096 > 64 * 4096 ||
         particleLifetime < 1 ||
         particleLifetime > 65535 ||
-        particleLifetimeVariance != 0 ||
+        particleLifetimeVariance < 0 ||
+        particleLifetimeVariance > 255 ||
+        (particleLifetimeVariance != 0 && !captureEvents) ||
         updateCycle < 0 ||
         updateCycle > 2 ||
         maxParticles < 1 ||
@@ -103,7 +108,7 @@ final class BattleSplEmitterLifecycle {
                 childTiming.emissionInterval > 255 ||
                 childTiming.lifetime < 1 ||
                 childTiming.lifetime > 65534 ||
-                _particleLifetime < 2 ||
+                (!allowShortLivedParent && _particleLifetime < 2) ||
                 _particleLifetime * childTiming.emissionDelay256 > 524287))) {
       throw const FormatException('Invalid SPL emitter timing');
     }
@@ -120,6 +125,7 @@ final class BattleSplEmitterLifecycle {
   final int updateCycle;
   final bool autoTerminate;
   final bool captureEvents;
+  final bool allowShortLivedParent;
   final BattleSplChildTiming? child;
   final int _particleLifetime;
   late final BattleSplParticleLease _lease;
@@ -140,11 +146,15 @@ final class BattleSplEmitterLifecycle {
     bool paused = false,
     bool stopEmission = false,
     bool terminate = false,
+    int Function(int id, int index, int count)? initializeLifetime,
   }) {
     if (managerFrame < 0 || managerFrame > 1) {
       throw ArgumentError.value(managerFrame, 'managerFrame');
     }
     if (_complete) return _result();
+    if (particleLifetimeVariance != 0 && initializeLifetime == null) {
+      throw const FormatException('SPL particle lifetime initializer required');
+    }
     if (captureEvents &&
         _nextParticleId > 9007199254740991 - maxParticles * 2) {
       throw StateError('SPL particle identity space exhausted');
@@ -167,12 +177,13 @@ final class BattleSplEmitterLifecycle {
           particleId: particle.id,
           parentId: particle.parentId,
           age: particle.age,
+          lifetime: particle.lifetime,
         ),
       );
     }
 
-    _ParticleAge createParticle([int? parentId]) =>
-        _ParticleAge(captureEvents ? _nextParticleId++ : 0, parentId);
+    _ParticleAge createChild(int parentId, int lifetime) =>
+        _ParticleAge(captureEvents ? _nextParticleId++ : 0, parentId, lifetime);
 
     if (!paused && (updateCycle == 0 || managerFrame == updateCycle - 1)) {
       final parents = <_ParticleAge>[];
@@ -188,7 +199,13 @@ final class BattleSplEmitterLifecycle {
         droppedParents = requested - emittedParents;
         final newParents = <_ParticleAge>[];
         for (var index = 0; index < emittedParents; index++) {
-          final particle = createParticle();
+          final id = captureEvents ? _nextParticleId++ : 0;
+          final lifetime = initializeLifetime?.call(id, index, requested) ??
+              _particleLifetime;
+          if (lifetime < 1 || lifetime > _particleLifetime) {
+            throw const FormatException('Invalid SPL particle lifetime');
+          }
+          final particle = _ParticleAge(id, null, lifetime);
           newParents.add(particle);
           record(BattleSplParticleEventKind.parentEmitted, particle);
         }
@@ -204,21 +221,21 @@ final class BattleSplEmitterLifecycle {
         if (childTiming != null) {
           final sinceDelay =
               parent.age * 256 -
-              _particleLifetime * childTiming.emissionDelay256;
+              parent.lifetime * childTiming.emissionDelay256;
           if (sinceDelay >= 0 &&
               (sinceDelay ~/ 256) % childTiming.emissionInterval == 0) {
             final count = _lease.acquire(childTiming.emissionCount);
             emittedChildren += count;
             droppedChildren += childTiming.emissionCount - count;
             for (var index = 0; index < count; index++) {
-              final particle = createParticle(parent.id);
+              final particle = createChild(parent.id, childTiming.lifetime);
               newChildren.add(particle);
               record(BattleSplParticleEventKind.childEmitted, particle);
             }
           }
         }
         parent.age++;
-        if (parent.age > _particleLifetime) {
+        if (parent.age > parent.lifetime) {
           _lease.release(1);
           record(BattleSplParticleEventKind.parentExpired, parent);
         } else {
@@ -291,9 +308,10 @@ final class BattleSplEmitterLifecycle {
 }
 
 final class _ParticleAge {
-  _ParticleAge(this.id, this.parentId);
+  _ParticleAge(this.id, this.parentId, this.lifetime);
 
   final int id;
   final int? parentId;
+  final int lifetime;
   int age = 0;
 }

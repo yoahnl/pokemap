@@ -17,6 +17,8 @@ import 'package:map_runtime/src/presentation/flame/battle_spl_static_component.d
 Future<BattleSplStaticPlayback> playback({
   bool follows = true,
   bool child = false,
+  bool childFollowsEmitter = false,
+  bool hideParent = false,
   int childDelay = 0,
   int axisZ = 0,
   bool directional = false,
@@ -39,7 +41,7 @@ Future<BattleSplStaticPlayback> playback({
   }
   if (child) {
     emission['duration'] = 1;
-    emitter['child'] = {
+    emitter['child'] = <String, dynamic>{
       'velocityRatio': 0,
       'randomVelocityMagnitude': 0,
       'scaleRatio': 64,
@@ -52,9 +54,33 @@ Future<BattleSplStaticPlayback> playback({
       'emissionInterval': 1,
       'fadeAlpha': false,
     };
+    if (childFollowsEmitter || hideParent) {
+      value['schemaVersion'] = hideParent ? 13 : 11;
+      emission['positionVelocity'] = 0;
+      emission['emissionAxis'] = 'z';
+      emission['velocityVariance'] = 0;
+      emission['particleLifetimeVariance'] = 0;
+      final appearance = emitter['appearance'] as Map<String, dynamic>;
+      appearance['hasRotation'] = false;
+      appearance['minRotation'] = 0;
+      appearance['maxRotation'] = 0;
+      appearance['dirFromPosition'] = false;
+      appearance['drawChildrenFirst'] = false;
+      if (hideParent) appearance['hideParent'] = true;
+      (emitter['motion'] as Map<String, dynamic>)['magnet'] = null;
+      (emitter['child'] as Map<String, dynamic>).addAll({
+        'scaleEnd': null,
+        'inheritBehaviors': false,
+        'draw': 'billboard',
+        'inheritColor': false,
+        'followEmitter': childFollowsEmitter,
+      });
+    }
   }
   final result = BattleSplStaticAdmission.prepare(
-    definition: BattleSplParticleDefinition.fromJson(value),
+    definition: childFollowsEmitter || hideParent
+        ? BattleSplParticleDefinition.fromExperimentalJson(value)
+        : BattleSplParticleDefinition.fromJson(value),
     textureIndices: {'tex': 0, if (child) 'spark': 1},
     emitters: const [
       BattleSplStaticEmitter(
@@ -122,17 +148,21 @@ BattleSplCameraProjection cameraProjection(
   ],
 );
 
-Future<bool> hasRedPixels(BattleSplStaticComponent component) async {
+Future<bool> hasRedPixels(BattleSplStaticComponent component, {
+  int width = 32,
+  int height = 32,
+  int channel = 0,
+}) async {
   final recorder = ui.PictureRecorder();
   component.render(ui.Canvas(recorder));
   final picture = recorder.endRecording();
-  final image = await picture.toImage(32, 32);
+  final image = await picture.toImage(width, height);
   try {
     final bytes = (await image.toByteData(format: ui.ImageByteFormat.rawRgba))!
         .buffer
         .asUint8List();
     for (var i = 0; i < bytes.length; i += 4) {
-      if (bytes[i] > 0 && bytes[i + 3] > 0) return true;
+      if (bytes[i + channel] > 0 && bytes[i + 3] > 0) return true;
     }
     return false;
   } finally {
@@ -177,6 +207,52 @@ Future<ui.Offset> redCentroid(
 }
 
 void main() {
+  for (final mode in ['flat', 'camera', 'world']) {
+    test('hides parent particles without hiding their children in $mode', () async {
+      for (final hidden in [false, true]) {
+        final effect = await playback(
+          follows: false, child: true, childDelay: 128, hideParent: hidden,
+        );
+        final red = await redImage();
+        final green = await greenImage();
+        final camera = BattlePerspectiveCamera(
+          viewport: const ui.Rect.fromLTWH(0, 0, 390, 844),
+        );
+        final component = BattleSplStaticComponent(
+          playback: effect,
+          textures: {0: red, 1: green},
+          origin: mode == 'flat' ? const ui.Offset(12, 12) : ui.Offset.zero,
+          pixelsPerUnit: mode == 'flat' ? 4 : 12,
+          projection: mode == 'flat' ? null : cameraProjection(
+            camera, () => const ui.Offset(150, 600),
+            worldTransform: mode == 'world'
+                ? const BattleSplWorldTransform(worldUnitsPerUnit: .1, yawRadians: 0)
+                : null,
+          ),
+          onComplete: () {},
+          onFailure: (_) => fail('unexpected particle projection failure'),
+        );
+        red.dispose();
+        green.dispose();
+        addTearDown(component.dispose);
+        final width = mode == 'flat' ? 32 : 390;
+        final height = mode == 'flat' ? 32 : 844;
+        component.update(1 / 60);
+        expect(effect.frames.single.particles.any((p) => p.parentId == null), isTrue);
+        expect(effect.frames.single.particles.any((p) => p.parentId != null), isFalse);
+        expect(await hasRedPixels(component, width: width, height: height), !hidden);
+        for (var i = 0; i < 3; i++) {
+          component.update(1 / 60);
+        }
+        expect(effect.frames.single.particles.any((p) => p.parentId != null), isTrue);
+        expect(await hasRedPixels(component, width: width, height: height, channel: 1), isTrue);
+        if (hidden) {
+          expect(await hasRedPixels(component, width: width, height: height), isFalse);
+        }
+      }
+    });
+  }
+
   test(
     'moving emitter preserves detached particles at their birth position',
     () async {
@@ -1033,6 +1109,49 @@ void main() {
   }
 
   for (final world in [false, true]) {
+    test('a following child tracks its emitter, world=$world', () async {
+      final camera = BattlePerspectiveCamera(
+        viewport: const ui.Rect.fromLTWH(0, 0, 390, 844),
+      );
+      const originalFoot = ui.Offset(150, 600);
+      var foot = originalFoot;
+      final effect = await playback(
+        follows: false,
+        child: true,
+        childDelay: 64,
+        childFollowsEmitter: true,
+      );
+      final red = await redImage();
+      final green = await greenImage();
+      final component = BattleSplStaticComponent(
+        playback: effect,
+        textures: {0: red, 1: green},
+        origin: ui.Offset.zero,
+        pixelsPerUnit: 12,
+        projection: cameraProjection(
+          camera,
+          () => foot,
+          worldTransform: world
+              ? const BattleSplWorldTransform(
+                  worldUnitsPerUnit: .1,
+                  yawRadians: 0,
+                )
+              : null,
+        ),
+        onComplete: () {},
+        onFailure: (_) => fail('unexpected projection failure'),
+      );
+      red.dispose();
+      green.dispose();
+      addTearDown(component.dispose);
+      component.update(1 / 60);
+      foot += const ui.Offset(60, 0);
+      component.update(1 / 60);
+      final child = await redCentroid(component, channel: 1);
+      expect((child - foot).distance, lessThan(20));
+      expect((child - originalFoot).distance, greaterThan(40));
+    });
+
     test(
       'a detached child inherits its parent emission anchor, world=$world',
       () async {

@@ -20,10 +20,8 @@
     "approximations": [
       "background-palette-fade:layer-approximation",
       "particle-field:collisionPlaneBehavior",
-      "particle-field:lifeTimeVariance",
       "particle-field:polygonRotAxis",
-      "particle-field:polygonY",
-      "particle-field:randomBehavior",
+      "particle-random:sequence-experimental",
       "source-actor:camera-mode-approximation"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/1/1f/Fissure_V.png",
@@ -222,7 +220,7 @@
     "category": "status",
     "particle": 443,
     "approximations": [
-      "particle-field:randomBehavior"
+      "particle-random:sequence-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/9/9b/Assist_V.png",
     "bundleAsset": "assets/bw2/batch/assist.json"
@@ -493,9 +491,8 @@
     "category": "physical",
     "particle": 527,
     "approximations": [
-      "particle-field:lifeTimeVariance",
       "particle-field:polygonRotAxis",
-      "particle-field:randomBehavior"
+      "particle-random:sequence-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/c/cf/Rock_Blast_V.png",
     "bundleAsset": "assets/bw2/batch/rock-blast.json"
@@ -543,7 +540,7 @@
     "category": "special",
     "particle": 226,
     "approximations": [
-      "particle-field:randomBehavior"
+      "particle-random:sequence-experimental"
     ],
     "referenceUrl": null,
     "bundleAsset": "assets/bw2/batch/bubble-beam.json"
@@ -1072,9 +1069,7 @@
     "category": "status",
     "particle": 526,
     "approximations": [
-      "particle-field:lifeTimeVariance",
-      "particle-field:randomBehavior",
-      "particle-shape:cylinder_surface->sphere_surface",
+      "particle-random:sequence-experimental",
       "particle-spin:trigonometry-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/e/e4/Dragon_Dance_V.png",
@@ -1102,7 +1097,7 @@
     "category": "status",
     "particle": 468,
     "approximations": [
-      "particle-field:randomBehavior"
+      "particle-random:sequence-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/b/bc/Teeter_Dance_V.png",
     "bundleAsset": "assets/bw2/batch/teeter-dance.json"
@@ -1645,9 +1640,7 @@
     "category": "status",
     "particle": 431,
     "approximations": [
-      "particle-field:lifeTimeVariance",
-      "particle-field:randomBehavior",
-      "particle-shape:circle->sphere_surface"
+      "particle-random:sequence-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/4/4f/Will-O-Wisp_V.png",
     "bundleAsset": "assets/bw2/batch/will-o-wisp.json"
@@ -1661,7 +1654,7 @@
     "particle": 522,
     "approximations": [
       "particle-field:polygonRotAxis",
-      "particle-field:randomBehavior"
+      "particle-random:sequence-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/b/bd/Magical_Leaf_V.png",
     "bundleAsset": "assets/bw2/batch/magical-leaf.json"
@@ -1675,12 +1668,10 @@
     "particle": 735,
     "approximations": [
       "camera:absolute-adapted-to-workshop",
-      "particle-child:followEmitter",
-      "particle-child:omitted-for-preview",
+      "particle-child:scale-range-experimental",
       "particle-field:drawType",
       "particle-field:polygonRotAxis",
-      "particle-field:polygonY",
-      "particle-field:randomBehavior",
+      "particle-random:sequence-experimental",
       "particle-spin:trigonometry-experimental",
       "scene-palette-fade:layer-approximation",
       "source-emitter:field-coordinate-calibration",
@@ -1981,10 +1972,8 @@
     "category": "physical",
     "particle": 525,
     "approximations": [
-      "particle-field:lifeTimeVariance",
       "particle-field:polygonRotAxis",
-      "particle-field:polygonY",
-      "particle-field:randomBehavior"
+      "particle-random:sequence-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/f/fe/Leaf_Blade_V.png",
     "bundleAsset": "assets/bw2/batch/leaf-blade.json"
@@ -2158,7 +2147,7 @@
     "approximations": [
       "particle-field:drawType",
       "particle-field:polygonRotAxis",
-      "particle-field:randomBehavior",
+      "particle-random:sequence-experimental",
       "particle-spin:trigonometry-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/a/a8/Wood_Hammer_V.png",
@@ -2770,9 +2759,7 @@
     "category": "physical",
     "particle": 518,
     "approximations": [
-      "particle-field:lifeTimeVariance",
-      "particle-field:randomBehavior",
-      "particle-shape:cylinder_surface->sphere_surface"
+      "particle-random:sequence-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/a/ab/Poison_Tail_V.png",
     "bundleAsset": "assets/bw2/batch/poison-tail.json"
@@ -3664,8 +3651,7 @@
     "approximations": [
       "particle-field:drawType",
       "particle-field:polygonRotAxis",
-      "particle-field:randomBehavior",
-      "particle-shape:circle->sphere_surface",
+      "particle-random:sequence-experimental",
       "particle-spin:trigonometry-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/2/22/Leaf_Tornado_V.png",
@@ -3715,7 +3701,7 @@
     "approximations": [
       "particle-field:drawType",
       "particle-field:polygonRotAxis",
-      "particle-field:randomBehavior",
+      "particle-random:sequence-experimental",
       "particle-spin:trigonometry-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/c/c7/Petal_Dance_V.png",
@@ -3731,8 +3717,7 @@
     "approximations": [
       "particle-field:drawType",
       "particle-field:polygonRotAxis",
-      "particle-field:randomBehavior",
-      "particle-shape:cylinder_surface->sphere_surface",
+      "particle-random:sequence-experimental",
       "particle-spin:trigonometry-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/2/22/Quiver_Dance_V.png",
@@ -3862,7 +3847,7 @@
     "approximations": [
       "background-palette-fade:layer-approximation",
       "background-wave:trigonometry-experimental",
-      "particle-field:randomBehavior",
+      "particle-random:sequence-experimental",
       "scene-palette-fade:layer-approximation"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/9/97/Waterfall_BW.png",
@@ -4006,14 +3991,9 @@
     "category": "status",
     "particle": 212,
     "approximations": [
-      "particle-child:textureRepeatShiftS",
-      "particle-child:textureRepeatShiftT",
       "particle-field:drawType",
-      "particle-field:lifeTimeVariance",
       "particle-field:polygonRotAxis",
-      "particle-field:randomBehavior",
-      "particle-shape:cylinder_surface->sphere_surface",
-      "particle-zero-radius:point",
+      "particle-random:sequence-experimental",
       "scene-palette-fade:layer-approximation"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/7/7f/Sing_V.png",
@@ -4698,7 +4678,7 @@
     "approximations": [
       "particle-field:drawType",
       "particle-field:polygonRotAxis",
-      "particle-field:randomBehavior",
+      "particle-random:sequence-experimental",
       "particle-spin:trigonometry-experimental",
       "scene-palette-fade:layer-approximation"
     ],
@@ -5434,8 +5414,7 @@
     "category": "physical",
     "particle": 599,
     "approximations": [
-      "particle-curve:scaleAnim.order",
-      "particle-field:randomBehavior",
+      "particle-random:sequence-experimental",
       "scene-palette-fade:layer-approximation"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/1/13/Ice_Shard_V.png",
@@ -6854,8 +6833,7 @@
     "approximations": [
       "background-palette-fade:layer-approximation",
       "background-wave:trigonometry-experimental",
-      "particle-field:randomBehavior",
-      "particle-shape:cylinder_surface->sphere_surface",
+      "particle-random:sequence-experimental",
       "scene-palette-fade:layer-approximation",
       "source-emitter:field-coordinate-calibration"
     ],
@@ -7279,13 +7257,10 @@
     "category": "special",
     "particle": 668,
     "approximations": [
-      "particle-child:textureRepeatShiftS",
-      "particle-child:textureRepeatShiftT",
       "particle-field:drawType",
-      "particle-field:lifeTimeVariance",
       "particle-field:polygonRotAxis",
-      "particle-field:randomBehavior",
       "particle-motion:sinusoid-phase-assumed",
+      "particle-random:sequence-experimental",
       "source-emitter:camera-position-scale-approximation"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/a/aa/Round_V.png",

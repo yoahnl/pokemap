@@ -2,6 +2,7 @@ import 'battle_spl_child_initializer.dart';
 import 'battle_spl_color_texture_animation.dart';
 import 'battle_spl_emitter_lifecycle.dart';
 import 'battle_spl_particle_motion.dart';
+import 'battle_spl_random.dart';
 import 'battle_spl_scalar_animation.dart';
 
 typedef BattleSplInitialParent = ({
@@ -10,6 +11,7 @@ typedef BattleSplInitialParent = ({
   int baseScale4096,
   BattleSplRgb5? color,
   int? texture,
+  int? lifetime,
 });
 
 final class BattleSplPointParticle {
@@ -57,6 +59,8 @@ final class BattleSplPointEmitterPlayback {
     this.magnet,
     this.convergence,
     this.spin,
+    this.randomForce,
+    this.random,
     this.childScaleEnd,
     this.childInheritsBehaviors = false,
     this.drawChildrenFirst = false,
@@ -81,7 +85,12 @@ final class BattleSplPointEmitterPlayback {
         initialTexture > 255 ||
         baseAlpha < 0 ||
         baseAlpha > 31 ||
-        (childScaleEnd != null && (childScaleEnd! < 0 || childScaleEnd! > 32767))) {
+        (childScaleEnd != null && (childScaleEnd! < 0 || childScaleEnd! > 32767)) ||
+        (randomForce == null) != (random == null) ||
+        (randomForce != null && (randomForce!.interval < 1 ||
+            randomForce!.interval > 65535 ||
+            [randomForce!.magnitude.x, randomForce!.magnitude.y, randomForce!.magnitude.z]
+                .any((value) => value < 0 || value > 32767)))) {
       throw const FormatException('Unsupported SPL point emitter playback');
     }
   }
@@ -92,6 +101,8 @@ final class BattleSplPointEmitterPlayback {
   final ({BattleSplVector target, int force})? magnet;
   final ({BattleSplVector target, int force})? convergence;
   final ({String axis, int sine, int cosine})? spin;
+  final ({BattleSplVector magnitude, int interval})? randomForce;
+  final BattleSplRandom? random;
   final int? childScaleEnd;
   final bool childInheritsBehaviors;
   final bool drawChildrenFirst;
@@ -151,20 +162,42 @@ final class BattleSplPointEmitterPlayback {
         }
         return emitterPosition;
       }
+      BattleSplVector randomAcceleration(int age, bool enabled) {
+        final force = randomForce;
+        if (!enabled || force == null || age % force.interval != 0) {
+          return (x: 0, y: 0, z: 0);
+        }
+        return (
+          x: random!.range(force.magnitude.x),
+          y: random!.range(force.magnitude.y),
+          z: random!.range(force.magnitude.z),
+        );
+      }
 
+      final initializedParents = <int, BattleSplInitialParent>{};
       final result = _lifecycle.step(
         managerFrame: managerFrame,
         paused: paused,
         stopEmission: stopEmission,
         terminate: terminate,
+        initializeLifetime: _lifecycle.particleLifetimeVariance == 0
+            ? null
+            : (id, index, count) {
+                final initial = initializeParent(id, index, count);
+                initializedParents[id] = initial;
+                return initial.lifetime ??
+                    (throw const FormatException('Missing SPL particle lifetime'));
+              },
       );
       final updatedIds = <int>[];
       var emissionIndex = 0;
       for (final event in result.events) {
         switch (event.kind) {
           case BattleSplParticleEventKind.parentEmitted:
-            final initial = initializeParent(event.particleId, emissionIndex++,
-                result.emittedParents + result.droppedParents);
+            final initial = initializedParents.remove(event.particleId) ??
+                initializeParent(event.particleId, emissionIndex,
+                    result.emittedParents + result.droppedParents);
+            emissionIndex++;
             if (initial.baseScale4096 < 0 ||
                 initial.baseScale4096 > 32767 ||
                 !_validVector(initial.emitterPosition)) {
@@ -189,7 +222,7 @@ final class BattleSplPointEmitterPlayback {
             }
             final phase = BattleSplParticlePhase(
               age: event.age,
-              lifetime: _lifecycle.particleLifetime,
+              lifetime: event.lifetime,
               loopTime: loopTime,
             );
             final animatedAlpha = alphaAnimationEnabled
@@ -202,6 +235,7 @@ final class BattleSplPointEmitterPlayback {
               id: event.particleId,
               motion: previous.motion.advanceWithGravity(
                 gravity: gravity,
+                randomAcceleration: randomAcceleration(event.age, true),
                 emitterVelocity: currentVelocity,
                 airResistance: airResistance,
                 magnetTarget: magnet?.target,
@@ -271,6 +305,7 @@ final class BattleSplPointEmitterPlayback {
               parentId: previous.parentId,
               motion: previous.motion.advanceWithGravity(
                 gravity: childInheritsBehaviors ? gravity : (x: 0, y: 0, z: 0),
+                randomAcceleration: randomAcceleration(event.age, childInheritsBehaviors),
                 emitterVelocity: currentVelocity,
                 airResistance: airResistance,
                 magnetTarget: childInheritsBehaviors ? magnet?.target : null,

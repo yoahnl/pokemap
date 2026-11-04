@@ -76,6 +76,121 @@ abstract final class BattleSplVectorMath {
     };
   }
 
+  static BattleSplVector circleDisk(
+    BattleSplRandom random, {
+    required int radius,
+    required String axis,
+  }) {
+    if (radius < 0 || radius > 32767 || !{'x', 'y', 'z'}.contains(axis)) {
+      throw const FormatException('Invalid SPL circle');
+    }
+    final sample = _diskCoordinates(random, radius);
+    return _tilt(sample.x, sample.y, 0, axis);
+  }
+
+  static BattleSplVector sphereVolume(
+    BattleSplRandom random, {
+    required int radius,
+  }) {
+    if (radius < 0 || radius > 32767) {
+      throw const FormatException('Invalid SPL sphere radius');
+    }
+    final sample = randomUnitVector(random);
+    return (
+      x: _multiply(_multiply(sample.x, radius), random.range(4096)),
+      y: _multiply(_multiply(sample.y, radius), random.range(4096)),
+      z: _multiply(_multiply(sample.z, radius), random.range(4096)),
+    );
+  }
+
+  static BattleSplVector hemisphereVolume(
+    BattleSplRandom random, {
+    required int radius,
+    required String axis,
+  }) {
+    if (radius < 0 || radius > 32767 || !{'x', 'y', 'z'}.contains(axis)) {
+      throw const FormatException('Invalid SPL hemisphere');
+    }
+    final sample = randomUnitVector(random);
+    final component = switch (axis) {
+      'x' => sample.x,
+      'y' => sample.y,
+      _ => sample.z,
+    };
+    final sign = component < 0 ? -1 : 1;
+    int scale(int value) => _multiply(
+      _multiply(value * sign, radius),
+      (random.range(4096) >> 1) + 2048,
+    );
+    return (x: scale(sample.x), y: scale(sample.y), z: scale(sample.z));
+  }
+
+  static BattleSplVector cylinderVolume(
+    BattleSplRandom random, {
+    required int radius,
+    required int length,
+    required String axis,
+  }) {
+    if (radius < 0 || radius > 32767 || length < 0 || length > 65535 ||
+        !{'x', 'y', 'z'}.contains(axis)) {
+      throw const FormatException('Invalid SPL cylinder');
+    }
+    final sample = _diskCoordinates(random, radius);
+    return _tilt(sample.x, sample.y, random.range(length), axis);
+  }
+
+  static ({int x, int y}) _diskCoordinates(BattleSplRandom random, int radius) {
+    final sample = normalize((
+      x: random.fixedPoint(bits: 24),
+      y: random.fixedPoint(bits: 24),
+      z: 0,
+    ));
+    return (
+      x: _multiply(_multiply(sample.x, radius), random.range(4096)),
+      y: _multiply(_multiply(sample.y, radius), random.range(4096)),
+    );
+  }
+
+  static int _multiply(int a, int b) => (a * b + 2048) >> 12;
+
+  static BattleSplVector _tilt(int x, int y, int z, String axis) => switch (axis) {
+    'x' => (x: z, y: -y, z: x),
+    'y' => (x: -y, y: z, z: -x),
+    _ => (x: -x, y: -y, z: z),
+  };
+
+  static ({BattleSplVector position, BattleSplVector radialDirection})
+  cylinderSurface(
+    BattleSplRandom random, {
+    required int radius,
+    required int length,
+    required String axis,
+  }) {
+    if (radius < 0 || radius > 32767 || length < 0 || length > 65535 ||
+        !{'x', 'y', 'z'}.contains(axis)) {
+      throw const FormatException('Invalid SPL cylinder');
+    }
+    final sample = normalize((
+      x: random.fixedPoint(bits: 24),
+      y: random.fixedPoint(bits: 24),
+      z: 0,
+    ));
+    final x = (sample.x * radius + 2048) >> 12;
+    final y = (sample.y * radius + 2048) >> 12;
+    final axial = random.range(length);
+    final position = switch (axis) {
+      'x' => (x: axial, y: -y, z: x),
+      'y' => (x: -y, y: axial, z: -x),
+      _ => (x: -x, y: -y, z: axial),
+    };
+    final radial = switch (axis) {
+      'x' => (x: 0, y: -sample.y, z: sample.x),
+      'y' => (x: -sample.y, y: 0, z: -sample.x),
+      _ => (x: -sample.x, y: -sample.y, z: 0),
+    };
+    return (position: position, radialDirection: normalize(radial));
+  }
+
   static BattleSplVector uniformCircleBorder({
     required int index,
     required int count,

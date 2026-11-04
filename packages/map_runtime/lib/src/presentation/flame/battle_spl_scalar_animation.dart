@@ -45,7 +45,8 @@ final class BattleSplScalarAnimation {
         end < -32768 ||
         end > 32767 ||
         fadeIn < 0 ||
-        fadeIn > fadeOut ||
+        fadeIn > 254 ||
+        fadeOut < 0 ||
         fadeOut > 254) {
       throw const FormatException('Invalid SPL scalar animation');
     }

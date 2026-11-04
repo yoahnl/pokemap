@@ -100,6 +100,56 @@ abstract final class Gen5SplParticleConverter {
     }
 
     final selectedEmitters = [for (final index in indices) rawEmitters[index]];
+    final needsExperimentalV14 = selectedEmitters.any(
+      (raw) => _map(raw).containsKey('randomBehavior'),
+    );
+    final needsExperimentalV13 = selectedEmitters.any(
+      (raw) => _map(raw)['hideParent'] == true,
+    );
+    final needsExperimentalV12 = selectedEmitters.any((raw) {
+      final emitter = _map(raw);
+      final child = emitter['childResource'];
+      if (child is! Map) return false;
+      if (emitter['particleLifeTime'] == 1) return true;
+      final base = emitter['baseScale'];
+      final variance = emitter['scaleVariance'];
+      final ratio = child['scaleRatio'];
+      final animation = emitter['scaleAnim'];
+      final phases = animation == null
+          ? [4096]
+          : animation is Map
+              ? [animation['start'], animation['mid'], animation['end']]
+              : [];
+      if (base is! int || variance is! int || ratio is! int ||
+          phases.isEmpty || phases.any((value) => value is! int)) {
+        return false;
+      }
+      final largest = phases.cast<int>().reduce((a, b) => a > b ? a : b);
+      final varied = (base * (255 + variance)) >> 8;
+      return ((varied * largest) ~/ 4096 * (ratio + 1)) ~/ 64 > 32767;
+    });
+    final needsExperimentalV11 = selectedEmitters.any((raw) {
+      final child = _map(raw)['childResource'];
+      return child is Map && child['followEmitter'] == true;
+    });
+    final needsExperimentalV10 = selectedEmitters.any((raw) {
+      final emitter = _map(raw);
+      return ['scaleAnim', 'alphaAnim'].any((name) {
+        final curve = emitter[name];
+        return curve is Map && curve['in'] is int && curve['out'] is int &&
+            (curve['in'] as int) > (curve['out'] as int);
+      });
+    });
+    final needsExperimentalV9 = selectedEmitters.any(
+      (raw) => {'circle', 'sphere', 'hemisphere', 'cylinder'}
+          .contains(_map(raw)['emissionType']),
+    );
+    final needsExperimentalV8 = selectedEmitters.any(
+      (raw) => _map(raw)['emissionType'] == 'cylinder_surface',
+    );
+    final needsExperimentalV7 = selectedEmitters.any(
+      (raw) => _map(raw)['lifeTimeVariance'] != 0,
+    );
     final needsExperimentalV6 = selectedEmitters.any((raw) {
       final emitter = _map(raw);
       final child = emitter['childResource'];
@@ -114,7 +164,7 @@ abstract final class Gen5SplParticleConverter {
                   child['useChildColor'] == false));
     });
     final version = experimentalSourceEmitterIndices != null
-        ? (needsExperimentalV6 ? 6 : 5)
+        ? (needsExperimentalV14 ? 14 : needsExperimentalV13 ? 13 : needsExperimentalV12 ? 12 : needsExperimentalV11 ? 11 : needsExperimentalV10 ? 10 : needsExperimentalV9 ? 9 : needsExperimentalV8 ? 8 : needsExperimentalV7 ? 7 : needsExperimentalV6 ? 6 : 5)
         : rawEmitters.any((raw) => _map(raw).containsKey('magnetBehavior'))
             ? 4
             : rawEmitters
@@ -205,6 +255,7 @@ Map<String, dynamic> _emitter(
     'magnetBehavior',
     'convergenceBehavior',
     'spinBehavior',
+    'randomBehavior',
   });
   final shape = switch (source['emissionType']) {
     'point' => 'point',
@@ -212,6 +263,11 @@ Map<String, dynamic> _emitter(
     'hemisphere_surface' when version >= 5 => 'hemisphereSurface',
     'circle_border' when version >= 5 => 'circleBorder',
     'circle_border_uniform' when version >= 5 => 'circleBorderUniform',
+    'cylinder_surface' when version >= 8 => 'cylinderSurface',
+    'circle' when version >= 9 => 'circleDisk',
+    'sphere' when version >= 9 => 'sphereVolume',
+    'hemisphere' when version >= 9 => 'hemisphereVolume',
+    'cylinder' when version >= 9 => 'cylinderVolume',
     _ => throw const FormatException('Unsupported SPL emission shape'),
   };
   final draw = switch (source['drawType']) {
@@ -229,12 +285,16 @@ Map<String, dynamic> _emitter(
       source['maxRotation'] is! int) {
     throw const FormatException('Unsupported SPL source geometry');
   }
+  if ({'cylinderSurface', 'cylinderVolume'}.contains(shape) &&
+      (source['length'] as int) < 0) {
+    throw const FormatException('Unsupported SPL cylinder length');
+  }
   for (final field in [
     if (version < 5) 'hasRotation',
     'randomLoopOffset',
     if (version < 5 || (version < 6 && source['childResource'] != null))
       'drawChildrenFirst',
-    'hideParent',
+    if (version < 13) 'hideParent',
     'fixedPolygonID',
     'childFixedPolygonID',
     if (version < 5) 'dirFromPosition',
@@ -251,7 +311,7 @@ Map<String, dynamic> _emitter(
     }
   }
   for (final field in [
-    'lifeTimeVariance',
+    if (version < 7) 'lifeTimeVariance',
     if (version < 5) 'velocityVariance',
     'dirStretch',
     'textureRepeatShiftS',
@@ -263,10 +323,17 @@ Map<String, dynamic> _emitter(
       throw FormatException('Unsupported SPL source field: $field');
     }
   }
+  if (version >= 7 &&
+      (source['lifeTimeVariance'] is! int ||
+          (source['lifeTimeVariance'] as int) < 0 ||
+          (source['lifeTimeVariance'] as int) > 255)) {
+    throw const FormatException('Unsupported SPL particle lifetime variance');
+  }
   if (version >= 5 &&
       (source['hasRotation'] is! bool ||
           source['dirFromPosition'] is! bool ||
           source['drawChildrenFirst'] is! bool ||
+          (version >= 13 && source['hideParent'] is! bool) ||
           (source['dirFromPosition'] == true &&
               draw != 'directionalBillboard' && draw != 'directionalPolygon') ||
           !_isSignedWord(source['minRotation']) ||
@@ -347,6 +414,13 @@ Map<String, dynamic> _emitter(
       ? _map(source['magnetBehavior'])
       : null;
   if (magnet != null) _keys(magnet, {'target', 'force'});
+  final random = source.containsKey('randomBehavior')
+      ? _map(source['randomBehavior'])
+      : null;
+  if (random != null) {
+    if (version < 14) throw const FormatException('Unsupported SPL random force');
+    _keys(random, {'magnitude', 'applyInterval'});
+  }
   final convergence = source.containsKey('convergenceBehavior')
       ? _map(source['convergenceBehavior'])
       : null;
@@ -399,6 +473,9 @@ Map<String, dynamic> _emitter(
       'initialAngle': source['initAngle'],
       if (version >= 5) 'emissionAxis': source['emissionAxis'],
       if (version >= 5) 'velocityVariance': source['velocityVariance'],
+      if (version >= 7) 'particleLifetimeVariance': source['lifeTimeVariance'],
+      if ({'cylinderSurface', 'cylinderVolume'}.contains(shape))
+        'length': source['length'],
     },
     'appearance': {
       'draw': draw,
@@ -447,6 +524,7 @@ Map<String, dynamic> _emitter(
       if (version >= 5) 'maxRotation': source['maxRotation'],
       if (version >= 5) 'dirFromPosition': source['dirFromPosition'],
       if (version >= 6) 'drawChildrenFirst': source['drawChildrenFirst'],
+      if (version >= 13 && source['hideParent'] == true) 'hideParent': true,
       if (version >= 6 && !source.containsKey('alphaAnim'))
         'hasAlphaAnimation': false,
       if (version >= 6 && color['randomStart'] == true)
@@ -461,6 +539,7 @@ Map<String, dynamic> _emitter(
       if (version >= 4) 'magnet': magnet,
       if (convergence != null) 'convergence': convergence,
       if (spin != null) 'spin': spin,
+      if (random != null) 'random': random,
     },
     'child': rawChild == null ? null : _child(_map(rawChild), texture, version),
   };
@@ -496,7 +575,7 @@ Map<String, dynamic> _child(Map<String, dynamic> source,
     'unused',
   });
   for (final field in [
-    'followEmitter',
+    if (version < 11) 'followEmitter',
     'flipTextureS',
     'flipTextureT',
     'dirFromPosition'
@@ -504,6 +583,9 @@ Map<String, dynamic> _child(Map<String, dynamic> source,
     if (source[field] != false) {
       throw FormatException('Unsupported SPL child field: $field');
     }
+  }
+  if (version >= 11 && source['followEmitter'] is! bool) {
+    throw const FormatException('Unsupported SPL child field: followEmitter');
   }
   if (source['hasBehaviors'] is! bool ||
       (source['hasBehaviors'] == true && version < 4)) {
@@ -554,6 +636,7 @@ Map<String, dynamic> _child(Map<String, dynamic> source,
       'scaleEnd': source['hasScaleAnim'] == true ? source['endScale'] : null,
     if (version >= 4) 'inheritBehaviors': source['hasBehaviors'],
     if (version >= 6) 'inheritColor': source['useChildColor'] == false,
+    if (version >= 11) 'followEmitter': source['followEmitter'],
     if (version >= 4)
       'draw': source['drawType'] == 'billboard'
           ? 'billboard'
