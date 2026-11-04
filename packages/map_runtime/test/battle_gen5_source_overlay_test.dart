@@ -1,20 +1,25 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_authoring/src/domains/gameplay/pokemon_external/gen5_batch_recipe_converter.dart';
+import 'package:map_authoring/src/domains/gameplay/pokemon_external/gen5_source_recipe_converter.dart';
 import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/src/presentation/flame/battle_animation_plan.dart';
 import 'package:map_runtime/src/presentation/flame/battle_gen5_source_program_playback.dart';
 import 'package:map_runtime/src/presentation/flame/battle_gen5_source_emitter.dart';
+import 'package:map_runtime/src/presentation/flame/battle_gen5_source_particles.dart';
 import 'package:map_runtime/src/presentation/flame/battle_gen5_source_background.dart';
 import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_scene_backdrop_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_stage_3d_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_spl_static_admission.dart';
+import 'package:map_runtime/src/presentation/flame/battle_spl_static_component.dart';
 
 import 'support/load_flame_component.dart';
 
@@ -48,6 +53,39 @@ Map<String, dynamic> _program(List<Map<String, dynamic>> instructions) => {
   'conversion': 'supported',
   'instructions': instructions,
 };
+
+Future<Gen5BatchRecipe> _sourceRecipe(
+  String file, String moveId, int particle, List<int> indices, {
+  bool unsupportedMotion = false,
+}
+) async {
+  final root = Directory('../../tools/avelune_attack_comparator/assets/bw2');
+  final program = jsonDecode(await File('${root.path}/$file.json').readAsString())
+      as Map<String, dynamic>;
+  if (unsupportedMotion) {
+    final instructions = (program['instructions'] as List).cast<Map>();
+    instructions.firstWhere((value) => value['op'] == 'startMovingEmitter')['op'] =
+        'startMovingOrthoEmitter';
+  }
+  final directory = Directory('${root.path}/particle$particle');
+  final bytes = await File('${directory.path}/definition.json').readAsBytes();
+  final definition = BattleSplParticleDefinition.fromJson(
+    jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>,
+  );
+  final textures = <String, Uint8List>{};
+  for (final id in definition.textureIds) {
+    final png = File('${directory.path}/$id.png');
+    textures[id] = await png.exists()
+        ? await png.readAsBytes()
+        : base64Decode((await File('${directory.path}/$id.b64').readAsString()).trim());
+  }
+  return Gen5SourceRecipeConverter.convert(
+    moveId: moveId, sourceProgram: program,
+    particles: {particle: Gen5BatchParticle(
+      definition: bytes, textures: textures, sourceEmitterIndices: indices,
+    )},
+  );
+}
 
 Future<BattleOverlayComponent> _scene({
   bool intro = false,
@@ -2120,6 +2158,126 @@ void main() {
       );
     },
   );
+
+  for (final scenario in [
+    (viewport: Vector2(390, 844), side: BattleSideId.player,
+      file: 'tackle', id: 'tackle', particle: 199, moving: false),
+    (viewport: Vector2(844, 390), side: BattleSideId.enemy,
+      file: 'tackle', id: 'tackle', particle: 199, moving: false),
+    (viewport: Vector2(390, 844), side: BattleSideId.player,
+      file: 'water_gun', id: 'water-gun', particle: 220, moving: true),
+    (viewport: Vector2(844, 390), side: BattleSideId.enemy,
+      file: 'water_gun', id: 'water-gun', particle: 220, moving: true),
+  ]) {
+    test('verified ${scenario.id} resources run in a tracked turn for ${scenario.side}', () async {
+      final recipe = await _sourceRecipe(scenario.file, scenario.id, scenario.particle, [0, 1]);
+      final budget = RuntimeResourceBudget();
+      addTearDown(budget.dispose);
+      late BattleOverlayComponent overlay;
+      late BattleGen5SourceParticleSet particles;
+      var completed = false;
+      overlay = await _scene(
+        viewport: scenario.viewport,
+        onStartRecoverableTrackedEffect: (_, done, fail) {
+          final result = overlay.presentExperimentalGen5Attack(
+            program: particles.program,
+            variant: particles.variant,
+            attackerSide: scenario.side,
+            hasEmitter: particles.hasEmitter,
+            startEmitter: (_, _, _) => fail(),
+            startSourceEmitter: particles.start,
+            particlesBusy: particles.isBusy,
+            detachParticles: particles.dispose,
+            allowSilentAudio: true,
+            allowUnmappedAudioControls: scenario.moving,
+            allowApproximateFlatActors: scenario.moving,
+            adaptSourceCamera: scenario.moving,
+            duringTrackedEffect: true,
+          );
+          unawaited(result.then((status) {
+            if (status == BattleGen5SourcePlaybackStatus.finished) {
+              completed = true;
+              done();
+            } else {
+              fail();
+            }
+          }, onError: (Object _) => fail()));
+          return overlay.cancelExperimentalGen5Attack;
+        },
+      );
+      particles = await BattleGen5SourceParticleSet.prepare(
+        bundle: recipe.bundle, overlay: overlay, budget: budget,
+        attackerSide: scenario.side,
+      );
+      addTearDown(particles.dispose);
+      final turn = overlay.debugSession.applyChoice(const PlayerBattleChoiceFight(0));
+      final event = turn.state.currentTurn!.timeline
+          .whereType<BattleTurnExecutionEvent>()
+          .firstWhere((event) => event.execution.attackerSide == scenario.side);
+      overlay.updateState(turn, experimentalSourceEffects: {event: 'source-tackle'});
+      await overlay.waitForPendingVisualSync();
+      var sawParticles = false;
+      final positions = <(int, int, int)>{};
+      for (var tick = 0; tick < 1000 && overlay.isTurnPresentationActive; tick++) {
+        overlay.updateTree(1 / 60);
+        for (final effect in overlay.children.whereType<BattleSplStaticComponent>()) {
+          sawParticles |= effect.playback.activeParticles > 0;
+          if (effect.advanceEmitterPosition != null) {
+            for (final frame in effect.playback.frames) {
+              for (final particle in frame.particles) {
+                final position = particle.emitterPosition;
+                positions.add((position.x, position.y, position.z));
+              }
+            }
+          }
+        }
+        await Future<void>.delayed(Duration.zero);
+      }
+      expect(completed, isTrue);
+      expect(sawParticles, isTrue);
+      if (scenario.moving) expect(positions.length, greaterThan(1));
+      expect(overlay.isTurnPresentationActive, isFalse);
+      expect(budget.residentBytes, 0);
+    });
+  }
+
+  test('rejects unsupported emitters and cancellation without holding resources', () async {
+    final overlay = await _scene();
+    final budget = RuntimeResourceBudget();
+    addTearDown(budget.dispose);
+    final waterGun = await _sourceRecipe('water_gun', 'water-gun', 220, [0, 1],
+        unsupportedMotion: true);
+    await expectLater(
+      BattleGen5SourceParticleSet.prepare(
+        bundle: waterGun.bundle, overlay: overlay, budget: budget,
+        attackerSide: BattleSideId.player,
+      ),
+      throwsFormatException,
+    );
+    final tackle = await _sourceRecipe('tackle', 'tackle', 199, [0, 1]);
+    await expectLater(
+      BattleGen5SourceParticleSet.prepare(
+        bundle: tackle.bundle, overlay: overlay, budget: budget,
+        attackerSide: BattleSideId.player, isCurrent: () => false,
+      ),
+      throwsStateError,
+    );
+    expect(budget.residentBytes, 0);
+    expect(budget.transientBytes, 0);
+    final limited = RuntimeResourceBudget(
+      profile: const RuntimeResourceProfile(maximumResidentBytes: 1024),
+    );
+    addTearDown(limited.dispose);
+    await expectLater(
+      BattleGen5SourceParticleSet.prepare(
+        bundle: tackle.bundle, overlay: overlay, budget: limited,
+        attackerSide: BattleSideId.player,
+      ),
+      throwsA(isA<RuntimeResourceAdmissionException>()),
+    );
+    expect(limited.residentBytes, 0);
+    expect(limited.transientBytes, 0);
+  });
 
   for (final pilot in [
     (name: 'Charge', file: 'tackle', variant: 'Tackle', particle: 199,

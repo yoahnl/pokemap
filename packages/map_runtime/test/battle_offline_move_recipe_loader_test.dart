@@ -109,7 +109,7 @@ void main() {
       final png = File('${directory.path}/$id.png');
       textures[id] = await png.exists()
           ? await png.readAsBytes()
-          : base64Decode(await File('${directory.path}/$id.b64').readAsString());
+          : base64Decode((await File('${directory.path}/$id.b64').readAsString()).trim());
     }
     final converted = Gen5SourceRecipeConverter.convert(
       moveId: 'tackle',
@@ -136,10 +136,16 @@ void main() {
         converted.bundle.media[resource.id]!,
       );
     }
-    final result = await loader().load('tackle');
+    final result = await loader().load('tackle', retainVerifiedMedia: true);
     expect(result.fallbackReason, BattleRecipeFallbackReason.unavailableCapabilities);
     expect(result.unavailableCapabilities, contains('gen5SourceProgram'));
     expect(result.prepared, isNull);
+    final media = result.verifiedMedia!;
+    addTearDown(media.release);
+    final visual = media.bundle.recipe.toJson()['program'] as Map;
+    expect(visual['sourceProgram'], source);
+    expect(media.bundle.media.keys, contains('gen5-particle-199'));
+    media.release();
   });
 
   test(
