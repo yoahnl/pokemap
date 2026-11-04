@@ -100,6 +100,9 @@ abstract final class Gen5SplParticleConverter {
     }
 
     final selectedEmitters = [for (final index in indices) rawEmitters[index]];
+    final needsExperimentalV17 = selectedEmitters.any(
+      (raw) => _map(raw)['emissionAxis'] == 'emitter',
+    );
     final needsExperimentalV16 = selectedEmitters.any((raw) {
       final emitter = _map(raw);
       return emitter['drawType'] == 'polygon' &&
@@ -174,7 +177,7 @@ abstract final class Gen5SplParticleConverter {
                   child['useChildColor'] == false));
     });
     final version = experimentalSourceEmitterIndices != null
-        ? (needsExperimentalV16 ? 16 : needsExperimentalV15 ? 15 : needsExperimentalV14 ? 14 : needsExperimentalV13 ? 13 : needsExperimentalV12 ? 12 : needsExperimentalV11 ? 11 : needsExperimentalV10 ? 10 : needsExperimentalV9 ? 9 : needsExperimentalV8 ? 8 : needsExperimentalV7 ? 7 : needsExperimentalV6 ? 6 : 5)
+        ? (needsExperimentalV17 ? 17 : needsExperimentalV16 ? 16 : needsExperimentalV15 ? 15 : needsExperimentalV14 ? 14 : needsExperimentalV13 ? 13 : needsExperimentalV12 ? 12 : needsExperimentalV11 ? 11 : needsExperimentalV10 ? 10 : needsExperimentalV9 ? 9 : needsExperimentalV8 ? 8 : needsExperimentalV7 ? 7 : needsExperimentalV6 ? 6 : 5)
         : rawEmitters.any((raw) => _map(raw).containsKey('magnetBehavior'))
             ? 4
             : rawEmitters
@@ -287,7 +290,7 @@ Map<String, dynamic> _emitter(
     'polygon' when version >= 15 => 'polygon',
     _ => throw const FormatException('Unsupported SPL draw type'),
   };
-  if (!{'x', 'y', 'z'}.contains(source['emissionAxis']) ||
+  if (!{'x', 'y', 'z', if (version >= 17) 'emitter'}.contains(source['emissionAxis']) ||
       !(draw == 'polygon' && version >= 16
           ? {'xyz', 'y'}.contains(source['polygonRotAxis'])
           : source['polygonRotAxis'] == (draw == 'polygon' ? 'xyz' : 'y')) ||

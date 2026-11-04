@@ -988,7 +988,7 @@
     "category": "physical",
     "particle": 332,
     "approximations": [
-      "particle-field:emissionAxis"
+      "particle-axis:source-basis-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/9/95/Super_Fang_V.png",
     "bundleAsset": "assets/bw2/batch/super-fang.json"
@@ -1125,10 +1125,10 @@
     "approximations": [
       "background-palette-fade:layer-approximation",
       "background-palette:missing-bank-transparent",
+      "particle-axis:source-basis-experimental",
       "particle-child:drawType",
       "particle-child:polygonReferencePlane",
       "particle-child:polygonRotAxis",
-      "particle-field:emissionAxis",
       "particle-field:polygonReferencePlane",
       "particle-polygon:projection-experimental",
       "particle-spin:trigonometry-experimental",
@@ -1179,7 +1179,7 @@
     "category": "physical",
     "particle": 566,
     "approximations": [
-      "particle-field:emissionAxis",
+      "particle-axis:source-basis-experimental",
       "particle-spin:trigonometry-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/a/a8/Last_Resort_V.png",
@@ -4907,7 +4907,7 @@
     "category": "special",
     "particle": 578,
     "approximations": [
-      "particle-field:emissionAxis",
+      "particle-axis:source-basis-experimental",
       "particle-polygon:xyz-projection-experimental",
       "scene-palette-fade:layer-approximation"
     ],
@@ -5308,7 +5308,7 @@
     "category": "status",
     "particle": 560,
     "approximations": [
-      "particle-field:emissionAxis",
+      "particle-axis:source-basis-experimental",
       "particle-spin:trigonometry-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/2/2f/Lucky_Chant_V.png",
@@ -7087,7 +7087,7 @@
     "approximations": [
       "actor-position:screen-space-approximation",
       "actor-visibility:shadow-hidden",
-      "particle-field:emissionAxis",
+      "particle-axis:source-basis-experimental",
       "source-audio:channel-wait-uses-all-audio"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/5/52/Teleport_V.png",

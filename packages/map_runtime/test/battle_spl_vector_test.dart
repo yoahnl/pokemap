@@ -3,6 +3,59 @@ import 'package:map_runtime/src/presentation/flame/battle_spl_random.dart';
 import 'package:map_runtime/src/presentation/flame/battle_spl_vector.dart';
 
 void main() {
+  test('orients source rings using the emitter axis', () {
+    for (final entry in {
+      'x': (x: 4096, y: 0, z: 0),
+      'y': (x: 0, y: 4096, z: 0),
+      'z': (x: 0, y: 0, z: 4096),
+    }.entries) {
+      final basis = BattleSplEmissionBasis(entry.value);
+      for (var index = 0; index < 8; index++) {
+        expect(
+          BattleSplVectorMath.uniformCircleBorder(
+            index: index, count: 8, radius: 4096,
+            axis: 'emitter', basis: basis,
+          ),
+          BattleSplVectorMath.uniformCircleBorder(
+            index: index, count: 8, radius: 4096, axis: entry.key,
+          ),
+          reason: '${entry.key} at $index',
+        );
+      }
+    }
+
+    final tilted = BattleSplEmissionBasis((x: -2896, y: 2896, z: 0));
+    expect(
+      BattleSplVectorMath.uniformCircleBorder(
+        index: 0, count: 4, radius: 4096, axis: 'emitter', basis: tilted,
+      ),
+      (x: -2896, y: -2896, z: 0),
+    );
+    final lunar = BattleSplEmissionBasis((x: 0, y: 4017, z: 798));
+    expect(
+      BattleSplVectorMath.uniformCircleBorder(
+        index: 0, count: 4, radius: 4096, axis: 'emitter', basis: lunar,
+      ),
+      (x: 0, y: -795, z: 4017),
+    );
+    final down = BattleSplEmissionBasis((x: 0, y: -4096, z: 0));
+    expect(
+      BattleSplVectorMath.cylinderSurface(
+        BattleSplRandom(seed: 0), radius: 4096, length: 4096,
+        axis: 'emitter', basis: down,
+      ).position,
+      (x: -2417, y: -3904, z: 3307),
+    );
+    expect(() => BattleSplEmissionBasis((x: 0, y: 0, z: 0)),
+        throwsFormatException);
+    expect(
+      () => BattleSplVectorMath.circleBorder(
+        BattleSplRandom(seed: 0), radius: 4096, axis: 'emitter',
+      ),
+      throwsFormatException,
+    );
+  });
+
   test('samples the BW2 filled circle in each emission plane', () {
     for (final entry in {
       'x': (x: 0, y: 330, z: 3152),

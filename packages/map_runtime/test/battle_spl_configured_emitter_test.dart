@@ -15,6 +15,52 @@ import 'package:map_runtime/src/presentation/flame/battle_spl_random.dart';
 import 'package:map_runtime/src/presentation/flame/battle_spl_static_admission.dart';
 
 void main() {
+  test('emits the source ring perpendicular to a tilted emitter axis', () async {
+    final raw = jsonDecode(
+      await File('../map_core/test/fixtures/spl_particle_v2.json').readAsString(),
+    ) as Map<String, dynamic>;
+    raw['schemaVersion'] = 17;
+    final source = (raw['emitters'] as List).single as Map<String, dynamic>;
+    final emission = source['emission'] as Map;
+    emission['shape'] = 'circleBorderUniform';
+    emission['radius'] = 4096;
+    emission['axis'] = {'x': -2896, 'y': 2896, 'z': 0};
+    emission['rate'] = 4 * 4096;
+    emission['startDelay'] = 0;
+    emission['duration'] = 1;
+    emission['axisVelocity'] = 0;
+    emission['positionVelocity'] = 0;
+    emission['emissionAxis'] = 'emitter';
+    emission['velocityVariance'] = 0;
+    emission['particleLifetimeVariance'] = 0;
+    final appearance = source['appearance'] as Map;
+    appearance['hasRotation'] = false;
+    appearance['minRotation'] = 0;
+    appearance['maxRotation'] = 0;
+    appearance['dirFromPosition'] = false;
+    appearance['drawChildrenFirst'] = false;
+    final motion = source['motion'] as Map;
+    motion['magnet'] = null;
+    motion['gravity'] = {'x': 0, 'y': 0, 'z': 0};
+    motion['airResistance'] = 128;
+    source['child'] = null;
+    final emitter = BattleSplConfiguredEmitter(
+      definition: BattleSplParticleDefinition.fromExperimentalJson(raw).emitters.single,
+      textureIndices: const {'tex': 0},
+      random: BattleSplRandom(seed: 0),
+      pool: BattleSplParticlePool(capacity: 4),
+    );
+    emitter.step(managerFrame: 0, position: (x: 0, y: 0, z: 0));
+    final particles = [...emitter.playback.particles]..sort((a, b) => a.id.compareTo(b.id));
+    expect(particles.map((particle) => particle.motion.position), [
+      (x: -2896, y: -2896, z: 0),
+      (x: 0, y: 0, z: -4096),
+      (x: 2896, y: 2896, z: 0),
+      (x: 0, y: 0, z: 4096),
+    ]);
+    emitter.cancel();
+  });
+
   test('applies BW2 random forces and consumes all three random values', () async {
     final raw = jsonDecode(
       await File('../map_core/test/fixtures/spl_particle_v2.json').readAsString(),

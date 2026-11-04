@@ -3,6 +3,41 @@ import 'dart:math' as math;
 import 'battle_spl_particle_motion.dart';
 import 'battle_spl_random.dart';
 
+final class BattleSplEmissionBasis {
+  factory BattleSplEmissionBasis(BattleSplVector axis) {
+    final normal = BattleSplVectorMath.normalize(axis);
+    final up = normal.y.abs() == 4096
+        ? (x: 4096, y: 0, z: 0)
+        : (x: 0, y: 4096, z: 0);
+    final cross1 = _cross(normal, up);
+    final cross2 = _cross(normal, cross1);
+    final first = BattleSplVectorMath.normalize(cross1);
+    final second = BattleSplVectorMath.normalize(cross2);
+    final depth = BattleSplVectorMath.normalize(_cross(first, second));
+    return BattleSplEmissionBasis._(first, second, depth);
+  }
+
+  const BattleSplEmissionBasis._(this.first, this.second, this.depth);
+
+  final BattleSplVector first;
+  final BattleSplVector second;
+  final BattleSplVector depth;
+
+  BattleSplVector tilt(int x, int y, int z) => (
+    x: _multiply(x, first.x) + _multiply(y, second.x) + _multiply(z, depth.x),
+    y: _multiply(x, first.y) + _multiply(y, second.y) + _multiply(z, depth.y),
+    z: _multiply(x, first.z) + _multiply(y, second.z) + _multiply(z, depth.z),
+  );
+
+  static BattleSplVector _cross(BattleSplVector a, BattleSplVector b) => (
+    x: _multiply(a.y, b.z) - _multiply(a.z, b.y),
+    y: _multiply(a.z, b.x) - _multiply(a.x, b.z),
+    z: _multiply(a.x, b.y) - _multiply(a.y, b.x),
+  );
+
+  static int _multiply(int a, int b) => (a * b + 2048) >> 12;
+}
+
 abstract final class BattleSplVectorMath {
   static BattleSplVector randomUnitVector(BattleSplRandom random) => normalize((
     x: random.fixedPoint(bits: 24),
@@ -53,8 +88,9 @@ abstract final class BattleSplVectorMath {
     BattleSplRandom random, {
     required int radius,
     required String axis,
+    BattleSplEmissionBasis? basis,
   }) {
-    if (radius < 0 || radius > 2147483647 || !{'x', 'y', 'z'}.contains(axis)) {
+    if (radius < 0 || radius > 2147483647 || !_validAxis(axis, basis)) {
       throw const FormatException('Invalid SPL circle');
     }
     final sample = normalize((
@@ -69,11 +105,7 @@ abstract final class BattleSplVectorMath {
 
     final x = scale(sample.x);
     final y = scale(sample.y);
-    return switch (axis) {
-      'x' => (x: 0, y: -y, z: x),
-      'y' => (x: -y, y: 0, z: -x),
-      _ => (x: -x, y: -y, z: 0),
-    };
+    return _tilt(x, y, 0, axis, basis);
   }
 
   static BattleSplVector circleDisk(
@@ -153,9 +185,15 @@ abstract final class BattleSplVectorMath {
 
   static int _multiply(int a, int b) => (a * b + 2048) >> 12;
 
-  static BattleSplVector _tilt(int x, int y, int z, String axis) => switch (axis) {
+  static bool _validAxis(String axis, BattleSplEmissionBasis? basis) =>
+      axis == 'emitter' ? basis != null : {'x', 'y', 'z'}.contains(axis);
+
+  static BattleSplVector _tilt(
+    int x, int y, int z, String axis, [BattleSplEmissionBasis? basis]
+  ) => switch (axis) {
     'x' => (x: z, y: -y, z: x),
     'y' => (x: -y, y: z, z: -x),
+    'emitter' => basis!.tilt(x, y, z),
     _ => (x: -x, y: -y, z: z),
   };
 
@@ -165,9 +203,10 @@ abstract final class BattleSplVectorMath {
     required int radius,
     required int length,
     required String axis,
+    BattleSplEmissionBasis? basis,
   }) {
     if (radius < 0 || radius > 32767 || length < 0 || length > 65535 ||
-        !{'x', 'y', 'z'}.contains(axis)) {
+        !_validAxis(axis, basis)) {
       throw const FormatException('Invalid SPL cylinder');
     }
     final sample = normalize((
@@ -178,16 +217,8 @@ abstract final class BattleSplVectorMath {
     final x = (sample.x * radius + 2048) >> 12;
     final y = (sample.y * radius + 2048) >> 12;
     final axial = random.range(length);
-    final position = switch (axis) {
-      'x' => (x: axial, y: -y, z: x),
-      'y' => (x: -y, y: axial, z: -x),
-      _ => (x: -x, y: -y, z: axial),
-    };
-    final radial = switch (axis) {
-      'x' => (x: 0, y: -sample.y, z: sample.x),
-      'y' => (x: -sample.y, y: 0, z: -sample.x),
-      _ => (x: -sample.x, y: -sample.y, z: 0),
-    };
+    final position = _tilt(x, y, axial, axis, basis);
+    final radial = _tilt(sample.x, sample.y, 0, axis, basis);
     return (position: position, radialDirection: normalize(radial));
   }
 
@@ -196,9 +227,10 @@ abstract final class BattleSplVectorMath {
     required int count,
     required int radius,
     required String axis,
+    BattleSplEmissionBasis? basis,
   }) {
     if (count < 1 || count > 64 || index < 0 || index >= count ||
-        radius < 0 || radius > 2147483647 || !{'x', 'y', 'z'}.contains(axis)) {
+        radius < 0 || radius > 2147483647 || !_validAxis(axis, basis)) {
       throw const FormatException('Invalid SPL uniform circle');
     }
     final angleIndex = ((index * 65536 ~/ count) & 65535) >> 4;
@@ -207,11 +239,7 @@ abstract final class BattleSplVectorMath {
     final cosine = (math.cos(angle) * 4096).round();
     final x = (sine * radius + 2048) >> 12;
     final y = (cosine * radius + 2048) >> 12;
-    return switch (axis) {
-      'x' => (x: 0, y: -y, z: x),
-      'y' => (x: -y, y: 0, z: -x),
-      _ => (x: -x, y: -y, z: 0),
-    };
+    return _tilt(x, y, 0, axis, basis);
   }
 
   static BattleSplVector normalize(BattleSplVector vector) {

@@ -97,6 +97,9 @@ final class BattleSplConfiguredEmitter {
     );
     final frame = _EmitterFrame();
     final axis = _vector(emission['axis']);
+    final basis = emission['emissionAxis'] == 'emitter'
+        ? BattleSplEmissionBasis(axis)
+        : null;
     final spherical = emission['shape'] == 'sphereSurface';
     final cylindrical = emission['shape'] == 'cylinderSurface';
     final velocityVariance = emission['velocityVariance'] as int? ?? 0;
@@ -128,6 +131,7 @@ final class BattleSplConfiguredEmitter {
                 radius: emission['radius'] as int,
                 length: emission['length'] as int,
                 axis: emission['emissionAxis'] as String,
+                basis: basis,
               )
             : null;
         final position = cylinder?.position ?? switch (emission['shape']) {
@@ -136,11 +140,13 @@ final class BattleSplConfiguredEmitter {
                 count: count,
                 radius: emission['radius'] as int,
                 axis: emission['emissionAxis'] as String,
+                basis: basis,
               ),
           'circleBorder' => BattleSplVectorMath.circleBorder(
                 random,
                 radius: emission['radius'] as int,
                 axis: emission['emissionAxis'] as String,
+                basis: basis,
               ),
           'hemisphereSurface' => BattleSplVectorMath.hemisphereSurface(
                 random,

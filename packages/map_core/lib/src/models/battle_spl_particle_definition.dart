@@ -30,7 +30,7 @@ final class BattleSplParticleDefinition {
     }
     _fields(copy, {'schemaVersion', 'emitters'});
     if (copy['schemaVersion'] is! int ||
-        !(experimental ? {5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16} : {2, 3, 4}).contains(copy['schemaVersion'])) {
+        !(experimental ? {5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17} : {2, 3, 4}).contains(copy['schemaVersion'])) {
       throw const FormatException('Unsupported SPL particle version');
     }
     final values = _list(copy['emitters']);
@@ -139,7 +139,15 @@ void _validateEmitter(
   _boolean(emission['randomInitialAngle']);
   _integer(emission['initialAngle'], 0, 65535);
   if (version >= 5) {
-    _choice(emission['emissionAxis'], {'x', 'y', 'z'});
+    _choice(emission['emissionAxis'], {'x', 'y', 'z', if (version >= 17) 'emitter'});
+    if (emission['emissionAxis'] == 'emitter') {
+      final axis = _map(emission['axis']);
+      if (!{'circleBorder', 'circleBorderUniform', 'cylinderSurface'}
+              .contains(emission['shape']) ||
+          ['x', 'y', 'z'].every((key) => axis[key] == 0)) {
+        throw const FormatException('Unsupported SPL emitter axis');
+      }
+    }
     _integer(emission['velocityVariance'], 0, 255);
   }
   if (version >= 7) _integer(emission['particleLifetimeVariance'], 0, 255);

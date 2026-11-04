@@ -124,7 +124,17 @@ abstract final class Gen5BatchParticleApproximation {
           !{'billboard', 'directional_billboard'}.contains(emitter['drawType'])) {
         set(emitter, 'drawType', 'billboard', 'particle-field:drawType');
       }
-      if (emitter['emissionAxis'] == 'emitter') {
+      final sourceAxis = emitter['axis'];
+      final preserveSourceAxis = preserveExperimentalFeatures &&
+          {'circle_border', 'circle_border_uniform', 'cylinder_surface'}
+              .contains(emitter['emissionType']) &&
+          sourceAxis is Map &&
+          sourceAxis.length == 3 &&
+          ['x', 'y', 'z'].every((key) => sourceAxis[key] is int &&
+              (sourceAxis[key] as int) >= -32768 &&
+              (sourceAxis[key] as int) <= 32767) &&
+          ['x', 'y', 'z'].any((key) => sourceAxis[key] != 0);
+      if (emitter['emissionAxis'] == 'emitter' && !preserveSourceAxis) {
         set(emitter, 'emissionAxis', 'z', 'particle-field:emissionAxis');
       }
       if (!sourcePolygon) {

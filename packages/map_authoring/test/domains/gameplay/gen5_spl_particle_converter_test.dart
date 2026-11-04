@@ -167,6 +167,63 @@ Gen5SplParticleConversion _convert(
 }
 
 void main() {
+  test('preserves bounded source emitter axes for workshop circles', () {
+    final source = _source();
+    final emitter = (source['emitters'] as List).single as Map<String, dynamic>;
+    emitter['emissionType'] = 'circle_border_uniform';
+    emitter['emissionAxis'] = 'emitter';
+    emitter['radius'] = 4096;
+    emitter['axis'] = {'x': -2896, 'y': 2896, 'z': 0};
+    final workshop = Gen5BatchParticleApproximation.normalize(
+      source, preserveExperimentalFeatures: true,
+    );
+    final normalized = (workshop.document['emitters'] as List).single as Map;
+    expect(normalized['emissionAxis'], 'emitter');
+    expect(workshop.warnings, isNot(contains('particle-field:emissionAxis')));
+    final bytes = _bytes(workshop.document);
+    final definition = Gen5SplParticleConverter.convert(
+      bytes, particleId: 218, sourceRevision: _revision, sourcePath: _path,
+      expectedSha256: sha256.convert(bytes).toString(),
+      textureResourceIds: const {
+        'base': 'base-id', 'first': 'frame-1', 'second': 'frame-2',
+      },
+      experimentalSourceEmitterIndices: const [0],
+    ).definition;
+    expect(definition.schemaVersion, 17);
+    final emission = definition.emitters.single.toJson()['emission'] as Map;
+    expect(emission['emissionAxis'], 'emitter');
+    expect(emission['axis'], {'x': -2896, 'y': 2896, 'z': 0});
+    expect(() => BattleSplParticleDefinition.fromJson(definition.toJson()),
+        throwsFormatException);
+    final old = definition.toJson()..['schemaVersion'] = 16;
+    expect(() => BattleSplParticleDefinition.fromExperimentalJson(old),
+        throwsFormatException);
+    final zero = definition.toJson();
+    (((zero['emitters'] as List).single as Map)['emission'] as Map)['axis'] =
+        {'x': 0, 'y': 0, 'z': 0};
+    expect(() => BattleSplParticleDefinition.fromExperimentalJson(zero),
+        throwsFormatException);
+    final unsupportedShape = definition.toJson();
+    (((unsupportedShape['emitters'] as List).single as Map)['emission']
+        as Map)['shape'] = 'hemisphereVolume';
+    expect(() => BattleSplParticleDefinition.fromExperimentalJson(unsupportedShape),
+        throwsFormatException);
+    expect(Gen5BatchParticleApproximation.normalize(source).warnings,
+        contains('particle-field:emissionAxis'));
+    for (final variant in ['zero', 'unsupportedShape']) {
+      final unsupported = _source();
+      final sourceEmitter = (unsupported['emitters'] as List).single as Map;
+      sourceEmitter['emissionType'] = variant == 'zero' ? 'circle_border' : 'hemisphere';
+      sourceEmitter['emissionAxis'] = 'emitter';
+      if (variant == 'zero') sourceEmitter['axis'] = {'x': 0, 'y': 0, 'z': 0};
+      final fallback = Gen5BatchParticleApproximation.normalize(
+        unsupported, preserveExperimentalFeatures: true,
+      );
+      expect((fallback.document['emitters'] as List).single['emissionAxis'], 'z');
+      expect(fallback.warnings, contains('particle-field:emissionAxis'));
+    }
+  });
+
   test('preserves source xyz polygons in the experimental workshop', () {
     final source = _source();
     final emitter = (source['emitters'] as List).single as Map<String, dynamic>;
