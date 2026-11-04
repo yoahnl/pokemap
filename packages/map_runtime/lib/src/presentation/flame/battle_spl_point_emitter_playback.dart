@@ -59,6 +59,7 @@ final class BattleSplPointEmitterPlayback {
     this.magnet,
     this.convergence,
     this.spin,
+    this.collisionPlane,
     this.randomForce,
     this.random,
     this.childScaleEnd,
@@ -101,6 +102,7 @@ final class BattleSplPointEmitterPlayback {
   final ({BattleSplVector target, int force})? magnet;
   final ({BattleSplVector target, int force})? convergence;
   final ({String axis, int sine, int cosine})? spin;
+  final ({int height, int elasticity})? collisionPlane;
   final ({BattleSplVector magnitude, int interval})? randomForce;
   final BattleSplRandom? random;
   final int? childScaleEnd;
@@ -231,6 +233,9 @@ final class BattleSplPointEmitterPlayback {
                     randomByte: nextAlphaByte(),
                   )
                 : 31;
+            final particleEmitterPosition = followEmitter
+                ? followingPosition()
+                : previous.emitterPosition;
             _particles[event.particleId] = BattleSplPointParticle(
               id: event.particleId,
               motion: previous.motion.advanceWithGravity(
@@ -243,10 +248,13 @@ final class BattleSplPointEmitterPlayback {
                 convergenceTarget: convergence?.target,
                 convergenceForce: convergence?.force,
                 spin: spin,
+                collisionPlane: collisionPlane == null ? null : (
+                  height: collisionPlane!.height,
+                  elasticity: collisionPlane!.elasticity,
+                  emitterY: particleEmitterPosition.y,
+                ),
               ),
-              emitterPosition: followEmitter
-                  ? followingPosition()
-                  : previous.emitterPosition,
+              emitterPosition: particleEmitterPosition,
               baseScale4096: previous.baseScale4096,
               baseAlpha5: previous.baseAlpha5,
               animatedAlpha5: animatedAlpha,
@@ -300,6 +308,9 @@ final class BattleSplPointEmitterPlayback {
             final animatedScale = childScaleEnd == null
                 ? 4096
                 : childScaleEnd! + ((childScaleEnd! - 4096) * (lifeRate - 255)) ~/ 255;
+            final particleEmitterPosition = childFollowsEmitter
+                ? followingPosition()
+                : previous.emitterPosition;
             _particles[event.particleId] = BattleSplPointParticle(
               id: event.particleId,
               parentId: previous.parentId,
@@ -313,10 +324,15 @@ final class BattleSplPointEmitterPlayback {
                 convergenceTarget: childInheritsBehaviors ? convergence?.target : null,
                 convergenceForce: childInheritsBehaviors ? convergence?.force : null,
                 spin: childInheritsBehaviors ? spin : null,
+                collisionPlane: !childInheritsBehaviors || collisionPlane == null
+                    ? null
+                    : (
+                        height: collisionPlane!.height,
+                        elasticity: collisionPlane!.elasticity,
+                        emitterY: particleEmitterPosition.y,
+                      ),
               ),
-              emitterPosition: childFollowsEmitter
-                  ? followingPosition()
-                  : previous.emitterPosition,
+              emitterPosition: particleEmitterPosition,
               baseScale4096: previous.baseScale4096,
               baseAlpha5: previous.baseAlpha5,
               animatedAlpha5: animatedAlpha,

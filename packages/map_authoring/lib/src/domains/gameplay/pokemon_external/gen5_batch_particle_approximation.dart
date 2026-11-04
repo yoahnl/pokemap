@@ -55,6 +55,7 @@ abstract final class Gen5BatchParticleApproximation {
       if (preserveExperimentalFeatures) 'convergenceBehavior',
       if (preserveExperimentalFeatures) 'spinBehavior',
       if (preserveExperimentalFeatures) 'randomBehavior',
+      if (preserveExperimentalFeatures) 'collisionPlaneBehavior',
     };
     for (final emitter in emitters) {
       if (omitChildren && emitter.containsKey('childResource')) {
@@ -64,6 +65,20 @@ abstract final class Gen5BatchParticleApproximation {
       for (final field in emitter.keys.where((key) => !allowed.contains(key)).toList()) {
         emitter.remove(field);
         warnings.add('particle-field:$field');
+      }
+      if (emitter.containsKey('collisionPlaneBehavior')) {
+        final plane = emitter['collisionPlaneBehavior'];
+        if (plane is! Map ||
+            plane.keys.any((key) => !{'y', 'elasticity', 'type', 'unused'}.contains(key)) ||
+            plane['type'] != 'bounce' ||
+            plane['y'] is! int || (plane['y'] as int) < -2147483648 ||
+            (plane['y'] as int) > 2147483647 ||
+            plane['elasticity'] is! int || (plane['elasticity'] as int) < -32768 ||
+            (plane['elasticity'] as int) > 32767 ||
+            (plane.containsKey('unused') && plane['unused'] is! Map)) {
+          emitter.remove('collisionPlaneBehavior');
+          warnings.add('particle-field:collisionPlaneBehavior');
+        }
       }
       if (emitter.containsKey('randomBehavior')) {
         final random = emitter['randomBehavior'];

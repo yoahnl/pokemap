@@ -2,6 +2,23 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_runtime/src/presentation/flame/battle_gen5_source_emitter.dart';
 
 void main() {
+  test('aligns a source collision plane with the workshop origin', () {
+    for (final args in [
+      <String, dynamic>{'from': 'EFFVM_EMIT_DEFENDER'},
+      <String, dynamic>{'fromX': 0, 'fromY': 0, 'fromZ': 0},
+    ]) {
+      final emitter = <dynamic, dynamic>{
+        'emission': <dynamic, dynamic>{},
+        'appearance': <dynamic, dynamic>{},
+        'motion': <dynamic, dynamic>{
+          'collisionPlane': <dynamic, dynamic>{'height': 4096, 'elasticity': 2457},
+        },
+      };
+      applyGen5SourceEmitterParameters(emitter, args, orthographic: false);
+      expect(((emitter['motion'] as Map)['collisionPlane'] as Map)['height'], 4096 - 0x666);
+    }
+  });
+
   test('maps a moving field emitter to BW2 player and defender positions', () {
     final args = <String, dynamic>{'fromX': 0, 'fromY': 0x2000, 'fromZ': 0,
       'to': 'EFFVM_EMIT_DEFENDER'};

@@ -46,6 +46,7 @@ final class BattleSplConfiguredEmitter {
     final convergence = motion['convergence'] as Map<String, dynamic>?;
     final spin = motion['spin'] as Map<String, dynamic>?;
     final randomForce = motion['random'] as Map<String, dynamic>?;
+    final collisionPlane = motion['collisionPlane'] as Map<String, dynamic>?;
     final spinAngle = spin == null
         ? null
         : ((spin['angle'] as int) >> 4) * 2 * math.pi / 4096;
@@ -108,6 +109,10 @@ final class BattleSplConfiguredEmitter {
       lifecycle: lifecycle,
       loopTime: appearance['loopTime'] as int,
       gravity: _vector(motion['gravity']),
+      collisionPlane: collisionPlane == null ? null : (
+        height: collisionPlane['height'] as int,
+        elasticity: collisionPlane['elasticity'] as int,
+      ),
       randomForce: randomForce == null ? null : (
         magnitude: _vector(randomForce['magnitude']),
         interval: randomForce['applyInterval'] as int,

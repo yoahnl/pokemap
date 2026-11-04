@@ -15,6 +15,52 @@ import 'package:map_runtime/src/presentation/flame/battle_spl_random.dart';
 import 'package:map_runtime/src/presentation/flame/battle_spl_static_admission.dart';
 
 void main() {
+  test('applies the configured bounce plane to emitted particles', () async {
+    final raw = jsonDecode(
+      await File('../map_core/test/fixtures/spl_particle_v2.json').readAsString(),
+    ) as Map<String, dynamic>;
+    raw['schemaVersion'] = 19;
+    final source = (raw['emitters'] as List).single as Map<String, dynamic>;
+    final emission = source['emission'] as Map;
+    emission['shape'] = 'point';
+    emission['radius'] = 0;
+    emission['origin'] = {'x': 0, 'y': 4096, 'z': 0};
+    emission['axisVelocity'] = 0;
+    emission['positionVelocity'] = 0;
+    emission['emissionAxis'] = 'z';
+    emission['velocityVariance'] = 0;
+    emission['particleLifetimeVariance'] = 0;
+    emission['startDelay'] = 0;
+    emission['duration'] = 1;
+    emission['particleLifetime'] = 10;
+    final appearance = source['appearance'] as Map;
+    appearance['hasRotation'] = false;
+    appearance['minRotation'] = 0;
+    appearance['maxRotation'] = 0;
+    appearance['dirFromPosition'] = false;
+    appearance['drawChildrenFirst'] = false;
+    final motion = source['motion'] as Map;
+    motion['magnet'] = null;
+    motion['gravity'] = {'x': 0, 'y': -2048, 'z': 0};
+    motion['airResistance'] = 128;
+    motion['collisionPlane'] = {'height': 0, 'elasticity': 4096};
+    source['child'] = null;
+
+    final emitter = BattleSplConfiguredEmitter(
+      definition: BattleSplParticleDefinition.fromExperimentalJson(raw).emitters.single,
+      textureIndices: const {'tex': 0},
+      random: BattleSplRandom(seed: 0),
+      pool: BattleSplParticlePool(capacity: 4),
+    );
+    emitter.step(managerFrame: 0, position: (x: 0, y: 0, z: 0));
+    emitter.step(managerFrame: 1, position: (x: 0, y: 0, z: 0));
+    expect(emitter.playback.particles.single.motion.position.y, -6144);
+    emitter.step(managerFrame: 0, position: (x: 0, y: 0, z: 0));
+    expect(emitter.playback.particles.single.motion.position.y, -2048);
+    expect(emitter.playback.particles.single.motion.velocity.y, 2048);
+    emitter.cancel();
+  });
+
   test('keeps directional stretch through the experimental emitter frame', () async {
     final raw = jsonDecode(
       await File('../map_core/test/fixtures/spl_particle_v2.json').readAsString(),

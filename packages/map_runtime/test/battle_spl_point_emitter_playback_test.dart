@@ -9,6 +9,66 @@ import 'package:map_runtime/src/presentation/flame/battle_spl_random.dart';
 import 'package:map_runtime/src/presentation/flame/battle_spl_scalar_animation.dart';
 
 void main() {
+  test('uses the current emitter position for a following particle bounce', () {
+    BattleSplPointEmitterPlayback create(bool follow) => _playback(
+      _lifecycle(),
+      followEmitter: follow,
+      emitterPosition: (x: 0, y: 2000, z: 0),
+      collisionPlane: (height: 0, elasticity: 4096),
+      initialMotion: (_) => BattleSplParticleMotion(
+        position: (x: 0, y: -1500, z: 0),
+        velocity: (x: 0, y: -100, z: 0),
+        rotation: 0,
+        angularVelocity: 0,
+      ),
+    );
+
+    final following = create(true)..step(managerFrame: 0, emitterPosition: (x: 0, y: 1000, z: 0));
+    final fixed = create(false)..step(managerFrame: 0, emitterPosition: (x: 0, y: 1000, z: 0));
+    expect(following.particles.single.motion.position.y, -900);
+    expect(following.particles.single.motion.velocity.y, 100);
+    expect(fixed.particles.single.motion.position.y, -1600);
+    expect(fixed.particles.single.motion.velocity.y, -100);
+    following.cancel();
+    fixed.cancel();
+  });
+
+  test('children bounce only when they inherit behaviors', () {
+    BattleSplPointEmitterPlayback create(bool inherit) => _playback(
+      _lifecycle(child: const BattleSplChildTiming(
+        emissionCount: 1, emissionDelay256: 0, emissionInterval: 1, lifetime: 4,
+      )),
+      emitterPosition: (x: 0, y: 1000, z: 0),
+      collisionPlane: (height: 0, elasticity: 4096),
+      childInheritsBehaviors: inherit,
+      childInitializer: (_, parent) => (
+        motion: BattleSplParticleMotion(
+          position: (x: 0, y: -1500, z: 0),
+          velocity: (x: 0, y: -100, z: 0),
+          rotation: 0,
+          angularVelocity: 0,
+        ),
+        emitterPosition: parent.emitterPosition,
+        baseScale4096: 4096,
+        baseAlpha5: 31,
+        color: parent.color,
+        lifetime: 4,
+        texture: 10,
+      ),
+    );
+
+    final inherited = create(true)..step(managerFrame: 0);
+    final independent = create(false)..step(managerFrame: 0);
+    final child = inherited.particles.singleWhere((particle) => particle.parentId != null);
+    final independentChild = independent.particles.singleWhere((particle) => particle.parentId != null);
+    expect(child.motion.position.y, -900);
+    expect(child.motion.velocity.y, 100);
+    expect(independentChild.motion.position.y, -1600);
+    expect(independentChild.motion.velocity.y, -100);
+    inherited.cancel();
+    independent.cancel();
+  });
+
   test('alpha randomness is consumed before the BW2 random force', () {
     final random = BattleSplRandom(seed: 0);
     final playback = _playback(
@@ -629,6 +689,7 @@ BattleSplPointEmitterPlayback _playback(
   bool alphaAnimationEnabled = true,
   int? childScaleEnd,
   ({BattleSplVector target, int force})? magnet,
+  ({int height, int elasticity})? collisionPlane,
   ({BattleSplVector magnitude, int interval})? randomForce,
   BattleSplRandom? random,
   bool childInheritsBehaviors = false,
@@ -645,6 +706,7 @@ BattleSplPointEmitterPlayback _playback(
   alphaAnimationEnabled: alphaAnimationEnabled,
   childScaleEnd: childScaleEnd,
   magnet: magnet,
+  collisionPlane: collisionPlane,
   randomForce: randomForce,
   random: random,
   childInheritsBehaviors: childInheritsBehaviors,

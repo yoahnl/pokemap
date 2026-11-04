@@ -167,6 +167,41 @@ Gen5SplParticleConversion _convert(
 }
 
 void main() {
+  test('preserves BW2 bounce planes only in experimental workshop sources', () {
+    final source = _source();
+    final emitter = (source['emitters'] as List).single as Map<String, dynamic>;
+    emitter['collisionPlaneBehavior'] = {
+      'y': 4096, 'elasticity': 2457, 'type': 'bounce', 'unused': {'unk6': 1},
+    };
+    final workshop = Gen5BatchParticleApproximation.normalize(
+      source, preserveExperimentalFeatures: true,
+    );
+    expect(workshop.warnings, isNot(contains('particle-field:collisionPlaneBehavior')));
+    final bytes = _bytes(workshop.document);
+    final definition = Gen5SplParticleConverter.convert(
+      bytes, particleId: 218, sourceRevision: _revision, sourcePath: _path,
+      expectedSha256: sha256.convert(bytes).toString(),
+      textureResourceIds: const {
+        'base': 'base-id', 'first': 'frame-1', 'second': 'frame-2',
+      },
+      experimentalSourceEmitterIndices: const [0],
+    ).definition;
+    expect(definition.schemaVersion, 19);
+    expect((definition.emitters.single.toJson()['motion'] as Map)['collisionPlane'],
+        {'height': 4096, 'elasticity': 2457});
+    expect(() => BattleSplParticleDefinition.fromJson(definition.toJson()),
+        throwsFormatException);
+    expect(() => BattleSplParticleDefinition.fromExperimentalJson(
+        definition.toJson()..['schemaVersion'] = 18), throwsFormatException);
+    final ordinary = Gen5BatchParticleApproximation.normalize(source);
+    expect(ordinary.warnings, contains('particle-field:collisionPlaneBehavior'));
+    emitter['collisionPlaneBehavior'] = {'y': 0, 'elasticity': 0, 'type': 'kill'};
+    final unsupported = Gen5BatchParticleApproximation.normalize(
+      source, preserveExperimentalFeatures: true,
+    );
+    expect(unsupported.warnings, contains('particle-field:collisionPlaneBehavior'));
+  });
+
   test('preserves directional stretch in the experimental workshop', () {
     final source = _source();
     final emitter = (source['emitters'] as List).single as Map<String, dynamic>;

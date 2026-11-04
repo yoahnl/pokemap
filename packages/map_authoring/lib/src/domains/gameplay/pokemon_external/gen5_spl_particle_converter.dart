@@ -103,6 +103,9 @@ abstract final class Gen5SplParticleConverter {
     final needsExperimentalV18 = selectedEmitters.any(
       (raw) => _map(raw)['dirStretch'] != 0,
     );
+    final needsExperimentalV19 = selectedEmitters.any(
+      (raw) => _map(raw).containsKey('collisionPlaneBehavior'),
+    );
     final needsExperimentalV17 = selectedEmitters.any(
       (raw) => _map(raw)['emissionAxis'] == 'emitter',
     );
@@ -180,7 +183,7 @@ abstract final class Gen5SplParticleConverter {
                   child['useChildColor'] == false));
     });
     final version = experimentalSourceEmitterIndices != null
-        ? (needsExperimentalV18 ? 18 : needsExperimentalV17 ? 17 : needsExperimentalV16 ? 16 : needsExperimentalV15 ? 15 : needsExperimentalV14 ? 14 : needsExperimentalV13 ? 13 : needsExperimentalV12 ? 12 : needsExperimentalV11 ? 11 : needsExperimentalV10 ? 10 : needsExperimentalV9 ? 9 : needsExperimentalV8 ? 8 : needsExperimentalV7 ? 7 : needsExperimentalV6 ? 6 : 5)
+        ? (needsExperimentalV19 ? 19 : needsExperimentalV18 ? 18 : needsExperimentalV17 ? 17 : needsExperimentalV16 ? 16 : needsExperimentalV15 ? 15 : needsExperimentalV14 ? 14 : needsExperimentalV13 ? 13 : needsExperimentalV12 ? 12 : needsExperimentalV11 ? 11 : needsExperimentalV10 ? 10 : needsExperimentalV9 ? 9 : needsExperimentalV8 ? 8 : needsExperimentalV7 ? 7 : needsExperimentalV6 ? 6 : 5)
         : rawEmitters.any((raw) => _map(raw).containsKey('magnetBehavior'))
             ? 4
             : rawEmitters
@@ -272,6 +275,7 @@ Map<String, dynamic> _emitter(
     'convergenceBehavior',
     'spinBehavior',
     'randomBehavior',
+    'collisionPlaneBehavior',
   });
   final shape = switch (source['emissionType']) {
     'point' => 'point',
@@ -468,6 +472,16 @@ Map<String, dynamic> _emitter(
     if (version < 6) throw const FormatException('Unsupported SPL spin');
     _keys(spin, {'axis', 'angle'});
   }
+  final collisionPlane = source.containsKey('collisionPlaneBehavior')
+      ? _map(source['collisionPlaneBehavior'])
+      : null;
+  if (collisionPlane != null) {
+    if (version < 19 || collisionPlane['type'] != 'bounce') {
+      throw const FormatException('Unsupported SPL collision plane');
+    }
+    _keys(collisionPlane, {'y', 'elasticity', 'type', 'unused'});
+    _optionalUnused(collisionPlane);
+  }
   final rawTextureAnimation = source['textureAnim'];
   Map<String, dynamic>? textureAnimation;
   if (rawTextureAnimation != null) {
@@ -577,6 +591,10 @@ Map<String, dynamic> _emitter(
       if (convergence != null) 'convergence': convergence,
       if (spin != null) 'spin': spin,
       if (random != null) 'random': random,
+      if (collisionPlane != null) 'collisionPlane': {
+        'height': collisionPlane['y'],
+        'elasticity': collisionPlane['elasticity'],
+      },
     },
     'child': rawChild == null ? null : _child(_map(rawChild), texture, version),
   };

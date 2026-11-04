@@ -30,7 +30,7 @@ final class BattleSplParticleDefinition {
     }
     _fields(copy, {'schemaVersion', 'emitters'});
     if (copy['schemaVersion'] is! int ||
-        !(experimental ? {5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18} : {2, 3, 4}).contains(copy['schemaVersion'])) {
+        !(experimental ? {5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19} : {2, 3, 4}).contains(copy['schemaVersion'])) {
       throw const FormatException('Unsupported SPL particle version');
     }
     final values = _list(copy['emitters']);
@@ -294,6 +294,7 @@ void _validateEmitter(
     if (version >= 5 && motion.containsKey('convergence')) 'convergence',
     if (version >= 6 && motion.containsKey('spin')) 'spin',
     if (version >= 14 && motion.containsKey('random')) 'random',
+    if (version >= 19 && motion.containsKey('collisionPlane')) 'collisionPlane',
   });
   _vector(motion['gravity'], -32768, 32767);
   _integer(motion['airResistance'], 0, 255);
@@ -320,6 +321,12 @@ void _validateEmitter(
     _fields(random, {'magnitude', 'applyInterval'});
     _vector(random['magnitude'], 0, 32767);
     _integer(random['applyInterval'], 1, 65535);
+  }
+  if (version >= 19 && motion.containsKey('collisionPlane')) {
+    final plane = _map(motion['collisionPlane']);
+    _fields(plane, {'height', 'elasticity'});
+    _integer(plane['height'], -2147483648, 2147483647);
+    _integer(plane['elasticity'], -32768, 32767);
   }
 
   final child = emitter['child'];

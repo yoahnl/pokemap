@@ -19,7 +19,7 @@
     "particle": null,
     "approximations": [
       "background-palette-fade:layer-approximation",
-      "particle-field:collisionPlaneBehavior",
+      "particle-bounce:world-alignment-experimental",
       "particle-field:polygonRotAxis",
       "particle-random:sequence-experimental",
       "source-actor:camera-mode-approximation"
@@ -735,7 +735,7 @@
     "category": "status",
     "particle": 334,
     "approximations": [
-      "particle-field:collisionPlaneBehavior"
+      "particle-bounce:world-alignment-experimental"
     ],
     "referenceUrl": "https://archives.bulbagarden.net/media/upload/9/9a/Substitute_V.png",
     "bundleAsset": "assets/bw2/batch/substitute.json"
@@ -1405,8 +1405,8 @@
       "actor-position:screen-space-approximation",
       "actor-visibility:shadow-hidden",
       "camera:absolute-adapted-to-workshop",
+      "particle-bounce:world-alignment-experimental",
       "particle-child:scale-range-experimental",
-      "particle-field:collisionPlaneBehavior",
       "particle-polygon:xyz-projection-experimental",
       "particle-spin:trigonometry-experimental",
       "scene-palette-fade:layer-approximation",
@@ -6716,7 +6716,7 @@
     "particle": 441,
     "approximations": [
       "camera:relative-adapted-to-workshop",
-      "particle-field:collisionPlaneBehavior",
+      "particle-bounce:world-alignment-experimental",
       "particle-spin:trigonometry-experimental",
       "scene-palette-fade:layer-approximation",
       "source-emitter:field-coordinate-calibration"
@@ -6782,7 +6782,7 @@
     "particle": 594,
     "approximations": [
       "camera:relative-adapted-to-workshop",
-      "particle-field:collisionPlaneBehavior",
+      "particle-bounce:world-alignment-experimental",
       "particle-spin:trigonometry-experimental",
       "scene-palette-fade:layer-approximation",
       "source-emitter:field-coordinate-calibration"

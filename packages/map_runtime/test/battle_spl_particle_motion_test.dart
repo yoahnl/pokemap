@@ -7,6 +7,81 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_runtime/src/presentation/flame/battle_spl_particle_motion.dart';
 
 void main() {
+  test('bounces across the BW2 plane before drag and gravity', () {
+    final result = BattleSplParticleMotion(
+      position: (x: 0, y: -5000, z: 0),
+      velocity: (x: 0, y: -1000, z: 0),
+      rotation: 0,
+      angularVelocity: 0,
+    ).advanceWithGravity(
+      gravity: (x: 0, y: -100, z: 0),
+      emitterVelocity: (x: 0, y: 20, z: 0),
+      airResistance: 128,
+      collisionPlane: (height: 0, elasticity: 2457, emitterY: 4096),
+    );
+    expect(result.velocity.y, 500);
+    expect(result.position.y, -3576);
+  });
+
+  test('bounces particles on either side of their emitter plane', () {
+    BattleSplParticleMotion move(int positionY, int velocityY, int emitterY) =>
+        BattleSplParticleMotion(
+          position: (x: 0, y: positionY, z: 0),
+          velocity: (x: 0, y: velocityY, z: 0),
+          rotation: 0,
+          angularVelocity: 0,
+        ).advanceWithGravity(
+          gravity: (x: 0, y: 0, z: 0),
+          emitterVelocity: (x: 0, y: 0, z: 0),
+          airResistance: 128,
+          collisionPlane: (height: 0, elasticity: 4096, emitterY: emitterY),
+        );
+
+    expect(move(2000, 100, -1000).position.y, 900);
+    expect(move(2000, 100, -1000).velocity.y, -100);
+    expect(move(-2000, -100, 1000).position.y, -900);
+    expect(move(-2000, -100, 1000).velocity.y, 100);
+    expect(move(-1000, -100, 1000).velocity.y, -100);
+    expect(move(0, -100, 1000).velocity.y, -100);
+  });
+
+  test('samples magnet before bounce and applies convergence afterwards', () {
+    final result = BattleSplParticleMotion(
+      position: (x: 0, y: -5000, z: 0),
+      velocity: (x: 0, y: -1000, z: 0),
+      rotation: 0,
+      angularVelocity: 0,
+    ).advanceWithGravity(
+      gravity: (x: 0, y: 0, z: 0),
+      emitterVelocity: (x: 0, y: 0, z: 0),
+      airResistance: 128,
+      magnetTarget: (x: 0, y: 0, z: 0),
+      magnetForce: 512,
+      convergenceTarget: (x: 0, y: 0, z: 0),
+      convergenceForce: 2048,
+      collisionPlane: (height: 0, elasticity: 4096, emitterY: 4096),
+    );
+    expect(result.velocity.y, 1750);
+    expect(result.position.y, -298);
+  });
+
+  test('spins the position before testing the bounce plane', () {
+    final result = BattleSplParticleMotion(
+      position: (x: 1000, y: 0, z: 0),
+      velocity: (x: 0, y: 100, z: 0),
+      rotation: 0,
+      angularVelocity: 0,
+    ).advanceWithGravity(
+      gravity: (x: 0, y: 0, z: 0),
+      emitterVelocity: (x: 0, y: 0, z: 0),
+      airResistance: 128,
+      spin: (axis: 'z', sine: 4096, cosine: 0),
+      collisionPlane: (height: 0, elasticity: 4096, emitterY: -500),
+    );
+    expect(result.position, (x: 0, y: 400, z: 0));
+    expect(result.velocity.y, -100);
+  });
+
   test('spins around each axis after sampling magnet and before convergence', () {
     final initial = BattleSplParticleMotion(
       position: (x: 4096, y: 8192, z: 12288),

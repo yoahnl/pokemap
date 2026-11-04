@@ -30,6 +30,15 @@ void applyGen5SourceEmitterParameters(
 
   final emission = emitter['emission'] as Map;
   final appearance = emitter['appearance'] as Map;
+  final motion = emitter['motion'];
+  if (!orthographic && motion is Map && motion['collisionPlane'] is Map) {
+    final plane = motion['collisionPlane'] as Map;
+    final height = (plane['height'] as int) - 0x666;
+    if (height < -2147483648 || height > 2147483647) {
+      throw const FormatException('SPL collision plane height overflow');
+    }
+    plane['height'] = height;
+  }
   final radiusScale = (args['radiusScale'] as int?) ?? 0;
   final lifeScale = (args['lifeScale'] as int?) ?? 0;
   final scaleScale = (args['scaleScale'] as int?) ?? 0;
