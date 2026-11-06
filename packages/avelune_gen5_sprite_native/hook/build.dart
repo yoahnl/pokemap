@@ -34,7 +34,8 @@ Future<void> main(List<String> args) async {
     Logger.root.level = Level.ALL;
     final logger = Logger('avelune-gen5-native');
     final subscription = logger.onRecord.listen((record) {
-      if ((record.level == Level.FINE || record.level >= Level.WARNING) &&
+      if ((record.level == Level.FINE || record.level >= Level.INFO) &&
+          !record.message.startsWith('Running `') &&
           diagnostics.length < 1024 * 1024) {
         diagnostics.writeln(record.message);
       }
