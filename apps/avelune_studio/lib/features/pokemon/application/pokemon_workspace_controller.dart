@@ -1,5 +1,8 @@
 import 'dart:async';
+import 'dart:developer' as developer;
+import 'dart:math';
 
+import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../domain/pokemon_workspace_models.dart';
@@ -66,6 +69,13 @@ final class PokemonWorkspaceController {
   String? recipeError;
   String? recipeNotice;
   int _recipeRequest = 0;
+  bool recipeBatchActive = false;
+  bool recipeBatchPreparing = false;
+  bool recipeBatchStopRequested = false;
+  int? recipeBatchTotal;
+  int recipeBatchProcessed = 0;
+  List<BattleMoveRecipeBatchEntry> recipeBatchResults = [];
+  String? recipeBatchStopped;
   bool committing = false;
   PokemonLocalImportPreview? importPreview;
   int _request = 0;
@@ -77,6 +87,7 @@ final class PokemonWorkspaceController {
       syncing ||
       externalBusy ||
       recipeBusy ||
+      recipeBatchActive ||
       commerce?.saving == true ||
       commerce?.importing == true ||
       combat?.operationActive == true;
@@ -85,6 +96,7 @@ final class PokemonWorkspaceController {
   bool get mutationActive =>
       saving ||
       committing ||
+      recipeBatchActive ||
       commerce?.saving == true ||
       commerce?.importing == true ||
       combat?.saving == true;

@@ -17,6 +17,8 @@ abstract interface class PokemonMoveRecipePort {
 }
 
 abstract interface class PokemonMoveRecipeBatchPort {
+  Future<void> prepareMoveRecipeBatchProject();
+
   Future<BattleMoveRecipeBatchResult> importMoveRecipeBatch({
     required String operationId,
     int startIndex = 0,

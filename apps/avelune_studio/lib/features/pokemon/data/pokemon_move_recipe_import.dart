@@ -149,6 +149,10 @@ final class PokemonMoveRecipeImport {
         ]);
       });
 
+  Future<void> prepareBatchProject() => _use(() => mapAdapter.withResourceMutation(
+    () => _api.prepareWorkshopCatalog(_opened.projectHandle),
+  ));
+
   Future<BattleMoveRecipeBatchResult> importBatch({
     required String operationId,
     int startIndex = 0,

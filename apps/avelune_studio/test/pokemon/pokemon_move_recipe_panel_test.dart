@@ -91,7 +91,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(port.imported, ['flamethrower']);
     expect(
-      find.textContaining('Player conserve son animation actuelle'),
+      find.text('Animation ajoutée au projet.'),
       findsOneWidget,
     );
     controller.dispose();

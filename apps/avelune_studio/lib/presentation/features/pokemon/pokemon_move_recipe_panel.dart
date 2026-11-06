@@ -28,7 +28,7 @@ class PokemonMoveRecipePanel extends StatelessWidget {
       children: [
         const Text(
           'Recherchez les animations disponibles pour cette attaque. '
-          'Les animations ajoutées seront utilisées lorsque le Player les prendra en charge.',
+          'Les animations compatibles sont incluses dans les jeux exportés.',
         ),
         if (controller.hasPendingChanges)
           const Text(
@@ -97,6 +97,8 @@ class PokemonMoveRecipePanel extends StatelessWidget {
 }
 
 String _styleLabel(String style) => switch (style) {
+  'gen5-bw2' => 'Noir et Blanc 2',
+  'gen5-pilot' => 'Noir et Blanc · pilote',
   'gen5' => 'Noir et Blanc',
   'gen4' => 'Quatrième génération',
   'gen3' => 'Troisième génération',

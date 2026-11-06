@@ -28,13 +28,37 @@ import '../support/m2_ui_fixture.dart' show WidgetResourcePort, pumpIo;
 import '../support/ui_pokemon_port.dart';
 
 final class _UiRecipePort extends UiPokemonPort
-    implements PokemonMoveRecipePort {
+    implements PokemonMoveRecipePort, PokemonMoveRecipeBatchPort {
   _UiRecipePort(this.adapter, WidgetTester tester) : super(adapter, tester);
 
   final LocalPokemonWorkspaceAdapter adapter;
 
   @override
   bool get supportsMoveRecipes => adapter.supportsMoveRecipes;
+
+  @override
+  Future<void> prepareMoveRecipeBatchProject() async =>
+      WidgetResourcePort.serial(tester, adapter.prepareMoveRecipeBatchProject);
+
+  @override
+  Future<BattleMoveRecipeBatchResult> importMoveRecipeBatch({
+    required String operationId,
+    int startIndex = 0,
+    int limit = BattleMoveRecipeBatchImporter.maximumBatchSize,
+    String? expectedInventoryRevision,
+    bool Function()? isCancelled,
+    void Function(BattleMoveRecipeBatchEntry entry)? onProgress,
+  }) async => (await WidgetResourcePort.serial(
+    tester,
+    () => adapter.importMoveRecipeBatch(
+      operationId: operationId,
+      startIndex: startIndex,
+      limit: limit,
+      expectedInventoryRevision: expectedInventoryRevision,
+      isCancelled: isCancelled,
+      onProgress: onProgress,
+    ),
+  ))!;
 
   @override
   Future<void> prepareMoveRecipes() async =>
@@ -501,17 +525,51 @@ void main() {
     );
   });
 
-  test('Studio delegates a bounded batch to the shared authoring importer',
-      () async {
-    transport.style = 'gen5-bw2';
-    final result = await importer.importBatch(operationId: 'studio-batch', limit: 1);
-    expect(result.results.single.status, BattleMoveRecipeBatchStatus.imported);
-    expect(result.remaining, 2);
-    expect(
-      await File('${root.path}/${battleRecipeBindingPath('flamethrower')}').exists(),
-      isTrue,
-    );
-  });
+  test(
+    'Studio delegates a bounded batch to the shared authoring importer',
+    () async {
+      transport.style = 'gen5-bw2';
+      final result = await importer.importBatch(
+        operationId: 'studio-batch',
+        limit: 1,
+      );
+      expect(
+        result.results.single.status,
+        BattleMoveRecipeBatchStatus.imported,
+      );
+      expect(result.remaining, 2);
+      expect(
+        await File('${root.path}/${battleRecipeBindingPath('flamethrower')}')
+            .exists(),
+        isTrue,
+      );
+    },
+  );
+
+  test(
+    'prepares an older project through the canonical authoring service',
+    () async {
+      transport.style = 'gen5-bw2';
+      final pendingIndex = File(
+        '${root.path}/.pokemap/authoring/transactions/pending-journals.json',
+      );
+      if (await pendingIndex.exists()) await pendingIndex.delete();
+      final blocked = await importer.importBatch(
+        operationId: 'before-preparation',
+        limit: 1,
+      );
+      expect(blocked.stopped, 'preparationRequired');
+      await importer.prepareBatchProject();
+      final result = await importer.importBatch(
+        operationId: 'after-preparation',
+        limit: 1,
+      );
+      expect(
+        result.results.single.status,
+        BattleMoveRecipeBatchStatus.imported,
+      );
+    },
+  );
 
   test('imports a recipe using the HGSS smokescreen alias', () async {
     await importer.close();
@@ -967,10 +1025,7 @@ void main() {
       await tester.ensureVisible(find.text('Ajouter au projet'));
       await tester.tap(find.text('Ajouter au projet'));
       await pumpIo(tester);
-      expect(
-        find.textContaining('Player conserve son animation actuelle'),
-        findsOneWidget,
-      );
+      expect(find.text('Animation ajoutée au projet.'), findsOneWidget);
       expect(
         reader.paths.where((path) => path.startsWith('maps/foreign-')),
         isEmpty,
@@ -1008,4 +1063,86 @@ void main() {
       await tester.runAsync(adapter.close);
     },
   );
+
+  testWidgets('Studio batch button imports into the real project and retries', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    transport.style = 'gen5-bw2';
+    final adapter = (await tester.runAsync(
+      () async => LocalPokemonWorkspaceAdapter(
+        session: ProjectSession(
+          sessionId: 'batch-ui',
+          name: 'Batch',
+          directoryPath: root.path,
+          storage: ProjectSessionStorage.workingCatalog,
+        ),
+        mapAdapter: LocalMapWorkspaceAdapter(),
+        reader: reader,
+        recipeMediaSource: AvelunePokemonMediaSource(
+          client: transport,
+          release: 'test',
+        ),
+      ),
+    ))!;
+    final port = _UiRecipePort(adapter, tester);
+    void Function() changed = () {};
+    final controller = PokemonWorkspaceController(
+      port,
+      changed: () => changed(),
+    );
+    controller.index = const PokemonWorkspaceIndex(
+      enabled: true,
+      entries: [],
+      types: [],
+      items: {},
+      moves: PokemonMovesCatalogView(
+        relativePath: 'moves',
+        entries: [
+          PokemonMoveSummary(id: 'flamethrower', name: 'Lance-Flammes'),
+          PokemonMoveSummary(id: 'surf', name: 'Surf'),
+          PokemonMoveSummary(id: 'smoke_screen', name: 'Brouillard'),
+        ],
+      ),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: StatefulBuilder(
+          builder: (context, setState) {
+            changed = () => setState(() {});
+            return Scaffold(body: PokemonMovesLibrary(controller: controller));
+          },
+        ),
+      ),
+    );
+    reader.paths.clear();
+    await tester.tap(find.text('Importer les animations disponibles'));
+    await pumpIo(tester);
+    expect(find.textContaining('1 animation ajoutée'), findsOneWidget);
+    expect(
+      (await tester.runAsync(
+        () =>
+            File('${root.path}/${battleRecipeBindingPath('flamethrower')}')
+                .exists(),
+      ))!,
+      isTrue,
+    );
+    expect(
+      reader.paths.where((path) => path.startsWith('maps/foreign-')),
+      isEmpty,
+    );
+    expect(
+      reader.paths.where((path) => path.endsWith('history.jsonl')),
+      isEmpty,
+    );
+    await tester.tap(find.text('Importer les animations disponibles'));
+    await pumpIo(tester);
+    expect(find.textContaining('1 déjà présente'), findsOneWidget);
+    controller.dispose();
+    await tester.pumpWidget(const SizedBox());
+    await tester.runAsync(adapter.close);
+  });
 }

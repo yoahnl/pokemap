@@ -228,6 +228,10 @@ final class LocalPokemonWorkspaceAdapter
   );
 
   @override
+  Future<void> prepareMoveRecipeBatchProject() async =>
+      (await _prepareMoveRecipes()).prepareBatchProject();
+
+  @override
   Future<BattleMoveRecipeBatchResult> importMoveRecipeBatch({
     required String operationId,
     int startIndex = 0,

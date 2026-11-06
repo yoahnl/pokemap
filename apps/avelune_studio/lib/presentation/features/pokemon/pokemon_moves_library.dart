@@ -5,6 +5,7 @@ import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/inputs/studio_search_field.dart';
 import 'pokemon_move_detail.dart';
 import 'pokemon_move_list_item.dart';
+import 'pokemon_move_recipe_batch_panel.dart';
 import 'pokemon_moves_sync_panel.dart';
 import 'pokemon_ui_parts.dart';
 
@@ -45,25 +46,65 @@ class _PokemonMovesLibraryState extends State<PokemonMovesLibrary> {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Text(
-                      'Catalogue des attaques',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
+                  Text(
+                    'Catalogue des attaques',
+                    style: Theme.of(context).textTheme.titleMedium,
                   ),
-                  StudioButton(
-                    label: showSync
-                        ? 'Masquer la synchronisation'
-                        : 'Synchronisation',
-                    icon: Icons.sync,
-                    secondary: true,
-                    onPressed: () => setState(() => showSync = !showSync),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      if (controller.supportsMoveRecipeBatch &&
+                          controller.moveInsertGroup == null)
+                        StudioButton(
+                          label: 'Importer les animations disponibles',
+                          icon: Icons.download,
+                          onPressed:
+                              controller.operationActive ||
+                                  controller.recipePreparing ||
+                                  controller.hasPendingChanges ||
+                                  !catalog.available ||
+                                  catalog.entries.isEmpty
+                              ? null
+                              : controller.importMoveRecipeBatch,
+                        ),
+                      StudioButton(
+                        label: showSync
+                            ? 'Masquer la synchronisation'
+                            : 'Synchronisation',
+                        icon: Icons.sync,
+                        secondary: true,
+                        onPressed: () => setState(() => showSync = !showSync),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
+            if (controller.hasPendingChanges &&
+                controller.supportsMoveRecipeBatch)
+              const Padding(
+                padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: Text(
+                  'Enregistrez ou annulez les modifications avant l’import.',
+                ),
+              ),
+            if (controller.recipeBatchActive ||
+                controller.recipeBatchTotal != null ||
+                controller.recipeBatchStopped != null)
+              SizedBox(
+                height: (bounds.maxHeight * .3).clamp(80, 240),
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                    child: PokemonMoveRecipeBatchPanel(controller: controller),
+                  ),
+                ),
+              ),
             if (showSync ||
                 controller.movesPreview != null ||
                 catalog.problem != null)
