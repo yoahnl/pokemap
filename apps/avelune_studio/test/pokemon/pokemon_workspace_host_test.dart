@@ -183,7 +183,7 @@ void main() {
     await pumpIo(tester);
     await tester.tap(find.text('Médias').last);
     await pumpIo(tester);
-    final importIcon = find.text('Importer PNG · icon');
+    final importIcon = find.text('Ajouter un PNG · Icône');
     await tester.ensureVisible(importIcon);
     await tester.tap(importIcon);
     await pumpIo(tester);
@@ -203,15 +203,67 @@ void main() {
       return adapter.loadThumbnail((await adapter.loadIndex()).entries.single);
     }))!;
     expect(thumbnail, isNotNull);
-    await tester.ensureVisible(importIcon);
-    await tester.tap(importIcon);
-    await pumpIo(tester);
-    expect(find.textContaining('déjà choisi est conservé'), findsOneWidget);
+    expect(importIcon, findsNothing);
+    expect(
+      find.textContaining('Remplacer n’est pas disponible'),
+      findsOneWidget,
+    );
     final after = (await tester.runAsync(() async {
       final data = jsonDecode(await File(mediaPath).readAsString()) as Map;
       return ((data['variants'] as Map)['base'] as Map)['icon'] as String;
     }))!;
     expect(after, icon);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a missing role file is flagged and clearing it frees the role', (
+    tester,
+  ) async {
+    const sourcePng =
+        '../../examples/playable_runtime_host/golden_item_system/assets/pokemon/sprites/sproutle/front.png';
+    final host = await MapHostFixture.open(
+      tester,
+      prepareSource: _seedSpecies,
+      pokemonPngPicker: () async => sourcePng,
+    );
+    await host.go('Pokémon');
+    await pumpIo(tester);
+    await tester.tap(find.byKey(const ValueKey('species-bulbasaur')));
+    await pumpIo(tester);
+    await tester.tap(find.text('Médias').last);
+    await pumpIo(tester);
+    final iconCard = find.byKey(const ValueKey('media-role-icon'));
+    expect(
+      find.descendant(of: iconCard, matching: find.text('Fichier introuvable')),
+      findsOneWidget,
+    );
+    final add = find.text('Ajouter un PNG · Icône');
+    expect(add, findsNothing);
+    final path = find.byKey(const ValueKey('media-variants.base.icon'));
+    await tester.ensureVisible(path);
+    await tester.enterText(path, '');
+    await pumpIo(tester);
+    await tester.tap(find.text('Enregistrer').first);
+    await pumpIo(tester);
+    await tester.ensureVisible(add);
+    await tester.tap(add);
+    await pumpIo(tester);
+    expect(
+      find.textContaining('PNG associé à la forme base pour le rôle Icône'),
+      findsOneWidget,
+    );
+    final mediaPath =
+        '${host.source.directory.path}/data/pokemon/media/bulbasaur.json';
+    final icon = (await tester.runAsync(() async {
+      final data = jsonDecode(await File(mediaPath).readAsString()) as Map;
+      return ((data['variants'] as Map)['base'] as Map)['icon'] as String;
+    }))!;
+    expect(icon, startsWith('assets/pokemon/menu/bulbasaur/base/'));
+    await pumpIo(tester);
+    expect(
+      find.descendant(of: iconCard, matching: find.text('Fichier présent')),
+      findsOneWidget,
+    );
     expect(tester.takeException(), isNull);
   });
 

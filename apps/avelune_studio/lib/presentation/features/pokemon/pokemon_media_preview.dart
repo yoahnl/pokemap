@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 
 import '../../../features/pokemon/application/pokemon_workspace_controller.dart';
+import '../../../features/pokemon/domain/pokemon_workspace_models.dart';
 import 'pokemon_ui_parts.dart';
 
 class PokemonMediaPreview extends StatefulWidget {
@@ -11,11 +12,13 @@ class PokemonMediaPreview extends StatefulWidget {
     required this.path,
     required this.controller,
     this.height = 180,
+    this.fileStatus,
   });
 
   final String path;
   final PokemonWorkspaceController controller;
   final double height;
+  final PokemonMediaFileStatus? fileStatus;
 
   @override
   State<PokemonMediaPreview> createState() => _PokemonMediaPreviewState();
@@ -51,11 +54,17 @@ class _PokemonMediaPreviewState extends State<PokemonMediaPreview> {
       }
       final bytes = snapshot.data;
       if (bytes == null) {
-        return PokemonEmptyState(
-          title: 'Aperçu indisponible',
-          description: 'Fichier absent, illisible ou non pris en charge.',
-          icon: Icons.broken_image_outlined,
-        );
+        return widget.fileStatus == PokemonMediaFileStatus.present
+            ? const PokemonEmptyState(
+                title: 'Aperçu impossible',
+                description: 'Le fichier existe, mais ne se lit pas comme une image PNG.',
+                icon: Icons.broken_image_outlined,
+              )
+            : const PokemonEmptyState(
+                title: 'Aperçu indisponible',
+                description: 'Fichier absent, illisible ou non pris en charge.',
+                icon: Icons.broken_image_outlined,
+              );
       }
       return SizedBox(
         width: double.infinity,

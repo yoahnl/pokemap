@@ -14,6 +14,8 @@ abstract interface class PokemonWorkspacePort {
 
   Future<Uint8List?> loadImage(String relativePath);
 
+  Future<PokemonMediaFileStatus> probeMedia(String relativePath);
+
   Future<Uint8List?> loadThumbnail(PokemonSpeciesSummary entry);
 
   Future<PokemonLocalImportPreview> previewJsonImport(String absolutePath);

@@ -487,6 +487,23 @@ final class LocalPokemonWorkspaceAdapter
   );
 
   @override
+  Future<PokemonMediaFileStatus> probeMedia(String relativePath) async {
+    final reader = _reader;
+    if (reader is! ProjectResourceProbeReader) {
+      return PokemonMediaFileStatus.unverified;
+    }
+    final probe = await (reader as ProjectResourceProbeReader).probeResource(
+      projectRoot: session.directoryPath,
+      relativePath: relativePath,
+    );
+    return switch (probe.status) {
+      ProjectResourceProbeStatus.exists => PokemonMediaFileStatus.present,
+      ProjectResourceProbeStatus.missing => PokemonMediaFileStatus.missing,
+      _ => PokemonMediaFileStatus.inaccessible,
+    };
+  }
+
+  @override
   Future<Uint8List?> loadThumbnail(PokemonSpeciesSummary entry) async =>
       loadPokemonThumbnail(
         reader: _reader,

@@ -74,6 +74,13 @@ class UiPokemonPort implements PokemonWorkspacePort {
       );
 
   @override
+  Future<PokemonMediaFileStatus> probeMedia(String relativePath) async =>
+      (await WidgetResourcePort.serial<PokemonMediaFileStatus>(
+        tester,
+        () => source.probeMedia(relativePath),
+      ))!;
+
+  @override
   Future<Uint8List?> loadThumbnail(PokemonSpeciesSummary entry) async =>
       await WidgetResourcePort.serial<Uint8List?>(
         tester,

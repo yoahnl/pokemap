@@ -44,6 +44,21 @@ final class PokemonSpeciesSummary {
   final String relativePath;
 }
 
+enum PokemonMediaFileStatus { present, missing, inaccessible, unverified }
+
+String pokemonMediaRoleLabel(String role) => switch (role) {
+  'icon' => 'Icône',
+  'party' => 'Image d’équipe',
+  'portrait' => 'Portrait',
+  'frontStatic' => 'Face avant',
+  'backStatic' => 'Face arrière',
+  'frontShinyStatic' => 'Face avant chromatique',
+  'backShinyStatic' => 'Face arrière chromatique',
+  'overworld' => 'Monde extérieur',
+  'cry' => 'Cri',
+  _ => role,
+};
+
 final class PokemonDocumentSource {
   const PokemonDocumentSource({
     required this.family,

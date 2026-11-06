@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../features/pokemon/domain/pokemon_workspace_models.dart';
 import '../../theme/studio_tokens.dart';
 
 class PokemonMediaRoleCard extends StatelessWidget {
@@ -9,12 +10,32 @@ class PokemonMediaRoleCard extends StatelessWidget {
     required this.path,
     required this.selected,
     required this.onTap,
+    this.status,
   });
 
   final String role;
   final String? path;
   final bool selected;
   final VoidCallback onTap;
+  final PokemonMediaFileStatus? status;
+
+  bool get _associated => path?.isNotEmpty == true;
+
+  bool get _problem =>
+      _associated &&
+      (status == PokemonMediaFileStatus.missing ||
+          status == PokemonMediaFileStatus.inaccessible);
+
+  String _statusLabel() {
+    if (!_associated) return 'Non associé';
+    return switch (status) {
+      null => 'Vérification du fichier…',
+      PokemonMediaFileStatus.present => 'Fichier présent',
+      PokemonMediaFileStatus.missing => 'Fichier introuvable',
+      PokemonMediaFileStatus.inaccessible => 'Fichier inaccessible',
+      PokemonMediaFileStatus.unverified => 'Référence associée · non vérifiée',
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,14 +67,18 @@ class PokemonMediaRoleCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      path?.isNotEmpty == true
-                          ? 'Référence associée'
-                          : 'Non associé',
+                      _statusLabel(),
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ],
                 ),
               ),
+              if (_problem)
+                Icon(
+                  Icons.warning_amber_rounded,
+                  size: 18,
+                  color: StudioColors.of(context).warning,
+                ),
               if (selected) Icon(Icons.chevron_right, color: colors.primary),
             ],
           ),
@@ -62,19 +87,6 @@ class PokemonMediaRoleCard extends StatelessWidget {
     );
   }
 }
-
-String pokemonMediaRoleLabel(String role) => switch (role) {
-  'icon' => 'Icône',
-  'party' => 'Image d’équipe',
-  'portrait' => 'Portrait',
-  'frontStatic' => 'Face avant',
-  'backStatic' => 'Face arrière',
-  'frontShinyStatic' => 'Face avant chromatique',
-  'backShinyStatic' => 'Face arrière chromatique',
-  'overworld' => 'Monde extérieur',
-  'cry' => 'Cri',
-  _ => role,
-};
 
 IconData _icon(String role) => switch (role) {
   'icon' => Icons.apps,

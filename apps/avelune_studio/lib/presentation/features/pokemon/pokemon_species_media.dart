@@ -29,6 +29,7 @@ class _PokemonSpeciesMediaEditorState extends State<PokemonSpeciesMediaEditor> {
   String? ownerId;
   String? selectedForm;
   String selectedRole = 'icon';
+  final _probes = <String, Future<PokemonMediaFileStatus>>{};
 
   static const roles = [
     'icon',
@@ -73,6 +74,7 @@ class _PokemonSpeciesMediaEditorState extends State<PokemonSpeciesMediaEditor> {
       ownerId = draft?.id;
       selectedForm = null;
       selectedRole = 'icon';
+      _probes.clear();
     }
     final form = forms.contains(selectedForm)
         ? selectedForm
@@ -91,8 +93,8 @@ class _PokemonSpeciesMediaEditorState extends State<PokemonSpeciesMediaEditor> {
         const PokemonSectionHeading(
           title: 'Médias de l’espèce',
           description:
-              'Une référence ne garantit pas que le fichier existe. '
-              'L’import PNG conserve un rôle déjà associé.',
+              'Chaque rôle indique si son fichier est présent dans le projet. '
+              'Ajouter un PNG ne remplace jamais une image déjà associée.',
         ),
         if (json == null)
           const PokemonSurface(
@@ -203,7 +205,19 @@ class _PokemonSpeciesMediaEditorState extends State<PokemonSpeciesMediaEditor> {
     );
   }
 
+  Future<PokemonMediaFileStatus> _probe(String path) => _probes.putIfAbsent(
+    path,
+    () => widget.controller.port
+        .probeMedia(path)
+        .catchError((Object _) => PokemonMediaFileStatus.inaccessible),
+  );
+
   Widget _roleLibrary(Map<String, dynamic> values, double width) {
+    final paths = {
+      for (final role in roles)
+        if (values[role] case final String path when path.isNotEmpty) path,
+    };
+    _probes.removeWhere((path, _) => !paths.contains(path));
     final columns = width >= 500 ? 2 : 1;
     final itemWidth = (width - (columns - 1) * 8) / columns;
     return StudioPanel(
@@ -216,11 +230,18 @@ class _PokemonSpeciesMediaEditorState extends State<PokemonSpeciesMediaEditor> {
             for (final role in roles)
               SizedBox(
                 width: itemWidth,
-                child: PokemonMediaRoleCard(
-                  role: role,
-                  path: values[role] as String?,
-                  selected: selectedRole == role,
-                  onTap: () => setState(() => selectedRole = role),
+                child: _RoleStatus(
+                  probe: switch (values[role]) {
+                    final String path when path.isNotEmpty => _probe(path),
+                    _ => null,
+                  },
+                  builder: (status) => PokemonMediaRoleCard(
+                    role: role,
+                    path: values[role] as String?,
+                    status: status,
+                    selected: selectedRole == role,
+                    onTap: () => setState(() => selectedRole = role),
+                  ),
                 ),
               ),
           ],
@@ -239,39 +260,68 @@ class _PokemonSpeciesMediaEditorState extends State<PokemonSpeciesMediaEditor> {
     final canImport =
         widget.pickPng != null &&
         const {'icon', 'party', 'portrait'}.contains(selectedRole);
+    final empty = path == null || path.isEmpty;
+    final label = pokemonMediaRoleLabel(selectedRole);
+    final busy =
+        widget.controller.operationActive ||
+        widget.controller.hasPendingChanges;
     return StudioPanel(
-      title: pokemonMediaRoleLabel(selectedRole),
+      title: label,
       children: [
-        if (path == null || path.isEmpty)
+        if (empty)
           const PokemonEmptyState(
             title: 'Aucune référence',
             description: 'Aucun fichier associé à ce rôle.',
             icon: Icons.image_not_supported_outlined,
           )
-        else if (selectedRole == 'cry')
-          const PokemonEmptyState(
-            title: 'Cri référencé',
-            description:
-                'Aucun lecteur audio n’est disponible dans cette fiche.',
-            icon: Icons.graphic_eq,
-          )
         else
-          PokemonMediaPreview(
-            key: ValueKey('media-preview-$form-$selectedRole-$path'),
-            path: path,
-            controller: widget.controller,
+          _RoleStatus(
+            probe: _probe(path),
+            builder: (status) => switch (status) {
+              null => const SizedBox(
+                height: 180,
+                child: Center(child: CircularProgressIndicator()),
+              ),
+              PokemonMediaFileStatus.missing => const PokemonEmptyState(
+                title: 'Fichier introuvable',
+                description: 'La référence est conservée, mais aucun fichier n’existe à cet emplacement du projet.',
+                icon: Icons.broken_image_outlined,
+              ),
+              PokemonMediaFileStatus.inaccessible => const PokemonEmptyState(
+                title: 'Fichier inaccessible',
+                description: 'Le fichier n’a pas pu être consulté. La référence est conservée.',
+                icon: Icons.broken_image_outlined,
+              ),
+              _ when selectedRole == 'cry' => const PokemonEmptyState(
+                title: 'Cri référencé',
+                description:
+                    'Aucun lecteur audio n’est disponible dans cette fiche.',
+                icon: Icons.graphic_eq,
+              ),
+              _ => PokemonMediaPreview(
+                key: ValueKey('media-preview-$form-$selectedRole-$path'),
+                path: path,
+                controller: widget.controller,
+                fileStatus: status,
+              ),
+            },
           ),
         const SizedBox(height: 10),
         if (hasDocument)
-          fields.text('Chemin du fichier', ['variants', form, selectedRole]),
-        if (canImport)
+          KeyedSubtree(
+            key: ValueKey('media-path:$form:$selectedRole'),
+            child: fields.text('Chemin du fichier', [
+              'variants',
+              form,
+              selectedRole,
+            ]),
+          ),
+        if (canImport && empty)
           StudioButton(
-            label: 'Importer PNG · $selectedRole',
+            label: 'Ajouter un PNG · $label',
             icon: Icons.file_upload_outlined,
             secondary: true,
-            onPressed:
-                widget.controller.operationActive ||
-                    widget.controller.hasPendingChanges
+            onPressed: busy
                 ? null
                 : () async {
                     final picked = await widget.pickPng!();
@@ -283,14 +333,31 @@ class _PokemonSpeciesMediaEditorState extends State<PokemonSpeciesMediaEditor> {
                     );
                   },
           ),
-        Text(
-          canImport
-              ? 'L’import associe un PNG uniquement si ce rôle est libre. '
-                    'Un choix existant est conservé.'
-              : 'Seule la référence du fichier peut être modifiée ici.',
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
+        Text(switch ((canImport, empty)) {
+          (false, _) => 'Seule la référence du fichier peut être modifiée ici.',
+          (true, true) when widget.controller.hasPendingChanges => 'Enregistrez d’abord les modifications en cours pour ajouter un PNG.',
+          (true, true) =>
+            'Le PNG choisi est associé à ce rôle libre. Rien n’est remplacé.',
+          (true, false) =>
+            'Remplacer n’est pas disponible : l’import conserve toujours l’image déjà associée. '
+                'Pour en changer, videz le chemin du fichier puis enregistrez ; le rôle redevient libre et « Ajouter » réapparaît.',
+        }, style: Theme.of(context).textTheme.bodySmall),
       ],
     );
   }
+}
+
+class _RoleStatus extends StatelessWidget {
+  const _RoleStatus({required this.probe, required this.builder});
+
+  final Future<PokemonMediaFileStatus>? probe;
+  final Widget Function(PokemonMediaFileStatus? status) builder;
+
+  @override
+  Widget build(BuildContext context) => probe == null
+      ? builder(null)
+      : FutureBuilder<PokemonMediaFileStatus>(
+          future: probe,
+          builder: (context, snapshot) => builder(snapshot.data),
+        );
 }

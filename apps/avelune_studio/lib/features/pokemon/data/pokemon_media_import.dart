@@ -128,7 +128,7 @@ final class PokemonMenuMediaImport {
         }
         rethrow;
       }
-      return 'PNG associé à la forme $formId pour le rôle $role.';
+      return 'PNG associé à la forme $formId pour le rôle ${pokemonMediaRoleLabel(role)}.';
     } finally {
       if (attached) await api.detachWorkspace(opened.workspaceHandle);
       handles.closeWorkspace(opened.workspaceHandle);
