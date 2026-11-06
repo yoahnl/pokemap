@@ -97,8 +97,8 @@ final class PokemonMoveRecipeImport {
   );
 
   static String _catalogId(String projectMoveId) {
-    final id = projectMoveId.replaceAll('_', '-');
-    if (!RegExp(r'^[a-z0-9][a-z0-9-]{0,127}$').hasMatch(id)) {
+    final id = battleRecipeCatalogMoveId(projectMoveId, allowUnknown: true);
+    if (id == null) {
       throw const FormatException(
         'Cette attaque ne correspond pas au catalogue Avelune.',
       );
@@ -128,26 +128,19 @@ final class PokemonMoveRecipeImport {
 
   Future<List<PokemonMoveRecipeChoice>> listForMove(String projectMoveId) =>
       _use(() async {
-        final catalogMoveId = _catalogId(projectMoveId);
-        final entries = await media.listMoveMedia(catalogMoveId);
+        final entries = await BattleMoveRecipeCatalogSource(media)
+            .list(projectMoveId, manualSelection: true);
         return List.unmodifiable([
           for (final entry in entries)
-            if (entry.usage == 'battle' &&
-                entry.representation == 'recipe' &&
-                entry.contentType ==
-                    'application/vnd.avelune.battle-recipe+json' &&
-                entry.metadata['moveSourceId'] is String &&
-                entry.metadata['variant'] is String &&
-                entry.metadata['revision'] is String)
-              PokemonMoveRecipeChoice(
-                catalogMoveId: catalogMoveId,
-                mediaId: entry.id,
-                sourceMoveId: entry.metadata['moveSourceId'] as String,
-                recipeSha256: entry.sha256,
-                variant: entry.metadata['variant'] as String,
-                revision: entry.metadata['revision'] as String,
-                style: entry.style,
-              ),
+            PokemonMoveRecipeChoice(
+              catalogMoveId: entry.catalogMoveId,
+              mediaId: entry.mediaId,
+              sourceMoveId: entry.binding.sourceMoveId,
+              recipeSha256: entry.binding.recipeSha256,
+              variant: entry.binding.variant,
+              revision: entry.binding.revision,
+              style: entry.style,
+            ),
         ]);
       });
 

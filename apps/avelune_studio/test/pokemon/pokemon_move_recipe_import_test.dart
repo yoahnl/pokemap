@@ -423,6 +423,13 @@ void main() {
             category: PokemonMoveCategory.special,
             accuracy: const PokemonMoveAccuracy.alwaysHits(),
           ).toJson(),
+          PokemonMove(
+            id: 'smoke_screen',
+            name: 'Smokescreen',
+            type: 'normal',
+            category: PokemonMoveCategory.status,
+            accuracy: const PokemonMoveAccuracy.alwaysHits(),
+          ).toJson(),
         ],
       }),
     );
@@ -489,6 +496,40 @@ void main() {
       reader.paths.where((path) => path.endsWith('history.jsonl')),
       isEmpty,
     );
+  });
+
+  test('imports a recipe using the HGSS smokescreen alias', () async {
+    await importer.close();
+    final definition =
+        jsonDecode(utf8.decode(transport.recipe)) as Map<String, dynamic>;
+    definition['moveSourceId'] = 'smokescreen';
+    final aliasTransport = _BundleRecipeTransport(
+      'smokescreen',
+      utf8.encode(jsonEncode(definition)),
+      {'particle': transport.particle, 'tex': transport.texture},
+    );
+    importer = await PokemonMoveRecipeImport.open(
+      session: ProjectSession(
+        sessionId: 'recipe-alias',
+        name: 'Recipe test',
+        directoryPath: root.path,
+        storage: ProjectSessionStorage.workingCatalog,
+      ),
+      mapAdapter: LocalMapWorkspaceAdapter(),
+      media: AvelunePokemonMediaSource(client: aliasTransport, release: 'test'),
+      reader: reader,
+    );
+    final choice = (await importer.listForMove('smoke_screen')).single;
+    expect(choice.catalogMoveId, 'smokescreen');
+    expect(await importer.importChoice('smoke_screen', choice), isTrue);
+    final stored = BattleRecipeProjectBinding.fromJson(
+      jsonDecode(
+        await File('${root.path}/${battleRecipeBindingPath('smoke_screen')}')
+            .readAsString(),
+      ) as Map<String, dynamic>,
+    );
+    expect(stored.catalogMoveId, 'smokescreen');
+    expect(stored.binding.projectMoveId, 'smoke_screen');
   });
 
   test(
