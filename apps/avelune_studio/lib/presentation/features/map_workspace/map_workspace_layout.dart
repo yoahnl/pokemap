@@ -196,8 +196,9 @@ class MapWorkspaceLayout extends StatelessWidget {
       }
 
       void openInspector() {
-        final replacingElements = view?.elementsVisible == true;
-        if (view != null) view!.elementsVisible = false;
+        final replacingElements =
+            view?.elementsVisible == true && view?.contentInLeftColumn != true;
+        if (view != null && replacingElements) view!.elementsVisible = false;
         if (compactInspector && ready) {
           showWorkspaceCompactPanel(
             context,
@@ -245,7 +246,8 @@ class MapWorkspaceLayout extends StatelessWidget {
               inspectorVisible:
                   showInspector &&
                   !compactInspector &&
-                  view?.elementsVisible != true,
+                  (view?.elementsVisible != true ||
+                      view?.contentInLeftColumn == true),
               navigatorVisible: showNavigator,
               showUndoRedo: activeSpace != 'map',
               onNavigator: openNavigator,
@@ -345,7 +347,9 @@ class MapWorkspaceLayout extends StatelessWidget {
                           showNavigator: showNavigator,
                           showToolStrip: true,
                           showPaletteDock: showPaletteDock,
-                          inspector: view!.elementsVisible
+                          inspector:
+                              view!.elementsVisible &&
+                                  !view!.contentInLeftColumn
                               ? SizedBox(
                                   width: c.maxWidth < 700 ? 280 : 360,
                                   child: MapElementsPanel(

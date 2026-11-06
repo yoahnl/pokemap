@@ -16,8 +16,10 @@ import '../resources/resource_catalog.dart';
 import 'map_workspace_compact_navigator.dart';
 import 'map_workspace_canvas.dart';
 import 'map_workspace_palette_dock.dart';
+import 'map_elements_panel.dart';
 import 'map_intent_status_chip.dart';
 import 'map_palette_intent.dart';
+import 'map_workspace_left_column.dart';
 import 'map_workspace_tool_strip.dart';
 import 'map_workspace_view_state.dart';
 import 'map_workspace_visuals.dart';
@@ -164,6 +166,13 @@ class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
       final largeText = MediaQuery.textScalerOf(context).scale(14) > 20;
       final compact = bounds.maxWidth < 1000 || largeText;
       final collapsed = widget.view.navigatorCollapsed || compact;
+      final contentInLeftColumn = widget.showNavigator && !collapsed;
+      if (widget.view.contentInLeftColumn != contentInLeftColumn) {
+        widget.view.contentInLeftColumn = contentInLeftColumn;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) widget.onToolChanged();
+        });
+      }
       return Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -177,7 +186,25 @@ class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
                       if (widget.showNavigator)
                         collapsed
                             ? _navigatorRail(context)
-                            : _navigator(context),
+                            : MapWorkspaceLeftColumn(
+                                width: 252,
+                                contentSelected: widget.view.elementsVisible,
+                                onContentSelected: (value) {
+                                  widget.view.elementsVisible = value;
+                                  widget.onToolChanged();
+                                },
+                                maps: _navigator(context),
+                                content: MapElementsPanel(
+                                  document: widget.document,
+                                  project: widget.project,
+                                  view: widget.view,
+                                  onChanged: widget.onToolChanged,
+                                  onReorder:
+                                      widget.controller.canReorderElements
+                                      ? widget.controller.reorderElements
+                                      : null,
+                                ),
+                              ),
                       Expanded(
                         child: Column(
                           children: [

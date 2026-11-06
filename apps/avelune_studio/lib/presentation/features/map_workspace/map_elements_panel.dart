@@ -37,6 +37,7 @@ class MapElementsPanel extends StatefulWidget {
 class _MapElementsPanelState extends State<MapElementsPanel> {
   final _search = TextEditingController();
   final _collapsed = <String>{};
+  var _filter = MapContentFilter.all;
   MapData? _map;
   ProjectManifest? _project;
   late MapElementResourceIndex _resources;
@@ -159,19 +160,9 @@ class _MapElementsPanelState extends State<MapElementsPanel> {
     _changed();
   }
 
-  Widget _entry(MapElementListEntry entry, {int? index}) {
-    final locked = widget.document.isElementLocked(entry.kind, entry.id);
-    final hidden = widget.document.isElementHidden(entry.kind, entry.id);
-    final hiddenInherited = widget.document.isElementHiddenInherited(
-      entry.kind,
-      entry.id,
-    );
-    final inherited =
-        locked &&
-        !widget.document.editorState.lockedElements.contains(entry.key);
+  bool _isSelected(MapElementListEntry entry) {
     final target = widget.view.target;
-    final selected =
-        target != null &&
+    return target != null &&
         target.id == entry.id &&
         switch (entry.kind) {
           'decor' || 'model' => target.family == MapSelectionFamily.decor,
@@ -185,10 +176,38 @@ class _MapElementsPanelState extends State<MapElementsPanel> {
           'trigger' => target.family == MapSelectionFamily.trigger,
           _ => false,
         };
+  }
+
+  String _filterLabel(MapContentFilter filter) => switch (filter) {
+    MapContentFilter.all => 'Tous',
+    MapContentFilter.hidden => 'Masqués',
+    MapContentFilter.locked => 'Verrouillés',
+    MapContentFilter.selection => 'Sélection',
+  };
+
+  bool _isHidden(MapElementListEntry entry) =>
+      widget.document.isElementHidden(entry.kind, entry.id);
+
+  bool _isLocked(MapElementListEntry entry) =>
+      widget.document.isElementLocked(entry.kind, entry.id);
+
+  Widget _entry(MapElementListEntry entry, {int? index}) {
+    final locked = widget.document.isElementLocked(entry.kind, entry.id);
+    final hidden = widget.document.isElementHidden(entry.kind, entry.id);
+    final hiddenInherited = widget.document.isElementHiddenInherited(
+      entry.kind,
+      entry.id,
+    );
+    final inherited =
+        locked &&
+        !widget.document.editorState.lockedElements.contains(entry.key);
+    final selected = _isSelected(entry);
     return StudioChoice(
       key: ValueKey('map-element-${entry.kind}-${entry.id}'),
       label: entry.label,
-      subtitle: hidden ? '${entry.detail} · Masqué' : entry.detail,
+      subtitle: hidden
+          ? '${entry.detail} · Masqué pendant l’édition'
+          : entry.detail,
       selected: selected,
       onTap: locked || hidden || entry.kind == 'layer'
           ? null
@@ -330,6 +349,7 @@ class _MapElementsPanelState extends State<MapElementsPanel> {
     if (widget.onReorder == null ||
         widget.document.editor?.canWrite != true ||
         _ordering ||
+        _filter != MapContentFilter.all ||
         _search.text.isNotEmpty) {
       return;
     }
@@ -366,6 +386,25 @@ class _MapElementsPanelState extends State<MapElementsPanel> {
     Widget content() {
       final query = _search.text.trim().toLowerCase();
       final groups = _stacking ? _catalog.stacking : _catalog.families;
+      final unfiltered = query.isEmpty && _filter == MapContentFilter.all;
+      bool visible(MapElementListEntry entry) =>
+          (query.isEmpty ||
+              '${entry.label} ${entry.id} ${entry.family} ${entry.detail}'
+                  .toLowerCase()
+                  .contains(query)) &&
+          mapContentMatches(
+            entry,
+            _filter,
+            isHidden: _isHidden,
+            isLocked: _isLocked,
+            isSelected: _isSelected,
+          );
+      final counts = mapContentCounts(
+        _catalog,
+        isHidden: _isHidden,
+        isLocked: _isLocked,
+        isSelected: _isSelected,
+      );
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -385,6 +424,33 @@ class _MapElementsPanelState extends State<MapElementsPanel> {
                   spacing: 6,
                   runSpacing: 6,
                   children: [
+                    MenuAnchor(
+                      menuChildren: [
+                        for (final filter in MapContentFilter.values)
+                          MenuItemButton(
+                            key: ValueKey('map-content-filter-${filter.name}'),
+                            leadingIcon: Icon(
+                              _filter == filter
+                                  ? Icons.check
+                                  : Icons.circle_outlined,
+                              size: 16,
+                            ),
+                            onPressed: () => setState(() => _filter = filter),
+                            child: Text(
+                              '${_filterLabel(filter)} · ${counts[filter]}',
+                            ),
+                          ),
+                      ],
+                      builder: (context, controller, _) => StudioButton(
+                        key: const ValueKey('map-content-filter-menu'),
+                        label: '${_filterLabel(_filter)} · ${counts[_filter]}',
+                        icon: Icons.filter_list,
+                        secondary: true,
+                        onPressed: controller.isOpen
+                            ? controller.close
+                            : controller.open,
+                      ),
+                    ),
                     StudioButton(
                       label: 'Par famille',
                       icon: Icons.folder_outlined,
@@ -505,19 +571,13 @@ class _MapElementsPanelState extends State<MapElementsPanel> {
               ),
               slivers: [
                 for (final group in groups.entries)
-                  if (query.isEmpty ||
-                      group.value.any(
-                        (entry) =>
-                            '${entry.label} ${entry.id} ${entry.family} ${entry.detail}'
-                                .toLowerCase()
-                                .contains(query),
-                      )) ...[
+                  if (unfiltered || group.value.any(visible)) ...[
                     SliverToBoxAdapter(
                       child: _groupHeader(group.key, group.value),
                     ),
                     if (!_collapsed.contains(group.key))
                       if (_stacking &&
-                          query.isEmpty &&
+                          unfiltered &&
                           widget.onReorder != null &&
                           editor?.canWrite == true &&
                           !widget.document.dirty &&
@@ -546,27 +606,11 @@ class _MapElementsPanelState extends State<MapElementsPanel> {
                         )
                       else
                         SliverList.builder(
-                          itemCount: group.value
-                              .where(
-                                (entry) =>
-                                    query.isEmpty ||
-                                    '${entry.label} ${entry.id} ${entry.family} ${entry.detail}'
-                                        .toLowerCase()
-                                        .contains(query),
-                              )
-                              .length,
+                          itemCount: group.value.where(visible).length,
                           itemBuilder: (context, index) => Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 12),
                             child: _entry(
-                              group.value
-                                  .where(
-                                    (entry) =>
-                                        query.isEmpty ||
-                                        '${entry.label} ${entry.id} ${entry.family} ${entry.detail}'
-                                            .toLowerCase()
-                                            .contains(query),
-                                  )
-                                  .elementAt(index),
+                              group.value.where(visible).elementAt(index),
                             ),
                           ),
                         ),

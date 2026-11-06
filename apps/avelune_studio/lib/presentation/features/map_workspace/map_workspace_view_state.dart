@@ -217,6 +217,7 @@ class MapWorkspaceViewState {
   double characterScrollOffset = 0;
   bool grid = false;
   bool elementsVisible = false;
+  bool contentInLeftColumn = false;
   bool navigatorCollapsed = false;
   bool highlightTerrain = true;
   bool dimOtherTerrains = false;

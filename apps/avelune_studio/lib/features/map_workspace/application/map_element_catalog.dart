@@ -80,7 +80,7 @@ final class MapElementCatalog {
         id: layer.id,
         label: layer.name,
         family: 'Calques',
-        detail: '$type${layer.isVisible ? '' : ' · masqué'}',
+        detail: '$type${layer.isVisible ? '' : ' · invisible en jeu'}',
       );
       entries.add(entry);
       stacking.putIfAbsent('Calques', () => []).add(entry);
@@ -193,3 +193,40 @@ final class MapElementCatalog {
   final families = <String, List<MapElementListEntry>>{};
   final stacking = <String, List<MapElementListEntry>>{};
 }
+
+enum MapContentFilter { all, hidden, locked, selection }
+
+typedef MapContentPredicate = bool Function(MapElementListEntry entry);
+
+bool mapContentMatches(
+  MapElementListEntry entry,
+  MapContentFilter filter, {
+  required MapContentPredicate isHidden,
+  required MapContentPredicate isLocked,
+  required MapContentPredicate isSelected,
+}) => switch (filter) {
+  MapContentFilter.all => true,
+  MapContentFilter.hidden => isHidden(entry),
+  MapContentFilter.locked => isLocked(entry),
+  MapContentFilter.selection => isSelected(entry),
+};
+
+Map<MapContentFilter, int> mapContentCounts(
+  MapElementCatalog catalog, {
+  required MapContentPredicate isHidden,
+  required MapContentPredicate isLocked,
+  required MapContentPredicate isSelected,
+}) => {
+  for (final filter in MapContentFilter.values)
+    filter: catalog.entries
+        .where(
+          (entry) => mapContentMatches(
+            entry,
+            filter,
+            isHidden: isHidden,
+            isLocked: isLocked,
+            isSelected: isSelected,
+          ),
+        )
+        .length,
+};
