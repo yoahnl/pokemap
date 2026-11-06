@@ -7,6 +7,7 @@ import 'package:archive/archive.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/features/pokemon/application/pokemon_workspace_controller.dart';
 import 'package:avelune_studio/features/pokemon/data/local_pokemon_workspace_adapter.dart';
+import 'package:avelune_studio/features/pokemon/data/http_pokemon_external_transport.dart';
 import 'package:avelune_studio/features/pokemon/data/pokemon_move_recipe_import.dart';
 import 'package:avelune_studio/features/pokemon/domain/pokemon_move_recipe_choice.dart';
 import 'package:avelune_studio/features/pokemon/domain/pokemon_move_recipe_port.dart';
@@ -17,6 +18,7 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as image;
+import 'package:http/http.dart' as http;
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/src/presentation/flame/battle_offline_move_recipe_loader.dart';
@@ -261,6 +263,84 @@ final class _RecipeTransport implements PokemonBoundedExternalHttpTransport {
   }
 }
 
+final class _BundleRecipeTransport
+    implements PokemonBoundedExternalHttpTransport {
+  _BundleRecipeTransport(
+    this.move,
+    this.recipe,
+    Map<String, List<int>> resources,
+  ) {
+    final definition = jsonDecode(utf8.decode(recipe)) as Map<String, dynamic>;
+    final declared = (definition['resources'] as List)
+        .cast<Map<String, dynamic>>();
+    final bindings = <String, String>{};
+    for (var i = 0; i < declared.length; i++) {
+      final resource = declared[i];
+      final id = 'resource-$i';
+      final data = resources[resource['id']]!;
+      bindings[resource['id'] as String] = id;
+      files[id] = data;
+      listing.add({
+        'id': id,
+        'sha256': sha256.convert(data).toString(),
+        'contentType': resource['mediaType'],
+        'usage': 'battle',
+        'representation': switch (resource['role']) {
+          'texture' => 'sprite2d',
+          'particleDefinition' => 'particle',
+          'sound' => 'audio',
+          _ => throw StateError('Unexpected media'),
+        },
+        'style': 'gen5-bw2',
+        'metadata': <String, Object>{},
+      });
+    }
+    files['recipe'] = recipe;
+    listing.add({
+      'id': 'recipe',
+      'sha256': sha256.convert(recipe).toString(),
+      'contentType': 'application/vnd.avelune.battle-recipe+json',
+      'usage': 'battle',
+      'representation': 'recipe',
+      'style': 'gen5-bw2',
+      'metadata': {
+        'recipeId': definition['recipeId'],
+        'revision': definition['revision'],
+        'moveSourceId': definition['moveSourceId'],
+        'variant': definition['variant'],
+        'bindings': bindings,
+      },
+    });
+  }
+
+  final String move;
+  final List<int> recipe;
+  final files = <String, List<int>>{};
+  final listing = <Map<String, Object?>>[];
+
+  @override
+  Future<PokemonExternalHttpResponse> getBounded(
+    Uri uri, {
+    required Map<String, String> headers,
+    required int maximumBytes,
+    required Duration timeout,
+  }) async {
+    final isListing = uri.path.endsWith('/owners/move/$move');
+    final bytes = isListing
+        ? utf8.encode(jsonEncode(listing))
+        : files[uri.pathSegments.last]!;
+    if (bytes.length > maximumBytes) {
+      throw const FormatException('Media exceeds limit');
+    }
+    return PokemonExternalHttpResponse(
+      statusCode: 200,
+      headers: const {},
+      body: isListing ? utf8.decode(bytes) : '',
+      bodyBytes: Uint8List.fromList(bytes),
+    );
+  }
+}
+
 Uint8List _largeWav() {
   const samples = 300000;
   final bytes = Uint8List(44 + samples);
@@ -333,6 +413,13 @@ void main() {
             id: 'flamethrower',
             name: 'Flamethrower',
             type: 'fire',
+            category: PokemonMoveCategory.special,
+            accuracy: const PokemonMoveAccuracy.alwaysHits(),
+          ).toJson(),
+          PokemonMove(
+            id: 'surf',
+            name: 'Surf',
+            type: 'water',
             category: PokemonMoveCategory.special,
             accuracy: const PokemonMoveAccuracy.alwaysHits(),
           ).toJson(),
@@ -651,6 +738,108 @@ void main() {
       expect(result.prepared, isNull);
       expect(result.unavailableCapabilities, contains('splParticleV2'));
     },
+  );
+
+  test(
+    'imports and exports a real BW2 source recipe for offline use',
+    () async {
+      final path = Platform.environment['AVELUNE_BW2_STUDIO_BUNDLE']!;
+      final bundle =
+          jsonDecode(await File(path).readAsString()) as Map<String, dynamic>;
+      final recipe = base64.decode(bundle['recipe'] as String);
+      final resources = <String, List<int>>{
+        for (final entry in (bundle['media'] as Map<String, dynamic>).entries)
+          entry.key: base64.decode(entry.value as String),
+      };
+      await importer.close();
+      final liveRelease = Platform.environment['AVELUNE_BW2_STUDIO_RELEASE'];
+      final previousOverrides = HttpOverrides.current;
+      late final http.Client httpClient;
+      try {
+        if (liveRelease != null) HttpOverrides.global = null;
+        httpClient = http.Client();
+      } finally {
+        HttpOverrides.global = previousOverrides;
+      }
+      addTearDown(httpClient.close);
+      importer = await PokemonMoveRecipeImport.open(
+        session: ProjectSession(
+          sessionId: 'recipe-test',
+          name: 'Recipe test',
+          directoryPath: root.path,
+          storage: ProjectSessionStorage.workingCatalog,
+        ),
+        mapAdapter: LocalMapWorkspaceAdapter(),
+        media: AvelunePokemonMediaSource(
+          client: liveRelease == null
+              ? _BundleRecipeTransport('surf', recipe, resources)
+              : HttpPokemonExternalTransport(httpClient),
+          release: liveRelease ?? 'test',
+        ),
+      );
+      final choices = await importer.listForMove('surf');
+      expect(choices, hasLength(1));
+      expect(await importer.importChoice('surf', choices.single), isTrue);
+      httpClient.close();
+      final fixture = spatialFeaturePayload('companion');
+      final map = MapData.fromJson(
+        jsonDecode(utf8.decode(fixture['project/maps/map.json']!)),
+      );
+      for (var i = 0; i < 40; i++) {
+        await File('${root.path}/maps/foreign-$i.json').writeAsString(
+          jsonEncode(map.copyWith(id: 'foreign-$i', name: 'Foreign').toJson()),
+        );
+      }
+      final items = File('${root.path}/data/pokemon/catalogs/items.json');
+      await items.parent.create(recursive: true);
+      await items.writeAsString(
+        jsonEncode(
+          encodeProjectItemCatalog(
+            const ProjectItemCatalog(schemaVersion: 1, entries: []),
+          ),
+        ),
+      );
+      final exported = await const CanonicalGamePackageExportService().build(
+        projectRoot: root,
+        profile: GamePackageExportProfile(
+          gameId: 'games.example.studio-bw2',
+          gameVersion: '0.1.0',
+          title: 'BW2',
+          authorName: 'Yoahn',
+          defaultLocale: 'fr',
+          supportedLocales: ['fr'],
+        ),
+        mode: GamePackageExportMode.localTest,
+      );
+      final archive = ZipDecoder().decodeBytes(
+        exported.packageBytes,
+        verify: true,
+      );
+      final runtime = await Directory(
+        Platform.environment['AVELUNE_BW2_STUDIO_EXPORT_DIR'] ??
+            '${root.path}/runtime-copy',
+      ).create();
+      for (final entry in archive.files.where(
+        (entry) => entry.isFile && entry.name.startsWith('project/'),
+      )) {
+        final relative = entry.name.substring('project/'.length);
+        expect(relative.split('/'), isNot(contains('..')));
+        final file = File('${runtime.path}/$relative');
+        await file.parent.create(recursive: true);
+        await file.writeAsBytes(entry.content as List<int>);
+      }
+      final result = await BattleOfflineMoveRecipeLoader(
+        projectRootDirectory: runtime.path,
+      ).load('surf', retainVerifiedMedia: true);
+      expect(result.verifiedMedia, isNotNull);
+      expect(result.verifiedMedia!.bundle.recipeBytes, recipe);
+      expect(
+        result.verifiedMedia!.bundle.media.keys.toSet(),
+        resources.keys.toSet(),
+      );
+      result.verifiedMedia!.release();
+    },
+    skip: Platform.environment['AVELUNE_BW2_STUDIO_BUNDLE'] == null,
   );
 
   testWidgets(

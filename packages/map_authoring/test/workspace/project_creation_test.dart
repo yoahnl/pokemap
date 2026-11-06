@@ -96,7 +96,7 @@ void main() {
       expect(manifest.settings.defaultPlayerCharacterId, character.id);
       expect(manifest.pokemon.enabled, false);
       expect((manifest.toJson()['pokemon'] as Map)['catalogRelease'],
-          'public-2026-11-02-bw2');
+          'public-2026-11-06-bw2-hgss');
       expect(manifest.settings.mistralApiKey, isNull);
       ProjectValidator.validate(manifest, maps: [map]);
       MapValidator.validate(map, projectDialogueContext: manifest);
@@ -137,7 +137,7 @@ void main() {
       expect(manifest.characters, isEmpty);
       expect(manifest.newGame.enabled, false);
       expect((manifest.toJson()['pokemon'] as Map)['catalogRelease'],
-          'public-2026-11-02-bw2');
+          'public-2026-11-06-bw2-hgss');
       expect(manifest.settings.tileWidth, tileSize);
       expect(manifest.settings.tileHeight, tileSize);
       expect(manifest.settings.defaultMapWidth, 42);

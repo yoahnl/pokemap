@@ -27,7 +27,13 @@ final class RecordingHttpClient implements HttpClient {
 }
 
 void main() {
-  for (final release in [null, 'public-2026-11-02', '../invalid']) {
+  for (final release in [
+    null,
+    'public-2026-11-02',
+    'public-2026-11-02-bw2',
+    'public-2026-11-06-bw2-hgss',
+    '../invalid',
+  ]) {
     test('Studio uses the project release $release for search', () async {
       final parent = Directory(Platform.environment['AVELUNE_QA_ROOT']!);
       final root = await parent.createTemp('release-search-');
