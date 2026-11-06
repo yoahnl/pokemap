@@ -225,8 +225,24 @@ class MapWorkspaceViewState {
   bool paletteTiles = false;
   bool revealPalette = false;
   bool revealInspector = false;
-  String paletteTab = 'Décors';
+  String _paletteTab = 'Décors';
+  String get paletteTab => _paletteTab;
+  set paletteTab(String value) {
+    if (value == _paletteTab) return;
+    final search = paletteSearch;
+    paletteQueries[_paletteTab] = search?.text ?? resourceFilters.query;
+    paletteFamilies[_paletteTab] = resourceFilters.familyId;
+    _paletteTab = value;
+    final query = paletteQueries[value] ?? '';
+    if (search != null && search.text != query) search.text = query;
+    resourceFilters
+      ..query = query
+      ..familyId = paletteFamilies[value] ?? '';
+  }
   StudioMapTool? paletteRevealedFor;
+  final paletteQueries = <String, String>{};
+  final paletteFamilies = <String, String>{};
+  TextEditingController? paletteSearch;
   final resourceFilters = ResourceCatalogFilterState();
   String? _resourceMapId;
   final paletteScrollOffsets = <String, double>{};

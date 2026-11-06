@@ -61,6 +61,7 @@ class _MapWorkspacePaletteDockState extends State<MapWorkspacePaletteDock> {
     final map = exterior?.editingExterior == true
         ? exterior?.editingDocument?.current ?? widget.document.current
         : widget.document.current;
+    widget.view.paletteSearch = widget.search;
     widget.view.reconcileResources(widget.project, mapId: map.id, map: map);
     widget.view.resourceFilters.query = kind == 'Personnages'
         ? ''
@@ -252,11 +253,25 @@ class _MapWorkspacePaletteDockState extends State<MapWorkspacePaletteDock> {
                 children: [
                   Expanded(
                     child: visible.isEmpty
-                        ? Center(
-                            child: Text(
-                              'Aucune ressource ne correspond aux filtres.',
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
+                        ? _PaletteEmptyState(
+                            ready: filterResourceCatalog(
+                              widget.project,
+                              items,
+                              ResourceCatalogFilterState(
+                                showComponents:
+                                    widget.view.resourceFilters.showComponents,
+                              ),
+                              activeMapId: map.id,
+                              forMapPicker: true,
+                            ).isNotEmpty,
+                            kind: kind,
+                            onPrepare: widget.onResources,
+                            onClear: () {
+                              widget.search.clear();
+                              widget.view.resourceFilters.reset();
+                              setState(() {});
+                              widget.onChanged();
+                            },
                           )
                         : LayoutBuilder(
                             builder: (context, constraints) {
@@ -336,6 +351,56 @@ class _MapWorkspacePaletteDockState extends State<MapWorkspacePaletteDock> {
                 ],
               ),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PaletteEmptyState extends StatelessWidget {
+  const _PaletteEmptyState({
+    required this.ready,
+    required this.kind,
+    required this.onPrepare,
+    required this.onClear,
+  });
+
+  final bool ready;
+  final String kind;
+  final VoidCallback onPrepare, onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            ready
+                ? 'Aucune ressource ne correspond aux filtres.'
+                : kind == 'Terrains'
+                ? 'Aucun terrain prêt pour cette carte.'
+                : 'Aucun décor prêt pour cette carte.',
+            style: theme.textTheme.bodySmall,
+          ),
+          const SizedBox(height: 8),
+          ready
+              ? StudioButton(
+                  key: const ValueKey('palette-clear-filters'),
+                  label: 'Effacer la recherche et les filtres',
+                  icon: Icons.filter_alt_off_outlined,
+                  secondary: true,
+                  onPressed: onClear,
+                )
+              : StudioButton(
+                  key: const ValueKey('palette-prepare-resources'),
+                  label: 'Préparer les ressources',
+                  icon: Icons.grid_view_outlined,
+                  secondary: true,
+                  onPressed: onPrepare,
+                ),
         ],
       ),
     );
