@@ -18,6 +18,7 @@ import '../../shared/widgets/layout/studio_asset_preview.dart';
 import '../../shared/widgets/layout/studio_page_header.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import '../../shared/widgets/layout/studio_section.dart';
+import 'regional_map_link_dialog.dart';
 import '../narrative/narrative_name_dialog.dart';
 
 class RegionalMapPage extends StatefulWidget {
@@ -62,10 +63,33 @@ class _RegionalMapPageState extends State<RegionalMapPage> {
   }
 
   Future<void> _createPoint() async {
-    final mapId = owner.source?.project.maps.firstOrNull?.id;
-    if (mapId == null) return;
-    final name = await askNarrativeName(context, 'Créer un lieu');
-    if (mounted && name != null) owner.createPoint(name, mapId);
+    final project = owner.source?.project;
+    if (project == null || project.maps.isEmpty) return;
+    final link = await askRegionalMapLink(
+      context,
+      title: 'Créer un lieu',
+      mapLabel: 'Carte liée à la visite',
+      confirmLabel: 'Créer',
+      project: project,
+      asksName: true,
+    );
+    if (mounted && link != null) owner.createPoint(link.name, link.mapId);
+  }
+
+  Future<void> _enableFlight(ProjectRegionPointOfInterest point) async {
+    final project = owner.source?.project;
+    if (project == null) return;
+    final link = await askRegionalMapLink(
+      context,
+      title: 'Autoriser Vol vers ce lieu',
+      mapLabel: 'Carte d’arrivée',
+      confirmLabel: 'Autoriser Vol',
+      project: project,
+      suggestedMapId: point.mapIds.firstOrNull,
+    );
+    if (mounted && link != null) {
+      owner.editPoint(destination: ProjectRegionDestination(mapId: link.mapId));
+    }
   }
 
   Future<void> _delete(String label, VoidCallback remove) async {
@@ -487,12 +511,7 @@ class _RegionalMapPageState extends State<RegionalMapPage> {
                     owner.editPoint(clearDestination: true);
                     return;
                   }
-                  final target = owner.source!.project.maps.firstOrNull;
-                  if (target != null) {
-                    owner.editPoint(
-                      destination: ProjectRegionDestination(mapId: target.id),
-                    );
-                  }
+                  _enableFlight(point);
                 },
         ),
         if (nativeMaps.isEmpty)

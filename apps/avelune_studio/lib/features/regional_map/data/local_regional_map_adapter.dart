@@ -24,7 +24,7 @@ final class LocalRegionalMapAdapter
   @override
   Future<RegionalMapSource> load() =>
       LocalWorkshopReader(session, reader: reader).read(
-        metadataFields: {'maps', 'regionalMap'},
+        metadataFields: {'maps', 'regionalMap', 'groups'},
         operation: (project, access, revision) async {
           final probe = await access.probeResource(assetCatalogStorageKey);
           final assets = probe.status == ProjectResourceProbeStatus.missing
@@ -41,11 +41,14 @@ final class LocalRegionalMapAdapter
             images: {
               for (final asset in assets.records)
                 if (const {
-                  'image/png',
-                  'image/jpeg',
-                  'image/webp',
-                  'image/gif',
-                }.contains(asset.artifact.mediaType))
+                      'image/png',
+                      'image/jpeg',
+                      'image/webp',
+                      'image/gif',
+                    }.contains(asset.artifact.mediaType) &&
+                    ProjectRegionDefinition.acceptsImagePath(
+                      asset.logicalPath,
+                    ))
                   asset.logicalPath: asset.logicalPath.split('/').last,
             },
           );

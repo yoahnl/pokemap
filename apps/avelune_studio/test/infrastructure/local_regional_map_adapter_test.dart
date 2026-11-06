@@ -16,6 +16,23 @@ import 'package:avelune_studio/features/map_workspace/application/map_workspace_
 import 'package:avelune_studio/presentation/features/map_workspace/workspace_actions.dart';
 
 void main() {
+  test(
+    'regional source offers only region-admissible images and loads map folders',
+    () async {
+      final fixture = await createRegionalFixture(
+        groups: const [
+          ProjectMapGroup(id: 'johto', name: 'Johto', type: MapGroupType.city),
+        ],
+        mapGroupId: 'johto',
+        extraImagePaths: const ['presentation/intro.png', 'data/icon.png'],
+      );
+      addTearDown(() => fixture.root.delete(recursive: true));
+      final source = await fixture.port.load();
+      expect(source.images.keys, ['assets/region.png']);
+      expect(source.project.groups.map((group) => group.id), ['johto']);
+      expect(source.project.maps.single.groupId, 'johto');
+    },
+  );
   test('Studio regional CRUD publishes canonical actions and confirms destructive changes without changing map bytes', () async {
     final fixture = await createRegionalFixture();
     addTearDown(() => fixture.root.delete(recursive: true));
@@ -291,7 +308,11 @@ Future<
     List<int> imageBytes,
   })
 >
-createRegionalFixture() async {
+createRegionalFixture({
+  List<ProjectMapGroup> groups = const [],
+  String? mapGroupId,
+  List<String> extraImagePaths = const [],
+}) async {
   final temp = await Directory.systemTemp.createTemp('studio-regional-');
   final root = Directory(await temp.resolveSymbolicLinks());
   final session = ProjectSession(
@@ -299,11 +320,17 @@ createRegionalFixture() async {
     directoryPath: root.path,
     name: 'Regional',
   );
-  const project = ProjectManifest(
+  final project = ProjectManifest(
     name: 'Regional',
     tilesets: [],
+    groups: groups,
     maps: [
-      ProjectMapEntry(id: 'town', name: 'Town', relativePath: 'maps/town.json'),
+      ProjectMapEntry(
+        id: 'town',
+        name: 'Town',
+        relativePath: 'maps/town.json',
+        groupId: mapGroupId,
+      ),
     ],
   );
   const map = MapData(
@@ -341,6 +368,12 @@ createRegionalFixture() async {
             logicalPath: 'assets/region.png',
             artifact: artifact,
           ),
+          for (final (index, path) in extraImagePaths.indexed)
+            AssetRecord(
+              id: 'extra-image-$index',
+              logicalPath: path,
+              artifact: artifact,
+            ),
         ],
       ).toJson(),
     ),

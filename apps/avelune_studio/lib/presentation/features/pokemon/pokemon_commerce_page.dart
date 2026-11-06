@@ -10,6 +10,7 @@ import '../../shared/widgets/inputs/studio_select.dart';
 import 'pokemon_commerce_detail.dart';
 import 'pokemon_commerce_import_button.dart';
 import 'pokemon_commerce_create_dialog.dart';
+import 'pokemon_pocket_label.dart';
 import 'pokemon_commerce_row.dart';
 import 'pokemon_ui_parts.dart';
 import 'pokemon_bag_capacity_dialog.dart';
@@ -226,7 +227,12 @@ class _PokemonCommercePageState extends State<PokemonCommercePage> {
                 value: commerce.pocketFilter ?? '',
                 options: {
                   '': 'Toutes les poches',
-                  for (final pocket in pockets.toList()..sort()) pocket: pocket,
+                  for (final pocket in pockets.toList()
+                    ..sort(
+                      (a, b) =>
+                          pokemonPocketLabel(a).compareTo(pokemonPocketLabel(b)),
+                    ))
+                    pocket: pokemonPocketLabel(pocket),
                 },
                 onChanged: (value) => setState(
                   () => commerce.pocketFilter = value.isEmpty ? null : value,
@@ -269,7 +275,7 @@ class _PokemonCommercePageState extends State<PokemonCommercePage> {
                             key: ValueKey('item-${entry.id}'),
                             title: entry.displayName,
                             subtitle:
-                                '${entry.pocketId} · ${entry.buyPrice == null ? 'Prix libre' : '${entry.buyPrice} ₽'}',
+                                '${pokemonPocketLabel(entry.pocketId)} · ${entry.buyPrice == null ? 'Prix libre' : '${entry.buyPrice} ₽'}',
                             icon: Icons.inventory_2_outlined,
                             selected: commerce.item?.id == entry.id,
                             onTap: () => _selectItem(entry),

@@ -76,6 +76,8 @@ final class ProjectRegionDefinition {
        labels = _translations(labels),
        imagePath = _imagePath(imagePath);
 
+  static bool acceptsImagePath(String path) => _isOwnedAssetPath(path);
+
   factory ProjectRegionDefinition.fromJson(Map<String, dynamic> json) {
     _keys(json, const {
       'id',
@@ -412,19 +414,22 @@ Map<String, String> _translations(Map<String, String> values) {
 
 String? _imagePath(String? value) {
   if (value == null) return null;
-  if (!value.startsWith('assets/') ||
-      value != value.trim() ||
-      value.contains('\\') ||
-      value.contains(':') ||
-      value
-          .split('/')
-          .any((part) => part.isEmpty || part == '.' || part == '..')) {
+  if (!_isOwnedAssetPath(value)) {
     throw const FormatException(
       'Image must reference a project-owned assets path.',
     );
   }
   return value;
 }
+
+bool _isOwnedAssetPath(String value) =>
+    value.startsWith('assets/') &&
+    value == value.trim() &&
+    !value.contains('\\') &&
+    !value.contains(':') &&
+    !value
+        .split('/')
+        .any((part) => part.isEmpty || part == '.' || part == '..');
 
 double _number(Object? value, String field) {
   if (value is! num) throw FormatException('$field must be numeric.');

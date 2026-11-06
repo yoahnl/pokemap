@@ -224,7 +224,14 @@ void main() {
         expect(await actions.flushEditors(), isFalse);
         expect(await actions.saveForExport(), isFalse);
         expect(maps.active!.dirty, isFalse);
-        expect((await fixture.port.load()).maps['town']!.entities, isEmpty);
+        final reloaded = await fixture.port.load();
+        expect(
+          (await fixture.port.readMap(
+            source: reloaded,
+            mapId: 'town',
+          )).entities,
+          isEmpty,
+        );
         expect(owner.source!.maps['town']!.entities, isEmpty);
         expect(owner.error, contains('arrivée'));
         expect(owner.dirty, isTrue);

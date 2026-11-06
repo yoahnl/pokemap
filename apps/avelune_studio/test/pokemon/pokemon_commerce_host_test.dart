@@ -338,6 +338,8 @@ void main() {
       await pumpIo(tester);
       await tester.tap(find.text('Remplacer').last);
       await pumpIo(tester);
+      expect(find.textContaining('Soins · '), findsWidgets);
+      expect(find.textContaining('medicine · '), findsNothing);
       final reopened = (await tester.runAsync(() async {
         final session = ProjectSession(
           sessionId: 'commerce-import-reopen',

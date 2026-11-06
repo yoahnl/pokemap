@@ -20,7 +20,7 @@ extension CinematicInspectorActors on CinematicInspector {
         value: actor?.actorId,
         options: {
           for (final a in asset.requiredActors)
-            a.actorId: '${a.label} · ${a.actorId}',
+            a.actorId: cinematicActorChoiceLabel(a.label, a.actorId),
         },
         onChanged: (id) {
           view.actorId = id;
@@ -68,7 +68,7 @@ extension CinematicInspectorActors on CinematicInspector {
             options: {
               if (model != null)
                 for (final entity in model!.map.entities)
-                  entity.id: '${entity.name} · ${entity.id}',
+                  entity.id: cinematicEntityChoiceLabel(entity.name, entity.id),
             },
             onChanged: model == null
                 ? null
@@ -183,3 +183,12 @@ extension CinematicInspectorActors on CinematicInspector {
     ];
   }
 }
+
+String cinematicActorName(String? label) =>
+    label == null || label.trim().isEmpty ? 'Acteur sans nom' : label;
+
+String cinematicActorChoiceLabel(String? label, String actorId) =>
+    '${cinematicActorName(label)} · $actorId';
+
+String cinematicEntityChoiceLabel(String name, String entityId) =>
+    '${name.trim().isEmpty ? 'Personnage sans nom' : name} · $entityId';

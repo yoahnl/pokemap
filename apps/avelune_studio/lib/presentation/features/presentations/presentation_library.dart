@@ -142,7 +142,7 @@ class PresentationLibrary extends StatelessWidget {
               },
             ),
           StudioButton(
-            label: 'Nouvelle cinématique',
+            label: 'Nouvelle présentation',
             icon: Icons.add,
             onPressed: onCreate,
             secondary: true,

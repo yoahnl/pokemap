@@ -87,6 +87,21 @@ void main() {
       expect(port.actions, isEmpty);
     },
   );
+  test(
+    'an image the region model refuses is reported instead of thrown',
+    () async {
+      final controller = RegionalMapController(
+        MemoryRegionalMapPort(),
+        changed: () {},
+      );
+      await controller.load();
+      controller.createRegion('Kanto');
+      controller.editRegion(imagePath: 'presentation/intro.png');
+      expect(controller.region!.imagePath, isNull);
+      expect(controller.error, contains('assets'));
+      expect(controller.canUndo, isTrue);
+    },
+  );
 }
 
 final class MemoryRegionalMapPort implements RegionalMapPort {

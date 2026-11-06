@@ -3,6 +3,29 @@ import 'package:test/test.dart';
 
 void main() {
   flyDestinationValidationTests();
+  test('region images must be project-owned assets paths', () {
+    expect(
+      ProjectRegionDefinition.acceptsImagePath('assets/region.png'),
+      isTrue,
+    );
+    expect(
+      ProjectRegionDefinition.acceptsImagePath('presentation/intro.png'),
+      isFalse,
+    );
+    expect(ProjectRegionDefinition.acceptsImagePath('data/icon.png'), isFalse);
+    expect(
+      ProjectRegionDefinition.acceptsImagePath('assets/../x.png'),
+      isFalse,
+    );
+    expect(
+      () => ProjectRegionDefinition(
+        id: 'west',
+        label: 'West',
+        imagePath: 'presentation/intro.png',
+      ),
+      throwsFormatException,
+    );
+  });
   test(
     'regional values preserve equality and hashes across independent decoding',
     () {

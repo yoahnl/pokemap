@@ -70,6 +70,14 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is StudioSelect && w.label == 'Carte à tester',
+        ),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Scène à tester'), findsNothing);
+      expect(find.text('Jouer dans cette carte'), findsOneWidget);
       final reads = port.reads,
           catalogs = port.catalogs,
           visualReads = port.visualReads;

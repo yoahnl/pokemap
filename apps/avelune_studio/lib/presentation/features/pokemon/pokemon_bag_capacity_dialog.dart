@@ -3,6 +3,7 @@ import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_design_system/avelune_design_system.dart';
 
 import '../../../features/pokemon/application/pokemon_commerce_controller.dart';
+import 'pokemon_pocket_label.dart';
 import 'pokemon_ui_parts.dart';
 
 Future<void> showPokemonBagCapacityDialog(
@@ -118,7 +119,7 @@ class _PokemonBagCapacityDialogState extends State<PokemonBagCapacityDialog> {
                 key: const Key('bag-capacity-pocket'),
                 label: 'Poche',
                 value: selected!,
-                options: {for (final id in pockets) id: id},
+                options: {for (final id in pockets) id: pokemonPocketLabel(id)},
                 onChanged: saving
                     ? null
                     : (id) => setState(() => selected = id),

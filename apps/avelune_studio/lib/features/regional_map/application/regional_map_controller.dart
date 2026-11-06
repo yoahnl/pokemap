@@ -197,6 +197,13 @@ final class RegionalMapController {
       return;
     }
     if (label != null) _invalidRegionLabels.remove(selected.id);
+    if (imagePath != null &&
+        !ProjectRegionDefinition.acceptsImagePath(imagePath)) {
+      error =
+          'Cette image ne peut pas illustrer une région : choisissez une image rangée dans assets.';
+      _notify();
+      return;
+    }
     final next = ProjectRegionDefinition(
       id: selected.id,
       label: label?.trim() ?? selected.label,

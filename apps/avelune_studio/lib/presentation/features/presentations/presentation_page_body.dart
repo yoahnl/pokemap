@@ -84,7 +84,7 @@ extension _PresentationPageBody on _PresentationWorkspacePageState {
                                     ? library
                                     : Center(
                                         child: StudioButton(
-                                          label: 'Créer une présentation',
+                                          label: 'Nouvelle présentation',
                                           icon: Icons.add,
                                           loading: controller.busy,
                                           onPressed: create,

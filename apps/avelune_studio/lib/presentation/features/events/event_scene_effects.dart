@@ -32,7 +32,7 @@ List<String> eventSceneEffects(SceneAsset scene, ProjectManifest project) {
           consequence: SceneMarkEventConsumedConsequence(:final eventId),
         ) =>
           'Consommer · ${label(NarrativeOverviewReferenceKind.event, eventId)}',
-        SceneActionPayload() => 'Action de scène · ${node.title}',
+        SceneActionPayload() => 'Action de scène · ${_actionTitle(node.title)}',
         SceneCinematicPayload(:final cinematicId) =>
           'Cinématique · ${label(NarrativeOverviewReferenceKind.cinematic, cinematicId)}',
         SceneEndPayload(:final sceneOutcomeId) when sceneOutcomeId != null =>
@@ -41,3 +41,6 @@ List<String> eventSceneEffects(SceneAsset scene, ProjectManifest project) {
       },
   }.where((text) => text.isNotEmpty).toList();
 }
+
+String _actionTitle(String? title) =>
+    title == null || title.trim().isEmpty ? 'Action sans nom' : title;

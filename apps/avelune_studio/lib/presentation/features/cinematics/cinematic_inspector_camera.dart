@@ -44,7 +44,8 @@ extension CinematicInspectorCamera on CinematicInspector {
           options: {
             'center': 'Centre de la scène',
             for (final actor in asset.requiredActors)
-              'actor:${actor.actorId}': 'Acteur · ${actor.label}',
+              'actor:${actor.actorId}':
+                  'Acteur · ${cinematicActorName(actor.label)}',
             for (final point
                 in asset.stageContext?.stagePoints ?? <CinematicStagePoint>[])
               'point:${point.id}': 'Repère · ${point.label}',

@@ -5,6 +5,7 @@ import '../../../features/pokemon/application/pokemon_commerce_controller.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/inputs/studio_search_field.dart';
 import 'pokemon_commerce_integer_field.dart';
+import 'pokemon_pocket_label.dart';
 import 'pokemon_ui_parts.dart';
 
 class PokemonShopCatalog extends StatelessWidget {
@@ -164,7 +165,9 @@ class PokemonShopCatalog extends StatelessWidget {
             ),
           ],
         ),
-        Text('${entry.itemId} · ${item?.pocketId ?? 'Référence non résolue'}'),
+        Text(
+          '${entry.itemId} · ${item == null ? 'Référence non résolue' : pokemonPocketLabel(item.pocketId)}',
+        ),
         const SizedBox(height: 8),
         Wrap(
           spacing: 12,

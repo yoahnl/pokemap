@@ -40,7 +40,10 @@ void main() {
       addTearDown(() => harness.shutdown(tester));
       await tester.pumpWidget(harness.app());
       await harness.settle(tester);
-      await tapUi11(tester, harness, find.text('Nouvelle cinématique'));
+      expect(find.text('Nouvelle présentation'), findsWidgets);
+      expect(find.text('Nouvelle cinématique'), findsNothing);
+      expect(find.text('Créer une présentation'), findsNothing);
+      await tapUi11(tester, harness, find.text('Nouvelle présentation').first);
       await tester.enterText(
         find.byWidgetPredicate(
           (w) => w is TextField && w.decoration?.labelText == 'Nom',

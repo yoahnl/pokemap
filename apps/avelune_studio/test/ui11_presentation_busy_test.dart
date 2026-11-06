@@ -23,7 +23,7 @@ void main() {
 
     final slow = Completer<void>();
     harness.port.gate = slow.future;
-    await tapUi11(tester, harness, find.text('Nouvelle cinématique'));
+    await tapUi11(tester, harness, find.text('Nouvelle présentation').first);
     await tester.enterText(find.byType(TextField).last, 'Montage lent');
     await tapUi11(tester, harness, find.text('Créer'));
     await tester.tap(find.text('Composition vide'));
@@ -35,7 +35,7 @@ void main() {
     final pending = tester.widget<OutlinedButton>(
       find
           .ancestor(
-            of: find.text('Nouvelle cinématique'),
+            of: find.text('Nouvelle présentation'),
             matching: find.byType(OutlinedButton),
           )
           .first,

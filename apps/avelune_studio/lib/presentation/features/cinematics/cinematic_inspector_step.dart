@@ -63,7 +63,10 @@ extension CinematicInspectorStep on CinematicInspector {
         value: step.actorId,
         options: {
           for (final actor in asset.requiredActors)
-            actor.actorId: '${actor.label} · ${actor.actorId}',
+            actor.actorId: cinematicActorChoiceLabel(
+              actor.label,
+              actor.actorId,
+            ),
         },
         onChanged: (id) => _edit(
           asset,

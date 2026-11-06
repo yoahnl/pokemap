@@ -190,11 +190,11 @@ class _ProjectSettingsPageState extends State<ProjectSettingsPage> {
           icon: Icons.tune,
           children: [
             const Text(
-              'Réglez le rendu en direct, jouez dans la scène choisie, puis enregistrez ce que vous souhaitez garder.',
+              'Réglez le rendu en direct, jouez dans la carte choisie, puis enregistrez ce que vous souhaitez garder.',
             ),
             const SizedBox(height: 12),
             StudioSelect(
-              label: 'Scène à tester',
+              label: 'Carte à tester',
               value: selected?.id,
               options: {
                 for (final entry
@@ -249,7 +249,7 @@ class _ProjectSettingsPageState extends State<ProjectSettingsPage> {
                 StudioButton(
                   key: const ValueKey('test-project-visuals'),
                   label: test == null
-                      ? 'Jouer dans cette scène'
+                      ? 'Jouer dans cette carte'
                       : 'Arrêter le test',
                   icon: test == null ? Icons.play_arrow : Icons.stop,
                   secondary: true,
