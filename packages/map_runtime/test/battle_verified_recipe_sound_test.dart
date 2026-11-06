@@ -7,6 +7,7 @@ import 'dart:ui' as ui;
 import 'package:crypto/crypto.dart';
 import 'package:flame/components.dart';
 import 'package:flame_audio/flame_audio.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_battle/map_battle.dart';
 import 'package:map_authoring/src/domains/gameplay/pokemon_external/gen5_batch_recipe_converter.dart';
@@ -19,11 +20,13 @@ import 'package:map_runtime/src/presentation/flame/battle_animation_plan.dart';
 import 'package:map_runtime/src/presentation/flame/battle_animation_runner.dart';
 import 'package:map_runtime/src/presentation/flame/battle_fx_bundle_cache.dart';
 import 'package:map_runtime/src/presentation/flame/battle_move_audio_scope.dart';
+import 'package:map_runtime/src/presentation/flame/battle_move_recipe_compiler.dart';
 import 'package:map_runtime/src/presentation/flame/battle_move_visual_resolver.dart';
 import 'package:map_runtime/src/presentation/flame/battle_turn_animation_planner.dart';
 import 'package:map_runtime/src/application/runtime_move_catalog_loader.dart';
 import 'package:map_runtime/src/presentation/flame/battle_recipe_audio_program.dart';
 import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
+import 'package:map_runtime/src/presentation/flame/battle_pokemon_sprite_resolver.dart';
 import 'package:map_runtime/src/presentation/flame/battle_offline_move_recipe_loader.dart';
 import 'package:map_runtime/src/presentation/flame/battle_offline_grouped_turn.dart';
 import 'package:map_runtime/src/presentation/flame/battle_spl_static_component.dart';
@@ -2720,6 +2723,78 @@ void main() {
   }
   }
 
+  test('audits exported HGSS source animations in a tracked turn', () async {
+    final project = Directory(Platform.environment['AVELUNE_BW2_AUDIT_ROOT']!);
+    final reportFile = File(Platform.environment['AVELUNE_BW2_AUDIT_REPORT']!);
+    final orientation = Platform.environment['AVELUNE_BW2_AUDIT_ORIENTATION'] ??
+        'portrait';
+    final requested = (Platform.environment['AVELUNE_BW2_AUDIT_MOVES'] ?? '')
+        .split(',')
+        .where((id) => id.isNotEmpty)
+        .toSet();
+    final catalog = jsonDecode(
+      await File('${project.path}/data/pokemon/catalogs/moves.json')
+          .readAsString(),
+    ) as Map<String, dynamic>;
+    final all = (catalog['entries'] as List).cast<Map<String, dynamic>>();
+    final moves = all.where((move) =>
+        requested.isEmpty || requested.contains(move['id'])).toList();
+    expect(moves, isNotEmpty);
+    expect(moves.map((move) => move['id']).toSet(), hasLength(moves.length));
+    if (requested.isNotEmpty) {
+      expect(moves.map((move) => move['id']).toSet(), requested);
+    }
+    final viewport = orientation == 'landscape'
+        ? Vector2(844, 390)
+        : Vector2(390, 844);
+    final counts = <String, int>{};
+    final anomalies = <Map<String, Object?>>[];
+    Future<void> writeReport({Map<String, Object?>? switchSample}) =>
+        reportFile.writeAsString(jsonEncode({
+          'schemaVersion': 1,
+          'orientation': orientation,
+          'total': moves.length,
+          'processed': counts.values.fold<int>(0, (sum, count) => sum + count),
+          'counts': counts,
+          'anomalies': anomalies,
+          'scope': 'exported recipes, synthetic single battle, software rendering',
+          'audio': 'simulated',
+          'visualFidelityChecked': false,
+          'switchSample': switchSample,
+        }));
+    for (final move in moves) {
+      final id = move['id'] as String;
+      final result = await _auditExportedMove(
+        project: project,
+        moveId: id,
+        viewport: viewport,
+        captureDirectory: Platform.environment['AVELUNE_BW2_AUDIT_CAPTURES'],
+        orientation: orientation,
+      );
+      final status = result['status']! as String;
+      counts.update(status, (count) => count + 1, ifAbsent: () => 1);
+      if (status != 'played') {
+        anomalies.add({'id': id, 'name': move['name'], ...result});
+      }
+      await writeReport();
+    }
+    final captureDirectory = Platform.environment['AVELUNE_BW2_AUDIT_CAPTURES'];
+    if (captureDirectory != null) {
+      await writeReport(switchSample: await _auditExportedSwitch(
+        project: project,
+        viewport: viewport,
+        orientation: orientation,
+        captureDirectory: captureDirectory,
+      ));
+    }
+    expect(counts.values.fold<int>(0, (sum, count) => sum + count),
+        moves.length);
+  },
+      skip: Platform.environment['AVELUNE_BW2_AUDIT_ROOT'] == null
+          ? 'Run through tool/audit_hgss_battle_animations.py'
+          : false,
+      timeout: const Timeout(Duration(minutes: 20)));
+
   test('removing the scene releases an unstarted grouped SPL effect', () async {
     final root = await Directory.systemTemp.createTemp('grouped-spl-cancel-');
     addTearDown(() => root.delete(recursive: true));
@@ -4479,7 +4554,13 @@ void main() {
   BattleSession after,
   List<BattleTurnExecutionEvent> events,
 })
-_realTurn({bool enemyAttacks = false, int enemyHp = 80, String moveId = 'tackle'}) {
+_realTurn({
+  bool enemyAttacks = false,
+  int enemyHp = 80,
+  String moveId = 'tackle',
+  String playerSpeciesId = 'one',
+  String enemySpeciesId = 'two',
+}) {
   const stats = BattleStatsSnapshot(
     attack: 20,
     defense: 20,
@@ -4504,7 +4585,7 @@ _realTurn({bool enemyAttacks = false, int enemyHp = 80, String moveId = 'tackle'
   final before = createBattleSession(
     BattleSetup.pokeMapBetaV1ForTest(
       playerPokemon: BattleCombatantData(
-        speciesId: 'one',
+        speciesId: playerSpeciesId,
         level: 7,
         maxHp: 80,
         currentHp: 80,
@@ -4512,7 +4593,7 @@ _realTurn({bool enemyAttacks = false, int enemyHp = 80, String moveId = 'tackle'
         moves: [attack],
       ),
       enemyPokemon: BattleCombatantData(
-        speciesId: 'two',
+        speciesId: enemySpeciesId,
         level: 7,
         maxHp: 80,
         currentHp: enemyHp,
@@ -4650,5 +4731,297 @@ final class _Voice implements AudioPlayer {
       return complete.close().then((_) => disposed.complete());
     }
     return Future<void>.value();
+  }
+}
+
+Future<Map<String, Object?>> _auditExportedMove({
+  required Directory project,
+  required String moveId,
+  required Vector2 viewport,
+  required String orientation,
+  String? captureDirectory,
+}) async {
+  final budget = RuntimeResourceBudget();
+  final voice = _Voice();
+  final player = FlameAudioBattleSfxPlayer(playerFactory: () => voice);
+  BattleOverlayComponent? overlay;
+  var current = true;
+  var tick = 0;
+  var started = 0;
+  var completed = 0;
+  var failed = 0;
+  var sawParticles = false;
+  int? startedAt;
+  final diagnostics = <String>[];
+  final previousDebugPrint = debugPrint;
+  debugPrint = (message, {wrapWidth}) {
+    if (message != null &&
+        message.startsWith('[battle] source program unavailable:')) {
+      diagnostics.add(message.replaceAll(project.path, '<audit>'));
+    }
+  };
+  try {
+    final visualSample = captureDirectory != null;
+    final turn = _realTurn(
+      moveId: moveId,
+      playerSpeciesId: visualSample ? 'totodile' : 'one',
+      enemySpeciesId: visualSample ? 'pidgey' : 'two',
+    );
+    late final BattleOverlayComponent scene;
+    scene = BattleOverlayComponent(
+      session: turn.before,
+      viewportSize: viewport,
+      resourceBudget: budget,
+      onPlayerChoice: (_) {},
+      spriteResolver: visualSample
+          ? BattlePokemonSpriteResolver(
+              manifest: const ProjectManifest(
+                name: 'HGSS visual sample',
+                maps: [],
+                tilesets: [],
+              ),
+              projectRootDirectory: project.path,
+            )
+          : null,
+      onStartRecoverableTrackedEffect: (step, done, fail) {
+        started++;
+        startedAt = tick;
+        return scene.startGroupedSplEffect(step, () {
+          completed++;
+          done();
+        }, () {
+          failed++;
+          fail();
+        });
+      },
+    );
+    overlay = scene;
+    await loadFlameComponent(scene);
+    await scene.waitForPendingVisualSync();
+    if (visualSample &&
+        (!(scene.debugPlayerCombatant?.hasResolvedExplicitSprite ?? false) ||
+            !(scene.debugEnemyCombatant?.hasResolvedExplicitSprite ?? false))) {
+      return {'status': 'error', 'reason': 'visualSampleSpritesUnavailable'};
+    }
+    final loader = BattleOfflineMoveRecipeLoader(
+      projectRootDirectory: project.path,
+      resourceBudget: budget,
+    );
+    final loaded = await loader.load(moveId, isCurrent: () => current)
+        .timeout(const Duration(seconds: 20));
+    if (loaded.fallbackReason !=
+        BattleRecipeFallbackReason.unavailableCapabilities) {
+      return {
+        'status': 'fallback',
+        'reason': loaded.fallbackReason?.name ?? 'noSourceProgram',
+      };
+    }
+    final requests = await prepareOfflineGroupedSplTurn(
+      session: turn.after,
+      loader: loader,
+      results: {moveId: loaded},
+      overlay: scene,
+      player: player,
+      isCurrent: () => current,
+    ).timeout(const Duration(seconds: 20));
+    if (requests.isEmpty) {
+      final events = turn.events.where((event) =>
+          event.execution.attackerSide == BattleSideId.player &&
+          event.execution.move.id == moveId);
+      final hasTarget = events.any((event) => event.execution.targetSlot != null);
+      String? audioStatus;
+      if (hasTarget && diagnostics.isEmpty) {
+        final inspected = await loader.load(moveId, retainVerifiedMedia: true);
+        final media = inspected.verifiedMedia;
+        try {
+          if (media != null) {
+            audioStatus = const BattleMoveRecipeCompiler()
+                .compileAudioSelection(media.bundle.recipe)
+                .status
+                .name;
+          }
+        } finally {
+          media?.release();
+        }
+      }
+      return {
+        'status': hasTarget ? 'fallback' : 'untested',
+        'reason': hasTarget
+            ? audioStatus == 'silent'
+                ? 'silentAudioSelectionRejected'
+                : diagnostics.any((message) =>
+                    message.contains('Unsupported source emitter motion'))
+                ? 'unsupportedSourceEmitterMotion'
+                : 'sourcePreparationRejected'
+            : 'syntheticTurnHasNoTarget',
+        'unavailableCapabilities': loaded.unavailableCapabilities.toList()..sort(),
+        if (diagnostics.isNotEmpty) 'diagnostics': diagnostics,
+      };
+    }
+    final prepared = await scene.prepareTurnAudioAndUpdateState(
+      turn.after,
+      audioRequests: requests,
+    ).timeout(const Duration(seconds: 20));
+    if (!prepared) {
+      return {'status': 'fallback', 'reason': 'turnPreparationRejected'};
+    }
+    await scene.waitForPendingVisualSync();
+    var audioCompleted = false;
+    for (tick = 0; tick < 1800 && scene.isTurnPresentationActive; tick++) {
+      scene.updateTree(1 / 60);
+      scene.findGame()!.processLifecycleEvents();
+      await Future<void>.delayed(Duration.zero);
+      sawParticles |= scene.children
+          .whereType<BattleSplStaticComponent>()
+          .any((effect) => effect.playback.activeParticles > 0);
+      if (!audioCompleted && voice.resumes > 0 && voice.disposals == 0) {
+        audioCompleted = true;
+        voice.complete.add(null);
+      }
+      final elapsed = startedAt == null ? -1 : tick - startedAt!;
+      if (captureDirectory != null && const {5, 25, 60}.contains(elapsed)) {
+        await _captureAuditScene(scene, viewport,
+            '$captureDirectory/$moveId-$orientation-$elapsed.png');
+      }
+    }
+    await Future<void>.delayed(Duration.zero);
+    if (scene.isTurnPresentationActive) {
+      return {'status': 'timeout', 'reason': '1800 simulated frames'};
+    }
+    if (failed > 0) {
+      return {
+        'status': 'fallback',
+        'reason': 'sourcePlaybackFailed',
+        if (diagnostics.isNotEmpty) 'diagnostics': diagnostics,
+      };
+    }
+    if (started != 1 || completed != 1) {
+      return {
+        'status': 'fallback',
+        'reason': 'sourcePlaybackNotCompleted',
+        'started': started,
+        'completed': completed,
+      };
+    }
+    return {'status': 'played', 'particlesObserved': sawParticles};
+  } on Object catch (error, stack) {
+    return {
+      'status': 'error',
+      'reason': error.toString().replaceAll(project.path, '<audit>'),
+      'stack': stack.toString().replaceAll(project.path, '<audit>')
+          .split('\n').take(8).toList(),
+      if (diagnostics.isNotEmpty) 'diagnostics': diagnostics,
+    };
+  } finally {
+    current = false;
+    overlay?.onRemove();
+    await player.dispose();
+    budget.dispose();
+    debugPrint = previousDebugPrint;
+  }
+}
+
+Future<void> _captureAuditScene(
+  BattleOverlayComponent scene,
+  Vector2 viewport,
+  String path,
+) async {
+  final recorder = ui.PictureRecorder();
+  scene.renderTree(ui.Canvas(recorder));
+  final picture = recorder.endRecording();
+  final image = await picture.toImage(viewport.x.toInt(), viewport.y.toInt());
+  try {
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+    await File(path).writeAsBytes(bytes!.buffer.asUint8List());
+  } finally {
+    image.dispose();
+    picture.dispose();
+  }
+}
+
+Future<Map<String, Object?>> _auditExportedSwitch({
+  required Directory project,
+  required Vector2 viewport,
+  required String orientation,
+  required String captureDirectory,
+}) async {
+  const stats = BattleStatsSnapshot(
+    attack: 20,
+    defense: 20,
+    specialAttack: 20,
+    specialDefense: 20,
+    speed: 20,
+  );
+  const wait = BattleMoveData(
+    id: 'wait',
+    name: 'Wait',
+    power: 0,
+    category: BattleMoveCategory.status,
+    target: BattleMoveTarget.self,
+    accuracy: BattleMoveAccuracy.alwaysHits(),
+  );
+  BattleCombatantData pokemon(String id, int index) => BattleCombatantData(
+    speciesId: id,
+    lineupIndex: index,
+    level: 7,
+    maxHp: 80,
+    currentHp: 80,
+    stats: stats,
+    moves: const [wait],
+  );
+  final initial = createBattleSession(BattleSetup.pokeMapBetaV1ForTest(
+    playerPokemon: pokemon('totodile', 0),
+    playerReservePokemon: [pokemon('chikorita', 1)],
+    enemyPokemon: pokemon('pidgey', 0),
+    isTrainerBattle: false,
+    trainerId: null,
+  ));
+  final scene = BattleOverlayComponent(
+    session: initial,
+    viewportSize: viewport,
+    onPlayerChoice: (_) {},
+    spriteResolver: BattlePokemonSpriteResolver(
+      manifest: const ProjectManifest(name: 'HGSS visual sample', maps: [], tilesets: []),
+      projectRootDirectory: project.path,
+    ),
+  );
+  try {
+    await loadFlameComponent(scene);
+    await scene.waitForPendingVisualSync();
+    final before = scene.debugPlayerCombatant;
+    if (before?.currentSpriteSourcePath?.endsWith('/totodile/back.png') != true) {
+      return {'status': 'error', 'reason': 'initialSpriteUnavailable'};
+    }
+    final initialFoot = before!.currentFootAnchor;
+    await _captureAuditScene(scene, viewport, '$captureDirectory/switch-$orientation-before.png');
+    final switched = initial.applyChoice(const PlayerBattleChoiceSwitch(0));
+    scene.updateState(switched);
+    await scene.waitForPendingVisualSync();
+    var ticks = 0;
+    while (ticks < 1800 && scene.isTurnPresentationActive) {
+      scene.updateTree(1 / 60);
+      scene.findGame()!.processLifecycleEvents();
+      await Future<void>.delayed(Duration.zero);
+      ticks++;
+    }
+    await scene.waitForPendingVisualSync();
+    await _captureAuditScene(scene, viewport, '$captureDirectory/switch-$orientation-after.png');
+    final after = scene.debugPlayerCombatant;
+    final changed = after?.currentSpriteSourcePath?.endsWith('/chikorita/back.png') == true;
+    final foot = after?.currentFootAnchor;
+    return {
+      'status': scene.isTurnPresentationActive
+          ? 'timeout'
+          : changed ? 'completed' : 'error',
+      'incomingSpriteLoaded': changed,
+      if (foot != null) 'footDisplacement': {
+        'x': foot.dx - initialFoot.dx,
+        'y': foot.dy - initialFoot.dy,
+      },
+    };
+  } on Object catch (error) {
+    return {'status': 'error', 'reason': error.toString().replaceAll(project.path, '<audit>')};
+  } finally {
+    scene.onRemove();
   }
 }
