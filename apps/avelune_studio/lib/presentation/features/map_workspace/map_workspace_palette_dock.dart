@@ -8,6 +8,7 @@ import '../resources/resource_family_tree.dart';
 import '../resources/resource_filter_button.dart';
 import '../resources/resource_preview.dart';
 import '../../../features/map_workspace/application/editable_map_document.dart';
+import 'map_palette_intent.dart';
 import 'map_workspace_view_state.dart';
 import 'map_workspace_visuals.dart';
 import 'map_workspace_panels.dart';
@@ -27,6 +28,7 @@ class MapWorkspacePaletteDock extends StatefulWidget {
     required this.onOpenFullPalette,
     this.maxHeight = 330,
     this.compact = false,
+    this.connectionsAvailable = true,
     this.onPickResource,
   });
 
@@ -40,6 +42,7 @@ class MapWorkspacePaletteDock extends StatefulWidget {
   final VoidCallback onOpenFullPalette;
   final double maxHeight;
   final bool compact;
+  final bool connectionsAvailable;
   final ValueChanged<ResourceItem>? onPickResource;
 
   @override
@@ -80,6 +83,17 @@ class _MapWorkspacePaletteDockState extends State<MapWorkspacePaletteDock> {
     final visible = widget.view.paletteResources(widget.project, map.id);
     final preferredHeight = _height ?? (widget.compact ? 184.0 : 270.0);
     final detailed = !{'Décors', 'Terrains'}.contains(kind);
+    final intent = mapPaletteIntent(
+      widget.view,
+      spatial: map.spatialScene != null,
+      connectionsAvailable: widget.connectionsAvailable,
+    );
+    final paletteUnused =
+        !intent.usesPalette &&
+        widget.view.tool != StudioMapTool.select &&
+        widget.view.tool != StudioMapTool.pan &&
+        widget.view.paletteRevealedFor != widget.view.tool;
+    final showPalette = !_collapsed && !paletteUnused;
     return Container(
       height: _collapsed
           ? 72
@@ -100,6 +114,7 @@ class _MapWorkspacePaletteDockState extends State<MapWorkspacePaletteDock> {
             spatial: map.spatialScene != null,
             collapsed: _collapsed,
             onKindChanged: (value) {
+              widget.view.paletteRevealedFor = widget.view.tool;
               widget.view.paletteTab = value;
               widget.view.paletteTiles = value == 'Tuiles';
               setState(() => _collapsed = false);
@@ -114,7 +129,46 @@ class _MapWorkspacePaletteDockState extends State<MapWorkspacePaletteDock> {
             onOpenFullPalette: widget.onResources,
           ),
           if (!_collapsed) const SizedBox(height: 6),
-          if (!_collapsed && kind != 'Passages')
+          if (!_collapsed && paletteUnused)
+            Expanded(
+              child: SingleChildScrollView(
+                key: const ValueKey('map-palette-not-used'),
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.info_outline, size: 16),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            '${intent.action} n’utilise pas de ressource',
+                            style: Theme.of(context).textTheme.titleSmall,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      intent.next,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 8),
+                    StudioButton(
+                      key: const ValueKey('map-palette-reveal'),
+                      label: 'Afficher la palette $kind',
+                      secondary: true,
+                      onPressed: () {
+                        widget.view.paletteRevealedFor = widget.view.tool;
+                        setState(() {});
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          if (showPalette && kind != 'Passages')
             MapWorkspacePaletteDockFilters(
               tree: tree,
               filters: widget.view.resourceFilters,
@@ -135,7 +189,7 @@ class _MapWorkspacePaletteDockState extends State<MapWorkspacePaletteDock> {
                 widget.onChanged();
               },
             ),
-          if (!_collapsed && kind != 'Passages')
+          if (showPalette && kind != 'Passages')
             ResourceFilterTags(
               filters: widget.view.resourceFilters,
               activeMapName: map.name,
@@ -151,7 +205,7 @@ class _MapWorkspacePaletteDockState extends State<MapWorkspacePaletteDock> {
                 widget.onChanged();
               },
             ),
-          if (!_collapsed && detailed && kind != 'Tuiles')
+          if (showPalette && detailed && kind != 'Tuiles')
             Expanded(
               child: Column(
                 children: [
@@ -174,7 +228,7 @@ class _MapWorkspacePaletteDockState extends State<MapWorkspacePaletteDock> {
                   if (kind == 'Passages' && widget.view.warpDestination == null)
                     Text(
                       widget.view.tool == StudioMapTool.connection
-                          ? 'Choisissez le bord et la carte voisine dans le panneau de droite.'
+                          ? intent.next
                           : widget.view.warpPlacementMode ==
                                 MapWarpTriggerMode.sceneOnly
                           ? 'Cliquez sur la carte pour poser le point d’arrivée.'
@@ -183,7 +237,7 @@ class _MapWorkspacePaletteDockState extends State<MapWorkspacePaletteDock> {
                 ],
               ),
             )
-          else if (!_collapsed && kind == 'Tuiles')
+          else if (showPalette && kind == 'Tuiles')
             Expanded(
               child: Center(
                 child: StudioButton(
@@ -192,7 +246,7 @@ class _MapWorkspacePaletteDockState extends State<MapWorkspacePaletteDock> {
                 ),
               ),
             )
-          else if (!_collapsed)
+          else if (showPalette)
             Expanded(
               child: Column(
                 children: [

@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_tool_strip.dart';
+import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_tool_strip_selection.dart';
 import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
 
 Future<void> chooseMapExtraTool(WidgetTester tester, String label) async {
@@ -12,7 +13,10 @@ Future<void> chooseMapExtraTool(WidgetTester tester, String label) async {
     await tester.ensureVisible(family.first);
     await tester.tap(family.first);
   } else {
-    await tester.tap(find.byTooltip('Autres outils de carte'));
+    final populate = mapPopulateTools.any((tool) => tool.$1 == label);
+    await tester.tap(
+      find.byTooltip(populate ? 'Peupler la carte' : 'Autres outils de carte'),
+    );
     await tester.pumpAndSettle();
     final item = find.widgetWithText(PopupMenuItem<String>, label);
     await tester.ensureVisible(item);

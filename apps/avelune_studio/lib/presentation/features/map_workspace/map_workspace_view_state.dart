@@ -57,7 +57,13 @@ class MapWorkspaceViewState {
   final spatialAnimations = SpatialAnimationPreviewController();
   final transform = TransformationController();
   double get scale => transform.value.entry(0, 0).abs();
-  StudioMapTool tool = StudioMapTool.select;
+  StudioMapTool _tool = StudioMapTool.select;
+  StudioMapTool get tool => _tool;
+  set tool(StudioMapTool value) {
+    if (value != _tool) paletteRevealedFor = null;
+    _tool = value;
+  }
+
   bool spatialFreeView = false;
   SpatialTerrainMode spatialTerrainMode = SpatialTerrainMode.ground;
   int spatialTerrainLevel = 1;
@@ -220,6 +226,7 @@ class MapWorkspaceViewState {
   bool revealPalette = false;
   bool revealInspector = false;
   String paletteTab = 'Décors';
+  StudioMapTool? paletteRevealedFor;
   final resourceFilters = ResourceCatalogFilterState();
   String? _resourceMapId;
   final paletteScrollOffsets = <String, double>{};

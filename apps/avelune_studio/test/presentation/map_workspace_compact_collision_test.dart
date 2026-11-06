@@ -63,7 +63,7 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    await choose('Peindre les collisions');
+    await choose('Collisions');
     expect(
       tester
           .widget<MapWorkspaceCanvas>(find.byType(MapWorkspaceCanvas))
@@ -80,7 +80,7 @@ void main() {
     expect(document.current.layers.first, ground);
     expect(document.dirty, isTrue);
 
-    await choose('Effacer les collisions');
+    await choose('Libérer les cases');
     expect(
       tester
           .widget<MapWorkspaceCanvas>(find.byType(MapWorkspaceCanvas))

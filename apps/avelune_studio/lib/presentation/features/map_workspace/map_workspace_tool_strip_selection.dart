@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'map_palette_intent.dart';
 import 'map_workspace_view_state.dart';
 
 const exteriorDecorationPaletteTabs = {
@@ -26,15 +27,29 @@ bool isExteriorDecorationTool(StudioMapTool tool) => switch (tool) {
   StudioMapTool.paint => ('Peindre', Icons.brush_outlined),
   StudioMapTool.erase => ('Gomme de tuiles', Icons.auto_fix_normal),
   StudioMapTool.eraseDecor => ('Gomme de décors', Icons.delete_outline),
-  StudioMapTool.character => ('Placer un personnage', Icons.person_add_alt),
-  StudioMapTool.spawn => ('Placer le départ du joueur', Icons.flag_outlined),
-  StudioMapTool.sign => ('Placer un panneau', Icons.signpost_outlined),
-  StudioMapTool.fieldObstacle => (
-    'Obstacle de terrain',
-    Icons.landscape_outlined,
-  ),
   _ => null,
 };
+
+const mapPopulateTools = [
+  ('Placer un personnage', Icons.person_add_alt),
+  ('Placer le départ du joueur', Icons.flag_outlined),
+  ('Placer un panneau', Icons.signpost_outlined),
+  ('Placer un arbre à couper', Icons.park_outlined),
+  ('Placer un rocher à pousser', Icons.landscape_outlined),
+  ('Placer un rocher à briser', Icons.landscape_outlined),
+];
+
+(String, IconData)? mapPopulateToolSelection(StudioMapTool tool) =>
+    switch (tool) {
+      StudioMapTool.character => ('Personnage', Icons.person_add_alt),
+      StudioMapTool.spawn => ('Départ du joueur', Icons.flag_outlined),
+      StudioMapTool.sign => ('Panneau', Icons.signpost_outlined),
+      StudioMapTool.fieldObstacle => (
+        'Obstacle de terrain',
+        Icons.landscape_outlined,
+      ),
+      _ => null,
+    };
 
 String mapToolHelp(StudioMapTool tool) => switch (tool) {
   StudioMapTool.select =>
@@ -49,8 +64,7 @@ String mapToolHelp(StudioMapTool tool) => switch (tool) {
     'Choisissez un personnage, puis cliquez sur sa case de départ.',
   StudioMapTool.warp =>
     'Choisissez la carte de destination, puis cliquez sur la case du passage.',
-  StudioMapTool.connection =>
-    'Choisissez un bord, sa carte voisine et le décalage pour les relier.',
+  StudioMapTool.connection => mapConnectionsUnavailable,
   StudioMapTool.spawn =>
     'Cliquez la case où le joueur apparaît au début du jeu.',
   StudioMapTool.sign => 'Cliquez la case du panneau, puis écrivez son texte.',

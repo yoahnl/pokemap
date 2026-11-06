@@ -333,6 +333,8 @@ class MapWorkspaceLayout extends StatelessWidget {
                         )
                       : MapWorkspaceEditorPane(
                           onPickResource: onPickResource,
+                          connectionsAvailable:
+                              onLinkMaps != null && onUnlinkMaps != null,
                           controller: controller,
                           document: doc,
                           project: project,

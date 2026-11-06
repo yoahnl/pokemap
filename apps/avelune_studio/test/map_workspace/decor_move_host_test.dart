@@ -247,7 +247,7 @@ void main() {
       await f.choose('Déplacer');
       expect(hint, findsOneWidget);
 
-      await chooseMapExtraTool(tester, 'Dessiner une zone de jeu');
+      await chooseMapExtraTool(tester, 'Zones');
       await pumpFrames(tester);
       expect(hint, findsNothing, reason: 'the instruction no longer applies');
       await tester.tap(find.byKey(const ValueKey('Sélectionner')));

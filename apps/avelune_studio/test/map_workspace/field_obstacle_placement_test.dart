@@ -153,7 +153,7 @@ void main() {
           ),
         ),
       );
-      await tester.tap(find.byTooltip('Autres outils de carte'));
+      await tester.tap(find.byTooltip('Peupler la carte'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Placer un rocher à pousser'));
       await tester.pumpAndSettle();

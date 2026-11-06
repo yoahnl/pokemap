@@ -16,6 +16,8 @@ import '../resources/resource_catalog.dart';
 import 'map_workspace_compact_navigator.dart';
 import 'map_workspace_canvas.dart';
 import 'map_workspace_palette_dock.dart';
+import 'map_intent_status_chip.dart';
+import 'map_palette_intent.dart';
 import 'map_workspace_tool_strip.dart';
 import 'map_workspace_view_state.dart';
 import 'map_workspace_visuals.dart';
@@ -55,6 +57,7 @@ class MapWorkspaceEditorPane extends StatefulWidget {
     this.onBorders,
     required this.onZoneDrawn,
     required this.onContextMenu,
+    this.connectionsAvailable = true,
   });
 
   final MapWorkspaceController controller;
@@ -73,6 +76,7 @@ class MapWorkspaceEditorPane extends StatefulWidget {
   final VoidCallback? onEnvironments, onBorders;
   final ValueChanged<MapRect>? onZoneDrawn;
   final void Function(GridPos, Offset)? onContextMenu;
+  final bool connectionsAvailable;
 
   @override
   State<MapWorkspaceEditorPane> createState() => _MapWorkspaceEditorPaneState();
@@ -118,6 +122,32 @@ class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
       widget.document.exteriorDecoration!.editingDocument != null;
   Widget _nativePanel(Widget child) =>
       IgnorePointer(ignoring: !_nativeReady, child: child);
+  Widget _canvas() => widget.document.current.spatialScene != null
+      ? SpatialMapEditor(
+          key: ValueKey(widget.document.base.mapId),
+          document: widget.document,
+          neighbors: _neighbors,
+          exteriorContextReady: !_neighborLoading && _neighborFailure == null,
+          neighborDecorations: _neighborDecorations,
+          controller: widget.controller,
+          project: widget.project,
+          visuals: widget.visuals,
+          view: widget.view,
+          onChanged: widget.onChanged,
+          onContextMenu: widget.onContextMenu,
+        )
+      : MapWorkspaceCanvas(
+          key: ValueKey(widget.document.base.mapId),
+          document: widget.document,
+          project: widget.project,
+          visuals: widget.visuals,
+          view: widget.view,
+          onChanged: widget.onChanged,
+          gestureGeneration: widget.generation,
+          onZoneDrawn: widget.onZoneDrawn,
+          onContextMenu: widget.onContextMenu,
+        );
+
   @override
   Widget build(BuildContext context) {
     final exterior = widget.document.exteriorDecoration;
@@ -253,34 +283,32 @@ class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
                                 'Les cartes voisines ne peuvent pas être affichées : $_neighborFailure',
                               ),
                             Expanded(
-                              child:
-                                  widget.document.current.spatialScene != null
-                                  ? SpatialMapEditor(
-                                      key: ValueKey(widget.document.base.mapId),
-                                      document: widget.document,
-                                      neighbors: _neighbors,
-                                      exteriorContextReady:
-                                          !_neighborLoading &&
-                                          _neighborFailure == null,
-                                      neighborDecorations: _neighborDecorations,
-                                      controller: widget.controller,
-                                      project: widget.project,
-                                      visuals: widget.visuals,
-                                      view: widget.view,
-                                      onChanged: widget.onChanged,
-                                      onContextMenu: widget.onContextMenu,
-                                    )
-                                  : MapWorkspaceCanvas(
-                                      key: ValueKey(widget.document.base.mapId),
-                                      document: widget.document,
-                                      project: widget.project,
-                                      visuals: widget.visuals,
-                                      view: widget.view,
-                                      onChanged: widget.onChanged,
-                                      gestureGeneration: widget.generation,
-                                      onZoneDrawn: widget.onZoneDrawn,
-                                      onContextMenu: widget.onContextMenu,
+                              child: Stack(
+                                children: [
+                                  Positioned.fill(child: _canvas()),
+                                  Positioned(
+                                    left: 8,
+                                    top: 8,
+                                    right: 8,
+                                    child: Align(
+                                      alignment: Alignment.topLeft,
+                                      child: MapIntentStatusChip(
+                                        intent: mapPaletteIntent(
+                                          widget.view,
+                                          spatial:
+                                              widget
+                                                  .document
+                                                  .current
+                                                  .spatialScene !=
+                                              null,
+                                          connectionsAvailable:
+                                              widget.connectionsAvailable,
+                                        ),
+                                      ),
                                     ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
                         ),
@@ -291,6 +319,7 @@ class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
                 if (widget.showPaletteDock)
                   MapWorkspacePaletteDock(
                     onPickResource: widget.onPickResource,
+                    connectionsAvailable: widget.connectionsAvailable,
                     project: widget.project,
                     document: widget.document,
                     visuals: widget.visuals,

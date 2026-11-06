@@ -38,7 +38,9 @@ class MapWorkspaceToolStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final extra = mapExtraToolSelection(view.tool);
+    final selection = mapExtraToolSelection(view.tool);
+    final populating = mapPopulateToolSelection(view.tool);
+    final extra = populating == null ? selection : null;
     final active = view.tool.name.startsWith('encounter')
         ? 'Zones'
         : switch (view.tool) {
@@ -114,17 +116,6 @@ class MapWorkspaceToolStrip extends StatelessWidget {
           ('Peindre', Icons.brush_outlined),
           ('Gomme de tuiles', Icons.auto_fix_normal),
           ('Gomme de décors', Icons.delete_outline),
-          ('Peindre les collisions', Icons.block_outlined),
-          ('Effacer les collisions', Icons.cleaning_services_outlined),
-          ('Placer un personnage', Icons.person_add_alt),
-          ('Placer le départ du joueur', Icons.flag_outlined),
-          ('Placer un panneau', Icons.signpost_outlined),
-          ('Placer un arbre à couper', Icons.park_outlined),
-          ('Placer un rocher à pousser', Icons.landscape_outlined),
-          ('Placer un rocher à briser', Icons.landscape_outlined),
-          ('Passages', Icons.meeting_room_outlined),
-          ('Connexions', Icons.compare_arrows),
-          ('Dessiner une zone de jeu', Icons.grass_outlined),
           ('Palette complète', Icons.open_in_full),
           ('Gérer les ressources', Icons.grid_view_outlined),
         ])
@@ -205,6 +196,65 @@ class MapWorkspaceToolStrip extends StatelessWidget {
         ),
       ),
     );
+    final narrowPopulate = largeText || MediaQuery.sizeOf(context).width < 1280;
+    final populate = PopupMenuButton<String>(
+      tooltip: 'Peupler la carte',
+      constraints: const BoxConstraints(minWidth: 280, maxWidth: 460),
+      onSelected: _selectExtra,
+      itemBuilder: (context) => [
+        for (final (label, icon) in mapPopulateTools)
+          PopupMenuItem(
+            value: label,
+            enabled: supported(label),
+            child: Row(
+              children: [
+                Icon(icon, size: 18),
+                const SizedBox(width: 10),
+                Flexible(
+                  child: Text(
+                    supported(label)
+                        ? label
+                        : '$label · indisponible sur les cartes 3D',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+      child: Container(
+        key: populating == null ? null : const ValueKey('active-populate-tool'),
+        constraints: const BoxConstraints(minHeight: 36),
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        decoration: BoxDecoration(
+          color: populating == null
+              ? null
+              : Theme.of(context).colorScheme.primaryContainer,
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(populating?.$2 ?? Icons.person_add_alt, size: 18),
+            if (populating != null || !narrowPopulate) ...[
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  populating?.$1 ?? 'Peupler',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+            const Icon(Icons.arrow_drop_down, size: 18),
+          ],
+        ),
+      ),
+    );
     final history = [
       StudioTool(label: 'Annuler', icon: Icons.undo, onPressed: onUndo),
       StudioTool(label: 'Rétablir', icon: Icons.redo, onPressed: onRedo),
@@ -236,6 +286,7 @@ class MapWorkspaceToolStrip extends StatelessWidget {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          if (!exterior) Flexible(child: populate),
                           Flexible(child: moreTools),
                           for (final tool in history) ...[
                             const SizedBox(width: 6),
@@ -269,6 +320,7 @@ class MapWorkspaceToolStrip extends StatelessWidget {
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 for (final (label, icon) in families) familyButton(label, icon),
+                if (!exterior) populate,
                 moreTools,
                 ...history,
               ],

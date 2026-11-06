@@ -196,6 +196,12 @@ void main() {
           .single;
       expect(collision.collisions.where((value) => value), isNotEmpty);
       expect(canvas.document.canUndo, isTrue);
+      expect(
+        find.byKey(const ValueKey('map-palette-not-used')),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const ValueKey('map-palette-reveal')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('Rechercher une ressource'));
       await tester.pumpAndSettle();
       final search = find.descendant(

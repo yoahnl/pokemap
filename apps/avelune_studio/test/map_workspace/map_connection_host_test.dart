@@ -44,7 +44,7 @@ void main() {
     expect(controller.active!.current.connections.single.targetMapId, 'b');
     expect(maps.saved['b']!.connections.single.targetMapId, 'a');
     expect(controller.active!.dirty, isFalse);
-    await chooseMapExtraTool(tester, 'Peindre les collisions');
+    await chooseMapExtraTool(tester, 'Collisions');
     expect(find.text('Liaisons entre cartes'), findsNothing);
     await chooseMapExtraTool(tester, 'Passages');
     await tester.tap(find.byKey(const ValueKey('connection-remove')));
