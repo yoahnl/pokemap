@@ -2303,6 +2303,7 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
         overlay: this,
         budget: _resourceBudget,
         attackerSide: event.execution.attackerSide,
+        verifiedMedia: media,
         isCurrent: () => !abandoned && !_ballImagesDisposed,
       );
       unawaited(pending.then<void>((value) {
@@ -7058,7 +7059,10 @@ final class _PreparedSourceProgram {
         detachParticles: particles.dispose,
         allowSilentAudio: true,
         sourceBackgrounds: particles.backgrounds,
+        sourceBackgroundAnimations: particles.backgroundAnimations,
         allowUnmappedAudioControls: true,
+        allowOrthographicEmitters: true,
+        allowFieldEmitters: true,
         allowSourceVisibility: true,
         allowSourceGauge: true,
         allowApproximateFlatActors: true,
@@ -7077,7 +7081,8 @@ final class _PreparedSourceProgram {
         _onComplete?.call();
         _finishIfDone();
       }, onError: (Object _) => visualFailed()));
-    } on Object {
+    } on Object catch (error) {
+      debugPrint('[battle] source program start failed: $error');
       visualFailed();
     }
     return _cancelVisual;

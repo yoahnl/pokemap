@@ -57,15 +57,16 @@ Map<String, dynamic> _program(List<Map<String, dynamic>> instructions) => {
 Future<Gen5BatchRecipe> _sourceRecipe(
   String file, String moveId, int particle, List<int> indices, {
   bool unsupportedMotion = false,
+  bool movingOrtho = false,
 }
 ) async {
   final root = Directory('../../tools/avelune_attack_comparator/assets/bw2');
   final program = jsonDecode(await File('${root.path}/$file.json').readAsString())
       as Map<String, dynamic>;
-  if (unsupportedMotion) {
+  if (unsupportedMotion || movingOrtho) {
     final instructions = (program['instructions'] as List).cast<Map>();
     instructions.firstWhere((value) => value['op'] == 'startMovingEmitter')['op'] =
-        'startMovingOrthoEmitter';
+        movingOrtho ? 'startMovingOrthoEmitter' : 'startOrbitEmitter';
   }
   final directory = Directory('${root.path}/particle$particle');
   final bytes = await File('${directory.path}/definition.json').readAsBytes();
@@ -84,6 +85,38 @@ Future<Gen5BatchRecipe> _sourceRecipe(
     particles: {particle: Gen5BatchParticle(
       definition: bytes, textures: textures, sourceEmitterIndices: indices,
     )},
+  );
+}
+
+Future<Gen5BatchRecipe> _workshopSourceRecipe(String name) async {
+  final path = '../../tools/avelune_attack_comparator/assets/bw2/batch/$name.json';
+  final batch = jsonDecode(await File(path).readAsString()) as Map<String, dynamic>;
+  return Gen5SourceRecipeConverter.convert(
+    moveId: name,
+    sourceProgram: (batch['program'] as Map).cast<String, dynamic>(),
+    particles: {
+      batch['particle'] as int: Gen5BatchParticle(
+        definition: Uint8List.fromList(utf8.encode(jsonEncode(batch['definition']))),
+        textures: {
+          for (final entry in (batch['textures'] as Map).entries)
+            entry.key as String: base64Decode(entry.value as String),
+        },
+        sourceEmitterIndices: (batch['sourceEmitterIndices'] as List).cast<int>(),
+      ),
+    },
+    backgrounds: {
+      for (final entry in (batch['backgrounds'] as Map? ?? const {}).entries)
+        int.parse(entry.key as String): base64Decode(entry.value as String),
+    },
+    backgroundAnimations: {
+      for (final entry in (batch['backgroundAnimations'] as Map? ?? const {}).entries)
+        int.parse(entry.key as String): (
+          background: (entry.value as Map)['background'] as int,
+          frames: [for (final value in (entry.value as Map)['frames'] as List)
+            base64Decode(value as String)],
+          durations: ((entry.value as Map)['durations'] as List).cast<int>(),
+        ),
+    },
   );
 }
 
@@ -2238,6 +2271,119 @@ void main() {
       if (scenario.moving) expect(positions.length, greaterThan(1));
       expect(overlay.isTurnPresentationActive, isFalse);
       expect(budget.residentBytes, 0);
+    });
+  }
+
+  for (final scenario in [
+    (name: 'solar-beam', op: 'startOrthoEmitter', viewport: Vector2(390, 844), side: BattleSideId.player),
+    (name: 'solar-beam', op: 'startOrthoEmitter', viewport: Vector2(844, 390), side: BattleSideId.enemy),
+    (name: 'aromatherapy', op: 'startFieldEmitter', viewport: Vector2(390, 844), side: BattleSideId.player),
+    (name: 'aromatherapy', op: 'startFieldEmitter', viewport: Vector2(844, 390), side: BattleSideId.enemy),
+  ]) {
+    test('prepares ${scenario.op} for ${scenario.side} at ${scenario.viewport}', () async {
+      final overlay = await _scene(viewport: scenario.viewport);
+      final recipe = await _workshopSourceRecipe(scenario.name);
+      final budget = RuntimeResourceBudget();
+      addTearDown(budget.dispose);
+      final particles = await BattleGen5SourceParticleSet.prepare(
+        bundle: recipe.bundle, overlay: overlay, budget: budget,
+        attackerSide: scenario.side,
+      );
+      addTearDown(particles.dispose);
+      final program = recipe.bundle.recipe.toJson()['program'] as Map;
+      final source = program['sourceProgram'] as Map;
+      final instructions = source['instructions'] as List;
+      final instruction = instructions.skip(source['entryIndex'] as int)
+          .firstWhere((value) => value['op'] == scenario.op) as Map;
+      particles.start((instruction['args'] as Map).cast<String, dynamic>());
+      final component = overlay.children.whereType<BattleSplStaticComponent>().last;
+      expect(component.position.x.isFinite, isTrue);
+      expect(component.position.y.isFinite, isTrue);
+      if (scenario.op == 'startOrthoEmitter') {
+        expect(component.projection, isNull);
+        expect(component.position.length, greaterThan(0));
+      } else {
+        expect(component.projection, isNotNull);
+      }
+    });
+  }
+
+  test('loads animated background frames within the battle resource budget', () async {
+    final overlay = await _scene();
+    final recipe = await _workshopSourceRecipe('double-edge');
+    final budget = RuntimeResourceBudget();
+    addTearDown(budget.dispose);
+    final particles = await BattleGen5SourceParticleSet.prepare(
+      bundle: recipe.bundle, overlay: overlay, budget: budget,
+      attackerSide: BattleSideId.player,
+    );
+    final animation = particles.backgroundAnimations[2]!;
+    expect(animation.background, 15);
+    expect(animation.frames, hasLength(6));
+    expect(identical(animation.frames[1], animation.frames[5]), isTrue);
+    expect(identical(animation.frames[2], animation.frames[4]), isTrue);
+    expect(animation.frames.every((frame) => frame.width == 512 && frame.height == 512), isTrue);
+    expect(animation.durations, [3, 3, 3, 3, 3, 3]);
+    expect(budget.residentBytes, greaterThanOrEqualTo(4 * 512 * 512 * 4));
+    particles.dispose();
+    expect(budget.residentBytes, 0);
+    expect(budget.transientBytes, 0);
+
+    final limited = RuntimeResourceBudget(
+      profile: const RuntimeResourceProfile(maximumResidentBytes: 1024 * 1024),
+    );
+    addTearDown(limited.dispose);
+    await expectLater(
+      BattleGen5SourceParticleSet.prepare(
+        bundle: recipe.bundle, overlay: overlay, budget: limited,
+        attackerSide: BattleSideId.player,
+      ),
+      throwsA(isA<RuntimeResourceAdmissionException>()),
+    );
+    expect(limited.residentBytes, 0);
+    expect(limited.transientBytes, 0);
+  });
+
+  for (final viewport in [Vector2(390, 844), Vector2(844, 390)]) {
+    test('projects moving orthographic emitters at $viewport', () async {
+      final overlay = await _scene(viewport: viewport);
+      final recipe = await _sourceRecipe('water_gun', 'water-gun', 220, [0, 1],
+          movingOrtho: true);
+      final budget = RuntimeResourceBudget();
+      addTearDown(budget.dispose);
+      final particles = await BattleGen5SourceParticleSet.prepare(
+        bundle: recipe.bundle, overlay: overlay, budget: budget,
+        attackerSide: BattleSideId.player,
+      );
+      addTearDown(particles.dispose);
+      final source = (recipe.bundle.recipe.toJson()['program'] as Map)['sourceProgram'] as Map;
+      final instruction = (source['instructions'] as List).skip(source['entryIndex'] as int)
+          .firstWhere((value) => value['op'] == 'startMovingOrthoEmitter') as Map;
+      particles.start((instruction['args'] as Map).cast<String, dynamic>());
+      final component = overlay.children.whereType<BattleSplStaticComponent>().last;
+      final advance = component.advanceEmitterPosition;
+      expect(advance, isNotNull);
+      final first = advance!();
+      for (var i = 0; i < 14; i++) { advance(); }
+      final later = advance();
+      expect(later, isNot(equals(first)));
+      expect(component.position.length, greaterThan(0));
+    });
+  }
+
+  for (final name in ['twister', 'sing']) {
+    test('prepares denser or longer source particles for $name', () async {
+      final overlay = await _scene();
+      final recipe = await _workshopSourceRecipe(name);
+      final budget = RuntimeResourceBudget();
+      addTearDown(budget.dispose);
+      final particles = await BattleGen5SourceParticleSet.prepare(
+        bundle: recipe.bundle, overlay: overlay, budget: budget,
+        attackerSide: BattleSideId.player,
+      );
+      particles.dispose();
+      expect(budget.residentBytes, 0);
+      expect(budget.transientBytes, 0);
     });
   }
 

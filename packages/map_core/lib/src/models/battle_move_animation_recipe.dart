@@ -50,6 +50,8 @@ final class BattleMoveAnimationRecipe {
   static const splV5RuntimeCapability = 'battle.spl-particle-v5@1';
   static const gen5MotionRuntimeCapability = 'battle.gen5-combatant-motion@1';
   static const gen5SourceRuntimeCapability = 'battle.gen5-source-program@1';
+  static const gen5SourceBackgroundAnimationRuntimeCapability =
+      'battle.gen5-source-background-animation@1';
   static const gen5SourceOperations = {
     'moveCameraPreset', 'moveCameraRelative', 'moveCameraAbsolute', 'shakeCamera',
     'loadParticle', 'deleteParticle', 'setSourceGauge', 'startEmitter',
@@ -95,6 +97,7 @@ final class BattleMoveAnimationRecipe {
     'gen5SpritePause',
     'gen5SourceProgram',
     'gen5SourceBackground',
+    'gen5SourceBackgroundAnimation',
   };
   final Map<String, dynamic> _json;
   final List<BattleMoveAnimationResource> resources;
@@ -342,6 +345,12 @@ final class BattleMoveAnimationRecipe {
               !capabilities.contains('gen5SourceBackground')) {
             throw const FormatException('Source background capability not declared');
           }
+          if (step.containsKey('backgroundAnimationBindings') !=
+              capabilities.contains('gen5SourceBackgroundAnimation') ||
+              (capabilities.contains('gen5SourceBackgroundAnimation') &&
+                  !capabilities.contains('gen5SourceBackground'))) {
+            throw const FormatException('Source background animation capability mismatch');
+          }
           _validateGen5SourceProgram(step, copy['variant'] as String, resources);
         default:
           throw const FormatException('Unsupported step');
@@ -351,6 +360,10 @@ final class BattleMoveAnimationRecipe {
     if (capabilities.contains('gen5SourceProgram') !=
         (_map(copy['program'], 'program')['kind'] == 'gen5SourceProgram')) {
       throw const FormatException('Gen 5 source capability does not match program');
+    }
+    if (capabilities.contains('gen5SourceBackgroundAnimation') &&
+        !capabilities.contains('gen5SourceProgram')) {
+      throw const FormatException('Source background animation requires a source program');
     }
     validate(copy['program'], 0, false);
     return BattleMoveAnimationRecipe._(
@@ -369,6 +382,10 @@ final class BattleMoveAnimationRecipe {
   bool get usesGen5SourceProgram =>
       _list(_json['requiredCapabilities'], 'requiredCapabilities')
           .contains('gen5SourceProgram');
+
+  bool get usesGen5SourceBackgroundAnimation =>
+      _list(_json['requiredCapabilities'], 'requiredCapabilities')
+          .contains('gen5SourceBackgroundAnimation');
 
   Set<String> unsupportedCapabilities(Set<String> available) => _list(
     _json['requiredCapabilities'],
@@ -666,7 +683,8 @@ void _validateGen5SourceProgram(
   String variant,
   List<BattleMoveAnimationResource> resources,
 ) {
-  _keys(step, {'kind', 'sourceProgram', 'particleBindings', 'backgroundBindings'});
+  _keys(step, {'kind', 'sourceProgram', 'particleBindings', 'backgroundBindings',
+    'backgroundAnimationBindings'});
   final source = _map(step['sourceProgram'], 'source program');
   var valueCount = 0;
   var stringUnits = 0;
@@ -770,21 +788,47 @@ void _validateGen5SourceProgram(
     }
     particleIndices[particle] = unique;
   }
+  final backgroundIds = <int>{};
   final backgrounds = step['backgroundBindings'];
   if (backgrounds != null) {
     if (backgrounds is! List || backgrounds.length > 256) {
       throw const FormatException('Invalid source background bindings');
     }
-    final ids = <int>{};
     for (final value in backgrounds) {
       final binding = _map(value, 'background binding');
       _keys(binding, {'background', 'resourceId'});
       final background = _boundedInt(binding['background'], 0, 65535);
       final resourceId = _audioText(binding['resourceId'], 'background resourceId');
-      if (!ids.add(background) || !resources.any(
+      if (!backgroundIds.add(background) || !resources.any(
         (resource) => resource.id == resourceId && resource.role == 'texture',
       )) {
         throw const FormatException('Invalid source background binding');
+      }
+    }
+  }
+  final animationIds = <int>{};
+  final animations = step['backgroundAnimationBindings'];
+  if (animations != null) {
+    if (animations is! List || animations.isEmpty || animations.length > 32) {
+      throw const FormatException('Invalid source background animations');
+    }
+    for (final value in animations) {
+      final animation = _map(value, 'background animation');
+      _keys(animation, {'animation', 'background', 'frames', 'durations'});
+      final animationId = _boundedInt(animation['animation'], 0, 65535);
+      final background = _boundedInt(animation['background'], 0, 65535);
+      final frames = _list(animation['frames'], 'background animation frames');
+      final durations = _list(animation['durations'], 'background animation durations');
+      if (!animationIds.add(animationId) || !backgroundIds.contains(background) ||
+          frames.isEmpty || frames.length > 32 || frames.length != durations.length) {
+        throw const FormatException('Invalid source background animation');
+      }
+      for (var i = 0; i < frames.length; i++) {
+        final id = _audioText(frames[i], 'background animation frame');
+        _boundedInt(durations[i], 0, 255);
+        if (!resources.any((resource) => resource.id == id && resource.role == 'texture')) {
+          throw const FormatException('Missing source background animation frame');
+        }
       }
     }
   }
@@ -801,6 +845,10 @@ void _validateGen5SourceProgram(
     final args = _map(instruction['args'], 'source arguments');
     if (!BattleMoveAnimationRecipe.gen5SourceOperations.contains(op)) {
       throw const FormatException('Unsupported source operation');
+    }
+    if (animations != null && op == 'animateBackgroundPalette' &&
+        !animationIds.contains(_boundedInt(args['animation'], 0, 65535))) {
+      throw const FormatException('Missing source background animation');
     }
     if (op == 'loadParticle' || op == 'deleteParticle' ||
         (op.startsWith('start') && op.endsWith('Emitter'))) {

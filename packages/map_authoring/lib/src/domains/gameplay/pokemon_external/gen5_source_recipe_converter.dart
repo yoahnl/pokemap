@@ -14,6 +14,8 @@ abstract final class Gen5SourceRecipeConverter {
     required Map<String, dynamic> sourceProgram,
     required Map<int, Gen5BatchParticle> particles,
     Map<int, Uint8List> backgrounds = const {},
+    Map<int, ({int background, List<Uint8List> frames, List<int> durations})>
+        backgroundAnimations = const {},
     Uint8List? sound,
     String? soundMediaType,
   }) {
@@ -80,6 +82,41 @@ abstract final class Gen5SourceRecipeConverter {
       if (media.containsKey(resourceId)) throw const FormatException('Conflicting background resource');
       media[resourceId] = Uint8List.fromList(backgrounds[id]!);
     }
+    final orderedAnimations = backgroundAnimations.keys.toList()..sort();
+    final backgroundFrameResources = <int, List<String>>{};
+    final backgroundResourceByHash = <String, String>{
+      for (final id in orderedBackgrounds)
+        sha256.convert(backgrounds[id]!).toString(): 'gen5-background-$id',
+    };
+    final newBackgroundFrameResources = <String>[];
+    if (orderedAnimations.length > 32) {
+      throw const FormatException('Too many source background animations');
+    }
+    for (final id in orderedAnimations) {
+      final animation = backgroundAnimations[id]!;
+      if (id < 0 || id > 65535 || !backgrounds.containsKey(animation.background) ||
+          animation.frames.isEmpty || animation.frames.length > 32 ||
+          animation.frames.length != animation.durations.length ||
+          animation.durations.any((duration) => duration < 0 || duration > 255)) {
+        throw const FormatException('Invalid source background animation');
+      }
+      final frames = <String>[];
+      for (var i = 0; i < animation.frames.length; i++) {
+        final hash = sha256.convert(animation.frames[i]).toString();
+        var resourceId = backgroundResourceByHash[hash];
+        if (resourceId == null) {
+          resourceId = 'gen5-background-animation-$id-frame-$i';
+          if (media.containsKey(resourceId)) {
+            throw const FormatException('Conflicting background animation resource');
+          }
+          media[resourceId] = Uint8List.fromList(animation.frames[i]);
+          backgroundResourceByHash[hash] = resourceId;
+          newBackgroundFrameResources.add(resourceId);
+        }
+        frames.add(resourceId);
+      }
+      backgroundFrameResources[id] = frames;
+    }
     Map<String, Object> resource(String id, String role, String mediaType) => {
       'id': id, 'role': role, 'mediaType': mediaType,
       'sizeBytes': media[id]!.length, 'sha256': sha256.convert(media[id]!).toString(),
@@ -89,6 +126,7 @@ abstract final class Gen5SourceRecipeConverter {
     final capabilities = <String>{'audioSelectionV2', 'gen5SourceProgram',
       for (final definition in definitions.values) 'splParticleV${definition.schemaVersion}',
       if (backgrounds.isNotEmpty) 'gen5SourceBackground',
+      if (backgroundAnimations.isNotEmpty) 'gen5SourceBackgroundAnimation',
       if (sound != null) 'sound'};
     final recipeBytes = Uint8List.fromList(utf8.encode(jsonEncode({
       'schemaVersion': 2, 'recipeId': recipeId, 'revision': '1',
@@ -99,6 +137,7 @@ abstract final class Gen5SourceRecipeConverter {
       'resources': [
         for (final texture in textures) resource(texture, 'texture', 'image/png'),
         for (final id in orderedBackgrounds) resource('gen5-background-$id', 'texture', 'image/png'),
+        for (final id in newBackgroundFrameResources) resource(id, 'texture', 'image/png'),
         for (final id in orderedParticles)
           {...resource('gen5-particle-$id', 'particleDefinition', 'application/vnd.avelune.particle+json'),
             'definitionVersion': definitions[id]!.schemaVersion,
@@ -113,6 +152,13 @@ abstract final class Gen5SourceRecipeConverter {
         if (orderedBackgrounds.isNotEmpty) 'backgroundBindings': [
           for (final id in orderedBackgrounds)
             {'background': id, 'resourceId': 'gen5-background-$id'},
+        ],
+        if (orderedAnimations.isNotEmpty) 'backgroundAnimationBindings': [
+          for (final id in orderedAnimations) {
+            'animation': id, 'background': backgroundAnimations[id]!.background,
+            'frames': backgroundFrameResources[id]!,
+            'durations': backgroundAnimations[id]!.durations,
+          },
         ]},
     })));
     final binding = BattleMoveRecipeBinding.fromJson({

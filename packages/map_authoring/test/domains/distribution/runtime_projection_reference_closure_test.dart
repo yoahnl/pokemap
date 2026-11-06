@@ -13,20 +13,32 @@ import 'package:test/test.dart';
 import '../../../../map_distribution/test/support/spatial_package_fixture.dart';
 
 void main() {
-  test('requires the source-program capability for an exported game', () async {
+  for (final animatedBackground in [false, true]) {
+  test('requires source-program capabilities for an exported game: animated=$animatedBackground', () async {
     final root = await _fixture();
+    final png = spatialPayload()['project/assets/hero.png']!;
+    final pngHash = sha256.convert(png).toString();
     final recipe = utf8.encode(jsonEncode({
       'schemaVersion': 2, 'recipeId': 'source', 'revision': '1',
       'moveSourceId': 'source', 'variant': 'Tackle',
-      'requiredCapabilities': ['gen5SourceProgram', 'audioSelectionV2'],
+      'requiredCapabilities': ['gen5SourceProgram', 'audioSelectionV2',
+        if (animatedBackground) 'gen5SourceBackground',
+        if (animatedBackground) 'gen5SourceBackgroundAnimation'],
       'provenance': {'source': 'synthetic', 'sourceRevision': '1', 'sourcePaths': [], 'converter': 'test'},
-      'resources': [], 'audio': {'kind': 'none'},
+      'resources': [if (animatedBackground) {
+        'id': 'bg', 'role': 'texture', 'mediaType': 'image/png',
+        'sizeBytes': png.length, 'sha256': pngHash,
+      }], 'audio': {'kind': 'none'},
       'program': {'kind': 'gen5SourceProgram', 'sourceProgram': {
         'kind': 'gen5SourceProgram', 'timebaseHz': 60, 'conversion': 'supported',
         'variant': 'Tackle', 'variants': ['Tackle'],
         'labels': [{'name': 'Tackle', 'instructionIndex': 0}], 'entryIndex': 0,
         'instructions': [{'op': 'end', 'args': {}, 'source': {}}],
-      }, 'particleBindings': []},
+      }, 'particleBindings': [],
+        if (animatedBackground) 'backgroundBindings': [{'background': 1, 'resourceId': 'bg'}],
+        if (animatedBackground) 'backgroundAnimationBindings': [
+          {'animation': 2, 'background': 1, 'frames': ['bg'], 'durations': [3]},
+        ]},
     }));
     final digest = sha256.convert(recipe).toString();
     final binding = BattleMoveRecipeBinding.fromJson({
@@ -36,6 +48,9 @@ void main() {
     });
     await _write(root, battleRecipeBindingPath('custom'), BattleRecipeProjectBinding(binding: binding).toJson());
     await _write(root, battleRecipeBlobPath(digest, 'application/vnd.avelune.battle-recipe+json', projectMoveId: 'custom'), recipe);
+    if (animatedBackground) {
+      await _write(root, battleRecipeBlobPath(pngHash, 'image/png', projectMoveId: 'custom'), png);
+    }
     late GamePackageBuildResult built;
     final service = CanonicalGamePackageExportService(
       packageArchiveBuilder: ({required manifest, required payloadFiles}) {
@@ -45,7 +60,9 @@ void main() {
     );
     await service.build(projectRoot: root, profile: _profile(), mode: GamePackageExportMode.localTest);
     final inspection = const GamePackageInspector().inspect(built.packageBytes);
-    const capability = BattleMoveAnimationRecipe.gen5SourceRuntimeCapability;
+    final capability = animatedBackground
+        ? BattleMoveAnimationRecipe.gen5SourceBackgroundAnimationRuntimeCapability
+        : BattleMoveAnimationRecipe.gen5SourceRuntimeCapability;
     expect(inspection.manifest.compatibility.requiredCapabilities, contains(capability));
     final current = AveluneRuntimeCompatibility.host();
     expect(current.capabilities, contains(capability));
@@ -73,6 +90,7 @@ void main() {
       payloadPaths: files.keys.toSet(), readPayload: (path) => files[path],
     ), throwsA(isA<GamePackageFormatException>().having((error) => error.message, 'message', contains(capability))));
   });
+  }
 
   test('declares and enforces the Player capability for Gen 5 combatant motion', () async {
     final root = await _fixture();

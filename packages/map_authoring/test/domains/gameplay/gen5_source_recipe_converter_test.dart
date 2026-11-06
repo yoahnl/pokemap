@@ -142,4 +142,51 @@ void main() {
     expect((bindings.single as Map)['background'], 33);
     expect(result.bundle.media[(bindings.single as Map)['resourceId']], backgrounds[33]);
   });
+
+  test('preserves animated background frames and their timing', () {
+    final workshop = jsonDecode(
+      File('${root.path}/batch/double-edge.json').readAsStringSync(),
+    ) as Map<String, dynamic>;
+    final backgrounds = {
+      for (final entry in (workshop['backgrounds'] as Map).entries)
+        int.parse(entry.key as String): base64Decode(entry.value as String),
+    };
+    final animations = {
+      for (final entry in (workshop['backgroundAnimations'] as Map).entries)
+        int.parse(entry.key as String): (
+          background: (entry.value as Map)['background'] as int,
+          frames: [for (final value in (entry.value as Map)['frames'] as List)
+            base64Decode(value as String)],
+          durations: ((entry.value as Map)['durations'] as List).cast<int>(),
+        ),
+    };
+    final result = Gen5SourceRecipeConverter.convert(
+      moveId: 'double-edge',
+      sourceProgram: (workshop['program'] as Map).cast<String, dynamic>(),
+      particles: {
+        workshop['particle'] as int: Gen5BatchParticle(
+          definition: Uint8List.fromList(utf8.encode(jsonEncode(workshop['definition']))),
+          textures: {
+            for (final entry in (workshop['textures'] as Map).entries)
+              entry.key as String: base64Decode(entry.value as String),
+          },
+          sourceEmitterIndices: (workshop['sourceEmitterIndices'] as List).cast<int>(),
+        ),
+      },
+      backgrounds: backgrounds,
+      backgroundAnimations: animations,
+    );
+    final recipe = result.bundle.recipe.toJson();
+    expect(recipe['requiredCapabilities'], contains('gen5SourceBackgroundAnimation'));
+    final binding = ((recipe['program'] as Map)['backgroundAnimationBindings'] as List).single as Map;
+    expect(binding['animation'], 2);
+    expect(binding['background'], animations[2]!.background);
+    expect(binding['durations'], animations[2]!.durations);
+    final frames = (binding['frames'] as List).cast<String>();
+    expect(frames, hasLength(animations[2]!.frames.length));
+    expect(frames.toSet(), hasLength(animations[2]!.frames.map(base64Encode).toSet().length));
+    for (var i = 0; i < frames.length; i++) {
+      expect(result.bundle.media[frames[i]], animations[2]!.frames[i]);
+    }
+  });
 }

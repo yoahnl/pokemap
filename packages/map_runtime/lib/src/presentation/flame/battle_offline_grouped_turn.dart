@@ -33,6 +33,7 @@ Future<List<BattleTurnAudioRequest>> prepareOfflineGroupedSplTurn({
       const sourceCapabilities = {
         'gen5SourceProgram',
         'gen5SourceBackground',
+        'gen5SourceBackgroundAnimation',
         'audioSelectionV2',
         'sound',
         'splParticleV2',

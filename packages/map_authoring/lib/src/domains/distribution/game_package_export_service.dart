@@ -347,6 +347,9 @@ final class CanonicalGamePackageExportService {
         if (recipe.usesGen5SourceProgram) {
           battleCapabilities.add(BattleMoveAnimationRecipe.gen5SourceRuntimeCapability);
         }
+        if (recipe.usesGen5SourceBackgroundAnimation) {
+          battleCapabilities.add(BattleMoveAnimationRecipe.gen5SourceBackgroundAnimationRuntimeCapability);
+        }
       }
       final requiredCapabilities = <String>{
         ...battleCapabilities,

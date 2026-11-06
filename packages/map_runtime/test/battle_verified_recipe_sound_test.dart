@@ -6,6 +6,8 @@ import 'dart:ui' as ui;
 
 import 'package:crypto/crypto.dart';
 import 'package:flame/components.dart';
+import 'package:flame/game.dart';
+import 'package:flame_test/flame_test.dart' show initializeFlameGame;
 import 'package:flame_audio/flame_audio.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_test/flutter_test.dart';
@@ -2723,6 +2725,20 @@ void main() {
   }
   }
 
+  test('audit scenes mount before effects remove themselves', () async {
+    final scene = PositionComponent(size: Vector2(390, 844));
+    final parent = PositionComponent();
+    final removing = _AuditRemovingComponent();
+    parent.addAll([removing, Component(), Component()]);
+    scene.add(parent);
+    final game = await _loadMountedAuditScene(scene);
+    expect(scene.isMounted, isTrue);
+    expect(parent.isMounted, isTrue);
+    expect(() => game.update(1 / 60), returnsNormally);
+    game.update(1 / 60);
+    expect(removing.parent, isNull);
+  });
+
   test('audits exported HGSS source animations in a tracked turn', () async {
     final project = Directory(Platform.environment['AVELUNE_BW2_AUDIT_ROOT']!);
     final reportFile = File(Platform.environment['AVELUNE_BW2_AUDIT_REPORT']!);
@@ -4734,6 +4750,19 @@ final class _Voice implements AudioPlayer {
   }
 }
 
+final class _AuditRemovingComponent extends Component {
+  @override
+  void update(double dt) => removeFromParent();
+}
+
+Future<FlameGame> _loadMountedAuditScene(PositionComponent scene) async {
+  final game = await initializeFlameGame();
+  game.onGameResize(scene.size.clone());
+  game.add(scene);
+  await game.ready();
+  return game;
+}
+
 Future<Map<String, Object?>> _auditExportedMove({
   required Directory project,
   required String moveId,
@@ -4745,6 +4774,7 @@ Future<Map<String, Object?>> _auditExportedMove({
   final voice = _Voice();
   final player = FlameAudioBattleSfxPlayer(playerFactory: () => voice);
   BattleOverlayComponent? overlay;
+  FlameGame? game;
   var current = true;
   var tick = 0;
   var started = 0;
@@ -4756,7 +4786,9 @@ Future<Map<String, Object?>> _auditExportedMove({
   final previousDebugPrint = debugPrint;
   debugPrint = (message, {wrapWidth}) {
     if (message != null &&
-        message.startsWith('[battle] source program unavailable:')) {
+        (message.startsWith('[battle] source program unavailable:') ||
+            message.startsWith('[battle] source program failed at instruction ') ||
+            message.startsWith('[battle] source program start failed:'))) {
       diagnostics.add(message.replaceAll(project.path, '<audit>'));
     }
   };
@@ -4796,7 +4828,7 @@ Future<Map<String, Object?>> _auditExportedMove({
       },
     );
     overlay = scene;
-    await loadFlameComponent(scene);
+    game = await _loadMountedAuditScene(scene);
     await scene.waitForPendingVisualSync();
     if (visualSample &&
         (!(scene.debugPlayerCombatant?.hasResolvedExplicitSprite ?? false) ||
@@ -4830,9 +4862,11 @@ Future<Map<String, Object?>> _auditExportedMove({
           event.execution.move.id == moveId);
       final hasTarget = events.any((event) => event.execution.targetSlot != null);
       String? audioStatus;
+      String? retainedFailure;
       if (hasTarget && diagnostics.isEmpty) {
         final inspected = await loader.load(moveId, retainVerifiedMedia: true);
         final media = inspected.verifiedMedia;
+        if (media == null) retainedFailure = inspected.fallbackReason?.name;
         try {
           if (media != null) {
             audioStatus = const BattleMoveRecipeCompiler()
@@ -4855,6 +4889,8 @@ Future<Map<String, Object?>> _auditExportedMove({
                 : 'sourcePreparationRejected'
             : 'syntheticTurnHasNoTarget',
         'unavailableCapabilities': loaded.unavailableCapabilities.toList()..sort(),
+        'mediaFallbackReason': retainedFailure,
+        if (retainedFailure == 'resourceBudget') 'residentBytes': budget.residentBytes,
         if (diagnostics.isNotEmpty) 'diagnostics': diagnostics,
       };
     }
@@ -4868,8 +4904,7 @@ Future<Map<String, Object?>> _auditExportedMove({
     await scene.waitForPendingVisualSync();
     var audioCompleted = false;
     for (tick = 0; tick < 1800 && scene.isTurnPresentationActive; tick++) {
-      scene.updateTree(1 / 60);
-      scene.findGame()!.processLifecycleEvents();
+      game.update(1 / 60);
       await Future<void>.delayed(Duration.zero);
       sawParticles |= scene.children
           .whereType<BattleSplStaticComponent>()
@@ -4879,7 +4914,7 @@ Future<Map<String, Object?>> _auditExportedMove({
         voice.complete.add(null);
       }
       final elapsed = startedAt == null ? -1 : tick - startedAt!;
-      if (captureDirectory != null && const {5, 25, 60}.contains(elapsed)) {
+      if (captureDirectory != null && const {5, 25, 60, 90, 120, 150}.contains(elapsed)) {
         await _captureAuditScene(scene, viewport,
             '$captureDirectory/$moveId-$orientation-$elapsed.png');
       }
@@ -4914,7 +4949,8 @@ Future<Map<String, Object?>> _auditExportedMove({
     };
   } finally {
     current = false;
-    overlay?.onRemove();
+    overlay?.removeFromParent();
+    if (game != null) await game.ready();
     await player.dispose();
     budget.dispose();
     debugPrint = previousDebugPrint;
@@ -4985,8 +5021,9 @@ Future<Map<String, Object?>> _auditExportedSwitch({
       projectRootDirectory: project.path,
     ),
   );
+  FlameGame? game;
   try {
-    await loadFlameComponent(scene);
+    game = await _loadMountedAuditScene(scene);
     await scene.waitForPendingVisualSync();
     final before = scene.debugPlayerCombatant;
     if (before?.currentSpriteSourcePath?.endsWith('/totodile/back.png') != true) {
@@ -4999,8 +5036,7 @@ Future<Map<String, Object?>> _auditExportedSwitch({
     await scene.waitForPendingVisualSync();
     var ticks = 0;
     while (ticks < 1800 && scene.isTurnPresentationActive) {
-      scene.updateTree(1 / 60);
-      scene.findGame()!.processLifecycleEvents();
+      game.update(1 / 60);
       await Future<void>.delayed(Duration.zero);
       ticks++;
     }
@@ -5022,6 +5058,7 @@ Future<Map<String, Object?>> _auditExportedSwitch({
   } on Object catch (error) {
     return {'status': 'error', 'reason': error.toString().replaceAll(project.path, '<audit>')};
   } finally {
-    scene.onRemove();
+    scene.removeFromParent();
+    if (game != null) await game.ready();
   }
 }

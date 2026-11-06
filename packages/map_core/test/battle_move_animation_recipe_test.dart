@@ -108,6 +108,41 @@ void main() {
     expect(parsed.usesGen5SourceProgram, isTrue);
 
     Map<String, dynamic> copy() => jsonDecode(jsonEncode(input)) as Map<String, dynamic>;
+    final animated = copy();
+    (animated['requiredCapabilities'] as List).addAll([
+      'gen5SourceBackground', 'gen5SourceBackgroundAnimation',
+    ]);
+    (animated['resources'] as List).addAll([
+      for (final id in ['bg', 'frame0', 'frame1'])
+        {'id': id, 'role': 'texture', 'mediaType': 'image/png',
+          'sizeBytes': bytes.length, 'sha256': hash},
+    ]);
+    (animated['program'] as Map)['backgroundBindings'] = [
+      {'background': 10, 'resourceId': 'bg'},
+    ];
+    (animated['program'] as Map)['backgroundAnimationBindings'] = [
+      {'animation': 2, 'background': 10,
+        'frames': ['frame0', 'frame1'], 'durations': [3, 5]},
+    ];
+    expect(BattleMoveAnimationRecipe.fromJson(animated).toJson(), animated);
+    Map<String, dynamic> animatedCopy() => jsonDecode(jsonEncode(animated)) as Map<String, dynamic>;
+    final missingAnimationCapability = animatedCopy();
+    (missingAnimationCapability['requiredCapabilities'] as List).remove('gen5SourceBackgroundAnimation');
+    final missingFrame = animatedCopy();
+    (((missingFrame['program'] as Map)['backgroundAnimationBindings'] as List).single as Map)
+        ['frames'] = ['missing', 'frame1'];
+    final wrongDurations = animatedCopy();
+    (((wrongDurations['program'] as Map)['backgroundAnimationBindings'] as List).single as Map)
+        ['durations'] = [3];
+    final missingBackground = animatedCopy();
+    (((missingBackground['program'] as Map)['backgroundAnimationBindings'] as List).single as Map)
+        ['background'] = 11;
+    for (final invalid in [missingAnimationCapability, missingFrame, wrongDurations, missingBackground]) {
+      expect(() => BattleMoveAnimationRecipe.fromJson(invalid), throwsFormatException);
+    }
+    final animationWithoutSource = explicitAudioRecipe({'kind': 'none'});
+    (animationWithoutSource['requiredCapabilities'] as List).add('gen5SourceBackgroundAnimation');
+    expect(() => BattleMoveAnimationRecipe.fromJson(animationWithoutSource), throwsFormatException);
     for (final pilot in [
       (file: 'water_gun', variant: 'WaterGun', particle: 220, indices: [0, 1]),
       (file: 'surf', variant: 'Surf', particle: 222, indices: [3, 1, 4, 5, 2]),
