@@ -22,70 +22,72 @@ class MapWarpPalette extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (onPickArrival != null) ...[
-          SizedBox(
-            height: 104,
-            child: StudioPaletteCard(
-              key: const ValueKey('warp-arrival-point'),
-              name: 'Point d’arrivée',
-              selected: arrivalSelected,
-              preview: const Icon(Icons.location_on_outlined, size: 48),
-              onTap: onPickArrival!,
+    final caption = Theme.of(context).textTheme.bodySmall;
+    return CustomScrollView(
+      key: const PageStorageKey('warp-destinations'),
+      scrollCacheExtent: const rendering.ScrollCacheExtent.pixels(0),
+      slivers: [
+        if (onPickArrival != null)
+          SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SizedBox(
+                  height: 104,
+                  child: StudioPaletteCard(
+                    key: const ValueKey('warp-arrival-point'),
+                    name: 'Point d’arrivée',
+                    selected: arrivalSelected,
+                    preview: const Icon(Icons.location_on_outlined, size: 48),
+                    onTap: onPickArrival!,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text('Utilisé par une scène', style: caption),
+                const SizedBox(height: 12),
+              ],
             ),
           ),
-          const SizedBox(height: 6),
-          Text(
-            'Utilisé par une scène',
-            style: Theme.of(context).textTheme.bodySmall,
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text(
+              '${destinations.length} destination(s)',
+              style: caption,
+            ),
           ),
-          const SizedBox(height: 12),
-        ],
-        Text(
-          '${destinations.length} destination(s)',
-          style: Theme.of(context).textTheme.bodySmall,
         ),
-        const SizedBox(height: 8),
-        Expanded(
-          child: destinations.isEmpty
-              ? const StudioEmptyState(
-                  icon: Icons.meeting_room_outlined,
-                  title: 'Aucun passage vers une autre carte',
-                  description:
-                      'Le point d’arrivée peut être posé sur cette carte.',
-                )
-              : GridView.builder(
-                  key: const PageStorageKey('warp-destinations'),
-                  scrollCacheExtent: const rendering.ScrollCacheExtent.pixels(
-                    0,
-                  ),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    mainAxisExtent:
-                        104 +
-                        16 * (MediaQuery.textScalerOf(context).scale(1) - 1),
-                    mainAxisSpacing: 8,
-                    crossAxisSpacing: 8,
-                  ),
-                  itemCount: destinations.length,
-                  itemBuilder: (context, index) {
-                    final entry = destinations[index];
-                    return StudioPaletteCard(
-                      key: ValueKey('warp-destination-${entry.id}'),
-                      name: entry.name,
-                      selected: selectedId == entry.id,
-                      maxNameLines: 2,
-                      preview: const Icon(
-                        Icons.meeting_room_outlined,
-                        size: 48,
-                      ),
-                      onTap: () => onPick(entry),
-                    );
-                  },
-                ),
-        ),
+        if (destinations.isEmpty)
+          const SliverFillRemaining(
+            hasScrollBody: false,
+            child: StudioEmptyState(
+              icon: Icons.meeting_room_outlined,
+              title: 'Aucun passage vers une autre carte',
+              description: 'Le point d’arrivée peut être posé sur cette carte.',
+            ),
+          )
+        else
+          SliverGrid.builder(
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisExtent:
+                  104 + 16 * (MediaQuery.textScalerOf(context).scale(1) - 1),
+              mainAxisSpacing: 8,
+              crossAxisSpacing: 8,
+            ),
+            itemCount: destinations.length,
+            itemBuilder: (context, index) {
+              final entry = destinations[index];
+              return StudioPaletteCard(
+                key: ValueKey('warp-destination-${entry.id}'),
+                name: entry.name,
+                selected: selectedId == entry.id,
+                maxNameLines: 2,
+                preview: const Icon(Icons.meeting_room_outlined, size: 48),
+                onTap: () => onPick(entry),
+              );
+            },
+          ),
       ],
     );
   }

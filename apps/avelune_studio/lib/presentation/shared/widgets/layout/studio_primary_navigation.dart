@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:avelune_design_system/presentation/shared/widgets/layout/studio_navigation_entry.dart';
+
 import '../../../theme/studio_tokens.dart';
 
 class StudioPrimaryNavigation extends StatelessWidget {
@@ -56,48 +58,22 @@ class StudioPrimaryNavigation extends StatelessWidget {
                     for (final item in items)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 8),
-                        child: Tooltip(
-                          message: item.$1,
-                          child: Material(
-                            color: item.$3 == selectedDestination
-                                ? colors.primaryContainer
-                                : colors.surfaceContainerLow,
-                            borderRadius: BorderRadius.circular(6),
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(6),
-                              onTap:
-                                  item.$3 != active &&
-                                      (item.$3 != 'test' || canTest) &&
-                                      !busy
-                                  ? () => onDestination(item.$3)
-                                  : null,
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 13,
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(item.$2, size: 22),
-                                    if (!compact) ...[
-                                      const SizedBox(width: 14),
-                                      Expanded(
-                                        child: Text(
-                                          item.$1,
-                                          style: TextStyle(
-                                            fontWeight:
-                                                item.$3 == selectedDestination
-                                                ? FontWeight.w700
-                                                : FontWeight.w400,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
+                        child: StudioNavigationEntry(
+                          key: ValueKey('studio-navigation-${item.$1}'),
+                          label: item.$1,
+                          icon: item.$2,
+                          compact: compact,
+                          selected: item.$3 == selectedDestination,
+                          unavailableReason: busy
+                              ? 'indisponible pendant l’opération en cours'
+                              : item.$3 == 'test' && !canTest
+                              ? 'ouvrez une carte du projet pour lancer un test'
+                              : null,
+                          onTap: busy || (item.$3 == 'test' && !canTest)
+                              ? null
+                              : item.$3 == active
+                              ? () {}
+                              : () => onDestination(item.$3),
                         ),
                       ),
                   ];
@@ -105,8 +81,22 @@ class StudioPrimaryNavigation extends StatelessWidget {
                     horizontal: 8,
                     vertical: 26,
                   );
+                  final needed =
+                      padding.vertical +
+                      items.fold<double>(
+                        0,
+                        (total, item) =>
+                            total +
+                            8 +
+                            StudioNavigationEntry.extentOf(
+                              context,
+                              label: item.$1,
+                              width: bounds.maxWidth - padding.horizontal,
+                              compact: compact,
+                            ),
+                      );
                   return MediaQuery.textScalerOf(context).scale(1) <= 1.25 &&
-                          bounds.maxHeight >= items.length * 64 + 52
+                          bounds.maxHeight >= needed
                       ? Padding(
                           padding: padding,
                           child: Column(children: entries),
