@@ -202,7 +202,7 @@ Les nouvelles cibles de test sont à créer pendant leur lot. Les fichiers list�
 - [ ] 4. Relever les tests actuels, les changements concurrents et les tickets existants ; attribuer chaque lot à un seul domaine.
 - [ ] 5. Arrêter les décisions de portée : masquage d’édition versus visibilité en jeu ; identité de projet versus identité du jeu ; sélection de l’aperçu versus cible d’édition.
 - [ ] 6. Vérifier que les décisions D-01 à D-04, tranchées le 6 novembre (section 5), restent compatibles avec le code au HEAD courant.
-- [ ] 7. Revérifier que chaque constat de l’audit du 3 novembre existe encore au HEAD courant ; marquer un constat déjà corrigé dans la table de la section 8 plutôt que de le traiter à nouveau.
+- [x] 7. Revérifier que chaque constat de l’audit du 3 novembre existe encore au HEAD courant ; marquer un constat déjà corrigé dans la table de la section 8 plutôt que de le traiter à nouveau.
 
 **Tests comportementaux obligatoires :**
 
@@ -2606,7 +2606,7 @@ Une entrée « Parcours décrit » n’est pas déclarée implémentée. Le lot 
 | G01 | P2 | Accueil : des outils plutôt qu’un prochain objectif | UX-02, ét. 7 | Ajouté, D-03 tranchée |
 | G02 | P1 | « Tester » et « Tester le jeu » trop proches | UX-21, ét. 3 | Couvert |
 | G03 | P1 | « Lecture seule » ne dit pas ce qui l’est | UX-02, ét. 6 | Ajouté |
-| G04 | P2 | « Scène à tester » liste des cartes | UX-03.1, ét. 4 ; lexique en UX-03 | Ajouté, avancé |
+| G04 | P2 | « Scène à tester » liste des cartes | UX-03.1, ét. 4 ; lexique en UX-03 | Ajouté, avancé ; **corrigé** par d33da791b (« Carte à tester »), lexique commun restant en UX-03 |
 | C01 | P2 | Conséquences du choix 2D/3D montrées trop tard | UX-02.1, ét. 7 | Ajouté |
 | C02 | P2 | Nom et dossier demandés avant l’intention | UX-02.1, ét. 7 | Ajouté |
 | C03 | P2 | Planche par défaut sans usage explicite | UX-02.1, ét. 8 | Ajouté |
@@ -2618,25 +2618,25 @@ Une entrée « Parcours décrit » n’est pas déclarée implémentée. Le lot 
 | M06 | P2 | Recherche perdue dans un dock étroit | UX-05, ét. 8 | Ajouté |
 | M07 | P2 | État vide de Bordures aux consignes concurrentes | UX-05, ét. 5 | Couvert |
 | M08 | P1 | Ambiance et sauvegarde à plusieurs endroits | UX-14, UX-17 | Couvert |
-| M09 | P1 | Carte régionale : première carte liée d’office | UX-03.1, ét. 5 | Ajouté, avancé |
+| M09 | P1 | Carte régionale : première carte liée d’office | UX-03.1, ét. 5 | Ajouté, avancé ; **corrigé** par d33da791b (choix explicite avec dossier ; pas d’aperçu) |
 | M10 | P2 | Lieux régionaux difficiles à grande échelle | UX-23.7, ét. 6 | Ajouté |
 | N01 | P1 | Histoire : apprendre le modèle avant de raconter | UX-22, ét. 7 | Ajouté, D-02 tranchée ; attend la direction de design Histoire |
 | N02 | P1 | Scène d’événement introuvable parmi 426 | UX-23.2, ét. 6 | Ajouté, livrable en avance |
 | N03 | P1 | Graphe long : vue d’ensemble ou lecture | UX-22, ét. 3 et 8 | Complété |
 | N04 | P1 | Liaisons de blocs au clavier non prouvées | UX-22, ét. 9 | Ajouté |
 | N05 | P1 | Options d’événement : courant et avancé mêlés | UX-23.2, ét. 7 | Ajouté, livrable en avance |
-| N06 | P1 | `null` dans le résumé d’événement | UX-03.1, ét. 1 | Ajouté, avancé |
+| N06 | P1 | `null` dans le résumé d’événement | UX-03.1, ét. 1 | Ajouté, avancé ; **corrigé** par d33da791b (« Action sans nom ») |
 | N07 | P2 | Logique des conditions déduite d’icônes | UX-23.2, ét. 8 | Ajouté |
 | N08 | P2 | Deux onglets de cinématique identiques | UX-23.4, ét. 6 | Ajouté |
-| N09 | P2 | Diagnostics de cinématique répétés, `null · id` | UX-03.1, ét. 2 ; UX-23.4, ét. 7 | Ajouté, en partie avancé |
-| N10 | P2 | Deux noms pour créer la même présentation | UX-03.1, ét. 3 | Ajouté, avancé |
+| N09 | P2 | Diagnostics de cinématique répétés, `null · id` | UX-03.1, ét. 2 ; UX-23.4, ét. 7 | Ajouté, en partie avancé ; `null · id` **corrigé** par d33da791b, diagnostics non groupés restants en UX-23.4 |
+| N10 | P2 | Deux noms pour créer la même présentation | UX-03.1, ét. 3 | Ajouté, avancé ; **corrigé** par d33da791b (« Nouvelle présentation » aux deux entrées) |
 | N11 | P3 | Vérification absente et récents répétés | UX-22, ét. 10 | Ajouté |
 | R01 | P1 | Bibliothèque et Identité : même contenu | UX-12.5, ét. 6 | Ajouté |
 | R02 | P1 | Personnage : défaut global et local mêlés | UX-12.5, ét. 2 | Couvert |
 | R03 | P2 | Portraits : « état » ou « expression » | UX-12.5, ét. 7 | Ajouté |
 | R04 | P2 | Deux bibliothèques de ressources différentes | UX-11, ét. 7 | Ajouté |
 | R05 | P1 | Incidents sans action de réparation | UX-13 | Couvert |
-| R06 | P2 | Poches d’objets en identifiants anglais | UX-03.1, ét. 6 ; UX-23.6, ét. 9 | Ajouté, en partie avancé |
+| R06 | P2 | Poches d’objets en identifiants anglais | UX-03.1, ét. 6 ; UX-23.6, ét. 9 | Ajouté, en partie avancé ; libellés **corrigés** par d33da791b, saisie libre de la poche restante en UX-23.6 |
 | R07 | P1 | Formes Pokémon saisies en identifiants à virgules | UX-23.6, ét. 6 | Ajouté, livrable en avance |
 | R08 | P1 | Condition d’évolution prise pour une règle | UX-23.6, ét. 7 | Ajouté, livrable en avance |
 | R09 | P1 | « Importer » ne dit pas s’il remplace | UX-23.6, ét. 8 | Ajouté, livrable en avance |
@@ -2653,6 +2653,8 @@ Une entrée « Parcours décrit » n’est pas déclarée implémentée. Le lot 
 | T07 | P1 | Conséquences de l’export peu claires | UX-21, UX-15 | Couvert |
 
 Bilan : sur 48 constats, 15 étaient couverts par le plan initial, 2 en partie, et 31 n’avaient aucun lot. Sur les 24 constats P1, 12 n’avaient aucun lot et 2 l’étaient en partie : ils sont tous rattachés désormais. Trois constats dépendaient d’une décision, tranchée le 6 novembre : G01 (D-03), M05 (D-01) et N01 (D-02). N01 attend encore la direction de design Histoire exigée par D-02.
+
+**Revérification au HEAD d33da791b (UX-00, étape 7, 6 novembre 2026).** Chaque constat a été relu dans le code courant, en lecture seule. Quatre sont corrigés (G04, M09, N06 et N10, tous par UX-03.1) et deux en partie (N09 et R06, reliquats dans leurs lots tardifs). Quarante restent présents. R11 et R12 ne se tranchent pas par le code : R11 est confirmé comme cause probable pour les vignettes Pokémon sans `filterQuality` (`pokemon_species_thumbnail.dart`, `pokemon_media_preview.dart`), à confirmer en natif. Aucun autre commit postérieur à la base de l’audit ne touche ces constats.
 
 ## 9. Recettes contractuelles et tests de référence
 
