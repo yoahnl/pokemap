@@ -100,6 +100,10 @@ bool _isScopedPokemonMediaWrite(AuthoringRequest request) =>
     request.actionId == 'pokemon.media.write' &&
     request.extensions['workshopScope'] == true;
 
+bool _isScopedMoveRecipeImport(AuthoringRequest request) =>
+    request.actionId == 'pokemon.move_recipe.import' &&
+    request.extensions['workshopScope'] == true;
+
 bool _usesNativeWorkshop(AuthoringRequest request) =>
     _nativeLocalWorkshopActions.contains(request.actionId) ||
     (request.actionId == 'characterStudio.animationClip.upsert' &&
@@ -222,11 +226,15 @@ final class LocalMapAuthoringMutationApi
     AuthoringTransactionFaultInjector? faultInjector,
     AuthoringPerformanceObserver? performanceObserver,
     bool retainUndoHistory = true,
+    bool enablePokemonRecipeNetwork = false,
     ProjectFileReader catalogFileReader = const LocalProjectFileReader(),
   })  : _catalogFileReader = catalogFileReader,
         _policy = policy,
         _snapshotLoader = snapshotLoader,
-        _actor = actor ?? _localActor,
+        _actor = actor ??
+            (enablePokemonRecipeNetwork
+                ? _localRecipeNetworkActor
+                : _localActor),
         _authorizationLimits = authorizationLimits,
         _clock = clock ?? _systemClock,
         _faultInjector = faultInjector,
@@ -369,6 +377,34 @@ final class LocalMapAuthoringMutationApi
   final bool _retainUndoHistory;
   late final AuthoringPerformanceObserver? _performanceObserver;
   final Map<ProjectHandle, _LocalMapAuthoringSession> _sessions = {};
+
+  void authorizePokemonRecipeBatch(
+      ProjectHandle projectHandle, WorkspaceHandle workspaceHandle) {
+    final session = _session(projectHandle);
+    session.requireProjectionRead();
+    session._requireWorkspace(workspaceHandle.value);
+    session._policy.authorize(AuthoringAuthorizationRequest(
+      actor: _actor,
+      projectId: session.projectId,
+      operation: AuthoringSecurityOperation.networkAccess,
+      actionId: 'pokemon.move_recipe.import_batch',
+      actionVersion: 1,
+      riskLevel: AuthoringRiskLevel.medium,
+      requestBytes: 0,
+      touchedResources: 0,
+      additionalPermissions: const [
+        AuthoringPermissionScope.projectRead,
+        AuthoringPermissionScope.projectWrite,
+        AuthoringPermissionScope.importRun,
+      ],
+    ));
+  }
+
+  Future<void> requirePokemonRecipeBatchReady(ProjectHandle projectHandle) {
+    final session = _session(projectHandle);
+    session.requireProjectionRead();
+    return session._requireScopedReconciled();
+  }
 
   @override
   Future<Map<String, Object?>> mapEdit(ProjectHandle projectHandle,
@@ -894,7 +930,8 @@ final class LocalMapAuthoringMutationApi
               }
             },
             requirePlanPreconditions: (plan) async {
-              if (_isScopedPokemonMediaWrite(plan.request)) {
+              if (_isScopedPokemonMediaWrite(plan.request) ||
+                  _isScopedMoveRecipeImport(plan.request)) {
                 await _session(projectHandle)._requireScopedReconciled();
               }
               if (plan.request.actionId == 'resource_pack.import') {
@@ -1928,7 +1965,8 @@ final class _LocalMapAuthoringSession {
         exteriorDeletedDefinitions(request.actionId, request.parameters),
         _mapAtmosphereGateway);
     if (!_logicalMapEdits.containsKey(request.requestId)) {
-      if (_isScopedPokemonMediaWrite(request)) {
+      if (_isScopedPokemonMediaWrite(request) ||
+          _isScopedMoveRecipeImport(request)) {
         await _requireScopedReconciled();
       } else {
         await _requireReconciled();
@@ -2662,7 +2700,8 @@ final class _LocalMapAuthoringSession {
     final scoped = _workshopPreconditions[plan.planId];
     if (scoped != null) {
       return () async {
-        if (_isScopedPokemonMediaWrite(plan.request)) {
+        if (_isScopedPokemonMediaWrite(plan.request) ||
+            _isScopedMoveRecipeImport(plan.request)) {
           await _requireScopedReconciled();
         }
         await supplied?.call();
@@ -2865,6 +2904,14 @@ final AuthoringActor _localActor = AuthoringActor(
     AuthoringPermissionScope.exportRun,
     AuthoringPermissionScope.recoveryApply,
     AuthoringPermissionScope.renderRun,
+  ],
+);
+
+final AuthoringActor _localRecipeNetworkActor = AuthoringActor(
+  actorId: 'local_cli',
+  permissions: [
+    ..._localActor.permissions,
+    AuthoringPermissionScope.networkExternal,
   ],
 );
 

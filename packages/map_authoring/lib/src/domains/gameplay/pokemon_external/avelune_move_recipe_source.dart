@@ -23,6 +23,7 @@ final class AveluneMoveRecipeSource {
     required String mediaId,
     required BattleRecipeBundleLimits limits,
     required Set<String> availableCapabilities,
+    void Function()? check,
   }) async {
     if (limits.maxTextures < 0 ||
         limits.maxTextureBytes < 0 ||
@@ -32,7 +33,7 @@ final class AveluneMoveRecipeSource {
         limits.maxTotalPixels < 1) {
       throw const FormatException('Invalid bundle limits');
     }
-    final entries = await _media.listMoveMedia(catalogMoveId);
+    final entries = await _media.listMoveMedia(catalogMoveId, check: check);
     final byId = {for (final entry in entries) entry.id: entry};
     final record = byId[mediaId];
     if (record == null ||
@@ -64,7 +65,7 @@ final class AveluneMoveRecipeSource {
         limits.maxBundleBytes < 1048576 ? limits.maxBundleBytes : 1048576;
     if (recipeLimit < 1) throw const FormatException('Invalid bundle limit');
     final recipeBytes =
-        await _media.readMedia(record, maximumBytes: recipeLimit);
+        await _media.readMedia(record, maximumBytes: recipeLimit, check: check);
     var remaining = limits.maxBundleBytes - recipeBytes.length;
     final resources = <String, Uint8List>{};
     for (final entry in bindings.entries) {
@@ -84,7 +85,8 @@ final class AveluneMoveRecipeSource {
       if (maximum < 1) {
         throw const FormatException('Move recipe resource exceeds limit');
       }
-      final bytes = await _media.readMedia(item, maximumBytes: maximum);
+      final bytes =
+          await _media.readMedia(item, maximumBytes: maximum, check: check);
       remaining -= bytes.length;
       resources[entry.key as String] = bytes;
     }

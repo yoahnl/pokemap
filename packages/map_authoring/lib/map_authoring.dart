@@ -220,6 +220,7 @@ export 'src/domains/gameplay/pokemon_external/gen5_tackle_pilot_recipe_converter
 export 'src/domains/gameplay/pokemon_external/avelune_move_recipe_source.dart';
 export 'src/domains/gameplay/pokemon_external/battle_move_recipe_selection.dart';
 export 'src/domains/gameplay/pokemon_external/battle_move_recipe_inventory.dart';
+export 'src/domains/gameplay/pokemon_external/battle_move_recipe_batch.dart';
 export 'src/domains/gameplay/pokemon_external/showdown_snapshot_source.dart';
 export 'src/domains/gameplay/pokemon_external/http_pokemon_external_source_repository.dart';
 export 'src/domains/gameplay/pokemon_external/pokemon_external_query_resolution.dart';

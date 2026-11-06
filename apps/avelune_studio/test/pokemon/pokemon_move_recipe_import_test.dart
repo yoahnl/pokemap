@@ -169,6 +169,7 @@ final class _RecipeTransport implements PokemonBoundedExternalHttpTransport {
   final List<int> texture;
   final List<int>? sound;
   late List<int> recipe;
+  String style = 'gen5';
   bool corruptTexture = false;
   Completer<void>? textureStarted;
   Completer<void>? textureGate;
@@ -209,7 +210,7 @@ final class _RecipeTransport implements PokemonBoundedExternalHttpTransport {
       'contentType': type,
       'usage': 'battle',
       'representation': representation,
-      'style': 'gen5',
+      'style': style,
       'metadata': metadata,
     };
     final listing = uri.path.endsWith('/owners/move/flamethrower');
@@ -373,6 +374,7 @@ void main() {
       jsonDecode(utf8.decode(fixture['project/project.json']!)),
     );
     final project = base.copyWith(
+      pokemon: base.pokemon.copyWith(catalogRelease: 'test'),
       maps: [
         ...base.maps,
         for (var i = 0; i < 40; i++)
@@ -412,6 +414,7 @@ void main() {
           PokemonMove(
             id: 'flamethrower',
             name: 'Flamethrower',
+            source: 'heartgold-fr-rom',
             type: 'fire',
             category: PokemonMoveCategory.special,
             accuracy: const PokemonMoveAccuracy.alwaysHits(),
@@ -495,6 +498,18 @@ void main() {
     expect(
       reader.paths.where((path) => path.endsWith('history.jsonl')),
       isEmpty,
+    );
+  });
+
+  test('Studio delegates a bounded batch to the shared authoring importer',
+      () async {
+    transport.style = 'gen5-bw2';
+    final result = await importer.importBatch(operationId: 'studio-batch', limit: 1);
+    expect(result.results.single.status, BattleMoveRecipeBatchStatus.imported);
+    expect(result.remaining, 2);
+    expect(
+      await File('${root.path}/${battleRecipeBindingPath('flamethrower')}').exists(),
+      isTrue,
     );
   });
 

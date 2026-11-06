@@ -29,6 +29,7 @@ final class BattleMoveRecipeInventoryEntry {
     required this.status,
     required this.reason,
     required this.existing,
+    this.bindingRevision,
   });
 
   final int index;
@@ -37,19 +38,27 @@ final class BattleMoveRecipeInventoryEntry {
   final BattleMoveRecipeInventoryStatus status;
   final BattleMoveRecipeInventoryReason reason;
   final BattleRecipeProjectBinding? existing;
+  final String? bindingRevision;
 }
 
 final class BattleMoveRecipeInventory {
-  const BattleMoveRecipeInventory({
+  BattleMoveRecipeInventory({
     required this.catalogRelease,
     required this.moves,
-  });
+    int? total,
+    this.movesPath,
+    this.movesRevision,
+  }) : total = total ?? moves.length;
 
   final String catalogRelease;
   final List<BattleMoveRecipeInventoryEntry> moves;
+  final int total;
+  final String? movesPath;
+  final String? movesRevision;
 
   Future<BattleMoveRecipeSelection> select(BattleMoveRecipeInventoryEntry entry,
-      BattleMoveRecipeCatalogSource source) async {
+      BattleMoveRecipeCatalogSource source,
+      {void Function()? check}) async {
     if (!moves.any((move) => identical(move, entry)) ||
         source.media.release != catalogRelease) {
       throw StateError('Inventory and source do not match.');
@@ -66,7 +75,7 @@ final class BattleMoveRecipeInventory {
     if (id == null || battleRecipeCatalogMoveId(id) != entry.catalogMoveId) {
       throw StateError('Move identity changed.');
     }
-    final candidates = await source.list(id);
+    final candidates = await source.list(id, check: check);
     return selectBattleMoveRecipe(candidates, existing: entry.existing);
   }
 }
@@ -76,7 +85,11 @@ final class BattleMoveRecipeInventoryReader {
 
   final ProjectOpenService openService;
 
-  Future<BattleMoveRecipeInventory> read(ProjectHandle projectHandle) async {
+  Future<BattleMoveRecipeInventory> read(ProjectHandle projectHandle,
+      {int startIndex = 0, int? limit}) async {
+    if (startIndex < 0 || (limit != null && limit < 1)) {
+      throw const FormatException('Invalid move inventory bounds.');
+    }
     final reader = await openService
         .catalogProject(projectHandle, metadataFields: const {'pokemon'});
     if (reader == null) {
@@ -118,6 +131,10 @@ final class BattleMoveRecipeInventoryReader {
         throw const FormatException('Invalid move catalog identity.');
       }
       final rows = decoded['entries'] as List;
+      if (startIndex > rows.length) {
+        throw const FormatException(
+            'Move inventory starts beyond the catalog.');
+      }
       final counts = <String, int>{};
       final catalogCounts = <String, int>{};
       for (final row in rows) {
@@ -137,7 +154,10 @@ final class BattleMoveRecipeInventoryReader {
       final bindings = <String, BattleRecipeProjectBinding?>{};
       final invalidBindings = <String>{};
       final validId = RegExp(r'^[a-z0-9]+(?:_[a-z0-9]+)*$');
-      for (var index = 0; index < rows.length; index++) {
+      final end = limit == null
+          ? rows.length
+          : (startIndex + limit).clamp(0, rows.length);
+      for (var index = startIndex; index < end; index++) {
         final raw = rows[index];
         final id =
             raw is Map && raw['id'] is String ? raw['id'] as String : null;
@@ -147,9 +167,9 @@ final class BattleMoveRecipeInventoryReader {
         BattleRecipeProjectBinding? existing;
         if (id != null && validId.hasMatch(id) && id.length <= 128) {
           if (!bindings.containsKey(id)) {
-            final data = await capture(battleRecipeBindingPath(id), 65536);
-            if (data != null) {
-              try {
+            try {
+              final data = await capture(battleRecipeBindingPath(id), 65536);
+              if (data != null) {
                 final value = jsonDecode(utf8.decode(data));
                 if (value is! Map<String, dynamic>) {
                   throw const FormatException('Invalid move binding.');
@@ -160,14 +180,14 @@ final class BattleMoveRecipeInventoryReader {
                       'Binding belongs to another move.');
                 }
                 bindings[id] = binding;
-              } on FormatException {
-                invalidBindings.add(id);
-                bindings[id] = null;
-              } on TypeError {
-                invalidBindings.add(id);
+              } else {
                 bindings[id] = null;
               }
-            } else {
+            } on FormatException {
+              invalidBindings.add(id);
+              bindings[id] = null;
+            } on TypeError {
+              invalidBindings.add(id);
               bindings[id] = null;
             }
           }
@@ -208,6 +228,10 @@ final class BattleMoveRecipeInventoryReader {
           },
           reason: reason,
           existing: existing,
+          bindingRevision:
+              id != null && validId.hasMatch(id) && id.length <= 128
+                  ? revisions[battleRecipeBindingPath(id)]
+                  : null,
         ));
       }
       for (final entry in revisions.entries) {
@@ -219,6 +243,9 @@ final class BattleMoveRecipeInventoryReader {
       return BattleMoveRecipeInventory(
         catalogRelease: pokemon.catalogRelease ?? aveluneCatalogRelease,
         moves: List.unmodifiable(entries),
+        total: rows.length,
+        movesPath: movesPath,
+        movesRevision: revisions[movesPath],
       );
     });
   }

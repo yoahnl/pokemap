@@ -17,6 +17,7 @@ final class PokemonMoveRecipeImport {
     required this.media,
     required this._handles,
     required this._opened,
+    required this._openService,
     required this._api,
     required this._artifacts,
   });
@@ -37,13 +38,14 @@ final class PokemonMoveRecipeImport {
       fileReader: reader,
     );
     final handles = WorkspaceHandleStore();
-    final opened = await ProjectOpenService(
+    final openService = ProjectOpenService(
       policy: policy,
       fileReader: reader,
       handles: handles,
       catalogMetadataFields: {},
       initializeSceneOwners: false,
-    ).openProject(session.directoryPath);
+    );
+    final opened = await openService.openProject(session.directoryPath);
     final artifacts = LocalArtifactStore(
       allowedSourceRoots: [session.directoryPath],
       maximumArtifactBytes: maximumAuthoringArtifactBytesV1,
@@ -53,6 +55,7 @@ final class PokemonMoveRecipeImport {
       snapshotLoader: ProjectSnapshotLoader(handles: handles),
       artifactStore: artifacts,
       catalogFileReader: reader,
+      enablePokemonRecipeNetwork: true,
     );
     try {
       await api.attachProject(
@@ -70,6 +73,7 @@ final class PokemonMoveRecipeImport {
       media: media,
       handles: handles,
       opened: opened,
+      openService: openService,
       api: api,
       artifacts: artifacts,
     );
@@ -80,6 +84,7 @@ final class PokemonMoveRecipeImport {
   final AvelunePokemonMediaSource media;
   final WorkspaceHandleStore _handles;
   final OpenedProject _opened;
+  final ProjectOpenService _openService;
   final LocalMapAuthoringMutationApi _api;
   final LocalArtifactStore _artifacts;
   bool _closed = false;
@@ -143,6 +148,29 @@ final class PokemonMoveRecipeImport {
             ),
         ]);
       });
+
+  Future<BattleMoveRecipeBatchResult> importBatch({
+    required String operationId,
+    int startIndex = 0,
+    int limit = BattleMoveRecipeBatchImporter.maximumBatchSize,
+    String? expectedInventoryRevision,
+    bool Function()? isCancelled,
+    void Function(BattleMoveRecipeBatchEntry entry)? onProgress,
+  }) => _use(() => BattleMoveRecipeBatchImporter(
+        openService: _openService,
+        authoring: _api,
+        media: media,
+        withMutation: mapAdapter.withResourceMutation,
+      ).run(
+        projectHandle: _opened.projectHandle,
+        workspaceHandle: _opened.workspaceHandle,
+        operationId: operationId,
+        startIndex: startIndex,
+        limit: limit,
+        expectedInventoryRevision: expectedInventoryRevision,
+        isCancelled: () => _closed || (isCancelled?.call() ?? false),
+        onProgress: onProgress,
+      ));
 
   Future<bool> importChoice(
     String projectMoveId,

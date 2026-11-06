@@ -10,6 +10,9 @@ import 'package:map_authoring/map_authoring.dart'
         AveluneGen5BattleSource,
         AvelunePokemonCrySource,
         AvelunePokemonMediaSource,
+        BattleMoveRecipeBatchEntry,
+        BattleMoveRecipeBatchImporter,
+        BattleMoveRecipeBatchResult,
         PokemonExternalSourceRepository;
 import 'package:map_core/map_core.dart';
 
@@ -38,7 +41,10 @@ import 'pokemon_project_locale.dart';
 import 'pokemon_types_projection.dart';
 
 final class LocalPokemonWorkspaceAdapter
-    implements PokemonWorkspacePort, PokemonMoveRecipePort {
+    implements
+        PokemonWorkspacePort,
+        PokemonMoveRecipePort,
+        PokemonMoveRecipeBatchPort {
   LocalPokemonWorkspaceAdapter({
     required this.session,
     required this.mapAdapter,
@@ -219,6 +225,23 @@ final class LocalPokemonWorkspaceAdapter
     projectMoveId,
     choice,
     isCurrent: isCurrent,
+  );
+
+  @override
+  Future<BattleMoveRecipeBatchResult> importMoveRecipeBatch({
+    required String operationId,
+    int startIndex = 0,
+    int limit = BattleMoveRecipeBatchImporter.maximumBatchSize,
+    String? expectedInventoryRevision,
+    bool Function()? isCancelled,
+    void Function(BattleMoveRecipeBatchEntry entry)? onProgress,
+  }) async => (await _prepareMoveRecipes()).importBatch(
+    operationId: operationId,
+    startIndex: startIndex,
+    limit: limit,
+    expectedInventoryRevision: expectedInventoryRevision,
+    isCancelled: isCancelled,
+    onProgress: onProgress,
   );
 
   void dispose() => unawaited(close());

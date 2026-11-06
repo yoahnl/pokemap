@@ -31,7 +31,8 @@ final class AvelunePokemonMedia {
 }
 
 final class AvelunePokemonCry {
-  const AvelunePokemonCry({required this.sha256, required this.mediaType, required this.bytes});
+  const AvelunePokemonCry(
+      {required this.sha256, required this.mediaType, required this.bytes});
 
   final String sha256;
   final String mediaType;
@@ -68,7 +69,8 @@ final class AvelunePokemonCrySource {
         if (mime == 'audio/wav' && matching.length > 1) {
           final converted = matching.where((item) {
             final provenance = item.metadata['provenance'];
-            return provenance is Map && provenance['source'] == 'avelune/cry-wav';
+            return provenance is Map &&
+                provenance['source'] == 'avelune/cry-wav';
           }).toList();
           if (converted.isNotEmpty) matching = converted;
         }
@@ -77,7 +79,8 @@ final class AvelunePokemonCrySource {
         }
         if (matching.isEmpty) continue;
         final item = matching.single;
-        final bytes = await media.readMedia(item, maximumBytes: maxBattleRecipeSoundBytes);
+        final bytes = await media.readMedia(item,
+            maximumBytes: maxBattleRecipeSoundBytes);
         inspectBattleRecipeSound(bytes, mime);
         return AvelunePokemonCry(
           sha256: item.sha256,
@@ -144,22 +147,25 @@ final class AvelunePokemonMediaSource {
   Future<List<AvelunePokemonMedia>> listPokemonMedia(String speciesId) =>
       _listMedia('pokemon', speciesId);
 
-  Future<List<AvelunePokemonMedia>> listMoveMedia(String moveId) =>
-      _listMedia('move', moveId);
+  Future<List<AvelunePokemonMedia>> listMoveMedia(String moveId,
+          {void Function()? check}) =>
+      _listMedia('move', moveId, check: check);
 
-  Future<List<AvelunePokemonMedia>> _listMedia(
-      String kind, String ownerId) async {
+  Future<List<AvelunePokemonMedia>> _listMedia(String kind, String ownerId,
+      {void Function()? check}) async {
     _identifier(ownerId);
     final entries = <AvelunePokemonMedia>[];
     final seen = <String>{};
     var after = '';
     while (true) {
+      check?.call();
       final response = await _get(
           _uri('$release/owners/$kind/$ownerId', {
             'limit': '100',
             if (after.isNotEmpty) 'after': after,
           }),
           8 * 1024 * 1024);
+      check?.call();
       if (response.bodyBytes.length > 8 * 1024 * 1024) {
         throw const FormatException('Media catalog page is too large.');
       }
@@ -205,12 +211,14 @@ final class AvelunePokemonMediaSource {
   }
 
   Future<Uint8List> readMedia(AvelunePokemonMedia media,
-      {int maximumBytes = 64 * 1024 * 1024}) async {
+      {int maximumBytes = 64 * 1024 * 1024, void Function()? check}) async {
     if (media.release != release) throw ArgumentError('Media release differs.');
     if (maximumBytes < 1 || maximumBytes > 64 * 1024 * 1024) {
       throw ArgumentError.value(maximumBytes, 'maximumBytes');
     }
+    check?.call();
     final response = await _get(_uri('$release/${media.id}'), maximumBytes);
+    check?.call();
     if (response.bodyBytes.isEmpty ||
         response.bodyBytes.length > maximumBytes ||
         sha256.convert(response.bodyBytes).toString() != media.sha256) {

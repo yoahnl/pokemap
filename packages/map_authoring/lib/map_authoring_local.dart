@@ -103,3 +103,4 @@ export 'src/contracts/map_edit_operation.dart';
 export 'src/support/companion_process_access.dart';
 
 export 'src/api/local_periodic_reward_choice_reader.dart';
+export 'src/domains/gameplay/pokemon_external/io_pokemon_external_transport.dart';

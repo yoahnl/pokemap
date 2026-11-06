@@ -44,6 +44,7 @@ import '../domains/gameplay/character_studio/character_studio_action_support.dar
 import '../domains/gameplay/item_catalog_actions.dart';
 import '../domains/gameplay/bag_capacity_actions.dart';
 import '../domains/gameplay/pokemon_ruleset_actions.dart';
+import '../domains/gameplay/pokemon_external/battle_move_recipe_batch.dart';
 import '../domains/maps/map_lifecycle_adapter.dart';
 import '../domains/maps/map_region_query.dart';
 import '../domains/narrative/cinematic_library_actions.dart';
@@ -97,6 +98,7 @@ final class JsonlWorker {
     LocalMapElementOrderAuthoring? mapElementOrder,
     GamePackageExportApiPort? gameExport,
     GamePackageExportProfileApiPort? exportProfiles,
+    BattleMoveRecipeBatchService? moveRecipeBatch,
     this.maxInputBytes = defaultAuthoringJsonlMaxInputBytes,
     this.commandTimeout = const Duration(seconds: 10),
     this.gameExportTimeout = const Duration(minutes: 2),
@@ -114,7 +116,8 @@ final class JsonlWorker {
         _mapEditor = mapEditor,
         _mapElementOrder = mapElementOrder,
         _gameExport = gameExport,
-        _exportProfiles = exportProfiles {
+        _exportProfiles = exportProfiles,
+        _moveRecipeBatch = moveRecipeBatch {
     if (maxInputBytes <= 0) {
       throw ArgumentError.value(
         maxInputBytes,
@@ -140,6 +143,8 @@ final class JsonlWorker {
 
   final Set<WorkspaceHandle> _openedWorkspaces = {};
   Future<void>? _closing;
+  int _activeMoveRecipeBatches = 0;
+  Completer<void>? _moveRecipeBatchIdle;
   final AuthoringReadApiPort _api;
   final AuthoringMutationApiPort? _mutations;
   final ResourcePackTransferApiPort? _resourcePacks;
@@ -154,6 +159,7 @@ final class JsonlWorker {
   final LocalMapElementOrderAuthoring? _mapElementOrder;
   final GamePackageExportApiPort? _gameExport;
   final GamePackageExportProfileApiPort? _exportProfiles;
+  final BattleMoveRecipeBatchService? _moveRecipeBatch;
   final int maxInputBytes;
   final Duration commandTimeout;
   final Duration gameExportTimeout;
@@ -163,6 +169,10 @@ final class JsonlWorker {
 
   Future<void> _closeWorkspaces() async {
     _nativeProjectCreation?.close();
+    if (_activeMoveRecipeBatches > 0) {
+      _moveRecipeBatchIdle ??= Completer<void>();
+      await _moveRecipeBatchIdle!.future;
+    }
     await _characterContactShadows?.close();
     for (final workspace in _openedWorkspaces.toList()) {
       await _resourcePacks?.closeTransferWorkspace(workspace);
@@ -175,6 +185,7 @@ final class JsonlWorker {
   Future<String> processLine(String line) async {
     var requestId = 'invalid';
     var creationCommand = false;
+    var batchCommand = false;
     var abandoned = false;
     AuthoringResult result;
     try {
@@ -202,16 +213,20 @@ final class JsonlWorker {
           'Discovery-only workers cannot access projects or files.',
         );
       }
-      creationCommand =
-          command == 'project_create' || command == 'project_native_publish';
+      creationCommand = command == 'project_create' ||
+          command == 'project_native_publish';
+      batchCommand = command == 'pokemon_move_recipe_batch';
       final args = _jsonObject(decoded['args'], 'args');
       final timeout =
-          command == 'game_export' || command.startsWith('project_native_')
+          command == 'game_export' ||
+                  command == 'pokemon_move_recipe_batch' ||
+                  command.startsWith('project_native_')
               ? gameExportTimeout
               : commandTimeout;
       final data = await _dispatch(command, args,
           requestId: requestId,
-          isCancelled: () => abandoned).timeout(timeout, onTimeout: () {
+          isCancelled: () => abandoned || (batchCommand && _closing != null))
+          .timeout(timeout, onTimeout: () {
         abandoned = true;
         throw TimeoutException('Worker deadline reached.');
       });
@@ -223,8 +238,10 @@ final class JsonlWorker {
         domainCode: 'worker.timeout',
         message: creationCommand
             ? 'The command timed out. Preparation is abandoned; an already engaged write may finish. Inspect the destination before retrying.'
-            : 'The command exceeded its configured time limit.',
-        retryable: !creationCommand,
+            : batchCommand
+                ? 'The batch timed out. An already engaged write may finish. Inspect the project and recovery status before retrying.'
+                : 'The command exceeded its configured time limit.',
+        retryable: !creationCommand && !batchCommand,
       );
     } on _UnsupportedWorkerCommand {
       result = _failure(
@@ -646,6 +663,43 @@ final class JsonlWorker {
       );
     }
     switch (command) {
+      case 'pokemon_move_recipe_batch':
+        rejectUnknownContractKeys(args, const {
+          'projectHandle',
+          'workspaceHandle',
+          'operationId',
+          'startIndex',
+          'limit',
+          'expectedInventoryRevision',
+        });
+        final service =
+            _moveRecipeBatch ?? (throw const _UnsupportedWorkerCommand());
+        if ((args['startIndex'] != null && args['startIndex'] is! int) ||
+            (args['limit'] != null && args['limit'] is! int)) {
+          throw const FormatException('Invalid batch bounds.');
+        }
+        _activeMoveRecipeBatches++;
+        try {
+          return (await service.run(
+            projectHandle: _projectHandle(args),
+            workspaceHandle: WorkspaceHandle(requireContractString(
+                args['workspaceHandle'], 'args.workspaceHandle')),
+            operationId:
+                requireContractString(args['operationId'], 'args.operationId'),
+            startIndex: args['startIndex'] as int? ?? 0,
+            limit: args['limit'] as int? ??
+                BattleMoveRecipeBatchImporter.maximumBatchSize,
+            expectedInventoryRevision: readOptionalContractString(
+                args['expectedInventoryRevision'], 'args.expectedInventoryRevision'),
+            isCancelled: isCancelled,
+          )).toJson();
+        } finally {
+          _activeMoveRecipeBatches--;
+          if (_activeMoveRecipeBatches == 0) {
+            _moveRecipeBatchIdle?.complete();
+            _moveRecipeBatchIdle = null;
+          }
+        }
       case 'describe':
         rejectUnknownContractKeys(args, const {'domain', 'view', 'actionIds', 'offset', 'pageSize'});
         final actionIds = args['actionIds'];
@@ -1696,7 +1750,9 @@ final class JsonlWorker {
         _visualSettings == null &&
         _mapEditor == null &&
         _mapElementOrder == null &&
-        _resourcePacks == null) {
+        _resourcePacks == null &&
+        _moveRecipeBatch == null &&
+        !discoveryOnly) {
       return read;
     }
     final mutation = mutations?.describeMutations();
@@ -1706,6 +1762,15 @@ final class JsonlWorker {
           'summary':'Edit one map with a durable logical operation identity.',
           'contractVersion':1,'retentionDays':30,'defaultSeed':0,
           'maximumOperations':64,'dryRunReservesIdentity':false},
+      if (_moveRecipeBatch != null || discoveryOnly)
+        const {
+          'id': 'pokemon_move_recipe_batch',
+          'actionId': 'pokemon.move_recipe.import',
+          'summary':
+              'Import a bounded slice of available move recipes one at a time.',
+          'maximumMoves': BattleMoveRecipeBatchImporter.maximumBatchSize,
+          'atomic': false,
+        },
       for (final command in read['commands']! as List)
         Map<String, Object?>.from(command as Map),
       if (mutation != null)

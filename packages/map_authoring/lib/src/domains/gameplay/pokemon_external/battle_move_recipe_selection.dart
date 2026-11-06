@@ -41,13 +41,13 @@ final class BattleMoveRecipeCatalogSource {
   final AvelunePokemonMediaSource media;
 
   Future<List<BattleMoveRecipeCandidate>> list(String projectMoveId,
-      {bool manualSelection = false}) async {
+      {bool manualSelection = false, void Function()? check}) async {
     final catalogId =
         battleRecipeCatalogMoveId(projectMoveId, allowUnknown: manualSelection);
     if (catalogId == null) {
       throw const FormatException('Unknown move catalog identity.');
     }
-    final entries = await media.listMoveMedia(catalogId);
+    final entries = await media.listMoveMedia(catalogId, check: check);
     final choices = <BattleMoveRecipeCandidate>[];
     for (final entry in entries) {
       if (entry.usage != 'battle' || entry.representation != 'recipe') {

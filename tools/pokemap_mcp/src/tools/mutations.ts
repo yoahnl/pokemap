@@ -18,6 +18,26 @@ export function registerMutationTools(
   authoring: AuthoringGateway,
   compact = false,
 ): void {
+  if (!compact) server.registerTool(
+    "pokemap_move_recipe_batch",
+    {
+      title: "Import available battle move animations",
+      description: "Imports a bounded slice of the project's moves one at a time from its configured Pokemon catalogue. Existing and custom moves are preserved. The batch is not atomic; pass inventoryRevision as expectedInventoryRevision with nextIndex when continuing.",
+      inputSchema: z.object({
+        projectHandle: z.string().min(1),
+        workspaceHandle: z.string().min(1),
+        operationId: z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9_.:@-]{0,127}$/),
+        startIndex: z.number().int().min(0).default(0),
+        limit: z.number().int().min(1).max(10).default(10),
+        expectedInventoryRevision: revisionSchema.optional(),
+      }).strict(),
+      outputSchema: toolEnvelopeSchema,
+      annotations: { ...mutationAnnotations, destructiveHint: false, openWorldHint: true },
+    },
+    async (input) => authoringResult(() =>
+      authoring.request("pokemon_move_recipe_batch", input)),
+  );
+
   server.registerTool(
     "pokemap_workshop",
     {

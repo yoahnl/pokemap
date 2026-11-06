@@ -10,7 +10,8 @@ import 'package:map_authoring/map_authoring_local.dart'
         LocalMapExteriorDecorationAuthoring,
         LocalMapEditorAuthoring,
         LocalMapElementOrderAuthoring,
-        LocalVisualSettingsAuthoring;
+        LocalVisualSettingsAuthoring,
+        IoPokemonExternalTransport;
 
 import 'src/tiled_image_collection_cli_png_codec.dart';
 import 'src/project_template_catalog_loader.dart';
@@ -54,12 +55,13 @@ Future<void> main(List<String> arguments) async {
     fingerprintCache: ProjectSnapshotFingerprintCache(),
     snapshotCache: ProjectSnapshotCache(),
   );
+  final openService = ProjectOpenService(
+    policy: policy,
+    fileReader: fileReader,
+    handles: handles,
+  );
   final api = AuthoringReadApi(
-    openService: ProjectOpenService(
-      policy: policy,
-      fileReader: fileReader,
-      handles: handles,
-    ),
+    openService: openService,
     snapshotLoader: snapshots,
   );
   final ArtifactStore artifacts = options.discoveryOnly
@@ -76,6 +78,7 @@ Future<void> main(List<String> arguments) async {
     policy: policy,
     snapshotLoader: snapshots,
     artifactStore: artifacts,
+    enablePokemonRecipeNetwork: !options.discoveryOnly,
     resourcePackSourceRoots: [
       ...options.allowedRoots,
       ...options.artifactRoots,
@@ -112,10 +115,19 @@ Future<void> main(List<String> arguments) async {
     exitCode = AuthoringCliExitCodes.config;
     return;
   }
+  final pokemonTransport =
+      options.discoveryOnly ? null : IoPokemonExternalTransport();
   final worker = JsonlWorker(
     api: api,
     discoveryOnly: options.discoveryOnly,
     mutations: mutations,
+    moveRecipeBatch: pokemonTransport == null
+        ? null
+        : BattleMoveRecipeBatchService(
+            openService: openService,
+            authoring: mutations,
+            client: pokemonTransport,
+          ),
     mapElementOrder:
         LocalMapElementOrderAuthoring(policy: policy, reader: fileReader),
     mapEditor: LocalMapEditorAuthoring(policy: policy, reader: fileReader),
@@ -155,7 +167,11 @@ Future<void> main(List<String> arguments) async {
     stderr.writeln('The JSONL input stream failed unexpectedly.');
     exitCode = AuthoringCliExitCodes.ioError;
   } finally {
-    await worker.close();
+    try {
+      await worker.close();
+    } finally {
+      pokemonTransport?.close();
+    }
   }
 }
 

@@ -192,7 +192,7 @@ export class LocalAuthoringClient
 
     const result = await new Promise<AuthoringWorkerSuccess>((resolve, reject) => {
       const timeoutMs =
-        (command === "game_export" || command.startsWith("project_native_"))
+        (command === "game_export" || command === "pokemon_move_recipe_batch" || command.startsWith("project_native_"))
           ? this.#options.exportRequestTimeoutMs
           : this.#options.requestTimeoutMs;
       const timer = setTimeout(() => {
@@ -240,6 +240,12 @@ export class LocalAuthoringClient
 
   async #publishMutation(data: JsonRecord, projectHandle: string | undefined, projectRoot: string, command: string): Promise<void> {
     if (["describe", "open", "close", "query", "validate", "plan", "confirm", "history", "projection", "recovery_status"].includes(command)) return;
+    if (command === "pokemon_move_recipe_batch" && Array.isArray(data.results)) {
+      for (const result of data.results) {
+        if (isRecord(result)) await this.#publishMutation(result, projectHandle, projectRoot, "pokemon_move_recipe_import");
+      }
+      return;
+    }
     if (isRecord(data.result) && isRecord(data.snapshot) && data.snapshot.state === "succeeded") {
       await this.#publishMutation(data.result, projectHandle, projectRoot, command);
       return;
