@@ -4,7 +4,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#if defined(__GNUC__)
+#if defined(_WIN32)
+#define AV_PUBLIC __declspec(dllexport)
+#elif defined(__GNUC__)
 #define AV_PUBLIC __attribute__((visibility("default")))
 #else
 #define AV_PUBLIC

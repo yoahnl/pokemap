@@ -8,7 +8,9 @@
 #include "file_util.h"
 
 #include <errno.h>
-#include <ftw.h>
+#if !defined(_WIN32)
+    #include <ftw.h>
+#endif
 #include <sys/stat.h>
 #include <sys/types.h>
 #if defined(_WIN32)
@@ -155,6 +157,7 @@ int File_MkdirRecursive(const char *path)
  * @param ftw_buffer FTW struct details (unused).
  * @return 0 on success; non-zero on failure.
  */
+#if !defined(_WIN32)
 static int File_RemoveRecursiveCallback(
     const char *path,
     const struct stat *st,
@@ -183,6 +186,7 @@ int File_RemoveRecursive(const char *path)
 
     return nftw(path, File_RemoveRecursiveCallback, 16, FTW_DEPTH | FTW_PHYS);
 }
+#endif
 
 u16 ReadU16LE(const u8 *p)
 {

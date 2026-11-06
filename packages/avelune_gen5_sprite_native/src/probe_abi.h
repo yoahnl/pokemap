@@ -4,6 +4,14 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#if defined(_WIN32)
+#define AV_PUBLIC __declspec(dllexport)
+#elif defined(__GNUC__)
+#define AV_PUBLIC __attribute__((visibility("default")))
+#else
+#define AV_PUBLIC
+#endif
+
 typedef struct AvProbeRequest {
     const uint8_t *tiles;
     size_t tile_size;
@@ -25,11 +33,11 @@ typedef struct AvProbeRequest {
     int32_t parent_completed;
 } AvProbeRequest;
 
-void *av_probe_alloc(size_t size);
-void av_probe_free(void *pointer);
+AV_PUBLIC void *av_probe_alloc(size_t size);
+AV_PUBLIC void av_probe_free(void *pointer);
 int av_probe_render_synthetic(const uint8_t *tiles, size_t tile_size,
                               uint8_t *output, size_t output_size, int flip_h);
-int av_probe_render_sample(const AvProbeRequest *request, uint8_t *output,
-                           size_t output_size, int32_t *details, size_t details_count);
+AV_PUBLIC int av_probe_render_sample(const AvProbeRequest *request, uint8_t *output,
+                                    size_t output_size, int32_t *details, size_t details_count);
 
 #endif

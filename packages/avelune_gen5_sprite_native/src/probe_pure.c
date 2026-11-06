@@ -7,12 +7,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#if defined(__GNUC__)
-#define AV_PUBLIC __attribute__((visibility("default")))
-#else
-#define AV_PUBLIC
-#endif
-
 AV_PUBLIC void *av_probe_alloc(size_t size) {
     return size > 0 && size <= 1048576 ? malloc(size) : NULL;
 }
