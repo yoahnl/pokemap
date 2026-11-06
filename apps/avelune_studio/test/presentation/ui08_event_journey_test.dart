@@ -125,6 +125,8 @@ void main() {
         controller.active,
       );
       expect(await tester.runAsync(f.mapBytes), initialMapBytes);
+      await ui08Tap(tester, 'Options avancées');
+      await tester.pumpAndSettle();
       await ui08Tap(tester, 'Examiner le mode du projet');
       await ui08Tap(tester, 'Activer le mode mixte');
       expect(

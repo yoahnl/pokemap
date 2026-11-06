@@ -74,6 +74,8 @@ void main() {
       await pumpIo(tester);
       expect(eventName(controller.record(first.id)!), 'Changement à annuler');
       await ui08Tap(tester, 'Options');
+      await ui08Tap(tester, 'Options avancées');
+      await tester.pumpAndSettle();
       final priority = find.descendant(
         of: find.byKey(ValueKey('priority:${first.id}')),
         matching: find.byType(TextField),

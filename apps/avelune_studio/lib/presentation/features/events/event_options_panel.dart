@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
+
 import '../../../features/events/domain/event_record_view.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
+import '../../shared/widgets/layout/studio_section.dart';
 import '../../shared/widgets/inputs/studio_commit_field.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
@@ -45,42 +47,9 @@ class EventOptionsPanel extends StatelessWidget {
           'Ces changements restent locaux jusqu’à Enregistrer. Modifier un événement activé prépare une version désactivée.',
         ),
         const SizedBox(height: 16),
-        StudioSelect(
-          label: 'Exécution',
-          value: record.parallelPolicy == null ? 'sequential' : 'parallel',
-          options: {
-            'sequential': 'Séquentielle',
-            if (record.source?.kind == NarrativeEventSourceKind.entityAutorun || record.source?.kind == NarrativeEventSourceKind.mapEnter)
-              'parallel': 'Parallèle',
-          },
-          onChanged: onParallel == null ? null : (value) => onParallel!(value == 'parallel' ? NarrativeEventParallelPolicy(cadenceMs: 1000) : null),
-        ),
-        if (record.parallelPolicy case final policy?) ...[
-          const SizedBox(height: 12),
-          const Text('Répète une courte mise à jour d’état sans immobiliser le joueur. Les dialogues, combats et transitions suspendent le cycle.'),
-          const SizedBox(height: 12),
-          StudioCommitField(
-            key: ValueKey('parallel-cadence:${record.id}'),
-            label: 'Cadence (ms)',
-            value: '${policy.cadenceMs}',
-            tryCommit: (value) {
-              final cadence = int.tryParse(value);
-              if (cadence == null || cadence < 100 || cadence > 60000 || onParallel == null) return false;
-              onParallel!(NarrativeEventParallelPolicy(cadenceMs: cadence, ownerVariantId: policy.ownerVariantId));
-              return true;
-            },
-          ),
-          if (record.source?.kind == NarrativeEventSourceKind.entityAutorun) ...[
-            const SizedBox(height: 12),
-            StudioSelect(
-              label: 'Page propriétaire',
-              value: policy.ownerVariantId ?? '',
-              options: {'': 'Toutes les pages actives', ...ownerVariants},
-              onChanged: onParallel == null ? null : (value) => onParallel!(NarrativeEventParallelPolicy(
-                cadenceMs: policy.cadenceMs, ownerVariantId: value.isEmpty ? null : value)),
-            ),
-          ],
-        ],
+        Text('Effet en jeu', style: Theme.of(context).textTheme.titleSmall),
+        const SizedBox(height: 4),
+        Text(_effect()),
         const SizedBox(height: 16),
         StudioSelect(
           label: 'Après avoir joué',
@@ -117,12 +86,81 @@ class EventOptionsPanel extends StatelessWidget {
             }
           },
         ),
+        if (record.reusePolicy == NarrativeEventReusePolicy.reusable)
+          Text(
+            'Sans effet : l’événement peut déjà se rejouer.',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
         if (record.resetPolicy case NarrativeEventResetOnOutcomeReceived(
           :final outcome,
         ))
           Text(
             '${outcome.producerKind.name} · ${outcome.producerId} · ${outcome.outcomeId}',
+            style: Theme.of(context).textTheme.bodySmall,
           ),
+        const SizedBox(height: 16),
+        StudioSelect(
+          label: 'Exécution',
+          value: record.parallelPolicy == null ? 'sequential' : 'parallel',
+          options: {
+            'sequential': 'Séquentielle',
+            if (record.source?.kind == NarrativeEventSourceKind.entityAutorun ||
+                record.source?.kind == NarrativeEventSourceKind.mapEnter)
+              'parallel': 'Parallèle',
+          },
+          onChanged: onParallel == null
+              ? null
+              : (value) => onParallel!(
+                  value == 'parallel'
+                      ? NarrativeEventParallelPolicy(cadenceMs: 1000)
+                      : null,
+                ),
+        ),
+        if (record.parallelPolicy case final policy?) ...[
+          const SizedBox(height: 12),
+          const Text(
+            'Répète une courte mise à jour d’état sans immobiliser le joueur. Les dialogues, combats et transitions suspendent le cycle.',
+          ),
+          const SizedBox(height: 12),
+          StudioCommitField(
+            key: ValueKey('parallel-cadence:${record.id}'),
+            label: 'Cadence (ms)',
+            value: '${policy.cadenceMs}',
+            tryCommit: (value) {
+              final cadence = int.tryParse(value);
+              if (cadence == null ||
+                  cadence < 100 ||
+                  cadence > 60000 ||
+                  onParallel == null) {
+                return false;
+              }
+              onParallel!(
+                NarrativeEventParallelPolicy(
+                  cadenceMs: cadence,
+                  ownerVariantId: policy.ownerVariantId,
+                ),
+              );
+              return true;
+            },
+          ),
+          if (record.source?.kind ==
+              NarrativeEventSourceKind.entityAutorun) ...[
+            const SizedBox(height: 12),
+            StudioSelect(
+              label: 'Page propriétaire',
+              value: policy.ownerVariantId ?? '',
+              options: {'': 'Toutes les pages actives', ...ownerVariants},
+              onChanged: onParallel == null
+                  ? null
+                  : (value) => onParallel!(
+                      NarrativeEventParallelPolicy(
+                        cadenceMs: policy.cadenceMs,
+                        ownerVariantId: value.isEmpty ? null : value,
+                      ),
+                    ),
+            ),
+          ],
+        ],
         const SizedBox(height: 16),
         Wrap(
           spacing: 8,
@@ -142,35 +180,93 @@ class EventOptionsPanel extends StatelessWidget {
               ),
           ],
         ),
-        const SizedBox(height: 20),
-        StudioCommitField(
-          key: ValueKey('priority:${record.id}'),
-          label: 'Priorité',
-          alwaysCommit: true,
-          value: priorityInput ?? '${record.priority}',
-          onCommit: onPriority,
-        ),
-        const SizedBox(height: 16),
-        StudioCommitField(
-          key: ValueKey('order:${record.id}'),
-          label: 'Ordre de distribution',
-          alwaysCommit: true,
-          value: orderInput ?? '${record.order}',
-          onCommit: onOrder,
-        ),
-        const SizedBox(height: 16),
-        Text('Mode du projet : ${mode?.name ?? 'registre absent'}'),
-        if (mode == null || mode == EventSystemMode.legacyOnly)
+        if (mode == null || mode == EventSystemMode.legacyOnly) ...[
+          const SizedBox(height: 12),
           const StudioNotice(
             'Le mode historique peut empêcher la distribution de cet événement. Activer un événement ne change pas le mode du projet.',
           ),
-        const SizedBox(height: 8),
-        StudioButton(
-          label: 'Examiner le mode du projet',
-          secondary: true,
-          onPressed: onMode,
+        ],
+        const SizedBox(height: 12),
+        StudioSection(
+          key: PageStorageKey<String>('event-advanced:${record.id}'),
+          title: 'Options avancées',
+          collapsible: true,
+          initiallyExpanded: priorityInput != null || orderInput != null,
+          children: [
+            SizedBox(
+              key: PageStorageKey<String>('event-advanced-fields:${record.id}'),
+              width: double.infinity,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Quand plusieurs événements partagent ce déclencheur, la priorité la plus haute passe d’abord, puis l’ordre le plus petit. Propres à cet événement, enregistrés avec Enregistrer.',
+                  ),
+                  const SizedBox(height: 12),
+                  StudioCommitField(
+                    key: ValueKey('priority:${record.id}'),
+                    label: 'Priorité',
+                    alwaysCommit: true,
+                    value: priorityInput ?? '${record.priority}',
+                    onCommit: onPriority,
+                  ),
+                  const SizedBox(height: 16),
+                  StudioCommitField(
+                    key: ValueKey('order:${record.id}'),
+                    label: 'Ordre de distribution',
+                    alwaysCommit: true,
+                    value: orderInput ?? '${record.order}',
+                    onCommit: onOrder,
+                  ),
+                  const SizedBox(height: 16),
+                  Text('Mode des événements du projet : ${_modeLabel(mode)}'),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Ce réglage concerne tout le projet. Enregistrer cet événement ne le modifie jamais : il se change dans sa propre fenêtre, qui l’enregistre immédiatement après votre choix.',
+                  ),
+                  const SizedBox(height: 8),
+                  StudioButton(
+                    label: 'Examiner le mode du projet',
+                    secondary: true,
+                    onPressed: onMode,
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ],
     ),
   );
+
+  String _effect() {
+    if (record.reusePolicy == null) {
+      return 'À définir : choisissez ce qui se passe après une première lecture.';
+    }
+    if (record.reusePolicy == NarrativeEventReusePolicy.reusable) {
+      return 'À chaque déclenchement, tant que ses conditions sont remplies.';
+    }
+    return switch (record.resetPolicy) {
+      NarrativeEventResetNever() => 'Une seule fois dans la partie.',
+      NarrativeEventResetOnMapReentry() => 'Une fois par visite : se rejoue après avoir quitté puis retrouvé sa carte.',
+      NarrativeEventResetOnOutcomeReceived(:final outcome) =>
+        'Une fois, puis à nouveau après le résultat « ${_outcomeLabel(outcome)} ».',
+    };
+  }
+
+  String _outcomeLabel(NarrativeOutcomeRef outcome) {
+    final matches = outcomes.options
+        .where((option) => option.outcome == outcome)
+        .toList();
+    return matches.length == 1
+        ? matches.single.outcomeLabel
+        : outcome.outcomeId;
+  }
+
+  static String _modeLabel(EventSystemMode? mode) => switch (mode) {
+    null => 'registre absent',
+    EventSystemMode.legacyOnly => 'historique',
+    EventSystemMode.dualRead => 'mixte',
+    EventSystemMode.v2Only => 'moderne',
+  };
 }

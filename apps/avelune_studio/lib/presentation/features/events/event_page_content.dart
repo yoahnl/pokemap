@@ -61,6 +61,7 @@ class EventPageContent extends StatelessWidget {
     ),
     EventTab.scene => EventScenePanel(
       scenes: controller.project.scenes,
+      storylines: controller.project.storylines,
       selectedId: eventSceneId(record),
       dirtyIds: sceneDirtyIds,
       onSelect: (id) => mutate(() => controller.setScene(record.id, id)),
