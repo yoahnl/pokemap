@@ -68,7 +68,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text(_refusalMessage), findsOneWidget);
-    expect(find.text('Projet ouvert — lecture seule'), findsNothing);
+    expect(find.text('Projet ouvert'), findsNothing);
     await revealProjectPath(tester);
     expect(_enteredPath(tester), '/projets/MonJeu ');
     expect(tester.takeException(), isNull);
@@ -151,7 +151,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text(_refusalMessage), findsOneWidget);
-      expect(find.text('Projet ouvert — lecture seule'), findsNothing);
+      expect(find.text('Projet ouvert'), findsNothing);
       expect(find.text(exampleA.name), findsNothing);
       expect(find.textContaining('ProjectOpenFailure'), findsNothing);
       expect(find.textContaining('Instance of'), findsNothing);
@@ -167,7 +167,7 @@ void main() {
       expect(port.requests, ['/projets/MonJeu ', exampleA.directoryPath]);
       port.pending.last.complete(exampleA);
       await tester.pumpAndSettle();
-      expect(find.text('Projet ouvert — lecture seule'), findsOneWidget);
+      expect(find.text('Projet ouvert'), findsOneWidget);
       expect(find.text(exampleA.name), findsWidgets);
       expect(find.text(_refusalMessage), findsNothing);
       expect(selections, 0);

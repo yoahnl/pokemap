@@ -58,10 +58,10 @@ void main() {
     expect(find.text('Projet Exemple réellement lu'), findsWidgets);
     await revealProjectPath(tester);
     expect(find.text('/exemple'), findsWidgets);
-    expect(find.text('Projet ouvert — lecture seule'), findsOneWidget);
+    expect(find.text('Projet ouvert'), findsOneWidget);
     await tapVisible(tester, find.byKey(const ValueKey('Fermer le projet')));
     await tester.pumpAndSettle();
-    expect(find.text('Projet ouvert — lecture seule'), findsNothing);
+    expect(find.text('Projet ouvert'), findsNothing);
     expect(port.closed, [_project]);
     await tester.pumpWidget(const SizedBox());
   });
@@ -79,7 +79,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.textContaining('manifeste'), findsWidgets);
-    expect(find.text('Projet ouvert — lecture seule'), findsNothing);
+    expect(find.text('Projet ouvert'), findsNothing);
     port.pending = Completer<ProjectSession>();
     await enterProjectPath(tester, '/corrige');
     await tapVisible(tester, find.byKey(const ValueKey('open-project-path')));

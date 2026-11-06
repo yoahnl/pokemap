@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
+import '../../../features/home/application/home_next_steps.dart';
 import '../../../features/home/domain/recent_studio_project.dart';
 import '../../shared/widgets/layout/studio_application_frame.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
@@ -9,6 +10,7 @@ import 'studio_home_all_maps.dart';
 import 'studio_home_projects.dart';
 import 'studio_home_tools.dart';
 import 'studio_home_guidance.dart';
+import 'studio_home_next_steps.dart';
 
 class StudioHomeScreen extends StatefulWidget {
   const StudioHomeScreen({
@@ -118,11 +120,22 @@ class _StudioHomeScreenState extends State<StudioHomeScreen> {
         .where((map) => map.name.toLowerCase().contains(_query))
         .toList();
 
-    Widget guidance() => StudioHomeGuidance(
-      hasProject: widget.projectName != null,
-      busy: widget.busy,
-      onDestination: widget.onDestination,
-    );
+    Widget guidance() => widget.projectName != null
+        ? StudioHomeNextSteps(
+            steps: homeNextSteps(
+              maps: widget.maps,
+              newGame: widget.mapLibrary?.newGame,
+              canTest: widget.canTest,
+            ),
+            busy: widget.busy,
+            onDestination: widget.onDestination,
+            onMap: widget.onMap,
+          )
+        : StudioHomeGuidance(
+            hasProject: widget.projectName != null,
+            busy: widget.busy,
+            onDestination: widget.onDestination,
+          );
 
     Widget recents({bool bounded = false}) => StudioHomeRecentProjects(
       entries: recent,
@@ -150,7 +163,12 @@ class _StudioHomeScreenState extends State<StudioHomeScreen> {
           recents(),
         const SizedBox(height: 10),
         if (bounded)
-          StudioPanel(compact: true, children: [guidance()])
+          Flexible(
+            child: SingleChildScrollView(
+              key: const ValueKey('home-guidance-scroll'),
+              child: StudioPanel(compact: true, children: [guidance()]),
+            ),
+          )
         else ...[
           const StudioPanel(
             title: 'Conseil du jour',

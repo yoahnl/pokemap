@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+
 import '../../../features/project_session/application/project_session_state.dart';
+import '../../../features/project_session/domain/project_session.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/inputs/studio_path_field.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
@@ -71,8 +73,12 @@ class ProjectOpenControls extends StatelessWidget {
             ],
           ],
         ),
-        if (state.project != null)
-          const StudioNotice('Projet ouvert — lecture seule'),
+        if (state.project case final project?)
+          StudioNotice(
+            project.storage == ProjectSessionStorage.portableCatalog
+                ? 'Ce projet publié est en lecture seule : ses cartes et ses ressources se consultent sans pouvoir être modifiées. Ouvrez le projet de travail d’origine pour les changer.'
+                : 'Projet ouvert',
+          ),
       ],
     );
   }
