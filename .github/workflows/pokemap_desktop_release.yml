@@ -11,6 +11,7 @@ on:
         options:
           - preflight
           - release
+          - windows-native-check
       version:
         description: Required for release mode and must match pubspec.yaml
         required: false
@@ -289,7 +290,11 @@ jobs:
             apps/avelune_studio/build/release/appcast-macos.xml
 
   windows:
-    if: ${{ github.event_name != 'workflow_dispatch' && !startsWith(github.ref, 'refs/tags/pokemap-v') }}
+    if: >-
+      ${{
+        (github.event_name != 'workflow_dispatch' && !startsWith(github.ref, 'refs/tags/pokemap-v')) ||
+        (github.event_name == 'workflow_dispatch' && inputs.mode == 'windows-native-check')
+      }}
     runs-on: windows-2025
     timeout-minutes: 60
     steps:
@@ -308,7 +313,16 @@ jobs:
           }
           "$env:RUNNER_TEMP/flutter/bin" |
             Out-File -FilePath "$env:GITHUB_PATH" -Encoding utf8 -Append
+      - name: Test native sprite library
+        working-directory: packages/avelune_gen5_sprite_native
+        shell: pwsh
+        run: |
+          dart pub get
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dart test --reporter expanded
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Test, build and package Windows
+        if: ${{ inputs.mode != 'windows-native-check' }}
         working-directory: apps/avelune_studio
         shell: pwsh
         run: |
@@ -341,6 +355,7 @@ jobs:
             -BundleDir $bundle `
             -OutputDir "build/release"
       - name: Preserve Windows package
+        if: ${{ inputs.mode != 'windows-native-check' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: pokemap-windows-${{ github.sha }}
@@ -379,6 +394,14 @@ jobs:
           }
           "$env:RUNNER_TEMP/flutter/bin" |
             Out-File -FilePath "$env:GITHUB_PATH" -Encoding utf8 -Append
+      - name: Test native sprite library
+        working-directory: packages/avelune_gen5_sprite_native
+        shell: pwsh
+        run: |
+          dart pub get
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dart test --reporter expanded
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Build Windows manual release
         working-directory: apps/avelune_studio
         shell: pwsh
