@@ -288,6 +288,74 @@ Package boundaries:
   saves protected by the compatibility baseline require a tested compatibility
   path even before `1.0.0`.
 
+### Mandatory architecture boundaries and renderer independence
+
+**Respect Avelune's architecture and dependency direction in every change.**
+Replaceable infrastructure and external providers must be integrated through
+Avelune-owned contracts and adapters. This is a blocking requirement, with
+particular attention to the 3D renderer. For capabilities already covered by
+those contracts, adding another engine must require its adapter, platform
+integration and composition registration, without vendor-specific rewrites of
+gameplay, story, sessions, project/save formats or editor commands.
+Existing coupling is migration debt, not permission to extend it or proof that
+the current code already satisfies this requirement. Only a direct, explicit
+user instruction may authorize a bounded exception.
+
+- Avelune owns the semantics of scenes, cameras, animation, asset identity,
+  picking, visual profiles, capabilities, timing and renderer lifecycle.
+  Keep provider-specific imports, scene objects, materials, textures, animation
+  objects, ECS entities and GPU/native handles inside the provider adapter.
+  Do not leak them through neutral public signatures, generics, callbacks,
+  inheritance, exports, persisted data, aliases, casts or untyped escape hatches.
+- Runtime and authoring consumers depend on Avelune contracts. Construct and
+  select providers at composition boundaries through injected factories.
+  Composition roots may import adapter entry points to register providers, but
+  must not expose or manipulate vendor engine types.
+  Do not spread engine checks or provider construction across gameplay, session
+  logic or editor tools. Keep pure Dart contracts free of Flutter; widgets,
+  canvas and image types belong only in separate presentation boundaries.
+  Flutter UI and existing Flame 2D presentation remain valid in their own
+  responsibilities. Ordinary data/math utilities do not need artificial wrappers.
+- Separate scene semantics from their presentation surface. A provider may use
+  Flutter GPU, an external texture or a native view, and may initialize, pick,
+  prepare or present asynchronously. Do not require every renderer to expose
+  a Flame Game, a Canvas-only synchronous draw or a specific GPU resource.
+  Specify which readiness/presentation event is actually observable; submitting
+  work or completing a Flutter frame is not a universal display acknowledgement.
+- Keep simulation and story clocks under host ownership. Reading visual state,
+  rendering, repainting, warm-up, capture, multiple views, skipped/repeated frames
+  and retries must not implicitly advance gameplay, even with a zero time step.
+  Define update, simulation pause, presentation pause and preparation semantics
+  explicitly, without silently changing the gameplay time model.
+- Define typed resource identities, ownership, sharing, budgets, generations,
+  asynchronous readiness, cancellation, replacement, errors and idempotent
+  disposal. Reject stale results and respect resources still in use. Keep source
+  assets and protected project/save data independent of providers; compiled
+  provider resources are rebuildable products, not their sole durable form.
+- Preserve bounded incremental updates and the authoring and compatibility
+  requirements above. Do not rebuild or reload an entire scene/project, decode
+  or upload unrelated assets, or copy the complete world each frame to service
+  a local mutation. Bounded updates and transfers for affected resources remain
+  allowed. Keep batching, instancing and caching possible; do not hide vendor
+  coupling in shared helpers or move gameplay authority into a provider's ECS.
+- Declare supported capabilities and explicit unsupported/fallback behavior.
+  Do not silently ignore required semantics or equate an adapter with automatic
+  visual/performance parity. A genuinely new product capability may extend an
+  Avelune contract with compatibility evidence; it must not enter through a
+  provider-specific escape hatch. Hot-swapping engines during a live session
+  is a separate capability, not an implicit requirement.
+- Before adding a shared API or changing a rendering boundary, identify its
+  owner, consumers and replacement contract. Verify allowed dependencies and
+  exported types with focused checks and shared contract tests. A second real
+  implementation must exercise the same contracts on a declared representative
+  scope before claiming proven engine substitutability; a fake or renamed
+  wrapper alone does not prove GPU integration, parity or performance.
+  Address touched coupling in a scoped change; record other debt without
+  silently starting an unrelated global refactor.
+
+The detailed audit, migration boundaries and acceptance criteria are tracked in
+[the renderer-independence issue](https://github.com/yoahnl/pokemap/issues/13).
+
 ---
 
 ## 6. Working Style
