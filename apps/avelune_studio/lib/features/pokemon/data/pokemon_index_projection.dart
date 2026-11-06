@@ -66,6 +66,7 @@ Future<List<PokemonSpeciesSummary>> loadPokemonSpeciesIndex({
         generation: (json['genIntroduced'] as num?)?.toInt() ?? 0,
         types: index.types,
         formIds: index.formIds,
+        formId: ((json['forms'] as Map?)?['formId'] as String?)?.trim() ?? '',
         baseFormId: ((json['forms'] as Map?)?['baseFormId'] as String?) ?? '',
         isBaseForm: ((json['forms'] as Map?)?['isBaseForm'] as bool?) ?? true,
         mediaRelativePath: switch (((json['refs'] as Map?)?['media'] as String?)

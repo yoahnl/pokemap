@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../../../features/pokemon/application/pokemon_workspace_controller.dart';
 import '../../../features/pokemon/domain/pokemon_workspace_models.dart';
+import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_draft_field.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
+import '../../shared/widgets/layout/studio_section.dart';
+import 'pokemon_evolution_rule.dart';
 import 'pokemon_ui_parts.dart';
 
 class PokemonEvolutionEntry extends StatelessWidget {
@@ -44,13 +47,27 @@ class PokemonEvolutionEntry extends StatelessWidget {
   Widget build(BuildContext context) {
     final conditions =
         (value['conditionText'] as Map?)?.cast<String, dynamic>() ?? {};
+    final method = '${value['method'] ?? ''}'.trim();
+    final kind = pokemonEvolutionRuleKind(value);
+    final moves = {
+      for (final move
+          in controller.index?.moves.entries ?? const <PokemonMoveSummary>[])
+        move.id: move.name,
+    };
+    final items = controller.index?.items ?? const <String, String>{};
+    final rule = pokemonEvolutionRule(
+      value,
+      itemName: (id) => items[id] ?? id,
+      moveName: (id) => moves[id] ?? id,
+    );
+    bool shows(PokemonEvolutionRuleKind owner, String key) =>
+        kind == owner || (value[key] != null && '${value[key]}'.isNotEmpty);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         PokemonSectionHeading(
           title: 'Relation ${index + 1}',
-          description:
-              'Une condition enregistrée ne garantit pas son exécution en jeu.',
+          description: 'Seule la règle exécutée est lue par le jeu ; la description reste un texte libre.',
           trailing: IconButton(
             tooltip: 'Retirer cette évolution',
             icon: const Icon(Icons.close),
@@ -63,79 +80,118 @@ class PokemonEvolutionEntry extends StatelessWidget {
           options: speciesOptions,
           onChanged: (selected) => _edit('targetSpeciesId', selected),
         ),
-        const SizedBox(height: 11),
-        StudioDraftField(
-          key: ValueKey('evolution-$index-method'),
-          label: 'Méthode conservée',
-          value: '${value['method'] ?? ''}',
-          onChanged: (text) => _edit('method', text),
+        const SizedBox(height: 14),
+        Text(
+          'Règle exécutée par le jeu',
+          style: Theme.of(context).textTheme.titleSmall,
         ),
-        const SizedBox(height: 11),
-        LayoutBuilder(
-          builder: (context, bounds) {
-            final level = StudioDraftField(
-              key: ValueKey('evolution-$index-minLevel'),
-              label: 'Niveau minimum',
-              value: '${value['minLevel'] ?? ''}',
-              onChanged: (text) => _edit(
-                'minLevel',
-                text.isEmpty ? null : int.tryParse(text) ?? text,
-              ),
-            );
-            final friendship = StudioDraftField(
-              key: ValueKey('evolution-$index-minFriendship'),
-              label: 'Amitié minimum',
-              value: '${value['minFriendship'] ?? ''}',
-              onChanged: (text) => _edit(
-                'minFriendship',
-                text.isEmpty ? null : int.tryParse(text) ?? text,
-              ),
-            );
-            return bounds.maxWidth < 430
-                ? Column(
-                    children: [level, const SizedBox(height: 11), friendship],
-                  )
-                : Row(
-                    children: [
-                      Expanded(child: level),
-                      const SizedBox(width: 10),
-                      Expanded(child: friendship),
-                    ],
-                  );
-          },
-        ),
-        const SizedBox(height: 11),
+        const SizedBox(height: 8),
         StudioSelect(
-          label: 'Objet requis',
-          value: value['itemId'] as String? ?? '',
-          options: {'': 'Aucun', ...?controller.index?.items},
-          onChanged: (selected) =>
-              _edit('itemId', selected.isEmpty ? null : selected),
-        ),
-        const SizedBox(height: 11),
-        StudioSelect(
-          label: 'Attaque requise',
-          value: value['requiredMoveId'] as String? ?? '',
+          label: 'Déclenchement en jeu',
+          value: method,
           options: {
-            '': 'Aucune',
-            for (final move
-                in controller.index?.moves.entries ??
-                    const <PokemonMoveSummary>[])
-              move.id: '${move.name} · ${move.id}',
+            ...pokemonGuidedEvolutionMethods,
+            if (!pokemonGuidedEvolutionMethods.containsKey(method))
+              method: pokemonEvolutionMethodLabel(method),
           },
-          onChanged: (selected) =>
-              _edit('requiredMoveId', selected.isEmpty ? null : selected),
+          onChanged: kind == PokemonEvolutionRuleKind.trade
+              ? null
+              : (selected) => _edit('method', selected),
         ),
+        const SizedBox(height: 8),
+        if (rule.executable)
+          Text(rule.sentence, key: ValueKey('evolution-$index-rule'))
+        else
+          StudioNotice(
+            rule.sentence,
+            key: ValueKey('evolution-$index-rule'),
+            isError: kind != PokemonEvolutionRuleKind.unsupported,
+          ),
         const SizedBox(height: 11),
+        if (kind != PokemonEvolutionRuleKind.trade ||
+            value['minLevel'] != null) ...[
+          StudioDraftField(
+            key: ValueKey('evolution-$index-minLevel'),
+            label: 'Niveau minimum',
+            value: '${value['minLevel'] ?? ''}',
+            onChanged: (text) => _edit(
+              'minLevel',
+              text.isEmpty ? null : int.tryParse(text) ?? text,
+            ),
+          ),
+          const SizedBox(height: 11),
+        ],
+        if (shows(PokemonEvolutionRuleKind.friendship, 'minFriendship')) ...[
+          StudioDraftField(
+            key: ValueKey('evolution-$index-minFriendship'),
+            label: 'Amitié minimum',
+            value: '${value['minFriendship'] ?? ''}',
+            onChanged: (text) => _edit(
+              'minFriendship',
+              text.isEmpty ? null : int.tryParse(text) ?? text,
+            ),
+          ),
+          const SizedBox(height: 11),
+        ],
+        if (shows(PokemonEvolutionRuleKind.item, 'itemId')) ...[
+          StudioSelect(
+            label: 'Objet requis',
+            value: value['itemId'] as String? ?? '',
+            options: {'': 'Aucun', ...items},
+            onChanged: (selected) =>
+                _edit('itemId', selected.isEmpty ? null : selected),
+          ),
+          const SizedBox(height: 11),
+        ],
+        if (shows(PokemonEvolutionRuleKind.knownMove, 'requiredMoveId')) ...[
+          StudioSelect(
+            label: 'Attaque requise',
+            value: value['requiredMoveId'] as String? ?? '',
+            options: {
+              '': 'Aucune',
+              for (final move in moves.entries)
+                move.key: '${move.value} · ${move.key}',
+            },
+            onChanged: (selected) =>
+                _edit('requiredMoveId', selected.isEmpty ? null : selected),
+          ),
+          const SizedBox(height: 11),
+        ],
+        const SizedBox(height: 6),
+        Text('Description', style: Theme.of(context).textTheme.titleSmall),
+        const SizedBox(height: 4),
+        Text(
+          'Texte libre pour décrire l’évolution. Le jeu ne lit pas ce texte : il ne déclenche ni n’empêche rien.',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+        const SizedBox(height: 8),
         for (final language in {'fr', 'en', ...conditions.keys}) ...[
           StudioDraftField(
             key: ValueKey('evolution-$index-condition-$language'),
-            label: 'Condition · $language',
+            label: 'Description · $language',
             value: '${conditions[language] ?? ''}',
             onChanged: (text) => _condition(language, text),
           ),
           const SizedBox(height: 11),
         ],
+        StudioSection(
+          key: PageStorageKey<String>('evolution-$index-technical'),
+          title: 'Données techniques',
+          collapsible: true,
+          initiallyExpanded: false,
+          children: [
+            SizedBox(
+              key: PageStorageKey<String>('evolution-$index-technical-fields'),
+              width: double.infinity,
+              child: StudioDraftField(
+                key: ValueKey('evolution-$index-method'),
+                label: 'Identifiant de méthode conservé',
+                value: method,
+                onChanged: (text) => _edit('method', text),
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }

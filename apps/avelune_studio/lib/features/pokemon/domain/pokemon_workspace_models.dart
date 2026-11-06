@@ -16,6 +16,7 @@ final class PokemonSpeciesSummary {
     required this.generation,
     required this.types,
     required this.formIds,
+    this.formId = '',
     this.baseFormId = '',
     this.isBaseForm = true,
     required this.mediaRelativePath,
@@ -32,6 +33,7 @@ final class PokemonSpeciesSummary {
   final int generation;
   final List<String> types;
   final List<String> formIds;
+  final String formId;
   final String baseFormId;
   final bool isBaseForm;
   final String mediaRelativePath;
