@@ -18,6 +18,7 @@ import 'map_trigger_inspector.dart';
 import 'map_zone_inspector.dart';
 import 'map_warp_inspector.dart';
 import 'map_decor_inspector_tabs.dart';
+import 'map_multi_selection_inspector.dart';
 import 'map_workspace_view_state.dart';
 import 'map_workspace_visuals.dart';
 import 'map_connection_panel.dart';
@@ -88,6 +89,18 @@ class MapSelectionInspector extends StatelessWidget {
     EditableMapDocument document, {
     bool visualOnly = false,
   }) {
+    if (!visualOnly &&
+        view.selectedDecorIds(document.current.id).length > 1) {
+      return StudioSidebar(
+        width: width,
+        child: MapMultiSelectionInspector(
+          document: document,
+          project: project,
+          view: view,
+          onChanged: onChanged,
+        ),
+      );
+    }
     if (!visualOnly &&
         view.tool == StudioMapTool.connection &&
         onLinkMaps != null &&

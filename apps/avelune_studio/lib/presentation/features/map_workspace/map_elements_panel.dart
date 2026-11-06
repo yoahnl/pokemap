@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../../features/map_workspace/application/editable_map_document.dart';
@@ -156,11 +157,23 @@ class _MapElementsPanelState extends State<MapElementsPanel> {
     };
     if (family == null) return;
     widget.view.tool = StudioMapTool.select;
-    widget.view.select(widget.document, family, entry.id);
+    final keys = HardwareKeyboard.instance;
+    if (family == MapSelectionFamily.decor &&
+        (keys.isShiftPressed || keys.isMetaPressed)) {
+      widget.view.toggleDecorInSelection(widget.document, entry.id);
+    } else {
+      widget.view.select(widget.document, family, entry.id);
+    }
     _changed();
   }
 
   bool _isSelected(MapElementListEntry entry) {
+    if ((entry.kind == 'decor' || entry.kind == 'model') &&
+        widget.view
+            .selectedDecorIds(widget.document.current.id)
+            .contains(entry.id)) {
+      return true;
+    }
     final target = widget.view.target;
     return target != null &&
         target.id == entry.id &&

@@ -617,12 +617,56 @@ class MapWorkspaceViewState {
     }
   }
 
+  final _extraDecorIds = <String>{};
+  String? _extraDecorMapId;
+
+  Set<String> selectedDecorIds(String mapId) {
+    final target = _target;
+    return {
+      if (target != null &&
+          target.mapId == mapId &&
+          target.family == MapSelectionFamily.decor)
+        target.id,
+      if (_extraDecorMapId == mapId) ..._extraDecorIds,
+    };
+  }
+
+  void toggleDecorInSelection(EditableMapDocument document, String id) {
+    final mapId = document.current.id;
+    final target = _target;
+    if (target == null ||
+        target.mapId != mapId ||
+        target.family != MapSelectionFamily.decor) {
+      select(document, MapSelectionFamily.decor, id);
+      return;
+    }
+    if (isUnavailable(document, MapSelectionFamily.decor, id)) return;
+    if (_extraDecorMapId != mapId) {
+      _extraDecorIds.clear();
+      _extraDecorMapId = mapId;
+    }
+    if (id == target.id) {
+      if (_extraDecorIds.isEmpty) {
+        clearSelection(document);
+        return;
+      }
+      final remaining = _extraDecorIds.toList();
+      select(document, MapSelectionFamily.decor, remaining.removeAt(0));
+      _extraDecorIds.addAll(remaining);
+      _extraDecorMapId = mapId;
+      return;
+    }
+    if (!_extraDecorIds.remove(id)) _extraDecorIds.add(id);
+  }
+
   void select(
     EditableMapDocument document,
     MapSelectionFamily family,
     String id,
   ) {
     if (isUnavailable(document, family, id)) return;
+    _extraDecorIds.clear();
+    _extraDecorMapId = null;
     _target = MapSelectionTarget(
       mapId: document.current.id,
       family: family,
@@ -633,6 +677,8 @@ class MapWorkspaceViewState {
 
   void clearSelection(EditableMapDocument document) {
     _target = null;
+    _extraDecorIds.clear();
+    _extraDecorMapId = null;
     pendingMove = null;
     document.selectedId = null;
   }

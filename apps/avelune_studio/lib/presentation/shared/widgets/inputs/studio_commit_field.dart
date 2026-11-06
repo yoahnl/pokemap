@@ -9,8 +9,10 @@ class StudioCommitField extends StatefulWidget {
     this.tryCommit,
     this.maxLines = 1,
     this.alwaysCommit = false,
+    this.hint,
   }) : assert((onCommit == null) != (tryCommit == null));
   final String label, value;
+  final String? hint;
   final ValueChanged<String>? onCommit;
   final bool Function(String)? tryCommit;
   final int maxLines;
@@ -68,7 +70,13 @@ class _StudioCommitFieldState extends State<StudioCommitField> {
     controller: _text,
     focusNode: _focus,
     maxLines: widget.maxLines,
-    decoration: InputDecoration(labelText: widget.label),
+    decoration: InputDecoration(
+      labelText: widget.label,
+      hintText: widget.hint,
+      floatingLabelBehavior: widget.hint == null
+          ? null
+          : FloatingLabelBehavior.always,
+    ),
     onChanged: (_) => _committedSinceEdit = false,
     onSubmitted: (_) => _commit(),
   );
