@@ -141,7 +141,9 @@ class EditableMapDocument {
 
   void commit(MapData next) {
     if (elementOrderSaving || spatialFieldObstacleSaving || fieldTraversalSaving ||
-        modelVisibilitySaving) return;
+        modelVisibilitySaving) {
+      return;
+    }
     if (next == current) return;
     final result = _history.recordMutation(
       before: current,

@@ -79,8 +79,9 @@ class _PeriodicRewardPickerState extends State<PeriodicRewardPicker> {
   void didUpdateWidget(PeriodicRewardPicker oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.initial != widget.initial ||
-        oldWidget.expectedValue != widget.expectedValue)
+        oldWidget.expectedValue != widget.expectedValue) {
       _reset();
+    }
   }
 
   void _reset() {
@@ -155,13 +156,15 @@ class _PeriodicRewardPickerState extends State<PeriodicRewardPicker> {
       }
       if (!more && _sceneId != null) await _loadNodes(_sceneId!);
     } catch (error) {
-      if (mounted && generation == _generation)
+      if (mounted && generation == _generation) {
         setState(
           () => _error = 'Source publiée indisponible ou modifiée. Actualisez les choix. La condition existante est conservée.',
         );
+      }
     } finally {
-      if (mounted && generation == _generation)
+      if (mounted && generation == _generation) {
         setState(() => _loading = false);
+      }
     }
   }
 
@@ -204,13 +207,15 @@ class _PeriodicRewardPickerState extends State<PeriodicRewardPicker> {
         cursor = page.nextCursor;
       } while (cursor != null);
     } catch (error) {
-      if (mounted && generation == _generation)
+      if (mounted && generation == _generation) {
         setState(
           () => _error = 'Cette scène publiée a changé ou reste indisponible. Choisissez sa version enregistrée ; les modifications en brouillon ne sont pas des sources publiées.',
         );
+      }
     } finally {
-      if (mounted && generation == _generation)
+      if (mounted && generation == _generation) {
         setState(() => _loading = false);
+      }
     }
   }
 

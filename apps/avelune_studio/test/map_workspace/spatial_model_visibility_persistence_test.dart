@@ -119,10 +119,11 @@ void main() {
             await Directory('${root.path}/maps').create();
             await File('${root.path}/maps/a.json')
                 .writeAsString(jsonEncode(source.toJson()));
-            for (var i = 0; i < unrelated; i++)
+            for (var i = 0; i < unrelated; i++) {
               await File('${root.path}/maps/foreign-$i.json').writeAsString(
                 jsonEncode(source.copyWith(id: 'foreign-$i').toJson()),
               );
+            }
             final history = File(
               '${root.path}/.pokemap/authoring/history.jsonl',
             );

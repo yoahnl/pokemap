@@ -64,8 +64,9 @@ void main() {
                   query: (request) async {
                     if (request.operation == AuthoringQueryOperation.get &&
                         lateGet &&
-                        getCount++ == 0)
+                        getCount++ == 0) {
                       return oldGet.future;
+                    }
                     if (removed) return page([]);
                     return request.resourceKind == 'periodicRewardScene'
                         ? page([scene(lateGet ? 'B' : 'A')])
@@ -367,8 +368,9 @@ void main() {
               child: PeriodicRewardChoiceScope(
                 projectRootPath: '/project',
                 query: (request) async {
-                  if (request.resourceKind == 'periodicRewardScene')
+                  if (request.resourceKind == 'periodicRewardScene') {
                     return page([scene('A'), scene('B')]);
+                  }
                   return request.filters['sceneId'] == 'A'
                       ? slow.future
                       : page([node('B')]);
@@ -412,8 +414,9 @@ void main() {
             child: PeriodicRewardChoiceScope(
               projectRootPath: '/project',
               query: (request) async {
-                if (request.operation == AuthoringQueryOperation.get)
+                if (request.operation == AuthoringQueryOperation.get) {
                   throw StateError('missing');
+                }
                 return page([]);
               },
               child: PeriodicRewardPicker(

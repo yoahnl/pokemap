@@ -207,10 +207,11 @@ class _SpatialModelVisibilityControls extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final publish = document.configureSpatialModelVisibility;
-    if (publish == null)
+    if (publish == null) {
       return const StudioNotice(
         'La publication ciblée des conditions de visibilité est indisponible dans cet atelier.',
       );
+    }
     void apply(NarrativeEventConditionExpression? value) {
       unawaited(publish(instance.id, value).then((_) => onChanged()));
     }

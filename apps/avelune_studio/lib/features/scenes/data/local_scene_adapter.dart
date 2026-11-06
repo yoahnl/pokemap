@@ -96,10 +96,11 @@ class LocalSceneAdapter implements ScenePort {
                   if (manifest.scenes
                           .where((scene) => scene.id == base.id)
                           .firstOrNull !=
-                      base)
+                      base) {
                     throw const SceneFailure(
                       'Cette scène a changé sur le disque. Votre brouillon est conservé.',
                     );
+                  }
                   return {
                     'sceneId': base.id,
                     'nodeId': nodeId,
