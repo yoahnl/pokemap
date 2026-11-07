@@ -160,6 +160,18 @@ final class BattleTurnExecutionEvent extends BattleTurnEvent {
   final BattleMoveExecution execution;
 }
 
+final class BattleTurnMoveFailedEvent extends BattleTurnEvent {
+  const BattleTurnMoveFailedEvent({
+    required this.slot,
+    required this.moveId,
+    required this.reason,
+  });
+
+  final BattleSlotRef slot;
+  final String moveId;
+  final String reason;
+}
+
 final class BattleTurnStatusEvent extends BattleTurnEvent {
   const BattleTurnStatusEvent(this.event);
 

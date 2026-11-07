@@ -310,7 +310,11 @@ final class RuntimePsdkBattleSessionAdapter {
         coveredMoveUses.add(_moveUseKey(event.user, event.moveId));
       }
     }
+    final declaredMoveUses = <String>{};
     for (final event in result.timeline.events) {
+      if (event is BattleMoveDeclaredTimelineEvent) {
+        declaredMoveUses.add(_moveUseKey(event.user, event.moveId));
+      }
       if (event is BattleDamageTimelineEvent) {
         final execution = _toLegacyDamageExecution(event);
         executions.add(execution);
@@ -358,6 +362,14 @@ final class RuntimePsdkBattleSessionAdapter {
         final execution = _toLegacyImmuneExecution(event);
         executions.add(execution);
         timeline.add(BattleTurnExecutionEvent(execution));
+      } else if (event is BattleMoveFailedTimelineEvent &&
+          event.reason == BattleMoveFailureReason.unusableByUser.jsonName &&
+          declaredMoveUses.contains(_moveUseKey(event.user, event.moveId))) {
+        timeline.add(BattleTurnMoveFailedEvent(
+          slot: _legacySlotForPosition(event.user),
+          moveId: event.moveId,
+          reason: event.reason,
+        ));
       } else if (event is BattleMoveDeclaredTimelineEvent &&
           event.targets.isNotEmpty &&
           !coveredMoveUses.contains(_moveUseKey(event.user, event.moveId))) {

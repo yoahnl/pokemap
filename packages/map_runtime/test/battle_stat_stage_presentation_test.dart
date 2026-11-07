@@ -92,6 +92,19 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('le plan dit et montre les changements d’étage', () {
+    test('un échec de capacité affiche son message sans aura de statistique', () {
+      final plan = _planFor(const <BattleTurnEvent>[
+        BattleTurnMoveFailedEvent(
+          slot: BattleSlotRef(side: BattleSideId.player, slotIndex: 0),
+          moveId: 'sand_attack',
+          reason: 'unusable_by_user',
+        ),
+      ]);
+
+      expect(_messagesOf(plan), contains('Mais cela échoue !'));
+      expect(plan.steps.whereType<StatStageAuraStep>(), isEmpty);
+    });
+
     test(
         'recette du 2026-08-25 : une baisse de PRÉCISION se voit et se dit',
         () {

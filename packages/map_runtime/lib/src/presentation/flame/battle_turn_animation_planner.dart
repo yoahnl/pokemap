@@ -1139,6 +1139,8 @@ final class BattleTurnAnimationPlanner {
               message: _messageForStatStageEvent(event, trackedDisplayName),
             ),
           );
+        case BattleTurnMoveFailedEvent():
+          steps.add(const ShowMessageStep(message: 'Mais cela échoue !'));
         case BattleTurnFleeFailedEvent():
           // Recette du 2026-08-24 : sans ce texte, l'adversaire attaquait
           // après une fuite ratée sans que le joueur sache pourquoi.

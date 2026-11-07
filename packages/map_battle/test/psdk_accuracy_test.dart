@@ -107,6 +107,25 @@ void main() {
       expect(raisedEvasion.missedTargets, <BattlePositionRef>[_opponent]);
     });
 
+    test('six accuracy drops reduce a 100 percent move to 33 percent', () {
+      BattleAccuracyResult resolve(int seed, {int accuracy = 100}) =>
+          const BattleAccuracyResolver().resolve(
+            execution: _execution(
+              accuracy: accuracy,
+              moveAccuracySeed: seed,
+              playerStatStages: PsdkBattleStatStages(
+                values: const <String, int>{'accuracy': -6},
+              ),
+            ),
+            targets: const <BattlePositionRef>[_opponent],
+          );
+
+      expect(resolve(32).hitTargets, <BattlePositionRef>[_opponent]);
+      expect(resolve(33).missedTargets, <BattlePositionRef>[_opponent]);
+      expect(resolve(99, accuracy: 0).hitTargets,
+          <BattlePositionRef>[_opponent]);
+    });
+
     test('held accuracy items modify chance of hit like PSDK item hooks', () {
       final wideLens = const BattleAccuracyResolver().resolve(
         execution: _execution(

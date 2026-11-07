@@ -4,6 +4,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/src/application/battle_start_request.dart';
 import 'package:map_runtime/src/application/runtime_battle_outcome_apply.dart';
+import 'package:map_runtime/src/application/runtime_battle_move_bridge.dart';
 import 'package:map_runtime/src/application/runtime_psdk_battle_session_adapter.dart';
 import 'package:map_runtime/src/application/runtime_contextual_capture.dart';
 import 'package:map_runtime/src/application/runtime_pokemon_species_loader.dart';
@@ -11,6 +12,147 @@ import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart
 
 void main() {
   group('RuntimePsdkBattleSessionAdapter', () {
+    test('Sand Attack lowers accuracy through the runtime over consecutive turns',
+        () {
+      final sandAttack = const RuntimeBattleMoveBridge().toPsdkBattleMoveData(
+        move: const PokemonMove(
+          id: 'sand_attack',
+          name: 'Jet de Sable',
+          generation: 1,
+          source: 'heartgold-fr-rom',
+          type: 'ground',
+          category: PokemonMoveCategory.status,
+          target: PokemonMoveTarget.normal,
+          basePower: 0,
+          accuracy: PokemonMoveAccuracy.percent(value: 100),
+          pp: 15,
+          engineSupportLevel: PokemonMoveEngineSupportLevel.structuredSupported,
+          effects: [
+            PokemonMoveEffect.modifyStats(
+              chance: 100,
+              stageChanges: [
+                PokemonMoveStatStageChange(
+                  stat: PokemonMoveStatId.accuracy,
+                  stages: -1,
+                ),
+              ],
+            ),
+          ],
+        ),
+        combatantLabel: 'Roucool',
+      );
+      final attack = const RuntimeBattleMoveBridge().toPsdkBattleMoveData(
+        move: const PokemonMove(
+          id: 'vine_whip',
+          name: 'Fouet Lianes',
+          generation: 1,
+          source: 'heartgold-fr-rom',
+          type: 'grass',
+          category: PokemonMoveCategory.physical,
+          target: PokemonMoveTarget.normal,
+          basePower: 35,
+          accuracy: PokemonMoveAccuracy.percent(value: 100),
+          pp: 15,
+          engineSupportLevel: PokemonMoveEngineSupportLevel.structuredSupported,
+        ),
+        combatantLabel: 'Chétiflor',
+      );
+      final session = RuntimePsdkBattleSessionAdapter.fromSetup(
+        PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
+          player: _combatant(
+            id: 'pidgey',
+            hp: 1000,
+            abilityId: 'keen_eye',
+            moves: [sandAttack],
+          ),
+          opponent: _combatant(
+            id: 'bellsprout',
+            hp: 1000,
+            abilityId: 'chlorophyll',
+            moves: [attack],
+          ),
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 17,
+            moveCritical: 23,
+            moveAccuracy: 31,
+            generic: 47,
+          ),
+        ),
+      );
+      var misses = 0;
+      for (var turn = 1; turn <= 15; turn++) {
+        final result = session.submitPlayerChoice(const PlayerBattleChoiceFight(0));
+        final stage = session.state.battlerAt(psdkOpponentSlot)
+            .statStages.valueOf('accuracy');
+        expect(stage, turn < 6 ? -turn : -6, reason: 'turn $turn');
+        final enemyMisses = result.timeline.events
+            .whereType<BattleMoveMissedTimelineEvent>()
+            .where((event) => event.user.bank == psdkOpponentSlot.bank)
+            .length;
+        misses += enemyMisses;
+        final displayTurn = session
+            .createLegacyDisplaySession(isTrainerBattle: false)
+            .state
+            .currentTurn!;
+        final displayedMisses = displayTurn.timeline
+            .whereType<BattleTurnExecutionEvent>()
+            .where((event) => event.execution.attackerSide == BattleSideId.enemy &&
+                !event.execution.didHit)
+            .length;
+        expect(displayedMisses, enemyMisses, reason: 'turn $turn');
+        if (enemyMisses > 0) {
+          expect(
+            displayTurn.timeline.whereType<BattleTurnMoveFailedEvent>()
+                .where((event) => event.moveId == 'vine_whip'),
+            isEmpty,
+          );
+        }
+        if (turn > 6) {
+          expect(
+            result.timeline.events.whereType<BattleMoveFailedTimelineEvent>()
+                .any((event) => event.moveId == 'sand_attack'),
+            isTrue,
+            reason: 'the accuracy stage is already at its minimum',
+          );
+          expect(buildBattleTurnLinesForOverlay(displayTurn),
+              contains('Mais cela échoue !'));
+        }
+      }
+      expect(misses, greaterThan(0));
+      expect(session.state.battlerAt(psdkPlayerSlot).moves.single.currentPp, 0);
+    });
+
+    test('sleep prevention does not display a generic move failure', () {
+      final attack = _move(id: 'tackle', power: 1);
+      final session = RuntimePsdkBattleSessionAdapter.fromSetup(
+        PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
+          player: _combatant(
+            id: 'player',
+            hp: 100,
+            moves: [attack],
+            majorStatus: PsdkBattleMajorStatus.sleep,
+          ),
+          opponent: _combatant(id: 'opponent', hp: 100, moves: [attack]),
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 17,
+            moveCritical: 23,
+            moveAccuracy: 31,
+            generic: 47,
+          ),
+        ),
+      );
+
+      final result = session.submitPlayerChoice(const PlayerBattleChoiceFight(0));
+      expect(
+        result.timeline.events.whereType<BattleMoveFailedTimelineEvent>()
+            .any((event) => event.user.bank == psdkPlayerSlot.bank),
+        isTrue,
+      );
+      final turn = session.createLegacyDisplaySession(isTrainerBattle: false)
+          .state.currentTurn!;
+      expect(turn.timeline.whereType<BattleTurnMoveFailedEvent>(), isEmpty);
+    });
+
     test('opponent status cures produce an item narration event', () {
       final wait = _move(
         id: 'wait',
