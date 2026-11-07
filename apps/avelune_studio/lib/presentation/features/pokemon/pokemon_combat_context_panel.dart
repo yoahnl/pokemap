@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
 
 import '../../../features/pokemon/application/pokemon_combat_controller.dart';
+import '../../../features/pokemon/domain/pokemon_workspace_models.dart';
+import '../../shared/widgets/feedback/studio_notice.dart';
 import 'pokemon_combat_reference_list.dart';
+import 'pokemon_combat_references.dart';
 
 class PokemonCombatContextPanel extends StatelessWidget {
   const PokemonCombatContextPanel({
     super.key,
     required this.combat,
+    this.index,
     this.onOpenReference,
   });
 
   final PokemonCombatController combat;
+  final PokemonWorkspaceIndex? index;
   final Future<void> Function(String kind, String id)? onOpenReference;
 
   @override
@@ -20,6 +25,17 @@ class PokemonCombatContextPanel extends StatelessWidget {
     final trainer = combat.trainer?.current;
     final unique = combat.view == PokemonCombatView.unique;
     final theme = Theme.of(context);
+    final complete = snapshot?.referencesComplete == true;
+    final usages = !complete
+        ? null
+        : table != null
+        ? combatTableReferences(snapshot!, table)
+        : trainer != null
+        ? combatTrainerReferences(snapshot!, trainer)
+        : null;
+    final problem = index == null || (table == null && trainer == null)
+        ? null
+        : combat.validationProblem(index!);
     return Container(
       decoration: BoxDecoration(
         border: Border.all(color: theme.colorScheme.outlineVariant),
@@ -45,6 +61,33 @@ class PokemonCombatContextPanel extends StatelessWidget {
                 : 'Assignez cette table à une zone rectangulaire ou à des cases peintes dans Carte.',
             style: theme.textTheme.bodySmall,
           ),
+          if (problem != null) ...[
+            const SizedBox(height: 12),
+            StudioNotice(
+              key: ValueKey(
+                trainer != null
+                    ? 'combat-trainer-invalid'
+                    : 'combat-table-invalid',
+              ),
+              '${trainer != null ? 'Dresseur' : 'Table'} invalide : $problem',
+              isError: true,
+            ),
+          ],
+          if (usages != null && usages.isEmpty) ...[
+            const SizedBox(height: 12),
+            StudioNotice(
+              key: ValueKey(
+                trainer != null
+                    ? 'combat-trainer-unassigned'
+                    : 'combat-table-unassigned',
+              ),
+              trainer != null
+                  ? 'Aucune carte ni scène n’utilise ce dresseur : il ne combattra pas en jeu. Pour le placer : Carte → sélectionner un personnage → Combat de dresseur, ou un bloc Combat dans une scène.'
+                  : unique
+                  ? 'Aucune scène n’utilise cette rencontre : elle ne se déclenchera pas en jeu. Pour l’utiliser : Histoire → scène → bloc Combat.'
+                  : 'Aucune carte ni scène n’utilise cette table : elle ne se déclenchera pas en jeu. Pour l’affecter : Carte → outil Zones de jeu → zone de rencontre → choisir « ${table!.name} ».',
+            ),
+          ],
           const SizedBox(height: 20),
           Text('Références du projet', style: theme.textTheme.titleSmall),
           const SizedBox(height: 8),

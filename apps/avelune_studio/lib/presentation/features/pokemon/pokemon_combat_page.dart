@@ -274,6 +274,7 @@ class _PokemonCombatPageState extends State<PokemonCombatPage> {
                               width: 320,
                               child: PokemonCombatContextPanel(
                                 combat: combat,
+                                index: widget.index,
                                 onOpenReference: widget.onOpenReference,
                               ),
                             ),

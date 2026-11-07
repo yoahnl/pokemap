@@ -7,10 +7,7 @@ List<String> combatTableReferences(
   ProjectEncounterTable table,
 ) => [
   for (final map in snapshot.maps)
-    if (map.gameplayZones.any(
-      (zone) => zone.encounter?.encounterTableId == table.id,
-    ))
-      'Carte ${map.name}',
+    if (mapUsesEncounterTable(map, table.id)) 'Carte ${map.name}',
   for (final scene in snapshot.project.scenes)
     if (scene.graph.nodes.any(
       (node) =>
@@ -35,3 +32,11 @@ List<String> combatTrainerReferences(
     ))
       'Scène ${scene.name}',
 ];
+
+bool mapUsesEncounterTable(MapData map, String tableId) =>
+    map.gameplayZones.any(
+      (zone) => zone.encounter?.encounterTableId == tableId,
+    ) ||
+    map.entities.any(
+      (entity) => entity.interactiveEncounter?.encounterTableId == tableId,
+    );

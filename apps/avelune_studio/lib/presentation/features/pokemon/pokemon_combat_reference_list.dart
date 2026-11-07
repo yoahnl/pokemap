@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/pokemon/domain/pokemon_combat_port.dart';
+import 'pokemon_combat_references.dart';
 
 class PokemonCombatReferenceList extends StatelessWidget {
   const PokemonCombatReferenceList({
@@ -26,11 +27,7 @@ class PokemonCombatReferenceList extends StatelessWidget {
     }
     final maps = [
       for (final map in snapshot.maps)
-        if (map.gameplayZones.any(
-              (zone) =>
-                  tableId != null &&
-                  zone.encounter?.encounterTableId == tableId,
-            ) ||
+        if ((tableId != null && mapUsesEncounterTable(map, tableId!)) ||
             map.entities.any(
               (entity) =>
                   trainerId != null && entity.npc?.trainerId == trainerId,

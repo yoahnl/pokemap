@@ -27,6 +27,8 @@ String _newCombatId(String title, Iterable<String> existing) {
 }
 
 extension PokemonCombatValidation on PokemonCombatController {
+  String? validationProblem(PokemonWorkspaceIndex index) => _validate(index);
+
   String? _validate(PokemonWorkspaceIndex index) {
     final selectedTable = table?.current;
     if (selectedTable != null) {
