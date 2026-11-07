@@ -1,10 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_decor_group_editing.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/application/spatial_model_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
+import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/features/project_creation/application/project_creation_controller.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -15,6 +17,36 @@ import '../../../../packages/map_authoring/test/support/glb_fixture.dart';
 import '../support/spatial_environment_fixture.dart';
 
 void main() {
+  test('a duplicated 3D decor keeps its visibility condition', () {
+    final condition = NarrativeEventConditionExpression.leaf(
+      NarrativeEventCondition.fact('pont_repare', true),
+    );
+    final source = SpatialModelInstance(
+      id: 'statue',
+      modelId: 'oak',
+      position: Model3dVector3(x: 2.5, y: 0, z: 2.5),
+      visibilityCondition: condition,
+    );
+    final map = spatialEnvironmentMap();
+    final document = EditableMapDocument(
+      MapWorkspaceDocument(
+        map: map.copyWith(
+          spatialScene: map.spatialScene!.copyWith(instances: [source]),
+        ),
+        revision: 'base',
+        mapId: map.id,
+      ),
+    );
+    SpatialModelEditingCommands(
+      document,
+      spatialEnvironmentProject(),
+    ).duplicate(source.id);
+    final copy = document.current.spatialScene!.instances.singleWhere(
+      (instance) => instance.id != source.id,
+    );
+    expect(copy.visibilityCondition, condition);
+  });
+
   test('a 3D group moves, turns, duplicates and leaves atomically then survives a cold reopen', () async {
     final parent = await Directory.systemTemp.createTemp('studio-group3d-');
     addTearDown(() => parent.delete(recursive: true));

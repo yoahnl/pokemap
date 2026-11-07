@@ -264,6 +264,7 @@ class SpatialModelEditingCommands {
       blocksMovement: item.blocksMovement,
       castsShadows: item.castsShadows,
       clip: item.clip,
+      visibilityCondition: item.visibilityCondition,
     );
     final source = owner(id);
     final map = source == null
