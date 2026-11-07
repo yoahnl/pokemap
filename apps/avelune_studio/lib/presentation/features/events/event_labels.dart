@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 import '../../shared/widgets/feedback/studio_badge.dart';
+import '../../../features/events/domain/event_record_view.dart';
 
 const eventSourceKinds = [
   NarrativeEventSourceKind.entityInteract,
@@ -115,4 +116,32 @@ String eventMapLabel(ProjectManifest project, String? id) {
   if (id == null) return 'Global / Résultats';
   return project.maps.where((entry) => entry.id == id).firstOrNull?.name ??
       'Carte absente : $id';
+}
+
+String eventRepeatEffect(
+  NarrativeEventRecord record,
+  NarrativeOutcomeEventSourceCatalog outcomes,
+) {
+  if (record.reusePolicy == null) {
+    return 'À définir : choisissez ce qui se passe après une première lecture.';
+  }
+  if (record.reusePolicy == NarrativeEventReusePolicy.reusable) {
+    return 'À chaque déclenchement, tant que ses conditions sont remplies.';
+  }
+  return switch (record.resetPolicy) {
+    NarrativeEventResetNever() => 'Une seule fois dans la partie.',
+    NarrativeEventResetOnMapReentry() => 'Une fois par visite : se rejoue après avoir quitté puis retrouvé sa carte.',
+    NarrativeEventResetOnOutcomeReceived(:final outcome) =>
+      'Une fois, puis à nouveau après le résultat « ${_outcomeLabel(outcome, outcomes)} ».',
+  };
+}
+
+String _outcomeLabel(
+  NarrativeOutcomeRef outcome,
+  NarrativeOutcomeEventSourceCatalog outcomes,
+) {
+  final matches = outcomes.options
+      .where((option) => option.outcome == outcome)
+      .toList();
+  return matches.length == 1 ? matches.single.outcomeLabel : outcome.outcomeId;
 }

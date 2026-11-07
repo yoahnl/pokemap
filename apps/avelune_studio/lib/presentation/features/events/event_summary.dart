@@ -12,6 +12,7 @@ import '../../shared/widgets/feedback/studio_badge.dart';
 import '../../shared/widgets/feedback/studio_icon_tile.dart';
 import 'event_status_badge.dart';
 import '../../../features/narrative/application/scene_node_references.dart';
+import '../../../features/events/application/event_execution_order.dart';
 
 class EventSummary extends StatelessWidget {
   const EventSummary({
@@ -21,10 +22,12 @@ class EventSummary extends StatelessWidget {
     required this.onTab,
     required this.onScene,
     required this.sceneDirty,
+    required this.outcomes,
     this.onDialogue,
   });
   final NarrativeEventRecord record;
   final ProjectManifest project;
+  final NarrativeOutcomeEventSourceCatalog outcomes;
   final ValueChanged<EventTab> onTab;
   final VoidCallback? onScene;
   final bool sceneDirty;
@@ -146,15 +149,20 @@ class EventSummary extends StatelessWidget {
               ),
           ],
           const SizedBox(height: 16),
+          if (project.eventRegistry case final registry?) ...[
+            StudioChoice(
+              key: const ValueKey('event-execution-order'),
+              label: 'Ordre d’exécution',
+              subtitle: eventExecutionOrder(record, registry),
+              leading: const Icon(Icons.format_list_numbered),
+              onTap: () => onTab(EventTab.options),
+            ),
+            const SizedBox(height: 8),
+          ],
           StudioChoice(
+            key: const ValueKey('event-repeat-effect'),
             label: 'Après le déclenchement',
-            subtitle: switch (record.definitionOrNull?.reusePolicy ??
-                record.draftOrNull?.reusePolicy) {
-              NarrativeEventReusePolicy.reusable => 'Peut être rejoué',
-              NarrativeEventReusePolicy.oneShot =>
-                'Une seule occurrence · réarmement dans Options',
-              null => 'À définir dans Options',
-            },
+            subtitle: eventRepeatEffect(record, outcomes),
             leading: const Icon(Icons.replay),
             onTap: () => onTab(EventTab.options),
           ),

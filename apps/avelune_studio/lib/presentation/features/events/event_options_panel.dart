@@ -8,6 +8,7 @@ import '../../shared/widgets/inputs/studio_commit_field.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
+import 'event_labels.dart';
 import 'event_outcome_picker.dart';
 
 class EventOptionsPanel extends StatelessWidget {
@@ -49,7 +50,7 @@ class EventOptionsPanel extends StatelessWidget {
         const SizedBox(height: 16),
         Text('Effet en jeu', style: Theme.of(context).textTheme.titleSmall),
         const SizedBox(height: 4),
-        Text(_effect()),
+        Text(eventRepeatEffect(record, outcomes)),
         const SizedBox(height: 16),
         StudioSelect(
           label: 'Après avoir joué',
@@ -238,30 +239,6 @@ class EventOptionsPanel extends StatelessWidget {
       ],
     ),
   );
-
-  String _effect() {
-    if (record.reusePolicy == null) {
-      return 'À définir : choisissez ce qui se passe après une première lecture.';
-    }
-    if (record.reusePolicy == NarrativeEventReusePolicy.reusable) {
-      return 'À chaque déclenchement, tant que ses conditions sont remplies.';
-    }
-    return switch (record.resetPolicy) {
-      NarrativeEventResetNever() => 'Une seule fois dans la partie.',
-      NarrativeEventResetOnMapReentry() => 'Une fois par visite : se rejoue après avoir quitté puis retrouvé sa carte.',
-      NarrativeEventResetOnOutcomeReceived(:final outcome) =>
-        'Une fois, puis à nouveau après le résultat « ${_outcomeLabel(outcome)} ».',
-    };
-  }
-
-  String _outcomeLabel(NarrativeOutcomeRef outcome) {
-    final matches = outcomes.options
-        .where((option) => option.outcome == outcome)
-        .toList();
-    return matches.length == 1
-        ? matches.single.outcomeLabel
-        : outcome.outcomeId;
-  }
 
   static String _modeLabel(EventSystemMode? mode) => switch (mode) {
     null => 'registre absent',

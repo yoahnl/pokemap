@@ -61,6 +61,7 @@ extension _EventWorkspaceLayout on _EventWorkspacePageState {
                     record: record,
                     project: project,
                     sceneDirty: sceneDirtyIds.contains(eventSceneId(record)),
+                    outcomes: c.catalog.outcomeSources,
                     onTab: _tab,
                     onScene: _sceneOf(record),
                     onDialogue: widget.onDialogue == null ? null : _dialogue,

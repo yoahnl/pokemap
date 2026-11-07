@@ -18,6 +18,26 @@ import 'narrative_event_registry_codec.dart';
 import 'narrative_fact_runtime.dart';
 import 'narrative_condition_expression_evaluator.dart';
 
+List<NarrativeEventRecord> narrativeEventDispatchCandidates(
+  Iterable<NarrativeEventRecord> records,
+  NarrativeEventSourceRef source,
+  EventSystemMode mode,
+) =>
+    [
+      for (final record in records)
+        if (record.definitionOrNull?.source == source &&
+            (mode != EventSystemMode.legacyOnly || record.activeInLegacyMode))
+          record,
+    ]..sort((left, right) {
+        final a = left.definitionOrNull!;
+        final b = right.definitionOrNull!;
+        final priority = b.priority.compareTo(a.priority);
+        if (priority != 0) return priority;
+        final order = a.order.compareTo(b.order);
+        if (order != 0) return order;
+        return a.id.compareTo(b.id);
+      });
+
 enum NarrativeEventDispatchAuthorityBlockReason {
   invalidRegistry,
   unsupportedRegistry,
@@ -351,23 +371,8 @@ final class NarrativeEventDispatchAuthorityReady
 
   List<NarrativeEventRecord> _candidateRecords(
     NarrativeEventSourceRef source,
-  ) {
-    final records = [
-      for (final record in _registry.records)
-        if (record.definitionOrNull?.source == source &&
-            (mode != EventSystemMode.legacyOnly || record.activeInLegacyMode))
-          record,
-    ]..sort((left, right) {
-        final a = left.definitionOrNull!;
-        final b = right.definitionOrNull!;
-        final priority = b.priority.compareTo(a.priority);
-        if (priority != 0) return priority;
-        final order = a.order.compareTo(b.order);
-        if (order != 0) return order;
-        return a.id.compareTo(b.id);
-      });
-    return records;
-  }
+  ) =>
+      narrativeEventDispatchCandidates(_registry.records, source, mode);
 
   _NarrativeEventWorldRuleState _worldRuleState(
     String eventId,
