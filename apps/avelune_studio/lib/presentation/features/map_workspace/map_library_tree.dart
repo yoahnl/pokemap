@@ -1,5 +1,7 @@
 import 'package:map_core/map_core_domain.dart';
 
+import '../../shared/text/studio_search_text.dart';
+
 Map<String, String> mapLibraryFolderLabels(List<ProjectMapGroup> groups) {
   String label(ProjectMapGroup group, Set<String> visited) {
     if (!visited.add(group.id)) return group.name;
@@ -40,14 +42,24 @@ class MapLibraryTree {
     required this._groups,
     required this._maps,
     String query = '',
-  }) : _query = query.trim().toLowerCase() {
+  }) : _tokens = studioSearchText(query)
+           .split(RegExp(r'\s+'))
+           .where((token) => token.isNotEmpty)
+           .toList() {
+    _folderLabels = mapLibraryFolderLabels(_groups);
     rows = List.unmodifiable(_build());
   }
 
   final List<ProjectMapGroup> _groups;
   final List<ProjectMapEntry> _maps;
-  final String _query;
+  final List<String> _tokens;
+  late final Map<String, String> _folderLabels;
   late final List<MapLibraryRow> rows;
+  bool get _searching => _tokens.isNotEmpty;
+  bool _hit(String text) {
+    final folded = studioSearchText(text);
+    return _tokens.every(folded.contains);
+  }
 
   int countFor(String? groupId) {
     if (groupId == null) {
@@ -98,18 +110,24 @@ class MapLibraryTree {
       );
     }
 
-    bool matches(ProjectMapEntry map) =>
-        _query.isEmpty ||
-        '${map.name} ${map.id}'.toLowerCase().contains(_query);
+    final matching = <String>{
+      for (final map in _maps)
+        if (!_searching ||
+            _hit(
+              '${_folderLabels[groupIds.contains(map.groupId) ? map.groupId : ''] ?? ''} ${map.name} ${map.id}',
+            ))
+          map.id,
+    };
+    bool matches(ProjectMapEntry map) => matching.contains(map.id);
     void visit(String? parent, int depth, bool ancestorMatches) {
       for (final group in byParent[parent] ?? const <ProjectMapGroup>[]) {
         final groupMatches =
             ancestorMatches ||
-            (_query.isNotEmpty && group.name.toLowerCase().contains(_query));
+            (_searching && _hit(_folderLabels[group.id] ?? group.name));
         final descendants = _maps.any(
           (map) => _belongsTo(map, group.id) && matches(map),
         );
-        if (_query.isNotEmpty && !groupMatches && !descendants) continue;
+        if (_searching && !groupMatches && !descendants) continue;
         result.add(
           MapLibraryRow(
             label: group.name,
@@ -130,7 +148,7 @@ class MapLibraryTree {
 
     visit(null, 0, false);
     final rootMaps = byFolder[null] ?? const <ProjectMapEntry>[];
-    if (rootMaps.isNotEmpty && (_query.isEmpty || rootMaps.any(matches))) {
+    if (rootMaps.isNotEmpty && (!_searching || rootMaps.any(matches))) {
       final rootRows = <MapLibraryRow>[
         MapLibraryRow(label: 'Sans dossier', depth: 0, count: rootMaps.length),
         for (final map in rootMaps)

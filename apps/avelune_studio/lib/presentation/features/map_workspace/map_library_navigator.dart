@@ -228,6 +228,9 @@ class _MapLibraryNavigatorState extends State<MapLibraryNavigator> {
                       final folderId = row.group?.id ?? '__root__';
                       return MapLibraryRowTile(
                         row: row,
+                        folderPath: map == null
+                            ? ''
+                            : folders[map.groupId ?? ''] ?? folders['']!,
                         collapsed: _collapsed.contains(folderId),
                         selected: map == null
                             ? false

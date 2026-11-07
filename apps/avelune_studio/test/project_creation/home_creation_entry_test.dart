@@ -30,6 +30,6 @@ void main() {
     await tester.tap(action);
     await pumpIo(tester, frames: 8);
     await tester.pumpAndSettle();
-    expect(find.text('Informations du projet'), findsOneWidget);
+    expect(find.text('Comment s’appelle votre projet ?'), findsOneWidget);
   });
 }

@@ -8,6 +8,7 @@ import '../../shared/widgets/buttons/studio_choice_card.dart';
 import '../../shared/widgets/inputs/studio_draft_field.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import '../../theme/studio_tokens.dart';
+import 'project_creation_contents.dart';
 import 'project_creation_progress.dart';
 import 'project_creation_parameters.dart';
 
@@ -53,14 +54,21 @@ class ProjectCreationSteps extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           intro(
-            'Informations du projet',
-            'Donnez un nom à votre projet et choisissez le nom de son dossier.',
+            'Comment s’appelle votre projet ?',
+            'Le nom suffit pour continuer : le dossier du projet en découle et reste ajustable.',
           ),
           field('Nom du projet', state.name, state.setName),
-          const SizedBox(height: 24),
+          const SizedBox(height: 28),
+          Text(
+            'Dossier sur le disque · facultatif',
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
+          const SizedBox(height: 8),
           field('Nom du dossier', state.folderName, state.setFolder),
           const SizedBox(height: 8),
-          const Text('Suggéré automatiquement. Vous pouvez le personnaliser.'),
+          const Text('Suggéré depuis le nom. Vous pouvez le personnaliser.'),
+          const SizedBox(height: 12),
+          ProjectCreationPathPreview(controller: state),
         ],
       ),
       1 => Column(
@@ -152,6 +160,8 @@ class ProjectCreationSteps extends StatelessWidget {
                   ),
               ],
             ),
+          const SizedBox(height: 20),
+          ProjectTemplateContentsPanel(controller: state),
         ],
       ),
       2 => ProjectCreationParameters(controller: state),

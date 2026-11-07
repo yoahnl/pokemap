@@ -28,6 +28,7 @@ Future<void> showNewMapDialog(
       group = initialGroupId ?? '';
   var role = MapRole.exterior;
   var tileset = '';
+  final spatial = project.settings.dimension == ProjectDimension.threeD;
   bool valid() =>
       name.trim().isNotEmpty &&
       (int.tryParse(width) ?? 0) > 0 &&
@@ -44,7 +45,7 @@ Future<void> showNewMapDialog(
       height: int.parse(height),
       role: role,
       groupId: group.isEmpty ? null : group,
-      tilesetId: tileset.isEmpty ? null : tileset,
+      tilesetId: spatial || tileset.isEmpty ? null : tileset,
     ),
     fields: (refresh, busy) => Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -121,21 +122,27 @@ Future<void> showNewMapDialog(
                   refresh();
                 },
         ),
-        if (project.tilesets.isNotEmpty) ...[
+        if (spatial) ...[
+          const SizedBox(height: 12),
+          const Text(
+            'Une carte 3D n’utilise pas de planche de tuiles : son sol se peint ensuite avec les terrains du projet.',
+          ),
+        ] else if (project.tilesets.isNotEmpty) ...[
           const SizedBox(height: 12),
           StudioSelect(
             label: 'Planche par défaut',
             value: tileset,
-            options: {
-              '': 'Choix du projet',
-              for (final entry in project.tilesets) entry.id: entry.name,
-            },
+            options: newMapSheetOptions(project),
             onChanged: busy
                 ? null
                 : (value) {
                     tileset = value;
                     refresh();
                   },
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Elle sert aux tuiles de cette carte qui ne désignent pas leur propre planche. La palette Tuiles garde toutes les planches du projet.',
           ),
         ],
         const SizedBox(height: 12),
@@ -149,6 +156,48 @@ Future<void> showNewMapDialog(
       ],
     ),
   );
+}
+
+Map<String, String> newMapSheetOptions(ProjectManifest project) {
+  final characterSheets = {
+    for (final character in project.characters) character.tilesetId,
+  };
+  final folders = mapLibrarySheetFolderLabels(project.tilesetFolders);
+  String label(ProjectTilesetEntry entry) {
+    final usage = characterSheets.contains(entry.id) ? 'Personnage' : 'Décor';
+    final folder = folders[entry.folderId];
+    return folder == null
+        ? '$usage · ${entry.name}'
+        : '$usage · $folder / ${entry.name}';
+  }
+
+  final sorted = project.tilesets.toList()
+    ..sort((left, right) {
+      final usage = characterSheets
+          .contains(left.id)
+          .toString()
+          .compareTo(characterSheets.contains(right.id).toString());
+      if (usage != 0) return usage;
+      final order = left.sortOrder.compareTo(right.sortOrder);
+      return order != 0 ? order : left.name.compareTo(right.name);
+    });
+  return {
+    '': 'Choix automatique du projet',
+    for (final entry in sorted) entry.id: label(entry),
+  };
+}
+
+Map<String, String> mapLibrarySheetFolderLabels(
+  List<ProjectTilesetFolder> folders,
+) {
+  final byId = {for (final folder in folders) folder.id: folder};
+  String path(ProjectTilesetFolder folder, Set<String> visited) {
+    final parent = byId[folder.parentFolderId];
+    if (parent == null || !visited.add(folder.id)) return folder.name;
+    return '${path(parent, visited)} / ${folder.name}';
+  }
+
+  return {for (final folder in folders) folder.id: path(folder, {})};
 }
 
 String mapRoleLabel(MapRole role) => switch (role) {
