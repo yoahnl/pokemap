@@ -10,6 +10,7 @@ import 'terrain_pattern_panel.dart';
 import 'terrain_scratch_view.dart';
 import 'terrain_source_panel.dart';
 import 'terrain_trial_panel.dart';
+import 'terrain_usage_summary.dart';
 import '../map_workspace/map_workspace_visuals.dart';
 import '../resources/resource_catalog.dart';
 import '../resources/resource_preview.dart';
@@ -126,7 +127,7 @@ class _TerrainEditorScreenState extends State<TerrainEditorScreen> {
       StudioPageHeader(
         title: model.draft.name,
         description:
-            'Chemin automatique · ${model.statusLabel} · ${model.assignedCount} / ${model.draft.rules.length} pièces associées',
+            '${terrainUsageLabel(model.draft.usage)} · ${model.statusLabel} · ${model.assignedCount} / ${model.draft.rules.length} pièces associées',
         alignActionsToEnd: true,
         actions: [
           StudioButton(
@@ -149,6 +150,10 @@ class _TerrainEditorScreenState extends State<TerrainEditorScreen> {
             onPressed: model.busy || !model.complete ? null : () => _save(true),
           ),
         ],
+      ),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+        child: TerrainUsageSummary(usage: model.draft.usage),
       ),
       if (model.error != null)
         StudioNotice(model.error!, isError: true, maxLines: 2),
