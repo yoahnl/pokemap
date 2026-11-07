@@ -28,7 +28,8 @@ class PokemonWorkspacePage extends StatefulWidget {
   final PokemonWorkspaceController? controller;
   final Future<String?> Function()? pickJson;
   final Future<String?> Function()? pickPng;
-  final Future<void> Function(String kind, String id)? onOpenReference;
+  final Future<void> Function(String kind, String id, [String? detailId])?
+  onOpenReference;
 
   @override
   State<PokemonWorkspacePage> createState() => _PokemonWorkspacePageState();
@@ -108,8 +109,7 @@ class _PokemonWorkspacePageState extends State<PokemonWorkspacePage> {
           children: [
             StudioPageHeader(
               title: 'Pokémon',
-              description:
-                  'Espèces, attaques, objets, boutiques et combats du projet courant.',
+              description: 'Espèces, attaques, objets, boutiques et combats du projet courant.',
               actions: [
                 if (showPokedexActions && widget.pickJson != null)
                   StudioButton(
@@ -196,8 +196,7 @@ class _PokemonWorkspacePageState extends State<PokemonWorkspacePage> {
                 child: controller.combat == null
                     ? const PokemonEmptyState(
                         title: 'Combats indisponibles',
-                        description:
-                            'Ce projet ne fournit pas la préparation des combats.',
+                        description: 'Ce projet ne fournit pas la préparation des combats.',
                       )
                     : PokemonCombatPage(
                         loadTrainerSpecies: (id) async {

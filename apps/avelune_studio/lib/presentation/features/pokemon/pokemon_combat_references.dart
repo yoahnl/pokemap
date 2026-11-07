@@ -40,3 +40,45 @@ bool mapUsesEncounterTable(MapData map, String tableId) =>
     map.entities.any(
       (entity) => entity.interactiveEncounter?.encounterTableId == tableId,
     );
+
+final class CombatUsage {
+  const CombatUsage(this.kind, this.id, this.detailId, this.label);
+  final String kind, id;
+  final String? detailId;
+  final String label;
+}
+
+List<CombatUsage> combatUsages(
+  PokemonCombatSnapshot snapshot, {
+  String? tableId,
+  String? trainerId,
+}) => [
+  for (final map in snapshot.maps) ...[
+    if (tableId != null &&
+        map.gameplayZones.any(
+          (zone) => zone.encounter?.encounterTableId == tableId,
+        ))
+      CombatUsage('map', map.id, null, 'Carte ${map.name} · zone de rencontre'),
+    for (final entity in map.entities)
+      if ((trainerId != null && entity.npc?.trainerId == trainerId) ||
+          (tableId != null &&
+              entity.interactiveEncounter?.encounterTableId == tableId))
+        CombatUsage(
+          'map',
+          map.id,
+          entity.id,
+          'Carte ${map.name} · ${entity.inspectorHeadline}',
+        ),
+  ],
+  for (final scene in snapshot.project.scenes)
+    for (final node in scene.graph.nodes)
+      if (node.payload case final SceneBattlePayload payload
+          when (tableId != null && payload.battleTemplateId == tableId) ||
+              (trainerId != null && payload.trainerId == trainerId))
+        CombatUsage(
+          'scene',
+          scene.id,
+          node.id,
+          'Scène ${scene.name} · ${node.title?.trim().isNotEmpty == true ? node.title!.trim() : 'bloc Combat'}',
+        ),
+];

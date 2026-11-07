@@ -13,18 +13,22 @@ class CharacterReferenceScope extends InheritedWidget {
     super.key,
     required this.ready,
     required this.load,
+    this.openInteractionScene,
     required super.child,
   });
 
   final bool Function() ready;
   final Future<void> Function() load;
+  final Future<void> Function(MapEntity entity)? openInteractionScene;
 
   static CharacterReferenceScope? maybeOf(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<CharacterReferenceScope>();
 
   @override
   bool updateShouldNotify(CharacterReferenceScope oldWidget) =>
-      ready != oldWidget.ready || load != oldWidget.load;
+      ready != oldWidget.ready ||
+      load != oldWidget.load ||
+      openInteractionScene != oldWidget.openInteractionScene;
 }
 
 final class CharacterPresenceReference {

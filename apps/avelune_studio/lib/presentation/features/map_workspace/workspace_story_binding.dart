@@ -93,27 +93,6 @@ extension _WorkspaceStoryBinding on _MapWorkspaceScreenState {
     _toolChanged();
   }
 
-  Future<String?> _openScene(String sceneId) async {
-    if (await _prepareWorkshopRoute(MapWorkspaceWorkshop.scene) == null) {
-      return null;
-    }
-    final scenes = _scenes;
-    if (scenes == null) return 'L’éditeur de scène est indisponible.';
-    if (!scenes.open(sceneId)) return scenes.error;
-    _sceneOrigin = switch (_space) {
-      WorkspaceSpace.progression => const WorkspaceReturn(
-        WorkspaceSpace.progression,
-      ),
-      WorkspaceSpace.events => const WorkspaceReturn(WorkspaceSpace.events),
-      WorkspaceSpace.verification => const WorkspaceReturn(
-        WorkspaceSpace.verification,
-      ),
-      _ => WorkspaceReturn.story,
-    };
-    _show(WorkspaceSpace.scene);
-    return null;
-  }
-
   Future<void> _editInteraction(MapEntity entity) async {
     if (_controller.active?.current.spatialScene != null) {
       final dialogue = entity.npc?.dialogue;
@@ -272,5 +251,22 @@ extension _WorkspaceStoryBinding on _MapWorkspaceScreenState {
         ),
       ),
     );
+  }
+
+  void _selectMapEntity(EditableMapDocument document, String entityId) {
+    final entity = document.current.entities
+        .where((value) => value.id == entityId)
+        .firstOrNull;
+    final view = _view;
+    if (entity == null || view == null) return;
+    view.tool = StudioMapTool.select;
+    view.select(
+      document,
+      entity.kind == MapEntityKind.npc
+          ? MapSelectionFamily.character
+          : MapSelectionFamily.marker,
+      entity.id,
+    );
+    _toolChanged();
   }
 }

@@ -11,6 +11,7 @@ import 'event_scene_effects.dart';
 import '../../shared/widgets/feedback/studio_badge.dart';
 import '../../shared/widgets/feedback/studio_icon_tile.dart';
 import 'event_status_badge.dart';
+import '../../../features/narrative/application/scene_node_references.dart';
 
 class EventSummary extends StatelessWidget {
   const EventSummary({
@@ -20,12 +21,14 @@ class EventSummary extends StatelessWidget {
     required this.onTab,
     required this.onScene,
     required this.sceneDirty,
+    this.onDialogue,
   });
   final NarrativeEventRecord record;
   final ProjectManifest project;
   final ValueChanged<EventTab> onTab;
   final VoidCallback? onScene;
   final bool sceneDirty;
+  final void Function(String dialogueId, String? startNode)? onDialogue;
   @override
   Widget build(BuildContext context) {
     final source = eventSource(record);
@@ -116,6 +119,32 @@ class EventSummary extends StatelessWidget {
             secondary: true,
             onPressed: onScene,
           ),
+          if (scene != null && sceneDialogues(scene).isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(
+              'Dialogues joués par la scène',
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Chaque dialogue s’ouvre dans son propre document, sans copie.',
+            ),
+            for (final dialogue in sceneDialogues(scene))
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: StudioButton(
+                  label: _dialogueLabel(dialogue),
+                  icon: Icons.forum_outlined,
+                  secondary: true,
+                  onPressed: onDialogue == null
+                      ? null
+                      : () => onDialogue!(
+                          dialogue.dialogueId,
+                          dialogue.yarnNodeName,
+                        ),
+                ),
+              ),
+          ],
           const SizedBox(height: 16),
           StudioChoice(
             label: 'Après le déclenchement',
@@ -139,5 +168,18 @@ class EventSummary extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _dialogueLabel(SceneYarnDialoguePayload dialogue) {
+    final name =
+        project.dialogues
+            .where((item) => item.id == dialogue.dialogueId)
+            .firstOrNull
+            ?.name ??
+        'Dialogue introuvable : ${dialogue.dialogueId}';
+    final node = dialogue.yarnNodeName?.trim();
+    return node == null || node.isEmpty
+        ? 'Ouvrir le dialogue $name'
+        : 'Ouvrir le dialogue $name · $node';
   }
 }

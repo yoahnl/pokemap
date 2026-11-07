@@ -68,6 +68,19 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                             },
                           ),
                         ),
+                      if (_pokemonMapReturn && _space == WorkspaceSpace.map)
+                        Padding(
+                          padding: const EdgeInsets.all(8),
+                          child: StudioButton(
+                            label: 'Retour à Pokémon',
+                            secondary: true,
+                            icon: Icons.arrow_back,
+                            onPressed: () {
+                              _pokemonMapReturn = false;
+                              _returnToPokemonReference();
+                            },
+                          ),
+                        ),
                       if (_eventMapReturn && _space == WorkspaceSpace.map)
                         Padding(
                           padding: const EdgeInsets.all(8),
@@ -273,6 +286,16 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                                   stories: _stories,
                                   progressionViews: _progressionViews,
                                   sceneOrigin: _sceneOrigin,
+                                  onSceneReturn: _sceneReturnAction(),
+                                  sceneReturnLabel: _sceneReturnLabel(),
+                                  onOpenSceneAt: _openSceneAt,
+                                  onEventDialogue: (id, startNode) => unawaited(
+                                    _openDialogueRoute(
+                                      id,
+                                      WorkspaceSpace.events,
+                                      startNode: startNode,
+                                    ),
+                                  ),
                                   onProgression: _openProgression,
                                   onReturnProgression: () =>
                                       _show(WorkspaceSpace.progression),

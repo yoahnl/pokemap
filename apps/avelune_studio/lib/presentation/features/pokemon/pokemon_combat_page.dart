@@ -24,7 +24,8 @@ class PokemonCombatPage extends StatefulWidget {
 
   final PokemonCombatController combat;
   final PokemonWorkspaceIndex index;
-  final Future<void> Function(String kind, String id)? onOpenReference;
+  final Future<void> Function(String kind, String id, [String? detailId])?
+  onOpenReference;
   final Future<PokemonSpeciesFile?> Function(String id)? loadTrainerSpecies;
 
   @override

@@ -15,6 +15,8 @@ import '../../shared/widgets/feedback/studio_notice.dart';
 import '../events/event_map_loader.dart';
 import '../map_workspace/map_workspace_visuals.dart';
 import '../narrative/narrative_name_dialog.dart';
+import '../narrative/scene_reference_chooser.dart';
+import '../../../features/narrative/application/scene_node_references.dart';
 import 'cinematic_view_state.dart';
 import 'cinematic_library.dart';
 import 'cinematic_map_model.dart';
@@ -46,6 +48,8 @@ class CinematicWorkspacePage extends StatefulWidget {
     required this.onLocate,
     this.dialogues,
     this.onPresentations,
+    this.triggerScenes,
+    this.onTriggerScene,
   });
   final CinematicWorkspaceController controller;
   final CinematicViewStore views;
@@ -57,6 +61,8 @@ class CinematicWorkspacePage extends StatefulWidget {
   final Future<String?> Function(String) onLocate;
   final DialogueWorkspaceController? dialogues;
   final VoidCallback? onPresentations;
+  final List<SceneNodeReference> Function(String cinematicId)? triggerScenes;
+  final Future<String?> Function(SceneNodeReference)? onTriggerScene;
   @override
   State<CinematicWorkspacePage> createState() => _CinematicWorkspacePageState();
 }

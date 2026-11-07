@@ -194,6 +194,109 @@ void main() {
     );
   });
 
+  test('trainer usages name the character and the battle block to open', () {
+    final scene = SceneAsset(
+      id: 'rival',
+      name: 'Rival au pont',
+      graph: SceneGraph(
+        startNodeId: 'start',
+        nodes: [
+          SceneNode(id: 'start', kind: SceneNodeKind.start),
+          SceneNode(
+            id: 'fight',
+            kind: SceneNodeKind.battle,
+            title: 'Combat du pont',
+            payload: SceneBattlePayload(
+              battleKind: 'trainer',
+              trainerId: 'youngster',
+            ),
+          ),
+        ],
+        edges: const [],
+      ),
+    );
+    final placed = PokemonCombatSnapshot(
+      project: snapshot.project.copyWith(scenes: [scene]),
+      maps: [
+        map.copyWith(
+          entities: [
+            ...map.entities,
+            const MapEntity(
+              id: 'kid',
+              name: 'Gamin du pont',
+              kind: MapEntityKind.npc,
+              pos: GridPos(x: 1, y: 1),
+              npc: MapEntityNpcData(characterId: 'kid', trainerId: 'youngster'),
+            ),
+          ],
+        ),
+      ],
+    );
+    final usages = combatUsages(placed, trainerId: 'youngster');
+    expect(
+      usages.map((usage) => (usage.kind, usage.id, usage.detailId)),
+      [('map', 'route', 'kid'), ('scene', 'rival', 'fight')],
+    );
+    expect(usages.map((usage) => usage.label), [
+      'Carte Route 1 · Gamin du pont',
+      'Scène Rival au pont · Combat du pont',
+    ]);
+  });
+
+  testWidgets('opening a trainer usage carries the block or the character', (
+    tester,
+  ) async {
+    final scene = SceneAsset(
+      id: 'rival',
+      name: 'Rival au pont',
+      graph: SceneGraph(
+        startNodeId: 'start',
+        nodes: [
+          SceneNode(id: 'start', kind: SceneNodeKind.start),
+          SceneNode(
+            id: 'fight',
+            kind: SceneNodeKind.battle,
+            payload: SceneBattlePayload(
+              battleKind: 'trainer',
+              trainerId: 'youngster',
+            ),
+          ),
+        ],
+        edges: const [],
+      ),
+    );
+    final analysed = PokemonCombatSnapshot(
+      project: snapshot.project.copyWith(scenes: [scene]),
+      maps: [map],
+    );
+    final combat = PokemonCombatController(_Port(analysed), changed: () {});
+    await combat.load();
+    addTearDown(combat.dispose);
+    combat.setView(PokemonCombatView.trainers);
+    combat.selectTrainer(trainer);
+    final opened = <(String, String, String?)>[];
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: studioTheme(),
+        home: Scaffold(
+          body: SizedBox(
+            width: 420,
+            height: 900,
+            child: PokemonCombatContextPanel(
+              combat: combat,
+              index: index,
+              onOpenReference: (kind, id, [detailId]) async =>
+                  opened.add((kind, id, detailId)),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Scène Rival au pont · bloc Combat'));
+    await tester.pump();
+    expect(opened, [('scene', 'rival', 'fight')]);
+  });
+
   test('table references include map objects that roll the table', () {
     expect(combatTableReferences(snapshot, headbutt), ['Carte Route 1']);
     expect(combatTableReferences(snapshot, unassigned), isEmpty);

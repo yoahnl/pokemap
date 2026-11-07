@@ -16,7 +16,8 @@ class PokemonCombatContextPanel extends StatelessWidget {
 
   final PokemonCombatController combat;
   final PokemonWorkspaceIndex? index;
-  final Future<void> Function(String kind, String id)? onOpenReference;
+  final Future<void> Function(String kind, String id, [String? detailId])?
+  onOpenReference;
 
   @override
   Widget build(BuildContext context) {

@@ -22,6 +22,15 @@ extension _CinematicPageHeader on _CinematicWorkspacePageState {
               }
             },
           ),
+        if (session != null &&
+            widget.triggerScenes != null &&
+            widget.onTriggerScene != null)
+          StudioButton(
+            label: 'Scène déclenchante',
+            icon: Icons.account_tree_outlined,
+            secondary: true,
+            onPressed: () => openTriggerScene(session.asset.id),
+          ),
         StudioTool(
           label: 'Retour à ${widget.backLabel}',
           icon: Icons.arrow_back,
@@ -79,5 +88,22 @@ extension _CinematicPageHeader on _CinematicWorkspacePageState {
         ),
       ],
     );
+  }
+
+  Future<void> openTriggerScene(String cinematicId) async {
+    final references = widget.triggerScenes!(cinematicId);
+    final chosen = await chooseSceneNodeReference(
+      context,
+      title: 'Scènes qui jouent cette cinématique',
+      empty: 'Aucune scène ne joue encore cette cinématique. Ajoutez un bloc Cinématique dans une scène pour la déclencher.',
+      references: references,
+    );
+    if (chosen == null || !mounted || !flush()) return;
+    controller.transport.pause();
+    final error = await widget.onTriggerScene!(chosen);
+    if (error != null && mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(error)));
+    }
   }
 }

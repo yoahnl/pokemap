@@ -44,6 +44,7 @@ class EventWorkspacePage extends StatefulWidget {
     required this.onTest,
     this.scenes,
     this.loadItems,
+    this.onDialogue,
   });
   final EventWorkspaceController controller;
   final EventViewState view;
@@ -53,6 +54,7 @@ class EventWorkspacePage extends StatefulWidget {
   final Future<Map<String, String>> Function()? loadItems;
   final VoidCallback onBack;
   final Future<String?> Function(String) onScene;
+  final void Function(String dialogueId, String? startNode)? onDialogue;
   final Future<String?> Function(NarrativeEventSourceRef) onLocate;
   final Future<void> Function() onTest;
   @override
@@ -241,6 +243,19 @@ class _EventWorkspacePageState extends State<EventWorkspacePage> {
     if (!mounted) return;
     final problem = await widget.onScene(id);
     if (mounted) setState(() => _notice = problem);
+  }
+
+  VoidCallback? _sceneOf(NarrativeEventRecord record) =>
+      switch (eventSceneId(record)) {
+        final id? => () => _scene(id),
+        null => null,
+      };
+
+  Future<void> _dialogue(String id, String? startNode) async {
+    _flush();
+    await _pending;
+    if (!mounted) return;
+    widget.onDialogue?.call(id, startNode);
   }
 
   Future<void> _locate(NarrativeEventSourceRef source) async {

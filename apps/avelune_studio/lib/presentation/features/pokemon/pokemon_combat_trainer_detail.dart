@@ -11,6 +11,7 @@ import 'pokemon_ui_parts.dart';
 import 'pokemon_combat_detail_header.dart';
 import 'pokemon_combat_species_picker.dart';
 import 'pokemon_combat_trainer_stats.dart';
+import 'pokemon_combat_references.dart';
 
 class PokemonCombatTrainerDetail extends StatelessWidget {
   const PokemonCombatTrainerDetail({
@@ -28,7 +29,8 @@ class PokemonCombatTrainerDetail extends StatelessWidget {
   final PokemonWorkspaceIndex index;
   final List<String> references;
   final VoidCallback? onDelete;
-  final Future<void> Function(String kind, String id)? onOpenReference;
+  final Future<void> Function(String kind, String id, [String? detailId])?
+  onOpenReference;
   final VoidCallback? onBack;
   final Future<PokemonSpeciesFile?> Function(String id)? loadSpecies;
 
@@ -135,33 +137,27 @@ class PokemonCombatTrainerDetail extends StatelessWidget {
                   const Text(
                     'Aucun PNJ ou bloc Combat ne référence encore ce dresseur. Placez-le dans Carte ou choisissez-le dans une scène Histoire.',
                   ),
-                for (final map in combat.snapshot?.maps ?? const <MapData>[])
-                  if (map.entities.any(
-                    (entity) => entity.npc?.trainerId == trainer.id,
+                if (combat.snapshot case final snapshot?
+                    when snapshot.referencesComplete)
+                  for (final usage in combatUsages(
+                    snapshot,
+                    trainerId: trainer.id,
                   ))
                     ListTile(
-                      leading: const Icon(Icons.map_outlined),
-                      title: Text('Carte ${map.name}'),
+                      leading: Icon(
+                        usage.kind == 'map'
+                            ? Icons.map_outlined
+                            : Icons.account_tree_outlined,
+                      ),
+                      title: Text(usage.label),
                       trailing: const Icon(Icons.open_in_new),
                       onTap: onOpenReference == null
                           ? null
-                          : () => onOpenReference!('map', map.id),
-                    ),
-                for (final scene
-                    in combat.snapshot?.project.scenes ?? const <SceneAsset>[])
-                  if (scene.graph.nodes.any(
-                    (node) =>
-                        node.payload is SceneBattlePayload &&
-                        (node.payload as SceneBattlePayload).trainerId ==
-                            trainer.id,
-                  ))
-                    ListTile(
-                      leading: const Icon(Icons.account_tree_outlined),
-                      title: Text('Scène ${scene.name}'),
-                      trailing: const Icon(Icons.open_in_new),
-                      onTap: onOpenReference == null
-                          ? null
-                          : () => onOpenReference!('scene', scene.id),
+                          : () => onOpenReference!(
+                              usage.kind,
+                              usage.id,
+                              usage.detailId,
+                            ),
                     ),
               ],
             ],

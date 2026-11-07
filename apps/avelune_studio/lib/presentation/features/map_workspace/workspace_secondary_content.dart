@@ -28,6 +28,7 @@ import '../../../features/narrative/application/narrative_workspace_controller.d
 import '../narrative/narrative_interaction_pane.dart';
 import '../narrative/narrative_story_pane.dart';
 import '../narrative/narrative_overview_view_state.dart';
+import '../../../features/narrative/application/scene_node_references.dart';
 import '../resources/resource_navigation.dart';
 import '../resources/resource_image_import.dart';
 import '../resources/resource_workspace_pane.dart';
@@ -53,10 +54,11 @@ enum WorkspaceSpace {
 }
 
 class WorkspaceReturn {
-  const WorkspaceReturn(this.space, {this.documentId});
+  const WorkspaceReturn(this.space, {this.documentId, this.elementId});
   static const story = WorkspaceReturn(WorkspaceSpace.story);
   final WorkspaceSpace space;
   final String? documentId;
+  final String? elementId;
 }
 
 Widget? workspaceSecondaryContent({
@@ -98,6 +100,10 @@ Widget? workspaceSecondaryContent({
   required StoryWorkspaceController? stories,
   required StoryProgressionViewStore progressionViews,
   required WorkspaceReturn sceneOrigin,
+  VoidCallback? onSceneReturn,
+  String? sceneReturnLabel,
+  Future<String?> Function(String sceneId, String? nodeId)? onOpenSceneAt,
+  void Function(String dialogueId, String? startNode)? onEventDialogue,
   Future<void> Function(String?)? onReturnPresentation,
   required VoidCallback onProgression,
   required VoidCallback onReturnProgression,
@@ -138,6 +144,13 @@ Widget? workspaceSecondaryContent({
       backLabel: cinematicOrigin == WorkspaceSpace.scene
           ? 'la scène'
           : 'Histoire',
+      triggerScenes: scenes == null
+          ? null
+          : (cinematicId) =>
+                sceneNodesPlayingCinematic(scenes.scenes, cinematicId),
+      onTriggerScene: onOpenSceneAt == null
+          ? null
+          : (reference) => onOpenSceneAt(reference.scene.id, reference.node.id),
       onDialogue: onCinematicDialogue,
       onLocate: onCinematicLocate,
     );
@@ -153,6 +166,8 @@ Widget? workspaceSecondaryContent({
           ? 'la cinématique'
           : dialogueOrigin == WorkspaceSpace.map
           ? 'la carte'
+          : dialogueOrigin == WorkspaceSpace.events
+          ? 'Événements'
           : 'Histoire',
     );
   }
@@ -166,6 +181,7 @@ Widget? workspaceSecondaryContent({
       scenes: scenes,
       onBack: onEventBack,
       onScene: onOpenScene,
+      onDialogue: dialogues == null ? null : onEventDialogue,
       onLocate: onEventLocate,
       onTest: onEventTest,
     );
@@ -198,9 +214,10 @@ Widget? workspaceSecondaryContent({
       controller: scenes,
       views: sceneViews,
       narrative: narrative,
-      onBack:
-          sceneOrigin.space == WorkspaceSpace.presentation &&
-              onReturnPresentation != null
+      onBack: onSceneReturn != null && sceneReturnLabel != null
+          ? onSceneReturn
+          : sceneOrigin.space == WorkspaceSpace.presentation &&
+                onReturnPresentation != null
           ? () => onReturnPresentation(sceneOrigin.documentId)
           : sceneOrigin.space == WorkspaceSpace.events
           ? onReturnEvents
@@ -210,7 +227,9 @@ Widget? workspaceSecondaryContent({
                 onReturnVerification != null
           ? onReturnVerification
           : onStory,
-      onBackLabel: sceneOrigin.space == WorkspaceSpace.presentation
+      onBackLabel: onSceneReturn != null && sceneReturnLabel != null
+          ? sceneReturnLabel
+          : sceneOrigin.space == WorkspaceSpace.presentation
           ? 'la présentation'
           : sceneOrigin.space == WorkspaceSpace.events
           ? 'Événements'

@@ -62,9 +62,8 @@ extension _EventWorkspaceLayout on _EventWorkspacePageState {
                     project: project,
                     sceneDirty: sceneDirtyIds.contains(eventSceneId(record)),
                     onTab: _tab,
-                    onScene: eventSceneId(record) == null
-                        ? null
-                        : () => _scene(eventSceneId(record)!),
+                    onScene: _sceneOf(record),
+                    onDialogue: widget.onDialogue == null ? null : _dialogue,
                   );
             final content = record == null
                 ? const Center(

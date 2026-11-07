@@ -57,6 +57,7 @@ import '../../../features/events/application/event_workspace_controller.dart';
 import '../events/event_view_state.dart';
 import '../events/event_map_loader.dart';
 import '../events/event_labels.dart';
+import '../narrative/scene_node_focus.dart';
 import '../events/event_playtest.dart';
 import '../narrative/narrative_name_dialog.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
@@ -138,6 +139,7 @@ part 'workspace_lifecycle_binding.dart';
 part 'workspace_resource_usage_binding.dart';
 part 'workspace_context_menu_binding.dart';
 part 'workspace_navigation_binding.dart';
+part 'workspace_scene_return_binding.dart';
 part 'workspace_world_binding.dart';
 part 'workspace_verification_binding.dart';
 part 'workspace_export_binding.dart';
@@ -277,6 +279,8 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   final _worldView = WorldViewState();
   WorkspaceReturn _worldOrigin = WorkspaceReturn.story;
   bool _verificationMapReturn = false;
+  bool _pokemonMapReturn = false;
+  bool Function()? _pokemonReferenceUnchanged;
   WorkspaceReturn _progressionOrigin = WorkspaceReturn.story;
   VerificationWorkspaceController? _verification;
   final _verificationView = VerificationViewState();
@@ -463,6 +467,10 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
           for (final workshop in _characterReferenceWorkshops)
             _controller.ensureWorkshop(workshop),
         ]),
+        openInteractionScene:
+            widget.eventPort == null || widget.scenePort == null
+            ? null
+            : _openInteractionScene,
         child: _buildWorkspace(context),
       ),
   ),

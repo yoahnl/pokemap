@@ -15,6 +15,7 @@ import '../map_workspace/map_workspace_visuals.dart';
 import 'character_workspace_visuals.dart';
 import 'character_fixed_route_inspector.dart';
 import 'character_time_rules_inspector.dart';
+import 'character_presence_rule.dart';
 
 class CharacterInspector extends StatefulWidget {
   const CharacterInspector({
@@ -265,9 +266,24 @@ class _CharacterInspectorState extends State<CharacterInspector> {
             ),
           ),
         const SizedBox(height: 8),
-        StudioButton(
-          label: 'Écrire son interaction',
-          onPressed: () => widget.onEditInteraction(entity),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            StudioButton(
+              label: 'Écrire son interaction',
+              onPressed: () => widget.onEditInteraction(entity),
+            ),
+            if (widget.document.current.spatialScene == null)
+              if (CharacterReferenceScope.maybeOf(context)?.openInteractionScene
+                  case final open?)
+                StudioButton(
+                  label: 'Ouvrir sa scène',
+                  icon: Icons.account_tree_outlined,
+                  secondary: true,
+                  onPressed: () => open(entity),
+                ),
+          ],
         ),
         const SizedBox(height: 16),
         Wrap(

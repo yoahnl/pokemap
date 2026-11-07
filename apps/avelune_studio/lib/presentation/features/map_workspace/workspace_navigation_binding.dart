@@ -12,10 +12,27 @@ extension _WorkspaceNavigationBinding on _MapWorkspaceScreenState {
     if (await _allowCloseWithExport() && mounted) await widget.onClose();
   }
 
-  Future<void> _openPokemonReference(String kind, String id) async {
+  Future<void> _openPokemonReference(
+    String kind,
+    String id, [
+    String? detailId,
+  ]) async {
     if (!await _allowLeavePokemon() || !mounted) return;
     if (kind == 'scene') {
-      await _openScene(id);
+      final before = _scenes?.sessions[id]?.current;
+      final error = await _openScene(
+        id,
+        nodeId: detailId,
+        origin: const WorkspaceReturn(WorkspaceSpace.pokemon),
+      );
+      if (error == null && _space == WorkspaceSpace.scene) {
+        _pokemonReferenceUnchanged = () {
+          final session = _scenes?.sessions[id];
+          return session != null &&
+              !session.dirty &&
+              (before == null || identical(session.current, before));
+        };
+      }
       return;
     }
     if (kind == 'map') {
@@ -25,7 +42,23 @@ extension _WorkspaceNavigationBinding on _MapWorkspaceScreenState {
       if (entry == null) return;
       _show(WorkspaceSpace.map);
       await _controller.activate(entry);
+      final document = _controller.active;
+      if (!mounted || document == null || document.current.id != id) return;
+      if (detailId != null) _selectMapEntity(document, detailId);
+      final opened = document.current;
+      _pokemonReferenceUnchanged = () =>
+          identical(_controller.active, document) &&
+          !document.dirty &&
+          identical(document.current, opened);
+      _pokemonMapReturn = true;
+      _changed();
     }
+  }
+
+  void _returnToPokemonReference() {
+    final keepAnalysis = _pokemonReferenceUnchanged?.call() ?? false;
+    _pokemonReferenceUnchanged = null;
+    _show(WorkspaceSpace.pokemon, keepCombatAnalysis: keepAnalysis);
   }
 
   void _toolChanged() {
@@ -37,7 +70,11 @@ extension _WorkspaceNavigationBinding on _MapWorkspaceScreenState {
     _changed();
   }
 
-  void _show(WorkspaceSpace space, {bool libraryGuarded = false}) {
+  void _show(
+    WorkspaceSpace space, {
+    bool libraryGuarded = false,
+    bool keepCombatAnalysis = false,
+  }) {
     if (_space == WorkspaceSpace.resources &&
         space != _space &&
         _libraryExitGuard != null &&
@@ -86,6 +123,7 @@ extension _WorkspaceNavigationBinding on _MapWorkspaceScreenState {
     }
     if (space != WorkspaceSpace.map) _eventMapReturn = false;
     if (space != WorkspaceSpace.map) _verificationMapReturn = false;
+    if (space != WorkspaceSpace.map) _pokemonMapReturn = false;
     if (_space == WorkspaceSpace.events) {
       FocusManager.instance.primaryFocus?.unfocus();
       FocusManager.instance.applyFocusChangesIfNeeded();
@@ -110,7 +148,9 @@ extension _WorkspaceNavigationBinding on _MapWorkspaceScreenState {
     final refreshCombat =
         space == WorkspaceSpace.pokemon &&
         _space != WorkspaceSpace.pokemon &&
-        _pokemon?.combat?.snapshot != null;
+        _pokemon?.combat?.snapshot != null &&
+        !(keepCombatAnalysis &&
+            _pokemon?.combat?.snapshot?.referencesComplete == true);
     _enterSpace(space);
     if (space == WorkspaceSpace.regionalMap) unawaited(_regionalMap?.load());
     if (refreshCommerce) {

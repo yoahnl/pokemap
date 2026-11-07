@@ -30,7 +30,10 @@ extension _WorkspaceCinematicBinding on _MapWorkspaceScreenState {
         request != _navigationRequest) {
       return;
     }
-    _cinematicOrigin = WorkspaceSpace.scene;
+    final backToTriggeredCinematic =
+        _sceneOrigin.space == WorkspaceSpace.cinematic &&
+        _sceneOrigin.documentId == payload.cinematicId;
+    if (!backToTriggeredCinematic) _cinematicOrigin = WorkspaceSpace.scene;
     _show(WorkspaceSpace.cinematic);
   }
 
