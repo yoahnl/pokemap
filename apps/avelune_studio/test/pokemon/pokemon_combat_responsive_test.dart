@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
 import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/presentation/features/pokemon/pokemon_combat_trainer_detail.dart';
@@ -74,14 +75,13 @@ void main() {
         await pumpIo(tester);
       }
     }
-    final moves = find.byWidgetPredicate(
-      (widget) =>
-          widget is StudioSelect && widget.label == 'Ajouter une attaque',
-    );
+    final moves = find.widgetWithText(StudioButton, 'Ajouter une attaque');
     await tester.ensureVisible(moves);
     await pumpIo(tester);
     expect(moves.hitTestable(), findsOneWidget);
-    tester.widget<StudioSelect>(moves).onChanged!('tackle');
+    await tester.tap(moves);
+    await pumpIo(tester);
+    await tester.tap(find.byKey(const ValueKey('combat-choice-tackle')));
     await pumpIo(tester);
     await tester.tap(find.text('Enregistrer').last);
     await pumpIo(tester);

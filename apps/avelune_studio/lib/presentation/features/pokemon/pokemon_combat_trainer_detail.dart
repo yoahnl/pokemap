@@ -373,15 +373,21 @@ class PokemonCombatTrainerDetail extends StatelessWidget {
                 ),
               ),
             if (pokemon.moves.length < 4)
-              StudioSelect(
+              StudioButton(
+                key: ValueKey('${trainer.id}:$indexInTeam:add-move'),
                 label: 'Ajouter une attaque',
-                value: null,
-                options: {
-                  for (final move in index.moves.entries)
-                    if (!pokemon.moves.contains(move.id)) move.id: move.name,
+                icon: Icons.add,
+                secondary: true,
+                onPressed: () async {
+                  final id = await chooseCombatMove(
+                    context,
+                    index,
+                    exclude: pokemon.moves,
+                  );
+                  if (id != null) {
+                    change(pokemon.copyWith(moves: [...pokemon.moves, id]));
+                  }
                 },
-                onChanged: (id) =>
-                    change(pokemon.copyWith(moves: [...pokemon.moves, id])),
               ),
           ],
         ),

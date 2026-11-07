@@ -4,6 +4,7 @@ import 'package:avelune_studio/features/pokemon/data/local_pokemon_combat_adapte
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/presentation/features/pokemon/pokemon_workspace_page.dart';
 import 'package:avelune_studio/presentation/features/pokemon/pokemon_combat_trainer_detail.dart';
+import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -126,7 +127,7 @@ void main() {
       expect(workspace.combat!.dirty, isTrue);
       expect(workspace.combat!.error, contains('au moins une attaque'));
       final movePicker = find.widgetWithText(
-        DropdownButtonFormField<String>,
+        StudioButton,
         'Ajouter une attaque',
       );
       await tester.ensureVisible(movePicker);
