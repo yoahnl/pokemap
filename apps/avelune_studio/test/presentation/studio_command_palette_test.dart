@@ -2,6 +2,7 @@ import 'package:avelune_studio/presentation/features/map_workspace/map_workspace
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_tool_strip.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
 import 'package:avelune_studio/presentation/shared/keyboard/editor_shortcuts.dart';
+import 'package:avelune_studio/presentation/shared/text/studio_help_families.dart';
 import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
 import 'package:avelune_studio/presentation/shared/widgets/dialogs/studio_command_palette.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
@@ -53,8 +54,9 @@ void main() {
     );
     final found = studioCommandSearch(entries, 'falaise');
     expect(found.first.id, 'map.border');
-    expect(found.first.help, contains('modèle de bordure'));
     expect(found.first.runnable, isTrue);
+    final command = found.singleWhere((entry) => entry.label == 'Bordures');
+    expect(command.help, contains('modèle de bordure'));
     expect(studioCommandSearch(entries, 'FORET').first.id, 'map.environment');
     expect(studioCommandSearch(entries, 'porte').first.id, 'map.warps');
   });
@@ -278,5 +280,32 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.delete);
     await tester.pump();
     expect(deleted, 1);
+  });
+
+  test('the 55 help families are searchable and run their map command', () {
+    expect(studioHelpFamilies, hasLength(55));
+    expect(
+      studioHelpFamilies.map((family) => family.number).toSet(),
+      hasLength(55),
+    );
+    final entries = mapCommandPaletteEntries(
+      const MapCommandContext(spatial: true),
+    );
+    final help = entries.where((entry) => entry.group == 'Comment faire');
+    expect(help, hasLength(55));
+    final talus = studioCommandSearch(
+      entries,
+      'talus',
+    ).firstWhere((entry) => entry.group == 'Comment faire');
+    expect(talus.label, startsWith('08 ·'));
+    final cliff = help.singleWhere((entry) => entry.label.startsWith('06 ·'));
+    expect(cliff.id, 'map.border');
+    expect(cliff.runnable, isTrue);
+    final zone = help.singleWhere((entry) => entry.label.startsWith('22 ·'));
+    expect(zone.runnable, isFalse);
+    expect(zone.unavailable, contains('3D'));
+    final camera = help.singleWhere((entry) => entry.label.startsWith('19 ·'));
+    expect(camera.executable, isFalse);
+    expect(camera.help, contains('Réglages du projet'));
   });
 }

@@ -1,3 +1,4 @@
+import '../../shared/text/studio_help_families.dart';
 import '../../shared/text/studio_lexicon.dart';
 import '../../shared/widgets/dialogs/studio_command_palette.dart';
 
@@ -341,6 +342,17 @@ List<StudioCommandEntry> mapCommandPaletteEntries(MapCommandContext context) =>
           keywords: command.keywords,
           shortcut: command.shortcut,
           unavailable: mapCommandUnavailable(command.id, context),
+        ),
+      for (final family in studioHelpFamilies)
+        StudioCommandEntry(
+          id: family.commandId ?? 'help.${family.number}',
+          label: family.label,
+          group: 'Comment faire',
+          help: family.help,
+          executable: family.commandId != null,
+          unavailable: family.commandId == null
+              ? null
+              : mapCommandUnavailable(family.commandId!, context),
         ),
       for (final term in studioLexicon)
         StudioCommandEntry(

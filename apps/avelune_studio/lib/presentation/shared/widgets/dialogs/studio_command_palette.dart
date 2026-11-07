@@ -206,6 +206,7 @@ class _StudioCommandPaletteState extends State<StudioCommandPalette> {
                           ),
                           const SizedBox(width: 8),
                           Expanded(
+                            flex: 3,
                             child: Text(
                               entry.label,
                               maxLines: 1,
@@ -217,11 +218,17 @@ class _StudioCommandPaletteState extends State<StudioCommandPalette> {
                                   : theme.textTheme.bodyMedium,
                             ),
                           ),
-                          Text(
-                            entry.unavailable != null
-                                ? '${entry.group} · indisponible'
-                                : entry.group,
-                            style: theme.textTheme.bodySmall,
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              entry.unavailable != null
+                                  ? '${entry.group} · indisponible'
+                                  : entry.group,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.end,
+                              style: theme.textTheme.bodySmall,
+                            ),
                           ),
                         ],
                       ),
