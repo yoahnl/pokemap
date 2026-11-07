@@ -25,12 +25,13 @@ class MapWorkspaceToolbar extends StatelessWidget {
     this.showUndoRedo = true,
     this.onAmbiance,
     this.onElements,
+    this.onCommands,
   });
   final MapWorkspaceController controller;
   final MapWorkspaceViewState? view;
   final VoidCallback onChanged, onClose, onPalette, onInspector, onNavigator;
   final ValueChanged<ProjectMapEntry> onActivate;
-  final VoidCallback? onSave, onTest, onAmbiance, onElements;
+  final VoidCallback? onSave, onTest, onAmbiance, onElements, onCommands;
   final bool paletteVisible, inspectorVisible, navigatorVisible;
   final bool showUndoRedo;
 
@@ -185,6 +186,13 @@ class MapWorkspaceToolbar extends StatelessWidget {
           selected: inspectorVisible,
           onPressed: onInspector,
         ),
+        if (onCommands != null)
+          StudioTool(
+            key: const ValueKey('map-open-commands'),
+            label: 'Commandes et aide (⌘K)',
+            icon: Icons.manage_search,
+            onPressed: onCommands,
+          ),
         StudioTool(
           key: const ValueKey('map-open-elements'),
           label: 'Éléments de la carte',

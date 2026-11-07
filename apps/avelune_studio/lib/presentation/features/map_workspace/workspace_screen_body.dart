@@ -20,6 +20,7 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
         onSave: _saveWorkspaceDocument,
         guardedWhileTyping: _keyboardWhileTyping,
         onContextMenu: _openContextMenuFromKeyboard,
+        onCommandPalette: () => unawaited(_openCommandPalette()),
         contextAt: _contextAt,
       ),
       child: Focus(
@@ -136,6 +137,7 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                               : _actions.test,
                           onClose: _close,
                           onResources: _openResources,
+                          onCommands: () => unawaited(_openCommandPalette()),
                           onPickResource: _useResource,
                           onEnvironments: _openEnvironments,
                           onBorders: _openBorders,

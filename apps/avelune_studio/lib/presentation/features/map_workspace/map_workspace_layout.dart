@@ -44,6 +44,7 @@ class MapWorkspaceLayout extends StatelessWidget {
     required this.onClose,
     required this.onResources,
     this.onPickResource,
+    this.onCommands,
     this.onEnvironments,
     this.onBorders,
     required this.onMap,
@@ -82,7 +83,7 @@ class MapWorkspaceLayout extends StatelessWidget {
   final VoidCallback onClose, onResources, onMap, onExport, onPokemon;
   final ValueChanged<ResourceItem>? onPickResource;
   final ValueChanged<ProjectMapEntry> onActivate;
-  final VoidCallback? onSave, onTest;
+  final VoidCallback? onSave, onTest, onCommands;
   final bool exportActive;
   final ValueChanged<ProjectElementEntry> onOpenElement, onEditElement;
   final ValueChanged<String>? onSearch;
@@ -259,6 +260,7 @@ class MapWorkspaceLayout extends StatelessWidget {
                     },
               onPalette: compactPalette && ready ? openPalette : onPalette,
               onInspector: openInspector,
+              onCommands: ready ? onCommands : null,
               onAmbiance: !ready || controller.loading || doc.current.spatialScene == null
                   ? null
                   : () => showWorkspaceCompactPanel(

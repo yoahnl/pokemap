@@ -5,6 +5,8 @@ import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
 import 'map_encounter_mode_picker.dart';
 import 'map_field_obstacle_placement_controls.dart';
+import 'map_tool_command_runner.dart';
+import 'map_workspace_commands.dart';
 import 'map_workspace_tool_strip_selection.dart';
 import 'map_workspace_view_state.dart';
 part 'map_workspace_tool_strip_actions.dart';
@@ -72,32 +74,21 @@ class MapWorkspaceToolStrip extends StatelessWidget {
         ('Connexions', Icons.compare_arrows),
       ],
     ];
-    bool supported(String label) =>
-        !spatial ||
-        {
-          'Sélection',
-          'Décors',
-          'Terrains',
-          'Bordures',
-          'Environnements',
-          'Peindre',
-          'Gomme de tuiles',
-          'Déplacer la vue',
-          'Gomme de décors',
-          'Placer un personnage',
-          'Placer le départ du joueur',
-          'Collisions',
-          'Peindre les collisions',
-          'Effacer les collisions',
-          'Passages',
-          'Connexions',
-          'Palette complète',
-          'Gérer les ressources',
-        }.contains(label);
+    final commandContext = MapCommandContext(
+      spatial: spatial,
+      exterior: exterior,
+      storyAvailable: storyAvailable,
+      paintReady:
+          view.tile != null ||
+          view.brush != null ||
+          view.terrain != null ||
+          (spatial && view.paletteTab == 'Terrains'),
+    );
+    String? unavailable(String label) =>
+        mapCommandUnavailableForLabel(label, commandContext);
+    bool supported(String label) => unavailable(label) == null;
     Widget familyButton(String label, IconData icon) => Tooltip(
-      message: supported(label)
-          ? label
-          : 'Cet outil n’est pas encore disponible sur les cartes 3D.',
+      message: unavailable(label) ?? label,
       child: StudioButton(
         key: label == 'Sélection' ? const ValueKey('Sélectionner') : null,
         label: label,
@@ -119,23 +110,10 @@ class MapWorkspaceToolStrip extends StatelessWidget {
           ('Palette complète', Icons.open_in_full),
           ('Gérer les ressources', Icons.grid_view_outlined),
         ])
-          if (!exterior ||
-              {
-                'Déplacer la vue',
-                'Gomme de tuiles',
-                'Gomme de décors',
-                'Palette complète',
-                'Gérer les ressources',
-              }.contains(label))
+          if (!exterior || supported(label))
             PopupMenuItem(
               value: label,
-              enabled:
-                  supported(label) &&
-                  (label != 'Peindre' ||
-                      view.tile != null ||
-                      view.brush != null ||
-                      view.terrain != null ||
-                      (spatial && view.paletteTab == 'Terrains')),
+              enabled: supported(label),
               child: Row(
                 children: [
                   Icon(icon, size: 18),
@@ -150,7 +128,7 @@ class MapWorkspaceToolStrip extends StatelessWidget {
                 ],
               ),
             ),
-        if (storyAvailable && !spatial && !exterior)
+        if (supported('Dessiner une zone d’histoire'))
           const PopupMenuItem(
             value: 'Dessiner une zone d’histoire',
             child: Row(
@@ -214,7 +192,7 @@ class MapWorkspaceToolStrip extends StatelessWidget {
                   child: Text(
                     supported(label)
                         ? label
-                        : '$label · indisponible sur les cartes 3D',
+                        : '$label · ${spatial ? 'indisponible en 3D' : 'indisponible'}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),

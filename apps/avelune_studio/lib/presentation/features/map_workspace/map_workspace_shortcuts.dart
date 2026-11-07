@@ -21,6 +21,7 @@ Map<ShortcutActivator, VoidCallback> workspaceShortcuts(
   VoidCallback? onSave,
   void Function(void Function())? guardedWhileTyping,
   VoidCallback? onContextMenu,
+  VoidCallback? onCommandPalette,
   MapContextActionContext? Function(GridPos cell)? contextAt,
 }) {
   final document = controller.active;
@@ -110,6 +111,14 @@ Map<ShortcutActivator, VoidCallback> workspaceShortcuts(
         unawaited(controller.save(document));
       }
     });
+    if (onCommandPalette != null) {
+      result[SingleActivator(
+        LogicalKeyboardKey.keyK,
+        meta: meta,
+        control: !meta,
+      )] = () =>
+          guarded(onCommandPalette);
+    }
     result[SingleActivator(
       LogicalKeyboardKey.keyD,
       meta: meta,
