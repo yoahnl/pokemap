@@ -127,6 +127,7 @@ class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {
     }
     if (kind == 'Passages') {
       return MapWarpPalette(
+        groups: widget.project.groups,
         destinations: widget.project.maps
             .where((entry) => entry.id != widget.document.current.id)
             .toList(),

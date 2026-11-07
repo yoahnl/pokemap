@@ -7,6 +7,7 @@ import '../../shared/widgets/buttons/studio_tool.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/inputs/studio_commit_field.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
+import 'map_destination_picker.dart';
 import 'map_warp_door_editor.dart';
 import 'map_warp_transition_editor.dart';
 import 'map_warp_ladder_editor.dart';
@@ -177,10 +178,38 @@ class _MapWarpInspectorState extends State<MapWarpInspector> {
               }
             },
           ),
+          const SizedBox(height: 6),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: StudioButton(
+              key: const ValueKey('warp-destination-search'),
+              label: 'Rechercher une carte…',
+              icon: Icons.search,
+              secondary: true,
+              onPressed: () async {
+                final id = await showMapDestinationPicker(
+                  context,
+                  widget.project,
+                  excludeMapId: widget.document.current.id,
+                  selectedId: targetMapId,
+                );
+                if (id == null || !mounted) return;
+                if (pending) {
+                  setState(() {
+                    _pendingDestination = id;
+                    _pendingX = null;
+                    _pendingY = null;
+                  });
+                } else {
+                  _change(() => _commands.retarget(warp.id, targetMapId: id));
+                }
+              },
+            ),
+          ),
           if (problem != null) ...[
             const SizedBox(height: 6),
             Text(
-              problem,
+              '$problem Référence conservée : ${warp.targetMapId}. Choisissez une autre carte pour la remplacer.',
               key: const ValueKey('warp-destination-problem'),
               style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
