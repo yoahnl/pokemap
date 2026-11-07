@@ -10,6 +10,21 @@ void main() {
     );
   });
 
+  test('a 3D ledge is described with its direction and applied values', () {
+    expect(
+      spatialLedgeSummary(
+        SpatialLedge(
+          id: 'l',
+          x: 26,
+          z: 6,
+          direction: SpatialRampDirection.east,
+        ),
+      ),
+      'Saut de 2 cases vers la droite en 0,4 s, hauteur 0,65 case ; '
+      'le retour est bloqué.',
+    );
+  });
+
   test('a platform duration reads in seconds without losing milliseconds', () {
     expect(traversalDurationLabel(1500), '1,5 s');
     expect(traversalDurationLabel(1250), '1,25 s');

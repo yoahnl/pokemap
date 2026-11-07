@@ -7,6 +7,7 @@ import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_commit_field.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
+import 'traversal_labels.dart';
 
 class SpatialLedgeEditor extends StatefulWidget {
   const SpatialLedgeEditor({
@@ -156,6 +157,10 @@ class _SpatialLedgeEditorState extends State<SpatialLedgeEditor> {
           ),
           const SizedBox(height: 8),
           Text('Arrivée : X ${selected.landingX}, Y ${selected.landingZ}'),
+          Text(
+            spatialLedgeSummary(selected),
+            key: const ValueKey('spatial-ledge-summary'),
+          ),
           StudioButton(
             key: const ValueKey('spatial-ledge-delete'),
             label: 'Retirer ce talus',

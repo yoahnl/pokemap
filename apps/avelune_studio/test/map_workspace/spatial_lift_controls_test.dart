@@ -47,6 +47,7 @@ void main() {
         await tester.pump();
       }
 
+      expect(find.text('Plateforme verticale'), findsOneWidget);
       await press('Créer la plateforme');
       expect(document.current.spatialScene!.lifts.single.instanceId, 'deck');
       expect(

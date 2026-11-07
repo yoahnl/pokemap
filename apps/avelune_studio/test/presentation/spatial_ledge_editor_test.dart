@@ -33,6 +33,12 @@ void main() {
     await tester.pump();
     expect(document.current.spatialScene!.navigation.ledges, hasLength(1));
     expect(document.undoCount, 1);
+    expect(
+      find.byKey(const ValueKey('spatial-ledge-summary')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('en 0,4 s'), findsOneWidget);
+    expect(find.textContaining('le retour est bloqué'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('spatial-ledge-delete')));
     await tester.pump();
     expect(document.current.spatialScene!.navigation.ledges, isEmpty);

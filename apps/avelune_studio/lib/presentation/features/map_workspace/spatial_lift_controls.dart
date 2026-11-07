@@ -108,7 +108,6 @@ class _SpatialLiftControlsState extends State<SpatialLiftControls> {
   Widget build(BuildContext context) => StudioPanel(
     title: 'Plateforme verticale',
     children: [
-      const Text('Plateforme verticale'),
       const Text(
         'La zone définie transporte ses occupants entre deux hauteurs. Une scène peut demander la montée ou la descente.',
       ),
