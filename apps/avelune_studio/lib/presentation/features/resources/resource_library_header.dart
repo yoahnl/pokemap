@@ -215,7 +215,9 @@ extension _ResourceLibraryHeader on _ResourceLibraryScreenState {
                 project: widget.project,
                 visuals: widget.visuals,
                 onChosen: widget.onEdit,
-                onImport: widget.onImport,
+                onImport: widget.onImportFor == null
+                    ? widget.onImport
+                    : () => widget.onImportFor!(ResourceImportIntent.decor),
                 decor: true,
               );
             },
@@ -229,7 +231,9 @@ extension _ResourceLibraryHeader on _ResourceLibraryScreenState {
                 onImport:
                     widget.project.settings.dimension == ProjectDimension.threeD
                     ? widget.onImportModel
-                    : widget.onImport,
+                    : widget.onImportFor == null
+                    ? widget.onImport
+                    : () => widget.onImportFor!(ResourceImportIntent.terrain),
               );
             },
             ResourceLibraryFamily.borders => () => run(widget.onCreateBorder),

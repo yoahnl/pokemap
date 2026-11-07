@@ -61,6 +61,8 @@ void main() {
       await host.family(ResourceKind.images);
       await tapResourceAdministrationText(tester, 'Importer une image');
       await tapResourceAdministrationText(tester, 'Importer');
+      expect(host.navigation.decor, isNull);
+      await host.tap('resource-import-create-decor');
       await tester.enterText(
         find.widgetWithText(TextField, 'Nom du décor'),
         'Décor reprise',
@@ -154,6 +156,8 @@ void main() {
       );
       final png = File('${original.directory.path}/${imported.relativePath}');
       final pixels = await tester.runAsync(png.readAsBytes);
+      expect(host.navigation.decor, isNull);
+      await host.tap('resource-import-create-decor');
       expect(host.navigation.decor!.tileset.id, imported.id);
       await tester.enterText(
         find.widgetWithText(TextField, 'Nom du décor'),

@@ -73,6 +73,10 @@ void main() {
     expect(find.text('Importer'), findsOneWidget);
     await tester.tap(find.text('Importer'));
     await pumpIo(tester, frames: 80);
+    await tester.tap(
+      find.byKey(const ValueKey('resource-import-create-decor')),
+    );
+    await pumpIo(tester, frames: 20);
     expect(
       find.byType(DecorEditorScreen),
       findsOneWidget,

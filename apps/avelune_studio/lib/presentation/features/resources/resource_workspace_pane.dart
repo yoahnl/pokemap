@@ -115,6 +115,27 @@ class ResourceWorkspacePane extends StatelessWidget {
     } else {
       content = Column(
         children: [
+          if (n.importedSource case final source?)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+              child: ResourceImportResult(
+                source: source,
+                canCreateDecor:
+                    project.settings.dimension == ProjectDimension.twoD,
+                onCreateDecor: () {
+                  n.importedSource = null;
+                  n.edit(source);
+                },
+                onPrepareTerrain: () {
+                  n.importedSource = null;
+                  n.prepareTerrain(source);
+                },
+                onDismiss: () {
+                  n.importedSource = null;
+                  n.showLibrary();
+                },
+              ),
+            ),
           if (n.decor != null || n.environment != null)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -210,6 +231,7 @@ class ResourceWorkspacePane extends StatelessWidget {
                   manageTerrainPreparation(context, n, draft, action),
               canEditTerrain: n.canEditTerrain,
               onImport: () => import(context),
+              onImportFor: (intent) => import(context, intent: intent),
               onCharacters: n.openCharacters,
               onBack: onBack,
               onCreateEnvironment: n.openEnvironment,

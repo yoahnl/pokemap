@@ -24,6 +24,7 @@ import 'resource_family_navigation.dart';
 import 'resource_family_tree.dart';
 import 'resource_family_tree_view.dart';
 import 'resource_filter_button.dart';
+import 'resource_image_import.dart';
 part 'resource_library_layout.dart';
 part 'resource_library_header.dart';
 
@@ -72,7 +73,9 @@ class ResourceLibraryScreen extends StatefulWidget {
     this.onLoadFamily,
     this.onClassifyMarked,
     this.onExportMarked,
+    this.onImportFor,
   });
+  final ValueChanged<ResourceImportIntent>? onImportFor;
   final ProjectManifest project;
   final ValueChanged<List<ResourceItem>>? onClassifyMarked;
   final ValueChanged<List<ResourceItem>>? onExportMarked;

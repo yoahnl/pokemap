@@ -77,18 +77,24 @@ extension ResourceWorkspaceActions on ResourceWorkspacePane {
     }
   }
 
-  Future<void> import(BuildContext context) async {
+  Future<void> import(
+    BuildContext context, {
+    ResourceImportIntent intent = ResourceImportIntent.source,
+  }) async {
     try {
       final image = await picker();
       if (image == null || !context.mounted) return;
-      final settings = navigation.workspace.project!.settings;
+      final project = navigation.workspace.project!;
+      final settings = project.settings;
       final request = await confirmImageImport(
         context,
         image,
         settings.tileWidth,
         settings.tileHeight,
+        existingNames: {for (final tileset in project.tilesets) tileset.name},
+        intent: intent,
       );
-      if (request != null) await navigation.import(request);
+      if (request != null) await navigation.import(request, intent: intent);
     } catch (e) {
       navigation.error = e.toString();
       navigation.showLibrary();

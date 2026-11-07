@@ -19,6 +19,7 @@ import '../characters/character_studio_controller.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
 
 import 'resource_catalog.dart';
+import 'resource_image_import.dart';
 import 'resource_terrain_management.dart';
 import 'resource_border_management.dart';
 import 'resource_character_management.dart';
@@ -131,6 +132,7 @@ class ResourceNavigation extends ChangeNotifier with ResourceNavigationTerrain {
   @override
   ResourcePage page = ResourcePage.library;
   DecorDraft? decor;
+  ResourceItem? importedSource;
   @override
   TerrainDraftController? terrain;
   EnvironmentDraft? environment;
@@ -283,9 +285,13 @@ class ResourceNavigation extends ChangeNotifier with ResourceNavigationTerrain {
     Map<String, Object?> parameters,
   ) => _mutateResources(this, action, parameters);
 
-  Future<void> import(ResourceImageImport request) async {
+  Future<void> import(
+    ResourceImageImport request, {
+    ResourceImportIntent intent = ResourceImportIntent.decor,
+  }) async {
     busy = true;
     error = null;
+    importedSource = null;
     notifyListeners();
     try {
       final receipt = await port.importImage(request);
@@ -293,14 +299,22 @@ class ResourceNavigation extends ChangeNotifier with ResourceNavigationTerrain {
       final tileset = manifest.tilesets.firstWhere(
         (t) => t.id == receipt.createdTilesetId,
       );
-      edit(
-        ResourceItem(
-          id: tileset.id,
-          name: tileset.name,
-          kind: ResourceKind.images,
-          tileset: tileset,
-        ),
+      final item = ResourceItem(
+        id: tileset.id,
+        name: tileset.name,
+        kind: ResourceKind.images,
+        tileset: tileset,
+        category: tileset.folderId ?? '',
       );
+      switch (intent) {
+        case ResourceImportIntent.decor:
+          edit(item);
+        case ResourceImportIntent.terrain:
+          prepareTerrain(item);
+        case ResourceImportIntent.source:
+          importedSource = item;
+          showLibrary(item);
+      }
     } catch (e) {
       if (e is ResourceFailure && e.partialReceipt != null) {
         pendingReceipt = e.partialReceipt;
@@ -313,6 +327,7 @@ class ResourceNavigation extends ChangeNotifier with ResourceNavigationTerrain {
   }
 
   void edit(ResourceItem item) {
+    importedSource = null;
     if (item.model3d != null) {
       library.selectFamily(ResourceLibraryFamily.models3d);
       showLibrary(item);
