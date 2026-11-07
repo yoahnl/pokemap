@@ -2059,7 +2059,7 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 - [x] 1. Organiser les histoires, chapitres et étapes déjà supportés avec recherche et relation aux scènes. — **en partie** par 9cfe1aa5f : recherche dans chapitres et étapes ; relation aux scènes inchangée.
 - [x] 2. Montrer préconditions, transitions et résultats de progression sans confondre configuration et progression d’une sauvegarde. — **livré** par 9cfe1aa5f et f9e029cd8 : configuration distinguée des sauvegardes, états nommés ; les résultats attendus se cochent par leur libellé et leur source (scène ou scénario de l’étape), un résultat disparu reste conservé et signalé ; vérifié en natif sur une histoire créée par `storyline.upsert`.
 - [ ] 3. Conserver les graphes et les documents spécialisés ; un tableau synthétique reste un accès rapide. — **BLOCKED** : la forme du tableau relève de la direction de design Histoire (D-02).
-- [ ] 4. Localiser les cycles ou références invalides avec l’action d’ouverture du bon document.
+- [x] 4. Localiser les cycles ou références invalides avec l’action d’ouverture du bon document. — **livré** par 48ffd65a8 : un cycle de références entre histoires est nommé dans l’ordre et chaque histoire du cycle s’ouvre d’un bouton, sans écriture ; la vérification de cohérence ouvre la scène en cause ; preuves `test/stories/story_cycle_localisation_test.dart`, `test/stories/story_coherence_scene_open_test.dart`.
 - [ ] 5. Exécuter un petit parcours de progression avec état initial contrôlé et vérifier ses effets existants.
 
 **Tests comportementaux obligatoires :**
@@ -2168,7 +2168,7 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 **Étapes d’implémentation :**
 
 - [ ] 1. Conserver les tables, poids, niveaux, créneaux, variantes et équipes natives.
-- [ ] 2. Fournir des sélecteurs d’espèce et de capacité recherchables avec détails utiles et références manquantes visibles.
+- [x] 2. Fournir des sélecteurs d’espèce et de capacité recherchables avec détails utiles et références manquantes visibles. — **livré** par d57d2e5e1 : espèce et attaque se choisissent dans un dialogue de recherche du design system (numéro, types, génération ; type, catégorie, puissance, précision) ; une attaque déjà apprise n’est plus proposée ; références manquantes toujours nommées ; preuve `test/pokemon/pokemon_combat_pickers_test.dart`.
 - [x] 3. Distinguer créer une table et l’affecter à un terrain ou une zone ; afficher les usages. — **livré** par 628510049 (avertissement d’affectation distinct de l’invalidité ; usages complétés par les rencontres interactives).
 - [x] 4. Relier un dresseur, son interaction et sa scène sans déplacer les règles de combat dans l’UI. — **livré** par 961b1703d : les usages d’un dresseur nomment le personnage et le bloc Combat et l’ouvrent, avec « Retour à Pokémon » ; aucune règle de combat dans l’UI ; preuve `test/presentation/encounter_trainer_authoring_journey_test.dart`.
 - [ ] 5. Tester un exemple borné de rencontre et de dresseur avec les règles existantes ; préserver la distribution et les sauvegardes.
