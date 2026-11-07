@@ -13,13 +13,13 @@ import '../../shared/widgets/feedback/studio_empty_state.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_draft_field.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
-import '../../shared/widgets/inputs/studio_toggle_row.dart';
 import '../../shared/widgets/layout/studio_asset_preview.dart';
 import '../../shared/widgets/layout/studio_page_header.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
-import '../../shared/widgets/layout/studio_section.dart';
+import 'regional_map_flight_destination.dart';
 import 'regional_map_link_dialog.dart';
 import 'regional_map_linked_maps.dart';
+import 'regional_map_place_summary.dart';
 import '../narrative/narrative_name_dialog.dart';
 
 class RegionalMapPage extends StatefulWidget {
@@ -238,6 +238,15 @@ class _RegionalMapPageState extends State<RegionalMapPage> {
                               },
                               onChanged: owner.busy ? null : owner.selectPoint,
                             ),
+                            if (owner.points.length > 1)
+                              RegionalPlaceFinder(
+                                points: owner.points,
+                                project: source.project,
+                                selectedId: point?.id,
+                                onSelected: owner.busy
+                                    ? null
+                                    : owner.selectPoint,
+                              ),
                             const SizedBox(height: 12),
                             StudioAssetPreview(
                               height: 340,
@@ -418,12 +427,21 @@ class _RegionalMapPageState extends State<RegionalMapPage> {
                                     ),
                             ),
                             if (point != null) ...[
+                              Text(
+                                '${regionalPlacePosition(point)}. Cliquez sur l’image ou faites glisser le repère pour le déplacer.',
+                                key: const ValueKey('regional-place-position'),
+                              ),
                               StudioDraftField(
                                 label: 'Nom du lieu',
                                 value: owner.pointLabel,
                                 enabled: !owner.busy,
                                 onChanged: (value) =>
                                     owner.editPoint(label: value),
+                              ),
+                              Text(
+                                '${regionalPlaceVisibility(point)} · ${regionalPlaceFlight(point, source.project)}',
+                                key: const ValueKey('regional-place-summary'),
+                                style: Theme.of(context).textTheme.titleSmall,
                               ),
                               StudioSelect(
                                 label: 'Visibilité du lieu',
@@ -465,7 +483,11 @@ class _RegionalMapPageState extends State<RegionalMapPage> {
                                 onChanged: (ids) =>
                                     owner.editPoint(mapIds: ids),
                               ),
-                              _destination(point),
+                              RegionalMapFlightDestination(
+                                owner: owner,
+                                point: point,
+                                onEnable: () => _enableFlight(point),
+                              ),
                               StudioButton(
                                 label: 'Supprimer le lieu',
                                 secondary: true,
@@ -487,86 +509,4 @@ class _RegionalMapPageState extends State<RegionalMapPage> {
       ],
     );
   }
-
-  Widget _destination(ProjectRegionPointOfInterest point) {
-    final destination = point.destination;
-    final maps = owner.source!.maps;
-    final nativeMaps = owner.source!.project.maps;
-    final map = maps[destination?.mapId];
-    final spawns =
-        map?.entities
-            .where(
-              (entity) =>
-                  entity.kind == MapEntityKind.spawn && entity.spawn != null,
-            )
-            .toList() ??
-        [];
-    return StudioSection(
-      title: 'Destination de Vol',
-      children: [
-        StudioToggleRow(
-          label: 'Autoriser Vol vers ce lieu',
-          value: destination != null,
-          onChanged: owner.busy || nativeMaps.isEmpty
-              ? null
-              : (enabled) {
-                  if (!enabled) {
-                    owner.editPoint(clearDestination: true);
-                    return;
-                  }
-                  _enableFlight(point);
-                },
-        ),
-        if (nativeMaps.isEmpty)
-          const StudioNotice(
-            'Créez une carte 2D native avec une arrivée pour y autoriser Vol.',
-          ),
-        if (destination != null) ...[
-          StudioSelect(
-            label: 'Carte d’arrivée',
-            value: destination.mapId,
-            options: {
-              for (final entry in owner.source!.project.maps)
-                entry.id: entry.name,
-            },
-            onChanged: owner.busy
-                ? null
-                : (id) => owner.editPoint(
-                    destination: ProjectRegionDestination(mapId: id),
-                  ),
-          ),
-          StudioSelect(
-            label: 'Point d’arrivée',
-            value: destination.spawnId,
-            options: {
-              for (final spawn in spawns)
-                spawn.id:
-                    '${spawn.name.isEmpty ? 'Arrivée' : spawn.name} · (${spawn.pos.x}, ${spawn.pos.y}) · ${_facing(spawn.spawn!.facing)}',
-            },
-            onChanged: owner.busy || owner.loadingMap
-                ? null
-                : (id) => owner.editPoint(
-                    destination: ProjectRegionDestination(
-                      mapId: destination.mapId,
-                      spawnId: id,
-                    ),
-                  ),
-          ),
-          if (owner.loadingMap)
-            const StudioNotice('Chargement des arrivées de cette carte…')
-          else if (spawns.isEmpty)
-            const StudioNotice(
-              'Ajoutez une arrivée sur cette carte dans l’éditeur de carte.',
-            ),
-        ],
-      ],
-    );
-  }
-
-  String _facing(EntityFacing facing) => switch (facing) {
-    EntityFacing.north => 'Nord',
-    EntityFacing.east => 'Est',
-    EntityFacing.south => 'Sud',
-    EntityFacing.west => 'Ouest',
-  };
 }

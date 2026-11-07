@@ -93,7 +93,13 @@ void main() {
       expect(find.text('Destination de Vol'), findsOneWidget);
       expect(find.text('Carte d’arrivée'), findsOneWidget);
       expect(find.text('Point d’arrivée'), findsOneWidget);
-      expect(find.textContaining('3, 4'), findsOneWidget);
+      expect(find.textContaining('3, 4'), findsNWidgets(2));
+      expect(
+        find.text(
+          'Arrivée de Vol : Town, à « Arrivée » (3, 4), regard vers le sud.',
+        ),
+        findsOneWidget,
+      );
       expect(find.textContaining('JSON'), findsNothing);
       expect(tester.takeException(), isNull);
     },
