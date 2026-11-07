@@ -189,6 +189,41 @@ final class MapDecorGroupEditing {
     return applied ? created : null;
   }
 
+  bool replace(Iterable<String> ids, String resourceId) {
+    final summary = summarize(ids);
+    if (summary.editableIds.isEmpty) return false;
+    return _grouped(() {
+      for (final id in summary.editableIds) {
+        if (_spatial) {
+          final model = project.models3d
+              .where((entry) => entry.id == resourceId)
+              .firstOrNull;
+          if (model == null) {
+            document.error = 'Cette ressource n’existe plus.';
+            return false;
+          }
+          SpatialModelEditingCommands(
+            document,
+            project,
+          ).replaceModel(id, model);
+        } else {
+          final element = project.elements
+              .where((entry) => entry.id == resourceId)
+              .firstOrNull;
+          if (element == null) {
+            document.error = 'Cette ressource n’existe plus.';
+            return false;
+          }
+          if (!MapEditingCommands(document, project).replace(id, element)) {
+            return false;
+          }
+        }
+        if (document.error != null) return false;
+      }
+      return true;
+    });
+  }
+
   bool _grouped(bool Function() apply) {
     final restore = document.preserveDraft();
     document.error = null;

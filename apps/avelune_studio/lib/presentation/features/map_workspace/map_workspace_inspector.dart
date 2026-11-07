@@ -29,6 +29,8 @@ import '../resources/model_shadow_controls.dart';
 import '../../shared/widgets/inputs/studio_commit_field.dart';
 import '../../shared/widgets/inputs/studio_toggle_row.dart';
 import 'map_generated_owner.dart';
+import 'map_decor_replacement_picker.dart';
+import '../../../features/map_workspace/application/map_decor_group_editing.dart';
 
 class MapWorkspaceInspector extends StatefulWidget {
   const MapWorkspaceInspector({
@@ -160,7 +162,10 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
             model?.name ?? 'Ressource manquante',
             style: Theme.of(context).textTheme.titleMedium,
           ),
-          const Text('Cette instance · décor placé sur la carte'),
+          Text(
+            mapOccurrenceScope(document.current.name),
+            key: const ValueKey('map-decor-occurrence-scope'),
+          ),
           if (mapGeneratedOwner(document.current, project, instance.id)
               case final owner?) ...[
             const SizedBox(height: 8),
@@ -344,6 +349,13 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
               );
             }),
           ),
+          StudioButton(
+            key: const ValueKey('map-decor-replace-here'),
+            label: 'Remplacer ici…',
+            icon: Icons.swap_horiz,
+            secondary: true,
+            onPressed: () => _replaceHere(context, instance.id, spatial: true),
+          ),
           StudioTool(
             label: 'Supprimer le décor',
             icon: Icons.delete_outline,
@@ -353,6 +365,26 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
         ],
       ),
     );
+  }
+
+  String mapOccurrenceScope(String mapName) =>
+      'Cette occurrence · carte « $mapName »';
+
+  Future<void> _replaceHere(
+    BuildContext context,
+    String id, {
+    required bool spatial,
+  }) async {
+    final resourceId = await showMapDecorReplacementPicker(
+      context,
+      project,
+      mapId: document.current.id,
+      spatial: spatial,
+      count: 1,
+    );
+    if (!mounted || resourceId == null) return;
+    MapDecorGroupEditing(document, project).replace([id], resourceId);
+    onChanged();
   }
 
   void _index() {
@@ -458,7 +490,10 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
                   if (category != null) Text('Décor · ${category.name}'),
                   if (entry != null) ...[
                     const SizedBox(height: 8),
-                    const Text('Cette instance · décor placé sur la carte'),
+                    Text(
+                      mapOccurrenceScope(document.current.name),
+                      key: const ValueKey('map-decor-occurrence-scope'),
+                    ),
                     const SizedBox(height: 4),
                     Text(
                       'Définition partagée : ${entry.name}',
@@ -579,6 +614,17 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
                           ? null
                           : () => widget.onEditResource!(entry),
                     ),
+                    if (selected != null) ...[
+                      const SizedBox(height: 6),
+                      StudioButton(
+                        key: const ValueKey('map-decor-replace-here'),
+                        label: 'Remplacer ici…',
+                        icon: Icons.swap_horiz,
+                        secondary: true,
+                        onPressed: () =>
+                            _replaceHere(context, selected.id, spatial: false),
+                      ),
+                    ],
                   ],
                 ),
               ),

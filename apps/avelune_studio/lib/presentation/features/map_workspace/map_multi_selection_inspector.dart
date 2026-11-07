@@ -7,6 +7,7 @@ import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/feedback/studio_state_badge.dart';
 import '../../shared/widgets/inputs/studio_commit_field.dart';
+import 'map_decor_replacement_picker.dart';
 import 'map_workspace_view_state.dart';
 
 class MapMultiSelectionInspector extends StatelessWidget {
@@ -141,6 +142,29 @@ class MapMultiSelectionInspector extends StatelessWidget {
                             view.toggleDecorInSelection(document, id);
                           }
                         }
+                        onChanged();
+                      },
+              ),
+              StudioButton(
+                key: const ValueKey('map-multi-selection-replace'),
+                label: 'Remplacer ici…',
+                icon: Icons.swap_horiz,
+                secondary: true,
+                onPressed: summary.editableIds.isEmpty
+                    ? null
+                    : () async {
+                        final resourceId = await showMapDecorReplacementPicker(
+                          context,
+                          project,
+                          mapId: document.current.id,
+                          spatial: spatial,
+                          count: summary.editableIds.length,
+                        );
+                        if (resourceId == null) return;
+                        MapDecorGroupEditing(document, project).replace(
+                          view.selectedDecorIds(document.current.id),
+                          resourceId,
+                        );
                         onChanged();
                       },
               ),
