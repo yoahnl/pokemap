@@ -967,7 +967,12 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
           widget.onChanged();
           return false;
         }
-        if (widget.view.tool != StudioMapTool.select) {
+        final keys = HardwareKeyboard.instance;
+        if (widget.view.tool == StudioMapTool.select &&
+            armed == null &&
+            (keys.isShiftPressed || keys.isMetaPressed)) {
+          widget.view.toggleDecorInSelection(document, instance.id);
+        } else if (widget.view.tool != StudioMapTool.select) {
           commands.delete(instance.id);
         } else {
           widget.view.select(document, MapSelectionFamily.decor, instance.id);

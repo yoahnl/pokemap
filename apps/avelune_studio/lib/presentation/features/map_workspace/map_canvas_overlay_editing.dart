@@ -35,6 +35,12 @@ MapCanvasOverlay buildEditingOverlay({
     map: stroke?.collision == true ? stroke!.preview : map,
     project: project,
     selected: view.tool == StudioMapTool.select ? null : document.selected,
+    extraSelected: [
+      for (final element in map.placedElements)
+        if (element.id != document.selectedId &&
+            view.selectedDecorIds(map.id).contains(element.id))
+          element,
+    ],
     selectedEntity: map.entities
         .where(
           (entity) =>

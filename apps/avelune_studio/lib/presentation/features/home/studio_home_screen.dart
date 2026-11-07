@@ -38,6 +38,7 @@ class StudioHomeScreen extends StatefulWidget {
     required this.onRemoveRecent,
     this.maps = const [],
     this.mapLibrary,
+    this.newGame,
     this.mapPreviewBuilder,
     required this.onMap,
     this.status,
@@ -61,6 +62,7 @@ class StudioHomeScreen extends StatefulWidget {
   final ValueChanged<RecentStudioProject> onRecent, onRemoveRecent;
   final List<({String id, String name})> maps;
   final ProjectManifest? mapLibrary;
+  final ProjectNewGameConfig? newGame;
   final Widget Function(String)? mapPreviewBuilder;
   final Widget? status;
   final bool statusAtTop;
@@ -124,7 +126,7 @@ class _StudioHomeScreenState extends State<StudioHomeScreen> {
         ? StudioHomeNextSteps(
             steps: homeNextSteps(
               maps: widget.maps,
-              newGame: widget.mapLibrary?.newGame,
+              newGame: widget.newGame ?? widget.mapLibrary?.newGame,
               canTest: widget.canTest,
             ),
             busy: widget.busy,

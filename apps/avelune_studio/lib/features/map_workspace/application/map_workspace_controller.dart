@@ -181,6 +181,9 @@ class MapWorkspaceController {
 
   bool get hasCompleteProject =>
       projectScope == MapWorkspaceProjectScope.completeProject;
+  ProjectNewGameConfig? _catalogNewGame;
+  ProjectNewGameConfig? get homeNewGame =>
+      hasCompleteProject ? project?.newGame : _catalogNewGame;
   ProjectManifest? _visualMapSource;
   ProjectManifest? _visualFamilySource;
   ProjectManifest? _combinedVisuals;
@@ -352,6 +355,7 @@ class MapWorkspaceController {
           ? (await source.loadCatalog(session)).metadata
           : await port.loadProject(session);
       if (_disposed) return;
+      _catalogNewGame = manifest.newGame;
       project = _prepareModelProjection(manifest);
       notify();
       if (manifest.maps.isNotEmpty) {
@@ -495,6 +499,7 @@ class MapWorkspaceController {
     }
     final catalog = await source.loadCatalog(session);
     if (_disposed) return;
+    _catalogNewGame = catalog.metadata.newGame;
     _workshopDefinitions = null;
     _resourceKind = null;
     _resourceVisualDefinitions = null;

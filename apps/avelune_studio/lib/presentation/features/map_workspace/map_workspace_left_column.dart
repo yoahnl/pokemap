@@ -3,6 +3,12 @@ import 'package:flutter/material.dart';
 import '../../shared/widgets/inputs/studio_choice.dart';
 import '../../shared/widgets/layout/studio_sidebar.dart';
 
+double mapLeftColumnWidth(double available) => available >= 1400
+    ? 320
+    : available >= 1100
+    ? 288
+    : 252;
+
 class MapWorkspaceLeftColumn extends StatelessWidget {
   const MapWorkspaceLeftColumn({
     super.key,

@@ -166,7 +166,8 @@ class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
     builder: (context, bounds) {
       final largeText = MediaQuery.textScalerOf(context).scale(14) > 20;
       final compact = bounds.maxWidth < 1000 || largeText;
-      final collapsed = widget.view.navigatorCollapsed || compact;
+      final collapsed =
+          widget.view.navigatorCollapsed || widget.view.mapOnly || compact;
       final contentInLeftColumn = widget.showNavigator && !collapsed;
       if (widget.view.contentInLeftColumn != contentInLeftColumn) {
         widget.view.contentInLeftColumn = contentInLeftColumn;
@@ -188,13 +189,16 @@ class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
                         collapsed
                             ? _navigatorRail(context)
                             : MapWorkspaceLeftColumn(
-                                width: 252,
+                                width: mapLeftColumnWidth(bounds.maxWidth),
                                 contentSelected: widget.view.elementsVisible,
                                 onContentSelected: (value) {
                                   widget.view.elementsVisible = value;
                                   widget.onToolChanged();
                                 },
-                                maps: _navigator(context),
+                                maps: _navigator(
+                                  context,
+                                  width: mapLeftColumnWidth(bounds.maxWidth),
+                                ),
                                 content: MapElementsPanel(
                                   document: widget.document,
                                   project: widget.project,
@@ -426,7 +430,9 @@ class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
     ),
   );
 
-  Widget _navigator(BuildContext context) => MapLibraryNavigator(
+  Widget _navigator(BuildContext context, {double width = 252}) =>
+      MapLibraryNavigator(
+    width: width,
     project: widget.project,
     activeMapId: widget.document.base.mapId,
     dirtyMapIds: {
@@ -455,6 +461,5 @@ class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
             visuals: widget.visuals,
           ),
     onCollapse: () => setState(() => widget.view.navigatorCollapsed = true),
-    width: 252,
   );
 }

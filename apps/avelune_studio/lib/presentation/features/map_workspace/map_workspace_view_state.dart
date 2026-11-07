@@ -219,6 +219,7 @@ class MapWorkspaceViewState {
   bool elementsVisible = false;
   bool contentInLeftColumn = false;
   bool navigatorCollapsed = false;
+  bool mapOnly = false;
   bool highlightTerrain = true;
   bool dimOtherTerrains = false;
   bool lockDecorProportions = false;

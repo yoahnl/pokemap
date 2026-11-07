@@ -115,6 +115,44 @@ class MapMultiSelectionInspector extends StatelessWidget {
                       },
               ),
               StudioButton(
+                key: const ValueKey('map-multi-selection-duplicate'),
+                label: 'Dupliquer',
+                icon: Icons.copy_all_outlined,
+                secondary: true,
+                onPressed: summary.editableIds.isEmpty
+                    ? null
+                    : () {
+                        final copies = editing.duplicate(summary.editableIds);
+                        if (copies != null && copies.isNotEmpty) {
+                          view.select(
+                            document,
+                            MapSelectionFamily.decor,
+                            copies.first,
+                          );
+                          for (final id in copies.skip(1)) {
+                            view.toggleDecorInSelection(document, id);
+                          }
+                        }
+                        onChanged();
+                      },
+              ),
+              if (editing.canRotate)
+                for (final (label, degrees) in const [
+                  ('↺ 90°', -90.0),
+                  ('↻ 90°', 90.0),
+                ])
+                  StudioButton(
+                    key: ValueKey('map-multi-selection-rotate-$degrees'),
+                    label: label,
+                    secondary: true,
+                    onPressed: summary.editableIds.isEmpty
+                        ? null
+                        : () {
+                            editing.rotate(summary.editableIds, degrees);
+                            onChanged();
+                          },
+                  ),
+              StudioButton(
                 key: const ValueKey('map-multi-selection-clear'),
                 label: 'Tout désélectionner',
                 variant: StudioButtonVariant.quiet,
@@ -127,7 +165,7 @@ class MapMultiSelectionInspector extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Maj ou ⌘ + clic dans Contenu de la carte ajoute ou retire un décor de la sélection.',
+            'Maj ou ⌘ + clic sur la carte ou dans Contenu de la carte ajoute ou retire un décor de la sélection.',
             style: theme.textTheme.bodySmall,
           ),
         ],

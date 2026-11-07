@@ -298,7 +298,14 @@ extension _MapWorkspaceCanvasGestures on _MapWorkspaceCanvasState {
               ? hits.firstWhere((e) => e.id == held)
               : hits.firstOrNull);
       final moving = _moving;
-      if (moving == null) {
+      final keys = HardwareKeyboard.instance;
+      if (moving != null &&
+          armed == null &&
+          (keys.isShiftPressed || keys.isMetaPressed)) {
+        widget.view.toggleDecorInSelection(widget.document, moving.id);
+        _moving = null;
+        _cancel();
+      } else if (moving == null) {
         widget.view.clearSelection(widget.document);
         _cancel();
         _panPointer = event.pointer;

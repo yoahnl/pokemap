@@ -175,6 +175,22 @@ class MapWorkspaceToolbar extends StatelessWidget {
                 },
         ),
         StudioTool(
+          key: const ValueKey('map-only-toggle'),
+          label: view?.mapOnly == true
+              ? 'Réafficher les panneaux'
+              : 'Carte seule',
+          icon: view?.mapOnly == true
+              ? Icons.fullscreen_exit
+              : Icons.fullscreen,
+          selected: view?.mapOnly ?? false,
+          onPressed: view == null
+              ? null
+              : () {
+                  view!.mapOnly = !view!.mapOnly;
+                  onChanged();
+                },
+        ),
+        StudioTool(
           label: 'Palette',
           icon: Icons.view_sidebar_outlined,
           selected: paletteVisible,

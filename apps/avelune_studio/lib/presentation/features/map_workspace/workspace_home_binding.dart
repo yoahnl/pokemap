@@ -133,6 +133,7 @@ extension _WorkspaceHomeBinding on _MapWorkspaceScreenState {
             (id: entry.id, name: entry.name),
         ],
         library: _controller.hasCompleteProject ? _controller.project : null,
+        startConfig: _controller.homeNewGame,
         testAvailable: _controller.active != null && !_actions.busy,
         previewBuilder: (id) => StudioHomeMapPreview(
           key: ValueKey(

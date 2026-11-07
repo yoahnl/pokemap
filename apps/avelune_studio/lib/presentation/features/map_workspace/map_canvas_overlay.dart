@@ -34,6 +34,7 @@ class MapCanvasOverlay extends CustomPainter {
     this.labelForeground,
     this.collisionColor,
     this.isHidden,
+    this.extraSelected = const [],
   }) : super(repaint: transform);
   final MapData map;
   final ProjectManifest project;
@@ -58,6 +59,7 @@ class MapCanvasOverlay extends CustomPainter {
   final Color? labelBackground, labelForeground;
   final Color? collisionColor;
   final bool Function(String kind, String id)? isHidden;
+  final List<MapPlacedElement> extraSelected;
   bool get _showLabels =>
       cellWidth * (transform?.value.entry(0, 0).abs() ?? 1) >= 28;
 
@@ -273,6 +275,31 @@ class MapCanvasOverlay extends CustomPainter {
           area.pos.y * cellHeight,
           area.size.width * cellWidth,
           area.size.height * cellHeight,
+        ),
+        paint,
+      );
+    }
+    for (final extra in extraSelected) {
+      if (isHidden?.call('decor', extra.id) ?? false) continue;
+      final element = project.elements
+          .where((e) => e.id == extra.elementId)
+          .firstOrNull;
+      final size = element == null
+          ? const GridSize(width: 1, height: 1)
+          : resolveMapPlacedElementFootprint(
+              instance: extra,
+              element: element,
+            ).destinationSize;
+      paint
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2;
+      canvas.drawRect(
+        Rect.fromLTWH(
+          extra.pos.x * cellWidth,
+          extra.pos.y * cellHeight,
+          size.width * cellWidth,
+          size.height * cellHeight,
         ),
         paint,
       );

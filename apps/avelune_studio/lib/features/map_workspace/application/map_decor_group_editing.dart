@@ -125,6 +125,70 @@ final class MapDecorGroupEditing {
     });
   }
 
+  bool get canRotate => _spatial;
+
+  bool rotate(Iterable<String> ids, double degrees) {
+    if (!_spatial) return false;
+    final summary = summarize(ids);
+    if (summary.editableIds.isEmpty) return false;
+    final rotations = {
+      for (final instance in document.current.spatialScene!.instances)
+        instance.id: instance.rotationDegrees,
+    };
+    return _grouped(() {
+      for (final id in summary.editableIds) {
+        SpatialModelEditingCommands(
+          document,
+          project,
+        ).update(id, rotation: rotations[id]! + degrees);
+        if (document.error != null) return false;
+      }
+      return true;
+    });
+  }
+
+  List<String>? duplicate(Iterable<String> ids) {
+    final summary = summarize(ids);
+    if (summary.editableIds.isEmpty) return null;
+    final created = <String>[];
+    final applied = _grouped(() {
+      for (final id in summary.editableIds) {
+        if (_spatial) {
+          final before = {
+            for (final instance in document.current.spatialScene!.instances)
+              instance.id,
+          };
+          SpatialModelEditingCommands(document, project).duplicate(id);
+          created.addAll(
+            document.current.spatialScene!.instances
+                .map((instance) => instance.id)
+                .where((instanceId) => !before.contains(instanceId)),
+          );
+        } else {
+          final element = document.current.placedElements.firstWhere(
+            (element) => element.id == id,
+          );
+          final entry = project.elements
+              .where((entry) => entry.id == element.elementId)
+              .firstOrNull;
+          if (entry == null) {
+            document.error = 'Ce décor n’est plus disponible dans le projet.';
+            return false;
+          }
+          final copy = MapEditingCommands(
+            document,
+            project,
+          ).place(entry, element.pos);
+          if (copy == null) return false;
+          created.add(copy);
+        }
+        if (document.error != null) return false;
+      }
+      return true;
+    });
+    return applied ? created : null;
+  }
+
   bool _grouped(bool Function() apply) {
     final restore = document.preserveDraft();
     document.error = null;

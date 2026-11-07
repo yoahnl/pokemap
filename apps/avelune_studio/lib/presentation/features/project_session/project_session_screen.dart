@@ -391,6 +391,7 @@ class _ProjectSessionScreenState extends State<ProjectSessionScreen> {
                       _recents.remove(entry.directoryPath),
                   maps: _home.maps,
                   mapLibrary: _home.mapLibrary,
+                  newGame: _home.newGame,
                   mapPreviewBuilder: homeVisible
                       ? _home.mapPreviewBuilder
                       : null,

@@ -122,9 +122,10 @@ class MapWorkspaceLayout extends StatelessWidget {
       final availableWidth = c.maxWidth - (c.maxWidth < 1200 ? 72 : 184);
       final compactInspector = availableWidth < 1200 || largeText;
       final compactPalette = availableWidth < 650;
-      final showInspector = inspector ?? (!compactInspector);
+      final mapOnly = activeSpace == 'map' && view?.mapOnly == true;
+      final showInspector = !mapOnly && (inspector ?? (!compactInspector));
       final showNavigator = activeSpace == 'map';
-      final showPaletteDock = palette;
+      final showPaletteDock = palette && !mapOnly;
       final paletteWidth = c.maxWidth >= 1400 ? 240.0 : 220.0;
       final inspectorWidth = c.maxWidth >= 1400 ? 340.0 : 280.0;
       Widget paletteContent(VoidCallback refresh, [VoidCallback? close]) {

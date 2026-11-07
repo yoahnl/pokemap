@@ -10,6 +10,7 @@ class StudioHomeNavigation extends ChangeNotifier {
   bool canTest = false;
   List<StudioHomeMap> maps = const [];
   ProjectManifest? mapLibrary;
+  ProjectNewGameConfig? newGame;
   Widget Function(String)? mapPreviewBuilder;
   Future<bool> Function()? allowSwitch;
   VoidCallback? onOptimizeLibrary;
@@ -63,6 +64,7 @@ class StudioHomeNavigation extends ChangeNotifier {
   void publish({
     required List<StudioHomeMap> availableMaps,
     ProjectManifest? library,
+    ProjectNewGameConfig? startConfig,
     required bool testAvailable,
     Widget Function(String)? previewBuilder,
     required void Function(String, String?) navigate,
@@ -71,6 +73,7 @@ class StudioHomeNavigation extends ChangeNotifier {
     if (_disposed) return;
     maps = availableMaps;
     mapLibrary = library;
+    newGame = startConfig ?? library?.newGame;
     canTest = testAvailable;
     mapPreviewBuilder = previewBuilder;
     onNavigate = navigate;
@@ -87,6 +90,7 @@ class StudioHomeNavigation extends ChangeNotifier {
     libraryOptimizationError = null;
     maps = const [];
     mapLibrary = null;
+    newGame = null;
     canTest = false;
     mapPreviewBuilder = null;
     onNavigate = null;

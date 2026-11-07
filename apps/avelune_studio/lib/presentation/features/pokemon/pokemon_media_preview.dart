@@ -72,6 +72,7 @@ class _PokemonMediaPreviewState extends State<PokemonMediaPreview> {
         child: Image.memory(
           bytes,
           fit: BoxFit.contain,
+          filterQuality: FilterQuality.none,
           errorBuilder: (context, error, stackTrace) => const PokemonEmptyState(
             title: 'Image illisible',
             description: 'La référence existe, mais le PNG ne se décode pas.',

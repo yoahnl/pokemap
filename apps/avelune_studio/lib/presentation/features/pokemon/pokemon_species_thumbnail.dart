@@ -49,6 +49,7 @@ class _PokemonSpeciesThumbnailState extends State<PokemonSpeciesThumbnail> {
           return Image.memory(
             bytes,
             fit: BoxFit.contain,
+            filterQuality: FilterQuality.none,
             gaplessPlayback: true,
           );
         }
