@@ -2473,9 +2473,9 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 
 **Étapes d’implémentation :**
 
-- [ ] 1. Instrumenter lectures, écritures, décodages et invalidations pour les gestes modifiés, sans dépendre d’un cache chaud.
-- [ ] 2. Ajouter cartes, assets et historique sans rapport à une fixture ; les comptes de travail d’une propriété locale doivent rester bornés par ses dépendances.
-- [ ] 3. Mesurer séparément ouverture, premier geste et gestes suivants sur machine et build documentés.
+- [ ] 1. Instrumenter lectures, écritures, décodages et invalidations pour les gestes modifiés, sans dépendre d’un cache chaud. *(Vague 3, carte : lectures, définitions décodées, écritures et rechargement de sélection comptés pour la présence, la caméra et le déplacement de décor — 45d4e09cc.)*
+- [ ] 2. Ajouter cartes, assets et historique sans rapport à une fixture ; les comptes de travail d’une propriété locale doivent rester bornés par ses dépendances. *(Vague 3, carte : prouvé par `map_save_work_counts_test.dart` — 45d4e09cc.)*
+- [ ] 3. Mesurer séparément ouverture, premier geste et gestes suivants sur machine et build documentés. *(Vague 3, carte : mesuré hors écran en JIT et AOT, voir « Mesures consignées — enregistrement d'une carte » ; mesure native UI manquante.)*
 - [ ] 4. Vérifier <=100 ms de retour visible et <=500 ms de durabilité pour les propriétés simples ; un échec de budget reste PARTIAL.
 - [ ] 5. Rouvrir les données sauvegardées, puis exécuter les fixtures protégées baseline et ultérieures et leurs sauvegardes.
 - [ ] 6. Vérifier refus d’un futur format ou échec de conversion sans modifier les octets originaux.
@@ -2528,6 +2528,16 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 | « Charger les modèles de bordure » (non corrigé) | 1 à 6 min natif | 50 s pour la sélection du catalogue, 55 s avec le contrôleur | aucune |
 
 Décomposition d'un rangement répété (JIT) : lecture ciblée ~77 ms, planification ~200 ms (relecture de la sélection, validation, préparation du patch), écriture transactionnelle ~140 ms ; le premier ajoute ~100 ms d'ouverture du contexte de mutation. Statut : budget de 500 ms durable tenu en JIT pour les gestes répétés, pas pour le premier ; mesure Release native à faire. Vider tous les champs d'un classement ou le réserver à une carte repasse par le chemin global ; créer ou renommer une famille aussi.
+
+**Mesures consignées — enregistrement d'une carte (vague 3, 2026-11-07) :** clone de l'atlas HGSS (catalogue de travail, 102 cartes cataloguées, ~153 000 objets `catalog/`), carte Bourg Geon (`first-map`, 271 Ko, 11 entités, 163 instances 3D). Banc opt-in `apps/avelune_studio/test/map_workspace/map_save_cost_bench_test.dart` (session, contrôleur et adaptateur réels, flutter_tester JIT) et même chemin d'enregistrement map_authoring compilé en AOT (`dart compile exe`) ; Mac Apple Silicon partagé (charge ~7). Pas de mesure native UI : session macOS verrouillée.
+
+| Enregistrement durable | Avant 45d4e09cc (JIT) | Après (JIT) | Après (AOT) |
+|---|---|---|---|
+| Règle de présence, champ de caméra, déplacement de décor — 1er après ouverture | 57 à 65 s, 49 953 lectures | 4,6 s, 3 360 lectures | 2,6 s (1er du processus) |
+| Mêmes gestes, suivants | 51 à 64 s | 3,7 à 4,3 s | 1,6 à 1,9 s, 3 350 lectures |
+| Ouverture de la carte (non modifiée, mesurée à part) | 26 à 29 s, 23 938 lectures | idem | — |
+
+Cause (défaut antérieur aux deux nuits, chemin daté du catalogue partitionné d'octobre) : chaque enregistrement relisait toutes les métadonnées du projet (dialogues, scènes, cinématiques, entrées de toutes les cartes) environ sept fois, puis rechargeait le catalogue et la sélection deux fois. Après 45d4e09cc : écriture inchangée (document de carte, HEAD, 11 objets catalogue, historique), relecture de la seule carte, rechargement de la sélection seulement si les dépendances de catalogue de la carte changent ; validation identique sur les 102 cartes HGSS. Comptes stables : `apps/avelune_studio/test/map_workspace/map_save_work_counts_test.dart` (0, 24 puis 48 cartes, modèles, médias, dialogues et historique sans rapport : aucune autre carte ni média lu, mêmes définitions décodées, seules des pages d'index en plus). Budget de 500 ms non tenu (PARTIAL) : la planification de `map.save` lit encore toutes les scènes et cinématiques du projet (~1 s AOT, 2 163 lectures) et la fermeture de dépendances de la carte (~0,4 s, 861 lectures) ; prochaine étape : index des scènes et cinématiques par carte.
 
 **Références visuelles :** [094-reglages-enregistres](2026-11-06-refonte-studio/captures/094-reglages-enregistres.jpg), [033-carte-retour-heritage](2026-11-06-refonte-studio/captures/033-carte-retour-heritage.jpg).
 
