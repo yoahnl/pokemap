@@ -2390,12 +2390,42 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 
 **Étapes d’implémentation :**
 
-- [ ] 1. Réunir la matrice des deltas sémantiques de chaque lot et justifier les opérations purement UI sans exposition supplémentaire.
-- [ ] 2. Découvrir les actions et schémas actuels ; réutiliser les endpoints canoniques de profil, visuels, Surf et audio.
-- [ ] 3. Ajouter des contrats versionnés seulement pour les sémantiques absentes ; ne pas les cacher dans des contrôleurs Flutter.
-- [ ] 4. Prouver le même résultat et les mêmes refus en API directe, JSONL/CLI et Studio, puis dans le transport MCP.
-- [ ] 5. Exécuter la conformité, reconstruire/recharger le serveur appartenant à la session et consulter pokemap_describe sur le catalogue vivant.
-- [ ] 6. Ne pas confondre sérialisation JSON et support sémantique ; classer une exposition absente comme PARTIAL.
+- [x] 1. Réunir la matrice des deltas sémantiques de chaque lot et justifier les opérations purement UI sans exposition supplémentaire. — **livré** : matrice ci-dessous, 49 commits de `d33da791b^..57377c648`.
+- [x] 2. Découvrir les actions et schémas actuels ; réutiliser les endpoints canoniques de profil, visuels, Surf et audio. — **livré** : `pokemap_describe` sur le serveur reconstruit (471 actions, 60 outils) une fois la racine morte retirée de `.mcp.json` (3bf4fe8ff) ; chaque action citée est découverte avec son schéma.
+- [x] 3. Ajouter des contrats versionnés seulement pour les sémantiques absentes ; ne pas les cacher dans des contrôleurs Flutter. — **sans objet** : aucune sémantique absente dans la plage ; aucun contrat ajouté.
+- [ ] 4. Prouver le même résultat et les mêmes refus en API directe, JSONL/CLI et Studio, puis dans le transport MCP. — **en partie** : reçus de bout en bout sur les quatre transports pour la plupart des actions citées ; héritage d’un paramètre local, rejeu idempotent et refus hors racine prouvés par MCP (`tools/pokemap_mcp/test/visual_settings_stdio.test.ts`). Restent sans reçu de bout en bout, comme avant la vague : `warp.update`, `warp.create`, `placed_element.*`, `item.update`, `item.create`, `pokemon.species.write`, `pokemon.evolution.write`, `pokemon.media.import`, `environment.preset.upsert`, `border_layer.stroke_add` ; sans reçu Studio : `resource.classify_batch`, `map3d.instance.upsert_batch`, `map3d.instance.delete_batch`, `map3d.edit_batch`.
+- [x] 5. Exécuter la conformité, reconstruire/recharger le serveur appartenant à la session et consulter pokemap_describe sur le catalogue vivant. — **livré** : `full_authoring_parity_test.dart` 28/28 ; PMCP-085 : catalogue complet, 0 cellule bloquée ou manquante, sortie 1 seulement parce que les reçus de transport Item manquent (préexistant) ; `npm run check` propre ; `npm test` : 309 réussis, 71 échecs préexistants au HEAD 57377c648 (listes d’outils et schémas figés dans les tests, délais de 10 s), aucun lié à la configuration.
+- [x] 6. Ne pas confondre sérialisation JSON et support sémantique ; classer une exposition absente comme PARTIAL. — **appliqué** : chaque ligne nomme une action canonique ou un motif N/A ; aucune ligne ne s’appuie sur la seule persistance JSON.
+
+**Matrice des deltas sémantiques** (agent Parité, 7 novembre 2026, HEAD 57377c648). Classes : **D** disposition, lecture ou brouillon de présentation, N/A motivé ; **C** sémantique couverte par l’action canonique nommée ; **A** sémantique absente (aucune).
+
+| Lot · commits | Delta | Classe | Action canonique ou motif |
+|---|---|---|---|
+| UX-00, plans · 14cdc23de, 3881b71ec, 712112d67, ab5d4f22e, fefd5341c | Documentation | D | Aucun code |
+| UX-01, UX-02 · 66fbcea27, 1c91c4f96, 60f640327 (shell, mode carte seule) | Navigation clavier, accueil orienté objectif, lecture de `newGame` | D | Lecture seule |
+| UX-02.1 · 4c552a318 | Dossiers et classement des cartes ; création guidée de carte et de projet | C | `map.library.reorganize` ; `map.create` (`groupId` ; la planche refusée en 3D l’est par `map.create`) ; `pokemap_project_create` et ses modèles. Recherche sans accents : D |
+| UX-03, UX-03.1 · 48f70a09a, d33da791b | ⌘K, libellés ; carte régionale sans lien implicite à la première carte ; image de région admissible | C | `regionalMap.poi.upsert` et `regionalMap.region.upsert` : `mapIds` et `destination.mapId` sont toujours explicites, l’API n’en invente aucun ; `ProjectRegionDefinition.acceptsImagePath` publie la règle du décodeur canonique, refus identiques |
+| UX-04, UX-05, UX-06, UX-08 · 0757a4ced, 66ea27452, e1f9f99d8, b7d544352 | Intention active, recherche par intention, contenu filtrable, cible et propriétaire des décors générés | D | Présentation |
+| UX-07 · 06ac28ab8, 60f640327 | Déplacement, retrait, duplication et rotation groupés | C | 3D : `map3d.instance.upsert_batch`, `map3d.instance.delete_batch` ou `map3d.edit_batch` ; 2D : `placed_element.move`, `.delete`, `.clone`, `.place`. Le Studio persiste toujours par l’enregistrement de carte entière, chemin préexistant suivi par UX-25 |
+| UX-09, UX-12.3 · d96ab8849, e1e5032eb | Revue des profils et contours de Border avant application ou republication | D | Revue en lecture ; l’application reste `border_layer.*` et `border.blueprint.draft.upsert` / `border.blueprint.publish` (republication spatiale en catalogue toujours non prise en charge, limite préexistante) |
+| UX-10 · 641da2bfb | Destination d’un passage cherchée par carte et dossier | C | `warp.update`, `warp.create` (`warpDestinationContract`) ; le sélecteur est D |
+| UX-11 · 641ab9706, e10d452f9 | Tri et rangement de plusieurs ressources ; export d’une sélection | C | `resource.classify_batch`, `resource.family.*` ; `pokemap_resource_pack` (`selection.patch`) ; sélection retirée nommée : D |
+| UX-12, UX-12.1, UX-12.2, UX-12.4, UX-12.5 · f3f8ddfb6, 4351adf70, 2d6c5ed3e, ddda284c6, 078748ce7, ba222f6a5 | Import resté source, portée d’un modèle partagé, usage d’un terrain, environnement partagé, onglet identité | D | Lectures d’usage et libellés ; mutations inchangées : `asset.import`, `model3d.configure`, `environment.preset.upsert`, `characterStudio.*` |
+| UX-13 · c49df5138 | Incident nommé par son propriétaire et sa prochaine action | D | Projection d’incidents existants |
+| UX-14 · 59ab3a485 | Brouillons, enregistrement et annulation par rubrique | C | `pokemap_visual_settings_set` (patch complet de la portée, révision attendue ; la rubrique est le sous-ensemble composé sur l’état lu) ; `pokemap_visual_settings_undo` (dernier reçu) ; annulation avant enregistrement : brouillon D |
+| UX-15 · 973e2544a | Identité de jeu réglée dans Général et reprise par l’export | C | `pokemap_game_export_profile_read` / `_validate` / `_save`, révisions attendues et refus `exportProfileStale` |
+| UX-16 · 3bbdefa13 | Origine des valeurs ; refus d’une saisie caméra hors bornes | C | Bornes `SpatialVisualParameter.minimum` / `maximum`, refusées aussi par le modèle canonique ; aperçu sans enregistrer : D |
+| UX-17 · d4bbe9242 | Retour d’une carte à l’héritage | C | `pokemap_visual_settings_set` sur la portée carte : retirer un paramètre du patch le rend hérité, les autres valeurs locales restent ; prouvé par MCP |
+| UX-18, UX-21 · 49233ed43, c91ccab0f | Repli de la météo réelle ; revue des brouillons avant test | D | Explication et revue ; le test passe par `pokemap_playtest` |
+| UX-19 · d02ed5dba | Autoriser, connaître, débloquer une capacité ; vitesse de Surf décimale | C | `field_ability.configure`, `surf.configure` ; la virgule décimale est une normalisation de saisie |
+| UX-20 · 904c9a226 | Enregistrer une seule association sonore | C | `project.audio.cue.configure`, déjà une action par cue ; écoute : D |
+| UX-23.1 · 9b2b9e85b, 57377c648 | Présence d’histoire composée par sélecteurs natifs | C | `npc.set_visibility_rule` (mode et prédicat étape, état ou badge) ; chargement des références avant jugement : D |
+| UX-23.2 · 3ea3a966b, 096c10f97 | Scènes cherchables, options par effet ; « Toutes / Une seule suffit » | C | `event_v2.record_upsert` : `all` / `any` font déjà partie de `NarrativeEventConditionExpression` ; recherche et phrases : D |
+| UX-23.3, UX-23.4, UX-23.8 · 9cfe1aa5f, 979120f23, 5c61cc0bf | Recherche d’histoires, guidage des cinématiques, durées de saut et de plateforme | D | Présentation |
+| UX-23.5 · 628510049 | Table ou dresseur inutilisé distinct d’invalide ; usages par objets de carte | C | Diagnostic Studio D ; `campaign.encounter_table.delete` refusait déjà toute référence exacte dans les cartes, le Studio s’y aligne |
+| UX-23.6 · cd81aa24c, 7529620f2, b6c657ed3 | Poche choisie ou créée explicitement ; liens de formes et règles d’évolution ; disponibilité des médias | C | `item.update` / `item.create` (`pocketId`), `bag.capacity.set` ; `pokemon.species.write`, `pokemon.evolution.write` ; `pokemon.media.import` ne remplace jamais ; sonde de médias : lecture D, même statut que la cohérence Pokémon canonique |
+| UX-23.7 · b6f400d07 | Lier un lieu régional à une carte par recherche | C | `regionalMap.poi.upsert` (`mapIds` explicites) |
+| 07a287cab | État des sections repliables | D | Présentation |
 
 **Tests comportementaux obligatoires :**
 

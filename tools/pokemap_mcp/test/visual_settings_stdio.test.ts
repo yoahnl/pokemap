@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm, mkdir, writeFile } from "node:fs/promises";
+import { mkdtemp, readdir, readFile, rm, mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import test from "node:test";
@@ -9,6 +9,7 @@ import type { JsonRecord } from "../src/authoring_client.js";
 function record(value: unknown): JsonRecord {assert.ok(value && typeof value === "object" && !Array.isArray(value));return value as JsonRecord;}
 test("visual defaults and map inheritance use bounded canonical documents across cold MCP sessions", {timeout:150_000}, async()=>{
  const root=await mkdtemp(join(tmpdir(),"visual-mcp-"));
+ const outsideRoot=await mkdtemp(join(tmpdir(),"visual-mcp-outside-"));
  const args=[resolve("dist/src/index.js"),"--root",root,"--authoring-timeout-ms","60000"];
  if(process.env.POKEMAP_TEST_DART) args.push("--dart",process.env.POKEMAP_TEST_DART);
  async function session(run:(call:(name:string,input?:JsonRecord,fails?:boolean)=>Promise<JsonRecord>)=>Promise<void>){
@@ -53,8 +54,19 @@ test("visual defaults and map inheritance use bounded canonical documents across
    const changed=await call("pokemap_visual_settings_set",{projectRoot:root,mapId:"shore",expectedRevision:first.revision,settings:{haloStrength:1.2},operationId:"map-visual"});
    await call("pokemap_visual_settings_set",{projectRoot:root,mapId:"shore",expectedRevision:first.revision,settings:{haloStrength:1.4},operationId:"stale-map"},true);
    const undone=await call("pokemap_visual_settings_undo",{projectRoot:root,mapId:"shore",receiptId:record(changed.receipt).receiptId,expectedRevision:changed.afterRevision,operationId:"undo-map-visual"});assert.deepEqual(undone.afterSettings,{});
+   const local=await call("pokemap_visual_settings_set",{projectRoot:root,mapId:"shore",expectedRevision:undone.afterRevision,settings:{haloStrength:1.2,cameraDistance:10},operationId:"map-two-local"});
+   const inherit={projectRoot:root,mapId:"shore",expectedRevision:local.afterRevision,settings:{cameraDistance:10},operationId:"map-inherit-halo"};
+   const inherited=await call("pokemap_visual_settings_set",inherit);
+   assert.deepEqual(inherited.afterSettings,{cameraDistance:10});
+   assert.deepEqual((await call("pokemap_visual_settings_set",inherit)).receipt,inherited.receipt);
+   const project=await call("pokemap_visual_settings_inspect",{projectRoot:root});
+   assert.equal(record(project.settings).weatherKind,"tempest");
+   const outside=await call("pokemap_visual_settings_inspect",{projectRoot:outsideRoot},true);
+   assert.equal(outside.code,"permission_denied");
+   assert.ok(JSON.stringify(outside).includes("workspace.path_outside_allowed_roots"),JSON.stringify(outside));
   });
   assert.equal((await readFile(join(root,"project.json"))).toString(),"unreadable unrelated project");
   assert.equal((await readFile(join(root,"maps","shore.json"))).toString(),"unreadable map");
- }finally{await rm(root,{recursive:true,force:true});}
+  assert.deepEqual(await readdir(outsideRoot),[]);
+ }finally{await rm(root,{recursive:true,force:true});await rm(outsideRoot,{recursive:true,force:true});}
 });
