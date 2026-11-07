@@ -96,7 +96,11 @@ extension _MapWorkspaceCanvasBorder on _MapWorkspaceCanvasState {
             blueprint.latestPublished!.definition.template,
           );
       final cell = _borderPoint(localPosition, alignment);
-      widget.view.borderDraft = draft == null
+      final moving = widget.view.borderMovingAngle;
+      widget.view.borderMovingAngle = null;
+      widget.view.borderDraft = draft != null && moving != null
+          ? draft.moveAngle(moving, cell)
+          : draft == null
           ? MapBorderDrawingDraft.start(
               mapId: widget.document.current.id,
               mapSize: widget.document.current.size,

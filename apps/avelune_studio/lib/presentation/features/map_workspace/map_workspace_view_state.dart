@@ -113,6 +113,7 @@ class MapWorkspaceViewState {
 
   String? borderBlueprintId;
   MapBorderDrawingDraft? borderDraft;
+  int? borderMovingAngle;
   ({MapBorderDrawingDraft draft, String message})? borderDraftFailure;
   String? borderDraftErrorFor(MapData map, ProjectManifest project) {
     final failure = borderDraftFailure;
@@ -436,6 +437,7 @@ class MapWorkspaceViewState {
       environment = null;
       exteriorEnvironmentPresetId = null;
       borderDraft = null;
+      borderMovingAngle = null;
       borderDraftFailure = null;
       borderPreview = null;
       borderFeature = null;

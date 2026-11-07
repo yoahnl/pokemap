@@ -35,6 +35,29 @@ String mapBorderProfilePieces(BorderBlueprintPublishedDefinition definition) {
       '${_count(count(BorderPrimitiveRole.lineCap), 'extrémité', 'extrémités')}';
 }
 
+String mapBorderTraversal(BorderBlueprintPublishedDefinition definition) {
+  if (definition.jumpBehavior != null) {
+    return 'Passage : franchissable à sens unique, par un saut.';
+  }
+  final open = definition.primitives
+      .where((primitive) => !primitive.blocksMovement)
+      .length;
+  if (open == 0) {
+    return 'Passage : la paroi bloque le joueur sur tout le tracé.';
+  }
+  return 'Passage : $open ${open > 1 ? 'pièces laissent' : 'pièce laisse'} passer le joueur ; les autres bloquent.';
+}
+
+String? mapBorderGround(BorderBlueprintPublishedDefinition definition) {
+  if (definition.replacesGround) {
+    return 'Sol : le modèle remplace le sol sous le tracé.';
+  }
+  if (definition.masksGroundCells) {
+    return 'Sol : les cases sous le tracé sont masquées par la paroi ; l’aperçu montre tout trou laissé par une pièce trop étroite.';
+  }
+  return null;
+}
+
 final class MapBorderReview {
   const MapBorderReview(this.facts, this.warnings);
   final List<String> facts, warnings;
@@ -63,6 +86,8 @@ MapBorderReview mapBorderDraftReview(
         : 'Contour ouvert · 2 extrémités · ${_count(angles, 'angle', 'angles')}',
     mapBorderProfilePieces(definition),
     if (definition.followContourDirection) 'Ce modèle suit le sens du tracé : tracer dans l’autre sens retourne la paroi.',
+    mapBorderTraversal(definition),
+    ?mapBorderGround(definition),
   ];
   final warnings = <String>[];
   bool has(BorderPrimitiveRole role, [BorderCornerTurn? turn]) =>

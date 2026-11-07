@@ -11,6 +11,7 @@ import '../../shared/widgets/layout/studio_panel.dart';
 import '../resources/resource_catalog.dart';
 import '../resources/resource_filter_button.dart';
 import 'map_border_review.dart';
+import 'map_cliff_guide.dart';
 import 'map_workspace_view_state.dart';
 
 class MapBorderToolPanel extends StatelessWidget {
@@ -460,6 +461,8 @@ class MapBorderToolPanel extends StatelessWidget {
               ? 'Tracés droits uniquement · Entrée pour terminer.'
               : draft == null
               ? 'Cliquez pour commencer, puis cliquez pour placer les angles.'
+              : view.borderMovingAngle != null
+              ? 'Cliquez sur la carte pour placer l’angle ${view.borderMovingAngle! + 1}.'
               : '${draft.anchors.length} points · ${draft.alignment == BorderStrokeAlignment.gridEdges ? 'lignes de grille' : 'cases'} · clic = angle · départ = fermer · Entrée = terminer.',
           style: Theme.of(context).textTheme.bodySmall,
           maxLines: spatial ? 1 : null,
@@ -472,12 +475,38 @@ class MapBorderToolPanel extends StatelessWidget {
         ),
       ],
       if (draft != null) ...[
+        SizedBox(
+          width: 170,
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<int>(
+              key: const ValueKey('border-move-angle'),
+              isExpanded: true,
+              value: view.borderMovingAngle,
+              hint: const Text('Déplacer un angle'),
+              items: [
+                for (var index = 0; index < draft.anchors.length; index++)
+                  DropdownMenuItem(
+                    value: index,
+                    child: Text(
+                      'Angle ${index + 1} · ${draft.anchors[index].x}, ${draft.anchors[index].y}',
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+              ],
+              onChanged: (index) {
+                view.borderMovingAngle = index;
+                onChanged();
+              },
+            ),
+          ),
+        ),
         StudioButton(
           label: 'Retirer le dernier angle',
           icon: Icons.undo,
           secondary: true,
           onPressed: () {
             if (spatial) view.clearBorderDraftFailure(document);
+            view.borderMovingAngle = null;
             view.borderDraft = draft.removeLastAngle();
             onChanged();
           },
@@ -488,6 +517,7 @@ class MapBorderToolPanel extends StatelessWidget {
           secondary: true,
           onPressed: () {
             if (spatial) view.clearBorderDraftFailure(document);
+            view.borderMovingAngle = null;
             view.borderDraft = null;
             onChanged();
           },
@@ -642,6 +672,19 @@ class MapBorderToolPanel extends StatelessWidget {
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: controls,
                   ),
+            if (spatial &&
+                models.isNotEmpty &&
+                view.borderEditingMode != BorderStrokeEditingMode.erase)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: MapCliffGuide(
+                  document: document,
+                  view: view,
+                  definition: definition,
+                  draft: draft,
+                  onChanged: onChanged,
+                ),
+              ),
             if (models.isNotEmpty && (spatial || definition != null))
               Padding(
                 padding: const EdgeInsets.only(top: 6),

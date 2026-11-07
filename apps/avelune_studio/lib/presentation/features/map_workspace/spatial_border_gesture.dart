@@ -208,7 +208,11 @@ extension _SpatialBorderEditing on _SpatialMapEditorState {
           : editingDocument.current;
       final bounds = _exteriorBorderOwners[this];
       widget.view.borderPreview = null;
-      widget.view.borderDraft = current == null
+      final moving = widget.view.borderMovingAngle;
+      widget.view.borderMovingAngle = null;
+      widget.view.borderDraft = current != null && moving != null
+          ? current.moveAngle(moving, point)
+          : current == null
           ? MapBorderDrawingDraft.start(
               mapId: editingDocument.current.id,
               mapSize: editingExterior

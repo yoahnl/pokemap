@@ -149,6 +149,32 @@ final class MapBorderDrawingDraft {
     );
   }
 
+  MapBorderDrawingDraft moveAngle(int index, GridPos point) {
+    RangeError.checkValidIndex(index, anchors);
+    _requireInside(point, mapSize, alignment);
+    if (anchors[index] == point) return this;
+    final next = [...anchors]..[index] = point;
+    canonicalizeBorderStrokeV1(
+      id: 'trait',
+      sampledPoints: closed ? [...next, next.first] : next,
+      closed: closed,
+    );
+    return MapBorderDrawingDraft._(
+      mapId: mapId,
+      mapSize: mapSize,
+      blueprintId: blueprintId,
+      alignment: alignment,
+      anchors: next,
+      hover: null,
+      closed: closed,
+      featureId: featureId,
+      seed: seed,
+      sourceMap: sourceMap,
+      sourceProject: sourceProject,
+      logicalOrigin: logicalOrigin,
+    );
+  }
+
   MapBorderDrawingDraft pointAt(GridPos? point) => MapBorderDrawingDraft._(
     mapId: mapId,
     mapSize: mapSize,
@@ -163,6 +189,7 @@ final class MapBorderDrawingDraft {
     seed: seed,
     sourceMap: sourceMap,
     sourceProject: sourceProject,
+    logicalOrigin: logicalOrigin,
   );
 
   MapBorderDrawingDraft? removeLastAngle() {
