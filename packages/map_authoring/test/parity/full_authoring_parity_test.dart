@@ -219,6 +219,46 @@ void main() {
           AuthoringTransport.mcp:
               '../../tools/pokemap_mcp/test/resource_pack_stdio.test.ts',
         },
+        'placed_element.place': {
+          AuthoringTransport.directApi:
+              'test/domains/maps/placed_element_lifecycle_transport_test.dart',
+          AuthoringTransport.cli:
+              'test/domains/maps/placed_element_lifecycle_transport_test.dart',
+          AuthoringTransport.editor:
+              '../../apps/avelune_studio/test/map_workspace/decor_disk_journey_test.dart',
+          AuthoringTransport.mcp:
+              '../../tools/pokemap_mcp/test/placed_element_lifecycle_stdio.test.ts',
+        },
+        'placed_element.move': {
+          AuthoringTransport.directApi:
+              'test/domains/maps/placed_element_lifecycle_transport_test.dart',
+          AuthoringTransport.cli:
+              'test/domains/maps/placed_element_lifecycle_transport_test.dart',
+          AuthoringTransport.editor:
+              '../../apps/avelune_studio/test/map_workspace/decor_disk_journey_test.dart',
+          AuthoringTransport.mcp:
+              '../../tools/pokemap_mcp/test/placed_element_lifecycle_stdio.test.ts',
+        },
+        'placed_element.clone': {
+          AuthoringTransport.directApi:
+              'test/domains/maps/placed_element_lifecycle_transport_test.dart',
+          AuthoringTransport.cli:
+              'test/domains/maps/placed_element_lifecycle_transport_test.dart',
+          AuthoringTransport.editor:
+              '../../apps/avelune_studio/test/map_workspace/decor_disk_journey_test.dart',
+          AuthoringTransport.mcp:
+              '../../tools/pokemap_mcp/test/placed_element_lifecycle_stdio.test.ts',
+        },
+        'placed_element.delete': {
+          AuthoringTransport.directApi:
+              'test/domains/maps/placed_element_lifecycle_transport_test.dart',
+          AuthoringTransport.cli:
+              'test/domains/maps/placed_element_lifecycle_transport_test.dart',
+          AuthoringTransport.editor:
+              '../../apps/avelune_studio/test/map_workspace/decor_disk_journey_test.dart',
+          AuthoringTransport.mcp:
+              '../../tools/pokemap_mcp/test/placed_element_lifecycle_stdio.test.ts',
+        },
         'warp.create': {
           AuthoringTransport.directApi:
               'test/domains/maps/scene_only_warp_transport_test.dart',
