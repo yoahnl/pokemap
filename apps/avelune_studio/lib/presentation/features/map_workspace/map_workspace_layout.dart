@@ -17,6 +17,7 @@ import 'map_workspace_compact_navigator.dart';
 import 'map_workspace_editor_pane.dart';
 import 'workspace_map_footer.dart';
 import 'map_selection_inspector.dart';
+import 'map_settings_inspector.dart';
 import 'map_ambiance_panel.dart';
 import 'map_elements_panel.dart';
 import 'workspace_compact_panel.dart';
@@ -164,40 +165,57 @@ class MapWorkspaceLayout extends StatelessWidget {
       );
       Widget inspectorContent(VoidCallback refresh, [VoidCallback? close]) {
         if (!ready) return const SizedBox();
-        return MapSelectionInspector(
-          width: inspectorWidth,
+        return MapInspectorScope(
+          key: ObjectKey(doc),
           document: doc,
-          project: project,
-          visuals: visuals!,
           view: view!,
-          onChanged: () {
-            onToolChanged();
-            refresh();
-          },
-          onRenameMap: mapCatalogueRenameAction(context, controller),
-          onEscapeSettings: mapCatalogueEscapeRopeAction(context, controller),
-          onOpenElement: (element) {
-            close?.call();
-            onOpenElement(element);
-          },
-          onEditElement: (element) {
-            close?.call();
-            onEditElement(element);
-          },
-          onEditInteraction: (entity) {
-            close?.call();
-            onEditInteraction?.call(entity);
-          },
-          onEventSource: onEventSource == null
-              ? null
-              : (source) {
-                  close?.call();
-                  onEventSource!(source);
-                },
-          onOpenMap: mapLibraryOpenAction(project, onActivate, close),
-          onLinkMaps: onLinkMaps,
-          onUnlinkMaps: onUnlinkMaps,
-          referenceGuard: referenceGuard,
+          width: inspectorWidth,
+          mapSettings: () => MapSettingsInspector(
+            project: project,
+            document: doc,
+            view: view!,
+            onChanged: () {
+              onToolChanged();
+              refresh();
+            },
+            onRenameMap: mapCatalogueRenameAction(context, controller),
+            onEscapeSettings: mapCatalogueEscapeRopeAction(context, controller),
+          ),
+          selection: MapSelectionInspector(
+            width: inspectorWidth,
+            document: doc,
+            project: project,
+            visuals: visuals!,
+            view: view!,
+            onChanged: () {
+              onToolChanged();
+              refresh();
+            },
+            onRenameMap: mapCatalogueRenameAction(context, controller),
+            onEscapeSettings: mapCatalogueEscapeRopeAction(context, controller),
+            onOpenElement: (element) {
+              close?.call();
+              onOpenElement(element);
+            },
+            onEditElement: (element) {
+              close?.call();
+              onEditElement(element);
+            },
+            onEditInteraction: (entity) {
+              close?.call();
+              onEditInteraction?.call(entity);
+            },
+            onEventSource: onEventSource == null
+                ? null
+                : (source) {
+                    close?.call();
+                    onEventSource!(source);
+                  },
+            onOpenMap: mapLibraryOpenAction(project, onActivate, close),
+            onLinkMaps: onLinkMaps,
+            onUnlinkMaps: onUnlinkMaps,
+            referenceGuard: referenceGuard,
+          ),
         );
       }
 

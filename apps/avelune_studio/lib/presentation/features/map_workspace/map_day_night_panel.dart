@@ -22,9 +22,11 @@ class MapDayNightPanel extends StatelessWidget {
     this.controller,
     this.project,
     this.showEffectSaveActions = true,
+    this.showAtmosphere = true,
   });
   final ProjectManifest? project;
   final bool showEffectSaveActions;
+  final bool showAtmosphere;
   final EditableMapDocument document;
   final VoidCallback onChanged;
   final SpatialSceneController? controller;
@@ -197,7 +199,9 @@ class MapDayNightPanel extends StatelessWidget {
             ],
           ],
         ),
-        if (document.atmosphere case final atmosphere?) ...[
+        if (!showAtmosphere)
+          const SizedBox()
+        else if (document.atmosphere case final atmosphere?) ...[
           const SizedBox(height: 16),
           MapAtmosphereSettingsPanel(
             controller: atmosphere,

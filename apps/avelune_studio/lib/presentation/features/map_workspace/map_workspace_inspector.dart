@@ -16,9 +16,7 @@ import 'map_workspace_view_state.dart';
 import 'map_workspace_tool_strip_selection.dart';
 import 'map_decor_geometry_panel.dart';
 import 'map_moving_prop_panel.dart';
-import 'map_catalogue_properties.dart';
-import 'map_camera_panel.dart';
-import 'map_day_night_panel.dart';
+import 'map_settings_inspector.dart';
 import 'spatial_model_entity_controls.dart';
 import 'spatial_lift_controls.dart';
 import '../../../features/map_workspace/application/spatial_model_editing_commands.dart';
@@ -462,19 +460,14 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
                 ],
                 if (selected == null) ...[
                   if (!editingExterior)
-                    MapCatalogueProperties(
-                      map: document.current,
-                      onRename: widget.onRenameMap,
-                      onEscapeSettings: widget.onEscapeSettings,
-                    ),
-                  if (!editingExterior && document.current.spatialScene != null)
-                    MapCameraPanel(document: document, onChanged: onChanged),
-                  if (!editingExterior && document.current.spatialScene != null)
-                    MapDayNightPanel(
+                    MapSettingsInspector(
                       project: project,
                       document: document,
-                      controller: view.spatialSceneController,
+                      view: view,
                       onChanged: onChanged,
+                      onRenameMap: widget.onRenameMap,
+                      onEscapeSettings: widget.onEscapeSettings,
+                      showTitle: false,
                     ),
                   Text(
                     editingExterior

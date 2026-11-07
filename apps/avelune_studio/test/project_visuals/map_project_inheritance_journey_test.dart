@@ -4,7 +4,12 @@ import 'package:avelune_studio/features/project_session/domain/project_session.d
 import 'package:avelune_studio/features/project_settings/application/project_settings_session_controller.dart';
 import 'package:avelune_studio/features/project_visuals/application/project_visuals_controller.dart';
 import 'package:avelune_studio/features/project_visuals/domain/project_visuals_port.dart';
+import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_atmosphere_settings_panel.dart';
+import 'package:avelune_studio/presentation/features/map_workspace/map_camera_panel.dart';
+import 'package:avelune_studio/presentation/features/map_workspace/map_day_night_panel.dart';
+import 'package:avelune_studio/presentation/features/map_workspace/map_settings_inspector.dart';
+import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
 import 'package:avelune_studio/presentation/features/project_settings/project_settings_page.dart';
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
@@ -219,6 +224,144 @@ void main() {
       workspace.dispose();
     },
   );
+  EditableMapDocument mapDocument({bool spatial = true}) {
+    final map = MapData(
+      id: 'room',
+      name: 'Salle des cartes',
+      version: ProjectVersion.v9,
+      size: const GridSize(width: 8, height: 8),
+      spatialScene: spatial ? MapSpatialScene(width: 8, depth: 8) : null,
+    );
+    return EditableMapDocument(
+      MapWorkspaceDocument(map: map, revision: 'initial', mapId: map.id),
+    );
+  }
+
+  final settingsProject = ProjectManifest(
+    name: 'World',
+    maps: const [],
+    tilesets: const [],
+    settings: ProjectSettings(dimension: ProjectDimension.threeD),
+  );
+
+  testWidgets('the map scope splits Image, Temps and Jeu for a 3D map', (
+    tester,
+  ) async {
+    final view = MapWorkspaceViewState();
+    addTearDown(view.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: studioTheme(),
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: MapSettingsInspector(
+              project: settingsProject,
+              document: mapDocument(),
+              view: view,
+              onChanged: () {},
+              onRenameMap: () {},
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(find.text('RÉGLAGES DE CETTE CARTE'), findsOneWidget);
+    expect(find.text('Salle des cartes'), findsOneWidget);
+    for (final label in ['Image', 'Temps', 'Jeu']) {
+      expect(find.text(label), findsOneWidget);
+    }
+    expect(find.byType(MapCameraPanel), findsOneWidget);
+    expect(find.byType(MapDayNightPanel), findsNothing);
+    await tester.tap(find.text('Temps'));
+    await tester.pumpAndSettle();
+    expect(find.byType(MapCameraPanel), findsNothing);
+    expect(find.text('Jour et nuit'), findsOneWidget);
+    expect(find.byType(MapAtmosphereSettingsPanel), findsNothing);
+    await tester.tap(find.text('Jeu'));
+    await tester.pumpAndSettle();
+    expect(find.text('Renommer la carte…'), findsOneWidget);
+    expect(find.text('8 × 8 cases'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a 2D map only exposes its game settings', (tester) async {
+    final view = MapWorkspaceViewState();
+    addTearDown(view.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: studioTheme(),
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: MapSettingsInspector(
+              project: settingsProject,
+              document: mapDocument(spatial: false),
+              view: view,
+              onChanged: () {},
+              onRenameMap: () {},
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(find.byKey(const ValueKey('map-settings-tabs')), findsNothing);
+    expect(find.textContaining('carte 2D'), findsOneWidget);
+    expect(find.text('Renommer la carte…'), findsOneWidget);
+    expect(find.byType(MapCameraPanel), findsNothing);
+  });
+
+  testWidgets(
+    'Sélection / Carte shows the map settings and returns to a new selection',
+    (tester) async {
+      final view = MapWorkspaceViewState();
+      addTearDown(view.dispose);
+      final document = mapDocument();
+      late StateSetter rebuild;
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: studioTheme(),
+          home: Scaffold(
+            body: SizedBox(
+              height: 700,
+              child: StatefulBuilder(
+                builder: (context, setState) {
+                  rebuild = setState;
+                  return MapInspectorScope(
+                    document: document,
+                    view: view,
+                    width: 320,
+                    selection: const Text('inspecteur de sélection'),
+                    mapSettings: () => MapSettingsInspector(
+                      project: settingsProject,
+                      document: document,
+                      view: view,
+                      onChanged: () {},
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+      expect(find.byKey(const ValueKey('map-inspector-scope')), findsNothing);
+      expect(find.text('inspecteur de sélection'), findsOneWidget);
+      view.select(document, MapSelectionFamily.zone, 'zone-a');
+      rebuild(() {});
+      await tester.pumpAndSettle();
+      expect(find.text('Sélection'), findsOneWidget);
+      expect(find.text('inspecteur de sélection'), findsOneWidget);
+      await tester.tap(find.text('Carte'));
+      await tester.pumpAndSettle();
+      expect(find.text('inspecteur de sélection'), findsNothing);
+      expect(find.byType(MapSettingsInspector), findsOneWidget);
+      expect(find.byType(MapCameraPanel), findsOneWidget);
+      view.select(document, MapSelectionFamily.zone, 'zone-b');
+      rebuild(() {});
+      await tester.pumpAndSettle();
+      expect(find.text('inspecteur de sélection'), findsOneWidget);
+      expect(find.byType(MapSettingsInspector), findsNothing);
+    },
+  );
 }
 
 final class _Storage extends WorkspaceMemoryPort implements ProjectVisualsPort {
@@ -279,4 +422,5 @@ final class _Storage extends WorkspaceMemoryPort implements ProjectVisualsPort {
     String expectedRevision, {
     ProjectMapEntry? map,
   }) => throw UnimplementedError();
+
 }
