@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:avelune_studio/features/stories/application/story_step_outcomes.dart';
 import 'package:avelune_studio/features/stories/application/story_workspace_controller.dart';
 import 'package:avelune_studio/presentation/features/stories/story_library_panel.dart';
@@ -8,6 +11,7 @@ import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
+import 'package:map_runtime/map_runtime.dart';
 
 import '../support/story_backend_fixture.dart';
 
@@ -321,4 +325,78 @@ void main() {
     expect(current().expectedOutcomeIds, ['ghost', 'ready']);
     expect(current().title, 'Se préparer');
   });
+
+  test(
+    'an authored step completes from a controlled state without touching saves',
+    () async {
+      final story = backendStory('voyage', title: 'Le voyage');
+      final f = await StoryBackendFixture.create(stories: [story]);
+      addTearDown(f.dispose);
+      final controller = f.attach();
+      final stepId = story.chapters.single.steps.single.id;
+
+      controller.mutate(
+        (project) => project.copyWith(
+          storylines: [
+            story.copyWith(
+              chapters: [
+                story.chapters.single.copyWith(
+                  steps: [
+                    story.chapters.single.steps.single.copyWith(
+                      title: 'Quitter le bourg',
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+      expect(await controller.saveAll(), isTrue, reason: controller.error);
+
+      final saved = ProjectManifest.fromJson(
+        jsonDecode(
+          await File('${f.directory.path}/project.json').readAsString(),
+        ) as Map<String, dynamic>,
+      );
+      final step = saved.storylines.single.chapters.single.steps.single;
+      expect(step.id, stepId);
+      expect(step.title, 'Quitter le bourg');
+
+      final initial = GameState(saveId: 'controle', currentMapId: 'town');
+      expect(initial.progression.completedStepIds, isEmpty);
+      final writer = SceneConsequenceRuntimeWriter(project: saved);
+
+      final completed = writer.applyOne(
+        initial,
+        SceneConsequence.completeStoryStep(stepId: stepId),
+      );
+      expect(completed.success, isTrue, reason: completed.message);
+      expect(completed.gameState.progression.completedStepIds, [stepId]);
+
+      final again = writer.applyOne(
+        completed.gameState,
+        SceneConsequence.completeStoryStep(stepId: stepId),
+      );
+      expect(again.gameState.progression.completedStepIds, [stepId]);
+
+      final unknown = writer.applyOne(
+        initial,
+        SceneConsequence.completeStoryStep(stepId: 'etape_disparue'),
+      );
+      expect(unknown.success, isFalse);
+      expect(unknown.gameState.progression.completedStepIds, isEmpty);
+
+      final written = [
+        for (final entity in f.directory.listSync(recursive: true))
+          if (entity is File) entity.path.substring(f.directory.path.length),
+      ];
+      expect(
+        written.where(
+          (path) => path.contains('/saves/') || path.endsWith('.save'),
+        ),
+        isEmpty,
+      );
+    },
+  );
 }
