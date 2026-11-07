@@ -14,6 +14,8 @@ class MapEditingCommands {
   String? place(ProjectElementEntry element, GridPos position) =>
       _placeElement(element, position);
 
+  String? clone(String id) => _cloneElement(id);
+
   void move(String id, GridPos position) {
     if (document.isElementUnavailable('decor', id)) return;
     final instance = document.current.placedElements

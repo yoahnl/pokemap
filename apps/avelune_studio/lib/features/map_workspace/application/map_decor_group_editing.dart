@@ -165,20 +165,7 @@ final class MapDecorGroupEditing {
                 .where((instanceId) => !before.contains(instanceId)),
           );
         } else {
-          final element = document.current.placedElements.firstWhere(
-            (element) => element.id == id,
-          );
-          final entry = project.elements
-              .where((entry) => entry.id == element.elementId)
-              .firstOrNull;
-          if (entry == null) {
-            document.error = 'Ce décor n’est plus disponible dans le projet.';
-            return false;
-          }
-          final copy = MapEditingCommands(
-            document,
-            project,
-          ).place(entry, element.pos);
+          final copy = MapEditingCommands(document, project).clone(id);
           if (copy == null) return false;
           created.add(copy);
         }

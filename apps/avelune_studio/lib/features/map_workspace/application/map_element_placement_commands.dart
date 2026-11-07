@@ -23,11 +23,7 @@ extension _MapElementPlacementCommands on MapEditingCommands {
       );
       map = map.copyWith(layers: layers);
     }
-    String id;
-    do {
-      id =
-          'studio-${DateTime.now().microsecondsSinceEpoch}-${MapEditingCommands._nextId++}';
-    } while (map.placedElements.any((element) => element.id == id));
+    final id = _freshElementId(map);
     final instance = MapPlacedElement(
       id: id,
       layerId: layer.id,
@@ -36,14 +32,7 @@ extension _MapElementPlacementCommands on MapEditingCommands {
       properties: const {
         pokemapPlacementOriginProperty: pokemapPlacementOriginAuthored,
       },
-      visualOrder:
-          map.placedElements
-              .where((e) => e.layerId == layer.id)
-              .fold(
-                0,
-                (rank, e) => e.visualOrder > rank ? e.visualOrder : rank,
-              ) +
-          1,
+      visualOrder: _topVisualOrder(map, layer.id) + 1,
     );
     if (!_fits(instance, element)) {
       document.error = 'Ce décor dépasse les limites de la carte.';
@@ -55,4 +44,54 @@ extension _MapElementPlacementCommands on MapEditingCommands {
     document.stackPixelPosition = null;
     return id;
   }
+
+  String? _cloneElement(String sourceId) {
+    final map = document.current;
+    final source = map.placedElements
+        .where((element) => element.id == sourceId)
+        .firstOrNull;
+    if (source == null) return null;
+    final element = project.elements
+        .where((entry) => entry.id == source.elementId)
+        .firstOrNull;
+    if (element == null) {
+      document.error = 'Ce décor n’est plus disponible dans le projet.';
+      return null;
+    }
+    final id = _freshElementId(map);
+    final copy = source.copyWith(
+      id: id,
+      visualOrder: _topVisualOrder(map, source.layerId) + 1,
+      properties: {
+        ...source.properties,
+        pokemapPlacementOriginProperty: pokemapPlacementOriginAuthored,
+      },
+    );
+    if (!_fits(copy, element)) {
+      document.error = 'Ce décor dépasse les limites de la carte.';
+      return null;
+    }
+    document.commit(upsertMapPlacedElement(map, instance: copy));
+    document.selectedId = id;
+    document.stackPosition = copy.pos;
+    document.stackPixelPosition = null;
+    return id;
+  }
+
+  String _freshElementId(MapData map) {
+    String id;
+    do {
+      id =
+          'studio-${DateTime.now().microsecondsSinceEpoch}-${MapEditingCommands._nextId++}';
+    } while (map.placedElements.any((element) => element.id == id));
+    return id;
+  }
+
+  int _topVisualOrder(MapData map, String layerId) => map.placedElements
+      .where((element) => element.layerId == layerId)
+      .fold(
+        0,
+        (rank, element) =>
+            element.visualOrder > rank ? element.visualOrder : rank,
+      );
 }
