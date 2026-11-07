@@ -40,10 +40,12 @@ SceneReadableSummary sceneReadableSummary(
       );
       continue;
     }
+    final title = node.title?.trim();
+    final name = title == null || title.isEmpty ? label(node) : title;
     steps.add(
       node.kind == SceneNodeKind.end
-          ? 'Fin · ${label(node)}'
-          : '${sceneKindLabel(node.kind)} · ${label(node)}',
+          ? 'Fin · $name'
+          : '${sceneKindLabel(node.kind)} · $name',
     );
   }
   return SceneReadableSummary(
