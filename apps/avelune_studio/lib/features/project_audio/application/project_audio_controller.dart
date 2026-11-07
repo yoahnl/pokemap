@@ -48,6 +48,48 @@ final class ProjectAudioController extends ChangeNotifier {
   bool get busy => loading || saving || importing || adoptingAssetId != null;
   bool get canUndo => _undo.isNotEmpty || fieldErrors.isNotEmpty;
   bool get canRedo => _redo.isNotEmpty;
+  Set<ProjectSoundCue> get dirtyCues => {
+    for (final cue in ProjectSoundCue.values)
+      if (preview.value.cues[cue] != _base.cues[cue] ||
+          fieldErrors.containsKey(cue) ||
+          pendingSources.containsKey(cue))
+        cue,
+  };
+
+  Future<bool> saveCue(ProjectSoundCue cue) async {
+    if (busy || saved == null || fieldErrors.containsKey(cue)) return false;
+    if (pendingSources.containsKey(cue)) return false;
+    if (preview.value.cues[cue] == _base.cues[cue]) return true;
+    saving = true;
+    error = null;
+    notifyListeners();
+    try {
+      await _persist(cue, preview.value.cues[cue]);
+      return true;
+    } on Object catch (failure) {
+      if (!_disposed) {
+        error =
+            'Échec de l’enregistrement de « ${ProjectSoundCueCatalog.forCue(cue).label} » : '
+            '$failure. Le brouillon de cette association est conservé.';
+      }
+      return false;
+    } finally {
+      if (!_disposed) {
+        saving = false;
+        notifyListeners();
+      }
+    }
+  }
+
+  Future<void> _persist(ProjectSoundCue cue, ProjectSoundBinding? binding) async {
+    final before = saved!.revision;
+    final state = await port.saveAudioCue(session, cue, binding, before);
+    if (_disposed) return;
+    saved = state;
+    onRevisionChanged?.call(before, state.revision);
+    onSaved?.call(state.configuration);
+  }
+
   Future<void> open() async {
     if (saved != null || loading) return;
     loading = true;
@@ -209,25 +251,28 @@ final class ProjectAudioController extends ChangeNotifier {
     saving = true;
     error = null;
     notifyListeners();
+    var done = 0;
+    ProjectSoundCue? current;
     try {
       final draft = preview.value;
       for (final cue in ProjectSoundCue.values) {
         if (draft.cues[cue] == _base.cues[cue]) continue;
-        final before = saved!.revision;
-        final state = await port.saveAudioCue(
-          session,
-          cue,
-          draft.cues[cue],
-          before,
-        );
+        current = cue;
+        await _persist(cue, draft.cues[cue]);
         if (_disposed) return false;
-        saved = state;
-        onRevisionChanged?.call(before, state.revision);
-        onSaved?.call(state.configuration);
+        done++;
       }
       return true;
     } on Object catch (failure) {
-      if (!_disposed) error = '$failure';
+      if (!_disposed) {
+        final label = current == null
+            ? 'une association'
+            : '« ${ProjectSoundCueCatalog.forCue(current).label} »';
+        error =
+            '$done association${done > 1 ? 's' : ''} '
+            'enregistrée${done > 1 ? 's' : ''} ; échec pour $label : $failure. '
+            'Les autres brouillons restent à enregistrer.';
+      }
       return false;
     } finally {
       if (!_disposed) {

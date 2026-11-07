@@ -1748,12 +1748,12 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 
 **Étapes d’implémentation :**
 
-- [ ] 1. Lister toutes les cues du contrat natif, par groupe, sans limiter le jeu aux quatre exemples React.
-- [ ] 2. Présenter héritage, intégré, silence et média personnalisé comme quatre intentions distinctes ; un binding absent signifie héritage.
-- [ ] 3. Réutiliser queryAudio paginé, import/adopt_asset, resolveAudio et ProjectAudioPreviewPort ; arrêter le lecteur au changement de contexte et à la fermeture.
-- [ ] 4. Régler le gain avec la conversion explicite 0..100 % vers 0..1 et conserver l’identité du média partagé.
-- [ ] 5. Rendre le grain de sauvegarde exact : utiliser l’association courante et libeller l’action en conséquence si le port reste par cue ; conserver et signaler les brouillons des autres cues.
-- [ ] 6. Préserver les contraintes de format, octets, MIME, taille et digest ; en cas de média absent, garder le binding et proposer le diagnostic.
+- [x] 1. Lister toutes les cues du contrat natif, par groupe, sans limiter le jeu aux quatre exemples React.
+- [x] 2. Présenter héritage, intégré, silence et média personnalisé comme quatre intentions distinctes ; un binding absent signifie héritage.
+- [x] 3. Réutiliser queryAudio paginé, import/adopt_asset, resolveAudio et ProjectAudioPreviewPort ; arrêter le lecteur au changement de contexte et à la fermeture.
+- [x] 4. Régler le gain avec la conversion explicite 0..100 % vers 0..1 et conserver l’identité du média partagé.
+- [x] 5. Rendre le grain de sauvegarde exact : utiliser l’association courante et libeller l’action en conséquence si le port reste par cue ; conserver et signaler les brouillons des autres cues.
+- [x] 6. Préserver les contraintes de format, octets, MIME, taille et digest ; en cas de média absent, garder le binding et proposer le diagnostic.
 
 **Tests comportementaux obligatoires :**
 
@@ -2649,7 +2649,7 @@ Une entrée « Parcours décrit » n’est pas déclarée implémentée. Le lot 
 | T03 | P1 | « Annuler » désigne deux portées | UX-14, ét. 5 | **Corrigé** par UX-14 : « Défaire » / « Rétablir » pour l’historique de la rubrique, « Abandonner les modifications » pour son brouillon ; vérifié en natif |
 | T04 | P2 | Champ de vision et distance liés mais séparés | UX-16, ét. 3 | **Corrigé** par UX-16 : la compensation distance/champ de vision est annoncée sur place et revient en une seule annulation ; saisies numériques bornées ; vérifié en natif |
 | T05 | P1 | Activer, disposer et débloquer une CS | UX-19 | **Corrigé** par UX-19 : support réel affiché pour les onze capacités, résumé séparant autorisation, connaissance et déblocage ; vérifié en natif |
-| T06 | P2 | Deux chemins pour affecter un son | UX-20 | Couvert |
+| T06 | P2 | Deux chemins pour affecter un son | UX-20 | **Corrigé** par UX-20 : la bibliothèque et le sélecteur visent la même action courante, nommée sur chaque son ; toutes les actions listées avec leur intention, enregistrement par association ; vérifié en natif |
 | T07 | P1 | Conséquences de l’export peu claires | UX-21, UX-15 | Couvert |
 
 Bilan : sur 48 constats, 15 étaient couverts par le plan initial, 2 en partie, et 31 n’avaient aucun lot. Sur les 24 constats P1, 12 n’avaient aucun lot et 2 l’étaient en partie : ils sont tous rattachés désormais. Trois constats dépendaient d’une décision, tranchée le 6 novembre : G01 (D-03), M05 (D-01) et N01 (D-02). N01 attend encore la direction de design Histoire exigée par D-02.

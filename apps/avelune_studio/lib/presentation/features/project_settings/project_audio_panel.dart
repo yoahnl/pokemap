@@ -5,6 +5,7 @@ import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/project_audio/application/project_audio_controller.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
+import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_choice.dart';
 import '../../shared/widgets/inputs/studio_draft_field.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
@@ -66,6 +67,70 @@ class _ProjectAudioPanelState extends State<ProjectAudioPanel>
     super.dispose();
   }
 
+  void _select(ProjectSoundCue cue) {
+    if (cue == selected) return;
+    unawaited(widget.owner.stop());
+    setState(() => selected = cue);
+  }
+
+  String _intention(ProjectSoundCue cue) {
+    final owner = widget.owner;
+    final pending = owner.pendingSources[cue];
+    final binding = owner.preview.value.cues[cue];
+    if (pending == 'custom') return 'Son de la bibliothèque à choisir';
+    if (binding == null) return 'Réglage par défaut';
+    return switch (binding.source) {
+      ProjectSoundSource.builtin =>
+        'Son intégré · ${(binding.gain * 100).round()} %',
+      ProjectSoundSource.silent => 'Aucun son',
+      ProjectSoundSource.custom =>
+        '${owner.library[binding.mediaId]?.label ?? 'Son enregistré'} · '
+            '${(binding.gain * 100).round()} %',
+    };
+  }
+
+  Widget _cueList() {
+    final owner = widget.owner;
+    final dirty = owner.dirtyCues;
+    final groups = <String, List<ProjectSoundCueDescriptor>>{};
+    for (final entry in ProjectSoundCueCatalog.entries) {
+      groups.putIfAbsent(entry.group, () => []).add(entry);
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final group in groups.entries) ...[
+          Padding(
+            padding: const EdgeInsets.only(top: 8, bottom: 4),
+            child: Text(
+              group.key,
+              style: Theme.of(context).textTheme.labelLarge,
+            ),
+          ),
+          for (final entry in group.value)
+            StudioChoice(
+              key: ValueKey('project-audio-row-${entry.cue.wireName}'),
+              label: entry.label,
+              subtitle: _intention(entry.cue),
+              selected: entry.cue == selected,
+              dense: true,
+              trailing: dirty.contains(entry.cue)
+                  ? Semantics(
+                      label: 'brouillon non enregistré',
+                      child: Icon(
+                        Icons.circle,
+                        size: 10,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    )
+                  : null,
+              onTap: () => _select(entry.cue),
+            ),
+        ],
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
     animation: widget.owner,
@@ -82,6 +147,18 @@ class _ProjectAudioPanelState extends State<ProjectAudioPanel>
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           StudioPanel(
+            title: 'Actions du jeu',
+            icon: Icons.list_alt_outlined,
+            children: [
+              const Text(
+                'Toutes les actions sonores du jeu. Une action sans association '
+                'suit le réglage par défaut ; un point signale un brouillon.',
+              ),
+              _cueList(),
+            ],
+          ),
+          const SizedBox(height: 12),
+          StudioPanel(
             title: 'Bruitages du projet',
             icon: Icons.volume_up_outlined,
             children: [
@@ -97,9 +174,8 @@ class _ProjectAudioPanelState extends State<ProjectAudioPanel>
                   for (final entry in ProjectSoundCueCatalog.entries)
                     entry.cue.wireName: '${entry.group} · ${entry.label}',
                 },
-                onChanged: (value) => setState(
-                  () => selected = ProjectSoundCue.fromWireName(value),
-                ),
+                onChanged: (value) =>
+                    _select(ProjectSoundCue.fromWireName(value)),
               ),
               const SizedBox(height: 10),
               StudioSelect(
@@ -107,10 +183,10 @@ class _ProjectAudioPanelState extends State<ProjectAudioPanel>
                 label: 'Son associé',
                 value: source,
                 options: const {
-                  'inherit': 'Réglage par défaut',
+                  'inherit': 'Réglage par défaut (hérité)',
                   'builtin': 'Son intégré de cette action',
                   'silent': 'Aucun son',
-                  'custom': 'Son de la bibliothèque',
+                  'custom': 'Son personnalisé de la bibliothèque',
                 },
                 onChanged: available
                     ? (value) => owner.source(selected, value)
@@ -163,6 +239,62 @@ class _ProjectAudioPanelState extends State<ProjectAudioPanel>
                   error,
                   style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
+              if (source == 'custom' &&
+                  binding.mediaId != null &&
+                  owner.library.isNotEmpty &&
+                  !owner.library.containsKey(binding.mediaId)) ...[
+                const SizedBox(height: 8),
+                const StudioNotice(
+                  'Ce son n’apparaît pas dans la bibliothèque chargée. '
+                  'L’association est conservée ; vérifiez la bibliothèque '
+                  'ou les diagnostics des ressources.',
+                ),
+              ],
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  StudioButton(
+                    key: const ValueKey('project-audio-listen'),
+                    label: owner.playingId != null &&
+                            owner.playingId == binding.mediaId
+                        ? 'Arrêter l’écoute'
+                        : 'Écouter l’association',
+                    icon: Icons.play_arrow,
+                    secondary: true,
+                    onPressed:
+                        source == 'custom' &&
+                            binding.mediaId != null &&
+                            !owner.fieldErrors.containsKey(selected) &&
+                            available
+                        ? () => owner.listen(binding.mediaId!)
+                        : null,
+                  ),
+                  StudioButton(
+                    key: const ValueKey('project-audio-save-cue'),
+                    label: 'Enregistrer cette association',
+                    icon: Icons.save_outlined,
+                    secondary: true,
+                    onPressed:
+                        available &&
+                            owner.dirtyCues.contains(selected) &&
+                            !owner.fieldErrors.containsKey(selected) &&
+                            !owner.pendingSources.containsKey(selected)
+                        ? () => owner.saveCue(selected)
+                        : null,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                source == 'custom'
+                    ? 'L’écoute utilise le fichier réel du projet, sans '
+                          'réexporter le jeu.'
+                    : 'L’écoute est réservée aux sons de la bibliothèque : un '
+                          'son intégré ou le silence ne se prévisualisent pas ici.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
               const SizedBox(height: 12),
               if (widget.showActions) Wrap(
                 spacing: 8,
