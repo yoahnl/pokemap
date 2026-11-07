@@ -1510,7 +1510,7 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 - [x] 3. Conserver ou ajuster explicitement la compensation native distance/FOV qui maintient le cadrage ; regrouper ces champs dépendants dans le même geste d’annulation.
 - [x] 4. La carte d’aperçu change seulement l’aperçu ; le formulaire garde sa cible Projet.
 - [x] 5. Résoudre les valeurs effectives et afficher leur provenance ; une comparaison montre honnêtement les états mémorisés et brouillons.
-- [x] 6. Brancher l’aperçu sur le renderer natif ciblé, avec mise à jour incrémentale des paramètres ; gérer l’absence de carte 3D.
+- [x] 6. Brancher l’aperçu sur le renderer natif ciblé, avec mise à jour incrémentale des paramètres ; gérer l’absence de carte 3D. *(Vague 3 : effet réel prouvé en natif sur la copie HGSS — « Tester la carte » sur « Maison du joueur — chambre » avec l’inclinaison du projet à 34° puis à 48,7° enregistrée (55 ms) : le rendu du test change. Le test de carte ne démarrait plus sur HGSS faute de capacités accordées par Studio ; corrigé par 854037941 et f1ceb1e63.)*
 - [x] 7. Garder projection et hauteur orthographique dans la caméra locale tant que le contrat projet ne les expose pas.
 
 **Tests comportementaux obligatoires :**
@@ -1568,7 +1568,7 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 
 **Étapes d’implémentation :**
 
-- [ ] 1. Exposer Sélection / Carte puis Image / Temps / Jeu selon le profil natif.
+- [x] 1. Exposer Sélection / Carte puis Image / Temps / Jeu selon le profil natif. — **livré** par fab0ab2e3 : sans sélection, l’inspecteur montre les réglages de la carte par onglets Image (caméra, effets), Temps (jour et nuit), Jeu (taille, nom, sortie) ; une carte 2D n’a que Jeu ; avec une sélection, Sélection / Carte bascule sans la perdre et revient à Sélection quand un autre élément est choisi ; vérifié en natif.
 - [x] 2. Pour chaque paramètre, afficher Suit le projet ou Propre à cette carte, la valeur effective et la source.
 - [x] 3. Le reset retire la clé de SpatialVisualPatch avec sa sémantique existante ; ne pas remplacer l’override par la valeur du jour.
 - [x] 4. Après modification du projet, rafraîchir uniquement les valeurs héritées ; préserver toute exception locale.
@@ -1812,12 +1812,12 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 
 **Étapes d’implémentation :**
 
-- [ ] 1. Distinguer erreurs de saisie, validation de ressources, capacités runtime, lancement et compatibilité des sauvegardes.
+- [x] 1. Distinguer erreurs de saisie, validation de ressources, capacités runtime, lancement et compatibilité des sauvegardes. — **livré** par a7b2999df : Réglages › Vérifications et export liste les cinq familles avec leur état honnête (rubriques invalides ou en brouillon ouvertes sur place, départ de nouvelle partie contrôlé, publication 3D en attente, ressources et sauvegardes « non vérifié ici ») ; vérifié en natif, dont la saisie invalide « À corriger ».
 - [x] 2. Avant test, afficher carte/point de départ, documents et brouillons utilisés ; demander une action explicite pour un brouillon incompatible avec le lancement.
-- [ ] 3. Séparer Tester cette carte et Tester le jeu ; préserver les sauvegardes et indiquer la portée de la session de test.
+- [x] 3. Séparer Tester cette carte et Tester le jeu ; préserver les sauvegardes et indiquer la portée de la session de test. — revue « Tester cette carte » / « Tester le jeu » (c91ccab0f) et barre « Tester la carte » (e00375f66) ; revue et lancement vérifiés en natif.
 - [x] 4. Au retour de test, restaurer carte, outil, sélection et panneaux sans recharger tout le projet.
 - [x] 5. L’export reprend l’identité de Général ; différencier Test local et Publication, destination, écrasement confirmé, progression et annulation.
-- [ ] 6. Présenter les erreurs connues avec leur propriétaire ; une cause inconnue ne donne pas lieu à une réparation inventée.
+- [x] 6. Présenter les erreurs connues avec leur propriétaire ; une cause inconnue ne donne pas lieu à une réparation inventée. — **livré** par a7b2999df et 3e3638b0d : un échec d’export porte sa famille et son propriétaire (code canonique ou rapport de jouabilité) avec l’action qui l’ouvre ; un test qui ne démarre pas aussi pour les causes typées, une capacité non accordée est nommée ; une cause inconnue le dit, garde son détail technique et ne propose rien ; vérifié en natif (cause non déterminée, puis capacité nommée). Reste : l’échec d’un export réel n’a pas été provoqué en natif.
 - [x] 7. Conserver les contrôles de projet courant pendant un export et la transaction d’activation du paquet.
 
 **Tests comportementaux obligatoires :**
@@ -1944,7 +1944,7 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 - [x] 1. Décrire explicitement la présence sur la carte, sa ressource et ses variantes existantes. — **livré** par 9b2b9e85b (règle de présence en clair, variantes de dialogue décrites, marque dans le contenu de carte).
 - [x] 2. Composer les conditions avec les sélecteurs natifs, sans ID obligatoire et sans écraser une référence inconnue. — **livré** par 9b2b9e85b (étape, état, badge ; chapitres et cinématiques décrits et conservés).
 - [x] 3. Séparer apparence de la présence, condition de visibilité et interaction ; montrer la règle effective et son origine. — **en partie** par 9b2b9e85b : règle effective et origine affichées ; « Apparence selon les conditions » reste un panneau séparé, sans synthèse commune (attend UX-22, D-02).
-- [ ] 4. Relier une interaction à une scène depuis la sélection et permettre le retour au même élément.
+- [ ] 4. Relier une interaction à une scène depuis la sélection et permettre le retour au même élément. — **BLOCKED** : le retour au même nœud passe par le graphe de scènes (UX-22, D-02).
 - [x] 5. Tester chaque branche d’un petit exemple avec un état du monde contrôlé, sans ajouter de nouvelle mécanique. — **livré** par 9b2b9e85b (test des deux branches dans l’inspecteur).
 
 **Tests comportementaux obligatoires :**
@@ -1997,10 +1997,10 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 **Étapes d’implémentation :**
 
 - [ ] 1. Conserver bibliothèque, graphe de dialogue, choix, résultats, portraits, variantes et sources externes prises en charge.
-- [ ] 2. Relier Quand/Si/Alors à l’événement réel et permettre d’ouvrir sa scène ou son dialogue sans dupliquer le document.
+- [ ] 2. Relier Quand/Si/Alors à l’événement réel et permettre d’ouvrir sa scène ou son dialogue sans dupliquer le document. — **BLOCKED** : l’ouverture et le retour au bon nœud passent par le graphe de scènes (UX-22, D-02).
 - [ ] 3. Présenter ordre d’exécution, condition, répétition et politique de fin existants.
-- [x] 4. Pour une zone d’histoire, montrer sa forme, son profil admissible et l’événement déclenché. — **en partie** par 096c10f97 : forme et événements déclenchés ; profil admissible non affiché.
-- [ ] 5. Vérifier une branche de choix avec résultat, puis le retour à l’événement et à la carte d’origine.
+- [x] 4. Pour une zone d’histoire, montrer sa forme, son profil admissible et l’événement déclenché. — **livré** par 096c10f97 et 30a6ea0a0 : forme, événements déclenchés et déclenchements possibles (entrer, toucher) avec la raison canonique d’un refus ; vérifié en natif sur une zone créée par `trigger.create` dans la copie HGSS.
+- [ ] 5. Vérifier une branche de choix avec résultat, puis le retour à l’événement et à la carte d’origine. — **BLOCKED** : la branche de choix se lit dans le graphe de scènes (UX-22, D-02).
 - [x] 6. Rendre la scène d’un événement recherchable par nom et par contexte disponible, la scène déjà liée en tête et l’identifiant en détail (audit N02, P1 ; event_scene_panel.dart). HGSS compte 426 scènes. — **livré** par 3ea3a966b.
 - [x] 7. Montrer d’abord l’effet en jeu des options d’événement (une fois, à chaque visite, après une condition, quand ces règles existent) ; placer ordre, priorité et registre dans des options avancées, sans migration implicite (audit N05, P1 ; event_options_panel.dart). — **livré** par 3ea3a966b.
 - [x] 8. Présenter « toutes les conditions » ou « au moins une condition » avec une phrase de résultat lisible, surtout avant une inversion ou un regroupement (audit N07 ; event_conditions.dart). — **livré** par 096c10f97.
@@ -2057,8 +2057,8 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 **Étapes d’implémentation :**
 
 - [x] 1. Organiser les histoires, chapitres et étapes déjà supportés avec recherche et relation aux scènes. — **en partie** par 9cfe1aa5f : recherche dans chapitres et étapes ; relation aux scènes inchangée.
-- [x] 2. Montrer préconditions, transitions et résultats de progression sans confondre configuration et progression d’une sauvegarde. — **en partie** par 9cfe1aa5f : configuration distinguée des sauvegardes, états nommés ; résultats attendus encore en identifiants.
-- [ ] 3. Conserver les graphes et les documents spécialisés ; un tableau synthétique reste un accès rapide.
+- [x] 2. Montrer préconditions, transitions et résultats de progression sans confondre configuration et progression d’une sauvegarde. — **livré** par 9cfe1aa5f et f9e029cd8 : configuration distinguée des sauvegardes, états nommés ; les résultats attendus se cochent par leur libellé et leur source (scène ou scénario de l’étape), un résultat disparu reste conservé et signalé ; vérifié en natif sur une histoire créée par `storyline.upsert`.
+- [ ] 3. Conserver les graphes et les documents spécialisés ; un tableau synthétique reste un accès rapide. — **BLOCKED** : la forme du tableau relève de la direction de design Histoire (D-02).
 - [ ] 4. Localiser les cycles ou références invalides avec l’action d’ouverture du bon document.
 - [ ] 5. Exécuter un petit parcours de progression avec état initial contrôlé et vérifier ses effets existants.
 
@@ -2112,9 +2112,9 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 **Étapes d’implémentation :**
 
 - [ ] 1. Conserver les pistes, durées, acteurs, caméra, points et ressources des éditeurs actuels.
-- [ ] 2. Afficher la portée d’un changement de caméra de séquence séparément de la caméra de jeu et du projet.
+- [x] 2. Afficher la portée d’un changement de caméra de séquence séparément de la caméra de jeu et du projet. — **livré** par 70e9acd2a (une action caméra ne vaut que pendant la cinématique et ne modifie ni la caméra de la carte ni les réglages Image et caméra) ; prouvé par test, pas vérifié en natif.
 - [ ] 3. Conserver le montage visuel et les propriétés avancées à la demande ; ne pas fusionner une présentation et une cinématique en un format nouveau.
-- [ ] 4. Relier le document à la scène déclenchante et revenir au bon nœud.
+- [ ] 4. Relier le document à la scène déclenchante et revenir au bon nœud. — **BLOCKED** : retour au nœud du graphe de scènes (UX-22, D-02).
 - [ ] 5. Prévisualiser, arrêter puis rouvrir en vérifiant positions, médias et durée ; les ressources requises doivent rester exportées hors ligne.
 - [x] 6. Dans Séquence, sans étape sélectionnée, expliquer comment sélectionner ou ajouter une action plutôt que répéter les propriétés générales, qui restent accessibles (audit N08 ; cinematic_inspector.dart). — **livré** par 979120f23, avec écart : le guidage est dans Propriétés (l’onglet qui répétait les réglages), Séquence liste désormais les actions.
 - [x] 7. Grouper les diagnostics identiques de l’aperçu, dire si la lecture est bloquée et permettre d’aller à l’acteur ou au bloc concerné (audit N09 ; cinematic_preview_status.dart). Le libellé `null · <id>` est corrigé tôt par UX-03.1. — **livré** par 979120f23 (la lecture n’est pas bloquée par le transport : le texte le dit).
@@ -2170,7 +2170,7 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 - [ ] 1. Conserver les tables, poids, niveaux, créneaux, variantes et équipes natives.
 - [ ] 2. Fournir des sélecteurs d’espèce et de capacité recherchables avec détails utiles et références manquantes visibles.
 - [x] 3. Distinguer créer une table et l’affecter à un terrain ou une zone ; afficher les usages. — **livré** par 628510049 (avertissement d’affectation distinct de l’invalidité ; usages complétés par les rencontres interactives).
-- [ ] 4. Relier un dresseur, son interaction et sa scène sans déplacer les règles de combat dans l’UI.
+- [ ] 4. Relier un dresseur, son interaction et sa scène sans déplacer les règles de combat dans l’UI. — **BLOCKED** pour le lien vers la scène : il passe par le graphe de scènes (UX-22, D-02).
 - [ ] 5. Tester un exemple borné de rencontre et de dresseur avec les règles existantes ; préserver la distribution et les sauvegardes.
 
 *Vague 3 (cout-carte) : l'analyse des usages de combat reste une lecture globale de toutes les cartes et scènes (~2 min 30 natif sur HGSS, mesure de la session Narration, non remesurée : session macOS verrouillée) ; elle est explicite et affiche désormais qu'elle est en cours — a80278960. La rendre proportionnelle demande un index des usages par table et par dresseur.*
@@ -2289,7 +2289,7 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 - [ ] 3. Distinguer lieu visible sur la carte régionale et arrivée autorisée de Vol.
 - [ ] 4. Préserver les conditions de progression et profils supportés ; la mécanique de Vol différée n’est pas déclarée livrée par le nouvel écran.
 - [ ] 5. Tester une destination existante et une référence manquante, puis la réouverture du document.
-- [x] 6. Lister les cartes liées avec recherche multi-sélection, dossier et résumé des choix, et expliquer pourquoi un retrait est refusé ; distinguer aperçu en attente, absent et en erreur (audit M10). La liaison implicite de la première carte (M09) est corrigée tôt par UX-03.1. — **livré** par b6f400d07.
+- [x] 6. Lister les cartes liées avec recherche multi-sélection, dossier et résumé des choix, et expliquer pourquoi un retrait est refusé ; distinguer aperçu en attente, absent et en erreur (audit M10). La liaison implicite de la première carte (M09) est corrigée tôt par UX-03.1. — **livré** par b6f400d07. États « chargement », « absente » et « illisible » prouvés par tests à états forcés sur la vraie page régionale (ec6cf3584).
 
 **Tests comportementaux obligatoires :**
 
@@ -2340,10 +2340,10 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 **Étapes d’implémentation :**
 
 - [ ] 1. Rattacher talus, franchissement, rampes, plateformes et obstacles à leurs propriétaires natifs existants.
-- [x] 2. Présenter sens, niveau, trajet, durée et conditions seulement pour les capacités réellement supportées. — **en partie** par 5c61cc0bf : distance, durée et hauteur du saut, durée de plateforme en secondes ; sens du côté non décrit géométriquement.
+- [x] 2. Présenter sens, niveau, trajet, durée et conditions seulement pour les capacités réellement supportées. — **livré** par 5c61cc0bf et 013546ea3 : saut d’un rebord Border (distance, durée, hauteur, côté), durée appliquée d’une plateforme en secondes, et pour un talus 3D une phrase sens, distance, durée, hauteur et retour bloqué ; vérifié en natif sur la Route 29 HGSS (talus natifs) et une plateforme sur trajet ajoutée par `map.platform.upsert` (CLI). Le panneau Border de rebord n’est pas vérifié en natif : HGSS n’a pas de Border de rebord à saut.
 - [ ] 3. Distinguer une zone d’interaction, un déplacement d’objet et une règle de traversée du joueur.
 - [ ] 4. Désactiver et expliquer une action non consommée par le runtime ; ne pas simuler un moteur manquant.
-- [ ] 5. Vérifier visuellement le sens et les niveaux puis le passage réel dans un exemple minimal ; conserver les contrats différés de roadmap.
+- [ ] 5. Vérifier visuellement le sens et les niveaux puis le passage réel dans un exemple minimal ; conserver les contrats différés de roadmap. — **en partie** : sens, niveaux et arrivée vérifiés en natif (Route 29) ; le passage réel est prouvé par `map_gameplay/test/spatial_ledge_movement_test.dart` (saut, atterrissage, retour bloqué), pas en marchant dans le test natif.
 
 **Tests comportementaux obligatoires :**
 
@@ -2685,7 +2685,7 @@ Une entrée « Parcours décrit » n’est pas déclarée implémentée. Le lot 
 | M05 | P2 | Noms tronqués, recherches différentes | UX-02.1, ét. 6 | Ajouté, D-01 tranchée ; **corrigé** par 4c552a318 (nom complet et dossier au focus et à la sélection, recherche sans accents sur noms et dossiers) et 60f640327 (colonne 288/320 px) ; vérifié en natif |
 | M06 | P2 | Recherche perdue dans un dock étroit | UX-05, ét. 8 | Ajouté ; **corrigé** par 66ea27452 : sous 420 px, la recherche reste derrière une icône nommée « Rechercher une ressource » |
 | M07 | P2 | État vide de Bordures aux consignes concurrentes | UX-05, ét. 5 | Couvert ; **corrigé** par d96ab8849 : un seul état à la fois (aucun modèle publié, aucun prêt pour la carte, filtres, ou modèles non chargés en session partielle), une seule action, plus de consigne concurrente dans la palette ; vérifié en natif |
-| M08 | P1 | Ambiance et sauvegarde à plusieurs endroits | UX-14, UX-17 | Couvert ; UX-14 : la portée « Cette carte » des réglages édite le même brouillon que l’Ambiance de la carte (plus de second contrôleur sur `maps/<id>.visual.json`), sans sauvegarde implicite ; UX-17 : la caméra et les effets de la carte disent quelles valeurs le projet ou une dérogation remplacent en jeu, et chaque valeur de la portée carte indique « Propre à cette carte » ou « Suit le projet » ; vérifié en natif. Reste : l’inspecteur Sélection / Carte / Image / Temps / Jeu (étape 1, zone Carte) |
+| M08 | P1 | Ambiance et sauvegarde à plusieurs endroits | UX-14, UX-17 | Couvert ; UX-14 : la portée « Cette carte » des réglages édite le même brouillon que l’Ambiance de la carte (plus de second contrôleur sur `maps/<id>.visual.json`), sans sauvegarde implicite ; UX-17 : la caméra et les effets de la carte disent quelles valeurs le projet ou une dérogation remplacent en jeu, et chaque valeur de la portée carte indique « Propre à cette carte » ou « Suit le projet » ; vérifié en natif. L’inspecteur Sélection / Carte puis Image / Temps / Jeu est **livré** par fab0ab2e3 (étape 1), vérifié en natif |
 | M09 | P1 | Carte régionale : première carte liée d’office | UX-03.1, ét. 5 | Ajouté, avancé ; **corrigé** par d33da791b (choix explicite avec dossier ; pas d’aperçu) |
 | M10 | P2 | Lieux régionaux difficiles à grande échelle | UX-23.7, ét. 6 | Ajouté ; **corrigé** par b6f400d07 (recherche, dossier, résumé, refus expliqué ; attente, absence et erreur de l’aperçu distinguées) |
 | N01 | P1 | Histoire : apprendre le modèle avant de raconter | UX-22, ét. 7 | Ajouté, D-02 tranchée ; attend la direction de design Histoire |
@@ -2713,7 +2713,7 @@ Une entrée « Parcours décrit » n’est pas déclarée implémentée. Le lot 
 | R12 | P3 | Listes vides sans aide pour démarrer | UX-01, ét. 2 | Couvert |
 | R13 | P2 | Combat et attaques : suite du geste ailleurs | UX-23.6, ét. 10 | Ajouté ; **en partie** par 628510049 et cd81aa24c (affectation guidée, usages complétés, synchronisation annoncée) |
 | T01 | P1 | Tester enregistre certains brouillons et en bloque d’autres | UX-21, ét. 2 | **Corrigé** par UX-21 : la revue liste les brouillons qui seront enregistrés et ceux qui bloquent, rien n’est enregistré sans confirmation ; vérifié en natif |
-| T02 | P1 | Erreur de test sans prochaine action | UX-21, ét. 6 | **En partie** : un brouillon bloquant est nommé avec la page où le résoudre avant le lancement ; les erreurs du runtime pendant le test ne sont pas retravaillées |
+| T02 | P1 | Erreur de test sans prochaine action | UX-21, ét. 6 | **Corrigé** par UX-21 (a7b2999df, 3e3638b0d) : un test qui ne démarre pas montre sa famille et son propriétaire quand la cause est typée, nomme une capacité non accordée, et sinon dit que la cause n’est pas déterminée avec son détail, sans réparation inventée ; vérifié en natif |
 | T03 | P1 | « Annuler » désigne deux portées | UX-14, ét. 5 | **Corrigé** par UX-14 : « Défaire » / « Rétablir » pour l’historique de la rubrique, « Abandonner les modifications » pour son brouillon ; vérifié en natif |
 | T04 | P2 | Champ de vision et distance liés mais séparés | UX-16, ét. 3 | **Corrigé** par UX-16 : la compensation distance/champ de vision est annoncée sur place et revient en une seule annulation ; saisies numériques bornées ; vérifié en natif |
 | T05 | P1 | Activer, disposer et débloquer une CS | UX-19 | **Corrigé** par UX-19 : support réel affiché pour les onze capacités, résumé séparant autorisation, connaissance et déblocage ; vérifié en natif |
