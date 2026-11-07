@@ -1878,16 +1878,16 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 
 **Étapes d’implémentation :**
 
-- [ ] 1. Garder le graphe comme espace principal, avec bibliothèque de nœuds, canvas, liens et inspecteur.
-- [ ] 2. Rendre lisibles entrée, sortie, conditions, branches et types de liens ; conserver les nœuds natifs non montrés dans les quatre exemples.
-- [ ] 3. Ajouter recherche de scène/nœud, zoom, centrage et sélection sans modifier la structure métier.
-- [ ] 4. Montrer un résumé Quand/Si/Alors comme aide optionnelle, jamais comme remplacement imposé du graphe.
-- [ ] 5. Relier les sélecteurs de dialogues, événements et cinématiques à leurs documents sans fusionner leurs identités.
-- [ ] 6. Préserver les brouillons, révisions et historique du contrôleur ; rendre les erreurs de référence localisables sur le graphe.
+- [x] 1. Garder le graphe comme espace principal, avec bibliothèque de nœuds, canvas, liens et inspecteur.
+- [x] 2. Rendre lisibles entrée, sortie, conditions, branches et types de liens ; conserver les nœuds natifs non montrés dans les quatre exemples.
+- [x] 3. Ajouter recherche de scène/nœud, zoom, centrage et sélection sans modifier la structure métier.
+- [x] 4. Montrer un résumé Quand/Si/Alors comme aide optionnelle, jamais comme remplacement imposé du graphe.
+- [x] 5. Relier les sélecteurs de dialogues, événements et cinématiques à leurs documents sans fusionner leurs identités.
+- [x] 6. Préserver les brouillons, révisions et historique du contrôleur ; rendre les erreurs de référence localisables sur le graphe.
 - [ ] 7. Ce lot porte aussi l’entrée Histoire (narrative_overview_landing.dart). Y ajouter, à côté des accès directs, des entrées orientées résultat : « Faire parler un personnage », « Déclencher une scène en entrant », « Créer une quête », « Mettre en scène un déplacement ». Chaque parcours dit quels documents il crée et où les modifier, sans prétendre couvrir ce qui n’est pas pris en charge (audit N01, P1).
-- [ ] 8. Compléter zoom et mini-carte par le suivi des entrées et sorties et la lecture d’un chemin pas à pas ; les ports gardent leur cible de 28 × 28 quel que soit le zoom (audit N03, P1).
-- [ ] 9. Permettre de relier deux blocs au clavier (choisir la sortie, choisir la cible, confirmer), avec annonce et annulation, puis le prouver au lecteur d’écran (audit N04, P1).
-- [ ] 10. Réserver « Reprendre » à une vraie reprise ; avant la première vérification narrative, une explication et une action principale (audit N11).
+- [x] 8. Compléter zoom et mini-carte par le suivi des entrées et sorties et la lecture d’un chemin pas à pas ; les ports gardent leur cible de 28 × 28 quel que soit le zoom (audit N03, P1).
+- [x] 9. Permettre de relier deux blocs au clavier (choisir la sortie, choisir la cible, confirmer), avec annonce et annulation, puis le prouver au lecteur d’écran (audit N04, P1).
+- [x] 10. Réserver « Reprendre » à une vraie reprise ; avant la première vérification narrative, une explication et une action principale (audit N11).
 
 **Tests comportementaux obligatoires :**
 
@@ -2690,15 +2690,15 @@ Une entrée « Parcours décrit » n’est pas déclarée implémentée. Le lot 
 | M10 | P2 | Lieux régionaux difficiles à grande échelle | UX-23.7, ét. 6 | Ajouté ; **corrigé** par b6f400d07 (recherche, dossier, résumé, refus expliqué ; attente, absence et erreur de l’aperçu distinguées) |
 | N01 | P1 | Histoire : apprendre le modèle avant de raconter | UX-22, ét. 7 | Ajouté, D-02 tranchée ; attend la direction de design Histoire |
 | N02 | P1 | Scène d’événement introuvable parmi 426 | UX-23.2, ét. 6 | Ajouté, livrable en avance ; **corrigé** par 3ea3a966b |
-| N03 | P1 | Graphe long : vue d’ensemble ou lecture | UX-22, ét. 3 et 8 | Complété |
-| N04 | P1 | Liaisons de blocs au clavier non prouvées | UX-22, ét. 9 | Ajouté |
+| N03 | P1 | Graphe long : vue d’ensemble ou lecture | UX-22, ét. 3 et 8 | Complété ; **corrigé** par 7f3ffdd02 : entrées et sorties d’un bloc listées et suivies pas à pas (sélection et centrage), « Trouver un bloc », ports à 28 × 28 prouvés à tous les zooms ; vérifié en natif sur une scène HGSS de 53 blocs |
+| N04 | P1 | Liaisons de blocs au clavier non prouvées | UX-22, ét. 9 | Ajouté ; **corrigé** par 7f3ffdd02 : liaison au clavier (L, Tab, Entrée, Échap) identique au pointeur, annulable en une étape et annoncée au lecteur d’écran (prouvé par test ; frappe injectée non transmise au natif) |
 | N05 | P1 | Options d’événement : courant et avancé mêlés | UX-23.2, ét. 7 | Ajouté, livrable en avance ; **corrigé** par 3ea3a966b |
 | N06 | P1 | `null` dans le résumé d’événement | UX-03.1, ét. 1 | Ajouté, avancé ; **corrigé** par d33da791b (« Action sans nom ») |
 | N07 | P2 | Logique des conditions déduite d’icônes | UX-23.2, ét. 8 | Ajouté ; **corrigé** par 096c10f97 (phrase de résultat, choix « toutes » / « une seule », effet de l’inversion annoncé) |
 | N08 | P2 | Deux onglets de cinématique identiques | UX-23.4, ét. 6 | Ajouté ; **corrigé** par 979120f23 (guidage dans Propriétés, Séquence liste les actions ; écart au libellé de l’audit consigné en UX-23.4) |
 | N09 | P2 | Diagnostics de cinématique répétés, `null · id` | UX-03.1, ét. 2 ; UX-23.4, ét. 7 | Ajouté, en partie avancé ; `null · id` **corrigé** par d33da791b, diagnostics groupés avec accès à l’action ou à l’acteur **corrigés** par 979120f23 |
 | N10 | P2 | Deux noms pour créer la même présentation | UX-03.1, ét. 3 | Ajouté, avancé ; **corrigé** par d33da791b (« Nouvelle présentation » aux deux entrées) |
-| N11 | P3 | Vérification absente et récents répétés | UX-22, ét. 10 | Ajouté |
+| N11 | P3 | Vérification absente et récents répétés | UX-22, ét. 10 | Ajouté ; **corrigé** par 262f2efac : une explication et une action avant le premier contrôle, « Reprendre » réservé à une vraie reprise ; vérifié en natif |
 | R01 | P1 | Bibliothèque et Identité : même contenu | UX-12.5, ét. 6 | Ajouté ; **corrigé** par ba222f6a5 (UX-12.5 ; onglet Bibliothèque retiré, la liste des personnages reste le panneau permanent) |
 | R02 | P1 | Personnage : défaut global et local mêlés | UX-12.5, ét. 2 | Couvert ; **en partie corrigé** par ba222f6a5 (UX-12.5 ; défaut du projet « appliqué immédiatement » et réglage du personnage « enregistré avec Enregistrer » séparés et nommés) ; portée personnage / présence restante |
 | R03 | P2 | Portraits : « état » ou « expression » | UX-12.5, ét. 7 | Ajouté ; **corrigé** par ba222f6a5 (UX-12.5 ; « expression » partout ; créer une expression et lui associer une image sont distincts ; portée commune au projet vérifiée par un essai d’écriture) |
