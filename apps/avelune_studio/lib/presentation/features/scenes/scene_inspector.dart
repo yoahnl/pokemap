@@ -45,6 +45,7 @@ class SceneInspector extends StatelessWidget {
     required this.onDocument,
     required this.onDelete,
     required this.onDuplicate,
+    this.onFocusNode,
     this.documents,
     this.narrative,
     this.onCreatePresentation,
@@ -62,6 +63,7 @@ class SceneInspector extends StatelessWidget {
   final String? nodeId, edgeId;
   final VoidCallback changed, onDelete, onDuplicate;
   final ValueChanged<SceneNode> onDocument;
+  final ValueChanged<String>? onFocusNode;
   final ValueChanged<SceneNode>? onCreatePresentation;
   final Future<MapData> Function(String)? loadMap;
   final Future<Map<String, String>> Function()? loadMoves;
@@ -224,26 +226,11 @@ class SceneInspector extends StatelessWidget {
                   ),
                 ],
                 const SizedBox(height: 20),
-                Text('Sorties', style: Theme.of(context).textTheme.titleSmall),
-                for (final port in authorableSceneOutputPortsForNodeInGraph(
-                  node,
-                  scene.graph,
-                ))
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Text(
-                      '● ${switch (port.id) {
-                        'true' => 'Oui',
-                        'false' => 'Non',
-                        'completed' => 'Continuer',
-                        'received' => 'Reçu',
-                        'alreadyClaimed' => 'Déjà reçu aujourd’hui',
-                        'bagFull' => 'Sac plein',
-                        'blocked' => 'Indisponible',
-                        _ => port.id,
-                      }}',
-                    ),
-                  ),
+                SceneNodeLinks(
+                  scene: scene,
+                  node: node,
+                  onFocusNode: onFocusNode,
+                ),
                 const SizedBox(height: 20),
                 Wrap(
                   spacing: 8,
@@ -361,5 +348,94 @@ class SceneInspector extends StatelessWidget {
         ],
       });
     });
+  }
+}
+
+String sceneNodeName(SceneGraph graph, String id) {
+  final node = graph.nodes.where((item) => item.id == id).firstOrNull;
+  if (node == null) return id;
+  final title = node.title?.trim();
+  return title == null || title.isEmpty ? sceneKindLabel(node.kind) : title;
+}
+
+class SceneNodeLinks extends StatelessWidget {
+  const SceneNodeLinks({
+    super.key,
+    required this.scene,
+    required this.node,
+    this.onFocusNode,
+  });
+
+  final SceneAsset scene;
+  final SceneNode node;
+  final ValueChanged<String>? onFocusNode;
+
+  @override
+  Widget build(BuildContext context) {
+    final graph = scene.graph;
+    final small = Theme.of(context).textTheme.bodySmall;
+    final incoming = [
+      for (final edge in graph.edges)
+        if (edge.toNodeId == node.id) edge,
+    ];
+    final ports = authorableSceneOutputPortsForNodeInGraph(node, graph);
+    Widget link(String key, String label, String target) => Align(
+      alignment: Alignment.centerLeft,
+      child: StudioButton(
+        key: ValueKey(key),
+        label: label,
+        icon: Icons.arrow_forward,
+        variant: StudioButtonVariant.quiet,
+        onPressed: onFocusNode == null ? null : () => onFocusNode!(target),
+      ),
+    );
+    return Column(
+      key: ValueKey('scene-node-links-${node.id}'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('Entrées', style: Theme.of(context).textTheme.titleSmall),
+        if (node.kind == SceneNodeKind.start)
+          Text('Point d’entrée de la scène.', style: small)
+        else if (incoming.isEmpty)
+          Text(
+            'Aucun bloc ne mène ici : ce bloc ne sera jamais atteint.',
+            style: small,
+          )
+        else
+          for (final edge in incoming)
+            link(
+              'scene-node-in-${edge.id}',
+              '${sceneNodeName(graph, edge.fromNodeId)} · ${scenePortLabel(edge.fromPortId)}',
+              edge.fromNodeId,
+            ),
+        const SizedBox(height: 12),
+        Text('Sorties', style: Theme.of(context).textTheme.titleSmall),
+        if (ports.isEmpty)
+          Text('Fin de la scène : aucune sortie.', style: small),
+        for (final port in ports)
+          if (graph.edges
+                  .where(
+                    (edge) =>
+                        edge.fromNodeId == node.id &&
+                        edge.fromPortId == port.id,
+                  )
+                  .firstOrNull
+              case final edge?)
+            link(
+              'scene-node-out-${node.id}-${port.id}',
+              '${scenePortLabel(port.id)} → ${sceneNodeName(graph, edge.toNodeId)}',
+              edge.toNodeId,
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Text(
+                '${scenePortLabel(port.id)} · non reliée',
+                key: ValueKey('scene-node-out-${node.id}-${port.id}'),
+                style: small,
+              ),
+            ),
+      ],
+    );
   }
 }

@@ -17,7 +17,10 @@ class SceneBuilderViewStore {
 class SceneBuilderViewState {
   final viewport = SceneGraphViewport();
   String? nodeId, edgeId;
-  bool libraryOpen = false, inspectorOpen = false, previewOpen = false;
+  bool libraryOpen = false,
+      inspectorOpen = false,
+      previewOpen = false,
+      summaryOpen = false;
   final choices = <String, String>{};
   SceneAsset? previewDocument;
   SceneDryRunPreviewResult? preview;

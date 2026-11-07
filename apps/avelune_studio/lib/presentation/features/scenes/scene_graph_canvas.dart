@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/presentation/features/scenes/scene_canvas_menu.dart';
@@ -57,6 +58,7 @@ class _SceneGraphCanvasState extends State<SceneGraphCanvas> {
   final _positions = <String, Offset>{};
   String? _dragNode, _wireNode, _wirePort, _target;
   Offset? _wireEnd;
+  bool _keyboardLink = false;
   bool _minimap = true;
   int _menuRevision = 0;
   @override
@@ -104,10 +106,121 @@ class _SceneGraphCanvasState extends State<SceneGraphCanvas> {
     _wirePort = null;
     _target = null;
     _wireEnd = null;
+    _keyboardLink = false;
   }
 
   void _cancel() {
+    if (_keyboardLink) _announce('Liaison annulée.');
     setState(_clearGesture);
+  }
+
+  void _announce(String message) {
+    SemanticsService.sendAnnouncement(
+      View.of(context),
+      message,
+      TextDirection.ltr,
+    );
+  }
+
+  String _nodeName(String id) {
+    final node = _geometry.nodes[id];
+    return node?.title?.trim().isNotEmpty == true
+        ? node!.title!.trim()
+        : node == null
+        ? id
+        : sceneKindLabel(node.kind);
+  }
+
+  List<String> _freePorts(String id) => [
+    for (final port
+        in _geometry.ports[id] ?? const <SceneAuthorableOutputPort>[])
+      if (!_geometry.occupied.contains('$id:${port.id}')) port.id,
+  ];
+
+  List<String> _targets(String source) {
+    final ids = [
+      for (final node in _geometry.nodes.values)
+        if (node.id != source && node.kind != SceneNodeKind.start) node.id,
+    ];
+    ids.sort((a, b) {
+      final pa = _geometry.positions[a]!, pb = _geometry.positions[b]!;
+      final dx = pa.dx.compareTo(pb.dx);
+      return dx != 0 ? dx : pa.dy.compareTo(pb.dy);
+    });
+    return ids;
+  }
+
+  void _showKeyboardTarget(String target) {
+    _target = target;
+    _wireEnd = widget.viewport.worldToLocal(
+      _geometry.input(target, _positions),
+    );
+  }
+
+  KeyEventResult _keyboardLinkKey(LogicalKeyboardKey key) {
+    final source = widget.selectedNodeId;
+    if (!_keyboardLink) {
+      if (key != LogicalKeyboardKey.keyL || source == null) {
+        return KeyEventResult.ignored;
+      }
+      final ports = _freePorts(source), targets = _targets(source);
+      if (ports.isEmpty || targets.isEmpty) {
+        _announce(
+          ports.isEmpty
+              ? '« ${_nodeName(source)} » n’a plus de sortie libre.'
+              : 'Aucun bloc ne peut recevoir cette liaison.',
+        );
+        return KeyEventResult.handled;
+      }
+      setState(() {
+        _keyboardLink = true;
+        _wireNode = source;
+        _wirePort = ports.first;
+        _showKeyboardTarget(targets.first);
+      });
+      _announce(
+        'Liaison depuis « ${_nodeName(source)} », sortie ${scenePortLabel(ports.first)}, '
+        'vers « ${_nodeName(targets.first)} ». L : autre sortie, Tab : autre cible, '
+        'Entrée : relier, Échap : annuler.',
+      );
+      return KeyEventResult.handled;
+    }
+    final from = _wireNode!;
+    if (key == LogicalKeyboardKey.keyL) {
+      final ports = _freePorts(from);
+      final next = ports[(ports.indexOf(_wirePort!) + 1) % ports.length];
+      setState(() => _wirePort = next);
+      _announce('Sortie ${scenePortLabel(next)}.');
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.tab ||
+        key == LogicalKeyboardKey.arrowRight ||
+        key == LogicalKeyboardKey.arrowDown ||
+        key == LogicalKeyboardKey.arrowLeft ||
+        key == LogicalKeyboardKey.arrowUp) {
+      final targets = _targets(from);
+      final back =
+          HardwareKeyboard.instance.isShiftPressed ||
+          key == LogicalKeyboardKey.arrowLeft ||
+          key == LogicalKeyboardKey.arrowUp;
+      final index = targets.indexOf(_target!);
+      final next =
+          targets[(index + (back ? targets.length - 1 : 1)) % targets.length];
+      setState(() => _showKeyboardTarget(next));
+      _announce('Cible « ${_nodeName(next)} ».');
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.numpadEnter) {
+      final port = _wirePort!, target = _target!;
+      setState(_clearGesture);
+      widget.onConnect(from, port, target);
+      _announce(
+        '« ${_nodeName(from)} », sortie ${scenePortLabel(port)}, relié à « ${_nodeName(target)} ».',
+      );
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
   }
 
   Offset _local(Offset global) =>
@@ -202,6 +315,9 @@ class _SceneGraphCanvasState extends State<SceneGraphCanvas> {
         HardwareKeyboard.instance.isMetaPressed;
     if (key == LogicalKeyboardKey.escape) {
       _cancel();
+      return KeyEventResult.handled;
+    }
+    if (!control && _keyboardLinkKey(key) == KeyEventResult.handled) {
       return KeyEventResult.handled;
     }
     if (control && key == LogicalKeyboardKey.keyZ) {

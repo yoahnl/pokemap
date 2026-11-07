@@ -41,6 +41,29 @@ extension _SceneBuilderHeader on _SceneBuilderPageState {
               }
             : null,
       ),
+      StudioTool(
+        key: const ValueKey('scene-node-finder'),
+        label: 'Trouver un bloc',
+        icon: Icons.search,
+        onPressed: session == null
+            ? null
+            : () async {
+                final id = await showSceneNodeFinder(context, session.current);
+                if (id != null) focusNode(id);
+              },
+      ),
+      StudioButton(
+        key: const ValueKey('scene-readable-summary-toggle'),
+        label: 'Résumé',
+        secondary: true,
+        icon: Icons.notes,
+        onPressed: state == null
+            ? null
+            : () {
+                state.summaryOpen = !state.summaryOpen;
+                refresh();
+              },
+      ),
       StudioButton(
         label: compact ? 'Chemin' : 'Prévisualiser le chemin',
         secondary: true,

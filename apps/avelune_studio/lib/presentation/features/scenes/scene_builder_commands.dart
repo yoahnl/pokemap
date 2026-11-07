@@ -100,6 +100,19 @@ extension _SceneBuilderCommands on _SceneBuilderPageState {
     refresh();
   }
 
+  void focusNode(String id) {
+    final session = widget.controller.active;
+    final state = view;
+    if (session == null || state == null) return;
+    if (!session.current.graph.nodes.any((node) => node.id == id)) return;
+    state.nodeId = id;
+    state.edgeId = null;
+    state.viewport.centerOn(
+      SceneCanvasGeometry(session.current).nodeRect(id, const {}).center,
+    );
+    refresh();
+  }
+
   void duplicate() {
     if (view?.nodeId case final id?) widget.controller.active?.duplicate(id);
     refresh();
