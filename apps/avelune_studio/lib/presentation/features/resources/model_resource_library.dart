@@ -12,6 +12,8 @@ import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_choice.dart';
 import '../../shared/widgets/inputs/studio_commit_field.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
+import '../../shared/widgets/layout/studio_section.dart';
+import 'resource_management_bindings.dart';
 import 'resource_navigation.dart';
 import 'resource_catalog.dart';
 import 'model_animation_controls.dart';
@@ -97,14 +99,30 @@ Future<ResourceMutationReceipt?> replaceStudioModelSource(
   return null;
 }
 
+Map<String, int> openModelOccurrences(
+  ResourceNavigation navigation,
+  String modelId,
+) => {
+  for (final document in navigation.workspace.documents.values)
+    if ((document.current.spatialScene?.instances
+                .where((instance) => instance.modelId == modelId)
+                .length ??
+            0)
+        case final count when count > 0)
+      document.current.name: count,
+};
+
 class ModelResourceLibrary extends StatefulWidget {
   const ModelResourceLibrary({
     super.key,
     required this.navigation,
     required this.items,
+    this.previewBuilder,
   });
   final List<ResourceItem> items;
   final ResourceNavigation navigation;
+  final Widget Function(ProjectModel3dEntry model, Uint8List bytes)?
+  previewBuilder;
 
   @override
   State<ModelResourceLibrary> createState() => _ModelResourceLibraryState();
@@ -115,6 +133,100 @@ class _ModelResourceLibraryState extends State<ModelResourceLibrary> {
   String? selectedId;
   Future<Uint8List>? source;
   String? error;
+  final acknowledgedScopes = <String>{};
+
+  Future<void> confirmSharedEdit(ProjectModel3dEntry model) async {
+    if (acknowledgedScopes.contains(model.id)) return;
+    final occurrences = openModelOccurrences(widget.navigation, model.id);
+    if (occurrences.isEmpty) return;
+    final total = occurrences.values.fold(0, (sum, count) => sum + count);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        key: const ValueKey('model-scope-review'),
+        title: const Text('Modifier la définition partagée ?'),
+        content: Text(
+          '« ${model.name} » est posé $total fois sur les cartes ouvertes : '
+          '${occurrences.entries.map((entry) => '${entry.key} (${entry.value})').join(', ')}.\n\n'
+          'Le changement s’appliquera à toutes ses occurrences, y compris sur '
+          'les cartes fermées. Chaque occurrence garde son identité, sa '
+          'position et ses propres réglages.',
+        ),
+        actions: [
+          StudioButton(
+            key: const ValueKey('model-scope-cancel'),
+            label: 'Annuler',
+            secondary: true,
+            onPressed: () => Navigator.pop(context, false),
+          ),
+          StudioButton(
+            key: const ValueKey('model-scope-confirm'),
+            label: 'Modifier toutes les occurrences',
+            onPressed: () => Navigator.pop(context, true),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) {
+      throw const ResourceFailure(
+        'Modification annulée : la définition partagée n’a pas changé.',
+      );
+    }
+    acknowledgedScopes.add(model.id);
+  }
+
+  Widget sharedScope(ProjectModel3dEntry model) {
+    final occurrences = openModelOccurrences(widget.navigation, model.id);
+    final total = occurrences.values.fold(0, (sum, count) => sum + count);
+    final maps = occurrences.length;
+    return StudioPanel(
+      key: const ValueKey('model-shared-scope'),
+      compact: true,
+      icon: Icons.share_outlined,
+      title: 'Définition partagée',
+      children: [
+        Text(
+          total == 0
+              ? 'Aucune occurrence sur les cartes ouvertes. Les réglages ci-dessous '
+                    's’appliqueront à chaque futur placement.'
+              : '$total occurrence${total == 1 ? '' : 's'} sur $maps carte'
+                    '${maps == 1 ? '' : 's'} ouverte${maps == 1 ? '' : 's'}. '
+                    'Les réglages ci-dessous s’appliquent à toutes ; position, '
+                    'rotation et réglages propres restent édités sur la carte.',
+        ),
+        const SizedBox(height: 8),
+        StudioButton(
+          key: const ValueKey('model-usages'),
+          label: 'Voir tous les usages',
+          icon: Icons.travel_explore,
+          secondary: true,
+          onPressed: widget.navigation.busy
+              ? null
+              : () => openResourceUsages(
+                  context,
+                  widget.navigation,
+                  ResourceItem(
+                    id: model.id,
+                    name: model.name,
+                    kind: ResourceKind.decors,
+                    model3d: model,
+                  ),
+                ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> shared(
+    ProjectModel3dEntry model,
+    Map<String, Object?> fields,
+  ) async {
+    await confirmSharedEdit(model);
+    await widget.navigation.mutate('model3d.configure', {
+      'modelId': model.id,
+      ...fields,
+    });
+  }
 
   @override
   void dispose() {
@@ -135,10 +247,7 @@ class _ModelResourceLibraryState extends State<ModelResourceLibrary> {
     Map<String, Object?> fields,
   ) async {
     try {
-      await widget.navigation.mutate('model3d.configure', {
-        'modelId': model.id,
-        ...fields,
-      });
+      await shared(model, fields);
       if (mounted) setState(() => error = null);
     } on Object catch (failure) {
       if (mounted) setState(() => error = '$failure');
@@ -266,6 +375,8 @@ class _ModelResourceLibraryState extends State<ModelResourceLibrary> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               if (error != null) StudioNotice(error!, isError: true),
+              sharedScope(model),
+              const SizedBox(height: 12),
               SizedBox(
                 height: bounds.maxHeight < 600 ? 240 : 360,
                 child: FutureBuilder<Uint8List>(
@@ -277,10 +388,17 @@ class _ModelResourceLibraryState extends State<ModelResourceLibrary> {
                         isError: true,
                       );
                     }
-                    if (!snapshot.hasData) {
-                      return const Center(child: CircularProgressIndicator());
+                    if (snapshot.connectionState != ConnectionState.done ||
+                        !snapshot.hasData) {
+                      return const Center(
+                        key: ValueKey('model-preview-loading'),
+                        child: CircularProgressIndicator(),
+                      );
                     }
                     final box = model.inspection.bounds;
+                    if (widget.previewBuilder case final build?) {
+                      return build(model, snapshot.data!);
+                    }
                     return ModelPreview(
                       key: ValueKey(model.id),
                       bytes: snapshot.data!,
@@ -316,8 +434,8 @@ class _ModelResourceLibraryState extends State<ModelResourceLibrary> {
                 ],
               ),
               const SizedBox(height: 16),
-              StudioPanel(
-                title: 'Dans votre jeu',
+              StudioSection(
+                title: 'Général',
                 children: [
                   IgnorePointer(
                     ignoring: n.busy,
@@ -356,17 +474,6 @@ class _ModelResourceLibraryState extends State<ModelResourceLibrary> {
                     'Dimensions : ${(model.inspection.bounds.size.x * model.scale).toStringAsFixed(2)} × ${(model.inspection.bounds.size.y * model.scale).toStringAsFixed(2)} × ${(model.inspection.bounds.size.z * model.scale).toStringAsFixed(2)} cases (largeur, hauteur, profondeur)',
                   ),
                   const SizedBox(height: 12),
-                  ModelShadowControls(
-                    key: ValueKey('model-shadows-${model.id}'),
-                    model: model,
-                    busy: n.busy,
-                    onChanged: (value) async {
-                      await n.mutate('model3d.configure', {
-                        'modelId': model.id,
-                        'castsShadowsByDefault': value,
-                      });
-                    },
-                  ),
                   const SizedBox(height: 12),
                   StudioButton(
                     label: 'Placer l’origine au centre du pied',
@@ -392,83 +499,108 @@ class _ModelResourceLibraryState extends State<ModelResourceLibrary> {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              ModelLightControls(
-                key: ValueKey('model-light-${model.id}'),
-                previewController: controls,
-                model: model,
-                busy: n.busy,
-                onSave: (light) async {
-                  await n.mutate('model3d.configure', {
-                    'modelId': model.id,
-                    'light': light?.toJson(),
-                  });
-                },
+              StudioSection(
+                title: 'Ombres et lumière',
+                children: [
+                  ModelShadowControls(
+                    key: ValueKey('model-shadows-${model.id}'),
+                    model: model,
+                    busy: n.busy,
+                    onChanged: (value) =>
+                        shared(model, {'castsShadowsByDefault': value}),
+                  ),
+                  const SizedBox(height: 12),
+                  ModelLightControls(
+                    key: ValueKey('model-light-${model.id}'),
+                    previewController: controls,
+                    model: model,
+                    busy: n.busy,
+                    onSave: (light) =>
+                        shared(model, {'light': light?.toJson()}),
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
-              ModelRampControls(
-                model: model,
-                busy: n.busy,
-                onSave: (profile) => n.mutate('model3d.configure', {
-                  'modelId': model.id,
-                  'rampProfile': profile?.toJson(),
-                }),
-              ),
-              const SizedBox(height: 16),
-              ModelCollisionControls(
-                model: model,
-                busy: n.busy,
-                onSave: (bounds, blocksMovementByDefault) =>
-                    n.mutate('model3d.configure', {
-                      'modelId': model.id,
+              StudioSection(
+                title: 'Collision et passage',
+                children: [
+                  ModelRampControls(
+                    model: model,
+                    busy: n.busy,
+                    onSave: (profile) =>
+                        shared(model, {'rampProfile': profile?.toJson()}),
+                  ),
+                  const SizedBox(height: 16),
+                  ModelCollisionControls(
+                    model: model,
+                    busy: n.busy,
+                    onSave: (bounds, blocksMovementByDefault) => shared(model, {
                       'collisionBounds': bounds?.toJson(),
                       'blocksMovementByDefault': blocksMovementByDefault,
                     }),
-              ),
-              if (model.inspection.animations.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                ListenableBuilder(
-                  listenable: controls,
-                  builder: (context, _) => ModelAnimationControls(
-                    clips: model.inspection.animations,
-                    animationIndex: controls.animation,
-                    loop: controls.animationLoop,
-                    speed: controls.animationSpeed,
-                    paused: controls.animationPaused,
-                    onClip: controls.play,
-                    onLoop: (value) => controls.configureAnimation(loop: value),
-                    onSpeed: (value) =>
-                        controls.configureAnimation(speed: value),
-                    onPause: controls.toggleAnimationPause,
-                    onReplay: controls.restartAnimation,
                   ),
-                ),
-              ],
-              for (final diagnostic in model.inspection.diagnostics)
-                Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: StudioNotice(modelDiagnosticLabel(diagnostic)),
-                ),
-              const SizedBox(height: 16),
-              StudioButton(
-                label: 'Remplacer le modèle GLB',
-                secondary: true,
-                onPressed: n.busy
-                    ? null
-                    : () async {
-                        await replaceStudioModelSource(n, model.id);
-                        if (!mounted) return;
-                        final current = n.workspace.project!.models3d
-                            .where((entry) => entry.id == model.id)
-                            .firstOrNull;
-                        if (current != null) setState(() => select(current));
-                      },
+                ],
               ),
-              const SizedBox(height: 8),
-              StudioButton(
-                label: 'Retirer de la bibliothèque',
-                secondary: true,
-                onPressed: n.busy ? null : () => remove(model),
+              if (model.inspection.animations.isNotEmpty)
+                StudioSection(
+                  title: 'Animation',
+                  children: [
+                    ListenableBuilder(
+                      listenable: controls,
+                      builder: (context, _) => ModelAnimationControls(
+                        clips: model.inspection.animations,
+                        animationIndex: controls.animation,
+                        loop: controls.animationLoop,
+                        speed: controls.animationSpeed,
+                        paused: controls.animationPaused,
+                        onClip: controls.play,
+                        onLoop: (value) =>
+                            controls.configureAnimation(loop: value),
+                        onSpeed: (value) =>
+                            controls.configureAnimation(speed: value),
+                        onPause: controls.toggleAnimationPause,
+                        onReplay: controls.restartAnimation,
+                      ),
+                    ),
+                  ],
+                ),
+              StudioSection(
+                title: 'Source',
+                children: [
+                  for (final diagnostic in model.inspection.diagnostics)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: StudioNotice(modelDiagnosticLabel(diagnostic)),
+                    ),
+                  StudioButton(
+                    label: 'Remplacer le modèle GLB',
+                    secondary: true,
+                    onPressed: n.busy
+                        ? null
+                        : () async {
+                            await replaceStudioModelSource(n, model.id);
+                            if (!mounted) return;
+                            final current = n.workspace.project!.models3d
+                                .where((entry) => entry.id == model.id)
+                                .firstOrNull;
+                            if (current != null) {
+                              setState(() => select(current));
+                            }
+                          },
+                  ),
+                ],
+              ),
+              StudioSection(
+                key: PageStorageKey('model-advanced-${model.id}'),
+                title: 'Avancé',
+                collapsible: true,
+                initiallyExpanded: false,
+                children: [
+                  StudioButton(
+                    label: 'Retirer de la bibliothèque',
+                    secondary: true,
+                    onPressed: n.busy ? null : () => remove(model),
+                  ),
+                ],
               ),
             ],
           ),

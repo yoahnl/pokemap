@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
+import 'package:map_core/map_core.dart';
 
 import '../../../../packages/map_authoring/test/support/glb_fixture.dart';
 import 'resource_fixture.dart';
@@ -127,4 +128,23 @@ void main() {
     expect(await fixture.mapFile.readAsBytes(), mapBefore);
   });
 
+  test('Studio keeps collision and ramp together after reopening the model', () async {
+    final fixture = await ResourceFixture.create();
+    addTearDown(fixture.dispose);
+    final input = File('${fixture.root.path}/source.glb');
+    await input.writeAsBytes(triangleGlb());
+    final imported = await fixture.resources.importModel(sourcePath: input.path, name: 'Escalier');
+    final model = imported.manifest.models3d.single;
+    final mapBefore = await fixture.mapFile.readAsBytes();
+    final bounds = {'min': {'x': 0.0, 'y': 0.0, 'z': 0.0}, 'max': {'x': .5, 'y': .5, 'z': .5}};
+    final ramp = {'x': 0, 'z': 0, 'width': 1, 'depth': 2, 'lowHeight': 0.0, 'highHeight': 1.0, 'direction': SpatialRampDirection.values.first.name};
+    await fixture.resources.mutate('model3d.configure', {'modelId': model.id, 'collisionBounds': bounds, 'blocksMovementByDefault': false});
+    await fixture.resources.mutate('model3d.configure', {'modelId': model.id, 'rampProfile': ramp});
+    final reopened = (await LocalMapWorkspaceAdapter().loadProject(fixture.session)).models3d.single;
+    expect(reopened.id, model.id);
+    expect(reopened.collisionBounds?.toJson(), bounds);
+    expect(reopened.blocksMovementByDefault, isFalse);
+    expect(reopened.rampProfile?.toJson(), Model3dRampProfile.fromJson(ramp).toJson());
+    expect(await fixture.mapFile.readAsBytes(), mapBefore);
+  });
 }
