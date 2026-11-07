@@ -182,12 +182,17 @@ class _PokemonCombatPageState extends State<PokemonCombatPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Les usages dans les cartes et scènes n’ont pas encore été analysés.',
+                    Text(
+                      combat.analyzing
+                          ? 'Analyse des usages en cours : Studio lit toutes les cartes et scènes du projet.'
+                          : 'Les usages dans les cartes et scènes n’ont pas encore été analysés.',
                     ),
                     StudioButton(
-                      label: 'Analyser les usages du projet',
+                      label: combat.analyzing
+                          ? 'Analyse en cours…'
+                          : 'Analyser les usages du projet',
                       secondary: true,
+                      loading: combat.analyzing,
                       onPressed:
                           combat.operationActive ||
                               combat.dirty ||

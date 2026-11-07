@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:avelune_studio/features/pokemon/application/pokemon_combat_controller.dart';
@@ -94,6 +95,54 @@ void main() {
     },
   );
 
+  testWidgets('a running combat usage analysis says so until it ends', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final port = _CombatPort()..pending = Completer();
+    VoidCallback rebuild = () {};
+    final owner = PokemonCombatController(port, changed: () => rebuild());
+    await owner.load();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: StatefulBuilder(
+            builder: (context, setState) {
+              rebuild = () => setState(() {});
+              return PokemonCombatPage(
+                combat: owner,
+                index: const PokemonWorkspaceIndex(
+                  enabled: true,
+                  entries: [],
+                  moves: PokemonMovesCatalogView(entries: [], relativePath: ''),
+                  types: [],
+                  items: {},
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Analyser les usages du projet'));
+    await tester.pump();
+    final running = tester
+        .widgetList<StudioButton>(find.byType(StudioButton))
+        .singleWhere((button) => button.label == 'Analyse en cours…');
+    expect(running.loading, isTrue);
+    expect(
+      find.textContaining('lit toutes les cartes et scènes'),
+      findsOneWidget,
+    );
+    port.pending!.complete();
+    await tester.pumpAndSettle();
+    expect(find.text('Analyse en cours…'), findsNothing);
+    expect(find.textContaining('lit toutes les cartes et scènes'), findsNothing);
+    expect(owner.snapshot!.referencesComplete, isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('commerce reference panel waits for explicit global analysis', (
     tester,
   ) async {
@@ -161,6 +210,7 @@ void main() {
 final class _CombatPort
     implements PokemonCombatPort, PokemonCombatReferencePort {
   int analyzed = 0, deleted = 0;
+  Completer<void>? pending;
   @override
   Future<PokemonCombatSnapshot> load() async => const PokemonCombatSnapshot(
     project: _project,
@@ -170,6 +220,7 @@ final class _CombatPort
   @override
   Future<PokemonCombatSnapshot> analyzeReferences() async {
     analyzed++;
+    await pending?.future;
     return const PokemonCombatSnapshot(project: _project, maps: []);
   }
 

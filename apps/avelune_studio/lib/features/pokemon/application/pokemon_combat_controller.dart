@@ -66,8 +66,17 @@ final class PokemonCombatController {
     ];
   }
 
-  Future<void> analyzeReferences() =>
-      load(refresh: true, analyzeReferences: true);
+  bool analyzing = false;
+
+  Future<void> analyzeReferences() async {
+    analyzing = true;
+    try {
+      await load(refresh: true, analyzeReferences: true);
+    } finally {
+      analyzing = false;
+      if (!_disposed) changed();
+    }
+  }
 
   Future<void> load({
     bool refresh = false,
