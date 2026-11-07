@@ -1,4 +1,5 @@
 import 'package:map_core/map_core_domain.dart';
+
 import 'event_labels.dart';
 
 String eventOperatorLabel(NarrativeFactOperator operator) => switch (operator) {
@@ -22,7 +23,9 @@ String eventConditionLabel(
   List<NarrativeFactDefinition> facts,
   List<NarrativeEventRecord> records,
 ) => condition.whenTyped(
-  periodicRewardAvailable: (_, expected) => expected ? 'Récompense disponible aujourd’hui' : 'Récompense déjà récupérée aujourd’hui',
+  periodicRewardAvailable: (_, expected) => expected
+      ? 'Récompense disponible aujourd’hui'
+      : 'Récompense déjà récupérée aujourd’hui',
   fact: (id, operator, value) =>
       '${facts.where((f) => f.id == id).firstOrNull?.label ?? 'État absent : $id'} '
       '${eventOperatorLabel(operator)} ${eventValueLabel(value)}',
@@ -30,7 +33,7 @@ String eventConditionLabel(
       '${records.where((r) => r.id == id).map(eventName).firstOrNull ?? 'Événement absent : $id'} '
       '${expected ? 'a déjà été joué' : 'n’a pas encore été joué'}',
   mapEventInstanceBoolean: (mapId, eventId, key, expected) =>
-    'Mémoire locale $key ${expected ? 'active' : 'inactive'}',
+      'Mémoire locale $key ${expected ? 'active' : 'inactive'}',
 );
 
 String eventExpressionLabel(
@@ -52,3 +55,45 @@ String eventExpressionLabel(
   NarrativeEventConditionNot(:final child) =>
     'Inverser (${eventExpressionLabel(child, facts, records)})',
 };
+
+String eventExpressionSentence(
+  NarrativeEventConditionExpression expression,
+  List<NarrativeFactDefinition> facts,
+  List<NarrativeEventRecord> records, {
+  bool nested = false,
+}) {
+  String part(NarrativeEventConditionExpression child) =>
+      eventExpressionSentence(child, facts, records, nested: true);
+  String wrap(String value) => nested ? '($value)' : value;
+  return switch (expression) {
+    NarrativeEventConditionLeaf(:final condition) => eventConditionLabel(
+      condition,
+      facts,
+      records,
+    ),
+    NarrativeEventConditionAll(:final children) => switch (children.length) {
+      0 => 'aucune condition n’est requise',
+      1 => part(children.single),
+      _ => wrap(
+        'toutes ces conditions sont remplies : ${children.map(part).join(' et ')}',
+      ),
+    },
+    NarrativeEventConditionAny(:final children) => switch (children.length) {
+      0 => 'aucune condition n’est disponible',
+      1 => part(children.single),
+      _ => wrap(
+        'au moins une de ces conditions est remplie : ${children.map(part).join(' ou ')}',
+      ),
+    },
+    NarrativeEventConditionNot(:final child) =>
+      'il n’est pas vrai que ${eventExpressionSentence(child, facts, records, nested: true)}',
+  };
+}
+
+String eventTriggerSentence(
+  NarrativeEventConditionExpression expression,
+  List<NarrativeFactDefinition> facts,
+  List<NarrativeEventRecord> records,
+) => expression is NarrativeEventConditionAll && expression.children.isEmpty
+    ? 'L’événement se déclenche sans condition.'
+    : 'L’événement se déclenche quand ${eventExpressionSentence(expression, facts, records)}.';

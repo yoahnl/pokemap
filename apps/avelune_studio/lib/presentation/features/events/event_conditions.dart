@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
+
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
+import '../../shared/widgets/inputs/studio_choice.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import 'event_condition_dialog.dart';
 import 'event_condition_labels.dart';
@@ -23,14 +25,29 @@ class EventConditions extends StatelessWidget {
   final String? mapId, entityId;
 
   @override
-  Widget build(BuildContext context) =>
-      SingleChildScrollView(child: _node(context, expression, onChanged, null));
+  Widget build(BuildContext context) => SingleChildScrollView(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Text(
+            eventTriggerSentence(expression, facts, records),
+            key: const ValueKey('event-conditions-result'),
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
+        ),
+        _node(context, expression, onChanged, null, 'root'),
+      ],
+    ),
+  );
 
   Widget _node(
     BuildContext context,
     NarrativeEventConditionExpression value,
     ValueChanged<NarrativeEventConditionExpression> replace,
     VoidCallback? remove,
+    String path,
   ) {
     final children = switch (value) {
       NarrativeEventConditionAll(:final children) => children,
@@ -59,7 +76,8 @@ class EventConditions extends StatelessWidget {
         facts: facts,
         records: records,
         initial: initial,
-        mapId: mapId, entityId: entityId,
+        mapId: mapId,
+        entityId: entityId,
       );
       if (selected == null || !context.mounted) return;
       final leaf = NarrativeEventConditionExpression.leaf(selected);
@@ -85,24 +103,11 @@ class EventConditions extends StatelessWidget {
           if (value is! NarrativeEventConditionNot && children.isNotEmpty ||
               value is NarrativeEventConditionLeaf)
             StudioTool(
-              label: 'Inverser',
+              label:
+                  'Inverser : se déclencher quand « ${eventExpressionSentence(value, facts, records)} » est faux',
               icon: Icons.swap_horiz,
               onPressed: () =>
                   replace(NarrativeEventConditionExpression.not(value)),
-            ),
-          if (value is NarrativeEventConditionAll && children.isNotEmpty)
-            StudioTool(
-              label: 'Au moins une',
-              icon: Icons.call_split,
-              onPressed: () =>
-                  replace(NarrativeEventConditionExpression.any(children)),
-            ),
-          if (value is NarrativeEventConditionAny)
-            StudioTool(
-              label: 'Toutes',
-              icon: Icons.merge,
-              onPressed: () =>
-                  replace(NarrativeEventConditionExpression.all(children)),
             ),
           if (remove != null)
             StudioTool(
@@ -112,6 +117,37 @@ class EventConditions extends StatelessWidget {
             ),
         ],
         children: [
+          if (value is NarrativeEventConditionAll ||
+              value is NarrativeEventConditionAny) ...[
+            Wrap(
+              spacing: 8,
+              children: [
+                StudioChoice(
+                  key: ValueKey('event-group-all-$path'),
+                  dense: true,
+                  label: 'Toutes doivent être remplies',
+                  selected: value is NarrativeEventConditionAll,
+                  onTap: value is NarrativeEventConditionAll
+                      ? null
+                      : () => replace(
+                          NarrativeEventConditionExpression.all(children),
+                        ),
+                ),
+                StudioChoice(
+                  key: ValueKey('event-group-any-$path'),
+                  dense: true,
+                  label: 'Une seule suffit',
+                  selected: value is NarrativeEventConditionAny,
+                  onTap: value is NarrativeEventConditionAny
+                      ? null
+                      : () => replace(
+                          NarrativeEventConditionExpression.any(children),
+                        ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+          ],
           if (value is NarrativeEventConditionNot) ...[
             StudioButton(
               label: 'Retirer l’inversion',
@@ -124,6 +160,7 @@ class EventConditions extends StatelessWidget {
               value.child,
               (child) => replace(NarrativeEventConditionExpression.not(child)),
               null,
+              '$path.not',
             ),
           ],
           for (var i = 0; i < children.length; i++)
@@ -132,6 +169,7 @@ class EventConditions extends StatelessWidget {
               children[i],
               (child) => replace(group([...children]..[i] = child)),
               () => replace(group([...children]..removeAt(i))),
+              '$path.$i',
             ),
           if (value is NarrativeEventConditionAll ||
               value is NarrativeEventConditionAny)
@@ -153,7 +191,8 @@ class EventConditions extends StatelessWidget {
                       context,
                       facts: facts,
                       records: records,
-                      mapId: mapId, entityId: entityId,
+                      mapId: mapId,
+                      entityId: entityId,
                     );
                     if (condition != null && context.mounted) {
                       replace(
@@ -178,7 +217,8 @@ class EventConditions extends StatelessWidget {
                   context,
                   facts: facts,
                   records: records,
-                  mapId: mapId, entityId: entityId,
+                  mapId: mapId,
+                  entityId: entityId,
                 );
                 if (condition != null && context.mounted) {
                   replace(

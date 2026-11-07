@@ -48,6 +48,19 @@ class _MapTriggerInspectorState extends State<MapTriggerInspector> {
     final owner = '${widget.document.current.id}/${trigger.id}';
     final blocked = _commands.deletionProblem(trigger.id);
     final area = trigger.area;
+    final mapId = widget.document.current.id;
+    final events = [
+      for (final record
+          in widget.project.eventRegistry?.records ?? <NarrativeEventRecord>[])
+        if (_triggerSource(record, mapId, trigger.id) case final moment?)
+          (
+            name:
+                record.definitionOrNull?.name ??
+                record.draftOrNull?.name ??
+                record.id,
+            when: moment,
+          ),
+    ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -64,6 +77,22 @@ class _MapTriggerInspectorState extends State<MapTriggerInspector> {
           value: trigger.name,
           onCommit: (value) =>
               _change(() => _commands.rename(trigger.id, value)),
+        ),
+        const SizedBox(height: 12),
+        Column(
+          key: const ValueKey('trigger-events'),
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Événements déclenchés',
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            if (events.isEmpty)
+              const Text('Aucun événement ne se déclenche dans cette zone.')
+            else
+              for (final event in events)
+                Text('« ${event.name} » · ${event.when}'),
+          ],
         ),
         const SizedBox(height: 12),
         Text(
@@ -98,4 +127,20 @@ class _MapTriggerInspectorState extends State<MapTriggerInspector> {
       ],
     );
   }
+}
+
+String? _triggerSource(NarrativeEventRecord record, String mapId, String id) {
+  final source = record.definitionOrNull?.source ?? record.draftOrNull?.source;
+  return source?.when(
+    entityAutorun: (_, _) => null,
+    entityBump: (_, _) => null,
+    entityInteract: (_, _) => null,
+    modelInteract: (_, _) => null,
+    triggerBump: (map, trigger) =>
+        map == mapId && trigger == id ? 'en touchant la zone' : null,
+    triggerEnter: (map, trigger) =>
+        map == mapId && trigger == id ? 'en entrant dans la zone' : null,
+    mapEnter: (_) => null,
+    outcomeReceived: (_) => null,
+  );
 }
