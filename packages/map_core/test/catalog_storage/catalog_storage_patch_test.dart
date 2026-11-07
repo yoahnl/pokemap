@@ -145,6 +145,76 @@ void main() {
     },
   );
 
+  test(
+    'removing a classification reads only its index path whatever the catalog size',
+    () async {
+      final limits = CatalogStorageLimits(indexPageSize: 4);
+      CatalogDefinitionUnit entry(int i) => CatalogDefinitionUnit(
+        key: CatalogDefinitionKey(
+          CatalogDefinitionKind.resourceLibraryEntry,
+          'model3d:m$i',
+        ),
+        payload: {'position': i},
+      );
+      final counts = <int>[];
+      for (final count in [32, 256]) {
+        final build = CatalogStorageBuilder(limits: limits).build([
+          for (var i = 0; i < count; i++) entry(i),
+          for (var i = 0; i < count; i++) _unit('id-$i'),
+        ]);
+        final objects = {...build.objects};
+        final reads = <String>[];
+        final before = await _open(
+          build,
+          objects,
+          limits: limits,
+          reads: reads,
+        );
+        await before.validate();
+        reads.clear();
+        final patch = await before.patch(removals: [entry(3).key]);
+        counts.add(reads.length);
+        objects.addAll(patch.objects);
+        final after = await patch.nextSnapshot(
+          readObject: (r) async => objects[r.sha256]!,
+        );
+        await after.validate();
+        expect(await after.lookup(entry(3).key), isNull);
+        expect(after.definitionCount, count * 2 - 1);
+        reads.clear();
+        await expectLater(
+          before.patch(removals: [_unit('id-3').key]),
+          completes,
+        );
+        expect(reads.length, greaterThan(count));
+      }
+      expect(counts.last, lessThan(32));
+    },
+  );
+
+  test('no definition may reference a classification', () async {
+    final classification = CatalogDefinitionUnit(
+      key: CatalogDefinitionKey(
+        CatalogDefinitionKind.resourceLibraryEntry,
+        'model3d:tree',
+      ),
+      payload: {'position': 0},
+    );
+    expect(
+      () => CatalogStorageBuilder().build([
+        classification,
+        _unit('a', references: [classification.key]),
+      ]),
+      throwsFormatException,
+    );
+    final built = CatalogStorageBuilder().build([classification]);
+    final snapshot = await _open(built, {...built.objects});
+    await expectLater(
+      snapshot.patch(upserts: [_unit('a', references: [classification.key])]),
+      throwsFormatException,
+    );
+  });
+
   test('duplicate and overlapping mutation keys fail', () async {
     final built = CatalogStorageBuilder().build([_unit('a')]);
     final snapshot = await _open(built, {...built.objects});

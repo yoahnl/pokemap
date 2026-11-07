@@ -9,6 +9,7 @@ import '../catalog_storage/catalog_storage_store.dart';
 import '../security/authoring_permission.dart';
 import '../support/authoring_fingerprint.dart';
 import '../workspace/catalog/catalog_metadata_documents.dart';
+import '../workspace/catalog/catalog_resource_positions.dart';
 import 'authoring_history.dart';
 import 'content_blob_store.dart';
 import 'file_history_store.dart';
@@ -670,7 +671,8 @@ bool _metadataPrepared(List<CatalogDefinitionUnit> units) {
   final actual = {
     for (final unit in units)
       if (unit.key.kind == CatalogDefinitionKind.workspaceState &&
-          unit.key.id != 'workspace')
+          unit.key.id != 'workspace' &&
+          !CatalogResourcePositions.isSlotKey(unit.key))
         unit.key: unit
   };
   return actual.length == expected.length &&

@@ -5,6 +5,7 @@ import 'package:map_core/map_core.dart';
 
 import '../support/authoring_fingerprint.dart';
 import '../workspace/catalog/catalog_metadata_documents.dart';
+import '../workspace/catalog/catalog_resource_positions.dart';
 import '../workspace/catalog/catalog_narrative_event_documents.dart';
 import 'catalog_storage_store.dart';
 
@@ -142,7 +143,8 @@ abstract final class CatalogHistoryCompatibility {
     final actual = {
       for (final unit in units.values)
         if (unit.key.kind == CatalogDefinitionKind.workspaceState &&
-            unit.key.id != 'workspace')
+            unit.key.id != 'workspace' &&
+            !CatalogResourcePositions.isSlotKey(unit.key))
           unit.key: unit,
     };
     if (_matches(actual, expected)) return null;

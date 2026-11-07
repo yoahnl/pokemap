@@ -340,10 +340,17 @@ AuthoringActionDescriptor visualLibraryDescriptor(
             'preparationScope': id == 'tileset.upsert' ? 'assetImport' : 'nativeResources',
             'read': 'workshop_read', 'newIdentitiesOnly': id == 'tileset.upsert',
             if (id != 'tileset.upsert') ...{
-              'mapScope': 'globalOnly',
-              'existingClassifications': 'updatedWhileOneFieldRemains',
+              'mapScope': 'globalOrReleasedOnly',
+              'existingClassifications': 'updatedInPlaceOrRemovedKeepingContiguousPositions',
+              'removalRequires': 'preparedClassificationPositionIndex',
             },
             'dependencies': 'selectedDefinitionsAndTheirReferences',
+          },
+        if (const {'resource.family.create', 'resource.family.update'}.contains(id))
+          'incrementalCatalogCreation': {
+            'preparationScope': 'nativeResources',
+            'read': 'workshop_read', 'newIdentitiesOnly': false,
+            'dependencies': 'theWholeFamilyTree',
           },
       },
     );

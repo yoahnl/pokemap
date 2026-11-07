@@ -422,6 +422,7 @@ final class CatalogEditingSession {
         }
         if (prepared) {
           await _prepareMapOwnership();
+          await _prepareResourceSlots();
           return;
         }
         final units = await snapshot.readAllUnits();
@@ -431,6 +432,7 @@ final class CatalogEditingSession {
             await _requireAdmission(snapshot.root);
             await store.publishMetadataIndexAdmissionUnderLock(snapshot);
           });
+          await _prepareResourceSlots();
           return;
         }
         final plan = await _planPatch(
@@ -446,7 +448,31 @@ final class CatalogEditingSession {
             request: null,
             prepareMetadataDocuments: true);
         await _apply(plan);
+        await _prepareResourceSlots();
       });
+
+  Future<void> _prepareResourceSlots() async {
+    final List<CatalogDefinitionUnit> upserts;
+    try {
+      upserts = await CatalogResourcePositions.prepareSlots(snapshot);
+    } on FormatException {
+      return;
+    }
+    if (upserts.isEmpty) return;
+    final plan = await _planPatch(
+        upserts: upserts,
+        removals: const [],
+        additionalChanges: const [],
+        workspaceFingerprint: null,
+        publicBaseRevision: null,
+        publicDiff: null,
+        publicPlan: null,
+        currentProjectRevision: null,
+        idempotencyKey: _token('resource_slots_prepare_'),
+        request: null,
+        prepareMetadataDocuments: true);
+    await _apply(plan);
+  }
 
   Future<CatalogEditingPlan> planPatch({
     Iterable<CatalogDefinitionUnit> upserts = const [],

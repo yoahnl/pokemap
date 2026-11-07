@@ -197,7 +197,8 @@ void main() {
           throwsA(isA<AuthoringPlanException>().having(
               (error) => error.code,
               'code',
-              'catalog.mutation_scope_required')));
+              'catalog.mutation_scope_required')),
+          reason: 'clearing needs the classification position index');
 
       await fixture.reopen();
       final root =
@@ -225,6 +226,209 @@ void main() {
             project.resourceLibraryCatalog.entryFor('model3d', 'tree')?.familyId,
             'trees');
       }
+    });
+  }
+
+  for (final unrelated in [0, 80]) {
+    test(
+        'clearing classifications keeps positions contiguous and stays local with $unrelated foreign units',
+        () async {
+      final fixture = await _Fixture.open(unrelated,
+          rootPath:
+              '/Users/karim/Library/Caches/AveluneQA/vague3-ressources-restes/api-clear-$unrelated');
+      addTearDown(fixture.close);
+      final artifact = await fixture.api.artifacts
+          .put(triangleGlb(), declaredMediaType: 'model/gltf-binary');
+      for (final id in ['a', 'b', 'c', 'd']) {
+        final imported = await fixture.plan('model3d.import', {
+          'modelId': id,
+          'name': id,
+          'artifactHandle': artifact.reference.handle,
+        }, 'import-$id');
+        await fixture.api.applyMutation(fixture.opened.projectHandle,
+            planId: imported.planId, operationId: 'import-$id');
+      }
+      final filed = await fixture.plan('resource.classify_batch', {
+        'entries': [
+          for (final id in ['a', 'b', 'c'])
+            {'resourceKind': 'model3d', 'resourceId': id, 'familyId': 'props'}
+        ]
+      }, 'filing');
+      await fixture.api.applyMutation(fixture.opened.projectHandle,
+          planId: filed.planId, operationId: 'filing');
+      final clearA = <String, Object?>{
+        'resourceKind': 'model3d',
+        'resourceId': 'a',
+        'familyId': null,
+        'description': null,
+        'mapId': null,
+        'role': 'standard',
+        'placementContext': null,
+      };
+      await expectLater(
+          fixture.plan('resource.classify', clearA, 'unprepared-clearing'),
+          throwsA(isA<AuthoringPlanException>().having((error) => error.code,
+              'code', 'catalog.mutation_scope_required')));
+      await fixture.api.prepareWorkshopDocument(fixture.opened.projectHandle,
+          scope: 'nativeResources');
+      Future<AuthoringMutationResult> run(String action,
+          Map<String, Object?> parameters, String operation) async {
+        fixture.reader.paths.clear();
+        final beforeObjects =
+            await Directory('${fixture.root.path}/catalog/objects')
+                .list()
+                .length;
+        final plan = await fixture.plan(action, parameters, operation);
+        final result = await fixture.api.applyMutation(
+            fixture.opened.projectHandle,
+            planId: plan.planId,
+            operationId: operation);
+        final afterObjects =
+            await Directory('${fixture.root.path}/catalog/objects')
+                .list()
+                .length;
+        expect(afterObjects - beforeObjects, lessThan(30), reason: operation);
+        expect(fixture.reader.paths.length, lessThan(230), reason: operation);
+        expect(fixture.reader.paths.where(fixture.unrelatedPaths.contains),
+            isEmpty,
+            reason: operation);
+        return result;
+      }
+
+      Future<Map<String, int>> positions() async {
+        final snapshot =
+            (await fixture.store.openRoot((await fixture.store.readHead())!))
+                .snapshot;
+        final units = await CatalogResourcePositions.readUnits(
+            snapshot, CatalogDefinitionKind.resourceLibraryEntry);
+        final count = CatalogResourcePositions.contiguousCount(units);
+        expect(
+            await CatalogResourcePositions.read(
+                snapshot, CatalogDefinitionKind.resourceLibraryEntry),
+            count);
+        for (final unit in units) {
+          expect(
+              await CatalogResourcePositions.readSlot(
+                  snapshot,
+                  CatalogDefinitionKind.resourceLibraryEntry,
+                  unit.payload['position'] as int),
+              unit.key.id);
+        }
+        return {
+          for (final unit in units)
+            unit.key.id: unit.payload['position'] as int
+        };
+      }
+
+      await run('resource.classify', clearA, 'clear-a');
+      var stored = await positions();
+      expect(stored.containsKey('model3d:a'), isFalse);
+      expect(stored['model3d:c'], unrelated);
+      expect(stored['model3d:b'], unrelated + 1);
+      final batch = await run(
+          'resource.classify_batch',
+          {
+            'entries': [
+              {'resourceKind': 'model3d', 'resourceId': 'b', 'familyId': null},
+              {'resourceKind': 'model3d', 'resourceId': 'd', 'familyId': 'props'},
+            ]
+          },
+          'clear-b-file-d');
+      stored = await positions();
+      expect(stored.keys.where((id) => id.startsWith('model3d:')).toSet(),
+          {'model3d:c', 'model3d:d'});
+      expect(stored.length, unrelated + 2);
+      await fixture.reopen();
+      await fixture.api.undoMutation(fixture.opened.projectHandle,
+          entryId: batch.receipt.receiptId, idempotencyKey: 'undo-batch');
+      stored = await positions();
+      expect(stored.keys.where((id) => id.startsWith('model3d:')).toSet(),
+          {'model3d:b', 'model3d:c'});
+      if (unrelated == 0) {
+        final snapshot =
+            (await fixture.store.openRoot((await fixture.store.readHead())!))
+                .snapshot;
+        final project =
+            await (await PortableProjectCatalog.fromSnapshot(snapshot))
+                .exportProject();
+        expect(
+            project.resourceLibraryCatalog.entries.map((e) => e.identity),
+            ['model3d:b', 'model3d:c']);
+      }
+      expect(await File('${fixture.root.path}/project.json').readAsBytes(),
+          fixture.descriptor);
+    });
+  }
+
+  for (final unrelated in [0, 80]) {
+    test(
+        'creating and renaming families stays local with $unrelated foreign units',
+        () async {
+      final fixture = await _Fixture.open(unrelated,
+          rootPath:
+              '/Users/karim/Library/Caches/AveluneQA/vague3-ressources-restes/api-family-$unrelated');
+      addTearDown(fixture.close);
+      final results = <AuthoringMutationResult>[];
+      for (final (action, parameters) in [
+        ('resource.family.create', {'familyId': 'forest', 'name': 'Foret'}),
+        (
+          'resource.family.create',
+          {'familyId': 'pines', 'name': 'Pins', 'parentId': 'forest'}
+        ),
+        ('resource.family.update', {'familyId': 'forest', 'name': 'Bois'}),
+        (
+          'resource.family.update',
+          {'familyId': 'pines', 'name': 'Pins', 'parentId': 'trees'}
+        ),
+      ]) {
+        fixture.reader.paths.clear();
+        final operation = '$action-${results.length}';
+        final beforeObjects =
+            await Directory('${fixture.root.path}/catalog/objects')
+                .list()
+                .length;
+        final plan = await fixture.plan(action, parameters, operation);
+        results.add(await fixture.api.applyMutation(
+            fixture.opened.projectHandle,
+            planId: plan.planId,
+            operationId: operation));
+        final afterObjects =
+            await Directory('${fixture.root.path}/catalog/objects')
+                .list()
+                .length;
+        expect(afterObjects - beforeObjects, lessThan(30), reason: operation);
+        expect(fixture.reader.paths.length, lessThan(220), reason: operation);
+        expect(fixture.reader.paths.where(fixture.unrelatedPaths.contains),
+            isEmpty,
+            reason: operation);
+      }
+      await expectLater(
+          fixture.plan('resource.family.update',
+              {'familyId': 'forest', 'name': 'Bois', 'parentId': 'forest'},
+              'cycle'),
+          throwsA(anything));
+      await fixture.reopen();
+      final snapshot =
+          (await fixture.store.openRoot((await fixture.store.readHead())!))
+              .snapshot;
+      final families = await CatalogResourcePositions.readUnits(
+          snapshot, CatalogDefinitionKind.resourceFamily);
+      expect(CatalogResourcePositions.contiguousCount(families), 2);
+      expect({
+        for (final unit in families) unit.key.id: unit.payload['value']
+      }, {
+        'forest': {'id': 'forest', 'name': 'Bois'},
+        'pines': {'id': 'pines', 'name': 'Pins', 'parentId': 'trees'},
+      });
+      if (unrelated == 0) {
+        final project =
+            await (await PortableProjectCatalog.fromSnapshot(snapshot))
+                .exportProject();
+        expect(project.resourceLibraryCatalog.families.map((f) => f.name),
+            ['Bois', 'Pins']);
+      }
+      expect(await File('${fixture.root.path}/project.json').readAsBytes(),
+          fixture.descriptor);
     });
   }
 

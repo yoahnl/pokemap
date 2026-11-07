@@ -113,7 +113,8 @@ final class CatalogScopedWorkingMutation {
       final generated = PortableCatalogPublication.readSync(built.descriptor,
           readObject: (reference) => built.storage.objects[reference.sha256]!);
       for (final entry in selection.resourceCounts.entries) {
-        final path = CatalogResourcePositions.sections[entry.key]!.split('.');
+        final sectionPath = CatalogResourcePositions.sectionOf(entry.key)!;
+        final path = sectionPath.split('.');
         final field = path.first;
         if (!changedFields.contains(field)) continue;
         final beforeRows = path.length == 1 ? previousJson[field] as List
@@ -121,19 +122,38 @@ final class CatalogScopedWorkingMutation {
         String identity(Map row) => entry.key == CatalogDefinitionKind.resourceLibraryEntry
             ? '${row['resourceKind']}:${row['resourceId']}' : row['id'] as String;
         final beforeById = {for (final row in beforeRows.cast<Map>()) identity(row): row};
-        final afterRows = path.length == 1 ? projectedJson[field] as List
-            : (projectedJson[field] as Map)[path.last] as List;
-        if (!afterRows.cast<Map>().map(identity).toSet().containsAll(beforeById.keys)) {
+        final previousSection = previousJson[field];
+        final projectedSection = path.length > 1 &&
+                projectedJson[field] == null &&
+                previousSection is Map
+            ? {
+                for (final item in previousSection.entries)
+                  item.key: item.value is List ? const [] : item.value
+              }
+            : projectedJson[field];
+        final afterRows = path.length == 1 ? projectedSection as List
+            : (projectedSection as Map)[path.last] as List;
+        final kept = afterRows.cast<Map>().map(identity).toSet();
+        final removed = {
+          for (final id in beforeById.keys)
+            if (!kept.contains(id)) CatalogDefinitionKey(entry.key, id)
+        };
+        if (!selection.resourceRemovals.containsAll(removed) ||
+            removed.length != selection.resourceRemovals
+                .where((key) => key.kind == entry.key).length) {
           throw const FormatException('catalog.resource_creation: existing definitions cannot be removed');
         }
+        removals.addAll(removed);
         if (path.length > 1 && previousJson[field] != null && !_same(
             {...previousJson[field] as Map}..remove(path.last),
-            {...projectedJson[field] as Map}..remove(path.last))) {
+            {...projectedSection as Map}..remove(path.last))) {
           throw const FormatException('catalog.resource_creation: undeclared catalog changes');
         }
         var position = entry.value;
-        final created = generated.units.where((unit) => unit.key.kind == entry.key).toList()
+        final created = generated.units.where((unit) =>
+            unit.key.kind == entry.key && unit.payload['section'] == sectionPath).toList()
           ..sort((a, b) => (a.payload['position'] as int).compareTo(b.payload['position'] as int));
+        final moved = <CatalogDefinitionKey>{};
         for (final unit in created) {
           final previous = beforeById[unit.key.id];
           final original = await catalog.lookup(unit.key);
@@ -142,15 +162,28 @@ final class CatalogScopedWorkingMutation {
             if (original == null || !selection.resourceReplacements.contains(unit.key)) {
               throw const FormatException('catalog.resource_creation: existing definition changed');
             }
+            final target = selection.resourceMoves[unit.key];
+            if (target != null) moved.add(unit.key);
             upserts.add(CatalogDefinitionUnit(key: unit.key,
                 payload: {...original.payload, 'value': _preserveUntouched(
-                    original.payload['value'], previous, unit.payload['value'])},
+                    original.payload['value'], previous, unit.payload['value']),
+                    if (target != null) 'position': target},
                 references: unit.references));
           } else {
             if (original != null) throw const FormatException('catalog.resource_creation: identity already in use');
             upserts.add(CatalogDefinitionUnit(key: unit.key,
                 payload: {...unit.payload, 'position': position++}, references: unit.references));
           }
+        }
+        for (final move in selection.resourceMoves.entries) {
+          if (move.key.kind != entry.key || moved.contains(move.key)) continue;
+          final original = await catalog.lookup(move.key);
+          if (original == null) {
+            throw const FormatException('catalog.resource_creation: moved definition missing');
+          }
+          upserts.add(CatalogDefinitionUnit(key: move.key,
+              payload: {...original.payload, 'position': move.value},
+              references: original.references));
         }
         if (path.length > 1 && oldShell[field] == null) {
           final generatedShell = generated.units.singleWhere((unit) => unit.key == shellKey);
@@ -335,7 +368,8 @@ final class CatalogScopedWorkingMutation {
           payload: {...originalShell.payload, 'value': nextShell},
           references: originalShell.references));
     }
-    if (removals.isNotEmpty) {
+    if (removals.any(
+        (key) => !CatalogSnapshot.unreferencedKinds.contains(key.kind))) {
       CatalogWorkshopSelection.unsupported(publicPlan.request.actionId,
           'a targeted incoming-reference proof for removing catalog storage units');
     }

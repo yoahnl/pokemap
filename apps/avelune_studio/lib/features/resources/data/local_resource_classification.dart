@@ -3,6 +3,8 @@ part of 'local_resource_adapter.dart';
 const _catalogClassificationActions = {
   'resource.classify',
   'resource.classify_batch',
+  'resource.family.create',
+  'resource.family.update',
 };
 
 bool _isCatalogClassification(LocalResourceAdapter adapter, String actionId) =>
@@ -125,6 +127,11 @@ Future<ResourceMutationReceipt?> _applyScopedClassification(
     } on CatalogStorageException catch (failure) {
       if (failure.code == 'catalog.preparation_required') return null;
       rethrow;
+    } on FormatException catch (failure) {
+      if (failure.message.startsWith('catalog.resource_positions.')) {
+        return null;
+      }
+      rethrow;
     }
     try {
       adapter._requireAvailable();
@@ -151,11 +158,24 @@ Future<ResourceMutationReceipt?> _applyScopedClassification(
           (throw const ResourceFailure(
             'Le rangement n’a pas pu être préparé. Rien n’a été écrit.',
           ));
+      final merged = mergeResourceLibraryCatalogs(
+        before.manifest.resourceLibraryCatalog,
+        selected.resourceLibraryCatalog,
+      );
+      final cleared = _clearedClassifications(
+        preparation.actionId,
+        parameters,
+        selected.resourceLibraryCatalog,
+      );
       final manifest = before.manifest.copyWith(
-        resourceLibraryCatalog: mergeResourceLibraryCatalogs(
-          before.manifest.resourceLibraryCatalog,
-          selected.resourceLibraryCatalog,
-        ),
+        resourceLibraryCatalog: cleared.isEmpty
+            ? merged
+            : ResourceLibraryCatalog(
+                families: merged.families,
+                entries: merged.entries.where(
+                  (entry) => !cleared.contains(entry.identity),
+                ),
+              ),
       );
       try {
         await api.applyMutation(
@@ -248,4 +268,27 @@ Future<bool> _reconcileCatalogClassification(
     await adapter.mapAdapter.acceptResourceMutation(adapter.session, receipt);
   });
   return true;
+}
+
+Set<String> _clearedClassifications(
+  String actionId,
+  Map<String, Object?> parameters,
+  ResourceLibraryCatalog selected,
+) {
+  final targets = switch (actionId) {
+    'resource.classify' => [parameters],
+    'resource.classify_batch' => [
+      for (final entry in parameters['entries'] as List) entry as Map,
+    ],
+    _ => const <Map>[],
+  };
+  return {
+    for (final target in targets)
+      if (selected.entryFor(
+            target['resourceKind'] as String,
+            target['resourceId'] as String,
+          ) ==
+          null)
+        '${target['resourceKind']}:${target['resourceId']}',
+  };
 }

@@ -385,6 +385,13 @@ final class CatalogStorageBuilder {
       if (unit.references.any((r) => !units.containsKey(r))) {
         throw const FormatException('catalog.build: missing dependency');
       }
+      if (unit.references.any(
+        (r) => CatalogSnapshot.unreferencedKinds.contains(r.kind),
+      )) {
+        throw const FormatException(
+          'catalog.build: unreferenceable dependency',
+        );
+      }
     }
     final objects = <String, List<int>>{};
     var storedBytes = 0;
@@ -569,6 +576,7 @@ final class CatalogSnapshot {
     this.definitionCount,
     this._index,
   );
+  static const unreferencedKinds = {CatalogDefinitionKind.resourceLibraryEntry};
   static Future<CatalogSnapshot> open({
     required CatalogObjectReference root,
     required CatalogObjectReader readObject,
@@ -870,6 +878,11 @@ final class CatalogSnapshot {
     final dependencies = <CatalogDefinitionKey>{};
     for (final unit in changed.values.whereType<CatalogDefinitionUnit>()) {
       for (final key in unit.references) {
+        if (unreferencedKinds.contains(key.kind)) {
+          throw const FormatException(
+            'catalog.patch: unreferenceable dependency',
+          );
+        }
         if ((changed.containsKey(key) && changed[key] == null) ||
             (!changed.containsKey(key) &&
                 dependencies.add(key) &&
@@ -878,7 +891,10 @@ final class CatalogSnapshot {
         }
       }
     }
-    if (changed.values.any((unit) => unit == null)) {
+    if (changed.entries.any(
+      (entry) =>
+          entry.value == null && !unreferencedKinds.contains(entry.key.kind),
+    )) {
       final entries = await _collect(
         after: null,
         take: limits.maxDefinitions + 1,

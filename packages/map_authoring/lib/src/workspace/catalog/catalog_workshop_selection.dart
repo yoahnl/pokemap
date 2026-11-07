@@ -42,7 +42,8 @@ part 'catalog_dialogue_creation_selection.dart';
 final class CatalogWorkshopSelection {
   CatalogWorkshopSelection._(
       this.reader, this.snapshot, this.writableSections, this.resourceRevisions,
-      {this.metadataDocuments, this.resourceCounts = const {}, this.resourceReplacements = const {}});
+      {this.metadataDocuments, this.resourceCounts = const {}, this.resourceReplacements = const {},
+      this.resourceRemovals = const {}, this.resourceMoves = const {}});
 
   final CatalogProjectReader reader;
   final ProjectSnapshot snapshot;
@@ -51,6 +52,8 @@ final class CatalogWorkshopSelection {
   final CatalogMetadataDocumentSelection? metadataDocuments;
   final Map<CatalogDefinitionKind, int> resourceCounts;
   final Set<CatalogDefinitionKey> resourceReplacements;
+  final Set<CatalogDefinitionKey> resourceRemovals;
+  final Map<CatalogDefinitionKey, int> resourceMoves;
 
   static const _narrativeFields = {
     'maps',
