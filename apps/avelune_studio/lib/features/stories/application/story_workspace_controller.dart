@@ -28,6 +28,7 @@ class StoryWorkspaceController {
   final _history = StoryEditHistory();
   String? activeId;
   String? error;
+  List<String> cycleStoryIds = const [];
   bool busy = false;
   bool _disposed = false;
   MapWorkspaceController get workspace => narrative.workspace;

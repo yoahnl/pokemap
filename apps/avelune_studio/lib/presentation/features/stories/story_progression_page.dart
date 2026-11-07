@@ -104,7 +104,15 @@ class _StoryProgressionPageState extends State<StoryProgressionPage> {
     FocusManager.instance.primaryFocus?.unfocus();
     final id = controller.activeId;
     if (id == null) return;
-    final target = await showStoryCoherence(context, controller.project, id);
+    final target = await showStoryCoherence(
+      context,
+      controller.project,
+      id,
+      onOpenScene: (sceneId) async {
+        final problem = await widget.onOpenScene(sceneId);
+        if (mounted && problem != null) setState(() => _notice = problem);
+      },
+    );
     if (!mounted || controller.activeId != id || target == null) return;
     _select(target);
     _structure(false);
@@ -182,6 +190,24 @@ class _StoryProgressionPageState extends State<StoryProgressionPage> {
               child: StudioNotice(
                 controller.error ?? _notice!,
                 isError: controller.error != null,
+              ),
+            ),
+          if (controller.error != null && controller.cycleStoryIds.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final story in controller.stories)
+                    if (controller.cycleStoryIds.contains(story.id))
+                      StudioButton(
+                        key: ValueKey('story-cycle-${story.id}'),
+                        label: 'Ouvrir ${story.title}',
+                        secondary: true,
+                        onPressed: () => controller.open(story.id),
+                      ),
+                ],
               ),
             ),
           Padding(

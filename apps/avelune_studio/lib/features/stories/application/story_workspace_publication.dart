@@ -12,13 +12,22 @@ extension StoryWorkspacePublication on StoryWorkspaceController {
     };
     final facts = Map.of(narrative.pendingFacts);
     final dependencies = buildNarrativeDependencyIndex(project: snapshot);
+    final cycle = <String>[];
     final ordered = _publicationOrder(
       stories,
       dependencies,
       buildNarrativeDependencyIndex(project: narrative.project),
+      cycle,
     );
+    cycleStoryIds = List.unmodifiable(cycle.toSet());
     if (ordered == null) {
-      error = 'Les histoires à enregistrer forment un cycle de références.';
+      String title(String id) =>
+          stories[id]?.title ??
+          snapshot.storylines.where((s) => s.id == id).firstOrNull?.title ??
+          id;
+      error = cycle.isEmpty
+          ? 'Les histoires à enregistrer forment un cycle de références.'
+          : 'Les histoires à enregistrer forment un cycle de références : ${cycle.map(title).join(' → ')}. Ouvrez l’une d’elles et retirez une de ces références pour enregistrer.';
       changed();
       return false;
     }
@@ -104,12 +113,18 @@ extension StoryWorkspacePublication on StoryWorkspaceController {
     Map<String, StorylineAsset?> stories,
     NarrativeDependencyIndex dependencies,
     NarrativeDependencyIndex storedDependencies,
+    List<String> cycle,
   ) {
     final result = <String>[];
     final visiting = <String>{};
+    final path = <String>[];
     bool visit(String id) {
       if (result.contains(id)) return true;
-      if (!visiting.add(id)) return false;
+      if (!visiting.add(id)) {
+        if (cycle.isEmpty) cycle.addAll([...path.skip(path.indexOf(id)), id]);
+        return false;
+      }
+      path.add(id);
       if (stories[id] == null) {
         final consumers = storedDependencies.usagesFor(
           NarrativeDependencyKey(NarrativeDependencyTargetKind.storyline, id),
@@ -138,6 +153,7 @@ extension StoryWorkspacePublication on StoryWorkspaceController {
         }
       }
       visiting.remove(id);
+      path.removeLast();
       result.add(id);
       return true;
     }

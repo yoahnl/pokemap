@@ -7,8 +7,9 @@ import 'story_view_state.dart';
 Future<StoryGraphSelection?> showStoryCoherence(
   BuildContext context,
   ProjectManifest project,
-  String storyId,
-) {
+  String storyId, {
+  void Function(String sceneId)? onOpenScene,
+}) {
   final projection = buildStorylineProgressionProjection(
     project: project,
     storylineId: storyId,
@@ -16,11 +17,17 @@ Future<StoryGraphSelection?> showStoryCoherence(
   final links = diagnoseStorylineSceneLinks(
     project: project,
   ).diagnostics.where((d) => d.storylineId == storyId);
-  final rows = <(String, String?, String?)>[
+  final scenes = {for (final scene in project.scenes) scene.id: scene};
+  final rows = <(String, String?, String?, SceneAsset?)>[
     for (final diagnostic in projection.diagnostics)
-      (diagnostic.message, diagnostic.nodeId, diagnostic.edgeId),
+      (diagnostic.message, diagnostic.nodeId, diagnostic.edgeId, null),
     for (final diagnostic in links)
-      (diagnostic.message, 'step:${diagnostic.stepId}', null),
+      (
+        diagnostic.message,
+        'step:${diagnostic.stepId}',
+        null,
+        scenes[diagnostic.sceneId],
+      ),
   ];
   return showDialog<StoryGraphSelection>(
     context: context,
@@ -61,6 +68,19 @@ Future<StoryGraphSelection?> showStoryCoherence(
                   );
                 },
               ),
+              if (row.$4 case final scene? when onOpenScene != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: StudioButton(
+                    label: 'Ouvrir la scène ${scene.name}',
+                    icon: Icons.account_tree_outlined,
+                    secondary: true,
+                    onPressed: () {
+                      Navigator.pop(context);
+                      onOpenScene(scene.id);
+                    },
+                  ),
+                ),
               const SizedBox(height: 18),
             ],
           ],
