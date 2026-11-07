@@ -1479,6 +1479,8 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 
 **Stockage et coût :** .pokemap/export-profile-v1.json et contexte explicitement requis par le contrat existant. La garantie actuelle n’est pas une atomicité multi-fichiers ; ne pas la surannoncer.
 
+**Coût mesuré (agent Parité, 7 novembre 2026) :** `GamePackageExportProfileStore` ne lit plus que les métadonnées `maps` et `newGame` du catalogue de travail et calcule le contexte une seule fois par lecture ou par enregistrement (contrôle frais juste avant le renommage, conservé ; la base hors verrou n’est recalculée que sans révisions attendues). Test de comptage : `packages/map_authoring/test/domains/distribution/export_profile_context_cost_test.dart`. Banc AOT sans interface sur une copie HGSS : lecture 1,6 à 2,8 s → 81 à 100 ms, enregistrement 4,8 à 6,5 s → 78 à 103 ms. **PARTIAL** : la mesure native du Studio (enregistrer Général, ouvrir l’export) reste à faire, la session macOS était verrouillée.
+
 **Sortie du lot :** L’identité se règle une fois ; export et jeux protégés gardent leurs identifiants et leurs métadonnées.
 
 **Références visuelles :** [036-reglages-general](2026-11-06-refonte-studio/captures/036-reglages-general.jpg), [038-reglages-general-brouillon](2026-11-06-refonte-studio/captures/038-reglages-general-brouillon.jpg), [050-resume-export](2026-11-06-refonte-studio/captures/050-resume-export.jpg), [095-identite-technique](2026-11-06-refonte-studio/captures/095-identite-technique.jpg).

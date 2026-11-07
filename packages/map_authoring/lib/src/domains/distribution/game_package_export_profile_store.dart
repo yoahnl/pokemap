@@ -56,12 +56,15 @@ final class GamePackageExportProfileStore {
     String? expectedProfileRevision,
     String? expectedContextRevision,
   }) async {
-    final baseline = await validate(profile);
-    final profileRevision = expectedProfileRevision ?? baseline.profileRevision;
-    final contextRevision = expectedContextRevision ?? baseline.contextRevision;
+    final baseline =
+        expectedProfileRevision == null || expectedContextRevision == null
+            ? await validate(profile)
+            : null;
+    final profileRevision =
+        expectedProfileRevision ?? baseline!.profileRevision;
+    final contextRevision =
+        expectedContextRevision ?? baseline!.contextRevision;
     return _withWriteLock(() async {
-      final current = await validate(profile);
-      _requireRevisions(current, profileRevision, contextRevision);
       await _checkSidecar();
       await profileFile.parent.create();
       final temporaryDirectory =
@@ -163,6 +166,7 @@ final class GamePackageExportProfileStore {
     final catalog = await CatalogProjectReader.open(
       store: await CatalogStorageStore.open(projectRoot: projectRoot.path),
       descriptor: descriptor,
+      metadataFields: const {'maps', 'newGame'},
     );
     final manifest = catalog == null
         ? ProjectManifest.fromJson(descriptor)
