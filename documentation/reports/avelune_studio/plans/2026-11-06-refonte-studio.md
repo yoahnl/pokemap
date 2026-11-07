@@ -551,13 +551,13 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 
 **Étapes d’implémentation :**
 
-- [ ] 1. Établir la table native geste→outil→mode de terrain→ressource attendue→inspecteur→annulation ; conserver les enums et contrats existants.
-- [ ] 2. Organiser les entrées en Construire, Peupler, Règles et Ambiance ; garder Sélection et Déplacer accessibles.
-- [ ] 3. Résoudre Sol, Chemin et Eau avec les presets/patterns/capacités natives ; ne pas ajouter path/water dans SpatialTerrainMode par simple copie du prototype.
-- [ ] 4. Faire de l’intention un état de présentation unique ; dériver le panneau et la palette de cet état.
-- [ ] 5. Changer de geste invalide une ressource ou un brouillon de placement incompatible ; Échap quitte le geste sans effacer une édition déjà validée.
-- [ ] 6. Donner une place découvrable aux intentions Personnage, Départ, Interaction et Passages, aujourd’hui cachées dans le menu « … » qui répète aussi la barre ; une commande présente à plusieurs endroits garde le même nom, le même résultat et le même état (audit M02).
-- [ ] 7. Une consigne ne renvoie jamais vers un panneau absent : ouvrir le panneau attendu ou expliquer sur place pourquoi il manque et comment continuer. Reproduire d’abord dans un Studio normal, l’audit l’ayant observé dans un build de capture (audit M04).
+- [x] 1. Établir la table native geste→outil→mode de terrain→ressource attendue→inspecteur→annulation ; conserver les enums et contrats existants.
+- [x] 2. Organiser les entrées en Construire, Peupler, Règles et Ambiance ; garder Sélection et Déplacer accessibles.
+- [x] 3. Résoudre Sol, Chemin et Eau avec les presets/patterns/capacités natives ; ne pas ajouter path/water dans SpatialTerrainMode par simple copie du prototype.
+- [x] 4. Faire de l’intention un état de présentation unique ; dériver le panneau et la palette de cet état.
+- [x] 5. Changer de geste invalide une ressource ou un brouillon de placement incompatible ; Échap quitte le geste sans effacer une édition déjà validée.
+- [x] 6. Donner une place découvrable aux intentions Personnage, Départ, Interaction et Passages, aujourd’hui cachées dans le menu « … » qui répète aussi la barre ; une commande présente à plusieurs endroits garde le même nom, le même résultat et le même état (audit M02).
+- [x] 7. Une consigne ne renvoie jamais vers un panneau absent : ouvrir le panneau attendu ou expliquer sur place pourquoi il manque et comment continuer. Reproduire d’abord dans un Studio normal, l’audit l’ayant observé dans un build de capture (audit M04).
 
 **Tests comportementaux obligatoires :**
 
