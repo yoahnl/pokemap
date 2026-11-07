@@ -718,7 +718,9 @@ final class CatalogAuthoringSession {
           message: 'Mutation planning requires an idempotency key.');
     }
     final current = (await CatalogProjectReader.open(
-        store: reader.store, descriptor: reader.descriptor))!;
+        store: reader.store,
+        descriptor: reader.descriptor,
+        metadataFields: catalogMapValidationMetadataFields))!;
     final edit =
         await CatalogTargetedMapEdit.prepare(reader: current, request: request);
     final editing = await _editing();
@@ -736,7 +738,9 @@ final class CatalogAuthoringSession {
                 message: 'The map changed before publication.');
           }
           final current = (await CatalogProjectReader.open(
-              store: reader.store, descriptor: reader.descriptor))!;
+              store: reader.store,
+              descriptor: reader.descriptor,
+              metadataFields: const {}))!;
           if (current.revision != edit.selection.catalogRevision) {
             throw AuthoringPlanException(
                 code: 'plan.stale',
@@ -1032,23 +1036,8 @@ final class CatalogAuthoringSession {
         .map((entry) => entry.resource.id)
         .toSet();
     if (maps.length == 1) {
-      return (await CatalogTargetedMapSelection.read(
-              reader: await current.withMetadataFields({
-                'maps',
-                'groups',
-                'settings',
-                'newGame',
-                'scenes',
-                'eventRegistry',
-                'cinematics',
-                'trainers',
-                'scenarios',
-                'pokemon',
-                'dialogues',
-                'encounterTables',
-                'scripts',
-                'regionalMap',
-              }), mapId: maps.single))
+      return (await CatalogTargetedMapSelection.readRevision(
+              reader: current, mapId: maps.single))
           .snapshotRevision;
     }
     return current.revision;

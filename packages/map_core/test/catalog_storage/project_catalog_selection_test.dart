@@ -631,4 +631,35 @@ void main() {
       );
     },
   );
+
+  test('a map keeps its catalogue dependencies when only placement, camera or presence time changes', () {
+    MapEntity npc({String? characterId, String? dialogueId, MapEntityNpcVisibilityRule? rule, String? trainerId}) => MapEntity(
+      id: 'guide', kind: MapEntityKind.npc, pos: const GridPos(x: 1, y: 1),
+      npc: MapEntityNpcData(characterId: characterId, trainerId: trainerId, visibilityRule: rule,
+        dialogue: dialogueId == null ? null : DialogueRef(dialogueId: dialogueId)));
+    final base = MapData(id: 'room', name: 'Room', size: const GridSize(width: 4, height: 4),
+      entities: [npc(characterId: 'guide')],
+      spatialScene: MapSpatialScene(width: 4, depth: 4, instances: [SpatialModelInstance(id: 'oak-1',
+        modelId: 'oak', position: Model3dVector3(x: 1.5, y: 0, z: 1.5))]));
+    final scene = base.spatialScene!;
+    expect(ProjectCatalogSelection.sameMapDependencies(base, base.copyWith(spatialScene: scene.copyWith(
+      instances: [scene.instances.single.copyWith(position: Model3dVector3(x: 2.5, y: 0, z: 1.5))]))), isTrue);
+    expect(ProjectCatalogSelection.sameMapDependencies(base, base.copyWith(spatialScene: scene.copyWith(
+      camera: scene.camera.copyWith(distance: scene.camera.distance + 3)))), isTrue);
+    expect(ProjectCatalogSelection.sameMapDependencies(base, base.copyWith(entities: [npc(characterId: 'guide',
+      rule: MapEntityNpcVisibilityRule(mode: MapEntityNpcVisibilityMode.visibleWhen,
+        predicate: MapEntityRuntimePredicate(kind: MapEntityRuntimePredicateKind.storyFlagSet, refId: 'met')))])), isTrue);
+    for (final changed in [
+      base.copyWith(spatialScene: scene.copyWith(instances: [SpatialModelInstance(id: 'oak-1', modelId: 'pine',
+        position: scene.instances.single.position)])),
+      base.copyWith(entities: [npc(characterId: 'rival')]),
+      base.copyWith(entities: [npc(characterId: 'guide', dialogueId: 'hello')]),
+      base.copyWith(entities: [npc(characterId: 'guide', trainerId: 'falkner')]),
+      base.copyWith(entities: [npc(characterId: 'guide').copyWith(kind: MapEntityKind.custom)]),
+      base.copyWith(placedElements: const [MapPlacedElement(id: 'sign', elementId: 'sign', layerId: 'decor', pos: GridPos(x: 0, y: 0))]),
+      base.copyWith(id: 'other'),
+    ]) {
+      expect(ProjectCatalogSelection.sameMapDependencies(base, changed), isFalse, reason: '$changed');
+    }
+  });
 }

@@ -10,6 +10,13 @@ final class ProjectCatalogSelection {
 
   final PortableProjectCatalog catalog;
 
+  static bool sameMapDependencies(MapData before, MapData after) {
+    if (before.id != after.id) return false;
+    final previous = _mapDependencySignature(before);
+    final next = _mapDependencySignature(after);
+    return previous.length == next.length && previous.containsAll(next);
+  }
+
   Future<ProjectManifest> forMap(
     MapData map, {
     Iterable<CatalogDefinitionKey> additionalRoots = const [],
@@ -286,6 +293,52 @@ final class ProjectCatalogSelection {
     }
     return catalog.projectWithDefinitions(selected.values);
   }
+}
+
+const _mapDependencyFields = {
+  'tilesetId',
+  'presetId',
+  'materialPalette',
+  'patternId',
+  'blueprintId',
+  'visualSnapshotId',
+  'elementId',
+  'visualElementId',
+  'variantElementIds',
+  'trainerId',
+  'characterId',
+  'spriteId',
+  'sceneId',
+  'modelId',
+  'atlasId',
+  'dialogueId',
+  'preBattleDialogueId',
+  'victoryDialogueId',
+  'defeatDialogueId',
+  'factId',
+  'encounterTableId',
+};
+
+Set<String> _mapDependencySignature(MapData map) {
+  final signature = <String>{
+    for (final entity in map.entities) 'entity:${entity.id}:${entity.kind.name}',
+  };
+  void visit(Object? value, String field) {
+    if (value is String) {
+      if (_mapDependencyFields.contains(field)) signature.add('$field:$value');
+    } else if (value is List) {
+      for (final item in value) {
+        visit(item, field);
+      }
+    } else if (value is Map) {
+      for (final entry in value.entries) {
+        visit(entry.value, '${entry.key}');
+      }
+    }
+  }
+
+  visit(jsonDecode(jsonEncode(map.toJson())), '');
+  return signature;
 }
 
 Set<String> _mapSceneIds(MapData map, ProjectManifest metadata) {

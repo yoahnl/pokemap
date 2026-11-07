@@ -1283,13 +1283,17 @@ class MapWorkspaceController {
     document.saving = true;
     document.error = null;
     final snapshot = document.current;
+    final before = document.base.map;
     notify();
     try {
       final revision = await port.saveMap(session, document.base, snapshot);
       if (_disposed) return false;
       document.acceptSave(snapshot, revision);
       final source = port;
-      if (!hasCompleteProject && source is MapWorkspaceScopedPort) {
+      if (!hasCompleteProject &&
+          source is MapWorkspaceScopedPort &&
+          (!_selections.containsKey(document.base.mapId) ||
+              !ProjectCatalogSelection.sameMapDependencies(before, snapshot))) {
         final entry = project!.maps.singleWhere(
           (entry) => entry.id == document.base.mapId,
         );

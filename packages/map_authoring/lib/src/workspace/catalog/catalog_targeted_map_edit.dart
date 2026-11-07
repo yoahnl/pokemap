@@ -17,6 +17,18 @@ import '../../transactions/plan_store.dart';
 import 'catalog_project_reader.dart';
 import 'catalog_metadata_documents.dart';
 
+const catalogMapValidationMetadataFields = <String>{
+  'groups',
+  'settings',
+  'newGame',
+  'scenes',
+  'eventRegistry',
+  'cinematics',
+  'trainers',
+  'scenarios',
+  'pokemon',
+};
+
 final class CatalogTargetedMapSelection {
   const CatalogTargetedMapSelection._({
     required this.map,
@@ -33,11 +45,8 @@ final class CatalogTargetedMapSelection {
   final String mapRevision;
   final List<int> mapBytes;
   final String storageKey;
-  String get snapshotRevision => computeAuthoringJsonFingerprint({
-        'catalogRevision': catalogRevision,
-        'mapId': map.id,
-        'mapRevision': mapRevision,
-      }, logicalName: 'catalog-map-selection.json');
+  String get snapshotRevision =>
+      _mapSelectionRevision(catalogRevision, map.id, mapRevision);
 
   static Future<List<ProjectMapEntry>> readMapEntries({
     required PortableProjectCatalog catalog,
@@ -72,6 +81,35 @@ final class CatalogTargetedMapSelection {
         entry.key: entry.value.payload['position'] as int,
     });
   }
+
+  static Future<CatalogTargetedMapRevision> readRevision({
+    required CatalogProjectReader reader,
+    required String mapId,
+  }) =>
+      reader.read((catalog) async {
+        final entry =
+            (await readMapEntries(catalog: catalog, mapIds: {mapId})).single;
+        final payload = await reader.store.gateway
+            .captureResourcePayload(entry.relativePath);
+        if (payload == null) {
+          throw const FormatException('catalog.map: missing map');
+        }
+        try {
+          final bytes = await payload.readBytes();
+          if (await reader.store.gateway
+                  .readResourceRevision(entry.relativePath) !=
+              payload.resourceRevision) {
+            throw const FormatException('catalog.map: map changed during read');
+          }
+          return CatalogTargetedMapRevision._(
+              catalogRevision: 'sha256:${catalog.snapshot.root.sha256}',
+              mapId: mapId,
+              mapRevision: payload.resourceRevision,
+              mapBytes: bytes);
+        } finally {
+          await payload.release();
+        }
+      });
 
   static Future<CatalogTargetedMapSelection> read({
     required CatalogProjectReader reader,
@@ -138,6 +176,7 @@ final class CatalogTargetedMapSelection {
           final dependencyIds = <String, Set<String>>{
             'dialogues': {},
             'facts': {},
+            'encounterTables': {},
           };
           void collectReferences(Object? value) {
             if (value is Map) {
@@ -149,6 +188,7 @@ final class CatalogTargetedMapSelection {
                   'defeatDialogueId' =>
                     'dialogues',
                   'factId' => 'facts',
+                  'encounterTableId' => 'encounterTables',
                   _ => null,
                 };
                 final id = entry.value;
@@ -165,6 +205,8 @@ final class CatalogTargetedMapSelection {
           }
 
           collectReferences((projectedMap ?? map).toJson());
+          final referencedEncounterTableIds =
+              dependencyIds.remove('encounterTables')!;
           dependencyIds['dialogues']!
               .removeAll(definitions.dialogues.map((dialogue) => dialogue.id));
           dependencyIds['facts']!
@@ -203,6 +245,7 @@ final class CatalogTargetedMapSelection {
             );
           }
           final encounterTableIds = {
+            ...referencedEncounterTableIds,
             for (final layer
                 in (projectedMap ?? map).layers.whereType<SmartTileLayer>())
               if (layer.encounterBehavior?.encounter.encounterTableId
@@ -249,6 +292,30 @@ final class CatalogTargetedMapSelection {
         }
       });
 }
+
+final class CatalogTargetedMapRevision {
+  const CatalogTargetedMapRevision._({
+    required this.catalogRevision,
+    required this.mapId,
+    required this.mapRevision,
+    required this.mapBytes,
+  });
+
+  final String catalogRevision;
+  final String mapId;
+  final String mapRevision;
+  final List<int> mapBytes;
+  String get snapshotRevision =>
+      _mapSelectionRevision(catalogRevision, mapId, mapRevision);
+}
+
+String _mapSelectionRevision(
+        String catalogRevision, String mapId, String mapRevision) =>
+    computeAuthoringJsonFingerprint({
+      'catalogRevision': catalogRevision,
+      'mapId': mapId,
+      'mapRevision': mapRevision,
+    }, logicalName: 'catalog-map-selection.json');
 
 final class CatalogTargetedMapEdit {
   const CatalogTargetedMapEdit._({
