@@ -1623,11 +1623,11 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 
 **Étapes d’implémentation :**
 
-- [ ] 1. Séparer source de l’heure, valeur de départ ou heure imposée, météo et repli ; ne montrer que les champs applicables.
-- [ ] 2. Conserver tous les modes natifs et leurs paramètres, y compris ceux qui ne figurent pas dans la maquette.
-- [ ] 3. Pour météo réelle, décrire la dépendance Player, le refus de localisation et le repli ; ne pas déclencher une permission depuis un simple choix d’aperçu Studio.
-- [ ] 4. Valider durées et intervalles, minimum≤maximum et valeurs finies avec les règles canoniques.
-- [ ] 5. Appliquer les dérogations de carte avec UX-17 ; informer lorsque le contexte intérieur ou un scénario peut modifier le résultat.
+- [x] 1. Séparer source de l’heure, valeur de départ ou heure imposée, météo et repli ; ne montrer que les champs applicables.
+- [x] 2. Conserver tous les modes natifs et leurs paramètres, y compris ceux qui ne figurent pas dans la maquette.
+- [x] 3. Pour météo réelle, décrire la dépendance Player, le refus de localisation et le repli ; ne pas déclencher une permission depuis un simple choix d’aperçu Studio.
+- [x] 4. Valider durées et intervalles, minimum≤maximum et valeurs finies avec les règles canoniques.
+- [x] 5. Appliquer les dérogations de carte avec UX-17 ; informer lorsque le contexte intérieur ou un scénario peut modifier le résultat.
 
 **Tests comportementaux obligatoires :**
 

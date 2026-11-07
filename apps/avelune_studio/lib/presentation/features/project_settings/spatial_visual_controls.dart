@@ -5,6 +5,7 @@ import 'package:map_core/map_core_domain.dart';
 
 import '../../theme/studio_tokens.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
+import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_draft_field.dart';
 import '../../shared/widgets/inputs/studio_slider.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
@@ -411,7 +412,21 @@ class SpatialVisualControls extends StatelessWidget {
             onChanged: onChanged == null ? null : (value) => change(SpatialVisualParameter.weatherMode, value),
           ),
           inherit(SpatialVisualParameter.weatherMode),
-          if (effective.requiresRealWeather) const Text('Le joueur peut activer la localisation approximative par IP ou choisir une ville dans les options du Player. Sans réseau ou sans activation, le jeu utilise la météo de repli. Sources : Open-Meteo et GeoJS.'),
+          if (effective.requiresRealWeather)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: StudioNotice(
+                'Météo réelle : elle dépend du Player. Le joueur active la '
+                'localisation approximative par IP ou choisit une ville dans '
+                'les options du Player. Studio n’active aucune localisation '
+                'pour cet aperçu.\n'
+                'Si le joueur refuse la localisation, ou si le réseau ou le '
+                'service (Open-Meteo, GeoJS) est indisponible, le jeu alterne '
+                'sans erreur les météos de repli choisies ci-dessous, une toutes '
+                'les ${(number(SpatialVisualParameter.weatherIntervalSeconds) / 60).toStringAsFixed(1)} min.',
+                key: const ValueKey('weather-real-fallback'),
+              ),
+            ),
           if (automaticWeather) ...[
             slider(SpatialVisualParameter.weatherIntervalSeconds, 'Durée de chaque météo', 10, math.max(7200, number(SpatialVisualParameter.weatherIntervalSeconds)), format: (value) => '${(value / 60).toStringAsFixed(1)} min'),
             Text(effective.requiresRealWeather ? 'Choisissez les météos de repli utilisées si le joueur désactive le service ou si les données sont indisponibles.' : 'Choisissez les temps autorisés. Le jeu les alterne dans la liste enregistrée et conserve sa progression entre les cartes.'),
@@ -543,8 +558,14 @@ class SpatialVisualControls extends StatelessWidget {
             Icons.home_outlined,
             StudioAccent.fog,
           ),
-          const Text(
-            'La météo reste locale à la scène et suit le joueur. Les intérieurs sont protégés par défaut. Les éclairs sont désactivés par défaut.',
+          const StudioNotice(
+            'La météo reste locale à la scène et suit le joueur. Dans les '
+            'intérieurs, elle reste masquée sauf si « Autoriser dans les '
+            'intérieurs » est activé. Une carte peut garder sa propre météo, et '
+            'les scènes ou les faits du monde peuvent imposer temporairement '
+            'une autre heure ou une autre météo. Les éclairs sont désactivés '
+            'par défaut.',
+            key: ValueKey('weather-context-notice'),
           ),
         ]),
         if (effects) ...[
