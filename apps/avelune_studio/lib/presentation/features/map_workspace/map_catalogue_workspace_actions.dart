@@ -201,15 +201,27 @@ Future<void> _renameWorkspaceMap(
     submitLabel: 'Enregistrer',
     currentSubmitLabel: () => published ? 'Relire le catalogue' : 'Enregistrer',
     valid: () => name.trim().isNotEmpty,
-    fields: (refresh, busy) => StudioDraftField(
-      key: const ValueKey('rename-map-name'),
-      value: name,
-      label: 'Nom de la carte',
-      enabled: !busy,
-      onChanged: (value) {
-        name = value;
-        refresh();
-      },
+    fields: (refresh, busy) => Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        StudioDraftField(
+          key: const ValueKey('rename-map-name'),
+          value: name,
+          label: 'Nom de la carte',
+          enabled: !busy,
+          onChanged: (value) {
+            name = value;
+            refresh();
+          },
+        ),
+        const SizedBox(height: 8),
+        Text(
+          mapRenameIdentityNote(entry),
+          key: const ValueKey('rename-map-identity'),
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+      ],
     ),
     submit: () async {
       final result = published
@@ -227,3 +239,6 @@ Future<void> _renameWorkspaceMap(
     },
   );
 }
+
+String mapRenameIdentityNote(ProjectMapEntry entry) =>
+    'Seul le nom affiché change. L’identité de la carte, « ${entry.id} », reste la même : ses passages, connexions et sauvegardes restent valables.';

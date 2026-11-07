@@ -1,6 +1,9 @@
 import 'package:avelune_studio/features/project_creation/application/project_creation_controller.dart';
 import 'package:avelune_studio/features/project_creation/application/project_template_contents.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_catalogue_creation_dialog.dart';
+import 'package:avelune_studio/presentation/features/map_workspace/map_catalogue_workspace_actions.dart';
+import 'package:avelune_studio/presentation/features/project_creation/project_creation_dialog.dart';
+import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_library_navigator.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_library_tree.dart';
 import 'package:avelune_studio/presentation/features/project_creation/project_creation_steps.dart';
@@ -406,5 +409,114 @@ void main() {
     expect(identical(controller.documents['jardin'], previous), isTrue);
     expect(controller.documents['jardin']!.canUndo, isTrue);
     expect(controller.documents['jardin']!.current.name, 'Jardin modifié');
+  });
+
+  test('renaming names the stable identity that passages keep using', () {
+    final note = mapRenameIdentityNote(
+      const ProjectMapEntry(
+        id: 'bourg-geon',
+        name: 'Bourg Geon',
+        relativePath: 'maps/bourg-geon.json',
+      ),
+    );
+    expect(note, contains('« bourg-geon »'));
+    expect(note, contains('passages'));
+  });
+
+  testWidgets('a refused new map keeps the form open and creates nothing', (
+    tester,
+  ) async {
+    final calls = <String>[];
+    await tester.pumpWidget(
+      _host(
+        Builder(
+          builder: (context) => TextButton(
+            onPressed: () => showNewMapDialog(
+              context,
+              project: const ProjectManifest(
+                name: '2D',
+                maps: [],
+                tilesets: [],
+              ),
+              onCreate:
+                  ({
+                    required name,
+                    required width,
+                    required height,
+                    required role,
+                    groupId,
+                    tilesetId,
+                  }) async {
+                    calls.add(name);
+                    return 'Une carte porte déjà cet identifiant.';
+                  },
+            ),
+            child: const Text('ouvrir'),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('ouvrir'));
+    await tester.pumpAndSettle();
+    StudioButton create() => tester.widget<StudioButton>(
+      find.widgetWithText(StudioButton, 'Créer la carte'),
+    );
+    expect(create().onPressed, isNull);
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const ValueKey('new-map-name')),
+        matching: find.byType(TextField),
+      ),
+      'Route 29',
+    );
+    await tester.pump();
+    expect(create().onPressed, isNotNull);
+    await tester.tap(find.widgetWithText(StudioButton, 'Créer la carte'));
+    await tester.pumpAndSettle();
+    expect(calls, ['Route 29']);
+    expect(find.text('Une carte porte déjà cet identifiant.'), findsOneWidget);
+    expect(find.text('Nouvelle carte'), findsOneWidget);
+  });
+
+  testWidgets('a cancelled folder picker leaves no destination to create', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    var picks = 0;
+    await tester.pumpWidget(
+      _host(
+        ProjectCreationDialog(
+          port: offlineProjectCreation,
+          chooseParent: () async {
+            picks++;
+            return null;
+          },
+          openCreated: (_) async => false,
+        ),
+      ),
+    );
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Nom du projet'),
+      'Mon aventure',
+    );
+    for (var step = 0; step < 3; step++) {
+      await tester.tap(find.text('Suivant'));
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+    await tester.tap(find.byKey(const ValueKey('creation-choose-parent')));
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.pump(const Duration(milliseconds: 50));
+    expect(picks, 1);
+    expect(find.text('Aucun dossier choisi'), findsOneWidget);
+    expect(
+      tester
+          .widget<StudioButton>(
+            find.byKey(const ValueKey('create-project-confirm')),
+          )
+          .onPressed,
+      isNull,
+    );
   });
 }
