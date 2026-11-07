@@ -97,6 +97,12 @@ extension CinematicInspectorCamera on CinematicInspector {
         ),
       ],
       const Text(
+        'Portée : cette action caméra ne vaut que pendant cette cinématique. '
+        'Elle ne modifie ni la caméra enregistrée de la carte ni les réglages '
+        'Image et caméra du projet.',
+        key: ValueKey('cinematic-camera-scope'),
+      ),
+      const Text(
         'Le pan et le zoom de travail ne changent pas cette action caméra.',
       ),
     ];

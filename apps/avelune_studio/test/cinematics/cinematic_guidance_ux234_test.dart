@@ -151,4 +151,76 @@ void main() {
       'Lecture possible mais incomplète : 1 problème à corriger, 1 avertissement.',
     );
   });
+
+  testWidgets('a camera action states its scope apart from the game camera', (
+    tester,
+  ) async {
+    final seeded = addCinematicTimelineBasicBlockStep(
+      ProjectManifest(
+        name: 'P',
+        maps: const [],
+        tilesets: const [],
+        cinematics: [CinematicAdapterFixture.asset('cam')],
+      ),
+      cinematicId: 'cam',
+      blockKind: CinematicTimelineBasicBlockKind.camera,
+    );
+    final camera = await tester.runAsync(
+      () => CinematicAdapterFixture.create(cinematics: [seeded.cinematic]),
+    );
+    final mapsCam = MapWorkspaceController(camera!.session, camera.maps);
+    final narrativeCam = NarrativeWorkspaceController(
+      mapsCam,
+      LocalNarrativeAdapter(session: camera.session, mapAdapter: camera.maps),
+      () {},
+      (_, _) async {},
+    );
+    final controllerCam = CinematicWorkspaceController(
+      narrativeCam,
+      camera.adapter(),
+      changed: notifier.notifyListeners,
+    );
+    final viewCam = CinematicViewState();
+    addTearDown(() async {
+      controllerCam.dispose();
+      narrativeCam.dispose();
+      mapsCam.dispose();
+      viewCam.dispose();
+      await tester.runAsync(camera.dispose);
+    });
+    await tester.runAsync(() async {
+      await mapsCam.initialize();
+      await controllerCam.open('cam');
+    });
+    viewCam.selection.add(seeded.step.id);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: studioTheme(),
+        home: Scaffold(
+          body: SizedBox(
+            width: 380,
+            height: 1200,
+            child: CinematicInspector(
+              controller: controllerCam,
+              view: viewCam,
+              changed: () {},
+              model: null,
+              onDialogue: (_) {},
+              onLocate: (_) async => null,
+              onAdd: (_) {},
+              previewContent: const SizedBox.shrink(),
+            ),
+          ),
+        ),
+      ),
+    );
+    final scope = find.byKey(const ValueKey('cinematic-camera-scope'));
+    await tester.ensureVisible(scope);
+    expect(scope, findsOneWidget);
+    expect(
+      tester.widget<Text>(scope).data,
+      contains('ni la caméra enregistrée de la carte'),
+    );
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
 }
