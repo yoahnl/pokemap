@@ -1939,11 +1939,11 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 
 **Étapes d’implémentation :**
 
-- [ ] 1. Décrire explicitement la présence sur la carte, sa ressource et ses variantes existantes.
-- [ ] 2. Composer les conditions avec les sélecteurs natifs, sans ID obligatoire et sans écraser une référence inconnue.
-- [ ] 3. Séparer apparence de la présence, condition de visibilité et interaction ; montrer la règle effective et son origine.
+- [x] 1. Décrire explicitement la présence sur la carte, sa ressource et ses variantes existantes. — **livré** par 9b2b9e85b (règle de présence en clair, variantes de dialogue décrites, marque dans le contenu de carte).
+- [x] 2. Composer les conditions avec les sélecteurs natifs, sans ID obligatoire et sans écraser une référence inconnue. — **livré** par 9b2b9e85b (étape, état, badge ; chapitres et cinématiques décrits et conservés).
+- [x] 3. Séparer apparence de la présence, condition de visibilité et interaction ; montrer la règle effective et son origine. — **en partie** par 9b2b9e85b : règle effective et origine affichées ; « Apparence selon les conditions » reste un panneau séparé, sans synthèse commune (attend UX-22, D-02).
 - [ ] 4. Relier une interaction à une scène depuis la sélection et permettre le retour au même élément.
-- [ ] 5. Tester chaque branche d’un petit exemple avec un état du monde contrôlé, sans ajouter de nouvelle mécanique.
+- [x] 5. Tester chaque branche d’un petit exemple avec un état du monde contrôlé, sans ajouter de nouvelle mécanique. — **livré** par 9b2b9e85b (test des deux branches dans l’inspecteur).
 
 **Tests comportementaux obligatoires :**
 
@@ -1997,11 +1997,11 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 - [ ] 1. Conserver bibliothèque, graphe de dialogue, choix, résultats, portraits, variantes et sources externes prises en charge.
 - [ ] 2. Relier Quand/Si/Alors à l’événement réel et permettre d’ouvrir sa scène ou son dialogue sans dupliquer le document.
 - [ ] 3. Présenter ordre d’exécution, condition, répétition et politique de fin existants.
-- [ ] 4. Pour une zone d’histoire, montrer sa forme, son profil admissible et l’événement déclenché.
+- [x] 4. Pour une zone d’histoire, montrer sa forme, son profil admissible et l’événement déclenché. — **en partie** par 096c10f97 : forme et événements déclenchés ; profil admissible non affiché.
 - [ ] 5. Vérifier une branche de choix avec résultat, puis le retour à l’événement et à la carte d’origine.
-- [ ] 6. Rendre la scène d’un événement recherchable par nom et par contexte disponible, la scène déjà liée en tête et l’identifiant en détail (audit N02, P1 ; event_scene_panel.dart). HGSS compte 426 scènes.
-- [ ] 7. Montrer d’abord l’effet en jeu des options d’événement (une fois, à chaque visite, après une condition, quand ces règles existent) ; placer ordre, priorité et registre dans des options avancées, sans migration implicite (audit N05, P1 ; event_options_panel.dart).
-- [ ] 8. Présenter « toutes les conditions » ou « au moins une condition » avec une phrase de résultat lisible, surtout avant une inversion ou un regroupement (audit N07 ; event_conditions.dart).
+- [x] 6. Rendre la scène d’un événement recherchable par nom et par contexte disponible, la scène déjà liée en tête et l’identifiant en détail (audit N02, P1 ; event_scene_panel.dart). HGSS compte 426 scènes. — **livré** par 3ea3a966b.
+- [x] 7. Montrer d’abord l’effet en jeu des options d’événement (une fois, à chaque visite, après une condition, quand ces règles existent) ; placer ordre, priorité et registre dans des options avancées, sans migration implicite (audit N05, P1 ; event_options_panel.dart). — **livré** par 3ea3a966b.
+- [x] 8. Présenter « toutes les conditions » ou « au moins une condition » avec une phrase de résultat lisible, surtout avant une inversion ou un regroupement (audit N07 ; event_conditions.dart). — **livré** par 096c10f97.
 
 Les étapes 6 et 7 portent des constats P1 sur les écrans actuels : elles peuvent être livrées avant le reste du lot, dès que UX-22 est engagé.
 
@@ -2054,8 +2054,8 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 
 **Étapes d’implémentation :**
 
-- [ ] 1. Organiser les histoires, chapitres et étapes déjà supportés avec recherche et relation aux scènes.
-- [ ] 2. Montrer préconditions, transitions et résultats de progression sans confondre configuration et progression d’une sauvegarde.
+- [x] 1. Organiser les histoires, chapitres et étapes déjà supportés avec recherche et relation aux scènes. — **en partie** par 9cfe1aa5f : recherche dans chapitres et étapes ; relation aux scènes inchangée.
+- [x] 2. Montrer préconditions, transitions et résultats de progression sans confondre configuration et progression d’une sauvegarde. — **en partie** par 9cfe1aa5f : configuration distinguée des sauvegardes, états nommés ; résultats attendus encore en identifiants.
 - [ ] 3. Conserver les graphes et les documents spécialisés ; un tableau synthétique reste un accès rapide.
 - [ ] 4. Localiser les cycles ou références invalides avec l’action d’ouverture du bon document.
 - [ ] 5. Exécuter un petit parcours de progression avec état initial contrôlé et vérifier ses effets existants.
@@ -2114,8 +2114,8 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 - [ ] 3. Conserver le montage visuel et les propriétés avancées à la demande ; ne pas fusionner une présentation et une cinématique en un format nouveau.
 - [ ] 4. Relier le document à la scène déclenchante et revenir au bon nœud.
 - [ ] 5. Prévisualiser, arrêter puis rouvrir en vérifiant positions, médias et durée ; les ressources requises doivent rester exportées hors ligne.
-- [ ] 6. Dans Séquence, sans étape sélectionnée, expliquer comment sélectionner ou ajouter une action plutôt que répéter les propriétés générales, qui restent accessibles (audit N08 ; cinematic_inspector.dart).
-- [ ] 7. Grouper les diagnostics identiques de l’aperçu, dire si la lecture est bloquée et permettre d’aller à l’acteur ou au bloc concerné (audit N09 ; cinematic_preview_status.dart). Le libellé `null · <id>` est corrigé tôt par UX-03.1.
+- [x] 6. Dans Séquence, sans étape sélectionnée, expliquer comment sélectionner ou ajouter une action plutôt que répéter les propriétés générales, qui restent accessibles (audit N08 ; cinematic_inspector.dart). — **livré** par 979120f23, avec écart : le guidage est dans Propriétés (l’onglet qui répétait les réglages), Séquence liste désormais les actions.
+- [x] 7. Grouper les diagnostics identiques de l’aperçu, dire si la lecture est bloquée et permettre d’aller à l’acteur ou au bloc concerné (audit N09 ; cinematic_preview_status.dart). Le libellé `null · <id>` est corrigé tôt par UX-03.1. — **livré** par 979120f23 (la lecture n’est pas bloquée par le transport : le texte le dit).
 
 **Tests comportementaux obligatoires :**
 
@@ -2167,7 +2167,7 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 
 - [ ] 1. Conserver les tables, poids, niveaux, créneaux, variantes et équipes natives.
 - [ ] 2. Fournir des sélecteurs d’espèce et de capacité recherchables avec détails utiles et références manquantes visibles.
-- [ ] 3. Distinguer créer une table et l’affecter à un terrain ou une zone ; afficher les usages.
+- [x] 3. Distinguer créer une table et l’affecter à un terrain ou une zone ; afficher les usages. — **livré** par 628510049 (avertissement d’affectation distinct de l’invalidité ; usages complétés par les rencontres interactives).
 - [ ] 4. Relier un dresseur, son interaction et sa scène sans déplacer les règles de combat dans l’UI.
 - [ ] 5. Tester un exemple borné de rencontre et de dresseur avec les règles existantes ; préserver la distribution et les sauvegardes.
 
@@ -2227,11 +2227,11 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 - [ ] 3. Préserver formes, évolutions, learnsets, effets d’objet et paramètres de règles effectivement supportés.
 - [ ] 4. Rendre la portée et les usages d’une modification partagée explicites ; conserver les références inconnues.
 - [ ] 5. Séparer cette refonte d’interface des chantiers de recettes d’animations et de mécanique de combat en cours.
-- [ ] 6. Remplacer la saisie « Identifiants liés · séparés par une virgule » des formes (pokemon_species_forms.dart:81) par une recherche multi-sélection avec nom, aperçu et référence manquante visible ; identifiants en option avancée ; références existantes conservées même non résolues (audit R07, P1).
-- [ ] 7. Séparer la description d’une évolution et la règle réellement comprise par le jeu ; choix guidés pour les seules méthodes prises en charge, les autres signalées sans perte de données (audit R08, P1 ; pokemon_evolution_entry.dart). Vérifier chaque mécanique avant toute promesse.
-- [ ] 8. Dire « Ajouter » pour un rôle de média vide et « Remplacer » seulement si un parcours sûr existe ; localiser les rôles techniques comme `icon` et `party` ; signaler un média référencé mais absent (audits R09, P1, et R10 ; pokemon_species_media.dart).
-- [ ] 9. Remplacer la poche d’objet saisie librement par un choix validé des poches disponibles (audit R06 ; pokemon_item_overview.dart). Les libellés lisibles des poches sont corrigés tôt par UX-03.1.
-- [ ] 10. Depuis combat et attaques, proposer l’aller-retour vers la carte ou la scène liée lorsque l’identité est connue, sans inventer de raccourci que l’architecture ne permet pas (audit R13).
+- [x] 6. Remplacer la saisie « Identifiants liés · séparés par une virgule » des formes (pokemon_species_forms.dart:81) par une recherche multi-sélection avec nom, aperçu et référence manquante visible ; identifiants en option avancée ; références existantes conservées même non résolues (audit R07, P1). — **livré** par 7529620f2.
+- [x] 7. Séparer la description d’une évolution et la règle réellement comprise par le jeu ; choix guidés pour les seules méthodes prises en charge, les autres signalées sans perte de données (audit R08, P1 ; pokemon_evolution_entry.dart). Vérifier chaque mécanique avant toute promesse. — **livré** par 7529620f2.
+- [x] 8. Dire « Ajouter » pour un rôle de média vide et « Remplacer » seulement si un parcours sûr existe ; localiser les rôles techniques comme `icon` et `party` ; signaler un média référencé mais absent (audits R09, P1, et R10 ; pokemon_species_media.dart). — **livré** par b6c657ed3.
+- [x] 9. Remplacer la poche d’objet saisie librement par un choix validé des poches disponibles (audit R06 ; pokemon_item_overview.dart). Les libellés lisibles des poches sont corrigés tôt par UX-03.1. — **livré** par cd81aa24c (« Nouvelle poche… » explicite).
+- [x] 10. Depuis combat et attaques, proposer l’aller-retour vers la carte ou la scène liée lorsque l’identité est connue, sans inventer de raccourci que l’architecture ne permet pas (audit R13). — **en partie** par 628510049 et cd81aa24c : marche à suivre d’affectation, références complétées, « Préparer la synchronisation » ; pas d’aller-retour direct vers une carte non encore choisie.
 
 Les étapes 6 à 8 portent des constats P1 sur les écrans actuels : elles peuvent être livrées avant le reste du lot.
 
@@ -2285,7 +2285,7 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 - [ ] 3. Distinguer lieu visible sur la carte régionale et arrivée autorisée de Vol.
 - [ ] 4. Préserver les conditions de progression et profils supportés ; la mécanique de Vol différée n’est pas déclarée livrée par le nouvel écran.
 - [ ] 5. Tester une destination existante et une référence manquante, puis la réouverture du document.
-- [ ] 6. Lister les cartes liées avec recherche multi-sélection, dossier et résumé des choix, et expliquer pourquoi un retrait est refusé ; distinguer aperçu en attente, absent et en erreur (audit M10). La liaison implicite de la première carte (M09) est corrigée tôt par UX-03.1.
+- [x] 6. Lister les cartes liées avec recherche multi-sélection, dossier et résumé des choix, et expliquer pourquoi un retrait est refusé ; distinguer aperçu en attente, absent et en erreur (audit M10). La liaison implicite de la première carte (M09) est corrigée tôt par UX-03.1. — **livré** par b6f400d07.
 
 **Tests comportementaux obligatoires :**
 
@@ -2336,7 +2336,7 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 **Étapes d’implémentation :**
 
 - [ ] 1. Rattacher talus, franchissement, rampes, plateformes et obstacles à leurs propriétaires natifs existants.
-- [ ] 2. Présenter sens, niveau, trajet, durée et conditions seulement pour les capacités réellement supportées.
+- [x] 2. Présenter sens, niveau, trajet, durée et conditions seulement pour les capacités réellement supportées. — **en partie** par 5c61cc0bf : distance, durée et hauteur du saut, durée de plateforme en secondes ; sens du côté non décrit géométriquement.
 - [ ] 3. Distinguer une zone d’interaction, un déplacement d’objet et une règle de traversée du joueur.
 - [ ] 4. Désactiver et expliquer une action non consommée par le runtime ; ne pas simuler un moteur manquant.
 - [ ] 5. Vérifier visuellement le sens et les niveaux puis le passage réel dans un exemple minimal ; conserver les contrats différés de roadmap.
@@ -2619,16 +2619,16 @@ Une entrée « Parcours décrit » n’est pas déclarée implémentée. Le lot 
 | M07 | P2 | État vide de Bordures aux consignes concurrentes | UX-05, ét. 5 | Couvert |
 | M08 | P1 | Ambiance et sauvegarde à plusieurs endroits | UX-14, UX-17 | Couvert ; UX-14 : la portée « Cette carte » des réglages édite le même brouillon que l’Ambiance de la carte (plus de second contrôleur sur `maps/<id>.visual.json`), sans sauvegarde implicite ; vue locale restante en UX-17 |
 | M09 | P1 | Carte régionale : première carte liée d’office | UX-03.1, ét. 5 | Ajouté, avancé ; **corrigé** par d33da791b (choix explicite avec dossier ; pas d’aperçu) |
-| M10 | P2 | Lieux régionaux difficiles à grande échelle | UX-23.7, ét. 6 | Ajouté |
+| M10 | P2 | Lieux régionaux difficiles à grande échelle | UX-23.7, ét. 6 | Ajouté ; **corrigé** par b6f400d07 (recherche, dossier, résumé, refus expliqué ; attente, absence et erreur de l’aperçu distinguées) |
 | N01 | P1 | Histoire : apprendre le modèle avant de raconter | UX-22, ét. 7 | Ajouté, D-02 tranchée ; attend la direction de design Histoire |
-| N02 | P1 | Scène d’événement introuvable parmi 426 | UX-23.2, ét. 6 | Ajouté, livrable en avance |
+| N02 | P1 | Scène d’événement introuvable parmi 426 | UX-23.2, ét. 6 | Ajouté, livrable en avance ; **corrigé** par 3ea3a966b |
 | N03 | P1 | Graphe long : vue d’ensemble ou lecture | UX-22, ét. 3 et 8 | Complété |
 | N04 | P1 | Liaisons de blocs au clavier non prouvées | UX-22, ét. 9 | Ajouté |
-| N05 | P1 | Options d’événement : courant et avancé mêlés | UX-23.2, ét. 7 | Ajouté, livrable en avance |
+| N05 | P1 | Options d’événement : courant et avancé mêlés | UX-23.2, ét. 7 | Ajouté, livrable en avance ; **corrigé** par 3ea3a966b |
 | N06 | P1 | `null` dans le résumé d’événement | UX-03.1, ét. 1 | Ajouté, avancé ; **corrigé** par d33da791b (« Action sans nom ») |
-| N07 | P2 | Logique des conditions déduite d’icônes | UX-23.2, ét. 8 | Ajouté |
-| N08 | P2 | Deux onglets de cinématique identiques | UX-23.4, ét. 6 | Ajouté |
-| N09 | P2 | Diagnostics de cinématique répétés, `null · id` | UX-03.1, ét. 2 ; UX-23.4, ét. 7 | Ajouté, en partie avancé ; `null · id` **corrigé** par d33da791b, diagnostics non groupés restants en UX-23.4 |
+| N07 | P2 | Logique des conditions déduite d’icônes | UX-23.2, ét. 8 | Ajouté ; **corrigé** par 096c10f97 (phrase de résultat, choix « toutes » / « une seule », effet de l’inversion annoncé) |
+| N08 | P2 | Deux onglets de cinématique identiques | UX-23.4, ét. 6 | Ajouté ; **corrigé** par 979120f23 (guidage dans Propriétés, Séquence liste les actions ; écart au libellé de l’audit consigné en UX-23.4) |
+| N09 | P2 | Diagnostics de cinématique répétés, `null · id` | UX-03.1, ét. 2 ; UX-23.4, ét. 7 | Ajouté, en partie avancé ; `null · id` **corrigé** par d33da791b, diagnostics groupés avec accès à l’action ou à l’acteur **corrigés** par 979120f23 |
 | N10 | P2 | Deux noms pour créer la même présentation | UX-03.1, ét. 3 | Ajouté, avancé ; **corrigé** par d33da791b (« Nouvelle présentation » aux deux entrées) |
 | N11 | P3 | Vérification absente et récents répétés | UX-22, ét. 10 | Ajouté |
 | R01 | P1 | Bibliothèque et Identité : même contenu | UX-12.5, ét. 6 | Ajouté |
@@ -2636,14 +2636,14 @@ Une entrée « Parcours décrit » n’est pas déclarée implémentée. Le lot 
 | R03 | P2 | Portraits : « état » ou « expression » | UX-12.5, ét. 7 | Ajouté |
 | R04 | P2 | Deux bibliothèques de ressources différentes | UX-11, ét. 7 | Ajouté |
 | R05 | P1 | Incidents sans action de réparation | UX-13 | Couvert |
-| R06 | P2 | Poches d’objets en identifiants anglais | UX-03.1, ét. 6 ; UX-23.6, ét. 9 | Ajouté, en partie avancé ; libellés **corrigés** par d33da791b, saisie libre de la poche restante en UX-23.6 |
-| R07 | P1 | Formes Pokémon saisies en identifiants à virgules | UX-23.6, ét. 6 | Ajouté, livrable en avance |
-| R08 | P1 | Condition d’évolution prise pour une règle | UX-23.6, ét. 7 | Ajouté, livrable en avance |
-| R09 | P1 | « Importer » ne dit pas s’il remplace | UX-23.6, ét. 8 | Ajouté, livrable en avance |
-| R10 | P2 | Média référencé mais peut-être absent | UX-23.6, ét. 8 ; UX-13 | Ajouté |
+| R06 | P2 | Poches d’objets en identifiants anglais | UX-03.1, ét. 6 ; UX-23.6, ét. 9 | Ajouté, en partie avancé ; libellés **corrigés** par d33da791b, saisie libre **corrigée** par cd81aa24c |
+| R07 | P1 | Formes Pokémon saisies en identifiants à virgules | UX-23.6, ét. 6 | Ajouté, livrable en avance ; **corrigé** par 7529620f2 |
+| R08 | P1 | Condition d’évolution prise pour une règle | UX-23.6, ét. 7 | Ajouté, livrable en avance ; **corrigé** par 7529620f2 (validateur d’évolutions : correctif en attente hors de ce lot) |
+| R09 | P1 | « Importer » ne dit pas s’il remplace | UX-23.6, ét. 8 | Ajouté, livrable en avance ; **corrigé** par b6c657ed3 |
+| R10 | P2 | Média référencé mais peut-être absent | UX-23.6, ét. 8 ; UX-13 | Ajouté ; volet Pokémon **corrigé** par b6c657ed3, volet UX-13 non couvert ici |
 | R11 | P3 | Netteté inégale des aperçus pixel art | UX-01, ét. 7 | Ajouté |
 | R12 | P3 | Listes vides sans aide pour démarrer | UX-01, ét. 2 | Couvert |
-| R13 | P2 | Combat et attaques : suite du geste ailleurs | UX-23.6, ét. 10 | Ajouté |
+| R13 | P2 | Combat et attaques : suite du geste ailleurs | UX-23.6, ét. 10 | Ajouté ; **en partie** par 628510049 et cd81aa24c (affectation guidée, usages complétés, synchronisation annoncée) |
 | T01 | P1 | Tester enregistre certains brouillons et en bloque d’autres | UX-21, ét. 2 | Couvert |
 | T02 | P1 | Erreur de test sans prochaine action | UX-21, ét. 6 | Couvert |
 | T03 | P1 | « Annuler » désigne deux portées | UX-14, ét. 5 | **Corrigé** par UX-14 : « Défaire » / « Rétablir » pour l’historique de la rubrique, « Abandonner les modifications » pour son brouillon ; vérifié en natif |
