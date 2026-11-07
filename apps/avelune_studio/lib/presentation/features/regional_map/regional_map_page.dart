@@ -19,6 +19,7 @@ import '../../shared/widgets/layout/studio_page_header.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import '../../shared/widgets/layout/studio_section.dart';
 import 'regional_map_link_dialog.dart';
+import 'regional_map_linked_maps.dart';
 import '../narrative/narrative_name_dialog.dart';
 
 class RegionalMapPage extends StatefulWidget {
@@ -52,8 +53,8 @@ class _RegionalMapPageState extends State<RegionalMapPage> {
       } finally {
         codec.dispose();
       }
-    } on Object {
-      return null;
+    } on Object catch (error) {
+      throw StateError('$error');
     }
   }
 
@@ -249,10 +250,33 @@ class _RegionalMapPageState extends State<RegionalMapPage> {
                                       future: _image,
                                       builder: (context, snapshot) {
                                         final image = snapshot.data;
+                                        if (snapshot.connectionState !=
+                                            ConnectionState.done) {
+                                          return const StudioEmptyState(
+                                            key: ValueKey(
+                                              'regional-image-loading',
+                                            ),
+                                            title: 'Chargement de l’image…',
+                                            icon: Icons.hourglass_empty,
+                                          );
+                                        }
+                                        if (snapshot.hasError) {
+                                          return StudioEmptyState(
+                                            key: const ValueKey(
+                                              'regional-image-error',
+                                            ),
+                                            title: 'Image illisible',
+                                            description:
+                                                'Lecture ou décodage impossible (${snapshot.error}). Choisissez une autre image.',
+                                          );
+                                        }
                                         if (image == null) {
                                           return const StudioEmptyState(
-                                            title: 'Image indisponible',
-                                            description: 'Choisissez une image valide de la bibliothèque.',
+                                            key: ValueKey(
+                                              'regional-image-missing',
+                                            ),
+                                            title: 'Image absente',
+                                            description: 'Le fichier référencé est introuvable. Choisissez une image de la bibliothèque.',
                                           );
                                         }
                                         return LayoutBuilder(
@@ -432,35 +456,14 @@ class _RegionalMapPageState extends State<RegionalMapPage> {
                                             .byName(value),
                                       ),
                               ),
-                              StudioSection(
-                                title: 'Cartes liées à la visite du lieu',
-                                children: [
-                                  const Text(
-                                    'Vol exige une visite réelle, même si le lieu est connu dès le départ.',
-                                  ),
-                                  for (final map in source.project.maps)
-                                    StudioToggleRow(
-                                      label: map.name,
-                                      value: point.mapIds.contains(map.id),
-                                      onChanged: owner.busy
-                                          ? null
-                                          : (enabled) {
-                                              final next = {...point.mapIds};
-                                              enabled
-                                                  ? next.add(map.id)
-                                                  : next.remove(map.id);
-                                              if (next.isEmpty &&
-                                                  point.discovery ==
-                                                      ProjectRegionPointDiscovery
-                                                          .onMapVisit) {
-                                                return;
-                                              }
-                                              owner.editPoint(
-                                                mapIds: next.toList(),
-                                              );
-                                            },
-                                    ),
-                                ],
+                              RegionalMapLinkedMaps(
+                                key: ValueKey('regional-linked-${point.id}'),
+                                project: source.project,
+                                mapIds: point.mapIds,
+                                discovery: point.discovery,
+                                busy: owner.busy,
+                                onChanged: (ids) =>
+                                    owner.editPoint(mapIds: ids),
                               ),
                               _destination(point),
                               StudioButton(
