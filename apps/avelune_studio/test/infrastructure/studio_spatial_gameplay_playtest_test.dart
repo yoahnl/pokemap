@@ -128,6 +128,10 @@ void main() {
     hosts.add(host);
     expect(host.runtime.descriptor.grantedCapabilities,
         contains(SpatialSceneLightingCapabilities.pointLightShadowsCapabilityId));
+    expect(
+      host.runtime.descriptor.grantedCapabilities,
+      contains(SpatialGameplayCapabilities.periodicRewardConditionCapabilityId),
+    );
     return host;
   }
 

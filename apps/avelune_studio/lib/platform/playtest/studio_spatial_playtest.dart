@@ -201,6 +201,7 @@ final class StudioSpatialPlaytest {
           SpatialGameplayCapabilities.ladderCapabilityId,
           SpatialGameplayCapabilities.cinematicFadeCapabilityId,
           SpatialGameplayCapabilities.cinematicConnectedCapabilityId,
+          SpatialGameplayCapabilities.periodicRewardConditionCapabilityId,
           'map3d.animation@1',
           SpatialModelShadowCapabilities.capabilityId,
           SpatialActorContactShadowCapabilities.capabilityId,

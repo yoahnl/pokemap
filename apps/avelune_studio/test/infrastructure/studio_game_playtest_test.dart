@@ -285,6 +285,12 @@ void main() {
               contains(SpatialSceneLightingCapabilities.pointLightShadowsCapabilityId));
           expect(runtime.descriptor.grantedCapabilities,
               contains(SpatialActorOcclusionCapabilities.capabilityId));
+          expect(
+            runtime.descriptor.grantedCapabilities,
+            contains(
+              SpatialGameplayCapabilities.periodicRewardConditionCapabilityId,
+            ),
+          );
           mounted = runtime;
           mounts++;
         },
