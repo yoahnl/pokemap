@@ -66,6 +66,16 @@ class ResourceWorkspacePane extends StatelessWidget {
         onChanged: n.changed,
         onDiscard: n.discardEnvironment,
         onEditDecor: (element) => n.openElement(element, edit: true),
+        openZones: {
+          for (final document in n.workspace.documents.values)
+            if (document.current.layers
+                    .whereType<EnvironmentLayer>()
+                    .expand((layer) => layer.content.areas)
+                    .where((area) => area.presetId == n.environment!.id)
+                    .length
+                case final count when count > 0)
+              document.current.name: count,
+        },
         onClose: () {
           n.library.selectFamily(ResourceLibraryFamily.environments);
           n.showLibrary();

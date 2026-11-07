@@ -32,6 +32,7 @@ class EnvironmentEditorScreen extends StatefulWidget {
     required this.onClose,
     required this.onDiscard,
     required this.onEditDecor,
+    this.openZones = const {},
   });
   final EnvironmentDraft draft;
   final ProjectManifest project;
@@ -39,6 +40,7 @@ class EnvironmentEditorScreen extends StatefulWidget {
   final Future<void> Function() onSave;
   final VoidCallback onChanged, onClose, onDiscard;
   final ValueChanged<ProjectElementEntry> onEditDecor;
+  final Map<String, int> openZones;
 
   @override
   State<EnvironmentEditorScreen> createState() =>
@@ -49,6 +51,35 @@ class _EnvironmentEditorScreenState extends State<EnvironmentEditorScreen> {
   String? error;
   bool saving = false;
   EnvironmentDraft get draft => widget.draft;
+
+  Widget sharedScope() {
+    final zones = widget.openZones.values.fold(0, (sum, count) => sum + count);
+    final maps = widget.openZones.length;
+    return StudioPanel(
+      key: const ValueKey('environment-shared-scope'),
+      compact: true,
+      icon: Icons.share_outlined,
+      title: 'Définition partagée',
+      children: [
+        Text(
+          zones == 0
+              ? 'Aucune zone des cartes ouvertes n’utilise encore cet environnement.'
+              : '$zones zone${zones == 1 ? '' : 's'} sur $maps carte'
+                    '${maps == 1 ? '' : 's'} ouverte${maps == 1 ? '' : 's'} '
+                    'utilise${zones == 1 ? '' : 'nt'} cet environnement. '
+                    'Enregistrer modifie la définition : les zones déjà '
+                    'dessinées gardent leurs objets générés et leurs propres '
+                    'réglages jusqu’à leur prochaine répartition sur la carte.',
+        ),
+        const SizedBox(height: 6),
+        const Text(
+          'Chaque zone garde sa graine : mêmes décors et mêmes réglages '
+          'donnent la même répartition. « Autre répartition », sur la carte, '
+          'en tire une nouvelle pour cette zone seulement.',
+        ),
+      ],
+    );
+  }
 
   void change(VoidCallback edit) {
     setState(edit);
@@ -113,6 +144,10 @@ class _EnvironmentEditorScreenState extends State<EnvironmentEditorScreen> {
       StudioPageHeader(
         title: 'Composer un environnement',
         description: 'Choisissez les décors et leur répartition. La zone se dessine sur Carte.',
+      ),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+        child: sharedScope(),
       ),
       Expanded(
         child: SingleChildScrollView(
