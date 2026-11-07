@@ -6,6 +6,7 @@ import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import 'pokemon_base_stats.dart';
 import 'pokemon_draft_controls.dart';
+import 'pokemon_species_provenance.dart';
 import 'pokemon_ui_parts.dart';
 
 class PokemonSpeciesOverview extends StatefulWidget {
@@ -136,6 +137,8 @@ class _PokemonSpeciesOverviewState extends State<PokemonSpeciesOverview> {
                 ]),
           ],
         ),
+        const SizedBox(height: 12),
+        PokemonSpeciesProvenance(controller: controller),
         const SizedBox(height: 12),
         StudioPanel(
           title: 'Détails techniques',
