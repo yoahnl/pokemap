@@ -100,11 +100,23 @@ StudioFailureDiagnosis diagnoseLaunchFailure(Object failure) =>
           summary: message,
           detail: message,
         ),
+      StateError(:final message)
+          when _requiredCapability.firstMatch(message) != null =>
+        StudioFailureDiagnosis(
+          family: StudioCheckFamily.runtimeCapabilities,
+          summary:
+              'Ce test n’accorde pas la capacité '
+              '${_requiredCapability.firstMatch(message)!.group(1)} que le '
+              'projet utilise.',
+          detail: message,
+        ),
       _ => StudioFailureDiagnosis(
         summary: 'Le test n’a pas pu démarrer.',
         detail: '$failure',
       ),
     };
+
+final _requiredCapability = RegExp(r'^The project requires ([\w.@-]+)\.$');
 
 StudioFailureOwner? _readinessOwner(String code) => switch (code) {
   'exportNewGameDisabled' ||

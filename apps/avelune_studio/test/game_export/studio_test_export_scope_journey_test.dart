@@ -196,6 +196,15 @@ void main() {
     );
     expect(known.family, StudioCheckFamily.launch);
     expect(known.owner, StudioFailureOwner.map);
+    final capability = diagnoseLaunchFailure(
+      StateError('The project requires gameplay.periodic-reward-condition@1.'),
+    );
+    expect(capability.family, StudioCheckFamily.runtimeCapabilities);
+    expect(capability.owner, isNull);
+    expect(
+      capability.summary,
+      contains('gameplay.periodic-reward-condition@1'),
+    );
     final unknown = diagnoseLaunchFailure(StateError('moteur'));
     expect(unknown.determined, isFalse);
     expect(unknown.owner, isNull);
