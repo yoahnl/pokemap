@@ -449,6 +449,7 @@ class MapWorkspaceController {
         project!,
         combineResourceVisuals(_withWorkshops(map), _prepareModelProjection(loaded.metadata, sourceEpoch: sourceEpoch),
           ),
+        library: loaded.metadata.resourceLibraryCatalog,
         ),
       );
       _resourceKind = kind;

@@ -157,6 +157,7 @@ extension _LocalScopedMapCatalog on LocalMapWorkspaceAdapter {
                 _workshopCharacterDefinitions[session.sessionId]!,
               ),
       ),
+      library: result.metadata.resourceLibraryCatalog,
     );
     _projects[session.sessionId] = _ProjectDocument(
       latest.root,

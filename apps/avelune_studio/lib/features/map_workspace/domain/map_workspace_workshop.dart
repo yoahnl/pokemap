@@ -316,8 +316,9 @@ ProjectManifest mergeProjectMetadataSections(
 
 ProjectManifest mergeResourceSelection(
   ProjectManifest current,
-  ProjectManifest loaded,
-) => current.copyWith(
+  ProjectManifest loaded, {
+  required ResourceLibraryCatalog library,
+}) => current.copyWith(
   tilesets: loaded.tilesets,
   elements: loaded.elements,
   models3d: loaded.models3d,
@@ -328,7 +329,24 @@ ProjectManifest mergeResourceSelection(
   elementCategories: loaded.elementCategories,
   tilesetFolders: loaded.tilesetFolders,
   characterStudioCatalog: loaded.characterStudioCatalog,
-  resourceLibraryCatalog: loaded.resourceLibraryCatalog,
+  resourceLibraryCatalog: mergeResourceLibraryCatalogs(
+    current.resourceLibraryCatalog,
+    library,
+  ),
+);
+
+ResourceLibraryCatalog mergeResourceLibraryCatalogs(
+  ResourceLibraryCatalog current,
+  ResourceLibraryCatalog loaded,
+) => ResourceLibraryCatalog(
+  families: {
+    for (final family in current.families) family.id: family,
+    for (final family in loaded.families) family.id: family,
+  }.values,
+  entries: {
+    for (final entry in current.entries) entry.identity: entry,
+    for (final entry in loaded.entries) entry.identity: entry,
+  }.values,
 );
 
 ProjectManifest combineResourceVisuals(
