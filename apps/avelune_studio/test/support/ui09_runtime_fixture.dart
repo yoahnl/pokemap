@@ -68,6 +68,7 @@ Future<Ui06SceneFixture> createUi09RuntimeFixture() async {
 SceneAsset ui09ConsumerScene() => SceneAsset(
   id: Ui06SceneFixture.sceneId,
   name: 'Rencontre au guichet',
+  declaredOutcomes: Ui06SceneFixture.buildScene().declaredOutcomes,
   graph: SceneGraph(
     startNodeId: 'start',
     nodes: [
@@ -94,7 +95,14 @@ SceneAsset ui09ConsumerScene() => SceneAsset(
             ),
           ),
         ),
-      SceneNode(id: 'end', kind: SceneNodeKind.end),
+      for (final branch in ['depart', 'attente'])
+        SceneNode(
+          id: 'end_$branch',
+          kind: SceneNodeKind.end,
+          payload: SceneEndPayload(
+            sceneOutcomeId: branch == 'depart' ? 'embarquement' : 'attente',
+          ),
+        ),
     ],
     edges: [
       SceneEdge(
@@ -116,7 +124,7 @@ SceneAsset ui09ConsumerScene() => SceneAsset(
           id: 'end_$branch',
           fromNodeId: branch,
           fromPortId: 'completed',
-          toNodeId: 'end',
+          toNodeId: 'end_$branch',
           kind: SceneEdgeKind.actionCompleted,
         ),
       ],
@@ -124,7 +132,7 @@ SceneAsset ui09ConsumerScene() => SceneAsset(
         id: 'complete',
         fromNodeId: 'conversation',
         fromPortId: 'completed',
-        toNodeId: 'end',
+        toNodeId: 'end_attente',
         kind: SceneEdgeKind.defaultFlow,
       ),
     ],

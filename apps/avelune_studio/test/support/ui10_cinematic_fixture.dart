@@ -65,6 +65,7 @@ CinematicAsset ui10Cinematic() => CinematicAsset(
   id: ui10CinematicId,
   title: 'Rencontre au jardin',
   mapId: 'jardin',
+  actorCompletionPolicy: CinematicActorCompletionPolicy.restoreInitial,
   requiredActors: [
     CinematicActorRef(actorId: 'hero', label: 'Voyageur'),
     CinematicActorRef(actorId: 'chief', label: 'Guide du jardin'),
@@ -174,6 +175,7 @@ CinematicAsset ui10Cinematic() => CinematicAsset(
 SceneAsset ui10Scene() => SceneAsset(
   id: Ui06SceneFixture.sceneId,
   name: 'Rencontre au jardin',
+  declaredOutcomes: Ui06SceneFixture.buildScene().declaredOutcomes,
   graph: SceneGraph(
     startNodeId: 'start',
     nodes: [
@@ -193,7 +195,11 @@ SceneAsset ui10Scene() => SceneAsset(
           ),
         ),
       ),
-      SceneNode(id: 'end', kind: SceneNodeKind.end),
+      SceneNode(
+        id: 'end',
+        kind: SceneNodeKind.end,
+        payload: SceneEndPayload(sceneOutcomeId: 'embarquement'),
+      ),
     ],
     edges: [
       SceneEdge(
