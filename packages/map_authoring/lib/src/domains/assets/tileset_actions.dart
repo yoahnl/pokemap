@@ -335,11 +335,14 @@ AuthoringActionDescriptor visualLibraryDescriptor(
       ],
       extensions: {
         if (inputSchema != null) 'inputSchema': inputSchema,
-        if (const {'tileset.upsert', 'resource.classify_batch'}.contains(id))
+        if (const {'tileset.upsert', 'resource.classify', 'resource.classify_batch'}.contains(id))
           'incrementalCatalogCreation': {
             'preparationScope': id == 'tileset.upsert' ? 'assetImport' : 'nativeResources',
-            'read': 'workshop_read', 'newIdentitiesOnly': true,
-            if (id == 'resource.classify_batch') 'mapScope': 'globalOnly',
+            'read': 'workshop_read', 'newIdentitiesOnly': id == 'tileset.upsert',
+            if (id != 'tileset.upsert') ...{
+              'mapScope': 'globalOnly',
+              'existingClassifications': 'updatedWhileOneFieldRemains',
+            },
             'dependencies': 'selectedDefinitionsAndTheirReferences',
           },
       },

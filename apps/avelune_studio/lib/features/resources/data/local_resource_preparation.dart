@@ -5,7 +5,7 @@ Future<String?> _readResourceFingerprint(
   String tilesetId,
   String revision,
 ) => _readResourceSnapshot(adapter, (snapshot, _) {
-  if (snapshot.revision != revision) {
+  if (!_matchesCapturedRevision(adapter, snapshot, revision)) {
     throw const ResourceFailure(
       'Les informations ont changé pendant leur lecture.',
     );
@@ -74,8 +74,7 @@ Future<ResourceMutationPreparation> _prepareResourceOperation(
   if (!ResourceManagementActions.actionIds.contains(actionId)) {
     throw const ResourceFailure('Cette préparation est indisponible.');
   }
-  if (expectedSnapshotRevision != null &&
-      snapshot.revision != expectedSnapshotRevision) {
+  if (!_matchesCapturedRevision(adapter, snapshot, expectedSnapshotRevision)) {
     throw const ResourceFailure(
       'Les informations ont changé depuis l’ouverture. Votre saisie est conservée.',
     );

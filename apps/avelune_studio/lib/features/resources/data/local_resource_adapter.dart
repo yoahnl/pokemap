@@ -15,6 +15,7 @@ import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../map_workspace/data/local_map_workspace_adapter.dart';
+import '../../map_workspace/domain/map_workspace_workshop.dart';
 import '../../dialogues/data/local_dialogue_adapter.dart';
 import '../../project_session/domain/project_session.dart';
 import '../../project_session/data/studio_project_document_revision.dart';
@@ -39,6 +40,7 @@ part 'local_resource_reconciliation.dart';
 part 'local_resource_lifecycle_preparation.dart';
 part 'local_resource_lifecycle_apply.dart';
 part 'local_character_removal_adapter.dart';
+part 'local_resource_classification.dart';
 
 final class LocalResourceAdapter
     implements
@@ -216,22 +218,33 @@ final class LocalResourceAdapter
 
   @override
   Future<String> captureResourceRevision() =>
-      _readResourceSnapshot(this, (snapshot, _) => snapshot.revision);
+      session.storage == ProjectSessionStorage.workingCatalog
+      ? _captureCatalogRevision(this)
+      : _readResourceSnapshot(this, (snapshot, _) => snapshot.revision);
 
   @override
   Future<String?> resourceFingerprint(String tilesetId, String revision) =>
       _readResourceFingerprint(this, tilesetId, revision);
 
   @override
-  Future<void> reconcileReceipt(ResourceMutationReceipt receipt) =>
-      _reconcileResourceReceipt(this, receipt);
+  Future<void> reconcileReceipt(ResourceMutationReceipt receipt) async {
+    if (await _reconcileCatalogClassification(this, receipt)) return;
+    await _reconcileResourceReceipt(this, receipt);
+  }
 
   @override
   Future<ResourceMutationPreparation> prepareOperation(
     String actionId,
     Map<String, Object?> parameters, {
     String? expectedSnapshotRevision,
-  }) => _lifecycleActions.contains(actionId)
+  }) => _isCatalogClassification(this, actionId)
+      ? _prepareCatalogClassification(
+          this,
+          actionId,
+          parameters,
+          expectedSnapshotRevision,
+        )
+      : _lifecycleActions.contains(actionId)
       ? _prepareLifecycleOperation(
           this,
           actionId,
@@ -282,6 +295,13 @@ final class LocalResourceAdapter
       );
     }
     try {
+      if (_isCatalogClassification(this, preparation.actionId)) {
+        return await _applyCatalogClassification(
+          this,
+          preparation,
+          validateBeforeApply: validateBeforeApply,
+        );
+      }
       if (_lifecycleActions.contains(preparation.actionId)) {
         return await _applyLifecycleOperation(
           this,

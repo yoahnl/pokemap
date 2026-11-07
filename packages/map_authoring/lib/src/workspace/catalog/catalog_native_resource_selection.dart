@@ -4,6 +4,7 @@ const _nativeResourceActions = <String, (CatalogDefinitionKind, String)>{
   'characterStudio.animationClip.upsert': (CatalogDefinitionKind.character, 'characterId'),
   'tileset.upsert': (CatalogDefinitionKind.tileset, 'tileset'),
   'campaign.character.upsert': (CatalogDefinitionKind.character, 'value'),
+  'resource.classify': (CatalogDefinitionKind.resourceLibraryEntry, ''),
   'resource.classify_batch': (CatalogDefinitionKind.resourceLibraryEntry, 'entries'),
   'smart_tile.atlas.upsert': (CatalogDefinitionKind.smartTileAtlas, 'atlas'),
   'smart_tile.animation.upsert': (CatalogDefinitionKind.smartTileAnimation, 'animation'),
@@ -58,7 +59,11 @@ Future<CatalogWorkshopSelection> _readNativeResourceWorkshop({
   if (clip && parameters['kind'] != 'system') {
     CatalogWorkshopSelection.unsupported(actionId, 'a system animation slot');
   }
-  final value = clip ? {'id': parameters[parameter]} : parameters[parameter];
+  final value = clip
+      ? {'id': parameters[parameter]}
+      : actionId == 'resource.classify'
+          ? parameters
+          : parameters[parameter];
   final inputs = value is List ? value : [value];
   final ids = <String>{};
   for (final input in inputs) {
@@ -84,7 +89,7 @@ Future<CatalogWorkshopSelection> _readNativeResourceWorkshop({
     if (kind == CatalogDefinitionKind.resourceLibraryEntry) {
       for (final input in inputs.cast<Map>()) {
         if (input['mapId'] != null || input['resourceKind'] is! String || input['resourceId'] is! String) {
-          CatalogWorkshopSelection.unsupported(actionId, 'new global classifications only');
+          CatalogWorkshopSelection.unsupported(actionId, 'global classifications only');
         }
         final resourceKind = catalogResourceKinds[input['resourceKind']];
         if (resourceKind == null) throw const FormatException('Unknown classification resource kind.');
@@ -93,6 +98,26 @@ Future<CatalogWorkshopSelection> _readNativeResourceWorkshop({
         if (family is String && !ResourceLibraryCatalog.predefinedFamilies.any((x) => x.id == family)) {
           roots.add(CatalogDefinitionKey(CatalogDefinitionKind.resourceFamily, family));
         }
+        final key = CatalogDefinitionKey(kind,
+            '${input['resourceKind']}:${input['resourceId']}');
+        final existing = await catalog.lookup(key);
+        if (existing == null) continue;
+        final previous = Map<String, Object?>.from(
+            existing.payload['value'] as Map);
+        Object? field(String name) =>
+            input.containsKey(name) ? input[name] : previous[name];
+        if (previous['mapId'] != null) {
+          CatalogWorkshopSelection.unsupported(
+              actionId, 'global classifications only');
+        }
+        if (field('familyId') == null &&
+            field('description') == null &&
+            field('placementContext') == null &&
+            (field('role') ?? 'standard') == 'standard') {
+          CatalogWorkshopSelection.unsupported(
+              actionId, 'a classification that keeps at least one field');
+        }
+        replacements.add(key);
       }
     }
     for (final id in ids) {
@@ -148,7 +173,8 @@ Future<CatalogWorkshopSelection> _readNativeResourceWorkshop({
         candidates.add(existing.payload['value']);
       } else if (clip) {
         throw const FormatException('catalog.character_clip: character missing');
-      } else if (existing != null) {
+      } else if (existing != null &&
+          kind != CatalogDefinitionKind.resourceLibraryEntry) {
         CatalogWorkshopSelection.unsupported(
             actionId, 'a new resource identity');
       }

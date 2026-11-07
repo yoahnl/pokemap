@@ -117,6 +117,118 @@ void main() {
     });
   }
   for (final unrelated in [0, 80]) {
+    test(
+        'reclassifying an existing classification stays local with $unrelated foreign units',
+        () async {
+      final fixture = await _Fixture.open(unrelated,
+          rootPath:
+              '/Users/karim/Library/Caches/AveluneQA/vague3-cout-ressources/api-$unrelated');
+      addTearDown(fixture.close);
+      final artifact = await fixture.api.artifacts
+          .put(triangleGlb(), declaredMediaType: 'model/gltf-binary');
+      for (final id in ['tree', 'rock']) {
+        final imported = await fixture.plan('model3d.import', {
+          'modelId': id,
+          'name': id,
+          'artifactHandle': artifact.reference.handle,
+        }, 'import-$id');
+        await fixture.api.applyMutation(fixture.opened.projectHandle,
+            planId: imported.planId, operationId: 'import-$id');
+      }
+      Future<void> run(String action, Map<String, Object?> parameters,
+          String operation) async {
+        fixture.reader.paths.clear();
+        final beforeObjects =
+            await Directory('${fixture.root.path}/catalog/objects')
+                .list()
+                .length;
+        final plan = await fixture.plan(action, parameters, operation);
+        await fixture.api.applyMutation(fixture.opened.projectHandle,
+            planId: plan.planId, operationId: operation);
+        final afterObjects =
+            await Directory('${fixture.root.path}/catalog/objects')
+                .list()
+                .length;
+        expect(afterObjects - beforeObjects, lessThan(30), reason: operation);
+        expect(fixture.reader.paths.length, lessThan(220), reason: operation);
+        expect(fixture.reader.paths.where(fixture.unrelatedPaths.contains),
+            isEmpty,
+            reason: operation);
+      }
+
+      await run(
+          'resource.classify_batch',
+          {
+            'entries': [
+              for (final id in ['tree', 'rock'])
+                {'resourceKind': 'model3d', 'resourceId': id, 'familyId': 'props'}
+            ]
+          },
+          'first-filing');
+      await run(
+          'resource.classify',
+          {
+            'resourceKind': 'model3d',
+            'resourceId': 'tree',
+            'familyId': 'trees',
+            'description': 'Un arbre',
+            'mapId': null,
+            'role': 'standard',
+            'placementContext': 'exterior',
+          },
+          'single-refiling');
+      await run(
+          'resource.classify_batch',
+          {
+            'entries': [
+              {'resourceKind': 'model3d', 'resourceId': 'rock', 'familyId': 'vegetation'}
+            ]
+          },
+          'batch-refiling');
+      await expectLater(
+          fixture.plan(
+              'resource.classify_batch',
+              {
+                'entries': [
+                  {'resourceKind': 'model3d', 'resourceId': 'rock', 'familyId': null}
+                ]
+              },
+              'clearing'),
+          throwsA(isA<AuthoringPlanException>().having(
+              (error) => error.code,
+              'code',
+              'catalog.mutation_scope_required')));
+
+      await fixture.reopen();
+      final root =
+          (await fixture.store.openRoot((await fixture.store.readHead())!))
+              .snapshot;
+      Future<Map> entry(String identity) async => (await root.lookup(
+              CatalogDefinitionKey(
+                  CatalogDefinitionKind.resourceLibraryEntry, identity)))!
+          .payload['value'] as Map;
+      expect(await entry('model3d:tree'), {
+        'resourceKind': 'model3d',
+        'resourceId': 'tree',
+        'description': 'Un arbre',
+        'familyId': 'trees',
+        'placementContext': 'exterior',
+      });
+      expect((await entry('model3d:rock'))['familyId'], 'vegetation');
+      for (var i = 0; i < unrelated; i++) {
+        expect((await entry('tileset:foreign-$i'))['familyId'], 'characters');
+      }
+      if (unrelated == 0) {
+        final project = await (await PortableProjectCatalog.fromSnapshot(root))
+            .exportProject();
+        expect(
+            project.resourceLibraryCatalog.entryFor('model3d', 'tree')?.familyId,
+            'trees');
+      }
+    });
+  }
+
+  for (final unrelated in [0, 80]) {
     test('new model and tileset imports preserve $unrelated unread resources',
         () async {
       final fixture = await _Fixture.open(unrelated);

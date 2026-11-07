@@ -97,8 +97,11 @@ Future<ResourceMutationPreparation> _prepareLifecycleOperation(
       policy: ProjectSnapshotLoadPolicy.editorReadProjection,
     );
     adapter._requireAvailable();
-    if ((expectedSnapshotRevision != null &&
-            snapshot.revision != expectedSnapshotRevision) ||
+    if (!_matchesCapturedRevision(
+          adapter,
+          snapshot,
+          expectedSnapshotRevision,
+        ) ||
         studioProjectSnapshotRevision(snapshot) != before.revision) {
       throw const ResourceFailure(
         'Le projet a changé depuis l’ouverture. Votre saisie est conservée.',

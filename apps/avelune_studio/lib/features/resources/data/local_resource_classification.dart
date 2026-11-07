@@ -1,0 +1,251 @@
+part of 'local_resource_adapter.dart';
+
+const _catalogClassificationActions = {
+  'resource.classify',
+  'resource.classify_batch',
+};
+
+bool _isCatalogClassification(LocalResourceAdapter adapter, String actionId) =>
+    adapter.session.storage == ProjectSessionStorage.workingCatalog &&
+    _catalogClassificationActions.contains(actionId);
+
+Future<String> _captureCatalogRevision(LocalResourceAdapter adapter) =>
+    adapter.mapAdapter.withResourceMutation(() async {
+      adapter._requireAvailable();
+      return (await adapter.mapAdapter.resourceBaseline(adapter.session))
+          .revision;
+    });
+
+bool _matchesCapturedRevision(
+  LocalResourceAdapter adapter,
+  ProjectSnapshot snapshot,
+  String? expected,
+) =>
+    expected == null ||
+    (adapter.session.storage == ProjectSessionStorage.workingCatalog
+            ? studioProjectSnapshotRevision(snapshot)
+            : snapshot.revision) ==
+        expected;
+
+Future<ResourceMutationPreparation> _prepareCatalogClassification(
+  LocalResourceAdapter adapter,
+  String actionId,
+  Map<String, Object?> parameters,
+  String? expectedRevision,
+) async {
+  final revision = await _captureCatalogRevision(adapter);
+  if (expectedRevision != null && revision != expectedRevision) {
+    throw const ResourceFailure(
+      'Les informations ont changé depuis l’ouverture. Votre saisie est conservée.',
+    );
+  }
+  return ResourceMutationPreparation(
+    sessionId: adapter.session.sessionId,
+    actionId: actionId,
+    parameters: parameters,
+    snapshotRevision: revision,
+    manifestRevision: revision,
+    changedPaths: const [CatalogStorageStore.headStorageKey],
+    confirmationRequired: false,
+  );
+}
+
+Future<ResourceMutationReceipt> _applyCatalogClassification(
+  LocalResourceAdapter adapter,
+  ResourceMutationPreparation preparation, {
+  String? Function()? validateBeforeApply,
+}) async {
+  final scoped = await _applyScopedClassification(
+    adapter,
+    preparation,
+    validateBeforeApply: validateBeforeApply,
+  );
+  if (scoped != null) return scoped;
+  return adapter._run(
+    preparation.actionId,
+    (_) => preparation.parameters,
+    expectedBeforeRevision: preparation.manifestRevision,
+    validateBeforeApply: validateBeforeApply,
+  );
+}
+
+Future<ResourceMutationReceipt?> _applyScopedClassification(
+  LocalResourceAdapter adapter,
+  ResourceMutationPreparation preparation, {
+  String? Function()? validateBeforeApply,
+}) => adapter.mapAdapter.withResourceMutation(() async {
+  adapter._resourceMutationActive = true;
+  final trace = developer.TimelineTask()..start('studio.resource.classify');
+  void phase(String name) {
+    trace.instant(name);
+    adapter.mutationPhaseObserver?.call(name);
+  }
+
+  try {
+    adapter._requireAvailable();
+    phase('baseline.start');
+    final before = await adapter.mapAdapter.resourceBaseline(adapter.session);
+    phase('baseline.end');
+    if (before.revision != preparation.manifestRevision) {
+      throw const ResourceFailure(
+        'Le projet a changé depuis l’ouverture. Votre saisie est conservée.',
+      );
+    }
+    final context = await adapter._requireMutationContext();
+    await context.attach();
+    final api = context.api;
+    final opened = context.opened;
+    final parameters = Map<String, Object?>.from(preparation.parameters);
+    final operationId = adapter._identity('resource');
+    final AuthoringMutationPlanResult planned;
+    try {
+      final snapshot = await api.readWorkshopSnapshot(
+        opened.projectHandle,
+        actionId: preparation.actionId,
+        parameters: parameters,
+      );
+      phase('snapshot.end');
+      planned = await api.planMutation(
+        opened.projectHandle,
+        AuthoringRequest(
+          requestId: operationId,
+          actionId: preparation.actionId,
+          actionVersion: 1,
+          workspaceHandle: opened.workspaceHandle.value,
+          parameters: parameters,
+          expectedRevision: snapshot.revision,
+          idempotencyKey: operationId,
+          extensions: const {'workshopScope': true},
+        ),
+      );
+      phase('plan.end');
+    } on AuthoringPlanException catch (failure) {
+      if (failure.code == 'catalog.mutation_scope_required') return null;
+      rethrow;
+    } on CatalogStorageException catch (failure) {
+      if (failure.code == 'catalog.preparation_required') return null;
+      rethrow;
+    }
+    try {
+      adapter._requireAvailable();
+      if (await adapter.mapAdapter.resourceRevision(adapter.session) !=
+          before.revision) {
+        throw const ResourceFailure(
+          'Le projet a changé sur le disque. Rien n’a été écrasé.',
+        );
+      }
+      final changes = planned.plan.changeSet.changes;
+      if (changes.isEmpty) {
+        final problem = validateBeforeApply?.call();
+        if (problem != null) throw ResourceFailure(problem);
+        return ResourceMutationReceipt(
+          before: before.manifest,
+          manifest: before.manifest,
+          beforeRevision: before.revision,
+          revision: before.revision,
+          changedPaths: const [],
+        );
+      }
+      final selected =
+          planned.projectedProject ??
+          (throw const ResourceFailure(
+            'Le rangement n’a pas pu être préparé. Rien n’a été écrit.',
+          ));
+      final manifest = before.manifest.copyWith(
+        resourceLibraryCatalog: mergeResourceLibraryCatalogs(
+          before.manifest.resourceLibraryCatalog,
+          selected.resourceLibraryCatalog,
+        ),
+      );
+      try {
+        await api.applyMutation(
+          opened.projectHandle,
+          planId: planned.planId,
+          operationId: operationId,
+          precondition: () async {
+            await adapter.beforeTransactionPrecondition?.call();
+            adapter._requireAvailable();
+            final problem = validateBeforeApply?.call();
+            if (problem != null) throw ResourceFailure(problem);
+          },
+        );
+      } on Object catch (failure, stack) {
+        late final AuthoringMutationResult recovered;
+        try {
+          recovered = await api.recoverMutation(
+            opened.projectHandle,
+            operationId: operationId,
+          );
+        } on Object {
+          Error.throwWithStackTrace(failure, stack);
+        }
+        if (recovered.receipt.status.name != 'applied' &&
+            recovered.receipt.extensions['recoveryOutcome'] != 'resumed') {
+          Error.throwWithStackTrace(failure, stack);
+        }
+      }
+      phase('apply.end');
+      final receipt = ResourceMutationReceipt(
+        before: before.manifest,
+        manifest: manifest,
+        beforeRevision: before.revision,
+        revision: await adapter.mapAdapter.resourceRevision(adapter.session),
+        changedPaths: List.unmodifiable(changes.map((c) => c.storageKey)),
+        operationId: operationId,
+        actionId: preparation.actionId,
+        snapshotBeforeRevision: planned.plan.baseRevision,
+      );
+      try {
+        await adapter.beforeReconciliation?.call();
+        adapter._requireAvailable();
+        await adapter.mapAdapter.acceptResourceMutation(
+          adapter.session,
+          receipt,
+        );
+      } on Object catch (failure) {
+        throw ResourceFailure(
+          'La publication a réussi, mais la relecture a échoué. Ne relancez pas la mutation. $failure',
+          partialReceipt: receipt,
+        );
+      }
+      phase('reconciliation.end');
+      return receipt;
+    } finally {
+      await planned.plan.releaseAppliedPayload();
+    }
+  } on ResourceFailure {
+    rethrow;
+  } on Object catch (error) {
+    throw _resourceFailure(error);
+  } finally {
+    adapter._resourceMutationActive = false;
+    try {
+      if (adapter._disposed) await adapter._closeMutationContext();
+    } finally {
+      trace.finish();
+    }
+  }
+});
+
+Future<bool> _reconcileCatalogClassification(
+  LocalResourceAdapter adapter,
+  ResourceMutationReceipt receipt,
+) async {
+  if (adapter.session.storage != ProjectSessionStorage.workingCatalog ||
+      !_catalogClassificationActions.contains(receipt.actionId) ||
+      receipt.pathRevisions.isNotEmpty ||
+      receipt.changedModels.isNotEmpty) {
+    return false;
+  }
+  await adapter.mapAdapter.withResourceMutation(() async {
+    adapter._requireAvailable();
+    if (await adapter.mapAdapter.resourceRevision(adapter.session) !=
+        receipt.revision) {
+      throw const ResourceFailure(
+        'Les ressources ont changé depuis la publication. Une relecture du projet est nécessaire.',
+      );
+    }
+    await adapter.mapAdapter.acceptResourceMutation(adapter.session, receipt);
+  });
+  return true;
+}
