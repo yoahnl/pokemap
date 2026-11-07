@@ -107,6 +107,11 @@ class StoryScenarioLinks extends StatelessWidget {
       ];
     }
     final ids = {...scenario.declaredOutcomes, ...link.expectedOutcomeIds};
+    final labels = {
+      for (final outcome in link.outcomeLinks)
+        if (outcome.label case final label? when label.trim().isNotEmpty)
+          outcome.outcomeId: label,
+    };
     return [
       const SizedBox(height: 8),
       const Text('Résultats proposés sur le graphe'),
@@ -116,8 +121,8 @@ class StoryScenarioLinks extends StatelessWidget {
           contentPadding: EdgeInsets.zero,
           title: Text(
             scenario.declaredOutcomes.contains(id)
-                ? id
-                : '$id · résultat absent',
+                ? labels[id] ?? id
+                : '${labels[id] ?? id} · résultat absent',
           ),
           value: link.expectedOutcomeIds.contains(id),
           onChanged: (checked) => _patch(

@@ -1,10 +1,15 @@
+import 'package:avelune_studio/features/stories/application/story_step_outcomes.dart';
+import 'package:avelune_studio/features/stories/application/story_workspace_controller.dart';
 import 'package:avelune_studio/presentation/features/stories/story_library_panel.dart';
+import 'package:avelune_studio/presentation/features/stories/story_step_outcomes.dart';
 import 'package:avelune_studio/presentation/features/stories/story_metadata_fields.dart';
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_choice.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
+
+import '../support/story_backend_fixture.dart';
 
 void main() {
   final stories = [
@@ -138,5 +143,182 @@ void main() {
       ),
       'État introuvable conservé : ghost = Non',
     );
+  });
+
+  test('a step names its expected outcomes and keeps an unknown one', () {
+    final scene = SceneAsset(
+      id: 'lab',
+      name: 'Le laboratoire',
+      graph: SceneGraph(
+        startNodeId: 'start',
+        nodes: [SceneNode(id: 'start', kind: SceneNodeKind.start)],
+        edges: [],
+      ),
+      declaredOutcomes: [
+        SceneOutcome(id: 'starter_given', label: 'Starter reçu'),
+      ],
+    );
+    final step = StorylineStep(
+      id: 'got_starter',
+      title: 'Recevoir un starter',
+      order: 0,
+      sceneLinkIds: const ['lab'],
+      expectedOutcomeIds: const ['starter_given', 'ghost'],
+    );
+    final story = StorylineAsset(
+      id: 'main',
+      type: StorylineType.main,
+      title: 'Aventure',
+      chapters: [
+        StorylineChapter(id: 'c', title: 'C', order: 0, steps: [step]),
+      ],
+      sceneLinks: [
+        StorylineSceneLink(
+          id: 'link',
+          chapterId: 'c',
+          stepId: 'got_starter',
+          label: 'Rencontre',
+          state: StorylineSceneLinkState.linkedScenario,
+          role: StorylineSceneLinkRole.primary,
+          sceneRef: StorylineSceneRef(
+            kind: StorylineSceneRefKind.scenario,
+            targetId: 'legacy',
+          ),
+          order: 0,
+          outcomeLinks: [
+            StorylineSceneOutcomeLink(
+              id: 'o',
+              outcomeId: 'ready',
+              label: 'Prêt à partir',
+              effects: [
+                StorylineEffect(
+                  type: StorylineEffectType.activateStep,
+                  targetId: 'got_starter',
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+    final project = ProjectManifest(
+      name: 'P',
+      maps: const [],
+      tilesets: const [],
+      scenes: [scene],
+      scenarios: const [
+        ScenarioAsset(
+          id: 'legacy',
+          name: 'Rencontre',
+          entryNodeId: 'start',
+          declaredOutcomes: ['ready', 'late'],
+        ),
+      ],
+      storylines: [story],
+    );
+    final choices = storyStepOutcomeChoices(project, story, 'c', step);
+    expect([for (final c in choices) c.id], [
+      'starter_given',
+      'ready',
+      'late',
+      'ghost',
+    ]);
+    expect(choices[0].label, 'Starter reçu');
+    expect(choices[0].source, 'Scène « Le laboratoire »');
+    expect(choices[0].expected, isTrue);
+    expect(choices[1].label, 'Prêt à partir');
+    expect(choices[1].source, 'Scénario « Rencontre »');
+    expect(choices[1].expected, isFalse);
+    expect(choices[3].missing, isTrue);
+    expect(choices[3].expected, isTrue);
+  });
+
+  testWidgets('checking an expected outcome edits only that step', (
+    tester,
+  ) async {
+    final step = StorylineStep(
+      id: 'ready_step',
+      title: 'Se préparer',
+      order: 0,
+      expectedOutcomeIds: const ['ghost'],
+    );
+    final story = StorylineAsset(
+      id: 'main',
+      type: StorylineType.main,
+      title: 'Aventure',
+      chapters: [
+        StorylineChapter(id: 'c', title: 'C', order: 0, steps: [step]),
+      ],
+      sceneLinks: [
+        StorylineSceneLink(
+          id: 'link',
+          chapterId: 'c',
+          stepId: 'ready_step',
+          label: 'Rencontre',
+          state: StorylineSceneLinkState.linkedScenario,
+          role: StorylineSceneLinkRole.primary,
+          sceneRef: StorylineSceneRef(
+            kind: StorylineSceneRefKind.scenario,
+            targetId: 'legacy',
+          ),
+          order: 0,
+        ),
+      ],
+    );
+    late StoryBackendFixture fixture;
+    await tester.runAsync(() async {
+      fixture = await StoryBackendFixture.create(
+        stories: [story],
+        scenarios: const [
+          ScenarioAsset(
+            id: 'legacy',
+            name: 'Rencontre',
+            entryNodeId: 'start',
+            declaredOutcomes: ['ready'],
+          ),
+        ],
+      );
+    });
+    addTearDown(() => tester.runAsync(fixture.dispose));
+    StateSetter? rebuild;
+    final controller = StoryWorkspaceController(
+      fixture.narrative,
+      fixture.port,
+      changed: () => rebuild?.call(() {}),
+    )..open(story.id);
+    addTearDown(controller.dispose);
+    StorylineStep current() => controller.stories
+        .singleWhere((s) => s.id == 'main')
+        .chapters
+        .single
+        .steps
+        .single;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: studioTheme(),
+        home: Scaffold(
+          body: StatefulBuilder(
+            builder: (context, setState) {
+              rebuild = setState;
+              return SingleChildScrollView(
+                child: StoryStepOutcomes(
+                  controller: controller,
+                  story: controller.stories.singleWhere((s) => s.id == 'main'),
+                  chapterId: 'c',
+                  step: current(),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+    expect(find.text('ready'), findsOneWidget);
+    expect(find.text('Scénario « Rencontre »'), findsOneWidget);
+    expect(find.textContaining('Introuvable'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('story-step-outcome-ready')));
+    await tester.pump();
+    expect(current().expectedOutcomeIds, ['ghost', 'ready']);
+    expect(current().title, 'Se préparer');
   });
 }

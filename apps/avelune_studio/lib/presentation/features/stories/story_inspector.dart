@@ -9,6 +9,7 @@ import 'story_metadata_fields.dart';
 import 'story_relation_details.dart';
 import 'story_scene_links.dart';
 import 'story_scenario_links.dart';
+import 'story_step_outcomes.dart';
 import 'story_reload_dialog.dart';
 import 'story_view_state.dart';
 
@@ -155,15 +156,18 @@ class StoryInspector extends StatelessWidget {
                     Text(
                       'Achèvement : ${storyConditionText(step.completionCondition, project)}',
                     ),
-                    if (step.expectedOutcomeIds.isNotEmpty)
-                      Text(
-                        'Résultats attendus : ${step.expectedOutcomeIds.join(', ')}',
-                      ),
+                    const SizedBox(height: 12),
+                    StoryStepOutcomes(
+                      controller: controller,
+                      story: story,
+                      chapterId: chapter!.id,
+                      step: step,
+                    ),
                     const SizedBox(height: 20),
                     StorySceneLinks(
                       controller: controller,
                       storyId: story.id,
-                      chapterId: chapter!.id,
+                      chapterId: chapter.id,
                       step: step,
                       onOpenScene: onOpenScene,
                     ),
