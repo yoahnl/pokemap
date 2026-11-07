@@ -1684,12 +1684,12 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 
 **Étapes d’implémentation :**
 
-- [ ] 1. Afficher les onze entrées du registre avec disponibilité de profil et degré de support réel.
-- [ ] 2. Séparer activation du jeu, connaissance de la capacité et condition de progression.
-- [ ] 3. Réutiliser l’éditeur de conditions Surf, ses sélecteurs de badges/états/objets et ses références stables.
-- [ ] 4. Valider une vitesse finie strictement positive, sans maximum artificiel de 30 ; conserver les règles d’objets et quantités existantes.
-- [ ] 5. Montrer un résumé lisible et un accès direct aux paramètres de la capacité sélectionnée.
-- [ ] 6. Préserver Escalade et Anti-Brume comme activation seule tant que leur exécution n’est pas disponible ; ne pas étendre FieldAbility.values ni le runtime par effet de refonte.
+- [x] 1. Afficher les onze entrées du registre avec disponibilité de profil et degré de support réel.
+- [x] 2. Séparer activation du jeu, connaissance de la capacité et condition de progression.
+- [x] 3. Réutiliser l’éditeur de conditions Surf, ses sélecteurs de badges/états/objets et ses références stables.
+- [x] 4. Valider une vitesse finie strictement positive, sans maximum artificiel de 30 ; conserver les règles d’objets et quantités existantes.
+- [x] 5. Montrer un résumé lisible et un accès direct aux paramètres de la capacité sélectionnée.
+- [x] 6. Préserver Escalade et Anti-Brume comme activation seule tant que leur exécution n’est pas disponible ; ne pas étendre FieldAbility.values ni le runtime par effet de refonte.
 
 **Tests comportementaux obligatoires :**
 
@@ -2648,7 +2648,7 @@ Une entrée « Parcours décrit » n’est pas déclarée implémentée. Le lot 
 | T02 | P1 | Erreur de test sans prochaine action | UX-21, ét. 6 | Couvert |
 | T03 | P1 | « Annuler » désigne deux portées | UX-14, ét. 5 | **Corrigé** par UX-14 : « Défaire » / « Rétablir » pour l’historique de la rubrique, « Abandonner les modifications » pour son brouillon ; vérifié en natif |
 | T04 | P2 | Champ de vision et distance liés mais séparés | UX-16, ét. 3 | **Corrigé** par UX-16 : la compensation distance/champ de vision est annoncée sur place et revient en une seule annulation ; saisies numériques bornées ; vérifié en natif |
-| T05 | P1 | Activer, disposer et débloquer une CS | UX-19 | Couvert |
+| T05 | P1 | Activer, disposer et débloquer une CS | UX-19 | **Corrigé** par UX-19 : support réel affiché pour les onze capacités, résumé séparant autorisation, connaissance et déblocage ; vérifié en natif |
 | T06 | P2 | Deux chemins pour affecter un son | UX-20 | Couvert |
 | T07 | P1 | Conséquences de l’export peu claires | UX-21, UX-15 | Couvert |
 

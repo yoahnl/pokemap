@@ -69,7 +69,7 @@ final class ProjectSurfController extends ChangeNotifier {
   void editSpeed(String raw) {
     if (saved == null || loading || saving) return;
     speedInput = raw;
-    final value = double.tryParse(raw.trim());
+    final value = double.tryParse(raw.trim().replaceAll(',', '.'));
     if (value == null || !value.isFinite || value <= 0) {
       speedInputError = 'Saisissez une vitesse supérieure à zéro.';
       notifyListeners();

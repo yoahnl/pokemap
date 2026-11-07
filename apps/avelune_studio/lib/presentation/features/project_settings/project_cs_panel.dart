@@ -7,6 +7,7 @@ import '../../../features/project_cs/application/project_cs_controller.dart';
 import '../../../features/project_surf/application/project_surf_controller.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/inputs/studio_choice.dart';
+import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import 'project_surf_panel.dart';
 
@@ -28,7 +29,54 @@ class ProjectCsPanel extends StatefulWidget {
   State<ProjectCsPanel> createState() => _ProjectCsPanelState();
 }
 
+String fieldAbilitySupport(
+  ProjectFieldAbilityEntry ability,
+  ProjectDimension dimension,
+) => ability.activationOnly
+    ? 'Activation seule'
+    : dimension == ProjectDimension.twoD || ability.id == 'surf'
+    ? 'Mécanique disponible'
+    : 'Non certifiée en 3D';
+
 class _ProjectCsPanelState extends State<ProjectCsPanel> {
+  String _examined = 'surf';
+
+  Widget _summary(ProjectSettings settings, ProjectSurfSettings surf) {
+    final ability = ProjectFieldAbilityRegistry.find(_examined)!;
+    final enabled = isProjectFieldAbilityIdEnabled(settings, ability.id);
+    final lines = <String>[
+      enabled ? 'Autorisée dans ce jeu.' : 'Non autorisée dans ce jeu.',
+      if (ability.id == 'surf') ...[
+        surf.requiresKnownMove
+            ? 'Connaissance : un Pokémon de l’équipe doit connaître Surf.'
+            : 'Connaissance : aucun Pokémon n’est exigé.',
+        switch (surf.accessMode) {
+          ProjectSurfAccessMode.progression =>
+            'Débloquée pour le joueur : par la progression du jeu.',
+          ProjectSurfAccessMode.always =>
+            'Débloquée pour le joueur : toujours, sans condition.',
+          ProjectSurfAccessMode.condition =>
+            surf.condition == null
+                ? 'Débloquée pour le joueur : selon une condition, encore à '
+                      'choisir.'
+                : 'Débloquée pour le joueur : selon une condition.',
+        },
+        'Réglages détaillés : panneau Surf ci-dessous.',
+      ] else if (ability.activationOnly)
+        'Activation seule : l’exécution de cette capacité sur la carte '
+            'n’existe pas encore. L’activer ne débloque rien en jeu.'
+      else
+        'Déblocage pour le joueur : décidé par la progression du jeu (badges, '
+            'objets ou événements). Cette capacité n’a pas d’autre réglage.',
+    ];
+    return StudioPanel(
+      key: ValueKey('cs-summary-${ability.id}'),
+      title: 'Résumé · ${ability.label}',
+      icon: Icons.fact_check_outlined,
+      children: [for (final line in lines) Text(line)],
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -71,6 +119,10 @@ class _ProjectCsPanelState extends State<ProjectCsPanel> {
                 StudioChoice(
                   key: ValueKey('cs-${ability.id}'),
                   label: ability.label,
+                  trailing: Text(
+                    fieldAbilitySupport(ability, settings.dimension),
+                    key: ValueKey('cs-support-${ability.id}'),
+                  ),
                   selected: isProjectFieldAbilityIdEnabled(
                     settings,
                     ability.id,
@@ -144,6 +196,19 @@ class _ProjectCsPanelState extends State<ProjectCsPanel> {
                 ),
             ],
           ),
+          const SizedBox(height: 12),
+          StudioSelect(
+            key: const ValueKey('cs-examined'),
+            label: 'Capacité à examiner',
+            value: _examined,
+            options: {
+              for (final ability in ProjectFieldAbilityRegistry.entries)
+                ability.id: ability.label,
+            },
+            onChanged: (value) => setState(() => _examined = value),
+          ),
+          const SizedBox(height: 8),
+          _summary(settings, surf.preview.value),
           const SizedBox(height: 12),
           ProjectSurfPanel(
             owner: surf,
