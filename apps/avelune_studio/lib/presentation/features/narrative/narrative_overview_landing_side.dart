@@ -97,24 +97,17 @@ extension NarrativeOverviewLandingSide on NarrativeOverviewLanding {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         StudioPanel(
-          title: 'Reprendre votre travail',
+          key: const ValueKey('narrative-landing-resume'),
+          title: active.isEmpty
+              ? 'Rien à reprendre'
+              : 'Reprendre votre travail',
           children: [
-            if (active.isEmpty) ...[
-              const Text('Aucun brouillon ouvert. Scènes du projet :'),
-              const SizedBox(height: 8),
-              for (final scene in scenes.take(4))
-                _documentRow(
-                  context,
-                  icon: Icons.account_tree_outlined,
-                  tone: StudioTone.info,
-                  leading: _sceneArtwork(scene.id),
-                  title: scene.name,
-                  subtitle: 'Scène enregistrée',
-                  onTap: onOpenScene == null
-                      ? null
-                      : () => onOpenScene!(scene.id),
-                ),
-            ],
+            if (active.isEmpty)
+              const Text(
+                'Aucun document n’est ouvert ni modifié. Ouvrez une histoire, '
+                'une scène, un dialogue ou un événement : tant qu’il reste '
+                'ouvert ou non enregistré, il apparaît ici pour le reprendre.',
+              ),
             for (final item in active.take(5))
               _documentRow(
                 context,

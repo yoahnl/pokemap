@@ -84,7 +84,13 @@ class _VerificationWorkspacePageState extends State<VerificationWorkspacePage> {
                 'actuelle.',
               ),
             const SizedBox(height: 10),
-            Expanded(child: compact ? _centre(true) : _wideBody(tight)),
+            Expanded(
+              child: _neverChecked
+                  ? _firstCheck()
+                  : compact
+                  ? _centre(true)
+                  : _wideBody(tight),
+            ),
           ],
         ),
       );
@@ -101,19 +107,19 @@ class _VerificationWorkspacePageState extends State<VerificationWorkspacePage> {
         icon: Icons.arrow_back,
         onPressed: widget.onBack,
       ),
-      if (compact)
+      if (compact && !_neverChecked)
         StudioTool(
           label: 'Graphe',
           icon: Icons.hub_outlined,
           onPressed: () => _sheet(_graphPanel()),
         ),
-      if (compact)
+      if (compact && !_neverChecked)
         StudioTool(
           label: 'Synthèse',
           icon: Icons.insights_outlined,
           onPressed: () => _sheet(_summary()),
         ),
-      if (compact)
+      if (compact && !_neverChecked)
         StudioTool(
           label: 'Détail',
           icon: Icons.article_outlined,
@@ -137,6 +143,28 @@ class _VerificationWorkspacePageState extends State<VerificationWorkspacePage> {
     ],
   );
 
+  bool get _neverChecked => controller.report == null && !controller.running;
+
+  Widget _firstCheck() => Center(
+    child: SingleChildScrollView(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 560),
+        child: StudioEmptyState(
+          key: const ValueKey('verification-first-check'),
+          title: 'Aucun contrôle lancé',
+          description:
+              'La vérification relit les histoires, scènes, événements, '
+              'dialogues et cartes du projet : liens cassés, étapes '
+              'inatteignables, lieux impossibles à atteindre. Tant qu’elle '
+              'n’a pas tourné, rien n’est analysé : ce n’est pas « aucune '
+              'erreur ». Lancez le contrôle avec « Lancer la vérification » : '
+              'les résultats s’afficheront ici.',
+          icon: Icons.fact_check_outlined,
+        ),
+      ),
+    ),
+  );
+
   /// Says what was controlled and when, never what was not.
   String _situation() {
     final report = controller.report;
@@ -145,8 +173,7 @@ class _VerificationWorkspacePageState extends State<VerificationWorkspacePage> {
       VerificationPhase.analysing => 'Analyse en cours…',
       VerificationPhase.cancelled =>
         'Contrôle abandonné. Aucun résultat n’a été adopté.',
-      _ when report == null =>
-        'Aucun contrôle lancé : rien n’a encore été analysé dans ce projet.',
+      _ when report == null => 'Rien n’a encore été analysé dans ce projet.',
       _ =>
         'Contrôle du ${_stamp(report.generatedAt)} sur la version de travail '
             '· ${report.scope.join(' · ')}',
@@ -161,7 +188,7 @@ class _VerificationWorkspacePageState extends State<VerificationWorkspacePage> {
       VerificationPhase.reading => 'Lecture…',
       VerificationPhase.analysing => 'Analyse…',
       VerificationPhase.cancelled => 'Contrôle abandonné.',
-      _ when report == null => 'Aucun contrôle lancé.',
+      _ when report == null => 'Non vérifié.',
       _ => 'Contrôle du ${_stamp(report.generatedAt)}',
     };
   }
