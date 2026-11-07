@@ -2173,6 +2173,8 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 - [ ] 4. Relier un dresseur, son interaction et sa scène sans déplacer les règles de combat dans l’UI.
 - [ ] 5. Tester un exemple borné de rencontre et de dresseur avec les règles existantes ; préserver la distribution et les sauvegardes.
 
+*Vague 3 (cout-carte) : l'analyse des usages de combat reste une lecture globale de toutes les cartes et scènes (~2 min 30 natif sur HGSS, mesure de la session Narration, non remesurée : session macOS verrouillée) ; elle est explicite et affiche désormais qu'elle est en cours — a80278960. La rendre proportionnelle demande un index des usages par table et par dresseur.*
+
 **Tests comportementaux obligatoires :**
 
 - Table valide mais non affectée : avertissement distinct d’une table invalide.
