@@ -369,14 +369,14 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 
 **Étapes d’implémentation :**
 
-- [ ] 1. Préserver la création de projet 2D/3D, les validations et le choix de destination ; ne pas coupler cette création aux données d’exemple.
-- [ ] 2. Conserver création, duplication, rôle, dimensions et classement des cartes via les commandes canoniques existantes.
+- [x] 1. Préserver la création de projet 2D/3D, les validations et le choix de destination ; ne pas coupler cette création aux données d’exemple.
+- [x] 2. Conserver création, duplication, rôle, dimensions et classement des cartes via les commandes canoniques existantes.
 - [ ] 3. Rendre dossiers, recherche et sélection multiple explicites ; distinguer nom affiché et identité stable.
-- [ ] 4. Après création ou déplacement, ouvrir la bonne carte en gardant l’historique du document précédent.
+- [x] 4. Après création ou déplacement, ouvrir la bonne carte en gardant l’historique du document précédent.
 - [ ] 5. Traiter annulation du sélecteur natif, nom invalide, destination non admissible et conflit sans créer de projet ou carte partiel.
-- [ ] 6. Placer l’arborescence des cartes dans l’onglet Cartes de la colonne gauche, à côté de Contenu de la carte (D-01). Le fil d’Ariane et un sélecteur rapide restent des raccourcis, pas le seul accès. À l’échelle de HGSS, changer de carte ne passe pas par une modale bloquante et ne referme pas le dossier courant ; le nom complet et le chemin s’affichent au focus et à la sélection, et une recherche comprend noms et dossiers (audit M05).
-- [ ] 7. Au choix 2D/3D, montrer ce que chaque modèle contient réellement et ce qu’il manque avant un test ; « prêt à tester » seulement si un test le confirme (audit C01). Donner la priorité au nom du jeu, le dossier restant ajustable avec aperçu du chemin final et ses vérifications actuelles (audit C02).
-- [ ] 8. À la création de carte, dire à quoi sert la planche proposée et l’organiser par usage ; ne pas déclarer une ressource invalide sur la foi de son nom (audit C03).
+- [x] 6. Placer l’arborescence des cartes dans l’onglet Cartes de la colonne gauche, à côté de Contenu de la carte (D-01). Le fil d’Ariane et un sélecteur rapide restent des raccourcis, pas le seul accès. À l’échelle de HGSS, changer de carte ne passe pas par une modale bloquante et ne referme pas le dossier courant ; le nom complet et le chemin s’affichent au focus et à la sélection, et une recherche comprend noms et dossiers (audit M05).
+- [x] 7. Au choix 2D/3D, montrer ce que chaque modèle contient réellement et ce qu’il manque avant un test ; « prêt à tester » seulement si un test le confirme (audit C01). Donner la priorité au nom du jeu, le dossier restant ajustable avec aperçu du chemin final et ses vérifications actuelles (audit C02).
+- [x] 8. À la création de carte, dire à quoi sert la planche proposée et l’organiser par usage ; ne pas déclarer une ressource invalide sur la foi de son nom (audit C03).
 
 **Tests comportementaux obligatoires :**
 
@@ -428,11 +428,11 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 
 **Étapes d’implémentation :**
 
-- [ ] 1. Décrire les commandes par identifiant stable, label, raccourci, disponibilité et exécuteur existant ; réutiliser le registre déjà présent s’il remplit ce rôle.
-- [ ] 2. Alimenter menus, barre d’outils et recherche avec ces mêmes commandes.
+- [x] 1. Décrire les commandes par identifiant stable, label, raccourci, disponibilité et exécuteur existant ; réutiliser le registre déjà présent s’il remplit ce rôle.
+- [x] 2. Alimenter menus, barre d’outils et recherche avec ces mêmes commandes.
 - [ ] 3. Ajouter recherche d’intention et aide « Comment faire » liée au geste ; conserver les 55 familles comme couverture documentaire.
-- [ ] 4. Gérer ⌘/Ctrl K, focus initial, navigation fléchée, Entrée et Échap ; préserver la saisie dans un champ ou un graphe.
-- [ ] 5. Ouvrir les sélecteurs natifs depuis l’aide plutôt qu’un faux parcours ; qualifier les fonctions indisponibles par le profil.
+- [x] 4. Gérer ⌘/Ctrl K, focus initial, navigation fléchée, Entrée et Échap ; préserver la saisie dans un champ ou un graphe.
+- [x] 5. Ouvrir les sélecteurs natifs depuis l’aide plutôt qu’un faux parcours ; qualifier les fonctions indisponibles par le profil.
 
 **Tests comportementaux obligatoires :**
 
@@ -782,9 +782,9 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 
 - [ ] 1. Relier sélection de ressource, prévisualisation du placement, validation et annulation au port natif.
 - [ ] 2. Conserver une ressource complète comme occurrence ; ne pas découper les arbres ni les bordures pour les poser séparément.
-- [ ] 3. Pour un environnement, montrer contour, répartition, ressources et propriété des éléments générés.
-- [ ] 4. Séparer Zone jouable et Décor extérieur dans la cible active ; afficher cette cible avant le premier placement.
-- [ ] 5. Renvoyer vers le propriétaire d’un objet généré ; présenter les exceptions locales uniquement si le contrat les supporte.
+- [x] 3. Pour un environnement, montrer contour, répartition, ressources et propriété des éléments générés.
+- [x] 4. Séparer Zone jouable et Décor extérieur dans la cible active ; afficher cette cible avant le premier placement.
+- [x] 5. Renvoyer vers le propriétaire d’un objet généré ; présenter les exceptions locales uniquement si le contrat les supporte.
 - [ ] 6. Tester le résultat avec le vrai renderer puis rouvrir la carte pour vérifier les données sauvegardées.
 
 **Tests comportementaux obligatoires :**
@@ -840,7 +840,7 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 
 - [ ] 1. Découper le parcours en hauteur, profil, contour et revue ; réutiliser les modes terrain/ramp et l’auteur de Border.
 - [ ] 2. Montrer les niveaux bas/haut, l’effet sur les décors existants et le côté de la paroi ; ne pas convertir une hauteur en simple translation décorative.
-- [ ] 3. Choisir une définition de bordure prête, avec ses segments et coins ; un brouillon renvoie à l’atelier.
+- [x] 3. Choisir une définition de bordure prête, avec ses segments et coins ; un brouillon renvoie à l’atelier.
 - [ ] 4. Tracer, modifier un sommet, annuler un segment et préparer une prévisualisation native sur les seules dépendances concernées.
 - [ ] 5. Rendre disponibles pentes et surfaces depuis leur système actuel ; les chemins/eau restent liés à leur sol et à leurs règles natives.
 - [ ] 6. Avant application, vérifier raccords, coins, sens, trous et traversabilité ; après application, annuler/rétablir puis rouvrir.
@@ -904,7 +904,7 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 - [ ] 1. Réutiliser les commandes natives des collisions, passages, connexions et départ ; nommer la cible et la carte concernées.
 - [ ] 2. Fournir des sélecteurs de carte et de point d’arrivée recherchables, avec aperçu et référence non résolue conservée.
 - [ ] 3. Présenter les superpositions issues des vraies données, distinctes de l’image finale du jeu.
-- [ ] 4. Centraliser la disponibilité 2D/3D ; une zone non supportée n’est pas proposée depuis un autre menu.
+- [x] 4. Centraliser la disponibilité 2D/3D ; une zone non supportée n’est pas proposée depuis un autre menu.
 - [ ] 5. Rendre accessibles vélo, Corde Sortie, donjon et règles de carte via le panneau Carte, sans les confondre avec une occurrence.
 - [ ] 6. Vérifier un aller-retour de passage et une connexion de bord avec le runtime existant, sans changer ses règles de gameplay.
 
@@ -2606,17 +2606,17 @@ Une entrée « Parcours décrit » n’est pas déclarée implémentée. Le lot 
 | G01 | P2 | Accueil : des outils plutôt qu’un prochain objectif | UX-02, ét. 7 | Ajouté, D-03 tranchée |
 | G02 | P1 | « Tester » et « Tester le jeu » trop proches | UX-21, ét. 3 | **En partie corrigé** par UX-21 : la revue avant lancement s’intitule « Tester cette carte » ou « Tester le jeu » et dit ce que garde la session ; le libellé de la barre de la carte relève de la session Carte |
 | G03 | P1 | « Lecture seule » ne dit pas ce qui l’est | UX-02, ét. 6 | Ajouté |
-| G04 | P2 | « Scène à tester » liste des cartes | UX-03.1, ét. 4 ; lexique en UX-03 | Ajouté, avancé ; **corrigé** par d33da791b (« Carte à tester »), lexique commun restant en UX-03 |
-| C01 | P2 | Conséquences du choix 2D/3D montrées trop tard | UX-02.1, ét. 7 | Ajouté |
-| C02 | P2 | Nom et dossier demandés avant l’intention | UX-02.1, ét. 7 | Ajouté |
-| C03 | P2 | Planche par défaut sans usage explicite | UX-02.1, ét. 8 | Ajouté |
+| G04 | P2 | « Scène à tester » liste des cartes | UX-03.1, ét. 4 ; lexique en UX-03 | Ajouté, avancé ; **corrigé** par d33da791b (« Carte à tester ») ; lexique commun (projet, jeu, carte, carte régionale, scène, événement, présentation, ressource, occurrence) avec exemples dans la palette ⌘K par 48f70a09a |
+| C01 | P2 | Conséquences du choix 2D/3D montrées trop tard | UX-02.1, ét. 7 | Ajouté ; **corrigé** par 4c552a318 : le choix du modèle montre carte, personnage, départ, ressources et Pokémon réellement inclus et ce qu’il faut avant un test, sans « prêt à tester » ; vérifié en natif |
+| C02 | P2 | Nom et dossier demandés avant l’intention | UX-02.1, ét. 7 | Ajouté ; **corrigé** par 4c552a318 : le nom d’abord, le dossier facultatif avec aperçu du chemin final ; vérifications de destination inchangées ; vérifié en natif |
+| C03 | P2 | Planche par défaut sans usage explicite | UX-02.1, ét. 8 | Ajouté ; **corrigé** par 4c552a318 : usage expliqué, planches classées Décor / Personnage d’après les personnages qui les utilisent, champ retiré en 3D où `map.create` le refuse ; vérifié en natif (3D) |
 | M01 | P1 | Palette et outil racontent deux intentions | UX-04, UX-05 | Couvert |
 | M02 | P1 | Actions essentielles cachées dans « … » | UX-04, ét. 2 et 6 | Complété |
 | M03 | P2 | Panneau inférieur sans rapport avec l’outil | UX-05 | Couvert |
 | M04 | P1 | Consigne vers un panneau absent | UX-04, ét. 7 | Ajouté |
-| M05 | P2 | Noms tronqués, recherches différentes | UX-02.1, ét. 6 | Ajouté, D-01 tranchée |
+| M05 | P2 | Noms tronqués, recherches différentes | UX-02.1, ét. 6 | Ajouté, D-01 tranchée ; **corrigé** par 4c552a318 (nom complet et dossier au focus et à la sélection, recherche sans accents sur noms et dossiers) et 60f640327 (colonne 288/320 px) ; vérifié en natif |
 | M06 | P2 | Recherche perdue dans un dock étroit | UX-05, ét. 8 | Ajouté |
-| M07 | P2 | État vide de Bordures aux consignes concurrentes | UX-05, ét. 5 | Couvert |
+| M07 | P2 | État vide de Bordures aux consignes concurrentes | UX-05, ét. 5 | Couvert ; **corrigé** par d96ab8849 : un seul état à la fois (aucun modèle publié, aucun prêt pour la carte, filtres, ou modèles non chargés en session partielle), une seule action, plus de consigne concurrente dans la palette ; vérifié en natif |
 | M08 | P1 | Ambiance et sauvegarde à plusieurs endroits | UX-14, UX-17 | Couvert ; UX-14 : la portée « Cette carte » des réglages édite le même brouillon que l’Ambiance de la carte (plus de second contrôleur sur `maps/<id>.visual.json`), sans sauvegarde implicite ; UX-17 : la caméra et les effets de la carte disent quelles valeurs le projet ou une dérogation remplacent en jeu, et chaque valeur de la portée carte indique « Propre à cette carte » ou « Suit le projet » ; vérifié en natif. Reste : l’inspecteur Sélection / Carte / Image / Temps / Jeu (étape 1, zone Carte) |
 | M09 | P1 | Carte régionale : première carte liée d’office | UX-03.1, ét. 5 | Ajouté, avancé ; **corrigé** par d33da791b (choix explicite avec dossier ; pas d’aperçu) |
 | M10 | P2 | Lieux régionaux difficiles à grande échelle | UX-23.7, ét. 6 | Ajouté ; **corrigé** par b6f400d07 (recherche, dossier, résumé, refus expliqué ; attente, absence et erreur de l’aperçu distinguées) |
@@ -2641,7 +2641,7 @@ Une entrée « Parcours décrit » n’est pas déclarée implémentée. Le lot 
 | R08 | P1 | Condition d’évolution prise pour une règle | UX-23.6, ét. 7 | Ajouté, livrable en avance ; **corrigé** par 7529620f2 (validateur d’évolutions : correctif en attente hors de ce lot) |
 | R09 | P1 | « Importer » ne dit pas s’il remplace | UX-23.6, ét. 8 | Ajouté, livrable en avance ; **corrigé** par b6c657ed3 |
 | R10 | P2 | Média référencé mais peut-être absent | UX-23.6, ét. 8 ; UX-13 | Ajouté ; volet Pokémon **corrigé** par b6c657ed3, volet UX-13 non couvert ici |
-| R11 | P3 | Netteté inégale des aperçus pixel art | UX-01, ét. 7 | Ajouté |
+| R11 | P3 | Netteté inégale des aperçus pixel art | UX-01, ét. 7 | Ajouté ; **corrigé** pour les vignettes et aperçus Pokémon par 60f640327 (`FilterQuality.none`), vérifié en natif ; les autres aperçus non recensés |
 | R12 | P3 | Listes vides sans aide pour démarrer | UX-01, ét. 2 | Couvert |
 | R13 | P2 | Combat et attaques : suite du geste ailleurs | UX-23.6, ét. 10 | Ajouté ; **en partie** par 628510049 et cd81aa24c (affectation guidée, usages complétés, synchronisation annoncée) |
 | T01 | P1 | Tester enregistre certains brouillons et en bloque d’autres | UX-21, ét. 2 | **Corrigé** par UX-21 : la revue liste les brouillons qui seront enregistrés et ceux qui bloquent, rien n’est enregistré sans confirmation ; vérifié en natif |
