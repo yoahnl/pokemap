@@ -71,6 +71,8 @@ final class BattlePreparedRecipeAudio {
   final Completer<Object> _playbackFailure = Completer<Object>();
   bool _disabled = false;
   bool _claimed = false;
+  bool _waitingForSourceSound = false;
+  PlaySeStep? _deferredSourceCue;
 
   final List<BattleAnimationStep> steps;
   final List<String> sourceSeqIds;
@@ -91,6 +93,22 @@ final class BattlePreparedRecipeAudio {
 
   Future<void> cancel() => _cancel();
 
+  bool waitForSourceSound() {
+    if (_claimed || _disabled || _cues.length != 1 || sourceSeqIds.isNotEmpty) {
+      return false;
+    }
+    _waitingForSourceSound = true;
+    return true;
+  }
+
+  void startAtSourceSound() {
+    if (!_waitingForSourceSound) return;
+    _waitingForSourceSound = false;
+    final cue = _deferredSourceCue;
+    _deferredSourceCue = null;
+    if (cue != null) dispatch(cue);
+  }
+
   static List<BattleAnimationStep> _buildSteps(List<_PreparedAudioCue> cues) {
     final steps = <BattleAnimationStep>[];
     var previous = Duration.zero;
@@ -108,6 +126,10 @@ final class BattlePreparedRecipeAudio {
   bool dispatch(PlaySeStep step) {
     final cue = _cues[step.seName];
     if (cue == null) return false;
+    if (_waitingForSourceSound && !_disabled) {
+      _deferredSourceCue = step;
+      return true;
+    }
     if (!_disabled && !cue.started) {
       cue.started = true;
       unawaited(_startCue(cue));

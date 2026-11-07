@@ -7007,12 +7007,28 @@ final class _PreparedSourceProgram {
   bool _visualFinished = false;
   bool _audioFinished = false;
   bool _closed = false;
+  BattlePreparedRecipeAudio? _sourceAudio;
 
   void audioPrepared(BattleRecipeAudioResult result) {
     final program = result.program;
     if (result.status != BattleRecipeAudioStatus.ready || program == null) {
       unawaited(cancel());
       return;
+    }
+    final instructions = particles.program['instructions'];
+    final entry = particles.program['entryIndex'];
+    if (instructions is List &&
+        entry is int &&
+        entry >= 0 &&
+        entry < instructions.length &&
+        instructions
+            .skip(entry)
+            .takeWhile((instruction) =>
+                instruction is Map && instruction['op'] != 'end')
+            .any((instruction) =>
+                instruction is Map && instruction['op'] == 'playSound') &&
+        program.waitForSourceSound()) {
+      _sourceAudio = program;
     }
     unawaited(program.finished.then<void>((_) async {
       try {
@@ -7055,6 +7071,7 @@ final class _PreparedSourceProgram {
         startEmitter: (_, _, _) => throw StateError('Missing source emitter'),
         startSourceEmitter: particles.start,
         deleteSourceParticle: particles.delete,
+        onSourceSound: (_) => _sourceAudio?.startAtSourceSound(),
         particlesBusy: particles.isBusy,
         detachParticles: particles.dispose,
         allowSilentAudio: true,
@@ -7076,6 +7093,7 @@ final class _PreparedSourceProgram {
           visualFailed();
           return;
         }
+        _sourceAudio?.startAtSourceSound();
         _visualFinished = true;
         _cancelRunning = null;
         _onComplete?.call();

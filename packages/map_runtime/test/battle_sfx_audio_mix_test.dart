@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flame_audio/flame_audio.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -6,6 +7,40 @@ import 'package:map_runtime/map_runtime.dart';
 import 'package:map_runtime/src/presentation/flame/battle_sfx_player.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('damage effectiveness plays three distinct embedded BW2 sounds', () async {
+    final voices = <_Voice>[];
+    final player = FlameAudioBattleSfxPlayer(
+      playerFactory: () {
+        final voice = _Voice();
+        voices.add(voice);
+        return voice;
+      },
+    );
+    addTearDown(player.dispose);
+
+    await player.precache(['hit', 'hitplus', 'hitlow']);
+    for (final name in ['hit', 'hitplus', 'hitlow']) {
+      player.play(name, volume: 100, pitch: 100);
+    }
+    for (var i = 0; i < 100 && voices.any((voice) => voice.sources.isEmpty); i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+    }
+
+    expect(voices, hasLength(3));
+    final lengths = <int>{};
+    for (final voice in voices) {
+      expect(voice.sources.single, isA<DeviceFileSource>());
+      final bytes = await File((voice.sources.single as DeviceFileSource).path)
+          .readAsBytes();
+      expect(bytes.take(4), [82, 73, 70, 70]);
+      expect(bytes.skip(8).take(4), [87, 65, 86, 69]);
+      lengths.add(bytes.length);
+    }
+    expect(lengths, hasLength(3));
+  });
+
   test('accelerated battle effects bound live voices without changing pitch', () async {
     final voices = <_Voice>[];
     final player = FlameAudioBattleSfxPlayer(
@@ -69,6 +104,7 @@ void main() {
 final class _Voice implements AudioPlayer {
   final complete = StreamController<void>.broadcast();
   final playVolumes = <double?>[];
+  final sources = <Source>[];
   final volumes = <double>[];
   final rates = <double>[];
 
@@ -77,6 +113,7 @@ final class _Voice implements AudioPlayer {
     if (invocation.memberName == #onPlayerComplete) return complete.stream;
     if (invocation.isSetter) return null;
     if (invocation.memberName == #play) {
+      sources.add(invocation.positionalArguments.single as Source);
       playVolumes.add(invocation.namedArguments[#volume] as double?);
     }
     if (invocation.memberName == #setPlaybackRate) {

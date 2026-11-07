@@ -142,7 +142,9 @@ Future<void> _writeSourceOfflineBundle(
   String moveId = 'tackle',
 }) async {
   final assets = Directory('../../tools/avelune_attack_comparator/assets/bw2');
-  final batch = moveId == 'dragon-breath' || moveId == 'hyper-beam'
+  final batch = moveId == 'dragon-breath' ||
+          moveId == 'hyper-beam' ||
+          moveId == 'scratch'
       ? jsonDecode(await File('${assets.path}/batch/$moveId.json').readAsString())
           as Map<String, dynamic>
       : null;
@@ -286,6 +288,46 @@ void main() {
     expect(voice.resumes, 1);
     await audio.cancel();
   });
+
+  for (final sourceFirst in [false, true]) {
+    test(
+      'a source-timed clip starts once when both cues arrive: sourceFirst=$sourceFirst',
+      () async {
+        final voice = _Voice();
+        final player = FlameAudioBattleSfxPlayer(playerFactory: () => voice);
+        addTearDown(player.dispose);
+        final audio = BattleRecipeAudioCoordinator(
+          player: player,
+          bundle: await _bundle(),
+          preparationTimeout: const Duration(seconds: 1),
+          startTimeout: const Duration(seconds: 1),
+        );
+        addTearDown(audio.cancel);
+        final result = await audio.prepare(const BattleMoveClipAudio('cue'));
+        final program = result.program!;
+        final cue = program.steps.single as PlaySeStep;
+        expect(program.waitForSourceSound(), isTrue);
+        if (sourceFirst) {
+          program.startAtSourceSound();
+        } else {
+          expect(program.dispatch(cue), isTrue);
+        }
+        await Future<void>.delayed(Duration.zero);
+        expect(voice.resumes, 0);
+        if (sourceFirst) {
+          expect(program.dispatch(cue), isTrue);
+        } else {
+          program.startAtSourceSound();
+        }
+        await Future<void>.delayed(Duration.zero);
+        expect(voice.resumes, 1);
+        program.startAtSourceSound();
+        expect(program.dispatch(cue), isTrue);
+        await Future<void>.delayed(Duration.zero);
+        expect(voice.resumes, 1);
+      },
+    );
+  }
 
   test(
     'uses fallback once if preparation times out before any sound starts',
@@ -2652,7 +2694,13 @@ void main() {
     expect(budget.residentBytes, 0);
   });
 
-  for (final moveId in ['tackle', 'surf', 'dragon-breath', 'hyper-beam']) {
+  for (final moveId in [
+    'tackle',
+    'scratch',
+    'surf',
+    'dragon-breath',
+    'hyper-beam',
+  ]) {
   for (final viewport in [Vector2(390, 844), Vector2(844, 390)]) {
     test('verified BW2 $moveId plays particles and audio in a tracked turn at $viewport', () async {
       final root = await Directory.systemTemp.createTemp('source-turn-');
@@ -2696,6 +2744,7 @@ void main() {
       await overlay.waitForPendingVisualSync();
       var sawParticles = false;
       var completedAudio = false;
+      var audioBeforeFirstParticle = false;
       for (var tick = 0; tick < 600 && overlay.isTurnPresentationActive; tick++) {
         overlay.updateTree(1 / 60);
         overlay.findGame()!.processLifecycleEvents();
@@ -2707,12 +2756,16 @@ void main() {
               turn.before.state.enemy.currentHp);
         }
         if (!completedAudio && voice.resumes > 0) {
+          audioBeforeFirstParticle = !sawParticles;
           completedAudio = true;
           voice.complete.add(null);
         }
       }
       expect(voice.resumes, 1);
       expect(sawParticles, isTrue);
+      if (moveId == 'tackle' || moveId == 'scratch') {
+        expect(audioBeforeFirstParticle, isFalse);
+      }
       expect(overlay.isTurnPresentationActive, isFalse);
       expect(overlay.currentCommandOverlaySnapshot!.enemyHud.effectiveDisplayedHp,
           turn.after.state.enemy.currentHp);
