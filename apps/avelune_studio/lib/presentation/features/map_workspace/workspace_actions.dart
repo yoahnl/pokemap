@@ -1,6 +1,7 @@
 import '../../../features/project_cs/application/project_cs_controller.dart';
 import '../../../features/project_audio/application/project_audio_controller.dart';
 import '../../../features/project_settings/application/project_identity_controller.dart';
+import '../../../features/verification/application/test_launch_preflight.dart';
 import '../../../features/project_visuals/application/project_visuals_controller.dart';
 import '../../../features/project_surf/application/project_surf_controller.dart';
 import '../../../features/regional_map/application/regional_map_controller.dart';
@@ -49,6 +50,7 @@ class WorkspaceActions {
     this.projectCs,
     this.projectAudio,
     this.projectIdentity,
+    this.confirmLaunch,
     this.worldInputsValid,
     this.publishedCinematicContext,
     required this.runtimeBuilder,
@@ -72,6 +74,7 @@ class WorkspaceActions {
   final ProjectCsController? Function()? projectCs;
   final ProjectAudioController? Function()? projectAudio;
   final ProjectIdentityController? Function()? projectIdentity;
+  final Future<bool> Function(TestLaunchPreflight preflight)? confirmLaunch;
   final bool Function()? worldInputsValid;
   final bool Function()? publishedCinematicContext;
   final StudioRuntimeBuilder runtimeBuilder;
@@ -167,11 +170,49 @@ class WorkspaceActions {
     return false;
   }
 
+  TestLaunchPreflight? _preflight(bool fullProject) {
+    final document = controller.active;
+    if (document == null) return null;
+    final entry = controller.project?.maps
+        .where((map) => map.id == document.base.mapId)
+        .firstOrNull;
+    final name = entry?.name ?? document.current.name;
+    return TestLaunchPreflight(
+      scope: fullProject ? TestLaunchScope.game : TestLaunchScope.map,
+      mapName: name,
+      saves: [
+        if (document.dirty) 'Carte « $name »',
+        if (document.atmosphere?.dirty == true) 'Ambiance de la carte',
+        if (scenes?.call()?.dirty == true) 'Scènes',
+        if (narrative()?.dirty == true) 'Interactions de la carte',
+      ],
+      blockers: [
+        if (regionalMap?.call()?.dirty == true)
+          const TestLaunchBlocker('Carte régionale', 'Carte régionale'),
+        if (presentations?.call()?.dirty == true)
+          const TestLaunchBlocker('Présentations', 'Histoire › Présentations'),
+        if (cinematics?.call()?.dirty == true)
+          const TestLaunchBlocker('Cinématiques', 'Histoire › Cinématiques'),
+        if (dialogues?.call()?.dirty == true)
+          const TestLaunchBlocker('Dialogues', 'Histoire › Dialogues'),
+        if (events?.call()?.dirty == true)
+          const TestLaunchBlocker('Événements', 'Histoire › Événements'),
+      ],
+    );
+  }
+
   Future<void> test({bool fullProject = false}) async {
     if (fullProject && projectRuntimeBuilder == null) {
       controller.error = 'Le test du jeu complet est indisponible.';
       changed();
       return;
+    }
+    if (confirmLaunch case final confirm? when !busy && !controller.loading) {
+      if (_preflight(fullProject) case final preflight?) {
+        final accepted = await confirm(preflight);
+        if (!mounted() || controller.isDisposed) return;
+        if (preflight.canLaunch && !accepted) return;
+      }
     }
     if (regionalMap?.call()?.dirty == true) {
       regionalMap!.call()!.error =

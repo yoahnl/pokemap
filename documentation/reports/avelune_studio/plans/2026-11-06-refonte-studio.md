@@ -1811,12 +1811,12 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 **Étapes d’implémentation :**
 
 - [ ] 1. Distinguer erreurs de saisie, validation de ressources, capacités runtime, lancement et compatibilité des sauvegardes.
-- [ ] 2. Avant test, afficher carte/point de départ, documents et brouillons utilisés ; demander une action explicite pour un brouillon incompatible avec le lancement.
+- [x] 2. Avant test, afficher carte/point de départ, documents et brouillons utilisés ; demander une action explicite pour un brouillon incompatible avec le lancement.
 - [ ] 3. Séparer Tester cette carte et Tester le jeu ; préserver les sauvegardes et indiquer la portée de la session de test.
-- [ ] 4. Au retour de test, restaurer carte, outil, sélection et panneaux sans recharger tout le projet.
-- [ ] 5. L’export reprend l’identité de Général ; différencier Test local et Publication, destination, écrasement confirmé, progression et annulation.
+- [x] 4. Au retour de test, restaurer carte, outil, sélection et panneaux sans recharger tout le projet.
+- [x] 5. L’export reprend l’identité de Général ; différencier Test local et Publication, destination, écrasement confirmé, progression et annulation.
 - [ ] 6. Présenter les erreurs connues avec leur propriétaire ; une cause inconnue ne donne pas lieu à une réparation inventée.
-- [ ] 7. Conserver les contrôles de projet courant pendant un export et la transaction d’activation du paquet.
+- [x] 7. Conserver les contrôles de projet courant pendant un export et la transaction d’activation du paquet.
 
 **Tests comportementaux obligatoires :**
 
@@ -2604,7 +2604,7 @@ Une entrée « Parcours décrit » n’est pas déclarée implémentée. Le lot 
 | Constat | Priorité | Résumé | Lot et étape | Statut |
 |---|---|---|---|---|
 | G01 | P2 | Accueil : des outils plutôt qu’un prochain objectif | UX-02, ét. 7 | Ajouté, D-03 tranchée |
-| G02 | P1 | « Tester » et « Tester le jeu » trop proches | UX-21, ét. 3 | Couvert |
+| G02 | P1 | « Tester » et « Tester le jeu » trop proches | UX-21, ét. 3 | **En partie corrigé** par UX-21 : la revue avant lancement s’intitule « Tester cette carte » ou « Tester le jeu » et dit ce que garde la session ; le libellé de la barre de la carte relève de la session Carte |
 | G03 | P1 | « Lecture seule » ne dit pas ce qui l’est | UX-02, ét. 6 | Ajouté |
 | G04 | P2 | « Scène à tester » liste des cartes | UX-03.1, ét. 4 ; lexique en UX-03 | Ajouté, avancé ; **corrigé** par d33da791b (« Carte à tester »), lexique commun restant en UX-03 |
 | C01 | P2 | Conséquences du choix 2D/3D montrées trop tard | UX-02.1, ét. 7 | Ajouté |
@@ -2644,13 +2644,13 @@ Une entrée « Parcours décrit » n’est pas déclarée implémentée. Le lot 
 | R11 | P3 | Netteté inégale des aperçus pixel art | UX-01, ét. 7 | Ajouté |
 | R12 | P3 | Listes vides sans aide pour démarrer | UX-01, ét. 2 | Couvert |
 | R13 | P2 | Combat et attaques : suite du geste ailleurs | UX-23.6, ét. 10 | Ajouté ; **en partie** par 628510049 et cd81aa24c (affectation guidée, usages complétés, synchronisation annoncée) |
-| T01 | P1 | Tester enregistre certains brouillons et en bloque d’autres | UX-21, ét. 2 | Couvert |
-| T02 | P1 | Erreur de test sans prochaine action | UX-21, ét. 6 | Couvert |
+| T01 | P1 | Tester enregistre certains brouillons et en bloque d’autres | UX-21, ét. 2 | **Corrigé** par UX-21 : la revue liste les brouillons qui seront enregistrés et ceux qui bloquent, rien n’est enregistré sans confirmation ; vérifié en natif |
+| T02 | P1 | Erreur de test sans prochaine action | UX-21, ét. 6 | **En partie** : un brouillon bloquant est nommé avec la page où le résoudre avant le lancement ; les erreurs du runtime pendant le test ne sont pas retravaillées |
 | T03 | P1 | « Annuler » désigne deux portées | UX-14, ét. 5 | **Corrigé** par UX-14 : « Défaire » / « Rétablir » pour l’historique de la rubrique, « Abandonner les modifications » pour son brouillon ; vérifié en natif |
 | T04 | P2 | Champ de vision et distance liés mais séparés | UX-16, ét. 3 | **Corrigé** par UX-16 : la compensation distance/champ de vision est annoncée sur place et revient en une seule annulation ; saisies numériques bornées ; vérifié en natif |
 | T05 | P1 | Activer, disposer et débloquer une CS | UX-19 | **Corrigé** par UX-19 : support réel affiché pour les onze capacités, résumé séparant autorisation, connaissance et déblocage ; vérifié en natif |
 | T06 | P2 | Deux chemins pour affecter un son | UX-20 | **Corrigé** par UX-20 : la bibliothèque et le sélecteur visent la même action courante, nommée sur chaque son ; toutes les actions listées avec leur intention, enregistrement par association ; vérifié en natif |
-| T07 | P1 | Conséquences de l’export peu claires | UX-21, UX-15 | Couvert |
+| T07 | P1 | Conséquences de l’export peu claires | UX-21, UX-15 | **En partie** : une seule identité réglée dans Général et reprise par l’export (UX-15) ; le reste du résumé d’export est inchangé |
 
 Bilan : sur 48 constats, 15 étaient couverts par le plan initial, 2 en partie, et 31 n’avaient aucun lot. Sur les 24 constats P1, 12 n’avaient aucun lot et 2 l’étaient en partie : ils sont tous rattachés désormais. Trois constats dépendaient d’une décision, tranchée le 6 novembre : G01 (D-03), M05 (D-01) et N01 (D-02). N01 attend encore la direction de design Histoire exigée par D-02.
 
