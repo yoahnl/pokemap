@@ -961,7 +961,7 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 - [x] 1. Conserver grille et liste sur la même sélection stable ; rechercher dans les métadonnées sans charger les médias.
 - [x] 2. Conserver familles, types, dimension, disponibilité et pièces sources comme filtres distincts ; montrer les filtres actifs et leur remise à zéro.
 - [x] 3. Distinguer Ressources utilisables et Bibliothèque complète ; les sources et brouillons restent gérables dans cette dernière.
-- [ ] 4. Implémenter sélection multiple, classement et export de sélection avec comptes dérivés du même ensemble.
+- [ ] 4. Implémenter sélection multiple, classement et export de sélection avec comptes dérivés du même ensemble. *(Vague 3 : famille perdue au chargement d'une autre famille corrigée par 86bb44bb5 ; rangement ciblé du catalogue de travail par 6d8e088f7, prouvé par tests hôtes et banc HGSS ; parcours UI natif non revérifié, session macOS verrouillée.)*
 - [ ] 5. Conserver les filtres et le défilement lors de l’ouverture d’un atelier ; rendre le retour à la carte explicite.
 - [x] 6. Gérer chargement, vide, erreur et référence supprimée sans présenter la fiche précédente comme la nouvelle cible.
 - [x] 7. Identifier le contexte des deux surfaces de bibliothèque (resource_workspace_pane.dart et la bibliothèque branchée par studio_workspace_host.dart) ; harmoniser recherche, résultats, fiche et action principale lorsque leurs capacités sont équivalentes, sans supposer qu’elles ont le même rôle (audit R04).
@@ -2516,6 +2516,18 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 **Stockage et coût :** Mesures locales opt-in et fixtures QA ; aucun soak ou runner macOS coûteux ajouté à la CI.
 
 **Sortie du lot :** Coût premier/répété et compatibilité sont étayés par mesures et réouvertures, pas par la seule compilation.
+
+**Mesures consignées — rangement des ressources (vague 3, 2026-11-07) :** clone de l'atlas HGSS (catalogue de travail, 2 586 classements, 9 715 modèles, 1 263 bordures), banc opt-in `apps/avelune_studio/test/resource_io/resource_classification_cost_bench_test.dart`, flutter_tester JIT sur Mac M-series ; pas encore de mesure Release native (session macOS verrouillée).
+
+| Geste | Avant (natif, nuit du 7) | Après 6d8e088f7 (JIT) | Écritures après |
+|---|---|---|---|
+| Ouverture de la boîte « Ranger » | ~3 min | 3 à 6 ms | aucune |
+| Premier rangement unitaire | ~12 min pour 2 entrées, 2 823 objets `catalog/` | 655 à 773 ms | 0 à 11 objets, 13 fichiers |
+| Rangements suivants | idem | 418 à 520 ms | 0 à 10 objets, 13 fichiers |
+| Rangement groupé de 2 | idem | 425 à 534 ms | 0 à 12 objets |
+| « Charger les modèles de bordure » (non corrigé) | 1 à 6 min natif | 50 s pour la sélection du catalogue, 55 s avec le contrôleur | aucune |
+
+Décomposition d'un rangement répété (JIT) : lecture ciblée ~77 ms, planification ~200 ms (relecture de la sélection, validation, préparation du patch), écriture transactionnelle ~140 ms ; le premier ajoute ~100 ms d'ouverture du contexte de mutation. Statut : budget de 500 ms durable tenu en JIT pour les gestes répétés, pas pour le premier ; mesure Release native à faire. Vider tous les champs d'un classement ou le réserver à une carte repasse par le chemin global ; créer ou renommer une famille aussi.
 
 **Références visuelles :** [094-reglages-enregistres](2026-11-06-refonte-studio/captures/094-reglages-enregistres.jpg), [033-carte-retour-heritage](2026-11-06-refonte-studio/captures/033-carte-retour-heritage.jpg).
 

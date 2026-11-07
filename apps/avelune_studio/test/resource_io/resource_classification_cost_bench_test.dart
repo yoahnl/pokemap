@@ -41,13 +41,21 @@ void main() {
       final workspace = MapWorkspaceController(session, maps);
       await measure('workspace.initialize', workspace.initialize);
       expect(workspace.error, isNull);
+      final phases = Stopwatch();
+      final timeline = <String>[];
       final resources = LocalResourceAdapter(
         session: session,
         mapAdapter: maps,
+        mutationPhaseObserver: (phase) =>
+            timeline.add('$phase@${phases.elapsedMilliseconds}'),
       );
       try {
         Future<void> file(String label, List<String> targets, String? family) =>
             measure(label, () async {
+              timeline.clear();
+              phases
+                ..reset()
+                ..start();
               final revision = await resources.captureResourceRevision();
               final preparation = await resources.prepareOperation(
                 'resource.classify_batch',
@@ -65,8 +73,30 @@ void main() {
               );
               final receipt = await resources.applyPrepared(preparation);
               workspace.acceptResources(receipt.before, receipt.manifest);
+              stdout.writeln(
+                'bench $label phases ${timeline.join(' ')} '
+                'accepted@${phases.elapsedMilliseconds}',
+              );
             });
 
+        if (Platform.environment['AVELUNE_CLASSIFY_BENCH_BORDERS'] == '1') {
+          final adapterMaps = LocalMapWorkspaceAdapter();
+          await adapterMaps.loadCatalog(session);
+          final loaded = await measure(
+            'borders.adapter',
+            () => adapterMaps.loadResourceKind(session, 'borderBlueprint'),
+          );
+          stdout.writeln(
+            'bench borders records=${loaded.metadata.borderCatalog.records.length} '
+            'models=${loaded.metadata.models3d.length} '
+            'elements=${loaded.metadata.elements.length} '
+            'tilesets=${loaded.metadata.tilesets.length}',
+          );
+          await measure(
+            'borders.controller',
+            () => workspace.ensureResourceKind('borderBlueprint'),
+          );
+        }
         await measure('dialog.open', resources.captureResourceRevision);
         await file('classify.first', [ids.first], 'props');
         await file('classify.second', [ids.first], 'buildings');
