@@ -20,11 +20,18 @@ class _CharacterStudioPortraitStateDialogState
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: const Text('Nouvel état de portrait'),
-    content: TextField(
-      controller: _name,
-      autofocus: true,
-      decoration: const InputDecoration(labelText: 'Nom de l’état'),
+    title: const Text('Nouvelle expression'),
+    content: SizedBox(
+      width: 360,
+      child: TextField(
+        controller: _name,
+        autofocus: true,
+        decoration: const InputDecoration(
+          labelText: 'Nom de l’expression',
+          helperText: 'Commune à tous les personnages du projet.',
+          helperMaxLines: 2,
+        ),
+      ),
     ),
     actions: [
       TextButton(
@@ -33,7 +40,7 @@ class _CharacterStudioPortraitStateDialogState
       ),
       FilledButton(
         onPressed: () => Navigator.pop(context, _name.text.trim()),
-        child: const Text('Créer l’état'),
+        child: const Text('Créer l’expression'),
       ),
     ],
   );

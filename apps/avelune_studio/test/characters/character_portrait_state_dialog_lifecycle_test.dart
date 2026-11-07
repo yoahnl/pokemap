@@ -21,7 +21,7 @@ void main() {
     characters: [character],
   );
 
-  for (final action in ['Créer l’état', 'Annuler', 'Barrière']) {
+  for (final action in ['Créer l’expression', 'Annuler', 'Barrière']) {
     testWidgets('focused portrait state dialog closes safely through $action', (
       tester,
     ) async {
@@ -55,10 +55,10 @@ void main() {
           ),
         ),
       );
-      await tester.tap(find.text('Ajouter un état'));
+      await tester.tap(find.text('Créer une expression'));
       await tester.pumpAndSettle();
       await tester.enterText(
-        find.widgetWithText(TextField, 'Nom de l’état'),
+        find.widgetWithText(TextField, 'Nom de l’expression'),
         ' Neutre accentué ',
       );
       expect(
@@ -79,10 +79,10 @@ void main() {
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
       expect(find.byType(AlertDialog), findsNothing);
-      expect(find.text('Ajouter un état'), findsOneWidget);
+      expect(find.text('Créer une expression'), findsOneWidget);
       expect(controller.error, isNull);
       expect(controller.saving, isFalse);
-      if (action == 'Créer l’état') {
+      if (action == 'Créer l’expression') {
         expect(calls, 1);
         expect(operation, 'characterStudio.portraitState.create');
         expect(parameters, {'displayName': 'Neutre accentué'});

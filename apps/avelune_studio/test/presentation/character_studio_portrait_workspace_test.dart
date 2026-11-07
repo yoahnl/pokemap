@@ -3,7 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:avelune_studio/features/dialogues/data/local_dialogue_adapter.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
+import 'package:avelune_studio/presentation/features/characters/character_studio_controller.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_workspace_pane.dart';
+import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_tabs.dart';
 
 import '../support/m2_ui_fixture.dart';
 import '../support/map_tool_menu.dart';
@@ -41,15 +43,32 @@ void main() {
       final navigation = tester
           .widget<ResourceWorkspacePane>(find.byType(ResourceWorkspacePane))
           .navigation;
+      final tabs = find.byWidgetPredicate(
+        (widget) => widget is StudioTabs<CharacterStudioSection>,
+      );
+      expect(
+        find.descendant(of: tabs, matching: find.text('Bibliothèque')),
+        findsNothing,
+      );
+      expect(
+        find.descendant(of: tabs, matching: find.text('Identité')),
+        findsOneWidget,
+      );
       await tester.tap(find.text('Portraits'));
       await tester.pump();
-      await tester.tap(find.text('Ajouter un état'));
+      expect(
+        find.textContaining('communes à tous les personnages'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('état'), findsNothing);
+      await tester.tap(find.text('Créer une expression'));
       await tester.pump();
+      expect(find.text('Nouvelle expression'), findsOneWidget);
       await tester.enterText(
-        find.widgetWithText(TextField, 'Nom de l’état'),
+        find.widgetWithText(TextField, 'Nom de l’expression'),
         'Souriante',
       );
-      await tester.tap(find.text('Créer l’état'));
+      await tester.tap(find.text('Créer l’expression'));
       await pumpIo(tester);
       await tester.tap(find.text('Importer un portrait'));
       await pumpIo(tester);

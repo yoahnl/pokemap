@@ -35,7 +35,7 @@ Future<void> importCharacterPortrait(
             const SizedBox(height: 12),
             Text('${image.width} × ${image.height} px · PNG'),
             const Text(
-              'L’image sera copiée dans le projet et associée à cet état. '
+              'L’image sera copiée dans le projet et associée à cette expression pour ce personnage. '
               'Une image déjà utilisée ailleurs ne sera pas remplacée.',
             ),
           ],

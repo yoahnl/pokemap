@@ -55,12 +55,14 @@ class _CharacterStudioPortraitPanelState
       compact: true,
       children: [
         Text(
-          'Une expression associe une image PNG à ce personnage. Les dialogues peuvent ensuite la choisir.',
+          'Les expressions sont communes à tous les personnages du projet. '
+          'Associez ici une image PNG à chacune pour « ${widget.character.name} » ; '
+          'les dialogues choisissent ensuite l’expression à afficher.',
           style: Theme.of(context).textTheme.bodyMedium,
         ),
         const SizedBox(height: 12),
         StudioButton(
-          label: 'Ajouter un état',
+          label: 'Créer une expression',
           icon: Icons.add,
           secondary: true,
           onPressed: widget.controller.saving ? null : _createState,
@@ -68,7 +70,7 @@ class _CharacterStudioPortraitPanelState
         const SizedBox(height: 12),
         if (states.isEmpty)
           const Text(
-            'Aucun état défini. Créez-en un pour importer un portrait.',
+            'Aucune expression définie. Créez-en une, puis associez-lui une image.',
           ),
         for (final state in states) ...[
           _stateRow(state),

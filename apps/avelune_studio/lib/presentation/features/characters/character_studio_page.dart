@@ -152,12 +152,13 @@ class _CharacterStudioPageState extends State<CharacterStudioPage> {
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                 child: StudioTabs<CharacterStudioSection>(
                   items: const {
-                    CharacterStudioSection.library: 'Bibliothèque',
                     CharacterStudioSection.identity: 'Identité',
                     CharacterStudioSection.animations: 'Animations',
                     CharacterStudioSection.portraits: 'Portraits',
                   },
-                  selected: controller.section,
+                  selected: controller.section == CharacterStudioSection.library
+                      ? CharacterStudioSection.identity
+                      : controller.section,
                   onChanged: controller.setSection,
                 ),
               ),
@@ -247,16 +248,27 @@ class _CharacterStudioPageState extends State<CharacterStudioPage> {
             const SizedBox(height: 14),
             Text('Rendu 3D', style: Theme.of(context).textTheme.titleSmall),
             const SizedBox(height: 8),
+            Text(
+              'Défaut du projet · appliqué immédiatement',
+              key: const ValueKey('character-project-default-heading'),
+              style: Theme.of(context).textTheme.labelLarge,
+            ),
             StudioToggleRow(
               key: const ValueKey('project-actor-contact-shadows-default'),
               label: 'Ombre sous les pieds par défaut',
-              description: 'Pour les personnages de ce projet 3D. Enregistré immédiatement. Chaque personnage peut avoir son propre réglage.',
+              description: 'Vaut pour tous les personnages du projet qui suivent ce défaut. Enregistré dès que vous le changez, sans attendre « Enregistrer ».',
               value: widget.project.settings.actorContactShadowsByDefault,
               onChanged: widget.controller.saving
                   ? null
                   : (value) => unawaited(
                       widget.controller.setContactShadowsByDefault(value),
                     ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Ce personnage · enregistré avec « Enregistrer »',
+              key: const ValueKey('character-local-heading'),
+              style: Theme.of(context).textTheme.labelLarge,
             ),
             CharacterContactShadowControls(
               projectDefault:
