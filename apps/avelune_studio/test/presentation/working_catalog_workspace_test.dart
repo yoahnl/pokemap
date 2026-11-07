@@ -11,6 +11,65 @@ import 'package:map_core/map_core.dart';
 
 void main() {
   testWidgets(
+    'the quick library names its context and opens the same workshops',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1400, 1000));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final controller = WorkingCatalogController(_Port());
+      addTearDown(controller.dispose);
+      var opened = 0;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: WorkingCatalogWorkspace(
+              session: const ProjectSession(
+                sessionId: 'quick',
+                name: 'Projet',
+                directoryPath: '/project',
+                storage: ProjectSessionStorage.workingCatalog,
+              ),
+              controller: controller,
+              embedded: true,
+              onClose: () async {},
+              registerExitGuard: (_) {},
+              onOpenTools: () => opened++,
+              previewBuilder: (_) => const Text('Aperçu ciblé'),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Créer et importer'), findsNothing);
+      expect(find.textContaining('sans charger leurs médias'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('working-catalog-search')),
+          matching: find.text('Rechercher dans les ressources'),
+        ),
+        findsOneWidget,
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('working-resource-element:decor_0')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.textContaining('se font dans les ateliers'), findsOneWidget);
+      await tester.tap(
+        find.byKey(const ValueKey('working-catalog-open-workshops')),
+      );
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('working-detail-open-workshops')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('working-detail-open-workshops')),
+      );
+      await tester.pumpAndSettle();
+      expect(opened, 2);
+    },
+  );
+
+  testWidgets(
     'model light save keeps the native preview and avoids a catalog query',
     (tester) async {
       await tester.binding.setSurfaceSize(const Size(1400, 1000));

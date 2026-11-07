@@ -77,6 +77,8 @@ class ResourceCatalogFilterState {
     this.context = ResourceCatalogContext.all,
     this.query = '',
     this.showComponents = false,
+    this.typeKind = '',
+    this.usableOnly = false,
   });
   String familyId;
   ResourceCatalogScope scope;
@@ -84,6 +86,8 @@ class ResourceCatalogFilterState {
   ResourceCatalogContext context;
   String query;
   bool showComponents;
+  String typeKind;
+  bool usableOnly;
 
   ResourceCatalogFilterState copy() => ResourceCatalogFilterState(
     familyId: familyId,
@@ -92,6 +96,8 @@ class ResourceCatalogFilterState {
     context: context,
     query: query,
     showComponents: showComponents,
+    typeKind: typeKind,
+    usableOnly: usableOnly,
   );
 
   void copyFrom(ResourceCatalogFilterState value) {
@@ -101,6 +107,8 @@ class ResourceCatalogFilterState {
     context = value.context;
     query = value.query;
     showComponents = value.showComponents;
+    typeKind = value.typeKind;
+    usableOnly = value.usableOnly;
   }
 
   void reset() {
@@ -110,8 +118,21 @@ class ResourceCatalogFilterState {
     context = ResourceCatalogContext.all;
     query = '';
     showComponents = false;
+    typeKind = '';
+    usableOnly = false;
   }
 }
+
+const resourceTypeFilterLabels = {
+  '': 'Tous les types',
+  'element': 'Décors 2D',
+  'model3d': 'Modèles 3D',
+  'smartTilePreset': 'Terrains automatiques',
+  'tileset': 'Images et tuiles',
+  'borderBlueprint': 'Bordures',
+  'environmentPreset': 'Environnements',
+  'character': 'Personnages',
+};
 
 const uncategorizedResourceCategory = '__uncategorized__';
 
@@ -181,6 +202,16 @@ class ResourceItem {
       ResourceKind.images => 'Image et tuiles',
     },
   };
+
+  bool usableIn(ProjectManifest project, {String? activeMapId}) {
+    final entry = metadata(project);
+    final mapId = entry?.mapId;
+    return compatibleWith(project.settings.dimension) &&
+        entry?.role != ResourceLibraryRole.component &&
+        (mapId == null || activeMapId == null || mapId == activeMapId) &&
+        (border == null ||
+            (border!.latestPublished != null && !border!.isDeprecated));
+  }
 
   bool compatibleWith(ProjectDimension dimension) => switch (canonicalKind) {
     'model3d' => dimension == ProjectDimension.threeD,
@@ -258,6 +289,35 @@ class ResourceLibraryState {
   bool grid = true;
   bool revealPending = false;
   double offset = 0;
+  bool marking = false;
+  final marked = <String>{};
+
+  void toggleMark(ResourceItem item) {
+    marking = true;
+    if (!marked.remove(item.identity)) marked.add(item.identity);
+  }
+
+  void markAll(Iterable<ResourceItem> items) {
+    marking = true;
+    marked.addAll(items.map((item) => item.identity));
+  }
+
+  void clearMarks({bool stopMarking = false}) {
+    marked.clear();
+    if (stopMarking) marking = false;
+  }
+
+  List<ResourceItem> markedItems(Iterable<ResourceItem> catalog) {
+    final present = {
+      for (final item in catalog)
+        if (marked.contains(item.identity)) item.identity: item,
+    };
+    marked.retainAll(present.keys);
+    return present.values.toList()..sort((a, b) {
+      final names = a.name.toLowerCase().compareTo(b.name.toLowerCase());
+      return names == 0 ? a.identity.compareTo(b.identity) : names;
+    });
+  }
 
   bool matchesQuery(ResourceItem item) => '${item.name} ${item.tags.join(' ')}'
       .toLowerCase()
@@ -410,6 +470,13 @@ List<ResourceItem> filterResourceCatalog(
     if (!matchesContext) return false;
     if (!filters.showComponents &&
         entry?.role == ResourceLibraryRole.component) {
+      return false;
+    }
+    if (filters.typeKind.isNotEmpty && item.canonicalKind != filters.typeKind) {
+      return false;
+    }
+    if (filters.usableOnly &&
+        !item.usableIn(manifest, activeMapId: activeMapId)) {
       return false;
     }
     final mapId = entry?.mapId;

@@ -80,6 +80,42 @@ extension _ResourceLibraryHeader on _ResourceLibraryScreenState {
         ),
       if (compact) ...[
         StudioButton(
+          key: const ValueKey('resource-compact-usable'),
+          label: state.filters.usableOnly
+              ? 'Bibliothèque complète'
+              : 'Ressources utilisables',
+          icon: state.filters.usableOnly
+              ? Icons.apps
+              : Icons.check_circle_outline,
+          secondary: true,
+          onPressed: () => run(
+            () => change(
+              () => state.filters.usableOnly = !state.filters.usableOnly,
+            ),
+          ),
+        ),
+        if (!state.atelierVisible ||
+            (state.family != ResourceLibraryFamily.borders &&
+                state.family != ResourceLibraryFamily.models3d &&
+                state.family != ResourceLibraryFamily.environments))
+          StudioButton(
+            key: const ValueKey('resource-compact-multi-select'),
+            label: state.marking
+                ? 'Terminer la sélection'
+                : 'Sélection multiple',
+            icon: state.marking ? Icons.check : Icons.checklist,
+            secondary: true,
+            onPressed: () => run(
+              () => updateMarks(() {
+                if (state.marking) {
+                  state.clearMarks(stopMarking: true);
+                } else {
+                  state.marking = true;
+                }
+              }),
+            ),
+          ),
+        StudioButton(
           label: state.grid ? 'Mode liste' : 'Mode grille',
           icon: state.grid ? Icons.view_list_outlined : Icons.grid_view,
           secondary: true,

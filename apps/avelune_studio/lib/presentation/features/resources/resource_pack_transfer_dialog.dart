@@ -227,11 +227,14 @@ Future<void> showResourcePackExport(
   BuildContext context,
   ResourcePackTransferController controller, {
   String projectName = '',
+  List<({String kind, String id})> selection = const [],
 }) async {
   if (controller.routeActive || !controller.exportAvailable) return;
   controller.routeActive = true;
   try {
-    unawaited(controller.beginExport(projectName: projectName));
+    unawaited(
+      controller.beginExport(projectName: projectName, selection: selection),
+    );
     await showDialog<void>(
       context: context,
       barrierDismissible: false,

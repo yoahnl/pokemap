@@ -8,6 +8,7 @@ import '../map_workspace/workspace_compact_panel.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/layout/studio_page_header.dart';
+import '../../shared/widgets/layout/studio_panel.dart';
 import 'resource_catalog.dart';
 import 'resource_catalog_toolbar.dart';
 import 'resource_catalog_view.dart';
@@ -69,8 +70,12 @@ class ResourceLibraryScreen extends StatefulWidget {
     this.onModelShadowsChanged,
     this.onModelLightChanged,
     this.onLoadFamily,
+    this.onClassifyMarked,
+    this.onExportMarked,
   });
   final ProjectManifest project;
+  final ValueChanged<List<ResourceItem>>? onClassifyMarked;
+  final ValueChanged<List<ResourceItem>>? onExportMarked;
   final Future<bool> Function(ResourceLibraryFamily)? onLoadFamily;
   final List<MapData> openMaps;
   final MapWorkspaceVisuals visuals;
@@ -132,6 +137,7 @@ class _ResourceLibraryScreenState extends State<ResourceLibraryScreen> {
 
   void remember() => state.offset = scroll.offset;
   void select(ResourceItem item) => setState(() => state.select(item));
+  void updateMarks(VoidCallback update) => setState(update);
   @override
   void didUpdateWidget(ResourceLibraryScreen old) {
     super.didUpdateWidget(old);

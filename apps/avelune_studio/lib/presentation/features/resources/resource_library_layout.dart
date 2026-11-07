@@ -1,6 +1,75 @@
 part of 'resource_library_screen.dart';
 
 extension _ResourceLibraryLayout on _ResourceLibraryScreenState {
+  Widget markedBar(List<ResourceItem> visible) {
+    final marked = state.markedItems(items);
+    final shown = visible
+        .where((item) => state.marked.contains(item.identity))
+        .length;
+    final hidden = marked.length - shown;
+    final count = marked.length;
+    return StudioPanel(
+      key: const ValueKey('resource-marked-bar'),
+      compact: true,
+      children: [
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Text(
+              count == 0
+                  ? 'Aucune ressource sélectionnée'
+                  : '$count ressource${count == 1 ? '' : 's'} sélectionnée${count == 1 ? '' : 's'}',
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            if (hidden > 0)
+              Text(
+                'dont $hidden hors des résultats affichés',
+                key: const ValueKey('resource-marked-hidden'),
+              ),
+            if (widget.onClassifyMarked != null)
+              StudioButton(
+                key: const ValueKey('resource-marked-classify'),
+                label: 'Ranger la sélection…',
+                icon: Icons.drive_file_move_outlined,
+                secondary: true,
+                onPressed: count == 0
+                    ? null
+                    : () => widget.onClassifyMarked!(marked),
+              ),
+            if (widget.onExportMarked != null)
+              StudioButton(
+                key: const ValueKey('resource-marked-export'),
+                label: 'Exporter la sélection…',
+                icon: Icons.inventory_2_outlined,
+                secondary: true,
+                onPressed: count == 0
+                    ? null
+                    : () => widget.onExportMarked!(marked),
+              ),
+            StudioButton(
+              key: const ValueKey('resource-marked-all'),
+              label: 'Sélectionner les ${visible.length} résultats',
+              secondary: true,
+              onPressed: visible.isEmpty
+                  ? null
+                  : () => updateMarks(() => state.markAll(visible)),
+            ),
+            StudioButton(
+              key: const ValueKey('resource-marked-clear'),
+              label: 'Tout désélectionner',
+              secondary: true,
+              onPressed: count == 0
+                  ? null
+                  : () => updateMarks(() => state.clearMarks()),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
   Widget buildLibrary(BuildContext context) {
     final categoriesTree = ResourceCategoryTree(
       widget.project,
@@ -120,7 +189,19 @@ extension _ResourceLibraryLayout on _ResourceLibraryScreenState {
                     onSearch: (value) => change(() => state.query = value),
                     onSort: (value) => change(() => state.sort = value),
                     onGrid: (value) => change(() => state.grid = value),
+                    onUsableOnly: (value) =>
+                        change(() => state.filters.usableOnly = value),
+                    onMarking: regular
+                        ? (value) => updateMarks(() {
+                            if (value) {
+                              state.marking = true;
+                            } else {
+                              state.clearMarks(stopMarking: true);
+                            }
+                          })
+                        : null,
                     filters: ResourceFilterButton(
+                      showType: !state.atelierVisible,
                       filters: state.filters,
                       activeMapName: widget.targetMapName,
                       categoryTree: regular && state.atelierVisible
@@ -137,6 +218,8 @@ extension _ResourceLibraryLayout on _ResourceLibraryScreenState {
                   ),
                   if (state.filters.familyId.isNotEmpty ||
                       state.filters.showComponents ||
+                      state.filters.typeKind.isNotEmpty ||
+                      state.filters.usableOnly ||
                       state.filters.context != ResourceCatalogContext.all ||
                       state.filters.scope != ResourceCatalogScope.all ||
                       state.filters.usage != ResourceCatalogUsage.all ||
@@ -149,6 +232,11 @@ extension _ResourceLibraryLayout on _ResourceLibraryScreenState {
                       onClearCategory: () => state.category = '',
                       onChanged: () => change(() {}),
                     ),
+                  ],
+                  if (regular &&
+                      (state.marking || state.marked.isNotEmpty)) ...[
+                    const SizedBox(height: 8),
+                    markedBar(filtered),
                   ],
                 ],
               ),
@@ -222,6 +310,10 @@ extension _ResourceLibraryLayout on _ResourceLibraryScreenState {
                           onRemove: widget.onRemove,
                           onDuplicate: widget.onDuplicate,
                           canEditTerrain: widget.canEditTerrain,
+                          marking: state.marking,
+                          marked: state.marked,
+                          onMark: (item) =>
+                              updateMarks(() => state.toggleMark(item)),
                           onTerrainEdit: (item) {
                             if (widget.canEditTerrain?.call(item) ?? false) {
                               widget.onTerrain(item);

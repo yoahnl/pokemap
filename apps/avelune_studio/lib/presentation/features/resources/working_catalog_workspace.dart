@@ -338,11 +338,15 @@ class _WorkingCatalogWorkspaceState extends State<WorkingCatalogWorkspace> {
         description:
             widget.session.storage == ProjectSessionStorage.portableCatalog
             ? 'Recherchez une ressource dans toute la bibliothèque et consultez son aperçu.'
+            : widget.onOpenTools != null
+            ? 'Recherche rapide dans les informations de toutes les ressources, sans charger leurs médias. Ouvrez les ateliers pour importer, classer, composer ou supprimer.'
             : 'Recherchez une ressource dans toute la bibliothèque, puis ouvrez son aperçu pour la modifier.',
         actions: [
           if (widget.onOpenTools != null)
             StudioButton(
-              label: 'Créer et importer',
+              key: const ValueKey('working-catalog-open-workshops'),
+              label: 'Ouvrir les ateliers',
+              icon: Icons.handyman_outlined,
               onPressed:
                   sourceReplacementPending || catalog.saving || synchronizing
                   ? null
@@ -374,7 +378,7 @@ class _WorkingCatalogWorkspaceState extends State<WorkingCatalogWorkspace> {
             final fields = [
               StudioDraftField(
                 key: const ValueKey('working-catalog-search'),
-                label: 'Rechercher dans la bibliothèque',
+                label: 'Rechercher dans les ressources',
                 value: catalog.query,
                 enabled: !sourceReplacementPending,
                 onChanged: (value) => catalog.search(value),
@@ -727,8 +731,27 @@ class _WorkingCatalogWorkspaceState extends State<WorkingCatalogWorkspace> {
                   widget.session.storage ==
                           ProjectSessionStorage.portableCatalog
                       ? 'Ce projet publié est disponible en lecture seule.'
+                      : widget.onOpenTools != null
+                      ? 'Enregistrez ici le nom, la description, les mots-clés et le contexte. Le rangement en famille, la composition et la suppression se font dans les ateliers.'
                       : 'Enregistrez les informations de cette ressource depuis ce panneau. Les ateliers de composition, le déplacement entre familles et la suppression ne sont pas encore disponibles dans cette bibliothèque.',
                 ),
+                if (widget.onOpenTools != null &&
+                    widget.session.storage !=
+                        ProjectSessionStorage.portableCatalog) ...[
+                  const SizedBox(height: 8),
+                  StudioButton(
+                    key: const ValueKey('working-detail-open-workshops'),
+                    label: 'Ouvrir les ateliers',
+                    icon: Icons.handyman_outlined,
+                    secondary: true,
+                    onPressed:
+                        sourceReplacementPending ||
+                            catalog.saving ||
+                            synchronizing
+                        ? null
+                        : widget.onOpenTools,
+                  ),
+                ],
               ],
             ),
           ),

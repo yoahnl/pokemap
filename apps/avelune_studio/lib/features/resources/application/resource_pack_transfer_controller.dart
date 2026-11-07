@@ -296,7 +296,10 @@ final class ResourcePackTransferController extends ChangeNotifier {
       phase == ResourcePackTransferPhase.preview &&
       _prepared != null &&
       (!requiresOrganizationAcknowledgement || organizationAcknowledged);
-  Future<void> beginExport({String projectName = ''}) => _run((epoch) async {
+  Future<void> beginExport({
+    String projectName = '',
+    List<({String kind, String id})> selection = const [],
+  }) => _run((epoch) async {
     if (!exportAvailable) return;
     await _release();
     direction = ResourcePackTransferDirection.exporting;
@@ -334,6 +337,18 @@ final class ResourcePackTransferController extends ChangeNotifier {
     _selection = handle;
     _expectedRevision = summary['sourceRevision']! as String;
     _summary(summary);
+    if (selection.isNotEmpty) {
+      final chosen = await port.transfer('selection.patch', {
+        'selectionHandle': handle,
+        'revision': _selectionRevision,
+        'add': [
+          for (final ref in selection.take(200))
+            {'kind': ref.kind, 'id': ref.id},
+        ],
+      });
+      if (!_current(epoch) || _closing) return;
+      _summary(chosen);
+    }
     phase = ResourcePackTransferPhase.selecting;
     await _loadFamilies();
     await _loadAttributions();

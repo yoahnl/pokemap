@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
 import '../../shared/widgets/inputs/studio_search_field.dart';
+import '../../shared/widgets/inputs/studio_tabs.dart';
 import 'resource_catalog.dart';
 
 class ResourceCatalogToolbar extends StatelessWidget {
@@ -17,6 +18,8 @@ class ResourceCatalogToolbar extends StatelessWidget {
     this.onFilters,
     this.filters,
     this.compact = false,
+    this.onUsableOnly,
+    this.onMarking,
   });
   final TextEditingController search;
   final ResourceLibraryState state;
@@ -27,6 +30,8 @@ class ResourceCatalogToolbar extends StatelessWidget {
   final VoidCallback? onFilters;
   final Widget? filters;
   final bool compact;
+  final ValueChanged<bool>? onUsableOnly;
+  final ValueChanged<bool>? onMarking;
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
@@ -35,6 +40,18 @@ class ResourceCatalogToolbar extends StatelessWidget {
       runSpacing: 10,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
+        if (!compact && onUsableOnly != null)
+          Semantics(
+            label: 'Étendue de la bibliothèque',
+            child: StudioTabs<bool>(
+              items: const {
+                false: 'Bibliothèque complète',
+                true: 'Ressources utilisables',
+              },
+              selected: state.filters.usableOnly,
+              onChanged: onUsableOnly!,
+            ),
+          ),
         SizedBox(
           width: (bounds.maxWidth - 390).clamp(230, 440),
           child: StudioSearchField(
@@ -86,6 +103,16 @@ class ResourceCatalogToolbar extends StatelessWidget {
                 onPressed: () => onGrid(false),
               ),
             ],
+          ),
+        if (!compact && onMarking != null)
+          StudioButton(
+            key: const ValueKey('resource-multi-select'),
+            label: state.marking
+                ? 'Terminer la sélection'
+                : 'Sélection multiple',
+            icon: state.marking ? Icons.check : Icons.checklist,
+            secondary: !state.marking,
+            onPressed: () => onMarking!(!state.marking),
           ),
         if (onFilters != null)
           StudioButton(

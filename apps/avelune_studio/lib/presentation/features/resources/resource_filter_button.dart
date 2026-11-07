@@ -39,11 +39,13 @@ class ResourceFilterButton extends StatelessWidget {
     this.category = '',
     this.onCategoryChanged,
     this.countResults,
+    this.showType = false,
   });
   final ResourceCatalogFilterState filters;
   final VoidCallback onChanged;
   final String? activeMapName;
   final bool forMapPicker;
+  final bool showType;
   final ResourceCategoryTree? categoryTree;
   final String category;
   final ValueChanged<String>? onCategoryChanged;
@@ -57,6 +59,7 @@ class ResourceFilterButton extends StatelessWidget {
         (!forMapPicker && filters.usage != ResourceCatalogUsage.all ? 1 : 0) +
         (filters.showComponents ? 1 : 0) +
         (filters.context == ResourceCatalogContext.all ? 0 : 1) +
+        (showType && filters.typeKind.isNotEmpty ? 1 : 0) +
         (categoryTree != null && category.isNotEmpty ? 1 : 0);
     return StudioButton(
       key: const ValueKey('resource-filter-button'),
@@ -81,6 +84,19 @@ class ResourceFilterButton extends StatelessWidget {
                     child: StudioPanel(
                       compact: true,
                       children: [
+                        if (showType) ...[
+                          StudioSelect(
+                            key: const ValueKey('resource-filter-type'),
+                            label: 'Type de ressource',
+                            value: draft.typeKind,
+                            options: resourceTypeFilterLabels,
+                            onChanged: (value) {
+                              draft.typeKind = value;
+                              refresh();
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                        ],
                         StudioSelect(
                           key: const ValueKey('resource-filter-context'),
                           label: 'Contexte d’usage',
@@ -201,6 +217,7 @@ class ResourceFilterButton extends StatelessWidget {
                               draft.scope = ResourceCatalogScope.all;
                               draft.usage = ResourceCatalogUsage.all;
                               draft.showComponents = false;
+                              draft.typeKind = '';
                               draftCategory = '';
                               refresh();
                             },
@@ -219,6 +236,7 @@ class ResourceFilterButton extends StatelessWidget {
                               filters.scope = draft.scope;
                               filters.usage = draft.usage;
                               filters.showComponents = draft.showComponents;
+                              if (showType) filters.typeKind = draft.typeKind;
                               close();
                               onCategoryChanged?.call(draftCategory);
                               onChanged();
@@ -261,6 +279,24 @@ class ResourceFilterTags extends StatelessWidget {
     spacing: 8,
     runSpacing: 8,
     children: [
+      if (filters.usableOnly)
+        StudioFilterTag(
+          key: const ValueKey('resource-filter-tag-usable'),
+          label: 'Ressources utilisables',
+          onRemove: () {
+            filters.usableOnly = false;
+            onChanged();
+          },
+        ),
+      if (filters.typeKind.isNotEmpty)
+        StudioFilterTag(
+          key: const ValueKey('resource-filter-tag-type'),
+          label: resourceTypeFilterLabels[filters.typeKind] ?? 'Type choisi',
+          onRemove: () {
+            filters.typeKind = '';
+            onChanged();
+          },
+        ),
       if (filters.context != ResourceCatalogContext.all)
         StudioFilterTag(
           key: const ValueKey('resource-filter-tag-context'),

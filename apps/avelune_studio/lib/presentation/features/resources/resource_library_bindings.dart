@@ -217,6 +217,106 @@ Future<void> classifyResource(
   }
 }
 
+const maximumResourcesPerClassification = 100;
+
+Future<void> classifyResources(
+  BuildContext context,
+  ResourceNavigation navigation,
+  List<ResourceItem> items,
+) async {
+  if (items.isEmpty) return;
+  navigation.beginManagementDialog();
+  final catalog = navigation.workspace.project!.resourceLibraryCatalog;
+  final current = {
+    for (final item in items)
+      catalog.entryFor(item.canonicalKind, item.id)?.familyId ?? '',
+  };
+  var familyId = current.length == 1 ? current.single : '';
+  final count = items.length;
+  try {
+    final String revision;
+    try {
+      revision = await navigation.captureResourceRevision();
+    } on Object catch (failure) {
+      if (!navigation.isDisposed) {
+        navigation.setImportError(
+          'Le rangement est indisponible pour le moment : $failure',
+        );
+      }
+      return;
+    }
+    if (!context.mounted || navigation.isDisposed) return;
+    await showResourceManagementRoute(
+      context,
+      (_) => ResourceManagementDialog(
+        title: 'Ranger $count ressource${count == 1 ? '' : 's'}',
+        submitLabel: 'Ranger',
+        dirty: () => items.any(
+          (item) =>
+              (catalog.entryFor(item.canonicalKind, item.id)?.familyId ?? '') !=
+              familyId,
+        ),
+        valid: () => count <= maximumResourcesPerClassification,
+        submit: () =>
+            _publishLibraryChange(navigation, 'resource.classify_batch', {
+              'entries': [
+                for (final item in items)
+                  {
+                    'resourceKind': item.canonicalKind,
+                    'resourceId': item.id,
+                    'familyId': familyId.isEmpty ? null : familyId,
+                  },
+              ],
+            }, expectedSnapshotRevision: revision),
+        fields: (refresh, busy) => Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Seule la famille change. Description, contexte, disponibilité '
+              'et présence sur les cartes sont conservés pour chaque ressource.',
+            ),
+            const SizedBox(height: 16),
+            StudioSelect(
+              key: const ValueKey('resource-batch-family'),
+              label: 'Famille et sous-famille',
+              value: familyId,
+              options: {
+                '': 'Sans famille',
+                for (final family in catalog.effectiveFamilies)
+                  family.id: resourceFamilyLabel(catalog, family.id),
+              },
+              onChanged: busy
+                  ? null
+                  : (value) {
+                      familyId = value;
+                      refresh();
+                    },
+            ),
+            if (count > maximumResourcesPerClassification) ...[
+              const SizedBox(height: 12),
+              Text(
+                'Un rangement groupé accepte au plus '
+                '$maximumResourcesPerClassification ressources à la fois. '
+                'Réduisez la sélection pour continuer.',
+                key: const ValueKey('resource-batch-too-large'),
+              ),
+            ],
+            const SizedBox(height: 12),
+            Text(
+              [
+                for (final item in items.take(6)) item.name,
+                if (count > 6) 'et ${count - 6} autres',
+              ].join(' · '),
+            ),
+          ],
+        ),
+      ),
+    );
+  } finally {
+    navigation.endManagementDialog();
+  }
+}
+
 Future<void> manageResourceFamilies(
   BuildContext context,
   ResourceNavigation navigation,

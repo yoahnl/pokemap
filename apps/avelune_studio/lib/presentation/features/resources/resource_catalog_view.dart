@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' as rendering show ScrollCacheExtent;
+import 'package:flutter/services.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../map_workspace/map_workspace_visuals.dart';
@@ -30,6 +31,9 @@ class ResourceCatalogView extends StatelessWidget {
     this.onDuplicate,
     this.onTerrainEdit,
     this.canEditTerrain,
+    this.marking = false,
+    this.marked = const {},
+    this.onMark,
   });
   final List<ResourceItem> items;
   final ResourceItem? selected;
@@ -43,6 +47,31 @@ class ResourceCatalogView extends StatelessWidget {
 
   final ValueChanged<ResourceItem>? onTerrainEdit;
   final bool Function(ResourceItem)? canEditTerrain;
+  final bool marking;
+  final Set<String> marked;
+  final ValueChanged<ResourceItem>? onMark;
+
+  void activate(ResourceItem item) {
+    final keyboard = HardwareKeyboard.instance;
+    final toggles =
+        onMark != null &&
+        (marking ||
+            keyboard.isMetaPressed ||
+            keyboard.isControlPressed ||
+            keyboard.isShiftPressed);
+    if (toggles) {
+      onMark!(item);
+    } else {
+      onSelect(item);
+    }
+  }
+
+  Widget mark(ResourceItem item) => Checkbox(
+    key: ValueKey('resource-mark-${item.identity}'),
+    value: marked.contains(item.identity),
+    semanticLabel: 'Sélectionner « ${item.name} »',
+    onChanged: (_) => onMark?.call(item),
+  );
 
   Widget actions(ResourceItem item) => ResourceItemActions(
     item: item,
@@ -99,9 +128,10 @@ class ResourceCatalogView extends StatelessWidget {
                       ),
                       metadata: metadata(item),
                       selected: selected?.identity == item.identity,
-                      onTap: () => onSelect(item),
+                      onTap: () => activate(item),
                     ),
                   ),
+                  if (marking) Positioned(top: 4, left: 4, child: mark(item)),
                   Positioned(top: 8, right: 8, child: actions(item)),
                 ],
               ),
@@ -122,6 +152,7 @@ class ResourceCatalogView extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: 6),
           child: Row(
             children: [
+              if (marking) mark(item),
               Expanded(
                 child: StudioChoice(
                   label: item.name,
@@ -134,7 +165,7 @@ class ResourceCatalogView extends StatelessWidget {
                     terrainPattern: true,
                   ),
                   selected: selected?.identity == item.identity,
-                  onTap: () => onSelect(item),
+                  onTap: () => activate(item),
                 ),
               ),
               actions(item),

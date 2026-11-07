@@ -1,7 +1,10 @@
 part of 'resource_workspace_pane.dart';
 
 extension ResourceWorkspaceActions on ResourceWorkspacePane {
-  Future<void> exportPack(BuildContext context) async {
+  Future<void> exportPack(
+    BuildContext context, {
+    List<ResourceItem> selection = const [],
+  }) async {
     final transfer = navigation.packTransfer;
     if (transfer == null || navigation.busy || !transfer.exportAvailable) {
       return;
@@ -10,6 +13,9 @@ extension ResourceWorkspaceActions on ResourceWorkspacePane {
       context,
       transfer,
       projectName: navigation.workspace.project!.name,
+      selection: [
+        for (final item in selection) (kind: item.canonicalKind, id: item.id),
+      ],
     );
   }
 

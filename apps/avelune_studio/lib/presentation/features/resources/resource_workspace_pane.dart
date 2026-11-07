@@ -175,6 +175,12 @@ class ResourceWorkspacePane extends StatelessWidget {
               activeMapId: n.workspace.active?.current.id,
               onManageFamilies: () => manageResourceFamilies(context, n),
               onClassify: (item) => classifyResource(context, n, item),
+              onClassifyMarked: n.busy
+                  ? null
+                  : (items) => classifyResources(context, n, items),
+              onExportMarked: n.packTransfer?.exportAvailable != true || n.busy
+                  ? null
+                  : (items) => exportPack(context, selection: items),
               canUse: !n.busy,
               onUse: n.onUse,
               onEdit: n.edit,

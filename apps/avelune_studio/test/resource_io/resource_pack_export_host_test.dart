@@ -13,6 +13,65 @@ import 'resource_pack_import_host_test.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('an export opened from a library selection starts with exactly those resources', () async {
+    final camera = SpatialCameraProfile();
+    final map = MapData(
+      id: 'spatial',
+      name: 'Spatial room',
+      version: ProjectVersion.v9,
+      size: const GridSize(width: 8, height: 6),
+      layers: const [],
+      spatialScene: MapSpatialScene(width: 8, depth: 6, camera: camera),
+    );
+    final target = ProjectManifest(
+      name: 'Spatial source',
+      version: ProjectVersion.v9,
+      tilesets: [],
+      maps: [
+        ProjectMapEntry(
+          id: map.id,
+          name: map.name,
+          relativePath: 'spatial.json',
+        ),
+      ],
+      settings: ProjectSettings(
+        dimension: ProjectDimension.threeD,
+        spatialCamera: camera,
+        tileWidth: 2,
+        tileHeight: 2,
+      ),
+    );
+    final source = await ResourcePackImportFixture.create(target: target);
+    final folder = await Directory.systemTemp.createTemp('ux11-export-sel-');
+    addTearDown(() => folder.delete(recursive: true));
+    final host = await ResourcePackTestHost.create(
+      sourceFixture: source,
+      initialMap: map,
+      exportSink: FileExportTestSink(File('${folder.path}/out.aveluneassets')),
+      pickLicenses: () async => null,
+    );
+    addTearDown(host.dispose);
+    await host.prepare();
+    await host.transfer.apply();
+    await host.transfer.requestClose();
+    final project = host.workspace.project!;
+    final chosen = [
+      (kind: 'element', id: project.elements.first.id),
+      (kind: 'character', id: project.characters.first.id),
+    ];
+    final c = host.transfer;
+    await c.beginExport(projectName: 'Sélection', selection: chosen);
+    expect(c.error, isNull);
+    expect(c.selectedCount, 2);
+    final selected = {
+      for (final row in c.entries)
+        if (row['selected'] == true) (kind: row['kind'], id: row['id']),
+    };
+    expect(selected, {for (final ref in chosen) (kind: ref.kind, id: ref.id)});
+    await c.beginExport(projectName: 'Sans sélection');
+    expect(c.selectedCount, 0);
+  });
   test('a real mixed native export stages UTF8 licences and reimports independently of the active 3D map', () async {
     final camera = SpatialCameraProfile();
     final map = MapData(
