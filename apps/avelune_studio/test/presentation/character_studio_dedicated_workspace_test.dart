@@ -66,7 +66,7 @@ void main() {
     await pumpIo(tester);
     await tester.tap(find.text('Importer').last);
     await pumpIo(tester);
-    await tester.tap(find.text('Retour aux ressources'));
+    await tester.tap(find.byKey(const ValueKey('resource-import-dismiss')));
     await pumpIo(tester);
     await openResourceCharacters(tester);
     await tester.tap(find.text('Nouveau personnage'));
