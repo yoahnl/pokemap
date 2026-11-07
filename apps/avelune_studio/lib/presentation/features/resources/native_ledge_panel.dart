@@ -93,6 +93,13 @@ class NativeLedgePanel extends StatelessWidget {
           ledgeJumpSummary(record.draft.definition.jumpBehavior!),
           key: const ValueKey('native-ledge-jump-summary'),
         ),
+        if (project.settings.dimension == ProjectDimension.threeD) ...[
+          const SizedBox(height: 8),
+          const StudioNotice(
+            'Ce saut s’applique aux cartes 2D : sur une carte 3D, le jeu ne fait pas sauter un rebord. Ajoutez-y un « Talus à sens unique » depuis les outils de la carte.',
+            key: ValueKey('native-ledge-jump-2d-only'),
+          ),
+        ],
       ],
       const SizedBox(height: 16),
       Wrap(

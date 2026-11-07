@@ -163,7 +163,11 @@ void main() {
     );
 
     final cut = spatialModelRoles(map, project, tree);
-    expect(cut.interaction, 'Obstacle Coupe : le joueur le coupe.');
+    expect(
+      cut.interaction,
+      'Obstacle Coupe : le joueur le coupe. Réglé ci-dessous, pour ce décor '
+      'seulement.',
+    );
     expect(cut.movement, 'Aucun : le décor reste à sa place.');
     expect(
       cut.traversal,
@@ -187,12 +191,14 @@ void main() {
 
     expect(
       spatialModelRoles(map, project, slope).traversal,
-      'Rampe orientée vers le haut, de la hauteur 0 à 1,5.',
+      'Escalier franchissable : montée vers le fond, de la hauteur 0 à 1,5. '
+      'Réglé dans la ressource du modèle, pour toutes ses occurrences.',
     );
     final ferry = spatialModelRoles(map, project, deck);
     expect(
       ferry.movement,
-      'Plateforme « Bac » : transporte le joueur sur 1 trajet en 2,5 s.',
+      'Plateforme « Bac » : transporte le joueur sur 1 trajet en 2,5 s. '
+      'Réglée dans « Plateforme sur trajet » ci-dessous.',
     );
     expect(ferry.traversal, contains('au départ et à l’arrivée'));
     expect(ferry.interaction, startsWith('Aucune'));

@@ -40,11 +40,9 @@ SpatialModelRoles spatialModelRoles(
   final interaction = [
     if (obstacle != null)
       switch (obstacle) {
-        FieldObstacleKind.cutTree => 'Obstacle Coupe : le joueur le coupe.',
-        FieldObstacleKind.strengthBoulder =>
-          'Obstacle Force : le joueur le pousse.',
-        FieldObstacleKind.rockSmashRock =>
-          'Obstacle Éclate-Roc : le joueur le brise.',
+        FieldObstacleKind.cutTree => 'Obstacle Coupe : le joueur le coupe. Réglé ci-dessous, pour ce décor seulement.',
+        FieldObstacleKind.strengthBoulder => 'Obstacle Force : le joueur le pousse. Réglé ci-dessous, pour ce décor seulement.',
+        FieldObstacleKind.rockSmashRock => 'Obstacle Éclate-Roc : le joueur le brise. Réglé ci-dessous, pour ce décor seulement.',
         FieldObstacleKind.iceBlock =>
           'Bloc de glace : le jeu ne le fait pas glisser sur une carte 3D.',
       }
@@ -62,18 +60,22 @@ SpatialModelRoles spatialModelRoles(
         ? 'Plateforme « ${platform.name} » : transporte le joueur sur '
               '${platform.routes.length} '
               '${platform.routes.length == 1 ? 'trajet' : 'trajets'} en '
-              '${traversalDurationLabel(platform.durationMs)}.'
+              '${traversalDurationLabel(platform.durationMs)}. Réglée dans '
+              '« Plateforme sur trajet » ci-dessous.'
         : lift != null
-        ? 'Ascenseur « ${lift.name} » : monte et descend entre deux hauteurs '
-              'en ${traversalDurationLabel(lift.durationMs)}.'
+        ? 'Plateforme verticale « ${lift.name} » : monte et descend entre '
+              'deux hauteurs en ${traversalDurationLabel(lift.durationMs)}. '
+              'Réglée ci-dessous.'
         : obstacle == FieldObstacleKind.strengthBoulder
         ? 'Poussé par le joueur avec Force.'
         : obstacle == FieldObstacleKind.iceBlock
         ? 'Aucun : un bloc de glace ne glisse pas sur une carte 3D.'
         : 'Aucun : le décor reste à sa place.',
     traversal: ramp != null
-        ? 'Rampe orientée ${_direction(ramp.direction)}, de la hauteur '
-              '${_height(ramp.lowHeight)} à ${_height(ramp.highHeight)}.'
+        ? 'Escalier franchissable : montée ${_direction(ramp.direction)}, de '
+              'la hauteur ${_height(ramp.lowHeight)} à '
+              '${_height(ramp.highHeight)}. Réglé dans la ressource du modèle, '
+              'pour toutes ses occurrences.'
         : platform != null
         ? 'Le joueur monte sur le support au départ et à l’arrivée du trajet.'
         : !instance.blocksMovement
@@ -110,8 +112,8 @@ String? spatialFieldObstacleRefusal(
 }
 
 String _direction(SpatialRampDirection direction) => switch (direction) {
-  SpatialRampDirection.north => 'vers le haut',
-  SpatialRampDirection.south => 'vers le bas',
+  SpatialRampDirection.north => 'vers le fond',
+  SpatialRampDirection.south => 'vers le devant',
   SpatialRampDirection.east => 'vers la droite',
   SpatialRampDirection.west => 'vers la gauche',
 };
