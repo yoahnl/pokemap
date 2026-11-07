@@ -142,6 +142,12 @@ class StoryInspector extends StatelessWidget {
                       'Conditions de progression',
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Règles du jeu : elles décident quand l’étape commence et se termine pendant une partie. Les modifier ne change aucune sauvegarde existante.',
+                      key: const ValueKey('story-step-scope'),
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
                     const SizedBox(height: 8),
                     Text(
                       'Entrée : ${storyConditionText(step.entryCondition, project)}',

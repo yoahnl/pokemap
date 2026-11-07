@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
+
 import '../../shared/widgets/layout/studio_panel.dart';
 import '../../shared/widgets/inputs/studio_search_field.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
@@ -33,20 +34,23 @@ class StoryLibraryPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final query = search.text.trim().toLowerCase();
-    final filtered =
-        stories
-            .where(
-              (s) =>
-                  (type == null || s.type == type) &&
-                  '${s.title} ${s.id} ${s.description ?? ''}'
-                      .toLowerCase()
-                      .contains(query),
-            )
-            .toList()
-          ..sort((a, b) {
-            final order = (a.sortOrder ?? 0).compareTo(b.sortOrder ?? 0);
-            return order == 0 ? a.id.compareTo(b.id) : order;
-          });
+    final matches = <String, String?>{};
+    for (final story in stories) {
+      if (type != null && story.type != type) continue;
+      if ('${story.title} ${story.id} ${story.description ?? ''}'
+          .toLowerCase()
+          .contains(query)) {
+        matches[story.id] = null;
+        continue;
+      }
+      final match = _innerMatch(story, query);
+      if (match != null) matches[story.id] = match;
+    }
+    final filtered = stories.where((s) => matches.containsKey(s.id)).toList()
+      ..sort((a, b) {
+        final order = (a.sortOrder ?? 0).compareTo(b.sortOrder ?? 0);
+        return order == 0 ? a.id.compareTo(b.id) : order;
+      });
     return StudioPanel(
       compact: true,
       children: [
@@ -65,7 +69,8 @@ class StoryLibraryPanel extends StatelessWidget {
                     const SizedBox(height: 12),
                     StudioSearchField(
                       controller: search,
-                      label: 'Rechercher une histoire',
+                      label:
+                          'Rechercher une histoire, un chapitre ou une étape',
                       onChanged: (_) => onSearch(),
                     ),
                     const SizedBox(height: 10),
@@ -102,8 +107,11 @@ class StoryLibraryPanel extends StatelessWidget {
                     child: StudioChoice(
                       key: ValueKey('story-library-${story.id}'),
                       label: story.title,
-                      subtitle:
-                          '${storyTypeLabel(story.type)} · ${dirtyIds.contains(story.id) ? 'Modifiée' : storyStatusLabel(story.status)}\n${story.id}',
+                      subtitle: [
+                        '${storyTypeLabel(story.type)} · ${dirtyIds.contains(story.id) ? 'Modifiée' : storyStatusLabel(story.status)}',
+                        ?matches[story.id],
+                        story.id,
+                      ].join('\n'),
                       leading: Icon(
                         story.type == StorylineType.sideQuest
                             ? Icons.alt_route
@@ -143,4 +151,21 @@ class StoryLibraryPanel extends StatelessWidget {
       ],
     );
   }
+}
+
+String? _innerMatch(StorylineAsset story, String query) {
+  if (query.isEmpty) return null;
+  for (final chapter in story.chapters) {
+    if ('${chapter.title} ${chapter.id}'.toLowerCase().contains(query)) {
+      return 'Chapitre : ${chapter.title}';
+    }
+    for (final step in chapter.steps) {
+      if ('${step.title} ${step.id} ${step.description ?? ''}'
+          .toLowerCase()
+          .contains(query)) {
+        return 'Étape : ${step.title} · ${chapter.title}';
+      }
+    }
+  }
+  return null;
 }

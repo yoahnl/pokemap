@@ -69,7 +69,11 @@ String storyConditionText(ScriptCondition? condition, ProjectManifest project) {
   if (condition == null) return 'Aucune condition définie';
   final flag = condition.params[ScriptConditionParams.flagName];
   final label =
-      project.facts.where((f) => f.id == flag).firstOrNull?.label ?? flag;
+      project.facts
+          .where((f) => (f.legacyFlagName ?? f.id) == flag || f.id == flag)
+          .firstOrNull
+          ?.label ??
+      'État introuvable conservé : $flag';
   return switch (condition.type) {
     ScriptConditionType.flagIsSet => '$label = Oui',
     ScriptConditionType.flagIsUnset => '$label = Non',
