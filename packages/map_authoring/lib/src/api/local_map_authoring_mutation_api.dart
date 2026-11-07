@@ -1689,7 +1689,11 @@ final class _LocalMapAuthoringSession {
         : null;
     final audit = await FileAuthoringAuditLog.open(
       projectRoot: canonicalProjectRoot,
+      incrementalWrites: !maintainIdempotencyOnOpen,
     );
+    String auditIdentity() => maintainIdempotencyOnOpen
+        ? _secureIdentity('audit_')
+        : _catalogPlanIdentity('audit_');
     final plans = AuthoringPlanStore(clock: clock);
     final planner = AuthoringActionPlanner(
         store: plans,
@@ -1738,7 +1742,7 @@ final class _LocalMapAuthoringSession {
       policy: policy,
       auditLog: audit,
       clock: clock,
-      auditIdFactory: () => _secureIdentity('audit_'),
+      auditIdFactory: auditIdentity,
     );
     final undoService = AuthoringUndoService(
       history: history,
@@ -1804,7 +1808,7 @@ final class _LocalMapAuthoringSession {
       policy: policy,
       auditLog: audit,
       clock: clock,
-      auditIdFactory: () => _secureIdentity('audit_'),
+      auditIdFactory: auditIdentity,
     );
     final projectionPayloadStore = LocalResourcePackStore(
       cacheDirectory:
@@ -2884,9 +2888,10 @@ String _secureIdentity(String prefix) {
   return '$prefix$body';
 }
 
-String _catalogPlanIdentity(String prefix) => prefix == 'receipt_'
-    ? 'receipt_document_${_secureIdentity('').substring(0, 32)}'
-    : _secureIdentity(prefix);
+String _catalogPlanIdentity(String prefix) =>
+    prefix == 'receipt_' || prefix == 'audit_'
+        ? '${prefix}document_${_secureIdentity('').substring(0, 32)}'
+        : _secureIdentity(prefix);
 
 String _joinAll(List<String> segments) => segments.join(Platform.pathSeparator);
 
