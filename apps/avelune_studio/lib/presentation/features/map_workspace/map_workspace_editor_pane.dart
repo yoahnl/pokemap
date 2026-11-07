@@ -114,6 +114,7 @@ class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
     super.dispose();
   }
 
+  var _borderModelsLoading = false;
   bool get _exteriorActive =>
       widget.document.exteriorDecoration?.editingExterior == true;
   EditableMapDocument get _toolDocument => _exteriorActive
@@ -282,6 +283,28 @@ class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
                                       onCreateModel:
                                           widget.onBorders ??
                                           widget.onResources,
+                                      modelsLoaded: widget.controller
+                                          .hasResourceKind('borderBlueprint'),
+                                      modelsLoading: _borderModelsLoading,
+                                      onLoadModels: () async {
+                                        setState(
+                                          () => _borderModelsLoading = true,
+                                        );
+                                        try {
+                                          await widget.controller
+                                              .ensureResourceKind(
+                                                'borderBlueprint',
+                                              );
+                                        } on Object catch (failure) {
+                                          _toolDocument.error = '$failure';
+                                        }
+                                        if (mounted) {
+                                          setState(
+                                            () => _borderModelsLoading = false,
+                                          );
+                                        }
+                                        widget.onChanged();
+                                      },
                                     ),
                                   ),
                                 ),

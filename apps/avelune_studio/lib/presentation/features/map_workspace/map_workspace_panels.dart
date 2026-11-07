@@ -173,7 +173,11 @@ class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {
         const SizedBox(height: 8),
         Expanded(
           child: count == 0
-              ? const Text('Aucune ressource ne correspond aux filtres.')
+              ? Text(
+                  kind == 'Bordures'
+                      ? 'Le modèle de bordure et son état se choisissent dans la barre Bordures, au-dessus de la carte.'
+                      : 'Aucune ressource ne correspond aux filtres.',
+                )
               : MapPaletteGrid(
                   key: ValueKey(switch (kind) {
                     'Décors' => 'decor-palette',

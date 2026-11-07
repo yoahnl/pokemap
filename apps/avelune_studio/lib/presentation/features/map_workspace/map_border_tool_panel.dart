@@ -10,6 +10,7 @@ import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import '../resources/resource_catalog.dart';
 import '../resources/resource_filter_button.dart';
+import 'map_border_review.dart';
 import 'map_workspace_view_state.dart';
 
 class MapBorderToolPanel extends StatelessWidget {
@@ -20,8 +21,13 @@ class MapBorderToolPanel extends StatelessWidget {
     required this.view,
     required this.onChanged,
     required this.onCreateModel,
+    this.modelsLoaded = true,
+    this.modelsLoading = false,
+    this.onLoadModels,
   });
 
+  final bool modelsLoaded, modelsLoading;
+  final Future<void> Function()? onLoadModels;
   final EditableMapDocument document;
   final ProjectManifest project;
   final MapWorkspaceViewState view;
@@ -365,7 +371,9 @@ class MapBorderToolPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final eligible = MapBorderEditingCommands.publishedLines(project);
+    final choices = mapBorderProfileChoices(project);
+    final eligible = choices.ready;
+    final drafts = choices.drafts;
     final eligibleIds = eligible.map((model) => model.id).toSet();
     final models = filterResourceCatalog(
       project,
@@ -376,6 +384,17 @@ class MapBorderToolPanel extends StatelessWidget {
       activeMapId: document.current.id,
       forMapPicker: true,
     ).map((item) => item.border!).toList();
+    final compatible = filterResourceCatalog(
+      project,
+      resourceCatalog(
+        project,
+      ).where((item) => item.border != null && eligibleIds.contains(item.id)),
+      ResourceCatalogFilterState(
+        showComponents: view.resourceFilters.showComponents,
+      ),
+      activeMapId: document.current.id,
+      forMapPicker: true,
+    );
     Widget contextFilters() => ResourceFilterButton(
       filters: view.resourceFilters,
       activeMapName: document.current.name,
@@ -394,14 +413,12 @@ class MapBorderToolPanel extends StatelessWidget {
     final selected = models.any((item) => item.id == view.borderBlueprintId)
         ? view.borderBlueprintId
         : null;
-    final straightOnly =
-        eligible
-            .where((item) => item.id == view.borderBlueprintId)
-            .firstOrNull
-            ?.latestPublished
-            ?.definition
-            .straightOnly ==
-        true;
+    final definition = eligible
+        .where((item) => item.id == view.borderBlueprintId)
+        .firstOrNull
+        ?.latestPublished
+        ?.definition;
+    final straightOnly = definition?.straightOnly == true;
     final draft = view.borderDraft?.mapId == document.current.id
         ? view.borderDraft
         : null;
@@ -539,22 +556,64 @@ class MapBorderToolPanel extends StatelessWidget {
               ),
             models.isEmpty
                 ? Wrap(
+                    key: const ValueKey('border-empty-state'),
                     spacing: 12,
                     runSpacing: 6,
                     crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      contextFilters(),
-                      Text(
-                        eligible.isEmpty
-                            ? 'Aucun modèle de bordure linéaire n’est publié dans ce projet.'
-                            : 'Aucune bordure ne correspond aux filtres.',
-                      ),
-                      StudioButton(
-                        label: 'Créer un modèle',
-                        icon: Icons.add,
-                        onPressed: onCreateModel,
-                      ),
-                    ],
+                    children: eligible.isEmpty && !modelsLoaded
+                        ? modelsLoading
+                              ? const [
+                                  SizedBox.square(
+                                    dimension: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Chargement des modèles de bordure du projet… Sur un grand projet, cela peut prendre plusieurs minutes.',
+                                  ),
+                                ]
+                              : [
+                                  const Text(
+                                    'Les modèles de bordure du projet ne sont pas encore chargés pour cette carte.',
+                                  ),
+                                  StudioButton(
+                                    label: 'Charger les modèles de bordure',
+                                    icon: Icons.download_outlined,
+                                    onPressed: onLoadModels,
+                                  ),
+                                ]
+                        : eligible.isEmpty || compatible.isEmpty
+                        ? [
+                            if (eligible.isNotEmpty)
+                              const Text(
+                                'Aucun modèle de bordure publié n’est prêt pour cette carte. Préparez-en un dans l’atelier Bordures.',
+                              )
+                            else
+                            Text(
+                              'Aucun modèle de bordure linéaire n’est publié dans ce projet.${drafts.isEmpty ? ' Créez-en un dans l’atelier Bordures.' : ' ${drafts.length} ${drafts.length > 1 ? 'modèles en brouillon attendent' : 'modèle en brouillon attend'} d’être publié${drafts.length > 1 ? 's' : ''} dans l’atelier Bordures.'}',
+                            ),
+                            StudioButton(
+                              label: 'Créer un modèle',
+                              icon: Icons.add,
+                              onPressed: onCreateModel,
+                            ),
+                          ]
+                        : [
+                            contextFilters(),
+                            const Text(
+                              'Aucune bordure ne correspond aux filtres de la palette.',
+                            ),
+                            StudioButton(
+                              label: 'Effacer les filtres',
+                              icon: Icons.filter_alt_off_outlined,
+                              secondary: true,
+                              onPressed: () {
+                                view.resourceFilters.reset();
+                                onChanged();
+                              },
+                            ),
+                          ],
                   )
                 : spatial
                 ? Row(
@@ -583,10 +642,97 @@ class MapBorderToolPanel extends StatelessWidget {
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: controls,
                   ),
+            if (models.isNotEmpty && (spatial || definition != null))
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: _BorderProfileReview(
+                  compact: spatial,
+                  pieces: definition == null
+                      ? 'Choisissez un modèle pour voir ses segments, coins et extrémités.'
+                      : mapBorderProfilePieces(definition),
+                  drafts: drafts.length,
+                  review:
+                      definition == null ||
+                          draft == null ||
+                          draft.anchors.length < 2
+                      ? null
+                      : mapBorderDraftReview(draft, definition),
+                ),
+              ),
             _existingBorders(context),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _BorderProfileReview extends StatelessWidget {
+  const _BorderProfileReview({
+    required this.pieces,
+    required this.drafts,
+    required this.review,
+    required this.compact,
+  });
+
+  final String pieces;
+  final int drafts;
+  final MapBorderReview? review;
+  final bool compact;
+
+  String get _draftsNote =>
+      '$drafts ${drafts > 1 ? 'modèles en brouillon ne sont' : 'modèle en brouillon n’est'} pas proposé${drafts > 1 ? 's' : ''} : publiez-le${drafts > 1 ? 's' : ''} dans l’atelier Bordures.';
+
+  @override
+  Widget build(BuildContext context) {
+    final small = Theme.of(context).textTheme.bodySmall;
+    if (compact) {
+      final review = this.review;
+      final warning = review?.warnings.firstOrNull;
+      final line = warning ?? review?.facts.first ?? pieces;
+      final details = [
+        ...?review?.facts,
+        if (review == null) pieces,
+        ...?review?.warnings,
+        if (drafts > 0) _draftsNote,
+      ].join('\n');
+      return Tooltip(
+        key: const ValueKey('border-profile-review'),
+        message: details,
+        child: Row(
+          children: [
+            Icon(
+              warning == null ? Icons.info_outline : Icons.warning_amber,
+              size: 14,
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                drafts > 0 && warning == null ? '$line · $_draftsNote' : line,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: small,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    return Column(
+      key: const ValueKey('border-profile-review'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (review == null) Text(pieces, style: small),
+        if (review != null)
+          for (final fact in review!.facts) Text(fact, style: small),
+        if (drafts > 0) Text(_draftsNote, style: small),
+        if (review != null)
+          for (final warning in review!.warnings) ...[
+            const SizedBox(height: 4),
+            StudioNotice(warning),
+          ],
+      ],
     );
   }
 }
