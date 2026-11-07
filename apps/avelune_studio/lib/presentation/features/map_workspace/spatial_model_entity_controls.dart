@@ -10,6 +10,7 @@ import 'package:map_core/map_core.dart' hide SpatialMapOperations;
 import '../../../features/map_workspace/application/editable_map_document.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
+import 'spatial_model_roles.dart';
 
 class SpatialModelEntityControls extends StatelessWidget {
   const SpatialModelEntityControls({
@@ -35,6 +36,11 @@ class SpatialModelEntityControls extends StatelessWidget {
       instance: instance,
       onChanged: onChanged,
     );
+    final roles = SpatialModelRolesSummary(
+      map: map,
+      project: project,
+      instance: instance,
+    );
     if (!ownership.canBind(instance.id)) {
       final protected =
           instance.id.startsWith('smt_') ||
@@ -43,7 +49,12 @@ class SpatialModelEntityControls extends StatelessWidget {
               (feature) => feature.generatedPlacementIds.contains(instance.id),
             ),
           );
-      return protected ? const SizedBox.shrink() : visibility;
+      return protected
+          ? const SizedBox.shrink()
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [roles, const SizedBox(height: 12), visibility],
+            );
     }
     final bound = map.entities
         .where((entity) => entity.id == instance.entityId)
@@ -98,6 +109,8 @@ class SpatialModelEntityControls extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        roles,
+        const SizedBox(height: 12),
         visibility,
         if (!manual) ...[
         StudioSelect(
@@ -123,6 +136,13 @@ class SpatialModelEntityControls extends StatelessWidget {
                         ),
                 ),
         ),
+        if (obstacle == null && !canConfigure)
+          if (spatialFieldObstacleRefusal(instance, model, bound)
+              case final refusal?)
+            StudioNotice(
+              refusal,
+              key: const ValueKey('spatial-model-field-obstacle-refusal'),
+            ),
         if (obstacle != null) ...[
           const SizedBox(height: 8),
           StudioSelect(

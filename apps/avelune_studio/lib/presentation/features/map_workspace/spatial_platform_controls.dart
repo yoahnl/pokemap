@@ -76,11 +76,6 @@ class _SpatialPlatformControlsState extends State<SpatialPlatformControls> {
   double number(String value) => double.parse(value.replaceAll(',', '.'));
   void apply() {
     try {
-      if (widget.instance.blocksMovement) {
-        throw StateError(
-          'Désactivez la collision du modèle complet avant de créer le support mobile.',
-        );
-      }
       if (!enabled || !identical(source, widget.document.current)) {
         throw StateError('La carte a changé ou cet élément est verrouillé.');
       }
@@ -285,10 +280,15 @@ class _SpatialPlatformControlsState extends State<SpatialPlatformControls> {
                 })
               : null,
         ),
-      if (error != null) StudioNotice(error!, isError: true),
+      if (widget.instance.blocksMovement)
+        const StudioNotice(
+          'Pour en faire une plateforme, désactivez d’abord la collision du modèle complet.',
+        )
+      else if (error != null)
+        StudioNotice(error!, isError: true),
       StudioButton(
         label: platform == null ? 'Créer le trajet' : 'Appliquer le trajet',
-        onPressed: enabled ? apply : null,
+        onPressed: enabled && !widget.instance.blocksMovement ? apply : null,
       ),
     ],
   );

@@ -115,12 +115,14 @@ void main() {
           await tester.pumpWidget(
             MaterialApp(
               home: Scaffold(
-                body: StatefulBuilder(
-                  builder: (context, refresh) => SpatialModelEntityControls(
-                    document: document,
-                    project: selectedProject,
-                    instance: document.current.spatialScene!.instances.single,
-                    onChanged: () => refresh(() {}),
+                body: SingleChildScrollView(
+                  child: StatefulBuilder(
+                    builder: (context, refresh) => SpatialModelEntityControls(
+                      document: document,
+                      project: selectedProject,
+                      instance: document.current.spatialScene!.instances.single,
+                      onChanged: () => refresh(() {}),
+                    ),
                   ),
                 ),
               ),
