@@ -165,4 +165,42 @@ void main() {
       await editing.close();
     }
   });
+
+  test('a targeted save still refuses removing the arrival of a regional destination', () async {
+    final root = await Directory.systemTemp.createTemp('regional-map-save-');
+    addTearDown(() => root.delete(recursive: true));
+    const spawn = MapEntity(id: 'arrival', kind: MapEntityKind.spawn,
+        pos: GridPos(x: 2, y: 2), spawn: MapEntitySpawnData(spawnKey: 'gate'));
+    const map = MapData(id: 'town', name: 'Town', version: ProjectVersion.v8,
+        size: GridSize(width: 5, height: 5), entities: [spawn]);
+    final store = await CatalogStorageStore.open(projectRoot: root.path);
+    final working = await WorkingProjectCatalog.create(store: store, projectId: 'regional',
+        project: ProjectManifest(name: 'Regional', version: ProjectVersion.v8, maps: [
+          const ProjectMapEntry(id: 'town', name: 'Town', relativePath: 'maps/town.json'),
+          const ProjectMapEntry(id: 'route', name: 'Route', relativePath: 'maps/route.json'),
+        ], tilesets: const [], regionalMap: ProjectRegionalMapCatalog(
+          regions: [ProjectRegionDefinition(id: 'r', label: 'R')],
+          pointsOfInterest: [ProjectRegionPointOfInterest(id: 'town', regionId: 'r', label: 'Town',
+              u: .5, v: .5, mapIds: ['town'],
+              destination: ProjectRegionDestination(mapId: 'town', spawnId: 'gate'))])));
+    final file = File('${root.path}/maps/town.json');
+    await file.parent.create(recursive: true);
+    await file.writeAsString(jsonEncode(map.toJson()));
+    final reader = (await CatalogProjectReader.open(store: store,
+        descriptor: working.descriptor.toJson(),
+        metadataFields: catalogMapValidationMetadataFields))!;
+    final selected = await CatalogTargetedMapSelection.readRevision(reader: reader, mapId: 'town');
+    AuthoringRequest request(MapData value) => AuthoringRequest(requestId: 'regional',
+        actionId: 'map.save', actionVersion: 1, workspaceHandle: 'workspace',
+        expectedRevision: selected.snapshotRevision, idempotencyKey: 'regional',
+        parameters: {'map': value.toJson()});
+    await expectLater(
+        CatalogTargetedMapEdit.prepare(reader: reader,
+            request: request(map.copyWith(entities: const []))),
+        throwsA(isA<ValidationException>().having((e) => e.code, 'code',
+            'regional_map.destination_spawn_missing')));
+    final kept = await CatalogTargetedMapEdit.prepare(reader: reader,
+        request: request(map.copyWith(name: 'Bourg')));
+    expect(kept.draft.changeSet.changes.single.storageKey, 'maps/town.json');
+  });
 }

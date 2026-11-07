@@ -27,6 +27,8 @@ const catalogMapValidationMetadataFields = <String>{
   'trainers',
   'scenarios',
   'pokemon',
+  'scripts',
+  'regionalMap',
 };
 
 final class CatalogTargetedMapSelection {
