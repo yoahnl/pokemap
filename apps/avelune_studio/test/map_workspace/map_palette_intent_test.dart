@@ -1,5 +1,7 @@
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
+import 'package:avelune_studio/features/map_workspace/application/spatial_terrain_stroke.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_palette_intent.dart';
+import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_commands.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_layout.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_tool_strip.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
@@ -16,6 +18,43 @@ const _alice = ProjectCharacterEntry(
   id: 'alice',
   name: 'Alice',
   tilesetId: 'atlas',
+);
+
+ProjectSmartTilePreset _surface(
+  String id,
+  SmartTileUsage usage,
+  String material,
+) => ProjectSmartTilePreset(
+  id: id,
+  name: id,
+  usage: usage,
+  topology: SmartTileTopology.uniform,
+  templateHint: SmartTileTemplateHint.simple,
+  coveragePolicy: SmartTileCoveragePolicy.sparse,
+  coverageProfile: const SmartTileCoverageProfile(
+    mode: SmartTileCoverageMode.template,
+  ),
+  transformPolicy: const SmartTileTransformPolicy(),
+  defaultMaterialId: material,
+  allowedMaterialIds: [material],
+  rules: [
+    SmartTileRule(
+      id: 'fill',
+      centerMatch: SmartTileSlotMatch.material(material),
+      candidates: [
+        SmartTileCandidate(
+          id: 'fill',
+          parts: [
+            SmartTileVisualPart(
+              source: SmartTileVisualSource.frame(
+                frame: SmartTileFrameRef(atlasId: id, column: 0, row: 0),
+              ),
+            ),
+          ],
+        ),
+      ],
+    ),
+  ],
 );
 
 void main() {
@@ -203,6 +242,77 @@ void main() {
       await tester.tapAt(Offset.zero);
       await tester.pumpAndSettle();
     }
+  });
+
+  test('a terrain gesture is named from its native preset', () {
+    final project = workspaceProject.copyWith(
+      smartTileCatalog: ProjectSmartTileCatalog(
+        materials: const [
+          ProjectSmartTileMaterial(
+            id: 'sea',
+            name: 'Mer',
+            connectionGroupId: 'sea',
+            pathSurfaceKind: PathSurfaceKind.water,
+          ),
+          ProjectSmartTileMaterial(
+            id: 'dirt',
+            name: 'Terre',
+            connectionGroupId: 'dirt',
+            pathSurfaceKind: PathSurfaceKind.path,
+          ),
+          ProjectSmartTileMaterial(
+            id: 'grass',
+            name: 'Herbe',
+            connectionGroupId: 'grass',
+          ),
+        ],
+      ),
+    );
+    final view = MapWorkspaceViewState()..tool = StudioMapTool.terrain;
+    expect(mapPaletteIntent(view, project: project).armed, isFalse);
+    for (final (preset, label) in [
+      (_surface('grass', SmartTileUsage.terrain, 'grass'), 'Sol'),
+      (_surface('path', SmartTileUsage.path, 'dirt'), 'Chemin'),
+      (_surface('sea', SmartTileUsage.path, 'sea'), 'Eau'),
+    ]) {
+      view.terrain = preset;
+      final intent = mapPaletteIntent(view, project: project);
+      expect(intent.action, label);
+      expect(intent.armed, isTrue);
+    }
+  });
+
+  test('a 3D ground without terrain is not armed, relief and slope are', () {
+    final view = MapWorkspaceViewState()..tool = StudioMapTool.terrain;
+    final ground = mapPaletteIntent(view, spatial: true);
+    expect(ground.armed, isFalse);
+    expect(ground.next, contains('Choisissez un sol, un chemin ou une eau'));
+    view.spatialTerrainMode = SpatialTerrainMode.relief;
+    expect(mapPaletteIntent(view, spatial: true).action, 'Relief');
+    view.spatialTerrainMode = SpatialTerrainMode.ramp;
+    final slope = mapPaletteIntent(view, spatial: true);
+    expect(slope.action, 'Pente');
+    expect(slope.usesPalette, isFalse);
+  });
+
+  test('commands are grouped to build, populate, rule and set the mood', () {
+    final groups = mapWorkspaceCommands.map((command) => command.group).toSet();
+    expect(
+      groups,
+      containsAll(['Construire', 'Peupler', 'Règles', 'Ambiance']),
+    );
+    expect(mapWorkspaceCommand('map.ambiance').group, 'Ambiance');
+    expect(
+      mapCommandUnavailable('map.ambiance', const MapCommandContext()),
+      'L’ambiance se règle sur les cartes 3D.',
+    );
+    expect(
+      mapCommandUnavailable(
+        'map.ambiance',
+        const MapCommandContext(spatial: true),
+      ),
+      isNull,
+    );
   });
 }
 

@@ -1,5 +1,6 @@
 import 'package:map_core/map_core_domain.dart';
 
+import '../../../features/map_workspace/application/spatial_terrain_stroke.dart';
 import 'map_workspace_view_state.dart';
 
 enum MapIntentGroup { select, build, populate, rules }
@@ -41,17 +42,72 @@ const _selectionHints = {
   'Environnements': 'Choisissez un environnement pour dessiner sa zone.',
 };
 
+String mapTerrainGestureLabel(
+  ProjectSmartTilePreset preset, [
+  ProjectManifest? project,
+]) {
+  final kind = project?.smartTileCatalog.materials
+      .where((material) => material.id == preset.defaultMaterialId)
+      .firstOrNull
+      ?.pathSurfaceKind;
+  return switch (preset.usage) {
+    SmartTileUsage.terrain => 'Sol',
+    SmartTileUsage.forestSurface => 'Sol de forêt',
+    SmartTileUsage.path => switch (kind) {
+      PathSurfaceKind.water => 'Eau',
+      PathSurfaceKind.road => 'Route',
+      PathSurfaceKind.tallGrass => 'Herbes hautes',
+      PathSurfaceKind.ice => 'Glace',
+      _ => 'Chemin',
+    },
+  };
+}
+
+MapPaletteIntent _terrainIntent(
+  MapWorkspaceViewState view,
+  bool spatial,
+  ProjectManifest? project,
+) {
+  if (spatial && view.spatialTerrainMode != SpatialTerrainMode.ground) {
+    final relief = view.spatialTerrainMode == SpatialTerrainMode.relief;
+    return MapPaletteIntent(
+      group: MapIntentGroup.build,
+      action: relief ? 'Relief' : 'Pente',
+      next: relief
+          ? 'Glissez sur la carte pour monter ou descendre le sol ; relâchez pour valider.'
+          : 'Tracez la pente du bas vers le haut, puis appliquez-la.',
+      armed: true,
+    );
+  }
+  final preset = view.terrain;
+  return MapPaletteIntent(
+    group: MapIntentGroup.build,
+    action: preset == null
+        ? 'Peinture de terrain'
+        : mapTerrainGestureLabel(preset, project),
+    paletteTab: 'Terrains',
+    resource: preset?.name,
+    armed: preset != null,
+    next: preset != null
+        ? 'Peignez sur la carte : les raccords se calculent automatiquement.'
+        : 'Choisissez un sol, un chemin ou une eau dans la palette.',
+  );
+}
+
 MapPaletteIntent mapPaletteIntent(
   MapWorkspaceViewState view, {
   bool spatial = false,
   bool connectionsAvailable = true,
   bool? editingExterior,
+  ProjectManifest? project,
 }) {
-  final intent = _toolIntent(
-    view,
-    spatial: spatial,
-    connectionsAvailable: connectionsAvailable,
-  );
+  final intent = view.tool == StudioMapTool.terrain
+      ? _terrainIntent(view, spatial, project)
+      : _toolIntent(
+          view,
+          spatial: spatial,
+          connectionsAvailable: connectionsAvailable,
+        );
   return editingExterior == null
       ? intent
       : intent.withTarget(editingExterior ? 'Décor extérieur' : 'Zone jouable');
@@ -93,16 +149,7 @@ MapPaletteIntent _toolIntent(
       armedNext: 'Peignez sur la carte.',
       emptyNext: 'Choisissez une tuile dans son atlas.',
     ),
-    StudioMapTool.terrain => MapPaletteIntent(
-      group: MapIntentGroup.build,
-      action: 'Peinture de terrain',
-      paletteTab: 'Terrains',
-      resource: view.terrain?.name,
-      armed: view.terrain != null || spatial,
-      next: view.terrain != null || spatial
-          ? 'Peignez sur la carte : les raccords se calculent automatiquement.'
-          : 'Choisissez un terrain dans la palette.',
-    ),
+    StudioMapTool.terrain => _terrainIntent(view, spatial, null),
     StudioMapTool.erase => const MapPaletteIntent(
       group: MapIntentGroup.build,
       action: 'Gomme de tuiles',

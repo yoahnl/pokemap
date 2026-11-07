@@ -10,6 +10,32 @@ import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/feedback/studio_badge.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
 import 'map_day_night_panel.dart';
+import 'workspace_compact_panel.dart';
+
+Future<void> showMapAmbiancePanel(
+  BuildContext context, {
+  required MapWorkspaceController workspace,
+  required EditableMapDocument document,
+  required ProjectManifest project,
+  required SpatialSceneController? preview,
+  required VoidCallback onChanged,
+}) => showWorkspaceCompactPanel(
+  context,
+  title: 'Ambiance de la carte',
+  width: 420,
+  dimBackground: false,
+  builder: (context, refresh, close) => MapAmbiancePanel(
+    workspace: workspace,
+    document: document,
+    project: project,
+    preview: preview,
+    onMapChanged: close,
+    onSave: () {
+      workspace.save(document);
+    },
+    onChanged: onChanged,
+  ),
+);
 
 class MapAmbiancePanel extends StatefulWidget {
   const MapAmbiancePanel({

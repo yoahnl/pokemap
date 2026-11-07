@@ -15,6 +15,7 @@ import '../verification/test_launch_dialog.dart';
 import 'dart:async';
 import '../../../features/map_workspace/application/map_layout_preferences.dart';
 import '../../shared/widgets/dialogs/studio_command_palette.dart';
+import 'map_ambiance_panel.dart';
 import 'map_tool_command_runner.dart';
 import 'map_workspace_commands.dart';
 import '../../../features/project_surf/domain/project_surf_port.dart';

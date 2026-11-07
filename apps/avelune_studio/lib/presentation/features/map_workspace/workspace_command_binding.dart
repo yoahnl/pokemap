@@ -42,6 +42,15 @@ extension _WorkspaceCommandBinding on _MapWorkspaceScreenState {
       case 'map.redo':
         _controller.restore(redo: true);
         _changed();
+      case 'map.ambiance':
+        await showMapAmbiancePanel(
+          context,
+          workspace: _controller,
+          document: active,
+          project: _controller.project!,
+          preview: view.spatialSceneController,
+          onChanged: _toolChanged,
+        );
       default:
         MapToolCommandRunner(
           view: view,

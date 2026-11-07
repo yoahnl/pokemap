@@ -286,20 +286,13 @@ class MapWorkspaceLayout extends StatelessWidget {
               onCommands: ready ? onCommands : null,
               onAmbiance: !ready || controller.loading || doc.current.spatialScene == null
                   ? null
-                  : () => showWorkspaceCompactPanel(
+                  : () => showMapAmbiancePanel(
                       context,
-                      title: 'Ambiance de la carte',
-                      width: 420,
-                      dimBackground: false,
-                      builder: (context, refresh, close) => MapAmbiancePanel(
-                        workspace: controller,
-                        document: doc,
-                        project: project,
-                        preview: view!.spatialSceneController,
-                        onMapChanged: close,
-                        onSave: () { controller.save(doc); },
-                        onChanged: onToolChanged,
-                      ),
+                      workspace: controller,
+                      document: doc,
+                      project: project,
+                      preview: view!.spatialSceneController,
+                      onChanged: onToolChanged,
                     ),
               onActivate: onActivate,
               onSave: onSave,

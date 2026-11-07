@@ -88,6 +88,7 @@ class _MapWorkspacePaletteDockState extends State<MapWorkspacePaletteDock> {
     final detailed = !{'Décors', 'Terrains'}.contains(kind);
     final intent = mapPaletteIntent(
       widget.view,
+      project: widget.project,
       spatial: map.spatialScene != null,
       connectionsAvailable: widget.connectionsAvailable,
     );

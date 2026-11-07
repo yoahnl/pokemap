@@ -350,6 +350,7 @@ class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
                                       child: MapIntentStatusChip(
                                         intent: mapPaletteIntent(
                                           widget.view,
+                                          project: widget.project,
                                           spatial:
                                               widget
                                                   .document

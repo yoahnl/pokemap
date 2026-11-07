@@ -55,6 +55,7 @@ const _spatialSupported = {
   'map.resources',
   'map.undo',
   'map.redo',
+  'map.ambiance',
 };
 
 const _exteriorSupported = {
@@ -73,6 +74,14 @@ const _exteriorSupported = {
 };
 
 const mapWorkspaceCommands = <MapWorkspaceCommand>[
+  MapWorkspaceCommand(
+    id: 'map.ambiance',
+    label: 'Régler l’ambiance',
+    kind: MapCommandKind.extra,
+    group: 'Ambiance',
+    keywords: ['ambiance', 'lumière', 'météo', 'jour', 'nuit', 'brume'],
+    howTo: 'Ouvre l’ambiance de cette carte : lumière, météo, jour et nuit, effets visuels.',
+  ),
   MapWorkspaceCommand(
     id: 'map.select',
     label: 'Sélection',
@@ -322,6 +331,8 @@ String? mapCommandUnavailable(String id, MapCommandContext context) {
       'Choisissez d’abord une tuile, un décor ou un terrain dans la palette.',
     'map.undo' when !context.canUndo => 'Aucune modification à annuler.',
     'map.redo' when !context.canRedo => 'Aucune modification à rétablir.',
+    'map.ambiance' when !context.spatial =>
+      'L’ambiance se règle sur les cartes 3D.',
     _ => null,
   };
 }
