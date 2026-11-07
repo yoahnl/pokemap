@@ -84,7 +84,7 @@ void main() {
     await pumpIo(tester);
     await tester.tap(find.text('Attaques').first);
     await pumpIo(tester);
-    expect(find.text('Synchronisation'), findsOneWidget);
+    expect(find.text('Préparer la synchronisation'), findsOneWidget);
     await captureM3Widget(tester, captureKey, 'pokemon-compact-attaques-150');
     await tester.tap(find.text('Pokédex').first);
     await pumpIo(tester);

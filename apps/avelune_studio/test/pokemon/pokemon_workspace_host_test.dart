@@ -291,7 +291,7 @@ void main() {
     expect(find.text('Cible'), findsOneWidget);
     expect(find.text('Une cible'), findsOneWidget);
     await captureM3Widget(tester, captureKey, 'pokemon-attaques');
-    await tester.tap(find.text('Synchronisation'));
+    await tester.tap(find.text('Préparer la synchronisation'));
     await pumpIo(tester);
     await tester.tap(find.text('Prévisualiser la synchronisation'));
     await pumpIo(tester);

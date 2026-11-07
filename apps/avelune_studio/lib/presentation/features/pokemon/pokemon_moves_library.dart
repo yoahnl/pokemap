@@ -75,7 +75,7 @@ class _PokemonMovesLibraryState extends State<PokemonMovesLibrary> {
                       StudioButton(
                         label: showSync
                             ? 'Masquer la synchronisation'
-                            : 'Synchronisation',
+                            : 'Préparer la synchronisation',
                         icon: Icons.sync,
                         secondary: true,
                         onPressed: () => setState(() => showSync = !showSync),
