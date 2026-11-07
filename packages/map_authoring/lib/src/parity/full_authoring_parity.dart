@@ -554,6 +554,18 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
       AuthoringTransport.editor: '../../apps/avelune_studio/test/presentation/map_warp_transition_editor_test.dart',
     };
   }
+  if (actionId == 'warp.create' || actionId == 'warp.update') {
+    return const {
+      AuthoringTransport.directApi:
+          'test/domains/maps/scene_only_warp_transport_test.dart',
+      AuthoringTransport.cli:
+          'test/domains/maps/scene_only_warp_transport_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/scene_only_warp_destination_stdio.test.ts',
+      AuthoringTransport.editor:
+          '../../apps/avelune_studio/test/map_workspace/warp_disk_journey_test.dart',
+    };
+  }
   if (actionId == 'entity.set_item_payload') {
     return const {
       AuthoringTransport.directApi:
