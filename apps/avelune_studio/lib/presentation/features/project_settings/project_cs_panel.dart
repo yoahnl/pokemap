@@ -17,7 +17,9 @@ class ProjectCsPanel extends StatefulWidget {
     required this.surf,
     required this.settings,
     this.loadItems,
+    this.showActions = true,
   });
+  final bool showActions;
   final ProjectCsController owner;
   final ProjectSurfController surf;
   final ProjectSettings settings;
@@ -95,7 +97,7 @@ class _ProjectCsPanelState extends State<ProjectCsPanel> {
                       : null,
                 ),
               const SizedBox(height: 12),
-              Wrap(
+              if (widget.showActions) Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: [
@@ -146,6 +148,7 @@ class _ProjectCsPanelState extends State<ProjectCsPanel> {
           ProjectSurfPanel(
             owner: surf,
             showActivation: false,
+            showActions: widget.showActions,
             loadItems: widget.loadItems,
           ),
         ],

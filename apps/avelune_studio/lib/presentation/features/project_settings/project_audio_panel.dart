@@ -12,8 +12,14 @@ import '../../shared/widgets/layout/studio_panel.dart';
 import '../presentations/presentation_media_picker.dart';
 
 class ProjectAudioPanel extends StatefulWidget {
-  const ProjectAudioPanel({super.key, required this.owner, this.pickMedia});
+  const ProjectAudioPanel({
+    super.key,
+    required this.owner,
+    this.pickMedia,
+    this.showActions = true,
+  });
   final ProjectAudioController owner;
+  final bool showActions;
   final PickPresentationMedia? pickMedia;
   @override
   State<ProjectAudioPanel> createState() => _ProjectAudioPanelState();
@@ -158,7 +164,7 @@ class _ProjectAudioPanelState extends State<ProjectAudioPanel>
                   style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
               const SizedBox(height: 12),
-              Wrap(
+              if (widget.showActions) Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: [
@@ -190,12 +196,14 @@ class _ProjectAudioPanelState extends State<ProjectAudioPanel>
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              Text(
-                owner.dirty
-                    ? 'Bruitages non enregistrés'
-                    : 'Bruitages enregistrés',
-              ),
+              if (widget.showActions) ...[
+                const SizedBox(height: 8),
+                Text(
+                  owner.dirty
+                      ? 'Bruitages non enregistrés'
+                      : 'Bruitages enregistrés',
+                ),
+              ],
               if (owner.error case final error?)
                 Text(
                   error,

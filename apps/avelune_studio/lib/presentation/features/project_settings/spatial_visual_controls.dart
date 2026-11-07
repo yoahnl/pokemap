@@ -19,12 +19,14 @@ class SpatialVisualControls extends StatelessWidget {
     required this.onChanged,
     this.camera = true,
     this.clock = true,
+    this.weather = true,
+    this.effects = true,
     this.onEditStart,
     this.onEditEnd,
   });
   final SpatialVisualPatch patch, inherited;
   final ValueChanged<SpatialVisualPatch>? onChanged;
-  final bool camera, clock;
+  final bool camera, clock, weather, effects;
   final VoidCallback? onEditStart, onEditEnd;
   SpatialVisualPatch get effective => inherited.overriddenBy(patch);
   double number(SpatialVisualParameter p) => effective.number(p) ?? p.defaultNumber ?? (p == SpatialVisualParameter.weatherIntervalSeconds ? 600 : p.minimum);
@@ -316,7 +318,7 @@ class SpatialVisualControls extends StatelessWidget {
               ),
             ],
           ),
-        group('Météo et saisons', Icons.cloud_outlined, StudioAccent.water, [
+        if (weather) group('Météo et saisons', Icons.cloud_outlined, StudioAccent.water, [
           StudioSelect(
             key: const ValueKey('visual-weatherMode'),
             label: 'Fonctionnement de la météo',
@@ -461,6 +463,7 @@ class SpatialVisualControls extends StatelessWidget {
             'La météo reste locale à la scène et suit le joueur. Les intérieurs sont protégés par défaut. Les éclairs sont désactivés par défaut.',
           ),
         ]),
+        if (effects) ...[
         group('Profondeur de champ', Icons.camera, StudioAccent.fog, [
           toggle(p[8], 'Activer le flou', Icons.camera, StudioAccent.fog),
           slider(
@@ -589,6 +592,7 @@ class SpatialVisualControls extends StatelessWidget {
         const Text(
           'L’eau, les fenêtres et les lucioles utilisent les sources placées sur chaque carte. Les ombres restent réglables sur les ressources et sur chaque élément 3D.',
         ),
+        ],
       ],
     );
   }

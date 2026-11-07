@@ -12,9 +12,9 @@ import '../../shared/widgets/layout/studio_panel.dart';
 import 'project_surf_condition_editor.dart';
 
 class ProjectSurfPanel extends StatefulWidget {
-  const ProjectSurfPanel({super.key, required this.owner, this.loadItems, this.showActivation = true});
+  const ProjectSurfPanel({super.key, required this.owner, this.loadItems, this.showActivation = true, this.showActions = true});
   final ProjectSurfController owner;
-  final bool showActivation;
+  final bool showActivation, showActions;
   final Future<Map<String, String>> Function()? loadItems;
   @override
   State<ProjectSurfPanel> createState() => _ProjectSurfPanelState();
@@ -123,7 +123,7 @@ class _ProjectSurfPanelState extends State<ProjectSurfPanel> {
             ),
           ],
           const SizedBox(height: 16),
-          Wrap(
+          if (widget.showActions) Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [
@@ -162,12 +162,14 @@ class _ProjectSurfPanelState extends State<ProjectSurfPanel> {
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            owner.dirty
-                ? 'Réglages Surf non enregistrés'
-                : 'Réglages Surf enregistrés',
-          ),
+          if (widget.showActions) ...[
+            const SizedBox(height: 8),
+            Text(
+              owner.dirty
+                  ? 'Réglages Surf non enregistrés'
+                  : 'Réglages Surf enregistrés',
+            ),
+          ],
           if (owner.loading) const Text('Chargement des réglages Surf…'),
           if (owner.error case final error?)
             Text(

@@ -120,7 +120,7 @@ void main() {
     layout.onHome!();await tester.pumpAndSettle();
     await tester.tap(find.text('Réglages du projet'));await tester.pumpAndSettle();
     expect(find.byType(ProjectSettingsPage), findsOneWidget);
-    expect(find.text('Test en jeu'),findsOneWidget);
+    expect(find.byKey(const ValueKey('settings-section-image')),findsOneWidget);
     expect(maps.catalogs,catalogs);
     expect(tester.takeException(),isNull);
     final current = tester.widget<MapWorkspaceLayout>(find.byType(MapWorkspaceLayout));

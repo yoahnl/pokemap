@@ -1381,12 +1381,12 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 
 **Étapes d’implémentation :**
 
-- [ ] 1. Créer un shell à six rubriques, chacune accessible sans dépendre de l’existence d’une carte 3D.
-- [ ] 2. Conserver les contrôleurs métier actuels et ajouter seulement la coordination de navigation, portée, brouillons et historique.
-- [ ] 3. Supprimer la sauvegarde implicite de keepDraft lors d’un changement de carte d’aperçu ou de rubrique.
-- [ ] 4. Conserver les brouillons par projet, rubrique et portée ; une réponse asynchrone d’un ancien contexte est ignorée.
-- [ ] 5. Définir Enregistrer, Annuler les modifications et les règles de sortie/fermeture ; ne pas effacer un brouillon lors d’une erreur.
-- [ ] 6. Réutiliser les protections contre conflit externe et les gestes groupés d’annulation ; n’annoncer enregistré qu’après persistance.
+- [x] 1. Créer un shell à six rubriques, chacune accessible sans dépendre de l’existence d’une carte 3D.
+- [x] 2. Conserver les contrôleurs métier actuels et ajouter seulement la coordination de navigation, portée, brouillons et historique.
+- [x] 3. Supprimer la sauvegarde implicite de keepDraft lors d’un changement de carte d’aperçu ou de rubrique.
+- [x] 4. Conserver les brouillons par projet, rubrique et portée ; une réponse asynchrone d’un ancien contexte est ignorée.
+- [x] 5. Définir Enregistrer, Annuler les modifications et les règles de sortie/fermeture ; ne pas effacer un brouillon lors d’une erreur.
+- [x] 6. Réutiliser les protections contre conflit externe et les gestes groupés d’annulation ; n’annoncer enregistré qu’après persistance.
 
 **Tests comportementaux obligatoires :**
 
@@ -2617,7 +2617,7 @@ Une entrée « Parcours décrit » n’est pas déclarée implémentée. Le lot 
 | M05 | P2 | Noms tronqués, recherches différentes | UX-02.1, ét. 6 | Ajouté, D-01 tranchée |
 | M06 | P2 | Recherche perdue dans un dock étroit | UX-05, ét. 8 | Ajouté |
 | M07 | P2 | État vide de Bordures aux consignes concurrentes | UX-05, ét. 5 | Couvert |
-| M08 | P1 | Ambiance et sauvegarde à plusieurs endroits | UX-14, UX-17 | Couvert |
+| M08 | P1 | Ambiance et sauvegarde à plusieurs endroits | UX-14, UX-17 | Couvert ; UX-14 : la portée « Cette carte » des réglages édite le même brouillon que l’Ambiance de la carte (plus de second contrôleur sur `maps/<id>.visual.json`), sans sauvegarde implicite ; vue locale restante en UX-17 |
 | M09 | P1 | Carte régionale : première carte liée d’office | UX-03.1, ét. 5 | Ajouté, avancé ; **corrigé** par d33da791b (choix explicite avec dossier ; pas d’aperçu) |
 | M10 | P2 | Lieux régionaux difficiles à grande échelle | UX-23.7, ét. 6 | Ajouté |
 | N01 | P1 | Histoire : apprendre le modèle avant de raconter | UX-22, ét. 7 | Ajouté, D-02 tranchée ; attend la direction de design Histoire |
@@ -2646,7 +2646,7 @@ Une entrée « Parcours décrit » n’est pas déclarée implémentée. Le lot 
 | R13 | P2 | Combat et attaques : suite du geste ailleurs | UX-23.6, ét. 10 | Ajouté |
 | T01 | P1 | Tester enregistre certains brouillons et en bloque d’autres | UX-21, ét. 2 | Couvert |
 | T02 | P1 | Erreur de test sans prochaine action | UX-21, ét. 6 | Couvert |
-| T03 | P1 | « Annuler » désigne deux portées | UX-14, ét. 5 | Couvert |
+| T03 | P1 | « Annuler » désigne deux portées | UX-14, ét. 5 | **Corrigé** par UX-14 : « Défaire » / « Rétablir » pour l’historique de la rubrique, « Abandonner les modifications » pour son brouillon ; vérifié en natif |
 | T04 | P2 | Champ de vision et distance liés mais séparés | UX-16, ét. 3 | Couvert |
 | T05 | P1 | Activer, disposer et débloquer une CS | UX-19 | Couvert |
 | T06 | P2 | Deux chemins pour affecter un son | UX-20 | Couvert |

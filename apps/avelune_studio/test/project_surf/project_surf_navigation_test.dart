@@ -70,18 +70,19 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('settings-section-image')));
+      await tester.pumpAndSettle();
       expect(
         find.byWidgetPredicate(
-          (w) => w is StudioSelect && w.label == 'Carte à tester',
+          (w) => w is StudioSelect && w.label == 'Carte utilisée pour l’aperçu',
         ),
         findsOneWidget,
       );
       expect(find.textContaining('Scène à tester'), findsNothing);
-      expect(find.text('Jouer dans cette carte'), findsOneWidget);
       final reads = port.reads,
           catalogs = port.catalogs,
           visualReads = port.visualReads;
-      await tester.tap(find.text('CS'));
+      await tester.tap(find.byKey(const ValueKey('settings-section-fieldAbilities')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('surf-enabled')));
       await tester.pump();
@@ -97,9 +98,9 @@ void main() {
       );
       expect(actions.hasCatalogDependencyDraft, isTrue);
       await tester.ensureVisible(
-        find.byKey(const ValueKey('save-project-surf')),
+        find.byKey(const ValueKey('settings-section-save')),
       );
-      await tester.tap(find.byKey(const ValueKey('save-project-surf')));
+      await tester.tap(find.byKey(const ValueKey('settings-section-save')));
       await tester.pumpAndSettle();
       expect(surf.dirty, isFalse);
       expect(actions.hasCatalogDependencyDraft, isFalse);
@@ -114,9 +115,9 @@ void main() {
       expect(workspace.project!.settings.surf!.enabled, isTrue);
       final projected = workspace.visualProject;
       expect(identical(workspace.visualProject, projected), isTrue);
-      await tester.tap(find.text('Réglages'));
+      await tester.tap(find.byKey(const ValueKey('settings-section-image')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('CS'));
+      await tester.tap(find.byKey(const ValueKey('settings-section-fieldAbilities')));
       await tester.pumpAndSettle();
       expect(port.surfReads, 1);
       expect(surf.dirty, isFalse);
@@ -152,15 +153,15 @@ void main() {
           .widget<MapWorkspaceLayout>(find.byType(MapWorkspaceLayout))
           .onProjectSettings!();
       await tester.pumpAndSettle();
-      await tester.tap(find.text('CS'));
+      await tester.tap(find.byKey(const ValueKey('settings-section-fieldAbilities')));
       await tester.pumpAndSettle();
       final updates = visuals.updates, maps = visuals.mapUpdates;
       await tester.tap(find.byKey(const ValueKey('surf-enabled')));
       await tester.pump();
       await tester.ensureVisible(
-        find.byKey(const ValueKey('save-project-surf')),
+        find.byKey(const ValueKey('settings-section-save')),
       );
-      await tester.tap(find.byKey(const ValueKey('save-project-surf')));
+      await tester.tap(find.byKey(const ValueKey('settings-section-save')));
       await tester.pumpAndSettle();
       expect(port.surfWrites, 1);
       expect(visuals.updates, updates);
@@ -202,14 +203,14 @@ void main() {
           catalogs = port.catalogs,
           updates = visuals.updates,
           mapUpdates = visuals.mapUpdates;
-      await tester.tap(find.text('CS'));
+      await tester.tap(find.byKey(const ValueKey('settings-section-fieldAbilities')));
       await tester.pumpAndSettle();
       for (final id in ['rock_climb', 'defog']) {
         await tester.ensureVisible(find.byKey(ValueKey('cs-$id')));
         await tester.tap(find.byKey(ValueKey('cs-$id')));
         await tester.pump();
       }
-      await tester.tap(find.text('Son'));
+      await tester.tap(find.byKey(const ValueKey('settings-section-sounds')));
       await tester.pumpAndSettle();
       tester
           .widget<StudioSelect>(
@@ -218,14 +219,14 @@ void main() {
           .onChanged!('builtin');
       await tester.pump();
       await tester.ensureVisible(
-        find.byKey(const ValueKey('save-project-audio')),
+        find.byKey(const ValueKey('settings-section-save')),
       );
-      await tester.tap(find.byKey(const ValueKey('save-project-audio')));
+      await tester.tap(find.byKey(const ValueKey('settings-section-save')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('CS'));
+      await tester.tap(find.byKey(const ValueKey('settings-section-fieldAbilities')));
       await tester.pumpAndSettle();
-      await tester.ensureVisible(find.byKey(const ValueKey('save-project-cs')));
-      await tester.tap(find.byKey(const ValueKey('save-project-cs')));
+      await tester.ensureVisible(find.byKey(const ValueKey('settings-section-save')));
+      await tester.tap(find.byKey(const ValueKey('settings-section-save')));
       await tester.pumpAndSettle();
       expect(port.revision, 3);
       expect(workspace.project!.settings.fieldAbilities!.disabledAbilityIds, {

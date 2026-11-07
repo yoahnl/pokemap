@@ -193,6 +193,10 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                                   pickMedia: widget.presentationMediaPicker,
                                   loadItems: _loadSceneItems,
                                   testBuilder: widget.visualTestBuilder,
+                                  onOpenVerification: () =>
+                                      _show(WorkspaceSpace.verification),
+                                  onOpenExport: () =>
+                                      _show(WorkspaceSpace.gameExport),
                                 )
                               : _space == WorkspaceSpace.regionalMap &&
                                     _regionalMap != null

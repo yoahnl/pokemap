@@ -17,6 +17,9 @@ class StudioNavigationEntry extends StatefulWidget {
     this.selected = false,
     this.compact = false,
     this.unavailableReason,
+    this.detail,
+    this.marker,
+    this.markerLabel,
   });
 
   final String label;
@@ -24,6 +27,9 @@ class StudioNavigationEntry extends StatefulWidget {
   final VoidCallback? onTap;
   final bool selected, compact;
   final String? unavailableReason;
+  final String? detail;
+  final Widget? marker;
+  final String? markerLabel;
 
   static double extentOf(
     BuildContext context, {
@@ -68,16 +74,31 @@ class _StudioNavigationEntryState extends State<StudioNavigationEntry> {
             const SizedBox(width: _labelGap),
             Expanded(
               child: ExcludeSemantics(
-                child: Text(
-                  widget.label,
-                  style: TextStyle(
-                    fontWeight: widget.selected
-                        ? FontWeight.w700
-                        : FontWeight.w400,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      widget.label,
+                      style: TextStyle(
+                        fontWeight: widget.selected
+                            ? FontWeight.w700
+                            : FontWeight.w400,
+                      ),
+                    ),
+                    if (widget.detail case final detail?)
+                      Text(
+                        detail,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                  ],
                 ),
               ),
             ),
+            if (widget.marker case final marker?) ...[
+              const SizedBox(width: 8),
+              ExcludeSemantics(child: marker),
+            ],
           ],
         ],
       ),
@@ -90,7 +111,11 @@ class _StudioNavigationEntryState extends State<StudioNavigationEntry> {
         button: true,
         selected: widget.selected,
         enabled: enabled,
-        label: widget.label,
+        label: [
+          widget.label,
+          ?widget.detail,
+          ?widget.markerLabel,
+        ].join(', '),
         hint: reason,
         child: Material(
           color: widget.selected
