@@ -1503,13 +1503,13 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 
 **Étapes d’implémentation :**
 
-- [ ] 1. Regrouper caméra, ambiance visuelle et effets sans retirer les paramètres natifs qui dépassent l’exemple.
-- [ ] 2. Conserver les bornes de SpatialVisualParameter et les gestes de slider groupés.
-- [ ] 3. Conserver ou ajuster explicitement la compensation native distance/FOV qui maintient le cadrage ; regrouper ces champs dépendants dans le même geste d’annulation.
-- [ ] 4. La carte d’aperçu change seulement l’aperçu ; le formulaire garde sa cible Projet.
-- [ ] 5. Résoudre les valeurs effectives et afficher leur provenance ; une comparaison montre honnêtement les états mémorisés et brouillons.
-- [ ] 6. Brancher l’aperçu sur le renderer natif ciblé, avec mise à jour incrémentale des paramètres ; gérer l’absence de carte 3D.
-- [ ] 7. Garder projection et hauteur orthographique dans la caméra locale tant que le contrat projet ne les expose pas.
+- [x] 1. Regrouper caméra, ambiance visuelle et effets sans retirer les paramètres natifs qui dépassent l’exemple.
+- [x] 2. Conserver les bornes de SpatialVisualParameter et les gestes de slider groupés.
+- [x] 3. Conserver ou ajuster explicitement la compensation native distance/FOV qui maintient le cadrage ; regrouper ces champs dépendants dans le même geste d’annulation.
+- [x] 4. La carte d’aperçu change seulement l’aperçu ; le formulaire garde sa cible Projet.
+- [x] 5. Résoudre les valeurs effectives et afficher leur provenance ; une comparaison montre honnêtement les états mémorisés et brouillons.
+- [x] 6. Brancher l’aperçu sur le renderer natif ciblé, avec mise à jour incrémentale des paramètres ; gérer l’absence de carte 3D.
+- [x] 7. Garder projection et hauteur orthographique dans la caméra locale tant que le contrat projet ne les expose pas.
 
 **Tests comportementaux obligatoires :**
 
@@ -2647,7 +2647,7 @@ Une entrée « Parcours décrit » n’est pas déclarée implémentée. Le lot 
 | T01 | P1 | Tester enregistre certains brouillons et en bloque d’autres | UX-21, ét. 2 | Couvert |
 | T02 | P1 | Erreur de test sans prochaine action | UX-21, ét. 6 | Couvert |
 | T03 | P1 | « Annuler » désigne deux portées | UX-14, ét. 5 | **Corrigé** par UX-14 : « Défaire » / « Rétablir » pour l’historique de la rubrique, « Abandonner les modifications » pour son brouillon ; vérifié en natif |
-| T04 | P2 | Champ de vision et distance liés mais séparés | UX-16, ét. 3 | Couvert |
+| T04 | P2 | Champ de vision et distance liés mais séparés | UX-16, ét. 3 | **Corrigé** par UX-16 : la compensation distance/champ de vision est annoncée sur place et revient en une seule annulation ; saisies numériques bornées ; vérifié en natif |
 | T05 | P1 | Activer, disposer et débloquer une CS | UX-19 | Couvert |
 | T06 | P2 | Deux chemins pour affecter un son | UX-20 | Couvert |
 | T07 | P1 | Conséquences de l’export peu claires | UX-21, UX-15 | Couvert |

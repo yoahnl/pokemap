@@ -12,6 +12,7 @@ class StudioDraftField extends StatefulWidget {
     this.helperText,
     this.keyboardType,
     this.obscureText = false,
+    this.matchesValue,
   });
   final String value, label;
   final ValueChanged<String> onChanged;
@@ -21,6 +22,7 @@ class StudioDraftField extends StatefulWidget {
   final String? helperText;
   final TextInputType? keyboardType;
   final bool obscureText;
+  final bool Function(String text, String value)? matchesValue;
   @override
   State<StudioDraftField> createState() => _StudioDraftFieldState();
 }
@@ -30,7 +32,10 @@ class _StudioDraftFieldState extends State<StudioDraftField> {
   @override
   void didUpdateWidget(StudioDraftField old) {
     super.didUpdateWidget(old);
-    if (controller.text == widget.value) return;
+    if (controller.text == widget.value ||
+        widget.matchesValue?.call(controller.text, widget.value) == true) {
+      return;
+    }
     final offset = controller.selection.extentOffset.clamp(
       0,
       widget.value.length,

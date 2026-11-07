@@ -16,6 +16,7 @@ import '../../../features/project_visuals/application/project_visuals_controller
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
+import '../../shared/widgets/inputs/studio_tabs.dart';
 import '../../shared/widgets/layout/studio_page_header.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import '../presentations/presentation_media_picker.dart';
@@ -77,7 +78,7 @@ class _ProjectSettingsPageState extends State<ProjectSettingsPage> {
   ProjectMapEntry? preview;
   ProjectVisualsController? mapDraft;
   SpatialVisualPatch local = SpatialVisualPatch();
-  bool previewLoading = false, previewSpatial = false;
+  bool previewLoading = false, previewSpatial = false, showSaved = false;
   String? previewProblem, scopeNotice, testError;
   Widget? test;
   int _previewGeneration = 0;
@@ -150,9 +151,13 @@ class _ProjectSettingsPageState extends State<ProjectSettingsPage> {
       _applied = (null, saved.revision);
       workspace.acceptVisualProfile(saved.profile);
     }
-    rendered.value = base
-        .overriddenBy(owner.preview.value)
-        .overriddenBy(mapDraft?.preview.value ?? local);
+    rendered.value = showSaved
+        ? base
+              .overriddenBy(owner.saved?.profile ?? owner.preview.value)
+              .overriddenBy(mapDraft?.saved?.profile ?? local)
+        : base
+              .overriddenBy(owner.preview.value)
+              .overriddenBy(mapDraft?.preview.value ?? local);
     setState(() {});
   }
 
@@ -347,6 +352,26 @@ class _ProjectSettingsPageState extends State<ProjectSettingsPage> {
           const SizedBox(height: 8),
           StudioNotice(problem, isError: true),
         ],
+        if (owner.dirty || mapDraft?.dirty == true) ...[
+          const SizedBox(height: 12),
+          Text('Aperçu en jeu', style: Theme.of(context).textTheme.labelLarge),
+          const SizedBox(height: 6),
+          StudioTabs<bool>(
+            key: const ValueKey('settings-preview-compare'),
+            items: const {false: 'Brouillon', true: 'Mémorisé'},
+            selected: showSaved,
+            onChanged: (value) {
+              showSaved = value;
+              _changed();
+            },
+          ),
+          const SizedBox(height: 4),
+          Text(
+            showSaved
+                ? 'L’aperçu montre les valeurs enregistrées, sans le brouillon.'
+                : 'L’aperçu montre le brouillon non enregistré.',
+          ),
+        ],
         if (widget.testBuilder != null) ...[
           const SizedBox(height: 12),
           StudioButton(
@@ -363,6 +388,20 @@ class _ProjectSettingsPageState extends State<ProjectSettingsPage> {
         ],
       ],
     );
+  }
+
+  String _provenance(
+    ProjectVisualsController scoped,
+    SpatialVisualParameter parameter,
+  ) {
+    final own = scoped.preview.value.value(parameter) != null;
+    if (session.scopeMapId != null) {
+      return own ? 'Propre à cette carte' : 'Suit le projet';
+    }
+    if (own) return 'Défini par le projet';
+    return preview == null
+        ? 'Valeur propre à chaque carte'
+        : 'Valeur propre à chaque carte · ici ${preview!.name}';
   }
 
   Widget _visuals(ProjectSettingsSection section) {
@@ -394,6 +433,11 @@ class _ProjectSettingsPageState extends State<ProjectSettingsPage> {
             weather: !image,
             onEditStart: scoped.beginGesture,
             onEditEnd: scoped.endGesture,
+            invalidInputs: Map.unmodifiable(scoped.invalidInputs),
+            onInvalidInput: (parameter, text) => text == null
+                ? scoped.clearInvalid(parameter)
+                : scoped.reportInvalid(parameter, text),
+            provenance: (parameter) => _provenance(scoped, parameter),
             onChanged: scoped.saving || scoped.loading ? null : scoped.edit,
           ),
       ],

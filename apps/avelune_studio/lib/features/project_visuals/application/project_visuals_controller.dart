@@ -56,6 +56,7 @@ final class ProjectVisualsController extends ChangeNotifier {
   bool loading = false, saving = false;
   String? error;
   int? lastSaveMicroseconds;
+  final invalidInputs = <SpatialVisualParameter, String>{};
   final _undo = <_VisualStep>[];
   final _redo = <_VisualStep>[];
   int _generation = 0;
@@ -87,6 +88,20 @@ final class ProjectVisualsController extends ChangeNotifier {
     final base = saved?.profile;
     return base != null &&
         _changedVisualParameters(base, preview.value).any(scope);
+  }
+
+  bool invalidWhere(SpatialVisualScope scope) =>
+      invalidInputs.keys.any(scope);
+
+  void reportInvalid(SpatialVisualParameter parameter, String text) {
+    if (_disposed || invalidInputs[parameter] == text) return;
+    invalidInputs[parameter] = text;
+    notifyListeners();
+  }
+
+  void clearInvalid(SpatialVisualParameter parameter) {
+    if (_disposed || invalidInputs.remove(parameter) == null) return;
+    notifyListeners();
   }
 
   bool canUndoWhere(SpatialVisualScope scope) =>
@@ -193,6 +208,7 @@ final class ProjectVisualsController extends ChangeNotifier {
     );
     _undo.removeWhere((step) => step.touches(scope));
     _redo.removeWhere((step) => step.touches(scope));
+    invalidInputs.removeWhere((parameter, _) => scope(parameter));
     error = null;
     notifyListeners();
   }
@@ -201,6 +217,12 @@ final class ProjectVisualsController extends ChangeNotifier {
 
   Future<bool> saveWhere(SpatialVisualScope owned) async {
     if (saved == null || saving || loading) return false;
+    if (invalidWhere(owned)) {
+      error = 'Corrigez les valeurs invalides avant d’enregistrer : '
+          'rien n’a été publié.';
+      notifyListeners();
+      return false;
+    }
     if (!dirtyWhere(owned)) return true;
     if (_externalConflict) {
       rejectExternalChange();

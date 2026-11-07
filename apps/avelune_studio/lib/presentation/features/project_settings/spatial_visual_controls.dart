@@ -5,6 +5,7 @@ import 'package:map_core/map_core_domain.dart';
 
 import '../../theme/studio_tokens.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
+import '../../shared/widgets/inputs/studio_draft_field.dart';
 import '../../shared/widgets/inputs/studio_slider.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/inputs/studio_color_picker.dart';
@@ -23,8 +24,15 @@ class SpatialVisualControls extends StatelessWidget {
     this.effects = true,
     this.onEditStart,
     this.onEditEnd,
+    this.invalidInputs = const {},
+    this.onInvalidInput,
+    this.provenance,
   });
   final SpatialVisualPatch patch, inherited;
+  final Map<SpatialVisualParameter, String> invalidInputs;
+  final void Function(SpatialVisualParameter parameter, String? text)?
+  onInvalidInput;
+  final String Function(SpatialVisualParameter parameter)? provenance;
   final ValueChanged<SpatialVisualPatch>? onChanged;
   final bool camera, clock, weather, effects;
   final VoidCallback? onEditStart, onEditEnd;
@@ -118,15 +126,76 @@ class SpatialVisualControls extends StatelessWidget {
     onChanged?.call(next);
   }
 
-  Widget inherit(SpatialVisualParameter p) => StudioButton(
-    key: ValueKey('inherit-${p.name}'),
-    label: patch.value(p) == null ? 'Hérité' : 'Rétablir l’héritage',
-    icon: Icons.link,
-    variant: StudioButtonVariant.quiet,
-    onPressed: onChanged == null || patch.value(p) == null
-        ? null
-        : () => onChanged!(patch.set(p, null)),
-  );
+  Widget inherit(SpatialVisualParameter p) {
+    final button = StudioButton(
+      key: ValueKey('inherit-${p.name}'),
+      label: patch.value(p) == null ? 'Hérité' : 'Rétablir l’héritage',
+      icon: Icons.link,
+      variant: StudioButtonVariant.quiet,
+      onPressed: onChanged == null || patch.value(p) == null
+          ? null
+          : () {
+              onInvalidInput?.call(p, null);
+              onChanged!(patch.set(p, null));
+            },
+    );
+    final source = provenance?.call(p);
+    if (source == null) return button;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Flexible(
+          child: Text(
+            source,
+            key: ValueKey('visual-provenance-${p.name}'),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        const SizedBox(width: 8),
+        button,
+      ],
+    );
+  }
+
+  static String _bound(double value) =>
+      value == value.roundToDouble() ? value.toStringAsFixed(0) : '$value';
+
+  static double? _parse(String text) {
+    final value = double.tryParse(text.trim().replaceAll(',', '.'));
+    return value != null && value.isFinite ? value : null;
+  }
+
+  Widget entry(SpatialVisualParameter p, String label) {
+    final raw = invalidInputs[p];
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: StudioDraftField(
+        key: ValueKey('visual-entry-${p.name}'),
+        label: label,
+        value: raw ?? number(p).toStringAsFixed(2),
+        enabled: onChanged != null,
+        keyboardType: const TextInputType.numberWithOptions(
+          decimal: true,
+          signed: true,
+        ),
+        matchesValue: (text, value) =>
+            _parse(text) != null && _parse(text) == _parse(value),
+        errorText: raw == null
+            ? null
+            : 'Saisissez un nombre entre ${_bound(p.minimum)} et '
+                  '${_bound(p.maximum)}.',
+        onChanged: (text) {
+          final value = _parse(text);
+          if (value == null || value < p.minimum || value > p.maximum) {
+            onInvalidInput?.call(p, text);
+            return;
+          }
+          onInvalidInput?.call(p, null);
+          change(p, value);
+        },
+      ),
+    );
+  }
   Widget slider(
     SpatialVisualParameter p,
     String label,
@@ -226,6 +295,7 @@ class SpatialVisualControls extends StatelessWidget {
               75,
               format: (v) => '${v.toStringAsFixed(1)}°',
             ),
+            entry(p[0], 'Inclinaison (degrés)'),
             Wrap(
               spacing: 6,
               children: [
@@ -246,12 +316,21 @@ class SpatialVisualControls extends StatelessWidget {
               180,
               format: (v) => '${v.toStringAsFixed(0)}°',
             ),
+            entry(p[1], 'Orientation (degrés)'),
             slider(
               p[2],
               'Champ de vision',
               8,
               60,
               format: (v) => '${v.toStringAsFixed(1)}°',
+            ),
+            entry(p[2], 'Champ de vision (degrés)'),
+            const Padding(
+              padding: EdgeInsets.only(bottom: 10),
+              child: Text(
+                'Changer le champ de vision ajuste aussi la distance pour garder '
+                'le même cadrage ; « Défaire » rétablit les deux ensemble.',
+              ),
             ),
             slider(
               p[3],
@@ -260,11 +339,16 @@ class SpatialVisualControls extends StatelessWidget {
               150,
               format: (v) => '${v.toStringAsFixed(2)} cases',
             ),
+            entry(p[3], 'Distance (cases)'),
             toggle(
               p[4],
               'Conserver le cadrage vertical sur mobile',
               Icons.stay_current_portrait,
               StudioAccent.water,
+            ),
+            const Text(
+              'La projection et la hauteur orthographique restent des '
+              'propriétés de la caméra de chaque carte (Carte › Caméra du jeu).',
             ),
           ]),
         if (clock)

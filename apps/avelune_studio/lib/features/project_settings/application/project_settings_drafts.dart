@@ -38,7 +38,7 @@ final class VisualSettingsDraft implements ProjectSettingsDraft {
   @override
   bool get saving => owner.saving;
   @override
-  bool get blocked => false;
+  bool get blocked => owner.invalidWhere(owns);
   @override
   String? get error => owner.error;
   @override
