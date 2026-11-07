@@ -785,7 +785,7 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 - [x] 3. Pour un environnement, montrer contour, répartition, ressources et propriété des éléments générés.
 - [x] 4. Séparer Zone jouable et Décor extérieur dans la cible active ; afficher cette cible avant le premier placement.
 - [x] 5. Renvoyer vers le propriétaire d’un objet généré ; présenter les exceptions locales uniquement si le contrat les supporte.
-- [ ] 6. Tester le résultat avec le vrai renderer puis rouvrir la carte pour vérifier les données sauvegardées.
+- [x] 6. Tester le résultat avec le vrai renderer puis rouvrir la carte pour vérifier les données sauvegardées.
 
 **Tests comportementaux obligatoires :**
 
@@ -2660,7 +2660,7 @@ Une entrée « Parcours décrit » n’est pas déclarée implémentée. Le lot 
 | Constat | Priorité | Résumé | Lot et étape | Statut |
 |---|---|---|---|---|
 | G01 | P2 | Accueil : des outils plutôt qu’un prochain objectif | UX-02, ét. 7 | Ajouté, D-03 tranchée ; **corrigé** par 1c91c4f96 (cinq prochaines étapes dérivées des données, « fait » seulement sur preuve, masquables, accès directs conservés) ; étape de départ « Non vérifié » par 60f640327, vérifiée en natif |
-| G02 | P1 | « Tester » et « Tester le jeu » trop proches | UX-21, ét. 3 | **En partie corrigé** par UX-21 : la revue avant lancement s’intitule « Tester cette carte » ou « Tester le jeu » et dit ce que garde la session ; le libellé de la barre de la carte relève de la session Carte ; **corrigé** côté Carte : la barre dit « Tester la carte » et la carte d’accueil aussi depuis e00375f66 (UX-02), à côté de « Tester le jeu » ; vérification native en attente |
+| G02 | P1 | « Tester » et « Tester le jeu » trop proches | UX-21, ét. 3 | **En partie corrigé** par UX-21 : la revue avant lancement s’intitule « Tester cette carte » ou « Tester le jeu » et dit ce que garde la session ; le libellé de la barre de la carte relève de la session Carte ; **corrigé** côté Carte : la barre dit « Tester la carte » et la carte d’accueil aussi depuis e00375f66 (UX-02), à côté de « Tester le jeu » ; vérifié en natif |
 | G03 | P1 | « Lecture seule » ne dit pas ce qui l’est | UX-02, ét. 6 | Ajouté ; **corrigé** par 1c91c4f96 : « lecture seule » réservé au catalogue publié, avec la raison et le moyen d’éditer |
 | G04 | P2 | « Scène à tester » liste des cartes | UX-03.1, ét. 4 ; lexique en UX-03 | Ajouté, avancé ; **corrigé** par d33da791b (« Carte à tester ») ; lexique commun (projet, jeu, carte, carte régionale, scène, événement, présentation, ressource, occurrence) avec exemples dans la palette ⌘K par 48f70a09a |
 | C01 | P2 | Conséquences du choix 2D/3D montrées trop tard | UX-02.1, ét. 7 | Ajouté ; **corrigé** par 4c552a318 : le choix du modèle montre carte, personnage, départ, ressources et Pokémon réellement inclus et ce qu’il faut avant un test, sans « prêt à tester » ; vérifié en natif |
