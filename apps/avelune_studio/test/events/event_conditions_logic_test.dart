@@ -199,6 +199,74 @@ void main() {
       findsOneWidget,
     );
     expect(find.textContaining('Autre zone'), findsNothing);
+    final admissible = find.byKey(const ValueKey('trigger-admissible'));
+    expect(
+      find.descendant(
+        of: admissible,
+        matching: find.text('En entrant dans la zone : oui'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: admissible,
+        matching: find.text('En touchant la zone : oui'),
+      ),
+      findsOneWidget,
+    );
     expect(tester.takeException(), isNull);
+  });
+
+  test('a story zone states which activations its profile admits', () {
+    const zone = MapTrigger(
+      id: 'quai',
+      type: TriggerType.event,
+      area: MapRect(
+        pos: GridPos(x: 2, y: 3),
+        size: GridSize(width: 2, height: 1),
+      ),
+    );
+    final flat = workspaceMap('a').copyWith(triggers: const [zone]);
+    expect(
+      storyZoneAdmissibleSources(
+        project: workspaceProject,
+        map: flat,
+        trigger: zone,
+      ),
+      [('En entrant dans la zone', null), ('En touchant la zone', null)],
+    );
+    final spatial = flat.copyWith(
+      spatialScene: MapSpatialScene(width: 20, depth: 16),
+    );
+    expect(
+      storyZoneAdmissibleSources(
+        project: workspaceProject,
+        map: spatial,
+        trigger: zone,
+      ).last,
+      ('En touchant la zone', 'réservé aux cartes 2D'),
+    );
+    final warp = zone.copyWith(type: TriggerType.warp);
+    final system = storyZoneAdmissibleSources(
+      project: workspaceProject,
+      map: flat.copyWith(triggers: [warp]),
+      trigger: warp,
+    );
+    expect(system.first.$2, 'zone système réglée par ses outils dédiés');
+    expect(system.last.$2, 'réservé aux zones d’événement');
+    final outside = zone.copyWith(
+      area: const MapRect(
+        pos: GridPos(x: 19, y: 3),
+        size: GridSize(width: 4, height: 1),
+      ),
+    );
+    expect(
+      storyZoneAdmissibleSources(
+        project: workspaceProject,
+        map: flat.copyWith(triggers: [outside]),
+        trigger: outside,
+      ).first.$2,
+      'surface hors de la carte',
+    );
   });
 }
