@@ -712,6 +712,58 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
           acceptedWarningCodes: List.unmodifiable(_warningCodes),
         );
 
+  Map<String, int> _openTracedContours(String borderId) => {
+    for (final document in widget.navigation.workspace.documents.values)
+      if (document.current.layers
+              .whereType<BorderLayer>()
+              .expand((layer) => layer.content.features)
+              .where((feature) => feature.blueprintId == borderId)
+              .length
+          case final count when count > 0)
+        document.current.name: count,
+  };
+
+  Future<bool> _confirmRepublication() async {
+    final id = _pendingId ?? widget.initialRecord?.id;
+    if (id == null ||
+        widget.project.borderCatalog.recordById(id)?.latestPublished == null) {
+      return true;
+    }
+    final traced = _openTracedContours(id);
+    if (traced.isEmpty) return true;
+    final total = traced.values.fold(0, (sum, count) => sum + count);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        key: const ValueKey('border-scope-review'),
+        title: const Text('Republier une bordure déjà tracée ?'),
+        content: Text(
+          'Cette bordure est tracée en $total contour${total == 1 ? '' : 's'} '
+          'sur les cartes ouvertes : '
+          '${traced.entries.map((entry) => '${entry.key} (${entry.value})').join(', ')}.\n\n'
+          'Tous ses contours, y compris sur les cartes fermées, suivront la '
+          'nouvelle révision et seront régénérés. Leur tracé et leur identité '
+          'sont conservés. Si la publication échoue, la révision actuelle reste '
+          'en place.',
+        ),
+        actions: [
+          StudioButton(
+            key: const ValueKey('border-scope-cancel'),
+            label: 'Annuler',
+            secondary: true,
+            onPressed: () => Navigator.pop(context, false),
+          ),
+          StudioButton(
+            key: const ValueKey('border-scope-confirm'),
+            label: 'Republier pour tous les contours',
+            onPressed: () => Navigator.pop(context, true),
+          ),
+        ],
+      ),
+    );
+    return confirmed == true;
+  }
+
   Future<void> _save(bool publish) async {
     if (_saving ||
         _name.text.trim().isEmpty ||
@@ -719,6 +771,8 @@ class _BorderCreationDialogState extends State<BorderCreationDialog> {
         (publish && !_complete)) {
       return;
     }
+    if (publish && !await _confirmRepublication()) return;
+    if (!mounted || _saving) return;
     setState(() {
       _saving = true;
       _error = null;
