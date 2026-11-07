@@ -7,7 +7,9 @@ import '../../../features/cinematics/application/cinematic_workspace_controller.
 import '../../../features/dialogues/application/dialogue_workspace_controller.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
+import '../../shared/widgets/buttons/studio_tool.dart';
 import '../scenes/scene_linked_document.dart';
+import 'cinematic_inspector.dart' show cinematicActorChoiceLabel;
 import 'cinematic_labels.dart';
 
 class CinematicPreviewStatus extends StatefulWidget {
@@ -15,9 +17,12 @@ class CinematicPreviewStatus extends StatefulWidget {
     super.key,
     required this.controller,
     this.dialogues,
+    this.onStep,
+    this.onActor,
   });
   final CinematicWorkspaceController controller;
   final DialogueWorkspaceController? dialogues;
+  final ValueChanged<String>? onStep, onActor;
   @override
   State<CinematicPreviewStatus> createState() => _CinematicPreviewStatusState();
 }
@@ -92,15 +97,49 @@ class _CinematicPreviewStatusState extends State<CinematicPreviewStatus> {
                 Text(
                   '${e.actorLabel ?? e.actorId} : ${e.emoteLabel ?? e.emoteId}',
                 ),
-            for (final diagnostic
-                in plan?.diagnostics ?? <CinematicPreviewPlaybackDiagnostic>[])
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: StudioNotice(
-                  diagnostic.message,
-                  isError: diagnostic.blocking,
-                ),
+            if (groupCinematicDiagnostics(plan?.diagnostics ?? const [])
+                case final groups when groups.isNotEmpty) ...[
+              Text(
+                cinematicDiagnosticSummary(groups),
+                key: const ValueKey('cinematic-preview-diagnostics-summary'),
+                style: Theme.of(context).textTheme.titleSmall,
               ),
+              for (final group in groups)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      StudioNotice(
+                        group.count > 1
+                            ? '${group.message} · ${group.count} occurrences'
+                            : group.message,
+                        isError: group.blocking,
+                      ),
+                      Wrap(
+                        spacing: 6,
+                        children: [
+                          if (widget.onStep case final onStep?)
+                            for (final id in group.stepIds.take(6))
+                              StudioTool(
+                                label:
+                                    'Aller à l’action · ${_stepLabel(steps, id)}',
+                                icon: Icons.ads_click,
+                                onPressed: () => onStep(id),
+                              ),
+                          if (widget.onActor case final onActor?)
+                            for (final id in group.actorIds.take(6))
+                              StudioTool(
+                                label: 'Aller à l’acteur · ${_actorLabel(id)}',
+                                icon: Icons.person_search_outlined,
+                                onPressed: () => onActor(id),
+                              ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+            ],
             const SizedBox(height: 12),
             StudioButton(
               label: 'Revenir au début',
@@ -112,4 +151,64 @@ class _CinematicPreviewStatusState extends State<CinematicPreviewStatus> {
       },
     );
   }
+
+  String _stepLabel(List<CinematicTimelineStep> steps, String id) {
+    final index = steps.indexWhere((step) => step.id == id);
+    return index < 0
+        ? 'action absente'
+        : '${index + 1}. ${cinematicActionLabel(steps[index].kind)}';
+  }
+
+  String _actorLabel(String id) {
+    final actor = widget.controller.active?.asset.requiredActors
+        .where((value) => value.actorId == id)
+        .firstOrNull;
+    return cinematicActorChoiceLabel(actor?.label, id);
+  }
+}
+
+final class CinematicDiagnosticGroup {
+  CinematicDiagnosticGroup(this.message, this.blocking);
+  final String message;
+  final bool blocking;
+  int count = 0;
+  final stepIds = <String>[];
+  final actorIds = <String>[];
+}
+
+List<CinematicDiagnosticGroup> groupCinematicDiagnostics(
+  Iterable<CinematicPreviewPlaybackDiagnostic> diagnostics,
+) {
+  final groups = <(bool, String), CinematicDiagnosticGroup>{};
+  for (final diagnostic in diagnostics) {
+    final group = groups.putIfAbsent(
+      (diagnostic.blocking, diagnostic.message),
+      () => CinematicDiagnosticGroup(diagnostic.message, diagnostic.blocking),
+    )..count += 1;
+    if (diagnostic.stepId case final id? when !group.stepIds.contains(id)) {
+      group.stepIds.add(id);
+    }
+    if (diagnostic.actorId case final id? when !group.actorIds.contains(id)) {
+      group.actorIds.add(id);
+    }
+  }
+  return [
+    ...groups.values.where((group) => group.blocking),
+    ...groups.values.where((group) => !group.blocking),
+  ];
+}
+
+String cinematicDiagnosticSummary(List<CinematicDiagnosticGroup> groups) {
+  final problems = groups.where((group) => group.blocking).length;
+  final warnings = groups.length - problems;
+  String count(int value, String one, String many) =>
+      '$value ${value > 1 ? many : one}';
+  if (problems == 0) {
+    return 'Lecture possible : ${count(warnings, 'avertissement', 'avertissements')} sans effet bloquant.';
+  }
+  final parts = [
+    'Lecture possible mais incomplète : ${count(problems, 'problème à corriger', 'problèmes à corriger')}',
+    if (warnings > 0) count(warnings, 'avertissement', 'avertissements'),
+  ];
+  return '${parts.join(', ')}.';
 }

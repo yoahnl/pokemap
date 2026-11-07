@@ -135,6 +135,18 @@ class _CinematicWorkspacePageState extends State<CinematicWorkspacePage> {
                     previewContent: CinematicPreviewStatus(
                       controller: controller,
                       dialogues: widget.dialogues,
+                      onStep: (id) {
+                        state.selection
+                          ..clear()
+                          ..add(id);
+                        state.inspectorTab = 'properties';
+                        refresh();
+                      },
+                      onActor: (id) {
+                        state.actorId = id;
+                        state.inspectorTab = 'actors';
+                        refresh();
+                      },
                     ),
                     onDialogue: (id) {
                       if (flush()) {

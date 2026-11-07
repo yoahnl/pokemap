@@ -1,4 +1,5 @@
 import '../project_settings/spatial_visual_controls.dart';
+
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
@@ -11,6 +12,8 @@ import '../../shared/widgets/inputs/studio_toggle_row.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
 import '../../shared/widgets/feedback/studio_badge.dart';
+import '../../shared/widgets/feedback/studio_notice.dart';
+import '../../shared/widgets/inputs/studio_choice.dart';
 import 'cinematic_action_palette.dart';
 import 'cinematic_labels.dart';
 import 'cinematic_map_model.dart';
@@ -133,9 +136,16 @@ class CinematicInspector extends StatelessWidget {
                 previewContent ?? const Text('Aperçu en préparation.')
               else if (view.inspectorTab == 'actors')
                 ..._actorFields(asset)
-              else if (view.inspectorTab == 'document' || step == null)
-                ..._documentFields(asset)
-              else
+              else if (view.inspectorTab == 'document') ...[
+                ..._documentFields(asset),
+                ..._sequenceSteps(context, asset),
+              ] else if (step == null) ...[
+                const StudioNotice(
+                  key: ValueKey('cinematic-no-action-guidance'),
+                  'Aucune action sélectionnée. Sélectionnez une action dans la timeline ou dans l’onglet Séquence pour la régler ici, ou ajoutez-en une avec la palette d’actions ci-dessous. En attendant, voici les réglages de la cinématique.',
+                ),
+                ..._documentFields(asset),
+              ] else
                 ..._stepFields(asset, step),
               const Divider(),
               Text(
@@ -211,7 +221,8 @@ class CinematicInspector extends StatelessWidget {
         label: 'Autoriser le croisement des personnages en mouvement',
         description: 'Concerne uniquement les personnages qui se déplacent simultanément. Les obstacles et les positions finales restent vérifiés.',
         value: asset.allowMobileActorCrossing,
-        onChanged: (value) => _edit(asset, (a) => a.copyWith(allowMobileActorCrossing: value)),
+        onChanged: (value) =>
+            _edit(asset, (a) => a.copyWith(allowMobileActorCrossing: value)),
       ),
     StudioCommitField(
       key: ValueKey('cinematic-notes-${asset.id}'),
@@ -227,4 +238,42 @@ class CinematicInspector extends StatelessWidget {
       'Sélectionnez un bloc pour régler son action, ou un acteur pour préparer sa pose.',
     ),
   ];
+
+  List<Widget> _sequenceSteps(BuildContext context, CinematicAsset asset) {
+    final steps = asset.timeline.steps;
+    return [
+      Text(
+        'Actions de la séquence',
+        style: Theme.of(context).textTheme.titleSmall,
+      ),
+      if (steps.isEmpty)
+        const Text(
+          'Aucune action : ajoutez-en une avec la palette d’actions ci-dessous.',
+        )
+      else
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (final (index, step) in steps.indexed)
+              StudioChoice(
+                key: ValueKey('cinematic-sequence-step-${step.id}'),
+                label: '${index + 1}. ${cinematicActionLabel(step.kind)}',
+                subtitle: [
+                  if (step.durationMs case final duration?)
+                    cinematicTime(duration),
+                  if (step.parallelGroupId != null) 'simultanée',
+                ].join(' · '),
+                selected: view.stepId == step.id,
+                onTap: () {
+                  view.selection
+                    ..clear()
+                    ..add(step.id);
+                  view.inspectorTab = 'properties';
+                  changed();
+                },
+              ),
+          ],
+        ),
+    ];
+  }
 }
