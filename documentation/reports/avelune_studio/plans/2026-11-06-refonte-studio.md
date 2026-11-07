@@ -1944,7 +1944,7 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 - [x] 1. Décrire explicitement la présence sur la carte, sa ressource et ses variantes existantes. — **livré** par 9b2b9e85b (règle de présence en clair, variantes de dialogue décrites, marque dans le contenu de carte).
 - [x] 2. Composer les conditions avec les sélecteurs natifs, sans ID obligatoire et sans écraser une référence inconnue. — **livré** par 9b2b9e85b (étape, état, badge ; chapitres et cinématiques décrits et conservés).
 - [x] 3. Séparer apparence de la présence, condition de visibilité et interaction ; montrer la règle effective et son origine. — **en partie** par 9b2b9e85b : règle effective et origine affichées ; « Apparence selon les conditions » reste un panneau séparé, sans synthèse commune (attend UX-22, D-02).
-- [ ] 4. Relier une interaction à une scène depuis la sélection et permettre le retour au même élément. — **BLOCKED** : le retour au même nœud passe par le graphe de scènes (UX-22, D-02).
+- [x] 4. Relier une interaction à une scène depuis la sélection et permettre le retour au même élément. — **livré** par 961b1703d (travail de narration-restes repris par la session Carte) : « Ouvrir sa scène » depuis le PNJ sélectionné ouvre la scène jouée par son interaction à son départ et « Carte » revient au même personnage ; preuve `test/presentation/dialogue_event_owner_journey_test.dart`. Le blocage D-02 ne portait que sur le retour au nœud, livré par UX-22 (focusNode).
 - [x] 5. Tester chaque branche d’un petit exemple avec un état du monde contrôlé, sans ajouter de nouvelle mécanique. — **livré** par 9b2b9e85b (test des deux branches dans l’inspecteur).
 
 **Tests comportementaux obligatoires :**
@@ -1997,10 +1997,10 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 **Étapes d’implémentation :**
 
 - [ ] 1. Conserver bibliothèque, graphe de dialogue, choix, résultats, portraits, variantes et sources externes prises en charge.
-- [ ] 2. Relier Quand/Si/Alors à l’événement réel et permettre d’ouvrir sa scène ou son dialogue sans dupliquer le document. — **BLOCKED** : l’ouverture et le retour au bon nœud passent par le graphe de scènes (UX-22, D-02).
+- [x] 2. Relier Quand/Si/Alors à l’événement réel et permettre d’ouvrir sa scène ou son dialogue sans dupliquer le document. — **livré** par 961b1703d : l’événement ouvre sa scène et les dialogues qu’elle joue dans leur propre document, sans copie, puis revient à l’événement ; preuve `dialogue_event_owner_journey_test.dart`.
 - [ ] 3. Présenter ordre d’exécution, condition, répétition et politique de fin existants.
 - [x] 4. Pour une zone d’histoire, montrer sa forme, son profil admissible et l’événement déclenché. — **livré** par 096c10f97 et 30a6ea0a0 : forme, événements déclenchés et déclenchements possibles (entrer, toucher) avec la raison canonique d’un refus ; vérifié en natif sur une zone créée par `trigger.create` dans la copie HGSS.
-- [ ] 5. Vérifier une branche de choix avec résultat, puis le retour à l’événement et à la carte d’origine. — **BLOCKED** : la branche de choix se lit dans le graphe de scènes (UX-22, D-02).
+- [x] 5. Vérifier une branche de choix avec résultat, puis le retour à l’événement et à la carte d’origine. — **livré** par 961b1703d : une branche de choix est parcourue jusqu’à ses deux résultats (« attente », « embarquement ») puis le parcours revient à l’événement et à la carte, personnage resélectionné, sans écriture ; preuve `dialogue_event_owner_journey_test.dart`.
 - [x] 6. Rendre la scène d’un événement recherchable par nom et par contexte disponible, la scène déjà liée en tête et l’identifiant en détail (audit N02, P1 ; event_scene_panel.dart). HGSS compte 426 scènes. — **livré** par 3ea3a966b.
 - [x] 7. Montrer d’abord l’effet en jeu des options d’événement (une fois, à chaque visite, après une condition, quand ces règles existent) ; placer ordre, priorité et registre dans des options avancées, sans migration implicite (audit N05, P1 ; event_options_panel.dart). — **livré** par 3ea3a966b.
 - [x] 8. Présenter « toutes les conditions » ou « au moins une condition » avec une phrase de résultat lisible, surtout avant une inversion ou un regroupement (audit N07 ; event_conditions.dart). — **livré** par 096c10f97.
@@ -2114,7 +2114,7 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 - [ ] 1. Conserver les pistes, durées, acteurs, caméra, points et ressources des éditeurs actuels.
 - [x] 2. Afficher la portée d’un changement de caméra de séquence séparément de la caméra de jeu et du projet. — **livré** par 70e9acd2a (une action caméra ne vaut que pendant la cinématique et ne modifie ni la caméra de la carte ni les réglages Image et caméra) ; prouvé par test, pas vérifié en natif.
 - [ ] 3. Conserver le montage visuel et les propriétés avancées à la demande ; ne pas fusionner une présentation et une cinématique en un format nouveau.
-- [ ] 4. Relier le document à la scène déclenchante et revenir au bon nœud. — **BLOCKED** : retour au nœud du graphe de scènes (UX-22, D-02).
+- [x] 4. Relier le document à la scène déclenchante et revenir au bon nœud. — **livré** par 961b1703d : « Scène déclenchante » liste les scènes qui jouent la cinématique et ouvre l’une d’elles à son bloc, avec retour de part et d’autre ; preuve `test/presentation/cinematic_presentation_return_journey_test.dart`.
 - [ ] 5. Prévisualiser, arrêter puis rouvrir en vérifiant positions, médias et durée ; les ressources requises doivent rester exportées hors ligne.
 - [x] 6. Dans Séquence, sans étape sélectionnée, expliquer comment sélectionner ou ajouter une action plutôt que répéter les propriétés générales, qui restent accessibles (audit N08 ; cinematic_inspector.dart). — **livré** par 979120f23, avec écart : le guidage est dans Propriétés (l’onglet qui répétait les réglages), Séquence liste désormais les actions.
 - [x] 7. Grouper les diagnostics identiques de l’aperçu, dire si la lecture est bloquée et permettre d’aller à l’acteur ou au bloc concerné (audit N09 ; cinematic_preview_status.dart). Le libellé `null · <id>` est corrigé tôt par UX-03.1. — **livré** par 979120f23 (la lecture n’est pas bloquée par le transport : le texte le dit).
@@ -2170,7 +2170,7 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 - [ ] 1. Conserver les tables, poids, niveaux, créneaux, variantes et équipes natives.
 - [ ] 2. Fournir des sélecteurs d’espèce et de capacité recherchables avec détails utiles et références manquantes visibles.
 - [x] 3. Distinguer créer une table et l’affecter à un terrain ou une zone ; afficher les usages. — **livré** par 628510049 (avertissement d’affectation distinct de l’invalidité ; usages complétés par les rencontres interactives).
-- [ ] 4. Relier un dresseur, son interaction et sa scène sans déplacer les règles de combat dans l’UI. — **BLOCKED** pour le lien vers la scène : il passe par le graphe de scènes (UX-22, D-02).
+- [x] 4. Relier un dresseur, son interaction et sa scène sans déplacer les règles de combat dans l’UI. — **livré** par 961b1703d : les usages d’un dresseur nomment le personnage et le bloc Combat et l’ouvrent, avec « Retour à Pokémon » ; aucune règle de combat dans l’UI ; preuve `test/presentation/encounter_trainer_authoring_journey_test.dart`.
 - [ ] 5. Tester un exemple borné de rencontre et de dresseur avec les règles existantes ; préserver la distribution et les sauvegardes.
 
 *Vague 3 (cout-carte) : l'analyse des usages de combat reste une lecture globale de toutes les cartes et scènes (~2 min 30 natif sur HGSS, mesure de la session Narration, non remesurée : session macOS verrouillée) ; elle est explicite et affiche désormais qu'elle est en cours — a80278960. La rendre proportionnelle demande un index des usages par table et par dresseur.*
@@ -2284,11 +2284,11 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 
 **Étapes d’implémentation :**
 
-- [ ] 1. Conserver régions, illustration, lieux et correspondance avec les cartes natives.
-- [ ] 2. Ajouter sélection et recherche de lieu, réglage de position et aperçu de destination.
-- [ ] 3. Distinguer lieu visible sur la carte régionale et arrivée autorisée de Vol.
-- [ ] 4. Préserver les conditions de progression et profils supportés ; la mécanique de Vol différée n’est pas déclarée livrée par le nouvel écran.
-- [ ] 5. Tester une destination existante et une référence manquante, puis la réouverture du document.
+- [x] 1. Conserver régions, illustration, lieux et correspondance avec les cartes natives. — **livré** par ac3cf899a : régions, image, lieux, cartes liées et destination conservés et relus après enregistrement et réouverture ; preuves `regional_map_page_test.dart`, `regional_map_arrival_scope_test.dart`, `regional_map_place_flight_test.dart`.
+- [x] 2. Ajouter sélection et recherche de lieu, réglage de position et aperçu de destination. — **livré** par ac3cf899a : recherche de lieu par nom ou carte d’arrivée de Vol, position lisible en pourcentage avec le glisser-déposer existant, aperçu de l’arrivée de Vol (carte, point, coordonnées, regard).
+- [x] 3. Distinguer lieu visible sur la carte régionale et arrivée autorisée de Vol. — **livré** par ac3cf899a : résumé séparé « visible sur la carte régionale » et « Vol autorisé vers … », section Vol indépendante de la visibilité.
+- [x] 4. Préserver les conditions de progression et profils supportés ; la mécanique de Vol différée n’est pas déclarée livrée par le nouvel écran. — **livré** par ac3cf899a : visibilité, découverte et cartes liées inchangées ; aucun texte ne déclare Vol livré (FG-125 reste `DEFERRED`), l’aperçu dit seulement qu’une destination incomplète est refusée, comme `fly_action.dart`.
+- [x] 5. Tester une destination existante et une référence manquante, puis la réouverture du document. — **livré** par ac3cf899a : destination existante, carte d’arrivée introuvable, point d’arrivée disparu ou non choisi, puis enregistrement et réouverture ; preuve `test/presentation/regional_map_place_flight_test.dart`. Non vérifié en natif.
 - [x] 6. Lister les cartes liées avec recherche multi-sélection, dossier et résumé des choix, et expliquer pourquoi un retrait est refusé ; distinguer aperçu en attente, absent et en erreur (audit M10). La liaison implicite de la première carte (M09) est corrigée tôt par UX-03.1. — **livré** par b6f400d07. États « chargement », « absente » et « illisible » prouvés par tests à états forcés sur la vraie page régionale (ec6cf3584).
 
 **Tests comportementaux obligatoires :**
