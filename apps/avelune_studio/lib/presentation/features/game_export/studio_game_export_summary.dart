@@ -68,7 +68,19 @@ extension _StudioGameExportSummary on _StudioGameExportPageState {
             label: const Text('Options avancées'),
           ),
         ),
-        if (_advanced) ...[
+        if (_advanced && widget.identity != null) ...[
+          const SizedBox(height: 8),
+          Text(
+            'Identifiant stable du jeu : $_gameId',
+            key: const ValueKey('export-game-id-shared'),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Il relie le jeu installé et ses sauvegardes à ce projet. Il ne '
+            'change pas avec le titre.',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ] else if (_advanced) ...[
           const SizedBox(height: 8),
           StudioDraftField(
             key: const ValueKey('export-game-id'),

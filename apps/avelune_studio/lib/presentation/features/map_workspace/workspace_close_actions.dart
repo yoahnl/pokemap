@@ -54,6 +54,9 @@ extension _WorkspaceCloseActions on WorkspaceActions {
     if (projectAudio?.call() case final owner?) {
       if (!await owner.save()) return false;
     }
+    if (projectIdentity?.call() case final owner? when owner.dirty) {
+      if (!await owner.save()) return false;
+    }
     if (projectVisuals?.call() case final owner?) {
       if (!await owner.save()) return false;
     }

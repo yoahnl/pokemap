@@ -199,6 +199,7 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                                       _show(WorkspaceSpace.verification),
                                   onOpenExport: () =>
                                       _show(WorkspaceSpace.gameExport),
+                                  identity: _identityOwner,
                                 )
                               : _space == WorkspaceSpace.regionalMap &&
                                     _regionalMap != null

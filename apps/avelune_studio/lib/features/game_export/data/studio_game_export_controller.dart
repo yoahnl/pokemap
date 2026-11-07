@@ -52,16 +52,114 @@ final class StudioGameExportController implements StudioGameExportPort {
   GamePackageExportProfile? profile;
   String? _profileRevision;
   @override
-  StudioGameExportMetadata? get metadata => profile == null
+  StudioGameExportMetadata? get metadata => _metadataOf(profile);
+
+  static StudioGameExportMetadata? _metadataOf(
+    GamePackageExportProfile? profile,
+  ) => profile == null
       ? null
       : StudioGameExportMetadata(
-          gameId: profile!.gameId,
-          title: profile!.title,
-          version: profile!.gameVersion,
-          author: profile!.authorName,
-          locale: profile!.defaultLocale,
-          locales: profile!.supportedLocales.join(', '),
+          gameId: profile.gameId,
+          title: profile.title,
+          version: profile.gameVersion,
+          author: profile.authorName,
+          locale: profile.defaultLocale,
+          locales: profile.supportedLocales.join(', '),
         );
+
+  static GamePackageExportProfile _profileFrom(
+    GamePackageExportProfile? base,
+    StudioGameExportMetadata metadata,
+  ) {
+    final locales = metadata.locales
+        .split(',')
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
+    return base == null
+        ? GamePackageExportProfile(
+            gameId: metadata.gameId.trim(),
+            gameVersion: metadata.version.trim(),
+            title: metadata.title.trim(),
+            authorName: metadata.author.trim(),
+            defaultLocale: metadata.locale.trim(),
+            supportedLocales: locales,
+          )
+        : base.copyWith(
+            gameId: metadata.gameId.trim(),
+            gameVersion: metadata.version.trim(),
+            title: metadata.title.trim(),
+            authorName: metadata.author.trim(),
+            defaultLocale: metadata.locale.trim(),
+            supportedLocales: locales,
+          );
+  }
+
+  StudioGameIdentityState _identityOf(
+    GamePackageExportProfileSnapshot snapshot,
+  ) => StudioGameIdentityState(
+    metadata: _metadataOf(snapshot.profile),
+    profileRevision: snapshot.profileRevision,
+    contextRevision: snapshot.contextRevision,
+  );
+
+  @override
+  Future<StudioGameIdentityState> readIdentity() async {
+    final snapshot = await GamePackageExportProfileStore(
+      projectRoot: projectRoot,
+    ).read();
+    profile = snapshot.profile;
+    _profileRevision = snapshot.profileRevision;
+    _profileLoadFailed = false;
+    return _identityOf(snapshot);
+  }
+
+  @override
+  StudioGameIdentityProblem? checkIdentity(StudioGameExportMetadata metadata) {
+    try {
+      _profileFrom(profile, metadata);
+      return null;
+    } on GamePackageExportException catch (failure) {
+      return studioGameIdentityProblem(failure.code, metadata);
+    }
+  }
+
+  @override
+  Future<StudioGameIdentityState> saveIdentity(
+    StudioGameExportMetadata metadata, {
+    required String expectedProfileRevision,
+    required String expectedContextRevision,
+  }) async {
+    final store = GamePackageExportProfileStore(projectRoot: projectRoot);
+    if (_profileRevision != expectedProfileRevision) {
+      final latest = await store.read();
+      throw StudioGameIdentityConflict(
+        _identityOf(latest),
+        contextOnly: latest.profileRevision == expectedProfileRevision,
+      );
+    }
+    final next = _profileFrom(profile, metadata);
+    final GamePackageExportProfileSnapshot saved;
+    try {
+      saved = await store.save(
+        next,
+        expectedProfileRevision: expectedProfileRevision,
+        expectedContextRevision: expectedContextRevision,
+      );
+    } on GamePackageExportException catch (failure) {
+      if (failure.code != 'exportProfileStale') rethrow;
+      final latest = await store.read();
+      throw StudioGameIdentityConflict(
+        _identityOf(latest),
+        contextOnly: latest.profileRevision == expectedProfileRevision,
+      );
+    }
+    profile = saved.profile;
+    _profileRevision = saved.profileRevision;
+    _profileLoadFailed = false;
+    _notify();
+    return _identityOf(saved);
+  }
   final _changes = StreamController<void>.broadcast();
   @override
   Stream<void> get changes => _changes.stream;
@@ -149,31 +247,7 @@ final class StudioGameExportController implements StudioGameExportPort {
     stage = StudioExportStage.preparing;
     _notify();
     try {
-      final profile = this.profile == null
-          ? GamePackageExportProfile(
-              gameId: metadata.gameId.trim(),
-              gameVersion: metadata.version.trim(),
-              title: metadata.title.trim(),
-              authorName: metadata.author.trim(),
-              defaultLocale: metadata.locale.trim(),
-              supportedLocales: metadata.locales
-                  .split(',')
-                  .map((s) => s.trim())
-                  .where((s) => s.isNotEmpty)
-                  .toList(),
-            )
-          : this.profile!.copyWith(
-              gameId: metadata.gameId.trim(),
-              gameVersion: metadata.version.trim(),
-              title: metadata.title.trim(),
-              authorName: metadata.author.trim(),
-              defaultLocale: metadata.locale.trim(),
-              supportedLocales: metadata.locales
-                  .split(',')
-                  .map((s) => s.trim())
-                  .where((s) => s.isNotEmpty)
-                  .toList(),
-            );
+      final profile = _profileFrom(this.profile, metadata);
       if (!await prepare()) {
         throw StateError(
           'Enregistrement préalable refusé. ${preparationFailure?.call() ?? 'Consultez le document en échec.'} Les sauvegardes déjà terminées et tous les brouillons restent conservés.',
@@ -328,3 +402,44 @@ Future<GamePackageExportArtifact> _buildInIsolate(
     mode: mode,
   ),
 );
+
+StudioGameIdentityProblem studioGameIdentityProblem(
+  String code,
+  StudioGameExportMetadata metadata,
+) {
+  final locales = metadata.locales
+      .split(',')
+      .map((s) => s.trim())
+      .where((s) => s.isNotEmpty)
+      .toSet();
+  return switch (code) {
+    'invalidGameId' => const StudioGameIdentityProblem(
+      StudioGameIdentityField.gameId,
+      'Identifiant technique invalide : utilisez par exemple '
+      'games.studio.auteur.jeu.',
+    ),
+    'invalidGameVersion' => const StudioGameIdentityProblem(
+      StudioGameIdentityField.version,
+      'Version du contenu invalide : utilisez le format 1.0.0.',
+    ),
+    'invalidTitle' => const StudioGameIdentityProblem(
+      StudioGameIdentityField.title,
+      'Le titre doit contenir de 1 à 120 caractères.',
+    ),
+    'invalidAuthor' => const StudioGameIdentityProblem(
+      StudioGameIdentityField.author,
+      'Indiquez un auteur ou une équipe, en 120 caractères au plus.',
+    ),
+    'invalidLocales' when !locales.contains(metadata.locale.trim()) =>
+      const StudioGameIdentityProblem(
+        StudioGameIdentityField.locale,
+        'La langue principale doit figurer parmi les langues disponibles.',
+      ),
+    'invalidLocales' => const StudioGameIdentityProblem(
+      StudioGameIdentityField.locales,
+      'Langues invalides : des codes uniques comme fr, en ou fr-FR, '
+      'séparés par des virgules.',
+    ),
+    _ => StudioGameIdentityProblem(null, 'Identité refusée : $code.'),
+  };
+}

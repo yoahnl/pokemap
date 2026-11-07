@@ -135,7 +135,7 @@ final class ProjectSettingsSessionController extends ChangeNotifier {
     final value = draft(section);
     return value != null &&
         value.ready &&
-        value.dirty &&
+        (value.dirty || value.needsFirstSave) &&
         !value.saving &&
         !value.blocked;
   }

@@ -9,6 +9,7 @@ import '../../../features/map_workspace/application/map_workspace_controller.dar
 import '../../../features/map_workspace/domain/map_atmosphere_port.dart';
 import '../../../features/project_audio/application/project_audio_controller.dart';
 import '../../../features/project_cs/application/project_cs_controller.dart';
+import '../../../features/project_settings/application/project_identity_controller.dart';
 import '../../../features/project_settings/application/project_settings_session_controller.dart';
 import '../../../features/project_surf/application/project_surf_controller.dart';
 import '../../../features/project_visuals/application/project_visuals_controller.dart';
@@ -22,6 +23,7 @@ export 'project_settings_navigator.dart' show ProjectSettingsSectionLabels;
 
 import 'project_audio_panel.dart';
 import 'project_cs_panel.dart';
+import 'project_general_panel.dart';
 import 'project_settings_navigator.dart';
 import 'project_settings_section_footer.dart';
 import 'project_surf_panel.dart';
@@ -47,6 +49,7 @@ class ProjectSettingsPage extends StatefulWidget {
     this.loadItems,
     this.onOpenVerification,
     this.onOpenExport,
+    this.identity,
   });
   final MapWorkspaceController workspace;
   final ProjectVisualsController owner;
@@ -57,6 +60,7 @@ class ProjectSettingsPage extends StatefulWidget {
   final PickPresentationMedia? pickMedia;
   final Future<Map<String, String>> Function()? loadItems;
   final VoidCallback? onOpenVerification, onOpenExport;
+  final ProjectIdentityController? identity;
   @override
   State<ProjectSettingsPage> createState() => _ProjectSettingsPageState();
 }
@@ -89,6 +93,10 @@ class _ProjectSettingsPageState extends State<ProjectSettingsPage> {
       fieldAbilities: widget.csOwner,
       surf: widget.surfOwner,
       audio: widget.audioOwner,
+      general: switch (widget.identity) {
+        final identity? => IdentitySettingsDraft(identity),
+        null => null,
+      },
     );
     session.addListener(_changed);
     owner.addListener(_changed);
@@ -99,6 +107,10 @@ class _ProjectSettingsPageState extends State<ProjectSettingsPage> {
     if ((owner.saved == null && !owner.loading) ||
         (owner.scope != null && !owner.dirty)) {
       unawaited(owner.open());
+    }
+    if (widget.identity case final identity?
+        when !identity.ready && !identity.loading) {
+      unawaited(identity.open());
     }
     if (preview case final entry?) {
       previewLoading = true;
@@ -389,27 +401,24 @@ class _ProjectSettingsPageState extends State<ProjectSettingsPage> {
   }
 
   Widget _content(ProjectSettingsSection section) => switch (section) {
-    ProjectSettingsSection.general => StudioPanel(
-      title: 'Identité du jeu',
-      icon: Icons.public,
-      children: [
-        Text('Projet : ${workspace.project?.name ?? workspace.session.name}'),
-        const SizedBox(height: 8),
-        const Text(
-          'Le titre, l’auteur, la version du contenu et les langues du jeu se '
-          'règlent pour l’instant dans la préparation de l’export.',
-        ),
-        if (widget.onOpenExport case final open?) ...[
-          const SizedBox(height: 12),
-          StudioButton(
-            label: 'Ouvrir la préparation de l’export',
-            icon: Icons.ios_share,
-            secondary: true,
-            onPressed: open,
+    ProjectSettingsSection.general => switch (widget.identity) {
+      final identity? => ProjectGeneralPanel(
+        identity: identity,
+        onOpenExport: widget.onOpenExport,
+      ),
+      null => StudioPanel(
+        title: 'Identité du jeu',
+        icon: Icons.public,
+        children: [
+          Text('Projet : ${workspace.project?.name ?? workspace.session.name}'),
+          const SizedBox(height: 8),
+          const Text(
+            'L’identité du jeu n’est pas modifiable ici pour ce projet : '
+            'l’export n’est pas disponible dans cette session.',
           ),
         ],
-      ],
-    ),
+      ),
+    },
     ProjectSettingsSection.fieldAbilities =>
       widget.csOwner != null && widget.surfOwner != null
           ? ProjectCsPanel(
@@ -496,7 +505,7 @@ class _ProjectSettingsPageState extends State<ProjectSettingsPage> {
           ),
           Expanded(
             child: SingleChildScrollView(
-              key: PageStorageKey('settings-scroll-${section.name}'),
+              key: ValueKey('settings-scroll-${section.name}'),
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               child: _content(section),
             ),

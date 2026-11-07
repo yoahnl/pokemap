@@ -33,6 +33,60 @@ final class StudioGameExportMetadata {
   final String author;
   final String locale;
   final String locales;
+
+  StudioGameExportMetadata copyWith({
+    String? title,
+    String? version,
+    String? author,
+    String? locale,
+    String? locales,
+  }) => StudioGameExportMetadata(
+    gameId: gameId,
+    title: title ?? this.title,
+    version: version ?? this.version,
+    author: author ?? this.author,
+    locale: locale ?? this.locale,
+    locales: locales ?? this.locales,
+  );
+
+  @override
+  bool operator ==(Object other) =>
+      other is StudioGameExportMetadata &&
+      other.gameId == gameId &&
+      other.title == title &&
+      other.version == version &&
+      other.author == author &&
+      other.locale == locale &&
+      other.locales == locales;
+
+  @override
+  int get hashCode =>
+      Object.hash(gameId, title, version, author, locale, locales);
+}
+
+enum StudioGameIdentityField { gameId, title, version, author, locale, locales }
+
+final class StudioGameIdentityProblem {
+  const StudioGameIdentityProblem(this.field, this.message);
+  final StudioGameIdentityField? field;
+  final String message;
+}
+
+final class StudioGameIdentityState {
+  const StudioGameIdentityState({
+    required this.metadata,
+    required this.profileRevision,
+    required this.contextRevision,
+  });
+  final StudioGameExportMetadata? metadata;
+  final String profileRevision;
+  final String contextRevision;
+}
+
+final class StudioGameIdentityConflict implements Exception {
+  const StudioGameIdentityConflict(this.current, {required this.contextOnly});
+  final StudioGameIdentityState current;
+  final bool contextOnly;
 }
 
 abstract interface class StudioGameExportPort {
@@ -51,6 +105,13 @@ abstract interface class StudioGameExportPort {
   Stream<void> get changes;
 
   Future<void> load();
+  Future<StudioGameIdentityState> readIdentity();
+  StudioGameIdentityProblem? checkIdentity(StudioGameExportMetadata metadata);
+  Future<StudioGameIdentityState> saveIdentity(
+    StudioGameExportMetadata metadata, {
+    required String expectedProfileRevision,
+    required String expectedContextRevision,
+  });
   void cancel();
   Future<bool> export({
     required StudioGameExportMetadata metadata,

@@ -1,5 +1,6 @@
 import '../../../features/project_cs/application/project_cs_controller.dart';
 import '../../../features/project_audio/application/project_audio_controller.dart';
+import '../../../features/project_settings/application/project_identity_controller.dart';
 import '../../../features/project_visuals/application/project_visuals_controller.dart';
 import '../../../features/project_surf/application/project_surf_controller.dart';
 import '../../../features/regional_map/application/regional_map_controller.dart';
@@ -47,6 +48,7 @@ class WorkspaceActions {
     this.projectSurf,
     this.projectCs,
     this.projectAudio,
+    this.projectIdentity,
     this.worldInputsValid,
     this.publishedCinematicContext,
     required this.runtimeBuilder,
@@ -69,6 +71,7 @@ class WorkspaceActions {
   final ProjectSurfController? Function()? projectSurf;
   final ProjectCsController? Function()? projectCs;
   final ProjectAudioController? Function()? projectAudio;
+  final ProjectIdentityController? Function()? projectIdentity;
   final bool Function()? worldInputsValid;
   final bool Function()? publishedCinematicContext;
   final StudioRuntimeBuilder runtimeBuilder;
@@ -79,6 +82,7 @@ class WorkspaceActions {
       projectSurf?.call()?.saving == true ||
       projectCs?.call()?.saving == true ||
       projectAudio?.call()?.busy == true ||
+      projectIdentity?.call()?.saving == true ||
       projectVisuals?.call()?.saving == true ||
       testing ||
       closing ||
@@ -100,6 +104,7 @@ class WorkspaceActions {
       projectSurf?.call()?.dirty == true ||
       projectCs?.call()?.dirty == true ||
       projectAudio?.call()?.dirty == true ||
+      projectIdentity?.call()?.dirty == true ||
       projectVisuals?.call()?.dirty == true ||
       resources()?.dirty == true ||
       narrative()?.dirty == true ||

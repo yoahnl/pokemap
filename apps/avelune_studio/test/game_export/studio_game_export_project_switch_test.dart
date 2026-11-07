@@ -136,10 +136,8 @@ void main() {
       await pumpIo(tester, frames: 4);
       await tester.tap(find.byKey(const ValueKey('home-export-game')));
       await pumpIo(tester, frames: 12);
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Auteur'),
-        'Avelune',
-      );
+      expect(find.byKey(const ValueKey('export-edit-identity')), findsOneWidget);
+      expect(find.widgetWithText(TextField, 'Auteur'), findsNothing);
       await tester.tap(find.byKey(const ValueKey('start-game-export')));
       await pumpIo(tester, frames: 120);
       expect(export.outputPath, destination.path, reason: export.error);

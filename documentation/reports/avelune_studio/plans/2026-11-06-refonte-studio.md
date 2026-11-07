@@ -1441,12 +1441,12 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 
 **Étapes d’implémentation :**
 
-- [ ] 1. Utiliser GamePackageExportProfileApiPort.read/validate/save pour titre, auteur, version du contenu, langue et langues disponibles.
-- [ ] 2. Faire partager le même état/version aux réglages et au résumé d’export ; éviter deux formulaires possédant deux sources de vérité.
-- [ ] 3. Préserver gameId stable lors d’un changement de titre ; distinguer le nom du projet et son identité de jeu.
-- [ ] 4. Conserver expectedProfileRevision et expectedContextRevision ainsi que les refus de profil périmé.
-- [ ] 5. Sauvegarder Général sans lancer export, chargement de jeu ou validation globale sans rapport.
-- [ ] 6. Présenter l’identité technique à la demande ; suivre les contraintes canoniques au lieu d’inventer une règle SemVer.
+- [x] 1. Utiliser GamePackageExportProfileApiPort.read/validate/save pour titre, auteur, version du contenu, langue et langues disponibles.
+- [x] 2. Faire partager le même état/version aux réglages et au résumé d’export ; éviter deux formulaires possédant deux sources de vérité.
+- [x] 3. Préserver gameId stable lors d’un changement de titre ; distinguer le nom du projet et son identité de jeu.
+- [x] 4. Conserver expectedProfileRevision et expectedContextRevision ainsi que les refus de profil périmé.
+- [x] 5. Sauvegarder Général sans lancer export, chargement de jeu ou validation globale sans rapport.
+- [x] 6. Présenter l’identité technique à la demande ; suivre les contraintes canoniques au lieu d’inventer une règle SemVer.
 
 **Tests comportementaux obligatoires :**
 

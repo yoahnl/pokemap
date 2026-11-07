@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../features/game_export/domain/studio_game_export_port.dart';
+import '../../../features/project_settings/application/project_identity_controller.dart';
 import '../../shared/widgets/buttons/studio_action_card.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/feedback/studio_badge.dart';
@@ -26,6 +27,8 @@ class StudioGameExportPage extends StatefulWidget {
     required this.pickFile,
     this.publicationAvailable = true,
     this.onBack,
+    this.identity,
+    this.onEditIdentity,
   });
 
   final StudioGameExportPort controller;
@@ -36,6 +39,8 @@ class StudioGameExportPage extends StatefulWidget {
   final PickGameExportFile pickFile;
   final bool publicationAvailable;
   final VoidCallback? onBack;
+  final ProjectIdentityController? identity;
+  final VoidCallback? onEditIdentity;
 
   @override
   State<StudioGameExportPage> createState() => _StudioGameExportPageState();
@@ -62,10 +67,33 @@ class _StudioGameExportPageState extends State<StudioGameExportPage> {
     super.initState();
     _publication = widget.publicationAvailable;
     _subscription = widget.controller.changes.listen((_) => _changed());
+    widget.identity?.addListener(_identityChanged);
     _load();
   }
 
+  void _identityChanged() {
+    final identity = widget.identity;
+    if (!mounted || identity == null || identity.loading) return;
+    final shared = identity.ready ? identity.exportMetadata : identity.proposed;
+    setState(() {
+      _gameId = shared.gameId;
+      _title = shared.title;
+      _version = shared.version;
+      _author = shared.author;
+      _locale = shared.locale;
+      _locales = shared.locales;
+      _loaded = true;
+    });
+  }
+
   Future<void> _load() async {
+    if (widget.identity case final identity?) {
+      await widget.controller.load();
+      if (!mounted) return;
+      if (!identity.ready && !identity.loading) await identity.open();
+      _identityChanged();
+      return;
+    }
     await widget.controller.load();
     if (!mounted) return;
     final profile = widget.controller.metadata;
@@ -96,6 +124,7 @@ class _StudioGameExportPageState extends State<StudioGameExportPage> {
 
   @override
   void dispose() {
+    widget.identity?.removeListener(_identityChanged);
     _subscription?.cancel();
     super.dispose();
   }
@@ -146,6 +175,9 @@ class _StudioGameExportPageState extends State<StudioGameExportPage> {
       hasPendingChanges: widget.hasPendingChanges,
       isCurrentProject: widget.isCurrentProject,
     );
+    if (widget.controller.outputPath == destination.path) {
+      await widget.identity?.open();
+    }
     if (mounted && widget.controller.outputPath == destination.path) {
       setState(() {
         _selectedDestination = StudioGameExportDestination(

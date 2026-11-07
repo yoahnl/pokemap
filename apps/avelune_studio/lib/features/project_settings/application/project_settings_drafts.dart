@@ -5,11 +5,13 @@ import '../../project_audio/application/project_audio_controller.dart';
 import '../../project_cs/application/project_cs_controller.dart';
 import '../../project_surf/application/project_surf_controller.dart';
 import '../../project_visuals/application/project_visuals_controller.dart';
+import 'project_identity_controller.dart';
 
 abstract interface class ProjectSettingsDraft {
   Listenable get changes;
   bool get ready;
   bool get dirty;
+  bool get needsFirstSave;
   bool get saving;
   bool get blocked;
   String? get error;
@@ -31,6 +33,8 @@ final class VisualSettingsDraft implements ProjectSettingsDraft {
   bool get ready => owner.saved != null && !owner.loading;
   @override
   bool get dirty => owner.dirtyWhere(owns);
+  @override
+  bool get needsFirstSave => false;
   @override
   bool get saving => owner.saving;
   @override
@@ -63,6 +67,8 @@ final class FieldAbilitySettingsDraft implements ProjectSettingsDraft {
       (surf == null || surf!.saved != null);
   @override
   bool get dirty => abilities?.dirty == true || surf?.dirty == true;
+  @override
+  bool get needsFirstSave => false;
   @override
   bool get saving => abilities?.saving == true || surf?.saving == true;
   @override
@@ -124,6 +130,8 @@ final class SoundSettingsDraft implements ProjectSettingsDraft {
   @override
   bool get dirty => owner.dirty;
   @override
+  bool get needsFirstSave => false;
+  @override
   bool get saving => owner.saving;
   @override
   bool get blocked => owner.fieldErrors.isNotEmpty;
@@ -141,4 +149,35 @@ final class SoundSettingsDraft implements ProjectSettingsDraft {
   void undo() => owner.undo();
   @override
   void redo() => owner.redo();
+}
+
+final class IdentitySettingsDraft implements ProjectSettingsDraft {
+  IdentitySettingsDraft(this.owner);
+  final ProjectIdentityController owner;
+  @override
+  Listenable get changes => owner;
+  @override
+  bool get ready => owner.ready;
+  @override
+  bool get dirty => owner.dirty;
+  @override
+  bool get needsFirstSave => owner.needsFirstSave;
+  @override
+  bool get saving => owner.saving;
+  @override
+  bool get blocked => owner.blocked;
+  @override
+  String? get error => owner.conflict == null ? owner.error : null;
+  @override
+  bool get canUndo => false;
+  @override
+  bool get canRedo => false;
+  @override
+  Future<bool> save() => owner.save();
+  @override
+  void discard() => owner.discard();
+  @override
+  void undo() {}
+  @override
+  void redo() {}
 }

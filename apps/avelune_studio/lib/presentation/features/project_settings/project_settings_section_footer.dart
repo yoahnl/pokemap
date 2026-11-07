@@ -35,6 +35,8 @@ class ProjectSettingsSectionFooter extends StatelessWidget {
         ? ('Échec de l’enregistrement · brouillon conservé', StudioTone.danger)
         : dirty
         ? ('Brouillon non enregistré', StudioTone.warning)
+        : draft.needsFirstSave
+        ? ('Valeurs proposées, pas encore enregistrées', StudioTone.warning)
         : session.isConfirmed(section)
         ? ('Rubrique enregistrée', StudioTone.success)
         : ('Aucune modification de cette rubrique', StudioTone.neutral);

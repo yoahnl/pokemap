@@ -1,7 +1,52 @@
 part of 'studio_game_export_page.dart';
 
 extension _StudioGameExportContent on _StudioGameExportPageState {
+  Widget _sharedIdentity(ProjectIdentityController identity) => StudioPanel(
+    title: 'Identité du jeu',
+    children: [
+      Text(
+        'Réglée une seule fois dans Réglages du projet › Général et reprise '
+        'ici telle qu’elle est enregistrée.',
+        style: Theme.of(context).textTheme.bodySmall,
+      ),
+      const SizedBox(height: 12),
+      _summaryRow(Icons.title_outlined, 'Titre', _title),
+      _summaryRow(Icons.person_outline, 'Auteur', _author),
+      _summaryRow(Icons.update_outlined, 'Version du contenu', _version),
+      _summaryRow(Icons.language_outlined, 'Langue principale', _locale),
+      _summaryRow(Icons.translate_outlined, 'Langues disponibles', _locales),
+      if (identity.needsFirstSave) ...[
+        const SizedBox(height: 8),
+        const StudioNotice(
+          'Identité proposée à partir du nom du projet, pas encore '
+          'enregistrée. Un export réussi l’enregistre telle quelle.',
+        ),
+      ],
+      if (identity.dirty) ...[
+        const SizedBox(height: 8),
+        const StudioNotice(
+          'Des modifications de l’identité ne sont pas enregistrées dans '
+          'Général : l’export utilise la version enregistrée.',
+        ),
+      ],
+      if (widget.onEditIdentity case final edit?) ...[
+        const SizedBox(height: 12),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: StudioButton(
+            key: const ValueKey('export-edit-identity'),
+            label: 'Modifier dans Général',
+            icon: Icons.edit_outlined,
+            secondary: true,
+            onPressed: widget.controller.operationActive ? null : edit,
+          ),
+        ),
+      ],
+    ],
+  );
+
   Widget _identityFields(double width) {
+    if (widget.identity case final identity?) return _sharedIdentity(identity);
     final twoColumns =
         width >= 650 && MediaQuery.textScalerOf(context).scale(1) <= 1.25;
     Widget pair(Widget first, Widget second) => twoColumns

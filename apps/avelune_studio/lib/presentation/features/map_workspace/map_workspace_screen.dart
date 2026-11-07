@@ -8,6 +8,7 @@ import '../../../features/project_cs/application/project_cs_controller.dart';
 import '../../../features/project_cs/domain/project_cs_port.dart';
 import '../../../features/project_audio/application/project_audio_controller.dart';
 import '../../../features/project_audio/domain/project_audio_port.dart';
+import '../../../features/project_settings/application/project_identity_controller.dart';
 import 'dart:async';
 import '../../shared/widgets/dialogs/studio_command_palette.dart';
 import 'map_tool_command_runner.dart';
@@ -334,6 +335,13 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
     );
   }
 
+  ProjectIdentityController? _projectIdentity;
+  ProjectIdentityController? get _identityOwner {
+    final export = _gameExport;
+    if (export == null) return null;
+    return _projectIdentity ??= ProjectIdentityController(port: export);
+  }
+
   void _adoptSettingsRevision(String before, String after) {
     _projectSurf?.adoptRevision(before, after);
     _projectCs?.adoptRevision(before, after);
@@ -379,6 +387,7 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
       projectSurf: () => _projectSurf,
       projectCs: () => _projectCs,
       projectAudio: () => _projectAudio,
+      projectIdentity: () => _projectIdentity,
       worldInputsValid: () => _worldView.invalidFields.isEmpty,
       publishedCinematicContext: () => _space == WorkspaceSpace.cinematic,
       runtimeBuilder: widget.runtimeBuilder,

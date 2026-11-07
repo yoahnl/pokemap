@@ -24,6 +24,8 @@ extension _WorkspaceExportBinding on _MapWorkspaceScreenState {
           _controller.session.directoryPath == projectPath,
       pickFile: widget.gameExportPicker!,
       onBack: _goHome,
+      identity: _identityOwner,
+      onEditIdentity: () => _show(WorkspaceSpace.projectSettings),
     );
   }
 
