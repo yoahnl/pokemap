@@ -2,6 +2,8 @@ import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 
+import '../../features/verification/application/studio_failure_diagnosis.dart';
+
 Future<GameState?> prepareStudioPlaytestStart(
   RuntimeMapBundle bundle,
   String projectFilePath, {
@@ -39,7 +41,10 @@ Future<GameState?> prepareStudioPlaytestStart(
       );
       final runner = preparation.preSessionRunner;
       if (runner == null) {
-        throw StateError('La scène de nouvelle partie est indisponible.');
+        throw const StudioLaunchProblem(
+          'La scène de nouvelle partie est indisponible.',
+          owner: StudioFailureOwner.story,
+        );
       }
       final preparedDraft = await runner.run(
         runId: runId,
@@ -158,7 +163,8 @@ Future<GameState?> prepareStudioPlaytestStart(
       return (pos: cell, facing: EntityFacing.south);
     }
   }
-  throw StateError(
+  throw const StudioLaunchProblem(
     'Aucune case praticable pour démarrer le test de cette carte.',
+    owner: StudioFailureOwner.map,
   );
 }

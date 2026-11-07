@@ -11,6 +11,8 @@ import '../../../features/project_audio/application/project_audio_controller.dar
 import '../../../features/project_cs/application/project_cs_controller.dart';
 import '../../../features/project_settings/application/project_identity_controller.dart';
 import '../../../features/project_settings/application/project_settings_session_controller.dart';
+import '../../../features/project_settings/application/project_verification_overview.dart';
+import '../../../features/verification/application/studio_failure_diagnosis.dart';
 import '../../../features/project_surf/application/project_surf_controller.dart';
 import '../../../features/project_visuals/application/project_visuals_controller.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
@@ -28,6 +30,7 @@ import 'project_general_panel.dart';
 import 'project_settings_navigator.dart';
 import 'project_settings_section_footer.dart';
 import 'project_surf_panel.dart';
+import 'project_verification_panel.dart';
 import 'spatial_visual_controls.dart';
 
 typedef StudioVisualTestBuilder = Widget Function(
@@ -51,6 +54,8 @@ class ProjectSettingsPage extends StatefulWidget {
     this.onOpenVerification,
     this.onOpenExport,
     this.identity,
+    this.initialSection = ProjectSettingsSection.general,
+    this.onOpenOwner,
   });
   final MapWorkspaceController workspace;
   final ProjectVisualsController owner;
@@ -62,6 +67,8 @@ class ProjectSettingsPage extends StatefulWidget {
   final Future<Map<String, String>> Function()? loadItems;
   final VoidCallback? onOpenVerification, onOpenExport;
   final ProjectIdentityController? identity;
+  final ProjectSettingsSection initialSection;
+  final ValueChanged<StudioFailureOwner>? onOpenOwner;
   @override
   State<ProjectSettingsPage> createState() => _ProjectSettingsPageState();
 }
@@ -98,6 +105,7 @@ class _ProjectSettingsPageState extends State<ProjectSettingsPage> {
         final identity? => IdentitySettingsDraft(identity),
         null => null,
       },
+      initialSection: widget.initialSection,
     );
     session.addListener(_changed);
     owner.addListener(_changed);
@@ -491,37 +499,29 @@ class _ProjectSettingsPageState extends State<ProjectSettingsPage> {
       ),
       null => const StudioNotice('Ce projet ne propose pas de sons.'),
     },
-    ProjectSettingsSection.verification => StudioPanel(
-      title: 'Vérifications et export',
-      icon: Icons.fact_check_outlined,
-      children: [
-        const Text(
-          'Les vérifications listent les points à examiner avant de tester '
-          'ou d’exporter. L’export reste une action explicite : rien n’est '
-          'préparé depuis cette page.',
-        ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            if (widget.onOpenVerification case final open?)
-              StudioButton(
-                label: 'Ouvrir les vérifications',
-                icon: Icons.fact_check_outlined,
-                secondary: true,
-                onPressed: open,
-              ),
-            if (widget.onOpenExport case final open?)
-              StudioButton(
-                label: 'Préparer l’export',
-                icon: Icons.ios_share,
-                secondary: true,
-                onPressed: open,
-              ),
-          ],
-        ),
-      ],
+    ProjectSettingsSection.verification => ProjectVerificationPanel(
+      rows: projectVerificationOverview(
+        sectionLabels: {
+          for (final value in ProjectSettingsSection.values)
+            value: value.label,
+        },
+        blocked: {
+          for (final value in ProjectSettingsSection.values)
+            if (session.draft(value)?.blocked == true) value,
+        },
+        dirty: session.dirtySections,
+        newGame: workspace.homeNewGame,
+        mapNames: {
+          for (final map in workspace.project?.maps ?? <ProjectMapEntry>[])
+            map.id: map.name,
+        },
+        threeD:
+            workspace.project?.settings.dimension == ProjectDimension.threeD,
+      ),
+      onSelectSection: session.select,
+      onOpenOwner: widget.onOpenOwner,
+      onOpenVerification: widget.onOpenVerification,
+      onOpenExport: widget.onOpenExport,
     ),
   };
 

@@ -8,7 +8,8 @@ import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../../presentation/shared/widgets/buttons/studio_button.dart';
-import '../../presentation/shared/widgets/feedback/studio_notice.dart';
+import '../../features/verification/application/studio_failure_diagnosis.dart';
+import '../../presentation/features/verification/studio_failure_report.dart';
 import 'studio_game_playtest.dart';
 import '../../features/rendering/application/studio_rendering_preferences.dart';
 
@@ -367,8 +368,25 @@ class _StudioGamePlaytestViewState extends State<StudioGamePlaytestView>
           Expanded(
             child: _error != null
                 ? Center(
-                    child: StudioNotice(
-                      'Le jeu ne peut pas démarrer : $_error',
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 560),
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Le jeu ne peut pas démarrer',
+                              style: Theme.of(context).textTheme.titleLarge,
+                            ),
+                            const SizedBox(height: 12),
+                            StudioFailureReport(
+                              diagnosis: diagnoseLaunchFailure(_error!),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   )
                 : _game == null

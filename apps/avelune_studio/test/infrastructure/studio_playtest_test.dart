@@ -85,6 +85,8 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.textContaining('La carte a changé sur disque'), findsOneWidget);
+    expect(find.text('Lancement'), findsOneWidget);
+    expect(find.text('À corriger dans : Carte'), findsOneWidget);
     expect(find.byKey(const ValueKey('playtest-fps')), findsOneWidget);
     expect(find.textContaining('FPS —'), findsOneWidget);
     await tester.tap(find.text('Retour à la carte'));

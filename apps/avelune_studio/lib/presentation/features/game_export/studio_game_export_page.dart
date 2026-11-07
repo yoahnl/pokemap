@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../features/game_export/domain/studio_game_export_port.dart';
 import '../../../features/project_settings/application/project_identity_controller.dart';
+import '../../../features/verification/application/studio_failure_diagnosis.dart';
 import '../../shared/widgets/buttons/studio_action_card.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/feedback/studio_badge.dart';
@@ -10,6 +11,7 @@ import '../../shared/widgets/feedback/studio_icon_tile.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_draft_field.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
+import '../verification/studio_failure_report.dart';
 import 'studio_game_export_name.dart';
 
 part 'studio_game_export_content.dart';
@@ -29,6 +31,7 @@ class StudioGameExportPage extends StatefulWidget {
     this.onBack,
     this.identity,
     this.onEditIdentity,
+    this.onOpenOwner,
   });
 
   final StudioGameExportPort controller;
@@ -41,6 +44,7 @@ class StudioGameExportPage extends StatefulWidget {
   final VoidCallback? onBack;
   final ProjectIdentityController? identity;
   final VoidCallback? onEditIdentity;
+  final void Function(StudioFailureOwner owner)? onOpenOwner;
 
   @override
   State<StudioGameExportPage> createState() => _StudioGameExportPageState();

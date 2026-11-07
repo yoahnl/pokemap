@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:avelune_studio/features/game_export/data/studio_game_export_controller.dart';
 import 'package:avelune_studio/features/game_export/domain/studio_game_export_port.dart';
+import 'package:avelune_studio/features/verification/application/studio_failure_diagnosis.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:path/path.dart' as p;
@@ -138,6 +139,30 @@ void main() {
     expect(await run(owner), isFalse);
     expect(owner.stage, StudioExportStage.failed);
     expect(await output.exists(), isFalse);
+    expect(owner.failure?.family, StudioCheckFamily.resources);
+    expect(owner.failure?.owner, StudioFailureOwner.resources);
+    expect(owner.failure?.detail, contains('assets/atelier.png'));
+  });
+
+  test('an unknown build failure names no owner and keeps its detail', () async {
+    final owner = controller(
+      build: (_, _, _) async => throw const FormatException('octet 7'),
+    );
+    addTearDown(owner.dispose);
+    expect(await run(owner), isFalse);
+    expect(owner.failure?.determined, isFalse);
+    expect(owner.failure?.owner, isNull);
+    expect(owner.failure?.detail, contains('octet 7'));
+    expect(owner.error, contains('Export impossible'));
+  });
+
+  test('a destination that appeared is owned by the destination choice', () async {
+    final owner = controller(destinationExists: (_) async => true);
+    addTearDown(owner.dispose);
+    expect(await run(owner), isFalse);
+    expect(owner.failure?.family, StudioCheckFamily.input);
+    expect(owner.failure?.owner, StudioFailureOwner.exportDestination);
+    expect(owner.error, contains('existe désormais'));
   });
 
   test('cancelled build never writes a late result', () async {

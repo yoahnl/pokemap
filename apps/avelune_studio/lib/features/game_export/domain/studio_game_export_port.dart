@@ -1,3 +1,5 @@
+import '../../verification/application/studio_failure_diagnosis.dart';
+
 enum StudioExportStage {
   idle,
   preparing,
@@ -94,6 +96,7 @@ abstract interface class StudioGameExportPort {
   StudioGameExportMetadata? get metadata;
   StudioExportStage get stage;
   String? get error;
+  StudioFailureDiagnosis? get failure;
   String? get warning;
   String? get outputPath;
   String? get packageSha256;

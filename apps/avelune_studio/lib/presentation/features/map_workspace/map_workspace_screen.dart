@@ -9,6 +9,8 @@ import '../../../features/project_cs/domain/project_cs_port.dart';
 import '../../../features/project_audio/application/project_audio_controller.dart';
 import '../../../features/project_audio/domain/project_audio_port.dart';
 import '../../../features/project_settings/application/project_identity_controller.dart';
+import '../../../features/project_settings/application/project_settings_session_controller.dart';
+import '../../../features/verification/application/studio_failure_diagnosis.dart';
 import '../verification/test_launch_dialog.dart';
 import 'dart:async';
 import '../../../features/map_workspace/application/map_layout_preferences.dart';
@@ -235,6 +237,7 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
       _homeSearch = TextEditingController();
   bool _palette = true, _connectionBusy = false;
   WorkspaceSpace _space = WorkspaceSpace.map;
+  ProjectSettingsSection _settingsSection = ProjectSettingsSection.general;
   WorkspaceSpace _interactionOrigin = WorkspaceSpace.map;
   final _storyViewState = NarrativeOverviewViewState();
   ResourceNavigation? _resources;

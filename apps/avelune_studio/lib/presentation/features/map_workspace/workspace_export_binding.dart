@@ -25,9 +25,39 @@ extension _WorkspaceExportBinding on _MapWorkspaceScreenState {
       pickFile: widget.gameExportPicker!,
       onBack: _goHome,
       identity: _identityOwner,
-      onEditIdentity: () => _show(WorkspaceSpace.projectSettings),
+      onEditIdentity: () => _openSettingsSection(ProjectSettingsSection.general),
+      onOpenOwner: _openFailureOwner,
     );
   }
+
+  void _openSettingsSection(ProjectSettingsSection section) {
+    _settingsSection = section;
+    _show(WorkspaceSpace.projectSettings);
+  }
+
+  void _showPokemonOwner() {
+    _show(WorkspaceSpace.pokemon);
+    unawaited(_pokemon?.load());
+  }
+
+  void _openFailureOwner(StudioFailureOwner owner) => switch (owner) {
+    StudioFailureOwner.general =>
+      _openSettingsSection(ProjectSettingsSection.general),
+    StudioFailureOwner.image =>
+      _openSettingsSection(ProjectSettingsSection.image),
+    StudioFailureOwner.timeWeather =>
+      _openSettingsSection(ProjectSettingsSection.timeWeather),
+    StudioFailureOwner.resources => _show(WorkspaceSpace.resources),
+    StudioFailureOwner.pokemon => _showPokemonOwner(),
+    StudioFailureOwner.regionalMap => _show(WorkspaceSpace.regionalMap),
+    StudioFailureOwner.story => _show(WorkspaceSpace.story),
+    StudioFailureOwner.presentations =>
+      _presentations == null ? _show(WorkspaceSpace.story) : _openPresentations(),
+    StudioFailureOwner.map => _show(WorkspaceSpace.map),
+    StudioFailureOwner.verification => _show(WorkspaceSpace.verification),
+    StudioFailureOwner.exportDestination ||
+    StudioFailureOwner.exportMode => null,
+  };
 
   Future<bool> _allowCloseWithExport() async {
     if (_connectionBusy || _controller.catalogBusy) return false;

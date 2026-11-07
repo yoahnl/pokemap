@@ -278,7 +278,15 @@ extension _StudioGameExportContent on _StudioGameExportPageState {
           const SizedBox(height: 8),
           StudioNotice(_inputError!, isError: true),
         ],
-        if (controller.error != null) ...[
+        if (controller.failure case final failure?) ...[
+          const SizedBox(height: 8),
+          StudioFailureReport(
+            diagnosis: failure,
+            onOpenOwner: controller.operationActive || !_canOpen(failure.owner)
+                ? null
+                : _openOwner,
+          ),
+        ] else if (controller.error != null) ...[
           const SizedBox(height: 8),
           StudioNotice(controller.error!, isError: true),
         ],
@@ -289,6 +297,17 @@ extension _StudioGameExportContent on _StudioGameExportPageState {
       ],
     );
   }
+
+  bool _canOpen(StudioFailureOwner? owner) =>
+      owner == StudioFailureOwner.exportDestination ||
+      owner == StudioFailureOwner.exportMode ||
+      (owner != null && widget.onOpenOwner != null);
+
+  void _openOwner(StudioFailureOwner owner) => switch (owner) {
+    StudioFailureOwner.exportDestination => unawaited(_chooseDestination()),
+    StudioFailureOwner.exportMode => _edit(() => _publication = false),
+    _ => widget.onOpenOwner?.call(owner),
+  };
 
   Widget _form(double width) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,

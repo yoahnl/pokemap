@@ -190,6 +190,8 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                               ? ProjectSettingsPage(
                                   key: ValueKey(_controller.session.sessionId),
                                   workspace: _controller,
+                                  initialSection: _settingsSection,
+                                  onOpenOwner: _openFailureOwner,
                                   owner: _visualOwner,
                                   surfOwner: _surfOwner,
                                   csOwner: _csOwner,

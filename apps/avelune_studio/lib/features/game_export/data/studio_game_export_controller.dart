@@ -3,9 +3,11 @@ import 'dart:io';
 import 'dart:isolate';
 
 import 'package:map_authoring/map_authoring.dart';
+import 'package:map_core/map_core_domain.dart';
 import 'package:path/path.dart' as p;
 
 import '../domain/studio_game_export_port.dart';
+import '../../verification/application/studio_failure_diagnosis.dart';
 import '../../pokemon/data/studio_project_item_icons.dart';
 import 'studio_export_revision.dart';
 
@@ -166,6 +168,8 @@ final class StudioGameExportController implements StudioGameExportPort {
   @override
   String? error;
   @override
+  StudioFailureDiagnosis? failure;
+  @override
   String? warning;
   @override
   String? outputPath;
@@ -202,6 +206,11 @@ final class StudioGameExportController implements StudioGameExportPort {
     } on Object catch (failure) {
       _profileLoadFailed = true;
       error = 'Profil d’export illisible : $failure';
+      this.failure = StudioFailureDiagnosis(
+        family: StudioCheckFamily.input,
+        summary: 'Profil d’export illisible.',
+        detail: '$failure',
+      );
       stage = StudioExportStage.failed;
     }
     _notify();
@@ -212,6 +221,7 @@ final class StudioGameExportController implements StudioGameExportPort {
     if (!canCancel) return;
     _operation++;
     stage = StudioExportStage.cancelled;
+    failure = null;
     error =
         'Export abandonné avant l’écriture du fichier. Un enregistrement déjà lancé peut toutefois se terminer.';
     _notify();
@@ -233,6 +243,12 @@ final class StudioGameExportController implements StudioGameExportPort {
     if (p.isWithin(projectRoot.absolute.path, outputFile.absolute.path) ||
         p.equals(projectRoot.absolute.path, outputFile.absolute.path)) {
       error = 'Choisissez une destination hors du projet auteur.';
+      failure = StudioFailureDiagnosis(
+        family: StudioCheckFamily.input,
+        owner: StudioFailureOwner.exportDestination,
+        summary: error!,
+        detail: outputFile.path,
+      );
       stage = StudioExportStage.failed;
       _notify();
       return false;
@@ -243,20 +259,23 @@ final class StudioGameExportController implements StudioGameExportPort {
     packageSha256 = null;
     sourceRevision = null;
     error = null;
+    failure = null;
     warning = null;
     stage = StudioExportStage.preparing;
     _notify();
     try {
       final profile = _profileFrom(this.profile, metadata);
       if (!await prepare()) {
-        throw StateError(
+        throw _ExportStop(
           'Enregistrement préalable refusé. ${preparationFailure?.call() ?? 'Consultez le document en échec.'} Les sauvegardes déjà terminées et tous les brouillons restent conservés.',
+          StudioCheckFamily.input,
         );
       }
       if (!_valid(operation, isCurrentProject)) return false;
       if (hasPendingChanges()) {
-        throw StateError(
+        throw const _ExportStop(
           'Des modifications sont encore en cours. Corrigez-les et relancez l’export.',
+          StudioCheckFamily.input,
         );
       }
       final root = projectRoot.path;
@@ -271,8 +290,9 @@ final class StudioGameExportController implements StudioGameExportPort {
       }
       if (!_valid(operation, isCurrentProject)) return false;
       if (hasPendingChanges()) {
-        throw StateError(
+        throw const _ExportStop(
           'Le projet a changé pendant la préparation des images. Relancez l’export.',
+          StudioCheckFamily.launch,
         );
       }
       final profileStore = GamePackageExportProfileStore(projectRoot: projectRoot);
@@ -295,13 +315,16 @@ final class StudioGameExportController implements StudioGameExportPort {
       final after = await readFingerprints(root);
       if (!_valid(operation, isCurrentProject)) return false;
       if (!sameSourceFiles(before, after) || hasPendingChanges()) {
-        throw StateError(
+        throw const _ExportStop(
           'Le projet a changé pendant la construction. Aucun paquet n’a été écrit ; relancez l’export.',
+          StudioCheckFamily.launch,
         );
       }
       if (!overwriteConfirmed && await destinationExists(outputFile)) {
-        throw StateError(
+        throw const _ExportStop(
           'Le fichier de destination existe désormais. Confirmez son remplacement et relancez l’export.',
+          StudioCheckFamily.input,
+          StudioFailureOwner.exportDestination,
         );
       }
       if (!_valid(operation, isCurrentProject)) return false;
@@ -350,13 +373,36 @@ final class StudioGameExportController implements StudioGameExportPort {
       return true;
     } on GamePackageExportException catch (failure) {
       if (_valid(operation, isCurrentProject)) {
-        error = [
-          failure.code == 'runtime3d.publication_unsupported'
-              ? 'L’export 3D est disponible en mode Test local. '
-                    'La publication attend la validation complète sur iOS et Android.'
-              : failure.message,
-          if (failure.path != null) failure.path!,
-        ].join(' · ');
+        final summary = failure.code == 'runtime3d.publication_unsupported'
+            ? 'L’export 3D est disponible en mode Test local. '
+                  'La publication attend la validation complète sur iOS et Android.'
+            : failure.message;
+        error = [summary, if (failure.path != null) failure.path!].join(' · ');
+        this.failure = diagnoseExportFailure(
+          code: failure.code,
+          summary: summary,
+          path: failure.path,
+          readinessCodes: [
+            for (final item
+                in failure.gameplayReadinessReport?.diagnostics ??
+                    const <NarrativeProjectDiagnostic>[])
+              if (item.severity == NarrativeProjectDiagnosticSeverity.error)
+                item.code,
+          ],
+        );
+        stage = StudioExportStage.failed;
+        _notify();
+      }
+      return false;
+    } on _ExportStop catch (stop) {
+      if (_valid(operation, isCurrentProject)) {
+        error = stop.message;
+        failure = StudioFailureDiagnosis(
+          family: stop.family,
+          owner: stop.owner,
+          summary: stop.message,
+          detail: stop.message,
+        );
         stage = StudioExportStage.failed;
         _notify();
       }
@@ -366,6 +412,10 @@ final class StudioGameExportController implements StudioGameExportPort {
         error = failure is StateError
             ? failure.message.toString()
             : 'Export impossible : $failure';
+        this.failure = StudioFailureDiagnosis(
+          summary: 'Export impossible.',
+          detail: '$failure',
+        );
         stage = StudioExportStage.failed;
         _notify();
       }
@@ -389,6 +439,13 @@ final class StudioGameExportController implements StudioGameExportPort {
     _operation++;
     _changes.close();
   }
+}
+
+final class _ExportStop implements Exception {
+  const _ExportStop(this.message, this.family, [this.owner]);
+  final String message;
+  final StudioCheckFamily family;
+  final StudioFailureOwner? owner;
 }
 
 Future<GamePackageExportArtifact> _buildInIsolate(

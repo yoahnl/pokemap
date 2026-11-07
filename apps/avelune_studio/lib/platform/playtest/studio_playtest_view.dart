@@ -15,6 +15,8 @@ import 'studio_playtest_player_view.dart';
 import 'studio_spatial_playtest.dart';
 import 'studio_spatial_playtest_view.dart';
 import '../../features/pokemon/data/studio_project_item_icons.dart';
+import '../../features/verification/application/studio_failure_diagnosis.dart';
+import '../../presentation/features/verification/studio_failure_report.dart';
 
 export 'studio_playtest_session.dart';
 
@@ -76,8 +78,9 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
   Future<Object> _load({bool restoreSpatialSave = false}) async {
     final document = await widget.port.loadMap(widget.session, widget.entry);
     if (document.revision != widget.expectedRevision) {
-      throw StateError(
+      throw const StudioLaunchProblem(
         'La carte a changé sur disque. Revenez et rechargez-la.',
+        owner: StudioFailureOwner.map,
       );
     }
     final projectPath = p.join(widget.session.directoryPath, 'project.json');
@@ -354,6 +357,27 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
     if (mounted) setState(() => _spatialPaused = !_spatialPaused);
   }
 
+  Widget _launchFailure(BuildContext context, Object error) => Center(
+    child: ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 560),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Le test ne peut pas démarrer',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 12),
+            StudioFailureReport(diagnosis: diagnoseLaunchFailure(error)),
+          ],
+        ),
+      ),
+    ),
+  );
+
   @override
   Widget build(BuildContext context) => Column(
     children: [
@@ -488,9 +512,7 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
           future: _loading,
           builder: (context, snapshot) {
             if (snapshot.hasError) {
-              return Center(
-                child: Text('Le test ne peut pas démarrer : ${snapshot.error}'),
-              );
+              return _launchFailure(context, snapshot.error!);
             }
             if (_preSessionRequest case final request?) {
               return Localizations.override(
