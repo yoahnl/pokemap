@@ -5,6 +5,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_render_3d/map_render_3d.dart';
 
 import '../resources/resource_catalog.dart';
+import 'map_border_review.dart';
 import 'map_terrain_patterns.dart';
 
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
@@ -398,10 +399,17 @@ class MapWorkspaceViewState {
         ? resourceFilters.copy()
         : ResourceCatalogFilterState(showComponents: true);
     filters.usage = ResourceCatalogUsage.all;
+    final borderPieces = paletteTab == 'Décors'
+        ? mapBorderPieceIdentities(project)
+        : const <String>{};
     return filterResourceCatalog(
       project,
       resourceCatalog(project)
-          .where((item) => kinds.contains(item.canonicalKind))
+          .where(
+            (item) =>
+                kinds.contains(item.canonicalKind) &&
+                !borderPieces.contains('${item.canonicalKind}:${item.id}'),
+          )
           .toList(),
       filters,
       activeMapId: mapId,

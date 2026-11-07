@@ -141,6 +141,7 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                           onPickResource: _useResource,
                           onEnvironments: _openEnvironments,
                           onBorders: _openBorders,
+                          onTerrains: _openTerrains,
                           onMap: _openMap,
                           onProjectSettings: () =>
                               _show(WorkspaceSpace.projectSettings),

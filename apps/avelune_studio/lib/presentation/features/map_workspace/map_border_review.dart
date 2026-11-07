@@ -107,3 +107,30 @@ MapBorderReview mapBorderDraftReview(
   }
   return MapBorderReview(facts, warnings);
 }
+
+ProjectBorderCatalog? _pieceCatalog;
+Set<String> _pieceIdentities = const {};
+
+Set<String> mapBorderPieceIdentities(ProjectManifest project) {
+  final catalog = project.borderCatalog;
+  if (identical(catalog, _pieceCatalog)) return _pieceIdentities;
+  final identities = <String>{};
+  void add(String? modelId, String? elementId) {
+    if (modelId != null) identities.add('model3d:$modelId');
+    if (elementId != null) identities.add('element:$elementId');
+  }
+
+  for (final record in catalog.records) {
+    if (record.isDeprecated) continue;
+    for (final primitive in record.draft.definition.primitives) {
+      add(primitive.sourceModelId, primitive.sourceElementId);
+    }
+    for (final primitive
+        in record.latestPublished?.definition.primitives ??
+            const <BorderPublishedPrimitive>[]) {
+      add(primitive.sourceModelId, primitive.sourceElementId);
+    }
+  }
+  _pieceCatalog = catalog;
+  return _pieceIdentities = identities;
+}

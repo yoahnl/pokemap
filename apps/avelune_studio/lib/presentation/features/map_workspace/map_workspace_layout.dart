@@ -47,6 +47,7 @@ class MapWorkspaceLayout extends StatelessWidget {
     this.onCommands,
     this.onEnvironments,
     this.onBorders,
+    this.onTerrains,
     required this.onMap,
     this.onProjectSettings,
     this.onRegionalMap,
@@ -91,6 +92,7 @@ class MapWorkspaceLayout extends StatelessWidget {
   final Widget? resourceContent;
   final VoidCallback? onProjectSettings;
   final VoidCallback? onStory, onHome, onEnvironments, onBorders, onRegionalMap;
+  final VoidCallback? onTerrains;
   final ValueChanged<MapEntity>? onEditInteraction;
   final ValueChanged<NarrativeEventSourceRef>? onEventSource;
   final ValueChanged<MapRect>? onZoneDrawn;
@@ -379,6 +381,7 @@ class MapWorkspaceLayout extends StatelessWidget {
                           onResources: onResources,
                           onEnvironments: onEnvironments,
                           onBorders: onBorders,
+                          onTerrains: onTerrains,
                           onZoneDrawn: onZoneDrawn,
                           onContextMenu: onContextMenu,
                         )),

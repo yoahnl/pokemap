@@ -30,6 +30,7 @@ class MapWorkspacePaletteDock extends StatefulWidget {
     this.compact = false,
     this.connectionsAvailable = true,
     this.onPickResource,
+    this.onPrepare,
   });
 
   final ProjectManifest project;
@@ -39,6 +40,7 @@ class MapWorkspacePaletteDock extends StatefulWidget {
   final TextEditingController search;
   final VoidCallback onChanged;
   final VoidCallback onResources;
+  final VoidCallback? onPrepare;
   final VoidCallback onOpenFullPalette;
   final double maxHeight;
   final bool compact;
@@ -265,7 +267,7 @@ class _MapWorkspacePaletteDockState extends State<MapWorkspacePaletteDock> {
                               forMapPicker: true,
                             ).isNotEmpty,
                             kind: kind,
-                            onPrepare: widget.onResources,
+                            onPrepare: widget.onPrepare ?? widget.onResources,
                             onClear: () {
                               widget.search.clear();
                               widget.view.resourceFilters.reset();

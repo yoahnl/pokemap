@@ -70,6 +70,21 @@ void main() {
     expect(prepared, 1);
   });
 
+  testWidgets('preparing resources opens the workshop of the gesture', (
+    tester,
+  ) async {
+    var library = 0, workshop = 0;
+    await _mountDock(
+      tester,
+      workspaceProject.copyWith(elements: const []),
+      onResources: () => library++,
+      onPrepare: () => workshop++,
+    );
+    await tester.tap(find.byKey(const ValueKey('palette-prepare-resources')));
+    await tester.pump();
+    expect((library, workshop), (0, 1));
+  });
+
   testWidgets('dock separates no match from no resource and clears filters', (
     tester,
   ) async {
@@ -132,6 +147,7 @@ Future<(MapWorkspaceViewState, TextEditingController)> _mountDock(
   WidgetTester tester,
   ProjectManifest project, {
   VoidCallback? onResources,
+  VoidCallback? onPrepare,
 }) async {
   final document = EditableMapDocument(
     MapWorkspaceDocument(map: workspaceMap('a'), revision: 'r0', mapId: 'a'),
@@ -155,6 +171,7 @@ Future<(MapWorkspaceViewState, TextEditingController)> _mountDock(
               search: search,
               onChanged: () => rebuild(() {}),
               onResources: onResources ?? () {},
+              onPrepare: onPrepare,
               onOpenFullPalette: () {},
             ),
           ),

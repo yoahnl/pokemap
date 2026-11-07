@@ -57,6 +57,7 @@ class MapWorkspaceEditorPane extends StatefulWidget {
     this.onPickResource,
     this.onEnvironments,
     this.onBorders,
+    this.onTerrains,
     required this.onZoneDrawn,
     required this.onContextMenu,
     this.connectionsAvailable = true,
@@ -75,7 +76,7 @@ class MapWorkspaceEditorPane extends StatefulWidget {
   final OrganizeMapLibrary? onOrganizeMaps;
   final VoidCallback onToolChanged, onChanged, onMoreTools, onResources;
   final ValueChanged<ResourceItem>? onPickResource;
-  final VoidCallback? onEnvironments, onBorders;
+  final VoidCallback? onEnvironments, onBorders, onTerrains;
   final ValueChanged<MapRect>? onZoneDrawn;
   final void Function(GridPos, Offset)? onContextMenu;
   final bool connectionsAvailable;
@@ -388,6 +389,12 @@ class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
                     search: widget.search,
                     onChanged: widget.onToolChanged,
                     onResources: widget.onResources,
+                    onPrepare: switch (widget.view.paletteTab) {
+                      'Bordures' => widget.onBorders,
+                      'Environnements' => widget.onEnvironments,
+                      'Terrains' => widget.onTerrains,
+                      _ => null,
+                    },
                     onOpenFullPalette: widget.onMoreTools,
                     maxHeight: bounds.maxHeight * (largeText ? .34 : .38),
                     compact: bounds.maxHeight < 600 || compact,

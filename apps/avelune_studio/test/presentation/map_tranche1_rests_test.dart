@@ -1,5 +1,6 @@
 import 'package:avelune_studio/features/map_workspace/application/map_editing_commands.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_elements_panel.dart';
+import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_left_column.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
@@ -18,6 +19,7 @@ import 'package:avelune_studio/presentation/features/map_workspace/map_workspace
 
 import '../support/m2_ui_fixture.dart';
 import '../support/map_selection_harness.dart';
+import '../support/spatial_border_fixture.dart';
 import '../support/spatial_environment_fixture.dart';
 import '../support/map_workspace_fixture.dart';
 
@@ -180,4 +182,31 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  test('border pieces stay in the library but leave the decor palette', () {
+    final base = spatialBorderProject();
+    final project = base.copyWith(
+      models3d: [
+        ...base.models3d,
+        ProjectModel3dEntry(
+          id: 'lamp',
+          name: 'Lampadaire',
+          sourceAssetId: 'lamp-source',
+          relativePath: 'assets/models3d/lamp.glb',
+          inspection: base.models3d.single.inspection,
+        ),
+      ],
+    );
+    final view = MapWorkspaceViewState()..paletteTab = 'Décors';
+    final palette = view
+        .paletteResources(project, spatialBorderMap().id)
+        .map((item) => item.id)
+        .toSet();
+    expect(palette, contains('lamp'));
+    expect(palette, isNot(contains('oak')));
+    expect(
+      resourceCatalog(project).map((item) => item.id),
+      containsAll(['oak', 'lamp']),
+    );
+  });
 }

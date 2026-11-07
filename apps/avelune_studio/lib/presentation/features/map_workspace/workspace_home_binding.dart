@@ -69,6 +69,20 @@ extension _WorkspaceHomeBinding on _MapWorkspaceScreenState {
     _show(WorkspaceSpace.resources);
   }
 
+  void _openTerrains() {
+    if (!_controller.hasWorkshop(MapWorkspaceWorkshop.resources) &&
+        widget.resourceLibraryBuilder != null) {
+      _openResources();
+      return;
+    }
+    unawaited(
+      _openResourceWorkshop(() {
+        _resources?.library.kind = ResourceKind.terrains;
+        _resources?.showLibrary();
+      }, family: ResourceLibraryFamily.terrains),
+    );
+  }
+
   Future<void> _openResourceTools() async {
     await _openResourceWorkshop(() => _resources?.showLibrary());
   }
