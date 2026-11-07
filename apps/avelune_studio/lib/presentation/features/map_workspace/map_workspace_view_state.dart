@@ -11,6 +11,7 @@ import 'package:avelune_studio/features/map_workspace/application/editable_map_d
 import 'package:avelune_studio/features/map_workspace/application/map_border_drawing_draft.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_border_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/environment_editing_commands.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_layout_preferences.dart';
 import 'package:avelune_studio/features/map_workspace/application/spatial_terrain_stroke.dart';
 import 'package:avelune_studio/features/map_workspace/application/spatial_ramp_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/spatial_terrain_surface_editing_commands.dart';
@@ -53,6 +54,10 @@ enum StudioMapTool {
 }
 
 class MapWorkspaceViewState {
+  MapWorkspaceViewState({MapLayoutPreferences? layout})
+    : layout = layout ?? MapLayoutPreferences();
+
+  final MapLayoutPreferences layout;
   SpatialSceneController? spatialSceneController;
   final spatialAnimations = SpatialAnimationPreviewController();
   final transform = TransformationController();
@@ -218,8 +223,11 @@ class MapWorkspaceViewState {
   bool grid = false;
   bool elementsVisible = false;
   bool contentInLeftColumn = false;
-  bool navigatorCollapsed = false;
-  bool mapOnly = false;
+  bool get navigatorCollapsed => layout.navigatorCollapsed;
+  set navigatorCollapsed(bool value) =>
+      layout.update(navigatorCollapsed: value);
+  bool get mapOnly => layout.mapOnly;
+  set mapOnly(bool value) => layout.update(mapOnly: value);
   bool highlightTerrain = true;
   bool dimOtherTerrains = false;
   bool lockDecorProportions = false;

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../theme/studio_tokens.dart';
 import '../feedback/studio_badge.dart';
 
 class StudioChoice extends StatefulWidget {
@@ -63,7 +65,11 @@ class _StudioChoiceState extends State<StudioChoice> {
             onTap: widget.onTap,
             onFocusChange: (value) => setState(() => _focused = value),
             child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: widget.dense ? 26 : 34),
+              constraints: BoxConstraints(
+                minHeight: widget.dense
+                    ? StudioDensity.denseRow
+                    : StudioDensity.row,
+              ),
               child: Padding(
                 padding: EdgeInsets.symmetric(
                   horizontal: 9,

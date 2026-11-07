@@ -1,5 +1,31 @@
 import 'package:flutter/material.dart';
 
+abstract final class StudioTypeScale {
+  static const double caption = 12;
+  static const double label = 13;
+  static const double body = 14;
+  static const double title = 16;
+  static const double heading = 22;
+}
+
+abstract final class StudioSpacing {
+  static const double xxs = 2;
+  static const double xs = 4;
+  static const double s = 6;
+  static const double m = 8;
+  static const double l = 12;
+  static const double xl = 16;
+  static const double xxl = 24;
+  static const values = [xxs, xs, s, m, l, xl, xxl];
+}
+
+abstract final class StudioDensity {
+  static const double denseRow = 26;
+  static const double row = 34;
+  static const double compactToolbar = StudioMetrics.compactControlHeight;
+  static const double toolbar = StudioMetrics.controlHeight;
+}
+
 abstract final class StudioMetrics {
   static const double controlRadius = 6;
   static const double panelRadius = 8;

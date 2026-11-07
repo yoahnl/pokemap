@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import 'studio_tokens.dart';
 
 ThemeData studioTheme() {
@@ -84,28 +85,30 @@ ThemeData studioTheme() {
   return base.copyWith(
     extensions: const [StudioColors()],
     textTheme: text.copyWith(
-      bodyLarge: text.bodyLarge?.copyWith(fontSize: 14),
-      bodyMedium: text.bodyMedium?.copyWith(fontSize: 14),
+      bodyLarge: text.bodyLarge?.copyWith(fontSize: StudioTypeScale.body),
+      bodyMedium: text.bodyMedium?.copyWith(fontSize: StudioTypeScale.body),
       bodySmall: text.bodySmall?.copyWith(
-        fontSize: 12,
+        fontSize: StudioTypeScale.caption,
         color: colors.onSurfaceVariant,
       ),
-      labelLarge: text.labelLarge?.copyWith(fontSize: 13),
-      labelMedium: text.labelMedium?.copyWith(fontSize: 12),
+      labelLarge: text.labelLarge?.copyWith(fontSize: StudioTypeScale.label),
+      labelMedium: text.labelMedium?.copyWith(
+        fontSize: StudioTypeScale.caption,
+      ),
       titleLarge: text.titleLarge?.copyWith(
-        fontSize: 22,
+        fontSize: StudioTypeScale.heading,
         fontWeight: FontWeight.w600,
       ),
       titleMedium: text.titleMedium?.copyWith(
-        fontSize: 16,
+        fontSize: StudioTypeScale.title,
         fontWeight: FontWeight.w600,
       ),
       titleSmall: text.titleSmall?.copyWith(
-        fontSize: 13,
+        fontSize: StudioTypeScale.label,
         fontWeight: FontWeight.w600,
       ),
       headlineSmall: text.headlineSmall?.copyWith(
-        fontSize: 22,
+        fontSize: StudioTypeScale.heading,
         fontWeight: FontWeight.w600,
       ),
     ),

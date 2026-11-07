@@ -2,6 +2,7 @@ export 'presentation/shared/widgets/buttons/studio_button.dart';
 export 'presentation/shared/widgets/feedback/studio_badge.dart';
 export 'presentation/shared/widgets/feedback/studio_empty_state.dart';
 export 'presentation/shared/widgets/feedback/studio_notice.dart';
+export 'presentation/shared/widgets/feedback/studio_state_badge.dart';
 export 'presentation/shared/widgets/inputs/studio_choice.dart';
 export 'presentation/shared/widgets/inputs/studio_draft_field.dart';
 export 'presentation/shared/widgets/inputs/studio_path_field.dart';
@@ -19,4 +20,10 @@ export 'presentation/shared/widgets/layout/studio_asset_preview.dart';
 export 'presentation/shared/widgets/dialogs/studio_review_dialog.dart';
 export 'presentation/theme/studio_theme.dart';
 export 'presentation/theme/studio_tokens.dart'
-    show StudioAccent, StudioColors, StudioMetrics;
+    show
+        StudioAccent,
+        StudioColors,
+        StudioDensity,
+        StudioMetrics,
+        StudioSpacing,
+        StudioTypeScale;

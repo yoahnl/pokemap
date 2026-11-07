@@ -228,7 +228,7 @@ class MapWorkspaceToolStrip extends StatelessWidget {
                 ),
               ),
             ],
-            const Icon(Icons.arrow_drop_down, size: 18),
+            if (!narrowPopulate) const Icon(Icons.arrow_drop_down, size: 18),
           ],
         ),
       ),

@@ -5,6 +5,7 @@ import '../../../features/map_workspace/application/editable_map_document.dart';
 import '../../../features/map_workspace/application/map_decor_group_editing.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
+import '../../shared/widgets/feedback/studio_state_badge.dart';
 import '../../shared/widgets/inputs/studio_commit_field.dart';
 import 'map_workspace_view_state.dart';
 
@@ -66,6 +67,13 @@ class MapMultiSelectionInspector extends StatelessWidget {
             'Carte : ${document.current.name} · les modifications ne touchent que ces occurrences.',
             style: theme.textTheme.bodySmall,
           ),
+          if (summary.mixedX || summary.mixedY) ...[
+            const SizedBox(height: 8),
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: StudioStateBadge.mixed(),
+            ),
+          ],
           if (locked > 0) ...[
             const SizedBox(height: 8),
             StudioNotice(

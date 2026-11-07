@@ -11,6 +11,7 @@ import '../../../features/project_audio/domain/project_audio_port.dart';
 import '../../../features/project_settings/application/project_identity_controller.dart';
 import '../verification/test_launch_dialog.dart';
 import 'dart:async';
+import '../../../features/map_workspace/application/map_layout_preferences.dart';
 import '../../shared/widgets/dialogs/studio_command_palette.dart';
 import 'map_tool_command_runner.dart';
 import 'map_workspace_commands.dart';
@@ -152,6 +153,7 @@ class MapWorkspaceScreen extends StatefulWidget {
   const MapWorkspaceScreen({
     super.key,
     required this.controller,
+    this.layoutPreferences,
     required this.loadVisuals,
     required this.runtimeBuilder,
     this.projectRuntimeBuilder,
@@ -188,6 +190,7 @@ class MapWorkspaceScreen extends StatefulWidget {
     this.home,
   });
   final MapWorkspaceController controller;
+  final MapLayoutPreferences? layoutPreferences;
   final StudioHomeNavigation? home;
   final ResourcePort? resourcePort;
   final WorkspaceResourceLibraryBuilder? resourceLibraryBuilder;
@@ -227,6 +230,7 @@ class MapWorkspaceScreen extends StatefulWidget {
 
 class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   final _views = <String, MapWorkspaceViewState>{};
+  late final _layout = widget.layoutPreferences ?? MapLayoutPreferences();
   final _search = TextEditingController(),
       _homeSearch = TextEditingController();
   bool _palette = true, _connectionBusy = false;

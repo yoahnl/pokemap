@@ -10,6 +10,7 @@ import '../features/resources/project_catalog_partition_panel.dart';
 import '../../features/project_session/data/local_project_catalog_partition_adapter.dart';
 
 import 'package:avelune_studio/app/di/providers.dart';
+import 'package:avelune_studio/app/di/rendering_providers.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_screen.dart';
 
@@ -109,6 +110,7 @@ class _StudioMapWorkspaceHost extends ConsumerWidget {
       key: ValueKey('map-workspace-${session.sessionId}'),
       home: publishHome ? StudioHomeScope.of(context) : null,
       controller: controller,
+      layoutPreferences: ref.watch(studioMapLayoutPreferencesProvider),
       resourceLibraryBuilder:
           session.storage == ProjectSessionStorage.workingCatalog
           ? (context, guard, onSaved, onOpenTools, onReplaceModelSource) =>

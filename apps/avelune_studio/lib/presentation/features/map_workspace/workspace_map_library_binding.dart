@@ -5,7 +5,7 @@ extension _WorkspaceMapLibrary on _MapWorkspaceScreenState {
     final id = _controller.active?.base.mapId;
     return id == null
         ? null
-        : _views.putIfAbsent(id, MapWorkspaceViewState.new);
+        : _views.putIfAbsent(id, () => MapWorkspaceViewState(layout: _layout));
   }
 
   void _configureCatalogueGuard() {
