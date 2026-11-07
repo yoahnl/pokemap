@@ -203,4 +203,47 @@ void main() {
         request: request(map.copyWith(name: 'Bourg')));
     expect(kept.draft.changeSet.changes.single.storageKey, 'maps/town.json');
   });
+
+  test('a targeted save reads the scenes its events name and refuses a missing one', () async {
+    final root = await Directory.systemTemp.createTemp('scene-map-save-');
+    addTearDown(() => root.delete(recursive: true));
+    SceneAsset scene(String id) => SceneAsset(id: id, name: id, graph: SceneGraph(
+        startNodeId: 'start', nodes: [
+          SceneNode(id: 'start', kind: SceneNodeKind.start),
+          SceneNode(id: 'end', kind: SceneNodeKind.end),
+        ], edges: [SceneEdge(id: 'go', fromNodeId: 'start', fromPortId: 'completed',
+            toNodeId: 'end', kind: SceneEdgeKind.defaultFlow)]));
+    MapData map(String sceneId) => MapData(id: 'town', name: 'Town',
+        version: ProjectVersion.v8, size: const GridSize(width: 5, height: 5),
+        layers: [TileLayer(id: 'ground', name: 'Ground', cells: List.filled(25, 0))],
+        events: [MapEventDefinition(id: 'sign', title: 'Sign',
+            position: const EventPosition(layerId: 'ground', x: 1, y: 1),
+            type: MapEventType.object,
+            pages: [MapEventPage(pageNumber: 0,
+                sceneTarget: MapEventSceneTarget(sceneId: sceneId))])]);
+    final store = await CatalogStorageStore.open(projectRoot: root.path);
+    final working = await WorkingProjectCatalog.create(store: store, projectId: 'scenes',
+        project: ProjectManifest(name: 'Scenes', version: ProjectVersion.v8, maps: const [
+          ProjectMapEntry(id: 'town', name: 'Town', relativePath: 'maps/town.json'),
+        ], tilesets: const [], scenes: [scene('welcome'), for (var i = 0; i < 40; i++) scene('other-$i')]));
+    final file = File('${root.path}/maps/town.json');
+    await file.parent.create(recursive: true);
+    await file.writeAsString(jsonEncode(map('welcome').toJson()));
+    await CatalogEditingSession.open(store: store, projectId: 'scenes', actorId: 'actor')
+        .then((editing) => editing.close());
+    final reader = (await CatalogProjectReader.open(store: store,
+        descriptor: working.descriptor.toJson(),
+        metadataFields: catalogMapValidationMetadataFields))!;
+    final selected = await CatalogTargetedMapSelection.readRevision(reader: reader, mapId: 'town');
+    AuthoringRequest request(MapData value) => AuthoringRequest(requestId: 'scenes',
+        actionId: 'map.save', actionVersion: 1, workspaceHandle: 'workspace',
+        expectedRevision: selected.snapshotRevision, idempotencyKey: 'scenes',
+        parameters: {'map': value.toJson()});
+    final kept = await CatalogTargetedMapEdit.prepare(reader: reader,
+        request: request(map('welcome').copyWith(name: 'Bourg')));
+    expect(kept.selection.definitions.scenes.map((scene) => scene.id), ['welcome']);
+    await expectLater(
+        CatalogTargetedMapEdit.prepare(reader: reader, request: request(map('missing'))),
+        throwsA(isA<ValidationException>()));
+  });
 }

@@ -21,9 +21,7 @@ const catalogMapValidationMetadataFields = <String>{
   'groups',
   'settings',
   'newGame',
-  'scenes',
   'eventRegistry',
-  'cinematics',
   'trainers',
   'scenarios',
   'pokemon',
@@ -178,6 +176,7 @@ final class CatalogTargetedMapSelection {
           final dependencyIds = <String, Set<String>>{
             'dialogues': {},
             'facts': {},
+            'scenes': {},
             'encounterTables': {},
           };
           void collectReferences(Object? value) {
@@ -190,6 +189,7 @@ final class CatalogTargetedMapSelection {
                   'defeatDialogueId' =>
                     'dialogues',
                   'factId' => 'facts',
+                  'sceneId' => 'scenes',
                   'encounterTableId' => 'encounterTables',
                   _ => null,
                 };
@@ -213,6 +213,8 @@ final class CatalogTargetedMapSelection {
               .removeAll(definitions.dialogues.map((dialogue) => dialogue.id));
           dependencyIds['facts']!
               .removeAll(definitions.facts.map((fact) => fact.id));
+          dependencyIds['scenes']!
+              .removeAll(definitions.scenes.map((scene) => scene.id));
           dependencyIds.removeWhere((_, ids) => ids.isEmpty);
           if (dependencyIds.isNotEmpty) {
             if (dependencyIds.values
@@ -243,6 +245,11 @@ final class CatalogTargetedMapSelection {
                 ...definitions.facts,
                 ...metadata.facts.where((fact) =>
                     dependencyIds['facts']?.contains(fact.id) ?? false),
+              ],
+              scenes: [
+                ...definitions.scenes,
+                ...metadata.scenes.where((scene) =>
+                    dependencyIds['scenes']?.contains(scene.id) ?? false),
               ],
             );
           }
