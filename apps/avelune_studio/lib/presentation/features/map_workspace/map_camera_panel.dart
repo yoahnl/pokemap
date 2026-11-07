@@ -3,9 +3,13 @@ import 'package:map_authoring/map_authoring_editing.dart';
 import 'package:map_core/map_core_domain.dart' hide SpatialMapOperations;
 
 import '../../../features/map_workspace/application/editable_map_document.dart';
+import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_choice.dart';
 import '../../shared/widgets/inputs/studio_commit_field.dart';
 import '../../shared/widgets/layout/studio_section.dart';
+
+String _frenchNumber(double value, int digits) =>
+    value.toStringAsFixed(digits).replaceAll('.', ',');
 
 class MapCameraPanel extends StatelessWidget {
   const MapCameraPanel({
@@ -16,6 +20,36 @@ class MapCameraPanel extends StatelessWidget {
 
   final EditableMapDocument document;
   final VoidCallback onChanged;
+
+  String? _overrides() {
+    final effective = document.visualProfile;
+    final local = document.weatherVisuals?.preview.value;
+    final entries = <(SpatialVisualParameter, String)>[
+      for (final (parameter, label, digits, unit) in const [
+        (SpatialVisualParameter.pitchDegrees, 'Inclinaison', 1, '°'),
+        (SpatialVisualParameter.yawDegrees, 'Orientation', 0, '°'),
+        (SpatialVisualParameter.fieldOfViewDegrees, 'Champ de vision', 1, '°'),
+        (SpatialVisualParameter.cameraDistance, 'Distance', 2, ' cases'),
+      ])
+        if (effective.number(parameter) case final value?)
+          (parameter, '$label ${_frenchNumber(value, digits)}$unit'),
+    ];
+    if (entries.isEmpty) return null;
+    final fromMap = entries
+        .where((entry) => local?.value(entry.$1) != null)
+        .map((entry) => entry.$2);
+    final fromProject = entries
+        .where((entry) => local?.value(entry.$1) == null)
+        .map((entry) => entry.$2);
+    return [
+      'En jeu, ces valeurs remplacent celles de cette caméra :',
+      if (fromProject.isNotEmpty)
+        '${fromProject.join(', ')} (réglages du projet › Image et caméra)',
+      if (fromMap.isNotEmpty)
+        '${fromMap.join(', ')} (dérogation propre à cette carte)',
+      'Les autres champs de cette caméra s’appliquent tels quels.',
+    ].join('\n');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -59,11 +93,19 @@ class MapCameraPanel extends StatelessWidget {
       ),
     );
 
+    final overrides = _overrides();
     return StudioSection(
       title: 'Caméra du jeu',
       collapsible: true,
       initiallyExpanded: false,
       children: [
+        if (overrides != null) ...[
+          StudioNotice(
+            overrides,
+            key: const ValueKey('map-camera-overrides'),
+          ),
+          const SizedBox(height: 8),
+        ],
         for (final projection in SpatialCameraProjection.values)
           StudioChoice(
             label: projection == SpatialCameraProjection.perspective

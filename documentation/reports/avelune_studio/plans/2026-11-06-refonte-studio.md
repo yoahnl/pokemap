@@ -1567,11 +1567,11 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 **Étapes d’implémentation :**
 
 - [ ] 1. Exposer Sélection / Carte puis Image / Temps / Jeu selon le profil natif.
-- [ ] 2. Pour chaque paramètre, afficher Suit le projet ou Propre à cette carte, la valeur effective et la source.
-- [ ] 3. Le reset retire la clé de SpatialVisualPatch avec sa sémantique existante ; ne pas remplacer l’override par la valeur du jour.
-- [ ] 4. Après modification du projet, rafraîchir uniquement les valeurs héritées ; préserver toute exception locale.
-- [ ] 5. Conserver les paramètres non visibles et inconnus lors d’un enregistrement partiel de caméra ou météo.
-- [ ] 6. Appliquer l’historique au bon contexte et vérifier les valeurs après fermeture/réouverture.
+- [x] 2. Pour chaque paramètre, afficher Suit le projet ou Propre à cette carte, la valeur effective et la source.
+- [x] 3. Le reset retire la clé de SpatialVisualPatch avec sa sémantique existante ; ne pas remplacer l’override par la valeur du jour.
+- [x] 4. Après modification du projet, rafraîchir uniquement les valeurs héritées ; préserver toute exception locale.
+- [x] 5. Conserver les paramètres non visibles et inconnus lors d’un enregistrement partiel de caméra ou météo.
+- [x] 6. Appliquer l’historique au bon contexte et vérifier les valeurs après fermeture/réouverture.
 
 **Tests comportementaux obligatoires :**
 
@@ -2617,7 +2617,7 @@ Une entrée « Parcours décrit » n’est pas déclarée implémentée. Le lot 
 | M05 | P2 | Noms tronqués, recherches différentes | UX-02.1, ét. 6 | Ajouté, D-01 tranchée |
 | M06 | P2 | Recherche perdue dans un dock étroit | UX-05, ét. 8 | Ajouté |
 | M07 | P2 | État vide de Bordures aux consignes concurrentes | UX-05, ét. 5 | Couvert |
-| M08 | P1 | Ambiance et sauvegarde à plusieurs endroits | UX-14, UX-17 | Couvert ; UX-14 : la portée « Cette carte » des réglages édite le même brouillon que l’Ambiance de la carte (plus de second contrôleur sur `maps/<id>.visual.json`), sans sauvegarde implicite ; vue locale restante en UX-17 |
+| M08 | P1 | Ambiance et sauvegarde à plusieurs endroits | UX-14, UX-17 | Couvert ; UX-14 : la portée « Cette carte » des réglages édite le même brouillon que l’Ambiance de la carte (plus de second contrôleur sur `maps/<id>.visual.json`), sans sauvegarde implicite ; UX-17 : la caméra et les effets de la carte disent quelles valeurs le projet ou une dérogation remplacent en jeu, et chaque valeur de la portée carte indique « Propre à cette carte » ou « Suit le projet » ; vérifié en natif. Reste : l’inspecteur Sélection / Carte / Image / Temps / Jeu (étape 1, zone Carte) |
 | M09 | P1 | Carte régionale : première carte liée d’office | UX-03.1, ét. 5 | Ajouté, avancé ; **corrigé** par d33da791b (choix explicite avec dossier ; pas d’aperçu) |
 | M10 | P2 | Lieux régionaux difficiles à grande échelle | UX-23.7, ét. 6 | Ajouté ; **corrigé** par b6f400d07 (recherche, dossier, résumé, refus expliqué ; attente, absence et erreur de l’aperçu distinguées) |
 | N01 | P1 | Histoire : apprendre le modèle avant de raconter | UX-22, ét. 7 | Ajouté, D-02 tranchée ; attend la direction de design Histoire |

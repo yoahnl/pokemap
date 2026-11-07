@@ -205,6 +205,8 @@ class MapDayNightPanel extends StatelessWidget {
             preview: controller,
             map: document.current,
             project: project,
+            visualOverrides: document.visualProfile,
+            localOverrides: document.weatherVisuals?.preview.value,
           ),
         ] else if (controller case final preview?) ...[
           const SizedBox(height: 16),

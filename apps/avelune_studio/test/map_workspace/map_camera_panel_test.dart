@@ -49,6 +49,10 @@ void main() {
     );
     expect(find.byType(MapCameraPanel), findsOneWidget);
     expect(find.text('Caméra du jeu'), findsOneWidget);
+    expect(find.text('Perspective'), findsNothing);
+    await tester.ensureVisible(find.text('Caméra du jeu'));
+    await tester.tap(find.text('Caméra du jeu'));
+    await tester.pumpAndSettle();
     expect(find.text('Perspective'), findsOneWidget);
     expect(find.text('Orthographique'), findsOneWidget);
     expect(tester.takeException(), isNull);
@@ -83,8 +87,28 @@ void main() {
         ),
       ),
     );
+    await tester.tap(find.text('Caméra du jeu'));
+    await tester.pumpAndSettle();
     return document;
   }
+
+  testWidgets('camera fields replaced in game by image settings say so', (
+    tester,
+  ) async {
+    final document = await pump(tester);
+    expect(find.byKey(const ValueKey('map-camera-overrides')), findsNothing);
+    document.visualProfile = SpatialVisualPatch()
+        .set(SpatialVisualParameter.cameraDistance, 24.0)
+        .set(SpatialVisualParameter.pitchDegrees, 34.0);
+    await tester.tap(find.text('Perspective'));
+    await tester.pumpAndSettle();
+    final notice = find.byKey(const ValueKey('map-camera-overrides'));
+    expect(notice, findsOneWidget);
+    expect(find.textContaining('Distance 24,00 cases'), findsOneWidget);
+    expect(find.textContaining('Inclinaison 34,0°'), findsOneWidget);
+    expect(find.textContaining('réglages du projet'), findsOneWidget);
+    expect(find.textContaining('Champ de vision'), findsWidgets);
+  });
 
   testWidgets('camera projection is an undoable no-code map setting', (
     tester,

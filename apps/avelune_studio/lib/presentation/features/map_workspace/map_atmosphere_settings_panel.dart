@@ -12,6 +12,65 @@ import '../../shared/widgets/inputs/studio_toggle_row.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import '../../shared/widgets/layout/studio_section.dart';
 import '../../shared/widgets/feedback/studio_badge.dart';
+import '../../shared/widgets/feedback/studio_notice.dart';
+
+String? mapAtmosphereOverrides(
+  SpatialVisualPatch? effective,
+  SpatialVisualPatch? local,
+) {
+  if (effective == null) return null;
+  const groups = <(String, List<SpatialVisualParameter>)>[
+    ('profondeur de champ', [
+      SpatialVisualParameter.depthOfFieldEnabled,
+      SpatialVisualParameter.depthOfFieldStrength,
+      SpatialVisualParameter.depthOfFieldFocusRange,
+    ]),
+    ('halos', [
+      SpatialVisualParameter.halosEnabled,
+      SpatialVisualParameter.haloStrength,
+      SpatialVisualParameter.haloSpread,
+    ]),
+    ('brume', [
+      SpatialVisualParameter.depthFogEnabled,
+      SpatialVisualParameter.fogOpacity,
+      SpatialVisualParameter.fogStart,
+      SpatialVisualParameter.fogEnd,
+    ]),
+    ('eau animée', [
+      SpatialVisualParameter.waterAnimated,
+      SpatialVisualParameter.waterStrength,
+      SpatialVisualParameter.waterSpeed,
+    ]),
+    ('fenêtres', [
+      SpatialVisualParameter.windowsLit,
+      SpatialVisualParameter.windowStrength,
+    ]),
+    ('lucioles', [
+      SpatialVisualParameter.fireflies,
+      SpatialVisualParameter.fireflyDensity,
+    ]),
+  ];
+  final fromProject = <String>[], fromMap = <String>[];
+  for (final (label, parameters) in groups) {
+    final set = parameters.where((p) => effective.value(p) != null);
+    if (set.isEmpty) continue;
+    if (set.any((p) => local?.value(p) != null)) {
+      fromMap.add(label);
+    } else {
+      fromProject.add(label);
+    }
+  }
+  if (fromProject.isEmpty && fromMap.isEmpty) return null;
+  return [
+    'En jeu, des réglages d’image remplacent une partie de ces effets :',
+    if (fromProject.isNotEmpty)
+      '${fromProject.join(', ')} (réglages du projet › Image et caméra)',
+    if (fromMap.isNotEmpty)
+      '${fromMap.join(', ')} (dérogation propre à cette carte)',
+    'Les sources placées ici (lumières, vitrages, lucioles, eau) restent '
+        'celles de cette carte.',
+  ].join('\n');
+}
 
 class MapAtmosphereSettingsPanel extends StatefulWidget {
   const MapAtmosphereSettingsPanel({
@@ -21,7 +80,10 @@ class MapAtmosphereSettingsPanel extends StatefulWidget {
     this.project,
     this.preview,
     this.showSaveActions = true,
+    this.visualOverrides,
+    this.localOverrides,
   });
+  final SpatialVisualPatch? visualOverrides, localOverrides;
   final MapAtmosphereController controller;
   final MapData map;
   final ProjectManifest? project;
@@ -290,6 +352,10 @@ class _MapAtmosphereSettingsPanelState
     builder: (context, _) {
       final settings = controller.current;
 
+      final overridden = mapAtmosphereOverrides(
+        widget.visualOverrides,
+        widget.localOverrides,
+      );
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -298,6 +364,13 @@ class _MapAtmosphereSettingsPanelState
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 8),
+          if (overridden != null) ...[
+            StudioNotice(
+              overridden,
+              key: const ValueKey('atmosphere-overrides'),
+            ),
+            const SizedBox(height: 8),
+          ],
           const Text(
             'Réglez chaque effet ici. L’aperçu se met à jour immédiatement.',
           ),
