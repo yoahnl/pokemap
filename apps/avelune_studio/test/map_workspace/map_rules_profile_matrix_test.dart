@@ -1,4 +1,5 @@
 import 'package:avelune_studio/features/map_workspace/application/warp_editing_commands.dart';
+import 'package:avelune_studio/presentation/features/map_workspace/map_arrival_picker.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_destination_picker.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_warp_inspector.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_commands.dart';
@@ -176,4 +177,108 @@ void main() {
       );
     },
   );
+
+  MapData garden() => workspaceMap('b').copyWith(
+    name: 'Jardin',
+    entities: const [
+      MapEntity(
+        id: 'start',
+        name: 'Départ',
+        kind: MapEntityKind.spawn,
+        pos: GridPos(x: 2, y: 3),
+      ),
+    ],
+    warps: const [
+      MapWarp(
+        id: 'landing',
+        pos: GridPos(x: 6, y: 7),
+        targetMapId: 'b',
+        targetPos: GridPos(x: 6, y: 7),
+        triggerMode: MapWarpTriggerMode.sceneOnly,
+      ),
+      MapWarp(
+        id: 'back',
+        pos: GridPos(x: 9, y: 1),
+        targetMapId: 'a',
+        targetPos: GridPos(x: 1, y: 1),
+      ),
+      MapWarp(
+        id: 'elsewhere',
+        pos: GridPos(x: 4, y: 4),
+        targetMapId: 'house-geon',
+        targetPos: GridPos(x: 0, y: 0),
+      ),
+    ],
+  );
+
+  test('arrival points come from the destination map only', () {
+    final choices = mapArrivalChoices(garden(), fromMapId: 'a');
+    expect(choices.map((choice) => (choice.label, choice.pos)), [
+      ('Départ du joueur', const GridPos(x: 2, y: 3)),
+      ('Point d’arrivée', const GridPos(x: 6, y: 7)),
+      ('Passage qui revient ici', const GridPos(x: 9, y: 1)),
+    ]);
+    expect(
+      mapArrivalChoices(garden(), fromMapId: 'a', query: 'revient'),
+      hasLength(1),
+    );
+    expect(mapArrivalProblem(garden(), const GridPos(x: 3, y: 3)), isNull);
+    expect(
+      mapArrivalProblem(garden(), const GridPos(x: 30, y: 2)),
+      contains('hors de « Jardin » (20 × 16)'),
+    );
+  });
+
+  testWidgets('the inspector picks an arrival point reading one map', (
+    tester,
+  ) async {
+    final h = MapSelectionHarness.of(_catalogue());
+    addTearDown(h.dispose);
+    h.document.commit(
+      addWarpToMap(
+        h.document.current,
+        warp: const MapWarp(
+          id: 'door',
+          pos: GridPos(x: 1, y: 1),
+          targetMapId: 'b',
+          targetPos: GridPos(x: 30, y: 2),
+        ),
+      ),
+    );
+    final commands = WarpEditingCommands(h.document, h.project);
+    final loads = <String>[];
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: studioTheme(),
+        home: Scaffold(
+          body: StatefulBuilder(
+            builder: (context, setState) => SingleChildScrollView(
+              child: MapWarpInspector(
+                document: h.document,
+                project: h.project,
+                warp: commands.selected('door')!,
+                onChanged: () => setState(() {}),
+                onDeleted: () {},
+                loadDestination: (id) async {
+                  loads.add(id);
+                  return garden();
+                },
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(find.text('Arrivée : Jardin · case 30, 2'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('warp-arrival-picker')));
+    await tester.pumpAndSettle();
+    expect(loads, ['b']);
+    expect(find.textContaining('hors de « Jardin »'), findsOneWidget);
+    expect(commands.selected('door')!.targetPos, const GridPos(x: 30, y: 2));
+    await tester.tap(find.byKey(const ValueKey('map-arrival-6-7')));
+    await tester.pumpAndSettle();
+    expect(commands.selected('door')!.targetPos, const GridPos(x: 6, y: 7));
+    expect(commands.selected('door')!.targetMapId, 'b');
+    expect(find.text('Arrivée : Jardin · case 6, 7'), findsOneWidget);
+  });
 }

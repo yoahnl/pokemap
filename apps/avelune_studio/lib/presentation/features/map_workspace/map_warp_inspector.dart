@@ -7,7 +7,9 @@ import '../../shared/widgets/buttons/studio_tool.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/inputs/studio_commit_field.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
+import 'map_arrival_picker.dart';
 import 'map_destination_picker.dart';
+import 'map_dive_zone_panel.dart';
 import 'map_warp_door_editor.dart';
 import 'map_warp_transition_editor.dart';
 import 'map_warp_ladder_editor.dart';
@@ -21,6 +23,7 @@ class MapWarpInspector extends StatefulWidget {
     required this.onChanged,
     required this.onDeleted,
     this.onOpenDestination,
+    this.loadDestination,
   });
   final EditableMapDocument document;
   final ProjectManifest project;
@@ -28,6 +31,7 @@ class MapWarpInspector extends StatefulWidget {
   final VoidCallback onChanged;
   final VoidCallback onDeleted;
   final ValueChanged<String>? onOpenDestination;
+  final Future<MapData?> Function(String mapId)? loadDestination;
 
   @override
   State<MapWarpInspector> createState() => _MapWarpInspectorState();
@@ -110,6 +114,40 @@ class _MapWarpInspectorState extends State<MapWarpInspector> {
       ),
     );
     return true;
+  }
+
+  Future<MapData?> _destination(String mapId) async {
+    final load = widget.loadDestination;
+    if (load != null) return load(mapId);
+    final controller = context
+        .getInheritedWidgetOfExactType<DivePairPublishingScope>()
+        ?.controller;
+    if (controller == null) return null;
+    return controller.documents[mapId]?.current ??
+        await controller.previewMap(mapId);
+  }
+
+  Future<void> _pickArrival(String mapId) async {
+    final entry = widget.project.maps.firstWhere((map) => map.id == mapId);
+    final pending = _pendingActiveMode != null;
+    final pos = await showMapArrivalPicker(
+      context,
+      destinationName: entry.name,
+      fromMapId: widget.document.current.id,
+      current: pending
+          ? GridPos(x: _pendingX ?? 0, y: _pendingY ?? 0)
+          : widget.warp.targetPos,
+      destination: _destination(mapId),
+    );
+    if (pos == null || !mounted) return;
+    if (pending) {
+      setState(() {
+        _pendingX = pos.x;
+        _pendingY = pos.y;
+      });
+      return;
+    }
+    _change(() => _commands.retarget(widget.warp.id, targetPos: pos));
   }
 
   void _change(VoidCallback action) {
@@ -236,6 +274,24 @@ class _MapWarpInspectorState extends State<MapWarpInspector> {
               ),
             ],
           ),
+          const SizedBox(height: 6),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: StudioButton(
+              key: const ValueKey('warp-arrival-picker'),
+              label: 'Choisir le point d’arrivée…',
+              icon: Icons.place_outlined,
+              secondary: true,
+              onPressed: known && targetMapId != null
+                  ? () => _pickArrival(targetMapId)
+                  : null,
+            ),
+          ),
+          if (known && !pending)
+            Text(
+              'Arrivée : ${destinations.firstWhere((entry) => entry.id == targetMapId).name} · case ${warp.targetPos.x}, ${warp.targetPos.y}',
+              key: const ValueKey('warp-arrival-summary'),
+            ),
           const SizedBox(height: 6),
           Text(
             'La case d’arrivée est vérifiée à l’ouverture de la carte de destination.',

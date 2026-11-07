@@ -53,6 +53,11 @@ class _MapConnectionPanelState extends State<MapConnectionPanel> {
             'Liaisons entre cartes',
             style: Theme.of(context).textTheme.titleMedium,
           ),
+          Text(
+            'Carte : ${widget.map.name}',
+            key: const ValueKey('map-connection-source'),
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
           const SizedBox(height: 6),
           const Text(
             'Reliez deux bords pour passer d’une carte à l’autre en marchant. Le retour est créé automatiquement. Libérez les cases du passage sur les deux cartes dans Collisions.',
