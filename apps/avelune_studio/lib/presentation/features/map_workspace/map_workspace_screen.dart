@@ -116,6 +116,7 @@ import '../../shell/studio_home_navigation.dart';
 export 'workspace_actions.dart' show StudioRuntimeBuilder;
 import '../../../features/map_workspace/domain/map_dive_pair_port.dart';
 import 'map_dive_zone_panel.dart';
+import '../characters/character_presence_rule.dart';
 
 part 'workspace_scoped_catalog_binding.dart';
 part 'workspace_home_binding.dart';
@@ -448,7 +449,20 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
     child: PeriodicRewardChoiceScope(
       projectRootPath: _controller.session.directoryPath,
       query: _readPeriodicRewards,
-      child: _buildWorkspace(context),
+      child: CharacterReferenceScope(
+        ready: () => _characterReferenceWorkshops.every(_controller.hasWorkshop),
+        load: () => Future.wait([
+          for (final workshop in _characterReferenceWorkshops)
+            _controller.ensureWorkshop(workshop),
+        ]),
+        child: _buildWorkspace(context),
+      ),
   ),
   );
+
+  static const _characterReferenceWorkshops = [
+    MapWorkspaceWorkshop.progression,
+    MapWorkspaceWorkshop.pokemon,
+    MapWorkspaceWorkshop.dialogue,
+  ];
 }

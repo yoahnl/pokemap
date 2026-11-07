@@ -39,12 +39,42 @@ class _CharacterTimeRulesInspectorState
   MapEntity get entity => widget.entity;
   List<ProjectDialogueEntry> get dialogues => widget.project.dialogues;
 
+  String? _loadRequestedFor;
+  var _loadFailed = false;
+
   CharacterPresenceReferences get references {
+    final ready = CharacterReferenceScope.maybeOf(context)?.ready() ?? true;
     final cached = _references;
-    if (cached != null && identical(cached.project, widget.project)) {
+    if (cached != null &&
+        identical(cached.project, widget.project) &&
+        cached.ready == ready &&
+        cached.failed == _loadFailed) {
       return cached;
     }
-    return _references = CharacterPresenceReferences(widget.project);
+    return _references = CharacterPresenceReferences(
+      widget.project,
+      ready: ready,
+      failed: _loadFailed,
+    );
+  }
+
+  void _requestReferences(bool needed) {
+    final scope = CharacterReferenceScope.maybeOf(context);
+    if (!needed ||
+        scope == null ||
+        scope.ready() ||
+        _loadRequestedFor == entity.id) {
+      return;
+    }
+    _loadRequestedFor = entity.id;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      try {
+        await scope.load();
+      } on Object {
+        if (mounted) setState(() => _loadFailed = true);
+      }
+    });
   }
 
   @override
@@ -81,6 +111,11 @@ class _CharacterTimeRulesInspectorState
     final character = widget.project.characters
         .where((entry) => entry.id == npc.characterId)
         .firstOrNull;
+    _requestReferences(
+      presenceMode == 'story' ||
+          presenceMode == 'advanced' ||
+          npc.conditionalDialogues.isNotEmpty,
+    );
     final battle = npc.trainerBattleWhen;
     final battleMode = battle == null
         ? 'always'

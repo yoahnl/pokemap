@@ -2,6 +2,7 @@ import 'package:avelune_studio/features/map_workspace/application/editable_map_d
 import 'package:avelune_studio/features/map_workspace/application/map_element_catalog.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/presentation/features/characters/character_inspector.dart';
+import 'package:avelune_studio/presentation/features/characters/character_presence_rule.dart';
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import 'package:flutter/material.dart';
@@ -222,6 +223,109 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets(
+    'references not yet loaded are requested instead of flagged missing',
+    (tester) async {
+      final document = _document([
+        _npc(
+          'guard',
+          rule: const MapEntityNpcVisibilityRule(
+            mode: MapEntityNpcVisibilityMode.visibleWhen,
+            predicate: MapEntityRuntimePredicate(
+              kind: MapEntityRuntimePredicateKind.stepCompleted,
+              refId: 'got_dex',
+            ),
+          ),
+        ),
+      ]);
+      var ready = false;
+      var loads = 0;
+      await _pump(
+        tester,
+        document,
+        'guard',
+        project: workspaceProject.copyWith(characters: _project.characters),
+        wrap: (child) => CharacterReferenceScope(
+          ready: () => ready,
+          load: () async {
+            loads++;
+          },
+          child: child,
+        ),
+      );
+      expect(loads, 1);
+      expect(
+        find.byKey(const ValueKey('npc-guard-presence-loading')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('npc-guard-presence-missing')),
+        findsNothing,
+      );
+      ready = true;
+      await _pump(
+        tester,
+        document,
+        'guard',
+        wrap: (child) => CharacterReferenceScope(
+          ready: () => ready,
+          load: () async {
+            loads++;
+          },
+          child: child,
+        ),
+      );
+      expect(loads, 1);
+      expect(
+        find.byKey(const ValueKey('npc-guard-presence-loading')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('npc-guard-presence-ref-got_dex')),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('a failed reference load keeps the rule and says so', (
+    tester,
+  ) async {
+    final document = _document([
+      _npc(
+        'guard',
+        rule: const MapEntityNpcVisibilityRule(
+          mode: MapEntityNpcVisibilityMode.visibleWhen,
+          predicate: MapEntityRuntimePredicate(
+            kind: MapEntityRuntimePredicateKind.badgeOwned,
+            refId: 'zephyr',
+          ),
+        ),
+      ),
+    ]);
+    final before = document.current;
+    await _pump(
+      tester,
+      document,
+      'guard',
+      wrap: (child) => CharacterReferenceScope(
+        ready: () => false,
+        load: () async => throw StateError('lecteur absent'),
+        child: child,
+      ),
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('npc-guard-presence-loading')),
+        matchRoot: true,
+        matching: find.textContaining('n’ont pas pu être chargés'),
+      ),
+      findsOneWidget,
+    );
+    expect(document.current, same(before));
+    expect(tester.takeException(), isNull);
+  });
+
   test('a conditional presence stays findable in map content', () {
     final map = _document([
       _npc(
@@ -327,8 +431,10 @@ MapEntity _entity(EditableMapDocument document, String id) =>
 Future<void> _pump(
   WidgetTester tester,
   EditableMapDocument document,
-  String id,
-) async {
+  String id, {
+  ProjectManifest? project,
+  Widget Function(Widget child)? wrap,
+}) async {
   tester.view.physicalSize = const Size(900, 1400);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
@@ -340,15 +446,17 @@ Future<void> _pump(
         body: SizedBox(
           width: 600,
           child: StatefulBuilder(
-            builder: (context, setState) => SingleChildScrollView(
-              child: CharacterInspector(
-                document: document,
-                project: _project,
-                entity: _entity(document, id),
-                visuals: WorkspaceTestVisuals(),
-                onChanged: () => setState(() {}),
-                onSelect: (_) {},
-                onEditInteraction: (_) {},
+            builder: (context, setState) => (wrap ?? (child) => child)(
+              SingleChildScrollView(
+                child: CharacterInspector(
+                  document: document,
+                  project: project ?? _project,
+                  entity: _entity(document, id),
+                  visuals: WorkspaceTestVisuals(),
+                  onChanged: () => setState(() {}),
+                  onSelect: (_) {},
+                  onEditInteraction: (_) {},
+                ),
               ),
             ),
           ),

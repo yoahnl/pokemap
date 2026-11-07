@@ -8,6 +8,25 @@ import '../../shared/widgets/inputs/studio_select.dart';
 
 enum CharacterPresenceSubject { step, state, badge }
 
+class CharacterReferenceScope extends InheritedWidget {
+  const CharacterReferenceScope({
+    super.key,
+    required this.ready,
+    required this.load,
+    required super.child,
+  });
+
+  final bool Function() ready;
+  final Future<void> Function() load;
+
+  static CharacterReferenceScope? maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<CharacterReferenceScope>();
+
+  @override
+  bool updateShouldNotify(CharacterReferenceScope oldWidget) =>
+      ready != oldWidget.ready || load != oldWidget.load;
+}
+
 final class CharacterPresenceReference {
   const CharacterPresenceReference({
     required this.key,
@@ -20,8 +39,13 @@ final class CharacterPresenceReference {
 }
 
 final class CharacterPresenceReferences {
-  CharacterPresenceReferences(this.project);
+  CharacterPresenceReferences(
+    this.project, {
+    this.ready = true,
+    this.failed = false,
+  });
   final ProjectManifest project;
+  final bool ready, failed;
 
   late final List<CharacterPresenceReference> steps = [
     for (final story in project.storylines)
@@ -85,8 +109,11 @@ final class CharacterPresenceReferences {
   ) {
     final reference = resolve(predicate);
     final id = predicate.refId;
-    String named(String? label) =>
-        label == null ? '« $id » (introuvable)' : '« $label »';
+    String named(String? label) => label != null
+        ? '« $label »'
+        : ready
+        ? '« $id » (introuvable)'
+        : '« $id »';
     final scenario = project.scenarios
         .where((value) => value.id == id)
         .firstOrNull;
@@ -109,9 +136,9 @@ final class CharacterPresenceReferences {
       MapEntityRuntimePredicateKind.chapterNotCompleted =>
         'le chapitre « $id » n’est pas encore terminé',
       MapEntityRuntimePredicateKind.cutsceneCompleted =>
-        'la cinématique ${named(scenario?.name)} a été jouée',
+        'la cinématique « ${scenario?.name ?? id} » a été jouée',
       MapEntityRuntimePredicateKind.cutsceneNotCompleted =>
-        'la cinématique ${named(scenario?.name)} n’a pas encore été jouée',
+        'la cinématique « ${scenario?.name ?? id} » n’a pas encore été jouée',
       MapEntityRuntimePredicateKind.partyUsableCountAtLeast =>
         'l’équipe compte au moins ${predicate.minimumCount ?? '?'} Pokémon aptes au combat',
       MapEntityRuntimePredicateKind.localTimeWindow =>
@@ -119,12 +146,10 @@ final class CharacterPresenceReferences {
             ? 'l’heure du jeu est dans une plage non définie'
             : 'l’heure du jeu est entre ${_clock(window.startMinute)} et ${_clock(window.endMinute)}',
     };
-    final missing = switch (predicate.kind) {
-      MapEntityRuntimePredicateKind.cutsceneCompleted ||
-      MapEntityRuntimePredicateKind.cutsceneNotCompleted => scenario == null,
-      _ =>
-        characterPresenceSubject(predicate.kind) != null && reference == null,
-    };
+    final missing =
+        ready &&
+        characterPresenceSubject(predicate.kind) != null &&
+        reference == null;
     return (phrase: phrase, missing: missing);
   }
 }
@@ -285,6 +310,17 @@ class _CharacterStoryPresenceEditorState
       CharacterPresenceSubject.badge => ('badge', 'un'),
     };
     final textTheme = Theme.of(context).textTheme;
+    if (!widget.references.ready) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 12),
+        child: Text(
+          widget.references.failed
+              ? 'Les étapes, états et badges du projet n’ont pas pu être chargés. La règle reste inchangée.'
+              : 'Chargement des étapes, états et badges du projet…',
+          key: ValueKey('$prefix-loading'),
+        ),
+      );
+    }
     final met = _testMet ?? true;
     final present =
         met == (widget.mode == MapEntityNpcVisibilityMode.visibleWhen);
@@ -409,9 +445,11 @@ class CharacterDialogueVariants extends StatelessWidget {
       for (final dialogue in references.project.dialogues)
         dialogue.id: dialogue.name,
     };
-    String dialogueLabel(String id) => dialogues[id] == null
+    String dialogueLabel(String id) => dialogues[id] != null
+        ? '« ${dialogues[id]} »'
+        : references.ready
         ? 'Dialogue introuvable conservé : $id'
-        : '« ${dialogues[id]} »';
+        : '« $id »';
     final fallback = npc.dialogue?.dialogueId;
     final textTheme = Theme.of(context).textTheme;
     return Column(
