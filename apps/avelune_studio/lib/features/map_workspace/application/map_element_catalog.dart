@@ -135,6 +135,8 @@ final class MapElementCatalog {
     }
     for (final entity in map.entities) {
       final npc = entity.kind == MapEntityKind.npc;
+      final rule = entity.npc?.visibilityRule;
+      final variants = entity.npc?.conditionalDialogues.length ?? 0;
       entries.add(
         MapElementListEntry(
           kind: 'entity',
@@ -143,7 +145,13 @@ final class MapElementCatalog {
               ? entity.name
               : index.characters[entity.npc?.characterId] ?? entity.id,
           family: npc ? 'Personnages' : 'Repères et objets de jeu',
-          detail: '${entity.pos.x}, ${entity.pos.y}',
+          detail: [
+            '${entity.pos.x}, ${entity.pos.y}',
+            if (rule != null && rule.mode != MapEntityNpcVisibilityMode.always)
+              'Présence conditionnelle',
+            if (variants > 0)
+              '$variants ${variants > 1 ? 'variantes' : 'variante'} de dialogue',
+          ].join(' · '),
           isCharacter: npc,
         ),
       );

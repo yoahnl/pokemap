@@ -4,23 +4,59 @@ import 'package:map_core/map_core_domain.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/inputs/studio_time_window.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
+import 'character_presence_rule.dart';
 
-class CharacterTimeRulesInspector extends StatelessWidget {
+class CharacterTimeRulesInspector extends StatefulWidget {
   const CharacterTimeRulesInspector({
     super.key,
     required this.entity,
-    required this.dialogues,
+    required this.project,
+    required this.mapName,
     required this.onReadinessChanged,
     required this.onVisibilityChanged,
     required this.onBattleChanged,
   });
 
   final MapEntity entity;
-  final List<ProjectDialogueEntry> dialogues;
+  final ProjectManifest project;
+  final String mapName;
   final void Function(MapEntityRuntimePredicate?, DialogueRef?)
   onReadinessChanged;
   final ValueChanged<MapEntityNpcVisibilityRule?> onVisibilityChanged;
   final ValueChanged<MapEntityRuntimePredicate?> onBattleChanged;
+
+  @override
+  State<CharacterTimeRulesInspector> createState() =>
+      _CharacterTimeRulesInspectorState();
+}
+
+class _CharacterTimeRulesInspectorState
+    extends State<CharacterTimeRulesInspector> {
+  ({MapEntityNpcVisibilityMode mode, MapEntityRuntimePredicateKind kind})?
+  _storyDraft;
+  CharacterPresenceReferences? _references;
+
+  MapEntity get entity => widget.entity;
+  List<ProjectDialogueEntry> get dialogues => widget.project.dialogues;
+
+  CharacterPresenceReferences get references {
+    final cached = _references;
+    if (cached != null && identical(cached.project, widget.project)) {
+      return cached;
+    }
+    return _references = CharacterPresenceReferences(widget.project);
+  }
+
+  @override
+  void didUpdateWidget(CharacterTimeRulesInspector oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.entity.id != widget.entity.id) _storyDraft = null;
+  }
+
+  void _setVisibility(MapEntityNpcVisibilityRule? rule) {
+    setState(() => _storyDraft = null);
+    widget.onVisibilityChanged(rule);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,12 +69,18 @@ class CharacterTimeRulesInspector extends StatelessWidget {
     final presenceIsHours =
         rule?.mode == MapEntityNpcVisibilityMode.visibleWhen &&
         _isHours(presence);
-    final presenceMode =
-        rule == null || rule.mode == MapEntityNpcVisibilityMode.always
+    final storyDraft = _storyDraft;
+    final storyRule = isCharacterStoryPresence(rule);
+    final presenceMode = storyDraft != null || storyRule
+        ? 'story'
+        : rule == null || rule.mode == MapEntityNpcVisibilityMode.always
         ? 'always'
         : presenceIsHours
         ? 'hours'
         : 'advanced';
+    final character = widget.project.characters
+        .where((entry) => entry.id == npc.characterId)
+        .firstOrNull;
     final battle = npc.trainerBattleWhen;
     final battleMode = battle == null
         ? 'always'
@@ -55,18 +97,38 @@ class CharacterTimeRulesInspector extends StatelessWidget {
           mode: presenceMode,
           alwaysLabel: 'Toujours présent',
           hoursLabel: 'Présent pendant une plage horaire',
+          storyLabel: 'Selon l’histoire (étape, état ou badge)',
+          advancedDescription: rule?.predicate == null
+              ? null
+              : characterPresenceSentence(
+                  rule!.mode,
+                  references.describe(rule.predicate!).phrase,
+                ),
           window: presenceIsHours ? presence!.timeWindow : null,
-          onModeChanged: (mode) => onVisibilityChanged(
-            mode == 'always'
-                ? null
-                : MapEntityNpcVisibilityRule(
+          onModeChanged: (mode) {
+            if (mode == 'story') {
+              if (!storyRule) {
+                setState(
+                  () => _storyDraft = (
                     mode: MapEntityNpcVisibilityMode.visibleWhen,
-                    predicate: _predicate(
-                      presence?.timeWindow ?? _defaultWindow,
-                    ),
+                    kind: MapEntityRuntimePredicateKind.stepCompleted,
                   ),
-          ),
-          onWindowChanged: (start, end) => onVisibilityChanged(
+                );
+              }
+              return;
+            }
+            _setVisibility(
+              mode == 'always'
+                  ? null
+                  : MapEntityNpcVisibilityRule(
+                      mode: MapEntityNpcVisibilityMode.visibleWhen,
+                      predicate: _predicate(
+                        presence?.timeWindow ?? _defaultWindow,
+                      ),
+                    ),
+            );
+          },
+          onWindowChanged: (start, end) => _setVisibility(
             MapEntityNpcVisibilityRule(
               mode: MapEntityNpcVisibilityMode.visibleWhen,
               predicate: _predicate(
@@ -74,6 +136,25 @@ class CharacterTimeRulesInspector extends StatelessWidget {
               ),
             ),
           ),
+        ),
+        if (presenceMode == 'story')
+          CharacterStoryPresenceEditor(
+            key: ValueKey('npc-${entity.id}-story-presence'),
+            prefix: 'npc-${entity.id}-presence',
+            references: references,
+            mode: storyDraft?.mode ?? rule!.mode,
+            kind: storyDraft?.kind ?? rule!.predicate!.kind,
+            refId: storyDraft == null ? rule!.predicate!.refId : null,
+            onChanged: _setVisibility,
+            onDraft: (mode, kind) =>
+                setState(() => _storyDraft = (mode: mode, kind: kind)),
+          ),
+        const SizedBox(height: 8),
+        Text(
+          'Règle propre à ce personnage sur « ${widget.mapName} ». '
+          'Le personnage réutilisable « ${character?.name ?? npc.characterId ?? 'sans ressource'} » n’est pas modifié.',
+          key: ValueKey('npc-${entity.id}-presence-origin'),
+          style: Theme.of(context).textTheme.bodySmall,
         ),
         if (npc.trainerId != null) ...[
           const SizedBox(height: 18),
@@ -83,13 +164,14 @@ class CharacterTimeRulesInspector extends StatelessWidget {
             mode: battleMode,
             alwaysLabel: 'À toute heure',
             hoursLabel: 'Pendant une plage horaire',
+            advancedDescription: null,
             window: _isHours(battle) ? battle!.timeWindow : null,
-            onModeChanged: (mode) => onBattleChanged(
+            onModeChanged: (mode) => widget.onBattleChanged(
               mode == 'always'
                   ? null
                   : _predicate(battle?.timeWindow ?? _defaultWindow),
             ),
-            onWindowChanged: (start, end) => onBattleChanged(
+            onWindowChanged: (start, end) => widget.onBattleChanged(
               _predicate(LocalTimeWindow(startMinute: start, endMinute: end)),
             ),
           ),
@@ -100,6 +182,8 @@ class CharacterTimeRulesInspector extends StatelessWidget {
           const SizedBox(height: 18),
           ..._readiness(npc),
         ],
+        if (npc.conditionalDialogues.isNotEmpty)
+          CharacterDialogueVariants(entity: entity, references: references),
       ],
     );
   }
@@ -131,7 +215,7 @@ class CharacterTimeRulesInspector extends StatelessWidget {
         },
         onChanged: (value) {
           if (value == 'advanced') return;
-          onReadinessChanged(
+          widget.onReadinessChanged(
             value == 'always' ? null : condition(minimum),
             value == 'always' ? null : refusal,
           );
@@ -147,7 +231,7 @@ class CharacterTimeRulesInspector extends StatelessWidget {
             for (var count = 1; count <= 6; count++) '$count': '$count',
           },
           onChanged: (value) =>
-              onReadinessChanged(condition(int.parse(value)), refusal),
+              widget.onReadinessChanged(condition(int.parse(value)), refusal),
         ),
         const SizedBox(height: 12),
         StudioSelect(
@@ -161,7 +245,7 @@ class CharacterTimeRulesInspector extends StatelessWidget {
               refusal.dialogueId: 'Dialogue conservé : ${refusal.dialogueId}',
             for (final dialogue in dialogues) dialogue.id: dialogue.name,
           },
-          onChanged: (value) => onReadinessChanged(
+          onChanged: (value) => widget.onReadinessChanged(
             rule,
             value.isEmpty
                 ? null
@@ -199,6 +283,8 @@ class CharacterTimeRulesInspector extends StatelessWidget {
     required String mode,
     required String alwaysLabel,
     required String hoursLabel,
+    String? storyLabel,
+    required String? advancedDescription,
     required LocalTimeWindow? window,
     required ValueChanged<String> onModeChanged,
     required void Function(int, int) onWindowChanged,
@@ -212,6 +298,7 @@ class CharacterTimeRulesInspector extends StatelessWidget {
         options: {
           'always': alwaysLabel,
           'hours': hoursLabel,
+          'story': ?storyLabel,
           if (mode == 'advanced') 'advanced': 'Règle avancée conservée',
         },
         onChanged: (value) {
@@ -220,8 +307,12 @@ class CharacterTimeRulesInspector extends StatelessWidget {
       ),
       if (mode == 'advanced') ...[
         const SizedBox(height: 8),
-        const Text(
-          'Cette règle avancée reste inchangée. Choisissez un autre mode uniquement pour la remplacer.',
+        Text(
+          [
+            ?advancedDescription,
+            'Cette règle avancée reste inchangée. Choisissez un autre mode uniquement pour la remplacer.',
+          ].join(' '),
+          key: ValueKey('$prefix-advanced'),
         ),
       ],
       if (window != null) ...[

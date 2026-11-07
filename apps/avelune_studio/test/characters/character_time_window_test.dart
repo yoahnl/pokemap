@@ -132,7 +132,7 @@ void main() {
       );
       expect(
         _selectWidget(tester, 'npc-combat-guide-presence-mode').value,
-        'advanced',
+        'story',
       );
       await _select(tester, 'npc-combat-guide-battle-mode', 'hours');
       expect(

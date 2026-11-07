@@ -199,7 +199,8 @@ class _CharacterInspectorState extends State<CharacterInspector> {
         const SizedBox(height: 12),
         CharacterTimeRulesInspector(
           entity: entity,
-          dialogues: widget.project.dialogues,
+          project: widget.project,
+          mapName: widget.document.current.name,
           onReadinessChanged: (condition, refusal) => _change(() => _commands.setTrainerBattleReadiness(entity.id, condition, refusal)),
           onVisibilityChanged: (rule) =>
               _change(() => _commands.setVisibilityRule(entity.id, rule)),
