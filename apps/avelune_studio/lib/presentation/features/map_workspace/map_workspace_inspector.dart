@@ -28,6 +28,7 @@ import '../resources/model_animation_controls.dart';
 import '../resources/model_shadow_controls.dart';
 import '../../shared/widgets/inputs/studio_commit_field.dart';
 import '../../shared/widgets/inputs/studio_toggle_row.dart';
+import 'map_generated_owner.dart';
 
 class MapWorkspaceInspector extends StatefulWidget {
   const MapWorkspaceInspector({
@@ -160,6 +161,15 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const Text('Cette instance · décor placé sur la carte'),
+          if (mapGeneratedOwner(document.current, project, instance.id)
+              case final owner?) ...[
+            const SizedBox(height: 8),
+            MapGeneratedOwnerNotice(
+              owner: owner,
+              view: view,
+              onChanged: onChanged,
+            ),
+          ],
           const SizedBox(height: 12),
           if (!editingExterior) ...[
             SpatialModelEntityControls(
@@ -453,6 +463,15 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
                     Text(
                       'Définition partagée : ${entry.name}',
                       style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                  if (mapGeneratedOwner(document.current, project, selected.id)
+                      case final owner?) ...[
+                    const SizedBox(height: 8),
+                    MapGeneratedOwnerNotice(
+                      owner: owner,
+                      view: view,
+                      onChanged: onChanged,
                     ),
                   ],
                   const SizedBox(height: 8),

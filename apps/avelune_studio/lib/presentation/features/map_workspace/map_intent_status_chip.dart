@@ -13,9 +13,10 @@ class MapIntentStatusChip extends StatelessWidget {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final resource = intent.resource;
-    final title = resource == null
+    final action = resource == null
         ? intent.action
         : '${intent.action} · $resource';
+    final title = intent.target == null ? action : '${intent.target} · $action';
     return IgnorePointer(
       child: Semantics(
         liveRegion: true,

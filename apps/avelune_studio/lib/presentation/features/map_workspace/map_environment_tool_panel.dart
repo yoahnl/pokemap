@@ -6,6 +6,7 @@ import '../../../features/map_workspace/application/environment_editing_commands
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
+import 'map_generated_owner.dart';
 import 'map_workspace_view_state.dart';
 import '../resources/resource_catalog.dart';
 import '../resources/resource_filter_button.dart';
@@ -204,6 +205,14 @@ class MapEnvironmentToolPanel extends StatelessWidget {
                 ? 'Choisissez ou créez une zone. Le sol se peint avec Terrains ; les environnements répartissent des décors.'
                 : '${selected.mask.activeCellCount} cases · Pinceau ou rectangle pour ajouter, gomme pour préserver un passage ou un trou. Aperçu puis Appliquer. Enregistrer conserve la zone.',
           ),
+          if (selected != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              mapEnvironmentAreaSummary(selected, project),
+              key: const ValueKey('environment-area-summary'),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
           if (fresh)
             Text(
               '${session.generation!.placements.length} décors proposés · aperçu non appliqué.',

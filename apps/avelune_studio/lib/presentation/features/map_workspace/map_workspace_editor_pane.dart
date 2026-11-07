@@ -330,6 +330,13 @@ class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
                                               null,
                                           connectionsAvailable:
                                               widget.connectionsAvailable,
+                                          editingExterior:
+                                              widget
+                                                      .document
+                                                      .exteriorDecoration ==
+                                                  null
+                                              ? null
+                                              : _exteriorActive,
                                         ),
                                       ),
                                     ),

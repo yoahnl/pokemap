@@ -12,14 +12,25 @@ final class MapPaletteIntent {
     required this.armed,
     this.paletteTab,
     this.resource,
+    this.target,
   });
 
   final MapIntentGroup group;
   final String action, next;
   final bool armed;
-  final String? paletteTab, resource;
+  final String? paletteTab, resource, target;
 
   bool get usesPalette => paletteTab != null;
+
+  MapPaletteIntent withTarget(String value) => MapPaletteIntent(
+    group: group,
+    action: action,
+    next: next,
+    armed: armed,
+    paletteTab: paletteTab,
+    resource: resource,
+    target: value,
+  );
 }
 
 const _selectionHints = {
@@ -34,6 +45,22 @@ MapPaletteIntent mapPaletteIntent(
   MapWorkspaceViewState view, {
   bool spatial = false,
   bool connectionsAvailable = true,
+  bool? editingExterior,
+}) {
+  final intent = _toolIntent(
+    view,
+    spatial: spatial,
+    connectionsAvailable: connectionsAvailable,
+  );
+  return editingExterior == null
+      ? intent
+      : intent.withTarget(editingExterior ? 'Décor extérieur' : 'Zone jouable');
+}
+
+MapPaletteIntent _toolIntent(
+  MapWorkspaceViewState view, {
+  required bool spatial,
+  required bool connectionsAvailable,
 }) {
   return switch (view.tool) {
     StudioMapTool.select => MapPaletteIntent(
