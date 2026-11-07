@@ -78,6 +78,59 @@ void main() {
     view.dispose();
   });
 
+  test('a generated decor names the zone that owns it in content', () {
+    final base = workspaceMap('a');
+    final map = base.copyWith(
+      placedElements: const [
+        MapPlacedElement(
+          id: 'oak-1',
+          layerId: 'ground',
+          elementId: 'tree',
+          pos: GridPos(x: 2, y: 2),
+        ),
+        MapPlacedElement(
+          id: 'bench',
+          layerId: 'ground',
+          elementId: 'tree',
+          pos: GridPos(x: 6, y: 2),
+        ),
+      ],
+      layers: [
+        ...base.layers,
+        MapLayer.environment(
+          id: 'forest',
+          name: 'Forêt',
+          content: EnvironmentLayerContent(
+            areas: [
+              EnvironmentArea(
+                id: 'north',
+                name: 'Bois du nord',
+                presetId: 'woodland',
+                mask: EnvironmentAreaMask(
+                  width: base.size.width,
+                  height: base.size.height,
+                  cells: List.filled(base.size.width * base.size.height, true),
+                ),
+                seed: 7,
+                generatedPlacementIds: const ['oak-1'],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+    final entries = {
+      for (final entry in MapElementCatalog(map, workspaceProject).entries)
+        entry.id: entry,
+    };
+    expect(
+      entries['oak-1']!.detail,
+      endsWith('généré par la zone « Bois du nord »'),
+    );
+    expect(entries['bench']!.detail, isNot(contains('généré')));
+    expect(entries['oak-1']!.kind, 'decor');
+  });
+
   test('counts come from one index and keep every identity', () async {
     await editor.setHidden('decor', 'desk', true);
     await editor.setLocked('decor', 'lamp', true);

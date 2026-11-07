@@ -58,6 +58,18 @@ final class MapElementCatalog {
     for (final item in map.placedElements) {
       byLayer.putIfAbsent(item.layerId, () => []).add(item);
     }
+    final generatedBy = <String, String>{
+      for (final layer in map.layers.whereType<EnvironmentLayer>())
+        for (final area in layer.content.areas)
+          for (final id in area.generatedPlacementIds)
+            id: 'généré par la zone « ${area.name} »',
+      for (final layer in map.layers.whereType<BorderLayer>())
+        for (final feature in layer.content.features)
+          for (final id in feature.generatedPlacementIds)
+            id: 'généré par la bordure « ${layer.name} »',
+    };
+    String owned(String id, String detail) =>
+        generatedBy[id] == null ? detail : '$detail · ${generatedBy[id]}';
     final layerIds = map.layers.map((layer) => layer.id).toSet();
     final layerNames = <String, int>{};
     for (final layer in map.layers) {
@@ -95,7 +107,7 @@ final class MapElementCatalog {
           label: definition?.name ?? item.elementId,
           family:
               'Décors · ${index.familyOf('element', item.elementId) ?? index.categories[definition?.categoryId] ?? 'Autres'}',
-          detail: '${layer.name} · Z ${item.visualOrder}',
+          detail: owned(item.id, '${layer.name} · Z ${item.visualOrder}'),
           layerId: layer.id,
         );
         entries.add(entry);
@@ -128,8 +140,10 @@ final class MapElementCatalog {
           label: model?.name ?? item.modelId,
           family:
               'Décors · ${index.familyOf('model3d', item.modelId) ?? (model?.light != null ? 'Lumières 3D' : 'Modèles 3D')}',
-          detail:
-              'Profondeur spatiale · ${item.position.x.toStringAsFixed(1)}, ${item.position.z.toStringAsFixed(1)}',
+          detail: owned(
+            item.id,
+            'Profondeur spatiale · ${item.position.x.toStringAsFixed(1)}, ${item.position.z.toStringAsFixed(1)}',
+          ),
         ),
       );
     }

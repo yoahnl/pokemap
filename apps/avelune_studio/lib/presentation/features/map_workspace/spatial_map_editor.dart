@@ -542,6 +542,7 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
     });
     widget.view.transform.addListener(syncZoom);
     widget.view.recenter = recenter;
+    widget.view.centerOn = centerOnCell;
     syncZoom();
     syncCameraView();
   }
@@ -682,6 +683,15 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
 
   void syncZoom() =>
       camera.dolly(math.log(1 / widget.view.scale / camera.zoom) * 1000);
+  void centerOnCell(GridPos cell) {
+    final scene = widget.document.current.spatialScene;
+    if (scene == null) return;
+    camera.panBy(
+      cell.x + .5 - scene.width / 2 - camera.pan.dx,
+      cell.y + .5 - scene.depth / 2 - camera.pan.dy,
+    );
+  }
+
   void recenter() {
     discardGesture();
     widget.view.spatialFreeView = false;
@@ -1430,6 +1440,7 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
     previewGeneration++;
     preview?.dispose();
     widget.view.transform.removeListener(syncZoom);
+    if (widget.view.centerOn == centerOnCell) widget.view.centerOn = null;
     widget.view.recenter = null;
     focus.dispose();
     camera.dispose();

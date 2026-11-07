@@ -262,8 +262,8 @@ class _MapElementsPanelState extends State<MapElementsPanel> {
             label: hiddenInherited
                 ? 'Masqué par son calque ou sa famille. Réaffichez le calque ou utilisez Tout afficher.'
                 : hidden
-                ? 'Afficher ${entry.label}'
-                : 'Masquer ${entry.label}',
+                ? 'Afficher ${entry.label} dans l’éditeur'
+                : 'Masquer ${entry.label} dans l’éditeur (le jeu ne change pas)',
             icon: hidden
                 ? Icons.visibility_off_outlined
                 : Icons.visibility_outlined,
@@ -332,8 +332,8 @@ class _MapElementsPanelState extends State<MapElementsPanel> {
             label: hiddenInherited
                 ? 'Ce groupe est masqué par son calque ou sa famille. Réaffichez le calque ou utilisez Tout afficher.'
                 : hidden
-                ? 'Afficher $name'
-                : 'Masquer $name',
+                ? 'Afficher $name dans l’éditeur'
+                : 'Masquer $name dans l’éditeur (le jeu ne change pas)',
             icon: hidden
                 ? Icons.visibility_off_outlined
                 : Icons.visibility_outlined,
