@@ -504,7 +504,10 @@ final class SpatialBattleRuntime extends ChangeNotifier {
       await Future.any<void>([overlay.mounted, cancelled]);
       if (!_current(generation) || !identical(battleOverlay, overlay)) return;
       await Future.any<void>([
-        overlay.precacheBattleMoveEffects(),
+        Future.wait<void>([
+          overlay.precacheBattleMoveEffects(),
+          overlay.collectBattleSeNames().then(sounds.precache),
+        ]).then<void>((_) {}),
         Future<void>.delayed(const Duration(seconds: 2)),
       ]);
       if (!_current(generation) || !identical(battleOverlay, overlay)) return;

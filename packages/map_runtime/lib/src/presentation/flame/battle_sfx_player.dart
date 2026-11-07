@@ -1,7 +1,10 @@
 import 'dart:async';
+import 'dart:convert';
 
+import 'package:archive/archive.dart';
 import 'package:flame_audio/flame_audio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 
 import 'battle_se_manifest.dart';
 import 'battle_recipe_sound_source_native.dart'
@@ -47,6 +50,8 @@ final class FlameAudioBattleSfxPlayer {
   final Set<String> _reportedMisses = <String>{};
   final Set<AudioPlayer> _livePlayers = <AudioPlayer>{};
   final Set<BattlePreparedRecipeSound> _recipeSounds = {};
+  final Map<String, Future<recipe_source.BattleRecipeSoundSource>>
+      _encodedSources = {};
   static const _maxRecipeSounds = 8;
   static const _maxRecipeSoundBytes = 8 * 1024 * 1024;
   int? maxConcurrentVoices;
@@ -67,19 +72,43 @@ final class FlameAudioBattleSfxPlayer {
   /// existant faire son travail, en silence.
   Future<void> precache(Iterable<String> seNames) async {
     if (_disposed) return;
-    final assetPaths = seNames
+    final fileNames = seNames
         .map((seName) => _manifest[seName])
         .whereType<String>()
-        .map((fileName) => '$_assetPrefix$fileName')
-        .toSet()
-        .toList(growable: false);
-    if (assetPaths.isEmpty) return;
+        .toSet();
+    if (fileNames.isEmpty) return;
     try {
-      await _sharedAssetCache.loadAll(assetPaths);
+      final assetPaths = fileNames
+          .where((name) => !name.endsWith('.wav.z.b64'))
+          .map((name) => '$_assetPrefix$name')
+          .toList(growable: false);
+      await Future.wait(<Future<void>>[
+        if (assetPaths.isNotEmpty)
+          _sharedAssetCache.loadAll(assetPaths).then<void>((_) {}),
+        for (final name in fileNames.where((name) => name.endsWith('.wav.z.b64')))
+          _loadEncodedSource(name).then<void>((_) {}),
+      ]);
     } on Object catch (error) {
       debugPrint('[battle-sfx] precache failed: $error');
     }
   }
+
+  Future<recipe_source.BattleRecipeSoundSource> _loadEncodedSource(
+    String fileName,
+  ) => _encodedSources.putIfAbsent(fileName, () async {
+    final encoded = await rootBundle.loadString('$_assetPrefix$fileName');
+    final compressed = base64Decode(encoded.replaceAll(RegExp(r'\s'), ''));
+    final bytes = ZLibDecoder().decodeBytes(compressed);
+    final source = await recipe_source.BattleRecipeSoundSource.create(
+      bytes,
+      'audio/wav',
+    );
+    if (_disposed) {
+      await source.dispose();
+      throw StateError('Battle sound player was disposed');
+    }
+    return source;
+  });
 
   void play(String seName, {required int volume, required int pitch}) {
     if (_disposed || _atVoiceLimit) return;
@@ -105,8 +134,12 @@ final class FlameAudioBattleSfxPlayer {
         final sourceVolume = volume.clamp(0, 100) / 100;
         await _register(player, sourceVolume);
         if (_disposed || !_livePlayers.contains(player)) return;
+        final source = fileName.endsWith('.wav.z.b64')
+            ? (await _loadEncodedSource(fileName)).source
+            : AssetSource('$_assetPrefix$fileName');
+        if (_disposed || !_livePlayers.contains(player)) return;
         await player.play(
-          AssetSource('$_assetPrefix$fileName'),
+          source,
           volume: _volume(sourceVolume),
         );
       } on Object catch (error) {
@@ -211,6 +244,16 @@ final class FlameAudioBattleSfxPlayer {
         await player.dispose();
       } on Object {
         // Idem : rien à faire d'un lecteur déjà libéré.
+      }
+    }
+    final encodedSources = _encodedSources.values.toList();
+    _encodedSources.clear();
+    for (final pending in encodedSources) {
+      try {
+        final source = await pending;
+        await source.dispose();
+      } on Object catch (error) {
+        debugPrint('[battle-sfx] encoded source cleanup failed: $error');
       }
     }
   }
