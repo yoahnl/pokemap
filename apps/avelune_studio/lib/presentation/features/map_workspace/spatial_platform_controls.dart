@@ -7,6 +7,7 @@ import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_draft_field.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
+import 'traversal_labels.dart';
 
 class SpatialPlatformControls extends StatefulWidget {
   const SpatialPlatformControls({
@@ -149,7 +150,6 @@ class _SpatialPlatformControlsState extends State<SpatialPlatformControls> {
   Widget build(BuildContext context) => StudioPanel(
     title: 'Plateforme sur trajet',
     children: [
-      const Text('Plateforme sur trajet'),
       const Text(
         'Le modèle complet transporte le joueur et son compagnon. Les étapes sont des décalages X/Z depuis sa pose initiale ; seuls le départ et l’arrivée sont des quais. Les scènes commandent aller ou retour.',
       ),
@@ -163,6 +163,11 @@ class _SpatialPlatformControlsState extends State<SpatialPlatformControls> {
         ('duration', 'Durée du trajet (ms)'),
       ])
         field(entry.$2, values[entry.$1]!, (value) => values[entry.$1] = value),
+      if (platform case final applied?)
+        Text(
+          'Trajet appliqué : ${traversalDurationLabel(applied.durationMs)} (de 100 à 30 000 ms).',
+          key: const ValueKey('spatial-platform-duration'),
+        ),
       for (var r = 0; r < routes.length; r++) ...[
         Text(
           'Trajet ${r + 1}${routes[r].conditions.isEmpty ? ' · par défaut' : ''}',

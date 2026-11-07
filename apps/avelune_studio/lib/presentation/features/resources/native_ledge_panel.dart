@@ -7,6 +7,7 @@ import '../../shared/widgets/layout/studio_panel.dart';
 import '../map_workspace/map_workspace_visuals.dart';
 import 'resource_catalog.dart';
 import 'resource_preview.dart';
+import '../map_workspace/traversal_labels.dart';
 
 class NativeLedgePanel extends StatelessWidget {
   const NativeLedgePanel({
@@ -86,6 +87,11 @@ class NativeLedgePanel extends StatelessWidget {
               ? null
               : (value) =>
                     onJumpSideChanged!(BorderLineSide.values.byName(value)),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          ledgeJumpSummary(record.draft.definition.jumpBehavior!),
+          key: const ValueKey('native-ledge-jump-summary'),
         ),
       ],
       const SizedBox(height: 16),
