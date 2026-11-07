@@ -958,13 +958,13 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 
 **Étapes d’implémentation :**
 
-- [ ] 1. Conserver grille et liste sur la même sélection stable ; rechercher dans les métadonnées sans charger les médias.
-- [ ] 2. Conserver familles, types, dimension, disponibilité et pièces sources comme filtres distincts ; montrer les filtres actifs et leur remise à zéro.
-- [ ] 3. Distinguer Ressources utilisables et Bibliothèque complète ; les sources et brouillons restent gérables dans cette dernière.
+- [x] 1. Conserver grille et liste sur la même sélection stable ; rechercher dans les métadonnées sans charger les médias.
+- [x] 2. Conserver familles, types, dimension, disponibilité et pièces sources comme filtres distincts ; montrer les filtres actifs et leur remise à zéro.
+- [x] 3. Distinguer Ressources utilisables et Bibliothèque complète ; les sources et brouillons restent gérables dans cette dernière.
 - [ ] 4. Implémenter sélection multiple, classement et export de sélection avec comptes dérivés du même ensemble.
 - [ ] 5. Conserver les filtres et le défilement lors de l’ouverture d’un atelier ; rendre le retour à la carte explicite.
-- [ ] 6. Gérer chargement, vide, erreur et référence supprimée sans présenter la fiche précédente comme la nouvelle cible.
-- [ ] 7. Identifier le contexte des deux surfaces de bibliothèque (resource_workspace_pane.dart et la bibliothèque branchée par studio_workspace_host.dart) ; harmoniser recherche, résultats, fiche et action principale lorsque leurs capacités sont équivalentes, sans supposer qu’elles ont le même rôle (audit R04).
+- [x] 6. Gérer chargement, vide, erreur et référence supprimée sans présenter la fiche précédente comme la nouvelle cible.
+- [x] 7. Identifier le contexte des deux surfaces de bibliothèque (resource_workspace_pane.dart et la bibliothèque branchée par studio_workspace_host.dart) ; harmoniser recherche, résultats, fiche et action principale lorsque leurs capacités sont équivalentes, sans supposer qu’elles ont le même rôle (audit R04).
 
 **Tests comportementaux obligatoires :**
 
@@ -1019,7 +1019,7 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 - [ ] 2. Distinguer sélection de source, préflight, conflits, confirmation, progression et résultat ; l’annulation ne publie rien.
 - [ ] 3. Pour un pack, garder dépendances, identité, attribution et stratégie de conflit canoniques ; ne pas réutiliser les simples options illustratives comme validation.
 - [ ] 4. Vérifier les octets, le format, les bornes, les références et les droits nécessaires ; conserver la source et l’état précédent en cas d’échec.
-- [ ] 5. Ouvrir le résultat dans son atelier ou le retrouver dans la bibliothèque ; proposer Utiliser seulement après publication admissible.
+- [x] 5. Ouvrir le résultat dans son atelier ou le retrouver dans la bibliothèque ; proposer Utiliser seulement après publication admissible.
 - [ ] 6. Séparer préparation explicite coûteuse et modification locale ultérieure ; la première édition ne doit pas déclencher un préflight global caché.
 
 **Tests comportementaux obligatoires :**
@@ -1076,8 +1076,8 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 
 - [ ] 1. Garder Général, Source, Collision, Animation, Ombres/Lumière, Usages et Avancé suivant le type réel de la ressource.
 - [ ] 2. Préserver dimensions, origine, volume de collision, rampes/escaliers, animation, lumière, ombre et flamme déjà supportés.
-- [ ] 3. Montrer la définition partagée et ses usages avant une publication affectant des cartes ; l’occurrence reste éditée sur la carte.
-- [ ] 4. Réutiliser les aperçus natifs et leurs cycles de vie ; ne pas recréer le renderer à chaque frappe de champ.
+- [x] 3. Montrer la définition partagée et ses usages avant une publication affectant des cartes ; l’occurrence reste éditée sur la carte.
+- [x] 4. Réutiliser les aperçus natifs et leurs cycles de vie ; ne pas recréer le renderer à chaque frappe de champ.
 - [ ] 5. Rendre lisibles les valeurs héritées et les exceptions de l’occurrence sans confondre cet héritage avec projet→carte.
 
 **Tests comportementaux obligatoires :**
@@ -1124,7 +1124,7 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 
 - [ ] 1. Présenter le preset, ses motifs et matériaux admissibles sans aplatir les modèles natifs dans une image unique.
 - [ ] 2. Associer les sources à centre/bords/coins et conserver les règles d’animation ou de tampon déjà supportées.
-- [ ] 3. Exposer la distinction sol/chemin/eau par les capacités réelles, en documentant tout manque contractuel identifié en UX-00.
+- [x] 3. Exposer la distinction sol/chemin/eau par les capacités réelles, en documentant tout manque contractuel identifié en UX-00.
 - [ ] 4. Fournir un terrain d’essai avec virage, intersection et effacement ; la validation doit examiner la définition effective.
 - [ ] 5. Conserver brouillons et conflits d’owner ; une annulation ne supprime pas une définition publiée.
 
@@ -1176,7 +1176,7 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 - [ ] 2. Relier segments, coins intérieurs/extérieurs et extrémités aux emplacements compatibles.
 - [ ] 3. Conserver motifs, séquences, hauteur, direction, sauts et métadonnées franchissables déjà supportés.
 - [ ] 4. Afficher les pièces manquantes avant vérification ; autoriser un contour droit seulement lorsque ce mode est réellement choisi.
-- [ ] 5. Publier avec contrôle de révision et revue des usages ; conserver l’ancien contour si la publication échoue.
+- [x] 5. Publier avec contrôle de révision et revue des usages ; conserver l’ancien contour si la publication échoue.
 
 **Tests comportementaux obligatoires :**
 
@@ -1222,7 +1222,7 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 **Étapes d’implémentation :**
 
 - [ ] 1. Rendre visibles les ressources sources, densité, répartition, variations et paramètres déjà pris en charge.
-- [ ] 2. Séparer définition réutilisable et zone placée sur une carte ; montrer la portée de toute édition.
+- [x] 2. Séparer définition réutilisable et zone placée sur une carte ; montrer la portée de toute édition.
 - [ ] 3. Garder une prévisualisation déterministe pour une seed donnée et une explication du renouvellement.
 - [ ] 4. Conserver le lien natif zone→objets générés pour la sélection, le retrait et le diagnostic.
 - [ ] 5. Gérer ressource source retirée ou incompatible sans convertir les enfants en objets indépendants.
@@ -1272,8 +1272,8 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 - [ ] 3. Importer les animations via les contrôles existants ; ne pas supposer une grille 4×4 pour toutes les sources.
 - [ ] 4. Prévisualiser directions, états, scale et ancrage compatibles avec le profil.
 - [ ] 5. Présenter les références manquantes et interdire l’utilisation sans effacer la configuration ; relier les présences connues.
-- [ ] 6. Faire de la bibliothèque des personnages le panneau de sélection permanent et garder un seul onglet Identité ; ne conserver une vue Bibliothèque distincte que si elle répond à une vraie tâche (audit R01, P1 ; character_studio_page.dart).
-- [ ] 7. Choisir un seul mot pour les portraits, par exemple « expression », et distinguer créer une expression et lui associer une image ; vérifier la portée partagée par un essai d’écriture avant de l’annoncer (audit R03 ; character_studio_portrait_panel.dart).
+- [x] 6. Faire de la bibliothèque des personnages le panneau de sélection permanent et garder un seul onglet Identité ; ne conserver une vue Bibliothèque distincte que si elle répond à une vraie tâche (audit R01, P1 ; character_studio_page.dart).
+- [x] 7. Choisir un seul mot pour les portraits, par exemple « expression », et distinguer créer une expression et lui associer une image ; vérifier la portée partagée par un essai d’écriture avant de l’annoncer (audit R03 ; character_studio_portrait_panel.dart).
 
 **Tests comportementaux obligatoires :**
 
@@ -1325,8 +1325,8 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 - [ ] 1. Analyser les usages par le service canonique, avec progression, annulation et résultat lié à la révision.
 - [ ] 2. Séparer Remplacer ici, modifier la définition et remplacer ses usages ; afficher la portée avant confirmation.
 - [ ] 3. Bloquer ou guider la suppression d’une ressource utilisée selon les stratégies réellement disponibles.
-- [ ] 4. Donner une prochaine action à chaque incident connu : ouvrir l’atelier, sélectionner l’occurrence, retrouver une source ou réessayer.
-- [ ] 5. Conserver une erreur à cause inconnue comme telle ; ne pas fabriquer de réparation, d’import ou de cause.
+- [x] 4. Donner une prochaine action à chaque incident connu : ouvrir l’atelier, sélectionner l’occurrence, retrouver une source ou réessayer.
+- [x] 5. Conserver une erreur à cause inconnue comme telle ; ne pas fabriquer de réparation, d’import ou de cause.
 - [ ] 6. Traiter une publication ou un remplacement interrompu avec le mécanisme existant de reprise et de conflit.
 
 **Tests comportementaux obligatoires :**
@@ -2631,11 +2631,11 @@ Une entrée « Parcours décrit » n’est pas déclarée implémentée. Le lot 
 | N09 | P2 | Diagnostics de cinématique répétés, `null · id` | UX-03.1, ét. 2 ; UX-23.4, ét. 7 | Ajouté, en partie avancé ; `null · id` **corrigé** par d33da791b, diagnostics groupés avec accès à l’action ou à l’acteur **corrigés** par 979120f23 |
 | N10 | P2 | Deux noms pour créer la même présentation | UX-03.1, ét. 3 | Ajouté, avancé ; **corrigé** par d33da791b (« Nouvelle présentation » aux deux entrées) |
 | N11 | P3 | Vérification absente et récents répétés | UX-22, ét. 10 | Ajouté |
-| R01 | P1 | Bibliothèque et Identité : même contenu | UX-12.5, ét. 6 | Ajouté |
-| R02 | P1 | Personnage : défaut global et local mêlés | UX-12.5, ét. 2 | Couvert |
-| R03 | P2 | Portraits : « état » ou « expression » | UX-12.5, ét. 7 | Ajouté |
-| R04 | P2 | Deux bibliothèques de ressources différentes | UX-11, ét. 7 | Ajouté |
-| R05 | P1 | Incidents sans action de réparation | UX-13 | Couvert |
+| R01 | P1 | Bibliothèque et Identité : même contenu | UX-12.5, ét. 6 | Ajouté ; **corrigé** par ba222f6a5 (UX-12.5 ; onglet Bibliothèque retiré, la liste des personnages reste le panneau permanent) |
+| R02 | P1 | Personnage : défaut global et local mêlés | UX-12.5, ét. 2 | Couvert ; **en partie corrigé** par ba222f6a5 (UX-12.5 ; défaut du projet « appliqué immédiatement » et réglage du personnage « enregistré avec Enregistrer » séparés et nommés) ; portée personnage / présence restante |
+| R03 | P2 | Portraits : « état » ou « expression » | UX-12.5, ét. 7 | Ajouté ; **corrigé** par ba222f6a5 (UX-12.5 ; « expression » partout ; créer une expression et lui associer une image sont distincts ; portée commune au projet vérifiée par un essai d’écriture) |
+| R04 | P2 | Deux bibliothèques de ressources différentes | UX-11, ét. 7 | Ajouté ; **corrigé** par 641ab9706 (UX-11 ; la recherche rapide nomme son contexte, même libellé de recherche, action « Ouvrir les ateliers » ; vérifié en natif sur HGSS) |
+| R05 | P1 | Incidents sans action de réparation | UX-13 | Couvert ; **en partie corrigé** par c49df5138 (UX-13 ; nom du propriétaire, références regroupées, cause vérifiée ou non, « Ouvrir la ressource » quand elle existe, détails techniques repliés) ; « choisir un fichier » non proposé faute de parcours |
 | R06 | P2 | Poches d’objets en identifiants anglais | UX-03.1, ét. 6 ; UX-23.6, ét. 9 | Ajouté, en partie avancé ; libellés **corrigés** par d33da791b, saisie libre **corrigée** par cd81aa24c |
 | R07 | P1 | Formes Pokémon saisies en identifiants à virgules | UX-23.6, ét. 6 | Ajouté, livrable en avance ; **corrigé** par 7529620f2 |
 | R08 | P1 | Condition d’évolution prise pour une règle | UX-23.6, ét. 7 | Ajouté, livrable en avance ; **corrigé** par 7529620f2 (validateur d’évolutions : correctif en attente hors de ce lot) |
