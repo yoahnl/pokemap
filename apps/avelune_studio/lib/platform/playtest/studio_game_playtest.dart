@@ -403,7 +403,11 @@ final class _StudioGameSource implements RuntimeGameSource {
         FieldObstacleCapabilities.extendedCapabilityId,
         ProjectAudioCapabilities.fieldMovementCapabilityId,
         SpatialGameplayCapabilities.periodicRewardConditionCapabilityId,
+        SpatialGameplayCapabilities.deferredCraftingCapabilityId,
+        CharacterAnimationCanvasCapabilities.capabilityId,
         if (project.settings.dimension == ProjectDimension.threeD) ...{
+          SpatialModelInstance.conditionalVisibilityCapabilityId,
+          SpatialModelInstance.manualEnvironmentEntityBindingCapabilityId,
           'map3d@1',
           SpatialGameplayCapabilities.capabilityId,
           SpatialGameplayCapabilities.storyCapabilityId,

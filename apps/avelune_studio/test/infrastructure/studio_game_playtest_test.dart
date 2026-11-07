@@ -287,9 +287,13 @@ void main() {
               contains(SpatialActorOcclusionCapabilities.capabilityId));
           expect(
             runtime.descriptor.grantedCapabilities,
-            contains(
+            containsAll([
               SpatialGameplayCapabilities.periodicRewardConditionCapabilityId,
-            ),
+              SpatialGameplayCapabilities.deferredCraftingCapabilityId,
+              CharacterAnimationCanvasCapabilities.capabilityId,
+              SpatialModelInstance.conditionalVisibilityCapabilityId,
+              SpatialModelInstance.manualEnvironmentEntityBindingCapabilityId,
+            ]),
           );
           mounted = runtime;
           mounts++;

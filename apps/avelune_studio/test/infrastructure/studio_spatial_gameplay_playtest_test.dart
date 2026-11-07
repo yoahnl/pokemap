@@ -130,7 +130,13 @@ void main() {
         contains(SpatialSceneLightingCapabilities.pointLightShadowsCapabilityId));
     expect(
       host.runtime.descriptor.grantedCapabilities,
-      contains(SpatialGameplayCapabilities.periodicRewardConditionCapabilityId),
+      containsAll([
+        SpatialGameplayCapabilities.periodicRewardConditionCapabilityId,
+        SpatialGameplayCapabilities.deferredCraftingCapabilityId,
+        CharacterAnimationCanvasCapabilities.capabilityId,
+        SpatialModelInstance.conditionalVisibilityCapabilityId,
+        SpatialModelInstance.manualEnvironmentEntityBindingCapabilityId,
+      ]),
     );
     return host;
   }
