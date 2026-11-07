@@ -169,17 +169,21 @@ extension _WorkspaceHomeBinding on _MapWorkspaceScreenState {
       case 'resources':
         _openResources();
       case 'terrains':
-        if (!_controller.hasWorkshop(MapWorkspaceWorkshop.resources) &&
-            widget.resourceLibraryBuilder != null) {
-          _openResources();
-          return;
+        final view = _view;
+        final active = _controller.active;
+        _palette = true;
+        _openMap();
+        if (view != null && active != null) {
+          MapToolCommandRunner(
+            view: view,
+            spatial: active.current.spatialScene != null,
+            paletteVisible: true,
+            onChanged: _toolChanged,
+            onMoreTools: _changed,
+            onResources: _openResources,
+          ).runFamily('Terrains');
         }
-        unawaited(
-          _openResourceWorkshop(() {
-            _resources?.library.kind = ResourceKind.terrains;
-            _resources?.showLibrary();
-          }, family: ResourceLibraryFamily.terrains),
-        );
+        _toolChanged();
       case 'characters':
         _view?.prepareCharacterPlacement();
         _view?.revealPalette = true;

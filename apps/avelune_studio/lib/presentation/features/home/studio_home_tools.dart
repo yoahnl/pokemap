@@ -52,9 +52,9 @@ class StudioHomeTools extends StatelessWidget {
         colors.primary,
       ),
       (
-        'Terrains',
-        'Des raccords\nautomatiques',
-        Icons.extension_outlined,
+        'Peindre le sol',
+        'Sol, chemins et eau\nsur la carte',
+        Icons.terrain,
         'terrains',
         accents.featureAccent,
       ),
@@ -73,8 +73,8 @@ class StudioHomeTools extends StatelessWidget {
         colors.error,
       ),
       (
-        'Tester',
-        'Jouez et vérifiez\nvotre création',
+        'Tester la carte',
+        'Lancez la carte ouverte\npour la vérifier',
         Icons.play_arrow_outlined,
         'test',
         accents.canvasSelection,
