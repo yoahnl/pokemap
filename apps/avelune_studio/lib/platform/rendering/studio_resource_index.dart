@@ -26,12 +26,45 @@ final class StudioResourceIndex {
     elements.addEntries(
       manifest.elements.map((entry) => MapEntry(entry.id, entry)),
     );
+    for (final tileset in manifest.tilesets) {
+      for (final id in _ids[tileset.id]!) {
+        owners[id] = (
+          kind: 'tileset',
+          id: tileset.id,
+          name: tileset.name,
+          role: 'Image source',
+        );
+      }
+    }
+    for (final character in manifest.characters) {
+      final sheet = character.tilesetId;
+      if (sheet.isNotEmpty && !tilesets.containsKey(sheet)) {
+        owners[sheet] = (
+          kind: 'character',
+          id: character.id,
+          name: character.name,
+          role: 'Planche du personnage',
+        );
+      }
+      for (final animation in character.animations) {
+        final asset = animation.sourceAssetId?.trim() ?? '';
+        if (asset.isEmpty) continue;
+        owners[characterAnimationRuntimeImageId(asset)] = (
+          kind: 'character',
+          id: character.id,
+          name: character.name,
+          role: 'Animations',
+        );
+      }
+    }
   }
 
   final ProjectManifest manifest;
   final Map<String, ProjectTilesetEntry> tilesets = {};
   final Map<String, ProjectElementEntry> elements = {};
   final Map<String, String> names = {};
+  final Map<String, ({String kind, String id, String name, String role})>
+  owners = {};
   final Map<String, TilesetTransparentColor> colors = {};
   final Set<String> supported = {};
   final Map<String, Set<String>> _ids = {};

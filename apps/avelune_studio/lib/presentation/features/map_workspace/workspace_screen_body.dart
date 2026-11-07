@@ -160,6 +160,7 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                           onZoneDrawn: _narrative == null ? null : _zone,
                           referenceGuard: _draftReferences.guard,
                           onContextMenu: _openContextMenu,
+                          onOpenDiagnosticOwner: _openDiagnosticOwner,
                           movingHint: _view?.moveHint,
                           onOpenElement: (element) => _openResources(element),
                           onEditElement: (element) =>

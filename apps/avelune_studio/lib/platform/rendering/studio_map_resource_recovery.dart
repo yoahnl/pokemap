@@ -20,6 +20,10 @@ extension StudioMapResourceRecovery on StudioMapResources {
         cause: old.cause,
         detail: old.detail,
         status: WorkspaceResourceStatus.retrying,
+        ownerKind: old.ownerKind,
+        ownerId: old.ownerId,
+        ownerName: old.ownerName,
+        role: old.role,
       );
     }
     _notify();
@@ -35,12 +39,19 @@ extension StudioMapResourceRecovery on StudioMapResources {
     if (failure == null) {
       _diagnostics.remove(id);
     } else {
+      final owner = _index.owners[id];
       _diagnostics[id] = WorkspaceResourceDiagnostic(
         resourceId: id,
-        name: _index.names[id] ?? id,
+        name: owner == null
+            ? _index.names[id] ?? id
+            : '${owner.name} · ${owner.role}',
         cause: failure.cause,
         detail: failure.detail,
         retryable: failure.retryable,
+        ownerKind: owner?.kind,
+        ownerId: owner?.id,
+        ownerName: owner?.name,
+        role: owner?.role,
       );
     }
   }

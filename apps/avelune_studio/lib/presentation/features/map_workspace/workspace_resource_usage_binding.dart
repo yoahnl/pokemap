@@ -12,6 +12,24 @@ extension _WorkspaceResourceUsageBinding on _MapWorkspaceScreenState {
     if (_pokemon?.hasPendingChanges == true) 'Pokémon',
   ];
 
+  Future<bool> _openDiagnosticOwner(String kind, String id) async {
+    final project = _controller.project;
+    if (!mounted || project == null) return false;
+    if (kind == 'character') {
+      if (!project.characters.any((character) => character.id == id)) {
+        return false;
+      }
+      await _openResourceWorkshop(() => _resources?.openCharacters(id));
+      return true;
+    }
+    final item = resourceCatalog(project)
+        .where((item) => item.canonicalKind == kind && item.id == id)
+        .firstOrNull;
+    if (item == null) return false;
+    await _openResourceWorkshop(() => _resources?.showLibrary(item));
+    return true;
+  }
+
   bool _canOpenResourceUsage(ResourceUsageEntry entry) {
     final project = _controller.project;
     if (project == null) return false;

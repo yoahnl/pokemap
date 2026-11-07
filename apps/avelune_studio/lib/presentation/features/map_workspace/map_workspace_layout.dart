@@ -63,6 +63,7 @@ class MapWorkspaceLayout extends StatelessWidget {
     this.onZoneDrawn,
     this.referenceGuard,
     this.onContextMenu,
+    this.onOpenDiagnosticOwner,
     this.movingHint,
     this.activeSpace = 'map',
     this.exportActive = false,
@@ -95,6 +96,7 @@ class MapWorkspaceLayout extends StatelessWidget {
   final ValueChanged<MapRect>? onZoneDrawn;
   final MapReferenceGuard? referenceGuard;
   final void Function(GridPos, Offset)? onContextMenu;
+  final Future<bool> Function(String kind, String id)? onOpenDiagnosticOwner;
   final String activeSpace;
   final OrganizeMapLibrary? onOrganizeMaps;
   final Future<void> Function(MapConnectionDirection, String, int)? onLinkMaps;
@@ -386,6 +388,7 @@ class MapWorkspaceLayout extends StatelessWidget {
                 visuals: visuals!,
                 map: doc?.current,
                 showMapNotice: activeSpace == 'map',
+                onOpenOwner: onOpenDiagnosticOwner,
               ),
           ],
         ),

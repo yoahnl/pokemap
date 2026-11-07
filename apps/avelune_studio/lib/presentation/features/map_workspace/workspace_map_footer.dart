@@ -12,10 +12,12 @@ class WorkspaceMapFooter extends StatelessWidget {
     required this.visuals,
     required this.map,
     required this.showMapNotice,
+    this.onOpenOwner,
   });
   final MapWorkspaceVisuals visuals;
   final MapData? map;
   final bool showMapNotice;
+  final OpenDiagnosticOwner? onOpenOwner;
 
   bool get _hasVisibleBorders =>
       map?.layers.any((layer) => layer is BorderLayer && layer.isVisible) ==
@@ -67,7 +69,10 @@ class WorkspaceMapFooter extends StatelessWidget {
               );
             },
           ),
-        WorkspaceResourceDiagnostics(visuals: visuals),
+        WorkspaceResourceDiagnostics(
+          visuals: visuals,
+          onOpenOwner: onOpenOwner,
+        ),
       ],
     ),
   );

@@ -2,19 +2,30 @@ import 'package:flutter/material.dart';
 
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
+import '../../shared/widgets/feedback/studio_badge.dart';
 import 'map_workspace_visuals.dart';
 import 'workspace_resource_diagnostic.dart';
 import 'workspace_resource_diagnostic_detail.dart';
 
+typedef OpenDiagnosticOwner = Future<bool> Function(String kind, String id);
+
 class WorkspaceResourceDiagnostics extends StatelessWidget {
-  const WorkspaceResourceDiagnostics({super.key, required this.visuals});
+  const WorkspaceResourceDiagnostics({
+    super.key,
+    required this.visuals,
+    this.onOpenOwner,
+  });
   final MapWorkspaceVisuals visuals;
+  final OpenDiagnosticOwner? onOpenOwner;
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: visuals,
     builder: (context, _) {
-      final count = _unique(visuals.diagnostics).length;
+      final count = _unique(visuals.diagnostics)
+          .map((item) => item.ownerKey)
+          .toSet()
+          .length;
       final message = count == 0
           ? 'Aucun incident sur les ressources demandées'
           : '$count ${count == 1 ? 'ressource' : 'ressources'} en incident · ressources demandées';
@@ -45,7 +56,10 @@ class WorkspaceResourceDiagnostics extends StatelessWidget {
               secondary: true,
               onPressed: () => showDialog<void>(
                 context: context,
-                builder: (_) => _DiagnosticPanel(visuals: visuals),
+                builder: (_) => _DiagnosticPanel(
+                  visuals: visuals,
+                  onOpenOwner: onOpenOwner,
+                ),
               ),
             ),
           ],
@@ -60,8 +74,9 @@ List<WorkspaceResourceDiagnostic> _unique(
 ) => {for (final item in diagnostics) item.resourceId: item}.values.toList();
 
 class _DiagnosticPanel extends StatefulWidget {
-  const _DiagnosticPanel({required this.visuals});
+  const _DiagnosticPanel({required this.visuals, this.onOpenOwner});
   final MapWorkspaceVisuals visuals;
+  final OpenDiagnosticOwner? onOpenOwner;
 
   @override
   State<_DiagnosticPanel> createState() => _DiagnosticPanelState();
@@ -87,18 +102,19 @@ class _DiagnosticPanelState extends State<_DiagnosticPanel> {
       final memory = diagnostics
           .where((item) => item.cause == WorkspaceResourceCause.memoryPressure)
           .toList();
-      final rows =
-          [
-            for (final item in diagnostics)
-              if (item.cause != WorkspaceResourceCause.memoryPressure) [item],
-            if (memory.isNotEmpty) memory,
-          ]..sort(
-            (a, b) =>
-                (b.any((item) => active.contains(item.resourceId)) ? 1 : 0)
-                    .compareTo(
-                      a.any((item) => active.contains(item.resourceId)) ? 1 : 0,
-                    ),
-          );
+      final owned = <String, List<WorkspaceResourceDiagnostic>>{};
+      for (final item in diagnostics) {
+        if (item.cause == WorkspaceResourceCause.memoryPressure) continue;
+        owned.putIfAbsent(item.ownerKey, () => []).add(item);
+      }
+      final groups = owned.length + (memory.isEmpty ? 0 : 1);
+      final rows = [...owned.values, if (memory.isNotEmpty) memory]
+        ..sort(
+          (a, b) => (b.any((item) => active.contains(item.resourceId)) ? 1 : 0)
+              .compareTo(
+                a.any((item) => active.contains(item.resourceId)) ? 1 : 0,
+              ),
+        );
       final retryable = diagnostics.where((item) => item.canRetry).toList();
       return Dialog(
         child: SizedBox(
@@ -146,7 +162,9 @@ class _DiagnosticPanelState extends State<_DiagnosticPanel> {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  '${diagnostics.length} ressources concernées',
+                  groups == diagnostics.length
+                      ? '$groups ressources concernées'
+                      : '$groups ressources concernées · ${diagnostics.length} références',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
                 const SizedBox(height: 6),
@@ -162,6 +180,7 @@ class _DiagnosticPanelState extends State<_DiagnosticPanel> {
                             items: rows[index],
                             visuals: widget.visuals,
                             active: active,
+                            onOpenOwner: widget.onOpenOwner,
                           ),
                         ),
                 ),
@@ -194,10 +213,12 @@ class _DiagnosticRow extends StatelessWidget {
     required this.items,
     required this.visuals,
     required this.active,
+    this.onOpenOwner,
   });
   final List<WorkspaceResourceDiagnostic> items;
   final MapWorkspaceVisuals visuals;
   final Set<String> active;
+  final OpenDiagnosticOwner? onOpenOwner;
 
   @override
   Widget build(BuildContext context) {
@@ -205,11 +226,16 @@ class _DiagnosticRow extends StatelessWidget {
     final grouped = item.cause == WorkspaceResourceCause.memoryPressure;
     final title = grouped
         ? '${items.length} ressources · pression mémoire'
-        : item.name;
+        : item.ownerName ?? item.name;
+    final roles = grouped
+        ? const <String>[]
+        : {for (final entry in items) ?entry.role}.toList();
+    final verified = items.every((entry) => entry.verified);
+    final openOwner = onOpenOwner;
     final retryable = items.where((item) => item.canRetry).toList();
     final onMap = items.any((item) => active.contains(item.resourceId));
     return Padding(
-      key: ValueKey('resource-row-${grouped ? 'memory' : item.resourceId}'),
+      key: ValueKey('resource-row-${grouped ? 'memory' : item.ownerKey}'),
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -227,11 +253,28 @@ class _DiagnosticRow extends StatelessWidget {
                     style: Theme.of(context).textTheme.titleSmall,
                   ),
                 ),
+                if (roles.isNotEmpty)
+                  Text(
+                    '${roles.join(' · ')} · ${items.length} référence${items.length == 1 ? '' : 's'}',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
                 const SizedBox(height: 3),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text(item.message),
+                    StudioBadge(
+                      verified ? 'Cause vérifiée' : 'Cause non vérifiée',
+                    ),
+                  ],
+                ),
                 Text(
-                  item.message,
-                  maxLines: 2,
+                  item.explanation,
+                  maxLines: 3,
                   overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall,
                 ),
                 Text(
                   '${onMap ? 'Carte active · ' : ''}'
@@ -242,6 +285,20 @@ class _DiagnosticRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
+          if (!grouped && item.ownerKind != null && openOwner != null) ...[
+            StudioTool(
+              key: const ValueKey('resource-open-owner'),
+              label: 'Ouvrir la ressource',
+              icon: Icons.open_in_new,
+              onPressed: () async {
+                final navigator = Navigator.of(context);
+                if (await openOwner(item.ownerKind!, item.ownerId!)) {
+                  navigator.pop();
+                }
+              },
+            ),
+            const SizedBox(width: 4),
+          ],
           StudioTool(
             label: 'Voir le diagnostic complet',
             icon: Icons.subject,
