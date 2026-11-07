@@ -166,6 +166,8 @@ List<String> buildBattleTurnLinesForOverlay(BattleTurnResult turnResult) {
         lines.add(
           '$attacker utilise ${execution.move.name} → ${execution.damage} dégâts',
         );
+      case BattleTurnMoveFailedEvent():
+        lines.add('Mais cela échoue !');
       case BattleTurnStatusEvent(:final event):
         lines.add(_formatOverlayStatusEvent(event));
       case BattleTurnVolatileEvent(:final event):
