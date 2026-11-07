@@ -145,7 +145,9 @@ class _ResourceLibraryScreenState extends State<ResourceLibraryScreen> {
   void didUpdateWidget(ResourceLibraryScreen old) {
     super.didUpdateWidget(old);
     if (!identical(old.project, widget.project)) {
+      final before = items;
       items = resourceCatalog(widget.project);
+      state.reconcileRemoval(before, items);
       if (state.filters.familyId.isNotEmpty &&
           state.filters.familyId != unclassifiedResourceFamily &&
           !widget.project.resourceLibraryCatalog.effectiveFamilies.any(
@@ -235,6 +237,7 @@ class _ResourceLibraryScreenState extends State<ResourceLibraryScreen> {
   Widget detail(ResourceItem? item, {VoidCallback? close}) =>
       ResourceDetailPanel(
         item: item,
+        selectionRemoved: item == null && state.selectionRemoved,
         project: widget.project,
         openUsage: item == null
             ? 0

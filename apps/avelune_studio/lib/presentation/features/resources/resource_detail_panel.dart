@@ -39,8 +39,10 @@ class ResourceDetailPanel extends StatelessWidget {
     this.activeMapId,
     this.onModelShadowsChanged,
     this.onModelLightChanged,
+    this.selectionRemoved = false,
   });
   final ResourceItem? item;
+  final bool selectionRemoved;
   final int openUsage;
   final ProjectManifest project;
   final Widget preview;
@@ -61,6 +63,15 @@ class ResourceDetailPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final entry = item;
+    if (entry == null && selectionRemoved) {
+      return const StudioEmptyState(
+        key: ValueKey('resource-selection-removed'),
+        title: 'Cette ressource n’existe plus',
+        description:
+            'Elle a été retirée du projet. Choisissez une autre ressource.',
+        icon: Icons.image_not_supported_outlined,
+      );
+    }
     if (entry == null) {
       return const StudioEmptyState(
         title: 'Aucune ressource sélectionnée',

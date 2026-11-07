@@ -350,7 +350,24 @@ class ResourceLibraryState {
     return visible;
   }
 
+  bool selectionRemoved = false;
+
+  void reconcileRemoval(
+    Iterable<ResourceItem> before,
+    Iterable<ResourceItem> after,
+  ) {
+    final identity = selectedIdentity;
+    if (identity == null ||
+        !before.any((item) => item.identity == identity) ||
+        after.any((item) => item.identity == identity)) {
+      return;
+    }
+    select(null);
+    selectionRemoved = true;
+  }
+
   ResourceItem? reconcileSelection(List<ResourceItem> visible) {
+    if (selectionRemoved) return null;
     final selected = visible
         .where((item) => item.identity == selectedIdentity)
         .firstOrNull;
@@ -360,6 +377,7 @@ class ResourceLibraryState {
   }
 
   void select(ResourceItem? item) {
+    selectionRemoved = false;
     _selectedId = item?.id;
     _selectedKind = item?.kind ?? kind;
     _selectedCanonicalKind = item?.canonicalKind;

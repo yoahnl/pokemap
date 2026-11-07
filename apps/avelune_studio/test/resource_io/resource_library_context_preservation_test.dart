@@ -26,6 +26,7 @@ Future<Map<String, String>> _mapFiles(Directory directory) async => {
 };
 
 void main() {
+  _removedSelectionTests();
   testWidgets(
     'a multiple selection stays on the same identities after sort and view changes',
     (tester) async {
@@ -216,4 +217,79 @@ void main() {
       );
     },
   );
+}
+
+void _removedSelectionTests() {
+  test(
+    'a removed selection is reported instead of jumping to another resource',
+    () {
+      final kept = ResourceItem(
+        id: 'kept',
+        name: 'Conservé',
+        kind: ResourceKind.decors,
+        element: workspaceElement.copyWith(id: 'kept', name: 'Conservé'),
+      );
+      final removed = ResourceItem(
+        id: 'removed',
+        name: 'Retiré',
+        kind: ResourceKind.decors,
+        element: workspaceElement.copyWith(id: 'removed', name: 'Retiré'),
+      );
+      final state = ResourceLibraryState()..select(removed);
+      state.reconcileRemoval([kept], [kept]);
+      expect(state.selectionRemoved, isFalse);
+      expect(state.reconcileSelection([kept, removed]), removed);
+      state.reconcileRemoval([kept, removed], [kept]);
+      expect(state.selectionRemoved, isTrue);
+      expect(state.reconcileSelection([kept]), isNull);
+      expect(state.reconcileSelection([kept]), isNull);
+      state.select(kept);
+      expect(state.selectionRemoved, isFalse);
+      expect(state.reconcileSelection([kept]), kept);
+    },
+  );
+
+  testWidgets('the detail panel names a removed selection', (tester) async {
+    tester.view.physicalSize = const Size(1536, 1024);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final state = ResourceLibraryState();
+    final second = workspaceElement.copyWith(
+      id: 'second',
+      name: 'Second décor',
+    );
+    Widget screen(ProjectManifest project) => MaterialApp(
+      home: Scaffold(
+        body: ResourceLibraryScreen(
+          project: project,
+          visuals: WorkspaceTestVisuals(),
+          state: state,
+          onUse: (_) {},
+          onEdit: (_) {},
+          onTerrain: (_) {},
+          onCreateBorder: () {},
+          onResumeBorder: (_) {},
+          onImport: () {},
+          onBack: () {},
+        ),
+      ),
+    );
+    final project = workspaceProject.copyWith(
+      elements: [workspaceElement, second],
+    );
+    await tester.pumpWidget(screen(project));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('resource-card-element:second')),
+    );
+    await tester.pumpAndSettle();
+    expect(state.selectedIdentity, 'element:second');
+    await tester.pumpWidget(
+      screen(project.copyWith(elements: [workspaceElement])),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Cette ressource n’existe plus'), findsOneWidget);
+    expect(state.selectedIdentity, isNull);
+  });
 }
