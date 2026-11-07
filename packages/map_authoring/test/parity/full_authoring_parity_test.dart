@@ -219,6 +219,36 @@ void main() {
           AuthoringTransport.mcp:
               '../../tools/pokemap_mcp/test/resource_pack_stdio.test.ts',
         },
+        'map3d.instance.upsert_batch': {
+          AuthoringTransport.directApi:
+              'test/domains/maps/spatial_map_actions_test.dart',
+          AuthoringTransport.cli:
+              'test/domains/maps/spatial_map_actions_test.dart',
+          AuthoringTransport.editor:
+              '../../apps/avelune_studio/test/map_workspace/spatial_group_disk_journey_test.dart',
+          AuthoringTransport.mcp:
+              '../../tools/pokemap_mcp/test/spatial_instance_batch_stdio.test.ts',
+        },
+        'map3d.instance.delete_batch': {
+          AuthoringTransport.directApi:
+              'test/domains/maps/spatial_map_actions_test.dart',
+          AuthoringTransport.cli:
+              'test/domains/maps/spatial_map_actions_test.dart',
+          AuthoringTransport.editor:
+              '../../apps/avelune_studio/test/map_workspace/spatial_group_disk_journey_test.dart',
+          AuthoringTransport.mcp:
+              '../../tools/pokemap_mcp/test/border_spatial_stdio.test.ts',
+        },
+        'map3d.edit_batch': {
+          AuthoringTransport.directApi:
+              'test/workspace/map3d_edit_batch_targeted_test.dart',
+          AuthoringTransport.cli:
+              'test/tooling/jsonl_map_edit_operation_test.dart',
+          AuthoringTransport.editor:
+              '../../apps/avelune_studio/test/map_workspace/spatial_group_disk_journey_test.dart',
+          AuthoringTransport.mcp:
+              '../../tools/pokemap_mcp/test/map_edit_stdio.test.ts',
+        },
         'placed_element.place': {
           AuthoringTransport.directApi:
               'test/domains/maps/placed_element_lifecycle_transport_test.dart',

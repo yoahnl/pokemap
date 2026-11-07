@@ -1042,6 +1042,8 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
       AuthoringTransport.cli: 'test/domains/maps/spatial_map_actions_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/border_spatial_stdio.test.ts',
+      AuthoringTransport.editor:
+          '../../apps/avelune_studio/test/map_workspace/spatial_group_disk_journey_test.dart',
     };
   }
   if (actionId == 'map3d.edit_batch') {
@@ -1051,6 +1053,8 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
       AuthoringTransport.cli: 'test/tooling/jsonl_map_edit_operation_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/map_edit_stdio.test.ts',
+      AuthoringTransport.editor:
+          '../../apps/avelune_studio/test/map_workspace/spatial_group_disk_journey_test.dart',
     };
   }
   if (actionId.startsWith('map3d.lift.')) {
@@ -1080,6 +1084,8 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
       AuthoringTransport.cli: 'test/domains/maps/spatial_map_actions_test.dart',
       AuthoringTransport.mcp:
           '../../tools/pokemap_mcp/test/spatial_instance_batch_stdio.test.ts',
+      AuthoringTransport.editor:
+          '../../apps/avelune_studio/test/map_workspace/spatial_group_disk_journey_test.dart',
     };
   }
   if (actionId == 'smart_tile.material.upsert_batch') {
