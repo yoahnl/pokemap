@@ -204,7 +204,9 @@ void main() {
           'pointsOfInterest': [
             {
               ...poi.toJson(),
-              field: field == 'u' ? 0.75 : {'mapId': before.maps.last.id},
+              field: field == 'u'
+                  ? 0.75
+                  : {'mapId': before.maps.last.id, 'spawnId': 'depart'},
             },
           ],
         });
@@ -444,7 +446,10 @@ Future<MapWorkspaceController> _regionalController(
         u: 0.25,
         v: 0.5,
         mapIds: [project.maps.first.id],
-        destination: ProjectRegionDestination(mapId: project.maps.first.id),
+        destination: ProjectRegionDestination(
+          mapId: project.maps.first.id,
+          spawnId: 'depart',
+        ),
       ),
     ],
   );
