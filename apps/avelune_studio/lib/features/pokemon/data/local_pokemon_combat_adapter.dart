@@ -1,8 +1,6 @@
-import 'dart:convert';
-
 import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_authoring/map_authoring.dart'
-    show AuthoringTransactionFaultInjector;
+    show AuthoringTransactionFaultInjector, canonicalAuthoringJson;
 import 'package:map_core/map_core.dart';
 
 import '../../map_workspace/data/local_map_workspace_adapter.dart';
@@ -129,14 +127,16 @@ final class LocalPokemonCombatAdapter
       parameters: parameters,
       allowedStorageKeys: (_) => {'project.json'},
       validateBefore: (snapshot) {
-        if (jsonEncode(current(snapshot)) != jsonEncode(before)) {
+        if (canonicalAuthoringJson(current(snapshot)) !=
+            canonicalAuthoringJson(before)) {
           throw StateError(
             'Cette fiche a changé sur le disque. Votre brouillon est conservé.',
           );
         }
       },
       validateAfter: (snapshot) {
-        if (jsonEncode(current(snapshot)) != jsonEncode(after)) {
+        if (canonicalAuthoringJson(current(snapshot)) !=
+            canonicalAuthoringJson(after)) {
           throw StateError('La fiche enregistrée ne correspond pas au reçu.');
         }
       },
