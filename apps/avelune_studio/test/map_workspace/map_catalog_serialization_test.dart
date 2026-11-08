@@ -80,6 +80,38 @@ void main() {
   );
 
   test(
+    'a catalogue operation waiting for a started save publishes nothing after disposal',
+    () async {
+      final fixture = await MapCatalogFixture.create();
+      addTearDown(fixture.dispose);
+      final document = fixture.controller.active!;
+      document.commit(document.current.copyWith(properties: {'queued': true}));
+      final entered = Completer<void>();
+      final release = Completer<void>();
+      final held = fixture.adapter.withResourceMutation(() async {
+        entered.complete();
+        await release.future;
+      });
+      await entered.future;
+      final saved = fixture.controller.save(document);
+      final created = fixture.createMap('after-close');
+      expect(document.saving, isTrue);
+      fixture.controller.dispose();
+      release.complete();
+      await held;
+      expect(await saved, isFalse);
+      final result = await created;
+      expect(result.integrated, isFalse);
+      expect(result.published, isFalse);
+      expect(fixture.catalog.mutations, 0);
+      expect(
+        await File(p.join(fixture.root.path, 'maps/after-close.json')).exists(),
+        isFalse,
+      );
+    },
+  );
+
+  test(
     'logical folder changes preserve map files, atlas and loaded draft identities',
     () async {
       final fixture = await MapCatalogFixture.create();

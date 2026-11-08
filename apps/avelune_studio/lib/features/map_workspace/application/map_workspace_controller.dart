@@ -1344,7 +1344,20 @@ class MapWorkspaceController {
     notify();
   }
 
-  Future<bool> save(EditableMapDocument document) async {
+  final _startedSaves = <Future<void>>{};
+
+  Future<bool> save(EditableMapDocument document) {
+    final operation = _save(document);
+    final started = operation.then<void>(
+      (_) {},
+      onError: (Object _, StackTrace _) {},
+    );
+    _startedSaves.add(started);
+    unawaited(started.whenComplete(() => _startedSaves.remove(started)));
+    return operation;
+  }
+
+  Future<bool> _save(EditableMapDocument document) async {
     if (_disposed || document.saving) return false;
     if (_externalConflicts.contains(document.base.mapId)) {
       document.error = 'Une modification externe concerne cette carte. Votre brouillon reste conservé ; rouvrez le projet avant de publier.';
@@ -1363,42 +1376,45 @@ class MapWorkspaceController {
       notify();
       return false;
     }
-    if (!await (document.weatherVisuals?.save() ?? Future.value(true))) return false;
-    if (!await (document.atmosphere?.save() ?? Future.value(true))) {
-      return false;
-    }
-    if (!await (document.editor?.save() ?? Future.value(true))) return false;
-    if (!await (document.exteriorDecoration?.save() ?? Future.value(true))) return false;
-    if (!document.dirty) return true;
     document.saving = true;
-    document.error = null;
-    final snapshot = document.current;
-    final before = document.base.map;
     notify();
     try {
-      final revision = await port.saveMap(session, document.base, snapshot);
-      if (_disposed) return false;
-      document.acceptSave(snapshot, revision);
-      final source = port;
-      if (!hasCompleteProject &&
-          source is MapWorkspaceScopedPort &&
-          (!_selections.containsKey(document.base.mapId) ||
-              !ProjectCatalogSelection.sameMapDependencies(before, snapshot))) {
-        final entry = project!.maps.singleWhere(
-          (entry) => entry.id == document.base.mapId,
-        );
-        final sourceEpoch = _modelSourceEpoch;
-        final selection = await source.loadMapSelection(session, entry);
-        if (_disposed) return false;
-        _cacheSelection(entry.id, selection, sourceEpoch);
-        if (identical(active, document)) {
-          project = _withWorkshops(_selections[entry.id]!.definitions);
-        }
+      if (!await (document.weatherVisuals?.save() ?? Future.value(true))) return false;
+      if (!await (document.atmosphere?.save() ?? Future.value(true))) {
+        return false;
       }
-      return true;
-    } catch (failure) {
-      if (!_disposed) document.error = _message(failure);
-      return false;
+      if (!await (document.editor?.save() ?? Future.value(true))) return false;
+      if (!await (document.exteriorDecoration?.save() ?? Future.value(true))) return false;
+      if (!document.dirty) return true;
+      document.error = null;
+      final snapshot = document.current;
+      final before = document.base.map;
+      notify();
+      try {
+        final revision = await port.saveMap(session, document.base, snapshot);
+        if (_disposed) return false;
+        document.acceptSave(snapshot, revision);
+        final source = port;
+        if (!hasCompleteProject &&
+            source is MapWorkspaceScopedPort &&
+            (!_selections.containsKey(document.base.mapId) ||
+                !ProjectCatalogSelection.sameMapDependencies(before, snapshot))) {
+          final entry = project!.maps.singleWhere(
+            (entry) => entry.id == document.base.mapId,
+          );
+          final sourceEpoch = _modelSourceEpoch;
+          final selection = await source.loadMapSelection(session, entry);
+          if (_disposed) return false;
+          _cacheSelection(entry.id, selection, sourceEpoch);
+          if (identical(active, document)) {
+            project = _withWorkshops(_selections[entry.id]!.definitions);
+          }
+        }
+        return true;
+      } catch (failure) {
+        if (!_disposed) document.error = _message(failure);
+        return false;
+      }
     } finally {
       document.saving = false;
       notify();

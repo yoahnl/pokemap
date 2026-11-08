@@ -21,6 +21,14 @@ extension MapWorkspaceCatalogCommands on MapWorkspaceController {
     notify();
     MapCatalogReceipt? receipt;
     try {
+      if (_startedSaves.isNotEmpty) {
+        await Future.wait(_startedSaves.toList());
+        if (_disposed) {
+          return const MapCatalogResult(
+            error: 'Cette session de projet est fermée.',
+          );
+        }
+      }
       receipt = await mutations.mutate(
         session,
         actionId,
