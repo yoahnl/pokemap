@@ -1171,9 +1171,7 @@ final class _Fixture {
     final qa = Directory(
         '/Users/karim/Library/Caches/AveluneQA/ecorcia-chapitre7-annexes/periodic-availability-authoring');
     await qa.create(recursive: true);
-    final root = Directory('${qa.path}/fixture');
-    if (await root.exists()) throw StateError('The owned periodic fixture is already in use.');
-    await root.create();
+    final root = await qa.createTemp('fixture-');
     final project = ProjectManifest(
         name: 'Periodic conditions',
         version: spatial ? ProjectVersion.v9 : ProjectVersion.v8,
