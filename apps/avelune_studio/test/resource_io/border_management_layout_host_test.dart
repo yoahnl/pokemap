@@ -25,7 +25,7 @@ void main() {
         find.byKey(const ValueKey('resource-card-element:tree')),
         findsNothing,
       );
-      expect(find.text('Rechercher une bordure'), findsOneWidget);
+      expect(find.text('Rechercher dans les ressources'), findsOneWidget);
       expect(find.text('Brouillons'), findsOneWidget);
       expect(find.text('Publiées'), findsOneWidget);
       expect(find.text('Dépréciées'), findsOneWidget);
