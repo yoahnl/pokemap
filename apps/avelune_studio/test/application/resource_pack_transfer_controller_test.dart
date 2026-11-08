@@ -11,6 +11,36 @@ import 'package:avelune_studio/presentation/features/resources/resource_navigati
 import '../support/map_workspace_fixture.dart';
 
 void main() {
+  test(
+    'exporting a library selection starts from exactly the marked resources',
+    () async {
+      final port = ExportPackTestPort();
+      final c = ResourcePackTransferController(
+        port: port,
+        picker: () async => null,
+        exportSink: ExportTestSink(),
+        accept: (_) async {},
+      );
+      addTearDown(c.dispose);
+      await c.beginExport(
+        selection: [
+          (kind: 'element', id: 'arbre'),
+          (kind: 'borderBlueprint', id: 'cliff'),
+        ],
+      );
+      expect(
+        port.verbs.where((verb) => verb == 'selection.patch'),
+        hasLength(1),
+      );
+      expect(port.inputs[port.verbs.indexOf('selection.patch')]['add'], [
+        {'kind': 'element', 'id': 'arbre'},
+        {'kind': 'borderBlueprint', 'id': 'cliff'},
+      ]);
+      expect(port.verbs, isNot(contains('selection.select_filtered')));
+      expect(c.phase, ResourcePackTransferPhase.selecting);
+    },
+  );
+
   test('unknown publication blocks close until status-only reconciliation confirms publication', () async {
     final port = ExportPackTestPort();
     final sink = PendingExportTestSink();

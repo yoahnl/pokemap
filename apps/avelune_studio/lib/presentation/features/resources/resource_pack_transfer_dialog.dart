@@ -624,9 +624,18 @@ class _ResourcePackTransferDialogState
                       onPressed: c.operationActive ? null : c.nextPreviewPage,
                     ),
                 ],
-                if (c.phase == ResourcePackTransferPhase.idle)
+                if (c.phase == ResourcePackTransferPhase.idle && !c.exporting)
                   const Text(
                     'Choisissez un fichier .aveluneassets pour consulter son contenu avant l’installation.',
+                  ),
+                if (c.phase == ResourcePackTransferPhase.idle &&
+                    c.exporting &&
+                    c.operationActive)
+                  const Text(
+                    'Studio fait l’inventaire des ressources du projet avant '
+                    'de proposer la sélection. Sur un grand projet, cette '
+                    'étape peut prendre plusieurs minutes.',
+                    key: ValueKey('resource-pack-export-inventory'),
                   ),
               ],
             ),

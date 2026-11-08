@@ -1,5 +1,8 @@
 import 'package:avelune_studio/presentation/features/resources/resource_library_screen.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
+
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/services.dart';
@@ -19,6 +22,51 @@ import '../resource_io/resource_pack_import_host_test.dart'
     show ResourcePackTestHost;
 
 void main() {
+  testWidgets(
+    'the export inventory says what it waits for instead of asking for a pack',
+    (tester) async {
+      final port = _SlowInventoryPort();
+      final c = ResourcePackTransferController(
+        port: port,
+        picker: () async => null,
+        exportSink: ExportTestSink(),
+        accept: (_) async {},
+      );
+      addTearDown(c.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: studioTheme(),
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: TextButton(
+                onPressed: () =>
+                    showResourcePackExport(context, c, projectName: 'Project'),
+                child: const Text('Open export'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('Open export'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(
+        find.textContaining('Choisissez un fichier .aveluneassets'),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('resource-pack-export-inventory')),
+        findsOneWidget,
+      );
+      port.inventory.complete();
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('resource-pack-export-inventory')),
+        findsNothing,
+      );
+    },
+  );
+
   testWidgets('oversized derived draft notice remains visible before import', (
     tester,
   ) async {
@@ -413,4 +461,16 @@ void main() {
     tester.view.resetPhysicalSize();
     tester.view.resetDevicePixelRatio();
   });
+}
+
+final class _SlowInventoryPort extends ExportPackTestPort {
+  final inventory = Completer<void>();
+  @override
+  Future<Map<String, Object?>> transfer(
+    String verb, [
+    Map<String, Object?> input = const {},
+  ]) async {
+    if (verb == 'selection.create') await inventory.future;
+    return super.transfer(verb, input);
+  }
 }
