@@ -6,11 +6,80 @@ import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:map_core/map_core_domain.dart';
+import 'package:map_core/map_core.dart';
 
 import '../support/map_workspace_fixture.dart';
+import '../support/spatial_border_fixture.dart';
+
+Future<void> _pumpDetail(
+  WidgetTester tester,
+  ProjectManifest project,
+  ResourceItem item,
+) => tester.pumpWidget(
+  MaterialApp(
+    theme: studioTheme(),
+    home: Scaffold(
+      body: ResourceDetailPanel(
+        item: item,
+        project: project,
+        preview: const SizedBox(),
+        onUse: (_) {},
+        onEdit: (_) {},
+        onTerrain: (_) {},
+      ),
+    ),
+  ),
+);
 
 void main() {
+  testWidgets('a border sheet names its own pieces apart from free decors', (
+    tester,
+  ) async {
+    final base = spatialBorderProject();
+    final project = base.copyWith(
+      models3d: [
+        ...base.models3d,
+        ProjectModel3dEntry(
+          id: 'lamp',
+          name: 'Lampadaire',
+          sourceAssetId: 'lamp-source',
+          relativePath: 'assets/models3d/lamp.glb',
+          inspection: base.models3d.single.inspection,
+        ),
+      ],
+    );
+    final catalog = resourceCatalog(project);
+    await _pumpDetail(
+      tester,
+      project,
+      catalog.firstWhere((item) => item.border != null),
+    );
+    expect(
+      find.text(
+        '1 pièce(s) possédée(s) par cette bordure, masquées de la palette des décors',
+      ),
+      findsOneWidget,
+    );
+    await _pumpDetail(
+      tester,
+      project,
+      catalog.firstWhere((item) => item.model3d?.id == 'oak'),
+    );
+    expect(
+      find.text(
+        'Pièce de « Clôture unitaire », masquée de la palette des décors',
+      ),
+      findsOneWidget,
+    );
+    await _pumpDetail(
+      tester,
+      project,
+      catalog.firstWhere((item) => item.model3d?.id == 'lamp'),
+    );
+    expect(find.text('Bordure'), findsNothing);
+    expect(find.textContaining('masquée de la palette'), findsNothing);
+  });
+
   testWidgets('individual description is visible in the resource sheet', (
     tester,
   ) async {
@@ -50,9 +119,8 @@ void main() {
   ) async {
     final base = _terrainProject();
     final project = base.copyWith(maps: []);
-    final entry = resourceCatalog(
-      project,
-    ).firstWhere((item) => item.terrain != null);
+    final entry = resourceCatalog(project)
+        .firstWhere((item) => item.terrain != null);
     await tester.pumpWidget(
       MaterialApp(
         theme: studioTheme(),
@@ -174,9 +242,8 @@ void main() {
           body: SizedBox.square(
             dimension: 240,
             child: resourcePreview(
-              resourceCatalog(
-                project,
-              ).firstWhere((item) => item.terrain != null),
+              resourceCatalog(project)
+                  .firstWhere((item) => item.terrain != null),
               project,
               visuals,
               size: 240,

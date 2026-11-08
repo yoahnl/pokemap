@@ -4,6 +4,7 @@ import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_workspace_pane.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
 import 'package:avelune_studio/presentation/features/resources/border_pattern_panel.dart';
+import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -83,11 +84,37 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('1 / 3 familles de pièces associées'), findsOneWidget);
+    expect(
+      find.text('Pièces manquantes avant publication : bords, extrémités.'),
+      findsOneWidget,
+    );
+    expect(
+      tester
+          .widget<StudioButton>(find.byKey(const ValueKey('border-publish')))
+          .onPressed,
+      isNull,
+    );
+    final sourceList = tester.state<ScrollableState>(
+      find
+          .ancestor(
+            of: find.byKey(const ValueKey('border-library-angle')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
     for (final (id, slot) in [
       ('embout', 'Extrémité haute'),
       ('segment', 'Bord haut'),
     ]) {
       final source = find.byKey(ValueKey('border-library-$id'));
+      final position = sourceList.position;
+      position.jumpTo(0);
+      await tester.pump();
+      while (source.evaluate().isEmpty &&
+          position.pixels < position.maxScrollExtent) {
+        position.jumpTo(position.pixels + 60);
+        await tester.pump();
+      }
       await tester.ensureVisible(source);
       await tester.pumpAndSettle();
       await tester.tap(source);

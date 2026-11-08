@@ -241,6 +241,38 @@ class ResourceDetailPanel extends StatelessWidget {
           );
   }
 
+  Set<String> _borderPieceIdentities(BorderBlueprintRecord border) => {
+    for (final primitive in border.draft.definition.primitives)
+      ?(primitive.sourceModelId == null
+          ? primitive.sourceElementId == null
+                ? null
+                : 'element:${primitive.sourceElementId}'
+          : 'model3d:${primitive.sourceModelId}'),
+    for (final primitive
+        in border.latestPublished?.definition.primitives ??
+            const <BorderPublishedPrimitive>[])
+      ?(primitive.sourceModelId == null
+          ? primitive.sourceElementId == null
+                ? null
+                : 'element:${primitive.sourceElementId}'
+          : 'model3d:${primitive.sourceModelId}'),
+  };
+
+  List<String> _owningBorderNames(ResourceItem entry) {
+    final identity = entry.model3d != null
+        ? 'model3d:${entry.id}'
+        : entry.element != null
+        ? 'element:${entry.id}'
+        : null;
+    if (identity == null) return const [];
+    return [
+      for (final border in project.borderCatalog.records)
+        if (!border.isDeprecated &&
+            _borderPieceIdentities(border).contains(identity))
+          border.draft.definition.name,
+    ];
+  }
+
   List<Widget> _metadata(BuildContext context, ResourceItem entry) {
     final frame = entry.element?.frames.firstOrNull;
     final sourceId = frame != null && frame.tilesetId.isNotEmpty
@@ -283,6 +315,16 @@ class ResourceDetailPanel extends StatelessWidget {
       ('Portée', resourceCatalogScopeLabel(project, entry)),
       ('Contexte d’usage', resourceCatalogContextLabel(project, entry)),
       if (entry.border != null) ('Aperçu', 'Une pièce de la bordure'),
+      if (entry.border case final border?)
+        (
+          'Pièces',
+          '${_borderPieceIdentities(border).length} pièce(s) possédée(s) par cette bordure, masquées de la palette des décors',
+        ),
+      if (_owningBorderNames(entry) case final names when names.isNotEmpty)
+        (
+          'Bordure',
+          'Pièce de ${names.map((name) => '« $name »').join(', ')}, masquée de la palette des décors',
+        ),
       if (entry.environment != null) ('Aperçu', 'Un décor de la palette'),
       if (tileset != null) ('Source', tileset.name),
       if (terrainSources.isNotEmpty)

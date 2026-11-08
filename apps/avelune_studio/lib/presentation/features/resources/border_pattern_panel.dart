@@ -68,6 +68,20 @@ class BorderPatternPanel extends StatelessWidget {
     if (!straightOnly && followContourDirection) 'lineCornerLeft',
   ];
 
+  List<String> get _missingRoleLabels => [
+    for (final role in _roles)
+      if (!chosen.containsKey(role)) _roleLabel(role),
+  ];
+
+  String _roleLabel(String role) => switch (role) {
+    'lineStraight' when straightOnly || followContourDirection => 'corps',
+    'lineStraight' => 'bords',
+    'lineCap' => 'extrémités',
+    'lineCorner' when followContourDirection => 'angle sortant',
+    'lineCorner' => 'angles',
+    _ => 'angle rentrant',
+  };
+
   Widget _slot(
     BuildContext context,
     String label,
@@ -347,14 +361,9 @@ class BorderPatternPanel extends StatelessWidget {
         ],
       const SizedBox(height: 8),
       Text(
-        chosen.containsKey('lineCap') &&
-                chosen.containsKey('lineStraight') &&
-                (straightOnly ||
-                    (chosen.containsKey('lineCorner') &&
-                        (!followContourDirection ||
-                            chosen.containsKey('lineCornerLeft'))))
+        _missingRoleLabels.isEmpty
             ? 'Associations complètes. Les raccords restent à valider avant publication.'
-            : 'Les pièces manquantes restent visibles avant publication.',
+            : 'Pièces manquantes avant publication : ${_missingRoleLabels.join(', ')}.',
         style: Theme.of(context).textTheme.bodySmall,
       ),
     ],

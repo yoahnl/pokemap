@@ -75,12 +75,28 @@ void main() {
       find.byKey(const ValueKey('border-name')),
       'Clôture sans raccords',
     );
+    final sourceList = tester.state<ScrollableState>(
+      find
+          .ancestor(
+            of: find.byKey(const ValueKey('border-library-cap')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
     for (final (id, slot) in [
       ('cap', 'Extrémité haute'),
       ('straight', 'Bord haut'),
       ('corner', 'Angle haut gauche'),
     ]) {
       final source = find.byKey(ValueKey('border-library-$id'));
+      final position = sourceList.position;
+      position.jumpTo(0);
+      await tester.pump();
+      while (source.evaluate().isEmpty &&
+          position.pixels < position.maxScrollExtent) {
+        position.jumpTo(position.pixels + 60);
+        await tester.pump();
+      }
       await tester.ensureVisible(source);
       await tester.tap(source);
       await tester.pumpAndSettle();
