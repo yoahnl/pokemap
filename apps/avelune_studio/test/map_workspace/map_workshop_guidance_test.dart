@@ -220,7 +220,16 @@ void main() {
         ),
       ),
     );
-    await tester.scrollUntilVisible(find.text('Informations du terrain'), 200);
+    await tester.scrollUntilVisible(
+      find.text('Informations du terrain').hitTestable(),
+      200,
+      scrollable: find
+          .descendant(
+            of: find.byType(MapTerrainInspector),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
     await tester.tap(find.text('Informations du terrain'));
     await tester.pumpAndSettle();
     expect(find.text('Calque édité'), findsNothing);
