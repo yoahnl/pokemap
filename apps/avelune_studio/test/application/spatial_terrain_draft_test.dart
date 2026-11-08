@@ -163,7 +163,7 @@ void main() {
       expect(instance.modelId, 'oak');
       expect(instance.scale, 1.5);
       expect(instance.rotationDegrees, -90);
-      expect(instance.position.y, .2);
+      expect(instance.position.y, .2 + spatialSmartTileLayerPaintStep);
       expect(instance.blocksMovement, isFalse);
     }
     expect(model.manifest.smartTileCatalog.presets, isEmpty);

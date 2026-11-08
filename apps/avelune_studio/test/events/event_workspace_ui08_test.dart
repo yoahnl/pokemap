@@ -120,6 +120,7 @@ void main() {
     () async {
       final before = await fixture.readFresh();
       const id = Ui06SceneFixture.eventId;
+      expect(await controller.prepareAllMaps(), isTrue);
       final initial = controller.simulation(
         NarrativeEventSimulationInput(targetEventId: id),
       );
