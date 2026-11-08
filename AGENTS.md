@@ -68,9 +68,9 @@ Preserve the public barrels `lib/<package>.dart` of `map_core`, `map_gameplay`,
   rebuild per edit (targets: 100 ms feedback, 500 ms durable save).
 - **No-code UI:** editor UI uses design-system widgets and theme tokens, never
   hardcoded colors. Maps use native terrain, paths, Borders and trees.
-- **MCP parity:** a change to authoring behavior, project data, editor
-  commands, validation, import/export, rendering or playtest assesses PokeMap
-  MCP parity before completion.
+- **MCP parity:** a change to a canonical `map_authoring` action, a project
+  data contract or an editor command keeps the PokeMap MCP in parity (skill
+  `using-pokemap-mcp`); any other change states "MCP parity: N/A" in one line.
 - **Processes and QA artifacts:** stop only harnesses your run owns, never by
   process name. Disposable QA artifacts live only under
   `/Users/karim/Library/Caches/AveluneQA/<task>` and are removed before closing.

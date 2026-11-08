@@ -41,23 +41,24 @@ convenience, existing code, deadlines or another workflow do not authorize one.
   disproportionate work acceptable. Caches may reduce necessary work, but a
   fast repeated operation does not excuse an expensive first operation.
   Do not acknowledge a durable save before persistence has actually succeeded.
-- Before implementing a local authoring change, identify its affected storage
-  units, dependency scope and latency budget. Default acceptance targets for a
+- When a change touches how a local edit is saved, loaded or invalidated,
+  identify its affected storage units and dependencies first. Default targets for a
   simple property edit on a documented representative local project are visible
   feedback within **100 ms** and durable persistence within **500 ms**, for
   both the first operation after opening and repeated operations. These are
   acceptance targets, not claims of existing performance. Any different budget
   requires explicit user agreement; never silently relax it to fit the result.
-- Prove the real UI-to-persistence path with focused tests counting relevant
-  reads, writes, decodes and invalidations, including added unrelated project
-  content/history. Measure first and repeated latency separately, document the
-  machine/build mode and verify persisted values after reopening. Use stable
-  work-count assertions for regression tests and local timing measurements;
-  do not add expensive CI soaks. Preserve API/CLI/MCP semantics and assess parity.
-- A working button with excessive or unproven cost is **PARTIAL**, not ready
-  for acceptance. Do not claim compliance from a small fixture, a warm-only
-  benchmark, debug-only timing or source inspection. Apply this gate to new
-  work and touched paths; never imply the whole existing editor is certified.
+- Proof scales with the risk (scoped by Yoahn on 2026-11-08). A change to the
+  save, load, invalidation or storage path of a local edit needs a focused test
+  asserting its work counts (reads, writes, decodes, invalidations) with
+  unrelated project content present, and the persisted value checked after
+  reopening. Measure first and repeated latency (noting machine and build mode)
+  only when the change can plausibly move the budgets or when you claim them.
+  A UI change that leaves that path untouched needs neither. No CI soaks.
+- A persistence-path change whose cost is excessive or unproven is **PARTIAL**,
+  not ready for acceptance. Do not claim the budgets from a small fixture, a
+  warm-only benchmark, debug-only timing or source inspection, and never imply
+  the whole existing editor is certified.
 
 ## Avelune project and exported game compatibility policy
 
@@ -358,24 +359,22 @@ is part of finishing it, failed or resumed runs included.
   task; no other test root, dated sibling project or Desktop folder. Record a
   narrow exception only when a tool strictly requires another path, and clean
   it in the same task.
-- Before creating an environment, record its purpose, owned paths, processes
-  and removal condition. Reuse it across retries; copy only the sources, assets
-  and fixtures the check needs (no builds, `.dart_tool`, `node_modules`, caches
-  or histories).
+- Reuse one environment across retries; copy only the sources, assets and
+  fixtures the check needs (no builds, `.dart_tool`, `node_modules`, caches or
+  histories).
 - Remove superseded outputs and failed attempts as you go. Before closing, stop
-  owned apps, servers and harnesses (see Test harnesses and processes), check for open files and active
-  consumers, then remove copies, bundles, builds, exports, recordings and
-  repeated captures. Never touch another session's environment.
+  owned apps, servers and harnesses (see Test harnesses and processes), then
+  remove copies, bundles, builds, exports, recordings and repeated captures
+  that nothing still uses. Never touch another session's environment.
 - Never delete originals: projects, repositories, assets, saves, deliverables,
   maintained tests and fixtures, or unique data. A name containing `test` or
   `QA` proves nothing.
 - Keep only the evidence the result needs (receipts, relevant logs or diffs,
   selected captures), with no gigabyte environments, frame dumps or Markdown
   written just to track cleanup.
-- Routine removal of verified owned artifacts needs no confirmation. When
-  ownership, unique data or a consumer blocks it, report the path, measured
-  size, reason and decision needed. Verify removals and report what remains,
-  measuring directory size and free disk space separately.
+- Routine removal of owned artifacts needs no confirmation. When ownership,
+  unique data or a consumer blocks it, report the path, size and reason, and
+  say what was left behind.
 
 ## Reports and Markdown
 

@@ -71,8 +71,9 @@ assets. If an action is absent, report a parity gap instead of simulating it.
 
 ## Feature parity gate
 
-Apply this gate to new or changed authoring behavior, project data, editor commands,
-validation, import/export, rendering, or playtest flows.
+Apply this gate when a change adds or alters a canonical `map_authoring` action, a project
+data contract or an editor command. For any other change (UI only, rendering polish, tests,
+docs), one line "MCP parity: N/A — <reason>" is enough.
 
 - Put shared data contracts in `map_core` and canonical authoring behavior in
   `map_authoring`; keep MCP independent from editor controllers and widgets.
