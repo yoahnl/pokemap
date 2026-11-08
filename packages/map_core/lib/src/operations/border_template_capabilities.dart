@@ -44,7 +44,28 @@ bool borderBlueprintUsesNativeConnectedLine(
     definition.primitives.any((primitive) => primitive.weight > 0) &&
     definition.primitives.where((primitive) => primitive.weight > 0).every(
         (primitive) =>
-            primitive.authoredOrientation != BorderPrimitiveOrientation.legacyAxis);
+            primitive.authoredOrientation != BorderPrimitiveOrientation.legacyAxis) &&
+    !borderConnectedLineHasSingleFixedDirection(
+      definition,
+      allowAutoRotation: definition.defaults.allowAutoRotation,
+    );
+
+bool borderConnectedLineHasSingleFixedDirection(
+  BorderBlueprintPublishedDefinition definition, {
+  required bool allowAutoRotation,
+}) {
+  if (allowAutoRotation ||
+      definition.isSpatial ||
+      definition.template != BorderBlueprintTemplate.connectedLine) {
+    return false;
+  }
+  final directions = {
+    for (final primitive in definition.primitives)
+      if (primitive.weight > 0) primitive.authoredOrientation,
+  };
+  return directions.length == 1 &&
+      directions.single != BorderPrimitiveOrientation.legacyAxis;
+}
 
 bool borderBlueprintUsesPrimaryNativeConnectedLine(
   BorderBlueprintPublishedDefinition definition,

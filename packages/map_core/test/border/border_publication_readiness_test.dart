@@ -68,6 +68,44 @@ void main() {
           contains('border.publication.connected_line_transform_unavailable'));
     });
 
+    test('reads a single-direction connected line without rotation as orientation-free', () {
+      final fixture = _Fixture.complete();
+      BorderGenerationParams defaults({required bool rotation}) =>
+          BorderGenerationParams(irregularityPermille: 0,
+              detailDensityPermille: 0, variationPermille: 0, maxOverlapPx: 0,
+              gapTolerancePx: 0, depthRows: 1, allowAutoRotation: rotation);
+      BorderBlueprintPublishedDefinition definition(
+        Iterable<BorderPrimitiveOrientation> directions, {
+        required bool rotation,
+      }) => fixture.definitionFor(
+          template: BorderBlueprintTemplate.connectedLine,
+          defaults: defaults(rotation: rotation),
+          primitives: [
+            for (final role in [BorderPrimitiveRole.lineCap,
+                BorderPrimitiveRole.lineStraight, BorderPrimitiveRole.lineCorner])
+              for (final direction in directions)
+                fixture.primitive('${role.name}-${direction.name}', role,
+                    authoredOrientation: direction, allowFlipX: true),
+          ]);
+      final single = definition([BorderPrimitiveOrientation.east], rotation: false);
+      expect(borderBlueprintUsesNativeConnectedLine(single), isFalse);
+      expect(_codes(_assess(fixture, definition: single)),
+          isNot(contains('border.publication.connected_line_transform_unavailable')));
+      expect(
+        borderBlueprintUsesNativeConnectedLine(
+          definition([BorderPrimitiveOrientation.east], rotation: true),
+        ),
+        isTrue,
+      );
+      final twoDirections = definition(
+        [BorderPrimitiveOrientation.east, BorderPrimitiveOrientation.south],
+        rotation: false,
+      );
+      expect(borderBlueprintUsesNativeConnectedLine(twoDirections), isTrue);
+      expect(_codes(_assess(fixture, definition: twoDirections)),
+          contains('border.publication.connected_line_transform_unavailable'));
+    });
+
     test('accepts a complete organic candidate without ground', () {
       final fixture = _Fixture.complete();
       final gallery = resolveOrganicEdgeCanonicalGallery(

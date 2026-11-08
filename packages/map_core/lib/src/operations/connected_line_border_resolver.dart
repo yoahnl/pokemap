@@ -19,6 +19,7 @@ import 'border_rle_codec.dart';
 import 'border_slot_keys.dart';
 import 'border_sprite_geometry.dart';
 import 'border_stroke_canonicalization.dart';
+import 'border_template_capabilities.dart';
 
 /// Per-node evidence retained by tests and publication gallery inspection.
 @immutable
@@ -108,6 +109,11 @@ ConnectedLineBorderResolutionEvidence resolveConnectedLineBorderWithEvidence(
   final params = request.feature.paramsOverride ?? definition.defaults;
   final isFacade =
       definition.template == BorderBlueprintTemplate.horizontalFacade;
+  final orientationFree = isFacade ||
+      borderConnectedLineHasSingleFixedDirection(
+        definition,
+        allowAutoRotation: params.allowAutoRotation,
+      );
   if (definition.template != BorderBlueprintTemplate.connectedLine &&
       !isFacade) {
     diagnostics.add(
@@ -274,7 +280,7 @@ ConnectedLineBorderResolutionEvidence resolveConnectedLineBorderWithEvidence(
           transform: transform,
           nativeTransform: nativeTransform,
           allowAutoRotation: params.allowAutoRotation,
-          isFacade: isFacade,
+          orientationFree: orientationFree,
         );
         if (candidates.isEmpty) {
           diagnostics.add(
@@ -349,7 +355,7 @@ ConnectedLineBorderResolutionEvidence resolveConnectedLineBorderWithEvidence(
       selected,
       transform: need.transform,
       nativeTransform: need.nativeTransform,
-      isFacade: isFacade,
+      orientationFree: orientationFree,
     );
     evidence.add(
       ConnectedLineNodeResolutionEvidence(
@@ -713,7 +719,7 @@ List<BorderPublishedPrimitive> _eligibleCandidates(
   required BorderSpriteTransform transform,
   required BorderSpriteTransform nativeTransform,
   required bool allowAutoRotation,
-  required bool isFacade,
+  required bool orientationFree,
 }) =>
     primitives
         .where(
@@ -722,11 +728,11 @@ List<BorderPublishedPrimitive> _eligibleCandidates(
               primitive,
               transform: transform,
               nativeTransform: nativeTransform,
-              isFacade: isFacade,
+              orientationFree: orientationFree,
             );
             return primitive.role == role &&
                 primitive.weight > 0 &&
-                (isFacade ||
+                (orientationFree ||
                     primitive.authoredOrientation == BorderPrimitiveOrientation.legacyAxis ||
                     allowAutoRotation ||
                     actual.quarterTurns == 0) &&
@@ -741,9 +747,9 @@ BorderSpriteTransform _primitiveTransform(
   BorderPublishedPrimitive primitive, {
   required BorderSpriteTransform transform,
   required BorderSpriteTransform nativeTransform,
-  required bool isFacade,
+  required bool orientationFree,
 }) {
-  if (isFacade ||
+  if (orientationFree ||
       primitive.authoredOrientation == BorderPrimitiveOrientation.legacyAxis) {
     return transform;
   }

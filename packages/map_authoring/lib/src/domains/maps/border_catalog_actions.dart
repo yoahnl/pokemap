@@ -1114,6 +1114,7 @@ AuthoringActionDescriptor _descriptor(
             'rotation': 'targetMinusAuthored',
             'mirroredRotation': 'targetPlusAuthored',
             'automaticRotation': 'transformPolicy',
+            'singleDirectionWithoutRotation': 'orientationFree',
             'mirrorFreeProfile':
                 'allPositivePrimitivesCardinalAndDisallowFlipX',
             'mirrorFreeLineSide': 'primary',

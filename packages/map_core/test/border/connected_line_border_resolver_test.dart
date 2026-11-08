@@ -106,6 +106,70 @@ void main() {
       }
     });
 
+    test('reads a single-direction set without rotation as orientation-free', () {
+      List<BorderPublishedPrimitive> pieces(
+        BorderPrimitiveOrientation orientation,
+      ) => [
+        _primitive('cap', BorderPrimitiveRole.lineCap,
+            marker: 'a', authoredOrientation: orientation),
+        _primitive('straight', BorderPrimitiveRole.lineStraight,
+            marker: 'b', authoredOrientation: orientation),
+        _primitive('corner', BorderPrimitiveRole.lineCorner,
+            marker: 'c', authoredOrientation: orientation),
+      ];
+      final bend = [
+        _stroke(const [
+          GridPos(x: 1, y: 1),
+          GridPos(x: 2, y: 1),
+          GridPos(x: 3, y: 1),
+          GridPos(x: 3, y: 2),
+          GridPos(x: 3, y: 3),
+          GridPos(x: 4, y: 3),
+          GridPos(x: 5, y: 3),
+        ]),
+      ];
+      final legacy = resolveConnectedLineBorder(_Fixture(
+        primitives: pieces(BorderPrimitiveOrientation.legacyAxis),
+        parameters: _parameters(allowAutoRotation: false),
+        strokes: bend,
+      ).request);
+      expect(legacy.canApply, isTrue, reason: _diagnostics(legacy));
+      for (final direction in [
+        BorderPrimitiveOrientation.east,
+        BorderPrimitiveOrientation.north,
+      ]) {
+        final single = resolveConnectedLineBorder(_Fixture(
+          primitives: pieces(direction),
+          parameters: _parameters(allowAutoRotation: false),
+          strokes: bend,
+        ).request);
+        expect(single.canApply, isTrue, reason: _diagnostics(single));
+        expect(
+          [
+            for (final placement in single.materialization!.placements)
+              (placement.primitiveId, placement.anchorCell, placement.transform),
+          ],
+          [
+            for (final placement in legacy.materialization!.placements)
+              (placement.primitiveId, placement.anchorCell, placement.transform),
+          ],
+        );
+      }
+    });
+
+    test('keeps a two-direction set native and refuses its missing directions', () {
+      final result = resolveConnectedLineBorder(_Fixture(
+        primitives: _nativePrimitives()
+            .where((p) =>
+                p.authoredOrientation == BorderPrimitiveOrientation.east ||
+                p.authoredOrientation == BorderPrimitiveOrientation.south)
+            .toList(),
+        parameters: _parameters(allowAutoRotation: false),
+      ).request);
+      expect(result.canApply, isFalse);
+      expect(_codes(result), contains('border.resolution.connected_line_transform_unavailable'));
+    });
+
     test('refuses a missing native direction instead of choosing another sprite', () {
       final result = resolveConnectedLineBorder(_Fixture(
         primitives: _nativePrimitives().where((p) => p.id != 'cap-west').toList(),

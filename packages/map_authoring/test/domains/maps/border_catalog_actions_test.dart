@@ -23,6 +23,7 @@ void main() {
             'west': ['east', 'north'], 'north': ['east', 'south']},
         },
         'rotation': 'targetMinusAuthored', 'automaticRotation': 'transformPolicy',
+        'singleDirectionWithoutRotation': 'orientationFree',
         'mirroredRotation': 'targetPlusAuthored',
         'mirrorFreeProfile': 'allPositivePrimitivesCardinalAndDisallowFlipX',
         'mirrorFreeLineSide': 'primary', 'mirrorFreeCanonicalGallery': 'primary',
