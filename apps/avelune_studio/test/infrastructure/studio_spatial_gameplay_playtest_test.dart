@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:avelune_studio/features/verification/application/studio_failure_diagnosis.dart';
 import 'package:avelune_studio/platform/playtest/studio_playtest_session.dart';
 import 'package:avelune_studio/platform/playtest/studio_spatial_playtest.dart';
 import 'package:avelune_studio/platform/playtest/studio_spatial_playtest_view.dart';
@@ -382,11 +383,13 @@ void main() {
     await expectLater(
       prepare(),
       throwsA(
-        isA<StateError>().having(
-          (error) => error.message,
-          'diagnostic',
-          contains('Configurez la nouvelle partie'),
-        ),
+        isA<StudioLaunchProblem>()
+            .having(
+              (error) => error.message,
+              'diagnostic',
+              contains('Configurez la nouvelle partie'),
+            )
+            .having((error) => error.owner, 'owner', StudioFailureOwner.map),
       ),
     );
     expect(saves.hasSave, isFalse);
