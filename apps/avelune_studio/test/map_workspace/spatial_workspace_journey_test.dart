@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/features/project_creation/application/project_creation_controller.dart';
+import 'package:avelune_studio/features/project_session/data/local_project_session_adapter.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/features/resources/data/local_resource_adapter.dart';
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
@@ -34,11 +35,10 @@ void main() {
       final receipt = await creation.create();
       expect(receipt, isNotNull, reason: creation.error);
       final root = receipt!.projectPath;
-      final session = ProjectSession(
-        sessionId: root,
-        name: 'Atelier 3D',
-        directoryPath: root,
-      );
+      final sessions = LocalProjectSessionAdapter();
+      final session = await sessions.open(root);
+      addTearDown(() => sessions.close(session));
+      expect(session.storage, ProjectSessionStorage.manifest);
       final maps = LocalMapWorkspaceAdapter();
       final first = await maps.loadProject(session);
       expect(first.settings.dimension, ProjectDimension.threeD);
