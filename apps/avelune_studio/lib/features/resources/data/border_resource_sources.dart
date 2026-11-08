@@ -517,7 +517,9 @@ Future<List<BorderResourcePrimitive>> prepareBorderResources({
           id: role.name,
           sourceElementId: element.id,
           role: role,
-          authoredOrientation: BorderPrimitiveOrientation.east,
+          authoredOrientation: isFacade
+              ? BorderPrimitiveOrientation.east
+              : BorderPrimitiveOrientation.legacyAxis,
           weight: 1000,
           anchorPx: anchor,
           transforms: BorderTransformPolicy(

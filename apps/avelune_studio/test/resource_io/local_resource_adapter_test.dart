@@ -101,6 +101,12 @@ void main() {
       final published = receipt.manifest.borderCatalog.records.single;
       expect(published.latestPublished?.definition.name, 'Clôture du jardin');
       expect(published.latestPublished?.definition.primitives, hasLength(3));
+      expect(
+        published.latestPublished!.definition.primitives.map(
+          (primitive) => primitive.authoredOrientation,
+        ),
+        everyElement(BorderPrimitiveOrientation.legacyAxis),
+      );
       final reopened = await LocalMapWorkspaceAdapter().loadProject(
         fixture.session,
       );
