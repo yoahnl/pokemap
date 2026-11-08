@@ -122,7 +122,7 @@ void main() {
         ]));
     map = File('${directory.path}/maps/map.json');
     await map.parent.create(recursive: true);
-    await map.writeAsString('initial');
+    await map.writeAsString(_mapJson('initial'));
     asset = File('${directory.path}/assets/picture.bin');
     await asset.parent.create(recursive: true);
     await asset.writeAsString('initial-asset');
@@ -138,7 +138,7 @@ void main() {
 
   test('oversized revert is rejected before publishing any catalog objects',
       () async {
-    final target = await edit('a', 'Target', mapValue: 'target-map');
+    final target = await edit('a', 'Target', mapValue: _mapJson('target-map'));
     await edit('a', 'Later');
     final head = await edit('b', 'Independent');
     final history = session.history as FileAuthoringHistoryStore;
@@ -149,7 +149,7 @@ void main() {
         retainedCosts: window.costs,
         maxBytes: 100000);
     final retentionBefore = (await history.localWindow('game'))!.toJson();
-    final external = 'x' * 300000;
+    final external = _mapJson('x' * 300000);
     await map.writeAsString(external);
     final root = await store.readHead();
     final objects = await Directory('${directory.path}/catalog/objects')
@@ -181,8 +181,8 @@ void main() {
   test(
       'revert restores target units and files while preserving independent units',
       () async {
-    final target = await edit('a', 'Target', mapValue: 'target-map');
-    await edit('a', 'Later', mapValue: 'later-map');
+    final target = await edit('a', 'Target', mapValue: _mapJson('target-map'));
+    await edit('a', 'Later', mapValue: _mapJson('later-map'));
     final head = await edit('b', 'Independent');
     final root = session.snapshot.root;
     final plan = await session.planRevert(
@@ -194,19 +194,19 @@ void main() {
         currentProjectRevision: revision,
         validateProjection: validate);
     expect(session.snapshot.root, root);
-    expect(await map.readAsString(), 'later-map');
+    expect(await map.readAsString(), _mapJson('later-map'));
     final receipt = await session.apply(plan, operationId: 'public_revert');
     expect((await session.apply(plan)).toJson(), receipt.toJson());
     expect((await project()).tilesets.map((entry) => entry.name),
         ['Target', 'Independent']);
-    expect(await map.readAsString(), 'target-map');
+    expect(await map.readAsString(), _mapJson('target-map'));
     await session.retention.collect(
         projectId: 'game', history: session.history, blobs: session.blobs);
     await session.undo(
         entryId: receipt.receiptId, idempotencyKey: 'undo-revert');
     expect((await project()).tilesets.map((entry) => entry.name),
         ['Later', 'Independent']);
-    expect(await map.readAsString(), 'later-map');
+    expect(await map.readAsString(), _mapJson('later-map'));
   });
 
   test('revert refuses stale history and no-op target before publishing',
@@ -250,8 +250,8 @@ void main() {
   test('certified pack revert attests its merged HEAD and rejects forged heads',
       () async {
     final target =
-        await edit('a', 'Target', mapValue: 'target-map', bulk: true);
-    await edit('a', 'Later', mapValue: 'later-map');
+        await edit('a', 'Target', mapValue: _mapJson('target-map'), bulk: true);
+    await edit('a', 'Later', mapValue: _mapJson('later-map'));
     await edit('b', 'Independent');
     final expanded = PortableCatalogPublication.encodeProject(
         (await project()).copyWith(tilesets: [
@@ -343,7 +343,7 @@ void main() {
     final receipt = await session.apply(plan, operationId: 'bulk_revert');
     expect((await project()).tilesets.map((entry) => entry.name),
         ['Target', 'Independent', 'Added independently']);
-    expect(await map.readAsString(), 'target-map');
+    expect(await map.readAsString(), _mapJson('target-map'));
     await session.retention.collect(
         projectId: 'game', history: session.history, blobs: session.blobs);
     await session.undo(
@@ -353,8 +353,8 @@ void main() {
   });
 
   test('revert detects concurrent external edits before reservation', () async {
-    final target = await edit('a', 'Target', mapValue: 'target-map');
-    final head = await edit('a', 'Later', mapValue: 'later-map');
+    final target = await edit('a', 'Target', mapValue: _mapJson('target-map'));
+    final head = await edit('a', 'Later', mapValue: _mapJson('later-map'));
     final root = session.snapshot.root;
     final plan = await session.planRevert(
         entryId: target.receiptId,
@@ -363,13 +363,13 @@ void main() {
         publicBaseRevision: await revision(),
         currentProjectRevision: revision,
         validateProjection: validate);
-    await map.writeAsString('concurrent-map');
+    await map.writeAsString(_mapJson('concurrent-map'));
     await expectLater(
         session.apply(plan),
         throwsA(isA<CatalogStorageException>().having((error) => error.code,
             'code', 'catalog.project_revision_conflict')));
     expect(session.snapshot.root, root);
-    expect(await map.readAsString(), 'concurrent-map');
+    expect(await map.readAsString(), _mapJson('concurrent-map'));
     expect(await store.gateway.listJournals(), isEmpty);
   });
 
@@ -379,9 +379,11 @@ void main() {
           'revert interrupted after HEAD promotion recovers all resources compensate=$compensate bulk=$bulk',
           () async {
         final target = await edit('a', 'Target',
-            mapValue: 'target-map', assetValue: 'target-asset', bulk: bulk);
+            mapValue: _mapJson('target-map'),
+            assetValue: 'target-asset',
+            bulk: bulk);
         final head = await edit('a', 'Later',
-            mapValue: 'later-map', assetValue: 'later-asset');
+            mapValue: _mapJson('later-map'), assetValue: 'later-asset');
         await session.close();
         session = await CatalogEditingSession.open(
             store: store,
@@ -416,8 +418,8 @@ void main() {
         await session.reconcile('revert_recovery', compensate: compensate);
         expect((await project()).tilesets.first.name,
             compensate ? 'Later' : 'Target');
-        expect(
-            await map.readAsString(), compensate ? 'later-map' : 'target-map');
+        expect(await map.readAsString(),
+            compensate ? _mapJson('later-map') : _mapJson('target-map'));
         expect(await asset.readAsString(),
             compensate ? 'later-asset' : 'target-asset');
         await session.retention.collect(
@@ -430,10 +432,14 @@ void main() {
           expect(latest.kind, AuthoringHistoryKind.revert);
           await session.undo(
               entryId: latest.entryId, idempotencyKey: 'undo-recovered');
-          expect(await map.readAsString(), 'later-map');
+          expect(await map.readAsString(), _mapJson('later-map'));
           expect(await asset.readAsString(), 'later-asset');
         }
       });
     }
   }
 }
+
+String _mapJson(String name) => jsonEncode(
+    MapData(id: 'map', name: name, size: const GridSize(width: 1, height: 1))
+        .toJson());
