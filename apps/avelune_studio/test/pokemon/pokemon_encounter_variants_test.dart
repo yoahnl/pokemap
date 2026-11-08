@@ -72,6 +72,7 @@ void main() {
                 .toJson(),
           ),
         );
+        await source.maps.loadProject(source.session);
         return source;
       }))!;
       addTearDown(() async {
