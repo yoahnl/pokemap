@@ -17,7 +17,7 @@ import '../support/spatial_environment_fixture.dart';
 
 void main() {
   testWidgets('manual binding UI persists through the real catalog controller without foreign map reads', (tester) async {
-    final root = (await tester.runAsync(() => Directory.systemTemp.createTemp('r29-studio-binding-')))!;
+    final root = (await tester.runAsync(() async => Directory(await (await Directory.systemTemp.createTemp('r29-studio-binding-')).resolveSymbolicLinks())))!;
     addTearDown(() async {
       if (await root.exists()) await root.delete(recursive: true);
     });
