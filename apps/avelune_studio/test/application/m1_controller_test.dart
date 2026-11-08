@@ -52,6 +52,7 @@ void main() {
     final document = controller.active!;
     document.commit(document.current.copyWith(name: 'Travail courant'));
     final pending = controller.save(document);
+    await pumpEventQueue();
     expect(port.saves, hasLength(1));
     port.saves.single.result.complete('standalone-saved');
     expect(await pending, isTrue);
@@ -117,6 +118,7 @@ void main() {
       final document = controller.active!;
       document.commit(document.current.copyWith(name: 'Snapshot'));
       final pending = controller.save(document);
+      await pumpEventQueue();
       document.commit(document.current.copyWith(name: 'Newer work'));
       expect(await controller.save(document), isFalse);
       expect(port.saves.length, 1);
@@ -127,6 +129,7 @@ void main() {
       expect(document.base.revision, 'saved-1');
       expect(document.dirty, isTrue);
       final retry = controller.save(document);
+      await pumpEventQueue();
       expect(port.saves.last.base.revision, 'saved-1');
       port.saves.last.result.complete('saved-2');
       expect(await retry, isTrue);
@@ -146,6 +149,7 @@ void main() {
         final before = document.base;
         document.commit(document.current.copyWith(name: 'Keep me'));
         final pending = controller.save(document);
+        await pumpEventQueue();
         port.saves.single.result.completeError(
           MapWorkspaceFailure(problem, 'Expected failure'),
         );
@@ -164,6 +168,7 @@ void main() {
     final document = controller.active!;
     document.commit(document.current.copyWith(name: 'Snapshot'));
     final pending = controller.saveAll();
+    await pumpEventQueue();
     document.commit(document.current.copyWith(name: 'Keep newer work'));
     port.saves.single.result.complete('saved-1');
     expect(await pending, isFalse);
@@ -180,6 +185,7 @@ void main() {
       final second = controller.active!;
       second.commit(second.current.copyWith(name: 'Dirty B'));
       final pending = controller.saveAll();
+      await pumpEventQueue();
       port.saves.single.result.completeError(
         const MapWorkspaceFailure(MapWorkspaceProblem.conflict, 'Conflict'),
       );
@@ -195,6 +201,7 @@ void main() {
     final document = controller.active!;
     document.commit(document.current.copyWith(name: 'Snapshot'));
     final pending = controller.save(document);
+    await pumpEventQueue();
     controller.dispose();
     port.saves.single.result.complete('saved-1');
     expect(await pending, isFalse);
@@ -241,9 +248,10 @@ void main() {
         controller.active!.current.copyWith(name: 'Dirty B'),
       );
       final pending = controller.saveAll();
+      await pumpEventQueue();
       expect(port.saves.length, 1);
       port.saves.first.result.complete('saved-a');
-      await Future<void>.delayed(Duration.zero);
+      await pumpEventQueue();
       expect(port.saves.length, 2);
       expect(controller.saving, isTrue);
       port.saves.last.result.complete('saved-b');
