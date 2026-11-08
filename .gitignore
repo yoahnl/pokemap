@@ -59,6 +59,9 @@ documentation/
 .tripo
 !/documentation/
 /documentation/*
+!/documentation/architecture/
+/documentation/architecture/*
+!/documentation/architecture/product_and_architecture_policies.md
 !/documentation/reports/
 /documentation/reports/*
 !/documentation/reports/avelune_studio/

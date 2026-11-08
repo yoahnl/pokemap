@@ -448,7 +448,7 @@ Statuts de roadmap inchangés : FG-082/083/120/129 `PARTIAL`, FG-088 `TODO`, FG-
 
 - [ ] Vérifier le jeu et les capabilities, conserver `gameId`, `compatibilityId` et les formats protégés ; identifier exactement les changements moteur à livrer, sans embarquer le travail concurrent.
 - [ ] Pour les opérations Git, relire l'autorisation explicite de livraison antérieure et sa portée ; si elle ne couvre pas l'opération envisagée, ne pas la déduire du présent plan. Avec autorisation applicable, vérifications ciblées puis commit/push strictement limité aux fichiers du lot.
-- [ ] Produire un export unique, vérifier installation/mise à jour et Continue depuis 0.1.11 avec sauvegarde préservée ; tester aussi des fixtures de jeux/sauvegardes protégés représentatives de la baseline 0.3.31 et ultérieures, ainsi que l'échec/futur format sans modification des originaux. Une seule mise à jour actuelle ne certifie pas tout l'historique.
+- [ ] Produire un export unique, vérifier installation/mise à jour, sauvegarde et Continue sur le format de sauvegarde courant ; tester aussi des fixtures de jeux exportés protégés représentatives de la baseline 0.3.31 et ultérieures, ainsi que l'échec/futur format de jeu ou de sauvegarde sans modification des originaux. Depuis le 2026-11-08, les sauvegardes de progression antérieures au format courant ne sont plus garanties (`AGENTS.md`) : toute rupture est annoncée aux testeurs. Une seule mise à jour actuelle ne certifie pas tout l'historique.
 - [ ] Publier exactement les mêmes octets Bureau/Release et vérifier leurs SHA-256 ; actualiser carnet et Notion sans déclarer les annexes différées terminées.
 - [ ] Arrêter les seuls processus QA possédés, conserver les preuves utiles, supprimer les environnements et exports temporaires du lot après contrôle des consommateurs ; mesurer et signaler toute rétention justifiée.
 
@@ -460,7 +460,7 @@ Le moteur de fabrication différée existe. Préserver ses recettes préparées 
 
 - [ ] Après stabilisation de la refonte, admettre les sept Balls et leurs effets génériques validés, dont la Masse Ball, sans patch dans l'ancien pipeline.
 - [ ] Brancher dépôt/quantité, disponibilité au prochain jour civil et retrait unique chez Fargas ; vérifier ingrédients, sac plein, refus, Continue et erreurs de persistance.
-- [ ] Vérifier les Balls dans le vrai flux de capture et les sauvegardes protégées, puis activer le service.
+- [ ] Vérifier les Balls dans le vrai flux de capture ainsi que la sauvegarde et la reprise au format courant, puis activer le service.
 
 **Fermé quand :** le service réel de Fargas produit des Balls utilisables avec les effets attendus et sans duplication. Ce différé accepté reste visible dans le carnet : finir le périmètre livrable actuel ne signifie pas 100 % des dix objectifs originaux si Fargas en reste exclu.
 

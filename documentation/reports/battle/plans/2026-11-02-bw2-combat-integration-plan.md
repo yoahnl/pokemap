@@ -70,7 +70,7 @@ Dans le dépôt API, huit fichiers de tests/outils de restauration sont non suiv
 - Sprites Gen5 articulés, puis GIF, puis image fixe ; absence complète signalée sans planter le combat.
 - Chargement, annulation, remplacement de Pokémon, erreur et retour à une pose/caméra cohérente.
 - Portrait et paysage, tactile et manette via les commandes existantes, commandes détachées et chemin à deux écrans existant.
-- Compatibilité avec les jeux et sauvegardes protégés depuis Studio `0.3.31+331`.
+- Compatibilité avec les jeux exportés protégés depuis Studio `0.3.31+331` ; sauvegarde et Continue fiables sur le format de sauvegarde courant (rétrocompatibilité des sauvegardes de progression suspendue le 2026-11-08, voir `AGENTS.md`).
 - Automatisation de la conversion, classification des manques et revue humaine efficace.
 
 ### 2.4 Exclusions explicites
@@ -620,7 +620,7 @@ Le lot 2 doit ajouter/documenter les options réelles de scan, conversion borné
 
 - [ ] **10.1 Choisir la matrice minimale.** iPhone 15 Pro de Yoahn en premier ; iPad pour le layout ; Android/macOS pour les profils réellement livrés. Sur chaque plateforme ciblée, lire réellement les formats audio embarqués par les trois pilotes et vérifier le backend de décodage utilisé. Deux écrans physiques seulement lorsqu’un appareil est disponible ; sinon distinguer test de transport et preuve matérielle manquante.
 - [ ] **10.2 Rejouer les scénarios de la section 8.** Trois pilotes, répétition, remplacement, K.O., sortie/réentrée, rotation en cours d’attaque, pause/reprise d’application et annulation.
-- [ ] **10.3 Vérifier les jeux protégés.** Export Studio `0.3.31+331` authentifié, au moins un export ultérieur et leurs sauvegardes existantes : installation, chargement, Continue, combat et sauvegarde. Les fixtures actuelles seules ne certifient pas cette promesse.
+- [ ] **10.3 Vérifier les jeux protégés.** Export Studio `0.3.31+331` authentifié et au moins un export ultérieur : installation, chargement, nouvelle partie, combat, sauvegarde et Continue sur le format de sauvegarde courant ; une sauvegarde d'un format non pris en charge est signalée sans modification de l'original. Les fixtures actuelles seules ne certifient pas cette promesse.
 - [ ] **10.4 Vérifier les échecs sans dommage.** Paquet corrompu et format futur : erreur claire, bytes de jeu/sauvegarde inchangés. Ne jamais réinitialiser une partie pour faire passer le test.
 - [ ] **10.5 Mesurer seulement la scène utile.** Même attaque/acteurs/appareil, première lecture et lectures répétées : temps de préparation, frames manquées, coût du renderer et mémoire après plusieurs combats. Si le C natif domine, alors seulement étudier sa géométrie/copies ; aucune plateforme de benchmark ni soak CI n’est ajoutée.
 - [ ] **10.6 Vérifier nettoyage et profils natifs.** Aucun effet/voix possédé après libération ; application toujours interactive après un stop audio retardé. Distinguer les ressources natives non encore relâchées d’une présentation déjà terminée. Provoquer un échec de préparation du renderer Gen5 et vérifier le passage GIF/statique sur les plateformes ciblées, avec identité, points d’attache et annulation cohérents.

@@ -61,7 +61,7 @@ Les 30 appels de réparation Route32, les durées de 24 à 56 ms d’inspection 
 
 ## 3. Règles communes d’exécution
 
-- Lire `AGENTS.md`, `codex_rule.md`, les règles plus proches et `skills/using-pokemap-mcp/SKILL.md` avant l’exécution. Les consignes utilisateur priment, notamment l’absence de commentaires dans le code sauf demande explicite.
+- Lire `AGENTS.md`, les références qu'il désigne, les règles plus proches et `skills/using-pokemap-mcp/SKILL.md` avant l’exécution. Les consignes utilisateur priment, notamment l’absence de commentaires dans le code sauf demande explicite.
 - Aucun Git write sans demande explicite. Si autorisé, ne sélectionner que les chemins et hunks du lot, après inspection des modifications concurrentes ; un chemin explicite contenant du travail étranger ne suffit pas à rendre son ajout sûr.
 - Continuer le suivi dans le contexte Notion existant, domaine unique « Systèmes transverses », ticket `409197a7-bfa5-8124-881b-e1cbf0c1a5b2`. Synchroniser les preuves par lot ; `TO REVIEW` en fin de livraison, `DONE` réservé à Yoahn. Ne pas reprendre l’exception Notion du document de Claude comme instruction utilisateur pour Codex.
 - Aucun changement de format de projet, package de jeu ou sauvegarde prévu. Si une métadonnée opérationnelle de journal/reçu évolue pour R2, la versionner ou la rendre additive à sa frontière, conserver les lecteurs existants et tester les anciens enregistrements. Ne pas promettre « aucun format persistant modifié » avant cet examen.
