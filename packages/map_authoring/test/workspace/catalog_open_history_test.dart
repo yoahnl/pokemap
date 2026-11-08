@@ -90,7 +90,7 @@ void main() {
               CatalogDefinitionKey(CatalogDefinitionKind.tileset, 'selected');
           await editing.apply(await editing.planPatch(upserts: [
             CatalogDefinitionUnit(
-                key: key, payload: {'name': 'Selected $index'})
+                key: key, payload: {'name': 'Selected $index', 'position': 0})
           ], idempotencyKey: 'seed-$index'));
         }
       } finally {
