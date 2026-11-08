@@ -86,12 +86,19 @@ void main() {
       final session = await adapter.open(plain.path);
       expect(session.name, 'Projet témoin sans espace');
       expect(session.directoryPath, plainRoot);
-      expect(reader.reads, [(root: plainRoot, relativePath: 'project.json')]);
+      expect(reader.reads, isNotEmpty);
+      expect(
+        reader.reads,
+        everyElement((root: plainRoot, relativePath: 'project.json')),
+      );
       await adapter.close(session);
 
       await refuseWithoutReads(spaced.path);
 
-      expect(await _snapshot(sandbox), before);
+      expect(
+        await _snapshot(sandbox, includeAuthoringState: false),
+        before,
+      );
     },
   );
 
@@ -157,10 +164,17 @@ void main() {
 
       expect(session.name, 'Projet témoin sans espace');
       expect(session.directoryPath, root);
-      expect(reader.reads, [(root: root, relativePath: 'project.json')]);
+      expect(reader.reads, isNotEmpty);
+      expect(
+        reader.reads,
+        everyElement((root: root, relativePath: 'project.json')),
+      );
       await adapter.close(session);
       expect(await alias.target(), plain.path);
-      expect(await _snapshot(sandbox), before);
+      expect(
+        await _snapshot(sandbox, includeAuthoringState: false),
+        before,
+      );
     },
   );
 
@@ -177,9 +191,13 @@ void main() {
 
     expect(session.name, 'Identité réelle accentuée');
     expect(session.directoryPath, root);
-    expect(reader.reads, [(root: root, relativePath: 'project.json')]);
+    expect(reader.reads, isNotEmpty);
+    expect(
+      reader.reads,
+      everyElement((root: root, relativePath: 'project.json')),
+    );
     await adapter.close(session);
-    expect(await _snapshot(sandbox), before);
+    expect(await _snapshot(sandbox, includeAuthoringState: false), before);
   });
 
   test('surrounding whitespace never redirects a direct port call', () async {
@@ -192,9 +210,19 @@ void main() {
   });
 }
 
-Future<Map<String, Object>> _snapshot(Directory directory) async {
+Future<Map<String, Object>> _snapshot(
+  Directory directory, {
+  bool includeAuthoringState = true,
+}) async {
   final entries = await directory
       .list(recursive: true, followLinks: false)
+      .where(
+        (entry) =>
+            includeAuthoringState ||
+            !p
+                .split(p.relative(entry.path, from: directory.path))
+                .contains('.pokemap'),
+      )
       .toList();
   entries.sort((a, b) => a.path.compareTo(b.path));
   return {

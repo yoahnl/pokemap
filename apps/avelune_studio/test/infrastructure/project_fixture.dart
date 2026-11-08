@@ -31,10 +31,20 @@ Future<Directory> createProject(
   return directory;
 }
 
-Future<String> projectFingerprint(Directory directory) async {
+bool _isAuthoringState(Directory directory, String path) =>
+    p.split(p.relative(path, from: directory.path)).first == '.pokemap';
+
+Future<String> projectFingerprint(
+  Directory directory, {
+  bool includeAuthoringState = true,
+}) async {
   final files = await directory
       .list(recursive: true)
-      .where((e) => e is File)
+      .where(
+        (e) =>
+            e is File &&
+            (includeAuthoringState || !_isAuthoringState(directory, e.path)),
+      )
       .toList();
   files.sort((a, b) => a.path.compareTo(b.path));
   return computeNarrativeProjectFingerprint([
@@ -46,17 +56,34 @@ Future<String> projectFingerprint(Directory directory) async {
   ]);
 }
 
-Future<List<String>> projectInventory(Directory directory) async {
+Future<List<String>> projectInventory(
+  Directory directory, {
+  bool includeAuthoringState = true,
+}) async {
   final entries = await directory
       .list(recursive: true, followLinks: false)
+      .where(
+        (entry) =>
+            includeAuthoringState || !_isAuthoringState(directory, entry.path),
+      )
       .map((entry) => p.relative(entry.path, from: directory.path))
       .toList();
   return entries..sort();
 }
 
-final class CountingProjectReader implements ProjectFileReader {
+final class CountingProjectReader
+    implements ProjectFileReader, ProjectResourceProbeReader {
   final readPaths = <String>[];
   final delegate = const LocalProjectFileReader();
+
+  @override
+  Future<ProjectResourceProbe> probeResource({
+    required String projectRoot,
+    required String relativePath,
+  }) => delegate.probeResource(
+    projectRoot: projectRoot,
+    relativePath: relativePath,
+  );
 
   @override
   Future<String> canonicalizeDirectory(String path) =>

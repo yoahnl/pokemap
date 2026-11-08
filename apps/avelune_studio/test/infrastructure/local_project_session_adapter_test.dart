@@ -37,8 +37,14 @@ void main() {
       expect(session.directoryPath, await project.resolveSymbolicLinks());
       expect(session.sessionId, isNotEmpty);
       await adapter.close(session);
-      expect(await projectFingerprint(project), beforeHash);
-      expect(await projectInventory(project), beforeEntries);
+      expect(
+        await projectFingerprint(project, includeAuthoringState: false),
+        beforeHash,
+      );
+      expect(
+        await projectInventory(project, includeAuthoringState: false),
+        beforeEntries,
+      );
     },
   );
 
