@@ -1,6 +1,6 @@
 # Avelune Studio — Implementation Plan de la refonte UI/UX
 
-> **For agentic workers — Opus :** exécuter ce plan lot par lot avec le workflow executing-plans du dépôt. Les cases servent au suivi, pas à déclarer une fonctionnalité livrée. Lire AGENTS.md, codex_rule.md et les règles les plus proches avant chaque lot. Aucune opération Git d’écriture n’est autorisée par ce document seul.
+> **For agentic workers — Opus :** exécuter ce plan lot par lot avec le workflow executing-plans du dépôt. Les cases servent au suivi, pas à déclarer une fonctionnalité livrée. Lire AGENTS.md, les références qu'il désigne pour le lot et les règles les plus proches avant chaque lot. Aucune opération Git d’écriture n’est autorisée par ce document seul.
 
 **Goal:** rendre la création et l’édition d’un jeu Avelune plus intuitives, en préservant toutes les fonctions natives existantes, une navigation stable, une carte centrale, des ressources liées au geste et des réglages dont la portée est explicite.
 
@@ -109,7 +109,7 @@ Le registre précédent classe 55 familles : **15 parcours simulés, 12 réglage
 - Cible d’acceptation pour une propriété simple : retour visible <= 100 ms et persistance durable <= 500 ms, au premier geste après ouverture comme aux suivants, sur un projet représentatif documenté. Ces chiffres sont des objectifs, pas des performances déjà prouvées.
 - Mesurer le chargement initial séparément ; ne pas le repousser sur la première sauvegarde. Un cache chaud ou un isolate ne valide pas un travail disproportionné.
 - Écrire par map_authoring, avec révision attendue, sûreté de crash, identité d’opération et sémantique d’annulation appropriées. Ne pas contourner les garanties avec des fichiers JSON écrits par un widget.
-- Préserver la compatibilité cumulative des projets, exports et sauvegardes valides depuis Studio 0.3.31+331. Les lecteurs et conversions déterministes restent aux frontières de données.
+- Préserver la compatibilité cumulative des projets et exports valides depuis Studio 0.3.31+331 ; la rétrocompatibilité des sauvegardes de progression est suspendue (voir `AGENTS.md`), mais la sauvegarde et la reprise au format courant restent fiables. Les lecteurs et conversions déterministes restent aux frontières de données.
 - Une sauvegarde n’est annoncée qu’après la réussite de la persistance. Une erreur conserve le brouillon, les originaux et les valeurs inconnues.
 - Les terrains, chemins, surfaces, Borders, arbres et environnements gardent leurs systèmes et propriétaires natifs. Pas de terrain assemblé par placement de fragments visuels.
 - Aucun contrôle d’activation de capacité ne débloque automatiquement la progression du joueur. Les lots FG-120 et FG-129 restent PARTIAL au relevé de roadmap ; FG-121 à FG-128 sont différés. Ne pas changer ces statuts dans cette refonte UI.
@@ -1824,7 +1824,7 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 
 - Une erreur de ressource empêche le lancement concerné et pointe vers l’atelier exact.
 - Changer de projet pendant un export ne publie pas le paquet de l’ancien contexte dans le nouveau.
-- Annulation, échec, paquet futur et sauvegarde protégée laissent les originaux intacts.
+- Annulation, échec, paquet futur et sauvegarde existante laissent les originaux intacts.
 
 **Tests existants à relancer ou étendre :**
 
@@ -2167,7 +2167,7 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 
 **Étapes d’implémentation :**
 
-- [ ] 1. Conserver les tables, poids, niveaux, créneaux, variantes et équipes natives. — **non certifiable le 8 novembre** : dialogues, cinématiques et présentations sont verts (60/60, 83/83, 48/48), mais la batterie Pokémon n’a pas été rejouée ; ses échecs connus le 7 novembre restent à traiter : imports externes, « fiche enregistrée ne correspond pas au reçu » (variantes de rencontre), réouverture de `pokemon_combat_host_test`, rafraîchissement du commerce, changement de projet, débordement de `pokemon_combat_responsive_test`.
+- [x] 1. Conserver les tables, poids, niveaux, créneaux, variantes et équipes natives. — **vérifié le 8 novembre** (tests automatisés, pas en natif) : batterie Pokémon 242 passants, 1 ignoré, 0 échec, avec `AVELUNE_QA_ROOT` fourni (les imports de cris et la sélection de version du catalogue l’exigent), après `7ad98a6be` (projet Gen 5 ouvert à son chemin canonique), `b90a8d00b` (fiche de combat comparée sans dépendre de l’ordre des clés JSON : une variante à condition de fait était écrite puis annoncée refusée), `958fe1a00`, `4433f6d00` (références du commerce par analyse explicite), `20e35c956`, `e012ff30f` (état vide Pokémon défilable à 150 % de texte) et `eec78d757` (source retenue créée hors de l’horloge simulée).
 - [x] 2. Fournir des sélecteurs d’espèce et de capacité recherchables avec détails utiles et références manquantes visibles. — **livré** par d57d2e5e1 : espèce et attaque se choisissent dans un dialogue de recherche du design system (numéro, types, génération ; type, catégorie, puissance, précision) ; une attaque déjà apprise n’est plus proposée ; références manquantes toujours nommées ; preuve `test/pokemon/pokemon_combat_pickers_test.dart`.
 - [x] 3. Distinguer créer une table et l’affecter à un terrain ou une zone ; afficher les usages. — **livré** par 628510049 (avertissement d’affectation distinct de l’invalidité ; usages complétés par les rencontres interactives).
 - [x] 4. Relier un dresseur, son interaction et sa scène sans déplacer les règles de combat dans l’UI. — **livré** par 961b1703d : les usages d’un dresseur nomment le personnage et le bloc Combat et l’ouvrent, avec « Retour à Pokémon » ; aucune règle de combat dans l’UI ; preuve `test/presentation/encounter_trainer_authoring_journey_test.dart`.
@@ -2226,9 +2226,9 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 
 **Étapes d’implémentation :**
 
-- [ ] 1. Conserver les bibliothèques et les formulaires spécialisés actuels, avec recherche et chargement paginé. — **non certifiable le 8 novembre** : dialogues, cinématiques et présentations sont verts (60/60, 83/83, 48/48), mais la batterie Pokémon n’a pas été rejouée ; ses échecs connus le 7 novembre restent à traiter : imports externes, « fiche enregistrée ne correspond pas au reçu » (variantes de rencontre), réouverture de `pokemon_combat_host_test`, rafraîchissement du commerce, changement de projet, débordement de `pokemon_combat_responsive_test`.
+- [x] 1. Conserver les bibliothèques et les formulaires spécialisés actuels, avec recherche et chargement paginé. — **vérifié le 8 novembre** (tests automatisés, pas en natif) : batterie Pokémon 242 passants, 1 ignoré, 0 échec, avec `AVELUNE_QA_ROOT` fourni (les imports de cris et la sélection de version du catalogue l’exigent), après `7ad98a6be` (projet Gen 5 ouvert à son chemin canonique), `b90a8d00b` (fiche de combat comparée sans dépendre de l’ordre des clés JSON : une variante à condition de fait était écrite puis annoncée refusée), `958fe1a00`, `4433f6d00` (références du commerce par analyse explicite), `20e35c956`, `e012ff30f` (état vide Pokémon défilable à 150 % de texte) et `eec78d757` (source retenue créée hors de l’horloge simulée).
 - [x] 2. Afficher la provenance importée, les corrections locales et les champs avancés sans dupliquer les données de catalogue. — **livré** par c12b23120 : « Provenance et portée » de la fiche espèce nomme la source d’import lue dans `sourceMeta` (Pokémon SDK, Showdown, PokéAPI ou graine du projet) et sa version, et les rubriques corrigées dans le brouillon ; la version importée d’origine n’étant pas conservée par le projet, une correction déjà enregistrée n’est pas listée et l’écran le dit ; preuve `test/pokemon/pokemon_species_provenance_test.dart`. Non vérifié en natif.
-- [ ] 3. Préserver formes, évolutions, learnsets, effets d’objet et paramètres de règles effectivement supportés. — **non certifiable le 8 novembre** : dialogues, cinématiques et présentations sont verts (60/60, 83/83, 48/48), mais la batterie Pokémon n’a pas été rejouée ; ses échecs connus le 7 novembre restent à traiter : imports externes, « fiche enregistrée ne correspond pas au reçu » (variantes de rencontre), réouverture de `pokemon_combat_host_test`, rafraîchissement du commerce, changement de projet, débordement de `pokemon_combat_responsive_test`.
+- [x] 3. Préserver formes, évolutions, learnsets, effets d’objet et paramètres de règles effectivement supportés. — **vérifié le 8 novembre** (tests automatisés, pas en natif) : batterie Pokémon 242 passants, 1 ignoré, 0 échec, avec `AVELUNE_QA_ROOT` fourni (les imports de cris et la sélection de version du catalogue l’exigent), après `7ad98a6be` (projet Gen 5 ouvert à son chemin canonique), `b90a8d00b` (fiche de combat comparée sans dépendre de l’ordre des clés JSON : une variante à condition de fait était écrite puis annoncée refusée), `958fe1a00`, `4433f6d00` (références du commerce par analyse explicite), `20e35c956`, `e012ff30f` (état vide Pokémon défilable à 150 % de texte) et `eec78d757` (source retenue créée hors de l’horloge simulée).
 - [x] 4. Rendre la portée et les usages d’une modification partagée explicites ; conserver les références inconnues. — **livré** par c12b23120 pour les espèces (tables de rencontre et dresseurs atteints, calculés sur les données de combat déjà chargées) ; objets, tables et dresseurs montraient déjà leurs usages ; les références inconnues restent conservées et nommées. Non vérifié en natif.
 - [x] 5. Séparer cette refonte d’interface des chantiers de recettes d’animations et de mécanique de combat en cours. — **respecté** : les commits du lot (cd81aa24c, 7529620f2, b6c657ed3, c12b23120) ne touchent aucun fichier de `map_battle`, de recette ou d’animation de combat.
 - [x] 6. Remplacer la saisie « Identifiants liés · séparés par une virgule » des formes (pokemon_species_forms.dart:81) par une recherche multi-sélection avec nom, aperçu et référence manquante visible ; identifiants en option avancée ; références existantes conservées même non résolues (audit R07, P1). — **livré** par 7529620f2.
@@ -2595,7 +2595,7 @@ flutter analyze
 
 Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot. Résultat attendu pour accepter le lot : tests ciblés passants, analyse sans nouveau diagnostic lié au lot, puis preuves natives indiquées. Les totaux ne sont pas prédits.
 
-**Stockage et coût :** Environnement unique par tâche sous AveluneQA ; projet original et sauvegardes protégées préservés.
+**Stockage et coût :** Environnement unique par tâche sous AveluneQA ; projet original et sauvegardes existantes préservés.
 
 **Sortie du lot :** Revue utilisateur obtenue sur l’application native ; les critères non prouvés restent ouverts. Aucune livraison déclarée DONE sans décision explicite de Yoahn.
 
