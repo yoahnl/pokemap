@@ -73,32 +73,40 @@ void main() {
         final node =
             scene.graph.nodes.singleWhere((value) => value.id == 'condition');
         final id = 'party-${++sequence}';
+        final Map<String, Object?> parameters = switch (action) {
+          'narrative.publish_document' => {
+              'map': map.toJson(),
+              'mapRevision':
+                  narrativeEventBytesFingerprint(await mapFile.readAsBytes()),
+              'scenes': [scene.toJson()]
+            },
+          'scene.upsert' => {'scene': scene.toJson()},
+          'scene.graph.patch' => {
+              'sceneId': scene.id,
+              'upsertNodes': [node.toJson()]
+            },
+          _ => {
+              'sceneId': scene.id,
+              'nodeId': node.id,
+              'conditionSource': rawSource ?? source.toJson()
+            },
+        };
+        final revision = const {
+          'scene.condition.set',
+          'narrative.publish_document'
+        }.contains(action)
+            ? (await mutations.readWorkshopSnapshot(opened.projectHandle,
+                    actionId: action, parameters: parameters))
+                .revision
+            : (await snapshots.load(opened.projectHandle)).revision;
         final request = AuthoringRequest(
             requestId: id,
             actionId: action,
             actionVersion: 1,
             workspaceHandle: opened.workspaceHandle.value,
-            expectedRevision:
-                (await snapshots.load(opened.projectHandle)).revision,
+            expectedRevision: revision,
             idempotencyKey: id,
-            parameters: switch (action) {
-              'narrative.publish_document' => {
-                  'map': map.toJson(),
-                  'mapRevision': narrativeEventBytesFingerprint(
-                      await mapFile.readAsBytes()),
-                  'scenes': [scene.toJson()]
-                },
-              'scene.upsert' => {'scene': scene.toJson()},
-              'scene.graph.patch' => {
-                  'sceneId': scene.id,
-                  'upsertNodes': [node.toJson()]
-                },
-              _ => {
-                  'sceneId': scene.id,
-                  'nodeId': node.id,
-                  'conditionSource': rawSource ?? source.toJson()
-                },
-            });
+            parameters: parameters);
         if (jsonl) {
           final result = AuthoringResult.fromJson(
               jsonDecode(await worker.processLine(jsonEncode({

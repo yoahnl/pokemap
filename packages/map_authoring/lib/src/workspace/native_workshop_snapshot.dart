@@ -801,6 +801,12 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
       }
     }
   }
+  if (actionId == 'scene.condition.set' &&
+      _conditionNeedsPartyMoveCatalog(parameters['conditionSource'])) {
+    if (manifest.pokemon.catalogFiles['moves'] case final String path) {
+      await read('pokemonCatalog:moves', path);
+    }
+  }
   final matches = await loader._matchSecondObservations(access, resources);
   if (matches.contains(false)) {
     throw const ProjectSnapshotException('project.changed_during_snapshot',
@@ -1316,4 +1322,15 @@ Future<ProjectSnapshot> _loadNativeMapEdit(
         'project': 'project.json',
         'map:$mapId': declaration.relativePath
       });
+}
+
+bool _conditionNeedsPartyMoveCatalog(Object? source) {
+  if (source is! Map) return false;
+  try {
+    return SceneConditionSource.fromJson(Map<String, dynamic>.from(source))
+            .partyMoveId !=
+        null;
+  } on Object {
+    return false;
+  }
 }
