@@ -75,7 +75,8 @@ extension _MapWorkspaceCanvasDecor on _MapWorkspaceCanvasState {
 
   KeyEventResult _decorKey(KeyEvent event) {
     final key = event.logicalKey;
-    if (key == LogicalKeyboardKey.escape && _decorDraft != null) {
+    if (key == LogicalKeyboardKey.escape &&
+        (_decorDraft != null || _modifierPress != null)) {
       _mutateGesture(_cancel);
       return KeyEventResult.handled;
     }

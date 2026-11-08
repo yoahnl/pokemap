@@ -1,6 +1,7 @@
 import 'package:avelune_studio/features/map_workspace/application/map_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
+import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_inspector.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -46,6 +47,16 @@ void main() {
       await tester.tapAt(point(tester, const Offset(79.5, 79.5)));
       await tester.pumpAndSettle();
       expect(h.document.selectedId, id);
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('decor-geometry-x')).hitTestable(),
+        200,
+        scrollable: find
+            .descendant(
+              of: find.byType(MapWorkspaceInspector),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
       final field = find.descendant(
         of: find.byKey(const ValueKey('decor-geometry-x')),
         matching: find.byType(EditableText),
@@ -150,6 +161,28 @@ void main() {
       expect(h.document.selectedId, isNull);
     },
   );
+
+  testWidgets('Escape during a Shift press keeps the selection unchanged', (
+    tester,
+  ) async {
+    final h = fixture();
+    await h.pump(tester);
+    final before = h.document.current;
+    final count = h.document.undoCount;
+    final id = h.document.selectedId;
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+    final gesture = await tester.startGesture(
+      point(tester, const Offset(75, 75)),
+      kind: PointerDeviceKind.mouse,
+    );
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await gesture.up();
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.pumpAndSettle();
+    expect(h.document.current, same(before));
+    expect(h.document.undoCount, count);
+    expect(h.document.selectedId, id);
+  });
 
   testWidgets(
     'right handle stretches only width and Shift repeat is one undo',
@@ -282,6 +315,7 @@ void main() {
       await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
       final gesture = await tester.startGesture(
         point(tester, const Offset(75, 75)),
+        kind: PointerDeviceKind.mouse,
       );
       await gesture.moveBy(const Offset(4, 4));
       await tester.sendKeyEvent(LogicalKeyboardKey.escape);
@@ -290,6 +324,7 @@ void main() {
       expect(h.document.current, before);
       final toolGesture = await tester.startGesture(
         point(tester, const Offset(75, 75)),
+        kind: PointerDeviceKind.mouse,
       );
       await toolGesture.moveBy(const Offset(4, 4));
       await h.use(tester, StudioMapTool.pan);
@@ -298,6 +333,7 @@ void main() {
       await h.use(tester, StudioMapTool.select);
       final staleGesture = await tester.startGesture(
         point(tester, const Offset(75, 75)),
+        kind: PointerDeviceKind.mouse,
       );
       await staleGesture.moveBy(const Offset(4, 4));
       h.document.current = before.copyWith(name: 'Concurrent');
@@ -305,13 +341,24 @@ void main() {
       await tester.pump();
       await staleGesture.up();
       expect(h.document.selected!.pixelOffset, const PixelOffset(x: 0, y: 0));
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('decor-geometry-x')).hitTestable(),
+        200,
+        scrollable: find
+            .descendant(
+              of: find.byType(MapWorkspaceInspector),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
       await tester.tapAt(point(tester, const Offset(75, 75)));
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
       await tester.sendKeyDownEvent(LogicalKeyboardKey.arrowRight);
       final field = find.descendant(
         of: find.byKey(const ValueKey('decor-geometry-x')),
         matching: find.byType(EditableText),
       );
-      await tester.ensureVisible(field);
       await tester.tap(field);
       await tester.pump();
       await tester.sendKeyUpEvent(LogicalKeyboardKey.arrowRight);
