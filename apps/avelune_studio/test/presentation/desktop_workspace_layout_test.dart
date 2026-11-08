@@ -158,6 +158,9 @@ void main() {
       tester.view.physicalSize = const Size(1280, 800);
       await tester.pumpWidget(app());
       await settleDesktopWorkspace(tester, resources!);
+      final viewerWithoutDiagnostics = tester
+          .getSize(find.byType(InteractiveViewer))
+          .height;
       final decorThumbnails = tester
           .widgetList<StudioResourceThumbnail>(
             find.byType(StudioResourceThumbnail),
@@ -224,14 +227,16 @@ void main() {
       await settleDesktopWorkspace(tester, resources!);
       expect(resources!.diagnostics, hasLength(200));
       expect(tester.takeException(), isNull);
+      final summaryHeight = tester
+          .getSize(find.byKey(const ValueKey('resource-summary')))
+          .height;
+      expect(summaryHeight, lessThanOrEqualTo(40));
+      final viewerHeight = tester.getSize(find.byType(InteractiveViewer)).height;
       expect(
-        tester.getSize(find.byKey(const ValueKey('resource-summary'))).height,
-        lessThanOrEqualTo(40),
+        viewerHeight,
+        greaterThanOrEqualTo(viewerWithoutDiagnostics - summaryHeight),
       );
-      expect(
-        tester.getSize(find.byType(InteractiveViewer)).height,
-        greaterThanOrEqualTo(800 * .35),
-      );
+      expect(viewerHeight, greaterThanOrEqualTo(160));
       await captureDesktopWorkspace(
         tester,
         capture,
