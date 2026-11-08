@@ -249,7 +249,7 @@ void main() {
         f.port,
         changed: () {},
       );
-      await events.prepare();
+      await tester.runAsync(events.prepare);
       final view = EventViewState();
       final loader = _DelayedLoader(workspace, port.saved);
       addTearDown(() {
