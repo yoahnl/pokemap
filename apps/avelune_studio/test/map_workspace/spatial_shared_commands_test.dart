@@ -730,7 +730,23 @@ void main() {
           ),
         ),
       );
+      final inspectorList = find
+          .descendant(
+            of: find.byType(MapWorkspaceInspector),
+            matching: find.byType(Scrollable),
+          )
+          .first;
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('decor-geometry-x')),
+        300,
+        scrollable: inspectorList,
+      );
       expect(find.byKey(const ValueKey('decor-geometry-x')), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('decor-geometry-scale')),
+        300,
+        scrollable: inspectorList,
+      );
       expect(
         find.byKey(const ValueKey('decor-geometry-scale')),
         findsOneWidget,

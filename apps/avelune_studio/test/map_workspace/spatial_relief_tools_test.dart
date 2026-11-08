@@ -596,6 +596,16 @@ void main() {
         ),
       ),
     );
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('decor-geometry-height-offset')),
+      300,
+      scrollable: find
+          .descendant(
+            of: find.byType(MapWorkspaceInspector),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
     final field = find.descendant(
       of: find.byKey(const ValueKey('decor-geometry-height-offset')),
       matching: find.byType(TextField),
