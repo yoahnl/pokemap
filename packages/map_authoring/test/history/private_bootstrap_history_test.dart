@@ -101,7 +101,7 @@ void main() {
     expect((await fixture.api.history(fixture.opened.projectHandle, limit: 100))['entries'], isEmpty);
   });
 
-  for (final corruption in ['content', 'pokemon', 'settings', 'catalog', 'pending', 'foreign', 'history', 'blob', 'symlink']) {
+  for (final corruption in ['content', 'pokemon', 'settings', 'catalog', 'pending', 'foreign', 'pendingJournal', 'history', 'blob', 'symlink']) {
     test('private bootstrap refuses $corruption before creating a session', () async {
       final fixture = await _Fixture.create(retainUndoHistory: false);
       addTearDown(fixture.dispose);
@@ -130,6 +130,9 @@ void main() {
           }
           await ledger.writeAsString('${rows.map(jsonEncode).join('\n')}\n');
         }
+      } else if (corruption == 'pendingJournal') {
+        await File('${fixture.path}/.pokemap/authoring/transactions/pending-journals.json')
+            .writeAsString('{"schemaVersion":1,"operationIds":["ghost-op"]}');
       } else if (corruption == 'symlink') {
         final lock = '${fixture.path}/.pokemap/authoring/idempotency.jsonl.lock';
         await File(lock).delete();
@@ -178,8 +181,11 @@ final class _Fixture {
     api = LocalMapAuthoringMutationApi(policy: policy, snapshotLoader: loader);
   }
 
-  Future<void> attach() => api.attachProject(projectRootPath: path,
-      workspaceHandle: opened.workspaceHandle, projectHandle: opened.projectHandle);
+  Future<void> attach() async {
+    await api.attachProject(projectRootPath: path,
+        workspaceHandle: opened.workspaceHandle, projectHandle: opened.projectHandle);
+    await api.prepareWorkshopCatalog(opened.projectHandle);
+  }
 
   Future<AuthoringReceipt> addFact(int index) async {
     final snapshot = await loader.load(opened.projectHandle);

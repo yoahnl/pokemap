@@ -1525,7 +1525,12 @@ Future<void> _requireFreshBootstrapRoot(String root) async {
           .split(Platform.pathSeparator)
           .join('/');
       if (!(entry is Directory && directories.contains(relative)) &&
-          !(entry is File && files.contains(relative))) {
+          !(entry is File && files.contains(relative)) &&
+          !(entry is File &&
+              relative ==
+                  '.pokemap/authoring/transactions/${LocalTransactionFileGateway.pendingJournalIndexName}' &&
+              await LocalTransactionFileGateway.isEmptyPendingJournalIndex(
+                  entry))) {
         _requireFreshBootstrap();
       }
     }
