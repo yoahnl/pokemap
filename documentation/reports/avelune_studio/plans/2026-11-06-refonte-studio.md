@@ -1,6 +1,6 @@
 # Avelune Studio — Implementation Plan de la refonte UI/UX
 
-> **For agentic workers — Opus :** exécuter ce plan lot par lot avec le workflow executing-plans du dépôt. Les cases servent au suivi, pas à déclarer une fonctionnalité livrée. Lire AGENTS.md, les références qu'il désigne pour le lot et les règles les plus proches avant chaque lot. Aucune opération Git d’écriture n’est autorisée par ce document seul.
+> **For agentic workers — Opus :** exécuter ce plan lot par lot avec le workflow executing-plans du dépôt. Les cases servent au suivi, pas à déclarer une fonctionnalité livrée. Lire AGENTS.md, les références qu'il désigne pour le lot et les règles les plus proches avant chaque lot. Ne lire de ce plan que l'en-tête et la section du lot en cours, jamais le plan entier. Aucune opération Git d’écriture n’est autorisée par ce document seul.
 
 **Goal:** rendre la création et l’édition d’un jeu Avelune plus intuitives, en préservant toutes les fonctions natives existantes, une navigation stable, une carte centrale, des ressources liées au geste et des réglages dont la portée est explicite.
 

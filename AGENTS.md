@@ -189,6 +189,10 @@ cd packages/map_editor && flutter test && flutter analyze
 cd examples/playable_runtime_host && flutter test && flutter analyze
 ```
 
+Run the test files your change concerns before any full suite. For a full
+suite, add `-r failures-only` (Flutter and Dart) so only failures print, then
+re-run a failing file alone with the default reporter to read its details.
+
 Runtime smoke checks for player-loop or battle/runtime work:
 `packages/map_runtime/test/phase_a_golden_battle_slice_smoke_test.dart` and
 `examples/playable_runtime_host/test/phase_a_golden_slice_launch_test.dart`.
