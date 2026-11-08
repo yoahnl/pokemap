@@ -188,7 +188,7 @@ final class AuthoringHistoryRecorder
           .where((change) =>
               change.storageKey == CatalogStorageStore.headStorageKey)
           .firstOrNull;
-      if (head != null) {
+      if (head != null && entry.nonUndoableReason == null) {
         if (catalogStore == null ||
             head.beforePayload == null ||
             head.afterPayload == null) {

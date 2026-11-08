@@ -126,4 +126,67 @@ void main() {
       await api.closeWorkspace(opened.workspaceHandle);
     });
   }
+
+  test(
+      'a retained undo window admits the non-undoable partition head creation and refuses an undoable one without inventory',
+      () async {
+    final root = await Directory.systemTemp.createTemp('partition-retention-');
+    addTearDown(() => root.delete(recursive: true));
+    final catalog = await CatalogStorageStore.open(projectRoot: root.path);
+    await WorkingProjectCatalog.create(
+        store: catalog,
+        projectId: 'game',
+        project: ProjectManifest(
+            name: 'Partitioned', maps: const [], tilesets: const []));
+    final history = await FileAuthoringHistoryStore.open(projectRoot: root.path);
+    final recorder = AuthoringHistoryRecorder(
+        store: history,
+        blobs: await FileAuthoringContentBlobStore.open(projectRoot: root.path),
+        catalogStore: catalog);
+    final head = AuthoringResourceChange(
+        resource: AuthoringResourceRef(kind: 'catalogHead', id: 'game'),
+        storageKey: CatalogStorageStore.headStorageKey,
+        beforeBytes: null,
+        afterBytes: CatalogStorageStore.encodeHead((await catalog.readHead())!));
+    final changes = AuthoringChangeSet(
+        changes: [head],
+        diff: AuthoringDiff([
+          AuthoringDiffEntry(
+              operation: AuthoringDiffOperation.add,
+              resource: head.resource,
+              path: '/',
+              after: const {})
+        ]));
+    AuthoringCommittedMutation creation(String actionId) =>
+        AuthoringCommittedMutation(
+            scope: AuthoringIdempotencyScope(
+                actorId: 'editor',
+                projectId: 'game',
+                actionId: actionId,
+                actionVersion: 1,
+                key: actionId),
+            planId: actionId,
+            operationId: actionId,
+            receipt: AuthoringReceipt(
+                receiptId: 'receipt_${actionId.replaceAll('.', '_')}',
+                requestId: actionId,
+                actionId: actionId,
+                actionVersion: 1,
+                status: AuthoringReceiptStatus.applied,
+                beforeRevision:
+                    AuthoringRevisionSet.beforeChangeSet(changes).fingerprint,
+                afterRevision:
+                    AuthoringRevisionSet.afterChangeSet(changes).fingerprint,
+                createdAtUtc: DateTime.utc(2026, 11, 8).toIso8601String(),
+                diff: changes.diff),
+            changes: changes.changes);
+
+    await recorder
+        .requireCommitAllowed(creation('project.catalog.partition'));
+    expect(await history.localWindow('game'), isNotNull);
+    await expectLater(
+        recorder.requireCommitAllowed(creation('catalog.definition.update')),
+        throwsA(isA<AuthoringHistoryException>().having((error) => error.code,
+            'code', 'history.retention_inventory_required')));
+  });
 }
