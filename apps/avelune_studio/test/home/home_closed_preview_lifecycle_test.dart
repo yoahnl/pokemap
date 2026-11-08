@@ -86,6 +86,7 @@ void main() {
       await tester.pumpAndSettle();
       if (!openedBeforeMount) {
         await tester.tap(find.byKey(const ValueKey('open-project-picker')));
+        await pumpIoUntil(tester, () => session.state.project != null);
       }
       await pumpIo(tester, frames: 60);
       if (!openedBeforeMount) await tester.tap(find.byTooltip('Accueil'));
@@ -109,6 +110,7 @@ void main() {
       );
       expect(tester.takeException(), isNull);
       await tester.tap(find.byKey(const ValueKey('open-project-picker')));
+      await pumpIoUntil(tester, () => session.state.project != null);
       await pumpIo(tester, frames: 60);
       expect(session.state.project, isNotNull);
       expect(visuals, hasLength(2));

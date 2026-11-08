@@ -54,6 +54,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('open-project-picker')));
+      await pumpIoUntil(tester, () => session.state.project != null);
       await pumpIo(tester, frames: 60);
       expect(
         session.state.project?.directoryPath,

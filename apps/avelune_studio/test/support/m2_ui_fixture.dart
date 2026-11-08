@@ -225,6 +225,16 @@ class WidgetMapController extends MapWorkspaceController {
   }
 }
 
+Future<void> pumpIoUntil(
+  WidgetTester tester,
+  bool Function() done, {
+  int maxFrames = 1500,
+}) async {
+  for (var frame = 0; frame < maxFrames && !done(); frame++) {
+    await pumpIo(tester, frames: 1);
+  }
+}
+
 Future<void> pumpIo(WidgetTester tester, {int frames = 30}) async {
   for (var i = 0; i < frames; i++) {
     await WidgetResourcePort.pending;
