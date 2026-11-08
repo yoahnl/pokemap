@@ -176,6 +176,35 @@ void main() {
   );
 
   test(
+    'a deletion from a stale source refuses and keeps the dialogue on disk',
+    () async {
+      final f = await DialogueAdapterFixture.create();
+      addTearDown(f.dispose);
+      final port = f.adapter();
+      final base = await port.load('gare');
+      final file = f.file(base.entry.relativePath);
+      await file.writeAsString(base.source.replaceFirst('Bonjour', 'Externe'));
+      final before = await f.file('project.json').readAsBytes();
+      await expectLater(
+        port.publish(id: 'gare', base: base, entry: null, source: null),
+        throwsA(isA<DialogueFailure>()),
+      );
+      expect(await f.file('project.json').readAsBytes(), before);
+      expect(await file.readAsString(), contains('Externe'));
+      final fresh = await port.load('gare');
+      final deleted = await port.publish(
+        id: 'gare',
+        base: fresh,
+        entry: null,
+        source: null,
+      );
+      expect(deleted.snapshot, isNull);
+      expect(await file.exists(), isFalse);
+      expect((await f.readManifest()).dialogues, isEmpty);
+    },
+  );
+
+  test(
     'unrelated external catalog changes survive publication on fresh baseline',
     () async {
       final f = await DialogueAdapterFixture.create();
