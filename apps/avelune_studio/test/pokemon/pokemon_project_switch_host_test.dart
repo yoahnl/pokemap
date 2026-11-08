@@ -14,7 +14,9 @@ void main() {
   testWidgets('read-only search can leave A and cannot update project B', (
     tester,
   ) async {
-    final source = HeldPokemonExternalSourceFixture();
+    final source = (await tester.runAsync(
+      () async => HeldPokemonExternalSourceFixture(),
+    ))!;
     final home = StudioHomeNavigation();
     addTearDown(home.dispose);
     final first = await MapHostFixture.open(
