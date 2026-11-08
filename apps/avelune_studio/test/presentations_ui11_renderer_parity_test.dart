@@ -6,6 +6,8 @@ import 'package:avelune_studio/platform/rendering/presentation_workspace_visuals
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_player_ui/map_player_ui.dart'
+    show PlayerImageLease, PlayerImageScope;
 import 'package:map_player_ui/presentation_renderer.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:map_core/map_core_domain.dart';
@@ -29,7 +31,15 @@ void main() {
         });
         final before = File('${fixture.root}/project.json').readAsBytesSync();
         late StudioPresentationVisuals visuals;
+        late ui.Image media;
         await tester.runAsync(() async {
+          final codec = await ui.instantiateImageCodec(
+            await File.fromUri(
+              fixture.media.mediaUris[fixture.source.mediaId]!,
+            ).readAsBytes(),
+          );
+          media = (await codec.getNextFrame()).image;
+          codec.dispose();
           visuals = StudioPresentationVisuals(
             projectRoot: fixture.root,
             revision: fixture.revision,
@@ -64,7 +74,9 @@ void main() {
           await _until(() => runtime.value != null);
         });
         final boundary = GlobalKey();
-        await tester.pumpWidget(_app(boundary, const SizedBox.expand()));
+        await tester.pumpWidget(
+          _app(boundary, const SizedBox.expand(), media),
+        );
         final context = tester.element(find.byType(Scaffold));
         await tester.runAsync(() async {
           final uri = fixture.media.mediaUris[fixture.source.mediaId]!;
@@ -108,6 +120,7 @@ void main() {
               portrait: portrait,
             ),
             time == 500000 ? '$prefix-montage' : null,
+            media,
           );
           final played = await _render(
             tester,
@@ -117,6 +130,7 @@ void main() {
               contentPort: runtime,
             ),
             time == 500000 ? '$prefix-runtime' : null,
+            media,
           );
           var differing = 0;
           for (var index = 0; index < preview.length; index++) {
@@ -151,18 +165,26 @@ void main() {
         expect(tester.takeException(), isNull);
         runtime.dispose();
         visuals.dispose();
+        media.dispose();
         await tester.pump(const Duration(milliseconds: 1));
       },
     );
   }
 }
 
-Widget _app(GlobalKey key, Widget child) => MaterialApp(
+Widget _app(GlobalKey key, Widget child, ui.Image media) => MaterialApp(
   theme: PokeMapPlayerTheme.dark(),
   home: Scaffold(
-    body: RepaintBoundary(
-      key: key,
-      child: SizedBox(width: 960, height: 640, child: child),
+    body: PlayerImageScope(
+      identity: media,
+      loader: (path, {required isCurrent}) async {
+        final image = media.clone();
+        return PlayerImageLease(image: image, onDispose: image.dispose);
+      },
+      child: RepaintBoundary(
+        key: key,
+        child: SizedBox(width: 960, height: 640, child: child),
+      ),
     ),
   ),
 );
@@ -172,8 +194,9 @@ Future<Uint8List> _render(
   GlobalKey key,
   Widget child,
   String? capture,
+  ui.Image media,
 ) async {
-  await tester.pumpWidget(_app(key, child));
+  await tester.pumpWidget(_app(key, child, media));
   final images = tester.widgetList<Image>(find.byType(Image)).toList();
   if (images.isNotEmpty) {
     final context = tester.element(find.byType(Image).first);
