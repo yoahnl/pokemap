@@ -218,7 +218,7 @@ void main() {
         await moves.writeAsString(
           jsonEncode({
             'schemaVersion': 1,
-            'kind': 'catalog',
+            'kind': 'pokemon_catalog',
             'catalog': 'moves',
             'entries': [
               {'id': 'tackle', 'name': 'Charge'},
