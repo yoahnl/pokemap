@@ -58,7 +58,7 @@ export function registerMapEditorTools(server: McpServer, authoring: AuthoringGa
   }, async args => authoringResult(() => authoring.request("map_elements_reorder", args)));
   server.registerTool("pokemap_map_elements_undo", {
     title: "Undo map stacking order",
-    description: "Restore one current map stacking receipt. Supply its receiptId, current exact map revision and a unique operationId. Uses only targeted immutable history and records an undo receipt; rejects concurrent changes.",
+    description: "Restore one current map stacking receipt. Supply its receiptId, current exact map revision and a unique operationId. Supplying the receipt of a stacking undo redoes the change it undid, while the stacking history still ends on that undo. Uses only targeted immutable history and records an undo or redo receipt; rejects concurrent changes.",
     inputSchema: z.object({ ...mutation, receiptId: z.string().regex(/^receipt_document_[a-f0-9]{32}$/) }).strict(),
     outputSchema: toolEnvelopeSchema,
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },

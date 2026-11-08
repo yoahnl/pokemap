@@ -70,6 +70,12 @@ test("map elements MCP edits only the selected stack and preserves unknown data"
       receiptId: record(layers.receipt).receiptId, operationId: "undo-layers",
     });
     assert.deepEqual((record(undone.afterMap).layers as JsonRecord[]).map(layer => layer.id), ["front", "back"]);
+    const redone = await call("pokemap_map_elements_undo", {
+      projectRoot: root, mapId: "bourg", expectedRevision: undone.afterRevision,
+      receiptId: record(undone.receipt).receiptId, operationId: "redo-layers",
+    });
+    assert.deepEqual((record(redone.afterMap).layers as JsonRecord[]).map(layer => layer.id), ["back", "front"]);
+    assert.deepEqual((JSON.parse(await readFile(mapFile, "utf8")) as JsonRecord).futureField, { preserved: true });
     assert.equal(await readFile(project, "utf8"), "undecodable project");
   } catch (error) {
     throw new Error(`${String(error)}; worker diagnostics: ${diagnostics}`, { cause: error });

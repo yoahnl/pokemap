@@ -315,6 +315,88 @@ void main() {
     expect(await mapFile.readAsBytes(), initial);
     expect(await journal.readAsString(), 'pending native recovery');
   });
+  for (final worker in [false, true]) {
+    test('redo restores an undone order and refuses a diverged history worker=$worker',
+        () async {
+      final service =
+          LocalMapElementOrderAuthoring(policy: policy, runInWorker: worker);
+      final before =
+          await service.inspect(projectRoot: root.path, mapId: 'shore');
+      final result = await service.reorder(
+          projectRoot: root.path,
+          mapId: 'shore',
+          expectedRevision: before.revision,
+          kind: 'decor',
+          layerId: 'front',
+          frontFirstIds: ['a', 'b', 'c'],
+          operationId: 'redo_order');
+      final reordered = jsonDecode(await mapFile.readAsString());
+      final undone = await service.undo(
+          projectRoot: root.path,
+          mapId: 'shore',
+          mutation: result,
+          operationId: 'redo_order_undo');
+      expect(undone.afterMap, before.map);
+      await expectLater(
+          service.redoReceipt(
+              projectRoot: root.path,
+              mapId: 'shore',
+              receiptId: result.receipt.receiptId,
+              expectedRevision: result.afterRevision,
+              operationId: 'redo_stale'),
+          throwsFormatException);
+
+      final redone = await service.redoReceipt(
+          projectRoot: root.path,
+          mapId: 'shore',
+          receiptId: result.receipt.receiptId,
+          expectedRevision: undone.afterRevision,
+          operationId: 'redo_order_redo');
+      expect(redone.afterMap, result.afterMap);
+      expect(jsonDecode(await mapFile.readAsString()), reordered);
+
+      final undoneAgain = await service.undoReceipt(
+          projectRoot: root.path,
+          mapId: 'shore',
+          receiptId: redone.receipt.receiptId,
+          expectedRevision: redone.afterRevision,
+          operationId: 'redo_order_undo_again');
+      expect(undoneAgain.afterMap, before.map);
+      final redoneThroughUndoReceipt = await service.undoReceipt(
+          projectRoot: root.path,
+          mapId: 'shore',
+          receiptId: undoneAgain.receipt.receiptId,
+          expectedRevision: undoneAgain.afterRevision,
+          operationId: 'redo_order_redo_again');
+      expect(redoneThroughUndoReceipt.afterMap, result.afterMap);
+      expect(jsonDecode(await mapFile.readAsString()), reordered);
+
+      final undoneLast = await service.undoReceipt(
+          projectRoot: root.path,
+          mapId: 'shore',
+          receiptId: redoneThroughUndoReceipt.receipt.receiptId,
+          expectedRevision: redoneThroughUndoReceipt.afterRevision,
+          operationId: 'redo_order_undo_last');
+      final diverged = await service.reorder(
+          projectRoot: root.path,
+          mapId: 'shore',
+          expectedRevision: undoneLast.afterRevision,
+          kind: 'layers',
+          frontFirstIds: ['markers', 'front', 'rear'],
+          operationId: 'redo_order_diverged');
+      final divergedBytes = await mapFile.readAsBytes();
+      await expectLater(
+          service.undoReceipt(
+              projectRoot: root.path,
+              mapId: 'shore',
+              receiptId: undoneLast.receipt.receiptId,
+              expectedRevision: diverged.afterRevision,
+              operationId: 'redo_order_after_divergence'),
+          throwsFormatException);
+      expect(await mapFile.readAsBytes(), divergedBytes);
+    });
+  }
+
   test('cold order worker preserves raw data replay conflict and undo',
       () async {
     final service =

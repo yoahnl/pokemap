@@ -517,18 +517,50 @@ final class LocalMapElementOrderAuthoring {
           operationId: operationId);
 
   Future<MapElementOrderMutation> undoReceipt(
+          {required String projectRoot,
+          required String mapId,
+          String? mapRelativePath,
+          required String receiptId,
+          required String expectedRevision,
+          required String operationId}) =>
+      _restoreReceipt(
+          projectRoot: projectRoot,
+          mapId: mapId,
+          mapRelativePath: mapRelativePath,
+          receiptId: receiptId,
+          expectedRevision: expectedRevision,
+          operationId: operationId);
+
+  Future<MapElementOrderMutation> redoReceipt(
+          {required String projectRoot,
+          required String mapId,
+          String? mapRelativePath,
+          required String receiptId,
+          required String expectedRevision,
+          required String operationId}) =>
+      _restoreReceipt(
+          projectRoot: projectRoot,
+          mapId: mapId,
+          mapRelativePath: mapRelativePath,
+          receiptId: receiptId,
+          expectedRevision: expectedRevision,
+          operationId: operationId,
+          redo: true);
+
+  Future<MapElementOrderMutation> _restoreReceipt(
       {required String projectRoot,
       required String mapId,
       String? mapRelativePath,
       required String receiptId,
       required String expectedRevision,
-      required String operationId}) async {
+      required String operationId,
+      bool redo = false}) async {
     if (runInWorker) {
       return await _runWorker(
           projectRoot: projectRoot,
           mapId: mapId,
           mapRelativePath: mapRelativePath,
-          command: 'undo',
+          command: redo ? 'redo' : 'undo',
           expectedRevision: expectedRevision,
           receiptId: receiptId,
           operationId: operationId) as MapElementOrderMutation;
@@ -538,6 +570,21 @@ final class LocalMapElementOrderAuthoring {
         projectRoot: context.root, incrementalWrites: true);
     final entry = await history.getDocumentEntry(
         projectId: context.projectId, entryId: receiptId);
+    if (!redo &&
+        entry != null &&
+        entry.actorId == _actor.actorId &&
+        entry.targetEntryId != null &&
+        (entry.kind == AuthoringHistoryKind.undo ||
+            entry.kind == AuthoringHistoryKind.redo)) {
+      return _restoreReceipt(
+          projectRoot: projectRoot,
+          mapId: mapId,
+          mapRelativePath: mapRelativePath,
+          receiptId: entry.targetEntryId!,
+          expectedRevision: expectedRevision,
+          operationId: operationId,
+          redo: entry.kind == AuthoringHistoryKind.undo);
+    }
     if (entry == null ||
         entry.actorId != _actor.actorId ||
         entry.receipt.actionId != descriptor.id ||
@@ -547,20 +594,44 @@ final class LocalMapElementOrderAuthoring {
       throw const FormatException('The editor receipt cannot be undone.');
     }
     final mutation = MapElementOrderMutation.fromReceipt(entry.receipt);
-    if (expectedRevision != mutation.afterRevision) {
-      throw const FormatException(
-          'map.elements_revision_conflict: Undo must target the current editor revision.');
+    final diff = entry.receipt.diff.entries.single;
+    if (redo || expectedRevision != mutation.afterRevision) {
+      final current = await _read(context, mapId);
+      if (current.revision != expectedRevision ||
+          !const DeepCollectionEquality()
+              .equals(current._json, redo ? diff.before : diff.after)) {
+        throw const FormatException(
+            'map.elements_revision_conflict: Undo and redo must target the current editor revision.');
+      }
+    }
+    String? expectedHeadEntryId;
+    if (redo) {
+      final head = await readAuthoringHistoryHead(history, context.projectId);
+      if (head == null ||
+          head.targetEntryId != receiptId ||
+          !(head.kind == AuthoringHistoryKind.undo ||
+              head.kind == AuthoringHistoryKind.redo &&
+                  head.operationId == operationId)) {
+        throw const FormatException(
+            'map.elements_redo_diverged: The map stacking history changed since this undo.');
+      }
+      expectedHeadEntryId = head.kind == AuthoringHistoryKind.redo
+          ? AuthoringHistoryContext.fromExtensions(head.receipt.extensions)
+              .expectedHeadEntryId
+          : head.entryId;
     }
     return _set(
         projectRoot: projectRoot,
         mapId: mapId,
         mapRelativePath: mapRelativePath,
         expectedRevision: expectedRevision,
-        mapJson: Map<String, dynamic>.from(
-            entry.receipt.diff.entries.single.before! as Map),
+        mapJson:
+            Map<String, dynamic>.from((redo ? diff.after : diff.before)! as Map),
         operationId: operationId,
         historyContext: AuthoringHistoryContext(
-            kind: AuthoringHistoryKind.undo, targetEntryId: receiptId));
+            kind: redo ? AuthoringHistoryKind.redo : AuthoringHistoryKind.undo,
+            targetEntryId: receiptId,
+            expectedHeadEntryId: expectedHeadEntryId));
   }
 
   Future<Object> _runWorker(
@@ -788,6 +859,15 @@ Future<Object> _runMapOrderWorkerDirect(_MapOrderWorkerRequest request) async {
         kind: request.kind!,
         frontFirstIds: request.frontFirstIds!,
         layerId: request.layerId,
+        operationId: request.operationId!);
+  }
+  if (request.command == 'redo') {
+    return service.redoReceipt(
+        projectRoot: request.root,
+        mapId: request.mapId,
+        mapRelativePath: request.mapRelativePath,
+        expectedRevision: request.expectedRevision!,
+        receiptId: request.receiptId!,
         operationId: request.operationId!);
   }
   if (request.command == 'undo') {
