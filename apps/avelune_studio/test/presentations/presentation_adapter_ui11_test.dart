@@ -69,7 +69,13 @@ void main() {
       );
       await expectLater(
         port.publish(asset: asset('Publication refusée'), base: opened),
-        throwsA(isA<WorkspaceAccessException>()),
+        throwsA(
+          isA<PresentationFailure>().having(
+            (failure) => failure.message,
+            'message',
+            contains('workspace.file_unavailable'),
+          ),
+        ),
       );
       expect(await f.readManifest(), project);
     },
