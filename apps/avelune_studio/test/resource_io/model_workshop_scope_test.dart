@@ -6,6 +6,7 @@ import 'package:avelune_studio/features/map_workspace/application/map_workspace_
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/features/resources/domain/model_resource_port.dart';
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
+import 'package:avelune_studio/presentation/features/resources/model_animation_controls.dart';
 import 'package:avelune_studio/presentation/features/resources/model_resource_library.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_navigation.dart';
@@ -38,12 +39,22 @@ class _Models implements ResourcePort, ModelResourcePort {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-ProjectModel3dEntry _model(String id) => ProjectModel3dEntry.fromJson({
-  ...spatialEnvironmentProject().models3d.single.toJson(),
-  'id': id,
-  'name': 'Modèle $id',
-  'relativePath': 'assets/models3d/$id.glb',
-});
+ProjectModel3dEntry _model(String id, {bool animated = false}) {
+  final json = spatialEnvironmentProject().models3d.single.toJson();
+  return ProjectModel3dEntry.fromJson({
+    ...json,
+    'id': id,
+    'name': 'Modèle $id',
+    'relativePath': 'assets/models3d/$id.glb',
+    if (animated)
+      'inspection': {
+        ...(json['inspection'] as Map<String, dynamic>),
+        'animations': [
+          {'index': 0, 'name': 'Flotter', 'durationSeconds': 1.5},
+        ],
+      },
+  });
+}
 
 EditableMapDocument _map(String id, String name, int instances) =>
     EditableMapDocument(
@@ -71,11 +82,12 @@ EditableMapDocument _map(String id, String name, int instances) =>
 Future<(ResourceNavigation, _Models)> _pump(
   WidgetTester tester, {
   Map<String, EditableMapDocument> documents = const {},
+  List<ProjectModel3dEntry>? models,
 }) async {
   await tester.binding.setSurfaceSize(const Size(1500, 1100));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   final project = workspaceProject.copyWith(
-    models3d: [_model('lamp'), _model('crate')],
+    models3d: models ?? [_model('lamp'), _model('crate')],
   );
   final controller = MapWorkspaceController(
     workspaceSession,
@@ -139,6 +151,38 @@ Future<void> _settle(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets(
+    'the model workshop keeps its sections and shows Animation only for animated sources',
+    (tester) async {
+      await _pump(
+        tester,
+        models: [_model('lamp'), _model('flag', animated: true)],
+      );
+      for (final title in [
+        'Général',
+        'Ombres et lumière',
+        'Collision et passage',
+        'Source',
+        'Avancé',
+      ]) {
+        expect(find.text(title), findsOne, reason: title);
+      }
+      expect(find.text('Animation'), findsNothing);
+      expect(find.byType(ModelAnimationControls), findsNothing);
+      expect(find.byKey(const ValueKey('model-usages')), findsOne);
+      expect(find.textContaining('Dimensions :'), findsOne);
+      expect(find.textContaining('Origine :'), findsOne);
+      expect(find.text('Escalier franchissable'), findsOne);
+      expect(find.text('Collision et placement'), findsOne);
+      await tester.tap(find.byKey(const ValueKey('model-resource-flag')));
+      await _settle(tester);
+      expect(find.text('Animation'), findsWidgets);
+      expect(find.byType(ModelAnimationControls), findsOne);
+      expect(find.text('Général'), findsOne);
+      expect(find.text('Collision et passage'), findsOne);
+    },
+  );
+
   testWidgets(
     'editing a model placed on two maps asks for a scope review once and keeps its identity',
     (tester) async {
