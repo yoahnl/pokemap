@@ -177,6 +177,84 @@ void main() {
     expect(find.byTooltip('Recentrer'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+  testWidgets('Shift-drag moves a 3D decor and Shift-click toggles it', (
+    tester,
+  ) async {
+    final project = ProjectManifest.fromJson(
+      jsonDecode(
+            File('test/fixtures/spatial_first_map/project.json').readAsStringSync(),
+          )
+          as Map<String, dynamic>,
+    );
+    final map = MapData.fromJson(
+      jsonDecode(
+            File(
+              'test/fixtures/spatial_first_map/maps/first-map.json',
+            ).readAsStringSync(),
+          )
+          as Map<String, dynamic>,
+    ).copyWith(entities: []);
+    final document = EditableMapDocument(
+      MapWorkspaceDocument(map: map, mapId: map.id, revision: 'shift-test'),
+    );
+    final view = MapWorkspaceViewState()..tool = StudioMapTool.select;
+    final controller =
+        MapWorkspaceController(workspaceSession, WorkspaceMemoryPort())
+          ..project = project
+          ..active = document;
+    controller.documents[map.id] = document;
+    addTearDown(view.dispose);
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: StatefulBuilder(
+            builder: (context, setState) => SpatialMapEditor(
+              document: document,
+              controller: controller,
+              project: project,
+              visuals: _SpatialTestVisuals(),
+              view: view,
+              onChanged: () => setState(() {}),
+            ),
+          ),
+        ),
+      ),
+    );
+    SpatialSceneView scene() => tester.widget(find.byType(SpatialSceneView));
+    final instance = map.spatialScene!.instances.firstWhere(
+      (item) => item.blocksMovement,
+    );
+    final cell = (instance.position.x.floor(), instance.position.z.floor());
+    final hit = SpatialSceneContentHit(
+      kind: SpatialSceneContentKind.model,
+      id: instance.id,
+      cell: cell,
+    );
+    scene().onContent!(hit);
+    await tester.pump();
+    expect(document.selectedId, instance.id);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+    expect(scene().onDragStart!(cell.$1, cell.$2, hit), isTrue);
+    scene().onDragUpdate!((cell.$1 + 1, cell.$2));
+    scene().onDragEnd!();
+    await tester.pump();
+    expect(
+      document.current.spatialScene!.instances
+          .firstWhere((item) => item.id == instance.id)
+          .position
+          .x,
+      instance.position.x + 1,
+    );
+    expect(document.undoCount, 1);
+    expect(document.selectedId, instance.id);
+    scene().onContent!(hit);
+    await tester.pump();
+    expect(document.selectedId, isNull);
+    expect(document.undoCount, 1);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.pumpWidget(const SizedBox());
+  });
   testWidgets('free camera moves selected content and returns to game view', (
     tester,
   ) async {

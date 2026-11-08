@@ -809,7 +809,12 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
     );
   }
 
-  bool start(int x, int z, [SpatialSceneContentHit? hit]) {
+  bool start(
+    int x,
+    int z, {
+    SpatialSceneContentHit? hit,
+    bool dragging = false,
+  }) {
     if (editingExterior && !isExteriorDecorationTool(widget.view.tool)) {
       widget.document.error =
           'Le décor extérieur accepte uniquement les outils visuels.';
@@ -824,7 +829,7 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
         y: z + exterior!.originZ,
       );
     }
-    final started = _startSegment(x, z, hit);
+    final started = _startSegment(x, z, hit: hit, dragging: dragging);
     if (!started && _exteriorGestureActive) {
       exterior!.endGesture();
       _exteriorGestureActive = false;
@@ -833,7 +838,12 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
     return started;
   }
 
-  bool _startSegment(int x, int z, [SpatialSceneContentHit? hit]) {
+  bool _startSegment(
+    int x,
+    int z, {
+    SpatialSceneContentHit? hit,
+    bool dragging = false,
+  }) {
     if (_exteriorGestureActive) _bindExteriorEnvironment(create: true);
     widget.view.reconcileLocks(editingDocument);
     if (hit != null && !canSelectContent(hit.kind, hit.id)) {
@@ -980,6 +990,7 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
         final keys = HardwareKeyboard.instance;
         if (widget.view.tool == StudioMapTool.select &&
             armed == null &&
+            !dragging &&
             (keys.isShiftPressed || keys.isMetaPressed)) {
           widget.view.toggleDecorInSelection(document, instance.id);
         } else if (widget.view.tool != StudioMapTool.select) {
@@ -1422,7 +1433,7 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
               cell: (npc.pos.x, npc.pos.y),
             )
           : null;
-      if (hit == null || !start(hit.cell.$1, hit.cell.$2, hit)) {
+      if (hit == null || !start(hit.cell.$1, hit.cell.$2, hit: hit)) {
         return KeyEventResult.ignored;
       }
     }
@@ -1607,12 +1618,12 @@ class _SpatialMapEditorState extends State<SpatialMapEditor> {
                           widget.view.borderEditingMode ==
                               BorderStrokeEditingMode.draw)
                   ? false
-                  : start(x, z, hit),
+                  : start(x, z, hit: hit, dragging: true),
               onDragUpdate: updateDrag,
               onDragEnd: finish,
               onDragCancel: cancel,
               onContent: (hit) {
-                start(hit.cell.$1, hit.cell.$2, hit);
+                start(hit.cell.$1, hit.cell.$2, hit: hit);
                 finish();
               },
               actorFrames: (_) => preview?.frames ?? const {},
