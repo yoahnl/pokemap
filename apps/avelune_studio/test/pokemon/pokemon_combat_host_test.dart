@@ -319,12 +319,12 @@ void main() {
           directoryPath: host.source.directory.path,
         );
         final maps = LocalMapWorkspaceAdapter();
-        await maps.loadProject(session);
+        final manifest = await maps.loadProject(session);
         final combat = await LocalPokemonCombatAdapter(
           session: session,
           mapAdapter: maps,
         ).load();
-        final map = await maps.loadMap(session, combat.project.maps.first);
+        final map = await maps.loadMap(session, manifest.maps.first);
         return (combat, map.map);
       }))!;
       final combat = reopened.$1;
