@@ -45,6 +45,7 @@ final class LocalPokemonTransaction {
     }
     final fields = jsonDecode(jsonEncode(parameters)) as Map<String, dynamic>;
     final scoped = session.storage == ProjectSessionStorage.workingCatalog;
+    final workshop = scoped || !actionId.endsWith('.delete');
     final policy = await WorkspacePolicy.create(
       allowedRootPaths: [session.directoryPath],
       fileReader: reader,
@@ -54,8 +55,8 @@ final class LocalPokemonTransaction {
       policy: policy,
       fileReader: reader,
       handles: handles,
-      catalogMetadataFields: const {},
-      workshopScope: true,
+      catalogMetadataFields: workshop ? const {} : null,
+      workshopScope: workshop,
     ).openProject(session.directoryPath);
     final snapshots = ProjectSnapshotLoader(handles: handles);
     final api = LocalMapAuthoringMutationApi(
@@ -72,8 +73,13 @@ final class LocalPokemonTransaction {
         projectHandle: opened.projectHandle,
       );
       attached = true;
-      Future<ProjectSnapshot> read() => api.readWorkshopSnapshot(
-          opened.projectHandle, actionId: actionId, parameters: fields);
+      Future<ProjectSnapshot> read() => workshop
+          ? api.readWorkshopSnapshot(
+              opened.projectHandle,
+              actionId: actionId,
+              parameters: fields,
+            )
+          : snapshots.load(opened.projectHandle);
       final snapshot = await read();
       validateBefore(snapshot);
       if (baseline != null && await _revision() != baseline.revision) {
@@ -89,7 +95,7 @@ final class LocalPokemonTransaction {
           requestId: operation,
           actionId: actionId,
           actionVersion: 1,
-          extensions: const {'workshopScope': true},
+          extensions: workshop ? const {'workshopScope': true} : const {},
           workspaceHandle: opened.workspaceHandle.value,
           expectedRevision: snapshot.revision,
           idempotencyKey: operation,
@@ -145,12 +151,14 @@ final class LocalPokemonTransaction {
         return 'Enregistrement confirmé ; le projet a changé avant l’actualisation de l’atelier.';
       }
       if (baseline != null) {
-        final manifest = mergeProjectMetadataSections(
+        final manifest = workshop
+            ? mergeProjectMetadataSections(
                 baseline.manifest,
                 reopened.manifest,
                 reopened.availableProjectSections!,
                 documentIds: reopened.availableProjectDocuments,
-              );
+              )
+            : reopened.manifest;
         try {
           await mapAdapter.acceptResourceMutation(
             session,
