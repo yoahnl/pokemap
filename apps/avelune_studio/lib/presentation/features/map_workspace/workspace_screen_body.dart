@@ -120,6 +120,7 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                           onToolChanged: _toolChanged,
                           onActivate: (entry) {
                             _interactionNotice?.close();
+                            _interactionNotice = null;
                             _narrative?.cancelOpening();
                             _gestureGeneration++;
                             unawaited(_controller.activate(entry));

@@ -140,6 +140,7 @@ extension _WorkspaceNavigationBinding on _MapWorkspaceScreenState {
     _navigationRequest++;
     _openingWorkshop = false;
     _interactionNotice?.close();
+    _interactionNotice = null;
     _narrative?.cancelOpening();
     final refreshCommerce =
         space == WorkspaceSpace.pokemon &&

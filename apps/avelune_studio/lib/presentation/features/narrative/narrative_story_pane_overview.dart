@@ -45,6 +45,10 @@ extension _NarrativeStoryPaneOverview on _NarrativeStoryPaneState {
                 widget.eventOwner == null || widget.onOpenEvent == null
                 ? null
                 : _createEvent,
+            onCreateInteraction: widget.onCreateInteraction,
+            onCreateQuest: widget.storyOwner == null
+                ? null
+                : () => _createStory(StorylineType.sideQuest),
             onProgression: widget.onProgression,
             onCinematics: widget.onCinematics,
             onPresentations: widget.onPresentations,

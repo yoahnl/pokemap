@@ -1,10 +1,10 @@
 part of 'narrative_story_pane.dart';
 
 extension _NarrativeStoryPaneCreation on _NarrativeStoryPaneState {
-  Future<void> _createStory() async {
+  Future<void> _createStory([StorylineType type = StorylineType.main]) async {
     final owner = widget.storyOwner;
     if (owner == null) return;
-    final request = await askStoryCreation(context);
+    final request = await askStoryCreation(context, initialType: type);
     if (!mounted || request == null) return;
     final created = owner.create(request.$1, type: request.$2);
     if (created == null) {

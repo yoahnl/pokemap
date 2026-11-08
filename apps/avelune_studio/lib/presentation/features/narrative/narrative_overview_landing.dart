@@ -9,6 +9,7 @@ import '../../shared/widgets/buttons/studio_action_card.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/feedback/studio_badge.dart';
 import '../../shared/widgets/feedback/studio_icon_tile.dart';
+import '../../shared/widgets/inputs/studio_choice.dart';
 import '../../shared/widgets/inputs/studio_resource_card.dart';
 import '../../shared/widgets/inputs/studio_search_field.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
@@ -16,6 +17,7 @@ import '../../theme/studio_tokens.dart';
 
 part 'narrative_overview_landing_content.dart';
 part 'narrative_overview_landing_desktop.dart';
+part 'narrative_overview_landing_intents.dart';
 part 'narrative_overview_landing_side.dart';
 part 'narrative_overview_landing_search.dart';
 
@@ -35,6 +37,8 @@ class NarrativeOverviewLanding extends StatelessWidget {
     required this.onCreateStory,
     required this.onCreateScene,
     required this.onCreateEvent,
+    this.onCreateInteraction,
+    this.onCreateQuest,
     this.onCinematics,
     this.onPresentations,
     required this.onProgression,
@@ -72,6 +76,7 @@ class NarrativeOverviewLanding extends StatelessWidget {
   final VoidCallback onLibrary;
   final VoidCallback? onCreateStory;
   final VoidCallback? onCreateScene, onCreateEvent;
+  final VoidCallback? onCreateInteraction, onCreateQuest;
   final VoidCallback? onCinematics, onPresentations;
   final VoidCallback? onProgression, onScenes, onEvents, onVerification;
   final ValueChanged<String> onOpenStory;
@@ -130,7 +135,11 @@ class NarrativeOverviewLanding extends StatelessWidget {
       if (query.isNotEmpty)
         _searchResults(context, query)
       else ...[
+        _intents(context, width),
+        const SizedBox(height: 12),
         _stories(context, width),
+        const SizedBox(height: 12),
+        _synthesis(context, width),
         const SizedBox(height: 12),
         _lower(context, width),
       ],

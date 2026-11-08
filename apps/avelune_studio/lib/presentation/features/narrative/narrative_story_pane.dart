@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/narrative/application/narrative_workspace_controller.dart';
 import '../../../features/narrative/application/narrative_overview.dart';

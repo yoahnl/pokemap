@@ -34,7 +34,11 @@ extension _NarrativeOverviewLandingDesktop on NarrativeOverviewLanding {
                       ? _searchResults(context, query)
                       : Column(
                           children: [
+                            _intents(context, mainWidth),
+                            const SizedBox(height: 12),
                             _stories(context, mainWidth),
+                            const SizedBox(height: 12),
+                            _synthesis(context, mainWidth),
                             const SizedBox(height: 12),
                             _lower(context, mainWidth),
                           ],

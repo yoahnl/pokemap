@@ -4,9 +4,12 @@ import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import 'story_labels.dart';
 
-Future<(String, StorylineType)?> askStoryCreation(BuildContext context) {
+Future<(String, StorylineType)?> askStoryCreation(
+  BuildContext context, {
+  StorylineType initialType = StorylineType.main,
+}) {
   var title = '';
-  var type = StorylineType.main;
+  var type = initialType;
   return showDialog<(String, StorylineType)>(
     context: context,
     builder: (context) => StatefulBuilder(
