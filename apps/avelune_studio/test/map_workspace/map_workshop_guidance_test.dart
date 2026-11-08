@@ -62,7 +62,9 @@ void main() {
     );
     await tester.tap(find.text('Effacer la recherche'));
     await tester.pump();
-    expect(find.text('Clairière'), findsOneWidget);
+    expect(find.byKey(const ValueKey('map-library-list')), findsOneWidget);
+    expect(find.text('Clairière'), findsNWidgets(2));
+    expect(find.textContaining('Dossier : '), findsOneWidget);
     expect(find.text('Jardin'), findsOneWidget);
   });
 
