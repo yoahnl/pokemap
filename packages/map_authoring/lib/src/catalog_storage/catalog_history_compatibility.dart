@@ -158,7 +158,18 @@ abstract final class CatalogHistoryCompatibility {
       }
     }
     if (!supported) return null;
-    final patch = await source.patch(upserts: expected);
+    final expectedKeys = {for (final unit in expected) unit.key};
+    final List<CatalogDefinitionUnit> slots;
+    try {
+      slots = await CatalogResourcePositions.prepareSlots(source);
+    } on FormatException {
+      return null;
+    }
+    final patch = await source.patch(upserts: [
+      ...expected,
+      for (final unit in slots)
+        if (!expectedKeys.contains(unit.key)) unit,
+    ]);
     final target = await patch.nextSnapshot(
       readObject: (reference) async =>
           patch.objects[reference.sha256] ?? await store.readObject(reference),
