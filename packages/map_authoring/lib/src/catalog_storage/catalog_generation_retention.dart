@@ -14,6 +14,7 @@ import '../ports/project_file_reader.dart';
 import '../ports/transaction_file_gateway.dart';
 import '../security/authoring_permission.dart';
 import '../support/authoring_fingerprint.dart';
+import '../transactions/local_transaction_file_gateway.dart';
 import 'catalog_storage_store.dart';
 
 enum CatalogLeasePurpose { reader, preparation }
@@ -242,6 +243,12 @@ final class CatalogGenerationRetention {
         }
         if (entity is Directory) {
           pending.add(entity);
+        } else if (entity is File &&
+            entity.uri.pathSegments.last ==
+                LocalTransactionFileGateway.pendingJournalIndexName &&
+            await LocalTransactionFileGateway.isEmptyPendingJournalIndex(
+                entity)) {
+          continue;
         } else if (entity is! File ||
             directory.path != root.path ||
             entity.uri.pathSegments.last != 'write.lock' ||

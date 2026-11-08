@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:map_authoring/src/catalog_storage/catalog_editing_session.dart';
@@ -586,6 +587,30 @@ void main() {
         (await history.get(projectId: 'game', entryId: id))!.nonUndoableReason,
         isNull);
   });
+  for (final (name, namespace, content) in [
+    (
+      'naming an operation',
+      '',
+      '{"schemaVersion":1,"operationIds":["ghost-op"]}'
+    ),
+    ('that is malformed', 'editor_namespace/', '{"schemaVersion":1}'),
+  ]) {
+    test('a pending journal index $name blocks maintenance', () async {
+      await edit('one');
+      final transactions = '${directory.path}/.pokemap/authoring/transactions';
+      final finalized = File('$transactions/pending-journals.json');
+      expect(jsonDecode(await finalized.readAsString()),
+          {'schemaVersion': 1, 'operationIds': <Object?>[]});
+      await retention.preview(projectId: 'game');
+      final index = File('$transactions/${namespace}pending-journals.json');
+      await index.parent.create(recursive: true);
+      await index.writeAsString(content, flush: true);
+      await expectLater(
+          retention.preview(projectId: 'game'),
+          throwsA(isA<CatalogStorageException>().having(
+              (error) => error.code, 'code', 'catalog.recovery_required')));
+    });
+  }
   test('maintenance reads shared immutable objects once across retained roots',
       () async {
     await edit('one');

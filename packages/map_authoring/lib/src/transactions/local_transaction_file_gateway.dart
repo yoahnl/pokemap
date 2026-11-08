@@ -630,7 +630,7 @@ final class LocalTransactionFileGateway
 
   Future<Set<String>?> _readPendingIds() async {
     final root = await _ensureInternalRoot(create: false);
-    final file = File(_join(root.path, 'pending-journals.json'));
+    final file = File(_join(root.path, pendingJournalIndexName));
     final type = await FileSystemEntity.type(file.path, followLinks: false);
     if (type == FileSystemEntityType.notFound) return null;
     if (type != FileSystemEntityType.file ||
@@ -644,28 +644,47 @@ final class LocalTransactionFileGateway
     _performanceObserver
         ?.incrementCounter(AuthoringPerformanceCounterName.jsonDecode);
     try {
-      final json = jsonDecode(await file.readAsString());
-      if (json is! Map ||
-          json.length != 2 ||
-          json['schemaVersion'] != 1 ||
-          json['operationIds'] is! List) {
-        throw const FormatException();
-      }
-      final values = json['operationIds'] as List;
-      if (values.any((id) =>
-              id is! String ||
-              id.length > 120 ||
-              id.trim() != id ||
-              !_operationPattern.hasMatch(id)) ||
-          values.toSet().length != values.length) {
-        throw const FormatException();
-      }
-      return values.cast<String>().toSet();
+      return _decodePendingIds(await file.readAsString());
     } catch (_) {
       throw const TransactionFileGatewayException(
           'transaction.pending_index_invalid',
           'The pending transaction index failed strict verification.');
     }
+  }
+
+  static const pendingJournalIndexName = 'pending-journals.json';
+
+  static Future<bool> isEmptyPendingJournalIndex(File file) async {
+    try {
+      if (await FileSystemEntity.type(file.path, followLinks: false) !=
+              FileSystemEntityType.file ||
+          await file.length() > 1024 * 1024) {
+        return false;
+      }
+      return _decodePendingIds(await file.readAsString()).isEmpty;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Set<String> _decodePendingIds(String source) {
+    final json = jsonDecode(source);
+    if (json is! Map ||
+        json.length != 2 ||
+        json['schemaVersion'] != 1 ||
+        json['operationIds'] is! List) {
+      throw const FormatException();
+    }
+    final values = json['operationIds'] as List;
+    if (values.any((id) =>
+            id is! String ||
+            id.length > 120 ||
+            id.trim() != id ||
+            !_operationPattern.hasMatch(id)) ||
+        values.toSet().length != values.length) {
+      throw const FormatException();
+    }
+    return values.cast<String>().toSet();
   }
 
   Future<void> _requireNoLegacyJournals({String? ownOperationId}) async {
@@ -709,7 +728,7 @@ final class LocalTransactionFileGateway
         ?.incrementCounter(AuthoringPerformanceCounterName.filesystemWrite);
     _performanceObserver
         ?.incrementCounter(AuthoringPerformanceCounterName.jsonEncode);
-    await _writeAtomic(File(_join(root.path, 'pending-journals.json')), bytes,
+    await _writeAtomic(File(_join(root.path, pendingJournalIndexName)), bytes,
         suffix: 'pending',
         counterName: AuthoringPerformanceCounterName
             .gatewayDescriptorCompletedWriteInputBytes);
