@@ -1424,6 +1424,7 @@ final class _Fixture {
         projectRootPath: root.path,
         workspaceHandle: opened.workspaceHandle,
         projectHandle: opened.projectHandle);
+    await mutations.prepareWorkshopCatalog(opened.projectHandle);
     return _Fixture(
         root,
         snapshots,
