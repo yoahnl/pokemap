@@ -22,7 +22,9 @@ void main() {
   late CatalogSnapshot initial;
 
   setUp(() async {
-    directory = await Directory.systemTemp.createTemp('metadata-context-');
+    directory = Directory(
+        await (await Directory.systemTemp.createTemp('metadata-context-'))
+            .resolveSymbolicLinks());
     final project = await Directory('${directory.path}/project').create();
     admissions = Directory('${directory.path}/admissions');
     store = await CatalogStorageStore.open(
