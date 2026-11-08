@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart' as crypto;
 import 'package:map_authoring/map_authoring.dart';
 import 'package:test/test.dart';
 import 'package:map_core/map_core.dart';
@@ -319,6 +320,169 @@ void main() {
             'workspace.handle_unknown',
           ),
         ),
+      );
+    });
+  });
+
+  group('future project formats', () {
+    Future<Map<String, String>> inventory(Directory root) async => {
+          await for (final entity in root.list(recursive: true))
+            if (entity is File)
+              entity.path: base64Encode(await entity.readAsBytes()),
+        };
+
+    Future<(Directory, Directory)> workingCatalog() async {
+      final sandbox =
+          await Directory.systemTemp.createTemp('pokemap_open_future_');
+      addTearDown(() => sandbox.delete(recursive: true));
+      final project = await Directory(_join(sandbox.path, 'project')).create();
+      await WorkingProjectCatalog.create(
+        store: await CatalogStorageStore.open(projectRoot: project.path),
+        projectId: 'future',
+        project: ProjectManifest(
+          name: 'Future',
+          maps: const [
+            ProjectMapEntry(id: 'a', name: 'A', relativePath: 'maps/a.json')
+          ],
+          tilesets: const [],
+        ),
+      );
+      return (sandbox, project);
+    }
+
+    Future<void> expectRefusedIntact(
+      Directory sandbox,
+      Directory project,
+      Matcher refusal, {
+      bool workshopScope = false,
+    }) async {
+      final before = await inventory(project);
+      final reader = const LocalProjectFileReader();
+      final handles = WorkspaceHandleStore();
+      final service = ProjectOpenService(
+        policy: await WorkspacePolicy.create(
+          allowedRootPaths: [sandbox.path],
+          fileReader: reader,
+        ),
+        fileReader: reader,
+        handles: handles,
+        workshopScope: workshopScope,
+      );
+      await expectLater(service.openProject(project.path), throwsA(refusal));
+      expect(await inventory(project), before);
+    }
+
+    for (final workshopScope in [false, true]) {
+      test(
+          'a manifest from a newer project version is refused intact '
+          '(workshop $workshopScope)', () async {
+        final sandbox =
+            await Directory.systemTemp.createTemp('pokemap_open_future_');
+        addTearDown(() => sandbox.delete(recursive: true));
+        final project =
+            await Directory(_join(sandbox.path, 'project')).create();
+        final json = jsonDecode(
+            await File(_join(_realFixtureDirectory().path, 'project.json'))
+                .readAsString()) as Map<String, dynamic>;
+        await File(_join(project.path, 'project.json'))
+            .writeAsString(jsonEncode({...json, 'version': 'v99'}));
+        await expectRefusedIntact(
+          sandbox,
+          project,
+          isA<ProjectOpenException>().having(
+              (error) => error.code, 'code', 'project.manifest_invalid'),
+          workshopScope: workshopScope,
+        );
+      });
+    }
+
+    test('a map from a newer map version is refused intact', () async {
+      final sandbox =
+          await Directory.systemTemp.createTemp('pokemap_open_future_');
+      addTearDown(() => sandbox.delete(recursive: true));
+      final project = await Directory(_join(sandbox.path, 'project')).create();
+      await Directory(_join(project.path, 'maps')).create();
+      final fixture = _realFixtureDirectory().path;
+      await File(_join(fixture, 'project.json'))
+          .copy(_join(project.path, 'project.json'));
+      final mapFile =
+          File(_join(project.path, 'maps', 'p3_narrative_smoke_field.json'));
+      await File(_join(fixture, 'maps', 'p3_narrative_smoke_field.json'))
+          .copy(mapFile.path);
+      final reader = const LocalProjectFileReader();
+      final policy = await WorkspacePolicy.create(
+        allowedRootPaths: [sandbox.path],
+        fileReader: reader,
+      );
+      Future<ProjectSnapshot> load() async {
+        final handles = WorkspaceHandleStore();
+        final opened = await ProjectOpenService(
+          policy: policy,
+          fileReader: reader,
+          handles: handles,
+        ).openProject(project.path);
+        return ProjectSnapshotLoader(handles: handles)
+            .load(opened.projectHandle);
+      }
+
+      expect((await load()).maps.single.version.name, 'v8');
+      final map = jsonDecode(await mapFile.readAsString()) as Map;
+      await mapFile.writeAsString(jsonEncode({...map, 'version': 'v99'}));
+      final before = await inventory(project);
+      await expectLater(
+        load(),
+        throwsA(isA<ProjectSnapshotException>()
+            .having((error) => error.code, 'code', 'project.map_invalid')),
+      );
+      expect(await inventory(project), before);
+    });
+
+    test('a newer working catalog descriptor is refused intact', () async {
+      final (sandbox, project) = await workingCatalog();
+      final descriptor = File(_join(project.path, 'project.json'));
+      final json = jsonDecode(await descriptor.readAsString()) as Map;
+      await descriptor.writeAsString(jsonEncode({...json, 'version': 2}));
+      await expectRefusedIntact(
+        sandbox,
+        project,
+        isA<FormatException>().having((error) => error.message, 'message',
+            contains('unsupported descriptor')),
+      );
+    });
+
+    test('a newer catalog head is refused intact', () async {
+      final (sandbox, project) = await workingCatalog();
+      final head = File(_join(project.path, 'catalog/HEAD.json'));
+      final json = jsonDecode(await head.readAsString()) as Map;
+      await head.writeAsString(jsonEncode({...json, 'schemaVersion': 2}));
+      await expectRefusedIntact(
+        sandbox,
+        project,
+        isA<CatalogStorageException>()
+            .having((error) => error.code, 'code', 'catalog.head_invalid'),
+      );
+    });
+
+    test('a newer catalog generation format is refused intact', () async {
+      final (sandbox, project) = await workingCatalog();
+      final store = await CatalogStorageStore.open(projectRoot: project.path);
+      final current = (await store.readHead())!;
+      final root = jsonDecode(await File(
+              _join(project.path, 'catalog/objects/${current.sha256}.json'))
+          .readAsString()) as Map<String, dynamic>;
+      final bytes =
+          utf8.encode(canonicalAuthoringJson({...root, 'version': 3}));
+      final digest = crypto.sha256.convert(bytes).toString();
+      await File(_join(project.path, 'catalog/objects/$digest.json'))
+          .writeAsBytes(bytes);
+      await File(_join(project.path, 'catalog/HEAD.json')).writeAsBytes(
+          CatalogStorageStore.encodeHead(CatalogObjectReference(
+              sha256: digest, byteLength: bytes.length)));
+      await expectRefusedIntact(
+        sandbox,
+        project,
+        isA<FormatException>().having((error) => error.message, 'message',
+            contains('unsupported object type or version')),
       );
     });
   });
