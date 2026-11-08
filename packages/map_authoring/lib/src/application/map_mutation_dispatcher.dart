@@ -73,6 +73,7 @@ import '../registry/mutation_registry.dart';
 import '../transactions/action_planner.dart';
 import '../transactions/authoring_plan.dart';
 import '../domains/assets/resource_source_actions.dart';
+import '../domains/assets/resource_usage_replacement_actions.dart';
 import '../support/authoring_performance_observer.dart';
 import '../references/resource_library_scope_guard.dart';
 import '../domains/maps/border_actions.dart';
@@ -347,6 +348,11 @@ final class MapMutationDispatcher {
         MapMutationActionRegistration(
           descriptor: descriptor,
           build: resourceSources.build,
+        ),
+      for (final descriptor in ResourceUsageReplacementActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: const ResourceUsageReplacementActions().build,
         ),
       for (final descriptor in PresentationMediaImportActions.descriptors)
         MapMutationActionRegistration(

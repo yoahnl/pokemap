@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../map_workspace/map_workspace_visuals.dart';
 import 'resource_catalog.dart';
 import 'resource_container_dialog.dart';
@@ -7,6 +8,7 @@ import 'resource_containers.dart';
 import 'resource_information_dialog.dart';
 import 'resource_navigation.dart';
 import 'resource_usage_dialog.dart';
+import 'resource_usage_replacement_dialog.dart';
 
 Future<void> openResourceInformation(
   BuildContext context,
@@ -144,9 +146,9 @@ Future<String?> _save(
       confirmDestructive: destructive,
     );
     if (reveal != null) {
-      final current = resourceCatalog(
-        project,
-      ).where((entry) => entry.identity == reveal.identity).firstOrNull;
+      final current = resourceCatalog(project)
+          .where((entry) => entry.identity == reveal.identity)
+          .firstOrNull;
       if (current != null) {
         navigation.library.reveal(current);
         navigation.library.revealPending = false;
@@ -166,12 +168,18 @@ Future<void> openResourceUsages(
 ) => showDialog<void>(
   context: context,
   barrierDismissible: false,
-  builder: (_) => ResourceUsageDialog(
+  builder: (dialogContext) => ResourceUsageDialog(
     item: item,
     port: navigation.usages,
     changes: navigation,
     dirtyOwners: () => navigation.usageDraftOwners,
     onOpen: navigation.openUsageOwner,
     canOpen: navigation.canOpenUsageOwner,
+    replaceUsages: (report) => replaceResourceUsages(
+      dialogContext,
+      navigation,
+      target: report.target,
+      name: item.name,
+    ),
   ),
 );

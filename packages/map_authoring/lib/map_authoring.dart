@@ -99,6 +99,7 @@ export 'src/domains/assets/tileset_library_actions.dart';
 export 'src/domains/maps/map_library_actions.dart';
 export 'src/domains/assets/visual_organization_actions.dart';
 export 'src/domains/assets/resource_information_actions.dart';
+export 'src/domains/assets/resource_usage_replacement_actions.dart';
 export 'src/domains/assets/resource_management_actions.dart';
 export 'src/domains/narrative/dialogue_actions.dart';
 export 'src/dialogue/dialogue_line_text_edit.dart';

@@ -85,6 +85,10 @@ extension ResourceNavigationManagement on ResourceNavigation {
         return 'Enregistrez ou annulez les propriétaires concernés : ${owners.join(', ')}.';
       }
     }
+    if (actionId == 'resource.usages.replace' && usageDraftOwners.isNotEmpty) {
+      return 'Enregistrez ou annulez les brouillons avant de remplacer les '
+          'usages : ${usageDraftOwners.join(', ')}.';
+    }
     if (const {
       'characterStudio.character.deletePlan',
       'characterStudio.character.delete',
@@ -226,17 +230,17 @@ Future<ProjectManifest> _acceptResourceReceipt(
       navigation.changed();
       return navigation.workspace.project ?? receipt.manifest;
     }
+    navigation.workspace.acceptResourceMaps({
+      for (final entry in receipt.changedMaps.entries)
+        entry.key: MapWorkspaceDocument(
+          map: entry.value,
+          revision: receipt.mapRevisions[entry.key]!,
+          mapId: entry.key,
+        ),
+    }, replaceContent: receipt.actionId == 'resource.usages.replace');
     if (receipt.changedModels.isNotEmpty
         ? !identical(navigation.workspace.project, receipt.manifest)
         : navigation.workspace.project != receipt.manifest) {
-      navigation.workspace.acceptResourceMaps({
-        for (final entry in receipt.changedMaps.entries)
-          entry.key: MapWorkspaceDocument(
-            map: entry.value,
-            revision: receipt.mapRevisions[entry.key]!,
-            mapId: entry.key,
-          ),
-      });
       navigation.workspace.acceptResources(
         receipt.before,
         receipt.manifest,

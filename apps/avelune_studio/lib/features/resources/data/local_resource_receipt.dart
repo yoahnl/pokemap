@@ -65,14 +65,14 @@ ResourceMutationReceipt _resourceReceipt(
       for (final change in changes) change.storageKey: change.afterRevision,
     }),
     changedMaps: Map.unmodifiable({
-      if (plan.request.actionId == 'characterStudio.character.delete')
+      if (_changesMapDocuments(plan.request.actionId))
         for (final change in changes.where((c) => c.resource.kind == 'map'))
           change.resource.id: MapData.fromJson(
             jsonDecode(utf8.decode(change.afterBytes!)) as Map<String, dynamic>,
           ),
     }),
     mapRevisions: Map.unmodifiable({
-      if (plan.request.actionId == 'characterStudio.character.delete')
+      if (_changesMapDocuments(plan.request.actionId))
         for (final change in changes.where((c) => c.resource.kind == 'map'))
           change.resource.id: narrativeEventBytesFingerprint(
             change.afterBytes!,
@@ -80,3 +80,7 @@ ResourceMutationReceipt _resourceReceipt(
     }),
   );
 }
+
+bool _changesMapDocuments(String actionId) =>
+    actionId == 'characterStudio.character.delete' ||
+    actionId == 'resource.usages.replace';

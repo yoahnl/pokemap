@@ -1183,6 +1183,18 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
       AuthoringTransport.cli: 'test/domains/assets/model3d_actions_test.dart',
     };
   }
+  if (actionId == 'resource.usages.replace') {
+    return const {
+      AuthoringTransport.directApi:
+          'test/domains/assets/resource_usage_replacement_test.dart',
+      AuthoringTransport.cli:
+          'test/domains/assets/resource_usage_replacement_test.dart',
+      AuthoringTransport.editor:
+          '../../apps/avelune_studio/test/resource_io/resource_usage_replacement_host_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/resource_usage_replacement_stdio.test.ts',
+    };
+  }
   if (const {
     'tileset.source.replace',
     'tileset.remove',
@@ -2047,6 +2059,8 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
       'test/domains/narrative/standard_event_template_transport_test.dart'),
   _ContractEvidenceRule(['environment.preset.upsert_batch'],
       'test/domains/maps/environment_preset_batch_test.dart'),
+  _ContractEvidenceRule(['resource.usages.replace'],
+      'test/domains/assets/resource_usage_replacement_test.dart'),
   _ContractEvidenceRule(['resource.family.apply_batch'],
       'test/domains/assets/resource_family_batch_test.dart'),
   _ContractEvidenceRule(['resource.family.', 'resource.classify'],

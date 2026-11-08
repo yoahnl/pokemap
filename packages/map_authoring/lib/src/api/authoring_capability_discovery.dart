@@ -476,6 +476,7 @@ const authoringCapabilityDomains = {
     'resource.family.create',
     'resource.family.delete',
     'resource.family.update',
+    'resource.usages.replace',
     'resource_pack.import',
     'tileset.delete',
     'tileset.import_image',

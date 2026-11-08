@@ -16,6 +16,7 @@ const _lifecycleActions = {
   'border.blueprint.set_deprecated',
   'characterStudio.character.deletePlan',
   'characterStudio.character.delete',
+  'resource.usages.replace',
 };
 
 final class _ResourcePreparedContext {
@@ -165,6 +166,8 @@ Future<ResourceMutationPreparation> _prepareLifecycleOperation(
     final mapPaths = before.manifest.maps.map((m) => m.relativePath).toSet();
     if (_characterRemovalAction(actionId)) {
       _validateCharacterRemovalChanges(planned.plan, before.manifest);
+    } else if (actionId == 'resource.usages.replace') {
+      _validateUsageReplacementChanges(planned.plan, before.manifest);
     } else if (planned.plan.changeSet.changes.any(
       (c) => c.resource.kind == 'map' || mapPaths.contains(c.storageKey),
     )) {
@@ -239,4 +242,22 @@ Future<ResourceReplacementPreview> _prepareResourceReplacement(
     height: source.pixelHeight,
     impact: preparation.impact,
   );
+}
+
+void _validateUsageReplacementChanges(
+  AuthoringPlan plan,
+  ProjectManifest manifest,
+) {
+  final maps = {
+    for (final entry in manifest.maps) entry.id: entry.relativePath,
+  };
+  for (final change in plan.changeSet.changes) {
+    if (change.resource.kind != 'map' ||
+        maps[change.resource.id] != change.storageKey ||
+        change.afterBytes == null) {
+      throw const ResourceFailure(
+        'Ce remplacement tente de modifier un document hors des cartes concernées.',
+      );
+    }
+  }
 }

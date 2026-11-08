@@ -25,6 +25,7 @@ class ResourceUsageDialog extends StatefulWidget {
     required this.dirtyOwners,
     required this.onOpen,
     required this.canOpen,
+    this.replaceUsages,
   }) : assert(item != null || (target != null && name != null));
   final ResourceItem? item;
   final ResourceUsageTarget? target;
@@ -45,6 +46,7 @@ class ResourceUsageDialog extends StatefulWidget {
   final List<String> Function() dirtyOwners;
   final Future<bool> Function(ResourceUsageEntry entry) onOpen;
   final bool Function(ResourceUsageEntry entry) canOpen;
+  final Future<String?> Function(ResourceUsageReport report)? replaceUsages;
 
   @override
   State<ResourceUsageDialog> createState() => _ResourceUsageDialogState();
@@ -54,6 +56,7 @@ class _ResourceUsageDialogState extends State<ResourceUsageDialog> {
   ResourceUsagePhase _phase = ResourceUsagePhase.notAnalyzed;
   ResourceUsageReport? _report;
   String? _error;
+  String? _notice;
   bool _working = false;
   bool _opening = false;
   bool _cancelled = false;
@@ -145,6 +148,31 @@ class _ResourceUsageDialogState extends State<ResourceUsageDialog> {
     });
   }
 
+  bool get _replaceable =>
+      widget.replaceUsages != null &&
+      const {'decors', 'models3d'}.contains(widget.resolvedTarget.family);
+
+  Future<void> _replace() async {
+    final report = _report;
+    final replace = widget.replaceUsages;
+    if (report == null || replace == null || _opening || _working) return;
+    setState(() => _opening = true);
+    try {
+      if (!await _verify() || !mounted) return;
+      final summary = await replace(report);
+      if (mounted && summary != null) {
+        setState(() {
+          _notice = summary;
+          _phase = ResourceUsagePhase.stale;
+        });
+      }
+    } on Object catch (failure) {
+      if (mounted) setState(() => _error = '$failure');
+    } finally {
+      if (mounted) setState(() => _opening = false);
+    }
+  }
+
   Future<void> _open(ResourceUsageEntry entry) async {
     if (_opening || _working) return;
     setState(() => _opening = true);
@@ -205,6 +233,11 @@ class _ResourceUsageDialogState extends State<ResourceUsageDialog> {
                   _error!,
                   style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
+              if (_notice != null)
+                Text(
+                  _notice!,
+                  key: const ValueKey('resource-usage-replacement-notice'),
+                ),
               if (_working) const LinearProgressIndicator(),
               const SizedBox(height: 12),
               Expanded(
@@ -234,6 +267,20 @@ class _ResourceUsageDialogState extends State<ResourceUsageDialog> {
                     secondary: true,
                     onPressed: () => Navigator.pop(context),
                   ),
+                  if (_replaceable)
+                    StudioButton(
+                      key: const ValueKey('resource-usage-replace'),
+                      label: 'Remplacer ses usages…',
+                      icon: Icons.swap_horiz,
+                      secondary: true,
+                      onPressed:
+                          !_working &&
+                              !_opening &&
+                              phase == ResourceUsagePhase.complete &&
+                              (_report?.entries.isNotEmpty ?? false)
+                          ? _replace
+                          : null,
+                    ),
                   StudioButton(
                     key: const ValueKey('resource-usage-analyze'),
                     label: _report == null

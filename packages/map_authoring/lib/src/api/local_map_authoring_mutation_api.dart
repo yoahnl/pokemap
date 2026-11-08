@@ -2724,6 +2724,7 @@ final class _LocalMapAuthoringSession {
       'tileset.remove',
       'element.duplicate',
       'element.delete',
+      'resource.usages.replace',
       'smart_tile.preset.rename',
       'smart_tile.preset.duplicate',
       'smart_tile.preset.delete',
