@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -257,6 +258,10 @@ class ResourceNavigation extends ChangeNotifier with ResourceNavigationTerrain {
       library.reveal(item);
     }
     notifyListeners();
+    if (!workspace.isDisposed &&
+        !workspace.hasResourceKind(library.family.canonicalKind)) {
+      unawaited(loadFamily(library.family));
+    }
   }
 
   void openElement(ProjectElementEntry? element, {bool edit = false}) {
