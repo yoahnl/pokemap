@@ -1,14 +1,22 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
+import 'package:avelune_studio/presentation/features/resources/resource_image_import.dart';
+import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../tool/example_project_assets.dart';
 import '../support/m2_ui_fixture.dart';
 import '../support/resource_administration_host.dart';
 import '../support/uwu_resource_host.dart';
+
+VoidCallback? _importAction(WidgetTester tester) => tester
+    .widget<StudioButton>(find.widgetWithText(StudioButton, 'Importer').last)
+    .onPressed;
 
 Future<String> _projectJson(UwUResourceHost host) async =>
     (await host.tester.runAsync(
@@ -23,7 +31,10 @@ void main() {
       await host.family(ResourceKind.images);
       await tapResourceAdministrationText(tester, 'Importer une image');
       expect(find.byKey(const ValueKey('resource-import-preflight')), findsOne);
-      expect(find.text('Format PNG vérifié'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('resource-import-decoded')),
+        findsOneWidget,
+      );
       await tapResourceAdministrationText(tester, 'Importer');
 
       final project = host.fixture.controller.project!;
@@ -118,9 +129,62 @@ void main() {
         find.byKey(const ValueKey('resource-import-uneven-width')),
         findsOneWidget,
       );
-      expect(find.text('Importer'), findsWidgets);
+      expect(_importAction(tester), isNull);
+      await tester.enterText(
+        find.byKey(const ValueKey('resource-import-cell-width')),
+        '32',
+      );
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey('resource-import-uneven-width')),
+        findsNothing,
+      );
+      expect(_importAction(tester), isNotNull);
       await tapResourceAdministrationText(tester, 'Annuler');
       await pumpIo(tester);
+    },
+  );
+
+  testWidgets(
+    'a PNG whose content does not decode cannot be imported and nothing is published',
+    (tester) async {
+      final valid = Uint8List.fromList(exampleAtlasPng());
+      final corrupt = Uint8List.fromList([
+        ...valid.sublist(0, 60),
+        ...List.filled(40, 7),
+        ...valid.sublist(100),
+      ]);
+      late File picked;
+      final host = await UwUResourceHost.open(
+        tester,
+        imagePicker: () async {
+          picked = File(
+            '${Directory.systemTemp.path}/avelune-corrupt-${DateTime.now().microsecondsSinceEpoch}.png',
+          );
+          await picked.writeAsBytes(corrupt);
+          addTearDown(() => picked.deleteSync());
+          return PickedResourceImage(picked.path, 'Corrompue', corrupt, 160, 64);
+        },
+      );
+      final before = await _projectJson(host);
+      await host.family(ResourceKind.images);
+      await tapResourceAdministrationText(tester, 'Importer une image');
+      expect(
+        find.byKey(const ValueKey('resource-import-unreadable')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('resource-import-decoded')),
+        findsNothing,
+      );
+      expect(_importAction(tester), isNull);
+      await tapResourceAdministrationText(tester, 'Annuler');
+      expect(await _projectJson(host), before);
+      expect(await tester.runAsync(picked.readAsBytes), corrupt);
+      expect(
+        host.fixture.controller.project!.tilesets.map((item) => item.name),
+        isNot(contains('Corrompue')),
+      );
     },
   );
 }

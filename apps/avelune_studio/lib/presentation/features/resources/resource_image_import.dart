@@ -1,4 +1,6 @@
+import 'dart:math';
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
@@ -82,9 +84,14 @@ class ResourceImportResult extends StatelessWidget {
 }
 
 class _PreflightLine extends StatelessWidget {
-  const _PreflightLine(this.text, {this.warning = false, super.key});
+  const _PreflightLine(
+    this.text, {
+    this.warning = false,
+    this.pending = false,
+    super.key,
+  });
   final String text;
-  final bool warning;
+  final bool warning, pending;
 
   @override
   Widget build(BuildContext context) {
@@ -95,9 +102,17 @@ class _PreflightLine extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(
-            warning ? Icons.warning_amber_outlined : Icons.check_circle_outline,
+            pending
+                ? Icons.hourglass_empty
+                : warning
+                ? Icons.warning_amber_outlined
+                : Icons.check_circle_outline,
             size: 18,
-            color: warning ? colors.tertiary : colors.primary,
+            color: pending
+                ? colors.onSurfaceVariant
+                : warning
+                ? colors.tertiary
+                : colors.primary,
           ),
           const SizedBox(width: 8),
           Expanded(child: Text(text)),
@@ -151,6 +166,33 @@ class _ImageImportDialogState extends State<_ImageImportDialog> {
   late final name = TextEditingController(text: widget.image.name);
   late final width = TextEditingController(text: '${widget.tileWidth}');
   late final height = TextEditingController(text: '${widget.tileHeight}');
+  bool? _decoded;
+
+  @override
+  void initState() {
+    super.initState();
+    _verifyContent();
+  }
+
+  Future<void> _verifyContent() async {
+    var decoded = false;
+    try {
+      final codec = await ui.instantiateImageCodec(
+        widget.image.bytes,
+        targetWidth: min(widget.image.width, 256),
+      );
+      try {
+        final frame = await codec.getNextFrame();
+        frame.image.dispose();
+        decoded = codec.frameCount == 1;
+      } finally {
+        codec.dispose();
+      }
+    } on Object {
+      decoded = false;
+    }
+    if (mounted) setState(() => _decoded = decoded);
+  }
 
   @override
   void dispose() {
@@ -169,15 +211,18 @@ class _ImageImportDialogState extends State<_ImageImportDialog> {
     final intent = widget.intent;
     final w = int.tryParse(width.text) ?? 0;
     final h = int.tryParse(height.text) ?? 0;
+    final nameTaken = takenNames.contains(name.text.trim().toLowerCase());
+    final restWidth = w > 0 ? image.width % w : 0;
+    final restHeight = h > 0 ? image.height % h : 0;
     final valid =
+        _decoded == true &&
         name.text.trim().isNotEmpty &&
         w > 0 &&
         h > 0 &&
         w <= image.width &&
-        h <= image.height;
-    final nameTaken = takenNames.contains(name.text.trim().toLowerCase());
-    final restWidth = w > 0 ? image.width % w : 0;
-    final restHeight = h > 0 ? image.height % h : 0;
+        h <= image.height &&
+        restWidth == 0 &&
+        restHeight == 0;
     return Dialog(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 650),
@@ -217,7 +262,23 @@ class _ImageImportDialogState extends State<_ImageImportDialog> {
                       style: Theme.of(context).textTheme.titleSmall,
                     ),
                     const SizedBox(height: 8),
-                    const _PreflightLine('Format PNG vérifié'),
+                    switch (_decoded) {
+                      null => const _PreflightLine(
+                        'Vérification du contenu PNG…',
+                        pending: true,
+                        key: ValueKey('resource-import-decoding'),
+                      ),
+                      true => const _PreflightLine(
+                        'Contenu PNG vérifié',
+                        key: ValueKey('resource-import-decoded'),
+                      ),
+                      false => const _PreflightLine(
+                        'Ce PNG est incomplet ou illisible : il ne peut pas '
+                        'être importé. Le fichier choisi n’est pas modifié.',
+                        warning: true,
+                        key: ValueKey('resource-import-unreadable'),
+                      ),
+                    },
                     _PreflightLine(
                       '${image.width} × ${image.height} px · copie sans redimensionnement',
                     ),
@@ -227,15 +288,19 @@ class _ImageImportDialogState extends State<_ImageImportDialog> {
                       ),
                     if (restWidth > 0)
                       _PreflightLine(
-                        'La largeur n’est pas un multiple de la cellule : '
-                        '$restWidth px resteront hors de la grille.',
+                        'La largeur (${image.width} px) n’est pas un multiple '
+                        'de la cellule ($w px) : il resterait $restWidth px '
+                        'hors de la grille. Choisissez une largeur de cellule '
+                        'qui la divise exactement.',
                         warning: true,
                         key: const ValueKey('resource-import-uneven-width'),
                       ),
                     if (restHeight > 0)
                       _PreflightLine(
-                        'La hauteur n’est pas un multiple de la cellule : '
-                        '$restHeight px resteront hors de la grille.',
+                        'La hauteur (${image.height} px) n’est pas un multiple '
+                        'de la cellule ($h px) : il resterait $restHeight px '
+                        'hors de la grille. Choisissez une hauteur de cellule '
+                        'qui la divise exactement.',
                         warning: true,
                         key: const ValueKey('resource-import-uneven-height'),
                       ),
