@@ -27,8 +27,11 @@ final class AuthoringMutationDescription {
     required Iterable<AuthoringMutationCommandDescriptor> commands,
     required Iterable<AuthoringActionDescriptor> actions,
     required this.fullParity,
+    required Map<String, Object?> workshopPreparation,
   })  : commands = List.unmodifiable(commands),
-        actions = List.unmodifiable(actions);
+        actions = List.unmodifiable(actions),
+        workshopPreparation = freezeContractJsonObject(workshopPreparation,
+            field: 'workshopPreparation');
 
   static const schemaVersion = 1;
   static const protocol = 'pokemap.authoring.mutation.v1';
@@ -36,6 +39,7 @@ final class AuthoringMutationDescription {
   final List<AuthoringMutationCommandDescriptor> commands;
   final List<AuthoringActionDescriptor> actions;
   final AuthoringFullParityCatalog fullParity;
+  final Map<String, Object?> workshopPreparation;
 
   bool get readOnly => false;
   String get multiFileGuarantee => 'recoverable';
@@ -49,6 +53,7 @@ final class AuthoringMutationDescription {
           'actions': [for (final action in actions) action.toJson()],
           'multiFileGuarantee': multiFileGuarantee,
           'fullParity': fullParity.toJson(),
+          'workshopPreparation': workshopPreparation,
         },
         field: 'describeMutations',
       );

@@ -777,12 +777,7 @@ final class LocalMapAuthoringMutationApi
         ],
         actions: _dispatcher.descriptors,
         fullParity: AuthoringFullParityCatalog.canonical(),
-      );
-
-  @override
-  Map<String, Object?> describeMutations() => {
-        ...describeMutationContracts().toJson(),
-        'workshopPreparation': {
+        workshopPreparation: const {
           'scopes': ['mapCreation', 'dialogueCreation', 'assetImport', 'nativeResources', 'metadataContext'],
           'dialogueCreation': {
             'requiresPreparedMetadataIndexes': true,
@@ -799,7 +794,11 @@ final class LocalMapAuthoringMutationApi
             'mayInspectRetainedCatalogs': true,
           },
         },
-      };
+      );
+
+  @override
+  Map<String, Object?> describeMutations() =>
+      describeMutationContracts().toJson();
 
   @override
   Future<AuthoringArtifactStageResult> stageArtifactFile({
