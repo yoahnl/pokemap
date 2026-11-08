@@ -38,7 +38,11 @@ void main() {
     'interrupted'
   ]) {
     test('canonical cry import: $scenario', () async {
-      final parent = Directory(Platform.environment['AVELUNE_QA_ROOT']!);
+      final parent = Directory(Platform.environment['AVELUNE_QA_ROOT'] ??
+          (Platform.isMacOS
+              ? '${Platform.environment['HOME']}/Library/Caches/AveluneQA'
+              : Directory.systemTemp.path));
+      await parent.create(recursive: true);
       final root = await parent.createTemp('catalog-cry-');
       addTearDown(() => root.delete(recursive: true));
       final store = await CatalogStorageStore.open(projectRoot: root.path);
