@@ -21,7 +21,8 @@ void main() {
           await CatalogStorageStore.open(projectRoot: directory.path);
       final build = CatalogStorageBuilder().build([
         _unit('selected', 'before'),
-        for (var i = 0; i < unrelated; i++) _unit('unrelated-$i', 'untouched'),
+        for (var i = 0; i < unrelated; i++)
+          _unit('unrelated-$i', 'untouched', position: i + 1),
       ]);
       await published.publish(build, expectedRootRevision: null);
       final unrelatedUnits = {
@@ -317,8 +318,9 @@ void main() {
 
 CatalogDefinitionKey _key(String id) =>
     CatalogDefinitionKey(CatalogDefinitionKind.tileset, id);
-CatalogDefinitionUnit _unit(String id, String name) =>
-    CatalogDefinitionUnit(key: _key(id), payload: {'name': name});
+CatalogDefinitionUnit _unit(String id, String name, {int position = 0}) =>
+    CatalogDefinitionUnit(
+        key: _key(id), payload: {'name': name, 'position': position});
 
 final class _CountingReader
     implements

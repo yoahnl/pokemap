@@ -157,7 +157,7 @@ void main() {
       final units = [
         _unit('selected', 'before'),
         for (var index = 0; index < unrelated; index++)
-          _unit('unrelated-$index', 'untouched')
+          _unit('unrelated-$index', 'untouched', position: index + 1)
       ];
       final built = CatalogStorageBuilder()
           .build([...units, ...CatalogMetadataDocuments.initialize(units)]);
@@ -240,8 +240,9 @@ void main() {
 
 CatalogDefinitionKey _key(String id) =>
     CatalogDefinitionKey(CatalogDefinitionKind.tileset, id);
-CatalogDefinitionUnit _unit(String id, String name) =>
-    CatalogDefinitionUnit(key: _key(id), payload: {'name': name});
+CatalogDefinitionUnit _unit(String id, String name, {int position = 0}) =>
+    CatalogDefinitionUnit(
+        key: _key(id), payload: {'name': name, 'position': position});
 
 final class _CountingReader
     implements

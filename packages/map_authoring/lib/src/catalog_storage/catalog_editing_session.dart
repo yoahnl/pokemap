@@ -435,8 +435,13 @@ final class CatalogEditingSession {
           await _prepareResourceSlots();
           return;
         }
+        final initializedKeys = {for (final unit in initialized) unit.key};
         final plan = await _planPatch(
-            upserts: initialized,
+            upserts: [
+              ...initialized,
+              for (final unit in await _resourceSlotUpserts())
+                if (!initializedKeys.contains(unit.key)) unit,
+            ],
             removals: const [],
             additionalChanges: const [],
             workspaceFingerprint: null,
@@ -448,16 +453,18 @@ final class CatalogEditingSession {
             request: null,
             prepareMetadataDocuments: true);
         await _apply(plan);
-        await _prepareResourceSlots();
       });
 
-  Future<void> _prepareResourceSlots() async {
-    final List<CatalogDefinitionUnit> upserts;
+  Future<List<CatalogDefinitionUnit>> _resourceSlotUpserts() async {
     try {
-      upserts = await CatalogResourcePositions.prepareSlots(snapshot);
+      return await CatalogResourcePositions.prepareSlots(snapshot);
     } on FormatException {
-      return;
+      return const [];
     }
+  }
+
+  Future<void> _prepareResourceSlots() async {
+    final upserts = await _resourceSlotUpserts();
     if (upserts.isEmpty) return;
     final plan = await _planPatch(
         upserts: upserts,
