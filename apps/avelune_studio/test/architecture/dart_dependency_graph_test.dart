@@ -69,6 +69,23 @@ void main() {
     );
   });
 
+  test('ignore le code qui commence comme une directive', () {
+    final dependencies = graph({
+      '${root}app.dart':
+          "import 'dart:async';\n"
+          "final ok = values.any(\n"
+          "  (part) =>\n"
+          "    part is Map &&\n"
+          "    part['kind'] == 'model3d');",
+    });
+    expect(
+      dependencies
+          .walk([root.resolve('app.dart')], stopAt: (_) => false)
+          .map((edge) => edge.specifier),
+      ['dart:async'],
+    );
+  });
+
   test('un package inconnu echoue au lieu de masquer une dependance', () {
     final dependencies = graph({
       '${root}app.dart': "import 'package:missing/api.dart';",

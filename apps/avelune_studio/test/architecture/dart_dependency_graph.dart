@@ -40,7 +40,7 @@ class DartDependencyGraph {
   final Map<String, Uri> packageRoots;
 
   static final _directives = RegExp(
-    r'^\s*(?:import|export|part(?!\s+of))\s+([^;]+);',
+    r'''^\s*(?:import|export|part(?!\s+of))\s+(['"][^;]+);''',
     multiLine: true,
   );
   static final _strings = RegExp("['\"]([^'\"]+)['\"]");
