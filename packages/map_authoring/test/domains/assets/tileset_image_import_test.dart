@@ -45,6 +45,23 @@ void main() {
     expect(await Directory('${fixture.root.path}/assets').exists(), isFalse);
   });
 
+  for (final (label, bytes) in [
+    ('wrong checksums', _corruptedChecksums),
+    ('truncated data', _truncated),
+  ]) {
+    test('image import refuses a PNG with $label without publishing',
+        () async {
+      final fixture = await _Fixture.create(input: bytes);
+      addTearDown(fixture.dispose);
+      final before = await fixture.projectFile.readAsBytes();
+      final result = await fixture.plan();
+      expect(result.status, AuthoringResultStatus.failure);
+      expect(result.error?.details['domainCode'], 'tileset.image_decode_failed');
+      expect(await fixture.projectFile.readAsBytes(), before);
+      expect(await Directory('${fixture.root.path}/assets').exists(), isFalse);
+    });
+  }
+
   test('concurrent manifest update between plan and apply is never overwritten',
       () async {
     final fixture = await _Fixture.create();
@@ -130,12 +147,13 @@ final class _Fixture {
 
   File get projectFile => File('${root.path}/project.json');
 
-  static Future<_Fixture> create({bool failAfterPromotion = false}) async {
+  static Future<_Fixture> create(
+      {bool failAfterPromotion = false, List<int>? input}) async {
     final root = await Directory.systemTemp.createTemp('tileset-image-import-');
     await File('${root.path}/project.json').writeAsString(jsonEncode(
       ProjectManifest(name: 'Image import', maps: [], tilesets: []).toJson(),
     ));
-    await File('${root.path}/input.png').writeAsBytes(_png);
+    await File('${root.path}/input.png').writeAsBytes(input ?? _png);
     const reader = LocalProjectFileReader();
     final policy = await WorkspacePolicy.create(
         allowedRootPaths: [root.path], fileReader: reader);
@@ -227,4 +245,10 @@ final class _Fixture {
 }
 
 final _png = base64Decode(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==');
+
+final _corruptedChecksums = base64Decode(
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLttAAAAABJRU5ErkJggg==');
+
+final _truncated = base64Decode(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4');

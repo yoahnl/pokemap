@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:image/image.dart' as image;
 import 'package:map_core/map_core.dart';
 
 import '../../contracts/artifact_ref.dart';
@@ -11,6 +10,7 @@ import '../../references/resource_usage_report.dart';
 import '../../references/resource_usage_walk.dart';
 import '../../workspace/project_snapshot.dart';
 import 'asset_store.dart';
+import 'png_decoding.dart';
 import 'tileset_actions.dart';
 
 AssetCatalog readResourceAssetCatalog(ProjectSnapshot snapshot) {
@@ -157,15 +157,7 @@ void validateResourceSourcePng(
     throw VisualLibraryException('tileset.candidate_geometry',
         'Replacement must preserve the exact atlas pixel dimensions and slicing.');
   }
-  try {
-    final decoded = image.decodePng(Uint8List.fromList(bytes));
-    if (decoded == null ||
-        decoded.width != width ||
-        decoded.height != height ||
-        decoded.numFrames != 1) {
-      throw const FormatException('A single-frame PNG is required.');
-    }
-  } on Object {
+  if (!decodesAsSingleFramePng(bytes, width: width, height: height)) {
     throw VisualLibraryException('tileset.candidate_decode_failed',
         'The candidate does not decode as a complete supported PNG.');
   }

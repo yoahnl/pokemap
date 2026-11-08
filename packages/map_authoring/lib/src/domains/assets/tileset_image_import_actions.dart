@@ -11,6 +11,7 @@ import '../../transactions/change_set.dart';
 import 'asset_actions.dart';
 import 'asset_store.dart';
 import 'package:map_distribution/map_distribution.dart';
+import 'png_decoding.dart';
 import 'tileset_actions.dart';
 
 final class TilesetImageImportActions {
@@ -46,8 +47,9 @@ final class TilesetImageImportActions {
     if (artifact == null || artifact.mediaType != 'image/png') {
       throw const FormatException('A staged PNG image is required.');
     }
+    final bytes = await artifactStore.read(handle);
     final dimensions = decodeRasterImageDimensions(
-      await artifactStore.read(handle),
+      bytes,
       mediaType: artifact.mediaType,
     );
     final width = context.request.parameters['tileWidth'];
@@ -63,6 +65,11 @@ final class TilesetImageImportActions {
         dimensions.height % height != 0) {
       throw const FormatException(
           'The PNG dimensions must contain complete grid cells.');
+    }
+    if (!decodesAsSingleFramePng(bytes,
+        width: dimensions.width, height: dimensions.height)) {
+      throw VisualLibraryException('tileset.image_decode_failed',
+          'The PNG does not decode as one complete image.');
     }
     final id = fields.string('tilesetId');
     if (!RegExp(r'^[a-zA-Z0-9_-]+$').hasMatch(id) ||

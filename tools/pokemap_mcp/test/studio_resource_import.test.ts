@@ -27,7 +27,7 @@ test("packaged MCP discovers and commits Studio native image import", { timeout:
   const projectRoot = join(temporary, "project");
   await cp(resolve(process.cwd(), "../../examples/playable_runtime_host/golden_item_system"), projectRoot, { recursive: true });
   const sourcePath = join(projectRoot, "input.png");
-  const pixels = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLttAAAAABJRU5ErkJggg==", "base64");
+  const pixels = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFAAH/iZk9HQAAAABJRU5ErkJggg==", "base64");
   await writeFile(sourcePath, pixels);
   const original = record(JSON.parse(await readFile(join(projectRoot, "project.json"), "utf8")));
   const mapPaths = (original.maps as JsonRecord[]).map((entry) => String(entry.relativePath));
@@ -61,6 +61,39 @@ test("packaged MCP discovers and commits Studio native image import", { timeout:
     for (let index = 0; index < mapPaths.length; index++) {
       assert.deepEqual(await readFile(join(projectRoot, mapPaths[index]!)), mapBytes[index]);
     }
+    await data(client, "pokemap_workspace", { operation: "close", workspaceHandle: opened.workspaceHandle });
+  } finally {
+    await client.close();
+    await rm(temporary, { recursive: true, force: true });
+  }
+});
+
+test("packaged MCP refuses a PNG that does not decode before planning an import", { timeout: 120_000 }, async () => {
+  const temporary = await mkdtemp(join(tmpdir(), "studio-resource-mcp-"));
+  const projectRoot = join(temporary, "project");
+  await cp(resolve(process.cwd(), "../../examples/playable_runtime_host/golden_item_system"), projectRoot, { recursive: true });
+  const sourcePath = join(projectRoot, "input.png");
+  await writeFile(sourcePath, Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLttAAAAABJRU5ErkJggg==", "base64"));
+  const projectBytes = await readFile(join(projectRoot, "project.json"));
+  const args = [resolve(process.cwd(), "dist/src/index.js"), "--root", projectRoot];
+  if (process.env.POKEMAP_TEST_DART) args.push("--dart", process.env.POKEMAP_TEST_DART);
+  const transport = new StdioClientTransport({ command: process.execPath, args, cwd: process.cwd(), stderr: "pipe" });
+  const client = new Client({ name: "studio-resource-import-refusal-test", version: "1.0.0" });
+  try {
+    await client.connect(transport);
+    const opened = await data(client, "pokemap_workspace", { operation: "open", projectRoot });
+    const projectHandle = String(opened.projectHandle);
+    const staged = await data(client, "pokemap_artifact_stage", { sourcePath, declaredMediaType: "image/png" });
+    const validated = await data(client, "pokemap_validate", { projectHandle });
+    const refused = await client.callTool({ name: "pokemap_plan", arguments: { projectHandle, request: {
+      requestId: "corrupt-image", actionId: "tileset.import_image", actionVersion: 1,
+      workspaceHandle: opened.workspaceHandle, parameters: {
+        artifactHandle: staged.artifactHandle, tilesetId: "corrupt-image", name: "Corrupt image", tileWidth: 1, tileHeight: 1,
+      }, expectedRevision: validated.snapshotRevision, idempotencyKey: "corrupt-image", dryRun: false,
+    } } });
+    assert.equal(refused.isError, true);
+    assert.match(JSON.stringify(refused.structuredContent), /tileset\.image_decode_failed/);
+    assert.deepEqual(await readFile(join(projectRoot, "project.json")), projectBytes);
     await data(client, "pokemap_workspace", { operation: "close", workspaceHandle: opened.workspaceHandle });
   } finally {
     await client.close();
