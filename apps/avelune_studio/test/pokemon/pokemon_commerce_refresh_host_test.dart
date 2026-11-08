@@ -26,7 +26,7 @@ void main() {
         .widget<PokemonWorkspacePage>(find.byType(PokemonWorkspacePage))
         .controller!
         .commerce!;
-    final before = commerce.snapshot!.references.referencesFor('potion').length;
+    final before = await _analyzedPotionReferences(tester, commerce);
 
     await host.go('Carte');
     final saved = await tester.runAsync(() async {
@@ -51,10 +51,8 @@ void main() {
     await pumpIo(tester);
 
     expect(commerce.item?.id, 'potion');
-    expect(
-      commerce.snapshot!.references.referencesFor('potion').length,
-      before + 1,
-    );
+    expect(commerce.snapshot!.referencesComplete, isFalse);
+    expect(await _analyzedPotionReferences(tester, commerce), before + 1);
     await host.go('Carte');
     final removed = await tester.runAsync(() async {
       host.document.commit(
@@ -70,10 +68,7 @@ void main() {
     await pumpIo(tester);
     await host.go('Pokémon');
     await pumpIo(tester);
-    expect(
-      commerce.snapshot!.references.referencesFor('potion').length,
-      before,
-    );
+    expect(await _analyzedPotionReferences(tester, commerce), before);
   });
 
   testWidgets('return from Histoire refreshes narrative item references', (
@@ -86,7 +81,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('item-potion')));
     await pumpIo(tester);
     final commerce = _commerce(tester);
-    final before = commerce.snapshot!.references.referencesFor('potion').length;
+    final before = await _analyzedPotionReferences(tester, commerce);
     await host.go('Histoire');
     await tester.runAsync(() async {
       await LocalSceneAdapter(
@@ -96,10 +91,8 @@ void main() {
     });
     await host.go('Pokémon');
     await pumpIo(tester);
-    expect(
-      commerce.snapshot!.references.referencesFor('potion').length,
-      before + 1,
-    );
+    expect(commerce.snapshot!.referencesComplete, isFalse);
+    expect(await _analyzedPotionReferences(tester, commerce), before + 1);
     expect(
       commerce.snapshot!.references.referencesFor('potion').last.kind,
       ProjectItemReferenceKind.sceneGive,
@@ -255,4 +248,15 @@ Future<void> _seed(M3StoryFixture fixture) async {
           .toJson(),
     ),
   );
+}
+
+Future<int> _analyzedPotionReferences(
+  WidgetTester tester,
+  PokemonCommerceController commerce,
+) async {
+  final analysis = commerce.analyzeReferences();
+  await pumpIo(tester);
+  await analysis;
+  expect(commerce.snapshot!.referencesComplete, isTrue);
+  return commerce.snapshot!.references.referencesFor('potion').length;
 }

@@ -8,7 +8,8 @@ import 'package:map_core/map_core_domain.dart';
 import 'm2_ui_fixture.dart';
 import 'm3_story_fixture.dart';
 
-final class UiPokemonCommercePort implements PokemonCommercePort {
+final class UiPokemonCommercePort
+    implements PokemonCommercePort, PokemonCommerceReferencePort {
   const UiPokemonCommercePort(this.source, this.tester);
 
   factory UiPokemonCommercePort.forFixture(
@@ -58,6 +59,13 @@ final class UiPokemonCommercePort implements PokemonCommercePort {
   @override
   Future<PokemonCommerceSnapshot> load() async =>
       (await WidgetResourcePort.serial(tester, source.load))!;
+
+  @override
+  Future<PokemonCommerceSnapshot> analyzeReferences() async =>
+      (await WidgetResourcePort.serial(
+        tester,
+        (source as PokemonCommerceReferencePort).analyzeReferences,
+      ))!;
 
   @override
   Future<void> saveItem(
