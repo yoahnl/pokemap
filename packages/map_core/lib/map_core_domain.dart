@@ -403,6 +403,7 @@ export 'src/operations/map_connections.dart';
 export 'src/operations/map_entities.dart';
 export 'src/operations/map_events.dart';
 export 'src/operations/map_placed_elements.dart';
+export 'src/operations/map_resource_replacement.dart';
 export 'src/operations/map_placed_element_visual_order.dart';
 export 'src/operations/map_placed_element_footprint.dart';
 export 'src/operations/map_placed_element_collision_geometry.dart';

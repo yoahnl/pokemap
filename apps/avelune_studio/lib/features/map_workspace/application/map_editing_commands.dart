@@ -61,44 +61,40 @@ class MapEditingCommands {
 
   bool replace(String id, ProjectElementEntry element) {
     if (document.isElementUnavailable('decor', id)) return false;
-    final instance = document.current.placedElements
-        .where((placed) => placed.id == id)
-        .firstOrNull;
-    if (instance == null) {
-      document.error = 'Ce décor n’existe plus.';
-      return false;
-    }
-    if (environmentOwnedMapPlacedElementIds(document.current).contains(id) ||
-        instance.properties[pokemapPlacementOriginProperty]?.trim() ==
-            pokemapPlacementOriginEnvironment) {
-      document.error = 'Ce décor est piloté par une zone d’environnement.';
-      return false;
-    }
-    if (document.current.movingProps.any(
-      (prop) => prop.placedElementId == id,
-    )) {
-      document.error =
-          'Retirez le déplacement du décor avant de changer son visuel.';
-      return false;
-    }
     final entry = project.elements
         .where((candidate) => candidate.id == element.id)
         .firstOrNull;
-    if (entry == null) {
-      document.error = 'Cette ressource n’existe plus.';
+    const missingResource = 'Cette ressource n’existe plus.';
+    try {
+      final next = replaceMapPlacedElementResource(
+        document.current,
+        instanceId: id,
+        element: entry ?? element,
+        tileSize: PixelSize(
+          width: project.settings.tileWidth,
+          height: project.settings.tileHeight,
+        ),
+      );
+      if (entry == null) {
+        document.error = missingResource;
+        return false;
+      }
+      document.commit(next);
+      return true;
+    } on MapResourceReplacementException catch (refusal) {
+      document.error = switch (refusal.reason) {
+        MapResourceReplacementRefusal.environmentOwned =>
+          'Ce décor est piloté par une zone d’environnement.',
+        MapResourceReplacementRefusal.movingProp =>
+          'Retirez le déplacement du décor avant de changer son visuel.',
+        MapResourceReplacementRefusal.outOfBounds =>
+          entry == null
+              ? missingResource
+              : 'Ce décor dépasse les limites de la carte.',
+        _ => 'Ce décor n’existe plus.',
+      };
       return false;
     }
-    final next = instance.copyWith(
-      elementId: entry.id,
-      pixelSize: null,
-      animation: null,
-    );
-    if (!_fits(next, entry)) {
-      document.error = 'Ce décor dépasse les limites de la carte.';
-      return false;
-    }
-    document.commit(upsertMapPlacedElement(document.current, instance: next));
-    return true;
   }
 
   void deleteSelected() {

@@ -208,26 +208,15 @@ class SpatialModelEditingCommands {
     if (owner(id) != null) {
       throw StateError('Ce décor est piloté par une zone d’environnement.');
     }
-    final instance = selected(id);
-    if (instance == null) throw StateError('Ce décor n’existe plus.');
+    if (selected(id) == null) throw StateError('Ce décor n’existe plus.');
     final current = project.models3d
         .where((item) => item.id == model.id)
         .firstOrNull;
     if (current == null) throw StateError('Cette ressource n’existe plus.');
     document.commit(
-      operations.upsertInstance(
+      replaceSpatialInstanceModel(
         document.current,
-        SpatialModelInstance(
-          id: instance.id,
-          modelId: current.id,
-          position: instance.position,
-          rotationDegrees: instance.rotationDegrees,
-          scale: instance.scale,
-          blocksMovement: instance.blocksMovement,
-          castsShadows: instance.castsShadows,
-          entityId: instance.entityId,
-          visibilityCondition: instance.visibilityCondition,
-        ),
+        instanceId: id,
         model: current,
       ),
     );
