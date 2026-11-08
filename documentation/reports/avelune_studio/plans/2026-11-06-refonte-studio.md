@@ -1015,12 +1015,12 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 
 **Étapes d’implémentation :**
 
-- [ ] 1. Réutiliser les contrôleurs d’import et de préparation existants ; choisir le type à partir du fichier et de ses contrôles réels.
+- [ ] 1. Réutiliser les contrôleurs d’import et de préparation existants ; choisir le type à partir du fichier et de ses contrôles réels. *(Vague 4 (ateliers) : audit seulement. L’import d’image choisit déjà son type après décodage du fichier (14a37fb48) et le pack lit l’inspection de l’archive (`stage`, `inspect`) avant toute sélection ; aucun changement. Non revérifié en natif.)*
 - [ ] 2. Distinguer sélection de source, préflight, conflits, confirmation, progression et résultat ; l’annulation ne publie rien. *(Vague 4 : pour l’import d’image, vérifié en natif le 8 novembre sur une fixture 2D (atlas Release) : sélecteur de fichier, vérification avant import, refus d’une grille incomplète, confirmation, puis « « valide » est importée » ; l’annulation d’un PNG illisible laisse `project.json` intact. Prouvé aussi par `resource_import_context_flow_test.dart` (14a37fb48). Reste ouvert : le parcours des packs n’a pas été rejoué en natif dans cette vague.)*
-- [ ] 3. Pour un pack, garder dépendances, identité, attribution et stratégie de conflit canoniques ; ne pas réutiliser les simples options illustratives comme validation.
+- [ ] 3. Pour un pack, garder dépendances, identité, attribution et stratégie de conflit canoniques ; ne pas réutiliser les simples options illustratives comme validation. *(Vague 4 (ateliers) : audit. Le parcours reste canonique : `stage`, `inspect`, `selection.create`, puis `prepare` avec `conflictPolicy` `preserveProject` ou `importCopy` et révision attendue, attributions et dépendances lues dans la préparation. Couvert par `resource_pack_transfer_dialog_test.dart` (conflit nommé puis copie applicable) et `resource_pack_reimport_test.dart` (identités, dépendance modifiée, même identité refusée, nouvelle version à côté). Aucun manque trouvé ; parcours de pack non rejoué en natif faute de pack de test.)*
 - [ ] 4. Vérifier les octets, le format, les bornes, les références et les droits nécessaires ; conserver la source et l’état précédent en cas d’échec. *(Vague 4 : le préflight annonçait « Format PNG vérifié » après la seule lecture de l’en-tête, et un PNG à en-tête valide mais corrompu était importé ; il proposait aussi Importer pour une grille incomplète que `tileset.import_image` refuse. Corrigé par 14a37fb48 : décodage par le moteur avant d’activer Importer, grille complète exigée, fichier choisi et projet intacts en cas de refus ; test `resource_import_context_flow_test.dart` et vérifié en natif (PNG corrompu refusé, largeur 48 px bloquée, 16 px importée). Limite : l’action canonique (CLI, MCP) ne contrôle toujours que l’en-tête et la grille ; références et droits des packs non revérifiés ici.)*
 - [x] 5. Ouvrir le résultat dans son atelier ou le retrouver dans la bibliothèque ; proposer Utiliser seulement après publication admissible.
-- [ ] 6. Séparer préparation explicite coûteuse et modification locale ultérieure ; la première édition ne doit pas déclencher un préflight global caché.
+- [ ] 6. Séparer préparation explicite coûteuse et modification locale ultérieure ; la première édition ne doit pas déclencher un préflight global caché. *(Vague 4 (ateliers) : non traitée. Constat : chaque préparation de mutation de ressource (`_prepareResourceOperation`, `local_resource_preparation.dart`) rouvre le projet et charge un instantané `editorReadProjection` complet ; la mesure et l’allègement relèvent d’UX-25.)*
 
 **Tests comportementaux obligatoires :**
 
@@ -1074,11 +1074,11 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 
 **Étapes d’implémentation :**
 
-- [ ] 1. Garder Général, Source, Collision, Animation, Ombres/Lumière, Usages et Avancé suivant le type réel de la ressource.
-- [ ] 2. Préserver dimensions, origine, volume de collision, rampes/escaliers, animation, lumière, ombre et flamme déjà supportés.
+- [ ] 1. Garder Général, Source, Collision, Animation, Ombres/Lumière, Usages et Avancé suivant le type réel de la ressource. *(Vague 4 (ateliers) : structure de l’atelier modèle épinglée par un test (98bba08f6, `model_workshop_scope_test.dart` : Général, Ombres et lumière, Collision et passage, Source, Avancé, usages partagés ; Animation seulement si le GLB a des clips). Natif HGSS : définition partagée, « Voir tous les usages » et Général visibles ; les sections suivantes sont sous le pli (molette injectée inopérante). Le décor 2D garde Apparence, Collisions, Animation ; ses usages sont sur la fiche de la bibliothèque.)*
+- [ ] 2. Préserver dimensions, origine, volume de collision, rampes/escaliers, animation, lumière, ombre et flamme déjà supportés. *(Vague 4 (ateliers) : audit ; déjà couvert par `model_resource_adapter_test.dart` (collision et rampe après réouverture), `model_light_workshop_test.dart` (lumière, cycle, proximité), `model_shadow_controls_test.dart`, `model_collision_controls_test.dart`, `model_ramp_controls_test.dart`, tous verts. Pas de preuve native (sous le pli).)*
 - [x] 3. Montrer la définition partagée et ses usages avant une publication affectant des cartes ; l’occurrence reste éditée sur la carte.
 - [x] 4. Réutiliser les aperçus natifs et leurs cycles de vie ; ne pas recréer le renderer à chaque frappe de champ.
-- [ ] 5. Rendre lisibles les valeurs héritées et les exceptions de l’occurrence sans confondre cet héritage avec projet→carte.
+- [ ] 5. Rendre lisibles les valeurs héritées et les exceptions de l’occurrence sans confondre cet héritage avec projet→carte. *(Vague 4 (ateliers) : non traitée ; l’inspecteur d’occurrence vit dans map_workspace, hors de la zone de cette vague.)*
 
 **Tests comportementaux obligatoires :**
 
@@ -1125,8 +1125,8 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 - [ ] 1. Présenter le preset, ses motifs et matériaux admissibles sans aplatir les modèles natifs dans une image unique.
 - [ ] 2. Associer les sources à centre/bords/coins et conserver les règles d’animation ou de tampon déjà supportées.
 - [x] 3. Exposer la distinction sol/chemin/eau par les capacités réelles, en documentant tout manque contractuel identifié en UX-00.
-- [ ] 4. Fournir un terrain d’essai avec virage, intersection et effacement ; la validation doit examiner la définition effective.
-- [ ] 5. Conserver brouillons et conflits d’owner ; une annulation ne supprime pas une définition publiée.
+- [ ] 4. Fournir un terrain d’essai avec virage, intersection et effacement ; la validation doit examiner la définition effective. *(Vague 4 (ateliers) : l’essai résout déjà ses cases avec le résolveur canonique sur le brouillon en cours. Test ajouté (19fe361af, `terrain_creation_test.dart`) : virage, intersection et cul-de-sac tracés au geste de ligne, branche effacée, pièce réassignée relue. Pas de passe native sur l’éditeur de terrain.)*
+- [ ] 5. Conserver brouillons et conflits d’owner ; une annulation ne supprime pas une définition publiée. *(Vague 4 (ateliers) : audit ; couvert par `terrain_management_host_test.dart` (retrait du brouillon qui préserve terrain publié et source) et `terrain_management_guards_host_test.dart` (conflit de renommage qui garde la saisie, retrait local sans écriture), verts. Pas de preuve native.)*
 
 **Tests comportementaux obligatoires :**
 
@@ -1172,10 +1172,10 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 
 **Étapes d’implémentation :**
 
-- [ ] 1. Distinguer la définition de Border et les pièces qu’elle possède ; celles-ci restent masquées du placement ordinaire.
-- [ ] 2. Relier segments, coins intérieurs/extérieurs et extrémités aux emplacements compatibles.
-- [ ] 3. Conserver motifs, séquences, hauteur, direction, sauts et métadonnées franchissables déjà supportés.
-- [ ] 4. Afficher les pièces manquantes avant vérification ; autoriser un contour droit seulement lorsque ce mode est réellement choisi.
+- [ ] 1. Distinguer la définition de Border et les pièces qu’elle possède ; celles-ci restent masquées du placement ordinaire. *(Vague 4 (ateliers) : la fiche d’une bordure dit combien de pièces elle possède et qu’elles sont masquées de la palette ; un décor ou modèle pièce nomme sa bordure (f0a9b9863, `resource_detail_ui03_test.dart`). Natif HGSS : « 12 pièce(s) possédée(s) par cette bordure… » vu sur « Arène — chant-11-0 » ; la ligne d’une pièce 3D est sous le pli des réglages d’ombre et de lumière, non vérifiable en natif. Le retrait de la palette des décors date d’UX-05.)*
+- [x] 2. Relier segments, coins intérieurs/extérieurs et extrémités aux emplacements compatibles. *(Vague 4 (ateliers) : audit ; le patron relie bords, angles, coins extérieurs (2D) et extrémités, ou corps, extrémité, angle sortant et angle rentrant pour une falaise orientée ; la liste source filtre par dimension et par carte. Couvert par `border_creation_journey_test.dart` et `spatial_border_editor_test.dart` (« cliff edition exposes and keeps both corner families separately »). Natif HGSS : patron contour, mode droit (corps, extrémité) et falaise (angle sortant, angle rentrant) affichés.)*
+- [ ] 3. Conserver motifs, séquences, hauteur, direction, sauts et métadonnées franchissables déjà supportés. *(Vague 4 (ateliers) : audit ; couvert par `border_jump_behavior_preservation_test.dart`, `native_ledge_editor_test.dart` (saut, animations, orientation), `border_sequence_editor_test.dart` et `spatial_border_editor_test.dart` (altitude, variantes), verts. Pas de republication native.)*
+- [x] 4. Afficher les pièces manquantes avant vérification ; autoriser un contour droit seulement lorsque ce mode est réellement choisi. *(Vague 4 (ateliers) : l’aperçu nomme les familles manquantes au lieu d’un message générique, Publier restant désactivé (f0a9b9863, `border_pattern_panel_test.dart`, `border_creation_journey_test.dart`). Natif HGSS : « Pièces manquantes avant publication : bords, extrémités, angles », puis « extrémités, angles » après un bord, « extrémités » en tracés droits uniquement (1 / 2), « extrémités, angle sortant, angle rentrant » en falaise (1 / 4). Les deux tests de parcours qui ne retrouvaient plus leurs décors dans la liste paresseuse font défiler la liste.)*
 - [x] 5. Publier avec contrôle de révision et revue des usages ; conserver l’ancien contour si la publication échoue.
 
 **Tests comportementaux obligatoires :**
@@ -1221,11 +1221,11 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 
 **Étapes d’implémentation :**
 
-- [ ] 1. Rendre visibles les ressources sources, densité, répartition, variations et paramètres déjà pris en charge.
+- [x] 1. Rendre visibles les ressources sources, densité, répartition, variations et paramètres déjà pris en charge. *(Vague 4 (ateliers) : audit ; l’éditeur montre décors sources (décalage, poids, collision), densité, densité en bordure, irrégularité et espacement, c’est-à-dire tous les paramètres d’`EnvironmentGenerationParams`. Couvert par `environment_authoring_host_test.dart`. Natif HGSS : « Arbres entiers — Bourg et Route 29 » ouvert avec ces réglages. Corrigé au passage : revenir de l’atelier Personnages affichait « Aucun environnement » (e57ff50c4).)*
 - [x] 2. Séparer définition réutilisable et zone placée sur une carte ; montrer la portée de toute édition.
-- [ ] 3. Garder une prévisualisation déterministe pour une seed donnée et une explication du renouvellement.
-- [ ] 4. Conserver le lien natif zone→objets générés pour la sélection, le retrait et le diagnostic.
-- [ ] 5. Gérer ressource source retirée ou incompatible sans convertir les enfants en objets indépendants.
+- [ ] 3. Garder une prévisualisation déterministe pour une seed donnée et une explication du renouvellement. *(Vague 4 (ateliers) : l’explication est visible en natif (« Chaque zone garde sa graine… « Autre répartition »… en tire une nouvelle pour cette zone seulement ») ; la prévisualisation et le tirage vivent sur la carte (map_workspace), hors zone ; test de déterminisme non ajouté.)*
+- [ ] 4. Conserver le lien natif zone→objets générés pour la sélection, le retrait et le diagnostic. *(Vague 4 (ateliers) : non traitée ; zone et enfants générés relèvent de map_workspace, hors zone.)*
+- [ ] 5. Gérer ressource source retirée ou incompatible sans convertir les enfants en objets indépendants. *(Vague 4 (ateliers) : non traitée ; même raison.)*
 
 **Tests comportementaux obligatoires :**
 
@@ -1267,11 +1267,11 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 
 **Étapes d’implémentation :**
 
-- [ ] 1. Conserver une fiche réutilisable avec identité, feuille/sprite/modèle, animations et portraits.
-- [ ] 2. Montrer la portée : personnage du projet versus présence sur la carte, conditions et interaction de cette présence.
-- [ ] 3. Importer les animations via les contrôles existants ; ne pas supposer une grille 4×4 pour toutes les sources.
-- [ ] 4. Prévisualiser directions, états, scale et ancrage compatibles avec le profil.
-- [ ] 5. Présenter les références manquantes et interdire l’utilisation sans effacer la configuration ; relier les présences connues.
+- [x] 1. Conserver une fiche réutilisable avec identité, feuille/sprite/modèle, animations et portraits. *(Vague 4 (ateliers) : audit ; fiche Identité (nom, source, identifiant stable, rendu 3D, dimensions, aperçu), Animations et Portraits, bibliothèque permanente à gauche. Natif HGSS sur « Joueur ». Le retour aux ressources depuis cet atelier rechargeait mal la famille affichée : corrigé par e57ff50c4 (`resource_library_family_return_test.dart`).)*
+- [ ] 2. Montrer la portée : personnage du projet versus présence sur la carte, conditions et interaction de cette présence. *(Vague 4 (ateliers) : non traitée.)*
+- [x] 3. Importer les animations via les contrôles existants ; ne pas supposer une grille 4×4 pour toutes les sources. *(Vague 4 (ateliers) : audit ; la marche importe une bande de trois poses par direction, le vélo une planche quatre poses × quatre directions, et la grille des poses s’ajuste (2 à 16 cases) ; aucune grille 4×4 imposée. Couvert par `bicycle_animation_import_test.dart` et `surf_animation_import_test.dart`. Natif HGSS : « Importer une animation dédiée », « Découper automatiquement » et « Ajuster la grille » présents sur la planche guidée.)*
+- [ ] 4. Prévisualiser directions, états, scale et ancrage compatibles avec le profil. *(Vague 4 (ateliers) : directions et vitesse de l’aperçu visibles en natif ; échelle et ancrage non vérifiés.)*
+- [ ] 5. Présenter les références manquantes et interdire l’utilisation sans effacer la configuration ; relier les présences connues. *(Vague 4 (ateliers) : constat non corrigé : la palette des personnages de la carte (`character_palette.dart`) propose un personnage dont l’image source manque ; l’atelier affiche « Image manquante ». Bloquer l’usage demande de savoir si un personnage 3D peut vivre sans `tilesetId` : à décider.)*
 - [x] 6. Faire de la bibliothèque des personnages le panneau de sélection permanent et garder un seul onglet Identité ; ne conserver une vue Bibliothèque distincte que si elle répond à une vraie tâche (audit R01, P1 ; character_studio_page.dart).
 - [x] 7. Choisir un seul mot pour les portraits, par exemple « expression », et distinguer créer une expression et lui associer une image ; vérifier la portée partagée par un essai d’écriture avant de l’annoncer (audit R03 ; character_studio_portrait_panel.dart).
 
