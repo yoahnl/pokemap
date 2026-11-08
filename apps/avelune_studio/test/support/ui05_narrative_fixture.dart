@@ -105,7 +105,7 @@ class Ui05NarrativeFixture {
                 ],
               ),
               StorylineChapter(
-                id: 'departure-intro',
+                id: 'departure_chapter',
                 title: 'Avant le départ',
                 order: 10,
                 steps: [

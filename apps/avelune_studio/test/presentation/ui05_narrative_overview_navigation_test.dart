@@ -9,6 +9,7 @@ import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button
 import 'package:avelune_studio/presentation/shared/widgets/layout/studio_primary_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image/image.dart' as image;
 
 import '../support/capture_m3_widget.dart';
 import '../support/m2_ui_fixture.dart';
@@ -26,7 +27,7 @@ void main() {
       () => Ui05NarrativeFixture.create(tester),
     ))!;
     addTearDown(fixture.dispose);
-    await tester.runAsync(() => seedTrainArtwork(fixture));
+    await tester.runAsync(() => seedNarrativeArtwork(fixture));
     expect(
       await tester.runAsync(
         () => fixture.port.readArtwork(NarrativeArtworkKind.hero),
@@ -151,7 +152,7 @@ void main() {
       () => Ui05NarrativeFixture.create(tester),
     ))!;
     addTearDown(fixture.dispose);
-    await tester.runAsync(() => seedTrainArtwork(fixture));
+    await tester.runAsync(() => seedNarrativeArtwork(fixture));
     final before = await tester.runAsync(fixture.diskSnapshot);
     await tester.pumpWidget(fixture.app(tester, withOwners: true));
     await pumpIo(tester);
@@ -215,9 +216,7 @@ void main() {
   });
 }
 
-Future<void> seedTrainArtwork(Ui05NarrativeFixture fixture) async {
-  const source =
-      '../../documentation/reports/avelune_studio/UI05_histoire/artwork_train';
+Future<void> seedNarrativeArtwork(Ui05NarrativeFixture fixture) async {
   final root = fixture.source.session.directoryPath;
   final files = <String, String>{
     'hero.png': 'hero.png',
@@ -234,6 +233,13 @@ Future<void> seedTrainArtwork(Ui05NarrativeFixture fixture) async {
   for (final entry in files.entries) {
     final destination = File('$root/assets/studio/narrative/${entry.key}');
     await destination.parent.create(recursive: true);
-    await File('$source/${entry.value}').copy(destination.path);
+    await destination.writeAsBytes(_artworkPng(entry.value));
   }
+}
+
+List<int> _artworkPng(String name) {
+  final shade = name.codeUnits.fold(0, (sum, unit) => sum + unit) % 200;
+  final artwork = image.Image(width: 64, height: 36)
+    ..clear(image.ColorRgb8(40 + shade, 80, 160 - shade ~/ 2));
+  return image.encodePng(artwork);
 }
