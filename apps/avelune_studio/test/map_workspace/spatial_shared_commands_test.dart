@@ -32,14 +32,14 @@ void main() {
     ) async {
       final project = ProjectManifest.fromJson(
         jsonDecode(
-              File('../../apps/hgss_first_map/project.json').readAsStringSync(),
+              File('test/fixtures/spatial_first_map/project.json').readAsStringSync(),
             )
             as Map<String, dynamic>,
       );
       final source = MapData.fromJson(
         jsonDecode(
               File(
-                '../../apps/hgss_first_map/maps/first-map.json',
+                'test/fixtures/spatial_first_map/maps/first-map.json',
               ).readAsStringSync(),
             )
             as Map<String, dynamic>,
@@ -182,14 +182,14 @@ void main() {
   ) async {
     final project = ProjectManifest.fromJson(
       jsonDecode(
-            File('../../apps/hgss_first_map/project.json').readAsStringSync(),
+            File('test/fixtures/spatial_first_map/project.json').readAsStringSync(),
           )
           as Map<String, dynamic>,
     );
     final map = MapData.fromJson(
       jsonDecode(
             File(
-              '../../apps/hgss_first_map/maps/first-map.json',
+              'test/fixtures/spatial_first_map/maps/first-map.json',
             ).readAsStringSync(),
           )
           as Map<String, dynamic>,
@@ -367,14 +367,14 @@ void main() {
     (tester) async {
       final project = ProjectManifest.fromJson(
         jsonDecode(
-              File('../../apps/hgss_first_map/project.json').readAsStringSync(),
+              File('test/fixtures/spatial_first_map/project.json').readAsStringSync(),
             )
             as Map<String, dynamic>,
       );
       final source = MapData.fromJson(
         jsonDecode(
               File(
-                '../../apps/hgss_first_map/maps/first-map.json',
+                'test/fixtures/spatial_first_map/maps/first-map.json',
               ).readAsStringSync(),
             )
             as Map<String, dynamic>,
@@ -514,14 +514,14 @@ void main() {
     (tester) async {
       final project = ProjectManifest.fromJson(
         jsonDecode(
-              File('../../apps/hgss_first_map/project.json').readAsStringSync(),
+              File('test/fixtures/spatial_first_map/project.json').readAsStringSync(),
             )
             as Map<String, dynamic>,
       );
       final map = MapData.fromJson(
         jsonDecode(
               File(
-                '../../apps/hgss_first_map/maps/first-map.json',
+                'test/fixtures/spatial_first_map/maps/first-map.json',
               ).readAsStringSync(),
             )
             as Map<String, dynamic>,
@@ -744,14 +744,14 @@ void main() {
     () async {
       final project = ProjectManifest.fromJson(
         jsonDecode(
-              File('../../apps/hgss_first_map/project.json').readAsStringSync(),
+              File('test/fixtures/spatial_first_map/project.json').readAsStringSync(),
             )
             as Map<String, dynamic>,
       );
       final map = MapData.fromJson(
         jsonDecode(
               File(
-                '../../apps/hgss_first_map/maps/first-map.json',
+                'test/fixtures/spatial_first_map/maps/first-map.json',
               ).readAsStringSync(),
             )
             as Map<String, dynamic>,
@@ -761,7 +761,7 @@ void main() {
           sessionId: 'preview',
           name: 'Preview',
           directoryPath: File(
-            '../../apps/hgss_first_map/project.json',
+            'test/fixtures/spatial_first_map/project.json',
           ).absolute.parent.path,
         ),
         project.copyWith(
@@ -780,7 +780,7 @@ void main() {
   test(
     'spatial models use decor catalog and canonical grounded editing history',
     () {
-      final root = '../../apps/hgss_first_map';
+      final root = 'test/fixtures/spatial_first_map';
       final project = ProjectManifest.fromJson(
         jsonDecode(File('$root/project.json').readAsStringSync())
             as Map<String, dynamic>,
