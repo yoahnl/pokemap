@@ -24,11 +24,14 @@ void main() {
         scenes: [(base: null, current: first), (base: null, current: second)],
       );
       expect(receipt.manifest.scenes, containsAll([first, second]));
-      final history = await File(
-        '${h.directory.path}/.pokemap/authoring/history.jsonl',
-      ).readAsLines();
+      final history = [
+        for (final entry in Directory(
+          '${h.directory.path}/.pokemap/authoring/history-entries',
+        ).listSync().whereType<File>())
+          await entry.readAsString(),
+      ];
       expect(
-        history.where((line) => line.contains('scene.upsert_batch')),
+        history.where((entry) => entry.contains('scene.upsert_batch')),
         hasLength(1),
       );
       final reopened = await Ui12WorldHarness.open(h.directory);
