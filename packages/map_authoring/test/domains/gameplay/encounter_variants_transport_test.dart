@@ -381,7 +381,11 @@ final class _Fixture {
         actionId: actionId,
         actionVersion: 1,
         workspaceHandle: workspace.value,
-        expectedRevision: (await snapshots.load(project)).revision,
+        expectedRevision: actionId == 'campaign.encounter_table.upsert'
+            ? (await mutations.readWorkshopSnapshot(project,
+                    actionId: actionId, parameters: parameters))
+                .revision
+            : (await snapshots.load(project)).revision,
         idempotencyKey: id,
         parameters: parameters,
         dryRun: dryRun);

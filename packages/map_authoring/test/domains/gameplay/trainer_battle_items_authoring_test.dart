@@ -541,6 +541,12 @@ class _Fixture {
   Future<String> revision() async =>
       (await snapshots.load(opened.projectHandle)).revision;
 
+  Future<String> workshopRevision(
+          String actionId, Map<String, Object?> parameters) async =>
+      (await mutations.readWorkshopSnapshot(opened.projectHandle,
+              actionId: actionId, parameters: parameters))
+          .revision;
+
   Future<ProjectManifest> stored() async => ProjectManifest.fromJson(
       jsonDecode(await file.readAsString()) as Map<String, dynamic>);
 
@@ -588,6 +594,9 @@ class _Fixture {
     final before = await file.readAsBytes();
     final catalogBefore = await catalog.readAsBytes();
     final revisionBefore = await revision();
+    final planningRevision = actionId == 'campaign.trainer.upsert'
+        ? await workshopRevision(actionId, parameters)
+        : revisionBefore;
     final plan = jsonl
         ? await wire('plan', {
             'projectHandle': opened.projectHandle.value,
@@ -596,7 +605,7 @@ class _Fixture {
               'actionId': actionId,
               'actionVersion': 1,
               'workspaceHandle': opened.workspaceHandle.value,
-              'expectedRevision': revisionBefore,
+              'expectedRevision': planningRevision,
               'idempotencyKey': id,
               'parameters': parameters,
               'dryRun': false,
@@ -609,7 +618,7 @@ class _Fixture {
               actionId: actionId,
               actionVersion: 1,
               workspaceHandle: opened.workspaceHandle.value,
-              expectedRevision: revisionBefore,
+              expectedRevision: planningRevision,
               idempotencyKey: id,
               parameters: parameters,
             ),

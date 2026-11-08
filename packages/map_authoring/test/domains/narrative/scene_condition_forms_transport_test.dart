@@ -78,7 +78,15 @@ void main() {
       }
       Future<Map<String, Object?>> plan(Map<String, dynamic> source,
           {bool failure = false}) async {
-        final snapshot = await snapshots.load(ProjectHandle(projectHandle));
+        final parameters = {
+          'sceneId': 'condition_scene',
+          'nodeId': 'check',
+          'conditionSource': source,
+        };
+        final snapshot = await mutations.readWorkshopSnapshot(
+            ProjectHandle(projectHandle),
+            actionId: 'scene.condition.set',
+            parameters: parameters);
         final id = 'set-condition-${sequence++}';
         final request = AuthoringRequest(
           requestId: id,
@@ -87,11 +95,7 @@ void main() {
           workspaceHandle: workspaceHandle,
           expectedRevision: snapshot.revision,
           idempotencyKey: id,
-          parameters: {
-            'sceneId': 'condition_scene',
-            'nodeId': 'check',
-            'conditionSource': source,
-          },
+          parameters: parameters,
         );
         if (jsonl) {
           return wire(

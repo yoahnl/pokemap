@@ -242,7 +242,11 @@ class _Fixture {
         actionId: actionId,
         actionVersion: 1,
         workspaceHandle: opened.workspaceHandle.value,
-        expectedRevision: (await snapshots.load(opened.projectHandle)).revision,
+        expectedRevision: (await mutations.readWorkshopSnapshot(
+                opened.projectHandle,
+                actionId: actionId,
+                parameters: parameters))
+            .revision,
         idempotencyKey: id,
         parameters: parameters);
     final before = await file.readAsBytes();

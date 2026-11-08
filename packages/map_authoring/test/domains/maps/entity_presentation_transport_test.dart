@@ -29,8 +29,13 @@ void main() {
       await projectFile.writeAsString(jsonEncode(ProjectManifest(
           name: 'Counter transport',
           version: ProjectVersion.v8,
-          characters: const [ProjectCharacterEntry(id: 'guide', name: 'Guide', tilesetId: 'guide-atlas')],
-          facts: [NarrativeFactDefinition(id: 'walking', label: 'Marcher')],
+          characters: const [
+            ProjectCharacterEntry(
+                id: 'guide', name: 'Guide', tilesetId: 'guide-atlas')
+          ],
+          facts: [
+            NarrativeFactDefinition(id: 'walking', label: 'Marcher')
+          ],
           maps: [
             const ProjectMapEntry(
                 id: 'center', name: 'Center', relativePath: 'maps/center.json')
@@ -76,7 +81,10 @@ void main() {
             workspaceHandle: opened.workspaceHandle,
             projectHandle: opened.projectHandle);
       }
-      final snapshot = await snapshots.load(ProjectHandle(projectHandle));
+      final snapshot = await mutations.readWorkshopSnapshot(
+          ProjectHandle(projectHandle),
+          actionId: 'entity.set_presentation',
+          parameters: const {'mapId': 'center', 'entityId': 'nurse'});
       final request = AuthoringRequest(
           requestId: 'counter-edit',
           actionId: 'entity.set_presentation',
@@ -93,11 +101,18 @@ void main() {
                   condition: NarrativeEventConditionExpression.all([]),
                   blocksMovement: false,
                   size: const GridSize(width: 2, height: 2)),
-              MapEntityPresentationVariant(id: 'moving',
-                condition: NarrativeEventConditionExpression.leaf(NarrativeEventCondition.fact('walking', true)),
-                characterId: 'guide', blocksMovement: true, startsOnNpcContact: true,
-                movement: MapEntityNpcMovementConfig(mode: MapEntityNpcMovementMode.fixedRoute,
-                  routeSteps: [MapEntityNpcRouteStep.move(direction: EntityFacing.east)])),
+              MapEntityPresentationVariant(
+                  id: 'moving',
+                  condition: NarrativeEventConditionExpression.leaf(
+                      NarrativeEventCondition.fact('walking', true)),
+                  characterId: 'guide',
+                  blocksMovement: true,
+                  startsOnNpcContact: true,
+                  movement: MapEntityNpcMovementConfig(
+                      mode: MapEntityNpcMovementMode.fixedRoute,
+                      routeSteps: [
+                        MapEntityNpcRouteStep.move(direction: EntityFacing.east)
+                      ])),
             ]).toJson(),
           });
       final before = await mapFile.readAsBytes();
@@ -124,8 +139,12 @@ void main() {
       expect(
           updated.entities.single.presentation!.variants.first.blocksMovement,
           isFalse);
-      expect(updated.entities.single.presentation!.variants.last.startsOnNpcContact, isTrue);
-      expect(updated.entities.single.presentation!.variants.last.movement.mode, MapEntityNpcMovementMode.fixedRoute);
+      expect(
+          updated
+              .entities.single.presentation!.variants.last.startsOnNpcContact,
+          isTrue);
+      expect(updated.entities.single.presentation!.variants.last.movement.mode,
+          MapEntityNpcMovementMode.fixedRoute);
       expect(updated.entities.single.npc!.displayName, 'Nurse');
       expect(updated.entities.single.pos, map.entities.single.pos);
       expect(updated.layers, map.layers);

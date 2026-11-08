@@ -134,9 +134,7 @@ void main() {
       final fixture = await _Fixture.create();
       addTearDown(fixture.dispose);
       final before = await fixture.bytes();
-      final oldRevision = (await fixture.snapshots.load(
-        fixture.opened.projectHandle,
-      )).revision;
+      final oldRevision = await fixture.revision();
       await fixture.set(_pockets, false);
       final accepted = await fixture.bytes();
       await expectLater(
@@ -340,6 +338,11 @@ final class _Fixture {
     return _Fixture(root, reads, mutations, snapshots, opened);
   }
 
+  Future<String> revision() async => (await mutations.readWorkshopSnapshot(
+        opened.projectHandle,
+        actionId: 'bag.capacity.set',
+      )).revision;
+
   Future<List<int>> bytes() => File('${root.path}/project.json').readAsBytes();
   Future<Map<String, dynamic>> document() async =>
       jsonDecode(utf8.decode(await bytes())) as Map<String, dynamic>;
@@ -379,8 +382,7 @@ final class _Fixture {
       actionVersion: 1,
       workspaceHandle: opened.workspaceHandle.value,
       parameters: {'pockets': pockets, ...extra},
-      expectedRevision:
-          revision ?? (await snapshots.load(opened.projectHandle)).revision,
+      expectedRevision: revision ?? await this.revision(),
       idempotencyKey: id,
       dryRun: false,
     );
