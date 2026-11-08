@@ -150,7 +150,10 @@ class _Fixture {
   final String revision;
   final saves = StudioPlaytestSession();
   static Future<_Fixture> create() async {
-    final root = await Directory.systemTemp.createTemp('surf-lifecycle-');
+    final root = Directory(
+      await (await Directory.systemTemp.createTemp('surf-lifecycle-'))
+          .resolveSymbolicLinks(),
+    );
     final png = image.encodePng(image.Image(width: 32, height: 32));
     await File('${root.path}/hero.png').writeAsBytes(png);
     final artifact = ContentArtifactRef.fromBytes(png, mediaType: 'image/png');

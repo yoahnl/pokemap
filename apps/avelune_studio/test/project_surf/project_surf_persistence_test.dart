@@ -28,7 +28,7 @@ void main() {
     test(
       'configuration-only CS persist by ID without map reads for $storage',
       () async {
-        final root = await Directory.systemTemp.createTemp('eleven-cs-');
+        final root = await _temporaryRoot('eleven-cs-');
         addTearDown(() => root.delete(recursive: true));
         const project = ProjectManifest(
           name: 'Eleven CS',
@@ -101,7 +101,7 @@ void main() {
     test(
       'legacy AssetCatalog audio adopts the same blob once for $storage',
       () async {
-        final root = await Directory.systemTemp.createTemp('legacy-audio-');
+        final root = await _temporaryRoot('legacy-audio-');
         addTearDown(() => root.delete(recursive: true));
         const project = ProjectManifest(
           name: 'Historical audio',
@@ -315,7 +315,7 @@ void main() {
     'CS and Son widgets persist their drafts through canonical actions and reopen',
     (tester) async {
       final fixture = (await tester.runAsync(() async {
-        final root = await Directory.systemTemp.createTemp('settings-widget-');
+        final root = await _temporaryRoot('settings-widget-');
         final store = await CatalogStorageStore.open(projectRoot: root.path);
         await WorkingProjectCatalog.create(
           store: store,
@@ -505,7 +505,7 @@ void main() {
     test(
       'audio import, library metadata and selected blob remain targeted for $storage',
       () async {
-        final root = await Directory.systemTemp.createTemp('audio-library-');
+        final root = await _temporaryRoot('audio-library-');
         addTearDown(() => root.delete(recursive: true));
         const project = ProjectManifest(name: 'Son', maps: [], tilesets: []);
         if (storage == ProjectSessionStorage.workingCatalog) {
@@ -576,7 +576,7 @@ void main() {
   }
 
   test('CS and audio canonical settings writes preserve Surf and avoid unrelated maps', () async {
-    final root = await Directory.systemTemp.createTemp('cs-audio-persist-');
+    final root = await _temporaryRoot('cs-audio-persist-');
     addTearDown(() => root.delete(recursive: true));
     final store = await CatalogStorageStore.open(projectRoot: root.path);
     await WorkingProjectCatalog.create(
@@ -642,9 +642,7 @@ void main() {
     'the Surf widget persists through the canonical adapter and reopens without map reads',
     (tester) async {
       final fixture = (await tester.runAsync(() async {
-        final root = await Directory.systemTemp.createTemp(
-          'surf-widget-persist-',
-        );
+        final root = await _temporaryRoot('surf-widget-persist-');
         final store = await CatalogStorageStore.open(projectRoot: root.path);
         await WorkingProjectCatalog.create(
           store: store,
@@ -711,7 +709,7 @@ void main() {
   test(
     'native metadata reader does not decode unrelated malformed sections',
     () async {
-      final root = await Directory.systemTemp.createTemp('surf-reader-');
+      final root = await _temporaryRoot('surf-reader-');
       addTearDown(() => root.delete(recursive: true));
       final project = const ProjectManifest(
         name: 'Scope',
@@ -755,7 +753,7 @@ void main() {
     test(
       'working Surf saves reopen with $unrelated unrelated facts and no map reads',
       () async {
-        final root = await Directory.systemTemp.createTemp('surf-persist-');
+        final root = await _temporaryRoot('surf-persist-');
         addTearDown(() => root.delete(recursive: true));
         final store = await CatalogStorageStore.open(projectRoot: root.path);
         final project = ProjectManifest(
@@ -885,4 +883,9 @@ List<int> _audioWav() {
   data.setUint32(40, 8000, Endian.little);
   bytes.fillRange(44, bytes.length, 128);
   return bytes;
+}
+
+Future<Directory> _temporaryRoot(String prefix) async {
+  final created = await Directory.systemTemp.createTemp(prefix);
+  return Directory(await created.resolveSymbolicLinks());
 }
