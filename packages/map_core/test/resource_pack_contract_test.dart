@@ -1,10 +1,13 @@
 import 'package:map_core/src/models/resource_pack.dart';
+import 'package:map_core/src/models/border_catalog.dart';
+import 'package:map_core/src/models/resource_library_catalog.dart';
 import 'package:map_core/src/models/resource_pack_installation_catalog.dart';
+import 'package:map_core/src/models/smart_tile.dart';
 import 'package:test/test.dart';
 
 Map<String, Object?> packManifestJson() => {
   'format': 'avelune.asset-pack',
-  'formatVersion': 1,
+  'formatVersion': 2,
   'pack': {
     'id': 'avelune.original-fixture',
     'version': '1.0.0',
@@ -15,9 +18,10 @@ Map<String, Object?> packManifestJson() => {
     'provenance': 'Original test fixture',
   },
   'compatibility': {
-    'resourceLibraryCatalogVersion': 2,
-    'smartTileCatalogVersion': 7,
-    'borderCatalogVersion': 10,
+    'resourceLibraryCatalogVersion':
+        ResourceLibraryCatalog.currentFormatVersion,
+    'smartTileCatalogVersion': ProjectSmartTileCatalog.currentFormatVersion,
+    'borderCatalogVersion': ProjectBorderCatalog.latestSupportedFormatVersion,
     'requiredCapabilities': ['resources.element'],
     'tileWidth': 16,
     'tileHeight': 16,
@@ -134,8 +138,13 @@ void main() {
         'rawSha256': 'd' * 64,
         'byteLength': 32,
         'mediaType': 'image/png',
+        'provenanceId': 'original',
+        'licenseIds': <String>[],
       };
       final json = _originJson()
+        ..['origins'] = [
+          {'id': 'original', 'author': 'Avelune', 'licenseIds': <String>[]},
+        ]
         ..['assets'] = [
           asset,
           {...asset, 'fileId': 'second'},
@@ -249,9 +258,18 @@ void main() {
     expect(decoded, manifest);
     expect(decoded.hashCode, manifest.hashCode);
     expect(manifest.pack.id, 'avelune.original-fixture');
-    expect(manifest.compatibility.resourceLibraryCatalogVersion, 2);
-    expect(manifest.compatibility.smartTileCatalogVersion, 7);
-    expect(manifest.compatibility.borderCatalogVersion, 10);
+    expect(
+      manifest.compatibility.resourceLibraryCatalogVersion,
+      ResourceLibraryCatalog.currentFormatVersion,
+    );
+    expect(
+      manifest.compatibility.smartTileCatalogVersion,
+      ProjectSmartTileCatalog.currentFormatVersion,
+    );
+    expect(
+      manifest.compatibility.borderCatalogVersion,
+      ProjectBorderCatalog.latestSupportedFormatVersion,
+    );
     expect(
       manifest.content.files.map((file) => file.path),
       orderedEquals(['blobs/${'b' * 64}.png', 'licenses/${'c' * 64}.txt']),
@@ -292,8 +310,9 @@ void main() {
   test('format identity and exact native codec versions fail closed', () {
     for (final change in [
       {'format': 'avelune.game'},
-      {'formatVersion': 2},
-      {'formatVersion': '1'},
+      {'formatVersion': 1},
+      {'formatVersion': 3},
+      {'formatVersion': '2'},
     ]) {
       expect(
         () => ResourcePackManifest.fromJson({...packManifestJson(), ...change}),
@@ -301,9 +320,18 @@ void main() {
       );
     }
     for (final change in [
-      {'resourceLibraryCatalogVersion': 1},
-      {'smartTileCatalogVersion': 6},
-      {'borderCatalogVersion': 9},
+      {
+        'resourceLibraryCatalogVersion':
+            ResourceLibraryCatalog.currentFormatVersion - 1,
+      },
+      {
+        'smartTileCatalogVersion':
+            ProjectSmartTileCatalog.currentFormatVersion - 1,
+      },
+      {
+        'borderCatalogVersion':
+            ProjectBorderCatalog.latestSupportedFormatVersion - 1,
+      },
       {'tileWidth': 0},
       {'tileHeight': -1},
       {'tileWidth': 16.5},
@@ -499,6 +527,8 @@ Map<String, Object?> _originJson() => {
   ],
   'supports': <Object?>[],
   'assets': <Object?>[],
+  'origins': <Object?>[],
+  'licenses': <Object?>[],
   'installedAtUtc': '2026-10-16T19:00:00.000Z',
   'provenanceStatus': 'declared',
 };
