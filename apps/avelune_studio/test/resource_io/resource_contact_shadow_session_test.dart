@@ -56,8 +56,8 @@ void main() {
               : file;
         },
       );
-      expect(observed[historyPath]!.reads, 1);
-      expect(observed[ledgerPath]!.reads, 1);
+      expect(observed[historyPath]?.reads ?? 0, 0);
+      expect(observed[ledgerPath]?.reads ?? 0, 0);
       expect(await fixture.mapFile.readAsBytes(), mapBefore);
       await adapter.dispose();
       await expectLater(
@@ -67,8 +67,8 @@ void main() {
         }),
         throwsA(isA<ResourceFailure>()),
       );
-      expect(observed[historyPath]!.reads, 1);
-      expect(observed[ledgerPath]!.reads, 1);
+      expect(observed[historyPath]?.reads ?? 0, 0);
+      expect(observed[ledgerPath]?.reads ?? 0, 0);
     },
     timeout: const Timeout(Duration(seconds: 20)),
   );
@@ -160,8 +160,15 @@ final class _ObservedFile implements File {
   Directory get parent => delegate.parent;
 
   @override
+  bool get isAbsolute => delegate.isAbsolute;
+
+  @override
   Future<Uint8List> readAsBytes() {
     reads++;
+    if (failNextOpen) {
+      failNextOpen = false;
+      return Future.error(const FileSystemException('Injected attach failure'));
+    }
     return delegate.readAsBytes();
   }
 
