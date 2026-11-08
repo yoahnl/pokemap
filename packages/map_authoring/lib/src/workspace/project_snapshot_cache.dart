@@ -359,6 +359,10 @@ final class ProjectSnapshotCache {
     if (scope != null) invalidateScope(scope);
   }
 
+  void releaseHandle(ProjectHandle handle) {
+    _scopesByHandle.remove(handle);
+  }
+
   void invalidateScope(String scope) {
     _removeScope(scope, countInvalidation: true);
   }

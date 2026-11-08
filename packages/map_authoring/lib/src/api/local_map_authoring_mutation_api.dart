@@ -1045,7 +1045,7 @@ final class LocalMapAuthoringMutationApi
     await _sessions.remove(projectHandle)?.dispose();
     await _partitionActions.remove(projectHandle)?.close();
     await _catalogSessions.remove(projectHandle)?.close();
-    _snapshotLoader.invalidate(projectHandle);
+    _snapshotLoader.release(projectHandle);
     return true;
   }
 

@@ -260,7 +260,7 @@ final class ProjectSnapshotLoader {
     final handle = snapshot.projectHandle;
     _observedNativeRevisions.remove(handle);
     if (snapshot.resourceStorageKeys.length > 4096 || snapshot.loadDiagnostics.isNotEmpty) return;
-    _handles.registerProjectCleanup(handle, this, () => invalidate(handle));
+    _handles.registerProjectCleanup(handle, this, () => release(handle));
     if (_observedNativeRevisions.length >= 8) {
       _observedNativeRevisions.remove(_observedNativeRevisions.keys.first);
     }
@@ -281,7 +281,7 @@ final class ProjectSnapshotLoader {
     final head = jsonDecode(utf8.decode(bytes)) as Map;
     final root = CatalogObjectReference.fromJson(Map<String, dynamic>.from(head['root'] as Map));
     final handle = snapshot.projectHandle;
-    _handles.registerProjectCleanup(handle, this, () => invalidate(handle));
+    _handles.registerProjectCleanup(handle, this, () => release(handle));
     _observedCatalogRevisions[snapshot.projectHandle] = (
       revision: snapshot.revision,
       rootRevision: 'sha256:${root.sha256}',
@@ -543,6 +543,13 @@ final class ProjectSnapshotLoader {
     _observedNativeRevisions.remove(projectHandle);
     _snapshotCache?.invalidateHandle(projectHandle);
     _resourceUsageSnapshotCache.invalidateHandle(projectHandle);
+  }
+
+  void release(ProjectHandle projectHandle) {
+    _observedCatalogRevisions.remove(projectHandle);
+    _observedNativeRevisions.remove(projectHandle);
+    _snapshotCache?.releaseHandle(projectHandle);
+    _resourceUsageSnapshotCache.releaseHandle(projectHandle);
   }
 
   Future<_LoadedProjectResource?> _readStoredResource(

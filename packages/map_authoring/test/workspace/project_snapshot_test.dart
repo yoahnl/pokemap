@@ -63,6 +63,58 @@ void main() {
     });
   }
 
+  test(
+      'a released workspace leaves its verified snapshot to the next workspace while changes and invalidation still miss',
+      () async {
+    final sandbox =
+        await Directory.systemTemp.createTemp('snapshot-released-workspace-');
+    addTearDown(() => sandbox.delete(recursive: true));
+    final root = await _writeProject(sandbox,
+        mapEntries: [_mapEntry('town', 'maps/town.json')],
+        maps: [_mapJson('town')]);
+    final cache = ProjectSnapshotCache();
+    final fingerprints = ProjectSnapshotFingerprintCache();
+    const reader = LocalProjectFileReader();
+    final policy = await WorkspacePolicy.create(
+        allowedRootPaths: [sandbox.path], fileReader: reader);
+    Future<ProjectSnapshot> workspace({bool invalidate = false}) async {
+      final handles = WorkspaceHandleStore();
+      final service = ProjectOpenService(
+          policy: policy, fileReader: reader, handles: handles);
+      final loader = ProjectSnapshotLoader(
+          handles: handles,
+          snapshotCache: cache,
+          fingerprintCache: fingerprints);
+      final api =
+          LocalMapAuthoringMutationApi(policy: policy, snapshotLoader: loader);
+      final opened = await service.openProject(root.path);
+      await api.attachProject(
+          projectRootPath: root.path,
+          workspaceHandle: opened.workspaceHandle,
+          projectHandle: opened.projectHandle);
+      final snapshot = await loader.load(opened.projectHandle);
+      if (invalidate) loader.invalidate(opened.projectHandle);
+      await api.detachWorkspace(opened.workspaceHandle);
+      service.closeWorkspace(opened.workspaceHandle);
+      return snapshot;
+    }
+
+    final first = await workspace();
+    expect(cache.canonicalHits, 0);
+    expect((await workspace()).revision, first.revision);
+    expect(cache.canonicalHits, 1);
+    final manifest = File('${root.path}/project.json');
+    await manifest.writeAsString(jsonEncode({
+      ...jsonDecode(await manifest.readAsString()) as Map<String, Object?>,
+      'name': 'Renamed outside',
+    }));
+    final changed = await workspace(invalidate: true);
+    expect(changed.manifest.name, 'Renamed outside');
+    expect(cache.canonicalHits, 1);
+    expect((await workspace()).revision, changed.revision);
+    expect(cache.canonicalHits, 1);
+  });
+
   group('ProjectSnapshotLoader', () {
     test('loads the manifest and maps from the real fixture', () async {
       final fixture = _realFixtureDirectory();
