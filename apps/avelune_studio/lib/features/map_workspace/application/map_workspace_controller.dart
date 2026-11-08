@@ -1636,6 +1636,7 @@ class MapWorkspaceController {
   }
 
   void dispose() {
+    if (_disposed) return;
     _disposed = true;
     settingsVisualsOwner = null;
     _generation++;
