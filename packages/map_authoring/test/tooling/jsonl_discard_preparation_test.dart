@@ -207,6 +207,11 @@ final class _Fixture {
     final registered = handles.registerProject(
         projectName: 'Discard',
         initialFingerprint: 'fixture',
+        requireMutationRoot: (path) async {
+          if (await policy.authorizeProjectRoot(path) != canonicalRoot) {
+            throw StateError('Foreign mutation root');
+          }
+        },
         readBytes: (path) {
           if (!snapshotReadsAllowed) {
             throw StateError('Snapshot reconstruction is forbidden');

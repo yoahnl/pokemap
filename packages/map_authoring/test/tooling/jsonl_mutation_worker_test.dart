@@ -29,6 +29,11 @@ void main() {
       final registered = handles.registerProject(
           projectName: 'Refresh',
           initialFingerprint: 'fixture',
+          requireMutationRoot: (path) async {
+            if (await policy.authorizeProjectRoot(path) != canonicalRoot) {
+              throw StateError('Foreign mutation root');
+            }
+          },
           readBytes: (path) {
             if (unavailable) {
               throw const WorkspaceAccessException('workspace.file_unavailable',
@@ -228,15 +233,20 @@ void main() {
         'describe',
         'discard_preparation',
         'history',
+        'history_maintenance',
+        'map_edit',
         'open',
         'plan',
         'projection',
         'query',
         'recover',
         'recovery_status',
+        'redo',
         'stage_artifact',
         'undo',
-        'validate'
+        'validate',
+        'workshop_prepare',
+        'workshop_snapshot'
       ],
     );
 

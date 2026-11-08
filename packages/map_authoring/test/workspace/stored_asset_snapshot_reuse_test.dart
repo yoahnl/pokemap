@@ -97,7 +97,8 @@ void main() {
     expect(harness.cache.projectCount, 0);
   }, skip: Platform.isWindows);
 
-  test('metadata-only stored generation is recertified before snapshot retention',
+  test(
+      'metadata-only stored generation is recertified before snapshot retention',
       () async {
     final harness = await _StoredAssetHarness.create();
     addTearDown(harness.dispose);
@@ -118,7 +119,8 @@ void main() {
     expect(harness.streamReads, 0);
   }, skip: Platform.isWindows);
 
-  test('recertification rejects changed bytes after a metadata generation change',
+  test(
+      'recertification rejects changed bytes after a metadata generation change',
       () async {
     final harness = await _StoredAssetHarness.create();
     addTearDown(harness.dispose);
@@ -138,7 +140,8 @@ void main() {
     expect(harness.cache.projectCount, 0);
   }, skip: Platform.isWindows);
 
-  test('recertification rejects an identity that changes during its fresh stream',
+  test(
+      'recertification rejects an identity that changes during its fresh stream',
       () async {
     final harness = await _StoredAssetHarness.create();
     addTearDown(harness.dispose);
@@ -249,6 +252,11 @@ final class _StoredAssetHarness {
     final opened = harness.handles.registerProject(
         projectName: 'Stored cache',
         initialFingerprint: 'initial',
+        requireMutationRoot: (path) async {
+          if (await Directory(path).resolveSymbolicLinks() != root) {
+            throw StateError('Foreign mutation root');
+          }
+        },
         readBytes: (path) =>
             reader.readBytes(projectRoot: root, relativePath: path),
         openRead: (path) {
@@ -267,9 +275,10 @@ final class _StoredAssetHarness {
               relativePath: identity.relativePath,
               byteLength: identity.byteLength,
               modifiedAtMicros: identity.modifiedAtMicros,
-              changedAtMicros: includeChangedAt && identity.changedAtMicros != null
-                  ? identity.changedAtMicros! + generation
-                  : null);
+              changedAtMicros:
+                  includeChangedAt && identity.changedAtMicros != null
+                      ? identity.changedAtMicros! + generation
+                      : null);
         },
         canReuseSnapshots: true);
     harness.project = opened.projectHandle;

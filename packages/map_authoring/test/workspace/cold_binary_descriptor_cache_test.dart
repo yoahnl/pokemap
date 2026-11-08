@@ -271,6 +271,11 @@ final class _Harness {
     final opened = h.handles.registerProject(
         projectName: 'Cold descriptor',
         initialFingerprint: 'initial',
+        requireMutationRoot: (path) async {
+          if (await Directory(path).resolveSymbolicLinks() != root) {
+            throw StateError('Foreign mutation root');
+          }
+        },
         readBytes: (path) =>
             reader.readBytes(projectRoot: root, relativePath: path),
         openRead: (path) {
