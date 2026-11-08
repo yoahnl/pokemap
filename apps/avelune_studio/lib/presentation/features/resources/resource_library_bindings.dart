@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../../shared/widgets/buttons/studio_button.dart';
+import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_draft_field.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
@@ -207,6 +208,15 @@ Future<void> classifyResource(
                 'Cette ressource sera proposée uniquement sur cette carte. '
                 'Si elle est déjà utilisée ailleurs, Studio refusera ce changement.',
               ),
+              if (mapId != entry?.mapId) ...[
+                const SizedBox(height: 8),
+                const StudioNotice(
+                  'Avant d’enregistrer, Studio vérifie les usages de cette '
+                  'ressource dans tout le projet. Sur un grand projet, cette '
+                  'vérification peut prendre plusieurs minutes.',
+                  key: ValueKey('resource-classify-scope-cost'),
+                ),
+              ],
             ],
           ],
         ),
@@ -416,9 +426,22 @@ class _ResourceFamilyManagerState extends State<_ResourceFamilyManager> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Supprimer « ${family.name} » ?'),
-        content: const Text(
-          'Une famille contenant des ressources ou des sous-familles doit '
-          'd’abord être vidée. Aucun fichier de ressource ne sera supprimé.',
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Une famille contenant des ressources ou des sous-familles doit '
+              'd’abord être vidée. Aucun fichier de ressource ne sera supprimé.',
+            ),
+            SizedBox(height: 8),
+            StudioNotice(
+              'Studio vérifie qu’aucune ressource du projet ne la référence. '
+              'Sur un grand projet, cette vérification peut prendre plusieurs '
+              'minutes.',
+              key: ValueKey('resource-family-delete-cost'),
+            ),
+          ],
         ),
         actions: [
           StudioButton(

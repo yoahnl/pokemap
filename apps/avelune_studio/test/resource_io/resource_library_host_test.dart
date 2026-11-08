@@ -473,6 +473,39 @@ void main() {
   );
 
   testWidgets(
+    'an empty family is deleted after a confirmation that names the project-wide check',
+    (tester) async {
+      final host = await UwUResourceHost.open(tester);
+      await host.tap('resource-manage-families');
+      await host.tap('resource-family-create');
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(const ValueKey('resource-family-name')),
+          matching: find.byType(TextField),
+        ),
+        'Famille vide',
+      );
+      await tester.pump();
+      await host.tap('resource-management-save');
+      await host.choose('resource-family-selected', 'Famille vide');
+      await tester.tap(find.text('Supprimer'));
+      await pumpIo(tester);
+      expect(
+        find.byKey(const ValueKey('resource-family-delete-cost')),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('Supprimer la famille'));
+      await pumpIo(tester);
+      expect(
+        host.navigation.workspace.project!.resourceLibraryCatalog.families,
+        isEmpty,
+      );
+      expect((await host.reopen()).resourceLibraryCatalog.families, isEmpty);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'shared definition cannot be silently reserved for one of its maps',
     (tester) async {
       final host = await UwUResourceHost.open(tester);
@@ -483,7 +516,10 @@ void main() {
       final context = tester.element(find.byType(Scaffold).first);
       final pending = classifyResource(context, host.navigation, item);
       await pumpIo(tester);
+      const scopeCost = ValueKey('resource-classify-scope-cost');
+      expect(find.byKey(scopeCost), findsNothing);
       await host.choose('resource-classify-availability', 'Propre à une carte');
+      expect(find.byKey(scopeCost), findsOneWidget);
       await host.choose('resource-classify-map', 'Jardin des essais');
       await host.tap('resource-management-save');
       expect(
