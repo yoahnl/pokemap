@@ -2285,6 +2285,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   final Map<String, ({Set<GridPos> cells, PixelRect? contactRect})>
       _scriptedNpcReservedOccupiedCellsByEntity = {};
   double _runtimeClockMs = 0;
+  double _cinematicMicrosecondCarry = 0;
   int _debugEncounterCheckCount = 0;
   _EncounterCheckMarker? _lastEncounterCheckMarker;
   double _lastWaterRequiresSurfMessageAtMs = -1000000000;
@@ -6082,14 +6083,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       _syncCameraToPlayer();
     }
     if (_cinematicRuntimeController.isPlaying) {
-      _cinematicRuntimeController.update(
-        Duration(
-          microseconds: math.max(
-            0,
-            (dt * Duration.microsecondsPerSecond).round(),
-          ),
-        ),
-      );
+      final exact =
+          dt * Duration.microsecondsPerSecond + _cinematicMicrosecondCarry;
+      final whole = math.max(0, exact.round());
+      _cinematicMicrosecondCarry = exact - whole;
+      _cinematicRuntimeController.update(Duration(microseconds: whole));
+    } else {
+      _cinematicMicrosecondCarry = 0;
     }
     _syncViewportCullingRects();
     _syncNpcCollisionDebugOverlay();
