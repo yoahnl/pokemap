@@ -592,6 +592,32 @@ void main() {
       );
     });
 
+    test(
+        'accepts a project without the Pokemon module and without its item catalog',
+        () async {
+      final sandbox = await Directory.systemTemp.createTemp(
+        'pokemap_snapshot_items_module_disabled_',
+      );
+      addTearDown(() => sandbox.delete(recursive: true));
+      final project = await _writeProject(
+        sandbox,
+        mapEntries: const [],
+        maps: const [],
+        initialBag: const <Map<String, Object?>>[
+          <String, Object?>{'itemId': 'thread-charm', 'quantity': 1},
+        ],
+        pokemonEnabled: false,
+      );
+      final harness = await _SnapshotHarness.create(allowedRoot: sandbox);
+      final opened = await harness.openService.openProject(project.path);
+
+      final snapshot = await harness.loader.load(opened.projectHandle);
+
+      expect(snapshot.manifest.pokemon.enabled, isFalse);
+      expect(snapshot.itemCatalog, isNull);
+      expect(snapshot.loadDiagnostics, isEmpty);
+    });
+
     test('loads the strict item catalog into the coherent snapshot', () async {
       final sandbox = await Directory.systemTemp.createTemp(
         'pokemap_snapshot_items_',
@@ -977,6 +1003,7 @@ Future<Directory> _writeProject(
   List<Map<String, Object?>> initialBag = const [],
   Map<String, Object?>? itemCatalog,
   Map<String, Object?>? projectMediaCatalog,
+  bool pokemonEnabled = true,
 }) async {
   final project = await Directory(_join(sandbox.path, 'project')).create();
   final mapsDirectory =
@@ -985,6 +1012,7 @@ Future<Directory> _writeProject(
     'name': 'Snapshot Test',
     'version': 'v8',
     'pokemon': ProjectPokemonConfig(
+      enabled: pokemonEnabled,
       ruleset: PokemonRulesetProfile.pokeMapBetaV1,
     ).toJson(),
     'maps': mapEntries,
