@@ -122,7 +122,10 @@ void main() {
   late _Gen5Transport transport;
 
   setUp(() async {
-    root = await Directory.systemTemp.createTemp('studio-gen5-import-');
+    final temporary = await Directory.systemTemp.createTemp(
+      'studio-gen5-import-',
+    );
+    root = Directory(await temporary.resolveSymbolicLinks());
     final files = spatialFeaturePayload('companion');
     final manifest = ProjectManifest.fromJson(
       jsonDecode(utf8.decode(files['project/project.json']!))
