@@ -91,18 +91,19 @@ void main() {
       final scene = tester.widget<SpatialSceneView>(
         find.byType(SpatialSceneView),
       );
-      expect(scene.controller.fireflies, isFalse);
+      expect(scene.controller.windowsLit, isFalse);
       h.document.atmosphere!.edit(
-        h.document.atmosphere!.current.copyWith(fireflies: true),
+        h.document.atmosphere!.current.copyWith(
+          windowsLit: true,
+          fireflies: true,
+        ),
       );
       await h.pump(tester);
-      expect(
-        tester
-            .widget<SpatialSceneView>(find.byType(SpatialSceneView))
-            .controller
-            .fireflies,
-        isTrue,
-      );
+      final edited = tester
+          .widget<SpatialSceneView>(find.byType(SpatialSceneView))
+          .controller;
+      expect(edited.windowsLit, isTrue);
+      expect(edited.fireflies, isFalse);
       expect(h.visuals.profiles, hasLength(3));
       h.document.current = h.document.current.copyWith(
         entities: [
