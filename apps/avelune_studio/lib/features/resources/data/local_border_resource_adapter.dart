@@ -198,7 +198,34 @@ ResourceFailure _resourceFailure(Object error) {
           : const [],
     );
   }
+  if (error is VisualLibraryException) {
+    final refusal = _removalRefusal(error);
+    if (refusal != null) return ResourceFailure(refusal);
+  }
   return ResourceFailure('La ressource n’a pas été publiée : $error');
+}
+
+String? _removalRefusal(VisualLibraryException error) {
+  final (subject, used) = switch (error.code) {
+    'element.references_blocking' ||
+    'element.usage_inventory_incomplete' => ('Ce décor', 'utilisé'),
+    'tileset.references_blocking' ||
+    'resource.source.inventory_incomplete' => ('Cette planche', 'utilisée'),
+    _ => ('', ''),
+  };
+  if (subject.isEmpty) return null;
+  if (error.code.endsWith('inventory_incomplete')) {
+    return 'L’inventaire des usages du projet est incomplet : la '
+        'suppression est refusée par prudence et rien n’a été modifié. '
+        'Ouvrez « Voir les usages dans le projet » pour voir les documents '
+        'non lus, puis réanalysez.';
+  }
+  final references = error.details['references'];
+  final count = references is List ? references.length : 0;
+  return '$subject est encore $used dans le projet '
+      '(${count == 1 ? '1 usage' : '$count usages'}) : la suppression est '
+      'bloquée et rien n’a été modifié. Ouvrez « Voir les usages dans le '
+      'projet », retirez ou remplacez chaque usage, puis réanalysez.';
 }
 
 String _borderPublicationDiagnostic(Map diagnostic) {

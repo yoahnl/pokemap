@@ -132,6 +132,9 @@ class UwUResourceHost {
     await tester.pump();
     await tester.tap(finder);
     await pumpIo(tester, frames: 20);
+    for (var round = 0; round < 20 && fixture.controller.loading; round++) {
+      await pumpIo(tester, frames: 10);
+    }
   }
 
   Future<ProjectManifest> reopen() async =>

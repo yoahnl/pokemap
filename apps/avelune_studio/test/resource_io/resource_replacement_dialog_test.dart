@@ -1,5 +1,8 @@
+import 'dart:io';
 import 'dart:typed_data';
+import 'package:avelune_studio/features/resources/data/local_resource_adapter.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
+import 'package:avelune_studio/presentation/features/resources/resource_image_import.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_replacement_dialog.dart';
 import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
 import 'package:avelune_studio/presentation/shared/widgets/layout/studio_asset_preview.dart';
@@ -10,6 +13,9 @@ import 'package:map_core/map_core_domain.dart';
 import '../../tool/example_project_assets.dart';
 import '../support/capture_m3_widget.dart';
 import '../support/load_desktop_capture_fonts.dart';
+import '../support/uwu4_resource_host.dart';
+import 'package:image/image.dart' as image;
+import 'resource_fixture.dart';
 
 void main() {
   const item = ResourceItem(
@@ -106,4 +112,79 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
+
+  testWidgets(
+    'an interrupted replacement keeps its publication and is re-read without replay',
+    (tester) async {
+      var fail = true;
+      late ResourceFixture resources;
+      late File candidate;
+      late Uint8List candidateBytes;
+      final host = await openUwU4ResourceHost(
+        tester,
+        configure: (fixture) async {
+          resources = fixture;
+          final pixels = image.Image(width: 64, height: 48);
+          image.fill(pixels, color: image.ColorRgba8(220, 80, 30, 255));
+          candidateBytes = Uint8List.fromList(image.encodePng(pixels));
+          candidate = File('${fixture.root.path}/candidate.png');
+          await candidate.writeAsBytes(candidateBytes);
+        },
+        adapter: (fixture) {
+          final adapter = LocalResourceAdapter(
+            session: fixture.session,
+            mapAdapter: fixture.maps,
+            beforeReconciliation: () async {
+              if (fail) throw StateError('Injected interface refresh failure');
+            },
+          );
+          addTearDown(adapter.dispose);
+          return adapter;
+        },
+        imagePicker: () async => PickedResourceImage(
+          candidate.path,
+          'Candidate',
+          candidateBytes,
+          64,
+          48,
+        ),
+      );
+      final tileset = (await host.reopen()).tilesets.single;
+      await host.family(ResourceKind.images);
+      await host.action('tileset:${tileset.id}', 'Remplacer l’image source…');
+      await host.tap('resource-replacement-confirm');
+      await host.tap('resource-management-save');
+      expect(find.textContaining('Publication effectuée'), findsOneWidget);
+      expect(find.textContaining('Relire le résultat'), findsWidgets);
+      final published = (await host.reopen()).tilesets.single;
+      expect(published.id, tileset.id);
+      Future<Map<String, List<int>>> files() async => {
+        for (final entity in resources.root.listSync(recursive: true))
+          if (entity is File) entity.path: await entity.readAsBytes(),
+      };
+      final publishedFiles = (await tester.runAsync(files))!;
+      expect(
+        await tester.runAsync(
+          () =>
+              File('${resources.root.path}/${published.relativePath}')
+                  .readAsBytes(),
+        ),
+        candidateBytes,
+      );
+      await host.tap('resource-management-cancel');
+      expect(
+        find.byKey(const ValueKey('resource-retry-reconciliation')),
+        findsOneWidget,
+      );
+      fail = false;
+      await host.tap('resource-retry-reconciliation');
+      expect(
+        find.byKey(const ValueKey('resource-retry-reconciliation')),
+        findsNothing,
+      );
+      expect(host.navigation.pendingReceipt, isNull);
+      expect(await tester.runAsync(files), publishedFiles);
+      expect((await host.reopen()).tilesets.single, published);
+    },
+  );
 }

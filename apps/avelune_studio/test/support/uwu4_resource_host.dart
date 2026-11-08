@@ -1,3 +1,4 @@
+import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_image_import.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -16,6 +17,7 @@ Future<UwUResourceHost> openUwU4ResourceHost(
   double textScale = 1,
   PickResourceImage? imagePicker,
   Future<void> Function(ResourceFixture)? configure,
+  ResourcePort Function(ResourceFixture)? adapter,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -89,7 +91,10 @@ Future<UwUResourceHost> openUwU4ResourceHost(
               48,
             );
           },
-      resourcePort: WidgetResourceManagementPort(resources.resources, tester),
+      resourcePort: WidgetResourceManagementPort(
+        adapter?.call(resources) ?? resources.resources,
+        tester,
+      ),
     ),
   );
   await pumpIo(tester);

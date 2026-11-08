@@ -10,7 +10,8 @@ import 'package:map_authoring/map_authoring.dart'
         AuthoringPlanException,
         AssetCatalog,
         JournaledAuthoringTransactionException,
-        AuthoringIdempotencyException;
+        AuthoringIdempotencyException,
+        VisualLibraryException;
 import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_core/map_core.dart';
 
