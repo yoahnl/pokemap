@@ -240,6 +240,7 @@ Future<void> _openSimulation(
   WidgetTester tester,
   EventWorkspaceController controller,
 ) async {
+  expect(await tester.runAsync(controller.prepareAllMaps), isTrue);
   await tester.pumpWidget(
     MaterialApp(
       theme: studioTheme(),
