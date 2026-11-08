@@ -116,6 +116,35 @@ class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
   }
 
   var _borderModelsLoading = false;
+  String? _borderPiecesLoading, _borderPiecesFailed;
+
+  void _prepareSelectedBorder() {
+    final id = widget.view.tool == StudioMapTool.border
+        ? widget.view.borderBlueprintId
+        : null;
+    if (id == null ||
+        id == _borderPiecesLoading ||
+        id == _borderPiecesFailed ||
+        widget.controller.hasBorderBlueprint(id)) {
+      return;
+    }
+    _borderPiecesLoading = id;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      String? failure;
+      try {
+        await widget.controller.ensureBorderBlueprint(id);
+      } on Object catch (error) {
+        failure = '$error';
+      }
+      if (!mounted) return;
+      setState(() {
+        if (_borderPiecesLoading == id) _borderPiecesLoading = null;
+        _borderPiecesFailed = failure == null ? null : id;
+      });
+      if (failure != null) _toolDocument.error = failure;
+      widget.onChanged();
+    });
+  }
   bool get _exteriorActive =>
       widget.document.exteriorDecoration?.editingExterior == true;
   EditableMapDocument get _toolDocument => _exteriorActive
@@ -165,6 +194,7 @@ class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
 
   Widget _buildPane(BuildContext context) => LayoutBuilder(
     builder: (context, bounds) {
+      _prepareSelectedBorder();
       final largeText = MediaQuery.textScalerOf(context).scale(14) > 20;
       final compact = bounds.maxWidth < 1000 || largeText;
       final collapsed =
@@ -288,18 +318,20 @@ class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
                                       onCreateModel:
                                           widget.onBorders ??
                                           widget.onResources,
-                                      modelsLoaded: widget.controller
-                                          .hasResourceKind('borderBlueprint'),
+                                      modelsLoaded:
+                                          widget.controller.hasBorderProfiles,
                                       modelsLoading: _borderModelsLoading,
+                                      piecesLoading:
+                                          _borderPiecesLoading != null &&
+                                          _borderPiecesLoading ==
+                                              widget.view.borderBlueprintId,
                                       onLoadModels: () async {
                                         setState(
                                           () => _borderModelsLoading = true,
                                         );
                                         try {
                                           await widget.controller
-                                              .ensureResourceKind(
-                                                'borderBlueprint',
-                                              );
+                                              .ensureBorderProfiles();
                                         } on Object catch (failure) {
                                           _toolDocument.error = '$failure';
                                         }

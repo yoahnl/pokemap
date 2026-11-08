@@ -85,6 +85,7 @@ extension LocalMapWorkspaceCatalog on LocalMapWorkspaceAdapter {
     final projections = [
       for (final cache in [
         _resourceSelections,
+        _borderSelections,
         _activeMapDefinitions,
         _workshopCharacterDefinitions,
       ])

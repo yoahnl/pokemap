@@ -69,6 +69,14 @@ abstract interface class MapWorkspaceResourceKindPort {
   );
 }
 
+abstract interface class MapWorkspaceBorderProfilePort {
+  Future<MapWorkspaceCatalog> loadBorderProfiles(ProjectSession session);
+  Future<MapWorkspaceCatalog> loadBorderBlueprint(
+    ProjectSession session,
+    String blueprintId,
+  );
+}
+
 abstract interface class MapWorkspacePort {
   Future<ProjectManifest> loadProject(ProjectSession session);
   Future<MapWorkspaceDocument> loadMap(

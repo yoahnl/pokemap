@@ -444,17 +444,19 @@ class MapWorkspaceController {
           .loadResourceKind(session, kind);
       if (_disposed || request != _resourceKindRequest) return;
       final map = _selections[active?.base.mapId]?.definitions ?? project!;
+      _familyDefinitions = _prepareModelProjection(loaded.metadata, sourceEpoch: sourceEpoch,
+      );
+      _composeResourceVisuals();
+      final family = _resourceVisualDefinitions!;
       _resourceVisualDefinitions = null;
       project = _prepareModelProjection(mergeResourceSelection(
         project!,
-        combineResourceVisuals(_withWorkshops(map), _prepareModelProjection(loaded.metadata, sourceEpoch: sourceEpoch),
-          ),
+        combineResourceVisuals(_withWorkshops(map), family),
         library: loaded.metadata.resourceLibraryCatalog,
         ),
       );
       _resourceKind = kind;
-      _resourceVisualDefinitions = _prepareModelProjection(loaded.metadata, sourceEpoch: sourceEpoch,
-      );
+      _resourceVisualDefinitions = family;
       _cacheVisualComposition(map, _resourceVisualDefinitions!);
       notify();
     });
@@ -467,14 +469,92 @@ class MapWorkspaceController {
     });
   }
 
+  ProjectManifest? _familyDefinitions;
+  ProjectManifest? _borderDefinitions;
+  bool _borderProfilesLoaded = false;
+  final _borderBlueprints = <String>{};
+
+  bool get hasBorderProfiles =>
+      hasResourceKind('borderBlueprint') || _borderProfilesLoaded;
+  bool hasBorderBlueprint(String id) =>
+      hasResourceKind('borderBlueprint') || _borderBlueprints.contains(id);
+
+  Future<void> ensureBorderProfiles() => _ensureBorderSelection(null);
+
+  Future<void> ensureBorderBlueprint(String id) => _ensureBorderSelection(id);
+
+  bool _hasBorderSelection(String? blueprintId) => blueprintId == null
+      ? hasBorderProfiles
+      : hasBorderBlueprint(blueprintId);
+
+  Future<void> _ensureBorderSelection(String? blueprintId) {
+    if (_disposed || _hasBorderSelection(blueprintId)) return Future.value();
+    final operation = _resourceKindQueue.then((_) async {
+      if (_disposed || _hasBorderSelection(blueprintId)) return;
+      final source = port;
+      if (source is! MapWorkspaceBorderProfilePort) {
+        throw const MapWorkspaceFailure(
+          MapWorkspaceProblem.unavailable,
+          'Les bordures ne disposent pas de lecteur ciblé.',
+        );
+      }
+      final sourceEpoch = _modelSourceEpoch;
+      final borders = source as MapWorkspaceBorderProfilePort;
+      final loaded = blueprintId == null
+          ? await borders.loadBorderProfiles(session)
+          : await borders.loadBorderBlueprint(session, blueprintId);
+      if (_disposed || _hasBorderSelection(blueprintId)) return;
+      final prepared = _prepareModelProjection(loaded.metadata, sourceEpoch: sourceEpoch);
+      final previous = _borderDefinitions;
+      _borderDefinitions = previous == null
+          ? prepared
+          : _prepareModelProjection(combineResourceVisuals(previous, prepared));
+      if (blueprintId == null) {
+        _borderProfilesLoaded = true;
+      } else {
+        _borderBlueprints.add(blueprintId);
+      }
+      _composeResourceVisuals();
+      project = _prepareModelProjection(mergeBorderSelection(project!, prepared));
+      final map = _selections[active?.base.mapId]?.definitions ?? project!;
+      _cacheVisualComposition(map, _resourceVisualDefinitions!);
+      notify();
+    });
+    _resourceKindQueue = operation.then<void>(
+      (_) {},
+      onError: (Object _, StackTrace _) {},
+    );
+    return operation;
+  }
+
+  void _composeResourceVisuals() {
+    final family = _familyDefinitions;
+    final borders = _borderDefinitions;
+    _resourceVisualDefinitions = family == null
+        ? borders
+        : borders == null
+        ? family
+        : _prepareModelProjection(combineResourceVisuals(family, borders));
+  }
+
+  void _resetBorderSelection() {
+    _borderDefinitions = null;
+    _borderProfilesLoaded = false;
+    _borderBlueprints.clear();
+  }
+
   ProjectManifest _withWorkshops(ProjectManifest selection) {
     final loaded = _workshopDefinitions;
-    if (loaded == null) return _withSurfConfiguration(selection);
-    var merged = selection;
-    for (final workshop in _workshops) {
-      merged = workshop.merge(merged, loaded);
-    }
     final family = _resourceVisualDefinitions;
+    if (loaded == null && family == null) {
+      return _withSurfConfiguration(selection);
+    }
+    var merged = selection;
+    if (loaded != null) {
+      for (final workshop in _workshops) {
+        merged = workshop.merge(merged, loaded);
+      }
+    }
     return _withSurfConfiguration(_prepareModelProjection(family == null ? merged : combineResourceVisuals(merged, family),
       ),
     );
@@ -504,6 +584,8 @@ class MapWorkspaceController {
     _workshopDefinitions = null;
     _resourceKind = null;
     _resourceVisualDefinitions = null;
+    _familyDefinitions = null;
+    _resetBorderSelection();
     for (final workshop in _workshops.toList()) {
       if (source is MapWorkspaceWorkshopPort) {
         final sourceEpoch = _modelSourceEpoch;
@@ -1117,14 +1199,22 @@ class MapWorkspaceController {
           (workshop) => workshop.metadataFields.any(affectedFields.contains),
         );
       }
-      final family = _resourceVisualDefinitions;
+      final family = _familyDefinitions;
       if (family != null &&
           resources.any(
             (resource) => _usesExternalResource(family, resource),
           )) {
         _resourceKind = null;
-        _resourceVisualDefinitions = null;
+        _familyDefinitions = null;
       }
+      final borders = _borderDefinitions;
+      if (borders != null &&
+          resources.any(
+            (resource) => _usesExternalResource(borders, resource),
+          )) {
+        _resetBorderSelection();
+      }
+      _composeResourceVisuals();
       for (final id in changed) {
         final document = documents[id];
         if (document != null &&
@@ -1505,8 +1595,20 @@ class MapWorkspaceController {
         );
       }
       if (_resourceVisualDefinitions case final definitions?) {
+        final family = identical(definitions, _familyDefinitions);
+        final borders = identical(definitions, _borderDefinitions);
         _resourceVisualDefinitions = _replaceModelProjection(definitions, changedModels,
         );
+        if (family) _familyDefinitions = _resourceVisualDefinitions;
+        if (borders) _borderDefinitions = _resourceVisualDefinitions;
+      }
+      if (_familyDefinitions case final definitions?
+          when !identical(definitions, _resourceVisualDefinitions)) {
+        _familyDefinitions = _replaceModelProjection(definitions, changedModels);
+      }
+      if (_borderDefinitions case final definitions?
+          when !identical(definitions, _resourceVisualDefinitions)) {
+        _borderDefinitions = _replaceModelProjection(definitions, changedModels);
       }
       if (_combinedVisuals case final definitions?) {
         _combinedVisuals = _replaceModelProjection(definitions, changedModels);

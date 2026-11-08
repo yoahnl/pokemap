@@ -52,6 +52,7 @@ final class LocalMapWorkspaceAdapter
         MapWorkspaceExternalMutationPort,
         MapWorkspaceWorkshopPort,
         MapWorkspaceResourceKindPort,
+        MapWorkspaceBorderProfilePort,
         MapWorkspaceModelLightPort,
         MapAtmospherePort,
         MapExteriorDecorationPort,
@@ -178,6 +179,16 @@ final class LocalMapWorkspaceAdapter
   ) => _loadResourceKind(session, canonicalKind);
 
   @override
+  Future<MapWorkspaceCatalog> loadBorderProfiles(ProjectSession session) =>
+      _loadBorderSelection(session, null);
+
+  @override
+  Future<MapWorkspaceCatalog> loadBorderBlueprint(
+    ProjectSession session,
+    String blueprintId,
+  ) => _loadBorderSelection(session, blueprintId);
+
+  @override
   Future<void> acceptModelLight(ProjectSession session, ProjectModel3dEntry model,
       String beforeRevision, String afterRevision,
   ) async {
@@ -206,7 +217,7 @@ final class LocalMapWorkspaceAdapter
     }
     final manifest = update(current.manifest);
     final projections = [
-      for (final cache in [_resourceSelections, _activeMapDefinitions, _workshopCharacterDefinitions,
+      for (final cache in [_resourceSelections, _borderSelections, _activeMapDefinitions, _workshopCharacterDefinitions,
       ])
         if (cache[session.sessionId] case final value?)
           (cache: cache, manifest: update(value)),
@@ -226,6 +237,7 @@ final class LocalMapWorkspaceAdapter
   final AtomicMapDocumentPersistence _persistence;
   final _projects = <String, _ProjectDocument>{};
   final _resourceSelections = <String, ProjectManifest>{};
+  final _borderSelections = <String, ProjectManifest>{};
   final _activeMapDefinitions = <String, ProjectManifest>{};
   final _workshopCharacterDefinitions = <String, ProjectManifest>{};
   final _loadedPaths = <(String, String), String>{};
@@ -414,6 +426,7 @@ final class LocalMapWorkspaceAdapter
       }.contains(resource.kind),
     )) {
       _resourceSelections.remove(session.sessionId);
+      _borderSelections.remove(session.sessionId);
     }
     if (resources.any((resource) => resource.kind == 'character')) {
       _workshopCharacterDefinitions.remove(session.sessionId);

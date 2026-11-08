@@ -335,6 +335,15 @@ ProjectManifest mergeResourceSelection(
   ),
 );
 
+ProjectManifest mergeBorderSelection(
+  ProjectManifest current,
+  ProjectManifest loaded,
+) => mergeResourceSelection(
+  current,
+  combineResourceVisuals(current, loaded),
+  library: loaded.resourceLibraryCatalog,
+);
+
 ResourceLibraryCatalog mergeResourceLibraryCatalogs(
   ResourceLibraryCatalog current,
   ResourceLibraryCatalog loaded,

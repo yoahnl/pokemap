@@ -24,10 +24,11 @@ class MapBorderToolPanel extends StatelessWidget {
     required this.onCreateModel,
     this.modelsLoaded = true,
     this.modelsLoading = false,
+    this.piecesLoading = false,
     this.onLoadModels,
   });
 
-  final bool modelsLoaded, modelsLoading;
+  final bool modelsLoaded, modelsLoading, piecesLoading;
   final Future<void> Function()? onLoadModels;
   final EditableMapDocument document;
   final ProjectManifest project;
@@ -600,7 +601,7 @@ class MapBorderToolPanel extends StatelessWidget {
                                     ),
                                   ),
                                   Text(
-                                    'Chargement des modèles de bordure du projet… Sur un grand projet, cela peut prendre plusieurs minutes.',
+                                    'Chargement des modèles de bordure du projet… Leurs pièces se chargent quand vous en choisissez un.',
                                   ),
                                 ]
                               : [
@@ -672,6 +673,14 @@ class MapBorderToolPanel extends StatelessWidget {
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: controls,
                   ),
+            if (piecesLoading && selected != null)
+              const Padding(
+                padding: EdgeInsets.only(top: 6),
+                child: StudioNotice(
+                  'Préparation des pièces de cette bordure… Le tracé sera possible dans un instant.',
+                  key: ValueKey('border-pieces-loading'),
+                ),
+              ),
             if (spatial &&
                 models.isNotEmpty &&
                 view.borderEditingMode != BorderStrokeEditingMode.erase)

@@ -4,6 +4,7 @@ extension _LocalScopedMapCatalog on LocalMapWorkspaceAdapter {
   Future<MapWorkspaceCatalog> _loadScopedCatalog(ProjectSession session) async {
     await _requireRoot(session);
     _resourceSelections.remove(session.sessionId);
+    _borderSelections.remove(session.sessionId);
     _workshopCharacterDefinitions.remove(session.sessionId);
     final result = await _readScopedCatalog(session, (catalog, revision) async {
       return MapWorkspaceCatalog(
@@ -146,19 +147,100 @@ extension _LocalScopedMapCatalog on LocalMapWorkspaceAdapter {
       );
     }
     _resourceSelections[session.sessionId] = result.metadata;
+    final selection = combineResourceVisuals(
+      _activeMapDefinitions[session.sessionId] ?? latest.manifest,
+      _workshopCharacterDefinitions[session.sessionId] == null
+          ? result.metadata
+          : combineResourceVisuals(
+              result.metadata,
+              _workshopCharacterDefinitions[session.sessionId]!,
+            ),
+    );
+    final borders = _borderSelections[session.sessionId];
     final merged = mergeResourceSelection(
       latest.manifest,
-      combineResourceVisuals(
-        _activeMapDefinitions[session.sessionId] ?? latest.manifest,
-        _workshopCharacterDefinitions[session.sessionId] == null
-            ? result.metadata
-            : combineResourceVisuals(
-                result.metadata,
-                _workshopCharacterDefinitions[session.sessionId]!,
-              ),
-      ),
+      borders == null ? selection : combineResourceVisuals(selection, borders),
       library: result.metadata.resourceLibraryCatalog,
     );
+    _projects[session.sessionId] = _ProjectDocument(
+      latest.root,
+      merged.copyWith(models3d: ProjectModel3dEntries.prepare(merged.models3d)),
+      result.revision,
+      complete: false,
+      metadataFields: latest.metadataFields,
+    );
+    return result;
+  }
+
+  Future<MapWorkspaceCatalog> _loadBorderSelection(
+    ProjectSession session,
+    String? blueprintId,
+  ) async {
+    final before = _project(session);
+    final result = await _readScopedCatalog(
+      session,
+      (catalog, revision) async {
+        if (revision != before.revision) {
+          throw const MapWorkspaceFailure(
+            MapWorkspaceProblem.conflict,
+            'Le catalogue a changé avant le chargement des bordures.',
+          );
+        }
+        final ProjectManifest manifest;
+        if (blueprintId != null) {
+          manifest = await ProjectCatalogSelection(catalog).resolve([
+            CatalogDefinitionKey(CatalogDefinitionKind.borderRecord, blueprintId),
+          ]);
+        } else {
+          final units = <CatalogDefinitionUnit>[];
+          for (final kind in const [
+            CatalogDefinitionKind.borderRecord,
+            CatalogDefinitionKind.resourceFamily,
+          ]) {
+            String? cursor;
+            do {
+              final page = await catalog.snapshot.page(
+                kind: kind,
+                limit: catalog.snapshot.limits.indexPageSize,
+                cursor: cursor,
+              );
+              for (final entry in page.items) {
+                units.add((await catalog.lookup(entry.key))!);
+                if (kind != CatalogDefinitionKind.borderRecord) continue;
+                final classification = await catalog.lookup(
+                  CatalogDefinitionKey(
+                    CatalogDefinitionKind.resourceLibraryEntry,
+                    'borderBlueprint:${entry.key.id}',
+                  ),
+                );
+                if (classification != null) units.add(classification);
+              }
+              cursor = page.nextCursor;
+            } while (cursor != null);
+          }
+          manifest = catalog.projectWithDefinitions(units);
+        }
+        return MapWorkspaceCatalog(
+          metadata: manifest.copyWith(
+            models3d: ProjectModel3dEntries.prepare(manifest.models3d),
+          ),
+          revision: revision,
+        );
+      },
+      metadataFields: const {'settings', 'globalProperties'},
+    );
+    final latest = _project(session);
+    if (latest.revision != result.revision) {
+      throw const MapWorkspaceFailure(
+        MapWorkspaceProblem.conflict,
+        'Le catalogue a changé pendant le chargement des bordures.',
+      );
+    }
+    final previous = _borderSelections[session.sessionId];
+    _borderSelections[session.sessionId] = previous == null
+        ? result.metadata
+        : combineResourceVisuals(previous, result.metadata);
+    final merged = mergeBorderSelection(latest.manifest, result.metadata);
     _projects[session.sessionId] = _ProjectDocument(
       latest.root,
       merged.copyWith(models3d: ProjectModel3dEntries.prepare(merged.models3d)),
@@ -229,6 +311,10 @@ extension _LocalScopedMapCatalog on LocalMapWorkspaceAdapter {
     final resources = _resourceSelections[session.sessionId];
     if (resources != null) {
       definitions = combineResourceVisuals(definitions, resources);
+    }
+    final borders = _borderSelections[session.sessionId];
+    if (borders != null) {
+      definitions = combineResourceVisuals(definitions, borders);
     }
     _projects[session.sessionId] = _ProjectDocument(
       latest.root,
