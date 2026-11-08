@@ -183,16 +183,9 @@ void main() {
       );
       expect(selection.document.map.id, ResourceFixture.entry.id);
       expect(selection.definitions.tilesets, isEmpty);
-      await expectLater(
-        maps.resourceBaseline(session),
-        throwsA(
-          isA<MapWorkspaceFailure>().having(
-            (failure) => failure.problem,
-            'problem',
-            MapWorkspaceProblem.unavailable,
-          ),
-        ),
-      );
+      final baseline = await maps.resourceBaseline(session);
+      expect(baseline.manifest.tilesets, isEmpty);
+      expect(baseline.manifest.maps, [ResourceFixture.entry]);
       await expectLater(maps.materializeProject(session), throwsA(anything));
     } finally {
       await path.writeAsBytes(bytes);
@@ -214,10 +207,7 @@ void main() {
         selection.document.map.copyWith(name: 'Ciblée'),
       );
       expect(await fixture.manifestFile.readAsBytes(), descriptor);
-      await expectLater(
-        maps.resourceBaseline(session),
-        throwsA(isA<MapWorkspaceFailure>()),
-      );
+      expect((await maps.resourceBaseline(session)).manifest.tilesets, isEmpty);
       final reopened = LocalMapWorkspaceAdapter();
       await reopened.loadCatalog(session);
       expect(
