@@ -75,6 +75,23 @@ void main() {
           isNot(NarrativeEventSourceRef.entityInteract('map', 'owner')));
     });
 
+    test(
+        '$label saves an event whose scene reads a dialogue, a fact and a story step',
+        () async {
+      final f = await _Fixture.create(sceneDependencies: true);
+      addTearDown(f.dispose);
+      final record = _record({'kind': 'mapEnter', 'mapId': 'map'});
+      (record['definition']! as Map)['priority'] = 42;
+      final planned = await f.plan(
+          await f.request('event_v2.record_upsert', {'record': record}), wire);
+      expect(planned['applicable'], isTrue);
+      await f.apply(planned['planId'] as String, wire);
+      await f.reopen();
+      final saved = (await f.snapshots.load(f.project)).manifest;
+      expect(saved.eventRegistry!.records.single.definitionOrNull!.priority, 42);
+      expect(saved.scenes.single.graph.nodes, hasLength(5));
+    });
+
     test('$label creates a native draft with an exact autorun source',
         () async {
       final f = await _Fixture.create();
@@ -147,7 +164,8 @@ final class _Fixture {
   File get manifest => File('${directory.path}/project.json');
   File get map => File('${directory.path}/maps/map.json');
 
-  static Future<_Fixture> create({bool duplicateOwners = false}) async {
+  static Future<_Fixture> create(
+      {bool duplicateOwners = false, bool sceneDependencies = false}) async {
     final directory =
         await Directory.systemTemp.createTemp('native-autorun-api-');
     await Directory('${directory.path}/maps').create();
@@ -197,22 +215,101 @@ final class _Fixture {
                   _record({'kind': 'mapEnter', 'mapId': 'map'}))
             ],
             legacyClaims: const []),
+        dialogues: [
+          if (sceneDependencies)
+            const ProjectDialogueEntry(
+                id: 'offer', name: 'Offer', relativePath: 'dialogues/offer.yarn')
+        ],
+        facts: [
+          if (sceneDependencies)
+            NarrativeFactDefinition(id: 'started', label: 'Started')
+        ],
+        storylines: [
+          if (sceneDependencies)
+            StorylineAsset(
+                id: 'departure',
+                title: 'Departure',
+                type: StorylineType.sideQuest,
+                chapters: [
+                  StorylineChapter(
+                      id: 'departure_chapter',
+                      title: 'Departure',
+                      order: 0,
+                      steps: [
+                        StorylineStep(id: 'prepare', title: 'Prepare', order: 0)
+                      ])
+                ])
+        ],
         scenes: [
           SceneAsset(
               id: 'hello',
               name: 'Hello',
-              graph: SceneGraph(startNodeId: 'start', nodes: [
-                SceneNode(id: 'start', kind: SceneNodeKind.start),
-                SceneNode(id: 'end', kind: SceneNodeKind.end)
-              ], edges: [
-                SceneEdge(
-                    id: 'done',
-                    fromNodeId: 'start',
-                    fromPortId: 'completed',
-                    toNodeId: 'end',
-                    kind: SceneEdgeKind.defaultFlow)
-              ]))
+              graph: sceneDependencies
+                  ? SceneGraph(startNodeId: 'start', nodes: [
+                      SceneNode(id: 'start', kind: SceneNodeKind.start),
+                      SceneNode(
+                          id: 'talk',
+                          kind: SceneNodeKind.yarnDialogue,
+                          payload: SceneYarnDialoguePayload(
+                              dialogueId: 'offer', yarnNodeName: 'Start')),
+                      SceneNode(
+                          id: 'fact',
+                          kind: SceneNodeKind.action,
+                          payload: SceneActionPayload(
+                              consequence:
+                                  SceneConsequence.setFact(
+                                      factId: 'started', value: true))),
+                      SceneNode(
+                          id: 'step',
+                          kind: SceneNodeKind.action,
+                          payload: SceneActionPayload(
+                              consequence:
+                                  SceneConsequence.completeStoryStep(
+                                      stepId: 'prepare'))),
+                      SceneNode(id: 'end', kind: SceneNodeKind.end)
+                    ], edges: [
+                      SceneEdge(
+                          id: 'enter',
+                          fromNodeId: 'start',
+                          fromPortId: 'completed',
+                          toNodeId: 'talk',
+                          kind: SceneEdgeKind.defaultFlow),
+                      SceneEdge(
+                          id: 'talked',
+                          fromNodeId: 'talk',
+                          fromPortId: 'completed',
+                          toNodeId: 'fact',
+                          kind: SceneEdgeKind.defaultFlow),
+                      SceneEdge(
+                          id: 'set',
+                          fromNodeId: 'fact',
+                          fromPortId: 'completed',
+                          toNodeId: 'step',
+                          kind: SceneEdgeKind.actionCompleted),
+                      SceneEdge(
+                          id: 'done',
+                          fromNodeId: 'step',
+                          fromPortId: 'completed',
+                          toNodeId: 'end',
+                          kind: SceneEdgeKind.actionCompleted)
+                    ])
+                  : SceneGraph(startNodeId: 'start', nodes: [
+                      SceneNode(id: 'start', kind: SceneNodeKind.start),
+                      SceneNode(id: 'end', kind: SceneNodeKind.end)
+                    ], edges: [
+                      SceneEdge(
+                          id: 'done',
+                          fromNodeId: 'start',
+                          fromPortId: 'completed',
+                          toNodeId: 'end',
+                          kind: SceneEdgeKind.defaultFlow)
+                    ]))
         ]);
+    if (sceneDependencies) {
+      await Directory('${directory.path}/dialogues').create();
+      await File('${directory.path}/dialogues/offer.yarn')
+          .writeAsString('title: Start\n---\nBonjour.\n===\n');
+    }
     await File('${directory.path}/project.json')
         .writeAsString(jsonEncode(project.toJson()));
     final mapFile = File('${directory.path}/maps/map.json');

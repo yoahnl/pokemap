@@ -636,6 +636,35 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
     }
   }
   collect();
+  if (conditionEvent) {
+    final expandedScenes = <String>{};
+    while (true) {
+      final scenes = [
+        for (final scene in (selected['scenes'] ?? const {}).entries)
+          if (expandedScenes.add(scene.key)) scene.value,
+      ];
+      if (scenes.isEmpty) break;
+      for (final entry in _nativeWorkshopReferences.entries) {
+        add(entry.key, _nativeReferenceIds(scenes, entry.value,
+            ignorePeriodicRewardReferences: true));
+      }
+      final stepIds = _nativeReferenceIds(scenes, const {'stepId'});
+      if (stepIds.isNotEmpty) {
+        for (final rows in index('storylines').values) {
+          for (final story in rows) {
+            final chapters = story['chapters'];
+            if (chapters is! List) continue;
+            final owns = chapters.whereType<Map>().any((chapter) =>
+                chapter['steps'] is List &&
+                (chapter['steps'] as List).whereType<Map>().any(
+                    (step) => stepIds.contains(step['id'])));
+            if (owns) add('storylines', [story['id'] as String]);
+          }
+        }
+      }
+      collect();
+    }
+  }
   for (final entry in selected.entries) {
     projected[entry.key] = entry.value.values.toList();
   }
