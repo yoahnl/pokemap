@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:avelune_studio/features/game_export/data/studio_game_export_controller.dart';
@@ -52,6 +53,7 @@ class ProjectCreationWorkspaceFixture {
     Widget Function(ProjectSession, VoidCallback)? createdWorkspaceBuilder,
   }) async {
     if (sessionController != null) session = sessionController;
+    final mapAdapter = Zone.root.run(LocalMapWorkspaceAdapter.new);
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -80,6 +82,7 @@ class ProjectCreationWorkspaceFixture {
               createdWorkspaceBuilder ??
               (project, close) => _CreatedWorkspace(
                 tester: tester,
+                adapter: mapAdapter,
                 session: project,
                 onClose: close,
                 packageFile: packageFile,
@@ -223,6 +226,7 @@ class _SessionIo implements ProjectSessionPort {
 class _CreatedWorkspace extends StatefulWidget {
   const _CreatedWorkspace({
     required this.tester,
+    required this.adapter,
     required this.session,
     required this.onClose,
     required this.packageFile,
@@ -230,6 +234,7 @@ class _CreatedWorkspace extends StatefulWidget {
     this.withNarrative = false,
   });
   final WidgetTester tester;
+  final LocalMapWorkspaceAdapter adapter;
   final ProjectSession session;
   final Future<void> Function() onClose;
   final File packageFile;
@@ -240,7 +245,7 @@ class _CreatedWorkspace extends StatefulWidget {
 }
 
 class _CreatedWorkspaceState extends State<_CreatedWorkspace> {
-  late final adapter = LocalMapWorkspaceAdapter();
+  late final adapter = widget.adapter;
   late final ioPort = Ui08MapPort(adapter, widget.tester)..interactive = true;
   late final port = widget.mapPort?.call(ioPort) ?? ioPort;
   late final maps = WidgetMapController(
