@@ -35,7 +35,11 @@ void main() {
     '../invalid',
   ]) {
     test('Studio uses the project release $release for search', () async {
-      final parent = Directory(Platform.environment['AVELUNE_QA_ROOT']!);
+      final parent = Directory(
+        Platform.environment['AVELUNE_QA_ROOT'] ??
+            '${Platform.environment['HOME']}/Library/Caches/AveluneQA',
+      );
+      await parent.create(recursive: true);
       final root = await parent.createTemp('release-search-');
       addTearDown(() => root.delete(recursive: true));
       final manifest = ProjectManifest(

@@ -97,7 +97,11 @@ void main() {
     'form',
   ]) {
     test('Studio imports a cry with $scenario media', () async {
-      final parent = Directory(Platform.environment['AVELUNE_QA_ROOT']!);
+      final parent = Directory(
+        Platform.environment['AVELUNE_QA_ROOT'] ??
+            '${Platform.environment['HOME']}/Library/Caches/AveluneQA',
+      );
+      await parent.create(recursive: true);
       final root = await parent.createTemp('studio-cry-');
       addTearDown(() => root.delete(recursive: true));
       final files = spatialFeaturePayload('companion');
