@@ -2,6 +2,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 
+import '../../features/verification/application/studio_failure_diagnosis.dart';
 import 'studio_playtest_session.dart';
 
 final class StudioSpatialPlaytest {
@@ -16,7 +17,7 @@ final class StudioSpatialPlaytest {
         .where((character) => character.id == id)
         .firstOrNull;
     if (hero == null || hero.animations.isEmpty) {
-      throw StateError(
+      throw const StudioLaunchProblem(
         'Choisissez un héros animé dans les réglages du projet.',
       );
     }
@@ -36,8 +37,9 @@ final class StudioSpatialPlaytest {
     final catalog =
         bundle.projectCatalog ?? RuntimeProjectCatalog.ownerOf(project);
     if (!project.newGame.enabled) {
-      throw StateError(
+      throw const StudioLaunchProblem(
         'Configurez la nouvelle partie et son point de départ dans les réglages du projet avant de tester le jeu 3D.',
+        owner: StudioFailureOwner.map,
       );
     }
     final identity = GameIdentity(

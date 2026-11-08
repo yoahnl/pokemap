@@ -185,6 +185,11 @@ void main() {
           );
           await tester.pump();
           if (find.textContaining(expected).evaluate().isNotEmpty) break;
+          if (find.text('Afficher le détail technique').evaluate().isNotEmpty) {
+            await tester.tap(find.text('Afficher le détail technique'));
+            await tester.pumpAndSettle();
+            break;
+          }
         }
         expect(
           find.textContaining(expected),

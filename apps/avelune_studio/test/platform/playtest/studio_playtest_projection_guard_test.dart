@@ -26,7 +26,7 @@ void main() {
     expect(bundle.map.spatialScene!.instances, hasLength(1));
     expect(
       bundle.map.spatialScene!.instances.single.position,
-      Model3dVector3(x: 1, y: .5, z: 1),
+      Model3dVector3(x: 1, y: .5 + spatialSmartTileLayerPaintStep, z: 1),
     );
     expect(bundle.map, isNot(fixture.document.map));
 

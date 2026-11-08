@@ -227,7 +227,10 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
       sourceCellHeight: bundle.manifest.settings.tileHeight,
     );
     if (bundle.map != expected) {
-      throw StateError('La carte a changé pendant la préparation du test.');
+      throw const StudioLaunchProblem(
+        'La carte a changé pendant la préparation du test.',
+        owner: StudioFailureOwner.map,
+      );
     }
   }
 
