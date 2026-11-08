@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:map_authoring/map_authoring.dart';
+import 'package:map_authoring/src/workspace/catalog/catalog_metadata_documents.dart';
+import 'package:map_authoring/src/workspace/catalog/catalog_resource_positions.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
@@ -59,6 +61,77 @@ void main() {
     expect(marker!.payload['valid'], isTrue);
     expect(await File('${directory.path}/project.json').exists(), isTrue);
   });
+  test('creation writes the resource slots so the first preparation keeps HEAD',
+      () async {
+    final directory = await Directory.systemTemp.createTemp('working-slots-');
+    addTearDown(() => directory.delete(recursive: true));
+    final store = await CatalogStorageStore.open(projectRoot: directory.path);
+    final working = await WorkingProjectCatalog.create(
+        store: store, projectId: 'game', project: _slotProject());
+    final created = (await store.openRoot(working.root)).snapshot;
+    expect(await CatalogResourcePositions.prepareSlots(created), isEmpty);
+    final history = await FileAuthoringHistoryStore.open(
+        projectRoot: directory.path, incrementalWrites: true);
+    final session = await CatalogEditingSession.open(
+        store: store,
+        projectId: 'game',
+        actorId: 'editor',
+        incrementalHistory: true,
+        history: history);
+    try {
+      await session.prepareMetadataDocuments();
+      expect(session.snapshot.root, working.root);
+      expect(await store.readHead(), working.root);
+      expect(await history.latestLocalEntry(projectId: 'game'), isNull);
+    } finally {
+      await session.close();
+    }
+  });
+
+  test('a catalog initialized before resource slots still prepares them',
+      () async {
+    final directory =
+        await Directory.systemTemp.createTemp('working-legacy-slots-');
+    addTearDown(() => directory.delete(recursive: true));
+    final store = await CatalogStorageStore.open(projectRoot: directory.path);
+    final legacy = await _publishWithoutResourceSlots(store, _slotProject());
+    expect(await CatalogResourcePositions.prepareSlots(legacy), isNotEmpty);
+    await expectLater(
+        CatalogResourcePositions.readSlot(
+            legacy, CatalogDefinitionKind.resourceLibraryEntry, 0),
+        throwsA(isA<FormatException>().having((error) => error.message,
+            'message', 'catalog.resource_positions.slots_preparation_required')));
+    final session = await CatalogEditingSession.open(
+        store: store,
+        projectId: 'game',
+        actorId: 'editor',
+        incrementalHistory: true,
+        history: await FileAuthoringHistoryStore.open(
+            projectRoot: directory.path, incrementalWrites: true));
+    try {
+      await session.prepareMetadataDocuments();
+      expect(session.snapshot.root, isNot(legacy.root));
+      expect(
+          await CatalogResourcePositions.prepareSlots(session.snapshot), isEmpty);
+    } finally {
+      await session.close();
+    }
+
+    final retryDirectory =
+        await Directory.systemTemp.createTemp('working-legacy-retry-');
+    addTearDown(() => retryDirectory.delete(recursive: true));
+    final retryStore =
+        await CatalogStorageStore.open(projectRoot: retryDirectory.path);
+    await _publishWithoutResourceSlots(retryStore, _slotProject());
+    final working = await WorkingProjectCatalog.create(
+        store: retryStore, projectId: 'game', project: _slotProject());
+    expect(
+        await CatalogResourcePositions.prepareSlots(
+            (await retryStore.openRoot(working.root)).snapshot),
+        isEmpty);
+    expect((await working.exportProject()).toJson(), _slotProject().toJson());
+  });
+
   test('working reads write nothing and unit edits keep descriptor static',
       () async {
     final directory = await Directory.systemTemp.createTemp('working-catalog-');
@@ -256,3 +329,23 @@ Future<Map<String, String>> _inventory(Directory root) async => {
       await for (final file in root.list(recursive: true))
         if (file is File) file.path: base64Encode(await file.readAsBytes()),
     };
+
+ProjectManifest _slotProject() =>
+    ProjectManifest(name: 'Game', maps: const [], tilesets: const [
+      ProjectTilesetEntry(id: 'first', name: 'First', relativePath: 'a.png'),
+      ProjectTilesetEntry(id: 'second', name: 'Second', relativePath: 'b.png'),
+    ]);
+
+Future<CatalogSnapshot> _publishWithoutResourceSlots(
+    CatalogStorageStore store, ProjectManifest project) async {
+  final build = PortableCatalogPublication.encodeProject(project);
+  final units = CatalogSnapshot.readAllSync(
+          root: build.storage.root,
+          readObject: (reference) => build.storage.objects[reference.sha256]!,
+          limits: store.limits)
+      .units;
+  final storage = CatalogStorageBuilder(limits: store.limits)
+      .build([...units, ...CatalogMetadataDocuments.initialize(units)]);
+  final published = await store.publish(storage, expectedRootRevision: null);
+  return published.snapshot;
+}

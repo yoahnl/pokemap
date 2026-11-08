@@ -8,6 +8,7 @@ import '../support/authoring_fingerprint.dart';
 import 'catalog_generation_retention.dart';
 import '../transactions/transaction_journal.dart';
 import '../workspace/catalog/catalog_metadata_documents.dart';
+import '../workspace/catalog/catalog_resource_positions.dart';
 import 'catalog_storage_store.dart';
 
 final class CatalogPartitionPreparation {
@@ -192,14 +193,22 @@ final class WorkingProjectCatalog {
             readObject: (reference) => build.storage.objects[reference.sha256]!,
             limits: store.limits)
         .units;
-    final storage = CatalogStorageBuilder(limits: store.limits).build([
+    final initialized = [
       ...units,
       ...CatalogMetadataDocuments.initialize(units),
+    ];
+    final storage = CatalogStorageBuilder(limits: store.limits).build([
+      ...initialized,
+      ...CatalogResourcePositions.initializeSlots(units),
     ]);
     final previous = await store.readHead();
     if (previous != null &&
         previous != storage.root &&
-        previous != build.storage.root) {
+        previous != build.storage.root &&
+        previous !=
+            CatalogStorageBuilder(limits: store.limits)
+                .build(initialized)
+                .root) {
       throw const CatalogStorageException('catalog.revision_conflict',
           'A different catalog generation is already published.');
     }

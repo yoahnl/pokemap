@@ -171,6 +171,13 @@ abstract final class CatalogResourcePositions {
     ];
   }
 
+  static List<CatalogDefinitionUnit> initializeSlots(
+          Iterable<CatalogDefinitionUnit> units) =>
+      [
+        for (final kind in slotKinds)
+          ..._slotUnits(kind, units.where((unit) => unit.key.kind == kind)),
+      ];
+
   static Future<List<CatalogDefinitionUnit>> prepareSlots(
       CatalogSnapshot snapshot) async {
     final result = <CatalogDefinitionUnit>[];

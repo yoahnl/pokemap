@@ -185,20 +185,22 @@ void main() {
             ]
           },
           'batch-refiling');
-      await expectLater(
-          fixture.plan(
-              'resource.classify_batch',
-              {
-                'entries': [
-                  {'resourceKind': 'model3d', 'resourceId': 'rock', 'familyId': null}
-                ]
-              },
-              'clearing'),
-          throwsA(isA<AuthoringPlanException>().having(
-              (error) => error.code,
-              'code',
-              'catalog.mutation_scope_required')),
-          reason: 'clearing needs the classification position index');
+      expect(
+          (await fixture.plan(
+                  'resource.classify_batch',
+                  {
+                    'entries': [
+                      {
+                        'resourceKind': 'model3d',
+                        'resourceId': 'rock',
+                        'familyId': null
+                      }
+                    ]
+                  },
+                  'clearing'))
+              .applicable,
+          isTrue,
+          reason: 'a created catalog already holds the classification slots');
 
       await fixture.reopen();
       final root =
@@ -265,10 +267,10 @@ void main() {
         'role': 'standard',
         'placementContext': null,
       };
-      await expectLater(
-          fixture.plan('resource.classify', clearA, 'unprepared-clearing'),
-          throwsA(isA<AuthoringPlanException>().having((error) => error.code,
-              'code', 'catalog.mutation_scope_required')));
+      expect(
+          (await fixture.plan('resource.classify', clearA, 'unprepared-clearing'))
+              .applicable,
+          isTrue);
       await fixture.api.prepareWorkshopDocument(fixture.opened.projectHandle,
           scope: 'nativeResources');
       Future<AuthoringMutationResult> run(String action,
