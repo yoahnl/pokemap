@@ -54,6 +54,13 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text(value),
+      48,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.ensureVisible(find.text(value).last);
+    await tester.pumpAndSettle();
     await tester.tap(find.text(value).last);
     await tester.pumpAndSettle();
   }
