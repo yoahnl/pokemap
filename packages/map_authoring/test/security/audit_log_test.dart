@@ -37,6 +37,44 @@ void main() {
       expect(await log.readAll(), isEmpty);
     });
 
+    test('incremental audit reads records in chronological order', () async {
+      final project =
+          await Directory.systemTemp.createTemp('pokemap_audit_order_');
+      addTearDown(() => project.delete(recursive: true));
+      final log = await FileAuthoringAuditLog.open(
+          projectRoot: project.path, incrementalWrites: true);
+      final ids = [
+        for (final digit in 'f0e1d2c3b4a5'.split(''))
+          'audit_document_${digit * 32}'
+      ];
+      for (final (index, id) in ids.indexed) {
+        await log.append(_record(
+            id: id,
+            decision: AuthoringAuditDecision.succeeded,
+            timestamp: DateTime.utc(2026, 7, 31, 13, index)));
+      }
+      final reopened = await FileAuthoringAuditLog.open(
+          projectRoot: project.path, incrementalWrites: true);
+      expect((await reopened.readAll()).map((record) => record.auditId), ids);
+    });
+
+    test('incremental audit orders simultaneous records by identity', () async {
+      final project =
+          await Directory.systemTemp.createTemp('pokemap_audit_ties_');
+      addTearDown(() => project.delete(recursive: true));
+      final log = await FileAuthoringAuditLog.open(
+          projectRoot: project.path, incrementalWrites: true);
+      final ids = [
+        for (final digit in '93a7'.split('')) 'audit_document_${digit * 32}'
+      ];
+      for (final id in ids) {
+        await log.append(
+            _record(id: id, decision: AuthoringAuditDecision.succeeded));
+      }
+      expect((await log.readAll()).map((record) => record.auditId),
+          [...ids]..sort());
+    });
+
     test('append-only redacted records survive reopen with a valid hash chain',
         () async {
       final project = await Directory.systemTemp.createTemp('pokemap_audit_');
@@ -552,6 +590,7 @@ AuthoringAuditRecord _record({
   required AuthoringAuditDecision decision,
   String? receiptId,
   Map<String, Object?> details = const {},
+  DateTime? timestamp,
 }) {
   return AuthoringAuditRecord(
     auditId: id,
@@ -568,7 +607,7 @@ AuthoringAuditRecord _record({
     code: decision == AuthoringAuditDecision.succeeded
         ? 'mutation.succeeded'
         : 'authorization.permission_denied',
-    timestamp: DateTime.utc(2026, 7, 31, 13),
+    timestamp: timestamp ?? DateTime.utc(2026, 7, 31, 13),
     details: details,
   );
 }

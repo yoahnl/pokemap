@@ -108,6 +108,7 @@ final class FileAuthoringAuditLog implements AuthoringAuditLog {
         final events = await _readEvents(await _auditFile());
         final records = [for (final event in events) event.record];
         final directory = await _incrementalDirectory(create: false);
+        final incremental = <AuthoringAuditRecord>[];
         if (directory != null) {
           await for (final file in directory.list(followLinks: false)) {
             if (file is! File || !file.path.endsWith('.json')) {
@@ -122,10 +123,14 @@ final class FileAuthoringAuditLog implements AuthoringAuditLog {
                     .any((record) => record.auditId == event.record.auditId)) {
               throw const FormatException();
             }
-            records.add(event.record);
+            incremental.add(event.record);
           }
         }
-        return List.unmodifiable(records);
+        incremental.sort((a, b) {
+          final byTime = a.timestamp.compareTo(b.timestamp);
+          return byTime != 0 ? byTime : a.auditId.compareTo(b.auditId);
+        });
+        return List.unmodifiable([...records, ...incremental]);
       });
     });
   }
