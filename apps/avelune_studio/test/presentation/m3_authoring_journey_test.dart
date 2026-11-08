@@ -95,6 +95,8 @@ void main() {
       );
       await tester.tap(find.text('Carte').first);
       await tester.pump();
+      await tester.ensureVisible(find.text('Écrire son interaction'));
+      await tester.pump();
       await tester.tap(find.text('Écrire son interaction'));
       await pumpIo(tester);
       expect(find.byType(NarrativeInteractionPane), findsOneWidget);
@@ -174,6 +176,8 @@ void main() {
       expect(story.controller.error, isNull);
       expect(story.controller.dirty, isFalse);
       await tester.tap(find.text('Carte').first);
+      await tester.pump();
+      await tester.ensureVisible(find.text('Écrire son interaction'));
       await tester.pump();
       await tester.tap(find.text('Écrire son interaction'));
       await pumpIo(tester);
