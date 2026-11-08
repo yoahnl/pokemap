@@ -74,6 +74,115 @@ void main() {
   );
 
   testWidgets(
+    'opening a decor workshop and coming back keeps the library context and the map',
+    (tester) async {
+      final host = await UwUResourceHost.open(tester);
+      final library = host.navigation.library;
+      final mapBefore = host.fixture.controller.active!.base.mapId;
+      await tester.tap(find.text('Ressources utilisables'));
+      await pumpIo(tester, frames: 6);
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Rechercher dans les ressources').first,
+        'r',
+      );
+      await pumpIo(tester, frames: 6);
+      await tester.tap(find.text('Rocher bleu').first);
+      await pumpIo(tester, frames: 6);
+      final selected = library.selectedIdentity;
+      expect(selected, 'element:rocher');
+      expect(library.query, 'r');
+      expect(library.filters.usableOnly, isTrue);
+
+      final edit = find.text('Modifier le décor').last;
+      await tester.ensureVisible(edit);
+      await tester.tap(edit);
+      await pumpIo(tester, frames: 8);
+      expect(find.text('Retour aux ressources'), findsWidgets);
+      await tester.tap(find.text('Retour aux ressources').last);
+      await pumpIo(tester, frames: 8);
+
+      expect(library.query, 'r');
+      expect(library.filters.usableOnly, isTrue);
+      expect(library.selectedIdentity, selected);
+      expect(
+        find.byKey(const ValueKey('resource-filter-tag-usable')),
+        findsOneWidget,
+      );
+      expect(
+        tester
+            .widget<TextField>(
+              find
+                  .widgetWithText(TextField, 'Rechercher dans les ressources')
+                  .first,
+            )
+            .controller!
+            .text,
+        'r',
+      );
+      final back = find.textContaining('Carte : ').first;
+      await tester.tap(back);
+      await pumpIo(tester, frames: 8);
+      expect(find.byType(ResourceLibraryScreen), findsNothing);
+      expect(host.fixture.controller.active!.base.mapId, mapBefore);
+    },
+  );
+
+  testWidgets('a rebuilt library returns to the remembered scroll offset', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final template = workspaceProject.elements.first;
+    final project = workspaceProject.copyWith(
+      elements: [
+        for (var index = 0; index < 40; index++)
+          template.copyWith(id: 'decor_$index', name: 'Décor $index'),
+      ],
+    );
+    final library = ResourceLibraryState();
+    Widget screen() => MaterialApp(
+      home: Scaffold(
+        body: ResourceLibraryScreen(
+          project: project,
+          visuals: WorkspaceTestVisuals(),
+          state: library,
+          onUse: (_) {},
+          onEdit: (_) {},
+          onTerrain: (_) {},
+          onCreateBorder: () {},
+          onResumeBorder: (_) {},
+          onImport: () {},
+          onBack: () {},
+        ),
+      ),
+    );
+    Finder grid() => find
+        .descendant(
+          of: find.byWidgetPredicate(
+            (widget) => widget.runtimeType.toString() == 'StudioResourceGrid',
+          ),
+          matching: find.byType(Scrollable),
+        )
+        .first;
+    await tester.pumpWidget(screen());
+    await tester.pumpAndSettle();
+    await tester.drag(grid(), const Offset(0, -300));
+    await tester.pumpAndSettle();
+    final offset = library.offset;
+    expect(offset, greaterThan(0));
+
+    await tester.pumpWidget(
+      const MaterialApp(home: Scaffold(body: Text('Atelier'))),
+    );
+    await tester.pumpAndSettle();
+    await tester.pumpWidget(screen());
+    await tester.pumpAndSettle();
+    expect(tester.state<ScrollableState>(grid()).position.pixels, offset);
+  });
+
+  testWidgets(
     'classifying two marked resources leaves other resources and map occurrences untouched',
     (tester) async {
       final host = await UwUResourceHost.open(tester);
