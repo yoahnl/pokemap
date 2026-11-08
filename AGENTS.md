@@ -74,8 +74,8 @@ Preserve the public barrels `lib/<package>.dart` of `map_core`, `map_gameplay`,
 - **Processes and QA artifacts:** stop only harnesses your run owns, never by
   process name. Disposable QA artifacts live only under
   `/Users/karim/Library/Caches/AveluneQA/<task>` and are removed before closing.
-- **Tracking:** record every task in the Notion cockpit (existing domain,
-  `TO REVIEW`, never `DONE` by an agent). Never grow the frozen beta scope.
+- **Notion:** no mandatory ticket, status or report. Touch Notion only when
+  Yoahn asks, then follow policies §Notion; never grow the frozen beta scope.
 - **Docs and code style:** zero new Markdown by default and never at the root;
   no code comments, DartDoc or TODO unless the user asks.
 
@@ -109,10 +109,10 @@ guarantee for saved games.
 
 | When the task… | Read first |
 |---|---|
-| edits files or runs commands | `agent_rules.md` §1–8 |
-| runs `flutter test`, starts processes or creates QA environments | `agent_rules.md` §9–10 |
-| writes a report or Markdown, runs codegen, touches CI, Notion or beta tickets | `agent_rules.md` §11–15 |
-| changes an editor/Studio interaction, save, autosave or undo path | [policies](documentation/architecture/product_and_architecture_policies.md) §Incremental authoring |
+| runs `flutter test`, starts processes or creates QA environments | [policies](documentation/architecture/product_and_architecture_policies.md) §Test harnesses, §QA artifacts |
+| writes a report or Markdown, runs codegen or touches CI | policies §Reports and Markdown, §Code generation, §CI cost |
+| touches Notion tickets (only on request) | policies §Notion |
+| changes an editor/Studio interaction, save, autosave or undo path | policies §Incremental authoring |
 | changes a project, map, package or exported-game format, export or Player loading | policies §Compatibility |
 | changes the player save format or save/load | section 4 above, then the current-format save/load tests |
 | touches rendering, 3D, providers, scenes, cameras or asset lifecycle | policies §Renderer independence |
@@ -149,11 +149,36 @@ nested instruction files: before editing under a directory, check for a nearer
 - No report file per lot or per task: the chat answer is the report. Create a
   persistent report only when explicitly asked. Preserve pre-existing work and
   the Git write restrictions.
-- Before closing: stop owned processes, remove owned QA artifacts, run
-  `bash tools/scripts/check_markdown_hygiene.sh` when Markdown changed, and
-  update Notion.
+- Before closing: stop owned processes, remove owned QA artifacts, and run
+  `bash tools/scripts/check_markdown_hygiene.sh` when Markdown changed.
 
-## 7. Validation
+## 7. Quality rules
+
+- No fake tests (`expect(true, isTrue)`, compile-only tests sold as behavior).
+  Integration tests use the real path or state what they skip. A test helper
+  never duplicates production logic and then claims to prove it.
+- Behavioral changes get the expected case, relevant negative cases and one
+  non-regression. Write the failing test first when feasible; never delete
+  existing or written code to stage a RED phase, whatever a skill says.
+- Do not invent providers, services, files or APIs, or duplicate logic of
+  another package. Add characterization tests before model or schema changes.
+  Change shared models, codecs, formats or persistence only when the task
+  requires it.
+- Run `dart analyze` or `flutter analyze` on touched packages and fix errors.
+  Follow the existing naming, style and test patterns.
+- A lot is complete only when its criteria are proven. On a failing suite give
+  the exact test, say whether it seems related and re-run it alone. Never say a
+  behavior is supported when the engine does not consume it.
+- Never delete or reset project data, saves, assets or another session's work
+  to make a check pass.
+- Challenge an instruction the repository proves wrong, ambiguous, unsafe or
+  oversized: state it, the evidence, the alternative and what you follow. Ask
+  when the decision is Yoahn's.
+- Git writes need explicit permission. When commits and rebases are both
+  authorized for ticket-by-ticket delivery: one scoped, verified commit per
+  finished ticket, then rebase on the base branch and re-run its checks.
+
+## 8. Validation
 
 ```bash
 cd packages/map_core && dart test && dart analyze
@@ -168,10 +193,9 @@ Runtime smoke checks for player-loop or battle/runtime work:
 `packages/map_runtime/test/phase_a_golden_battle_slice_smoke_test.dart` and
 `examples/playable_runtime_host/test/phase_a_golden_slice_launch_test.dart`.
 
-## 8. Maintenance
+## 9. Maintenance
 
-Keep this file an entry point of about 8 KiB: Codex truncates project
+Keep this file an entry point of about 12 KiB: Codex truncates project
 instructions at `project_doc_max_bytes` (32 KiB by default). Put details in
-the routed references, never by raising that limit. The map of former sections
-is at the end of the policies document. After editing, check `wc -c AGENTS.md`
-and that every routed reference still exists.
+the policies document, never by raising that limit. After editing, check
+`wc -c AGENTS.md` and that every routed reference still exists.

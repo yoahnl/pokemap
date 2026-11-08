@@ -1,9 +1,9 @@
-# Product and Architecture Policies
+# Product, Architecture and Operations Policies
 
-These policies were moved verbatim from the root `AGENTS.md` so that clients
-with an instruction size limit load the essential rules in full. They remain
-mandatory. The root `AGENTS.md` states when each section must be read before
-editing; its short invariants never relax the detailed criteria below.
+Detailed rules that the root `AGENTS.md` routes to by task. They are not loaded
+automatically, so `AGENTS.md` stays small enough for every client to load in
+full; they remain mandatory for the tasks that trigger them. Open only the
+section you need. The short invariants of `AGENTS.md` never relax them.
 
 ## Mandatory local and incremental authoring
 
@@ -324,37 +324,144 @@ Rules:
   battle asset source on 2026-08-23. Always import through a rerunnable tool
   that records its source, never by hand-copying files.
 
-## Former AGENTS.md section map
+## Test harnesses and processes
 
-The root `AGENTS.md` was reduced on 2026-11-08 from 42,407 bytes, of which
-Codex loaded only the first 32,768 (`project_doc_max_bytes`). Obligations moved
-without relaxation, except the player progression save guarantee that Yoahn
-suspended the same day; contradictory prescriptions were replaced. The
-historical `codex_rule.md` was deleted; its surviving rules live in
-`agent_rules.md`. The `.cursor/` folder was deleted too: Cursor is no longer used.
+`flutter test` leaves a `flutter_tester` process per suite, plus compilers and
+listeners of abandoned runs. They idle at 0% CPU and pile up (one day once
+reached 501 orphans holding 7.6 GB), which makes later suites time out.
 
-| Former section | Destination |
-|---|---|
-| 1 Purpose, 2 Repository shape, 13 Maintenance | `AGENTS.md` §1, §2, §8 |
-| 3 Mechanics roadmap | this document, mechanics procedure |
-| 4 Local skills, MCP parity | `AGENTS.md` §1, §5; `skills/README.md`; `skills/using-pokemap-mcp/SKILL.md` |
-| 5 Incremental authoring, project and game compatibility, product rules, renderer independence | this document |
-| 5 Save compatibility for player progression | suspended; `AGENTS.md` §4 |
-| 6 Working style | `AGENTS.md` §6; `agent_rules.md` §4 |
-| 6 Notion traceability and ticket exclusions | `agent_rules.md` §14 |
-| 7 Git safety | `AGENTS.md` §3; `agent_rules.md` §6 |
-| 8 CI cost | `agent_rules.md` §13 |
-| 8 Validation commands | `AGENTS.md` §6 |
-| 8 Test harnesses, QA artifacts | `agent_rules.md` §9, §10 |
-| 9 Code generation | `agent_rules.md` §12 |
-| 10 Reports, Markdown hygiene | `agent_rules.md` §11; `AGENTS.md` §6 |
-| 11 Flame and PSDK parity | this document |
-| 12 High-signal directories | dropped; generated-artifact rule in `agent_rules.md` §12 |
-| 14 Frozen beta backlog | `agent_rules.md` §15 |
+- Record the test runner PID and its descendants while the run is active.
+  After the run, stop only leftovers owned by that run, re-checking each PID's
+  command and ownership first; send a normal termination before SIGKILL.
+- Never kill `flutter_tester`, `frontend_server_aot` or
+  `flutter_tools.snapshot test` by name: IDE and `flutter run` sessions share
+  that compiler. An old or quiet process is not proof it is abandoned; if
+  ownership cannot be proved, leave it running.
+- MCP servers are never reaped by their sessions. Kill only those older than two
+  hours; recent ones belong to concurrent sessions:
 
-Replaced prescriptions: five mandatory sub-agents (now sub-agents only for an
-independent investigation or a justified review, `AGENTS.md` §6), maximal code
-comments (now none unless asked), complete command output in reports (now
-essential results with evidence kept accessible, `AGENTS.md` §6), deleting
-code written before its test (now forbidden, `agent_rules.md` §3), and the PathPattern-specific guidance of the former
-`agent_rules.md`, whose classes no longer exist in the Dart sources.
+  ```bash
+  ps -eo pid=,etime=,args= | grep -E '[d]art mcp-server|[n]ode.*pokemap_mcp/dist' | awk '$2 ~ /-|^[0-9]{2,}:/ {print $1}' | xargs -r kill -9
+  ```
+
+- A hanging suite usually means a leaked harness. Inside `flutter test`,
+  `Platform.resolvedExecutable` is `flutter_tester`, which hangs on a `.js` or
+  script path: spawn `node` or the real interpreter by name.
+
+## Temporary QA artifacts
+
+A task owns its temporary artifacts wherever it creates them, and cleaning them
+is part of finishing it, failed or resumed runs included.
+
+- Disposable Avelune/PokeMap QA artifacts live only under
+  `/Users/karim/Library/Caches/AveluneQA/`, one reusable directory per active
+  task; no other test root, dated sibling project or Desktop folder. Record a
+  narrow exception only when a tool strictly requires another path, and clean
+  it in the same task.
+- Before creating an environment, record its purpose, owned paths, processes
+  and removal condition. Reuse it across retries; copy only the sources, assets
+  and fixtures the check needs (no builds, `.dart_tool`, `node_modules`, caches
+  or histories).
+- Remove superseded outputs and failed attempts as you go. Before closing, stop
+  owned apps, servers and harnesses (see Test harnesses and processes), check for open files and active
+  consumers, then remove copies, bundles, builds, exports, recordings and
+  repeated captures. Never touch another session's environment.
+- Never delete originals: projects, repositories, assets, saves, deliverables,
+  maintained tests and fixtures, or unique data. A name containing `test` or
+  `QA` proves nothing.
+- Keep only the evidence the result needs (receipts, relevant logs or diffs,
+  selected captures), with no gigabyte environments, frame dumps or Markdown
+  written just to track cleanup.
+- Routine removal of verified owned artifacts needs no confirmation. When
+  ownership, unique data or a consumer blocks it, report the path, measured
+  size, reason and decision needed. Verify removals and report what remains,
+  measuring directory size and free disk space separately.
+
+## Reports and Markdown
+
+- A "final report" is the chat response; never write a report file per lot
+  or per task. Persistent reports, audits, reviews,
+  Evidence Packs, roadmaps and plans exist only when the user asks (a planning
+  skill invoked to produce a plan counts). They then add the lot IDs, initial
+  and final git state, decisions and non-goals, exact final test/analyze/build
+  lines, the independent review verdict if any, what is and is not proven, and
+  the recommended next step.
+- Default budget: zero new Markdown. Update an existing canonical document when
+  possible, else write one consolidated file: product and architecture docs in
+  `documentation/<domain>/`, evidence in `documentation/reports/<domain>/`,
+  plans in `documentation/reports/<domain>/plans/YYYY-MM-DD-<slug>.md` (not the
+  planning skills' `docs/superpowers/` default), roadmaps in
+  `documentation/reports/roadmap/<domain>/`, workflows in `skills/<name>/`.
+  New files under `documentation/` also need a `.gitignore` allowlist entry.
+- No Markdown at the repository root beyond `AGENTS.md`,
+  `pokemap_roadmap_mecaniques_fangame.md` and
+  `pokemap_authoring_api_mcp_action_catalog.md` (consumed by `map_core`). No
+  source snapshots: sources and Git diffs are the canonical evidence.
+- Reports under `documentation/reports/` change only when the task asks for a
+  report, audit, review, lot closure or status evidence; their old citations
+  are archives, not instructions.
+- Run `bash tools/scripts/check_markdown_hygiene.sh` when Markdown changed,
+  with `POKEMAP_MARKDOWN_MAX_NEW=1` for one requested artifact; a higher value
+  needs the user's explicit approval of a bounded multi-document deliverable.
+
+## Code generation and generated artifacts
+
+Regenerate code only in the package you changed:
+
+```bash
+cd packages/map_core && dart run build_runner build --delete-conflicting-outputs
+cd packages/map_editor && flutter pub run build_runner build --delete-conflicting-outputs
+cd packages/map_runtime && flutter pub run build_runner build --delete-conflicting-outputs
+```
+
+Avoid unrelated generated-file churn and global generators. Do not add caches,
+builds, temporary scripts, IDE files, machine-specific paths or unrelated
+lockfiles, and do not rewrite historically tracked generated artifacts unless
+the task asks for hygiene cleanup.
+
+## CI cost discipline
+
+- Keep ordinary CI short and inexpensive.
+- Do not add performance soaks, long-running integration journeys, or dedicated
+  macOS runners to CI unless the user explicitly requests that exact CI cost.
+- Expensive certification journeys run locally by default and remain opt-in;
+  their harnesses and receipt validators may be versioned without scheduling
+  the journey in GitHub Actions.
+- A release workflow must not gain a costly certification dependency merely
+  because a local benchmark exists.
+
+## Notion tickets and frozen beta
+
+Notion tracking is not mandatory (Yoahn, 2026-11-08): finishing a task needs
+no ticket, status update or report. Touch Notion only when Yoahn asks; then:
+
+- attach the work to one existing grand domain; never create a grand domain
+  without his explicit approval;
+- move a verified ticket to `TO REVIEW`, never to `DONE`, which is Yoahn's
+  decision; keep its evidence, commit and branch fields accurate;
+- create no ticket for one-off map or level content or an isolated bug repair:
+  they belong to an existing feature, release, review or incident context.
+
+The Notion area `PokeMap — Bêta fonctionnelle` and its grand families 0–11 are a frozen release scope. This rule applies whenever an agent creates or updates a ticket.
+
+- Never create a new ticket in any beta family.
+- Never move or reclassify a post-beta ticket into beta, set `Gate bêta` to true, or create a new beta grand family unless Yoahn explicitly requests that exact scope change.
+- Never broaden an existing beta ticket with newly discovered cleanup, hardening, performance work, platform parity, transport parity, polish, compatibility, or future mechanics. Keep the signed beta objective and acceptance criteria unchanged.
+- A discovered gap is not automatically a beta blocker. By default, create or update a separate ticket in the matching grand family under `Post Bêta`.
+- Never add a dependency from an existing beta ticket to new post-beta work when that would make the post-beta ticket a condition of beta release.
+- Existing beta tickets may still be implemented, tested, reviewed, have evidence and status synchronized, and be reduced to their already-signed scope. This freeze forbids scope growth, not completion.
+- Changing `Gate bêta`, beta family structure, beta views, beta exit criteria, or the beta dependency graph requires an explicit instruction from Yoahn.
+- When classification is uncertain, leave beta untouched, classify the work as post-beta, and report the assumption.
+
+Before creating or updating a Notion ticket:
+
+1. If the ticket already exists in beta, work only within its signed scope.
+2. If it is new work, place it in the matching grand family under `Post Bêta`.
+3. If no Post Beta family fits, stop and request approval before creating a new grand family.
+
+## History
+
+On 2026-11-08 the root `AGENTS.md` (42 KB, which Codex truncated at 32 KiB)
+was reduced to an entry point; `codex_rule.md`, `agent_rules.md` and the unused
+`.cursor/` folder were folded into it and into this document. Git keeps the
+former texts.

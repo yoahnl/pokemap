@@ -128,7 +128,7 @@ Le registre précédent classe 55 familles : **15 parcours simulés, 12 réglage
 - [ ] Relever les PID du runner et de ses descendants pendant les tests, puis arrêter uniquement ses restes confirmés ; jamais de kill global.
 - [ ] Nettoyer l’environnement QA de ce lot sous /Users/karim/Library/Caches/AveluneQA/ après contrôle de propriété et des consommateurs.
 
-Les identifiants UX-* ci-dessous sont des **lots de ce plan**, pas de nouveaux tickets Notion. Les rattacher aux tickets existants avant l’exécution ; AS-UX-001 est le contexte de ce dossier. Ne créer aucun grand domaine silencieusement.
+Les identifiants UX-* ci-dessous sont des **lots de ce plan**, pas de nouveaux tickets Notion. Aucun suivi Notion n’est obligatoire depuis le 2026-11-08 ; sur demande seulement, les rattacher aux tickets existants, AS-UX-001 étant le contexte de ce dossier. Ne créer aucun grand domaine silencieusement.
 
 ## 5. Ordre de livraison et dépendances
 
