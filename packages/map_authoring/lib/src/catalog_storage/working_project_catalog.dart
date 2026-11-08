@@ -251,7 +251,8 @@ final class WorkingProjectCatalog {
           'catalog.missing', 'The working project has no catalog generation.');
     }
     try {
-      final snapshot = (await store.openRoot(root)).snapshot;
+      final snapshot =
+          (await store.openRoot(root, shareIndex: true)).snapshot;
       final catalog = await PortableProjectCatalog.fromSnapshot(snapshot,
           metadataFields: metadataFields);
       final working = WorkingProjectCatalog._(store, descriptor, catalog);

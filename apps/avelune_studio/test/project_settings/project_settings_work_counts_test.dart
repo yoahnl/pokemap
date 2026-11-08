@@ -83,6 +83,7 @@ void main() {
               reads: List.of(reader.reads),
               probes: List.of(reader.probes),
               definitions: List.of(reader.definitions),
+              units: Set.of(reader.units),
               writes: _changed(before, await _tree(fixture.directory)),
               projectionBuilds: workspace.visualProjectionBuilds - builds,
               notifications: notifications - notified,
@@ -155,6 +156,16 @@ void _expectBounded(String gesture, _Work work) {
     ),
     isEmpty,
     reason: '$gesture read outside the project settings catalog',
+  );
+  expect(
+    work.reads.where(
+      (path) =>
+          path.startsWith('catalog/objects/') &&
+          !work.units.contains(path) &&
+          !work.writes.contains(path),
+    ),
+    isEmpty,
+    reason: '$gesture reread an index page it did not write',
   );
   expect(
     stored.where(
@@ -356,12 +367,14 @@ final class _Work {
     required this.reads,
     required this.probes,
     required this.definitions,
+    required this.units,
     required this.writes,
     required this.projectionBuilds,
     required this.notifications,
   });
 
   final List<String> reads, probes, definitions, writes;
+  final Set<String> units;
   final int projectionBuilds, notifications;
 
   List<int> get signature => [
@@ -513,12 +526,14 @@ final class _CountingReader
   final reads = <String>[];
   final probes = <String>[];
   final definitions = <String>[];
+  final units = <String>{};
   final delegate = const LocalProjectFileReader();
 
   void reset() {
     reads.clear();
     probes.clear();
     definitions.clear();
+    units.clear();
   }
 
   void _record(String projectRoot, String relativePath) {
@@ -527,6 +542,7 @@ final class _CountingReader
     final text = File('$projectRoot/$relativePath').readAsStringSync();
     if (text.startsWith('{"key":')) {
       definitions.add(jsonEncode((jsonDecode(text) as Map)['key']));
+      units.add(relativePath);
     }
   }
 

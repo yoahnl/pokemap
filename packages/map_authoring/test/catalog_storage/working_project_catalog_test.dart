@@ -130,6 +130,126 @@ void main() {
     await session.redo(
         entryId: receipt.receiptId, idempotencyKey: 'redo-public');
   });
+
+  test(
+      'a reopened catalog rereads no index page until another writer moves HEAD',
+      () async {
+    final directory = await Directory.systemTemp.createTemp('working-shared-');
+    addTearDown(() => directory.delete(recursive: true));
+    final project = ProjectManifest(name: 'Game', maps: const [], tilesets: [
+      for (var index = 0; index < 300; index++)
+        ProjectTilesetEntry(
+            id: 'tile-$index', name: 'Tile $index', relativePath: 't$index.png')
+    ]);
+    final descriptor = WorkingProjectCatalogDescriptor(projectId: 'game');
+    await WorkingProjectCatalog.create(
+        store: await CatalogStorageStore.open(projectRoot: directory.path),
+        projectId: 'game',
+        project: project);
+    Future<CatalogStorageStore> observedStore(_CountingReader reader) async =>
+        CatalogStorageStore(
+            projectRoot: directory.path,
+            reader: reader,
+            gateway: await LocalTransactionFileGateway.open(
+                projectRoot: directory.path));
+    Future<List<String>> tileNames(WorkingProjectCatalog catalog) async => [
+          for (var index = 0; index < 300; index += 70)
+            ((await catalog.lookup(CatalogDefinitionKey(
+                    CatalogDefinitionKind.tileset, 'tile-$index')))!
+                .payload['value']! as Map)['name']! as String
+        ];
+    Iterable<String> objects(_CountingReader reader) =>
+        reader.paths.where((path) => path.startsWith('catalog/objects/'));
+    bool unit(String path) => File('${directory.path}/$path')
+        .readAsStringSync()
+        .startsWith('{"key":');
+
+    final first = _CountingReader();
+    final opened = await WorkingProjectCatalog.open(
+        store: await observedStore(first), descriptor: descriptor);
+    final names = await tileNames(opened);
+    expect(objects(first), isNotEmpty);
+
+    final second = _CountingReader();
+    final reopened = await WorkingProjectCatalog.open(
+        store: await observedStore(second), descriptor: descriptor);
+    expect(await tileNames(reopened), names);
+    expect(objects(second), isNotEmpty);
+    expect(objects(second).every(unit), isTrue,
+        reason: 'definitions are reread and verified, index pages are not');
+    expect(second.paths, contains(CatalogStorageStore.headStorageKey));
+    expect(second.paths, contains('catalog/IDENTITY.json'));
+
+    final before = await _objectFiles(directory);
+    final writer = await CatalogEditingSession.open(
+        store: await CatalogStorageStore.open(projectRoot: directory.path),
+        projectId: 'game',
+        actorId: 'other-process');
+    final current = (await writer.snapshot.lookup(
+        CatalogDefinitionKey(CatalogDefinitionKind.tileset, 'tile-140')))!;
+    await writer.apply(await writer.planPatch(upserts: [
+      reopened.replaceDefinitionValue(current, {
+        ...Map<String, Object?>.from(current.payload['value']! as Map),
+        'name': 'Renamed elsewhere',
+      })
+    ], idempotencyKey: 'external'));
+    await writer.close();
+    final written = (await _objectFiles(directory)).difference(before);
+    expect(written, isNotEmpty);
+
+    await expectLater(
+        tileNames(reopened),
+        throwsA(isA<CatalogStorageException>().having(
+            (error) => error.code, 'code', 'catalog.revision_conflict')));
+    final third = _CountingReader();
+    final fresh = await WorkingProjectCatalog.open(
+        store: await observedStore(third), descriptor: descriptor);
+    expect(fresh.root, isNot(reopened.root));
+    expect(await tileNames(fresh), [...names]..[2] = 'Renamed elsewhere');
+    expect(
+        objects(third).where((path) => !unit(path) && !written.contains(path)),
+        isEmpty,
+        reason: 'only index pages of the new generation are read');
+  });
+}
+
+Future<Set<String>> _objectFiles(Directory root) async => {
+      await for (final file in Directory('${root.path}/catalog/objects').list())
+        if (file is File) 'catalog/objects/${file.uri.pathSegments.last}',
+    };
+
+final class _CountingReader
+    implements
+        ProjectFileReader,
+        ProjectResourceStreamReader,
+        ProjectResourceProbeReader {
+  final paths = <String>[];
+  final delegate = const LocalProjectFileReader();
+  @override
+  Future<String> canonicalizeDirectory(String path) =>
+      delegate.canonicalizeDirectory(path);
+  @override
+  Future<ProjectResourceProbe> probeResource(
+          {required String projectRoot, required String relativePath}) =>
+      delegate.probeResource(
+          projectRoot: projectRoot, relativePath: relativePath);
+  @override
+  Future<List<int>> readBytes(
+      {required String projectRoot, required String relativePath}) {
+    paths.add(relativePath);
+    return delegate.readBytes(
+        projectRoot: projectRoot, relativePath: relativePath);
+  }
+
+  @override
+  bool get supportsStreamingResources => true;
+  @override
+  Stream<List<int>> openRead(
+      {required String projectRoot, required String relativePath}) {
+    paths.add(relativePath);
+    return delegate.openRead(
+        projectRoot: projectRoot, relativePath: relativePath);
+  }
 }
 
 Future<Map<String, String>> _inventory(Directory root) async => {

@@ -29,11 +29,15 @@ final class CatalogGenerationLease {
   bool get closed => _closed;
 
   Future<List<int>> readObject(CatalogObjectReference reference) {
+    _requireOpen();
+    return _retention.store.readObject(reference);
+  }
+
+  void _requireOpen() {
     if (closed) {
       throw const CatalogStorageException(
           'catalog.lease_closed', 'The snapshot lease is closed.');
     }
-    return _retention.store.readObject(reference);
   }
 
   Future<void> close() async {
@@ -138,6 +142,8 @@ final class CatalogGenerationRetention {
             root: root,
             limits: store.limits,
             readObject: lease.readObject,
+            indexCache:
+                (await store.sharedIndex()).guardedBy(lease._requireOpen),
           );
           return LeasedCatalogSnapshot(snapshot: snapshot, lease: lease);
         } catch (_) {

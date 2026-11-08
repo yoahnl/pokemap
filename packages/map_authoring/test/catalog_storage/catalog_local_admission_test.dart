@@ -65,9 +65,11 @@ void main() {
         await session.close();
         reader.paths.clear();
         session = await open();
+        expect(reader.paths, contains(CatalogStorageStore.headStorageKey));
         expect(
             reader.paths.where((path) => path.startsWith('catalog/objects/')),
-            hasLength(1));
+            isEmpty,
+            reason: 'reopening at the same HEAD rereads no verified object');
         expect(
             (await session.snapshot.lookup(_key('selected')))!.payload['name'],
             'after-1');

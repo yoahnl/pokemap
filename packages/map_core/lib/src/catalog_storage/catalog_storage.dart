@@ -568,19 +568,111 @@ final class CatalogSnapshotDelta {
   final int storedBytes;
 }
 
+final class CatalogIndexCache {
+  CatalogIndexCache({int maximumBytes = 16 * 1024 * 1024})
+    : this._(_CatalogIndexStore(maximumBytes), null);
+
+  CatalogIndexCache._(this._store, this._guard);
+
+  final _CatalogIndexStore _store;
+  final void Function()? _guard;
+
+  int get maximumBytes => _store.maximumBytes;
+  int get length => _store.objects.length;
+  int get bytes => _store.bytes;
+
+  CatalogIndexCache guardedBy(void Function() guard) =>
+      CatalogIndexCache._(_store, guard);
+
+  _CachedIndexObject? _lookup(
+    CatalogObjectReference reference,
+    CatalogStorageLimits limits,
+  ) {
+    final cached = _store.lookup(reference, limits);
+    if (cached != null) _guard?.call();
+    return cached;
+  }
+}
+
+final class _CatalogIndexStore {
+  _CatalogIndexStore(this.maximumBytes) {
+    if (maximumBytes < 1) {
+      throw ArgumentError.value(maximumBytes, 'maximumBytes');
+    }
+  }
+
+  final int maximumBytes;
+  final objects = <String, _CachedIndexObject>{};
+  var bytes = 0;
+
+  _CachedIndexObject? lookup(
+    CatalogObjectReference reference,
+    CatalogStorageLimits limits,
+  ) {
+    final cached = objects.remove(reference.sha256);
+    if (cached == null) return null;
+    objects[reference.sha256] = cached;
+    return cached.reference == reference && cached.accepts(limits)
+        ? cached
+        : null;
+  }
+
+  _CachedIndexObject remember(
+    CatalogObjectReference reference,
+    CatalogStorageLimits limits,
+    Map<String, Object?> json,
+  ) {
+    final cached = _CachedIndexObject(reference, limits, json);
+    if (reference.byteLength > maximumBytes) return cached;
+    final previous = objects.remove(reference.sha256);
+    if (previous != null) bytes -= previous.reference.byteLength;
+    objects[reference.sha256] = cached;
+    bytes += reference.byteLength;
+    while (bytes > maximumBytes) {
+      bytes -= objects.remove(objects.keys.first)!.reference.byteLength;
+    }
+    return cached;
+  }
+}
+
+final class _CachedIndexObject {
+  _CachedIndexObject(this.reference, this.limits, this.json);
+
+  final CatalogObjectReference reference;
+  final CatalogStorageLimits limits;
+  final Map<String, Object?> json;
+  _CatalogIndexPage? page;
+
+  bool accepts(CatalogStorageLimits other) =>
+      identical(limits, other) ||
+      (limits.maxUnitBytes == other.maxUnitBytes &&
+          limits.maxIndexBytes == other.maxIndexBytes &&
+          limits.indexPageSize == other.indexPageSize &&
+          limits.maxDefinitions == other.maxDefinitions &&
+          limits.maxJsonDepth == other.maxJsonDepth &&
+          limits.maxJsonValues == other.maxJsonValues &&
+          limits.maxReferencesPerUnit == other.maxReferencesPerUnit &&
+          limits.maxIndexDepth == other.maxIndexDepth &&
+          limits.maxClosureNodes == other.maxClosureNodes &&
+          limits.maxClosureDepth == other.maxClosureDepth &&
+          limits.maxStoredBytes == other.maxStoredBytes);
+}
+
 final class CatalogSnapshot {
   CatalogSnapshot._(
     this.root,
     this._readObject,
     this.limits,
     this.definitionCount,
-    this._index,
-  );
+    this._index, [
+    this._indexCache,
+  ]);
   static const unreferencedKinds = {CatalogDefinitionKind.resourceLibraryEntry};
   static Future<CatalogSnapshot> open({
     required CatalogObjectReference root,
     required CatalogObjectReader readObject,
     CatalogStorageLimits? limits,
+    CatalogIndexCache? indexCache,
   }) async {
     final effective = limits ?? CatalogStorageLimits();
     final json = await _read(
@@ -588,6 +680,7 @@ final class CatalogSnapshot {
       readObject,
       effective,
       effective.maxIndexBytes,
+      indexCache,
     );
     _envelope(json, 'root', {'definitionCount', 'index'});
     final count = _integer(
@@ -602,7 +695,14 @@ final class CatalogSnapshot {
         (index != null && index.count != count)) {
       throw const FormatException('catalog.root: count mismatch');
     }
-    return CatalogSnapshot._(root, readObject, effective, count, index);
+    return CatalogSnapshot._(
+      root,
+      readObject,
+      effective,
+      count,
+      index,
+      indexCache,
+    );
   }
 
   static CatalogStorageRead readAllSync({
@@ -754,6 +854,7 @@ final class CatalogSnapshot {
   final CatalogStorageLimits limits;
   final int definitionCount;
   final _Node? _index;
+  final CatalogIndexCache? _indexCache;
   int? _admittedStoredBytes;
   int? get admittedStoredBytes => _admittedStoredBytes;
 
@@ -788,13 +889,13 @@ final class CatalogSnapshot {
     if (reference.byteLength > limits.maxIndexBytes) {
       throw const FormatException('catalog.object: byte limit');
     }
-    if (!reuse) return _loadIndexPage(reference);
+    if (!reuse) return _loadIndexPage(reference, shared: false);
     final existing = _indexPages.remove(reference);
     if (existing != null) {
       _indexPages[reference] = existing;
       return existing;
     }
-    final future = _loadIndexPage(reference);
+    final future = _loadIndexPage(reference, shared: true);
     final maximum = limits.maxStoredBytes < 4 * 1024 * 1024
         ? limits.maxStoredBytes
         : 4 * 1024 * 1024;
@@ -819,14 +920,26 @@ final class CatalogSnapshot {
   }
 
   Future<_CatalogIndexPage> _loadIndexPage(
-    CatalogObjectReference reference,
-  ) async {
-    final json = await _read(
+    CatalogObjectReference reference, {
+    required bool shared,
+  }) async {
+    final cache = shared ? _indexCache : null;
+    if (cache == null) {
+      return _parseIndexPage(
+        await _read(reference, _readObject, limits, limits.maxIndexBytes),
+      );
+    }
+    final cached = await _readCached(
       reference,
       _readObject,
       limits,
       limits.maxIndexBytes,
+      cache,
     );
+    return cached.page ??= _parseIndexPage(cached.json);
+  }
+
+  _CatalogIndexPage _parseIndexPage(Map<String, Object?> json) {
     if (json['type'] == 'leaf') {
       _envelope(json, 'leaf', {'entries'});
       final entries = _list(json['entries'], limits.indexPageSize).map((value) {
@@ -1573,6 +1686,7 @@ final class _CatalogPatchBuilder {
           snapshot._readObject,
           limits,
           limits.maxIndexBytes,
+          snapshot._indexCache,
         );
         _envelope(json, 'leaf', {'entries'});
         for (final item in _list(json['entries'], limits.indexPageSize)) {
@@ -1629,6 +1743,7 @@ final class _CatalogPatchBuilder {
       snapshot._readObject,
       limits,
       limits.maxIndexBytes,
+      snapshot._indexCache,
     );
     _envelope(json, 'branch', {'children'});
     final children = _list(
@@ -1883,20 +1998,44 @@ Future<Map<String, Object?>> _read(
   CatalogObjectReference ref,
   CatalogObjectReader reader,
   CatalogStorageLimits limits,
-  int maxBytes,
-) async {
+  int maxBytes, [
+  CatalogIndexCache? cache,
+]) async {
+  if (cache != null) {
+    return (await _readCached(ref, reader, limits, maxBytes, cache)).json;
+  }
   if (ref.byteLength > maxBytes) {
     throw const FormatException('catalog.object: byte limit');
   }
   return _decodeObject(ref, await reader(ref), limits, maxBytes);
 }
 
+Future<_CachedIndexObject> _readCached(
+  CatalogObjectReference ref,
+  CatalogObjectReader reader,
+  CatalogStorageLimits limits,
+  int maxBytes,
+  CatalogIndexCache cache,
+) async {
+  if (ref.byteLength > maxBytes) {
+    throw const FormatException('catalog.object: byte limit');
+  }
+  final cached = cache._lookup(ref, limits);
+  if (cached != null) return cached;
+  return cache._store.remember(
+    ref,
+    limits,
+    _decodeObject(ref, await reader(ref), limits, maxBytes, frozen: true),
+  );
+}
+
 Map<String, Object?> _decodeObject(
   CatalogObjectReference ref,
   List<int> bytes,
   CatalogStorageLimits limits,
-  int maxBytes,
-) {
+  int maxBytes, {
+  bool frozen = false,
+}) {
   if (ref.byteLength > maxBytes) {
     throw const FormatException('catalog.object: byte limit');
   }
@@ -1950,9 +2089,9 @@ Map<String, Object?> _decodeObject(
     }
   }
   final json = _map(jsonDecode(source));
-  _freeze(json, limits);
-  if (jsonEncode(_freeze(json, limits)) != source) {
+  final canonical = _freeze(json, limits) as Map<String, Object?>;
+  if (jsonEncode(canonical) != source) {
     throw const FormatException('catalog.object: non canonical JSON');
   }
-  return json;
+  return frozen ? canonical : json;
 }

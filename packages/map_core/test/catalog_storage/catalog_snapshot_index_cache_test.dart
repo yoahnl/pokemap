@@ -178,6 +178,181 @@ void main() {
       expect(fixture.reads[leafDigest], 1);
     },
   );
+
+  group('a shared index cache', () {
+    test('lets another snapshot of the same root reread only units', () async {
+      final fixture = _Fixture();
+      final cache = CatalogIndexCache();
+      final first = await fixture.open(indexCache: cache);
+      final expected = await first.lookup(_key(5));
+      final warmed = Map<String, int>.of(fixture.reads);
+      final second = await fixture.open(indexCache: cache);
+      final unit = await second.lookup(_key(5));
+      expect(unit!.toJson(), expected!.toJson());
+      expect(
+        {
+          for (final digest in fixture.reads.keys)
+            if (fixture.reads[digest] != warmed[digest]) digest,
+        },
+        {fixture.unitDigest(5)},
+      );
+      expect(fixture.reads[fixture.root.sha256], 1);
+      expect(
+        (await (await fixture.open()).lookup(_key(5)))!.toJson(),
+        unit.toJson(),
+      );
+    });
+
+    test('lets a newer root reread only the index pages it changed', () async {
+      final fixture = _Fixture(count: 32);
+      final cache = CatalogIndexCache();
+      final before = await fixture.open(indexCache: cache);
+      for (var index = 0; index < 32; index++) {
+        await before.lookup(_key(index));
+      }
+      final patch = await before.patch(
+        upserts: [
+          CatalogDefinitionUnit(
+            key: _key(20),
+            payload: {'id': _key(20).id, 'changed': true},
+          ),
+        ],
+      );
+      fixture.objects.addAll(patch.objects);
+      fixture.reads.clear();
+      final after = await fixture.open(root: patch.root, indexCache: cache);
+      for (var index = 0; index < 32; index++) {
+        await after.lookup(_key(index));
+      }
+      final pages = fixture.reads.keys.where(
+        (digest) => fixture.type(digest) != 'unit',
+      );
+      expect(pages, isNotEmpty);
+      expect(
+        pages.where((digest) => !patch.objects.containsKey(digest)),
+        isEmpty,
+        reason: 'unchanged index pages come from the cache',
+      );
+      expect(fixture.reads.values.every((count) => count == 1), isTrue);
+      expect((await after.lookup(_key(20)))!.payload['changed'], isTrue);
+    });
+
+    test('rereads and verifies every definition unit', () async {
+      final fixture = _Fixture();
+      final cache = CatalogIndexCache();
+      await (await fixture.open(indexCache: cache)).lookup(_key(3));
+      final damaged = fixture.unitDigest(3);
+      fixture.objects[damaged] = List.filled(
+        fixture.objects[damaged]!.length,
+        32,
+      );
+      await expectLater(
+        (await fixture.open(indexCache: cache)).lookup(_key(3)),
+        throwsFormatException,
+      );
+      expect(fixture.reads[damaged], 2);
+    });
+
+    test('builds the same patch as an uncached snapshot', () async {
+      final fixture = _Fixture(count: 32);
+      final cache = CatalogIndexCache();
+      final warmed = await fixture.open(indexCache: cache);
+      for (var index = 0; index < 32; index++) {
+        await warmed.lookup(_key(index));
+      }
+      final upserts = [
+        CatalogDefinitionUnit(
+          key: _key(7),
+          payload: {'id': _key(7).id, 'name': 'seven'},
+        ),
+        CatalogDefinitionUnit(key: _key(40), payload: {'id': _key(40).id}),
+      ];
+      final cached = await (await fixture.open(
+        indexCache: cache,
+      )).patch(upserts: upserts, removals: [_key(30)]);
+      final uncached = await (await fixture.open()).patch(
+        upserts: upserts,
+        removals: [_key(30)],
+      );
+      expect(cached.root, uncached.root);
+      expect(cached.objects.keys.toSet(), uncached.objects.keys.toSet());
+    });
+
+    test('does not hide corruption from validation', () async {
+      final fixture = _Fixture();
+      final cache = CatalogIndexCache();
+      final snapshot = await fixture.open(indexCache: cache);
+      await snapshot.lookup(_key(0));
+      final damaged = fixture.indexDigests.firstWhere(
+        fixture.reads.containsKey,
+      );
+      fixture.objects[damaged] = List.filled(
+        fixture.objects[damaged]!.length,
+        32,
+      );
+      await expectLater(
+        (await fixture.open(indexCache: cache)).validate(),
+        throwsFormatException,
+      );
+      expect(fixture.reads[damaged], 2);
+    });
+
+    test('is not reused under different limits', () async {
+      final fixture = _Fixture();
+      final cache = CatalogIndexCache();
+      await (await fixture.open(indexCache: cache)).lookup(_key(0));
+      final warmed = Map<String, int>.of(fixture.reads);
+      await (await fixture.open(
+        indexCache: cache,
+        limits: CatalogStorageLimits(indexPageSize: 2, maxJsonValues: 5000),
+      )).lookup(_key(0));
+      for (final digest in warmed.keys) {
+        expect(fixture.reads[digest], warmed[digest]! + 1);
+      }
+    });
+
+    test('refuses cached reads once its guard fails', () async {
+      final fixture = _Fixture();
+      final cache = CatalogIndexCache();
+      await (await fixture.open(indexCache: cache)).lookup(_key(0));
+      var open = true;
+      final guarded = cache.guardedBy(() {
+        if (!open) throw StateError('closed');
+      });
+      final snapshot = await fixture.open(indexCache: guarded);
+      final idle = await fixture.open(indexCache: guarded);
+      final warmed = Map<String, int>.of(fixture.reads);
+      expect((await snapshot.lookup(_key(1)))!.key, _key(1));
+      open = false;
+      await expectLater(fixture.open(indexCache: guarded), throwsStateError);
+      await expectLater(idle.lookup(_key(0)), throwsStateError);
+      expect(fixture.reads.keys.where((digest) => warmed[digest] == null), [
+        fixture.unitDigest(1),
+      ]);
+    });
+
+    test('stays within its byte budget', () async {
+      final fixture = _Fixture(count: 64);
+      final largest = fixture.indexDigests
+          .map((digest) => fixture.objects[digest]!.length)
+          .reduce((a, b) => a > b ? a : b);
+      final cache = CatalogIndexCache(maximumBytes: largest * 3);
+      final snapshot = await fixture.open(indexCache: cache);
+      await snapshot.lookup(_key(0));
+      final first = Map<String, int>.of(fixture.reads);
+      for (var index = 1; index < 64; index++) {
+        await (await fixture.open(indexCache: cache)).lookup(_key(index));
+        expect(cache.bytes, lessThanOrEqualTo(cache.maximumBytes));
+      }
+      await (await fixture.open(indexCache: cache)).lookup(_key(0));
+      expect(
+        first.keys
+            .where((digest) => fixture.type(digest) != 'unit')
+            .any((digest) => fixture.reads[digest]! > first[digest]!),
+        isTrue,
+      );
+    });
+  });
 }
 
 CatalogDefinitionKey _key(int index) => CatalogDefinitionKey(
@@ -223,10 +398,12 @@ final class _Fixture {
   Future<CatalogSnapshot> open({
     CatalogObjectReference? root,
     CatalogStorageLimits? limits,
+    CatalogIndexCache? indexCache,
     Future<void> Function(CatalogObjectReference)? beforeRead,
   }) => CatalogSnapshot.open(
     root: root ?? this.root,
     limits: limits ?? CatalogStorageLimits(indexPageSize: 2),
+    indexCache: indexCache,
     readObject: (reference) async {
       reads.update(reference.sha256, (count) => count + 1, ifAbsent: () => 1);
       await beforeRead?.call(reference);

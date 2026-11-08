@@ -301,8 +301,24 @@ final class CatalogStorageStore {
       _readBounded(_objectPath(reference.sha256), reference.byteLength);
 
   Future<PublishedCatalogSnapshot> openRoot(CatalogObjectReference root,
-          {CatalogObjectReader? readObject}) =>
-      _openRoot(root, readObject: readObject);
+          {CatalogObjectReader? readObject, bool shareIndex = false}) async =>
+      _openRoot(root,
+          readObject: readObject,
+          indexCache:
+              shareIndex && readObject == null ? await sharedIndex() : null);
+
+  static final _sharedIndexes = <String, CatalogIndexCache>{};
+  static const _sharedIndexProjects = 2;
+
+  Future<CatalogIndexCache> sharedIndex() async {
+    final root = await _canonicalProjectRoot;
+    final cache = _sharedIndexes.remove(root) ?? CatalogIndexCache();
+    _sharedIndexes[root] = cache;
+    while (_sharedIndexes.length > _sharedIndexProjects) {
+      _sharedIndexes.remove(_sharedIndexes.keys.first);
+    }
+    return cache;
+  }
 
   Future<void> publishObjectsUnderLock(Map<String, List<int>> objects) async {
     for (final entry in objects.entries) {
@@ -466,7 +482,8 @@ final class CatalogStorageStore {
   }
 
   Future<PublishedCatalogSnapshot> _openRoot(CatalogObjectReference root,
-          {CatalogObjectReader? readObject}) async =>
+          {CatalogObjectReader? readObject,
+          CatalogIndexCache? indexCache}) async =>
       PublishedCatalogSnapshot(
         rootRevision: root.sha256,
         snapshot: await CatalogSnapshot.open(
@@ -475,6 +492,7 @@ final class CatalogStorageStore {
               (reference) => _readBounded(
                   _objectPath(reference.sha256), reference.byteLength),
           limits: _limits,
+          indexCache: indexCache,
         ),
       );
 
