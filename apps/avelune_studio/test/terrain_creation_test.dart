@@ -129,6 +129,28 @@ void main() {
   );
 
   test(
+    'a traced turn, junction and erased branch resolve with the draft being edited',
+    () {
+      final draft = terrainDraft()..clearScratch();
+      assignAll(draft);
+      String? rule(int x, int y) => draft.resolved[y * 17 + x].ruleId;
+      draft.paintLine(const GridPos(x: 3, y: 3), const GridPos(x: 8, y: 3));
+      draft.paintLine(const GridPos(x: 8, y: 3), const GridPos(x: 8, y: 8));
+      draft.paintLine(const GridPos(x: 5, y: 3), const GridPos(x: 5, y: 6));
+      expect(rule(8, 3), 'connection-12');
+      expect(rule(5, 3), 'connection-14');
+      expect(rule(5, 6), 'connection-1');
+      draft.paint(const GridPos(x: 5, y: 4), erase: true);
+      expect(rule(5, 3), 'connection-10');
+      expect(rule(5, 5), 'connection-4');
+      draft.selectedRule = 12;
+      draft.assign(3, 3);
+      expect(draft.resolved[3 * 17 + 8].candidate!.id, 'piece-12');
+      expect(draft.frameFor(12)!.column, 3);
+    },
+  );
+
+  test(
     'incomplete draft saves through existing contract and resumes unchanged',
     () async {
       final draft = terrainDraft();
