@@ -961,7 +961,7 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 - [x] 1. Conserver grille et liste sur la même sélection stable ; rechercher dans les métadonnées sans charger les médias.
 - [x] 2. Conserver familles, types, dimension, disponibilité et pièces sources comme filtres distincts ; montrer les filtres actifs et leur remise à zéro.
 - [x] 3. Distinguer Ressources utilisables et Bibliothèque complète ; les sources et brouillons restent gérables dans cette dernière.
-- [ ] 4. Implémenter sélection multiple, classement et export de sélection avec comptes dérivés du même ensemble. *(Vague 3 : famille perdue au chargement d'une autre famille corrigée par 86bb44bb5 ; rangement ciblé du catalogue de travail par 6d8e088f7, prouvé par tests hôtes et banc HGSS ; parcours UI natif non revérifié, session macOS verrouillée.)*
+- [ ] 4. Implémenter sélection multiple, classement et export de sélection avec comptes dérivés du même ensemble. *(Vague 3 : famille perdue au chargement d'une autre famille corrigée par 86bb44bb5 ; rangement ciblé du catalogue de travail par 6d8e088f7, prouvé par tests hôtes et banc HGSS ; vider un classement et créer ou renommer une famille ciblés par 0d2be42d5. Vérifié en natif le 8 novembre sur HGSS (atlas Release) : deux ressources marquées, rangées ensemble dans une famille créée en natif (1,18 s durable), sélection conservée, rangement relu après fermeture. Reste ouvert : « Exporter la sélection » ouvre le transfert, mais sa préparation dure environ 3 min sur HGSS en affichant la consigne d'import (« Choisissez un fichier .aveluneassets… ») ; la liste présélectionnée n'a pas été contrôlée en natif et aucun test ne la couvre.)*
 - [ ] 5. Conserver les filtres et le défilement lors de l’ouverture d’un atelier ; rendre le retour à la carte explicite.
 - [x] 6. Gérer chargement, vide, erreur et référence supprimée sans présenter la fiche précédente comme la nouvelle cible.
 - [x] 7. Identifier le contexte des deux surfaces de bibliothèque (resource_workspace_pane.dart et la bibliothèque branchée par studio_workspace_host.dart) ; harmoniser recherche, résultats, fiche et action principale lorsque leurs capacités sont équivalentes, sans supposer qu’elles ont le même rôle (audit R04).
@@ -2527,9 +2527,23 @@ Les nouvelles cibles ne sont exécutables qu’après leur création dans ce lot
 | Premier rangement unitaire | ~12 min pour 2 entrées, 2 823 objets `catalog/` | 655 à 773 ms | 0 à 11 objets, 13 fichiers |
 | Rangements suivants | idem | 418 à 520 ms | 0 à 10 objets, 13 fichiers |
 | Rangement groupé de 2 | idem | 425 à 534 ms | 0 à 12 objets |
-| « Charger les modèles de bordure » (non corrigé) | 1 à 6 min natif | 50 s pour la sélection du catalogue, 55 s avec le contrôleur | aucune |
+| « Charger les modèles de bordure » (en partie corrigé par ff260f2ab, voir ci-dessous) | 1 à 6 min natif | 50 s pour la sélection du catalogue, 55 s avec le contrôleur | aucune |
 
 Décomposition d'un rangement répété (JIT) : lecture ciblée ~77 ms, planification ~200 ms (relecture de la sélection, validation, préparation du patch), écriture transactionnelle ~140 ms ; le premier ajoute ~100 ms d'ouverture du contexte de mutation. Statut : budget de 500 ms durable tenu en JIT pour les gestes répétés, pas pour le premier ; mesure Release native à faire. Vider tous les champs d'un classement ou le réserver à une carte repasse par le chemin global ; créer ou renommer une famille aussi.
+
+**Mesures consignées — gestes restants et bordures (vague 3, 2026-11-08) :** clones de la même copie HGSS ; banc opt-in `resource_classification_cost_bench_test.dart` (variables `AVELUNE_CLASSIFY_BENCH_GESTURES` et `AVELUNE_CLASSIFY_BENCH_RESERVE_MAP`) en flutter_tester JIT, Mac partagé ; natif : atlas Release construit au HEAD 9af738315 avec le contenu de ff260f2ab et 3b23a5870 non encore commité, sauf deux retouches ultérieures de ff260f2ab (libellé de chargement, projection partagée lors d'un remplacement de modèle), clics CGEvent, durabilité mesurée sur `catalog/HEAD.json` depuis le clic.
+
+| Geste | Chemin | JIT (banc) | Natif Release | Écritures |
+|---|---|---|---|---|
+| Vider un classement (0d2be42d5) | ciblé | 478 à 686 ms | 865 à 881 ms | 13 à 44 fichiers, 0 à 30 objets `catalog/` |
+| Créer ou renommer une famille (0d2be42d5) | ciblé | 657 à 665 ms | 723 à 781 ms | 25 à 26 fichiers, 11 à 12 objets |
+| Ranger une ressource, ranger deux ressources | ciblé | voir tableau précédent | 1er 1 113 ms, suivants 862 à 864 ms, groupé de 2 : 1 182 ms | — |
+| Réserver une ressource à une carte | global | refus de portée après 179 s (instantané 128 s) ; un succès ajoute l'application et la relecture | non mesuré | — |
+| Supprimer une famille vide | global | 488 à 580 s | non mesuré | 2 875 objets au premier |
+| Charger la liste des bordures depuis la Carte (ff260f2ab) | 1 263 fiches, aucune pièce | 20 s (au lieu de 56 s) | retour visible 61 ms, liste en 38 s | aucune |
+| Choisir une bordure (ff260f2ab) | sa seule fermeture | 158 à 229 ms | retour visible 92 à 129 ms, pièces affichées en moins de 1,6 s | aucune |
+
+Retour visible des gestes de rangement en natif : le bouton passe en attente sous 100 ms. Statut : PARTIAL. Vider un classement et créer ou renommer une famille passent par le chemin ciblé (comptes stables dans `working_catalog_classification_test.dart`), mais la durabilité native reste de 720 à 1 180 ms, au-dessus de 500 ms. Réserver une ressource à une carte et supprimer une famille restent globaux : le catalogue n'a d'index inverse ni des usages d'une ressource ni des membres d'une famille, et prouver leur absence parcourt tout le projet ; les deux boîtes l'annoncent avant l'enregistrement (3b23a5870). La liste des bordures ne résout plus aucune pièce (comptes stables à 0, 150 et 450 bordures sans rapport dans `border_profile_loading_test.dart`), mais elle décode encore chaque fiche, en moyenne 139 ko et 176 Mo pour HGSS : tenir le budget demande un index de descripteurs de bordure maintenu à l'écriture.
 
 **Mesures consignées — enregistrement d'une carte (vague 3, 2026-11-07) :** clone de l'atlas HGSS (catalogue de travail, 102 cartes cataloguées, ~153 000 objets `catalog/`), carte Bourg Geon (`first-map`, 271 Ko, 11 entités, 163 instances 3D). Banc opt-in `apps/avelune_studio/test/map_workspace/map_save_cost_bench_test.dart` (session, contrôleur et adaptateur réels, flutter_tester JIT) et même chemin d'enregistrement map_authoring compilé en AOT (`dart compile exe`) ; Mac Apple Silicon partagé (charge ~7). Pas de mesure native UI : session macOS verrouillée.
 
