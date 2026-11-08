@@ -179,7 +179,9 @@ void main() {
     await pumpIo(tester);
     await chooseMapExtraTool(tester, 'Gérer les ressources');
     await pumpIo(tester);
-    await tester.tap(find.text('Personnages'));
+    await tester.tap(find.byKey(const ValueKey('resource-family-chooser')));
+    await pumpIo(tester);
+    await tester.tap(find.text('Ouvrir l’atelier'));
     await pumpIo(tester);
     await tester.tap(find.text('Importer une planche'));
     await tester.pump();
