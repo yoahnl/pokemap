@@ -90,6 +90,8 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas>
   MapCharacterGesture? _characterGesture;
   MapDecorTransformDraft? _decorDraft;
   int? _decorPointer;
+  ({int pointer, MapPlacedElement decor, Offset origin, PointerDeviceKind kind})?
+  _modifierPress;
   final Set<LogicalKeyboardKey> _nudgeKeys = {};
   bool _previewScheduled = false;
   StudioMapTool? _gestureTool;
@@ -177,6 +179,13 @@ class _MapWorkspaceCanvasState extends State<MapWorkspaceCanvas>
   }
 
   void _up(PointerUpEvent event) {
+    final press = _modifierPress;
+    if (press != null && press.pointer == event.pointer) {
+      _modifierPress = null;
+      widget.view.toggleDecorInSelection(widget.document, press.decor.id);
+      widget.onChanged();
+      return;
+    }
     if (_borderErase != null) {
       try {
         if (_ownsBorderEraseGesture) {

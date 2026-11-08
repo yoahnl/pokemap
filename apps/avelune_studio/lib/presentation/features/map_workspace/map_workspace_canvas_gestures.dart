@@ -24,6 +24,7 @@ extension _MapWorkspaceCanvasGestures on _MapWorkspaceCanvasState {
     _secondaryPan = false;
     _decorDraft = null;
     _decorPointer = null;
+    _modifierPress = null;
     _nudgeKeys.clear();
     _gestureTool = null;
   }
@@ -72,6 +73,24 @@ extension _MapWorkspaceCanvasGestures on _MapWorkspaceCanvasState {
       _panPointer = event.pointer;
       _panPosition = event.position - event.delta;
       _secondaryPan = true;
+    }
+    final press = _modifierPress;
+    if (press != null && press.pointer == event.pointer) {
+      if ((event.localPosition - press.origin).distance <=
+          computePanSlop(press.kind, null)) {
+        return;
+      }
+      _modifierPress = null;
+      widget.view.select(
+        widget.document,
+        MapSelectionFamily.decor,
+        press.decor.id,
+      );
+      if (_canTransform(press.decor)) {
+        _beginDecor(press.decor, press.origin);
+        _decorPointer = event.pointer;
+      }
+      widget.onChanged();
     }
     if (_decorPointer == event.pointer && _decorDraft != null) {
       _decorDraft!.move(
@@ -302,9 +321,13 @@ extension _MapWorkspaceCanvasGestures on _MapWorkspaceCanvasState {
       if (moving != null &&
           armed == null &&
           (keys.isShiftPressed || keys.isMetaPressed)) {
-        widget.view.toggleDecorInSelection(widget.document, moving.id);
-        _moving = null;
         _cancel();
+        _modifierPress = (
+          pointer: event.pointer,
+          decor: moving,
+          origin: event.localPosition,
+          kind: event.kind,
+        );
       } else if (moving == null) {
         widget.view.clearSelection(widget.document);
         _cancel();
