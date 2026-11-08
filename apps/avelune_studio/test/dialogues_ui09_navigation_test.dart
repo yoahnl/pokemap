@@ -2,6 +2,7 @@ import 'package:avelune_studio/platform/rendering/studio_map_resources.dart';
 import 'package:avelune_studio/presentation/features/dialogues/dialogue_workspace_page.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_screen.dart';
 import 'package:avelune_studio/presentation/features/scenes/scene_builder_page.dart';
+import 'package:avelune_studio/presentation/features/scenes/scene_inspector.dart';
 import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_commit_field.dart';
 import 'package:avelune_studio/presentation/shared/widgets/layout/studio_primary_navigation.dart';
@@ -20,6 +21,21 @@ Future<void> activate(WidgetTester tester, Finder finder) async {
   await tester.ensureVisible(finder);
   await tester.tap(finder);
   await pumpIo(tester, frames: 15);
+}
+
+Future<void> openDialogue(WidgetTester tester) async {
+  final button = find.text('Ouvrir le dialogue');
+  await tester.scrollUntilVisible(
+    button,
+    200,
+    scrollable: find
+        .descendant(
+          of: find.byType(SceneInspector),
+          matching: find.byType(Scrollable),
+        )
+        .first,
+  );
+  await activate(tester, button);
 }
 
 void main() {
@@ -84,7 +100,7 @@ void main() {
       scenePage.controller.changed();
       await pumpIo(tester);
       final before = scenePage.controller.active!.current;
-      await activate(tester, find.text('Ouvrir le dialogue'));
+      await openDialogue(tester);
       final page = tester.widget<DialogueWorkspacePage>(
         find.byType(DialogueWorkspacePage),
       );
@@ -110,7 +126,7 @@ void main() {
         page.controller.active!.source,
         contains('Conversation encore en brouillon.'),
       );
-      await activate(tester, find.text('Ouvrir le dialogue'));
+      await openDialogue(tester);
       expect(
         page.controller.active!.source,
         contains('Conversation encore en brouillon.'),
