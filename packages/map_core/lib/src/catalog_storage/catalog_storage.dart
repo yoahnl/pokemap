@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:crypto/crypto.dart' as crypto;
 
+part 'catalog_reverse_references.dart';
+
 enum CatalogDefinitionKind {
   tileset,
   element,
@@ -394,6 +396,7 @@ final class CatalogStorageBuilder {
       }
     }
     final objects = <String, List<int>>{};
+    CatalogReverseReferences.validate(units.values);
     var storedBytes = 0;
     CatalogObjectReference put(Map<String, Object?> value, int byteLimit) {
       _freeze(value, limits);
@@ -846,6 +849,7 @@ final class CatalogSnapshot {
       _verifySummary(entry, unit);
       units.add(unit);
     }
+    CatalogReverseReferences.validate(units);
     return CatalogStorageRead._(units, references.values, storedBytes);
   }
 
@@ -1004,14 +1008,43 @@ final class CatalogSnapshot {
         }
       }
     }
+    final reverse = await CatalogReverseReferences.prepared(this);
+    if (changed.keys.any(CatalogReverseReferences.owns)) {
+      if (reverse) {
+        throw const FormatException('catalog.reverse: reserved mutation');
+      }
+      final projected = {
+        for (final unit in await readAllUnits()) unit.key: unit,
+      };
+      for (final entry in changed.entries) {
+        if (entry.value == null) {
+          projected.remove(entry.key);
+        } else {
+          projected[entry.key] = entry.value!;
+        }
+      }
+      CatalogReverseReferences.validate(projected.values);
+    }
     if (changed.entries.any(
       (entry) =>
           entry.value == null && !unreferencedKinds.contains(entry.key.kind),
     )) {
-      final entries = await _collect(
-        after: null,
-        take: limits.maxDefinitions + 1,
-      );
+      final entries = reverse
+          ? <CatalogIndexEntry>[
+              for (final key in changed.keys.where(
+                (key) => changed[key] == null,
+              ))
+                for (final owner in await CatalogReverseReferences.consumers(
+                  this,
+                  key,
+                ))
+                  if (!changed.containsKey(owner))
+                    (await indexEntry(owner)) ??
+                        (throw const FormatException(
+                          'catalog.reverse: missing consumer',
+                        )),
+            ]
+          : await _collect(after: null, take: limits.maxDefinitions + 1);
       for (final entry in entries) {
         if (changed.containsKey(entry.key)) {
           continue;
@@ -1026,7 +1059,21 @@ final class CatalogSnapshot {
         }
       }
     }
+    if (reverse) {
+      changed.addAll(await CatalogReverseReferences._maintain(this, changed));
+    }
     return _CatalogPatchBuilder(this).build(changed);
+  }
+
+  Future<CatalogStoragePatch> prepareReverseReferences() async {
+    if (await CatalogReverseReferences.prepared(this)) {
+      return _CatalogPatchBuilder(this).build({});
+    }
+    final units = await readAllUnits();
+    return _CatalogPatchBuilder(this).build({
+      for (final unit in CatalogReverseReferences.initialize(units))
+        unit.key: unit,
+    });
   }
 
   Future<CatalogDefinitionUnit?> lookup(CatalogDefinitionKey key) async {
@@ -1300,13 +1347,16 @@ final class CatalogSnapshot {
     }
     if (validateUnits) {
       final keys = entries.map((e) => e.key).toSet();
+      final units = <CatalogDefinitionUnit>[];
       for (final entry in entries) {
         final unit = await _unit(entry);
+        units.add(unit);
         if (unit.references.any((k) => !keys.contains(k))) {
           throw const FormatException('catalog.validate: missing dependency');
         }
         onUnit?.call(unit);
       }
+      CatalogReverseReferences.validate(units);
     }
     _admittedStoredBytes = bytes;
     return List.unmodifiable(objects.values);
