@@ -3,6 +3,16 @@ import '../models/items/project_contextual_capture_policy.dart';
 import '../models/pokemon_trade_evolution.dart';
 import '../models/items/project_item_capabilities.dart';
 import '../models/items/project_item_effect_definition.dart';
+import '../models/items/project_item_catalog.dart';
+
+abstract final class ItemPpRestoreCapabilities {
+  static const allMovesCapabilityId = 'items.restore-all-pp@1';
+
+  static bool requiresAllMoves(ProjectItemCatalog catalog) => catalog.entries.any(
+    (item) => item.uses.any((use) => use.effect is ProjectItemRestorePpEffectDefinition &&
+      (use.effect as ProjectItemRestorePpEffectDefinition).scope == ProjectItemPpScope.allMoves),
+  );
+}
 
 enum ProjectItemEffectCapability {
   healHp,

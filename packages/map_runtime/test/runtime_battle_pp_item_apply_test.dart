@@ -56,6 +56,68 @@ final _catalog = ItemCatalogSnapshot.fromCatalog(
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  test('all-move PP targeting selects only the Pokemon and can cancel', () async {
+    final session = _session([_move('wait', 34), _move('guard', 2)]);
+    var uses = 0;
+    final overlay = BattleOverlayComponent(
+      session: session.createLegacyDisplaySession(isTrainerBattle: true),
+      gameState: const GameState(saveId: 'ui', bag: Bag(entries: [BagEntry(itemId: 'all-pp', quantity: 1)])),
+      itemCapabilityResolver: ItemCapabilityResolver(_allPpCatalog()),
+      viewportSize: Vector2(960, 540), onPlayerChoice: (_) => fail('No attack selected'),
+      onBagHpHealItemUseRequested: (_, _, {request}) {uses++; return true;},
+    );
+    await loadFlameComponent(overlay);
+    overlay.selectRootEntry(1);
+    overlay.selectBagEntry(0);
+    expect(overlay.currentMenuMode.name, 'bagMedicineTarget');
+    expect(overlay.handleEscape(), isTrue);
+    expect(uses, 0);
+    overlay.selectBagEntry(0);
+    expect(overlay.selectMedicineTargetEntry(0), isTrue);
+    expect(uses, 1);
+    expect(overlay.currentMenuMode.name, isNot('bagMedicineMoveTarget'));
+  });
+  test('all-move PP item restores numeric slots with one consumption', () {
+    final session = _session([_move('wait', 34), _move('guard', 2)]);
+    final result = _apply(session, itemId: 'all-pp');
+    expect(result, isNotNull);
+    expect(result!.consumptionReceipt!.quantity, 1);
+    expect(result.updatedGameState.bag.entries, isEmpty);
+    expect(session.state.psdkState.battlerAt(psdkPlayerSlot).moves.map((move) => move.currentPp), [35, 12]);
+    expect(result.updatedGameState.party.members.single.currentPpByMoveId, {'wait': 35, 'guard': 12});
+    expect(result.appliedAmount, 11);
+  });
+  test('all-move restoration preserves Mimic write-back and duplicate numeric slots', () {
+    final session = _session([_move('wait', 35), _move('mimic', 35, method: 's_mimic')]);
+    session.submitPlayerChoice(const PlayerBattleChoiceFight(0));
+    session.submitPlayerChoice(const PlayerBattleChoiceFight(1));
+    session.submitPlayerChoice(const PlayerBattleChoiceFight(1));
+    final result = _apply(session, itemId: 'all-pp', knownMoveIds: ['wait', 'mimic']);
+    expect(result, isNotNull);
+    expect(session.state.psdkState.battlerAt(psdkPlayerSlot).moves.map((move) => move.currentPp), [35, 5]);
+    expect(result!.updatedGameState.party.members.single.currentPpByMoveId, {'wait': 35, 'mimic': 34});
+    expect(result.consumptionReceipt!.quantity, 1);
+  });
+  test('all-move PP restoration rejects a full target and an empty bag without a turn', () {
+    for (final empty in [false, true]) {
+      final session = _session([_move('wait', empty ? 0 : 35)]);
+      final before = session.state.psdkState;
+      expect(_apply(session, itemId: 'all-pp', quantity: empty ? 0 : 1), isNull);
+      expect(session.state.psdkState, same(before));
+    }
+  });
+  test('all-move restoration recalls Transform temporary PP without changing saved moves', () {
+    final session = _session([_move('transform', 35, method: 's_transform')]);
+    session.submitPlayerChoice(const PlayerBattleChoiceFight(0));
+    session.submitPlayerChoice(const PlayerBattleChoiceFight(0));
+    final before = session.state.psdkState.battlerAt(psdkPlayerSlot);
+    final original = before.writeBackMoves.single.currentPp;
+    final result = _apply(session, itemId: 'all-pp', knownMoveIds: ['transform']);
+    expect(result, isNotNull);
+    expect(session.state.psdkState.battlerAt(psdkPlayerSlot).moves.single.currentPp, 5);
+    expect(result!.updatedGameState.party.members.single.currentPpByMoveId, {'transform': original});
+    expect(result.updatedGameState.party.members.single.knownMoveIds, ['transform']);
+  });
   test(
     'PP target flow shows real move slots and cancels without using a turn',
     () async {
@@ -340,9 +402,20 @@ RuntimePsdkBattleItemApplyResult? _apply(
     targetLineupIndex: lineupIndex,
     targetMoveIndex: moveIndex,
     isTrainerBattle: true,
-    itemCatalog: _catalog,
+    itemCatalog: itemId == 'all-pp' ? _allPpCatalog() : _catalog,
   );
 }
+
+ItemCatalogSnapshot _allPpCatalog() => ItemCatalogSnapshot.fromCatalog(
+  const ProjectItemCatalog(schemaVersion: 1, entries: [ProjectItemDefinition(
+    id: 'all-pp', displayName: 'Élixir', pocketId: 'medicine', uses: [ProjectItemUseDefinition(
+      contexts: {ProjectItemUseContext.battle}, target: ProjectItemTargetKind.partyMember,
+      consumption: ProjectItemConsumptionPolicy.onApplied,
+      effect: ProjectItemEffectDefinition.restorePp(mode: ProjectItemAmountMode.flat, amount: 10,
+        scope: ProjectItemPpScope.allMoves),
+    )],
+  )]),
+);
 
 RuntimePsdkBattleSessionAdapter _session(
   List<PsdkBattleMoveData> moves, {

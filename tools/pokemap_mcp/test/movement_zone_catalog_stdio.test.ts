@@ -14,9 +14,10 @@ function record(value: unknown): JsonRecord {
   return value as JsonRecord;
 }
 
-test("fresh MCP creates a scoped catalog movement zone and preserves it across a fresh worker", { timeout: 120_000 }, async () => {
+for (const kind of ["movement", "encounter"] as const) {
+test(`fresh MCP creates a scoped catalog ${kind} zone and preserves it across a fresh worker`, { timeout: 120_000 }, async () => {
   const configuredRoot = process.env.POKEMAP_TEST_MOVEMENT_ZONE_ROOT;
-  const root = configuredRoot ?? await mkdtemp(join(tmpdir(), "movement-zone-catalog-"));
+  const root = configuredRoot ? `${configuredRoot}-${kind}` : await mkdtemp(join(tmpdir(), "movement-zone-catalog-"));
   if (configuredRoot) await mkdir(root);
   const dart = process.env.POKEMAP_TEST_DART ?? "dart";
   const packageRoot = resolve("../../packages/map_authoring");
@@ -69,9 +70,12 @@ test("fresh MCP creates a scoped catalog movement zone and preserves it across a
     const mapBefore = await readFile(mapFile);
     const original = record(JSON.parse(mapBefore.toString("utf8")));
     const foreignBefore = await readFile(join(root, "maps/foreign.json"));
-    const zone = { id: "source-water", name: "Native movement gate", kind: "movement",
+    const zone: JsonRecord = { id: "source-water", name: "Native water", kind,
       area: { pos: { x: 1, y: 1 }, size: { width: 2, height: 1 } },
-      movement: { requiredMode: "surf", allowedModes: [] } };
+      ...(kind === "movement" ? { movement: { requiredMode: "surf", allowedModes: [] } } : {
+        encounter: { encounterTableId: "surf", encounterKind: "surf", battleTransitionIds: [],
+          battleBackgroundRelativePath: null, battleMusicPath: null, encounterMusicPath: null }
+      }) };
     const parameters = { mapId: "story", zone };
     await connect();
     const described = await call("pokemap_describe", { actionIds: ["gameplay_zone.create"], view: "full" });
@@ -81,6 +85,18 @@ test("fresh MCP creates a scoped catalog movement zone and preserves it across a
     assert.equal(actions[0]!.version, 1);
     workspace = await call("pokemap_workspace", { operation: "open", projectRoot: root });
     await call("pokemap_workshop", { operation: "prepare", projectHandle: workspace.projectHandle });
+    if (kind === "encounter") {
+      const tableParameters = { value: { id: "surf", name: "Surf", encounterKind: "surf", chancePerStep: 0.15,
+        entries: [{ speciesId: "wooper", minLevel: 10, maxLevel: 20, weight: 60 }], variants: [], tags: [] } };
+      const tableScope = await call("pokemap_workshop", { operation: "read", projectHandle: workspace.projectHandle,
+        actionId: "campaign.encounter_table.upsert", parameters: tableParameters, includeDocuments: false });
+      const tablePlan = await call("pokemap_plan", { projectHandle: workspace.projectHandle, request: {
+        requestId: "surf-table", actionId: "campaign.encounter_table.upsert", actionVersion: 1,
+        workspaceHandle: workspace.workspaceHandle, expectedRevision: tableScope.snapshotRevision,
+        idempotencyKey: "surf-table", parameters: tableParameters, extensions: tableScope.planExtensions } });
+      await call("pokemap_apply", { operation: "apply", projectHandle: workspace.projectHandle,
+        planId: tablePlan.planId, operationId: "surf-table" });
+    }
     const scope = await call("pokemap_workshop", { operation: "read", projectHandle: workspace.projectHandle,
       actionId: "gameplay_zone.create", parameters, includeDocuments: false });
     const planned = await call("pokemap_plan", { projectHandle: workspace.projectHandle, request: {
@@ -95,14 +111,15 @@ test("fresh MCP creates a scoped catalog movement zone and preserves it across a
     assert.equal(savedZones.length, 1);
     assert.equal(savedZones[0]!.id, zone.id);
     assert.deepEqual(savedZones[0]!.area, zone.area);
-    assert.deepEqual(savedZones[0]!.movement, zone.movement);
+    const payload = kind === "movement" ? "movement" : "encounter";
+    assert.deepEqual(savedZones[0]![payload], JSON.parse(JSON.stringify(zone[payload])));
     assert.deepEqual({ ...saved, gameplayZones: original.gameplayZones }, original);
     assert.deepEqual(await readFile(projectFile), descriptorBefore);
     assert.deepEqual(await readFile(join(root, "maps/foreign.json")), foreignBefore);
     const savedBytes = await readFile(mapFile);
     const refusal = await call("pokemap_workshop", { operation: "read", projectHandle: workspace.projectHandle,
       actionId: "gameplay_zone.create", parameters: { mapId: "story", zone: { ...zone, id: "foreign-ref",
-        kind: "encounter", movement: null, encounter: { encounterTableId: "unadmitted-table" } } },
+        kind: "encounter", movement: { requiredMode: "surf" }, encounter: { encounterTableId: "unadmitted-table" } } },
       includeDocuments: false }, true);
     assert.equal(refusal.domainCode, "catalog.mutation_scope_required");
     assert.deepEqual(await readFile(mapFile), savedBytes);
@@ -114,7 +131,7 @@ test("fresh MCP creates a scoped catalog movement zone and preserves it across a
     const reopened = record((queried.items as JsonRecord[])[0]);
     const reopenedZone = (reopened.gameplayZones as JsonRecord[]).find(value => value.id === zone.id);
     assert.ok(reopenedZone);
-    assert.deepEqual(reopenedZone.movement, zone.movement);
+    assert.deepEqual(reopenedZone[payload], JSON.parse(JSON.stringify(zone[payload])));
     assert.deepEqual(await readFile(mapFile), savedBytes);
     await call("pokemap_history", { operation: "undo", projectHandle: workspace.projectHandle,
       entryId: record(applied.receipt).receiptId, idempotencyKey: "movement-undo" });
@@ -126,3 +143,4 @@ test("fresh MCP creates a scoped catalog movement zone and preserves it across a
     finally { await rm(root, { recursive: true, force: true }); }
   }
 });
+}

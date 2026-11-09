@@ -22,6 +22,12 @@ void main() {
     });
 
     for (final scenarioEffect in [
+      for (final context in ProjectItemUseContext.values)
+        for (final mode in ProjectItemAmountMode.values)
+          (context, ProjectItemEffectDefinition.restorePp(
+            mode: mode, amount: mode == ProjectItemAmountMode.flat ? 10 : null,
+            scope: ProjectItemPpScope.allMoves,
+          )),
       (
         ProjectItemUseContext.overworld,
         const ProjectItemEffectDefinition.vitamin(

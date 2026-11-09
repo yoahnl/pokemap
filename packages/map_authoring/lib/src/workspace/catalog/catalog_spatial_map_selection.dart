@@ -369,7 +369,9 @@ final class CatalogSpatialMapSelection {
     if (actionId == 'map.update_metadata' || actionId == 'map.audio.update' || actionId == 'map3d.camera.configure' ||
         actionId == 'warp.ladder.configure' || actionId == 'map3d.instance.configure_field_obstacle' ||
         actionId == 'map3d.instance.visibility.set' ||
-        actionId == 'entity.set_presentation' || TriggerZoneActions.fieldTraversalActions.contains(actionId)) {
+        actionId == 'entity.set_presentation' ||
+        TriggerZoneActions.fieldTraversalActions.contains(actionId) &&
+            !TriggerZoneActions.isEncounterCreation(actionId, parameters)) {
       return _readProperties(reader: reader, projectHandle: projectHandle, actionId: actionId, parameters: parameters);
     }
     if (const {'warp.update', 'warp.create', 'connection.upsert',
@@ -424,6 +426,7 @@ final class CatalogSpatialMapSelection {
         final map = MapData.fromJson(Map<String, dynamic>.from(
             jsonDecode(utf8.decode(mapBytes)) as Map));
         final supportsTwoDimensions = actionId == 'map.apply_operations' ||
+            TriggerZoneActions.isEncounterCreation(actionId, parameters) ||
             actionId == 'gameplay_zone.set_encounter_payload' ||
             actionId == 'map.update_metadata' ||
             actionId == 'entity.upsert' ||
@@ -956,12 +959,13 @@ final class CatalogSpatialMapSelection {
           throw AuthoringPlanException(code: 'catalog.mutation_outside_scope',
               message: 'The manual Environment move changed unrelated map content.');
         }
-      } else if (TriggerZoneActions.isReferenceFreeMovementCreation(action, plan.request.parameters)) {
+      } else if (TriggerZoneActions.isReferenceFreeMovementCreation(action, plan.request.parameters) ||
+          TriggerZoneActions.isEncounterCreation(action, plan.request.parameters)) {
         final zone = MapGameplayZone.fromJson(Map<String, dynamic>.from(plan.request.parameters['zone'] as Map));
         final expected = const TriggerZoneActions().createZone(snapshot.mapById(mapId)!, zone: zone);
         if (projected != expected) {
           throw AuthoringPlanException(code: 'catalog.mutation_outside_scope',
-              message: 'The movement-zone creation changed unrelated map content.');
+              message: 'The zone creation changed unrelated map content.');
         }
         MapValidator.validate(projected);
       } else if (TriggerZoneActions.fieldTraversalActions.contains(action)) {

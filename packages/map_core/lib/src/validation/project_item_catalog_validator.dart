@@ -451,8 +451,10 @@ void _validateEffect(
     ProjectItemCureStatusEffectDefinition() ||
     ProjectItemReviveEffectDefinition() =>
       use.target == ProjectItemTargetKind.partyMember,
-    ProjectItemRestorePpEffectDefinition() =>
-      use.target == ProjectItemTargetKind.partyMove,
+    ProjectItemRestorePpEffectDefinition(:final scope) =>
+      use.target == (scope == ProjectItemPpScope.allMoves
+          ? ProjectItemTargetKind.partyMember
+          : ProjectItemTargetKind.partyMove),
     ProjectItemRepelEffectDefinition() ||
     ProjectItemBicycleEffectDefinition() ||
     ProjectItemFishingEffectDefinition() ||

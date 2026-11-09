@@ -9,6 +9,16 @@ enum ProjectItemAmountMode { flat, full }
 
 enum ProjectItemStatusCureMode { listed, all }
 
+enum ProjectItemPpScope {
+  @JsonValue('selected_move')
+  selectedMove,
+  @JsonValue('all_moves')
+  allMoves,
+}
+
+String? _itemPpScopeToJson(ProjectItemPpScope scope) =>
+    scope == ProjectItemPpScope.allMoves ? 'all_moves' : null;
+
 enum ProjectItemVitaminStat {
   hp,
   attack,
@@ -106,6 +116,8 @@ abstract class ProjectItemEffectDefinition with _$ProjectItemEffectDefinition {
   const factory ProjectItemEffectDefinition.restorePp({
     required ProjectItemAmountMode mode,
     int? amount,
+    @JsonKey(includeIfNull: false, toJson: _itemPpScopeToJson)
+    @Default(ProjectItemPpScope.selectedMove) ProjectItemPpScope scope,
   }) = ProjectItemRestorePpEffectDefinition;
 
   @JsonSerializable(explicitToJson: true)

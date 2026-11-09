@@ -11,6 +11,12 @@ final _catalog = ItemCatalogSnapshot.fromCatalog(
   const ProjectItemCatalog(
     schemaVersion: 1,
     entries: [
+      ProjectItemDefinition(id: 'elixir', displayName: 'Élixir', pocketId: 'medicine', uses: [
+        ProjectItemUseDefinition(contexts: {ProjectItemUseContext.battle}, target: ProjectItemTargetKind.partyMember,
+          consumption: ProjectItemConsumptionPolicy.onApplied,
+          effect: ProjectItemEffectDefinition.restorePp(mode: ProjectItemAmountMode.flat, amount: 10,
+            scope: ProjectItemPpScope.allMoves)),
+      ]),
       ProjectItemDefinition(
         id: 'potion',
         displayName: 'Potion',
@@ -48,6 +54,17 @@ final _catalog = ItemCatalogSnapshot.fromCatalog(
 );
 
 void main() {
+  test('all-PP double item releases the second reservation when the first fills every move', () {
+    final fixture = _fixture(2, itemId: 'elixir', initialPp: 0);
+    final first = _apply(fixture.session, fixture.state, 0, itemId: 'elixir')!;
+    expect(first.updatedGameState.bag.entries.single.quantity, 2);
+    final second = _apply(fixture.session, first.updatedGameState, 0, itemId: 'elixir')!;
+    expect(second.updatedGameState.bag.entries.single.quantity, 1);
+    expect(fixture.session.state.partyForBank(0)[0].moves.single.currentPp, 10);
+    expect(second.updatedGameState.party.members[0].currentPpByMoveId!['wait'], 10);
+    expect(second.consumptionReceipt, isNull);
+    expect(fixture.session.pendingItemQuantities, isEmpty);
+  });
   test(
     'L32 reserves the only item during collection without charging the save',
     () {

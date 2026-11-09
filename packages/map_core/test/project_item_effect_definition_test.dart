@@ -3,6 +3,53 @@ import 'package:test/test.dart';
 
 void main() {
   group('ProjectItemEffectDefinition', () {
+    test('legacy PP restoration retains its exact default encoding', () {
+      final json = <String, dynamic>{
+        'kind': 'restore_pp',
+        'mode': 'flat',
+        'amount': 10,
+      };
+      expect(ProjectItemEffectDefinition.fromJson(json).toJson(), json);
+    });
+
+    test('all-move PP restoration survives strict catalog serialization', () {
+      final json = <String, dynamic>{
+        'schemaVersion': 1,
+        'entries': [
+          {
+            'id': 'elixir',
+            'displayName': 'Élixir',
+            'pocketId': 'medicine',
+            'uses': [
+              {
+                'contexts': ['overworld', 'battle'],
+                'target': 'party_member',
+                'consumption': 'on_applied',
+                'effect': {
+                  'kind': 'restore_pp',
+                  'mode': 'flat',
+                  'amount': 10,
+                  'scope': 'all_moves',
+                },
+              },
+            ],
+          },
+        ],
+      };
+      final catalog = decodeProjectItemCatalog(json);
+      expect(catalog.entries.single.uses.single.effect.toJson()['scope'], 'all_moves');
+      expect(decodeProjectItemCatalog(encodeProjectItemCatalog(catalog)), catalog);
+      expect(validateProjectItemCatalog(catalog, capabilityTruth: itemSystemV1CapabilityTruth).hasBlockingDiagnostics, isFalse);
+    });
+
+    test('PP scope is a closed enum rather than ignored data', () {
+      for (final scope in ['unknown', 1, true]) {
+        expect(() => ProjectItemEffectDefinition.fromJson({
+          'kind': 'restore_pp', 'mode': 'flat', 'amount': 10, 'scope': scope,
+        }), throwsA(anything));
+      }
+    });
+
     test('round-trips every effect kind', () {
       final effects = <ProjectItemEffectDefinition>[
         const ProjectItemEffectDefinition.healHp(

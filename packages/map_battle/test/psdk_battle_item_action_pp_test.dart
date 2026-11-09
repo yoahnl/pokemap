@@ -4,6 +4,35 @@ import 'package:test/test.dart';
 
 void main() {
   group('PSDK battle PP item actions', () {
+    test('all-slot restore emits each changed slot and one consumption', () {
+      final context = _context();
+      final result = const BattleItemActionHandler().useItem(
+        context: context,
+        action: _action(const PsdkBattlePpRestoreItemEffect.allFlat(10)),
+      );
+      final target = result.state.battlerAt(psdkPlayerSlot);
+      expect(target.moves.map((move) => move.currentPp), [13, 17]);
+      expect(target.writeBackMoves.map((move) => move.currentPp), [13, 17]);
+      expect(result.amount, 20);
+      expect(result.events.where((event) => event.kind == 'item_consumed'), hasLength(1));
+      expect(result.events.whereType<PsdkBattleMovePpRestoredEvent>().map((event) => event.moveSlot), [0, 1]);
+      expect(context.state.battlerAt(psdkPlayerSlot).moves.map((move) => move.currentPp), [3, 7]);
+    });
+    test('all-slot full restoration caps each slot and refuses a second use', () {
+      final context = _context();
+      final result = const BattleItemActionHandler().useItem(
+        context: context, action: _action(const PsdkBattlePpRestoreItemEffect.allFull()),
+      );
+      expect(result.state.battlerAt(psdkPlayerSlot).moves.map((move) => move.currentPp), [20, 20]);
+      expect(result.amount, 30);
+      final full = _context(player: _combatant(id: 'player', moves: [_move(pp: 20), _move(pp: 20)]));
+      final refused = const BattleItemActionHandler().useItem(
+        context: full, action: _action(const PsdkBattlePpRestoreItemEffect.allFull()),
+      );
+      expect(refused.applied, isFalse);
+      expect(refused.events, isEmpty);
+      expect(refused.state, same(full.state));
+    });
     test('restores only the selected slot and its persistent PP', () {
       final context = _context();
       final result = const BattleItemActionHandler().useItem(

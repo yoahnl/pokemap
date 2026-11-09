@@ -12,6 +12,7 @@ abstract final class AveluneRuntimeCompatibility {
         runtimeApiVersion: Version.parse('1.4.0'),
         capabilities: const <String>{
           GameCompletionPartyCapabilities.capabilityId,
+          ItemPpRestoreCapabilities.allMovesCapabilityId,
           PokemonRulesetProfile.contextualCaptureCapabilityId,
           'catalog.partitioned@2',
           'dialogue.choices@1',

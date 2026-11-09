@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring_local.dart';
+import 'package:map_authoring/map_authoring.dart' show FileAuthoringHistoryStore;
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/authoring_api/authoring_mutation_adapter.dart';
 import 'package:map_editor/src/application/authoring_api/authoring_query_adapter.dart';
@@ -10,6 +11,26 @@ import 'package:map_editor/src/application/authoring_api/editor_receipt_presente
 import 'package:map_editor/src/features/gameplay/items/item_studio_gateway.dart';
 
 void main() {
+  for (final context in ProjectItemUseContext.values) {
+    test('editor authors and undoes all-move PP restoration in ${context.name}', () async {
+      final harness = await _EditorItemHarness.create('all-pp-${context.name}');
+      addTearDown(harness.dispose);
+      final use = ProjectItemUseDefinition(
+        contexts: {context}, target: ProjectItemTargetKind.partyMember,
+        consumption: ProjectItemConsumptionPolicy.onApplied,
+        effect: const ProjectItemEffectDefinition.restorePp(
+          mode: ProjectItemAmountMode.flat, amount: 10, scope: ProjectItemPpScope.allMoves,
+        ),
+      );
+      final result = await harness.execute(_ItemMutationScenario(
+        'item.set_${context.name}_effect', {'itemId': 'potion', 'use': use.toJson()},
+      ));
+      final item = decodeProjectItemCatalog(result.afterCatalog).entries.singleWhere((item) => item.id == 'potion');
+      expect(item.uses.single, use);
+      expect(result.restoredCatalog, result.beforeCatalog);
+      expect(result.historyEntryCount, 2);
+    });
+  }
   test('editor gateway creates queries simulates and undoes an item', () async {
     final root = await Directory.systemTemp.createTemp(
       'item-editor-transport-',
@@ -513,9 +534,8 @@ final class _EditorItemHarness {
           as Map<String, dynamic>;
 
   Future<int> historyEntryCount() async {
-    final file = File('${root.path}/.pokemap/authoring/history.jsonl');
-    if (!await file.exists()) return 0;
-    return (await file.readAsLines()).where((line) => line.isNotEmpty).length;
+    final history = await FileAuthoringHistoryStore.open(projectRoot: root.path);
+    return (await history.entriesForMaintenance()).length;
   }
 
   Future<void> dispose() async {

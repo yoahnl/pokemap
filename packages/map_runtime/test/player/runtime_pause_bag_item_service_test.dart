@@ -17,6 +17,65 @@ ItemCatalogSnapshot _catalogWith(List<ProjectItemDefinition> entries) {
 }
 
 void main() {
+  for (final saveFails in [false, true]) {
+    test('all-move PP item commits atomically and resumes from disk failure=$saveFails', () async {
+      final root = await Directory.systemTemp.createTemp('all-pp-save-');
+      addTearDown(() => root.delete(recursive: true));
+      final save = File('${root.path}/progression.json');
+      var state = const GameState(saveId: '123e4567-e89b-42d3-a456-426614174004', currentMapId: 'map',
+        party: PlayerParty(members: [PlayerPokemon(
+          individualId: 'lead', speciesId: 'lead', natureId: 'hardy', abilityId: 'steadfast', currentHp: 30,
+          knownMoveIds: ['tackle', 'growl'], currentPpByMoveId: {'tackle': 32, 'growl': 1},
+        )]),
+        bag: Bag(entries: [BagEntry(itemId: 'elixir', quantity: 2)]),
+      );
+      const mapper = GameStateSaveEnvelopeMapper();
+      const codec = SaveEnvelopeCodec();
+      SaveEnvelope envelope(GameState value) => mapper.create(
+        identity: GameIdentity(gameId: 'org.example.elixir', gameVersion: '1.0.0',
+          projectFormat: ProjectFormat.v8, saveFormat: SaveEnvelopeCodec.currentSaveFormat,
+          compatibilityId: 'elixir-v1'),
+        profileId: 'player', slotId: 'slot', saveId: value.saveId,
+        createdAt: DateTime.utc(2026, 11, 9), updatedAt: DateTime.utc(2026, 11, 9),
+        status: SaveStatus.active, playTimeSeconds: 0, gameState: value,
+      );
+      await save.writeAsString(codec.encode(envelope(state)));
+      final before = await save.readAsBytes();
+      var commits = 0;
+      final controller = PlayerServiceRuntimeController.contextual(
+        currentGameState: () => state,
+        commitAndSave: (next) async {
+          commits++;
+          if (saveFails) throw StateError('disk full');
+          await save.writeAsString(codec.encode(envelope(next)));
+          state = next;
+        },
+        setInputLocked: (_) {},
+        loadRecoveryCaps: (_) async => const RuntimePlayerServiceRecoveryCaps(
+          maxHpByPartyIndex: {0: 30}, maxPpByPartyIndex: {0: {'tackle': 35, 'growl': 40}},
+        ),
+        itemCatalog: _catalogWith(const [ProjectItemDefinition(
+          id: 'elixir', displayName: 'Élixir', pocketId: 'medicine', uses: [ProjectItemUseDefinition(
+            contexts: {ProjectItemUseContext.overworld}, target: ProjectItemTargetKind.partyMember,
+            consumption: ProjectItemConsumptionPolicy.onApplied,
+            effect: ProjectItemEffectDefinition.restorePp(mode: ProjectItemAmountMode.flat,
+              amount: 10, scope: ProjectItemPpScope.allMoves),
+          )],
+        )]),
+      );
+      addTearDown(controller.dispose);
+      final result = await controller.useBagItemOutsideBattle(
+        const RuntimePlayerPauseCommand.useBagItem(itemTargetId: 'elixir', partyTargetId: 'party.0'),
+      );
+      expect(commits, 1);
+      expect(result.status, saveFails ? RuntimePlayerPauseCommandStatus.failed : RuntimePlayerPauseCommandStatus.accepted);
+      final resumed = mapper.restore(codec.decode(await save.readAsString()));
+      expect(resumed.party.members.single.currentPpByMoveId, saveFails ? {'tackle': 32, 'growl': 1} : {'tackle': 35, 'growl': 11});
+      expect(resumed.bag.entries.single.quantity, saveFails ? 2 : 1);
+      expect(state.party.members.single.currentPpByMoveId, resumed.party.members.single.currentPpByMoveId);
+      if (saveFails) expect(await save.readAsBytes(), before);
+    });
+  }
   test('Corde Sortie without an installed consumer refuses with a 2D reason and no mutation', () async {
     const state = GameState(
       saveId: 'rope-unsupported',

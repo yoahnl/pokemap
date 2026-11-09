@@ -505,7 +505,8 @@ final class RuntimePlayerPauseDataBuilder {
           ? RuntimePlayerBagUseTargetKind.world
           : isMoveMachine
           ? RuntimePlayerBagUseTargetKind.partyMoveReplacement
-          : effect is ProjectItemRestorePpEffectDefinition
+          : effect is ProjectItemRestorePpEffectDefinition &&
+                effect.scope == ProjectItemPpScope.selectedMove
           ? RuntimePlayerBagUseTargetKind.partyMove
           : RuntimePlayerBagUseTargetKind.partyMember;
       var usability = resolver.classifyUse(

@@ -133,12 +133,13 @@ PlayerItemEffectApplication applyPlayerItemEffect(
         rateNumerator: rateNumerator,
         rateDenominator: rateDenominator,
       ),
-    ProjectItemRestorePpEffectDefinition(:final mode, :final amount) =>
+    ProjectItemRestorePpEffectDefinition(:final mode, :final amount, :final scope) =>
       _applyPpRestore(
         target,
         mode: mode,
         amount: amount,
         moveId: moveId,
+        scope: scope,
         maxPpByMoveId: maxPpByMoveId,
       ),
     // BETA-ITM-007 : le verdict de support vient de la source unique, pour que
@@ -274,8 +275,30 @@ PlayerItemEffectApplication _applyPpRestore(
   required ProjectItemAmountMode mode,
   required int? amount,
   required String? moveId,
+  required ProjectItemPpScope scope,
   required Map<String, int> maxPpByMoveId,
 }) {
+  if (scope == ProjectItemPpScope.allMoves) {
+    final current = target.currentPpByMoveId;
+    if (current == null) {
+      return const PlayerItemEffectApplication.failed(PlayerItemUseFailure.wrongTarget);
+    }
+    final updated = {...current};
+    var changed = false;
+    for (final id in target.knownMoveIds.toSet()) {
+      final pp = current[id];
+      final maximum = maxPpByMoveId[id];
+      if (pp == null || maximum == null || maximum <= 0 || pp >= maximum) {
+        continue;
+      }
+      updated[id] = mode == ProjectItemAmountMode.full
+          ? maximum : (pp + amount!).clamp(0, maximum);
+      changed = true;
+    }
+    return changed
+        ? PlayerItemEffectApplication.applied(target.copyWith(currentPpByMoveId: updated))
+        : const PlayerItemEffectApplication.failed(PlayerItemUseFailure.noEffect);
+  }
   final normalizedMoveId = moveId?.trim() ?? '';
   final currentPpByMoveId = target.currentPpByMoveId;
   final maxPp = maxPpByMoveId[normalizedMoveId];

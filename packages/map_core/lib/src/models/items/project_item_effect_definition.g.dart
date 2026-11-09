@@ -196,6 +196,9 @@ _$ProjectItemRestorePpEffectDefinitionFromJson(Map<String, dynamic> json) =>
     ProjectItemRestorePpEffectDefinition(
       mode: $enumDecode(_$ProjectItemAmountModeEnumMap, json['mode']),
       amount: (json['amount'] as num?)?.toInt(),
+      scope:
+          $enumDecodeNullable(_$ProjectItemPpScopeEnumMap, json['scope']) ??
+          ProjectItemPpScope.selectedMove,
       $type: json['kind'] as String?,
     );
 
@@ -204,7 +207,13 @@ Map<String, dynamic> _$ProjectItemRestorePpEffectDefinitionToJson(
 ) => <String, dynamic>{
   'mode': _$ProjectItemAmountModeEnumMap[instance.mode]!,
   'amount': instance.amount,
+  'scope': ?_itemPpScopeToJson(instance.scope),
   'kind': instance.$type,
+};
+
+const _$ProjectItemPpScopeEnumMap = {
+  ProjectItemPpScope.selectedMove: 'selected_move',
+  ProjectItemPpScope.allMoves: 'all_moves',
 };
 
 ProjectItemRepelEffectDefinition _$ProjectItemRepelEffectDefinitionFromJson(

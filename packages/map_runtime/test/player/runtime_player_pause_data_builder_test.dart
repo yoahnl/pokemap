@@ -840,6 +840,7 @@ void main() {
               'potion',
               'antidote',
               'ether',
+              'elixir',
               'poke-ball',
               'key-item',
             ])
@@ -855,10 +856,17 @@ void main() {
           ruleset: PokemonRulesetProfile.pokeMapBetaV1,
         ),
         locale: 'fr',
-        itemCatalog: ItemCatalogSnapshot.fromCatalog(mvpItemCatalog),
+        itemCatalog: _catalogWith(const [ProjectItemDefinition(
+          id: 'elixir', displayName: 'Élixir', pocketId: 'medicine', uses: [ProjectItemUseDefinition(
+            contexts: {ProjectItemUseContext.overworld}, target: ProjectItemTargetKind.partyMember,
+            consumption: ProjectItemConsumptionPolicy.onApplied,
+            effect: ProjectItemEffectDefinition.restorePp(mode: ProjectItemAmountMode.flat, amount: 10,
+              scope: ProjectItemPpScope.allMoves),
+          )],
+        )]),
       );
       final bag = details[RuntimePlayerPauseSection.bag]!;
-      for (final itemId in ['potion', 'antidote', 'ether']) {
+      for (final itemId in ['potion', 'antidote', 'ether', 'elixir']) {
         final action = bag.entries
             .firstWhere((entry) => entry.bagItem!.itemId == itemId)
             .bagAction!;
@@ -904,6 +912,10 @@ void main() {
         contains('ne convient pas'),
       );
       expect(ether.targetKind, RuntimePlayerBagUseTargetKind.partyMove);
+      final elixir = bag.entries.singleWhere((entry) => entry.bagItem!.itemId == 'elixir').bagAction!;
+      expect(elixir.targetKind, RuntimePlayerBagUseTargetKind.partyMember);
+      expect(elixir.allowsPartyTarget('pokemon.missing-pp'), isFalse);
+      expect(elixir.allowsPartyTarget('pokemon.no-moves'), isFalse);
       expect(ether.allowsPartyTarget('pokemon.burned'), isTrue);
       for (final targetId in ['pokemon.missing-pp', 'pokemon.no-moves']) {
         expect(ether.allowsPartyTarget(targetId), isFalse);

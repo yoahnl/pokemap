@@ -208,17 +208,23 @@ RuntimePsdkBattleItemApplyResult? tryApplyRuntimePsdkBattleItemUse({
     context: context,
     battleState: psdkSession.createLegacyWriteBackState(),
   );
-  final selectedMove = effect is ProjectItemRestorePpEffectDefinition
+  final restoresAllMoves = effect is ProjectItemRestorePpEffectDefinition &&
+      effect.scope == ProjectItemPpScope.allMoves;
+  final selectedMove = effect is ProjectItemRestorePpEffectDefinition && !restoresAllMoves
       ? targetBefore.moves[targetMoveIndex!]
       : null;
   var itemRequestState = runtimeBattleStateWithAvailableItems(
     session: psdkSession, gameState: projectedGameState,
   );
-  if (selectedMove != null) {
+  if (selectedMove != null || restoresAllMoves) {
     final members = [...projectedGameState.party.members];
     members[runtimePartyIndex] = members[runtimePartyIndex].copyWith(
-      knownMoveIds: [selectedMove.id],
-      currentPpByMoveId: {selectedMove.id: selectedMove.currentPp},
+      knownMoveIds: restoresAllMoves
+          ? [for (var i = 0; i < targetBefore.moves.length; i++) '$i']
+          : [selectedMove!.id],
+      currentPpByMoveId: restoresAllMoves
+          ? {for (var i = 0; i < targetBefore.moves.length; i++) '$i': targetBefore.moves[i].currentPp}
+          : {selectedMove!.id: selectedMove.currentPp},
     );
     itemRequestState = itemRequestState.copyWith(
       party: projectedGameState.party.copyWith(members: members),
@@ -243,7 +249,9 @@ RuntimePsdkBattleItemApplyResult? tryApplyRuntimePsdkBattleItemUse({
       targetHasDragonCheer: targetBefore.effects.contains('dragon_cheer'),
       targetBankHasMist: bankHasMist,
       moveId: selectedMove?.id,
-      maxPpByMoveId: selectedMove == null
+      maxPpByMoveId: restoresAllMoves
+          ? {for (var i = 0; i < targetBefore.moves.length; i++) '$i': targetBefore.moves[i].pp}
+          : selectedMove == null
           ? const {}
           : {selectedMove.id: selectedMove.pp},
     ),
@@ -318,21 +326,21 @@ RuntimePsdkBattleItemApplyResult? tryApplyRuntimePsdkBattleItemUse({
     effectKind: _runtimeEffectKind(effect),
     targetSpeciesId: targetAfter.speciesId,
     targetLineupIndex: targetLineupIndex,
-    appliedAmount: itemEvents.isEmpty ? 0 : selectedMove == null
+    appliedAmount: itemEvents.isEmpty ? 0 : effect is! ProjectItemRestorePpEffectDefinition
         ? (targetAfter.currentHp - targetBefore.currentHp).clamp(
             0,
             targetAfter.maxHp,
           )
         : turn.timeline.events
             .whereType<BattleMovePpRestoredTimelineEvent>()
-            .singleWhere((event) =>
+            .where((event) =>
                 event.itemId == itemId &&
                 event.user.bank == actor.bank &&
                 event.user.position == actor.position &&
                 event.target.bank == psdkPlayerSlot.bank &&
                 event.partyIndex == targetPartyIndex &&
-                event.moveSlot == targetMoveIndex)
-            .amount,
+                (restoresAllMoves || event.moveSlot == targetMoveIndex))
+            .fold<int>(0, (sum, event) => sum + event.amount),
     consumptionReceipt: psdkSession.isDoubles
         ? committed?.receipts[BattlePositionRef(bank: actor.bank, position: actor.position)]
         : consumptionReceipt,
@@ -494,7 +502,13 @@ PsdkBattleItemActionEffect? _battleItemEffectFor({
           )
         : null,
     ProjectItemRestorePpEffectDefinition() =>
-      targetMoveIndex == null ||
+      effect.scope == ProjectItemPpScope.allMoves
+          ? !target.moves.any((move) => move.pp > 0 && move.currentPp < move.pp)
+              ? null
+              : effect.mode == ProjectItemAmountMode.full
+                  ? const PsdkBattlePpRestoreItemEffect.allFull()
+                  : PsdkBattlePpRestoreItemEffect.allFlat(effect.amount!)
+          : targetMoveIndex == null ||
               targetMoveIndex < 0 ||
               targetMoveIndex >= target.moves.length ||
               target.moves[targetMoveIndex].currentPp >=

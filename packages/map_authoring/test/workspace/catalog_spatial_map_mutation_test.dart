@@ -17,6 +17,57 @@ import '../domains/maps/healing_display_fixture.dart';
 import '../domains/maps/spatial_field_obstacle_actions_test.dart' show obstacleProject, obstacleMap;
 
 void main() {
+  final encounterCreationIo = <int, List<Map<String, int>>>{};
+  for (final unrelated in [0, 90]) {
+    test('encounter zone creation stays targeted with $unrelated foreign maps', () async {
+      final base = spatialEnvironmentFixture();
+      final table = ProjectEncounterTable(id: 'surf', name: 'Surf', encounterKind: EncounterKind.surf,
+          entries: [ProjectEncounterEntry(speciesId: 'wooper', minLevel: 10, maxLevel: 20)]);
+      final fixture = await _Fixture.open(unrelated, content: (
+        project: base.project.copyWith(encounterTables: [table]), map: base.map));
+      addTearDown(fixture.close);
+      final before = await fixture.mapFile.readAsBytes();
+      final original = MapData.fromJson(jsonDecode(utf8.decode(before)));
+      final zone = MapGameplayZone(id: 'surf-zone', kind: GameplayZoneKind.encounter,
+          area: const MapRect(pos: GridPos(x: 1, y: 1), size: GridSize(width: 1, height: 1)),
+          encounter: const EncounterZonePayload(encounterTableId: 'surf', encounterKind: EncounterKind.surf));
+      final parameters = <String, Object?>{'mapId': 'map', 'zone': zone.toJson()};
+      fixture.reader.paths.clear();
+      fixture.counters.attributeCatalogIo = true;
+      fixture.counters.reset();
+      final selected = await fixture.api.readWorkshopSnapshot(fixture.opened.projectHandle,
+          actionId: 'gameplay_zone.create', parameters: parameters);
+      expect(selected.manifest.encounterTables, [table]);
+      final applied = await fixture.apply('gameplay_zone.create', parameters, 'surf-zone-create', revision: selected.revision);
+      final firstIo = fixture.counters.ownerIo();
+      expect(MapData.fromJson(jsonDecode(await fixture.mapFile.readAsString())),
+          original.copyWith(gameplayZones: [...original.gameplayZones, zone]));
+      expect(fixture.reader.paths.where(fixture.unrelatedObjects.contains), isEmpty);
+      expect(fixture.reader.paths.where((path) => path.startsWith('maps/') && path != 'maps/map.json' || path.endsWith('.glb')), isEmpty);
+      await fixture.api.undoMutation(fixture.opened.projectHandle,
+          entryId: applied.receipt.receiptId, idempotencyKey: 'surf-zone-undo');
+      expect(await fixture.mapFile.readAsBytes(), before);
+      await fixture.api.redoMutation(fixture.opened.projectHandle,
+          entryId: applied.receipt.receiptId, idempotencyKey: 'surf-zone-redo');
+      fixture.counters.reset();
+      await fixture.apply('gameplay_zone.create', {'mapId': 'map', 'zone': zone.copyWith(id: 'surf-zone-next').toJson()}, 'surf-zone-next');
+      encounterCreationIo[unrelated] = [firstIo, fixture.counters.ownerIo()];
+      if (unrelated == 90) expect(encounterCreationIo[90], encounterCreationIo[0]);
+      await fixture.reopen();
+      expect(MapData.fromJson(jsonDecode(await fixture.mapFile.readAsString())).gameplayZones, contains(zone));
+    });
+  }
+  test('encounter zone creation rejects a missing table and preserves the map', () async {
+    final fixture = await _Fixture.open(90);
+    addTearDown(fixture.close);
+    final before = await fixture.mapFile.readAsBytes();
+    final zone = MapGameplayZone(id: 'missing-table', kind: GameplayZoneKind.encounter,
+        area: const MapRect(pos: GridPos(x: 1, y: 1), size: GridSize(width: 1, height: 1)),
+        encounter: const EncounterZonePayload(encounterTableId: 'absent'));
+    await expectLater(fixture.apply('gameplay_zone.create', {'mapId': 'map', 'zone': zone.toJson()}, 'missing-table'),
+        throwsA(isA<MapAuthoringException>().having((error) => error.code, 'code', 'encounter.table_unknown')));
+    expect(await fixture.mapFile.readAsBytes(), before);
+  });
   final movementCreationIo = <int, List<Map<String, int>>>{};
   for (final unrelated in [0, 90]) {
     test('local movement zone creation stays targeted with $unrelated foreign maps', () async {

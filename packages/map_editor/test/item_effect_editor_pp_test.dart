@@ -7,7 +7,7 @@ import 'package:map_editor/src/features/gameplay/items/item_effect_editor.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
-  testWidgets('battle PP presets select an attack target and remain valid', (
+  testWidgets('battle PP presets select their scope target and remain valid', (
     tester,
   ) async {
     var definition = const ProjectItemDefinition(
@@ -49,12 +49,13 @@ void main() {
           (entry) => (jsonDecode(entry.value) as Map)['kind'] == 'restore_pp',
         )
         .toList();
-    expect(ppChoices, hasLength(2));
+    expect(ppChoices, hasLength(4));
     for (final choice in ppChoices) {
       picker().onChanged(choice.value);
       await tester.pump();
       final use = definition.uses.single;
-      expect(use.target, ProjectItemTargetKind.partyMove);
+      expect(use.target, (jsonDecode(choice.value) as Map)['scope'] == 'all_moves'
+        ? ProjectItemTargetKind.partyMember : ProjectItemTargetKind.partyMove);
       expect(use.effect.toJson(), jsonDecode(choice.value));
       expect(use.contexts, {ProjectItemUseContext.battle});
       expect(use.consumption, ProjectItemConsumptionPolicy.onApplied);

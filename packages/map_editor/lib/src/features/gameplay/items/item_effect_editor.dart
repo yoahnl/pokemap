@@ -339,7 +339,9 @@ final class _UseEditor extends StatelessWidget {
                                 effect is ProjectItemFishingEffectDefinition
                           ? ProjectItemTargetKind.world
                           : effect is ProjectItemRestorePpEffectDefinition
-                          ? ProjectItemTargetKind.partyMove
+                          ? effect.scope == ProjectItemPpScope.allMoves
+                              ? ProjectItemTargetKind.partyMember
+                              : ProjectItemTargetKind.partyMove
                           : use.target == ProjectItemTargetKind.partyMove &&
                                 (effect is ProjectItemHealHpEffectDefinition ||
                                  effect is ProjectItemCureStatusEffectDefinition ||
@@ -574,6 +576,21 @@ List<(String, String)> _effectOptions(
             mode: ProjectItemAmountMode.full,
           ),
           'Restaure tous les PP',
+        ),
+        (
+          const ProjectItemEffectDefinition.restorePp(
+            mode: ProjectItemAmountMode.flat,
+            amount: 10,
+            scope: ProjectItemPpScope.allMoves,
+          ),
+          'Restaure 10 PP à chaque capacité',
+        ),
+        (
+          const ProjectItemEffectDefinition.restorePp(
+            mode: ProjectItemAmountMode.full,
+            scope: ProjectItemPpScope.allMoves,
+          ),
+          'Restaure tous les PP de chaque capacité',
         ),
       ]..removeWhere(
         (option) => !itemSystemV1CapabilityTruth.supportsUse(

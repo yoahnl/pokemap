@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/authoring_api/authoring_mutation_adapter.dart';
 import 'package:map_editor/src/application/authoring_api/authoring_query_adapter.dart';
@@ -13,8 +14,9 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:path/path.dart' as p;
 
 void main() {
+  for (final catalog in [false, true]) {
   test(
-    'authors, persists, previews and executes one encounter truth',
+    catalog ? 'authors, persists, previews and executes one encounter truth in a catalog' : 'authors, persists, previews and executes one encounter truth',
     () async {
       final root = await Directory.systemTemp.createTemp(
         'beta_enc_001_editor_',
@@ -48,6 +50,13 @@ void main() {
         mapPath,
         projectDialogueContext: project,
       );
+      if (catalog) {
+        final store = await CatalogStorageStore.open(projectRoot: root.path);
+        final working = await WorkingProjectCatalog.create(store: store,
+            projectId: 'encounter-editor', project: project,
+            expectedProjectRevision: await store.gateway.readResourceRevision('project.json'));
+        await working.close();
+      }
       const reader = EditorProjectFileReader();
       final queries = AuthoringQueryAdapter(fileReader: reader);
       final mutations = AuthoringMutationAdapter(
@@ -168,10 +177,10 @@ void main() {
         await mutations.apply(zonePlan, operationId: operationId);
       }
 
-      final restoredProject = await FileProjectRepository().loadProject(
+      final restoredProject = await FileProjectRepository(authoringQueries: catalog ? queries : null).loadProject(
         projectPath,
       );
-      final restoredMap = await FileMapRepository().loadMap(mapPath);
+      final restoredMap = await FileMapRepository(authoringQueries: catalog ? queries : null).loadMap(mapPath);
       final restoredWalk = restoredProject.encounterTables.singleWhere(
         (table) => table.id == walk.id,
       );
@@ -229,4 +238,5 @@ void main() {
       expect(result.encounter?.level, inInclusiveRange(2, 8));
     },
   );
+  }
 }

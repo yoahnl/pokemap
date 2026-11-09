@@ -168,6 +168,8 @@ final class SpatialExplorationSession {
     if (surfTarget != target) {
       return;
     }
+    _companionTrail.clear();
+    _companionCharacter = null;
     movement.movementMode = MovementMode.surf;
     _surfEntryTarget = target;
     _surfEntryElapsed = 0;
@@ -465,6 +467,11 @@ final class SpatialExplorationSession {
   }
 
   void _updateCompanion(double dt) {
+    if (movement.movementMode == MovementMode.surf || surfTransitionActive) {
+      _companionTrail.clear();
+      _companionCharacter = null;
+      return;
+    }
     if (platformTransportActive) return;
     final config = bundle.manifest.partyCompanion;
     final lead = _companionLead;

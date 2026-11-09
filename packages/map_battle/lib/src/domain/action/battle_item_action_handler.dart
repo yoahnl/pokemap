@@ -201,7 +201,7 @@ final class BattleItemActionHandler {
   }) {
     final partyIndex = _targetPartyIndex(context: context, action: action);
     final target = context.state.partyForBank(action.target.bank)[partyIndex];
-    if (effect.moveSlot < 0 || effect.moveSlot >= target.moves.length) {
+    if (!effect.allMoves && (effect.moveSlot < 0 || effect.moveSlot >= target.moves.length)) {
       return BattleHandlerResult(
         state: context.state,
         rng: context.rng,
@@ -209,17 +209,7 @@ final class BattleItemActionHandler {
         reason: 'invalid_move_slot',
       );
     }
-    final move = target.moves[effect.moveSlot];
-    if (move.currentPp >= move.pp) {
-      return BattleHandlerResult(
-        state: context.state,
-        rng: context.rng,
-        applied: false,
-        reason: 'pp_full',
-      );
-    }
-    final requested = effect.restoreToFull ? move.pp : effect.amount!;
-    if (requested <= 0) {
+    if (!effect.restoreToFull && (effect.amount == null || effect.amount! <= 0)) {
       return BattleHandlerResult(
         state: context.state,
         rng: context.rng,
@@ -227,12 +217,31 @@ final class BattleItemActionHandler {
         reason: 'invalid_pp_amount',
       );
     }
-    final amount = requested.clamp(0, move.pp - move.currentPp);
-    final remainingPp = move.currentPp + amount;
-    final restored = target.replaceMoveAt(
-      effect.moveSlot,
-      move.copyWith(currentPp: remainingPp),
-    );
+    var restored = target;
+    var total = 0;
+    final events = <PsdkBattleEvent>[];
+    final slots = effect.allMoves
+        ? List.generate(target.moves.length, (index) => index)
+        : [effect.moveSlot];
+    for (final slot in slots) {
+      final move = target.moves[slot];
+      if (move.pp <= 0 || move.currentPp >= move.pp) continue;
+      final requested = effect.restoreToFull ? move.pp : effect.amount!;
+      final amount = requested.clamp(0, move.pp - move.currentPp);
+      final remainingPp = move.currentPp + amount;
+      restored = restored.replaceMoveAt(slot, move.copyWith(currentPp: remainingPp));
+      total += amount;
+      events.add(PsdkBattleMovePpRestoredEvent(
+        turn: context.turn, user: action.user, target: action.target,
+        partyIndex: partyIndex, itemId: action.itemId,
+        moveSlot: slot, moveId: move.id, beforePp: move.currentPp,
+        remainingPp: remainingPp, amount: amount,
+      ));
+    }
+    if (events.isEmpty) {
+      return BattleHandlerResult(state: context.state, rng: context.rng,
+        applied: false, reason: 'pp_full');
+    }
     return BattleHandlerResult(
       state: context.state.replacePartyBattler(
         bank: action.target.bank,
@@ -240,21 +249,10 @@ final class BattleItemActionHandler {
         battler: restored,
       ),
       rng: context.rng,
-      amount: amount,
+      amount: total,
       events: <PsdkBattleEvent>[
         _itemEvent(context, action, partyIndex),
-        PsdkBattleMovePpRestoredEvent(
-          turn: context.turn,
-          user: action.user,
-          target: action.target,
-          partyIndex: partyIndex,
-          itemId: action.itemId,
-          moveSlot: effect.moveSlot,
-          moveId: move.id,
-          beforePp: move.currentPp,
-          remainingPp: remainingPp,
-          amount: amount,
-        ),
+        ...events,
       ],
     );
   }

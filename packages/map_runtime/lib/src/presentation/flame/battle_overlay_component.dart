@@ -5432,7 +5432,8 @@ class BattleOverlayComponent extends PositionComponent with CustomTraversal {
       itemId: selectedMedicineAction.itemId,
       context: ProjectItemUseContext.battle,
     ).use?.effect;
-    if (effect is ProjectItemRestorePpEffectDefinition) {
+    if (effect is ProjectItemRestorePpEffectDefinition &&
+        effect.scope == ProjectItemPpScope.selectedMove) {
       _menuMode = BattleCommandMenuMode.bagMedicineMoveTarget;
       final entries = _medicineMoveEntries();
       _selectedMedicineMoveIndex = entries.indexWhere((entry) => entry.enabled);

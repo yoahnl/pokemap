@@ -140,9 +140,11 @@ final class CanonicalGamePackageExportService {
       final contextualCapture = projection.project.pokemon.ruleset.profileId == PokemonRulesetProfile.contextualProfileId;
       final itemPath = projection.project.pokemon.catalogFiles['items'];
       final itemBytes = itemPath == null ? null : projection.payloadFiles['project/$itemPath'];
+      var allMovesPpRestore = false;
       if (itemBytes != null) {
         final catalog = decodeProjectItemCatalog(Map<String, dynamic>.from(
             jsonDecode(utf8.decode(itemBytes)) as Map));
+        allMovesPpRestore = ItemPpRestoreCapabilities.requiresAllMoves(catalog);
         if (!contextualCapture && catalog.entries.any((item) => item.capture?.contextualPolicy != null)) {
           throw const GamePackageExportException(
             code: 'pokemon.capture.contextual_ruleset_required',
@@ -352,6 +354,7 @@ final class CanonicalGamePackageExportService {
         }
       }
       final requiredCapabilities = <String>{
+        if (allMovesPpRestore) ItemPpRestoreCapabilities.allMovesCapabilityId,
         ...battleCapabilities,
         if (contextualCapture) PokemonRulesetProfile.contextualCaptureCapabilityId,
         if (exteriorDecoration) MapExteriorDecoration.capabilityId,

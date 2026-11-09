@@ -5,12 +5,77 @@ import 'package:image/image.dart' as img;
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
-import 'package:map_runtime/src/spatial/spatial_surf_water.dart';
 
 import 'support/project_audio_test_driver.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  test(
+    'Surf recalls the companion until walking resumes after Continue',
+    () async {
+      final session = await _animatedSurfSession(
+        restoreSurf: false,
+        withCompanion: true,
+      );
+      session.frames(0);
+      session.movement.setInput(x: 1, z: 0);
+      for (var i = 0; i < 8; i++) {
+        session.frames(.05);
+      }
+      session.movement.releaseInput();
+      expect(session.frames(0), contains('party-companion'));
+      final party = session.presentationStateProvider!().party;
+      final companion = session.companionPosition;
+      session.beginSurf(const GridPos(x: 2, y: 3));
+      expect(session.movement.movementMode, MovementMode.walk);
+      expect(session.companionPosition, companion);
+      expect(session.frames(0), contains('party-companion'));
+      session.beginSurf(const GridPos(x: 2, y: 2));
+      expect(session.companionPosition, isNull);
+      expect(session.companionCharacterId, isNull);
+      for (var i = 0; i < 30; i++) {
+        expect(session.frames(.05), isNot(contains('party-companion')));
+      }
+      expect(session.movement.movementMode, MovementMode.surf);
+      expect(session.surfTransitionActive, isFalse);
+      expect(session.presentationStateProvider!().party, party);
+      final saved = GameState.fromJson(
+        GameState(
+          saveId: 'surf-companion-continue',
+          currentMapId: session.bundle.map.id,
+          playerPosition: GridPos(
+            x: session.movement.x.floor(),
+            y: session.movement.z.floor(),
+          ),
+          playerSpatialPosition: session.movement.spatialPosition,
+          playerFacing: session.movement.facing,
+          playerMovementMode: session.movement.movementMode,
+          party: party,
+        ).toJson(),
+      );
+      final restored = await _animatedSurfSession(
+        restoreSurf: false,
+        withCompanion: true,
+      );
+      await restored.restoreGameState(saved);
+      expect(restored.frames(0), isNot(contains('party-companion')));
+      expect(restored.companionPosition, isNull);
+      restored.movement.setInput(x: 1, z: 0);
+      for (var i = 0; i < 100; i++) {
+        final frames = restored.frames(.05);
+        if (restored.movement.movementMode == MovementMode.surf ||
+            restored.surfTransitionActive) {
+          expect(frames, isNot(contains('party-companion')));
+        }
+      }
+      restored.movement.releaseInput();
+      expect(restored.movement.movementMode, MovementMode.walk);
+      expect(restored.surfTransitionActive, isFalse);
+      expect(restored.frames(0), contains('party-companion'));
+      expect(restored.companionPosition!.x, greaterThanOrEqualTo(6));
+      expect(restored.presentationStateProvider!().party, party);
+    },
+  );
   test(
     'extended Surf canvas preserves reference scale and movement origin',
     () async {
@@ -393,6 +458,7 @@ void main() {
 Future<SpatialExplorationSession> _animatedSurfSession({
   bool restoreSurf = true,
   bool extendedCanvas = false,
+  bool withCompanion = false,
 }) async {
   final root = await Directory.systemTemp.createTemp('surf-loop-');
   addTearDown(() => root.delete(recursive: true));
@@ -464,7 +530,21 @@ Future<SpatialExplorationSession> _animatedSurfSession({
         accessMode: ProjectSurfAccessMode.always,
       ),
     ),
-    characters: [character],
+    characters: [
+      character,
+      if (withCompanion) character.copyWith(id: 'companion', name: 'Companion'),
+    ],
+    partyCompanion: ProjectPartyCompanionConfig(
+      enabled: withCompanion,
+      mappings: [
+        if (withCompanion)
+          const PartyCompanionVisual(
+            speciesId: 'clockbird',
+            formId: 'base',
+            characterId: 'companion',
+          ),
+      ],
+    ),
   );
   final map = MapData(
     id: 'surf-loop-lake',
@@ -493,8 +573,26 @@ Future<SpatialExplorationSession> _animatedSurfSession({
   addTearDown(bundle.resourceBudget.dispose);
   final session = await SpatialExplorationSession.load(
     bundle,
-    arrival: const GridPos(x: 1, y: 2),
+    arrival: GridPos(x: withCompanion ? 0 : 1, y: 2),
     facing: EntityFacing.east,
+    presentationStateProvider: withCompanion
+        ? () => GameState(
+            saveId: 'surf-companion',
+            currentMapId: map.id,
+            party: PlayerParty(
+              members: [
+                PlayerPokemon(
+                  individualId: 'one',
+                  speciesId: 'clockbird',
+                  formId: 'base',
+                  natureId: 'hardy',
+                  abilityId: 'natural',
+                  currentHp: 10,
+                ),
+              ],
+            ),
+          )
+        : null,
   );
   addTearDown(session.dispose);
   if (restoreSurf) {

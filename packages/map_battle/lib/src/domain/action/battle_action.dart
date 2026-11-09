@@ -159,15 +159,24 @@ final class PsdkBattlePpRestoreItemEffect extends PsdkBattleItemActionEffect {
     int amount, {
     required this.moveSlot,
   })  : amount = amount,
-        restoreToFull = false;
+        restoreToFull = false,
+        allMoves = false;
 
   const PsdkBattlePpRestoreItemEffect.full({required this.moveSlot})
       : amount = null,
-        restoreToFull = true;
+        restoreToFull = true,
+        allMoves = false;
+
+  const PsdkBattlePpRestoreItemEffect.allFlat(this.amount)
+      : moveSlot = -1, restoreToFull = false, allMoves = true;
+
+  const PsdkBattlePpRestoreItemEffect.allFull()
+      : moveSlot = -1, amount = null, restoreToFull = true, allMoves = true;
 
   final int moveSlot;
   final int? amount;
   final bool restoreToFull;
+  final bool allMoves;
 }
 
 final class PsdkBattleStatusCureItemEffect extends PsdkBattleItemActionEffect {

@@ -57,6 +57,27 @@ final class TriggerZoneActions {
         const {FieldActionZoneKind.waterfall, FieldActionZoneKind.whirlpool}.contains(zone?.fieldAction?.actionKind);
   }
 
+  static bool isEncounterCreation(String action, Map<String, Object?> parameters) {
+    final raw = parameters['zone'];
+    if (action != 'gameplay_zone.create' || raw is! Map ||
+        raw['kind'] != 'encounter' || raw['encounter'] is! Map ||
+        !raw.keys.every(const {'id', 'name', 'kind', 'area', 'cellMask',
+          'priority', 'encounter', 'movement', 'movementEffect', 'hazard',
+          'fieldAction', 'special', 'smartTileProvenance'}.contains) ||
+        !(raw['encounter'] as Map).keys.every(const {'encounterTableId', 'encounterKind',
+          'battleBackgroundRelativePath', 'battleMusicPath', 'encounterMusicPath',
+          'battleTransitionIds'}.contains)) {
+      return false;
+    }
+    try {
+      final zone = MapGameplayZone.fromJson(Map<String, dynamic>.from(raw));
+      _assertStrictZonePayload(zone);
+      return zone.smartTileProvenance == null;
+    } on Object {
+      return false;
+    }
+  }
+
   static final List<AuthoringActionDescriptor> descriptors = List.unmodifiable([
     for (final entry in const <(String, String)>[
       ('trigger.create', 'Create a map trigger'),

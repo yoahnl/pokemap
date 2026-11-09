@@ -523,6 +523,7 @@ AuthoringActionDescriptor _descriptor(String id, String summary) {
               'noRoom': 'refused_without_consumption'
             },
             'fullRestore': _fullRestoreContract,
+            'restorePp': _restorePpContract,
             'bicycle': {
               'target': 'world',
               'consumption': 'never',
@@ -574,14 +575,7 @@ AuthoringActionDescriptor _descriptor(String id, String summary) {
                   'duplicate': 'refused_without_consumption_or_turn'
                 },
                 'fullRestore': _fullRestoreContract,
-                'restorePp': {
-                  'target': 'party_move',
-                  'amountModes': ['flat', 'full'],
-                  'selection': 'party_then_move_slot',
-                  'scope': 'single_move',
-                  'faintedTarget': 'allowed_without_revive',
-                  'fullPp': 'refused_without_consumption_or_turn',
-                },
+                'restorePp': _restorePpContract,
               }
             : id == 'item.set_held_effect'
                 ? {
@@ -610,6 +604,19 @@ AuthoringActionDescriptor _descriptor(String id, String summary) {
     ],
   );
 }
+
+const _restorePpContract = {
+  'target': 'party_move',
+  'amountModes': ['flat', 'full'],
+  'selection': 'party_then_move_slot',
+  'scope': 'authored',
+  'scopes': ['selected_move', 'all_moves'],
+  'defaultScope': 'selected_move',
+  'allMoves': {'target': 'party_member', 'selection': 'party_only', 'consumption': 'one_on_applied'},
+  'faintedTarget': 'allowed_without_revive',
+  'fullPp': 'refused_without_consumption_or_turn',
+  'requiredAllMovesCapability': ItemPpRestoreCapabilities.allMovesCapabilityId,
+};
 
 const _fullRestoreContract = {
   'target': 'party_member',
