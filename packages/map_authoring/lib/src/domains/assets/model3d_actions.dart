@@ -311,7 +311,7 @@ final class Model3dActions {
     if (current == null) throw const FormatException('Unknown model identity.');
     if (action == 'model3d.configure') {
       final next = _configuredModel(current, context.request.parameters);
-      if (!context.request.parameters.keys.every((key)=>{'modelId','light'}.contains(key))) {
+      if (!context.request.parameters.keys.every((key)=>{'modelId','light','castsShadowsByDefault'}.contains(key))) {
         _requireClippedSource(context, next);
       }
       return _compose(

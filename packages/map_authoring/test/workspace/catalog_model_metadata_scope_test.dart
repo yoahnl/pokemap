@@ -11,6 +11,9 @@ void main() {
       }
     },
     {'light': null, 'collisionBounds': null},
+    {'castsShadowsByDefault': true},
+    {'castsShadowsByDefault': false},
+    {'light': null, 'castsShadowsByDefault': true},
   ]) {
     test('bounded model metadata admits exactly $fields', () {
       expect(
@@ -19,7 +22,7 @@ void main() {
           isTrue);
     });
   }
-  for (final extra in ['scale', 'pivot', 'name', 'castsShadowsByDefault']) {
+  for (final extra in ['scale', 'pivot', 'name']) {
     test('bounded model metadata refuses an added $extra field', () {
       expect(
           CatalogWorkshopSelection.supports('model3d.configure', parameters: {

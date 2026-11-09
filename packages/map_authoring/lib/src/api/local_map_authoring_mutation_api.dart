@@ -104,8 +104,15 @@ bool _isScopedMoveRecipeImport(AuthoringRequest request) =>
     request.actionId == 'pokemon.move_recipe.import' &&
     request.extensions['workshopScope'] == true;
 
+bool _isModelShadowConfiguration(AuthoringRequest request) =>
+    request.actionId == 'model3d.configure' &&
+        request.parameters.length == 2 &&
+        request.parameters.containsKey('modelId') &&
+        request.parameters.containsKey('castsShadowsByDefault');
+
 bool _usesNativeWorkshop(AuthoringRequest request) =>
     _nativeLocalWorkshopActions.contains(request.actionId) ||
+    _isModelShadowConfiguration(request) ||
     (request.actionId == 'characterStudio.animationClip.upsert' &&
         request.parameters['kind'] == 'system' &&
         request.extensions['workshopScope'] == true) ||
@@ -1973,7 +1980,9 @@ final class _LocalMapAuthoringSession {
         exteriorDeletedDefinitions(request.actionId, request.parameters),
         _mapAtmosphereGateway);
     if (!_logicalMapEdits.containsKey(request.requestId)) {
-      if (_isScopedPokemonMediaWrite(request) ||
+      if (_isModelShadowConfiguration(request)) {
+        await _requireModelShadowReconciled();
+      } else if (_isScopedPokemonMediaWrite(request) ||
           _isScopedMoveRecipeImport(request)) {
         await _requireScopedReconciled();
       } else {
@@ -2010,7 +2019,7 @@ final class _LocalMapAuthoringSession {
               _usesNativeWorkshop(request) || request.actionId == 'pokemon.catalog.write' ? request : null,
         );
     var planningRequest = request;
-    if (suppliedSnapshot == null && (request.actionId == 'presentationMedia.import' || request.actionId.startsWith('world_rule.') || request.actionId == 'event_v2.record_upsert' || request.actionId == 'event_v2.record_upsert_batch' || TriggerZoneActions.fieldTraversalActions.contains(request.actionId)) &&
+    if (suppliedSnapshot == null && (_isModelShadowConfiguration(request) || request.actionId == 'presentationMedia.import' || request.actionId.startsWith('world_rule.') || request.actionId == 'event_v2.record_upsert' || request.actionId == 'event_v2.record_upsert_batch' || TriggerZoneActions.fieldTraversalActions.contains(request.actionId)) &&
         request.expectedRevision != null && request.expectedRevision != snapshot.revision) {
       if (!_snapshotLoader.acceptsObservedNativeRevision(projectHandle,
           expectedRevision: request.expectedRevision,
@@ -2134,9 +2143,9 @@ final class _LocalMapAuthoringSession {
     if (plan.mapEditBinding == null) {
       await traceAuthoringPhase(
         'authoring.apply.recovery',
-        _isScopedPokemonMediaWrite(plan.request)
-            ? _requireScopedReconciled
-            : _requireReconciled,
+        _isModelShadowConfiguration(plan.request)
+            ? _requireModelShadowReconciled
+            : _isScopedPokemonMediaWrite(plan.request) ? _requireScopedReconciled : _requireReconciled,
       );
     }
     _requireApplicablePlan(plan);
@@ -2282,6 +2291,26 @@ final class _LocalMapAuthoringSession {
         'resource_pack.recovery_required',
         'Reconcile the canonical pending transaction before editing this project.',
       );
+    }
+  }
+
+  Future<void> _requireModelShadowReconciled() async {
+    final pending = await _mapAtmosphereGateway.withExclusiveWriteLock(
+      () => readPendingTransactionJournals(_mapAtmosphereGateway),
+    );
+    for (final journal in pending) {
+      final inspection = await _recovery.inspectOperation(
+        operationId: journal.operationId, scope: journal.scope,
+      );
+      if (inspection?.disposition != AuthoringRecoveryDisposition.completed) {
+        throw const AuthoringRecoveryException('resource_pack.recovery_required',
+            'Reconcile the canonical pending transaction before editing this project.');
+      }
+      try {
+        await _mapAtmosphereGateway.deleteTransaction(journal.operationId);
+      } on Object {
+        continue;
+      }
     }
   }
 

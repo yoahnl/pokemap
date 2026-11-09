@@ -100,11 +100,17 @@ extension _SpatialSceneModelSources on SpatialSceneGame {
     }
     for (final model in changes) {
       final old = previous.lookup(model.id)!;
-      if (old.copyWith(light: model.light, clearLight: model.light == null) !=
+      if (old.copyWith(
+            light: model.light,
+            clearLight: model.light == null,
+            castsShadowsByDefault: model.castsShadowsByDefault,
+          ) !=
           model)
         return false;
     }
     final affected = <_SceneModelComponent, bool>{};
+    final shadowChanges = <String, SpatialAuthoredShadowCaster?>{};
+    final shadowDependents = <String, _ModelSourceDependent>{};
     final decorationMaps = <String>{};
     for (final model in changes) {
       for (final dependent
@@ -113,6 +119,19 @@ extension _SpatialSceneModelSources on SpatialSceneGame {
         if (dependent.instance.modelId != model.id) continue;
         final component =
             dependent.chunk.models[dependent.instance.id]!.component;
+        if (component.definition.castsShadowsByDefault !=
+            model.castsShadowsByDefault) {
+          shadowDependents[component.shadowId] = dependent;
+          shadowChanges[component.shadowId] = component.sourceGeometryVisible
+              ? spatialAuthoredShadowCaster(
+                  mapId: dependent.mapId,
+                  instance: dependent.instance,
+                  definition: model,
+                  bounds: component.visibleBounds,
+                  worldTransform: component.worldTransformMatrix,
+                )
+              : null;
+        }
         component.definition = model;
         affected[component] = dependent.decoration;
         if (dependent.decoration) decorationMaps.add(dependent.mapId);
@@ -133,13 +152,46 @@ extension _SpatialSceneModelSources on SpatialSceneGame {
     ];
     pointLightBindings = update(pointLightBindings, false);
     decorationPointLights = update(decorationPointLights, true);
+    List<SpatialAuthoredShadowCaster> updateCasters(
+      List<SpatialAuthoredShadowCaster> casters,
+      bool decoration, {
+      String? mapId,
+    }) => [
+      for (final caster in casters)
+        if (!shadowChanges.containsKey(caster.id)) caster,
+      for (final entry in shadowChanges.entries)
+        if (shadowDependents[entry.key]!.decoration == decoration &&
+            (mapId == null || shadowDependents[entry.key]!.mapId == mapId))
+          if (entry.value case final caster?) caster,
+    ];
+    if (shadowChanges.isNotEmpty) {
+      if (shadowChanges.values.any((caster) => caster != null)) {
+        _enableDecorationShadowReceivers();
+      }
+      authoredShadowCasters = updateCasters(authoredShadowCasters, false);
+      decorationShadowCasters = updateCasters(decorationShadowCasters, true);
+      _casterShadowIds = allAuthoredShadowCasters
+          .map((caster) => caster.id)
+          .toSet();
+      final renderContext = context as SpatialRenderContext;
+      renderContext.shadowCasters = [
+        for (final component in renderContext.shadowCasters)
+          if (!shadowChanges.containsKey(
+            (component as _SceneModelComponent).shadowId,
+          ))
+            component,
+        for (final component in affected.keys)
+          if (shadowChanges[component.shadowId] != null) component,
+      ];
+      _refreshVisibilityLighting();
+    }
     for (final id in decorationMaps) {
       final old = _decorationMaterializations[id];
       if (old == null) continue;
       _decorationMaterializations[id] = (
         chunk: old.chunk,
         sourceAssetIds: old.sourceAssetIds,
-        casters: old.casters,
+        casters: updateCasters(old.casters, true, mapId: id),
         lights: [
           for (final light in decorationPointLights)
             if (old.chunk.models.values.any(
@@ -178,6 +230,7 @@ extension _SpatialSceneModelSources on SpatialSceneGame {
 
   void _receiveModelSourceUpdates() {
     final updates = _modelSourceUpdates!;
+    if (updates._batch.isEmpty) return;
     _pendingModelSourceRevisions.addAll(updates._batch);
     _pendingModelSourceDefinitions.addAll(updates._definitionBatch);
     _modelSourceRevisionPending = true;
@@ -452,7 +505,10 @@ extension _SpatialSceneModelSources on SpatialSceneGame {
         component.visibleBounds = next.visibleBounds;
         component.sourceGeometryVisible = next.sourceGeometryVisible;
         component.position.setFrom(next.position);
-        component.runtimeTransform.rebase(position: next.position, anchor: dependent.instance.position);
+        component.runtimeTransform.rebase(
+          position: next.position,
+          anchor: dependent.instance.position,
+        );
         component.initialPositionY = next.position.y;
         final preview = snapshot.contentPreview;
         if (preview?.kind == SpatialSceneContentKind.model &&

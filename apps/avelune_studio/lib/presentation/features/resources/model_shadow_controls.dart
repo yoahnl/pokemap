@@ -27,13 +27,20 @@ class _ModelShadowControlsState extends State<ModelShadowControls> {
   late bool value = widget.model.castsShadowsByDefault;
   bool saving = false;
   String? error;
+  int request = 0;
 
   @override
   void didUpdateWidget(ModelShadowControls oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.model.id != widget.model.id ||
-        oldWidget.model.castsShadowsByDefault !=
-            widget.model.castsShadowsByDefault) {
+    if (oldWidget.model.id != widget.model.id) {
+      request++;
+      saving = false;
+      value = widget.model.castsShadowsByDefault;
+      error = null;
+    } else if (oldWidget.model.castsShadowsByDefault !=
+        widget.model.castsShadowsByDefault) {
+      request++;
+      saving = false;
       value = widget.model.castsShadowsByDefault;
       error = null;
     }
@@ -41,17 +48,25 @@ class _ModelShadowControlsState extends State<ModelShadowControls> {
 
   Future<void> save(bool next) async {
     if (saving || widget.busy) return;
+    final currentRequest = ++request;
+    final confirmed = value;
     setState(() {
+      value = next;
       saving = true;
       error = null;
     });
     try {
       await widget.onChanged(next);
-      if (mounted) setState(() => value = next);
+      if (mounted && currentRequest == request) setState(() => value = next);
     } on Object catch (failure) {
-      if (mounted) setState(() => error = '$failure');
+      if (mounted && currentRequest == request) {
+        setState(() {
+          value = confirmed;
+          error = '$failure';
+        });
+      }
     } finally {
-      if (mounted) setState(() => saving = false);
+      if (mounted && currentRequest == request) setState(() => saving = false);
     }
   }
 
@@ -62,7 +77,7 @@ class _ModelShadowControlsState extends State<ModelShadowControls> {
       StudioToggleRow(
         key: const ValueKey('model-casts-shadows-default'),
         label: 'Activer les ombres',
-        description: 'Les décors qui suivent cette ressource projettent une ombre calculée. Chaque décor peut avoir son propre réglage.',
+        description: saving ? 'Enregistrement en cours…' : 'Les décors qui suivent cette ressource projettent une ombre calculée. Chaque décor peut avoir son propre réglage.',
         value: value,
         onChanged: saving || widget.busy ? null : save,
       ),

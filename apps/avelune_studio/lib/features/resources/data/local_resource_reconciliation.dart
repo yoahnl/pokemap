@@ -5,19 +5,32 @@ Future<void> _reconcileResourceReceipt(
   ResourceMutationReceipt receipt,
 ) => adapter.mapAdapter.withResourceMutation(() async {
   adapter._requireAvailable();
-  if (adapter.session.storage == ProjectSessionStorage.workingCatalog &&
+  final modelShadows =
+      receipt.actionId == 'model3d.configure' &&
+      receipt.changedModels.length == 1 &&
+      receipt.modelSourceRevisions.isEmpty;
+  if ((adapter.session.storage == ProjectSessionStorage.workingCatalog ||
+          modelShadows) &&
       receipt.changedModels.isNotEmpty) {
     final context = await adapter._requireMutationContext();
     await context.attach();
     final snapshot = await context.api.readWorkshopSnapshot(
       context.opened.projectHandle,
-      actionId: 'model3d.source.replace_batch',
-      parameters: {
-        'models': [
-          for (final modelId in receipt.changedModels.keys)
-            {'modelId': modelId},
-        ],
-      },
+      actionId: modelShadows
+          ? 'model3d.configure'
+          : 'model3d.source.replace_batch',
+      parameters: modelShadows
+          ? {
+              'modelId': receipt.changedModels.values.single.id,
+              'castsShadowsByDefault':
+                  receipt.changedModels.values.single.castsShadowsByDefault,
+            }
+          : {
+              'models': [
+                for (final modelId in receipt.changedModels.keys)
+                  {'modelId': modelId},
+              ],
+            },
     );
     if (_modelSourceDocumentRevision(snapshot) != receipt.revision ||
         snapshot.manifest.models3d.length != receipt.changedModels.length ||

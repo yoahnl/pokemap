@@ -11,6 +11,7 @@ import 'package:avelune_studio/presentation/features/resources/model_resource_li
 import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_navigation.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
+import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_toggle_row.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -21,6 +22,7 @@ import '../support/spatial_environment_fixture.dart';
 class _Models implements ResourcePort, ModelResourcePort {
   final reads = <String, Completer<Uint8List>>{};
   final mutations = <(String, Map<String, Object?>)>[];
+  Completer<ResourceMutationReceipt>? pendingMutation;
 
   @override
   Future<Uint8List> readModel(String modelId) =>
@@ -32,6 +34,7 @@ class _Models implements ResourcePort, ModelResourcePort {
     Map<String, Object?> parameters,
   ) async {
     mutations.add((actionId, parameters));
+    if (pendingMutation != null) return pendingMutation!.future;
     throw const ResourceFailure('Écriture simulée.');
   }
 
@@ -151,6 +154,28 @@ Future<void> _settle(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets(
+    'library shadows paint while saving and restore the confirmed value on failure',
+    (tester) async {
+      final (_, port) = await _pump(tester);
+      port.pendingMutation = Completer<ResourceMutationReceipt>();
+      final control = find.byKey(const ValueKey('model-casts-shadows-default'));
+      await tester.ensureVisible(control);
+      await tester.tap(control);
+      await tester.pump();
+      expect(tester.widget<StudioToggleRow>(control).value, isTrue);
+      expect(tester.widget<StudioToggleRow>(control).onChanged, isNull);
+      expect(port.mutations.single.$1, 'model3d.configure');
+      expect(port.mutations.single.$2, {'modelId': 'lamp', 'castsShadowsByDefault': true});
+      port.pendingMutation!.completeError(
+        const ResourceFailure('Disque indisponible'),
+      );
+      await _settle(tester);
+      expect(tester.widget<StudioToggleRow>(control).value, isFalse);
+      expect(tester.widget<StudioToggleRow>(control).onChanged, isNotNull);
+    },
+  );
+
   testWidgets(
     'the model workshop keeps its sections and shows Animation only for animated sources',
     (tester) async {

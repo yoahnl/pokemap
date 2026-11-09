@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:avelune_studio/presentation/features/resources/model_shadow_controls.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_detail_panel.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
@@ -9,9 +11,82 @@ import 'package:map_core/map_core.dart';
 import '../support/spatial_environment_fixture.dart';
 
 void main() {
-  testWidgets('resource sheet exposes shadows for 3D models', (
-    tester,
-  ) async {
+  testWidgets(
+    'requested shadows paint before persistence and roll back on failure',
+    (tester) async {
+      final pending = Completer<void>();
+      var calls = 0;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ModelShadowControls(
+              model: spatialEnvironmentProject().models3d.single,
+              onChanged: (_) {
+                calls++;
+                return pending.future;
+              },
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.byType(SwitchListTile));
+      await tester.pump();
+      var toggle = tester.widget<StudioToggleRow>(find.byType(StudioToggleRow));
+      expect(toggle.value, isTrue);
+      expect(toggle.onChanged, isNull);
+      await tester.tap(find.byType(SwitchListTile));
+      expect(calls, 1);
+      pending.completeError(StateError('Disque indisponible'));
+      await tester.pump();
+      toggle = tester.widget<StudioToggleRow>(find.byType(StudioToggleRow));
+      expect(toggle.value, isFalse);
+      expect(toggle.onChanged, isNotNull);
+      expect(find.textContaining('Disque indisponible'), findsOneWidget);
+    },
+  );
+
+  for (final fails in [false, true]) {
+    testWidgets(
+      'obsolete shadow ${fails ? 'failure' : 'success'} cannot update another model',
+      (tester) async {
+        final pending = Completer<void>();
+        final original = spatialEnvironmentProject().models3d.single;
+        Widget panel(ProjectModel3dEntry model) => MaterialApp(
+          home: Scaffold(
+            body: ModelShadowControls(
+              model: model,
+              onChanged: (_) => pending.future,
+            ),
+          ),
+        );
+        await tester.pumpWidget(panel(original));
+        await tester.tap(find.byType(SwitchListTile));
+        await tester.pumpWidget(
+          panel(
+            ProjectModel3dEntry.fromJson({
+              ...original.toJson(),
+              'id': 'other',
+              'relativePath': 'assets/models3d/other.glb',
+            }),
+          ),
+        );
+        if (fails) {
+          pending.completeError(StateError('Ancienne écriture'));
+        } else {
+          pending.complete();
+        }
+        await tester.pump();
+        final toggle = tester.widget<StudioToggleRow>(
+          find.byType(StudioToggleRow),
+        );
+        expect(toggle.value, isFalse);
+        expect(toggle.onChanged, isNotNull);
+        expect(find.textContaining('Ancienne écriture'), findsNothing);
+      },
+    );
+  }
+
+  testWidgets('resource sheet exposes shadows for 3D models', (tester) async {
     final project = spatialEnvironmentProject();
     final model = project.models3d.single;
     bool? saved;

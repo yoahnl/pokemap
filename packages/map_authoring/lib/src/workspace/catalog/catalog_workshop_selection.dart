@@ -21,6 +21,7 @@ import 'catalog_project_reader.dart';
 import 'catalog_metadata_documents.dart';
 import 'catalog_narrative_event_documents.dart';
 import 'catalog_resource_positions.dart';
+import '../../catalog_storage/catalog_storage_store.dart';
 import 'catalog_spatial_map_selection.dart';
 import '../../domains/narrative/standard_event_template.dart';
 
@@ -84,8 +85,8 @@ final class CatalogWorkshopSelection {
   static bool supports(String action, {Map<String, Object?>? parameters}) =>
       (action == 'model3d.configure' &&
           parameters != null &&
-          (parameters.containsKey('light') || parameters.containsKey('collisionBounds')) &&
-          parameters.keys.every((key) => {'modelId', 'light', 'collisionBounds'}.contains(key))) ||
+          (parameters.containsKey('light') || parameters.containsKey('collisionBounds') || parameters.containsKey('castsShadowsByDefault')) &&
+          parameters.keys.every((key) => {'modelId', 'light', 'collisionBounds', 'castsShadowsByDefault'}.contains(key))) ||
       (action == 'map.update_metadata' && parameters != null && !parameters.containsKey('escapeRopeDungeonId')) ||
       action == 'surf.configure' ||
       const {'presentation.delete', 'presentation.reset_interface'}.contains(action) ||

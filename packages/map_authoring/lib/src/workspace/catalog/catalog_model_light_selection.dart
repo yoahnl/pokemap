@@ -6,11 +6,18 @@ Future<CatalogWorkshopSelection> _readModelLightWorkshop({
   required Map<String, Object?> parameters,
 }) async {
   const action = 'model3d.configure';
-  if ((!parameters.containsKey('light') && !parameters.containsKey('collisionBounds')) ||
+  if ((!parameters.containsKey('light') &&
+          !parameters.containsKey('collisionBounds') &&
+          !parameters.containsKey('castsShadowsByDefault')) ||
       parameters['modelId'] is! String ||
-      parameters.keys.any((key) => !{'modelId', 'light', 'collisionBounds'}.contains(key))) {
+      parameters.keys.any((key) => !{
+            'modelId',
+            'light',
+            'collisionBounds',
+            'castsShadowsByDefault'
+          }.contains(key))) {
     CatalogWorkshopSelection.unsupported(
-        action, 'a light/collision-bounds-only model configuration');
+        action, 'a light/collision-bounds/shadow-only model configuration');
   }
   final id = parameters['modelId']! as String;
   final selected = await reader.withMetadataFields({'settings'});
@@ -40,6 +47,19 @@ Future<CatalogWorkshopSelection> _readModelLightWorkshop({
       models3d: [model],
     );
     final bytes = utf8.encode(jsonEncode(manifest.toJson()));
+    final descriptor =
+        (await reader.store.gateway.readResource('project.json'))!;
+    final head = (await reader.store.gateway
+        .readResource(CatalogStorageStore.headStorageKey))!;
+    if (canonicalAuthoringJson(jsonDecode(utf8.decode(descriptor))) !=
+            canonicalAuthoringJson(reader.descriptor) ||
+        canonicalAuthoringJson(jsonDecode(utf8.decode(head))) !=
+            canonicalAuthoringJson(jsonDecode(utf8.decode(
+                CatalogStorageStore.encodeHead(catalog.snapshot.root))))) {
+      throw AuthoringPlanException(
+          code: 'plan.stale',
+          message: 'The catalog changed while selecting model metadata.');
+    }
     final snapshot = ProjectSnapshot(
         projectHandle: projectHandle,
         revision: selected.revision,
@@ -54,12 +74,20 @@ Future<CatalogWorkshopSelection> _readModelLightWorkshop({
           'models3d': {id}
         },
         resourceBytes: {
-          'project': bytes
+          'project': bytes,
+          'catalogDescriptor': descriptor,
+          'catalogHead': head,
         },
         resourceStorageKeys: {
-          'project': 'project.json'
+          'project': 'project.json',
+          'catalogDescriptor': 'project.json',
+          'catalogHead': CatalogStorageStore.headStorageKey,
         },
         resourceFingerprints: {
+          'catalogDescriptor': computeAuthoringBytesFingerprint(descriptor,
+              logicalName: 'project.json'),
+          'catalogHead': computeAuthoringBytesFingerprint(head,
+              logicalName: CatalogStorageStore.headStorageKey),
           'project': computeAuthoringBytesFingerprint(bytes,
               logicalName: 'project.json')
         });

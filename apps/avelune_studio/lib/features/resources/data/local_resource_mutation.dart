@@ -19,10 +19,17 @@ extension _LocalResourceMutation on LocalResourceAdapter {
       trace.instant(name);
       mutationPhaseObserver?.call(name);
     }
+
     try {
       if (_disposed || !LocalResourceAdapter._actions.contains(actionId)) {
         throw const ResourceFailure(
           'Cette opération de ressource est indisponible.',
+        );
+      }
+      if (session.storage == ProjectSessionStorage.portableCatalog &&
+          actionId == 'model3d.configure') {
+        throw const ResourceFailure(
+          'Ce catalogue est en lecture seule. La définition du modèle n’a pas été modifiée.',
         );
       }
       phase('baseline.start');
@@ -36,16 +43,24 @@ extension _LocalResourceMutation on LocalResourceAdapter {
         );
       }
       final fields = Map<String, Object?>.from(parameters(before.manifest));
-      final scopedModelSource =
-          session.storage == ProjectSessionStorage.workingCatalog &&
-          {
-            'model3d.source.replace',
-            'model3d.source.replace_batch',
-          }.contains(actionId);
-      if (expectedSnapshotRevision == null &&
+      final scopedModelMutation =
+          (session.storage == ProjectSessionStorage.workingCatalog &&
+              {
+                'model3d.source.replace',
+                'model3d.source.replace_batch',
+              }.contains(actionId)) ||
+          (session.storage != ProjectSessionStorage.portableCatalog &&
+              actionId == 'model3d.configure' &&
+              fields.length == 2 &&
+              fields.containsKey('modelId') &&
+              fields.containsKey('castsShadowsByDefault'));
+      if (session.storage != ProjectSessionStorage.portableCatalog &&
+          expectedSnapshotRevision == null &&
           resourceMutationIsUnchanged(before.manifest, actionId, fields)) {
         await mapAdapter.resourceBaseline(session);
         _requireAvailable();
+        final problem = validateBeforeApply?.call();
+        if (problem != null) throw ResourceFailure(problem);
         return ResourceMutationReceipt(
           before: before.manifest,
           manifest: before.manifest,
@@ -140,7 +155,7 @@ extension _LocalResourceMutation on LocalResourceAdapter {
         phase('attach.start');
         await context.attach();
         phase('attach.end');
-        final snapshot = scopedModelSource
+        final snapshot = scopedModelMutation
             ? await api.readWorkshopSnapshot(
                 opened.projectHandle,
                 actionId: actionId,
@@ -156,7 +171,7 @@ extension _LocalResourceMutation on LocalResourceAdapter {
             'Le projet a changé depuis la préparation. Votre saisie est conservée.',
           );
         }
-        if ((scopedModelSource
+        if ((scopedModelMutation
                 ? _modelSourceDocumentRevision(snapshot)
                 : studioProjectSnapshotRevision(snapshot)) !=
             before.revision) {
@@ -181,7 +196,7 @@ extension _LocalResourceMutation on LocalResourceAdapter {
         ownedPlan = planned.plan;
         phase('plan.end');
         final changes = planned.plan.changeSet.changes;
-        final mapPaths = scopedModelSource
+        final mapPaths = scopedModelMutation
             ? const <String>{}
             : before.manifest.maps.map((map) => map.relativePath).toSet();
         if (changes.any(
@@ -206,7 +221,7 @@ extension _LocalResourceMutation on LocalResourceAdapter {
             changedPaths: const [],
           );
         }
-        final projectedProject = scopedModelSource
+        final projectedProject = scopedModelMutation
             ? _mergeModelSourceProjection(
                 before.manifest,
                 planned.projectedProject ?? snapshot.manifest,
@@ -220,11 +235,11 @@ extension _LocalResourceMutation on LocalResourceAdapter {
           operationId,
           projectedProject: projectedProject,
           projectedRevision: snapshot.materializedCatalogProject
-              ? scopedModelSource
+              ? scopedModelMutation
                     ? _modelSourceDocumentRevision(snapshot, plan: planned.plan)
                     : studioProjectPlanRevision(snapshot, planned.plan)
               : null,
-          changedModels: scopedModelSource
+          changedModels: scopedModelMutation
               ? {
                   for (final model in planned.projectedProject!.models3d)
                     model.id: model,
@@ -271,8 +286,8 @@ extension _LocalResourceMutation on LocalResourceAdapter {
           phase('apply.end');
           await beforeReconciliation?.call();
           _requireAvailable();
-          if (snapshot.materializedCatalogProject) {
-            final after = scopedModelSource
+          if (snapshot.materializedCatalogProject || scopedModelMutation) {
+            final after = scopedModelMutation
                 ? await api.readWorkshopSnapshot(
                     opened.projectHandle,
                     actionId: actionId,
@@ -282,11 +297,11 @@ extension _LocalResourceMutation on LocalResourceAdapter {
                     opened.projectHandle,
                     policy: ProjectSnapshotLoadPolicy.editorReadProjection,
                   );
-            if ((scopedModelSource
+            if ((scopedModelMutation
                         ? _modelSourceDocumentRevision(after)
                         : studioProjectSnapshotRevision(after)) !=
                     receipt.revision ||
-                (scopedModelSource
+                (scopedModelMutation
                     ? !_modelSourcesMatch(
                         after.manifest,
                         planned.projectedProject ?? snapshot.manifest,

@@ -142,6 +142,13 @@ test("live MCP configures fifty existing models with one recoverable manifest ch
     await plan("model3d.configure",{modelId:ids[0],light:{...light,proximity:{mode:"near",enterDistance:5,exitDistance:3}}},true);
     assert.deepEqual(await readFile(manifestPath),beforeInvalid);
     assert.deepEqual(await readFile(sourceCatalogPath),beforeCatalog);
+    for (const enabled of [true, false]) {
+      const shadowPlan = await plan("model3d.configure", {modelId: ids[0], castsShadowsByDefault: enabled});
+      await apply(shadowPlan, `native-shadows-${enabled}`);
+      const stored = (record(JSON.parse((await readFile(manifestPath)).toString())).models3d as JsonRecord[])[0]!;
+      assert.equal(record(stored).castsShadowsByDefault ?? false, enabled);
+      assert.deepEqual(record(stored).light, light);
+    }
     await call("pokemap_workspace", { operation: "close", workspaceHandle });
   } finally {
     await client.close(); await transport.close(); await rm(root, { recursive: true, force: true });
@@ -194,6 +201,28 @@ test("native catalog light workshop is bounded, discoverable and durable over MC
       const stored = (record(after.project).models3d as JsonRecord[])[0]!;
       assert.deepEqual(stored.light ?? null, value);
       assert.deepEqual(await readFile(join(root,"project.json")),descriptor);
+    }
+    for (const enabled of [true, false]) {
+      const parameters = {modelId: "lamp", castsShadowsByDefault: enabled};
+      const snapshot = await call("pokemap_workshop", {operation: "read", projectHandle: opened.projectHandle,
+        actionId: "model3d.configure", parameters});
+      assert.deepEqual(snapshot.maps, []);
+      assert.equal((record(snapshot.project).models3d as unknown[]).length, 1);
+      const id = `shadow-${enabled}`;
+      const planned = await call("pokemap_plan", {projectHandle: opened.projectHandle, request: {
+        requestId: id, actionId: "model3d.configure", actionVersion: 1, workspaceHandle: opened.workspaceHandle,
+        expectedRevision: snapshot.snapshotRevision, idempotencyKey: id, parameters}});
+      const applied = await call("pokemap_apply", {operation: "apply", projectHandle: opened.projectHandle,
+        planId: planned.planId, operationId: id});
+      const replay = await call("pokemap_apply", {operation: "apply", projectHandle: opened.projectHandle,
+        planId: planned.planId, operationId: id});
+      assert.equal(record(applied.receipt).receiptId, record(replay.receipt).receiptId);
+      const after = await call("pokemap_workshop", {operation: "read", projectHandle: opened.projectHandle,
+        actionId: "model3d.configure", parameters});
+      const stored = (record(after.project).models3d as JsonRecord[])[0]!;
+      assert.equal(stored.castsShadowsByDefault ?? false, enabled);
+      assert.deepEqual(stored.light, light);
+      assert.deepEqual(await readFile(join(root, "project.json")), descriptor);
     }
     await call("pokemap_workspace", {operation: "close", workspaceHandle: opened.workspaceHandle});
   } finally {await client.close();await transport.close();await rm(root,{recursive:true,force:true});}

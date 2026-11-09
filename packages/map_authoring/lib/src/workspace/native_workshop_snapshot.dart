@@ -110,7 +110,9 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
   }
   final mapEdit = actionId == 'map3d.edit_batch' ||
       Map3dEditProjection.admittedActions.contains(actionId);
-  if (!mapEdit && !_nativeWorkshopActions.contains(actionId)) {
+  final modelShadows = actionId == 'model3d.configure' && parameters.length == 2 &&
+      parameters.containsKey('modelId') && parameters.containsKey('castsShadowsByDefault');
+  if (!mapEdit && !modelShadows && !_nativeWorkshopActions.contains(actionId)) {
     throw const ProjectSnapshotException('project.workshop_scope_required',
         'This action does not have a native workshop dependency scope.');
   }
@@ -123,6 +125,32 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
         'This workshop loader requires a native project document.');
   }
   final raw = Map<String, dynamic>.from(decoded);
+  if (modelShadows) {
+    final id = parameters['modelId'];
+    if (id is! String || parameters['castsShadowsByDefault'] is! bool) {
+      throw const FormatException('Invalid model shadow configuration.');
+    }
+    final selected = [for (final entry in raw['models3d'] as List? ?? const [])
+      if (entry is Map && entry['id'] == id) Map<String, dynamic>.from(entry)];
+    if (selected.length != 1) throw const FormatException('Unknown or ambiguous model identity.');
+    final settings = raw['settings'] as Map? ?? const {};
+    final manifest = ProjectManifest.fromJson({
+      'name': raw['name'], 'version': raw['version'], 'maps': const [], 'tilesets': const [],
+      'models3d': selected,
+      'pokemon': {'ruleset': (raw['pokemon'] as Map?)?['ruleset']},
+      'settings': {for (final key in ['dimension', 'spatialCamera', 'tileWidth', 'tileHeight'])
+        if (settings.containsKey(key)) key: settings[key]},
+    });
+    final revision = await loader._decodeExecutor.fingerprintResource(projectBytes.bytes, relativePath: 'project.json');
+    if (!await access.matchesResourceBytes('project.json', projectBytes.bytes)) {
+      throw const ProjectSnapshotException('project.changed_during_snapshot', 'The project changed while reading the selected model.');
+    }
+    return ProjectSnapshot(projectHandle: projectHandle, revision: revision,
+      manifest: manifest, maps: const [], availableProjectSections: const {'settings', 'models3d'},
+      availableProjectDocuments: {'models3d': {id}}, scopedStorageRevisions: {'project.json': revision},
+      resourceFingerprints: {'project': revision}, resourceStorageKeys: const {'project': 'project.json'},
+      ownedResourceBytes: {'project': projectBytes});
+  }
   if (mapEdit) {
     return _loadNativeMapEdit(
         loader, projectHandle, raw, projectBytes, parameters);

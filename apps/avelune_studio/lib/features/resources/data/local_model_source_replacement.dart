@@ -4,6 +4,11 @@ String _modelSourceDocumentRevision(
   ProjectSnapshot snapshot, {
   AuthoringPlan? plan,
 }) {
+  if (!snapshot.materializedCatalogProject) {
+    return plan == null
+        ? studioProjectSnapshotRevision(snapshot)
+        : studioProjectPlanRevision(snapshot, plan);
+  }
   final head = plan?.changeSet.changes
       .where(
         (change) => change.storageKey == CatalogStorageStore.headStorageKey,
@@ -22,7 +27,7 @@ ProjectManifest _mergeModelSourceProjection(
   final entries = before.models3d;
   if (entries is! ProjectModel3dEntries) {
     throw const ResourceFailure(
-      'Rechargez le catalogue des modèles avant de remplacer cette source.',
+      'Rechargez le catalogue des modèles avant de reprendre cette modification.',
     );
   }
   return before.copyWith(

@@ -13,6 +13,46 @@ import 'package:test/test.dart';
 import '../support/glb_fixture.dart';
 
 void main() {
+  for (final unrelated in [0, 80]) {
+    test('shadow metadata stays bounded, idempotent and revision checked with $unrelated foreign definitions', () async {
+      final fixture = await _Fixture.open(unrelated);
+      addTearDown(fixture.close);
+      const parameters = <String, Object?>{'modelId': 'house', 'castsShadowsByDefault': true};
+      Future<ProjectSnapshot> selected() => fixture.api.readWorkshopSnapshot(fixture.opened.projectHandle,
+        actionId: 'model3d.configure', parameters: parameters);
+      final original = (await selected()).manifest.models3d.single;
+      for (final enabled in [true, false]) {
+        fixture.reader.paths.clear();
+        fixture.promoted.clear();
+        final snapshot = await selected();
+        final request = AuthoringRequest(requestId: 'shadows-$enabled', actionId: 'model3d.configure',
+          actionVersion: 1, workspaceHandle: fixture.opened.workspaceHandle.value,
+          expectedRevision: snapshot.revision, idempotencyKey: 'shadows-$enabled',
+          parameters: {...parameters, 'castsShadowsByDefault': enabled});
+        final planned = await fixture.api.planMutation(fixture.opened.projectHandle, request);
+        expect(planned.projectedProject!.models3d.single, original.copyWith(castsShadowsByDefault: enabled));
+        final applied = await fixture.api.applyMutation(fixture.opened.projectHandle,
+          planId: planned.planId, operationId: 'shadows-$enabled');
+        final replay = await fixture.api.applyMutation(fixture.opened.projectHandle,
+          planId: planned.planId, operationId: 'shadows-$enabled');
+        expect(replay.receipt.receiptId, applied.receipt.receiptId);
+        expect(fixture.promoted, [CatalogStorageStore.headStorageKey]);
+        expect(fixture.reader.paths.where((path) => path.startsWith('maps/') || path.startsWith('assets/') || fixture.unrelatedObjects.contains(path)), isEmpty);
+        await expectLater(fixture.api.planMutation(fixture.opened.projectHandle,
+          AuthoringRequest.fromJson({...request.toJson(), 'requestId': 'stale-$enabled', 'idempotencyKey': 'stale-$enabled'})), throwsA(anything));
+        await fixture.reopen();
+        expect((await selected()).manifest.models3d.single, original.copyWith(castsShadowsByDefault: enabled));
+      }
+      for (final value in [null, 'true', 1]) {
+        final snapshot = await selected();
+        await expectLater(fixture.api.planMutation(fixture.opened.projectHandle,
+          AuthoringRequest(requestId: 'bad-$value', actionId: 'model3d.configure', actionVersion: 1,
+            workspaceHandle: fixture.opened.workspaceHandle.value, expectedRevision: snapshot.revision,
+            idempotencyKey: 'bad-$value', parameters: {...parameters, 'castsShadowsByDefault': value})), throwsA(anything));
+      }
+    });
+  }
+
   for (final forged in ['geometry', 'bounds', 'extra-resource']) {
     test('collision metadata projection refuses forged $forged', () async {
       final fixture = await _Fixture.open(0);

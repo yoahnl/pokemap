@@ -80,11 +80,12 @@ final class CatalogScopedWorkingMutation {
       final next = projected.models3d.single;
       final parameters = publicPlan.request.parameters;
       if (parameters['modelId'] != previous.id || additional.isNotEmpty ||
-          (!parameters.containsKey('light') && !parameters.containsKey('collisionBounds')) ||
-          parameters.keys.any((key) => !{'modelId', 'light', 'collisionBounds'}.contains(key))) {
+          (!parameters.containsKey('light') && !parameters.containsKey('collisionBounds') && !parameters.containsKey('castsShadowsByDefault')) ||
+          parameters.keys.any((key) => !{'modelId', 'light', 'collisionBounds', 'castsShadowsByDefault'}.contains(key))) {
         throw const FormatException('catalog.model_metadata: request changes data outside scope');
       }
       final expected = previous.copyWith(
+        castsShadowsByDefault: parameters['castsShadowsByDefault'] as bool?,
         light: parameters['light'] == null ? null : Model3dPointLight.fromJson(
             Map<String, dynamic>.from(parameters['light'] as Map)),
         clearLight: parameters.containsKey('light') && parameters['light'] == null,

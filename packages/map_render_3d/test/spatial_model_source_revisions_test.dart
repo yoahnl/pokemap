@@ -4,16 +4,117 @@ import 'dart:typed_data';
 
 import 'package:flame_3d/core.dart';
 import 'package:flame_3d/graphics.dart';
+import 'package:flame_3d/components.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_render_3d/src/spatial_scene_view.dart';
 import 'package:map_render_3d/src/spatial_scene_decoration.dart';
+import 'package:map_render_3d/src/spatial_pixel_material.dart';
 
 import '../../map_authoring/test/support/glb_fixture.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  test('the first enabled shadow activates existing ground receivers without rebuilding terrain', () async {
+    final fixture = _Fixture();
+    addTearDown(fixture.dispose);
+    final entries = ProjectModel3dEntries.prepare(fixture.project.models3d);
+    fixture.game.configuration = fixture.configuration(models: entries);
+    expect(await fixture.game.refresh(), isTrue);
+    expect(fixture.game.authoredShadowCasters, isEmpty);
+    final meshes = fixture.game.sceneChunks['active']!.terrain
+        .whereType<MeshComponent>()
+        .map((component) => component.mesh)
+        .toList();
+    expect(meshes, isNotEmpty);
+    expect(
+      meshes.first.surfaces.first.material,
+      isNot(isA<SpatialPixelMaterial>()),
+    );
+    final before = fixture.game.renderedConfiguration!;
+    fixture.game.configuration = fixture.configuration(
+      models: entries.replaceSelected([
+        entries.lookup('tree')!.copyWith(castsShadowsByDefault: true),
+      ]),
+    );
+    expect(fixture.game.syncLightDefinitions(before), isTrue);
+    expect(fixture.game.authoredShadowCasters, hasLength(1));
+    expect(meshes.first.surfaces.first.material, isA<SpatialPixelMaterial>());
+    final updated = fixture.game.sceneChunks['active']!.terrain
+        .whereType<MeshComponent>()
+        .map((component) => component.mesh)
+        .toList();
+    expect(updated.length, meshes.length);
+    for (var i = 0; i < meshes.length; i++) {
+      expect(updated[i], same(meshes[i]));
+    }
+    expect(fixture.game.modelSourceComponentBuilds, 0);
+  });
+
+  for (final useUpdates in [false, true]) {
+    test(
+      'shadow metadata updates inherited casters without rebuilding geometry, stream=$useUpdates',
+      () async {
+        final fixture = _Fixture(
+          useUpdates: useUpdates,
+          unrelated: 2000,
+          extraInstances: 2000,
+        );
+        addTearDown(fixture.dispose);
+        fixture.map = fixture.map.copyWith(
+          spatialScene: fixture.map.spatialScene!.copyWith(
+            instances: [
+              ...fixture.map.spatialScene!.instances,
+              for (final enabled in [true, false])
+                SpatialModelInstance(
+                  id: 'override-$enabled',
+                  modelId: 'tree',
+                  position: Model3dVector3.zero,
+                  castsShadows: enabled,
+                ),
+            ],
+          ),
+        );
+        var entries = ProjectModel3dEntries.prepare(fixture.project.models3d);
+        fixture.game.configuration = fixture.configuration(models: entries);
+        expect(await fixture.game.refresh(), isTrue);
+        final component =
+            fixture.game.modelComponents['tree-instance']!.component;
+        final source = fixture.game.loadedModelSources['tree-source'];
+        final reads = Map.of(fixture.reads);
+        final generation = fixture.game.generation;
+        expect(fixture.game.authoredShadowCasters, hasLength(1));
+        for (final enabled in [true, false]) {
+          final before = fixture.game.renderedConfiguration!;
+          final changed = entries
+              .lookup('tree')!
+              .copyWith(castsShadowsByDefault: enabled);
+          entries = entries.replaceSelected([changed]);
+          if (useUpdates)
+            fixture.updates.publish(
+              revisions: {},
+              definitions: {'tree': changed},
+            );
+          fixture.game.configuration = fixture.configuration(models: entries);
+          expect(fixture.game.syncLightDefinitions(before), isTrue);
+          expect(component.definition.castsShadowsByDefault, enabled);
+          expect(
+            fixture.game.authoredShadowCasters,
+            hasLength(enabled ? 2 : 1),
+          );
+          expect(fixture.game.loadedModelSources['tree-source'], same(source));
+          expect(
+            fixture.game.modelComponents['tree-instance']!.component,
+            same(component),
+          );
+          expect(fixture.game.modelSourceComponentBuilds, 0);
+          expect(fixture.game.generation, generation);
+          expect(fixture.reads, reads);
+        }
+      },
+    );
+  }
 
   for (final unrelated in [0, 2000]) {
     test(
