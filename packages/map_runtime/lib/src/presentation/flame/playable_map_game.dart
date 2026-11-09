@@ -212,6 +212,7 @@ part 'playable_map_game_bicycle.dart';
 part 'playable_map_game_fishing.dart';
 part 'playable_map_game_interactive_encounters.dart';
 part 'playable_map_game_escape_rope.dart';
+part 'playable_map_game_contextual_item_use.dart';
 part 'playable_map_game_waterfall.dart';
 part 'playable_map_game_dive.dart';
 part 'playable_map_game_npc_fixed_routes.dart';
@@ -1094,6 +1095,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       _diveTransferInFlight ||
       _flyTransferInFlight ||
       _escapeRopeTransferInFlight ||
+      _pendingContextualItemUse != null ||
       _hasCheckpointUnsafeRuntimeWork ||
       _pendingWarp != null ||
       _pendingConnection != null ||
@@ -1585,7 +1587,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
 
   Future<NarrativeSceneExecutionResult> _executeNarrativeScene(
     NarrativeSceneExecutionRequest request,
+    {bool checkpointContextualUse = false, bool Function()? contextualUseCurrent}
   ) async {
+    if (contextualUseCurrent?.call() == false) return NarrativeSceneExecutionResult.cancelled('The contextual item use was cancelled.');
     if (_isRemoved) {
       return NarrativeSceneExecutionResult.failed(
         StateError('The runtime was removed before Scene execution.'),
@@ -1597,9 +1601,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       );
     }
     final snapshot = await _narrativeRuntimeSnapshotFor(_bundle.manifest);
+    if (contextualUseCurrent?.call() == false) return NarrativeSceneExecutionResult.cancelled('The contextual item use was cancelled while preparing its Scene.');
     if (_sceneUsesDurableCheckpoint(snapshot.project, request.sceneId) && _narrativeStateTransactions.captureCheckpointOwner() == null) {
       return _narrativeStateTransactions.transact<NarrativeSceneExecutionResult>((_) async {
-        Future<NarrativeSceneExecutionResult> run() => _executeNarrativeScene(request);
+        Future<NarrativeSceneExecutionResult> run() => _executeNarrativeScene(request, checkpointContextualUse: checkpointContextualUse, contextualUseCurrent: contextualUseCurrent);
         final result = _narrativeActivityGate.activity == NarrativeRuntimeActivity.idle
             ? await _narrativeActivityGate.runWithActivity(NarrativeRuntimeActivity.sceneActive, run)
             : await run();
@@ -1613,7 +1618,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     final defersMapActivation =
         _narrativeStateTransactions.deferAfterCurrentCommit(
       (committedGameState) {
-        if (_isRemoved) return;
+        if (_isRemoved || contextualUseCurrent?.call() == false) return;
         final activation = session.deferredMapActivation;
         if (activation != null || session.defeatRecoveryApplied) {
           _applyNarrativeGameState(committedGameState);
@@ -1639,6 +1644,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     );
     _activeNarrativeSceneWorkingSession = session;
     try {
+      if (contextualUseCurrent?.call() == false) throw StateError('The contextual item use was cancelled before Scene execution.');
       final result = await executeNarrativeEventScene(
         request: request,
         project: snapshot.project,
@@ -1660,7 +1666,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           onQualifiedBattleOutcome: hostedBattleOutcomes.add,
         ),
       );
-      if (_isRemoved) {
+      if (_isRemoved || contextualUseCurrent?.call() == false) {
         throw StateError('The runtime was removed during Scene execution.');
       }
       if (result is NarrativeSceneExecutionCompleted) {
@@ -1669,10 +1675,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           result.updatedGameState,
         );
         hydratedGameState = await _applySceneDefeatRecovery(session, hydratedGameState);
-        if (_isRemoved) {
+        if (_isRemoved || contextualUseCurrent?.call() == false) {
           throw StateError('The runtime was removed before Scene commit.');
         }
         final gameCompletion = result.gameCompletion;
+        if (checkpointContextualUse && gameCompletion != null) {
+          throw StateError('Contextual item Scenes cannot finish the game.');
+        }
         if (gameCompletion != null) {
           final coordinator = _gameCompletionCoordinator;
           if (coordinator == null) {
@@ -1687,6 +1696,38 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           }
         }
         session.gameState = hydratedGameState;
+        if (checkpointContextualUse) {
+          final progress = hydratedGameState.narrativeEventProgress;
+          hydratedGameState = hydratedGameState.copyWith(narrativeEventProgress: progress.copyWith(pendingNarrativeOutcomeDeliveries: [
+            ...progress.pendingNarrativeOutcomeDeliveries,
+            for (final outcome in result.qualifiedOutcomes)
+              NarrativeOutcomeDelivery(deliveryId: _nextNarrativeRuntimeId('outd'), outcome: outcome,
+                causationExecutionId: request.executionId, rootCorrelationId: _nextNarrativeRuntimeId('corr'), depth: 0, attemptCount: 0),
+          ]));
+          final owner = session.checkpointOwner;
+          if (owner == null) throw StateError('The contextual item Scene has no checkpoint owner.');
+          final activity = _narrativeActivityGate.captureSceneCheckpointOwner();
+          if (contextualUseCurrent?.call() == false) throw StateError('The contextual item use was cancelled before its checkpoint.');
+          await owner.checkpoint(expectedBase: owner.committedState, durableState: hydratedGameState,
+            rebase: (_) => hydratedGameState,
+            persist: (durable) async {
+              final writer = overworldCheckpointWriter;
+              if (writer != null) {
+                await _narrativeActivityGate.runSceneCheckpoint(activity, () => writer(durable));
+              } else {
+                final repository = _saveRepo;
+                if (repository is! FileGameSaveRepository) throw StateError('The host has no durable contextual item writer.');
+                await repository.saveOwnedSceneCheckpoint(durable, activity);
+              }
+              session.checkpointFullState(durable);
+              if (!_isRemoved && contextualUseCurrent?.call() != false) _gameState = durable;
+            });
+          if (_isRemoved || contextualUseCurrent?.call() == false) {
+            session.commit();
+            return NarrativeSceneExecutionResult.cancelled('The session closed after the contextual checkpoint.');
+          }
+          session.gameState = hydratedGameState;
+        }
         session.commit();
         if (!defersMapActivation && session.defeatRecoveryApplied) {
           _queueSceneDefeatRecoveryCheckpoint(session.defeatRecoveryMoneyLost,
@@ -1695,7 +1736,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         }
         return NarrativeSceneExecutionResult.completed(
           updatedGameState: hydratedGameState,
-          qualifiedOutcomes: result.qualifiedOutcomes,
+          qualifiedOutcomes: checkpointContextualUse ? const [] : result.qualifiedOutcomes,
           gameCompletion: gameCompletion,
           consumeOneShot: result.consumeOneShot,
         );
@@ -2321,6 +2362,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
 
   /// Compteur de mutations de l'état de jeu, source du jeton de fraîcheur.
   int _gameStateRevision = 0;
+  ({ContextualItemUseRule rule, GameState state, int revision, String? activation})? _pendingContextualItemUse;
+  int _contextualItemUseGeneration = 0;
   bool _flyTransferInFlight = false;
   bool _escapeRopeTransferInFlight = false;
   bool _bicycleToggleInFlight = false;
@@ -3172,6 +3215,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       return null;
     });
     controller.setEscapeRopeConsumer(_usePlayerEscapeRope);
+    controller.setContextualItemUseConsumer(_reservePlayerContextualItemUse);
     controller.setBicycleConsumer(_usePlayerBicycle);
     controller.setFishingConsumer(_reservePlayerFishing);
     _playerServiceRuntimeController = controller;
@@ -5335,6 +5379,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
 
   @override
   void onRemove() {
+    cancelContextualItemUse();
     _resetOfflineBattleRecipes();
     _parallelFaultedOwners.clear();
     _parallelScheduler.clear();

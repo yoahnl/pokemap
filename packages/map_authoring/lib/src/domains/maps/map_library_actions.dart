@@ -2,7 +2,11 @@ import 'package:map_core/map_core.dart';
 
 import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
+import '../../contracts/authoring_diff.dart';
+import '../../contracts/resource_ref.dart';
+import '../../transactions/change_set.dart';
 import '../assets/tileset_actions.dart';
+import 'map_lifecycle_adapter.dart';
 
 final class MapLibraryActions {
   const MapLibraryActions();
@@ -16,6 +20,8 @@ final class MapLibraryActions {
   ];
 
   AuthoringMutationDraft build(AuthoringPlanningContext context) {
+    final groupAdditions = context.snapshot.materializedCatalogProject &&
+      context.snapshot.availableProjectSections?.length == 1 && context.snapshot.availableProjectSections!.contains('groups');
     final fields = VisualLibraryParameters(context.request.parameters);
     fields.allow(const {'groups', 'assignments'});
     final next = reorganize(
@@ -35,9 +41,19 @@ final class MapLibraryActions {
             }).toList()
           : null,
       assignments: fields.objects('assignments'),
+      groupAdditionsOnly: groupAdditions,
     );
     final groupIds = next.groups.map((group) => group.id).toSet();
     final removedGroupIds = context.snapshot.manifest.groups.map((group) => group.id).where((id) => !groupIds.contains(id)).toSet();
+    if (groupAdditions) {
+      if (context.snapshot.manifest.groups.any((group) => !next.groups.contains(group)) || fields.objects('assignments').isNotEmpty) _reject('group_addition_scope_invalid');
+      final resource = AuthoringResourceRef(kind: 'project', id: 'project', revision: context.snapshot.resourceFingerprints['project']);
+      return AuthoringMutationDraft(changeSet: AuthoringChangeSet(changes: [AuthoringResourceChange(resource: resource,
+        storageKey: 'project.json', beforeBytes: context.snapshot.resourceBytes('project'), afterBytes: encodeProjectAuthoringDocument(context.snapshot, next))],
+        diff: AuthoringDiff([AuthoringDiffEntry(operation: AuthoringDiffOperation.replace, resource: resource, path: '/groups',
+          before: context.snapshot.manifest.groups.map((group) => group.toJson()).toList(), after: next.groups.map((group) => group.toJson()).toList())])),
+        preview: {'operation': 'map.library.reorganize', 'groupAdditionsOnly': true}, referenceImpact: const {'mapContentUnchanged': true});
+    }
     if (removedGroupIds.isNotEmpty) {
       for (final entry in context.snapshot.manifest.maps) {
         final map = context.snapshot.mapById(entry.id);
@@ -71,6 +87,7 @@ final class MapLibraryActions {
     ProjectManifest manifest, {
     List<ProjectMapGroup>? groups,
     required List<Map<String, Object?>> assignments,
+    bool groupAdditionsOnly = false,
   }) {
     final folders = groups ?? manifest.groups;
     final folderIds = folders.map((g) => g.id).toSet();
@@ -120,7 +137,11 @@ final class MapLibraryActions {
       groups: folders,
       maps: [for (final map in manifest.maps) entries[map.id]!],
     );
-    ProjectValidator.validate(next);
+    if (groupAdditionsOnly) {
+      ProjectValidator.validateMapGroupHierarchy(next.groups);
+    } else {
+      ProjectValidator.validate(next);
+    }
     return next;
   }
 }

@@ -563,6 +563,7 @@ final class PlayableMapGameSessionRuntime
       supportsEscapeRope: _playerServices?.supportsEscapeRope ?? false,
       supportsBicycle: _playerServices?.supportsBicycle ?? false,
       supportsFishing: _playerServices?.supportsFishing ?? false,
+      contextualItemIds: game.contextualItemIds,
       gameState: gameState,
       projectRootDirectory: projectRootDirectory,
       pokemonConfig: pokemonConfig,
@@ -618,6 +619,7 @@ final class PlayableMapGameSessionRuntime
     _interactionsEnabled = true;
     _publishOverworldInteractions();
     _playWatch.start();
+    game.resumeContextualItemUse();
   }
 
   @override
@@ -719,6 +721,7 @@ final class PlayableMapGameSessionRuntime
     _publishOverworldInteractions();
     final game = _game;
     if (game == null) return;
+    game.cancelContextualItemUse();
     _playWatch.stop();
     game.pauseEngine();
   }

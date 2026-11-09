@@ -27,18 +27,23 @@ test("MCP updates map title and indoor role without changing identity or path", 
     size: { width: 5, height: 4 }, layers: [],
     warps: [{ id: "return", pos: { x: 1, y: 1 },
       targetMapId: "town", targetPos: { x: 2, y: 2 }, triggerMode: "on_enter",
-      allowedApproachFacings: [], triggerPadding: { left: 0, right: 0, top: 0, bottom: 0 } }],
+      allowedApproachFacings: [], triggerPadding: { left: 0, right: 0, top: 0, bottom: 0 }, transition: { type: "fade", durationSeconds: 0.2 } }],
   };
   await mkdir(join(root, "documents"));
   await writeFile(join(root, "documents/unusual.json"), JSON.stringify(map));
+  await writeFile(join(root, "items.json"), JSON.stringify({ schemaVersion: 1, entries: [{ id: "rope", displayName: "Corde Sortie", pocketId: "items" }] }));
   await writeFile(join(root, "project.json"), JSON.stringify({
-    name: "Map title fixture", version: "v8", tilesets: [], pokemon: canonicalPokemonConfig(),
+    name: "Map title fixture", version: "v8", tilesets: [], pokemon: { ...canonicalPokemonConfig(), catalogFiles: { items: "items.json" } },
+    scenes: [{ id: "secret", name: "Secret", graph: { startNodeId: "start", nodes: [
+      { id: "start", kind: "start" }, { id: "end", kind: "end" },
+    ], edges: [{ id: "edge", fromNodeId: "start", fromPortId: "completed", toNodeId: "end", kind: "default" }] } }],
     groups: [{ id: "cave", name: "Grotte", type: "dungeon" }],
     maps: [{ id: "town", name: "Town", relativePath: "documents/unusual.json" }],
   }));
   const authoring = new LocalAuthoringClient({
     allowedRoots: [root], authoringPackageRoot: resolve(process.cwd(), "../../packages/map_authoring"),
     dartExecutable: process.env.DART ?? "dart",
+    requestTimeoutMs: 60_000, workerTimeoutMs: 45_000,
   });
   const server = createPokeMapMcpServer({ authoring, artifacts: new MemoryArtifactReader() });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
@@ -53,7 +58,7 @@ test("MCP updates map title and indoor role without changing identity or path", 
     const schema = (descriptor?.extensions as JsonRecord).inputSchema as JsonRecord;
     assert.deepEqual(schema.required, ["mapId"]);
     assert.deepEqual(schema.anyOf, [
-      { required: ["name"] }, { required: ["role"] }, { required: ["isIndoor"] }, { required: ["allowEscapeRope"] }, { required: ["escapeRopeDungeonId"] },
+      { required: ["name"] }, { required: ["role"] }, { required: ["isIndoor"] }, { required: ["allowBicycle"] }, { required: ["allowEscapeRope"] }, { required: ["escapeRopeDungeonId"] }, { required: ["contextualItemUses"] },
     ]);
     const properties = schema.properties as JsonRecord;
     assert.equal((properties.isIndoor as JsonRecord).type, "boolean");
@@ -129,7 +134,49 @@ test("MCP updates map title and indoor role without changing identity or path", 
     assert.equal(escapeMap.mapMetadata.allowEscapeRope, false);
     assert.deepEqual(escapeMap.warps, indoorMap.warps);
     assert.deepEqual(JSON.parse(await readFile(join(root, "project.json"), "utf8")), indoorManifest);
+    const contextualRevision = await data(client, "pokemap_validate", { projectHandle });
+    const rules = [{ id: "secret-use", itemId: "rope", sceneId: "secret", priority: 10, position: { x: 2, y: 2 }, facing: "north" }];
+    const contextual = await data(client, "pokemap_plan", { projectHandle,
+      request: { requestId: "contextual", actionId: "map.update_metadata", actionVersion: 1,
+        workspaceHandle: opened.workspaceHandle, parameters: { mapId: "town", contextualItemUses: rules },
+        expectedRevision: contextualRevision.snapshotRevision, idempotencyKey: "contextual" },
+    });
+    await data(client, "pokemap_apply", { operation: "apply", projectHandle, planId: contextual.planId, operationId: "contextual" });
+    assert.deepEqual(JSON.parse(await readFile(join(root, "documents/unusual.json"), "utf8")).mapMetadata.contextualItemUses, rules);
+    const afterContext = await data(client, "pokemap_validate", { projectHandle });
+    const invalidContext = await client.callTool({ name: "pokemap_plan", arguments: { projectHandle,
+      request: { requestId: "bad-context", actionId: "map.update_metadata", actionVersion: 1,
+        workspaceHandle: opened.workspaceHandle, parameters: { mapId: "town", contextualItemUses: [{ ...rules[0], sceneId: "missing" }] },
+        expectedRevision: afterContext.snapshotRevision, idempotencyKey: "bad-context" },
+    } });
+    assert.equal(invalidContext.isError, true);
+    assert.deepEqual(JSON.parse(await readFile(join(root, "documents/unusual.json"), "utf8")).mapMetadata.contextualItemUses, rules);
+    const partitionRevision = await data(client, "pokemap_validate", { projectHandle });
+    const partition = await data(client, "pokemap_plan", { projectHandle, request: {
+      requestId: "partition", actionId: "project.catalog.partition", actionVersion: 1, workspaceHandle: opened.workspaceHandle,
+      expectedRevision: partitionRevision.snapshotRevision, idempotencyKey: "partition", parameters: {},
+    } });
+    await data(client, "pokemap_apply", { operation: "apply", projectHandle, planId: partition.planId, operationId: "partition" });
     await data(client, "pokemap_workspace", { operation: "close", workspaceHandle: opened.workspaceHandle });
+    const native = await data(client, "pokemap_workspace", { operation: "open", projectRoot: root });
+    const groups = { groups: [{ id: "cave", name: "Grotte", type: "dungeon" }, { id: "alpha", name: "Alpha", type: "dungeon" }], assignments: [] };
+    const selected = await data(client, "pokemap_workshop", { operation: "read", projectHandle: native.projectHandle,
+      actionId: "map.library.reorganize", parameters: groups, includeDocuments: false });
+    const addition = await data(client, "pokemap_plan", { projectHandle: native.projectHandle, request: {
+      requestId: "add-group", actionId: "map.library.reorganize", actionVersion: 1, workspaceHandle: native.workspaceHandle,
+      expectedRevision: selected.snapshotRevision, idempotencyKey: "add-group", parameters: groups, extensions: selected.planExtensions,
+    } });
+    await data(client, "pokemap_apply", { operation: "apply", projectHandle: native.projectHandle, planId: addition.planId, operationId: "add-group" });
+    const nativeParams = { mapId: "town", contextualItemUses: [{ ...rules[0], priority: 11 }] };
+    const nativeScope = await data(client, "pokemap_workshop", { operation: "read", projectHandle: native.projectHandle,
+      actionId: "map.update_metadata", parameters: nativeParams, includeDocuments: false });
+    const nativePlan = await data(client, "pokemap_plan", { projectHandle: native.projectHandle, request: {
+      requestId: "native-context", actionId: "map.update_metadata", actionVersion: 1, workspaceHandle: native.workspaceHandle,
+      expectedRevision: nativeScope.snapshotRevision, idempotencyKey: "native-context", parameters: nativeParams, extensions: nativeScope.planExtensions,
+    } });
+    await data(client, "pokemap_apply", { operation: "apply", projectHandle: native.projectHandle, planId: nativePlan.planId, operationId: "native-context" });
+    assert.deepEqual(JSON.parse(await readFile(join(root, "documents/unusual.json"), "utf8")).mapMetadata.contextualItemUses, nativeParams.contextualItemUses);
+    await data(client, "pokemap_workspace", { operation: "close", workspaceHandle: native.workspaceHandle });
   } finally {
     await client.close();
     await server.close();

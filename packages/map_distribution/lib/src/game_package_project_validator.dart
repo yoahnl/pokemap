@@ -313,7 +313,18 @@ final class GamePackageProjectValidator {
       }
       final obstacleMaps = project.maps.map((entry) => MapData.fromJson(
           jsonDecode(utf8.decode(readPayload('project/${entry.relativePath}')!)) as Map<String, dynamic>)).toList();
+      final contextualItemsPath = project.pokemon.catalogFiles['items'];
+      final contextualItemBytes = contextualItemsPath == null ? null : readPayload('project/$contextualItemsPath');
+      final contextualItems = OverworldItemCapabilities.requiresContextualUse(obstacleMaps) && contextualItemBytes != null
+          ? decodeProjectItemCatalog(Map<String, dynamic>.from(jsonDecode(utf8.decode(contextualItemBytes)) as Map)) : null;
+      if (OverworldItemCapabilities.requiresContextualUse(obstacleMaps) && contextualItems == null) {
+        _fail('Contextual item uses require the project item catalogue.');
+      }
+      for (final map in obstacleMaps) {
+        validateContextualItemUseRules(map, project: project, maps: obstacleMaps, itemCatalog: contextualItems);
+      }
       for (final requirement in {
+        if (OverworldItemCapabilities.requiresContextualUse(obstacleMaps)) OverworldItemCapabilities.contextualUseCapabilityId,
         if (FieldObstacleCapabilities.requiresCapability(project, maps: obstacleMaps)) FieldObstacleCapabilities.capabilityId,
         if (FieldObstacleCapabilities.requiresExtendedCapability(project, maps: obstacleMaps)) FieldObstacleCapabilities.extendedCapabilityId,
         if (FieldAbilityActivationCapabilities.requiresCapability(project)) FieldAbilityActivationCapabilities.capabilityId,

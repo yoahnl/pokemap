@@ -76,7 +76,7 @@ void main() {
       if (saveFails) expect(await save.readAsBytes(), before);
     });
   }
-  test('Corde Sortie without an installed consumer refuses with a 2D reason and no mutation', () async {
+  test('Corde Sortie without an installed consumer refuses with a compatibility reason and no mutation', () async {
     const state = GameState(
       saveId: 'rope-unsupported',
       bag: Bag(entries: [BagEntry(itemId: 'rope', quantity: 2)]),
@@ -109,7 +109,7 @@ void main() {
       const RuntimePlayerPauseCommand.useBagItem(itemTargetId: 'rope'),
     );
     expect(result.status, RuntimePlayerPauseCommandStatus.unavailable);
-    expect(result.safeMessage, contains('2D'));
+    expect(result.safeMessage, contains('runtime compatible'));
     expect(commits, 0);
     expect(state.bag.entries.single.quantity, 2);
   });

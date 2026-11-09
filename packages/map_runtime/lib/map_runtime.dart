@@ -211,6 +211,7 @@ export 'src/application/player_service_runtime_controller.dart'
         PlayerServiceInputLockSetter,
         PlayerServiceRecoveryCapsLoader,
         PlayerServiceRuntimeController,
+        RuntimeContextualItemUseDisposition,
         RuntimePartyTradeService,
         RuntimeDeferredCraftingService,
         RuntimeImagePuzzleService,
@@ -371,7 +372,7 @@ export 'src/border/border_runtime_readiness.dart'
     show BorderRuntimeReadinessException, prepareBorderRuntimeBundle;
 export 'src/application/world_rules/runtime_world_rule_projection_hook.dart'
     show RuntimeWorldRuleProjectionHook, RuntimeWorldRuleProjectionState;
-export 'src/presentation/flame/playable_map_game.dart' show PlayableMapGame;
+export 'src/presentation/flame/playable_map_game.dart' show PlayableMapGame, PlayableMapContextualItemUse;
 export 'src/presentation/flame/post_battle_progression_overlay_component.dart'
     show PostBattleProgressionOverlayComponent;
 export 'src/presentation/flame/flame_cinematic_runtime_playback_sink.dart'

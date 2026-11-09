@@ -243,6 +243,10 @@ Set<String> collectRuntimeMapSceneIds(
 }) {
   final ids = <String>{
     ...additionalSceneIds,
+    for (final rule in map.contextualItemUses) rule.sceneId,
+    for (final rule in map.contextualItemUses)
+      for (final condition in rule.conditionExpression?.leaves ?? const <NarrativeEventCondition>[])
+        if (condition.rewardReference case final reference?) reference.sceneId,
     ?manifest.newGame.preSessionSceneId,
     for (final event in map.events)
       for (final page in event.pages)

@@ -117,7 +117,6 @@ final class CatalogSpatialMapSelection {
     }
     if (TriggerZoneActions.fieldTraversalActions.contains(action)) return true;
     if (action == 'map.platform.upsert') return parameters['platform'] is Map && (parameters['platform'] as Map)['kind'] == 'spatial';
-    if (action == 'map.update_metadata' && parameters.containsKey('escapeRopeDungeonId')) return false;
     if (action == 'map.apply_operations') {
       final operations = parameters['operations'];
       return operations is List &&

@@ -181,6 +181,9 @@ final class ProjectCatalogSelection {
     for (final scene in scenes) {
       for (final node in scene.graph.nodes) {
         final payload = node.payload;
+        if (payload case SceneActionPayload(consequence: SceneSetPlayerAvatarConsequence(:final characterId))) {
+          add(CatalogDefinitionKind.character, characterId);
+        }
         if (payload is SceneActionPayload && payload.interactiveCommand is SceneActorRouteInteractiveCommand) {
           for (final step in (payload.interactiveCommand as SceneActorRouteInteractiveCommand).steps) {
             if (step is SceneActorAppearanceStep) add(CatalogDefinitionKind.character, step.characterId);
@@ -345,6 +348,10 @@ Set<String> _mapDependencySignature(MapData map) {
 
 Set<String> _mapSceneIds(MapData map, ProjectManifest metadata) {
   final ids = <String>{
+    for (final rule in map.contextualItemUses) rule.sceneId,
+    for (final rule in map.contextualItemUses)
+      for (final condition in rule.conditionExpression?.leaves ?? const <NarrativeEventCondition>[])
+        if (condition.rewardReference case final reference?) reference.sceneId,
     ?metadata.newGame.preSessionSceneId,
     for (final event in map.events)
       for (final page in event.pages)

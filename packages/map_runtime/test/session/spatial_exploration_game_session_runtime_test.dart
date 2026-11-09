@@ -120,6 +120,217 @@ void main() {
     await root.delete(recursive: true);
   });
 
+  for (final failSave in [false, true]) {
+    test('contextual rope secret is durable without debit or transfer saveFailure=$failSave', () async {
+      await runtime.dispose();
+      final scene = SceneAsset(id: 'secret', name: 'Secret', graph: SceneGraph(startNodeId: 'start', nodes: [
+        SceneNode(id: 'start', kind: SceneNodeKind.start),
+        SceneNode(id: 'avatar', kind: SceneNodeKind.action, payload: SceneActionPayload.consequence(
+          SceneConsequence.setPlayerAvatar(characterId: 'costume'))),
+        SceneNode(id: 'flag', kind: SceneNodeKind.action, payload: SceneActionPayload.consequence(
+          SceneConsequence.setFact(factId: 'alpha-rope-wall', value: true))),
+        SceneNode(id: 'end', kind: SceneNodeKind.end),
+      ], edges: [
+        SceneEdge(id: 'a', fromNodeId: 'start', fromPortId: 'completed', toNodeId: 'avatar', kind: SceneEdgeKind.defaultFlow),
+        SceneEdge(id: 'avatar-flag', fromNodeId: 'avatar', fromPortId: 'completed', toNodeId: 'flag', kind: SceneEdgeKind.defaultFlow),
+        SceneEdge(id: 'b', fromNodeId: 'flag', fromPortId: 'completed', toNodeId: 'end', kind: SceneEdgeKind.defaultFlow),
+      ]));
+      const alphaMapId = 'ruines-alpha-nord-est-salle1';
+      final blocker = bundle.map.entities.single.copyWith(id: 'obj_D24R0202_babyboy1_12', pos: const GridPos(x: 6, y: 2),
+        npc: bundle.map.entities.single.npc!.copyWith(visibilityRule: const MapEntityNpcVisibilityRule(mode: MapEntityNpcVisibilityMode.hiddenWhen,
+          predicate: MapEntityRuntimePredicate(kind: MapEntityRuntimePredicateKind.storyFlagSet, refId: 'alpha-rope-wall'))));
+      final manifest = bundle.manifest.copyWith(scenes: [scene], facts: [NarrativeFactDefinition(id: 'alpha-rope-wall', label: 'Mur Corde 0x21B')],
+        maps: [bundle.manifest.maps.single.copyWith(id: alphaMapId)], newGame: const ProjectNewGameConfig(enabled: true, startMapId: alphaMapId),
+        characters: [...bundle.manifest.characters, bundle.manifest.characters.single.copyWith(id: 'costume', name: 'Costume')],
+        pokemon: bundle.manifest.pokemon.copyWith(catalogFiles: {'items': 'items.json'}));
+      bundle = bundle.copyWith(manifest: manifest, map: bundle.map.copyWith(id: alphaMapId, entities: [blocker], properties: const {'hgss.mapHeaderId': '312'}, mapMetadata: const MapMetadata(allowEscapeRope: false,
+        contextualItemUses: [ContextualItemUseRule(id: 'alpha-rope', itemId: 'rope', sceneId: 'secret',
+          position: GridPos(x: 6, y: 3), facing: EntityFacing.north)])));
+      await File('${root.path}/items.json').writeAsString(jsonEncode(ProjectItemCatalog(schemaVersion: 1, entries: const [
+        ProjectItemDefinition(id: 'rope', displayName: 'Corde Sortie', pocketId: 'items', uses: [
+          ProjectItemUseDefinition(contexts: {ProjectItemUseContext.overworld}, target: ProjectItemTargetKind.world,
+            consumption: ProjectItemConsumptionPolicy.onApplied, effect: ProjectItemEffectDefinition.escapeRope())]),
+      ]).toJson()));
+      await File('${root.path}/project.json').writeAsString(jsonEncode(manifest.toJson()));
+      await Directory('${root.path}/maps').create();
+      await File('${root.path}/maps/field.json').writeAsString(jsonEncode(bundle.map.toJson()));
+      final initial = descriptor().initialGameState!.copyWith(currentMapId: alphaMapId, playerPosition: const GridPos(x: 6, y: 3),
+        playerSpatialPosition: PlayerSpatialPosition(x: 6.5, z: 3.5), playerFacing: EntityFacing.north,
+        bag: const Bag(entries: [BagEntry(itemId: 'rope', quantity: 2)]));
+      var attempts = 0;
+      final saved = <GameState>[];
+      runtime = SpatialExplorationGameSessionRuntime(descriptor: descriptor(initialState: initial, additionalCapabilities: {OverworldItemCapabilities.contextualUseCapabilityId}),
+        projectFilePath: () async => '${root.path}/project.json',
+        preloadedInitialMap: ({required projectFilePath, required descriptor, required initialSave}) async => RuntimeInitialMapPreloadResult(bundle: bundle),
+        commitCheckpoint: (commit) async {
+          attempts++;
+          if (failSave) throw const FileSystemException('Declared secret save failure');
+          saved.add(gameStateFromStrictSaveJson(commit.checkpoint.state));
+        }, mountSession: (_) async {}, unmountSession: (_) async {});
+      await runtime.load((_) {});
+      await runtime.gameplayReady;
+      expect(runtime.session!.entityIsPresent!(alphaMapId, blocker), isTrue);
+      await runtime.pause();
+      final menu = await runtime.readCompanionMenuData();
+      final bag = menu.pauseDetails[RuntimePlayerPauseSection.bag]!;
+      expect(bag.entries.single.bagAction!.isEnabled, isTrue);
+      final response = await runtime.dispatchPauseCommand(const RuntimePlayerPauseCommand.useBagItem(itemTargetId: 'rope'));
+      expect(response.resumeGameplay, isTrue);
+      expect(attempts, 0);
+      await runtime.resume();
+      for (var i = 0; i < 300 && attempts == 0; i++) { await Future<void>.delayed(const Duration(milliseconds: 10)); }
+      for (var i = 0; i < 300 && runtime.session!.movement.paused; i++) { await Future<void>.delayed(const Duration(milliseconds: 10)); }
+      expect(attempts, 1);
+      expect(runtime.gameStateSnapshot.currentMapId, alphaMapId);
+      expect(runtime.gameStateSnapshot.playerPosition, initial.playerPosition);
+      expect(runtime.gameStateSnapshot.bag, initial.bag);
+      expect(runtime.session!.character.id, failSave ? 'hero' : 'costume');
+      expect(runtime.session!.entityIsPresent!(alphaMapId, blocker), failSave);
+      final flags = runtime.gameStateSnapshot.storyFlags;
+      expect(flags.activeFlags.contains('alpha-rope-wall'), !failSave);
+      if (failSave) {
+        expect(saved, isEmpty);
+        expect(runtime.session!.interactionError.value, isNotNull);
+      } else {
+        expect(saved.single.storyFlags.activeFlags.contains('alpha-rope-wall'), isTrue);
+        await runtime.dispose();
+        runtime = restoredRuntime(bundle, root, saved.single);
+        await runtime.load((_) {});
+        await runtime.gameplayReady;
+        expect(runtime.gameStateSnapshot.storyFlags.activeFlags.contains('alpha-rope-wall'), isTrue);
+        expect(runtime.gameStateSnapshot.bag, initial.bag);
+        expect(runtime.session!.entityIsPresent!(alphaMapId, blocker), isFalse);
+      }
+    }, timeout: const Timeout(Duration(seconds: 45)));
+  }
+
+  for (final scenario in ['success', 'saveFailure', 'stop', 'dispose']) {
+    final failSave = scenario == 'saveFailure';
+    test('spatial Escape Rope transaction $scenario', () async {
+      await runtime.dispose();
+      bundle = await spatialWarpBundle(root, bundle);
+      final item = const ProjectItemDefinition(id: 'rope', displayName: 'Corde Sortie', pocketId: 'items', uses: [
+        ProjectItemUseDefinition(contexts: {ProjectItemUseContext.overworld}, target: ProjectItemTargetKind.world,
+          consumption: ProjectItemConsumptionPolicy.onApplied, effect: ProjectItemEffectDefinition.escapeRope())]);
+      final manifest = bundle.manifest.copyWith(
+        groups: [const ProjectMapGroup(id: 'cave', name: 'Cave', type: MapGroupType.dungeon)],
+        eventRegistry: NarrativeEventRegistry(schemaVersion: 1, mode: EventSystemMode.v2Only, records: [], legacyClaims: []),
+        pokemon: bundle.manifest.pokemon.copyWith(catalogFiles: {'items': 'items.json'}));
+      bundle = bundle.copyWith(manifest: manifest, map: bundle.map.copyWith(mapMetadata: const MapMetadata(escapeRopeDungeonId: 'cave')));
+      await File('${root.path}/items.json').writeAsString(jsonEncode(ProjectItemCatalog(schemaVersion: 1, entries: [item]).toJson()));
+      await File('${root.path}/project.json').writeAsString(jsonEncode(manifest.toJson()));
+      await File('${root.path}/maps/field.json').writeAsString(jsonEncode(bundle.map.toJson()));
+      final otherFile = File('${root.path}/maps/other.json');
+      final other = MapData.fromJson(jsonDecode(await otherFile.readAsString()) as Map<String, dynamic>);
+      await otherFile.writeAsString(jsonEncode(other.copyWith(spatialScene: other.spatialScene!.copyWith(heightLevels: List.filled(64, 2))).toJson()));
+      final initial = descriptor().initialGameState!.copyWith(
+        bag: const Bag(entries: [BagEntry(itemId: 'rope', quantity: 2)]),
+        escapeReturnPoint: EscapeReturnPoint(dungeonId: 'cave', mapId: 'other', position: const GridPos(x: 3, y: 3),
+          spatialPosition: PlayerSpatialPosition(x: 3.25, z: 3.75), facing: EntityFacing.west));
+      final commits = <GameState>[];
+      var attempts = 0;
+      final entered = Completer<void>(), release = Completer<void>();
+      final closing = scenario == 'stop' || scenario == 'dispose';
+      runtime = SpatialExplorationGameSessionRuntime(descriptor: descriptor(initialState: initial, additionalCapabilities: {OverworldItemCapabilities.spatialEscapeRopeCapabilityId}),
+        projectFilePath: () async => '${root.path}/project.json',
+        preloadedInitialMap: ({required projectFilePath, required descriptor, required initialSave}) async => RuntimeInitialMapPreloadResult(bundle: bundle),
+        commitCheckpoint: (commit) async {
+          attempts++;
+          if (closing) { entered.complete(); await release.future; }
+          if (failSave) throw const FileSystemException('Declared rope save failure');
+          commits.add(gameStateFromStrictSaveJson(commit.checkpoint.state));
+        }, mountSession: (_) async {}, unmountSession: (_) async {});
+      await runtime.load((_) {});
+      await runtime.gameplayReady;
+      await runtime.pause();
+      final pending = runtime.dispatchPauseCommand(const RuntimePlayerPauseCommand.useBagItem(itemTargetId: 'rope'));
+      if (closing) {
+        await entered.future;
+        if (scenario == 'dispose') { await runtime.dispose(); } else { await runtime.stop(GameSessionExitReason.terminated); }
+        release.complete();
+      }
+      final response = await pending;
+      expect(attempts, 1);
+      if (closing) {
+        expect(response.status, isNot(RuntimePlayerPauseCommandStatus.accepted));
+        expect(commits.single.currentMapId, 'other');
+        expect(commits.single.bag.entries.single.quantity, 1);
+        if (scenario == 'stop') {
+          expect(runtime.gameStateSnapshot.currentMapId, 'field');
+          expect(runtime.gameStateSnapshot.bag, initial.bag);
+        }
+      } else if (failSave) {
+        expect(response.status, isNot(RuntimePlayerPauseCommandStatus.accepted));
+        expect(runtime.session!.bundle.map.id, 'field');
+        expect(runtime.gameStateSnapshot.bag, initial.bag);
+        expect(runtime.gameStateSnapshot.escapeReturnPoint, initial.escapeReturnPoint);
+        expect(commits, isEmpty);
+      } else {
+        expect(response.status, RuntimePlayerPauseCommandStatus.accepted);
+        expect(runtime.session!.bundle.map.id, 'other');
+        expect(runtime.session!.movement.spatialPosition, initial.escapeReturnPoint!.spatialPosition);
+        expect(runtime.session!.movement.groundY, 2);
+        expect(runtime.gameStateSnapshot.bag.entries.single.quantity, 1);
+        expect(runtime.gameStateSnapshot.escapeReturnPoint, isNull);
+        expect(commits, hasLength(1));
+        final resumedBundle = runtime.session!.bundle;
+        await runtime.dispose();
+        runtime = restoredRuntime(resumedBundle, root, commits.single);
+        await runtime.load((_) {});
+        await runtime.gameplayReady;
+        expect(runtime.session!.bundle.map.id, 'other');
+        expect(runtime.session!.movement.spatialPosition, initial.escapeReturnPoint!.spatialPosition);
+        expect(runtime.session!.movement.groundY, 2);
+        expect(runtime.gameStateSnapshot.bag.entries.single.quantity, 1);
+      }
+    }, timeout: const Timeout(Duration(seconds: 45)));
+  }
+
+  for (final sceneTransfer in [false, true]) {
+    test('spatial Escape Rope captures real ${sceneTransfer ? 'Scene' : 'native'} entrance transfer', () async {
+      await runtime.dispose();
+      bundle = await spatialWarpBundle(root, bundle);
+      final manifest = bundle.manifest.copyWith(groups: const [ProjectMapGroup(id: 'cave', name: 'Cave', type: MapGroupType.dungeon)],
+        eventRegistry: sceneTransfer ? bundle.manifest.eventRegistry : NarrativeEventRegistry(schemaVersion: 1, mode: EventSystemMode.v2Only, records: [], legacyClaims: []),
+        pokemon: bundle.manifest.pokemon.copyWith(catalogFiles: {'items': 'items.json'}));
+      final warp = const MapWarp(id: 'entrance', pos: GridPos(x: 4, y: 4), targetMapId: 'other', targetPos: GridPos(x: 2, y: 3),
+        transition: MapWarpTransition(type: MapWarpTransitionType.none));
+      bundle = bundle.copyWith(manifest: manifest, map: bundle.map.copyWith(warps: [warp]));
+      final otherFile = File('${root.path}/maps/other.json');
+      final other = MapData.fromJson(jsonDecode(await otherFile.readAsString()) as Map<String, dynamic>);
+      await otherFile.writeAsString(jsonEncode(other.copyWith(mapMetadata: const MapMetadata(escapeRopeDungeonId: 'cave')).toJson()));
+      await File('${root.path}/maps/field.json').writeAsString(jsonEncode(bundle.map.toJson()));
+      await File('${root.path}/project.json').writeAsString(jsonEncode(manifest.toJson()));
+      await File('${root.path}/items.json').writeAsString(jsonEncode(const ProjectItemCatalog(schemaVersion: 1, entries: [
+        ProjectItemDefinition(id: 'rope', displayName: 'Corde', pocketId: 'items', uses: [ProjectItemUseDefinition(
+          contexts: {ProjectItemUseContext.overworld}, target: ProjectItemTargetKind.world, consumption: ProjectItemConsumptionPolicy.onApplied,
+          effect: ProjectItemEffectDefinition.escapeRope())])]).toJson()));
+      final initial = descriptor().initialGameState!.copyWith(playerPosition: const GridPos(x: 4, y: 4),
+        playerSpatialPosition: PlayerSpatialPosition(x: 4.25, z: 4.75), playerFacing: EntityFacing.west,
+        bag: const Bag(entries: [BagEntry(itemId: 'rope', quantity: 2)]));
+      final saves = <GameState>[];
+      runtime = SpatialExplorationGameSessionRuntime(descriptor: descriptor(initialState: initial, additionalCapabilities: {OverworldItemCapabilities.spatialEscapeRopeCapabilityId}),
+        projectFilePath: () async => '${root.path}/project.json',
+        preloadedInitialMap: ({required projectFilePath, required descriptor, required initialSave}) async => RuntimeInitialMapPreloadResult(bundle: bundle),
+        commitCheckpoint: (commit) async => saves.add(gameStateFromStrictSaveJson(commit.checkpoint.state)), mountSession: (_) async {}, unmountSession: (_) async {});
+      await runtime.load((_) {}); await runtime.gameplayReady;
+      if (!sceneTransfer) await runtime.session!.enterWarp(warp);
+      for (var i = 0; i < 300 && (runtime.gameStateSnapshot.currentMapId != 'other' || runtime.session!.movement.paused); i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+      }
+      expect(runtime.gameStateSnapshot.currentMapId, 'other');
+      final anchor = runtime.gameStateSnapshot.escapeReturnPoint;
+      expect(anchor, isNotNull);
+      expect(anchor!.mapId, 'field'); expect(anchor.spatialPosition, initial.playerSpatialPosition); expect(anchor.facing, initial.playerFacing);
+      await runtime.pause();
+      final result = await runtime.dispatchPauseCommand(const RuntimePlayerPauseCommand.useBagItem(itemTargetId: 'rope'));
+      expect(result.status, RuntimePlayerPauseCommandStatus.accepted);
+      expect(runtime.gameStateSnapshot.currentMapId, 'field');
+      expect(runtime.gameStateSnapshot.playerSpatialPosition, initial.playerSpatialPosition);
+      expect(saves.last.bag.entries.single.quantity, 1);
+    }, timeout: const Timeout(Duration(seconds: 45)));
+  }
+
   Future<void> configureFishing({
     double chance = 0,
     MovementMode mode = MovementMode.walk,

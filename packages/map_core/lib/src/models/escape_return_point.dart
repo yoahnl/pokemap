@@ -1,5 +1,6 @@
 import 'enums.dart';
 import 'geometry.dart';
+import 'player_spatial_position.dart';
 
 final class EscapeReturnPoint {
   const EscapeReturnPoint({
@@ -7,6 +8,7 @@ final class EscapeReturnPoint {
     required this.mapId,
     required this.position,
     required this.facing,
+    this.spatialPosition,
   });
 
   factory EscapeReturnPoint.fromJson(Map<String, dynamic> json) {
@@ -28,11 +30,25 @@ final class EscapeReturnPoint {
     if (point.x < 0 || point.y < 0) {
       throw const FormatException('Invalid escape return position');
     }
+    PlayerSpatialPosition? spatialPosition;
+    if (json['spatialPosition'] != null) {
+      final raw = json['spatialPosition'];
+      if (raw is! Map<String, dynamic>) {
+        throw const FormatException('Invalid spatial escape return position');
+      }
+      spatialPosition = PlayerSpatialPosition.fromJson(raw);
+      try {
+        spatialPosition.validateGridPosition(point);
+      } on StateError {
+        throw const FormatException('Spatial escape return position disagrees with its cell');
+      }
+    }
     return EscapeReturnPoint(
       dungeonId: dungeonId,
       mapId: mapId,
       position: point,
       facing: EntityFacing.values.byName(facing as String),
+      spatialPosition: spatialPosition,
     );
   }
 
@@ -40,12 +56,14 @@ final class EscapeReturnPoint {
   final String mapId;
   final GridPos position;
   final EntityFacing facing;
+  final PlayerSpatialPosition? spatialPosition;
 
   Map<String, dynamic> toJson() => {
     'dungeonId': dungeonId,
     'mapId': mapId,
     'position': position.toJson(),
     'facing': facing.name,
+    if (spatialPosition != null) 'spatialPosition': spatialPosition!.toJson(),
   };
 
   @override
@@ -54,8 +72,9 @@ final class EscapeReturnPoint {
       dungeonId == other.dungeonId &&
       mapId == other.mapId &&
       position == other.position &&
-      facing == other.facing;
+      facing == other.facing &&
+      spatialPosition == other.spatialPosition;
 
   @override
-  int get hashCode => Object.hash(dungeonId, mapId, position, facing);
+  int get hashCode => Object.hash(dungeonId, mapId, position, facing, spatialPosition);
 }

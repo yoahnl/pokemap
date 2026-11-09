@@ -18,6 +18,7 @@ AuthoringMutationDraft updateMapMetadata(AuthoringPlanningContext context) {
     'allowEscapeRope',
     'allowBicycle',
     'escapeRopeDungeonId',
+    'contextualItemUses',
   });
   final mapId = parameters.string('mapId');
   final values = context.request.parameters;
@@ -32,7 +33,8 @@ AuthoringMutationDraft updateMapMetadata(AuthoringPlanningContext context) {
       message: 'The bicycle setting must be a boolean.');
   }
   final hasDungeon = values.containsKey('escapeRopeDungeonId');
-  if (!hasName && !hasRole && !hasIndoor && !hasEscapeAllowed && !hasBicycle && !hasDungeon) {
+  final hasRules = values.containsKey('contextualItemUses');
+  if (!hasName && !hasRole && !hasIndoor && !hasEscapeAllowed && !hasBicycle && !hasDungeon && !hasRules) {
     throw MapAuthoringException(
         code: 'map.metadata_empty',
         message: 'At least one map metadata field is required.');
@@ -125,6 +127,13 @@ AuthoringMutationDraft updateMapMetadata(AuthoringPlanningContext context) {
   final dungeonId = hasDungeon
       ? rawDungeon as String?
       : before.mapMetadata.escapeRopeDungeonId;
+  final rawRules = values['contextualItemUses'];
+  if (hasRules && (rawRules is! List || rawRules.length > 128)) {
+    throw MapAuthoringException(code: 'map.contextual_items_invalid', message: 'Choose at most 128 contextual item uses.');
+  }
+  final rules = hasRules ? [for (final value in rawRules! as List)
+    ContextualItemUseRule.fromJson(Map<String, dynamic>.from(value as Map))] : before.contextualItemUses;
+  final rulesChanged = before.mapMetadata.copyWith(contextualItemUses: rules) != before.mapMetadata;
   final nameChanged =
       name != null && (entry.name.trim() != name || before.name.trim() != name);
   if (!nameChanged &&
@@ -132,6 +141,7 @@ AuthoringMutationDraft updateMapMetadata(AuthoringPlanningContext context) {
       before.mapMetadata.isIndoor == isIndoor &&
       before.mapMetadata.allowBicycle == allowBicycle &&
       before.mapMetadata.allowEscapeRope == allowEscapeRope &&
+      !rulesChanged &&
       before.mapMetadata.escapeRopeDungeonId == dungeonId) {
     throw MapAuthoringException(
         code: 'map.no_change',
@@ -144,6 +154,7 @@ AuthoringMutationDraft updateMapMetadata(AuthoringPlanningContext context) {
       allowEscapeRope: allowEscapeRope,
       allowBicycle: allowBicycle,
       escapeRopeDungeonId: dungeonId,
+      contextualItemUses: rules,
     ),
   );
   final manifest = snapshot.manifest.copyWith(
@@ -156,11 +167,18 @@ AuthoringMutationDraft updateMapMetadata(AuthoringPlanningContext context) {
     ],
   );
   final localProperties = snapshot.materializedCatalogProject &&
-      snapshot.availableProjectSections != null && !hasDungeon;
+      snapshot.availableProjectSections != null;
   if (!localProperties) {
     ProjectValidator.validate(manifest);
   }
   MapValidator.validate(updated, projectDialogueContext: localProperties ? null : manifest);
+  if (hasRules) {
+    if (rules.isNotEmpty && snapshot.itemCatalog == null) {
+      throw MapAuthoringException(code: 'map.contextual_item_catalog_missing', message: 'Load the project item catalogue before configuring contextual uses.');
+    }
+    validateContextualItemUseRules(updated, project: manifest, itemCatalog: snapshot.itemCatalog,
+      maps: snapshot.maps, lookupRewardScenes: snapshot.lookupRewardScenes);
+  }
   final map = AuthoringResourceRef(
       kind: 'map',
       id: mapId,
@@ -192,6 +210,9 @@ AuthoringMutationDraft updateMapMetadata(AuthoringPlanningContext context) {
           ),
       ],
       diff: AuthoringDiff([
+        if (rulesChanged) AuthoringDiffEntry(operation: AuthoringDiffOperation.replace, resource: map,
+          path: '/mapMetadata/contextualItemUses', before: before.contextualItemUses.map((rule) => rule.toJson()).toList(),
+          after: rules.map((rule) => rule.toJson()).toList()),
         if (before.name != updated.name)
           AuthoringDiffEntry(
             operation: AuthoringDiffOperation.replace,
@@ -256,6 +277,7 @@ AuthoringMutationDraft updateMapMetadata(AuthoringPlanningContext context) {
       'allowEscapeRope': allowEscapeRope,
       'allowBicycle': allowBicycle,
       'escapeRopeDungeonId': dungeonId,
+      'contextualItemUseCount': rules.length,
       'storageGuarantee': 'recoverable'
     },
     referenceImpact: const {'identityUnchanged': true, 'pathUnchanged': true},

@@ -2,6 +2,31 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('spatial escape anchor preserves the exact fractional position', () {
+    final position = PlayerSpatialPosition(x: 3.25, z: 5.75).toJson();
+    final anchor = EscapeReturnPoint.fromJson({
+      'dungeonId': 'cave',
+      'mapId': 'outside',
+      'position': {'x': 3, 'y': 5},
+      'facing': 'west',
+      'spatialPosition': position,
+    });
+    expect(anchor.toJson()['spatialPosition'], position);
+    final state = GameState(saveId: 'spatial-escape', escapeReturnPoint: anchor);
+    final saved = saveDataFromGameState(state);
+    final restored = gameStateFromSaveData(SaveData.fromJson(saved.toJson()));
+    expect(restored.escapeReturnPoint, anchor);
+    expect(restored.escapeReturnPoint!.toJson()['spatialPosition'], position);
+  });
+
+  test('spatial escape anchor rejects a different grid cell', () {
+    expect(() => EscapeReturnPoint.fromJson({
+      'dungeonId': 'cave', 'mapId': 'outside',
+      'position': {'x': 3, 'y': 5}, 'facing': 'west',
+      'spatialPosition': PlayerSpatialPosition(x: 4.25, z: 5.75).toJson(),
+    }), throwsFormatException);
+  });
+
   test('catalog rejects a consumable escape rope marked as key-item', () {
     final report = validateProjectItemCatalog(
       const ProjectItemCatalog(

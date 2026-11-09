@@ -20,27 +20,36 @@ _MapMetadata _$MapMetadataFromJson(Map<String, dynamic> json) => _MapMetadata(
   allowBicycle: json['allowBicycle'] as bool? ?? true,
   allowEscapeRope: json['allowEscapeRope'] as bool? ?? true,
   escapeRopeDungeonId: json['escapeRopeDungeonId'] as String?,
+  contextualItemUses:
+      (json['contextualItemUses'] as List<dynamic>?)
+          ?.map(
+            (e) => ContextualItemUseRule.fromJson(e as Map<String, dynamic>),
+          )
+          .toList() ??
+      const [],
   defaultSpawnId: json['defaultSpawnId'] as String?,
   tags:
       (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList() ??
       const [],
 );
 
-Map<String, dynamic> _$MapMetadataToJson(_MapMetadata instance) =>
-    <String, dynamic>{
-      'displayName': instance.displayName,
-      'mapType': _$MapTypeEnumMap[instance.mapType]!,
-      'musicPath': instance.musicPath,
-      'musicVolume': instance.musicVolume,
-      'battleMusicPath': instance.battleMusicPath,
-      'weather': _$MapWeatherEnumMap[instance.weather]!,
-      'isIndoor': instance.isIndoor,
-      'allowBicycle': instance.allowBicycle,
-      'allowEscapeRope': instance.allowEscapeRope,
-      'escapeRopeDungeonId': instance.escapeRopeDungeonId,
-      'defaultSpawnId': instance.defaultSpawnId,
-      'tags': instance.tags,
-    };
+Map<String, dynamic> _$MapMetadataToJson(
+  _MapMetadata instance,
+) => <String, dynamic>{
+  'displayName': instance.displayName,
+  'mapType': _$MapTypeEnumMap[instance.mapType]!,
+  'musicPath': instance.musicPath,
+  'musicVolume': instance.musicVolume,
+  'battleMusicPath': instance.battleMusicPath,
+  'weather': _$MapWeatherEnumMap[instance.weather]!,
+  'isIndoor': instance.isIndoor,
+  'allowBicycle': instance.allowBicycle,
+  'allowEscapeRope': instance.allowEscapeRope,
+  'escapeRopeDungeonId': instance.escapeRopeDungeonId,
+  'contextualItemUses': ?_contextualItemUsesToJson(instance.contextualItemUses),
+  'defaultSpawnId': instance.defaultSpawnId,
+  'tags': instance.tags,
+};
 
 const _$MapTypeEnumMap = {
   MapType.route: 'route',

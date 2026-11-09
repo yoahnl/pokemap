@@ -5,6 +5,7 @@ import 'gameplay_world_state.dart';
 import 'items/bag_operations.dart';
 import 'items/bag_operation_result.dart';
 import 'scene_warp_arrival.dart';
+import 'spatial_movement_controller.dart';
 
 enum EscapeRopeBlockReason {
   unsupportedMap,
@@ -31,6 +32,10 @@ final class CanUseEscapeRope extends EscapeRopeEvaluation {
   final EscapeReturnPoint arrival;
 }
 
+bool _supportsEscapeRopeMap(MapData map) =>
+    (map.version == ProjectVersion.v8 && map.spatialScene == null) ||
+    (map.version == ProjectVersion.v9 && map.spatialScene != null);
+
 EscapeReturnPoint? escapeReturnPointAfterTransfer({
   required MapData sourceMap,
   required MapData targetMap,
@@ -45,10 +50,10 @@ EscapeReturnPoint? escapeReturnPointAfterTransfer({
   }
   if (sourceId != null ||
       sourceState.currentMapId != sourceMap.id ||
-      sourceMap.version != ProjectVersion.v8 ||
-      sourceMap.spatialScene != null ||
-      targetMap.version != ProjectVersion.v8 ||
-      targetMap.spatialScene != null ||
+      !_supportsEscapeRopeMap(sourceMap) ||
+      !_supportsEscapeRopeMap(targetMap) ||
+      (sourceMap.spatialScene == null) != (targetMap.spatialScene == null) ||
+      (sourceMap.spatialScene != null && sourceState.playerSpatialPosition == null) ||
       (sourceState.playerMovementMode != MovementMode.walk &&
           sourceState.playerMovementMode != MovementMode.bicycle)) {
     return null;
@@ -57,6 +62,7 @@ EscapeReturnPoint? escapeReturnPointAfterTransfer({
       dungeonId: targetId,
       mapId: sourceMap.id,
       position: sourceState.playerPosition,
+      spatialPosition: sourceMap.spatialScene == null ? null : sourceState.playerSpatialPosition,
       facing: sourceState.playerFacing);
 }
 
@@ -68,11 +74,9 @@ EscapeRopeEvaluation evaluateEscapeRopeAttempt({
   ProjectManifest? project,
   bool validateArrival = true,
 }) {
-  if (sourceMap.spatialScene != null ||
-      sourceMap.version != ProjectVersion.v8 ||
-      (targetMap != null &&
-          (targetMap.spatialScene != null ||
-              targetMap.version != ProjectVersion.v8))) {
+  if (!_supportsEscapeRopeMap(sourceMap) ||
+      (targetMap != null && (!_supportsEscapeRopeMap(targetMap) ||
+          (sourceMap.spatialScene == null) != (targetMap.spatialScene == null)))) {
     return const EscapeRopeUnavailable(EscapeRopeBlockReason.unsupportedMap);
   }
   if (sourceMap.id != gameState.currentMapId ||
@@ -112,8 +116,24 @@ EscapeRopeEvaluation evaluateEscapeRopeAttempt({
     return const EscapeRopeUnavailable(
         EscapeRopeBlockReason.invalidDestination);
   }
+  if ((targetMap.spatialScene != null) != (anchor.spatialPosition != null)) {
+    return const EscapeRopeUnavailable(EscapeRopeBlockReason.invalidDestination);
+  }
+  try {
+    anchor.spatialPosition?.validateGridPosition(anchor.position);
+  } on StateError {
+    return const EscapeRopeUnavailable(EscapeRopeBlockReason.invalidDestination);
+  }
   if (!validateArrival) return CanUseEscapeRope(anchor);
   try {
+    if (targetMap.spatialScene != null) {
+      final movement = SpatialMovementController.fromMap(map: targetMap,
+        models: project?.models3d ?? const [], spatialArrival: anchor.spatialPosition,
+        facing: anchor.facing,
+        actorStateProvider: (id) => gameState.spatialWorldState.actorState(targetMap.id, id),
+        modelStateProvider: (id) => gameState.spatialWorldState.modelState(targetMap.id, id));
+      return movement.isPositionTraversable ? CanUseEscapeRope(anchor) : const EscapeRopeUnavailable(EscapeRopeBlockReason.obstructed);
+    }
     final world = GameplayWorldState.initial(
         map: targetMap,
         playerPos: anchor.position,
@@ -188,7 +208,7 @@ GameState? commitEscapeRopeAction({
       currentMapId: evaluation.arrival.mapId,
       playerPosition: evaluation.arrival.position,
       playerPixelPosition: null,
-      playerSpatialPosition: null,
+      playerSpatialPosition: evaluation.arrival.spatialPosition,
       playerFacing: evaluation.arrival.facing,
       playerMovementMode: MovementMode.walk,
       escapeReturnPoint: null,

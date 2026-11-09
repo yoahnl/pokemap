@@ -1190,6 +1190,7 @@ final class SceneActions {
         }
         final projected = delete(
           context.snapshot.manifest,
+          maps: context.snapshot.maps,
           sceneId: sceneId,
           replacementSceneId: replacement as String?,
         );
@@ -2558,6 +2559,7 @@ final class SceneActions {
 
   ProjectManifest delete(
     ProjectManifest project, {
+    List<MapData> maps = const [],
     required String sceneId,
     String? replacementSceneId,
   }) {
@@ -2565,7 +2567,7 @@ final class SceneActions {
       project,
       sceneId: sceneId,
       replacementSceneId: replacementSceneId,
-      dependencyIndex: buildNarrativeDependencyIndex(project: project),
+      dependencyIndex: buildNarrativeDependencyIndex(project: project, maps: maps),
     );
     if (!result.isApplied) {
       throw NarrativeAuthoringException(

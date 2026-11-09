@@ -27,6 +27,75 @@ const rope = ProjectItemDefinition(
 );
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  testWidgets('cancelling contextual use before persistence starts performs no disk write', (tester) async {
+    await tester.runAsync(() async {
+      final entered = Completer<void>(), release = Completer<void>();
+      var attempts = 0;
+      final mounted = await mountRope(tester, contextual: true,
+        contextHydrationEntered: entered, contextHydrationRelease: release, checkpoint: (_) async { attempts++; });
+      final game = mounted.game;
+      final before = game.playerServiceGameStateSnapshot;
+      game.pauseEngine();
+      expect((await mounted.controller.useBagItemOutsideBattle(const RuntimePlayerPauseCommand.useBagItem(itemTargetId: 'rope'))).resumeGameplay, isTrue);
+      game.resumeEngine(); game.resumeContextualItemUse();
+      await tickUntil(game, () => entered.isCompleted);
+      game.cancelContextualItemUse();
+      release.complete();
+      await tickUntil(game, () => game.inputAuthoritySnapshot.context == RuntimeInputContext.overworld);
+      expect(attempts, 0);
+      expect(game.playerServiceGameStateSnapshot.storyFlags, before.storyFlags);
+      expect(game.playerServiceGameStateSnapshot.bag, before.bag);
+    });
+  });
+  testWidgets('closing 2D contextual use during persistence keeps durable receipt without live publication', (tester) async {
+    await tester.runAsync(() async {
+      final entered = Completer<void>(), release = Completer<void>();
+      final saves = <GameState>[];
+      final mounted = await mountRope(tester, contextual: true, checkpoint: (state) async {
+        entered.complete(); await release.future; saves.add(state);
+      });
+      final game = mounted.game;
+      final before = game.playerServiceGameStateSnapshot;
+      game.pauseEngine();
+      expect((await mounted.controller.useBagItemOutsideBattle(const RuntimePlayerPauseCommand.useBagItem(itemTargetId: 'rope'))).resumeGameplay, isTrue);
+      game.resumeEngine(); game.resumeContextualItemUse();
+      await tickUntil(game, () => entered.isCompleted);
+      game.cancelContextualItemUse(); game.pauseEngine();
+      release.complete();
+      for (var i = 0; i < 30; i++) { await Future<void>.delayed(const Duration(milliseconds: 5)); }
+      expect(saves.single.storyFlags.activeFlags.contains('secret-open'), isTrue);
+      expect(game.playerServiceGameStateSnapshot.storyFlags, before.storyFlags);
+      expect(game.playerServiceGameStateSnapshot.bag, before.bag);
+    });
+  });
+  for (final failSave in [false, true]) {
+    testWidgets('2D contextual rope replaces normal debit with durable Scene failure=$failSave', (tester) async {
+      await tester.runAsync(() async {
+        var attempts = 0;
+        final saves = <GameState>[];
+        final mounted = await mountRope(tester, contextual: true, checkpoint: (state) async {
+          attempts++;
+          if (failSave) throw StateError('disk full');
+          saves.add(state);
+        });
+        final game = mounted.game;
+        final before = game.playerServiceGameStateSnapshot;
+        game.pauseEngine();
+        final result = await mounted.controller.useBagItemOutsideBattle(const RuntimePlayerPauseCommand.useBagItem(itemTargetId: 'rope'));
+        expect(result.resumeGameplay, isTrue);
+        expect(attempts, 0);
+        game.resumeEngine();
+        game.resumeContextualItemUse();
+        await tickUntil(game, () => attempts == 1 && game.canCapturePlayerCheckpoint);
+        expect(attempts, 1);
+        expect(game.gameStateSnapshot.currentMapId, before.currentMapId);
+        expect(game.gameStateSnapshot.bag, before.bag);
+        expect(game.gameStateSnapshot.storyFlags.activeFlags.contains('secret-open'), !failSave);
+        if (!failSave) expect(saves.single.storyFlags.activeFlags.contains('secret-open'), isTrue);
+        if (failSave) expect(saves, isEmpty);
+      });
+    });
+  }
   for (final failure in <String?>[
     null,
     'load',
@@ -371,6 +440,9 @@ mountRope(
   required Future<void> Function(GameState) checkpoint,
   Completer<void>? mountGate,
   Completer<void>? mountEntered,
+  bool contextual = false,
+  Completer<void>? contextHydrationEntered,
+  Completer<void>? contextHydrationRelease,
 }) async {
   final root = await Directory.systemTemp.createTemp('native-rope-');
   addTearDown(() => root.delete(recursive: true));
@@ -381,6 +453,8 @@ mountRope(
         size: GridSize(width: 8, height: 6),
         mapMetadata: MapMetadata(escapeRopeDungeonId: 'dungeon'),
       ).copyWith(
+        mapMetadata: MapMetadata(escapeRopeDungeonId: 'dungeon', allowEscapeRope: !contextual,
+          contextualItemUses: contextual ? const [ContextualItemUseRule(id: 'secret-use', itemId: 'rope', sceneId: 'secret')] : const []),
         warps: [
           const MapWarp(
             id: 'door',
@@ -471,6 +545,15 @@ mountRope(
   }
   final manifest = ProjectManifest(
     name: 'Rope',
+    facts: [if (contextual) NarrativeFactDefinition(id: 'secret-open', label: 'Secret')],
+    scenes: [if (contextual) SceneAsset(id: 'secret', name: 'Secret', graph: SceneGraph(startNodeId: 'start', nodes: [
+      SceneNode(id: 'start', kind: SceneNodeKind.start),
+      SceneNode(id: 'flag', kind: SceneNodeKind.action, payload: SceneActionPayload.consequence(SceneConsequence.setFact(factId: 'secret-open', value: true))),
+      SceneNode(id: 'end', kind: SceneNodeKind.end),
+    ], edges: [
+      SceneEdge(id: 'a', fromNodeId: 'start', fromPortId: 'completed', toNodeId: 'flag', kind: SceneEdgeKind.defaultFlow),
+      SceneEdge(id: 'b', fromNodeId: 'flag', fromPortId: 'completed', toNodeId: 'end', kind: SceneEdgeKind.defaultFlow),
+    ]))],
     tilesets: [],
     maps: [
       ProjectMapEntry(id: 'cave', name: 'Cave', relativePath: 'maps/cave.json'),
@@ -759,6 +842,13 @@ mountRope(
     initialMapActivationReason: MapActivationReason.saveRestore,
     saveRepository: MemorySave(),
     overworldCheckpointWriter: checkpoint,
+    runtimePlayerPokemonProgressionCatalogLoader: ({required gameState, required projectRootDirectory, required pokemonConfig}) async {
+      if (gameState.storyFlags.activeFlags.contains('secret-open') && contextHydrationEntered != null) {
+        contextHydrationEntered.complete();
+        await contextHydrationRelease!.future;
+      }
+      return const RuntimePlayerPokemonProgressionCatalogs(speciesById: {}, maxPpByMoveId: {});
+    },
     runtimeTilesetImageLoader: (
       paths, {
       transparentColorByTilesetId = const {},

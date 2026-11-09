@@ -228,7 +228,7 @@ final class CatalogAuthoringSession {
         exteriorDeletedDefinitions(request.actionId, request.parameters),
         reader.store.gateway);
     if (request.actionId == 'map.save') return _planMap(request);
-    if (request.actionId == 'map.update_metadata' && !request.parameters.containsKey('escapeRopeDungeonId')) return _planWorkshop(request);
+    if (request.actionId == 'map.update_metadata') return _planWorkshop(request);
     if (request.actionId == 'map.create') {
       final current = (await CatalogProjectReader.open(store: reader.store,
           descriptor: reader.descriptor, metadataFields: {'settings'}))!;

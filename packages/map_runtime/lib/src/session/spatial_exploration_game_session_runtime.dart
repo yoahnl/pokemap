@@ -66,6 +66,7 @@ import 'playable_map_game_session_runtime.dart';
 import 'runtime_session_strings.dart';
 
 part 'spatial_exploration_game_session_fishing.dart';
+part 'spatial_exploration_game_session_escape_rope.dart';
 
 typedef SpatialExplorationSessionMount = Future<void> Function(
   SpatialExplorationGameSessionRuntime runtime,
@@ -139,7 +140,11 @@ final class SpatialExplorationGameSessionRuntime
   final _worldServiceSnapshots =
       StreamController<RuntimeWorldServiceSnapshot?>.broadcast();
   bool _pauseCommandInFlight = false;
+  bool _escapeRopeInFlight = false;
+  ({MapData map, GameState state})? _escapeTransferSource;
+  MapActivation? _pendingEscapeActivation;
   String? _pendingContactId;
+  ({ContextualItemUseRule rule, GameState state, String activation})? _pendingContextualItemUse;
   GameState Function()? _sceneStateReader;
   void Function(GameState)? _sceneStateWriter;
   SpatialGameplayEvents? _gameplay;
@@ -532,6 +537,9 @@ final class SpatialExplorationGameSessionRuntime
       return;
     }
     _gameState = state.copyWith(
+        escapeReturnPoint: state.currentMapId == session.bundle.map.id
+            ? state.escapeReturnPoint
+            : _escapeAnchorAfterTransfer(session.bundle.map, state),
         mapInstanceWorldState: !_usesFieldObstacleInstances || state.currentMapId == session.bundle.map.id
             ? state.mapInstanceWorldState
             : setupDifferentMapInstance(state: state.mapInstanceWorldState,
@@ -895,6 +903,7 @@ final class SpatialExplorationGameSessionRuntime
       createSceneCallbacks: _createSceneCallbacks,
       itemCatalog: _bagItemCatalog,
       persistItemPickup: _persistNativeItemPickup,
+      persistContextualItemUse: _persistContextualItemUse,
       presentItemPickup: _presentNativeItemPickup,
       showEntityDialogue: (entity, ref) async {
         final result = await _session!.showDialogue(ref, entity: entity);
@@ -1353,6 +1362,7 @@ final class SpatialExplorationGameSessionRuntime
         throw StateError('The spatial relocation did not reach its arrival.');
       }
       return state.copyWith(
+          escapeReturnPoint: changedMap ? _escapeAnchorAfterTransfer(session.bundle.map, state) : state.escapeReturnPoint,
           playerPosition: GridPos(
               x: session.movement.x.floor(), y: session.movement.z.floor()),
           playerSpatialPosition: session.movement.spatialPosition,
@@ -1776,6 +1786,18 @@ final class SpatialExplorationGameSessionRuntime
           }
         },
       );
+      final beforeMapChange = loaded.onBeforeMapChange;
+      loaded.onBeforeMapChange = () {
+        beforeMapChange?.call();
+        if (_disposed || _stopped || _escapeRopeInFlight) return;
+        final movement = loaded.movement;
+        _escapeTransferSource = (map: loaded.bundle.map, state: _readMutableState().copyWith(
+          currentMapId: loaded.bundle.map.id,
+          playerPosition: GridPos(x: movement.x.floor(), y: movement.z.floor()),
+          playerSpatialPosition: movement.spatialPosition,
+          playerFacing: movement.facing,
+          playerMovementMode: movement.movementMode));
+      };
       loaded.onPresentationFrame = (dt, paused) {
         _refreshPeriodicRewardAvailability();
         _story?.update(dt, paused || _isFishingBusy);
@@ -1932,6 +1954,7 @@ final class SpatialExplorationGameSessionRuntime
     _configureRealWeather();
     if (owner == RuntimeExternalInputLock.lifecycle) _syncMusicSuspension();
     _startPendingContact();
+    _startPendingContextualItemUse();
   }
 
   void _syncMovement() {
@@ -2007,6 +2030,60 @@ final class SpatialExplorationGameSessionRuntime
     _syncMovement();
     _configureRealWeather();
     _startPendingContact();
+    _startPendingEscapeActivation();
+    _startPendingContextualItemUse();
+  }
+
+  Set<String> get _contextualItemIds {
+    final map = _session?.bundle.map;
+    if (map == null) return const {};
+    final state = gameStateSnapshot;
+    final project = _gameplay?.project ?? _session!.bundle.manifest;
+    return contextualItemUseIds(map: map, project: project, state: state,
+      conditionContext: PresentationConditionContext(project: project, map: map,
+        maps: _mapsById.values.toList(), lookupRewardScenes: _gameplay?.rewardScenes));
+  }
+
+  RuntimeContextualItemUseDisposition _reserveContextualItemUse(ProjectItemDefinition item, GameState state) {
+    final map = _session?.bundle.map;
+    if (map == null || _disposed || _stopped || !_paused || _pendingContextualItemUse != null ||
+        _pendingContactId != null || gameStateSnapshot != state) return RuntimeContextualItemUseDisposition.refused;
+    final selection = selectContextualItemUse(map: map, project: _session!.bundle.manifest,
+      state: state, itemId: item.id, conditionContext: PresentationConditionContext(project: _session!.bundle.manifest,
+        map: map, maps: _mapsById.values.toList(), lookupRewardScenes: _gameplay?.rewardScenes));
+    if (selection is ContextualItemUseNoMatch) return RuntimeContextualItemUseDisposition.noMatch;
+    if (selection is! ContextualItemUseMatched || _commitCheckpoint == null ||
+        !descriptor.grantedCapabilities.contains(OverworldItemCapabilities.contextualUseCapabilityId)) return RuntimeContextualItemUseDisposition.refused;
+    _pendingContextualItemUse = (rule: selection.rule, state: state, activation: _mapActivationId);
+    return RuntimeContextualItemUseDisposition.reserved;
+  }
+
+  void _startPendingContextualItemUse() {
+    if (_disposed || _stopped || _paused || _locks.isNotEmpty) return;
+    final pending = _pendingContextualItemUse;
+    _pendingContextualItemUse = null;
+    if (pending == null) return;
+    unawaited(_runGameplay(() async {
+      if (_mapActivationId != pending.activation || _gameState != pending.state) {
+        throw StateError('The contextual item use is no longer current.');
+      }
+      final used = await _gameplay?.useContextualItem(pending.rule, pending.state) ?? false;
+      if (!used && !_disposed && !_stopped) throw StateError('The contextual item use was cancelled or refused.');
+    }));
+  }
+
+  Future<void> _persistContextualItemUse(GameState state) async {
+    _ensureGameplayActive();
+    final writer = _commitCheckpoint;
+    if (writer == null || !(_gameplay?.isBusy ?? false) || _gameplayOperations == 0) {
+      throw StateError('The contextual item use has no checkpoint owner.');
+    }
+    await _activityGate.runWithActivity(NarrativeRuntimeActivity.sceneActive, () async {
+      final owner = _activityGate.captureSceneCheckpointOwner();
+      await _activityGate.runSceneCheckpoint(owner, () => writer(GameSessionCheckpointCommit(
+        descriptor: descriptor.publicContext, checkpoint: _checkpointFromState(state, captureEnvironment: false),
+        status: SaveStatus.active, trigger: GameSessionCheckpointTrigger.pauseMutation)));
+    });
   }
 
   void _startPendingContact() {
@@ -2099,12 +2176,17 @@ final class SpatialExplorationGameSessionRuntime
         itemCatalog: _bagItemCatalog,
         locale: descriptor.locale);
     services.setFishingConsumer(_reserveSpatialFishing);
+    if (descriptor.grantedCapabilities.contains(OverworldItemCapabilities.spatialEscapeRopeCapabilityId)) {
+      services.setEscapeRopeConsumer(_useSpatialEscapeRope, resumeGameplayOnSuccess: true);
+    }
+    services.setContextualItemUseConsumer(_reserveContextualItemUse);
     services.setPauseMutationGuard(() =>
         _activityGate.activity == NarrativeRuntimeActivity.idle &&
                 !_isFishingBusy &&
                 !_stopped &&
                 _gameplayOperations == 0 &&
                 !_materializingState &&
+                _pendingContextualItemUse == null &&
                 !(_gameplay?.isBusy ?? false)
             ? null
             : 'Une action est déjà en cours.');
@@ -2392,6 +2474,8 @@ final class SpatialExplorationGameSessionRuntime
   Future<void> stop(GameSessionExitReason reason) async {
     _cancelSpatialFishing();
     _pendingContactId = null;
+    _pendingContextualItemUse = null;
+    _pendingEscapeActivation = null;
     _story?.autonomousNpcs.flush();
     _story?.cancel();
     if (_disposed) return;
@@ -2441,6 +2525,8 @@ final class SpatialExplorationGameSessionRuntime
         locale: descriptor.locale,
         uiLocale: _preferences?.locale,
         supportsFishing: _playerServices?.supportsFishing ?? false,
+        contextualItemIds: _contextualItemIds,
+        supportsEscapeRope: _playerServices?.supportsEscapeRope ?? false,
         mapEnabled: descriptor.grantedCapabilities.contains('map3d@1'),
         projectMaps: manifest.maps,
         regionalMap: manifest.regionalMap,
@@ -2465,6 +2551,8 @@ final class SpatialExplorationGameSessionRuntime
     if (_disposed) return;
     _cancelSpatialFishing();
     _pendingContactId = null;
+    _pendingContextualItemUse = null;
+    _pendingEscapeActivation = null;
     _story?.autonomousNpcs.flush();
     _story?.cancel();
     _disposed = true;

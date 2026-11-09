@@ -38,6 +38,44 @@ GameState enter({MapData? target, GameState state = entry}) {
 }
 
 void main() {
+  MapData spatialMap(String id, {bool dungeon = false, bool blocked = false}) => MapData(
+    id: id, name: id, version: ProjectVersion.v9,
+    size: const GridSize(width: 8, height: 8),
+    mapMetadata: MapMetadata(escapeRopeDungeonId: dungeon ? 'cave' : null),
+    spatialScene: MapSpatialScene(width: 8, depth: 8, heightLevels: List.filled(64, 2),
+      navigation: SpatialNavigationProfile(spawn: SpatialSpawn(x: 3.25, z: 3.75),
+        blockedAreas: [if (blocked) SpatialBlockedArea(x: 3, z: 3, width: 1, depth: 1)])),
+  );
+
+  test('spatial entry and rope retain the exact fractional return point', () {
+    final outsideMap = spatialMap('outside');
+    final insideMap = spatialMap('first', dungeon: true);
+    final source = entry.copyWith(playerSpatialPosition: PlayerSpatialPosition(x: 3.25, z: 3.75));
+    final anchor = escapeReturnPointAfterTransfer(sourceMap: outsideMap, targetMap: insideMap, sourceState: source);
+    expect(anchor, isNotNull);
+    expect(anchor!.spatialPosition, source.playerSpatialPosition);
+    final inside = source.copyWith(currentMapId: 'first', escapeReturnPoint: anchor);
+    final evaluation = evaluateEscapeRopeAttempt(sourceMap: insideMap, targetMap: outsideMap, gameState: inside, item: rope);
+    expect(evaluation, isA<CanUseEscapeRope>());
+    final applied = commitEscapeRopeAction(ticket: EscapeRopeActionTicket(evaluation: evaluation as CanUseEscapeRope,
+      gameState: inside, sourceMap: insideMap, targetMap: outsideMap, item: rope, issuedAtStateRevision: 4),
+      sourceMap: insideMap, targetMap: outsideMap, gameState: inside, item: rope, currentStateRevision: 4);
+    expect(applied!.playerSpatialPosition, source.playerSpatialPosition);
+    expect(applied.playerFacing, source.playerFacing);
+    expect(applied.escapeReturnPoint, isNull);
+    expect(applied.bag.entries.single.quantity, 1);
+  });
+
+  test('spatial blocked exact arrival refuses without consuming or nearby fallback', () {
+    final insideMap = spatialMap('first', dungeon: true);
+    final source = entry.copyWith(playerSpatialPosition: PlayerSpatialPosition(x: 3.25, z: 3.75));
+    final anchor = escapeReturnPointAfterTransfer(sourceMap: spatialMap('outside'), targetMap: insideMap, sourceState: source);
+    final inside = source.copyWith(currentMapId: 'first', escapeReturnPoint: anchor);
+    final result = evaluateEscapeRopeAttempt(sourceMap: insideMap, targetMap: spatialMap('outside', blocked: true), gameState: inside, item: rope);
+    expect(result, isA<EscapeRopeUnavailable>().having((r) => r.reason, 'reason', EscapeRopeBlockReason.obstructed));
+    expect(inside.bag, entry.bag);
+  });
+
   test('outside -> floor 1 -> floor 2 retains exact entry and source facing',
       () {
     final first = enter();

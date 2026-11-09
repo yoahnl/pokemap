@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'contextual_item_use_rule.dart';
 
 part 'map_metadata.freezed.dart';
 part 'map_metadata.g.dart';
@@ -69,6 +70,8 @@ abstract class MapMetadata with _$MapMetadata {
     @Default(true) bool allowBicycle,
     @Default(true) bool allowEscapeRope,
     String? escapeRopeDungeonId,
+    @JsonKey(includeIfNull: false, toJson: _contextualItemUsesToJson)
+    @Default([]) List<ContextualItemUseRule> contextualItemUses,
     String? defaultSpawnId,
     @Default([]) List<String> tags,
   }) = _MapMetadata;
@@ -84,3 +87,6 @@ double? _mapMusicVolumeFromJson(Object? value) {
   }
   return value.toDouble();
 }
+
+List<Map<String, dynamic>>? _contextualItemUsesToJson(List<ContextualItemUseRule> rules) =>
+    rules.isEmpty ? null : [for (final rule in rules) rule.toJson()];

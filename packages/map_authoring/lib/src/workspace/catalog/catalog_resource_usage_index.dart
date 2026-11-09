@@ -52,6 +52,20 @@ abstract final class CatalogResourceUsageIndex {
     }
   }
 
+  static Future<Set<String>> directDependencies(CatalogSnapshot snapshot, CatalogDefinitionUnit unit) async =>
+      (await _catalogUsageSource(unit, snapshot.lookup))?.targets ?? const {};
+
+  static Future<({Set<String> targets, String revision})> dialogueSourceDependencies(CatalogSnapshot snapshot, String id) async {
+    await requirePrepared(snapshot);
+    final identity = 'external:dialogueSource:$id';
+    final unit = await snapshot.lookup(_key('resourceUsageSource', identity));
+    final revision = unit?.payload['resourceRevision'];
+    if (unit == null || revision is! String || revision.isEmpty) {
+      throw const CatalogStorageException('resource_library.usage_incomplete', 'Prepare the dialogue resource usage index before attaching this Scene.');
+    }
+    return (targets: _strings(unit, identity, 'targets').toSet(), revision: revision);
+  }
+
   static Future<bool> familyHasMembers(
       CatalogSnapshot snapshot, String id) async {
     await requirePrepared(snapshot);

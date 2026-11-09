@@ -70,6 +70,7 @@ final class SpatialGameplayEvents {
     Future<void> Function(GameState)? afterStateCommitted,
     Future<void> Function(Object)? onSceneTerminated,
     Future<void> Function(GameState)? persistItemPickup,
+    Future<void> Function(GameState)? persistContextualItemUse,
     Future<void> Function(MapEntity, SpatialItemPickupResult, String)?
     presentItemPickup,
     ItemCatalogSnapshot? itemCatalog,
@@ -91,6 +92,7 @@ final class SpatialGameplayEvents {
        _afterStateCommitted = afterStateCommitted,
        _onSceneTerminated = onSceneTerminated,
        _persistItemPickup = persistItemPickup,
+       _persistContextualItemUse = persistContextualItemUse,
        _presentItemPickup = presentItemPickup,
        _itemCatalog = itemCatalog,
        _modelInteractions = SpatialModelInteractionIndex(
@@ -160,6 +162,7 @@ final class SpatialGameplayEvents {
     Future<void> Function(GameState)? afterStateCommitted,
     Future<void> Function(Object)? onSceneTerminated,
     Future<void> Function(GameState)? persistItemPickup,
+    Future<void> Function(GameState)? persistContextualItemUse,
     Future<void> Function(MapEntity, SpatialItemPickupResult, String)?
     presentItemPickup,
     ItemCatalogSnapshot? itemCatalog,
@@ -212,6 +215,7 @@ final class SpatialGameplayEvents {
       afterStateCommitted: afterStateCommitted,
       onSceneTerminated: onSceneTerminated,
       persistItemPickup: persistItemPickup,
+      persistContextualItemUse: persistContextualItemUse,
       presentItemPickup: presentItemPickup,
       itemCatalog: itemCatalog,
       random: random ?? Random(),
@@ -248,6 +252,7 @@ final class SpatialGameplayEvents {
   final Future<void> Function(GameState)? _afterStateCommitted;
   final Future<void> Function(Object)? _onSceneTerminated;
   final Future<void> Function(GameState)? _persistItemPickup;
+  final Future<void> Function(GameState)? _persistContextualItemUse;
   final Future<void> Function(MapEntity, SpatialItemPickupResult, String)?
   _presentItemPickup;
   final ItemCatalogSnapshot? _itemCatalog;
@@ -276,6 +281,53 @@ final class SpatialGameplayEvents {
   List<NarrativeOutcomeRef>? _sceneBattleOutcomes;
 
   bool get isBusy => _pendingOperations > 0;
+
+  Future<bool> useContextualItem(ContextualItemUseRule rule, GameState expected) async {
+    if (!_inputAllowed || _readGameState() != expected || _persistContextualItemUse == null) return false;
+    return await _run<bool>(() async {
+      if (_readGameState() != expected ||
+          !expected.bag.entries.any((entry) => entry.itemId == rule.itemId && entry.quantity > 0)) return false;
+      final selection = selectContextualItemUse(map: _map, project: project, state: expected, itemId: rule.itemId,
+        conditionContext: PresentationConditionContext(project: project, map: _map,
+          maps: mapsById.values.toList(), lookupRewardScenes: rewardScenes));
+      if (selection is! ContextualItemUseMatched || selection.rule != rule) return false;
+      final executionId = _runtimeIdFactory('evx');
+      late GameState updated;
+      try {
+        updated = await _transactions.transact<GameState>((_) async {
+        final owner = _transactions.captureCheckpointOwner()!;
+        final result = await _executeScene(NarrativeSceneExecutionRequest(eventId: _runtimeIdFactory('evt'),
+          sceneId: rule.sceneId, executionId: executionId, gameState: expected));
+        _ensureCurrent();
+        if (result is NarrativeSceneExecutionFailed) throw StateError('Contextual item Scene failed: ${result.failure}');
+        if (result is! NarrativeSceneExecutionCompleted) throw const _SpatialGameplayCancelled();
+        if (result.gameCompletion != null) throw StateError('Contextual item Scenes cannot finish the game.');
+        final progress = result.updatedGameState.narrativeEventProgress;
+        final state = result.updatedGameState.copyWith(narrativeEventProgress: progress.copyWith(pendingNarrativeOutcomeDeliveries: [
+          ...progress.pendingNarrativeOutcomeDeliveries,
+          for (final outcome in result.qualifiedOutcomes)
+            NarrativeOutcomeDelivery(deliveryId: _runtimeIdFactory('outd'), outcome: outcome,
+              causationExecutionId: executionId, rootCorrelationId: _runtimeIdFactory('corr'), depth: 0, attemptCount: 0),
+        ]));
+        await owner.checkpoint(expectedBase: owner.committedState, durableState: state,
+          persist: _persistContextualItemUse, rebase: (_) => state);
+        return NarrativeEventStateTransaction.commit(state, state);
+        });
+      } on Object {
+        if (_currentOperation) {
+          final durable = await _transactions.read();
+          _ensureCurrent();
+          _commit(durable);
+          await _flushHostEffects();
+        }
+        rethrow;
+      }
+      _ensureCurrent();
+      _commit(updated);
+      await _settle();
+      return true;
+    }) ?? false;
+  }
 
   Future<bool> callContact(String contactId) async {
     if (!_available || isBusy || !_canProcessInput()) return false;

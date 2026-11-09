@@ -26,6 +26,8 @@ part 'runtime_image_puzzle_service.dart';
 part 'runtime_periodic_reward_service.dart';
 part 'runtime_scene_text_input_service.dart';
 
+enum RuntimeContextualItemUseDisposition { noMatch, reserved, refused, cancelled }
+
 final class RuntimePlayerServiceRecoveryCaps {
   const RuntimePlayerServiceRecoveryCaps({
     required this.maxHpByPartyIndex,
@@ -280,6 +282,14 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
   var _imagePuzzleRevision = -1;
   String? Function()? _pauseMutationUnavailableReason;
   Future<bool> Function(ProjectItemDefinition, GameState)? _escapeRopeConsumer;
+  FutureOr<RuntimeContextualItemUseDisposition> Function(ProjectItemDefinition, GameState)? _contextualItemUseConsumer;
+
+  void setContextualItemUseConsumer(
+    FutureOr<RuntimeContextualItemUseDisposition> Function(ProjectItemDefinition, GameState) consumer,
+  ) {
+    _contextualItemUseConsumer = consumer;
+  }
+  bool _escapeRopeResumesGameplay = false;
 
   FutureOr<FishingBlockReason?> Function(ProjectItemDefinition, GameState)? _fishingConsumer;
 
@@ -314,9 +324,11 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
   }
 
   void setEscapeRopeConsumer(
-    Future<bool> Function(ProjectItemDefinition, GameState) consumer,
-  ) {
+    Future<bool> Function(ProjectItemDefinition, GameState) consumer, {
+    bool resumeGameplayOnSuccess = false,
+  }) {
     _escapeRopeConsumer = consumer;
+    _escapeRopeResumesGameplay = resumeGameplayOnSuccess;
   }
 
   final PlayerServiceInputLockSetter _setInputLocked;
@@ -1183,6 +1195,40 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
         safeMessage: 'La définition de cet objet est absente ou invalide.',
       );
     }
+    if (_disposed || _currentGameState() != state || _pauseMutationRefusal() != null) {
+      return const RuntimePlayerPauseCommandResult(
+        status: RuntimePlayerPauseCommandStatus.unavailable,
+        safeMessage: 'L’état du jeu a changé. Ouvrez de nouveau le sac.',
+      );
+    }
+    if (command.kind == RuntimePlayerPauseCommandKind.useBagItem && _contextualItemUseConsumer != null) {
+      if (!state.bag.entries.any((entry) => entry.itemId == definition.id && entry.quantity > 0)) {
+        return const RuntimePlayerPauseCommandResult(status: RuntimePlayerPauseCommandStatus.unavailable,
+          safeMessage: 'Cet objet n’est plus dans le sac.');
+      }
+      try {
+        final disposition = await _contextualItemUseConsumer!(definition, state);
+        if (disposition != RuntimeContextualItemUseDisposition.noMatch) {
+          return RuntimePlayerPauseCommandResult(
+            status: disposition == RuntimeContextualItemUseDisposition.reserved
+                ? RuntimePlayerPauseCommandStatus.accepted : RuntimePlayerPauseCommandStatus.unavailable,
+            resumeGameplay: disposition == RuntimeContextualItemUseDisposition.reserved,
+            safeMessage: switch (disposition) {
+              RuntimeContextualItemUseDisposition.reserved => 'Utilisation de l’objet dans le décor.',
+              RuntimeContextualItemUseDisposition.cancelled => 'Utilisation annulée. L’objet est conservé.',
+              _ => 'Cette utilisation est indisponible ou ambiguë. L’objet est conservé.',
+            },
+          );
+        }
+      } on Object {
+        return const RuntimePlayerPauseCommandResult(status: RuntimePlayerPauseCommandStatus.failed,
+          safeMessage: 'L’utilisation contextuelle a échoué. L’objet est conservé.');
+      }
+      if (_disposed || _currentGameState() != state || _pauseMutationRefusal() != null) {
+        return const RuntimePlayerPauseCommandResult(status: RuntimePlayerPauseCommandStatus.unavailable,
+          safeMessage: 'L’état du jeu a changé. L’objet est conservé.');
+      }
+    }
     if (command.kind == RuntimePlayerPauseCommandKind.useBagItem &&
         definition.uses.any((use) => use.effect is ProjectItemFishingEffectDefinition)) {
       final consumer = _fishingConsumer;
@@ -1261,7 +1307,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       final consumer = _escapeRopeConsumer;
       if (consumer == null) {
         return const RuntimePlayerPauseCommandResult(status: RuntimePlayerPauseCommandStatus.unavailable,
-          safeMessage: 'La Corde Sortie est disponible uniquement dans un runtime 2D compatible.');
+          safeMessage: 'La Corde Sortie nécessite un runtime compatible.');
       }
       if (_currentGameState() != state ||
           _pauseMutationRefusal() != null) {
@@ -1274,6 +1320,7 @@ final class PlayerServiceRuntimeController implements RuntimeWorldServicePort {
       try {
         final applied = await consumer(definition, state);
         return RuntimePlayerPauseCommandResult(
+          resumeGameplay: applied && _escapeRopeResumesGameplay,
           status: applied
               ? RuntimePlayerPauseCommandStatus.accepted
               : RuntimePlayerPauseCommandStatus.unavailable,

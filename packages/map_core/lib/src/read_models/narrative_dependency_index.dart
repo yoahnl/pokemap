@@ -838,6 +838,27 @@ final class _NarrativeDependencyIndexBuilder {
   void _collectMaps() {
     for (final map in maps) {
       final mapKey = _mapKey(map.id);
+      for (var index = 0; index < map.contextualItemUses.length; index++) {
+        final rule = map.contextualItemUses[index];
+        final path = 'maps[${map.id}].mapMetadata.contextualItemUses[$index]';
+        for (final target in [NarrativeDependencyKey(NarrativeDependencyTargetKind.scene, rule.sceneId),
+          NarrativeDependencyKey(NarrativeDependencyTargetKind.item, rule.itemId)]) {
+          _usage(target: target, owner: mapKey,
+            path: '$path.${target.kind == NarrativeDependencyTargetKind.scene ? 'sceneId' : 'itemId'}',
+            criticality: NarrativeDependencyCriticality.runtimeBlocking);
+        }
+        var leafIndex = 0;
+        for (final condition in rule.conditionExpression?.leaves ?? const <NarrativeEventCondition>[]) {
+          final conditionPath = '$path.conditionExpression.leaves[${leafIndex++}]';
+          condition.whenTyped<void>(civilWeekday: (_, _) {},
+            periodicRewardAvailable: (reference, _) => _collectPeriodicRewardReference(reference, mapKey, conditionPath),
+            fact: (id, _, _) => _usage(target: NarrativeDependencyKey(NarrativeDependencyTargetKind.fact, id),
+              owner: mapKey, path: '$conditionPath.factId', criticality: NarrativeDependencyCriticality.runtimeBlocking),
+            narrativeEventConsumed: (id, _) => _usage(target: _eventKey(id), owner: mapKey,
+              path: '$conditionPath.eventId', criticality: NarrativeDependencyCriticality.runtimeBlocking),
+            mapEventInstanceBoolean: (mapId, entityId, _, _) => _collectMapInstanceOwner(mapKey, mapId, entityId, conditionPath, 'eventId'));
+        }
+      }
       if (!project.maps.any((entry) => entry.id == map.id)) {
         _definition(
           NarrativeDependencyTargetKind.sourceMap,

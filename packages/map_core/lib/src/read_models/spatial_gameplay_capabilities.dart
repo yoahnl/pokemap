@@ -70,6 +70,7 @@ abstract final class SpatialGameplayCapabilities {
     (project.eventRegistry?.records.any((record) =>
       (record.definitionOrNull?.conditions ?? record.draftOrNull?.conditions ?? const []).any((condition) => condition.weekday != null)) ?? false) ||
     maps.any((map) =>
+      map.contextualItemUses.any((rule) => rule.conditionExpression?.leaves.any((condition) => condition.weekday != null) ?? false) ||
       (map.spatialScene?.instances.any((instance) =>
         instance.visibilityCondition?.leaves.any((condition) =>
           condition.weekday != null) ?? false) ?? false) ||
@@ -83,6 +84,7 @@ abstract final class SpatialGameplayCapabilities {
     (project.eventRegistry?.records.any((record) =>
       (record.definitionOrNull?.conditions ?? record.draftOrNull?.conditions ?? const []).any((condition) => condition.rewardReference != null)) ?? false) ||
     maps.any((map) =>
+      map.contextualItemUses.any((rule) => rule.conditionExpression?.leaves.any((condition) => condition.rewardReference != null) ?? false) ||
       (map.spatialScene?.instances.any((instance) =>
         instance.visibilityCondition?.leaves.any((condition) =>
           condition.rewardReference != null) ?? false) ?? false) ||

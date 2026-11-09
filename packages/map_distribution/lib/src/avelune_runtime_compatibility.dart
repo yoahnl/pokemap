@@ -11,6 +11,8 @@ abstract final class AveluneRuntimeCompatibility {
         hubVersion: Version.parse(minimumHubVersion),
         runtimeApiVersion: Version.parse('1.4.0'),
         capabilities: const <String>{
+          OverworldItemCapabilities.contextualUseCapabilityId,
+          OverworldItemCapabilities.spatialEscapeRopeCapabilityId,
           GameCompletionPartyCapabilities.capabilityId,
           ItemPpRestoreCapabilities.allMovesCapabilityId,
           PokemonRulesetProfile.contextualCaptureCapabilityId,

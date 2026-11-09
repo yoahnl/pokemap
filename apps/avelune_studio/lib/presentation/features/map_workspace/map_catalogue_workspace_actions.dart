@@ -33,8 +33,9 @@ VoidCallback? mapCatalogueRenameAction(
 
 VoidCallback? mapCatalogueEscapeRopeAction(
   BuildContext context,
-  MapWorkspaceController controller,
-) {
+  MapWorkspaceController controller, {
+  Future<Map<String, String>> Function()? loadItems,
+}) {
   final document = controller.active;
   final project = controller.project;
   if (document == null || project == null || controller.catalogPort == null) {
@@ -46,6 +47,7 @@ VoidCallback? mapCatalogueEscapeRopeAction(
       context,
       map: document.current,
       project: project,
+      loadItems: loadItems,
       save: (values) async {
         if (document.dirty && !await controller.save(document)) {
           return 'La carte doit être enregistrée avant de modifier ses paramètres.';

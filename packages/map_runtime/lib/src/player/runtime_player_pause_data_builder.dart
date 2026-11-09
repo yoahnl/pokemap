@@ -39,6 +39,7 @@ final class RuntimePlayerPauseDataBuilder {
     bool supportsEscapeRope = false,
     bool supportsBicycle = false,
     bool supportsFishing = false,
+    Set<String> contextualItemIds = const {},
     List<ProjectMapEntry> projectMaps = const <ProjectMapEntry>[],
     ProjectRegionalMapCatalog? regionalMap,
     ItemCatalogSnapshot? itemCatalog,
@@ -161,6 +162,7 @@ final class RuntimePlayerPauseDataBuilder {
           supportsEscapeRope: supportsEscapeRope,
           supportsBicycle: supportsBicycle,
           supportsFishing: supportsFishing,
+          contextualItemIds: contextualItemIds,
         ),
         if (pokedex != null) RuntimePlayerPauseSection.pokedex: pokedex,
         if (mapEnabled)
@@ -475,6 +477,7 @@ final class RuntimePlayerPauseDataBuilder {
     required bool supportsEscapeRope,
     required bool supportsBicycle,
     required bool supportsFishing,
+    required Set<String> contextualItemIds,
     required List<RuntimePlayerBagPartyTargetSnapshot> targets,
     required Set<String> evolutionItemIds,
     required _RuntimeMoveMachineAvailability moveMachines,
@@ -501,7 +504,8 @@ final class RuntimePlayerPauseDataBuilder {
       final isKeyItem = definition?.tags.contains('key-item') ?? false;
       final isEvolutionItem = evolutionItemIds.contains(entry.itemId);
       final isMoveMachine = moveMachines.itemIds.contains(entry.itemId);
-      final targetKind = capability.use?.target == ProjectItemTargetKind.world
+      final contextual = contextualItemIds.contains(entry.itemId);
+      final targetKind = contextual || capability.use?.target == ProjectItemTargetKind.world
           ? RuntimePlayerBagUseTargetKind.world
           : isMoveMachine
           ? RuntimePlayerBagUseTargetKind.partyMoveReplacement
@@ -545,12 +549,13 @@ final class RuntimePlayerPauseDataBuilder {
       } else if (repelAlreadyActive) {
         usability = ItemUsabilityState.unavailableInContext;
       }
-      final unavailableReason = fishingUnsupported
+      if (contextual && definition != null) usability = ItemUsabilityState.usable;
+      final unavailableReason = contextual ? null : fishingUnsupported
           ? (isFrench ? 'La pêche est disponible uniquement dans un runtime 2D compatible.' : 'Fishing is only available in a compatible 2D runtime.')
           : bicycleUnsupported
           ? (isFrench ? 'Le vélo est disponible uniquement dans un runtime 2D compatible.' : 'Bicycle is only available in a compatible 2D runtime.')
           : escapeRopeUnsupported
-          ? (isFrench ? 'La Corde Sortie est disponible uniquement dans un runtime 2D compatible.' : 'Escape Rope is only available in a compatible 2D runtime.')
+          ? (isFrench ? 'La Corde Sortie nécessite un runtime compatible.' : 'Escape Rope requires a compatible runtime.')
           : repelUnsupported
           ? (isFrench
                 ? 'La Repousse n’est pas disponible dans ce mode de jeu.'
@@ -583,7 +588,7 @@ final class RuntimePlayerPauseDataBuilder {
         bagAction: RuntimePlayerBagItemActionSnapshot(
           itemTargetId: entry.itemId,
           targetKind: targetKind,
-          requiresConfirmation: isEvolutionItem || isMoveMachine,
+          requiresConfirmation: !contextual && (isEvolutionItem || isMoveMachine),
           usability: usability,
           isEnabled: usability == ItemUsabilityState.usable,
           unavailableReason: unavailableReason,

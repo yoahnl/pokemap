@@ -1,4 +1,5 @@
 import 'enums.dart';
+import 'contextual_item_use_rule.dart';
 import 'geometry.dart';
 import 'map_data.dart';
 import 'map_event_definition.dart';
@@ -10,6 +11,7 @@ import 'narrative_map_projection.dart';
 abstract interface class NarrativeMapView {
   String get id;
   String get name;
+  List<ContextualItemUseRule> get contextualItemUses;
   ProjectVersion get version;
   GridSize get size;
   MapSpatialScene? get spatialScene;

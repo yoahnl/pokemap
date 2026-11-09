@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import '../operations/narrative_event_canonical_json.dart';
 import 'enums.dart';
+import 'contextual_item_use_rule.dart';
 import 'geometry.dart';
 import 'map_data.dart';
 import 'map_event_definition.dart';
@@ -12,12 +13,14 @@ import 'narrative_map_view.dart';
 
 final class NarrativeMapProjection implements NarrativeMapView {
   NarrativeMapProjection._({
+    required this.formatVersion,
     required this.id,
     required this.name,
     required this.version,
     required this.size,
     required this.spatialScene,
     required this.sourceMapFingerprint,
+    required List<ContextualItemUseRule> contextualItemUses,
     required List<String> layerIds,
     required List<MapEntity> entities,
     required List<MapTrigger> triggers,
@@ -26,7 +29,8 @@ final class NarrativeMapProjection implements NarrativeMapView {
     required List<MovingPropDefinition> movingProps,
     required List<MovingPlatformDefinition> movingPlatforms,
     required List<MapPlacedElement> placedElements,
-  }) : layerIds = List.unmodifiable(layerIds),
+  }) : contextualItemUses = List.unmodifiable(contextualItemUses),
+       layerIds = List.unmodifiable(layerIds),
        entities = List.unmodifiable(entities),
        triggers = List.unmodifiable(triggers),
        events = List.unmodifiable(events),
@@ -38,11 +42,13 @@ final class NarrativeMapProjection implements NarrativeMapView {
   factory NarrativeMapProjection.fromMapData(MapData map) {
     final original = map.toJson();
     return NarrativeMapProjection.fromJson({
-      'formatVersion': 1,
+      'formatVersion': map.contextualItemUses.isEmpty ? 1 : 2,
       'sourceMapFingerprint':
           'sha256:${narrativeEventCanonicalSha256(jsonDecode(jsonEncode(original)))}',
       'id': map.id,
       'name': map.name,
+      if (map.contextualItemUses.isNotEmpty)
+        'contextualItemUses': [for (final rule in map.contextualItemUses) rule.toJson()],
       'version': map.version.name,
       'size': map.size.toJson(),
       'spatialScene': map.spatialScene?.toJson(),
@@ -80,10 +86,10 @@ final class NarrativeMapProjection implements NarrativeMapView {
       'movingPlatforms',
       'placedElements',
     };
-    if (source.length != keys.length ||
-        !source.keys.every(keys.contains) ||
-        source['formatVersion'] is! int ||
-        source['formatVersion'] != 1) {
+    final format = source['formatVersion'];
+    final acceptedKeys = {...keys, if (format == 2) 'contextualItemUses'};
+    if (source.length != acceptedKeys.length || !source.keys.every(acceptedKeys.contains) ||
+        format is! int || (format != 1 && format != 2)) {
       throw const FormatException('Invalid narrative map projection schema.');
     }
     try {
@@ -103,8 +109,10 @@ final class NarrativeMapProjection implements NarrativeMapView {
         throw const FormatException('Invalid narrative map size.');
       }
       return NarrativeMapProjection._(
+        formatVersion: format,
         id: json['id'] as String,
         name: json['name'] as String,
+        contextualItemUses: _decodeList(json['contextualItemUses'] ?? const [], ContextualItemUseRule.fromJson),
         version: version,
         size: GridSize.fromJson(size),
         spatialScene: json['spatialScene'] == null
@@ -147,6 +155,9 @@ final class NarrativeMapProjection implements NarrativeMapView {
   @override
   final MapSpatialScene? spatialScene;
   final String sourceMapFingerprint;
+  final int formatVersion;
+  @override
+  final List<ContextualItemUseRule> contextualItemUses;
   final List<String> layerIds;
   @override
   final List<MapEntity> entities;
@@ -164,10 +175,11 @@ final class NarrativeMapProjection implements NarrativeMapView {
   final List<MapPlacedElement> placedElements;
 
   Map<String, Object?> toJson() => {
-    'formatVersion': 1,
+    'formatVersion': formatVersion,
     'sourceMapFingerprint': sourceMapFingerprint,
     'id': id,
     'name': name,
+    if (formatVersion == 2) 'contextualItemUses': [for (final rule in contextualItemUses) rule.toJson()],
     'version': version.name,
     'size': size.toJson(),
     'spatialScene': spatialScene?.toJson(),

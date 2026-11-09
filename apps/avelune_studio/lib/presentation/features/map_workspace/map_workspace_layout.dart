@@ -49,6 +49,7 @@ class MapWorkspaceLayout extends StatelessWidget {
     this.onEnvironments,
     this.onBorders,
     this.onTerrains,
+    this.loadContextualItems,
     required this.onMap,
     this.onProjectSettings,
     this.onRegionalMap,
@@ -94,6 +95,7 @@ class MapWorkspaceLayout extends StatelessWidget {
   final VoidCallback? onProjectSettings;
   final VoidCallback? onStory, onHome, onEnvironments, onBorders, onRegionalMap;
   final VoidCallback? onTerrains;
+  final Future<Map<String, String>> Function()? loadContextualItems;
   final ValueChanged<MapEntity>? onEditInteraction;
   final ValueChanged<NarrativeEventSourceRef>? onEventSource;
   final ValueChanged<MapRect>? onZoneDrawn;
@@ -179,7 +181,7 @@ class MapWorkspaceLayout extends StatelessWidget {
               refresh();
             },
             onRenameMap: mapCatalogueRenameAction(context, controller),
-            onEscapeSettings: mapCatalogueEscapeRopeAction(context, controller),
+            onEscapeSettings: mapCatalogueEscapeRopeAction(context, controller, loadItems: loadContextualItems),
           ),
           selection: MapSelectionInspector(
             width: inspectorWidth,
@@ -192,7 +194,7 @@ class MapWorkspaceLayout extends StatelessWidget {
               refresh();
             },
             onRenameMap: mapCatalogueRenameAction(context, controller),
-            onEscapeSettings: mapCatalogueEscapeRopeAction(context, controller),
+            onEscapeSettings: mapCatalogueEscapeRopeAction(context, controller, loadItems: loadContextualItems),
             onOpenElement: (element) {
               close?.call();
               onOpenElement(element);

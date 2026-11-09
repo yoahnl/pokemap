@@ -96,6 +96,7 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                         ),
                       Expanded(
                         child: MapWorkspaceLayout(
+                          loadContextualItems: _loadSceneItems,
                           homeSearch: widget.home?.search ?? _homeSearch,
                           onSearch: (_) => _goHome(search: true),
                           onHome: widget.home == null ? null : _goHome,

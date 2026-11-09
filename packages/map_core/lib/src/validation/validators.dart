@@ -1,4 +1,5 @@
 import '../operations/periodic_reward_condition_evaluator.dart';
+import 'contextual_item_use_validation.dart';
 import '../models/spatial_platform.dart';
 import '../models/project_media_catalog.dart';
 import '../read_models/field_obstacle_capabilities.dart';
@@ -1147,9 +1148,26 @@ class ProjectValidator {
   }
 
   static void _validateHierarchy(ProjectManifest manifest) {
-    final groupIds = manifest.groups.map((g) => g.id).toSet();
+    validateMapGroupHierarchy(manifest.groups);
+    final groupIds = manifest.groups.map((group) => group.id).toSet();
+    for (final map in manifest.maps) {
+      if (map.groupId != null && !groupIds.contains(map.groupId)) {
+        throw ValidationException('Map ${map.id} references non-existent group: ${map.groupId}');
+      }
+      _validateRelativePath(map.relativePath, 'Map ${map.id}');
+    }
+    _validateTilesetFolders(manifest);
+    _validateDialogueFolders(manifest);
+    _validateTilesets(manifest, groupIds);
+    _validateElementCategories(manifest);
+    _validateElements(manifest, groupIds);
+    _validateScenarios(manifest);
+  }
 
-    for (final group in manifest.groups) {
+  static void validateMapGroupHierarchy(List<ProjectMapGroup> groups) {
+    final groupIds = groups.map((g) => g.id).toSet();
+
+    for (final group in groups) {
       if (group.parentGroupId != null &&
           !groupIds.contains(group.parentGroupId)) {
         throw ValidationException(
@@ -1171,27 +1189,12 @@ class ProjectValidator {
             'Cycle detected in group hierarchy at ${group.id}',
           );
         }
-        current = manifest.groups.firstWhere(
+        current = groups.firstWhere(
           (candidate) => candidate.id == current.parentGroupId,
         );
       }
     }
 
-    for (final map in manifest.maps) {
-      if (map.groupId != null && !groupIds.contains(map.groupId)) {
-        throw ValidationException(
-          'Map ${map.id} references non-existent group: ${map.groupId}',
-        );
-      }
-      _validateRelativePath(map.relativePath, 'Map ${map.id}');
-    }
-
-    _validateTilesetFolders(manifest);
-    _validateDialogueFolders(manifest);
-    _validateTilesets(manifest, groupIds);
-    _validateElementCategories(manifest);
-    _validateElements(manifest, groupIds);
-    _validateScenarios(manifest);
   }
 
   static void _validateTilesetFolders(ProjectManifest manifest) {
@@ -3059,6 +3062,7 @@ class MapValidator {
     }
     final tileSize = declaredTileSize ?? projectTileSize;
     final mapId = _requireNonBlank(map.id, 'Map ID cannot be empty');
+    validateContextualItemUseRules(map);
     if (projectDialogueContext != null &&
         projectDialogueContext.newGame.initialRecoveryPoint?.mapId == map.id) {
       ProjectValidator.validateNewGameInitialRecoveryMap(projectDialogueContext, map);

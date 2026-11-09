@@ -96,7 +96,7 @@ as List<MapEventDefinition>,
 @override
 @pragma('vm:prefer-inline')
 $GridSizeCopyWith<$Res> get size {
-
+  
   return $GridSizeCopyWith<$Res>(_self.size, (value) {
     return _then(_self.copyWith(size: value));
   });
@@ -105,7 +105,7 @@ $GridSizeCopyWith<$Res> get size {
 @override
 @pragma('vm:prefer-inline')
 $MapMetadataCopyWith<$Res> get mapMetadata {
-
+  
   return $MapMetadataCopyWith<$Res>(_self.mapMetadata, (value) {
     return _then(_self.copyWith(mapMetadata: value));
   });
@@ -246,8 +246,8 @@ return $default(_that.id,_that.name,_that.size,_that.version,_that.spatialScene,
 /// @nodoc
 
 @JsonSerializable(explicitToJson: true)
-class _MapData implements MapData {
-  const _MapData({required this.id, required this.name, required this.size, this.version = ProjectVersion.v8, @JsonKey(includeIfNull: false) this.spatialScene, @JsonKey(includeIfNull: false) this.visualStack, this.tilesetId = '', final  List<MapLayer> layers = const [], final  List<MapPlacedElement> placedElements = const [], final  List<MovingPlatformDefinition> movingPlatforms = const [], final  List<MovingPropDefinition> movingProps = const [], final  List<MapEntity> entities = const [], final  List<MapConnection> connections = const [], final  List<MapWarp> warps = const [], final  List<MapTrigger> triggers = const [], final  List<MapGameplayZone> gameplayZones = const [], this.mapMetadata = const MapMetadata(), final  Map<String, dynamic> properties = const {}, final  List<MapEventDefinition> events = const []}): _layers = layers,_placedElements = placedElements,_movingPlatforms = movingPlatforms,_movingProps = movingProps,_entities = entities,_connections = connections,_warps = warps,_triggers = triggers,_gameplayZones = gameplayZones,_properties = properties,_events = events;
+class _MapData extends MapData {
+  const _MapData({required this.id, required this.name, required this.size, this.version = ProjectVersion.v8, @JsonKey(includeIfNull: false) this.spatialScene, @JsonKey(includeIfNull: false) this.visualStack, this.tilesetId = '', final  List<MapLayer> layers = const [], final  List<MapPlacedElement> placedElements = const [], final  List<MovingPlatformDefinition> movingPlatforms = const [], final  List<MovingPropDefinition> movingProps = const [], final  List<MapEntity> entities = const [], final  List<MapConnection> connections = const [], final  List<MapWarp> warps = const [], final  List<MapTrigger> triggers = const [], final  List<MapGameplayZone> gameplayZones = const [], this.mapMetadata = const MapMetadata(), final  Map<String, dynamic> properties = const {}, final  List<MapEventDefinition> events = const []}): _layers = layers,_placedElements = placedElements,_movingPlatforms = movingPlatforms,_movingProps = movingProps,_entities = entities,_connections = connections,_warps = warps,_triggers = triggers,_gameplayZones = gameplayZones,_properties = properties,_events = events,super._();
   factory _MapData.fromJson(Map<String, dynamic> json) => _$MapDataFromJson(json);
 
 @override final  String id;
@@ -420,7 +420,7 @@ as List<MapEventDefinition>,
 @override
 @pragma('vm:prefer-inline')
 $GridSizeCopyWith<$Res> get size {
-
+  
   return $GridSizeCopyWith<$Res>(_self.size, (value) {
     return _then(_self.copyWith(size: value));
   });
@@ -429,7 +429,7 @@ $GridSizeCopyWith<$Res> get size {
 @override
 @pragma('vm:prefer-inline')
 $MapMetadataCopyWith<$Res> get mapMetadata {
-
+  
   return $MapMetadataCopyWith<$Res>(_self.mapMetadata, (value) {
     return _then(_self.copyWith(mapMetadata: value));
   });
@@ -519,7 +519,7 @@ as SmartTileGameplayZoneProvenance?,
 @override
 @pragma('vm:prefer-inline')
 $MapRectCopyWith<$Res> get area {
-
+  
   return $MapRectCopyWith<$Res>(_self.area, (value) {
     return _then(_self.copyWith(area: value));
   });
@@ -838,7 +838,7 @@ as SmartTileGameplayZoneProvenance?,
 @override
 @pragma('vm:prefer-inline')
 $MapRectCopyWith<$Res> get area {
-
+  
   return $MapRectCopyWith<$Res>(_self.area, (value) {
     return _then(_self.copyWith(area: value));
   });
@@ -994,7 +994,7 @@ as Map<String, String>,
 @override
 @pragma('vm:prefer-inline')
 $GridPosCopyWith<$Res> get pos {
-
+  
   return $GridPosCopyWith<$Res>(_self.pos, (value) {
     return _then(_self.copyWith(pos: value));
   });
@@ -1003,7 +1003,7 @@ $GridPosCopyWith<$Res> get pos {
 @override
 @pragma('vm:prefer-inline')
 $PixelOffsetCopyWith<$Res> get pixelOffset {
-
+  
   return $PixelOffsetCopyWith<$Res>(_self.pixelOffset, (value) {
     return _then(_self.copyWith(pixelOffset: value));
   });
@@ -1272,7 +1272,7 @@ as Map<String, String>,
 @override
 @pragma('vm:prefer-inline')
 $GridPosCopyWith<$Res> get pos {
-
+  
   return $GridPosCopyWith<$Res>(_self.pos, (value) {
     return _then(_self.copyWith(pos: value));
   });
@@ -1281,7 +1281,7 @@ $GridPosCopyWith<$Res> get pos {
 @override
 @pragma('vm:prefer-inline')
 $PixelOffsetCopyWith<$Res> get pixelOffset {
-
+  
   return $PixelOffsetCopyWith<$Res>(_self.pixelOffset, (value) {
     return _then(_self.copyWith(pixelOffset: value));
   });
@@ -1382,7 +1382,7 @@ as MapPlacedElementEffect,
 @override
 @pragma('vm:prefer-inline')
 $MapPlacedElementEffectCopyWith<$Res> get effect {
-
+  
   return $MapPlacedElementEffectCopyWith<$Res>(_self.effect, (value) {
     return _then(_self.copyWith(effect: value));
   });
@@ -1601,7 +1601,7 @@ as MapPlacedElementEffect,
 @override
 @pragma('vm:prefer-inline')
 $MapPlacedElementEffectCopyWith<$Res> get effect {
-
+  
   return $MapPlacedElementEffectCopyWith<$Res>(_self.effect, (value) {
     return _then(_self.copyWith(effect: value));
   });
@@ -2294,7 +2294,7 @@ as Map<String, String>,
 @override
 @pragma('vm:prefer-inline')
 $GridPosCopyWith<$Res> get pos {
-
+  
   return $GridPosCopyWith<$Res>(_self.pos, (value) {
     return _then(_self.copyWith(pos: value));
   });
@@ -2303,7 +2303,7 @@ $GridPosCopyWith<$Res> get pos {
 @override
 @pragma('vm:prefer-inline')
 $GridSizeCopyWith<$Res> get size {
-
+  
   return $GridSizeCopyWith<$Res>(_self.size, (value) {
     return _then(_self.copyWith(size: value));
   });
@@ -2618,7 +2618,7 @@ as Map<String, String>,
 @override
 @pragma('vm:prefer-inline')
 $GridPosCopyWith<$Res> get pos {
-
+  
   return $GridPosCopyWith<$Res>(_self.pos, (value) {
     return _then(_self.copyWith(pos: value));
   });
@@ -2627,7 +2627,7 @@ $GridPosCopyWith<$Res> get pos {
 @override
 @pragma('vm:prefer-inline')
 $GridSizeCopyWith<$Res> get size {
-
+  
   return $GridSizeCopyWith<$Res>(_self.size, (value) {
     return _then(_self.copyWith(size: value));
   });
@@ -2768,7 +2768,7 @@ as MapWarpTransition,
 @override
 @pragma('vm:prefer-inline')
 $GridPosCopyWith<$Res> get pos {
-
+  
   return $GridPosCopyWith<$Res>(_self.pos, (value) {
     return _then(_self.copyWith(pos: value));
   });
@@ -2777,7 +2777,7 @@ $GridPosCopyWith<$Res> get pos {
 @override
 @pragma('vm:prefer-inline')
 $GridPosCopyWith<$Res> get targetPos {
-
+  
   return $GridPosCopyWith<$Res>(_self.targetPos, (value) {
     return _then(_self.copyWith(targetPos: value));
   });
@@ -2786,7 +2786,7 @@ $GridPosCopyWith<$Res> get targetPos {
 @override
 @pragma('vm:prefer-inline')
 $WarpTriggerPaddingCopyWith<$Res> get triggerPadding {
-
+  
   return $WarpTriggerPaddingCopyWith<$Res>(_self.triggerPadding, (value) {
     return _then(_self.copyWith(triggerPadding: value));
   });
@@ -3031,7 +3031,7 @@ as MapWarpTransition,
 @override
 @pragma('vm:prefer-inline')
 $GridPosCopyWith<$Res> get pos {
-
+  
   return $GridPosCopyWith<$Res>(_self.pos, (value) {
     return _then(_self.copyWith(pos: value));
   });
@@ -3040,7 +3040,7 @@ $GridPosCopyWith<$Res> get pos {
 @override
 @pragma('vm:prefer-inline')
 $GridPosCopyWith<$Res> get targetPos {
-
+  
   return $GridPosCopyWith<$Res>(_self.targetPos, (value) {
     return _then(_self.copyWith(targetPos: value));
   });
@@ -3049,7 +3049,7 @@ $GridPosCopyWith<$Res> get targetPos {
 @override
 @pragma('vm:prefer-inline')
 $WarpTriggerPaddingCopyWith<$Res> get triggerPadding {
-
+  
   return $WarpTriggerPaddingCopyWith<$Res>(_self.triggerPadding, (value) {
     return _then(_self.copyWith(triggerPadding: value));
   });
@@ -3136,7 +3136,7 @@ as GridPos,
 @override
 @pragma('vm:prefer-inline')
 $GridPosCopyWith<$Res> get exitPos {
-
+  
   return $GridPosCopyWith<$Res>(_self.exitPos, (value) {
     return _then(_self.copyWith(exitPos: value));
   });
@@ -3351,7 +3351,7 @@ as GridPos,
 @override
 @pragma('vm:prefer-inline')
 $GridPosCopyWith<$Res> get exitPos {
-
+  
   return $GridPosCopyWith<$Res>(_self.exitPos, (value) {
     return _then(_self.copyWith(exitPos: value));
   });
@@ -3968,7 +3968,7 @@ as Map<String, String>,
 @override
 @pragma('vm:prefer-inline')
 $MapRectCopyWith<$Res> get area {
-
+  
   return $MapRectCopyWith<$Res>(_self.area, (value) {
     return _then(_self.copyWith(area: value));
   });
@@ -4191,7 +4191,7 @@ as Map<String, String>,
 @override
 @pragma('vm:prefer-inline')
 $MapRectCopyWith<$Res> get area {
-
+  
   return $MapRectCopyWith<$Res>(_self.area, (value) {
     return _then(_self.copyWith(area: value));
   });

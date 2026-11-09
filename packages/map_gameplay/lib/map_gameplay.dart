@@ -18,6 +18,7 @@ export 'src/movement_terrain_policy.dart';
 
 export 'src/fly_action.dart';
 export 'src/escape_rope_action.dart';
+export 'src/contextual_item_use.dart';
 export 'src/bicycle_action.dart';
 export 'src/fishing_action.dart';
 export 'src/dive_action.dart';

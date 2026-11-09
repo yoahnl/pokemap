@@ -54,7 +54,7 @@ final class MapLifecycleActions {
         'map.rename', 'Rename an unreferenced map', AuthoringRiskLevel.medium),
     _descriptor(
         'map.update_metadata',
-        'Update map title, role and indoor setting at stable identity',
+        'Update map properties, movement permissions and contextual item uses at stable identity',
         AuthoringRiskLevel.medium),
     _descriptor('map.resize_apply', 'Resize a map without data loss',
         AuthoringRiskLevel.medium),
@@ -183,6 +183,7 @@ AuthoringActionDescriptor _descriptor(
             {
               'required': ['escapeRopeDungeonId'],
             },
+            {'required': ['contextualItemUses']},
           ],
           'properties': {
             'mapId': {'type': 'string', 'minLength': 1},
@@ -204,6 +205,22 @@ AuthoringActionDescriptor _descriptor(
             'isIndoor': {'type': 'boolean'},
             'allowEscapeRope': {'type': 'boolean'},
             'allowBicycle': {'type': 'boolean'},
+            'contextualItemUses': {
+              'type': 'array', 'maxItems': 128,
+              'items': {'type': 'object', 'additionalProperties': false,
+                'required': ['id', 'itemId', 'sceneId'],
+                'properties': {
+                  'id': {'type': 'string', 'minLength': 1},
+                  'itemId': {'type': 'string', 'referenceKind': 'item'},
+                  'sceneId': {'type': 'string', 'referenceKind': 'scene'},
+                  'priority': {'type': 'integer', 'minimum': -1000000, 'maximum': 1000000},
+                  'position': {'type': ['object', 'null'], 'additionalProperties': false,
+                    'required': ['x', 'y'], 'properties': {'x': {'type': 'integer', 'minimum': 0}, 'y': {'type': 'integer', 'minimum': 0}}},
+                  'facing': {'type': ['string', 'null'], 'enum': ['north', 'east', 'south', 'west', null]},
+                  'conditionExpression': {'type': ['object', 'null']},
+                },
+              },
+            },
             'escapeRopeDungeonId': {
               'type': ['string', 'null'],
               'referenceKind': 'map_group',
@@ -211,6 +228,16 @@ AuthoringActionDescriptor _descriptor(
             },
           },
           'normalizedTitleMaximumLength': 160,
+          'contextualItemUse': const {
+            'field': 'mapMetadata.contextualItemUses',
+            'priority': 'uniqueHighestMatchingPriority',
+            'ambiguity': 'refuse',
+            'interception': 'beforeNormalEffectAndConsumption',
+            'noMatch': 'normalItemUse',
+            'consumption': 'SceneOnly',
+            'checkpoint': 'fullStateBeforeCommit',
+            'capability': 'gameplay.contextual-item-use@1',
+          },
           'indoorRoleCoherence': {
             'interior': true,
             'exterior': false,

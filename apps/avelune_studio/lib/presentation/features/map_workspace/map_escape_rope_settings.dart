@@ -4,20 +4,28 @@ import 'package:map_core/map_core_domain.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/inputs/studio_toggle_row.dart';
 import 'map_catalogue_form_dialog.dart';
+import '../../shared/widgets/buttons/studio_button.dart';
+import 'map_contextual_item_use_settings.dart';
 
 Future<void> showEscapeRopeMapSettings(
   BuildContext context, {
   required MapData map,
   required ProjectManifest project,
   required Future<String?> Function(Map<String, Object?>) save,
+  Future<Map<String, String>> Function()? loadItems,
 }) {
   var dungeon = map.mapMetadata.escapeRopeDungeonId ?? '';
   var allowed = map.mapMetadata.allowEscapeRope;
   var bicycle = map.mapMetadata.allowBicycle;
+  var rules = [...map.contextualItemUses];
+  var rulesEdited = false;
+  var loadingItems = false;
+  String? itemError;
   return showMapCatalogueForm(
     context,
     title: 'Déplacements et Corde Sortie',
     submitLabel: 'Enregistrer',
+    additionalBusy: () => loadingItems,
     valid: () =>
         dungeon.isEmpty || project.groups.any((group) => group.id == dungeon),
     fields: (refresh, busy) => Column(
@@ -53,7 +61,7 @@ Future<void> showEscapeRopeMapSettings(
         StudioToggleRow(
           label: 'Autoriser la Corde Sortie sur cet étage',
           value: allowed,
-          description: 'Le retour utilise l’entrée mémorisée du donjon. Disponible sur les cartes 2D, à pied.',
+          description: 'Le retour utilise l’entrée mémorisée du donjon, sur les cartes 2D et 3D, à pied.',
           onChanged: busy
               ? null
               : (value) {
@@ -61,6 +69,28 @@ Future<void> showEscapeRopeMapSettings(
                   refresh();
                 },
         ),
+        const SizedBox(height: 16),
+        Text('${rules.length} utilisation(s) d’objets dans le décor'),
+        if (itemError != null) Text(itemError!),
+        StudioButton(label: 'Configurer les objets dans le décor', secondary: true,
+          onPressed: busy || loadItems == null ? null : () async {
+            loadingItems = true;
+            itemError = null;
+            refresh();
+            try {
+              final items = await loadItems();
+              if (!context.mounted) return;
+              loadingItems = false;
+              refresh();
+              await showContextualItemUseSettings(context, map: map, project: project, items: items, rules: rules,
+                onChanged: (value) { rules = value; rulesEdited = true; });
+            } on Object catch (error) {
+              itemError = 'Le catalogue des objets est indisponible : $error';
+            } finally {
+              loadingItems = false;
+              if (context.mounted) refresh();
+            }
+          }),
       ],
     ),
     submit: () => save({
@@ -68,6 +98,7 @@ Future<void> showEscapeRopeMapSettings(
       'escapeRopeDungeonId': dungeon.isEmpty ? null : dungeon,
       'allowEscapeRope': allowed,
       'allowBicycle': bicycle,
+      if (rulesEdited) 'contextualItemUses': rules.map((rule) => rule.toJson()).toList(),
     }),
   );
 }

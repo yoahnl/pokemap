@@ -354,6 +354,8 @@ final class CanonicalGamePackageExportService {
         }
       }
       final requiredCapabilities = <String>{
+        if (OverworldItemCapabilities.requiresContextualUse(fieldObstacleMaps)) OverworldItemCapabilities.contextualUseCapabilityId,
+        if (OverworldItemCapabilities.requiresSpatialEscapeRope(fieldObstacleMaps)) OverworldItemCapabilities.spatialEscapeRopeCapabilityId,
         if (allMovesPpRestore) ItemPpRestoreCapabilities.allMovesCapabilityId,
         ...battleCapabilities,
         if (contextualCapture) PokemonRulesetProfile.contextualCaptureCapabilityId,

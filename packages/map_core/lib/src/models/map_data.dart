@@ -3,6 +3,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'enums.dart';
+import 'contextual_item_use_rule.dart';
 import 'geometry.dart';
 import 'map_entity_editor_visual.dart';
 import 'map_entity_payloads.dart';
@@ -55,6 +56,11 @@ bool mapSharesNonVisualOrderStorage(MapData before, MapData after) =>
 
 @Freezed(fromJson: true, toJson: true)
 abstract class MapData with _$MapData implements NarrativeMapView {
+  const MapData._();
+
+  @override
+  List<ContextualItemUseRule> get contextualItemUses => mapMetadata.contextualItemUses;
+
   @JsonSerializable(explicitToJson: true)
   const factory MapData({
     required String id,

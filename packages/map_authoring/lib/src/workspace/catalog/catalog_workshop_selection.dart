@@ -23,6 +23,7 @@ import 'catalog_narrative_event_documents.dart';
 import 'catalog_resource_positions.dart';
 import 'catalog_resource_usage_index.dart';
 import '../../domains/assets/tileset_actions.dart';
+import '../../domains/maps/model_visibility_dependencies.dart';
 import '../../catalog_storage/catalog_storage_store.dart';
 import 'catalog_spatial_map_selection.dart';
 import '../../domains/narrative/standard_event_template.dart';
@@ -36,6 +37,7 @@ part 'catalog_battle_recipe_selection.dart';
 part 'catalog_gen5_battle_source_selection.dart';
 part 'catalog_map_creation_selection.dart';
 part 'catalog_map_metadata_selection.dart';
+part 'catalog_contextual_item_scope.dart';
 part 'catalog_asset_import_selection.dart';
 part 'catalog_native_resource_selection.dart';
 part 'catalog_presentation_reset_selection.dart';
@@ -91,7 +93,7 @@ final class CatalogWorkshopSelection {
           parameters != null &&
           (parameters.containsKey('light') || parameters.containsKey('collisionBounds') || parameters.containsKey('castsShadowsByDefault')) &&
           parameters.keys.every((key) => {'modelId', 'light', 'collisionBounds', 'castsShadowsByDefault'}.contains(key))) ||
-      (action == 'map.update_metadata' && parameters != null && !parameters.containsKey('escapeRopeDungeonId')) ||
+      (action == 'map.update_metadata' && parameters != null) ||
       action == 'surf.configure' ||
       const {'presentation.delete', 'presentation.reset_interface'}.contains(action) ||
       action == 'field_ability.configure' ||
@@ -174,7 +176,7 @@ final class CatalogWorkshopSelection {
     Map<String, Object?> parameters = const {},
     Map<String, String> readDependencies = const {},
   }) async {
-    if (actionId != 'map.create' && !_nativeResourceActions.containsKey(actionId) &&
+    if (actionId != 'map.create' && actionId != 'map.library.reorganize' && !_nativeResourceActions.containsKey(actionId) &&
         !const {'model3d.import', 'model3d.import_batch', 'tileset.import_image'}.contains(actionId) &&
         !supports(actionId, parameters: parameters)) {
       unsupported(actionId);
@@ -200,6 +202,10 @@ final class CatalogWorkshopSelection {
     if (actionId == 'map.update_metadata') {
       if (readDependencies.isNotEmpty) unsupported(actionId);
       return _readMapMetadataWorkshop(reader: reader, projectHandle: projectHandle, parameters: parameters);
+    }
+    if (actionId == 'map.library.reorganize') {
+      if (readDependencies.isNotEmpty) unsupported(actionId);
+      return _readMapGroupAdditionsWorkshop(reader: reader, projectHandle: projectHandle, parameters: parameters);
     }
     if (_nativeResourceActions.containsKey(actionId)) {
       if (readDependencies.isNotEmpty) unsupported(actionId);
