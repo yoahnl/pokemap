@@ -4,6 +4,7 @@ import 'package:map_core/map_core.dart';
 
 abstract final class CatalogResourcePositions {
   static const sections = {
+    CatalogDefinitionKind.resourceFamily: 'resourceLibraryCatalog.families',
     CatalogDefinitionKind.model3d: 'models3d',
     CatalogDefinitionKind.tileset: 'tilesets',
     CatalogDefinitionKind.character: 'characters',
@@ -97,7 +98,7 @@ abstract final class CatalogResourcePositions {
     return result;
   }
 
-  static const slotKinds = {CatalogDefinitionKind.resourceLibraryEntry};
+  static const slotKinds = {CatalogDefinitionKind.resourceLibraryEntry, CatalogDefinitionKind.resourceFamily};
   static const slotChunkSize = 256;
 
   static CatalogDefinitionKey slotHeaderKey(CatalogDefinitionKind kind) =>

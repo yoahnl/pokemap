@@ -594,7 +594,7 @@ final class LocalMapAuthoringMutationApi
   }
 
   Future<void> prepareWorkshopCatalog(ProjectHandle handle, {String? scope}) async {
-    if (scope != null && !const {'mapCreation', 'dialogueCreation', 'assetImport', 'nativeResources', 'metadataContext'}.contains(scope)) throw const FormatException('catalog.preparation_scope_unsupported');
+    if (scope != null && !const {'mapCreation', 'dialogueCreation', 'assetImport', 'nativeResources', 'metadataContext', 'resourceIndexes'}.contains(scope)) throw const FormatException('catalog.preparation_scope_unsupported');
     final session = _catalogSession(handle);
     if (session == null) {
       if (scope != null) throw const FormatException('catalog.preparation_requires_catalog');
@@ -653,7 +653,7 @@ final class LocalMapAuthoringMutationApi
       };
     }
     return {'prepared': true, if (current != null) 'snapshotRevision': current.revision,
-      'scope': scope == 'dialogueCreation' ? 'explicitDialoguePathOwnershipIndex' : scope == 'nativeResources' ? 'explicitNativeResourcePositions' : scope == 'assetImport' ? 'explicitAssetImportPositions' : scope == 'mapCreation' ? 'explicitMapOwnershipIndex' : catalog == null ? 'explicitLocalDocumentHistoryAndIdempotency' : 'explicitCatalogAdmissionAndLocalEditingIndexes'};
+      'scope': scope == 'resourceIndexes' ? 'explicitResourceUsageAndFamilyIndexes' : scope == 'dialogueCreation' ? 'explicitDialoguePathOwnershipIndex' : scope == 'nativeResources' ? 'explicitNativeResourcePositions' : scope == 'assetImport' ? 'explicitAssetImportPositions' : scope == 'mapCreation' ? 'explicitMapOwnershipIndex' : catalog == null ? 'explicitLocalDocumentHistoryAndIdempotency' : 'explicitCatalogAdmissionAndLocalEditingIndexes'};
   }
 
   Future<bool> catalogProjectReadOnly(ProjectHandle handle) async {
@@ -785,7 +785,15 @@ final class LocalMapAuthoringMutationApi
         actions: _dispatcher.descriptors,
         fullParity: AuthoringFullParityCatalog.canonical(),
         workshopPreparation: const {
-          'scopes': ['mapCreation', 'dialogueCreation', 'assetImport', 'nativeResources', 'metadataContext'],
+          'scopes': ['mapCreation', 'dialogueCreation', 'assetImport', 'nativeResources', 'metadataContext', 'resourceIndexes'],
+          'resourceIndexes': {
+            'requiresPreparedLocalEditingIndexes': true,
+            'readsProject': true,
+            'readsMaps': true,
+            'changesHead': true,
+            'preservesProjectData': true,
+            'routineEditsMaintainIndexes': true,
+          },
           'dialogueCreation': {
             'requiresPreparedMetadataIndexes': true,
             'reads': ['dialogueDefinitions', 'dialogueOwnershipRows'],

@@ -4,6 +4,8 @@ import 'package:map_core/map_core.dart';
 
 import '../support/authoring_fingerprint.dart';
 import 'catalog_storage_store.dart';
+import '../workspace/catalog/catalog_resource_usage_index.dart';
+import '../workspace/catalog/catalog_resource_positions.dart';
 
 final class CatalogRevertDelta {
   CatalogRevertDelta._(this.upserts, this.removals);
@@ -17,6 +19,7 @@ final class CatalogRevertDelta {
   }) async {
     final upserts = <CatalogDefinitionUnit>[];
     final removals = <CatalogDefinitionKey>[];
+    final sources = <CatalogDefinitionUnit>[];
     final oldIndex = StreamIterator(_entries(before));
     final newIndex = StreamIterator(_entries(after));
     try {
@@ -33,6 +36,11 @@ final class CatalogRevertDelta {
         final key = order <= 0 ? old!.key : next!.key;
         final desired = order < 0 ? null : next;
         final changed = order != 0 || old!.reference != next!.reference;
+        if (changed && CatalogResourceUsageIndex.isSource(key)) {
+          if (desired != null) {
+            sources.add((await after.lookup(key))!);
+          }
+        }
         if (changed && key.kind != CatalogDefinitionKind.workspaceState) {
           final actual = await current.indexEntry(key);
           if (actual?.reference != desired?.reference) {
@@ -49,6 +57,22 @@ final class CatalogRevertDelta {
     } finally {
       await oldIndex.cancel();
       await newIndex.cancel();
+    }
+    final workspaceKey = CatalogDefinitionKey(CatalogDefinitionKind.workspaceState, 'workspace');
+    upserts.addAll(await CatalogResourcePositions.maintain(
+        lookup: current.lookup, upserts: upserts, removals: removals));
+    final externalChanged = (await before.lookup(workspaceKey))?.payload['fingerprint'] !=
+        (await after.lookup(workspaceKey))?.payload['fingerprint'];
+    if (await CatalogResourceUsageIndex.prepared(current)) {
+      if (externalChanged && !await CatalogResourceUsageIndex.prepared(after)) {
+        removals.add(CatalogResourceUsageIndex.marker);
+      } else {
+        upserts.addAll(await CatalogResourceUsageIndex.maintain(
+            snapshot: current, upserts: upserts, removals: removals,
+            additionalChanges: const [],
+            restoredExternalSources: externalChanged ? sources.where(
+                (unit) => (unit.payload['identity'] as String).startsWith('external:')) : const []));
+      }
     }
     return CatalogRevertDelta._(
         List.unmodifiable(upserts), List.unmodifiable(removals));

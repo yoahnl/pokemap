@@ -54,3 +54,10 @@ abstract interface class ResourceMutationPreparationPort {
     String? Function()? validateBeforeApply,
   });
 }
+
+abstract interface class ResourceIndexPreparationPort {
+  bool get resourceIndexPreparationAvailable;
+  Future<ResourceMutationReceipt> prepareResourceIndexes({
+    required String expectedSnapshotRevision,
+  });
+}

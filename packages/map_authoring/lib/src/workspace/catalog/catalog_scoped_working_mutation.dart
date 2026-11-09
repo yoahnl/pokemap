@@ -370,7 +370,8 @@ final class CatalogScopedWorkingMutation {
           references: originalShell.references));
     }
     if (removals.any(
-        (key) => !CatalogSnapshot.unreferencedKinds.contains(key.kind))) {
+        (key) => !CatalogSnapshot.unreferencedKinds.contains(key.kind)) &&
+        !await CatalogReverseReferences.prepared(catalog.snapshot)) {
       CatalogWorkshopSelection.unsupported(publicPlan.request.actionId,
           'a targeted incoming-reference proof for removing catalog storage units');
     }

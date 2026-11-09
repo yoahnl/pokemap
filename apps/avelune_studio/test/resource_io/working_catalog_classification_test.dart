@@ -16,6 +16,28 @@ import 'package:map_core/map_core.dart';
 import '../../tool/create_example_project.dart';
 
 void main() {
+  test('indexed map scope and empty family deletion never attach the full project', () async {
+    final fixture = await _Fixture.create(unrelated: 300);
+    addTearDown(fixture.dispose);
+    await fixture.openWorkspace();
+    await fixture.workspace.ensureResourceKind('element');
+    final revision = await fixture.resources.captureResourceRevision();
+    final prepared = await fixture.resources.prepareResourceIndexes(expectedSnapshotRevision: revision);
+    fixture._accept(prepared);
+    await fixture.mutate('resource.classify', {
+      'resourceKind': 'element', 'resourceId': 'decor_0000', 'mapId': 'jardin',
+    });
+    expect(fixture.phases, contains('plan.end'));
+    expect(fixture.phases, isNot(contains('attach.start')));
+    expect((await fixture.readPersistedCatalog()).entryFor('element', 'decor_0000')?.mapId, 'jardin');
+    await fixture.mutate('resource.family.create', {'familyId': 'empty', 'name': 'Empty'});
+    fixture.phases.clear();
+    await fixture.mutate('resource.family.delete', {'familyId': 'empty'});
+    expect(fixture.phases, contains('plan.end'));
+    expect(fixture.phases, isNot(contains('attach.start')));
+    expect((await fixture.readPersistedCatalog()).families.where((family) => family.id == 'empty'), isEmpty);
+  }, timeout: const Timeout(Duration(minutes: 2)));
+
   test('a working catalog classification survives loading another family and reopening', () async {
     final fixture = await _Fixture.create();
     addTearDown(fixture.dispose);
@@ -387,7 +409,9 @@ final class _Fixture {
   bool _workspaceOpen = false;
 
   static Future<_Fixture> create({int unrelated = 0}) async {
-    final root = await Directory.systemTemp.createTemp(
+    final qa = Directory('/Users/karim/Library/Caches/AveluneQA/resource-inverse-index/tests');
+    await qa.create(recursive: true);
+    final root = await qa.createTemp(
       'studio_classification_catalog_',
     );
     await writeExampleProject(root);

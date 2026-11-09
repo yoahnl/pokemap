@@ -24,6 +24,8 @@ import 'catalog_targeted_map_edit.dart';
 import 'catalog_spatial_map_selection.dart';
 import 'catalog_model_source_selection.dart';
 import 'catalog_workshop_selection.dart';
+import 'catalog_resource_usage_index.dart';
+import 'catalog_resource_index_snapshot.dart';
 import 'catalog_scoped_working_mutation.dart';
 import '../../catalog_storage/catalog_editing_session.dart';
 import '../../catalog_storage/catalog_storage_store.dart';
@@ -430,6 +432,22 @@ final class CatalogAuthoringSession {
 
   Future<void> prepareWorkshopCatalog({String? scope}) async {
     _authorize(AuthoringSecurityOperation.plan);
+    if (scope == 'resourceIndexes') {
+      final editing = await _editing();
+      if (await CatalogResourceUsageIndex.prepared(editing.snapshot) &&
+          await CatalogReverseReferences.prepared(editing.snapshot)) {
+        return;
+      }
+      final root = editing.snapshot.root;
+      final project = await CatalogResourceIndexSnapshot.read(catalog: editing.snapshot,
+          store: reader.store, projectHandle: projectHandle);
+      if (await reader.store.readHead() != root) {
+        throw const CatalogStorageException('catalog.revision_conflict',
+            'The project changed while preparing its resource indexes.');
+      }
+      await editing.prepareResourceIndexes(project.snapshot, currentRevision: project.currentRevision);
+      return;
+    }
     if (scope == 'dialogueCreation') {
       await (await _editing()).prepareDialogueCreation();
       return;

@@ -84,6 +84,7 @@ final class ProjectSnapshot {
     Iterable<SceneAsset> rewardReferenceScenes = const [],
     this.pokemonInventoryComplete = false,
     this.materializedCatalogProject = false,
+    Map<String, Set<String>>? resourceLibraryMapUsageOverrides,
     Set<String>? availableProjectSections,
     Map<String, Set<String>>? availableProjectDocuments,
     Map<String, String?>? scopedStorageRevisions,
@@ -99,7 +100,10 @@ final class ProjectSnapshot {
     this.resourcePayloadReader,
     this.payloadOwner,
     Iterable<ProjectSnapshotLoadDiagnostic> loadDiagnostics = const [],
-  })  : rewardReferenceScenes = List.unmodifiable(rewardReferenceScenes),
+  })  : resourceLibraryMapUsageOverrides = resourceLibraryMapUsageOverrides == null
+            ? null : Map.unmodifiable(resourceLibraryMapUsageOverrides.map(
+                (key, value) => MapEntry(key, Set<String>.unmodifiable(value)))),
+        rewardReferenceScenes = List.unmodifiable(rewardReferenceScenes),
         scopedStorageRevisions = scopedStorageRevisions == null ? null : Map.unmodifiable(scopedStorageRevisions),
         availableProjectDocuments = availableProjectDocuments == null
             ? null
@@ -223,6 +227,7 @@ final class ProjectSnapshot {
         rewardReferenceScenes = source.rewardReferenceScenes,
         pokemonInventoryComplete = source.pokemonInventoryComplete,
         materializedCatalogProject = source.materializedCatalogProject,
+        resourceLibraryMapUsageOverrides = source.resourceLibraryMapUsageOverrides,
         availableProjectSections = source.availableProjectSections,
         availableProjectDocuments = source.availableProjectDocuments,
         scopedStorageRevisions = source.scopedStorageRevisions,
@@ -252,6 +257,7 @@ final class ProjectSnapshot {
         projectHandle = source.projectHandle,
         pokemonInventoryComplete = source.pokemonInventoryComplete,
         materializedCatalogProject = source.materializedCatalogProject,
+        resourceLibraryMapUsageOverrides = source.resourceLibraryMapUsageOverrides,
         availableProjectSections = source.availableProjectSections,
         availableProjectDocuments = source.availableProjectDocuments,
         scopedStorageRevisions = source.scopedStorageRevisions,
@@ -291,6 +297,7 @@ final class ProjectSnapshot {
   }
   final bool pokemonInventoryComplete;
   final bool materializedCatalogProject;
+  final Map<String, Set<String>>? resourceLibraryMapUsageOverrides;
   final Set<String>? availableProjectSections;
   final Map<String, Set<String>>? availableProjectDocuments;
   final Map<String, String?>? scopedStorageRevisions;

@@ -29,6 +29,8 @@ import '../transactions/revision_set.dart';
 import '../workspace/catalog/catalog_metadata_documents.dart';
 import '../workspace/catalog/catalog_periodic_reward_consumers.dart';
 import '../workspace/catalog/catalog_resource_positions.dart';
+import '../workspace/catalog/catalog_resource_usage_index.dart';
+import '../workspace/project_snapshot.dart';
 import '../workspace/catalog/catalog_spatial_map_selection.dart';
 import 'catalog_generation_retention.dart';
 import 'catalog_history_compatibility.dart';
@@ -395,6 +397,35 @@ final class CatalogEditingSession {
     await _apply(plan);
   }
 
+  Future<void> prepareResourceIndexes(ProjectSnapshot project,
+      {required Future<String> Function() currentRevision}) => _serialize(() async {
+    _requireOpen();
+    if (await CatalogResourceUsageIndex.prepared(snapshot) &&
+        await CatalogReverseReferences.prepared(snapshot)) {
+      return;
+    }
+    final units = await snapshot.readAllUnits();
+    final usageIndex = !await CatalogResourceUsageIndex.prepared(snapshot)
+        ? await CatalogResourceUsageIndex.initialize(catalog: snapshot, project: project, units: units)
+        : const <CatalogDefinitionUnit>[];
+    final upserts = [
+      if (!await CatalogReverseReferences.prepared(snapshot))
+        ...CatalogReverseReferences.initialize(units),
+      ...usageIndex,
+    ];
+    final initializedKeys = usageIndex.map((unit) => unit.key).toSet();
+    final removed = usageIndex.isEmpty ? const <CatalogDefinitionKey>[] : [
+      for (final unit in units)
+        if (CatalogResourceUsageIndex.owns(unit.key) && !initializedKeys.contains(unit.key)) unit.key,
+    ];
+    final plan = await _planPatch(upserts: upserts, removals: removed,
+        additionalChanges: const [], workspaceFingerprint: null,
+        publicBaseRevision: project.revision, publicDiff: null, publicPlan: null,
+        currentProjectRevision: currentRevision, idempotencyKey: _token('resource_indexes_prepare_'),
+        request: null, prepareMetadataDocuments: true);
+    await _apply(plan);
+  });
+
   Future<void> prepareMetadataDocuments({bool force = false}) =>
       _serialize(() async {
         _requireOpen();
@@ -585,6 +616,9 @@ final class CatalogEditingSession {
         request: request));
     units.addAll(await CatalogResourcePositions.maintain(
         lookup: base.lookup, upserts: units, removals: deleted));
+    units.addAll(await CatalogResourceUsageIndex.maintain(
+        snapshot: base, upserts: units, removals: deleted,
+        additionalChanges: additional));
     final patch = await base.patch(upserts: units, removals: deleted);
     if (patch.isEmpty) {
       throw const CatalogStorageException('catalog.no_changes',

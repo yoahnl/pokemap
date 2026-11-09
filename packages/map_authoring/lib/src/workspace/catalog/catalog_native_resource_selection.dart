@@ -8,6 +8,7 @@ const _nativeResourceActions = <String, (CatalogDefinitionKind, String)>{
   'resource.classify_batch': (CatalogDefinitionKind.resourceLibraryEntry, 'entries'),
   'resource.family.create': (CatalogDefinitionKind.resourceFamily, ''),
   'resource.family.update': (CatalogDefinitionKind.resourceFamily, ''),
+  'resource.family.delete': (CatalogDefinitionKind.resourceFamily, ''),
   'smart_tile.atlas.upsert': (CatalogDefinitionKind.smartTileAtlas, 'atlas'),
   'smart_tile.animation.upsert': (CatalogDefinitionKind.smartTileAnimation, 'animation'),
   'smart_tile.material.upsert_batch': (
@@ -92,26 +93,51 @@ Future<CatalogWorkshopSelection> _readNativeResourceWorkshop({
     final moves = <CatalogDefinitionKey, int>{};
     final drafts = <BorderBlueprintRecord>[];
     final candidates = <Object?>[parameters];
+    final usageMaps = <String, Set<String>>{};
+    final scopedMapIds = <String>{};
     var count = 0;
     if (family) {
-      final families = await CatalogResourcePositions.readUnits(
-          catalog.snapshot, CatalogDefinitionKind.resourceFamily);
-      try {
-        count = CatalogResourcePositions.contiguousCount(families);
-      } on FormatException {
-        CatalogWorkshopSelection.unsupported(
-            actionId, 'contiguous family positions');
-      }
-      roots.addAll(families.map((unit) => unit.key));
+      count = await CatalogResourcePositions.read(catalog.snapshot, kind);
       final key = CatalogDefinitionKey(kind, ids.single);
-      if (families.any((unit) => unit.key == key)) replacements.add(key);
+      final existing = await catalog.lookup(key);
+      if (existing != null) {
+        roots.add(key);
+        replacements.add(key);
+      }
+      final parent = parameters['parentId'];
+      if (parent is String && !ResourceLibraryCatalog.predefinedFamilies.any((family) => family.id == parent)) {
+        roots.add(CatalogDefinitionKey(kind, parent));
+      }
+      if (actionId == 'resource.family.delete' && existing != null) {
+        if (!await CatalogReverseReferences.prepared(catalog.snapshot)) {
+          throw const CatalogStorageException('catalog.resource_usage.preparation_required',
+              'Explicitly prepare resource indexes before deleting a family.');
+        }
+        if (await CatalogResourceUsageIndex.familyHasMembers(catalog.snapshot, key.id) ||
+            (await CatalogReverseReferences.consumers(catalog.snapshot, key)).isNotEmpty) {
+          throw VisualLibraryException('resource_library.family_not_empty',
+              'Move the classified resources and child families before deleting this family.');
+        }
+        final position = existing.payload['position'];
+        if (position is! int || position < 0 || position >= count) {
+          throw const FormatException('catalog.native_resource: family position');
+        }
+        removals[key] = position;
+        if (position != count - 1) {
+          final lastId = await CatalogResourcePositions.readSlot(catalog.snapshot, kind, count - 1);
+          final mover = CatalogDefinitionKey(kind, lastId);
+          roots.add(mover);
+          moves[mover] = position;
+        }
+        count--;
+      }
     } else {
       count = await CatalogResourcePositions.read(catalog.snapshot, kind);
     }
     if (kind == CatalogDefinitionKind.resourceLibraryEntry) {
       for (final input in inputs.cast<Map>()) {
-        if (input['mapId'] != null || input['resourceKind'] is! String || input['resourceId'] is! String) {
-          CatalogWorkshopSelection.unsupported(actionId, 'global classifications only');
+        if (input['resourceKind'] is! String || input['resourceId'] is! String) {
+          CatalogWorkshopSelection.unsupported(actionId, 'typed classifications');
         }
         final resourceKind = catalogResourceKinds[input['resourceKind']];
         if (resourceKind == null) throw const FormatException('Unknown classification resource kind.');
@@ -123,16 +149,19 @@ Future<CatalogWorkshopSelection> _readNativeResourceWorkshop({
         final key = CatalogDefinitionKey(kind,
             '${input['resourceKind']}:${input['resourceId']}');
         final existing = await catalog.lookup(key);
-        if (existing == null) continue;
-        final previous = Map<String, Object?>.from(
+        final previous = existing == null ? const <String, Object?>{} : Map<String, Object?>.from(
             existing.payload['value'] as Map);
         Object? field(String name) =>
             input.containsKey(name) ? input[name] : previous[name];
-        if (field('mapId') != null) {
-          CatalogWorkshopSelection.unsupported(
-              actionId, 'global classifications only');
+        final mapId = field('mapId');
+        if (mapId is String) {
+          scopedMapIds.add(mapId);
+          usageMaps[key.id] = await CatalogResourceUsageIndex.mapUsages(
+              catalog.snapshot, input['resourceKind'] as String, input['resourceId'] as String,
+              const [], readMapIds: () async => (await reader.readMetadata({'maps'})).maps.map((map) => map.id));
         }
-        if (field('familyId') == null &&
+        if (existing == null) continue;
+        if (mapId == null && field('familyId') == null &&
             field('description') == null &&
             field('placementContext') == null &&
             (field('role') ?? 'standard') == 'standard') {
@@ -264,7 +293,33 @@ Future<CatalogWorkshopSelection> _readNativeResourceWorkshop({
         in CatalogWorkshopSelection._referenceIds(candidates, {'categoryId'})) {
       roots.add(CatalogDefinitionKey(categoryKind, id));
     }
+    final familyRoots = roots.where((key) => key.kind == CatalogDefinitionKind.resourceFamily).toList();
+    for (var i = 0; i < familyRoots.length; i++) {
+      final unit = await catalog.lookup(familyRoots[i]);
+      final parent = (unit?.payload['value'] as Map?)?['parentId'];
+      if (parent is! String || ResourceLibraryCatalog.predefinedFamilies.any((family) => family.id == parent)) continue;
+      final key = CatalogDefinitionKey(CatalogDefinitionKind.resourceFamily, parent);
+      if (roots.add(key)) familyRoots.add(key);
+      if (familyRoots.length > catalog.snapshot.limits.maxClosureNodes) {
+        throw const FormatException('catalog.native_resource: family depth');
+      }
+    }
     var manifest = await ProjectCatalogSelection(catalog).resolve(roots);
+    for (final entry in manifest.resourceLibraryCatalog.entries) {
+      if (entry.mapId == null) continue;
+      scopedMapIds.add(entry.mapId!);
+      usageMaps[entry.identity] ??= await CatalogResourceUsageIndex.mapUsages(
+          catalog.snapshot, entry.resourceKind, entry.resourceId, const [],
+          readMapIds: () async => (await reader.readMetadata({'maps'})).maps.map((map) => map.id));
+    }
+    if (scopedMapIds.isNotEmpty) {
+      final documents = await CatalogMetadataDocuments.readDocuments(
+          snapshot: catalog.snapshot, project: manifest, ids: {'maps': scopedMapIds});
+      manifest = manifest.copyWith(maps: [
+        for (final entry in documents.project.maps)
+          ProjectMapEntry(id: entry.id, name: entry.name, relativePath: entry.relativePath),
+      ]);
+    }
     if (drafts.isNotEmpty) {
       manifest = manifest.copyWith(
           borderCatalog: ProjectBorderCatalog(
@@ -318,6 +373,7 @@ Future<CatalogWorkshopSelection> _readNativeResourceWorkshop({
     final snapshot = ProjectSnapshot(
         projectHandle: projectHandle,
         materializedCatalogProject: true,
+        resourceLibraryMapUsageOverrides: usageMaps,
         revision:
             CatalogWorkshopSelection.fingerprint(selected.revision, revisions),
         manifest: manifest,

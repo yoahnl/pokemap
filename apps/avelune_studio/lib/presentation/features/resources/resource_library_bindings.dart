@@ -211,9 +211,9 @@ Future<void> classifyResource(
               if (mapId != entry?.mapId) ...[
                 const SizedBox(height: 8),
                 const StudioNotice(
-                  'Avant d’enregistrer, Studio vérifie les usages de cette '
-                  'ressource dans tout le projet. Sur un grand projet, cette '
-                  'vérification peut prendre plusieurs minutes.',
+                  'Studio vérifie les usages enregistrés de cette ressource. '
+                  'Pour un ancien projet, préparez d’abord les usages depuis '
+                  '« Familles » dans la bibliothèque.',
                   key: ValueKey('resource-classify-scope-cost'),
                 ),
               ],
@@ -354,8 +354,32 @@ class _ResourceFamilyManagerState extends State<_ResourceFamilyManager> {
   String? selectedId;
   bool busy = false;
   String? error;
+  String? preparationNotice;
   ResourceLibraryCatalog get catalog =>
       widget.navigation.workspace.project!.resourceLibraryCatalog;
+
+  Future<void> prepareIndexes() async {
+    setState(() {
+      busy = true;
+      error = null;
+      preparationNotice = 'Préparation des usages et des familles… Cette préparation initiale peut prendre plusieurs minutes.';
+    });
+    try {
+      await widget.navigation.prepareResourceIndexes();
+      if (mounted) {
+        setState(() => preparationNotice = 'Les usages et les familles sont prêts.');
+      }
+    } on Object catch (failure) {
+      if (mounted) {
+        setState(() {
+          error = '$failure';
+          preparationNotice = null;
+        });
+      }
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
 
   Future<void> edit({ResourceFamily? initial, String? parent}) async {
     final revision = await widget.navigation.captureResourceRevision();
@@ -436,9 +460,8 @@ class _ResourceFamilyManagerState extends State<_ResourceFamilyManager> {
             ),
             SizedBox(height: 8),
             StudioNotice(
-              'Studio vérifie qu’aucune ressource du projet ne la référence. '
-              'Sur un grand projet, cette vérification peut prendre plusieurs '
-              'minutes.',
+              'Studio consulte les membres enregistrés de cette famille. '
+              'Sur un ancien projet, préparez d’abord les usages et les familles.',
               key: ValueKey('resource-family-delete-cost'),
             ),
           ],
@@ -493,6 +516,16 @@ class _ResourceFamilyManagerState extends State<_ResourceFamilyManager> {
             child: StudioPanel(
               title: 'Familles de ressources',
               children: [
+                if (widget.navigation.resourceIndexPreparationAvailable) ...[
+                  StudioButton(
+                    key: const ValueKey('resource-index-prepare'),
+                    label: 'Préparer les usages et les familles',
+                    secondary: true,
+                    onPressed: busy ? null : prepareIndexes,
+                  ),
+                  if (preparationNotice != null) StudioNotice(preparationNotice!),
+                  const SizedBox(height: 16),
+                ],
                 const Text(
                   'Les familles de base sont communes à la bibliothèque et à la '
                   'palette. Ajoutez vos propres familles ou sous-familles.',

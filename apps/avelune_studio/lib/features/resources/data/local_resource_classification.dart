@@ -5,6 +5,7 @@ const _catalogClassificationActions = {
   'resource.classify_batch',
   'resource.family.create',
   'resource.family.update',
+  'resource.family.delete',
 };
 
 bool _isCatalogClassification(LocalResourceAdapter adapter, String actionId) =>
@@ -177,6 +178,12 @@ Future<ResourceMutationReceipt?> _applyScopedClassification(
                 ),
               ),
       );
+      final publishedManifest = preparation.actionId == 'resource.family.delete'
+          ? manifest.copyWith(resourceLibraryCatalog: ResourceLibraryCatalog(
+              families: manifest.resourceLibraryCatalog.families.where(
+                  (family) => family.id != parameters['familyId']),
+              entries: manifest.resourceLibraryCatalog.entries))
+          : manifest;
       try {
         await api.applyMutation(
           opened.projectHandle,
@@ -207,7 +214,7 @@ Future<ResourceMutationReceipt?> _applyScopedClassification(
       phase('apply.end');
       final receipt = ResourceMutationReceipt(
         before: before.manifest,
-        manifest: manifest,
+        manifest: publishedManifest,
         beforeRevision: before.revision,
         revision: await adapter.mapAdapter.resourceRevision(adapter.session),
         changedPaths: List.unmodifiable(changes.map((c) => c.storageKey)),
@@ -236,6 +243,9 @@ Future<ResourceMutationReceipt?> _applyScopedClassification(
   } on ResourceFailure {
     rethrow;
   } on Object catch (error) {
+    if (error is CatalogStorageException && error.code == 'catalog.resource_usage.preparation_required') {
+      throw const ResourceFailure('Préparez les usages et les familles depuis « Familles » dans la bibliothèque, puis réessayez. Rien n’a été modifié.');
+    }
     throw _resourceFailure(error);
   } finally {
     adapter._resourceMutationActive = false;

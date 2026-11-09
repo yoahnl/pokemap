@@ -21,6 +21,8 @@ import 'catalog_project_reader.dart';
 import 'catalog_metadata_documents.dart';
 import 'catalog_narrative_event_documents.dart';
 import 'catalog_resource_positions.dart';
+import 'catalog_resource_usage_index.dart';
+import '../../domains/assets/tileset_actions.dart';
 import '../../catalog_storage/catalog_storage_store.dart';
 import 'catalog_spatial_map_selection.dart';
 import '../../domains/narrative/standard_event_template.dart';
@@ -83,6 +85,8 @@ final class CatalogWorkshopSelection {
   };
 
   static bool supports(String action, {Map<String, Object?>? parameters}) =>
+      const {'resource.classify', 'resource.classify_batch', 'resource.family.create',
+        'resource.family.update', 'resource.family.delete'}.contains(action) ||
       (action == 'model3d.configure' &&
           parameters != null &&
           (parameters.containsKey('light') || parameters.containsKey('collisionBounds') || parameters.containsKey('castsShadowsByDefault')) &&

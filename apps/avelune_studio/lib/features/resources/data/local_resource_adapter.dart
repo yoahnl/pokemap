@@ -42,12 +42,14 @@ part 'local_resource_lifecycle_preparation.dart';
 part 'local_resource_lifecycle_apply.dart';
 part 'local_character_removal_adapter.dart';
 part 'local_resource_classification.dart';
+part 'local_resource_index_preparation.dart';
 
 final class LocalResourceAdapter
     implements
         ResourcePort,
         ModelResourcePort,
         ResourceMutationPreparationPort,
+        ResourceIndexPreparationPort,
         ResourceLifecyclePreparationPort,
         ResourceUsageProvider {
   LocalResourceAdapter({
@@ -59,6 +61,14 @@ final class LocalResourceAdapter
   });
 
   final ProjectSession session;
+  @override
+  bool get resourceIndexPreparationAvailable =>
+      session.storage == ProjectSessionStorage.workingCatalog;
+
+  @override
+  Future<ResourceMutationReceipt> prepareResourceIndexes({
+    required String expectedSnapshotRevision,
+  }) => _prepareResourceIndexes(this, expectedSnapshotRevision);
   final LocalMapWorkspaceAdapter mapAdapter;
   bool _disposed = false;
   _LocalResourceMutationContext? _mutationContext;

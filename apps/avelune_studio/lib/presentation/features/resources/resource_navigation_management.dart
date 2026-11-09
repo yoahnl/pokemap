@@ -37,6 +37,30 @@ extension ResourceNavigationManagement on ResourceNavigation {
 
   Future<String> captureResourceRevision() =>
       _preparationPort.captureResourceRevision();
+
+  bool get resourceIndexPreparationAvailable =>
+      port is ResourceIndexPreparationPort &&
+      (port as ResourceIndexPreparationPort).resourceIndexPreparationAvailable;
+
+  Future<void> prepareResourceIndexes() async {
+    if (!resourceIndexPreparationAvailable || busy || pendingReceipt != null) {
+      throw const ResourceFailure('La préparation est indisponible pour le moment.');
+    }
+    if (usageDraftOwners.isNotEmpty) {
+      throw const ResourceFailure('Enregistrez ou annulez les brouillons avant de préparer les usages.');
+    }
+    busy = true;
+    changed();
+    try {
+      final revision = await captureResourceRevision();
+      final receipt = await (port as ResourceIndexPreparationPort)
+          .prepareResourceIndexes(expectedSnapshotRevision: revision);
+      await accept(receipt);
+    } finally {
+      busy = false;
+      changed();
+    }
+  }
   Future<String?> resourceFingerprint(String tilesetId, String revision) =>
       _preparationPort.resourceFingerprint(tilesetId, revision);
 

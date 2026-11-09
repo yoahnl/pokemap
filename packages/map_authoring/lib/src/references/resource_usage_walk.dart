@@ -84,6 +84,16 @@ const _referenceFields = {
   'asset': {'assetId', 'sourceAssetId'},
 };
 
+final _referenceKindsByField = () {
+  final result = <String, List<String>>{};
+  for (final entry in _referenceFields.entries) {
+    for (final field in entry.value) {
+      result.putIfAbsent(field, () => []).add(entry.key);
+    }
+  }
+  return result;
+}();
+
 Iterable<String> resourceReferencePaths(
   Object? value,
   String kind,
@@ -113,10 +123,8 @@ Iterable<({String kind, String id, String path})> resourceReferences(
   String field = '',
 }) sync* {
   if (value is String) {
-    for (final entry in _referenceFields.entries) {
-      if (entry.value.contains(field)) {
-        yield (kind: entry.key, id: value, path: path);
-      }
+    for (final kind in _referenceKindsByField[field] ?? const <String>[]) {
+      yield (kind: kind, id: value, path: path);
     }
   } else if (value is List) {
     for (var i = 0; i < value.length; i++) {

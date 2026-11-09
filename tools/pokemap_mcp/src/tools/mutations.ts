@@ -48,7 +48,7 @@ export function registerMutationTools(
           actionId: z.string().min(1), parameters: jsonRecordSchema.default({}),
           readDependencies: z.record(z.string(), z.string()).optional(),
           includeDocuments: z.boolean().default(true), }).strict(),
-        z.object({ operation: z.literal("prepare"), projectHandle: z.string().min(1), scope: z.enum(["mapCreation", "dialogueCreation", "assetImport", "nativeResources", "metadataContext"]).optional() }).strict(),
+        z.object({ operation: z.literal("prepare"), projectHandle: z.string().min(1), scope: z.enum(["mapCreation", "dialogueCreation", "assetImport", "nativeResources", "metadataContext", "resourceIndexes"]).optional() }).strict(),
       ]),
       outputSchema: toolEnvelopeSchema,
       annotations: mutationAnnotations,

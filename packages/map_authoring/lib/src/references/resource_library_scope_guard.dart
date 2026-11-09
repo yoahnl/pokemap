@@ -71,11 +71,22 @@ final class ResourceLibraryUsageIndex {
   final Set<String> _mapIds;
   final Map<String, Set<String>> _consumers = {};
   final Map<String, Set<String>> _cachedMapUsages = {};
+  bool _indexedOnly = false;
+
+  ResourceLibraryUsageIndex.fromMapUsages(Map<String, Set<String>> usages)
+      : _mapIds = const {} {
+    _indexedOnly = true;
+    _cachedMapUsages.addAll(usages);
+  }
 
   Set<String> mapUsages(String resourceKind, String resourceId) {
     final identity = '$resourceKind:$resourceId';
     final cached = _cachedMapUsages[identity];
     if (cached != null) return cached;
+    if (_indexedOnly) {
+      throw VisualLibraryException('resource_library.usage_incomplete',
+          'The indexed resource usage scope is incomplete.');
+    }
     final kind = switch (resourceKind) {
       'smartTilePreset' => 'preset',
       'borderBlueprint' => 'border',
@@ -108,7 +119,9 @@ void validateResourceLibraryMapScopes(ProjectSnapshot snapshot) {
     return;
   }
   validateResourceLibraryScopeIndex(
-      snapshot.manifest, ResourceLibraryUsageIndex(snapshot));
+      snapshot.manifest, snapshot.resourceLibraryMapUsageOverrides == null
+          ? ResourceLibraryUsageIndex(snapshot)
+          : ResourceLibraryUsageIndex.fromMapUsages(snapshot.resourceLibraryMapUsageOverrides!));
 }
 
 void validateResourceLibraryScopeIndex(
@@ -271,6 +284,7 @@ AuthoringMutationDraft guardResourceLibraryMutation(
     projectHandle: original.projectHandle,
     revision: original.revision,
     manifest: project,
+    resourceLibraryMapUsageOverrides: original.resourceLibraryMapUsageOverrides,
     maps: maps.values,
     pokemonInventoryComplete: original.pokemonInventoryComplete,
     resourceFingerprints: {
