@@ -1,3 +1,4 @@
+import '../../contracts/civil_weekday_condition.dart';
 import '../../contracts/periodic_reward_choices.dart';
 import 'package:map_core/map_core.dart';
 
@@ -75,6 +76,7 @@ final class FactRuleActions {
                       'semantics': 'createOrUpdate',
                       'atomic': true,
                     },
+                    'civilWeekday': civilWeekdayConditionContract,
                     'periodicRewardAvailable': periodicRewardConditionChoiceContract,
                     'atmosphere': {'targetKind': 'atmosphere', 'effectKind': 'atmosphere', 'payloadField': 'effect.visualSettings', 'capability': SpatialVisualDocument.capabilityId},
                     'rules': {
@@ -85,6 +87,7 @@ final class FactRuleActions {
                     },
                   }
                 : entry.$1.startsWith('world_rule.') ? const {
+                    'civilWeekday': civilWeekdayConditionContract,
                     'periodicRewardAvailable': periodicRewardConditionChoiceContract,
                     'atmosphere': {'targetKind': 'atmosphere', 'effectKind': 'atmosphere', 'mapId': 'required',
                       'payloadField': 'effect.visualSettings', 'condition': 'canonicalWorldRuleSource',

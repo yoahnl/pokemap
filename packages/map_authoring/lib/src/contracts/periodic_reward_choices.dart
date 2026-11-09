@@ -29,33 +29,65 @@ final class PeriodicRewardSceneChoice {
       };
 }
 
+enum PeriodicRewardNodeVariant { item, encounter }
+
 final class PeriodicRewardNodeChoice {
   const PeriodicRewardNodeChoice({
     required this.nodeId,
     required this.label,
-    required this.itemId,
-    required this.quantity,
+    required String this.itemId,
+    required int this.quantity,
     required this.reference,
     required this.revision,
-  });
+  }) : variant = PeriodicRewardNodeVariant.item;
 
-  factory PeriodicRewardNodeChoice.fromJson(Map<String, dynamic> json) =>
-      PeriodicRewardNodeChoice(
-        nodeId: requireContractString(json['nodeId'], 'nodeId'),
-        label: requireContractString(json['label'], 'label'),
+  const PeriodicRewardNodeChoice.encounter({
+    required this.nodeId,
+    required this.label,
+    required this.reference,
+    required this.revision,
+  })  : variant = PeriodicRewardNodeVariant.encounter,
+        itemId = null,
+        quantity = null;
+
+  factory PeriodicRewardNodeChoice.fromJson(Map<String, dynamic> json) {
+    final nodeId = requireContractString(json['nodeId'], 'nodeId');
+    final label = requireContractString(json['label'], 'label');
+    final reference = PeriodicRewardReference.fromJson(
+        Map<String, dynamic>.from(json['reference'] as Map));
+    final revision = requireContractString(json['revision'], 'revision');
+    if (json['variant'] == 'encounter') {
+      if (json.containsKey('itemId') ||
+          json.containsKey('quantity') ||
+          json.containsKey('itemLabel')) {
+        throw const FormatException(
+            'An encounter choice cannot contain item fields.');
+      }
+      return PeriodicRewardNodeChoice.encounter(
+          nodeId: nodeId,
+          label: label,
+          reference: reference,
+          revision: revision);
+    }
+    if (json.containsKey('variant') && json['variant'] != 'item') {
+      throw const FormatException(
+          'Unsupported periodic reward choice variant.');
+    }
+    return PeriodicRewardNodeChoice(
+        nodeId: nodeId,
+        label: label,
         itemId: requireContractString(json['itemId'], 'itemId'),
         quantity: requirePositiveContractVersion(json['quantity'], 'quantity'),
-        reference: PeriodicRewardReference.fromJson(
-          Map<String, dynamic>.from(json['reference'] as Map),
-        ),
-        revision: requireContractString(json['revision'], 'revision'),
-      );
+        reference: reference,
+        revision: revision);
+  }
 
   final String nodeId;
   final String label;
-  final String itemId;
+  final PeriodicRewardNodeVariant variant;
+  final String? itemId;
   String get itemLabel => label;
-  final int quantity;
+  final int? quantity;
   final PeriodicRewardReference reference;
   final String revision;
 
@@ -64,9 +96,12 @@ final class PeriodicRewardNodeChoice {
         'resourceKind': 'periodicRewardNode',
         'nodeId': nodeId,
         'label': label,
-        'itemId': itemId,
-        'itemLabel': itemLabel,
-        'quantity': quantity,
+        if (variant == PeriodicRewardNodeVariant.item) ...{
+          'itemId': itemId,
+          'itemLabel': itemLabel,
+          'quantity': quantity,
+        } else
+          'variant': 'encounter',
         'reference': reference.toJson(),
         'revision': revision,
       };
@@ -74,7 +109,12 @@ final class PeriodicRewardNodeChoice {
 
 const periodicRewardConditionChoiceContract = <String, Object?>{
   'kind': 'periodicRewardAvailable',
-  'rewardReference': {'schemaVersion': 1, 'required': ['sceneId', 'nodeId', 'rewardId'], 'rewardId': 'derivedFromSelectedPublishedClaimCommand'},
+  'rewardReference': {
+    'schemaVersion': 1,
+    'required': ['sceneId', 'nodeId', 'rewardId'],
+    'rewardId': 'derivedFromSelectedPublishedClaimSource'
+  },
+  'sourceVariants': ['item', 'encounter'],
   'sourceChoices': ['periodicRewardScene', 'periodicRewardNode'],
   'sourceGraphDependencies': 'notExecutionDependencies',
   'itemLabelSource': 'publishedRewardDefinitionLabel',

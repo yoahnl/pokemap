@@ -47,13 +47,34 @@ abstract final class SpatialGameplayCapabilities {
 
   static bool requiresImagePuzzle(ProjectManifest project) => project.scenes.any((scene) => scene.graph.nodes.any((node) => node.payload is SceneActionPayload && (node.payload as SceneActionPayload).interactiveCommand is SceneOpenImagePuzzleInteractiveCommand));
 
+  static const periodicEncounterCapabilityId = 'gameplay.periodic-encounter@1';
+
+  static bool requiresPeriodicEncounter(ProjectManifest project) => project.scenes.any(
+    (scene) => scene.graph.nodes.any((node) => node.payload is SceneBattlePayload &&
+      (node.payload as SceneBattlePayload).periodicEncounter != null));
+
   static const periodicRewardCapabilityId = 'gameplay.periodic-reward@1';
+  static const civilWeekdayConditionCapabilityId = 'gameplay.civil-weekday-condition@1';
+
   static const periodicRewardConditionCapabilityId = 'gameplay.periodic-reward-condition@1';
 
   static bool requiresConditionalModelVisibility(Iterable<MapData> maps) =>
       maps.any((map) => map.spatialScene?.instances.any(
         (instance) => instance.visibilityCondition != null,
       ) ?? false);
+
+  static bool requiresCivilWeekdayCondition(ProjectManifest project, {required Iterable<MapData> maps}) =>
+    project.scenes.any((scene) => scene.graph.nodes.any((node) =>
+      node.payload is SceneConditionPayload && (node.payload as SceneConditionPayload).conditionSource?.sourceKind == SceneConditionSourceKind.civilWeekday)) ||
+    project.worldRules.any((rule) => rule.source.kind == WorldRuleSourceKind.civilWeekday) ||
+    (project.eventRegistry?.records.any((record) =>
+      (record.definitionOrNull?.conditions ?? record.draftOrNull?.conditions ?? const []).any((condition) => condition.weekday != null)) ?? false) ||
+    maps.any((map) =>
+      (map.spatialScene?.instances.any((instance) =>
+        instance.visibilityCondition?.leaves.any((condition) =>
+          condition.weekday != null) ?? false) ?? false) ||
+      map.entities.any((entity) => entity.presentation?.variants.any((variant) =>
+        variant.condition.leaves.any((condition) => condition.weekday != null)) ?? false));
 
   static bool requiresPeriodicRewardCondition(ProjectManifest project, {required Iterable<MapData> maps}) =>
     project.scenes.any((scene) => scene.graph.nodes.any((node) =>
@@ -192,6 +213,7 @@ abstract final class SpatialGameplayCapabilities {
     CinematicTimelineStepKind.marker,
   };
   static const conditionSources = <SceneConditionSourceKind>{
+    SceneConditionSourceKind.civilWeekday,
     SceneConditionSourceKind.periodicRewardAvailable,
     SceneConditionSourceKind.playerFacing,
     SceneConditionSourceKind.partyState,

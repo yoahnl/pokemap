@@ -302,6 +302,11 @@ void _validateSourceReferences(
   _WorldRuleAuthoringReferences references,
 ) {
   switch (rule.source.kind) {
+    case WorldRuleSourceKind.civilWeekday:
+      if (rule.source.weekday == null || rule.source.sourceId != 'civilWeekday' || rule.source.rewardReference != null || rule.source.factOperator != null || rule.source.expectedFactValue != null) {
+        throw ArgumentError('Civil weekday rules require a weekday and boolean predicate.');
+      }
+      break;
     case WorldRuleSourceKind.periodicRewardAvailable:
       final reference = rule.source.rewardReference;
       if (reference == null || reference.rewardId != rule.source.sourceId ||

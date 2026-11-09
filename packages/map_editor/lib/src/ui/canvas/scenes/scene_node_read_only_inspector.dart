@@ -1,3 +1,5 @@
+import 'periodic_encounter_authoring_panel.dart';
+import 'civil_weekday_picker.dart';
 import 'periodic_reward_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:map_core/map_core.dart';
@@ -165,6 +167,7 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
     this.onOpenDialogue,
     this.onUpdateBattlePayload,
     this.onUpdateBattleDefeatRecovery,
+    this.onUpdatePeriodicEncounter,
     this.onUpdateCinematicPayload,
     this.onOpenCinematic,
     this.consequenceFactOptions = const [],
@@ -197,6 +200,7 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
   final ValueChanged<String>? onOpenDialogue;
   final SceneBattlePayloadDraftUpdater? onUpdateBattlePayload;
   final SceneBattleDefeatRecoveryDraftUpdater? onUpdateBattleDefeatRecovery;
+  final ScenePeriodicEncounterDraftUpdater? onUpdatePeriodicEncounter;
   final SceneCinematicPayloadDraftUpdater? onUpdateCinematicPayload;
   final ValueChanged<String>? onOpenCinematic;
   final List<SceneConsequenceFactPickerOption> consequenceFactOptions;
@@ -252,6 +256,7 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
               onOpenDialogue: onOpenDialogue,
               onUpdateBattlePayload: onUpdateBattlePayload,
               onUpdateBattleDefeatRecovery: onUpdateBattleDefeatRecovery,
+              onUpdatePeriodicEncounter: onUpdatePeriodicEncounter,
               onUpdateCinematicPayload: onUpdateCinematicPayload,
               onOpenCinematic: onOpenCinematic,
               consequenceFactOptions: consequenceFactOptions,
@@ -368,6 +373,7 @@ class _NodeInspectorBody extends StatelessWidget {
     required this.onOpenDialogue,
     required this.onUpdateBattlePayload,
     required this.onUpdateBattleDefeatRecovery,
+    required this.onUpdatePeriodicEncounter,
     required this.onUpdateCinematicPayload,
     required this.onOpenCinematic,
     required this.consequenceFactOptions,
@@ -398,6 +404,7 @@ class _NodeInspectorBody extends StatelessWidget {
   final ValueChanged<String>? onOpenDialogue;
   final SceneBattlePayloadDraftUpdater? onUpdateBattlePayload;
   final SceneBattleDefeatRecoveryDraftUpdater? onUpdateBattleDefeatRecovery;
+  final ScenePeriodicEncounterDraftUpdater? onUpdatePeriodicEncounter;
   final SceneCinematicPayloadDraftUpdater? onUpdateCinematicPayload;
   final ValueChanged<String>? onOpenCinematic;
   final List<SceneConsequenceFactPickerOption> consequenceFactOptions;
@@ -466,13 +473,13 @@ class _NodeInspectorBody extends StatelessWidget {
             ),
             const SizedBox(height: 10),
           ],
-          if (node.payload is SceneBattlePayload &&
-              (linkedAssetContracts?.battles.isNotEmpty ?? false)) ...[
+          if (node.payload is SceneBattlePayload) ...[
             _BattlePayloadAuthoringPanel(
               node: node,
               payload: node.payload as SceneBattlePayload,
               battles: linkedAssetContracts?.battles ?? const [],
               onUpdatePayload: onUpdateBattlePayload,
+              onUpdatePeriodicEncounter: onUpdatePeriodicEncounter,
               onUpdateDefeatRecovery: partyProjectDimension == ProjectDimension.twoD
                   ? onUpdateBattleDefeatRecovery : null,
             ),
@@ -1116,6 +1123,7 @@ class _BattlePayloadAuthoringPanel extends StatelessWidget {
     required this.battles,
     required this.onUpdatePayload,
     this.onUpdateDefeatRecovery,
+    this.onUpdatePeriodicEncounter,
   });
 
   final SceneNode node;
@@ -1123,6 +1131,7 @@ class _BattlePayloadAuthoringPanel extends StatelessWidget {
   final List<BattlePublicContract> battles;
   final SceneBattlePayloadDraftUpdater? onUpdatePayload;
   final SceneBattleDefeatRecoveryDraftUpdater? onUpdateDefeatRecovery;
+  final ScenePeriodicEncounterDraftUpdater? onUpdatePeriodicEncounter;
 
   @override
   Widget build(BuildContext context) {
@@ -1191,6 +1200,9 @@ class _BattlePayloadAuthoringPanel extends StatelessWidget {
             updater(nodeId: node.id, defeatRecovery: recovery);
           },
         ),
+        const SizedBox(height: 8),
+        PeriodicEncounterAuthoringPanel(nodeId: node.id, payload: payload,
+          onUpdate: onUpdatePeriodicEncounter),
         const _InspectorNote(label: 'Le retour au point de soin a lieu à la fin de la scène. '
             'L’équipe est soignée et la pénalité de défaite est appliquée.',
         ),
@@ -3015,6 +3027,9 @@ class _ConditionAuthoringPanelState extends State<_ConditionAuthoringPanel> {
             _ConditionButtonRow(
               label: 'Source',
               children: [
+                _conditionButton(key: const ValueKey('scene-condition-source-kind-civilWeekday'),
+                  label: 'Jour de la semaine', selected: _sourceKind == SceneConditionSourceKind.civilWeekday,
+                  onPressed: () => setState(() => _sourceKind = SceneConditionSourceKind.civilWeekday)),
                 _conditionButton(key: const ValueKey(
                     'scene-condition-source-kind-periodicRewardAvailable',
                   ),
@@ -3098,6 +3113,13 @@ class _ConditionAuthoringPanelState extends State<_ConditionAuthoringPanel> {
                 ),
               ],
             ),
+            if (_sourceKind == SceneConditionSourceKind.civilWeekday)
+              CivilWeekdayPicker(initial: (widget.node.payload as SceneConditionPayload).conditionSource?.weekday,
+                expectedValue: (widget.node.payload as SceneConditionPayload).conditionSource?.operator != SceneConditionOperator.isFalse,
+                onApply: (weekday, expected) async {
+                  await widget.onUpdateConditionSource?.call(nodeId: widget.node.id,
+                    source: SceneConditionSource.civilWeekday(weekday: weekday, expectedValue: expected));
+                }),
             if (_sourceKind == SceneConditionSourceKind.periodicRewardAvailable)
               EditorPeriodicRewardPicker(
                 initial: (widget.node.payload as SceneConditionPayload)
@@ -3140,7 +3162,7 @@ class _ConditionAuthoringPanelState extends State<_ConditionAuthoringPanel> {
                     ) ??
                     false,
               ),
-            if (_sourceKind !=
+            if (_sourceKind != SceneConditionSourceKind.civilWeekday && _sourceKind !=
                     SceneConditionSourceKind.periodicRewardAvailable &&
                 _sourceKind != SceneConditionSourceKind.partyState && _sourceKind != SceneConditionSourceKind.integerComparison) ...[
             const SizedBox(height: 8),
@@ -3469,7 +3491,7 @@ class _ConditionAuthoringPanelState extends State<_ConditionAuthoringPanel> {
   bool _isSourceKindAuthorable(SceneConditionSourceKind kind) {
     return switch (kind) {
       SceneConditionSourceKind.integerComparison ||
-      SceneConditionSourceKind.periodicRewardAvailable => true,
+      SceneConditionSourceKind.civilWeekday || SceneConditionSourceKind.periodicRewardAvailable => true,
       SceneConditionSourceKind.newGameDraft => false,
       SceneConditionSourceKind.badge ||
       SceneConditionSourceKind.factLikeStoryFlag ||
@@ -3892,7 +3914,7 @@ SceneConditionOperator _defaultOperatorForKind(SceneConditionSourceKind kind) {
   return switch (kind) {
     SceneConditionSourceKind.integerComparison || SceneConditionSourceKind.storyStepCompletion =>
       SceneConditionOperator.equals,
-    SceneConditionSourceKind.periodicRewardAvailable ||
+    SceneConditionSourceKind.civilWeekday || SceneConditionSourceKind.periodicRewardAvailable ||
     SceneConditionSourceKind.newGameDraft ||
     SceneConditionSourceKind.fact ||
     SceneConditionSourceKind.badge ||
@@ -3920,7 +3942,7 @@ String? _defaultValueForKind(SceneConditionSourceKind kind) {
     SceneConditionSourceKind.integerComparison => null,
     SceneConditionSourceKind.storyStepCompletion =>
       SceneConditionValues.completed,
-    SceneConditionSourceKind.periodicRewardAvailable ||
+    SceneConditionSourceKind.civilWeekday || SceneConditionSourceKind.periodicRewardAvailable ||
     SceneConditionSourceKind.newGameDraft ||
     SceneConditionSourceKind.fact ||
     SceneConditionSourceKind.badge ||

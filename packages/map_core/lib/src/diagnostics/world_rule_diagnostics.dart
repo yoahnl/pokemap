@@ -234,6 +234,13 @@ void _diagnoseSource(
   }
 
   switch (rule.source.kind) {
+    case WorldRuleSourceKind.civilWeekday:
+      if (rule.source.weekday == null || rule.source.sourceId != 'civilWeekday' || rule.source.rewardReference != null || rule.source.factOperator != null || rule.source.expectedFactValue != null) {
+        diagnostics.add(WorldRuleDiagnostic(code: WorldRuleDiagnosticCode.worldRuleSourceUnknown,
+          severity: WorldRuleDiagnosticSeverity.error, ruleId: rule.id, sourceId: rule.source.sourceId,
+          message: 'La condition de jour civil requiert un jour valide et un prédicat booléen.'));
+      }
+      break;
     case WorldRuleSourceKind.periodicRewardAvailable:
       final reference = rule.source.rewardReference;
       final resolution = reference == null ? null : resolvePeriodicRewardReference(reference: reference, lookupScenes: lookupRewardScenes);

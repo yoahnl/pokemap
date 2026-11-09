@@ -1,3 +1,4 @@
+import '../operations/civil_weekday_condition_evaluator.dart';
 import '../models/game_state.dart';
 import '../models/narrative_event_definition.dart';
 import '../models/narrative_map_view.dart';
@@ -41,7 +42,8 @@ final class PresentationConditionContext {
   ) => evaluateNarrativeConditionExpression(
     expression,
     evaluateLeaf: (condition) => condition.whenTyped(
-      periodicRewardAvailable: (reference, expected) {
+      civilWeekday: (weekday, expected) => evaluateCivilWeekdayCondition(weekday: weekday, expectedValue: expected, calendar: gameState.gameplayCalendarState),
+        periodicRewardAvailable: (reference, expected) {
         final resolution = _rewards.putIfAbsent(
           reference,
           () => resolvePeriodicRewardReference(

@@ -459,9 +459,15 @@ final class CanonicalGamePackageExportService {
             projection.project,
             maps: fieldObstacleMaps))
           FieldObstacleCapabilities.extendedCapabilityId,
+        if (SpatialGameplayCapabilities.requiresPeriodicEncounter(projection.project))
+          SpatialGameplayCapabilities.periodicEncounterCapabilityId,
         if (SpatialGameplayCapabilities.requiresPeriodicReward(
             projection.project))
           SpatialGameplayCapabilities.periodicRewardCapabilityId,
+        if (SpatialGameplayCapabilities.requiresCivilWeekdayCondition(
+            projection.project,
+            maps: fieldObstacleMaps))
+          SpatialGameplayCapabilities.civilWeekdayConditionCapabilityId,
         if (SpatialGameplayCapabilities.requiresPeriodicRewardCondition(
             projection.project,
             maps: fieldObstacleMaps))

@@ -1,3 +1,4 @@
+import 'civil_weekday.dart';
 import 'periodic_reward_reference.dart';
 import 'package:meta/meta.dart' show immutable;
 
@@ -363,6 +364,9 @@ sealed class NarrativeEventCondition {
 
   factory NarrativeEventCondition.periodicRewardAvailable({required PeriodicRewardReference reference, required bool expectedValue}) = _PeriodicRewardAvailableNarrativeEventCondition;
 
+  factory NarrativeEventCondition.civilWeekday({required CivilWeekday weekday, required bool expectedValue}) = _CivilWeekdayNarrativeEventCondition;
+
+  CivilWeekday? get weekday => null;
   PeriodicRewardReference? get rewardReference => null;
 
   factory NarrativeEventCondition.fromJson(Object? json) {
@@ -373,6 +377,10 @@ sealed class NarrativeEventCondition {
       path: 'condition',
     );
     switch (kind) {
+      case 'civilWeekday':
+        NarrativeEventWire.expectExactFields(object, const {'kind', 'weekday', 'expectedValue'}, path: 'condition');
+        return NarrativeEventCondition.civilWeekday(weekday: CivilWeekday.fromJson(object['weekday']),
+          expectedValue: NarrativeEventWire.requiredBool(object, 'expectedValue', path: 'condition'));
       case 'periodicRewardAvailable':
         NarrativeEventWire.expectExactFields(object, const {'kind', 'rewardReference', 'expectedValue'}, path: 'condition');
         return NarrativeEventCondition.periodicRewardAvailable(
@@ -490,6 +498,7 @@ sealed class NarrativeEventCondition {
         narrativeEventConsumed,
     T Function(String mapId, String eventId, String key, bool expectedValue)?
         mapEventInstanceBoolean,
+    T Function(CivilWeekday weekday, bool expectedValue)? civilWeekday,
     T Function(PeriodicRewardReference reference, bool expectedValue)? periodicRewardAvailable,
   });
 
@@ -503,6 +512,7 @@ sealed class NarrativeEventCondition {
         narrativeEventConsumed,
     T Function(String mapId, String eventId, String key, bool expectedValue)?
         mapEventInstanceBoolean,
+    T Function(CivilWeekday weekday, bool expectedValue)? civilWeekday,
     T Function(PeriodicRewardReference reference, bool expectedValue)? periodicRewardAvailable,
   });
 
@@ -552,6 +562,7 @@ final class _FactNarrativeEventCondition extends NarrativeEventCondition {
         narrativeEventConsumed,
     T Function(String mapId, String eventId, String key, bool expectedValue)?
         mapEventInstanceBoolean,
+    T Function(CivilWeekday weekday, bool expectedValue)? civilWeekday,
     T Function(PeriodicRewardReference reference, bool expectedValue)? periodicRewardAvailable,
   }) =>
       fact(factId, expectedValue);
@@ -567,6 +578,7 @@ final class _FactNarrativeEventCondition extends NarrativeEventCondition {
         narrativeEventConsumed,
     T Function(String mapId, String eventId, String key, bool expectedValue)?
         mapEventInstanceBoolean,
+    T Function(CivilWeekday weekday, bool expectedValue)? civilWeekday,
     T Function(PeriodicRewardReference reference, bool expectedValue)? periodicRewardAvailable,
   }) =>
       fact(factId, comparisonOperator, expectedNarrativeValue);
@@ -624,6 +636,7 @@ final class _ConsumedNarrativeEventCondition extends NarrativeEventCondition {
         narrativeEventConsumed,
     T Function(String mapId, String eventId, String key, bool expectedValue)?
         mapEventInstanceBoolean,
+    T Function(CivilWeekday weekday, bool expectedValue)? civilWeekday,
     T Function(PeriodicRewardReference reference, bool expectedValue)? periodicRewardAvailable,
   }) =>
       narrativeEventConsumed(eventId, expectedValue);
@@ -639,6 +652,7 @@ final class _ConsumedNarrativeEventCondition extends NarrativeEventCondition {
         narrativeEventConsumed,
     T Function(String mapId, String eventId, String key, bool expectedValue)?
         mapEventInstanceBoolean,
+    T Function(CivilWeekday weekday, bool expectedValue)? civilWeekday,
     T Function(PeriodicRewardReference reference, bool expectedValue)? periodicRewardAvailable,
   }) =>
       narrativeEventConsumed(eventId, expectedValue);
@@ -676,6 +690,7 @@ final class _PeriodicRewardAvailableNarrativeEventCondition extends NarrativeEve
   T when<T>({required T Function(String, bool) fact,
     required T Function(String, bool) narrativeEventConsumed,
     T Function(String, String, String, bool)? mapEventInstanceBoolean,
+    T Function(CivilWeekday, bool)? civilWeekday,
     T Function(PeriodicRewardReference, bool)? periodicRewardAvailable}) {
     if (periodicRewardAvailable == null) throw UnsupportedError('This consumer does not support periodic reward conditions.');
     return periodicRewardAvailable(rewardReference, expectedValue);
@@ -684,6 +699,7 @@ final class _PeriodicRewardAvailableNarrativeEventCondition extends NarrativeEve
   T whenTyped<T>({required T Function(String, NarrativeFactOperator, NarrativeValue) fact,
     required T Function(String, bool) narrativeEventConsumed,
     T Function(String, String, String, bool)? mapEventInstanceBoolean,
+    T Function(CivilWeekday, bool)? civilWeekday,
     T Function(PeriodicRewardReference, bool)? periodicRewardAvailable}) {
     if (periodicRewardAvailable == null) throw UnsupportedError('This consumer does not support periodic reward conditions.');
     return periodicRewardAvailable(rewardReference, expectedValue);
@@ -694,6 +710,42 @@ final class _PeriodicRewardAvailableNarrativeEventCondition extends NarrativeEve
   bool operator ==(Object other) => other is _PeriodicRewardAvailableNarrativeEventCondition && other.rewardReference == rewardReference && other.expectedValue == expectedValue;
   @override
   int get hashCode => Object.hash(rewardReference, expectedValue);
+}
+
+final class _CivilWeekdayNarrativeEventCondition extends NarrativeEventCondition {
+  _CivilWeekdayNarrativeEventCondition({required this.weekday, required this.expectedValue}) : super._();
+  @override
+  final CivilWeekday weekday;
+  @override
+  final bool expectedValue;
+  @override
+  NarrativeValue get expectedNarrativeValue => NarrativeValue.boolean(expectedValue);
+  @override
+  NarrativeFactOperator get comparisonOperator => NarrativeFactOperator.equals;
+  @override
+  T when<T>({required T Function(String, bool) fact,
+    required T Function(String, bool) narrativeEventConsumed,
+    T Function(String, String, String, bool)? mapEventInstanceBoolean,
+    T Function(CivilWeekday, bool)? civilWeekday,
+    T Function(PeriodicRewardReference, bool)? periodicRewardAvailable}) {
+    if (civilWeekday == null) throw UnsupportedError('This consumer does not support civil weekday conditions.');
+    return civilWeekday(weekday, expectedValue);
+  }
+  @override
+  T whenTyped<T>({required T Function(String, NarrativeFactOperator, NarrativeValue) fact,
+    required T Function(String, bool) narrativeEventConsumed,
+    T Function(String, String, String, bool)? mapEventInstanceBoolean,
+    T Function(CivilWeekday, bool)? civilWeekday,
+    T Function(PeriodicRewardReference, bool)? periodicRewardAvailable}) {
+    if (civilWeekday == null) throw UnsupportedError('This consumer does not support civil weekday conditions.');
+    return civilWeekday(weekday, expectedValue);
+  }
+  @override
+  Map<String, Object?> toJson() => {'kind': 'civilWeekday', 'weekday': weekday.name, 'expectedValue': expectedValue};
+  @override
+  bool operator ==(Object other) => other is _CivilWeekdayNarrativeEventCondition && other.weekday == weekday && other.expectedValue == expectedValue;
+  @override
+  int get hashCode => Object.hash(weekday, expectedValue);
 }
 
 final class _MapEventInstanceBooleanNarrativeEventCondition
@@ -727,6 +779,7 @@ final class _MapEventInstanceBooleanNarrativeEventCondition
     required T Function(String eventId, bool expectedValue) narrativeEventConsumed,
     T Function(String mapId, String eventId, String key, bool expectedValue)?
         mapEventInstanceBoolean,
+    T Function(CivilWeekday weekday, bool expectedValue)? civilWeekday,
     T Function(PeriodicRewardReference reference, bool expectedValue)? periodicRewardAvailable,
   }) {
     if (mapEventInstanceBoolean == null) {
@@ -742,6 +795,7 @@ final class _MapEventInstanceBooleanNarrativeEventCondition
     required T Function(String eventId, bool expectedValue) narrativeEventConsumed,
     T Function(String mapId, String eventId, String key, bool expectedValue)?
         mapEventInstanceBoolean,
+    T Function(CivilWeekday weekday, bool expectedValue)? civilWeekday,
     T Function(PeriodicRewardReference reference, bool expectedValue)? periodicRewardAvailable,
   }) {
     if (mapEventInstanceBoolean == null) {

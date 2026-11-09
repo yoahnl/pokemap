@@ -138,6 +138,7 @@ String _sourceLabel(
   Map<String, NarrativeFactDefinition> factById,
 ) {
   final sourceName = switch (source.kind) {
+    WorldRuleSourceKind.civilWeekday => 'Jour civil : ${source.weekday?.label ?? "inconnu"}',
     WorldRuleSourceKind.periodicRewardAvailable => source.label ?? source.sourceId,
     WorldRuleSourceKind.fact =>
       factById[source.sourceId]?.label ?? source.sourceId,

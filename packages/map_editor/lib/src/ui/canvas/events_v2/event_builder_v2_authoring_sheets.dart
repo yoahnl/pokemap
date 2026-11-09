@@ -1,3 +1,4 @@
+import '../scenes/civil_weekday_picker.dart';
 import '../scenes/periodic_reward_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:map_core/map_core.dart';
@@ -669,6 +670,7 @@ class _EventBuilderV2ConditionsSheetState
     final condition = _editableCondition(clause);
     if (condition == null) return;
     final updated = condition.whenTyped(
+      civilWeekday: (weekday, expected) => NarrativeEventCondition.civilWeekday(weekday: weekday, expectedValue: !expected),
       periodicRewardAvailable: (reference, expected) =>
           NarrativeEventCondition.periodicRewardAvailable(
             reference: reference,
@@ -786,6 +788,11 @@ class _EventBuilderV2ConditionsSheetState
           message: 'Chaque ligne est une clause. Inversez une clause avec NON; '
               'les groupes imbriqués existants sont conservés.',
         ),
+        const SizedBox(height: 12),
+        CivilWeekdayPicker(onApply: (weekday, expected) {
+          setState(() => _clauses.add(NarrativeEventConditionExpression.leaf(
+            NarrativeEventCondition.civilWeekday(weekday: weekday, expectedValue: expected))));
+        }),
         const SizedBox(height: 12),
         for (var index = 0; index < _clauses.length; index++) ...[
           PokeMapCard(
@@ -1339,6 +1346,7 @@ String _conditionLabel(
   NarrativeEventCondition condition,
 ) {
   return condition.whenTyped(
+    civilWeekday: (weekday, expected) => '${expected ? "Nous sommes" : "Nous ne sommes pas"} ${weekday.label.toLowerCase()} (calendrier civil)',
     periodicRewardAvailable: (_, expected) => expected
         ? 'Récompense disponible aujourd’hui'
         : 'Récompense déjà récupérée aujourd’hui',

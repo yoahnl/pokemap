@@ -124,26 +124,39 @@ Future<AuthoringQueryPage> queryPeriodicRewardChoices({
           'The published Scene changed after it was selected. Choose it again.');
     }
     final scene = SceneAsset.fromJson(raw);
-    final choices = [
-      for (final node in scene.graph.nodes)
-        if (node.payload
-            case SceneActionPayload(
-              interactiveCommand: SceneClaimPeriodicRewardInteractiveCommand(
-                :final definition
-              )
-            ))
-          PeriodicRewardNodeChoice(
-                  nodeId: node.id,
-                  label: definition.label,
-                  itemId: definition.itemId,
-                  quantity: definition.quantity,
-                  reference: PeriodicRewardReference(
-                      sceneId: scene.id,
-                      nodeId: node.id,
-                      rewardId: definition.rewardId),
-                  revision: sourceRevision)
-              .toJson(),
-    ];
+    final choices = <Map<String, Object?>>[];
+    for (final node in scene.graph.nodes) {
+      if (node.payload
+          case SceneActionPayload(
+            interactiveCommand: SceneClaimPeriodicRewardInteractiveCommand(
+              :final definition
+            )
+          )) {
+        choices.add(PeriodicRewardNodeChoice(
+                nodeId: node.id,
+                label: definition.label,
+                itemId: definition.itemId,
+                quantity: definition.quantity,
+                reference: PeriodicRewardReference(
+                    sceneId: scene.id,
+                    nodeId: node.id,
+                    rewardId: definition.rewardId),
+                revision: sourceRevision)
+            .toJson());
+      }
+      if (node.payload
+          case SceneBattlePayload(periodicEncounter: final definition?)) {
+        choices.add(PeriodicRewardNodeChoice.encounter(
+                nodeId: node.id,
+                label: definition.label,
+                reference: PeriodicRewardReference(
+                    sceneId: scene.id,
+                    nodeId: node.id,
+                    rewardId: definition.rewardId),
+                revision: sourceRevision)
+            .toJson());
+      }
+    }
     total = choices.length;
     _checkOffset(offset, total);
     rows = choices.sublist(offset, (offset + request.pageSize).clamp(0, total));

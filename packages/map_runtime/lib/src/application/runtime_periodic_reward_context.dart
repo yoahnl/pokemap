@@ -49,6 +49,15 @@ final class RuntimePeriodicRewardContext {
     required GameState gameState,
     required PeriodicRewardSceneLookup lookupScenes,
   }) {
+    if (source.sourceKind == SceneConditionSourceKind.civilWeekday) {
+      final weekday = source.weekday;
+      if (weekday == null) throw const SceneRuntimeConditionUnavailable('Le jour civil est indisponible.');
+      final result = evaluateCivilWeekdayCondition(weekday: weekday,
+        expectedValue: source.operator == SceneConditionOperator.isTrue,
+        calendar: observe(gameState).gameplayCalendarState);
+      if (result.unavailable) throw const SceneRuntimeConditionUnavailable('Le calendrier civil est indisponible. Rouvrez le jeu puis réessayez.');
+      return result.passed ? 'true' : 'false';
+    }
     final result = evaluateScenePeriodicRewardCondition(
       source: source,
       gameState: observe(gameState),

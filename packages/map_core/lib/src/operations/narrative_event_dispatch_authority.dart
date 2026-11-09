@@ -1,3 +1,4 @@
+import 'civil_weekday_condition_evaluator.dart';
 import 'periodic_reward_condition_evaluator.dart';
 import 'package:meta/meta.dart' show immutable;
 
@@ -466,6 +467,21 @@ final class NarrativeEventDispatchAuthorityReady
       int index,
     ) {
       return condition.whenTyped(
+        civilWeekday: (weekday, expected) {
+          final result = evaluateCivilWeekdayCondition(
+            weekday: weekday,
+            expectedValue: expected,
+            calendar: (_periodicRewardState?.call(gameState) ?? gameState).gameplayCalendarState,
+          );
+          return NarrativeEventSimulationConditionTrace(
+            index: index,
+            kind: NarrativeEventSimulationConditionKind.civilWeekday,
+            targetId: weekday.name, expectedValue: expected,
+            actualValue: result.unavailable ? null : result.passed == expected,
+            passed: result.passed, reason: result.unavailable
+              ? NarrativeEventSimulationReason.runtimeReferenceUnavailable
+              : result.passed ? null : NarrativeEventSimulationReason.noEligibleCandidate);
+        },
         periodicRewardAvailable: (reference, expected) {
           final result = evaluatePeriodicRewardCondition(
             reference: reference,
@@ -606,7 +622,7 @@ final class NarrativeEventDispatchAuthorityReady
     );
     return _NarrativeEventCandidateEvaluation(
       switch (representative.kind) {
-        NarrativeEventSimulationConditionKind.periodicRewardAvailable => NarrativeEventDispatchReason.noEligibleCandidate,
+        NarrativeEventSimulationConditionKind.civilWeekday || NarrativeEventSimulationConditionKind.periodicRewardAvailable => NarrativeEventDispatchReason.noEligibleCandidate,
         NarrativeEventSimulationConditionKind.mapEventInstanceBoolean =>
           NarrativeEventDispatchReason.mapEventInstanceBooleanConditionFalse,
         NarrativeEventSimulationConditionKind.fact =>

@@ -1,3 +1,4 @@
+import '../../application/authoring_api/scene_periodic_encounter_authoring_gateway.dart';
 import '../../application/authoring_api/authoring_mutation_adapter.dart';
 import 'dart:async';
 import 'dart:io';
@@ -1856,6 +1857,25 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
                 );
                 return true;
               } on ArgumentError {
+                return false;
+              }
+            },
+        onUpdatePeriodicEncounter:
+            ({required sceneId, required nodeId, required enabled, required label, required consumeOnOutcomes}) async {
+              final current = ref.read(editorNotifierProvider);
+              final project = current.project;
+              final root = current.projectRootPath;
+              if (project == null) return false;
+              try {
+                final projected = await const ScenePeriodicEncounterAuthoringGateway().updateDraft(
+                  project: project, sceneId: sceneId, nodeId: nodeId, enabled: enabled,
+                  label: label, consumeOnOutcomes: consumeOnOutcomes);
+                final latest = ref.read(editorNotifierProvider);
+                if (latest.projectRootPath != root || latest.project != project) return false;
+                editorNotifier.applyInMemoryProjectManifest(projected,
+                  statusMessage: 'Rencontre quotidienne appliquée au brouillon');
+                return true;
+              } on Object {
                 return false;
               }
             },

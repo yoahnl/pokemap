@@ -12,16 +12,23 @@ WildBattleStartRequest buildSceneWildBattleRequest({
     (table) => table.id == request.battleTemplateId,
   );
   if (matches.length != 1 || matches.single.entries.length != 1) {
-    throw StateError('A scripted wild battle requires a single-entry encounter table.');
+    throw StateError(
+      'A scripted wild battle requires a single-entry encounter table.',
+    );
   }
   final table = matches.single;
   final entry = table.entries.single;
-  if (entry.minLevel < 1 || entry.minLevel != entry.maxLevel || entry.weight < 1) {
-    throw StateError('A scripted wild battle requires a positive fixed level and weight.');
+  if (entry.minLevel < 1 ||
+      entry.minLevel != entry.maxLevel ||
+      entry.weight < 1) {
+    throw StateError(
+      'A scripted wild battle requires a positive fixed level and weight.',
+    );
   }
   return WildBattleStartRequest(
     requestId: request.requestId,
     demonstration: request.demonstration,
+    periodicEncounter: request.periodicEncounter,
     createdAtEpochMs: request.createdAtEpochMs,
     returnContext: returnContext,
     mapId: returnContext.mapId,

@@ -1,3 +1,4 @@
+import '../../contracts/civil_weekday_condition.dart';
 import '../../contracts/periodic_reward_choices.dart';
 import 'package:map_core/map_core.dart';
 
@@ -280,7 +281,8 @@ final class EntityActions {
         AuthoringGuarantee.undoable
       ],
       extensions: const {
-        'periodicRewardAvailable': periodicRewardConditionChoiceContract,
+        'civilWeekday': civilWeekdayConditionContract,
+          'periodicRewardAvailable': periodicRewardConditionChoiceContract,
         'semanticIds': true,
         'rawTilesetRequired': false,
         'presentation': {

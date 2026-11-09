@@ -10,7 +10,7 @@ final class ModelVisibilityDependencies {
       Iterable<NarrativeEventConditionExpression> expressions) {
     for (final leaf in expressions.expand((expression) => expression.leaves)) {
       leaf.whenTyped<void>(
-        periodicRewardAvailable: (reference, _) =>
+        civilWeekday: (_, __) {}, periodicRewardAvailable: (reference, _) =>
             rewardSceneIds.add(reference.sceneId),
         fact: (id, operator, expected) => factIds.add(id),
         narrativeEventConsumed: (id, _) => eventIds.add(id),

@@ -1,3 +1,4 @@
+import '../../contracts/civil_weekday_condition.dart';
 import '../../contracts/periodic_reward_choices.dart';
 import 'package:map_core/map_core.dart';
 
@@ -33,6 +34,7 @@ final class EventV2Actions {
         entry.$2,
         resourceKinds: const ['project', 'eventV2'],
         extensions: {
+          'civilWeekday': civilWeekdayConditionContract,
           'periodicRewardAvailable': periodicRewardConditionChoiceContract,
           'sourceVariants': NarrativeEventSourceRef.contracts,
           'parallelPolicy': NarrativeEventParallelPolicy.contract,

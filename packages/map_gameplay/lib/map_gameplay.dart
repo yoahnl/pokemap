@@ -433,6 +433,7 @@ export 'src/image_puzzle_checkpoint.dart';
 export 'src/image_puzzle_operations.dart';
 
 export 'src/periodic_reward_operations.dart';
+export 'src/periodic_encounter_operations.dart';
 export 'src/periodic_reward_checkpoint.dart';
 
 export 'src/scene_periodic_reward_condition_evaluator.dart';

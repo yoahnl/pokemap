@@ -1,3 +1,4 @@
+import '../../contracts/civil_weekday_condition.dart';
 import '../../contracts/periodic_reward_choices.dart';
 import 'package:map_core/map_core.dart';
 
@@ -66,6 +67,7 @@ final class SpatialMapActions {
           AuthoringGuarantee.atomic,
         ],
         extensions: {
+          if (entry.value == 'visibilityCondition') 'civilWeekday': civilWeekdayConditionContract,
           if (entry.value == 'visibilityCondition') 'periodicRewardAvailable': periodicRewardConditionChoiceContract,
           if (mapActionInputExample(entry.key) case final example?)
             'inputExample': example,
@@ -195,7 +197,7 @@ final class SpatialMapActions {
         allowManualEnvironment: true,
         allowAutomaticEnvironment: true);
     for (final leaf in condition?.leaves ?? const <NarrativeEventCondition>[]) {
-      leaf.whenTyped<void>(periodicRewardAvailable: (reference, _) {
+      leaf.whenTyped<void>(civilWeekday: (_, __) {}, periodicRewardAvailable: (reference, _) {
         if (!resolvePeriodicRewardReference(
                 reference: reference,
                 lookupScenes: lookupRewardScenes ?? (_) => const [])

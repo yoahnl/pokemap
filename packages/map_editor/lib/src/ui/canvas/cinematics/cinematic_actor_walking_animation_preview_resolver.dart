@@ -562,10 +562,15 @@ CinematicActorWalkingAnimationPreviewKind _kindFor(
 ) {
   return switch (state) {
     CharacterAnimationState.climb ||
+    CharacterAnimationState.surfIdle ||
     CharacterAnimationState.bicycleIdle || CharacterAnimationState.idle =>
       CinematicActorWalkingAnimationPreviewKind.idle,
-    CharacterAnimationState.bicycle || CharacterAnimationState.walk =>
+    CharacterAnimationState.surf || CharacterAnimationState.bicycle || CharacterAnimationState.walk =>
       CinematicActorWalkingAnimationPreviewKind.walk,
+    CharacterAnimationState.surfEnter || CharacterAnimationState.surfExit ||
+    CharacterAnimationState.cut || CharacterAnimationState.rockSmash ||
+    CharacterAnimationState.strength || CharacterAnimationState.push =>
+      CinematicActorWalkingAnimationPreviewKind.custom,
     CharacterAnimationState.run =>
       CinematicActorWalkingAnimationPreviewKind.run,
   };

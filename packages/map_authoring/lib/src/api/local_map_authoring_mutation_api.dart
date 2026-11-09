@@ -75,6 +75,7 @@ import '../ports/file_backed_payload_store.dart';
 /// action contracts, receipts, errors, audit records, or JSONL responses.
 const _nativeLocalWorkshopActions = {
   'scene.condition.set',
+  'scene.graph.patch',
   'world_rule.create',
   'world_rule.update',
   'world_rule.upsert_batch',
@@ -2027,7 +2028,7 @@ final class _LocalMapAuthoringSession {
               _usesNativeWorkshop(request) || request.actionId == 'pokemon.catalog.write' ? request : null,
         );
     var planningRequest = request;
-    if (suppliedSnapshot == null && (_isModelShadowConfiguration(request) || request.actionId == 'presentationMedia.import' || request.actionId.startsWith('world_rule.') || request.actionId == 'event_v2.record_upsert' || request.actionId == 'event_v2.record_upsert_batch' || TriggerZoneActions.fieldTraversalActions.contains(request.actionId)) &&
+    if (suppliedSnapshot == null && (_isModelShadowConfiguration(request) || request.actionId == 'scene.graph.patch' || request.actionId == 'presentationMedia.import' || request.actionId.startsWith('world_rule.') || request.actionId == 'event_v2.record_upsert' || request.actionId == 'event_v2.record_upsert_batch' || TriggerZoneActions.fieldTraversalActions.contains(request.actionId)) &&
         request.expectedRevision != null && request.expectedRevision != snapshot.revision) {
       if (!_snapshotLoader.acceptsObservedNativeRevision(projectHandle,
           expectedRevision: request.expectedRevision,

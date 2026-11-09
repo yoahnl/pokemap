@@ -19,9 +19,14 @@ void main() {
       'condition-world',
       'condition-event',
       'condition-presentation',
+      'weekday-scene', 'weekday-world', 'weekday-event', 'weekday-presentation',
+      if (dimension == ProjectDimension.threeD) 'weekday-model',
       if (dimension == ProjectDimension.threeD) 'condition-model',
     ]) {
       final periodic = scenario != 'unused';
+      final weekday = scenario.startsWith('weekday-');
+      final conditional = weekday || scenario.startsWith('condition-');
+      final conditionCapability = weekday ? SpatialGameplayCapabilities.civilWeekdayConditionCapabilityId : SpatialGameplayCapabilities.periodicRewardConditionCapabilityId;
       test(
           'periodic export validates item before dimension branch dimension=${dimension.name} scenario=$scenario',
           () async {
@@ -117,12 +122,12 @@ void main() {
                 enabled: scenario == 'known-enabled',
                 catalogFiles:
                     scenario == 'absent' ? const {} : {'items': 'items.json'}));
-        if (scenario.startsWith('condition-')) {
+        if (conditional) {
           final reference = PeriodicRewardReference(
               sceneId: 'reward', nodeId: 'reward', rewardId: 'tree-fruit');
-          final leaf = NarrativeEventCondition.periodicRewardAvailable(
+          final leaf = weekday ? NarrativeEventCondition.civilWeekday(weekday: CivilWeekday.friday, expectedValue: true) : NarrativeEventCondition.periodicRewardAvailable(
               reference: reference, expectedValue: true);
-          if (scenario == 'condition-scene') {
+          if (scenario.endsWith('-scene')) {
             project = project.copyWith(scenes: [
               SceneAsset(
                   id: scene.id,
@@ -135,7 +140,7 @@ void main() {
                         kind: SceneNodeKind.condition,
                         payload: SceneConditionPayload(
                             conditionSource:
-                                SceneConditionSource.periodicRewardAvailable(
+                                weekday ? SceneConditionSource.civilWeekday(weekday: CivilWeekday.friday, expectedValue: true) : SceneConditionSource.periodicRewardAvailable(
                                     reference: reference, expectedValue: true)))
                   ], edges: [
                     for (final edge in scene.graph.edges)
@@ -157,12 +162,12 @@ void main() {
                               : SceneEdgeKind.conditionFalse),
                   ]))
             ]);
-          } else if (scenario == 'condition-world') {
+          } else if (scenario.endsWith('-world')) {
             project = project.copyWith(worldRules: [
               WorldRuleDefinition(
                   id: 'daily',
                   label: 'Daily',
-                  source: WorldRuleSource.periodicRewardAvailable(
+                  source: weekday ? WorldRuleSource.civilWeekday(weekday: CivilWeekday.friday, expectedValue: true) : WorldRuleSource.periodicRewardAvailable(
                       reference: reference, expectedValue: true),
                   target: const WorldRuleTarget(
                       kind: WorldRuleTargetKind.mapEntity,
@@ -171,7 +176,7 @@ void main() {
                   effect: const WorldRuleEffect(
                       kind: WorldRuleEffectKind.entityVisible))
             ]);
-          } else if (scenario == 'condition-event') {
+          } else if (scenario.endsWith('-event')) {
             project = project.copyWith(
                 eventRegistry: NarrativeEventRegistry(
                     schemaVersion: 1,
@@ -190,7 +195,7 @@ void main() {
                           order: 0),
                       enabled: true)
                 ]));
-          } else if (scenario == 'condition-model') {
+          } else if (scenario.endsWith('-model')) {
             final map = MapData.fromJson(Map<String, dynamic>.from(
                 jsonDecode(utf8.decode(files['project/maps/map.json']!)) as Map));
             files['project/maps/map.json'] = utf8.encode(jsonEncode(
@@ -286,14 +291,15 @@ void main() {
                 SpatialGameplayCapabilities
                     .periodicRewardConditionCapabilityId),
             scenario.startsWith('condition-'));
+        expect(result.manifest.compatibility.requiredCapabilities.contains(SpatialGameplayCapabilities.civilWeekdayConditionCapabilityId), weekday);
         final unpacked =
             const GamePackageInspector().inspect(result.packageBytes);
         expect(unpacked.manifest.compatibility.requiredCapabilities,
             result.manifest.compatibility.requiredCapabilities);
         expect(result.manifest.compatibility.requiredCapabilities.contains(
           SpatialModelInstance.conditionalVisibilityCapabilityId),
-          scenario == 'condition-model');
-        if (scenario.startsWith('condition-')) {
+          scenario.endsWith('-model'));
+        if (conditional) {
           final archive =
               ZipDecoder().decodeBytes(result.packageBytes, verify: true);
           final descriptor = Map<String, dynamic>.from(jsonDecode(utf8.decode(
@@ -316,36 +322,18 @@ void main() {
                           exported.scenes.where((scene) => scene.id == id))
                   .isResolved,
               isTrue);
-          if (scenario == 'condition-scene')
-            expect(
-                (exported.scenes.single.graph.nodes
-                        .singleWhere((node) => node.id == 'availability')
-                        .payload as SceneConditionPayload)
-                    .conditionSource!
-                    .rewardReference,
-                locator);
-          if (scenario == 'condition-world')
-            expect(exported.worldRules.single.source.rewardReference, locator);
-          if (scenario == 'condition-event')
-            expect(
-                exported.eventRegistry!.records.single.definitionOrNull!
-                    .conditions.single.rewardReference,
-                locator);
-          if (scenario == 'condition-presentation')
-            expect(
-                exportedMap.entities
-                    .singleWhere((entity) => entity.id == 'daily-visual')
-                    .presentation!
-                    .variants
-                    .single
-                    .condition
-                    .leaves
-                    .single
-                    .rewardReference,
-                locator);
-          if (scenario == 'condition-model') {
-            expect(exportedMap.spatialScene!.instances.first.visibilityCondition!
-              .leaves.single.rewardReference, locator);
+          Object? conditionValue(Object? condition) => weekday
+            ? condition is SceneConditionSource ? condition.weekday : condition is WorldRuleSource ? condition.weekday : (condition as NarrativeEventCondition).weekday
+            : condition is SceneConditionSource ? condition.rewardReference : condition is WorldRuleSource ? condition.rewardReference : (condition as NarrativeEventCondition).rewardReference;
+          final expectedCondition = weekday ? CivilWeekday.friday : locator;
+          if (scenario.endsWith('-scene')) {
+            expect(conditionValue((exported.scenes.single.graph.nodes.singleWhere((node) => node.id == 'availability').payload as SceneConditionPayload).conditionSource), expectedCondition);
+          }
+          if (scenario.endsWith('-world')) expect(conditionValue(exported.worldRules.single.source), expectedCondition);
+          if (scenario.endsWith('-event')) expect(conditionValue(exported.eventRegistry!.records.single.definitionOrNull!.conditions.single), expectedCondition);
+          if (scenario.endsWith('-presentation')) expect(conditionValue(exportedMap.entities.singleWhere((entity) => entity.id == 'daily-visual').presentation!.variants.single.condition.leaves.single), expectedCondition);
+          if (scenario.endsWith('-model')) {
+            expect(conditionValue(exportedMap.spatialScene!.instances.first.visibilityCondition!.leaves.single), expectedCondition);
             final currentHost = AveluneRuntimeCompatibility.host();
             final previousHost = GamePackageHostCompatibility(
               hubVersion: currentHost.hubVersion,
@@ -366,8 +354,7 @@ void main() {
               hubVersion: host.hubVersion,
               runtimeApiVersion: host.runtimeApiVersion,
               capabilities: {...host.capabilities}..remove(
-                  SpatialGameplayCapabilities
-                      .periodicRewardConditionCapabilityId),
+                  conditionCapability),
               supportedProjectFormats: host.supportedProjectFormats,
               currentProjectFormat: host.currentProjectFormat,
               currentProjectFormats: host.currentProjectFormats,
@@ -383,9 +370,8 @@ void main() {
             hubVersion: current.hubVersion,
             runtimeApiVersion: current.runtimeApiVersion,
             capabilities: {...current.capabilities}..remove(
-                scenario.startsWith('condition-')
-                    ? SpatialGameplayCapabilities
-                        .periodicRewardConditionCapabilityId
+                conditional
+                    ? conditionCapability
                     : SpatialGameplayCapabilities.periodicRewardCapabilityId),
             supportedProjectFormats: current.supportedProjectFormats,
             currentProjectFormat: current.currentProjectFormat,

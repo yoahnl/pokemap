@@ -391,7 +391,9 @@ class _SimulationResult extends StatelessWidget {
   }
 
   String _conditionLabel(NarrativeEventSimulationConditionTrace condition) {
-    final target = condition.kind == NarrativeEventSimulationConditionKind.fact
+    final target = condition.kind == NarrativeEventSimulationConditionKind.civilWeekday
+        ? 'Jour civil : ${CivilWeekday.fromJson(condition.targetId).label}'
+        : condition.kind == NarrativeEventSimulationConditionKind.fact
         ? factLabels[condition.targetId] ?? condition.targetId
         : eventLabels[condition.targetId] ?? condition.targetId;
     final actual = condition.actualNarrativeValue == null

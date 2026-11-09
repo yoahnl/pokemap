@@ -1,3 +1,4 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -8,6 +9,23 @@ import 'package:map_editor/src/ui/canvas/events_v2/event_builder_v2_authoring_sh
 const _eventId = 'evt_019abcde-0000-7000-8000-000000000001';
 
 void main() {
+  testWidgets('adds and preserves a typed civil weekday clause', (tester) async {
+    NarrativeEventConditionExpression? saved;
+    await tester.binding.setSurfaceSize(const Size(520, 820));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(MaterialApp(builder: (context, child) => ProviderScope(child: child!),theme: PokeMapTheme.dark(), home: Scaffold(body:
+      EventBuilderV2ConditionsSheet(snapshot: _snapshot(NarrativeEventConditionExpression.all(const [])),
+        onSubmit: (value) async { saved = value; return 'keep-open'; }))));
+    await tester.tap(find.byKey(const ValueKey('civil-weekday-apply')));
+    await tester.pumpAndSettle();
+    expect(find.text('Nous sommes vendredi (calendrier civil)'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Enregistrer les conditions'), 240);
+    await tester.tap(find.text('Enregistrer les conditions'));
+    await tester.pump();
+    expect(saved!.leaves.single, NarrativeEventCondition.civilWeekday(weekday: CivilWeekday.friday, expectedValue: true));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('authors ANY and NOT as one bounded expression', (tester) async {
     final condition = NarrativeEventCondition.fact('fact_open', true);
     final expression = NarrativeEventConditionExpression.any([
@@ -17,7 +35,7 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(520, 820));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
-      MaterialApp(
+      MaterialApp(builder: (context, child) => ProviderScope(child: child!),
         theme: PokeMapTheme.dark(),
         home: Scaffold(
           body: EventBuilderV2ConditionsSheet(
@@ -59,7 +77,7 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(520, 820));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
-      MaterialApp(
+      MaterialApp(builder: (context, child) => ProviderScope(child: child!),
         theme: PokeMapTheme.dark(),
         home: Scaffold(
           body: EventBuilderV2BehaviorSheet(

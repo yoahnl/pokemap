@@ -8,6 +8,24 @@ import 'package:map_editor/src/theme/theme.dart';
 import 'package:map_editor/src/ui/canvas/scenes/scene_node_read_only_inspector.dart';
 
 void main() {
+  testWidgets('civil weekday Scene inspector exposes guided calendar selection', (tester) async {
+    _prepareView(tester);
+    final updates = <SceneConditionSource>[];
+    await tester.pumpWidget(_inspector(SceneConditionSource.civilWeekday(weekday: CivilWeekday.friday, expectedValue: false), updates));
+    await tester.pump();
+    expect(find.text('Vendredi'), findsWidgets);
+    expect(find.text('Nous ne sommes pas ce jour'), findsWidgets);
+    tester.widget<PokeMapDropdownField<CivilWeekday>>(find.byKey(const ValueKey('civil-weekday-picker'))).onChanged(CivilWeekday.monday);
+    await tester.pump();
+    final apply = find.byKey(const ValueKey('civil-weekday-apply'));
+    await tester.ensureVisible(apply);
+    await tester.tap(apply);
+    await tester.pumpAndSettle();
+    expect(updates.single, SceneConditionSource.civilWeekday(weekday: CivilWeekday.monday, expectedValue: false));
+    expect(find.byType(TextField), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
     'party inspector exposes four typed predicates with guided references',
     (tester) async {

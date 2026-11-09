@@ -328,6 +328,21 @@ final class PlayableMapGameSessionRuntime
           'The project requires ${CharacterAnimationCanvasCapabilities.capabilityId}.',
         );
       }
+      if (SpatialGameplayCapabilities.requiresCivilWeekdayCondition(
+            bundle.manifest,
+            maps: [bundle.map],
+          ) &&
+          !descriptor.grantedCapabilities.contains(
+            SpatialGameplayCapabilities.civilWeekdayConditionCapabilityId,
+          )) {
+        throw StateError(
+          'The project requires ${SpatialGameplayCapabilities.civilWeekdayConditionCapabilityId}.',
+        );
+      }
+      if (SpatialGameplayCapabilities.requiresPeriodicEncounter(bundle.manifest) &&
+          !descriptor.grantedCapabilities.contains(SpatialGameplayCapabilities.periodicEncounterCapabilityId)) {
+        throw StateError('The project requires ${SpatialGameplayCapabilities.periodicEncounterCapabilityId}.');
+      }
       if (SpatialGameplayCapabilities.requiresPeriodicRewardCondition(
             bundle.manifest,
             maps: [bundle.map],
@@ -511,6 +526,7 @@ final class PlayableMapGameSessionRuntime
     _publishOverworldInteractions();
     _playWatch.stop();
     game.pauseEngine();
+    await game.pendingPeriodicBattleCheckpoint.catchError((Object _) {});
   }
 
   @override
@@ -730,6 +746,7 @@ final class PlayableMapGameSessionRuntime
     await playerServices?.dispose();
     _publishWorldService(null);
     final game = _game;
+    await game?.pendingPeriodicBattleCheckpoint.catchError((Object _) {});
     game?.overworldInteractions.removeListener(_publishOverworldInteractions);
     _game = null;
     _projectRootDirectory = null;

@@ -2391,5 +2391,7 @@ Future<({RuntimeMapBundle bundle, GameState state})> contextualCaptureSpatialFix
 Future<void> readyContextualCaptureBattle(WidgetTester tester, SpatialBattleRuntime runtime) => _readyInView(tester, runtime);
 Future<bool> submitFriendContextualCapture(WidgetTester tester, SpatialBattleRuntime runtime) => _submit(tester, runtime,
     PlayerBattleChoiceCapture(contextualPolicy: ProjectContextualCapturePolicy(rateRules: [], successEffects: [ProjectCaptureSetFriendship(200)])));
+Future<bool> submitSpatialBattleChoice(WidgetTester tester, SpatialBattleRuntime runtime,
+    PlayerBattleChoice choice) => _submit(tester, runtime, choice);
 Future<void> acknowledgeContextualCaptureBattle(WidgetTester tester, SpatialBattleRuntime runtime) => _acknowledge(tester, runtime);
 WildBattleStartRequest contextualCaptureWildRequest(String id) => _wild(id);

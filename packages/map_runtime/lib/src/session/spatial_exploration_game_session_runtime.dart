@@ -1,4 +1,5 @@
 import '../application/runtime_periodic_reward_context.dart';
+import '../application/runtime_periodic_encounter_checkpoint.dart';
 import '../player/real_weather_service.dart';
 import 'dart:async';
 import 'dart:math';
@@ -160,12 +161,15 @@ final class SpatialExplorationGameSessionRuntime
   bool _materializingState = false;
   MapActivation? _pendingSceneMapActivation;
   bool _hasUncommittedSceneWarp = false;
+  bool _hasUnmaterializedPeriodicBattleCheckpoint = false;
   int _transferPauseEpoch = 0;
   Completer<void>? _materializationResumed;
   GridPos? _lastCell;
   RuntimeProjectAudioController? projectAudio;
   Future<void> gameplayReady = Future.value();
   String? _sceneBattleOutcome;
+  PeriodicEncounterOccurrence? _periodicBattleOccurrence;
+  Future<void>? _pendingPeriodicBattleCheckpoint;
   final DateTime Function() _now;
   late final _periodicRewardContext = RuntimePeriodicRewardContext(
     civilNow: _now,
@@ -861,6 +865,7 @@ final class SpatialExplorationGameSessionRuntime
           return true;
         },
         onCompleted: _battleCompleted,
+        commitPeriodicEncounter: _commitPeriodicBattle,
         onError: (error) {
           if (!_disposed) _session?.interactionError.value = error;
         })
@@ -1161,6 +1166,19 @@ final class SpatialExplorationGameSessionRuntime
           SceneBattleDefeatRecovery.returnToRecoveryPoint,
       bool Function()? claimStart}) async {
     _ensureGameplayActive();
+    if (request case WildBattleStartRequest(periodicEncounter: final definition?)) {
+      if (!descriptor.grantedCapabilities.contains(SpatialGameplayCapabilities.periodicEncounterCapabilityId) ||
+          _sceneStateReader == null || _sceneStateWriter == null ||
+          _gameplay?.activeSceneCheckpointOwner == null || _commitCheckpoint == null) {
+        throw StateError('The periodic battle requires a durable Scene checkpoint.');
+      }
+      final current = _sceneStateReader!();
+      if ((_gameplay?.projectedSceneGameState ?? current) != current) {
+        throw StateError('Pending Scene changes must finish before the periodic battle.');
+      }
+      _periodicBattleOccurrence = beginPeriodicEncounter(current,
+          definition: definition, localDay: runtimeCivilDay(_now()));
+    }
     _sceneBattleOutcome = null;
     final bundle = _session!.bundle;
     _trainerEncounterMusic = null;
@@ -1182,6 +1200,7 @@ final class SpatialExplorationGameSessionRuntime
       await _gameplay!.publishBattleOutcome(request: request, outcomeId: outcome);
       return outcome;
     } finally {
+      _periodicBattleOccurrence = null;
       _battleMusic = null;
       _battleAudioSelection = null;
       await _applyMusicSelection();
@@ -1201,6 +1220,52 @@ final class SpatialExplorationGameSessionRuntime
     _sceneBattleOutcome = outcome.type.name;
   }
 
+  Future<void> _commitPeriodicBattle(GameState expected, GameState next,
+      BattleOutcome outcome) async {
+    final reader = _sceneStateReader;
+    final writer = _sceneStateWriter;
+    final owner = _gameplay?.activeSceneCheckpointOwner;
+    final occurrence = _periodicBattleOccurrence;
+    final persist = _commitCheckpoint;
+    if (_disposed || _stopped || reader == null || writer == null ||
+        owner == null || occurrence == null || persist == null ||
+        reader() != expected || _pendingPeriodicBattleCheckpoint != null) {
+      throw StateError('The periodic battle checkpoint owner is stale.');
+    }
+    final activity = _activityGate.captureSceneCheckpointOwner();
+    final map = _mapsById[next.currentMapId];
+    final position = next.playerSpatialPosition ?? PlayerSpatialPosition(
+        x: next.playerPosition.x + .5, z: next.playerPosition.y + .5);
+    position.validateGridPosition(next.playerPosition);
+    if (map == null || position.x < 0 || position.z < 0 ||
+        position.x >= map.size.width || position.z >= map.size.height) {
+      throw StateError('The periodic battle recovery position is outside its map.');
+    }
+    final pending = checkpointRuntimePeriodicEncounter(
+      owner: owner, occurrence: occurrence,
+      finalState: next.copyWith(playerSpatialPosition: position), outcome: outcome,
+      readFinalSceneState: () => _gameplay?.projectedSceneGameState ?? reader(),
+      persist: (durable) async {
+        await _activityGate.runSceneCheckpoint(activity, () => persist(
+          GameSessionCheckpointCommit(descriptor: descriptor.publicContext,
+            checkpoint: _checkpointFromState(durable, captureEnvironment: false),
+            status: SaveStatus.active,
+            trigger: GameSessionCheckpointTrigger.pauseMutation)));
+        _gameState = durable;
+        _hasUncommittedSceneWarp = false;
+        _hasUnmaterializedPeriodicBattleCheckpoint = true;
+      },
+    ).then((durable) => writer(durable));
+    _pendingPeriodicBattleCheckpoint = pending;
+    try {
+      await pending;
+    } finally {
+      if (identical(_pendingPeriodicBattleCheckpoint, pending)) {
+        _pendingPeriodicBattleCheckpoint = null;
+      }
+    }
+  }
+
   Future<void> _runGameplay(Future<void> Function() action) async {
     if (_disposed || _stopped) return;
     _gameplayOperations++;
@@ -1210,6 +1275,9 @@ final class SpatialExplorationGameSessionRuntime
       if (!_disposed && !_stopped) await _materializeState(_gameState!);
     } catch (error) {
       if (!_disposed && !_stopped) {
+        if (_hasUnmaterializedPeriodicBattleCheckpoint) {
+          await _materializeState(_gameState!);
+        }
         await _rollbackPendingSceneWarp();
         final cancelled = _story?.wasCancelled == true;
         _story?.synchronize(_gameState!.spatialWorldState);
@@ -1224,6 +1292,7 @@ final class SpatialExplorationGameSessionRuntime
   Future<void> _materializeState(GameState state) async {
     final changedMap = _session!.bundle.map.id != state.currentMapId;
     _gameState = await _restoreSpatialState(state);
+    _hasUnmaterializedPeriodicBattleCheckpoint = false;
     _hasUncommittedSceneWarp = false;
     _lastCell = _gameState!.playerPosition;
     if (changedMap) {
@@ -1485,6 +1554,21 @@ final class SpatialExplorationGameSessionRuntime
       _ensureLoadActive(generation);
       if (bundle.map.id != mapId) {
         throw StateError('The preloaded map does not match the spatial state.');
+      }
+      if (SpatialGameplayCapabilities.requiresCivilWeekdayCondition(
+            bundle.manifest,
+            maps: [bundle.map],
+          ) &&
+          !descriptor.grantedCapabilities.contains(
+            SpatialGameplayCapabilities.civilWeekdayConditionCapabilityId,
+          )) {
+        throw StateError(
+          'The project requires ${SpatialGameplayCapabilities.civilWeekdayConditionCapabilityId}.',
+        );
+      }
+      if (SpatialGameplayCapabilities.requiresPeriodicEncounter(bundle.manifest) &&
+          !descriptor.grantedCapabilities.contains(SpatialGameplayCapabilities.periodicEncounterCapabilityId)) {
+        throw StateError('The project requires ${SpatialGameplayCapabilities.periodicEncounterCapabilityId}.');
       }
       if (SpatialGameplayCapabilities.requiresPeriodicRewardCondition(
             bundle.manifest,
@@ -2324,6 +2408,7 @@ final class SpatialExplorationGameSessionRuntime
     _session?.cancelPendingTransition();
     _session?.closeDialogue();
     _syncMovement();
+    await _pendingPeriodicBattleCheckpoint?.catchError((Object _) {});
     await _rollbackPendingSceneWarp();
     await projectAudioStopped;
     await sceneAudioStopped;
@@ -2400,6 +2485,7 @@ final class SpatialExplorationGameSessionRuntime
     _session?.closeDialogue();
     _syncMovement();
     try {
+      await _pendingPeriodicBattleCheckpoint?.catchError((Object _) {});
       await _rollbackPendingSceneWarp();
     } finally {
       try {

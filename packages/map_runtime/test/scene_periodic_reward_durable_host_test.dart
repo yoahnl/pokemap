@@ -93,10 +93,11 @@ SceneAsset rewardScene({
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  test('2D old Continue observes civil day without rewriting the save and requires the condition capability', () async {
+  for (final weekday in [false, true]) {
+  test('2D old Continue observes civil day without rewriting the save and requires the condition capability weekday=$weekday', () async {
     final fixture = await SceneImagePuzzleDurableHostFixture.create(
-      sceneOverride: availabilityScene(),
-      qaDirectory: periodicQa,
+      sceneOverride: availabilityScene(weekday: weekday ? CivilWeekday.friday : null),
+      qaDirectory: weekday ? '/Users/karim/Library/Caches/AveluneQA/ecorcia-chapitre7-annexes/c7-07/tests-civil' : periodicQa,
     );
     addTearDown(fixture.dispose);
     final initial = fixture.game.playerServiceGameStateSnapshot;
@@ -139,6 +140,7 @@ void main() {
           runtimeApiVersion: '1.4.0',
           grantedCapabilities: {
             'map@1',
+            if (allowed && weekday) SpatialGameplayCapabilities.civilWeekdayConditionCapabilityId,
             if (allowed)
               SpatialGameplayCapabilities.periodicRewardConditionCapabilityId,
           },
@@ -184,7 +186,7 @@ void main() {
               isA<StateError>().having(
                 (error) => error.message,
                 'message',
-                contains('gameplay.periodic-reward-condition@1'),
+                contains(weekday ? 'gameplay.civil-weekday-condition@1' : 'gameplay.periodic-reward-condition@1'),
               ),
             ),
           );
@@ -195,6 +197,7 @@ void main() {
       }
     }
   });
+  }
   for (final passiveRead in [false, true]) {
     testWidgets(
       '2D real map activation and projections regrow on the same map and foreground passiveRead=$passiveRead',
@@ -596,7 +599,7 @@ void main() {
   }
 }
 
-SceneAsset availabilityScene() {
+SceneAsset availabilityScene({CivilWeekday? weekday}) {
   final reference = PeriodicRewardReference(
     sceneId: 'puzzle',
     nodeId: 'claim',
@@ -614,7 +617,7 @@ SceneAsset availabilityScene() {
             id: id,
             kind: SceneNodeKind.condition,
             payload: SceneConditionPayload(
-              conditionSource: SceneConditionSource.periodicRewardAvailable(
+              conditionSource: weekday != null ? SceneConditionSource.civilWeekday(weekday: weekday, expectedValue: true) : SceneConditionSource.periodicRewardAvailable(
                 reference: reference,
                 expectedValue: true,
               ),

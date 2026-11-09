@@ -131,6 +131,7 @@ NarrativeEventAuthoringDiagnostic? validateNarrativeEventAuthoringConditions({
 }) {
   for (var index = 0; index < conditions.length; index++) {
     final issue = conditions[index].whenTyped<NarrativeEventAuthoringDiagnostic?>(
+      civilWeekday: (_, _) => null,
       fact: (factId, _, _) {
         final resolution = context.catalog.resolveFact(factId);
         return switch (resolution.status) {
@@ -289,6 +290,7 @@ Map<String, int> _projectEventIssueCounts({
     final eventDependencies = <String>[];
     for (final condition in definition.conditions) {
       condition.when<void>(
+        civilWeekday: (_, _) {},
         fact: (factId, _) {
           final factStatus = catalog.resolveFact(factId).status;
           if (factStatus != NarrativeEventProjectResolutionStatus.found) {
@@ -494,7 +496,7 @@ List<String> _eventDependencies(List<NarrativeEventCondition> conditions) {
   return [
     for (final condition in conditions)
       ...condition.whenTyped(
-        periodicRewardAvailable: (_, _) => const <String>[],        fact: (_, __, ___) => const <String>[],
+        civilWeekday: (_, _) => const <String>[], periodicRewardAvailable: (_, _) => const <String>[],        fact: (_, __, ___) => const <String>[],
         narrativeEventConsumed: (eventId, _) => [eventId],
         mapEventInstanceBoolean: (_, _, _, _) => const <String>[],
       ),

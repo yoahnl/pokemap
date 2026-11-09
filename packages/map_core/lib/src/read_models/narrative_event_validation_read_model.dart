@@ -40,7 +40,7 @@ enum NarrativeEventSimulationReason {
   runtimeReferenceUnavailable,
 }
 
-enum NarrativeEventSimulationConditionKind { fact, narrativeEventConsumed, mapEventInstanceBoolean, periodicRewardAvailable }
+enum NarrativeEventSimulationConditionKind { civilWeekday, fact, narrativeEventConsumed, mapEventInstanceBoolean, periodicRewardAvailable }
 
 @immutable
 final class NarrativeEventSimulationInput {

@@ -1,3 +1,4 @@
+import '../operations/civil_weekday_condition_evaluator.dart';
 import '../models/scene_asset.dart';
 import '../operations/periodic_reward_condition_evaluator.dart';
 import '../operations/narrative_condition_expression_evaluator.dart';
@@ -77,6 +78,9 @@ bool worldRuleSourceMatches(
   PeriodicRewardSceneLookup? lookupRewardScenes,
 }) {
   return switch (source.kind) {
+    WorldRuleSourceKind.civilWeekday => source.weekday != null && source.sourceId == 'civilWeekday' &&
+      isWorldRuleSourcePredicateCompatible(source.kind, source.predicate) && evaluateCivilWeekdayCondition(
+      weekday: source.weekday!, expectedValue: source.predicate == WorldRuleSourcePredicate.isTrue, calendar: gameState.gameplayCalendarState).passed,
     WorldRuleSourceKind.periodicRewardAvailable => evaluateWorldRulePeriodicRewardSource(source: source,
       gameState: gameState, lookupScenes: lookupRewardScenes ?? (_) => const []).passed,
     WorldRuleSourceKind.fact => _factMatches(source, gameState, factResolver),

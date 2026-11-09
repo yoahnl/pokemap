@@ -1646,6 +1646,7 @@ final class _NarrativeDependencyIndexBuilder {
     int index,
   ) {
     condition.whenTyped<void>(
+      civilWeekday: (_, _) {},
       periodicRewardAvailable: (reference, _) => _collectPeriodicRewardReference(reference, owner,
         'eventRegistry.records[$eventId].conditions[$index].rewardReference'),
       mapEventInstanceBoolean: (mapId, ownerId, _, _) {
@@ -2126,7 +2127,7 @@ final class _NarrativeDependencyIndexBuilder {
         _collectPeriodicRewardReference(reference, owner, 'worldRules[${rule.id}].source.rewardReference');
       }
       final sourceTarget = switch (rule.source.kind) {
-        WorldRuleSourceKind.periodicRewardAvailable => null,
+        WorldRuleSourceKind.civilWeekday || WorldRuleSourceKind.periodicRewardAvailable => null,
         WorldRuleSourceKind.fact => NarrativeDependencyKey(
           NarrativeDependencyTargetKind.fact,
           rule.source.sourceId,
@@ -2859,6 +2860,7 @@ final class _NarrativeDependencyIndexBuilder {
       return;
     }
 
+    if (source.sourceKind == SceneConditionSourceKind.civilWeekday) return;
     if (source.sourceKind == SceneConditionSourceKind.integerComparison) {
       _collectIntegerOperand(owner, source.integerLeft!, '$path.left');
       _collectIntegerOperand(owner, source.integerRight!, '$path.right');

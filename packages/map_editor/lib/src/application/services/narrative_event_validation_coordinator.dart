@@ -449,6 +449,7 @@ Set<String> _recordEventDependencies(NarrativeEventRecord record) {
   return {
     for (final condition in conditions)
       ...condition.whenTyped(
+        civilWeekday: (_, _) => const <String>{},
         fact: (_, _, _) => const <String>{},
         narrativeEventConsumed: (eventId, _) => {eventId},
       ),

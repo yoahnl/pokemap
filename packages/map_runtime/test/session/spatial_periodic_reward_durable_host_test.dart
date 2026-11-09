@@ -145,21 +145,22 @@ void main() {
       );
     },
   );
-  test('3D Narrative activation, presentation and WorldRule refresh at midnight on the same map', () async {
+  for (final weekday in [false, true]) {
+  test('3D Narrative activation, presentation and WorldRule refresh at midnight on the same map weekday=$weekday', () async {
     final reference = PeriodicRewardReference(
       sceneId: 'puzzle',
       nodeId: 'claim',
       rewardId: 'tree',
     );
     final leaf = NarrativeEventConditionExpression.leaf(
-      NarrativeEventCondition.periodicRewardAvailable(
+      weekday ? NarrativeEventCondition.civilWeekday(weekday: CivilWeekday.saturday, expectedValue: true) : NarrativeEventCondition.periodicRewardAvailable(
         reference: reference,
         expectedValue: true,
       ),
     );
     final inverse = NarrativeEventConditionExpression.not(
       NarrativeEventConditionExpression.leaf(
-        NarrativeEventCondition.periodicRewardAvailable(
+        weekday ? NarrativeEventCondition.civilWeekday(weekday: CivilWeekday.saturday, expectedValue: false) : NarrativeEventCondition.periodicRewardAvailable(
           reference: reference,
           expectedValue: false,
         ),
@@ -181,7 +182,7 @@ void main() {
     );
     final fixture = await SpatialImagePuzzleDurableHostFixture.create(
       sceneOverride: availabilityScene(),
-      qaDirectory: periodicQa,
+      qaDirectory: weekday ? '/Users/karim/Library/Caches/AveluneQA/ecorcia-chapitre7-annexes/c7-07/tests-civil' : periodicQa,
       configureMap: (map) => map.copyWith(
         entities: [
           entity,
@@ -224,7 +225,7 @@ void main() {
           WorldRuleDefinition(
             id: 'daily-hide',
             label: 'Daily',
-            source: WorldRuleSource.periodicRewardAvailable(
+            source: weekday ? WorldRuleSource.civilWeekday(weekday: CivilWeekday.saturday, expectedValue: false) : WorldRuleSource.periodicRewardAvailable(
               reference: reference,
               expectedValue: false,
             ),
@@ -241,10 +242,17 @@ void main() {
       ),
     );
     addTearDown(fixture.dispose);
-    await fixture.open();
+    if (weekday) {
+      final envelope = const GameStateSaveEnvelopeMapper().create(
+        identity: fixture.descriptor(true).identity, profileId: 'profile', slotId: 'slot',
+        saveId: fixture.initial.saveId, createdAt: fixture.now.toUtc(), updatedAt: fixture.now.toUtc(),
+        status: SaveStatus.active, playTimeSeconds: 0, gameState: fixture.initial);
+      await fixture.file.writeAsBytes(const SaveEnvelopeCodec().encodeUtf8(envelope), flush: true);
+    }
+    await fixture.open(continueGame: weekday);
     await fixture.runtime.gameplayReady;
     expect(fixture.runtime.session!.interactionError.value, isNull);
-    expect(fixture.writes, 1);
+    expect(fixture.writes, weekday ? 0 : 1);
     final session = fixture.runtime.session!;
     final bundle = session.bundle;
     final target = bundle.map.entities.last;
@@ -258,13 +266,14 @@ void main() {
     expect(fixture.runtime.session, same(session));
     expect(session.bundle, same(bundle));
     expect(await fixture.file.readAsBytes(), bytes);
-    expect(fixture.writes, 1);
+    expect(fixture.writes, weekday ? 0 : 1);
     session.setLifecyclePaused(true);
     fixture.now = fixture.now.add(const Duration(days: 1));
     session.setLifecyclePaused(false);
-    expect(session.entityIsPresent!('field', entity), isTrue);
+    expect(session.entityIsPresent!('field', entity), weekday ? isFalse : isTrue);
     expect(await fixture.file.readAsBytes(), bytes);
   });
+  }
   test(
     '3D real session evaluates periodic conditions before and after claim',
     () async {

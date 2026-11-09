@@ -1,3 +1,4 @@
+import '../operations/civil_weekday_condition_evaluator.dart';
 import '../models/scene_asset.dart';
 import '../operations/periodic_reward_condition_evaluator.dart';
 import '../models/game_state.dart';
@@ -29,6 +30,7 @@ MapEntityPresentationVariant? resolveMapEntityPresentation({
   final resolver = NarrativeFactRuntimeResolver.fromFacts(project.facts);
   NarrativeConditionEvaluation leaf(NarrativeEventCondition condition) =>
       condition.whenTyped(
+        civilWeekday: (weekday, expected) => evaluateCivilWeekdayCondition(weekday: weekday, expectedValue: expected, calendar: gameState.gameplayCalendarState),
         periodicRewardAvailable: (reference, expected) => evaluatePeriodicRewardCondition(
           reference: reference, expectedValue: expected, gameState: gameState,
           lookupScenes: lookupRewardScenes ?? (_) => const []),
@@ -244,6 +246,7 @@ List<String> validateMapEntityPresentation({
     }
     for (final condition in variant.condition.leaves) {
       condition.whenTyped<void>(
+        civilWeekday: (_, _) {},
         periodicRewardAvailable: (reference, _) {
           if (!resolvePeriodicRewardReference(reference: reference,
               lookupScenes: lookupRewardScenes ?? (_) => const []).isResolved) {

@@ -1001,6 +1001,7 @@ SceneBattlePayloadUpdateResult updateSceneBattlePayload(
     npcEntityId: currentPayload.npcEntityId,
     defeatRecovery: defeatRecovery ?? currentPayload.defeatRecovery,
     demonstration: currentPayload.demonstration,
+    periodicEncounter: normalizedBattleKind == 'wild' ? currentPayload.periodicEncounter : null,
     declaredOutcomes: normalizedBattleKind == 'wild'
         ? const ['victory', 'captured', 'defeat', 'runaway']
         : const ['victory', 'defeat'],
@@ -1875,6 +1876,8 @@ SceneNodeDraftRemovalResult removeSceneNodeDraft(
 
 void _validateConditionSourceForV0(SceneConditionSource source) {
   switch (source.sourceKind) {
+    case SceneConditionSourceKind.civilWeekday:
+    return;
     case SceneConditionSourceKind.periodicRewardAvailable:
       if (source.rewardReference == null) throw ArgumentError("A reward locator is required.");
       return;

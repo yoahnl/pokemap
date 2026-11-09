@@ -269,7 +269,7 @@ class __PeriodicRewardPickerState extends State<_PeriodicRewardPicker> {
           severity: PokeMapDiagnosticSeverity.info,
           title: 'Récompense quotidienne',
           message:
-              'Choisissez une scène enregistrée, puis son action de récompense quotidienne. Les brouillons ne sont pas publiés.',
+              'Choisissez une scène enregistrée, puis sa récompense ou sa rencontre quotidienne. Les brouillons ne sont pas publiés.',
         ),
         PokeMapDropdownField<String?>(
           label: 'Scène de la récompense',
@@ -301,7 +301,8 @@ class __PeriodicRewardPickerState extends State<_PeriodicRewardPicker> {
             for (final node in _nodes)
               PokeMapDropdownItem(
                 value: node.nodeId,
-                label: '${node.label} × ${node.quantity}',
+                label: node.variant == PeriodicRewardNodeVariant.encounter
+                    ? '${node.label} · Rencontre' : '${node.label} × ${node.quantity}',
               ),
           ],
           onChanged: (value) => setState(

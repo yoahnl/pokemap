@@ -660,7 +660,9 @@ final class AuthoringResourceKindRegistry {
             if (kind == 'periodicRewardNode') ...{
               'requiredFilters': {'sceneId': {'type': 'string', 'minLength': 1}},
               'optionalExtensions': {'sourceRevision': {'type': 'string', 'minLength': 1}},
-              'rewardIdentity': 'derivedOnlyFromSelectedPublishedCommand',
+              'rewardIdentity': 'derivedOnlyFromSelectedPublishedClaimSource',
+              'sourceVariants': ['item', 'encounter'],
+              'encounterFields': ['variant', 'label', 'reference'],
               'itemLabel': 'notLoaded;definitionLabelAndQuantityOnly',
             },
           }),

@@ -226,6 +226,7 @@ NarrativeEventProjectCatalog buildNarrativeEventProjectCatalog({
     final eventDependencies = <_EventDependency>[];
     for (var index = 0; index < definition.conditions.length; index++) {
       definition.conditions[index].whenTyped<void>(
+        civilWeekday: (_, _) {},
         periodicRewardAvailable: (reference, _) {
           final resolution = resolvePeriodicRewardReference(reference: reference,
             lookupScenes: lookupRewardScenes ?? (id) => (scenesById[id] ?? const []).map((entry) => entry.scene));
@@ -590,7 +591,7 @@ Set<String> _dependencyCycleIds(Iterable<NarrativeEventRecord> records) {
     graph[entry.key] = {
       for (final condition in definition.conditions)
         ...condition.whenTyped(
-        periodicRewardAvailable: (_, _) => const <String>[],          fact: (_, __, ___) => const <String>[],
+        civilWeekday: (_, _) => const <String>[], periodicRewardAvailable: (_, _) => const <String>[],          fact: (_, __, ___) => const <String>[],
           narrativeEventConsumed: (eventId, _) => [eventId],
           mapEventInstanceBoolean: (_, _, _, _) => const <String>[],
         ),

@@ -346,6 +346,8 @@ abstract final class CatalogPeriodicRewardConsumers {
                   :final definition
                 )
               ))
+            node.id: definition.rewardId
+          else if (node.payload case SceneBattlePayload(periodicEncounter: final definition?))
             node.id: definition.rewardId,
       };
 

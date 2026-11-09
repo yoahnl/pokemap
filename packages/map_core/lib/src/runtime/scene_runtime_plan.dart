@@ -3,6 +3,7 @@ import 'package:meta/meta.dart' show immutable;
 
 import '../diagnostics/scene_diagnostics.dart';
 import '../models/scene_asset.dart';
+import '../models/periodic_encounter.dart';
 import '../models/scene_battle_demonstration.dart';
 import '../models/scene_consequence.dart';
 import '../models/scene_execution_capabilities.dart';
@@ -133,6 +134,7 @@ final class SceneRuntimePlanIntent {
     this.battleTemplateId,
     this.npcEntityId,
     this.battleDemonstration,
+    this.battlePeriodicEncounter,
     this.battleDefeatRecovery = SceneBattleDefeatRecovery.continueScene,
     List<String> battleDeclaredOutcomes = const <String>[],
     this.cinematicId,
@@ -220,9 +222,13 @@ final class SceneRuntimePlanIntent {
     String? battleTemplateId,
     String? npcEntityId,
     SceneBattleDemonstration? demonstration,
+    PeriodicEncounterDefinition? periodicEncounter,
     SceneBattleDefeatRecovery defeatRecovery = SceneBattleDefeatRecovery.continueScene,
     List<String> declaredOutcomes = const <String>[],
   }) {
+    if (periodicEncounter != null && (battleKind != 'wild' || demonstration != null)) {
+      throw ArgumentError('Periodic encounters require a non-demonstration wild battle.');
+    }
     return SceneRuntimePlanIntent._(
       kind: SceneRuntimePlanIntentKind.startBattle,
       battleKind: battleKind,
@@ -230,6 +236,7 @@ final class SceneRuntimePlanIntent {
       battleTemplateId: battleTemplateId,
       npcEntityId: npcEntityId,
       battleDemonstration: demonstration,
+      battlePeriodicEncounter: periodicEncounter,
       battleDefeatRecovery: defeatRecovery,
       battleDeclaredOutcomes: declaredOutcomes,
     );
@@ -303,6 +310,7 @@ final class SceneRuntimePlanIntent {
   final String? battleTemplateId;
   final String? npcEntityId;
   final SceneBattleDemonstration? battleDemonstration;
+  final PeriodicEncounterDefinition? battlePeriodicEncounter;
   final SceneBattleDefeatRecovery battleDefeatRecovery;
   final List<String> battleDeclaredOutcomes;
   final String? cinematicId;
@@ -366,6 +374,7 @@ final class SceneRuntimePlanIntent {
           other.battleTemplateId == battleTemplateId &&
           other.npcEntityId == npcEntityId &&
           other.battleDemonstration == battleDemonstration &&
+          other.battlePeriodicEncounter == battlePeriodicEncounter &&
           other.battleDefeatRecovery == battleDefeatRecovery &&
           _listEquals(other.battleDeclaredOutcomes, battleDeclaredOutcomes) &&
           other.cinematicId == cinematicId &&
@@ -394,7 +403,7 @@ final class SceneRuntimePlanIntent {
         battleKind,
         trainerId,
         battleTemplateId,
-        Object.hash(npcEntityId, battleDefeatRecovery, battleDemonstration),
+        Object.hash(npcEntityId, battleDefeatRecovery, battleDemonstration, battlePeriodicEncounter),
         Object.hashAll(battleDeclaredOutcomes),
         cinematicId,
         Object.hash(

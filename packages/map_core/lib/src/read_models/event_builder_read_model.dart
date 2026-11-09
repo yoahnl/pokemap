@@ -1096,6 +1096,7 @@ String _worldRuleSourceReferenceLabel(
   required Map<String, String> storyStepLabels,
 }) {
   return switch (source.kind) {
+    WorldRuleSourceKind.civilWeekday => 'Jour civil : ${source.weekday?.label ?? "inconnu"}',
     WorldRuleSourceKind.periodicRewardAvailable => source.label ?? source.sourceId,
     WorldRuleSourceKind.fact =>
       factLabels[source.sourceId] ?? source.label ?? source.sourceId,

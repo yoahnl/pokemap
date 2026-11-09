@@ -2330,6 +2330,7 @@ bool _validateContextualIntegrity({
           conditionIndex++) {
         final condition = target.conditions[conditionIndex];
         condition.when<void>(
+          civilWeekday: (_, _) {},
           fact: (factId, _) {
             final resolution = catalog.resolveFact(factId);
             switch (resolution.status) {

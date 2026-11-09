@@ -62,6 +62,7 @@ final class SpatialBattleRuntime extends ChangeNotifier {
   SpatialBattleRuntime({
     required this.readGameState,
     required this.commitGameState,
+    this.commitPeriodicEncounter,
     this.gen5BattleSourceLoader,
     this.onCompleted,
     this.onError,
@@ -80,6 +81,7 @@ final class SpatialBattleRuntime extends ChangeNotifier {
   final GameState Function() readGameState;
   final RuntimeGen5BattleSourceLoader? gen5BattleSourceLoader;
   final bool Function(GameState expected, GameState next) commitGameState;
+  final Future<void> Function(GameState expected, GameState next, BattleOutcome outcome)? commitPeriodicEncounter;
   final FutureOr<void> Function(BattleOutcome outcome)? onCompleted;
   final void Function(Object error)? onError;
   final RuntimeAudioMixer? audioMixer;
@@ -970,13 +972,22 @@ final class SpatialBattleRuntime extends ChangeNotifier {
         ).state;
       }
       if (!_current(generation)) return;
-      if (!commitGameState(_base!, finalState)) {
+      final battleContext = context!;
+      final receipt = _captureReceipt;
+      if (battleContext.request case WildBattleStartRequest(periodicEncounter: final definition?)) {
+        final commit = commitPeriodicEncounter;
+        if (definition.rewardId.isEmpty || commit == null) {
+          throw StateError('The periodic battle checkpoint is unavailable.');
+        }
+        await commit(_base!, finalState, outcome);
+        if (!_current(generation)) return;
+      } else if (!commitGameState(_base!, finalState)) {
         throw StateError('Game state changed during battle.');
       }
       commitRuntimeBattleCaptureAttemptReceipt(
-        context: context!,
+        context: battleContext,
         outcome: outcome,
-        receipt: _captureReceipt,
+        receipt: receipt,
       );
       await onCompleted?.call(outcome);
       if (_current(generation) && finish) _end(true);

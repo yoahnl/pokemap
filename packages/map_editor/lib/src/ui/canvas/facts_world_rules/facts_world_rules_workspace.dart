@@ -1,3 +1,4 @@
+import '../scenes/civil_weekday_picker.dart';
 import '../scenes/periodic_reward_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -787,6 +788,9 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
               }
             },
           ),
+          CivilWeekdayPicker(initial: _dailySource?.weekday,
+            expectedValue: _dailySource?.predicate != WorldRuleSourcePredicate.isFalse,
+            onApply: (weekday, expected) => setState(() => _dailySource = WorldRuleSource.civilWeekday(weekday: weekday, expectedValue: expected))),
           EditorPeriodicRewardPicker(
             initial: _dailySource?.rewardReference,
             expectedValue:
@@ -807,7 +811,7 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
                 width: 220,
                 child: _SourceDropdown(
                   value: source == null ? null : _sourceOptionKey(source),
-                  options: readModel.sourceOptions,
+                  options: [...readModel.sourceOptions, if (_dailySource != null) _dailyOption(_dailySource!)],
                   onChanged: (value) {
                     setState(() {
                       _sourceKey = value;
@@ -993,6 +997,9 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
                     subtitle:
                         'Source, prédicat, cible et effet restent modifiables.',
                   ),
+                  CivilWeekdayPicker(key: ValueKey('world-rule-weekday-${entry.rule.id}'), initial: _editDailySource?.weekday,
+                    expectedValue: _editDailySource?.predicate != WorldRuleSourcePredicate.isFalse,
+                    onApply: (weekday, expected) => setState(() => _editDailySource = WorldRuleSource.civilWeekday(weekday: weekday, expectedValue: expected))),
                   EditorPeriodicRewardPicker(
                     key: ValueKey('world-rule-daily-${entry.rule.id}'),
                     initial: _editDailySource?.rewardReference,
@@ -1020,7 +1027,7 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
                           ),
                           value:
                               source == null ? null : _sourceOptionKey(source),
-                          options: readModel.sourceOptions,
+                          options: [...readModel.sourceOptions, if (_editDailySource != null) _dailyOption(_editDailySource!)],
                           onChanged: (value) {
                             setState(() {
                               _editSourceKey = value;
@@ -1375,7 +1382,7 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
     }
     _loadedRuleId = rule?.id;
     _editDailySource =
-        rule?.source.kind == WorldRuleSourceKind.periodicRewardAvailable
+        const {WorldRuleSourceKind.civilWeekday, WorldRuleSourceKind.periodicRewardAvailable}.contains(rule?.source.kind)
         ? rule?.source
         : null;
     _ruleLabelController.text = rule?.label ?? '';
@@ -1592,9 +1599,9 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
         kind: source.kind,
         sourceId: source.sourceId,
         predicate: source.predicate,
-        label: 'Récompense quotidienne',
-        subtitle: 'Action publiée',
-        debugTechnicalLabel: 'Récompense quotidienne',
+        label: source.weekday == null ? 'Récompense quotidienne' : 'Jour civil : ${source.weekday!.label}',
+        subtitle: source.weekday == null ? 'Action publiée' : 'Calendrier civil',
+        debugTechnicalLabel: source.weekday == null ? 'Récompense quotidienne' : 'Jour civil',
       );
 
   void _applyWorldRuleTemplate(

@@ -4,6 +4,21 @@ import 'package:map_editor/src/ui/canvas/cinematics/cinematic_actor_walking_anim
 
 void main() {
   group('Cinematic Actor Walking Animation Preview Resolver', () {
+    test('land preview keeps idle when character also has a surf idle animation', () {
+      final result = resolveCinematicActorWalkingAnimationPreviewFrame(
+        actor: _actor(direction: CinematicActorPreviewDirection.south),
+        playbackFrame: _frameAt(0, pose: _pose(facing: CinematicActorPreviewDirection.south, isInterpolated: false)),
+        playbackTimeMs: 0, isPlaybackPlaying: true, timelineSteps: const [],
+        character: _character(animations: [
+          _animation(CharacterAnimationState.surfIdle, EntityFacing.south, [_frame(1, 0)]),
+          _animation(CharacterAnimationState.idle, EntityFacing.south, [_frame(0, 0)]),
+        ]),
+      );
+      expect(result.kind, CinematicActorWalkingAnimationPreviewKind.idle);
+      expect(result.sourceRect, const TilesetSourceRect(x: 0, y: 0, width: 1, height: 2));
+      expect(result.isMoving, isFalse);
+    });
+
     test('moving actor selects a walk frame and stationary actor selects idle',
         () {
       final character = _character(animations: [

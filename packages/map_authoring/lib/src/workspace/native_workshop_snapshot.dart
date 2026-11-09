@@ -3,6 +3,7 @@ part of 'project_snapshot_loader.dart';
 const _nativeWorkshopActions = {
   'characterStudio.animationClip.upsert',
   'scene.condition.set',
+  'scene.graph.patch',
   'world_rule.create',
   'world_rule.update',
   'world_rule.upsert_batch',
@@ -43,7 +44,7 @@ const _nativeWorkshopReferences = {
   'scenes': {'sceneId', 'preSessionSceneId'},
   'trainers': {'trainerId'},
   'shops': {'shopId'},
-  'encounterTables': {'encounterTableId'},
+  'encounterTables': {'encounterTableId', 'battleTemplateId'},
   'cinematics': {'cinematicId'},
   'presentationCinematics': {'presentationCinematicId'},
   'storylines': {'storylineId'},
@@ -167,7 +168,7 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
   final conditionRule = actionId.startsWith('world_rule.');
   final conditionEvent = actionId == 'event_v2.record_upsert' ||
       actionId == 'event_v2.record_upsert_batch';
-  final sceneCondition = actionId == 'scene.condition.set' || conditionRule || conditionEvent;
+  final sceneCondition = actionId == 'scene.condition.set' || actionId == 'scene.graph.patch' || conditionRule || conditionEvent;
   final presentationImport =
       actionId == 'presentationMedia.import' || adoptingAudio;
   final guided = actionId == 'event_v2.template.apply' ||
@@ -853,6 +854,29 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
         .whereType<Map>()
         .map((scene) => SceneAsset.fromJson(Map<String, dynamic>.from(scene)))
         .any(sceneNeedsPartyMoveCatalog)) {
+      if (manifest.pokemon.catalogFiles['moves'] case final String path) {
+        await read('pokemonCatalog:moves', path);
+      }
+    }
+  }
+  if (actionId == 'scene.graph.patch') {
+    final incoming = (parameters['upsertNodes'] as List? ?? const [])
+        .whereType<Map>()
+        .map((node) => SceneNode.fromJson(Map<String, dynamic>.from(node)))
+        .toList();
+    final replaced = incoming.map((node) => node.id).toSet();
+    final removed = (parameters['removeNodeIds'] as List? ?? const [])
+        .whereType<String>()
+        .toSet();
+    final resultingNodes = [
+      for (final scene in manifest.scenes.where(
+        (scene) => scene.id == parameters['sceneId'],
+      ))
+        for (final node in scene.graph.nodes)
+          if (!replaced.contains(node.id) && !removed.contains(node.id)) node,
+      ...incoming,
+    ];
+    if (sceneNodesNeedPartyMoveCatalog(resultingNodes)) {
       if (manifest.pokemon.catalogFiles['moves'] case final String path) {
         await read('pokemonCatalog:moves', path);
       }

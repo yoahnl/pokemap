@@ -13,6 +13,227 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  for (final mode in ['existing', 'incoming', 'removed']) {
+    for (final wire in [false, true]) {
+      for (final foreign in [0, 80]) {
+        test(
+          'native graph patch retains exact moves dependency mode=$mode JSONL=$wire foreign=$foreign',
+          () async {
+            final fixture = await _Fixture.create(
+              catalog: false,
+              wire: wire,
+              unrelated: foreign,
+              qaRoot: '/Users/karim/Library/Caches/AveluneQA/ecorcia-chapitre7-annexes/c7-07/tests-authoring/tmp',
+            );
+            addTearDown(fixture.dispose);
+            final raw = jsonDecode(
+              await fixture.manifest.readAsString(),
+            ) as Map<String, dynamic>;
+            final pokemon = raw['pokemon'] as Map<String, dynamic>;
+            pokemon['enabled'] = true;
+            (pokemon['catalogFiles'] as Map<String, dynamic>)['moves'] =
+                'moves.json';
+            final scenes = raw['scenes'] as List<dynamic>;
+            final consumer = scenes.cast<Map<String, dynamic>>().singleWhere(
+              (scene) => scene['id'] == 'consumer',
+            );
+            final graph = consumer['graph'] as Map<String, dynamic>;
+            final nodes = graph['nodes'] as List<dynamic>;
+            final moveNode = SceneNode(
+              id: 'gate',
+              kind: SceneNodeKind.condition,
+              payload: SceneConditionPayload(
+                conditionSource: SceneConditionSource.partyKnowsMove(
+                  moveId: 'tackle',
+                ),
+              ),
+            );
+            if (mode != 'incoming') {
+              nodes[nodes.indexWhere((node) => (node as Map)['id'] == 'gate')] =
+                  moveNode.toJson();
+            }
+            for (final scene in scenes.cast<Map<String, dynamic>>().where(
+              (scene) => (scene['id'] as String).startsWith('foreign-scene-'),
+            )) {
+              scene['graph'] = 'unrelated Scene must remain undecoded';
+            }
+            await fixture.manifest.writeAsString(jsonEncode(raw));
+            final moves = File('${fixture.root.path}/moves.json');
+            if (mode != 'removed') {
+              await moves.writeAsString(
+                jsonEncode({
+                  'schemaVersion': 1,
+                  'kind': 'pokemon_catalog',
+                  'catalog': 'moves',
+                  'entries': [
+                    {'id': 'tackle', 'name': 'Charge'},
+                  ],
+                }),
+              );
+            }
+            final updatedNode = mode == 'existing'
+                ? SceneNode(
+                    id: 'end',
+                    kind: SceneNodeKind.end,
+                    title: 'Reviewed',
+                  )
+                : mode == 'incoming'
+                ? moveNode
+                : SceneNode(
+                    id: 'gate',
+                    kind: SceneNodeKind.condition,
+                    payload: SceneConditionPayload(
+                      conditionSource:
+                          SceneConditionSource.partyCanReceivePokemon(),
+                    ),
+                  );
+            final parameters = <String, Object?>{
+              'sceneId': 'consumer',
+              'upsertNodes': [updatedNode.toJson()],
+            };
+            fixture.reader.clear();
+            final snapshot = await fixture.mutations.readWorkshopSnapshot(
+              fixture.opened.projectHandle,
+              actionId: 'scene.graph.patch',
+              parameters: parameters,
+            );
+            expect(snapshot.manifest.scenes.map((scene) => scene.id), [
+              'consumer',
+            ]);
+            await fixture.apply(
+              await fixture.plan('scene.graph.patch', parameters),
+            );
+            expect(
+              fixture.reader.paths.where(
+                (path) =>
+                    path.startsWith('maps/') ||
+                    path.startsWith('assets/') ||
+                    path.startsWith('dialogues/') ||
+                    path.endsWith('items.json'),
+              ),
+              isEmpty,
+            );
+            expect(
+              fixture.reader.paths.contains('moves.json'),
+              mode != 'removed',
+            );
+            final saved = jsonDecode(
+              await fixture.manifest.readAsString(),
+            ) as Map<String, dynamic>;
+            final stored = SceneAsset.fromJson(
+              (saved['scenes'] as List)
+                  .cast<Map<String, dynamic>>()
+                  .singleWhere((scene) => scene['id'] == 'consumer'),
+            );
+            expect(
+              stored.graph.nodes.singleWhere(
+                (node) => node.id == updatedNode.id,
+              ),
+              updatedNode,
+            );
+          },
+        );
+      }
+    }
+  }
+  for (final catalog in [false, true]) {
+    for (final wire in [false, true]) {
+      test('periodic battle policy edits, choices, undo and reopen catalog=$catalog JSONL=$wire', () async {
+        final fixture = await _Fixture.create(catalog: catalog, wire: wire, unrelated: 80, encounter: true,
+          qaRoot: '/Users/karim/Library/Caches/AveluneQA/ecorcia-chapitre7-annexes/c7-07/tests-authoring/tmp');
+        addTearDown(fixture.dispose);
+        final policy = PeriodicEncounterDefinition(rewardId: 'daily-encounter', label: 'Rencontre quotidienne',
+          consumeOnOutcomes: {PeriodicEncounterOutcome.victory, PeriodicEncounterOutcome.captured});
+        final original = await fixture.storedScene('source');
+        final battle = SceneNode(id: 'battle', kind: SceneNodeKind.battle,
+          payload: SceneBattlePayload(battleKind: 'wild', battleTemplateId: 'fixed', periodicEncounter: policy));
+        final replacement = SceneAsset(id: original.id, name: original.name,
+          graph: SceneGraph(startNodeId: 'start', nodes: [...original.graph.nodes, battle],
+            edges: [...original.graph.edges.where((edge) => edge.id != 'leave'),
+              _edge('talk-battle', 'talk', 'battle'),
+              for (final port in ['victory', 'defeat']) _edge(port, 'battle', 'end', port: port,
+                kind: port == 'victory' ? SceneEdgeKind.battleVictory : SceneEdgeKind.battleDefeat)]));
+        fixture.reader.clear();
+        await fixture.apply(await fixture.plan('scene.graph.patch', {'sceneId': 'source',
+          'upsertNodes': [battle.toJson()], 'removeEdgeIds': ['leave'],
+          'upsertEdges': replacement.graph.edges.where((edge) => !original.graph.edges.contains(edge)).map((edge) => edge.toJson()).toList()}));
+        expect(fixture.reader.paths.where((path) => path.startsWith('maps/') || path.startsWith('assets/')), isEmpty);
+        await fixture.reopen();
+        final page = await fixture.api.queryProject(fixture.opened.projectHandle,
+          AuthoringQueryRequest(resourceKind: 'periodicRewardNode', operation: AuthoringQueryOperation.list,
+            filters: {'sceneId': 'source'}, view: AuthoringQueryView.summary));
+        final choice = page.items.singleWhere((item) => item['nodeId'] == 'battle');
+        expect(choice['variant'], 'encounter');
+        expect(choice['label'], policy.label);
+        expect(choice.containsKey('itemId'), isFalse);
+        expect(choice.containsKey('quantity'), isFalse);
+        final decoded = PeriodicRewardNodeChoice.fromJson(Map<String, dynamic>.from(choice));
+        expect(decoded.toJson(), choice);
+        final reference = PeriodicRewardReference.fromJson(Map<String, dynamic>.from(choice['reference'] as Map));
+        await fixture.apply(await fixture.plan('scene.condition.set', {'sceneId': 'consumer', 'nodeId': 'gate',
+          'conditionSource': SceneConditionSource.periodicRewardAvailable(reference: reference, expectedValue: true).toJson()}));
+        final before = (await fixture.storedScene('source')).toJson();
+        final withoutPolicy = battle.payload.toJson()..remove('periodicEncounter');
+        await expectLater(fixture.plan('scene.graph.patch', {'sceneId': 'source', 'upsertNodes': [
+          {...battle.toJson(), 'payload': withoutPolicy}]}), throwsA(anything));
+        expect((await fixture.storedScene('source')).toJson(), before);
+        for (final bad in [<String, Object?>{...policy.toJson(), 'consumeOnOutcomes': []},
+            <String, Object?>{...policy.toJson(), 'consumeOnOutcomes': ['defeat']},
+            <String, Object?>{...policy.toJson(), 'schemaVersion': 2}]) {
+          await expectLater(fixture.plan('scene.graph.patch', {'sceneId': 'source', 'upsertNodes': [
+            {...battle.toJson(), 'payload': {...battle.payload.toJson(), 'periodicEncounter': bad}}]}), throwsA(anything));
+          expect((await fixture.storedScene('source')).toJson(), before);
+        }
+        await fixture.apply(await fixture.plan('scene.graph.patch', {'sceneId': 'source', 'upsertNodes': [
+          {...battle.toJson(), 'title': 'Rencontre modifiée'}]}));
+        final receipt = fixture.lastReceiptId!;
+        await fixture.mutations.undoMutation(fixture.opened.projectHandle, entryId: receipt,
+          idempotencyKey: 'undo-periodic-battle');
+        await fixture.reopen();
+        expect((await fixture.storedScene('source')).toJson(), before);
+      });
+    }
+  }
+  for (final catalog in [false, true]) {
+    for (final wire in [false, true]) {
+      test('civil weekday canonical setters reopen locally catalog=$catalog JSONL=$wire', () async {
+        final fixture = await _Fixture.create(catalog: catalog, wire: wire, unrelated: 80, spatial: true,
+          qaRoot: '/Users/karim/Library/Caches/AveluneQA/ecorcia-chapitre7-annexes/c7-07/tests-civil');
+        addTearDown(fixture.dispose);
+        final source = SceneConditionSource.civilWeekday(weekday: CivilWeekday.friday, expectedValue: true);
+        fixture.reader.clear();
+        await fixture.apply(await fixture.plan('scene.condition.set', {
+          'sceneId': 'consumer', 'nodeId': 'gate', 'conditionSource': source.toJson()}));
+        expect(fixture.reader.paths.where((path) => path.startsWith('maps/') || path.startsWith('assets/') || path.endsWith('history.jsonl')), isEmpty);
+        await fixture.reopen();
+        expect(await fixture.storedCondition(), source.toJson());
+        final condition = NarrativeEventConditionExpression.leaf(NarrativeEventCondition.civilWeekday(weekday: CivilWeekday.friday, expectedValue: false));
+        fixture.reader.clear();
+        await fixture.apply(await fixture.plan('map3d.instance.visibility.set', {
+          'mapId': 'route', 'instanceId': 'tree', 'visibilityCondition': condition.toJson()}));
+        expect(fixture.reader.paths.where((path) => path.startsWith('maps/') && path != 'maps/route.json'), isEmpty);
+        final saved = MapData.fromJson(jsonDecode(await File('${fixture.root.path}/maps/route.json').readAsString()) as Map<String, dynamic>);
+        expect(saved.spatialScene!.instances.single.visibilityCondition, condition);
+        final rule = WorldRuleDefinition(id: 'world_rule_vendredi', label: 'Vendredi',
+          source: WorldRuleSource.civilWeekday(weekday: CivilWeekday.friday, expectedValue: true),
+          target: const WorldRuleTarget(kind: WorldRuleTargetKind.mapEntity, mapId: 'foreign-0', entityId: 'tree'),
+          effect: const WorldRuleEffect(kind: WorldRuleEffectKind.entityHidden));
+        fixture.reader.clear();
+        await fixture.apply(await fixture.plan('world_rule.create', {'rule': rule.toJson()}));
+        expect(fixture.reader.paths.where((path) => path.startsWith('maps/') && path != 'maps/foreign-0.json'), isEmpty);
+        final record = {'state': 'configured', 'enabled': false, 'definition': {
+          'id': 'evt_019abcde-0000-7000-8000-000000000001', 'name': 'Friday entrance',
+          'source': {'kind': 'mapEnter', 'mapId': 'route'}, 'conditions': condition.leaves.map((value) => value.toJson()).toList(),
+          'sceneId': 'consumer', 'reusePolicy': 'reusable', 'priority': 0, 'order': 0}};
+        fixture.reader.clear();
+        await fixture.apply(await fixture.plan('event_v2.record_upsert', {'record': record}));
+        expect(fixture.reader.paths.where((path) => path.startsWith('maps/') && path != 'maps/route.json'), isEmpty);
+        await fixture.reopen();
+        expect(await fixture.storedCondition(), source.toJson());
+      });
+    }
+  }
+
   for (final entity in [false, true]) {
     for (final unrelated in [0, 80]) {
       test('property snapshot reads exact bytes without map spooling entity=$entity foreign=$unrelated', () async {
@@ -1167,13 +1388,16 @@ final class _Fixture {
       required bool wire,
       required int unrelated,
       bool spatial = false,
+      bool encounter = false,
+      String? qaRoot,
       AuthoringTransactionFaultInjector? faultInjector}) async {
     final qa = Directory(
-        '/Users/karim/Library/Caches/AveluneQA/ecorcia-chapitre7-annexes/periodic-availability-authoring');
+        qaRoot ?? '/Users/karim/Library/Caches/AveluneQA/ecorcia-chapitre7-annexes/periodic-availability-authoring');
     await qa.create(recursive: true);
     final root = await qa.createTemp('fixture-');
     final project = ProjectManifest(
         name: 'Periodic conditions',
+        encounterTables: [if (encounter) const ProjectEncounterTable(id: 'fixed', name: 'Fixed', encounterKind: EncounterKind.walk, entries: [ProjectEncounterEntry(speciesId: 'target', minLevel: 2, maxLevel: 2)])],
         version: spatial ? ProjectVersion.v9 : ProjectVersion.v8,
         settings: ProjectSettings(
             dimension:

@@ -1,11 +1,7 @@
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
-enum RuntimeBattleKind {
-  wild,
-  trainer,
-  staticEncounter,
-}
+enum RuntimeBattleKind { wild, trainer, staticEncounter }
 
 enum RuntimeBattleSourceKind {
   wildEncounter,
@@ -65,6 +61,7 @@ class WildBattleStartRequest extends BattleStartRequest {
     required super.createdAtEpochMs,
     required super.returnContext,
     this.demonstration,
+    this.periodicEncounter,
     required this.mapId,
     required this.encounterSourceId,
     required this.encounterSourceKind,
@@ -84,11 +81,12 @@ class WildBattleStartRequest extends BattleStartRequest {
     this.generationSchemaVersion = 0,
     this.encounterSourceSnapshot,
   }) : super(
-          kind: RuntimeBattleKind.wild,
-          source: RuntimeBattleSourceKind.wildEncounter,
-        );
+         kind: RuntimeBattleKind.wild,
+         source: RuntimeBattleSourceKind.wildEncounter,
+       );
 
   final SceneBattleDemonstration? demonstration;
+  final PeriodicEncounterDefinition? periodicEncounter;
   final String mapId;
   final String encounterSourceId;
   final EncounterSourceKind encounterSourceKind;
@@ -118,6 +116,7 @@ class WildBattleStartRequest extends BattleStartRequest {
       createdAtEpochMs: createdAtEpochMs,
       returnContext: returnContext,
       demonstration: demonstration,
+      periodicEncounter: periodicEncounter,
       mapId: mapId,
       encounterSourceId: encounterSourceId,
       encounterSourceKind: encounterSourceKind,
@@ -148,6 +147,8 @@ class WildBattleStartRequest extends BattleStartRequest {
       'source': source.name,
       'returnContext': returnContext.toJson(),
       if (demonstration != null) 'demonstration': demonstration!.toJson(),
+      if (periodicEncounter != null)
+        'periodicEncounter': periodicEncounter!.toJson(),
       'mapId': mapId,
       'encounterSourceId': encounterSourceId,
       'encounterSourceKind': encounterSourceKind.name,
@@ -165,7 +166,8 @@ class WildBattleStartRequest extends BattleStartRequest {
       'generatedPokemon': generatedPokemon?.toJson(),
       'generationProfileId': generationProfileId,
       'generationSchemaVersion': generationSchemaVersion,
-      if (encounterSourceSnapshot != null) 'encounterSourceSnapshot': encounterSourceSnapshot!.toJson(),
+      if (encounterSourceSnapshot != null)
+        'encounterSourceSnapshot': encounterSourceSnapshot!.toJson(),
     };
   }
 }
@@ -180,9 +182,9 @@ class TrainerBattleStartRequest extends BattleStartRequest {
     required this.mapId,
     required this.playerPos,
   }) : super(
-          kind: RuntimeBattleKind.trainer,
-          source: RuntimeBattleSourceKind.trainerInteraction,
-        );
+         kind: RuntimeBattleKind.trainer,
+         source: RuntimeBattleSourceKind.trainerInteraction,
+       );
 
   final String trainerId;
   final String npcEntityId;
@@ -222,9 +224,9 @@ class StaticBattleStartRequest extends BattleStartRequest {
     required this.mapId,
     required this.playerPos,
   }) : super(
-          kind: RuntimeBattleKind.staticEncounter,
-          source: RuntimeBattleSourceKind.staticEncounter,
-        );
+         kind: RuntimeBattleKind.staticEncounter,
+         source: RuntimeBattleSourceKind.staticEncounter,
+       );
 
   final String battleId;
   final String opponentProfileId;

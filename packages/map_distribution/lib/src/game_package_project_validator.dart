@@ -326,6 +326,14 @@ final class GamePackageProjectValidator {
           _fail('The project requires $requirement.');
         }
       }
+      if (SpatialGameplayCapabilities.requiresPeriodicEncounter(project) &&
+          !packageManifest.compatibility.requiredCapabilities.contains(SpatialGameplayCapabilities.periodicEncounterCapabilityId)) {
+        _fail('Periodic encounters require gameplay.periodic-encounter@1.');
+      }
+      if (SpatialGameplayCapabilities.requiresCivilWeekdayCondition(project, maps: obstacleMaps) &&
+          !packageManifest.compatibility.requiredCapabilities.contains(SpatialGameplayCapabilities.civilWeekdayConditionCapabilityId)) {
+        _fail('Civil weekday conditions require gameplay.civil-weekday-condition@1.');
+      }
       if (SpatialGameplayCapabilities.requiresPeriodicRewardCondition(project, maps: obstacleMaps) &&
           !packageManifest.compatibility.requiredCapabilities.contains(SpatialGameplayCapabilities.periodicRewardConditionCapabilityId)) {
         _fail('Periodic reward conditions require gameplay.periodic-reward-condition@1.');

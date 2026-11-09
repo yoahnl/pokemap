@@ -17,6 +17,7 @@ NarrativeEventProjectCatalog f1ProjectCatalogForRegistry(
       sceneIds.add(definition.sceneId);
       for (final condition in definition.conditions) {
         condition.whenTyped(
+          civilWeekday: (_, __) {},
           fact: (factId, _, __) => factIds.add(factId),
           narrativeEventConsumed: (_, __) {},
         );

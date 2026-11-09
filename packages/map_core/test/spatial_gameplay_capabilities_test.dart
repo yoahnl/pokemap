@@ -178,6 +178,7 @@ void main() {
       expect(SpatialGameplayCapabilities.capabilityId, 'map3d.gameplay@1');
       expect(SpatialGameplayCapabilities.productionExportEnabled, false);
       expect(SpatialGameplayCapabilities.conditionSources, {
+        SceneConditionSourceKind.civilWeekday,
         SceneConditionSourceKind.periodicRewardAvailable,
         SceneConditionSourceKind.playerFacing,
         SceneConditionSourceKind.integerComparison,
@@ -194,6 +195,8 @@ void main() {
         (kind) => kind != SceneConditionSourceKind.newGameDraft,
       )) {
         final source = switch (kind) {
+          SceneConditionSourceKind.civilWeekday =>
+            SceneConditionSource.civilWeekday(weekday: CivilWeekday.friday, expectedValue: true),
           SceneConditionSourceKind.periodicRewardAvailable =>
             SceneConditionSource.periodicRewardAvailable(
               reference: PeriodicRewardReference(

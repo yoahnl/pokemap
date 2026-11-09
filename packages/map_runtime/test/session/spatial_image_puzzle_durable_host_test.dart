@@ -298,6 +298,7 @@ class SpatialImagePuzzleDurableHostFixture {
     grantedCapabilities: {
       'map3d@1',
       SpatialGameplayCapabilities.periodicRewardConditionCapabilityId,
+      SpatialGameplayCapabilities.civilWeekdayConditionCapabilityId,
       SpatialGameplayCapabilities.periodicRewardCapabilityId,
       SpatialGameplayCapabilities.storyCapabilityId,
       SpatialGameplayCapabilities.deferredCraftingCapabilityId,

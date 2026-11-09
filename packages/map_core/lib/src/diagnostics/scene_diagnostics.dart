@@ -2683,6 +2683,7 @@ _SceneOutputPortSpec? _findPortSpec(
 
 bool _isConditionSourceKindSupportedV0(SceneConditionSourceKind kind) {
   return switch (kind) {
+    SceneConditionSourceKind.civilWeekday => true,
     SceneConditionSourceKind.periodicRewardAvailable => true,
     SceneConditionSourceKind.newGameDraft => true,
     SceneConditionSourceKind.pokedexCaughtCount ||
@@ -2708,6 +2709,7 @@ bool _isConditionSourceKindSupportedV0(SceneConditionSourceKind kind) {
 
 bool _isConditionOperatorSupportedV0(SceneConditionSource source) {
   return switch (source.sourceKind) {
+    SceneConditionSourceKind.civilWeekday => source.weekday != null,
     SceneConditionSourceKind.periodicRewardAvailable => source.rewardReference != null,
     SceneConditionSourceKind.integerComparison => source.integerLeft != null && source.integerRight != null && source.integerComparisonOperator != null,
     SceneConditionSourceKind.pokedexCaughtCount ||

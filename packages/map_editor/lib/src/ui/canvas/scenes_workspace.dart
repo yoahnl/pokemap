@@ -130,6 +130,14 @@ typedef SceneBattleDefeatRecoveryUpdater = Future<bool> Function({
   required SceneBattleDefeatRecovery defeatRecovery,
 });
 
+typedef ScenePeriodicEncounterUpdater = Future<bool> Function({
+  required String sceneId,
+  required String nodeId,
+  required bool enabled,
+  required String label,
+  required Set<PeriodicEncounterOutcome> consumeOnOutcomes,
+});
+
 typedef SceneCinematicPayloadUpdater =
     Future<bool> Function({
       required String sceneId,
@@ -271,6 +279,7 @@ class ScenesWorkspace extends StatefulWidget {
     this.onUpdateDialogueChoicePolicy,
     required this.onUpdateBattlePayload,
     this.onUpdateBattleDefeatRecovery,
+    this.onUpdatePeriodicEncounter,
     required this.onUpdateCinematicPayload,
     required this.onUpdateActionConsequence,
     this.onUpdateInteractiveCommand,
@@ -330,6 +339,7 @@ class ScenesWorkspace extends StatefulWidget {
   final SceneDialogueChoicePolicyUpdater? onUpdateDialogueChoicePolicy;
   final SceneBattlePayloadUpdater onUpdateBattlePayload;
   final SceneBattleDefeatRecoveryUpdater? onUpdateBattleDefeatRecovery;
+  final ScenePeriodicEncounterUpdater? onUpdatePeriodicEncounter;
   final SceneCinematicPayloadUpdater onUpdateCinematicPayload;
   final SceneActionConsequenceUpdater onUpdateActionConsequence;
   final SceneInteractiveCommandUpdater? onUpdateInteractiveCommand;
@@ -989,6 +999,11 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
                       );
                     },
                     onUpdateBattlePayload: _updateBattlePayload,
+                    onUpdatePeriodicEncounter: widget.onUpdatePeriodicEncounter == null ? null :
+                      ({required nodeId, required enabled, required label, required consumeOnOutcomes}) async {
+                        return widget.onUpdatePeriodicEncounter!(sceneId: selectedScene.id, nodeId: nodeId,
+                          enabled: enabled, label: label, consumeOnOutcomes: consumeOnOutcomes);
+                      },
                     onUpdateBattleDefeatRecovery: widget.onUpdateBattleDefeatRecovery == null
                         ? null : _updateBattleDefeatRecovery,
                     onUpdateCinematicPayload: _updateCinematicPayload,

@@ -17,6 +17,7 @@ final class SceneBattleRuntimeBattleRequest {
     this.battleKind = 'trainer',
     this.battleTemplateId,
     this.demonstration,
+    this.periodicEncounter,
     this.defeatRecovery = SceneBattleDefeatRecovery.continueScene,
   });
 
@@ -27,6 +28,7 @@ final class SceneBattleRuntimeBattleRequest {
   final String battleKind;
   final String? battleTemplateId;
   final SceneBattleDemonstration? demonstration;
+  final PeriodicEncounterDefinition? periodicEncounter;
   final SceneBattleDefeatRecovery defeatRecovery;
 }
 
@@ -47,7 +49,9 @@ final class SceneBattleRuntimeOutcomeAdapter {
     SceneRuntimePlanIntent intent,
   ) async {
     final battleKind = intent.battleKind?.trim();
-    if (battleKind != 'trainer' && battleKind != 'static' && battleKind != 'wild') {
+    if (battleKind != 'trainer' &&
+        battleKind != 'static' &&
+        battleKind != 'wild') {
       return SceneBattleRuntimeOutcomeResult.failed(
         errorCode: SceneBattleRuntimeOutcomeErrorCode.unsupportedBattleKind,
         message: 'Scene battle kind "$battleKind" is not supported in V0.',
@@ -58,6 +62,13 @@ final class SceneBattleRuntimeOutcomeAdapter {
       return const SceneBattleRuntimeOutcomeResult.failed(
         errorCode: SceneBattleRuntimeOutcomeErrorCode.unsupportedBattleKind,
         message: 'Battle demonstrations require a wild encounter.',
+      );
+    }
+    if (intent.battlePeriodicEncounter != null &&
+        (battleKind != 'wild' || intent.battleDemonstration != null)) {
+      return const SceneBattleRuntimeOutcomeResult.failed(
+        errorCode: SceneBattleRuntimeOutcomeErrorCode.unsupportedBattleKind,
+        message: 'Periodic encounters require a non-demonstration wild battle.',
       );
     }
     final trainerId = intent.trainerId?.trim();
@@ -95,6 +106,7 @@ final class SceneBattleRuntimeOutcomeAdapter {
       battleTemplateId: battleTemplateId,
       defeatRecovery: intent.battleDefeatRecovery,
       demonstration: intent.battleDemonstration,
+      periodicEncounter: intent.battlePeriodicEncounter,
     );
 
     try {

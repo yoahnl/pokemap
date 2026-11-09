@@ -1,3 +1,4 @@
+import '../../contracts/civil_weekday_condition.dart';
 import 'dart:convert';
 
 import 'package:map_core/map_core.dart';
@@ -606,6 +607,16 @@ final class SceneActions {
     'saveResume': 'committedRecoveredState',
   };
 
+  static const _periodicEncounterContract = {
+    'payloadKind': 'battle', 'field': 'periodicEncounter', 'schemaVersion': 1,
+    'optional': true, 'battleKinds': ['wild'], 'demonstration': 'forbidden',
+    'parameters': ['rewardId', 'label', 'consumeOnOutcomes'],
+    'consumeOnOutcomes': ['victory', 'captured', 'fled'], 'minimumOutcomes': 1,
+    'defeat': 'neverConsumes', 'occurrence': 'localCivilLaunchDay',
+    'claimCommit': 'atomicWithBattleResult', 'invalidConfiguration': 'refuseBeforePersistence',
+    'capability': 'gameplay.periodic-encounter@1',
+  };
+
   static const _battleDemonstrationContract = {
     'payloadKind': 'battle',
     'field': 'demonstration',
@@ -638,6 +649,7 @@ final class SceneActions {
         'parameters': ['sceneId', 'upsertNodes', 'removeNodeIds', 'upsertEdges', 'removeEdgeIds'],
         'finishGame': _finishGameContract,
         'battleDefeatRecovery': _battleDefeatRecoveryContract,
+        'periodicEncounter': _periodicEncounterContract,
         'battleDemonstration': _battleDemonstrationContract,
         'whiteOut': _whiteOutContract,
         'calculateIntegerFacts': _calculateIntegerFactsContract,
@@ -677,6 +689,7 @@ final class SceneActions {
       resourceKinds: const ['project', 'scene'],
       extensions: const {
         'parameters': ['sceneId', 'nodeId', 'conditionSource'],
+        'civilWeekday': civilWeekdayConditionContract,
         'periodicRewardAvailable': {
           'sourceKind': 'periodicRewardAvailable',
           'sourceId': 'selectedPublishedRewardId',
@@ -803,6 +816,7 @@ final class SceneActions {
       extensions: const {
         'finishGame': _finishGameContract,
         'battleDefeatRecovery': _battleDefeatRecoveryContract,
+        'periodicEncounter': _periodicEncounterContract,
         'battleDemonstration': _battleDemonstrationContract,
         'whiteOut': _whiteOutContract,
         'calculateIntegerFacts': _calculateIntegerFactsContract,
@@ -1803,6 +1817,63 @@ final class SceneActions {
       path: '/scenes/$sceneId/graph',
       before: before.graph.toJson(),
       after: after.graph.toJson(),
+    );
+  }
+
+  ProjectManifest updateBattlePeriodicEncounter(
+    ProjectManifest project, {
+    required String sceneId,
+    required String nodeId,
+    required bool enabled,
+    required String label,
+    required Set<PeriodicEncounterOutcome> consumeOnOutcomes,
+  }) {
+    final scene = _requireDialoguePolicyScene(project, sceneId);
+    final nodes = scene.graph.nodes.where((node) => node.id == nodeId);
+    if (nodes.length != 1 || nodes.single.payload is! SceneBattlePayload) {
+      throw ArgumentError('The selected battle node is unavailable.');
+    }
+    final node = nodes.single;
+    final current = node.payload as SceneBattlePayload;
+    if (current.battleKind != 'wild' || current.demonstration != null) {
+      throw ArgumentError(
+        'Periodic encounters require a wild battle without demonstration.',
+      );
+    }
+    final definition = enabled
+        ? PeriodicEncounterDefinition(
+            rewardId:
+                current.periodicEncounter?.rewardId ??
+                'periodic-encounter:${sceneId.length}:$sceneId:$nodeId',
+            label: label.trim(),
+            consumeOnOutcomes: consumeOnOutcomes,
+          )
+        : null;
+    final payload = current.toJson()..remove('periodicEncounter');
+    if (definition != null) payload['periodicEncounter'] = definition.toJson();
+    final updatedNode = SceneNode(
+      id: node.id,
+      kind: node.kind,
+      title: node.title,
+      description: node.description,
+      payload: SceneBattlePayload.fromJson(payload),
+    );
+    final updated = SceneAsset.fromJson({
+      ...scene.toJson(),
+      'graph': SceneGraph(
+        startNodeId: scene.graph.startNodeId,
+        nodes: [
+          for (final candidate in scene.graph.nodes)
+            candidate.id == nodeId ? updatedNode : candidate,
+        ],
+        edges: scene.graph.edges,
+      ).toJson(),
+    });
+    return project.copyWith(
+      scenes: [
+        for (final candidate in project.scenes)
+          candidate.id == sceneId ? updated : candidate,
+      ],
     );
   }
 
@@ -3250,6 +3321,8 @@ T _enumParameter<T extends Enum>(
 Map<String, String> _periodicClaimIds(SceneAsset scene) => {
   for (final node in scene.graph.nodes)
     if (node.payload case SceneActionPayload(interactiveCommand: SceneClaimPeriodicRewardInteractiveCommand(:final definition)))
+      node.id: definition.rewardId
+    else if (node.payload case SceneBattlePayload(periodicEncounter: final definition?))
       node.id: definition.rewardId,
 };
 

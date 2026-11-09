@@ -152,7 +152,7 @@ final class NarrativeEventSceneSummary {
 }
 
 @immutable
-enum NarrativeEventConditionDetailKind {
+enum NarrativeEventConditionDetailKind { civilWeekday,
   periodicRewardAvailable,
   fact,
   narrativeEventConsumed,
@@ -1356,11 +1356,16 @@ final class _ProjectReadIndexes {
     final details = <NarrativeEventConditionDetailSummary>[];
     for (final condition in conditions) {
       condition.whenTyped<void>(
+        civilWeekday: (weekday, expectedValue) {
+          details.add(NarrativeEventConditionDetailSummary(kind: NarrativeEventConditionDetailKind.civilWeekday,
+            targetLabel: weekday.label, expectedValue: expectedValue, resolved: true,
+            humanLabel: '${expectedValue ? "Nous sommes" : "Nous ne sommes pas"} ${weekday.label.toLowerCase()} (calendrier civil)'));
+        },
         periodicRewardAvailable: (reference, expectedValue) {
           final resolution = resolvePeriodicRewardReference(reference: reference,
             lookupScenes: (id) => (_scenesById[id] ?? const []).map((entry) => entry.scene));
           if (!resolution.isResolved) unresolved++;
-          final label = resolution.definition?.label ?? 'Récompense introuvable';
+          final label = resolution.label ?? 'Récompense introuvable';
           details.add(NarrativeEventConditionDetailSummary(kind: NarrativeEventConditionDetailKind.periodicRewardAvailable,
             targetLabel: label, expectedValue: expectedValue, resolved: resolution.isResolved,
             humanLabel: '$label · ${expectedValue ? "disponible" : "déjà reçue"}'));

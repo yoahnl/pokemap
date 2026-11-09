@@ -1,3 +1,5 @@
+import 'civil_weekday.dart';
+import 'periodic_encounter.dart';
 import 'periodic_reward_reference.dart';
 import 'package:meta/meta.dart' show immutable;
 
@@ -64,6 +66,7 @@ enum SceneOutcomePolicy {
 }
 
 enum SceneConditionSourceKind {
+  civilWeekday,
   periodicRewardAvailable,
   newGameDraft,
   integerComparison,
@@ -126,12 +129,22 @@ final class SceneConditionSource {
     this.factOperator,
     this.expectedFactValue,
     this.rewardReference,
+    this.weekday,
     this.integerLeft,
     this.integerRight,
     this.integerComparisonOperator,
     this.mapId,
     this.key,
   }) {
+    if (sourceKind == SceneConditionSourceKind.civilWeekday) {
+      if (weekday == null || sourceId != 'civilWeekday' || operator == SceneConditionOperator.equals ||
+          field != null || value != null || mapId != null || key != null || factOperator != null ||
+          expectedFactValue != null || rewardReference != null || integerLeft != null || integerRight != null || integerComparisonOperator != null) {
+        throw ArgumentError('Civil weekday conditions require a weekday and boolean operator.');
+      }
+    } else if (weekday != null) {
+      throw ArgumentError('Weekdays require a civil weekday condition.');
+    }
     if (sourceKind == SceneConditionSourceKind.periodicRewardAvailable) {
       if (rewardReference == null || sourceId != rewardReference!.rewardId ||
           operator == SceneConditionOperator.equals || field != null || value != null ||
@@ -295,12 +308,29 @@ final class SceneConditionSource {
         expectedFactValue: expectedValue,
       );
 
+  factory SceneConditionSource.civilWeekday({required CivilWeekday weekday, required bool expectedValue}) => SceneConditionSource(
+    sourceKind: SceneConditionSourceKind.civilWeekday, sourceId: 'civilWeekday', weekday: weekday,
+    operator: expectedValue ? SceneConditionOperator.isTrue : SceneConditionOperator.isFalse);
+
   factory SceneConditionSource.periodicRewardAvailable({required PeriodicRewardReference reference, required bool expectedValue}) => SceneConditionSource(
     sourceKind: SceneConditionSourceKind.periodicRewardAvailable, sourceId: reference.rewardId,
     operator: expectedValue ? SceneConditionOperator.isTrue : SceneConditionOperator.isFalse,
     rewardReference: reference);
 
   factory SceneConditionSource.fromJson(Map<String, dynamic> json) {
+    if (json['sourceKind'] != 'civilWeekday' && json.containsKey('weekday')) {
+      throw const FormatException('Weekdays require a civil weekday condition.');
+    }
+    if (json['sourceKind'] == 'civilWeekday') {
+      const fields = {'sourceKind', 'sourceId', 'operator', 'weekday', 'label', 'debugTechnicalLabel'};
+      if (!json.keys.every(fields.contains) || json['sourceId'] != 'civilWeekday' ||
+          !const {'isTrue', 'isFalse'}.contains(json['operator'])) {
+        throw const FormatException('Invalid civil weekday Scene condition.');
+      }
+      return SceneConditionSource(sourceKind: SceneConditionSourceKind.civilWeekday, sourceId: 'civilWeekday',
+        weekday: CivilWeekday.fromJson(json['weekday']), operator: json['operator'] == 'isTrue' ? SceneConditionOperator.isTrue : SceneConditionOperator.isFalse,
+        label: _readOptionalString(json, 'label'), debugTechnicalLabel: _readOptionalString(json, 'debugTechnicalLabel'));
+    }
     if (json['sourceKind'] == 'periodicRewardAvailable') {
       const fields = {'sourceKind', 'sourceId', 'operator', 'rewardReference', 'label', 'debugTechnicalLabel'};
       if (!json.keys.every(fields.contains) || json['rewardReference'] is! Map ||
@@ -665,6 +695,7 @@ final class SceneConditionSource {
   Map<String, dynamic> toJson() => _withoutNulls({
         'sourceKind': _enumToJson(sourceKind),
         'rewardReference': rewardReference?.toJson(),
+        'weekday': weekday?.name,
         'sourceId': sourceId,
         'mapId': mapId,
         'key': key,
@@ -681,6 +712,7 @@ final class SceneConditionSource {
         'factValue': expectedFactValue?.toJson(),
       });
 
+  final CivilWeekday? weekday;
   final PeriodicRewardReference? rewardReference;
   final SceneConditionSourceKind sourceKind;
   final String sourceId;
@@ -751,6 +783,7 @@ final class SceneConditionSource {
       other is SceneConditionSource &&
           other.integerLeft == integerLeft && other.integerRight == integerRight &&
           other.integerComparisonOperator == integerComparisonOperator &&
+          other.weekday == weekday &&
           other.rewardReference == rewardReference &&
           other.sourceKind == sourceKind &&
           other.sourceId == sourceId &&
@@ -767,6 +800,7 @@ final class SceneConditionSource {
   @override
   int get hashCode => Object.hash(
         sourceKind,
+        weekday,
         rewardReference,
         sourceId,
         mapId,
@@ -1847,6 +1881,7 @@ final class SceneBattlePayload extends SceneNodePayload {
     this.battleTemplateId,
     this.npcEntityId,
     this.demonstration,
+    this.periodicEncounter,
     this.defeatRecovery = SceneBattleDefeatRecovery.continueScene,
     List<String> declaredOutcomes = const <String>[],
   }) : declaredOutcomes = _immutableNonBlankUniqueStrings(
@@ -1860,9 +1895,16 @@ final class SceneBattlePayload extends SceneNodePayload {
       'SceneBattlePayload.battleTemplateId',
     );
     _requireOptionalNotBlank(npcEntityId, 'SceneBattlePayload.npcEntityId');
+    if (periodicEncounter != null && (battleKind != 'wild' || demonstration != null)) {
+      throw ArgumentError('Periodic encounters require a non-demonstration wild battle.');
+    }
   }
 
   factory SceneBattlePayload.fromJson(Map<String, dynamic> json) {
+    if (json.containsKey('periodicEncounter') &&
+        (json['periodicEncounter'] is! Map<String, dynamic> || json['battleKind'] != 'wild' || json['demonstration'] != null)) {
+      throw const FormatException('Invalid periodic encounter battle policy.');
+    }
     return SceneBattlePayload(
       battleKind: _readRequiredString(json, 'battleKind'),
       trainerId: _readOptionalString(json, 'trainerId'),
@@ -1870,6 +1912,7 @@ final class SceneBattlePayload extends SceneNodePayload {
       npcEntityId: _readOptionalString(json, 'npcEntityId'),
       demonstration: json['demonstration'] == null ? null :
           SceneBattleDemonstration.fromJson(_readRequiredObject(json, 'demonstration')),
+      periodicEncounter: json['periodicEncounter'] == null ? null : PeriodicEncounterDefinition.fromJson(json['periodicEncounter'] as Map<String, dynamic>),
       defeatRecovery: json.containsKey('defeatRecovery')
           ? _readEnum(
               SceneBattleDefeatRecovery.values,
@@ -1889,6 +1932,7 @@ final class SceneBattlePayload extends SceneNodePayload {
   final String? battleTemplateId;
   final String? npcEntityId;
   final SceneBattleDemonstration? demonstration;
+  final PeriodicEncounterDefinition? periodicEncounter;
   final SceneBattleDefeatRecovery defeatRecovery;
   final List<String> declaredOutcomes;
 
@@ -1900,6 +1944,7 @@ final class SceneBattlePayload extends SceneNodePayload {
         'battleTemplateId': battleTemplateId,
         'npcEntityId': npcEntityId,
         'demonstration': demonstration?.toJson(),
+        'periodicEncounter': periodicEncounter?.toJson(),
         if (defeatRecovery != SceneBattleDefeatRecovery.continueScene)
           'defeatRecovery': defeatRecovery.name,
         'declaredOutcomes': declaredOutcomes,
@@ -1914,6 +1959,7 @@ final class SceneBattlePayload extends SceneNodePayload {
           other.battleTemplateId == battleTemplateId &&
           other.npcEntityId == npcEntityId &&
           other.demonstration == demonstration &&
+          other.periodicEncounter == periodicEncounter &&
           other.defeatRecovery == defeatRecovery &&
           _listEquals(other.declaredOutcomes, declaredOutcomes);
 
@@ -1922,7 +1968,7 @@ final class SceneBattlePayload extends SceneNodePayload {
         battleKind,
         trainerId,
         battleTemplateId,
-        Object.hash(npcEntityId, demonstration),
+        Object.hash(npcEntityId, demonstration, periodicEncounter),
         defeatRecovery,
         Object.hashAll(declaredOutcomes),
       );

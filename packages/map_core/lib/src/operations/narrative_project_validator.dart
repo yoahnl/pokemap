@@ -1154,7 +1154,7 @@ void _appendSolvabilityDiagnostics(
       if (definition == null || record.enabledOrNull != true) continue;
       for (final condition in definition.conditions) {
         condition.whenTyped(
-      periodicRewardAvailable: (_, _) {},
+      civilWeekday: (_, _) {}, periodicRewardAvailable: (_, _) {},
           fact: (factId, operator, expectedValue) {
             if (operator == NarrativeFactOperator.equals &&
                 expectedValue.kind == NarrativeValueKind.boolean &&
@@ -1756,7 +1756,7 @@ bool _eventConditionsStaticallyReachable(
 }) {
   return conditions.every(
     (condition) => condition.whenTyped(
-      periodicRewardAvailable: (_, _) => true,      fact: (factId, operator, expectedValue) =>
+      civilWeekday: (_, _) => true, periodicRewardAvailable: (_, _) => true,      fact: (factId, operator, expectedValue) =>
           expectedValue.kind != NarrativeValueKind.boolean ||
           operator != NarrativeFactOperator.equals ||
           possibleFactValues[factId]?.contains(expectedValue.boolValue) == true,
@@ -2012,6 +2012,7 @@ bool _sceneEdgeIsStaticallyTraversable(
 
   Set<bool>? values;
   switch (source.sourceKind) {
+    case SceneConditionSourceKind.civilWeekday:
     case SceneConditionSourceKind.periodicRewardAvailable:
       return (canBeTrue: true, canBeFalse: true);
     case SceneConditionSourceKind.integerComparison:

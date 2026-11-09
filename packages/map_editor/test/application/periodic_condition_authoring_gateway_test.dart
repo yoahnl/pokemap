@@ -16,6 +16,32 @@ import 'package:map_editor/src/ui/canvas/scenes/periodic_reward_picker.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
+  testWidgets('published encounter picker selects its claim without item quantity', (tester) async {
+    final policy = PeriodicEncounterDefinition(rewardId: 'daily-encounter', label: 'Visiteur',
+      consumeOnOutcomes: {PeriodicEncounterOutcome.captured});
+    final reference = PeriodicRewardReference(sceneId: 'source', nodeId: 'battle', rewardId: policy.rewardId);
+    final project = ProjectManifest(name: 'Picker', maps: [], tilesets: [], scenes: [
+      SceneAsset(id: 'source', name: 'Rencontre', graph: SceneGraph(startNodeId: 'start', nodes: [
+        SceneNode(id: 'start', kind: SceneNodeKind.start), SceneNode(id: 'battle', kind: SceneNodeKind.battle,
+          payload: SceneBattlePayload(battleKind: 'wild', periodicEncounter: policy))], edges: []))]);
+    final query = AuthoringQueryAdapter(fileReader: _PickerReader(project));
+    addTearDown(query.closeAll);
+    PeriodicRewardReference? applied;
+    await tester.pumpWidget(ProviderScope(overrides: [
+      editorNotifierProvider.overrideWith(() => _PickerEditorNotifier(EditorState(project: project, projectRootPath: '/project'))),
+      authoringQueryAdapterProvider.overrideWith((ref) => query)], child: MaterialApp(home: Scaffold(
+        body: SingleChildScrollView(child: EditorPeriodicRewardPicker(initial: reference, onApply: (reference, _) => applied = reference))))));
+    await _pumpUntil(tester, () => !_pickerLoading(tester));
+    final picker = _pickerDropdown(tester, 'Action de récompense');
+    expect(picker.items.single.label, 'Visiteur · Rencontre');
+    expect(picker.value, 'battle');
+    expect(find.textContaining('×'), findsNothing);
+    final apply = tester.widget<PokeMapButton>(find.ancestor(of: find.text('Appliquer la condition quotidienne'), matching: find.byType(PokeMapButton)));
+    apply.onPressed!();
+    expect(applied, reference);
+    expect(tester.takeException(), isNull);
+  });
+
   for (final lateGet in [false, true]) {
     testWidgets(
       'Editor refresh removes stale nodes and ignores old canonical get late=$lateGet',

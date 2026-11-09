@@ -857,6 +857,7 @@ final class _NarrativeSceneWorkingSession {
   NarrativeEventStateCheckpointOwner? checkpointOwner;
   NarrativeRuntimeSceneCheckpointOwner? craftingActivityOwner;
   GameState? durableCheckpointState;
+  GameState? fullDurableCheckpointState;
   NarrativeRuntimeSceneCheckpointOwner? imagePuzzleActivityOwner;
   bool committed = false;
   RuntimeWorldAudioController? sceneAudio;
@@ -889,6 +890,12 @@ final class _NarrativeSceneWorkingSession {
 
   void commit() {
     committed = true;
+    _compensations.clear();
+  }
+
+  void checkpointFullState(GameState state) {
+    fullDurableCheckpointState = state;
+    durableCheckpointState = null;
     _compensations.clear();
   }
 

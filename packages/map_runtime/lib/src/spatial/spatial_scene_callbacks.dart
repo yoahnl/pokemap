@@ -82,7 +82,8 @@ final class SpatialSceneCallbacks
     final source = intent.conditionSource;
     if (source == null) throw StateError('The Scene condition is missing.');
     final state = readGameState();
-    if (source.sourceKind == SceneConditionSourceKind.periodicRewardAvailable) {
+    if (source.sourceKind == SceneConditionSourceKind.periodicRewardAvailable ||
+        source.sourceKind == SceneConditionSourceKind.civilWeekday) {
       final context = periodicRewardContext;
       if (context == null)
         throw const SceneRuntimeConditionUnavailable(

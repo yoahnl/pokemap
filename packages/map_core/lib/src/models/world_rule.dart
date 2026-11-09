@@ -1,10 +1,11 @@
+import 'civil_weekday.dart';
 import 'periodic_reward_reference.dart';
 import 'package:meta/meta.dart' show immutable;
 
 import 'narrative_value.dart';
 import 'spatial_visual_profile.dart';
 
-enum WorldRuleSourceKind { fact, storyStepCompletion, consumedEvent, periodicRewardAvailable }
+enum WorldRuleSourceKind { civilWeekday, fact, storyStepCompletion, consumedEvent, periodicRewardAvailable }
 
 enum WorldRuleSourcePredicate {
   isTrue,
@@ -48,6 +49,7 @@ final class WorldRuleSource {
     this.factOperator,
     this.expectedFactValue,
     this.rewardReference,
+    this.weekday,
   });
 
   factory WorldRuleSource.factValue({
@@ -75,11 +77,28 @@ final class WorldRuleSource {
     );
   }
 
+  factory WorldRuleSource.civilWeekday({required CivilWeekday weekday, required bool expectedValue}) => WorldRuleSource(
+    kind: WorldRuleSourceKind.civilWeekday, sourceId: 'civilWeekday', weekday: weekday,
+    predicate: expectedValue ? WorldRuleSourcePredicate.isTrue : WorldRuleSourcePredicate.isFalse);
+
   factory WorldRuleSource.periodicRewardAvailable({required PeriodicRewardReference reference, required bool expectedValue}) => WorldRuleSource(
     kind: WorldRuleSourceKind.periodicRewardAvailable, sourceId: reference.rewardId,
     predicate: expectedValue ? WorldRuleSourcePredicate.isTrue : WorldRuleSourcePredicate.isFalse, rewardReference: reference);
 
   factory WorldRuleSource.fromJson(Map<String, dynamic> json) {
+    if (json['kind'] != 'civilWeekday' && json.containsKey('weekday')) {
+      throw const FormatException('Weekdays require a civil weekday condition.');
+    }
+    if (json['kind'] == 'civilWeekday') {
+      const fields = {'kind', 'sourceId', 'predicate', 'weekday', 'label', 'debugTechnicalLabel'};
+      if (!json.keys.every(fields.contains) || json['sourceId'] != 'civilWeekday' ||
+          !const {'isTrue', 'isFalse'}.contains(json['predicate'])) {
+        throw const FormatException('Invalid civil weekday World Rule condition.');
+      }
+      return WorldRuleSource(kind: WorldRuleSourceKind.civilWeekday, sourceId: 'civilWeekday',
+        weekday: CivilWeekday.fromJson(json['weekday']), predicate: json['predicate'] == 'isTrue' ? WorldRuleSourcePredicate.isTrue : WorldRuleSourcePredicate.isFalse,
+        label: _readOptionalString(json, 'label'), debugTechnicalLabel: _readOptionalString(json, 'debugTechnicalLabel'));
+    }
     if (json['kind'] == 'periodicRewardAvailable') {
       const fields = {'kind', 'sourceId', 'predicate', 'rewardReference', 'label', 'debugTechnicalLabel'};
       if (!json.keys.every(fields.contains) || json['rewardReference'] is! Map || !const {'isTrue', 'isFalse'}.contains(json['predicate'])) {
@@ -130,6 +149,7 @@ final class WorldRuleSource {
     );
   }
 
+  final CivilWeekday? weekday;
   final PeriodicRewardReference? rewardReference;
   final WorldRuleSourceKind kind;
   final String sourceId;
@@ -149,6 +169,7 @@ final class WorldRuleSource {
   Map<String, dynamic> toJson() => _withoutNulls({
     'kind': kind.name,
     'rewardReference': rewardReference?.toJson(),
+    'weekday': weekday?.name,
     'sourceId': sourceId,
     'predicate': predicate.name,
     'label': label,
@@ -162,6 +183,7 @@ final class WorldRuleSource {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is WorldRuleSource &&
+          other.weekday == weekday &&
           other.rewardReference == rewardReference &&
           other.kind == kind &&
           other.sourceId == sourceId &&
@@ -174,6 +196,7 @@ final class WorldRuleSource {
   @override
   int get hashCode => Object.hash(
     kind,
+    weekday,
     rewardReference,
     sourceId,
     predicate,
@@ -372,7 +395,7 @@ bool isWorldRuleSourcePredicateCompatible(
   WorldRuleSourcePredicate predicate,
 ) {
   return switch (kind) {
-    WorldRuleSourceKind.fact || WorldRuleSourceKind.periodicRewardAvailable =>
+    WorldRuleSourceKind.civilWeekday || WorldRuleSourceKind.fact || WorldRuleSourceKind.periodicRewardAvailable =>
       predicate == WorldRuleSourcePredicate.isTrue ||
           predicate == WorldRuleSourcePredicate.isFalse,
     WorldRuleSourceKind.storyStepCompletion =>

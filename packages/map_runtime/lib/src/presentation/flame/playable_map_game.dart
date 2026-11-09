@@ -1,4 +1,5 @@
 import '../../application/runtime_periodic_reward_context.dart';
+import '../../application/runtime_periodic_encounter_checkpoint.dart';
 import '../../application/scene_runtime/scene_world_presentation_controller.dart';
 import '../../application/scene_runtime/world_presentation_image_loader.dart';
 import 'world_presentation_renderer.dart';
@@ -2447,6 +2448,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   int _battleRecipeGeneration = 0;
   RuntimeActiveBattleContext? _activeBattleContext;
   GameState? _battleRollbackState;
+  PeriodicEncounterOccurrence? _periodicBattleOccurrence;
+  NarrativeRuntimeSceneCheckpointOwner? _periodicBattleActivityOwner;
+  Future<void>? _pendingPeriodicBattleCheckpoint;
+  Future<void> get pendingPeriodicBattleCheckpoint =>
+      _pendingPeriodicBattleCheckpoint ?? Future<void>.value();
   RuntimeBattleCaptureAttemptReceipt? _captureAttemptReceipt;
   RuntimeCaptureProvenance? _battleCaptureProvenance;
   final ValueNotifier<BattleCommandOverlaySnapshot?>
@@ -3245,6 +3251,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     final scene = project.scenes.where((scene) => scene.id == sceneId).firstOrNull;
     return scene?.graph.nodes.any((node) {
       final payload = node.payload;
+      if (payload is SceneBattlePayload && payload.periodicEncounter != null) return true;
       if (payload is! SceneActionPayload) return false;
       return switch (payload.interactiveCommand) {
         SceneOpenCraftingInteractiveCommand() ||
@@ -3257,6 +3264,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
 
   void _rebaseDurableSceneCheckpoint(_NarrativeSceneWorkingSession session) {
     if (session.committed) return;
+    final fullDurable = session.fullDurableCheckpointState;
+    if (fullDurable != null) {
+      _gameState = fullDurable;
+    }
     final durable = session.durableCheckpointState;
     if (durable != null) {
       _gameState = _gameState.copyWith(
@@ -5331,6 +5342,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     _cancelFieldTerrainTraversal?.call();
     _cancelFieldObstacleMovement();
     _isRemoved = true;
+    if (_periodicBattleOccurrence != null) {
+      _completePendingSceneBattleOutcome(
+        const SceneBattleRuntimeOutcomeResult.failed(
+          errorCode: SceneBattleRuntimeOutcomeErrorCode.launcherFailed,
+          message: 'The runtime closed during the Scene battle.',
+        ),
+      );
+    }
     unawaited(_activeNarrativeSceneWorkingSession?.sceneAudio?.close());
     _resetMapAudio();
     unawaited(_ambienceMusicService?.dispose());
@@ -11450,7 +11469,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     _isPostBattleCommitCompleted = true;
     try {
       beforePostBattleStateCommit?.call();
-      _onBattleFinished(outcome, postBattleFinalState: finalState);
+      final committed = _requiresPeriodicBattleCheckpoint
+          ? await _checkpointPeriodicBattleResult(outcome, finalState)
+          : finalState;
+      if (generation != _postBattleFlowGeneration || _isRemoved) return;
+      _onBattleFinished(outcome, postBattleFinalState: committed);
     } on Object {
       _dismissBattleExitCurtainImmediately();
       rethrow;
@@ -11647,10 +11670,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     curtain?.removeFromParent();
   }
 
-  void _completePostBattleFlow({
+  Future<void> _completePostBattleFlow({
     required PostBattleProgressionOverlayComponent overlay,
     required BattleOutcome outcome,
-  }) {
+  }) async {
     if (!_isPostBattleFlowRunning ||
         _isPostBattleCommitCompleted ||
         !identical(_postBattleProgressionOverlay, overlay)) {
@@ -11669,9 +11692,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       } else {
         beforePostBattleStateCommit?.call();
       }
+      final committed = failed ? null : _requiresPeriodicBattleCheckpoint
+          ? await _checkpointPeriodicBattleResult(outcome, finalState)
+          : finalState;
+      if (_isRemoved) return;
       _onBattleFinished(
         outcome,
-        postBattleFinalState: failed ? null : finalState,
+        postBattleFinalState: committed,
         postBattleFailed: failed,
       );
     } catch (error, stackTrace) {
@@ -11680,6 +11707,75 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         error: error,
         stackTrace: stackTrace,
       );
+    }
+  }
+
+  bool get _requiresPeriodicBattleCheckpoint =>
+      _activeBattleContext?.request is WildBattleStartRequest &&
+      (_activeBattleContext!.request as WildBattleStartRequest).periodicEncounter != null;
+
+  Future<GameState> _checkpointPeriodicBattleResult(
+      BattleOutcome outcome, GameState finalState) async {
+    final battleContext = _activeBattleContext!;
+    final session = _activeNarrativeSceneWorkingSession;
+    final owner = session?.checkpointOwner;
+    final occurrence = _periodicBattleOccurrence;
+    final activity = _periodicBattleActivityOwner;
+    if (_isRemoved || session == null || owner == null || occurrence == null ||
+        activity == null || _pendingPeriodicBattleCheckpoint != null) {
+      throw StateError('The periodic battle checkpoint owner is stale.');
+    }
+    var next = finalState;
+    if (outcome.isDefeat) {
+      next = applyRuntimeDefeatRecoveryToGameState(
+        gameState: next, playerPartyIndex: battleContext.playerPartyIndex,
+        activePlayerLineupIndex: outcome.finalState.player.lineupIndex,
+        playerPartySlotIndicesByLineupIndex: battleContext.playerPartySlotIndicesByLineupIndex,
+        playerIndividualId: battleContext.playerIndividualId,
+        playerIndividualIdsByLineupIndex: battleContext.playerIndividualIdsByLineupIndex);
+      if (_pendingSceneBattleDefeatRecovery == SceneBattleDefeatRecovery.returnToRecoveryPoint) {
+        session.defeatRecoveryRequest = _NarrativeSceneDefeatRecoveryRequest(
+          battleContext, outcome.finalState.player.lineupIndex);
+        next = await _applySceneDefeatRecovery(session, next);
+      }
+    }
+    if ((outcome.isVictory || outcome.isCaptured) &&
+        _bundle.manifest.encounterTables.any((table) =>
+          table.id == (battleContext.request as WildBattleStartRequest).tableId &&
+          table.tags.contains('studio:unique'))) {
+      next = _storyFlags.set(next, uniqueEncounterConsumedFlag(
+          (battleContext.request as WildBattleStartRequest).tableId));
+    }
+    GameState? durableState;
+    final pending = checkpointRuntimePeriodicEncounter(
+      owner: owner, occurrence: occurrence, finalState: next, outcome: outcome,
+      readFinalSceneState: () => session.gameState,
+      persist: (durable) async {
+        final writer = overworldCheckpointWriter;
+        if (writer != null) {
+          await _narrativeActivityGate.runSceneCheckpoint(activity, () => writer(durable));
+        } else {
+          final repository = _saveRepo;
+          if (repository is! FileGameSaveRepository) {
+            throw StateError('The host has no durable Scene checkpoint writer.');
+          }
+          await repository.saveOwnedSceneCheckpoint(durable, activity);
+        }
+        session.checkpointFullState(durable);
+        _gameState = durable;
+      },
+    ).then((durable) {
+      durableState = durable;
+      session.gameState = durable;
+    });
+    _pendingPeriodicBattleCheckpoint = pending;
+    try {
+      await pending;
+      return durableState!;
+    } finally {
+      if (identical(_pendingPeriodicBattleCheckpoint, pending)) {
+        _pendingPeriodicBattleCheckpoint = null;
+      }
     }
   }
 
@@ -11833,7 +11929,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         }
       }
 
-      if (outcome.isDefeat && !postBattleFailed) {
+      if (outcome.isDefeat && !postBattleFailed &&
+          !(activeBattleContext.request is WildBattleStartRequest &&
+            (activeBattleContext.request as WildBattleStartRequest).periodicEncounter != null)) {
         if (hostedByNarrativeScene) {
           if (_pendingSceneBattleDefeatRecovery ==
               SceneBattleDefeatRecovery.returnToRecoveryPoint) {
@@ -11896,6 +11994,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     _activeBattleContext = null;
     _captureAttemptReceipt = null;
     _battleRollbackState = null;
+    _periodicBattleOccurrence = null;
+    _periodicBattleActivityOwner = null;
     _isBattleResolving = false; // Reset lock anti-spam
     _isPostBattleFlowRunning = false;
     _isPostBattleCommitCompleted = false;
@@ -12186,7 +12286,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       world: _world,
       activeMapId: _activeMapId,
       previousMapId: _previousMapId,
-      flowPhase: _flowPhase,
+      flowPhase: _requiresPeriodicBattleCheckpoint
+          ? _RuntimeFlowPhase.overworld
+          : _flowPhase,
       currentMapActivationId: _currentMapActivationId,
       completedMapActivationDispatchCount: _completedMapActivationDispatchCount,
       lastCompletedMapActivation: _lastCompletedMapActivation,
@@ -15401,6 +15503,21 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       );
     }
 
+    if (request.periodicEncounter case final definition?) {
+      final session = _activeNarrativeSceneWorkingSession;
+      if (request.battleKind != 'wild' || request.demonstration != null ||
+          session?.checkpointOwner == null ||
+          (overworldCheckpointWriter == null && _saveRepo is! FileGameSaveRepository)) {
+        throw StateError('The periodic battle requires a durable Scene checkpoint.');
+      }
+      if (session!.presentationGameState != session.gameState) {
+        throw StateError('Pending Scene changes must finish before the periodic battle.');
+      }
+      _periodicBattleOccurrence = beginPeriodicEncounter(session.gameState,
+          definition: definition, localDay: runtimeCivilDay(_encounterClock()));
+      _periodicBattleActivityOwner = _narrativeActivityGate.captureSceneCheckpointOwner();
+    }
+
     final completer = Completer<SceneBattleRuntimeOutcomeResult>();
     _pendingSceneBattleOutcomeCompleter = completer;
     _pendingSceneBattleRequestId = request.requestId;
@@ -15462,7 +15579,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       throw StateError('Scene condition intent is missing a condition source.');
     }
 
-    if (source.sourceKind == SceneConditionSourceKind.periodicRewardAvailable) {
+    if (source.sourceKind == SceneConditionSourceKind.periodicRewardAvailable ||
+        source.sourceKind == SceneConditionSourceKind.civilWeekday) {
       return _periodicRewardContext.evaluateScene(
         source: source,
         gameState: gameState,

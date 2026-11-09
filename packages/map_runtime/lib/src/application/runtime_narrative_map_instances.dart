@@ -27,7 +27,7 @@ bool hasNarrativeMapInstanceReferences(ProjectManifest project, String mapId) {
         in record.definitionOrNull?.conditions ??
             const <NarrativeEventCondition>[]) {
       if (condition.whenTyped(
-        periodicRewardAvailable: (_, _) => false,
+        civilWeekday: (_, _) => false, periodicRewardAvailable: (_, _) => false,
         fact: (_, _, _) => false,
         narrativeEventConsumed: (_, _) => false,
         mapEventInstanceBoolean: (ownerMapId, _, _, _) => ownerMapId == mapId,

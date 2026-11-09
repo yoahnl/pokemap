@@ -1,5 +1,6 @@
 import '../models/game_state.dart';
 import '../models/periodic_reward.dart';
+import '../models/periodic_encounter.dart';
 import '../models/periodic_reward_reference.dart';
 import '../models/scene_asset.dart';
 import '../models/scene_interactive_command.dart';
@@ -20,9 +21,13 @@ enum PeriodicRewardReferenceStatus {
 }
 
 final class PeriodicRewardReferenceResolution {
-  const PeriodicRewardReferenceResolution(this.status, [this.definition]);
+  const PeriodicRewardReferenceResolution(this.status, [this.definition]) : periodicEncounter = null;
+  const PeriodicRewardReferenceResolution.encounter(this.periodicEncounter)
+      : status = PeriodicRewardReferenceStatus.found, definition = null;
   final PeriodicRewardReferenceStatus status;
   final PeriodicItemRewardDefinition? definition;
+  final PeriodicEncounterDefinition? periodicEncounter;
+  String? get label => definition?.label ?? periodicEncounter?.label;
   bool get isResolved => status == PeriodicRewardReferenceStatus.found;
 }
 
@@ -57,6 +62,12 @@ PeriodicRewardReferenceResolution resolvePeriodicRewardReference({
     );
   }
   final payload = nodes.single.payload;
+  if (nodes.single.kind == SceneNodeKind.battle && payload is SceneBattlePayload && payload.periodicEncounter != null) {
+    if (payload.periodicEncounter!.rewardId != reference.rewardId) {
+      return const PeriodicRewardReferenceResolution(PeriodicRewardReferenceStatus.rewardIdMismatch);
+    }
+    return PeriodicRewardReferenceResolution.encounter(payload.periodicEncounter);
+  }
   final command = payload is SceneActionPayload
       ? payload.interactiveCommand
       : null;
