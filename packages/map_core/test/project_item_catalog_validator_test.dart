@@ -266,6 +266,7 @@ void main() {
       'king_s_rock',
       'lum_berry',
       'persim_berry',
+      'poison_barb',
       'sitrus_berry',
       'smoke_ball',
     ]) {

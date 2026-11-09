@@ -9,9 +9,47 @@ import 'package:map_runtime/src/application/runtime_psdk_battle_session_adapter.
 import 'package:map_runtime/src/application/runtime_contextual_capture.dart';
 import 'package:map_runtime/src/application/runtime_pokemon_species_loader.dart';
 import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
+import 'package:map_runtime/src/presentation/flame/battle_party_menu_model.dart';
 
 void main() {
   group('RuntimePsdkBattleSessionAdapter', () {
+    for (final forced in [false, true]) {
+      test('legacy switch preserves reserve indexes across fainted slots forced=$forced', () {
+        final wait = _move(id: 'wait', power: 0);
+        final session = RuntimePsdkBattleSessionAdapter.fromSetup(
+          PsdkBattleSetup.singlesPokeMapBetaV1ForTest(
+            player: _combatant(id: 'lead', hp: 100, currentHp: forced ? 1 : 100, moves: [wait]),
+            playerReserves: [
+              _combatant(id: 'fainted', hp: 100, currentHp: 0, moves: [wait]),
+              _combatant(id: 'replacement', hp: 2000, moves: [wait]),
+            ],
+            opponent: _combatant(id: 'foe', hp: 2000, moves: [_move(id: 'attack', power: 500)]),
+            rngSeeds: const PsdkBattleRngSeeds(moveDamage: 1, moveCritical: 99999, moveAccuracy: 1, generic: 4),
+            isTrainerBattle: true,
+          ),
+        );
+        if (forced) {
+          session.submitPlayerChoice(const PlayerBattleChoiceFight(0));
+          expect(session.decisionRequest.kind, BattleEngineDecisionRequestKind.forcedReplacement);
+        }
+        final display = session.createLegacyDisplaySession(isTrainerBattle: true);
+        final menu = buildBattlePartyMenuModel(session: display);
+        final choice = menu.allEntries[2].playerChoice!;
+
+        expect(menu.allEntries[1].isSelectable, isFalse);
+        expect(choice.reserveIndex, 1);
+        expect(session.allowsPlayerChoice(const PlayerBattleChoiceSwitch(0)), isFalse);
+        expect(session.state.battlerAt(psdkPlayerSlot).id, 'lead');
+        expect(session.allowsPlayerChoice(choice), isTrue);
+        expect((session.decisionForPlayerChoice(choice) as BattleSwitchDecision).partyIndex, 2);
+
+        session.submitPlayerChoice(choice);
+
+        expect(session.state.battlerAt(psdkPlayerSlot).id, 'replacement');
+        expect(session.state.isFinished, isFalse);
+      });
+    }
+
     test('Sand Attack lowers accuracy through the runtime over consecutive turns',
         () {
       final sandAttack = const RuntimeBattleMoveBridge().toPsdkBattleMoveData(

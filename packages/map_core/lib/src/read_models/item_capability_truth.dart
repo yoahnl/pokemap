@@ -172,6 +172,7 @@ final ItemCapabilityTruth itemSystemV1CapabilityTruth = ItemCapabilityTruth(
     'leftovers',
     'lum_berry',
     'persim_berry',
+    'poison_barb',
     'metal_coat',
     'miracle_seed',
     'prevent_evolution',

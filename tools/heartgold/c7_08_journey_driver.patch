@@ -1,0 +1,24 @@
+--- a/parcours_scenario_test.dart
++++ b/parcours_scenario_test.dart
+@@ -251,6 +251,7 @@
+   String? hostMapId;
+   Set<String> hostMapIds = {};
+   HeartGoldBattlePilot? battlePilot;
++  Future<void> Function(HeartGoldBattlePilot)? driveBattle;
+   final wildBattles = <Map<String, Object?>>[];
+   String? currentBattleRequestId;
+   String? choiceOverride;
+@@ -543,7 +544,12 @@
+         currentBattleRequestId = battle.context?.request.requestId;
+         battlePilot = await HeartGoldBattlePilot.create(battle, captureWild: captureNextWild);
+       }
+-      await battlePilot!.tick();
++      final driver = driveBattle;
++      if (driver == null) {
++        await battlePilot!.tick();
++      } else {
++        await driver(battlePilot!);
++      }
+     }
+     if (battlePilot case final pilot? when battle?.isActive != true) {
+       healthCheckPending = true;

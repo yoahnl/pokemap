@@ -872,6 +872,22 @@ final class RuntimePsdkBattleSessionAdapter {
   }
 
   int _partyIndexForReserveChoice(int reserveIndex) {
+    if (!isDoubles) {
+      final party = state.psdkState.partyForBank(0);
+      final activeId = state.battlerAt(psdkPlayerSlot).id;
+      final reservePartyIndexes = [
+        for (var index = 0; index < party.length; index++)
+          if (party[index].id != activeId) index,
+      ];
+      if (reserveIndex < 0 || reserveIndex >= reservePartyIndexes.length) {
+        throw RangeError.index(
+          reserveIndex,
+          reservePartyIndexes,
+          'reserveIndex',
+        );
+      }
+      return reservePartyIndexes[reserveIndex];
+    }
     final switchChoices = decisionRequest.switchChoices;
     if (reserveIndex < 0 || reserveIndex >= switchChoices.length) {
       throw RangeError.index(
