@@ -462,7 +462,7 @@ void main() {
     },
   );
   test(
-    'classification parents resolve before building the selected library',
+    'classification parents resolve with one fresh read per selected entry',
     () async {
       final project = ProjectManifest(
         name: 'Classified',
@@ -499,10 +499,19 @@ void main() {
         ),
       );
       final build = PortableCatalogPublication.encodeProject(project);
+      final objects = {...build.storage.objects};
+      final reads = <String, int>{};
       final catalog = await PortableProjectCatalog.open(
         build.descriptor,
-        readObject: (r) async => build.storage.objects[r.sha256]!,
+        readObject: (r) async {
+          reads.update(r.sha256, (count) => count + 1, ifAbsent: () => 1);
+          return objects[r.sha256]!;
+        },
       );
+      final classification = (await catalog.snapshot.indexEntry(
+          CatalogDefinitionKey(CatalogDefinitionKind.resourceLibraryEntry,
+              'element:chair')))!;
+      reads.clear();
       final selected = await ProjectCatalogSelection(
         catalog,
       ).resolve([CatalogDefinitionKey(CatalogDefinitionKind.element, 'chair')]);
@@ -515,6 +524,17 @@ void main() {
         selected.resourceLibraryCatalog.entries.single.placementContext,
         ResourcePlacementContext.interior,
       );
+      expect(reads[classification.reference.sha256], 1);
+      await ProjectCatalogSelection(catalog).resolve([
+        CatalogDefinitionKey(CatalogDefinitionKind.element, 'chair'),
+      ]);
+      expect(reads[classification.reference.sha256], 2);
+      objects[classification.reference.sha256] = utf8.encode('corrupt');
+      await expectLater(
+          ProjectCatalogSelection(catalog).resolve([
+            CatalogDefinitionKey(CatalogDefinitionKind.element, 'chair'),
+          ]),
+          throwsFormatException);
     },
   );
   test(

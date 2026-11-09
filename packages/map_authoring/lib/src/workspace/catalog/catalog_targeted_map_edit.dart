@@ -22,7 +22,6 @@ const catalogMapValidationMetadataFields = <String>{
   'settings',
   'newGame',
   'eventRegistry',
-  'trainers',
   'scenarios',
   'pokemon',
   'scripts',
@@ -141,6 +140,25 @@ final class CatalogTargetedMapSelection {
             mapRelativePath: entry.relativePath,
             reader: reader.store.fileReader,
           );
+          final trainerIds = {
+            for (final entity in (projectedMap ?? map).entities)
+              if (entity.npc?.trainerId?.trim() case final String id)
+                if (id.isNotEmpty) id,
+          };
+          var trainers = catalog.projectMetadata.trainers
+              .where((trainer) => trainerIds.contains(trainer.id)).toList();
+          if (trainerIds.isNotEmpty && trainers.length != trainerIds.length) {
+            if (!reader.readOnly) {
+              await reader.store.requireMetadataIndexAdmission(catalog.snapshot);
+            }
+            trainers = reader.readOnly
+                ? (await reader.readMetadata({'trainers'})).trainers
+                    .where((trainer) => trainerIds.contains(trainer.id)).toList()
+                : (await CatalogMetadataDocuments.readDocuments(
+                    snapshot: catalog.snapshot,
+                    project: catalog.projectMetadata,
+                    ids: {'trainers': trainerIds})).project.trainers;
+          }
           var definitions = await ProjectCatalogSelection(catalog).forMaps(
             [
               projectedMap ?? map,
@@ -149,6 +167,14 @@ final class CatalogTargetedMapSelection {
                 sector.asVisualMap().copyWith(id: map.id),
             ],
             additionalRoots: [
+              for (final trainer in trainers) ...[
+                if (trainer.characterId case final String id)
+                  if (id.isNotEmpty)
+                    CatalogDefinitionKey(CatalogDefinitionKind.character, id),
+                if (trainer.portraitElementId case final String id)
+                  if (id.isNotEmpty)
+                    CatalogDefinitionKey(CatalogDefinitionKind.element, id),
+              ],
               for (final border in exterior?.borders ??
                   const <ExteriorDecorationBorder>[]) ...[
                 CatalogDefinitionKey(CatalogDefinitionKind.borderRecord,
@@ -170,6 +196,7 @@ final class CatalogTargetedMapSelection {
               ],
             ],
           );
+          definitions = definitions.copyWith(trainers: trainers);
           if (definitions.maps.isEmpty) {
             definitions = definitions.copyWith(maps: entries);
           }

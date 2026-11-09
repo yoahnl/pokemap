@@ -230,7 +230,8 @@ final class ProjectCatalogSelection {
           ))
         declaration.owner: declaration.targets,
     };
-    Future<void> visit(CatalogDefinitionKey key, int depth) async {
+    Future<void> visit(CatalogDefinitionKey key, int depth,
+        [CatalogDefinitionUnit? loaded]) async {
       if (active.contains(key)) {
         throw FormatException('catalog.selection: dependency cycle at $key');
       }
@@ -241,7 +242,7 @@ final class ProjectCatalogSelection {
           'catalog.selection: closure budget exceeded',
         );
       }
-      final unit = await catalog.lookup(key);
+      final unit = loaded ?? await catalog.lookup(key);
       if (unit == null) {
         throw FormatException('catalog.selection: missing definition $key');
       }
@@ -262,7 +263,7 @@ final class ProjectCatalogSelection {
           key.kind == CatalogDefinitionKind.resourceFamily;
       for (final dependency in {
         if (!isClassification)
-          ..._dependencies(catalog.projectWithDefinitions([unit])),
+          ..._dependencies(catalog.definitionValue(unit)),
         if (familyId != null &&
             !ResourceLibraryCatalog.predefinedFamilies.any(
               (family) => family.id == familyId,
@@ -281,8 +282,9 @@ final class ProjectCatalogSelection {
           CatalogDefinitionKind.resourceLibraryEntry,
           '$resourceKind:${key.id}',
         );
-        if (await catalog.lookup(classificationKey) != null) {
-          await visit(classificationKey, depth + 1);
+        final classification = await catalog.lookup(classificationKey);
+        if (classification != null) {
+          await visit(classificationKey, depth + 1, classification);
         }
       }
       active.remove(key);
@@ -377,10 +379,10 @@ Set<String> _mapSceneIds(MapData map, ProjectManifest metadata) {
   return ids;
 }
 
-Iterable<CatalogDefinitionKey> _dependencies(ProjectManifest view) sync* {
+Iterable<CatalogDefinitionKey> _dependencies(Object definition) sync* {
   CatalogDefinitionKey key(CatalogDefinitionKind kind, String id) =>
       CatalogDefinitionKey(kind, id);
-  for (final tileset in view.tilesets) {
+  if (definition case final ProjectTilesetEntry tileset) {
     if (tileset.folderId case final id?) {
       yield key(CatalogDefinitionKind.tilesetFolder, id);
     }
@@ -392,7 +394,7 @@ Iterable<CatalogDefinitionKey> _dependencies(ProjectManifest view) sync* {
       }
     }
   }
-  for (final element in view.elements) {
+  if (definition case final ProjectElementEntry element) {
     yield key(CatalogDefinitionKind.tileset, element.tilesetId);
     if (element.categoryId.isNotEmpty) {
       yield key(CatalogDefinitionKind.elementCategory, element.categoryId);
@@ -403,17 +405,17 @@ Iterable<CatalogDefinitionKey> _dependencies(ProjectManifest view) sync* {
       }
     }
   }
-  for (final category in view.elementCategories) {
+  if (definition case final ProjectElementCategory category) {
     if (category.parentCategoryId case final id?) {
       yield key(CatalogDefinitionKind.elementCategory, id);
     }
   }
-  for (final folder in view.tilesetFolders) {
+  if (definition case final ProjectTilesetFolder folder) {
     if (folder.parentFolderId case final id?) {
       yield key(CatalogDefinitionKind.tilesetFolder, id);
     }
   }
-  for (final character in view.characters) {
+  if (definition case final ProjectCharacterEntry character) {
     if (character.tilesetId.isNotEmpty) {
       yield key(CatalogDefinitionKind.tileset, character.tilesetId);
     }
@@ -430,7 +432,7 @@ Iterable<CatalogDefinitionKey> _dependencies(ProjectManifest view) sync* {
       );
     }
   }
-  for (final environment in view.environmentPresets) {
+  if (definition case final EnvironmentPreset environment) {
     if (environment.categoryId case final id?) {
       yield key(CatalogDefinitionKind.elementCategory, id);
     }
@@ -440,11 +442,10 @@ Iterable<CatalogDefinitionKey> _dependencies(ProjectManifest view) sync* {
           : key(CatalogDefinitionKind.model3d, item.modelId!);
     }
   }
-  final smart = view.smartTileCatalog;
-  for (final atlas in smart.atlases) {
+  if (definition case final ProjectSmartTileAtlas atlas) {
     yield key(CatalogDefinitionKind.tileset, atlas.tilesetId);
   }
-  for (final material in smart.materials) {
+  if (definition case final ProjectSmartTileMaterial material) {
     if (material.categoryId.isNotEmpty) {
       yield key(CatalogDefinitionKind.smartTileCategory, material.categoryId);
     }
@@ -470,12 +471,12 @@ Iterable<CatalogDefinitionKey> _dependencies(ProjectManifest view) sync* {
     }
   }
 
-  for (final animation in smart.animations) {
+  if (definition case final ProjectSmartTileAnimation animation) {
     for (final frame in animation.frames) {
       yield key(CatalogDefinitionKind.smartTileAtlas, frame.frame.atlasId);
     }
   }
-  for (final preset in smart.presets) {
+  if (definition case final ProjectSmartTilePreset preset) {
     if (preset.categoryId.isNotEmpty) {
       yield key(CatalogDefinitionKind.smartTileCategory, preset.categoryId);
     }
@@ -490,7 +491,7 @@ Iterable<CatalogDefinitionKey> _dependencies(ProjectManifest view) sync* {
       }
     }
   }
-  for (final pattern in smart.patterns) {
+  if (definition case final ProjectSmartTilePattern pattern) {
     if (pattern.categoryId.isNotEmpty) {
       yield key(CatalogDefinitionKind.smartTileCategory, pattern.categoryId);
     }
@@ -498,7 +499,7 @@ Iterable<CatalogDefinitionKey> _dependencies(ProjectManifest view) sync* {
       yield* parts(cell.parts);
     }
   }
-  for (final record in view.borderCatalog.records) {
+  if (definition case final BorderBlueprintRecord record) {
     final published = record.latestPublished?.definition;
     if (published == null) {
       throw const FormatException('catalog.selection: unpublished Border');
@@ -546,14 +547,14 @@ Iterable<CatalogDefinitionKey> _dependencies(ProjectManifest view) sync* {
       }
     }
   }
-  for (final family in view.resourceLibraryCatalog.families) {
+  if (definition case final ResourceFamily family) {
     final parent = family.parentId;
     if (parent != null &&
         !ResourceLibraryCatalog.predefinedFamilies.any((f) => f.id == parent)) {
       yield key(CatalogDefinitionKind.resourceFamily, parent);
     }
   }
-  for (final entry in view.resourceLibraryCatalog.entries) {
+  if (definition case final ResourceLibraryEntry entry) {
     final family = entry.familyId;
     if (family != null &&
         !ResourceLibraryCatalog.predefinedFamilies.any((f) => f.id == family)) {

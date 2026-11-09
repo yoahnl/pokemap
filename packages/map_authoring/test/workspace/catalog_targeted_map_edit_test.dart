@@ -8,6 +8,75 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  for (final portable in [false, true]) {
+    test('trainer selection follows projected bindings and verifies appearances '
+        '(portable: $portable)', () async {
+      final root = await Directory.systemTemp.createTemp('trainer-selection-');
+      addTearDown(() => root.delete(recursive: true));
+      final store = await CatalogStorageStore.open(projectRoot: root.path);
+      final project = ProjectManifest(name: 'Trainers', maps: const [
+        ProjectMapEntry(id: 'room', name: 'Room', relativePath: 'maps/room.json'),
+      ], tilesets: const [
+        ProjectTilesetEntry(id: 'sheet', name: 'Sheet', relativePath: 'sheet.png'),
+      ], characters: [
+        for (final id in ['first', 'second']) ProjectCharacterEntry(
+            id: id, name: id, tilesetId: 'sheet'),
+      ], elements: [
+        for (final id in ['first', 'second']) ProjectElementEntry(
+            id: 'portrait-$id', name: id, tilesetId: 'sheet', categoryId: 'art',
+            frames: const [TilesetVisualFrame(
+                source: TilesetSourceRect(x: 0, y: 0, width: 1, height: 1))]),
+      ], elementCategories: const [ProjectElementCategory(id: 'art', name: 'Art')],
+      trainers: [for (final id in ['first', 'second']) ProjectTrainerEntry(
+          id: id, name: id, trainerClass: 'Trainer', characterId: id,
+          portraitElementId: 'portrait-$id')]);
+      final Map<String, Object?> descriptor;
+      if (portable) {
+        final build = PortableCatalogPublication.encodeProject(project);
+        await store.publish(build.storage, expectedRootRevision: null);
+        descriptor = build.descriptor;
+      } else {
+        final working = await WorkingProjectCatalog.create(
+            store: store, projectId: 'trainers', project: project);
+        await store.prepareLocalEditing();
+        descriptor = working.descriptor.toJson();
+      }
+      MapData map(String trainerId) => MapData(id: 'room', name: 'Room',
+          size: const GridSize(width: 4, height: 4), tilesetId: 'sheet', entities: [
+        MapEntity(id: 'npc', kind: MapEntityKind.npc,
+            pos: const GridPos(x: 1, y: 1),
+            npc: MapEntityNpcData(trainerId: trainerId)),
+      ]);
+      final file = File('${root.path}/maps/room.json');
+      await file.parent.create(recursive: true);
+      final before = utf8.encode(jsonEncode(map('first').toJson()));
+      await file.writeAsBytes(before);
+      final head = await File('${root.path}/catalog/HEAD.json').readAsBytes();
+      final reader = (await CatalogProjectReader.open(store: store,
+          descriptor: descriptor, metadataFields: catalogMapValidationMetadataFields))!;
+      expect(reader.readOnly, portable);
+      expect(reader.catalog.projectMetadata.trainers, isEmpty);
+      for (final id in ['first', 'second']) {
+        final selected = await CatalogTargetedMapSelection.read(
+            reader: reader, mapId: 'room', projectedMap: map(id));
+        expect(selected.definitions.trainers.map((value) => value.id), [id]);
+        expect(selected.definitions.characters.map((value) => value.id), [id]);
+        expect(selected.definitions.elements.map((value) => value.id), ['portrait-$id']);
+      }
+      await expectLater(CatalogTargetedMapSelection.read(reader: reader,
+          mapId: 'room', projectedMap: map('missing')),
+          throwsA(isA<ValidationException>().having(
+              (error) => error.message, 'message', contains('missing'))));
+      final appearance = (await reader.catalog.snapshot.indexEntry(
+          CatalogDefinitionKey(CatalogDefinitionKind.element, 'portrait-second')))!;
+      await File('${root.path}/catalog/objects/${appearance.reference.sha256}.json')
+          .writeAsString('corrupt portrait');
+      await expectLater(CatalogTargetedMapSelection.read(reader: reader,
+          mapId: 'room', projectedMap: map('second')), throwsFormatException);
+      expect(await file.readAsBytes(), before);
+      expect(await File('${root.path}/catalog/HEAD.json').readAsBytes(), head);
+    });
+  }
   test('targeted saves reject a resource reserved for another map', () async {
     final root = await Directory.systemTemp.createTemp('scoped-map-');
     addTearDown(() => root.delete(recursive: true));
