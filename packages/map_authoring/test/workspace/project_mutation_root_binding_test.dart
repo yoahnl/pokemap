@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:map_authoring/src/api/local_map_authoring_mutation_api.dart';
 import 'package:map_authoring/src/ports/project_file_reader.dart';
 import 'package:map_authoring/src/workspace/project_open_service.dart';
 import 'package:map_authoring/src/workspace/project_snapshot_loader.dart';
@@ -10,6 +11,43 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('attachment rejects a manifest changed since opening without rereading it',
+      () async {
+    final sandbox =
+        await Directory.systemTemp.createTemp('mutation-manifest-binding-');
+    addTearDown(() => sandbox.delete(recursive: true));
+    final root = await sandbox.resolveSymbolicLinks();
+    final file = File('$root/project.json');
+    await file.writeAsString(jsonEncode(
+        ProjectManifest(name: 'Before', maps: const [], tilesets: const [])
+            .toJson()));
+    final reader = _CountingReader();
+    final policy = await WorkspacePolicy.create(
+        allowedRootPaths: [root], fileReader: reader);
+    final handles = WorkspaceHandleStore();
+    final opened = await ProjectOpenService(
+            policy: policy, fileReader: reader, handles: handles)
+        .openProject(root);
+    final api = LocalMapAuthoringMutationApi(
+        policy: policy, snapshotLoader: ProjectSnapshotLoader(handles: handles));
+    addTearDown(() => api.detachWorkspace(opened.workspaceHandle));
+    addTearDown(() => handles.closeWorkspace(opened.workspaceHandle));
+    final changed = jsonEncode(
+        ProjectManifest(name: 'After', maps: const [], tilesets: const [])
+            .toJson());
+    await file.writeAsString(changed);
+
+    await expectLater(
+        api.attachProject(
+            projectRootPath: root,
+            workspaceHandle: opened.workspaceHandle,
+            projectHandle: opened.projectHandle),
+        throwsA(isA<WorkspaceHandleException>().having((error) => error.code,
+            'code', 'workspace.mutation_binding_mismatch')));
+    expect(reader.reads, ['project.json']);
+    expect(await file.readAsString(), changed);
+  });
+
   test('identical project bytes cannot bind a handle to a sibling root',
       () async {
     final sandbox =

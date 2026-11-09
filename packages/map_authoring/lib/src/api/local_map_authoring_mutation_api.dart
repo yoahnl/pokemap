@@ -979,7 +979,7 @@ final class LocalMapAuthoringMutationApi
     final initialGateway = await LocalTransactionFileGateway.open(
       projectRoot: canonicalRoot,
     );
-    final initialRevision = await _snapshotLoader.resourcePackManifestRevision(projectHandle);
+    final initialRevision = _snapshotLoader.openedProjectFingerprint(projectHandle);
     if (await initialGateway.readResourceRevision('project.json') != initialRevision) {
       throw const WorkspaceHandleException('workspace.mutation_binding_mismatch',
           'The mutation root differs from the opened project.');

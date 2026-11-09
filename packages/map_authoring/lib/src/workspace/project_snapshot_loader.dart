@@ -619,6 +619,9 @@ final class ProjectSnapshotLoader {
   Future<void> requireMutationRoot(ProjectHandle projectHandle, String root) =>
       _handles.resolveProject(projectHandle).requireMutationRoot(root);
 
+  String openedProjectFingerprint(ProjectHandle projectHandle) =>
+      _handles.resolveProject(projectHandle).initialFingerprint;
+
   Future<String> resourcePackManifestRevision(
     ProjectHandle projectHandle,
   ) async {
