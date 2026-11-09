@@ -1,0 +1,27 @@
+{
+  "studioVersion": "0.3.37+337",
+  "establishedOn": "2026-11-09",
+  "sourceRevision": "453bb73f0",
+  "producer": "CanonicalGamePackageExportService.build",
+  "mode": "localTest",
+  "sourceFixtures": {
+    "overworld": "apps/pokemap_hub/test/support/runtime_owned_player_package_fixture.dart",
+    "spatial": "packages/map_distribution/test/support/spatial_package_fixture.dart"
+  },
+  "sourceAdjustment": "Explicit disabled Pokemon module with standardV1 ruleset before canonical export.",
+  "scope": "Frozen canonical exports. No native UI or device rendering certification; never regenerate these archives to accommodate later readers.",
+  "packages": {
+    "overworld": {
+      "kind": "overworld",
+      "sha256": "2e78698b1744aa8723c1ac9f2960a784462de96f2e84108e1a7d9cd3f121d0fd",
+      "archiveBytes": 21382,
+      "projectFormat": "v8"
+    },
+    "spatial": {
+      "kind": "spatial",
+      "sha256": "d2a504a0bfc62bafe506edf3308cec6e7fef0d66490c05f014693828d74e1c22",
+      "archiveBytes": 15836,
+      "projectFormat": "v9"
+    }
+  }
+}
