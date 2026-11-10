@@ -9,7 +9,9 @@ import 'package:avelune_studio/features/pokemon/domain/pokemon_external_import_m
 import 'package:avelune_studio/features/pokemon/domain/pokemon_workspace_port.dart';
 import 'package:avelune_studio/features/pokemon/domain/pokemon_workspace_models.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
+import 'package:avelune_studio/presentation/features/pokemon/pokemon_external_preview_pane.dart';
 import 'package:crypto/crypto.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
@@ -269,7 +271,7 @@ void main() {
   );
 
   test(
-    'keeps existing documents and does not import an animation when skipped',
+    'keeps existing documents and an already imported animation when skipped',
     () async {
       final first = await adapter.previewExternal('bulbasaur');
       await adapter.applyExternal(
@@ -286,33 +288,113 @@ void main() {
         PokemonExternalConflictPolicy.skipExisting,
       );
       expect(result.gen5Imported, isFalse);
-      expect(result.warnings.join(' '), contains('fiche Pokémon existante'));
+      expect(result.warnings.join(' '), contains('déjà présente'));
       expect(await speciesFile.readAsBytes(), original);
     },
   );
 
-  test('does not add an animation to a retained species', () async {
-    transport.statusCode = 404;
-    final first = await adapter.previewExternal('bulbasaur');
-    await adapter.applyExternal(
-      first,
-      PokemonExternalConflictPolicy.failOnConflict,
+  test(
+    'adds a missing animation without replacing a retained species',
+    () async {
+      transport.statusCode = 404;
+      final first = await adapter.previewExternal('bulbasaur');
+      await adapter.applyExternal(
+        first,
+        PokemonExternalConflictPolicy.failOnConflict,
+      );
+      final speciesFile = File(
+        '${root.path}/data/pokemon/species/bulbasaur.json',
+      );
+      final species = jsonDecode(await speciesFile.readAsString()) as Map;
+      (species['names'] as Map)['fr'] = 'Mon Bulbizarre';
+      await speciesFile.writeAsString(jsonEncode(species));
+      final original = await speciesFile.readAsBytes();
+      transport.statusCode = 200;
+      final preview = await adapter.previewExternal('bulbasaur');
+      final result = await adapter.applyExternal(
+        preview,
+        PokemonExternalConflictPolicy.skipExisting,
+      );
+      expect(result.gen5Imported, isTrue);
+      expect(result.noChange, isFalse);
+      expect(await speciesFile.readAsBytes(), original);
+      expect(
+        await File(
+          '${root.path}/${Gen5BattleSourceBinding.bindingPathFor('bulbasaur')}',
+        ).exists(),
+        isTrue,
+      );
+    },
+  );
+
+  testWidgets('preview offers the animation for a retained species', (
+    tester,
+  ) async {
+    final preview = (await tester.runAsync(() async {
+      transport.statusCode = 404;
+      final first = await adapter.previewExternal('bulbasaur');
+      await adapter.applyExternal(
+        first,
+        PokemonExternalConflictPolicy.failOnConflict,
+      );
+      transport.statusCode = 200;
+      return adapter.previewExternal('bulbasaur');
+    }))!;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: PokemonExternalPreviewPane(
+            preview: preview,
+            policy: PokemonExternalConflictPolicy.skipExisting,
+            busy: false,
+            onPolicyChanged: (_) {},
+            onBack: () {},
+            onApply: () {},
+          ),
+        ),
+      ),
     );
-    transport.statusCode = 200;
-    final preview = await adapter.previewExternal('bulbasaur');
-    final result = await adapter.applyExternal(
-      preview,
-      PokemonExternalConflictPolicy.skipExisting,
-    );
-    expect(result.noChange, isTrue);
-    expect(result.warnings.join(' '), contains('fiche Pokémon existante'));
+    expect(find.text('Appliquer l’import'), findsOneWidget);
+    expect(find.text('Terminer sans importer'), findsNothing);
+    expect(find.textContaining('si la fiche correspond'), findsOneWidget);
     expect(
-      await File(
-        '${root.path}/${Gen5BattleSourceBinding.bindingPathFor('bulbasaur')}',
-      ).exists(),
-      isFalse,
+      find.textContaining('ne recevra pas de nouvelle animation'),
+      findsNothing,
     );
   });
+
+  test(
+    'does not attach a base animation to a retained alternate form',
+    () async {
+      transport.statusCode = 404;
+      final first = await adapter.previewExternal('bulbasaur');
+      await adapter.applyExternal(
+        first,
+        PokemonExternalConflictPolicy.failOnConflict,
+      );
+      final speciesFile = File(
+        '${root.path}/data/pokemon/species/bulbasaur.json',
+      );
+      final species = jsonDecode(await speciesFile.readAsString()) as Map;
+      (species['forms'] as Map)['isBaseForm'] = false;
+      await speciesFile.writeAsString(jsonEncode(species));
+      final original = await speciesFile.readAsBytes();
+      transport.statusCode = 200;
+      final preview = await adapter.previewExternal('bulbasaur');
+      final result = await adapter.applyExternal(
+        preview,
+        PokemonExternalConflictPolicy.skipExisting,
+      );
+      expect(result.gen5Imported, isFalse);
+      expect(await speciesFile.readAsBytes(), original);
+      expect(
+        await File(
+          '${root.path}/${Gen5BattleSourceBinding.bindingPathFor('bulbasaur')}',
+        ).exists(),
+        isFalse,
+      );
+    },
+  );
 
   test(
     'does not attach a source to a retained species with a different dex',

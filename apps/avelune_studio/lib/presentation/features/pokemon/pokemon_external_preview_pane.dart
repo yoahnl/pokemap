@@ -28,6 +28,10 @@ class PokemonExternalPreviewPane extends StatelessWidget {
   Widget build(BuildContext context) {
     final conflicts = preview.documents.where((item) => item.conflict).length;
     final plan = preview.plan(policy);
+    final hasMediaToImport =
+        preview.gen5Bundle != null ||
+        (preview.gifSelection?.media.isNotEmpty ?? false) ||
+        preview.cry != null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -153,7 +157,7 @@ class PokemonExternalPreviewPane extends StatelessWidget {
           child: Align(
             alignment: Alignment.centerRight,
             child: StudioButton(
-              label: plan.selected.isEmpty
+              label: plan.selected.isEmpty && !hasMediaToImport
                   ? 'Terminer sans importer'
                   : 'Appliquer l’import',
               icon: Icons.file_download_outlined,
@@ -219,28 +223,33 @@ class PokemonExternalPreviewPane extends StatelessWidget {
             children: [
               const PokemonSectionHeading(title: 'À savoir'),
               const Text(
-                'Les images de secours et les cris restent à associer '
-                'dans Médias.',
+                'Les images fixes, les icônes et les sprites du monde '
+                'extérieur restent à associer dans Médias.',
               ),
-              if (preview.gen5Bundle != null &&
-                  preview
-                      .plan(policy)
-                      .selected
-                      .any((item) => item.family.name == 'species'))
+              if (preview.gen5Bundle != null)
                 const Padding(
                   padding: EdgeInsets.only(top: 8),
                   child: Text(
-                    'Animation Noir/Blanc 2 prête à être importée. '
-                    'Les animations déjà présentes sont conservées.',
+                    'Animation Noir/Blanc 2 disponible si la fiche correspond. '
+                    'Elle est prioritaire sur les GIF et images fixes ; '
+                    'les animations articulées déjà présentes sont conservées.',
                   ),
                 ),
-              if (preview.gen5Bundle != null &&
-                  !preview
-                      .plan(policy)
-                      .selected
-                      .any((item) => item.family.name == 'species'))
-                const Text(
-                  'La fiche conservée ne recevra pas de nouvelle animation.',
+              if (preview.gifSelection?.media.isNotEmpty ?? false)
+                const Padding(
+                  padding: EdgeInsets.only(top: 8),
+                  child: Text(
+                    'Les GIF de secours disponibles seront ajoutés sans '
+                    'remplacer les médias existants.',
+                  ),
+                ),
+              if (preview.cry != null)
+                const Padding(
+                  padding: EdgeInsets.only(top: 8),
+                  child: Text(
+                    'Le cri disponible sera ajouté si aucun cri n’est '
+                    'déjà associé.',
+                  ),
                 ),
               for (final warning in preview.warnings)
                 Padding(

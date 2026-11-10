@@ -368,15 +368,29 @@ final class PokemonExternalImport {
     final importsSpecies = selected.any(
       (item) => item.family == PokemonDocumentFamily.species,
     );
-    if (bundle != null && !importsSpecies) {
+    final speciesDocument = preview.documents.firstWhere(
+      (item) => item.family == PokemonDocumentFamily.species,
+    );
+    final retainedSpecies =
+        !importsSpecies && speciesDocument.beforeBytes != null
+        ? PokemonSpeciesFile.fromJson(
+            (jsonDecode(utf8.decode(speciesDocument.beforeBytes!)) as Map)
+                .cast<String, dynamic>(),
+          )
+        : null;
+    final canImportGen5 =
+        importsSpecies ||
+        (retainedSpecies != null &&
+            retainedSpecies.id == preview.speciesId &&
+            retainedSpecies.nationalDex == bundle?.nationalDex &&
+            retainedSpecies.forms.isBaseForm);
+    if (bundle != null && !canImportGen5) {
       warnings.add(
-        'Aucune animation ajoutée : la fiche Pokémon existante a été conservée.',
+        'Aucune animation ajoutée : la forme ou l’identité de la fiche '
+        'Pokémon existante ne correspond pas.',
       );
     } else if (bundle != null && gen5 != null) {
       try {
-        final speciesPath = preview.documents
-            .firstWhere((item) => item.family == PokemonDocumentFamily.species)
-            .relativePath;
         final result =
             await PokemonGen5BattleImport(
               session: session,
@@ -386,7 +400,7 @@ final class PokemonExternalImport {
             ).apply(
               bundle: bundle,
               projectSpeciesId: preview.speciesId,
-              speciesPath: speciesPath,
+              speciesPath: speciesDocument.relativePath,
               isCurrent: isCurrent ?? () => true,
             );
         gen5Imported = result.status == AveluneGen5ImportStatus.imported;
