@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import { join, relative, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { Client } from "@modelcontextprotocol/client";
 import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
@@ -9,11 +10,61 @@ type Json = Record<string, unknown>;
 type Species = { id: string; nationalDex: number; formId: string };
 type Candidate = { id: string; sha256: string; variant: "regular" | "shiny" };
 
+export function followerApiSpeciesId(nationalDex: number, value: unknown): string {
+  const source = object(value);
+  if (source.id !== nationalDex || typeof source.name !== "string" ||
+      !/^[a-z0-9][a-z0-9-]{0,127}$/.test(source.name)) {
+    throw new Error("The API species identity does not match the Pokedex number.");
+  }
+  return source.name;
+}
+
+export function followerSpeciesSelection(value: string): Set<string> {
+  const ids = value.split(",");
+  if (ids.some((id) => !/^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$/.test(id))) {
+    throw new Error("Invalid project species identifier.");
+  }
+  return new Set(ids);
+}
+
 function object(value: unknown): Json {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new Error("Expected an object.");
   }
   return value as Json;
+}
+
+export async function readFollowerProjection(
+  value: unknown,
+  readChunk: (payloadRef: string, offset: number) => Promise<Json>,
+): Promise<Json> {
+  const projection = object(value);
+  if (projection.projectionType !== "jsonPayload") return projection;
+  const { payloadRef, byteLength, rawSha256 } = projection;
+  if (typeof payloadRef !== "string" || typeof byteLength !== "number" ||
+      !Number.isSafeInteger(byteLength) || byteLength < 1 || byteLength > 16 * 1024 * 1024 ||
+      typeof rawSha256 !== "string" || !/^[a-f0-9]{64}$/.test(rawSha256)) {
+    throw new Error("Invalid preview projection.");
+  }
+  const chunks: Buffer[] = [];
+  let offset = 0;
+  while (offset < byteLength) {
+    const chunk = await readChunk(payloadRef, offset);
+    if (typeof chunk.bytesBase64 !== "string" || chunk.offset !== offset ||
+        typeof chunk.nextOffset !== "number" || chunk.totalBytes !== byteLength) {
+      throw new Error("Invalid preview chunk.");
+    }
+    const bytes = Buffer.from(chunk.bytesBase64, "base64");
+    if (bytes.length === 0 || chunk.nextOffset !== offset + bytes.length ||
+        chunk.nextOffset > byteLength) throw new Error("Invalid preview chunk.");
+    chunks.push(bytes);
+    offset = chunk.nextOffset;
+  }
+  const bytes = Buffer.concat(chunks);
+  if (createHash("sha256").update(bytes).digest("hex") !== rawSha256) {
+    throw new Error("Preview fingerprint differs.");
+  }
+  return object(JSON.parse(bytes.toString("utf8")));
 }
 
 function argumentsForRun(args: string[]) {
@@ -35,12 +86,13 @@ function argumentsForRun(args: string[]) {
   if (!values["--project"] || !values["--qa-root"] || !values["--release"]) {
     throw new Error("Required: --project, --qa-root and --release; add --apply to save.");
   }
-  if (!/^[a-z0-9][a-z0-9-]{0,127}$/.test(values["--release"]) ||
-      (values["--species"] && !/^[a-z0-9][a-z0-9-]{0,127}$/.test(values["--species"]))) {
-    throw new Error("Invalid release or species identifier.");
+  if (!/^[a-z0-9][a-z0-9-]{0,127}$/.test(values["--release"])) {
+    throw new Error("Invalid release identifier.");
   }
   return { project: values["--project"], qaRoot: values["--qa-root"],
-    release: values["--release"], species: values["--species"], apply };
+    release: values["--release"],
+    species: values["--species"] ? followerSpeciesSelection(values["--species"]) : undefined,
+    apply };
 }
 
 async function fetchBytes(url: string, limit: number): Promise<Buffer> {
@@ -55,12 +107,17 @@ async function fetchBytes(url: string, limit: number): Promise<Buffer> {
 
 async function candidates(release: string, species: Species): Promise<Candidate[]> {
   const base = `https://pokemon-api.yoahn.me/v1/media/${release}`;
+  const speciesDocument = JSON.parse((await fetchBytes(
+    `https://pokemon-api.yoahn.me/v1/compat/${release}/pokeapi/pokemon-species/${species.nationalDex}`,
+    8 * 1024 * 1024,
+  )).toString("utf8")) as unknown;
+  const apiSpeciesId = followerApiSpeciesId(species.nationalDex, speciesDocument);
   const selected: Candidate[] = [];
   let after = "";
   for (;;) {
     const query = new URLSearchParams({ limit: "100", ...(after ? { after } : {}) });
     const rows = JSON.parse((await fetchBytes(
-      `${base}/owners/pokemon/${species.id}?${query}`, 8 * 1024 * 1024,
+      `${base}/owners/pokemon/${apiSpeciesId}?${query}`, 8 * 1024 * 1024,
     )).toString("utf8")) as unknown;
     if (!Array.isArray(rows) || rows.length > 100) throw new Error("Invalid media page.");
     for (const item of rows) {
@@ -125,10 +182,10 @@ async function main() {
       for (const item of page.items as unknown[]) {
         const document = object(object(item).document);
         const forms = object(document.forms);
-        if (typeof document.id !== "string" || !/^[a-z0-9][a-z0-9-]{0,127}$/.test(document.id) ||
+        if (typeof document.id !== "string" || !/^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$/.test(document.id) ||
             typeof document.nationalDex !== "number" || document.nationalDex < 1 ||
             document.nationalDex > 493 || forms.isBaseForm === false ||
-            (options.species && options.species !== document.id)) continue;
+            (options.species && !options.species.has(document.id))) continue;
         species.push({ id: document.id, nationalDex: document.nationalDex,
           formId: typeof forms.formId === "string" && forms.formId ? forms.formId : "base" });
       }
@@ -172,7 +229,11 @@ async function main() {
       workspaceHandle: workspace, expectedRevision: validation.snapshotRevision,
       idempotencyKey: operationId, parameters: { entries },
     } });
-    const preview = object(object(planned.plan).preview);
+    const readChunk = (payloadRef: string, offset: number) => call("pokemap_projection", {
+      operation: "payload", projectHandle, payloadRef, offset, byteLength: 131072,
+    });
+    const plan = await readFollowerProjection(planned.plan, readChunk);
+    const preview = await readFollowerProjection(plan.preview, readChunk);
     console.log(JSON.stringify({ stage: "preview", atlases: entries.length,
       added: (preview.added as unknown[]).length,
       preserved: (preview.preserved as unknown[]).length,
@@ -192,7 +253,9 @@ async function main() {
   }
 }
 
-main().catch((error: unknown) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
+  main().catch((error: unknown) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
+}
