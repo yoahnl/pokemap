@@ -31,6 +31,7 @@ export 'src/presentation_media_probe.dart';
 export 'src/random_access_package_source.dart';
 export 'src/glb_model3d_inspector.dart';
 export 'src/raster_image_dimensions.dart';
+export 'src/static_png_validation.dart' show validatedStaticPngDecoder;
 export 'src/pokemon_gif_inspector.dart';
 export 'src/game_package_spatial_project_validator.dart';
 

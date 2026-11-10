@@ -412,19 +412,23 @@ final class PokemonCatalogActions {
             _object(parameters, 'document'),
           );
     final gifArtifacts = context.request.extensions['battleGifArtifacts'];
-    final preserveGifDocument = !deleting &&
+    final pngArtifacts = context.request.extensions['pokemonPngArtifacts'];
+    final preserveMediaDocument = !deleting &&
         kind == PokemonDocumentKind.media &&
         beforeDocument is Map &&
-        gifArtifacts is Map;
-    if (preserveGifDocument) {
-      _validatePokemonMediaGifChanges(
+        (gifArtifacts is Map || pngArtifacts is Map);
+    if (preserveMediaDocument) {
+      _validatePokemonMediaAssetChanges(
         Map<String, dynamic>.from(beforeDocument),
         _object(parameters, 'document'),
-        gifArtifacts,
+        {
+          if (gifArtifacts is Map) ...gifArtifacts,
+          if (pngArtifacts is Map) ...pngArtifacts,
+        },
       );
     }
     final document = parsedDocument != null &&
-            (parameters['migrateSchema'] == true || preserveGifDocument)
+            (parameters['migrateSchema'] == true || preserveMediaDocument)
         ? PokemonJsonDocument._(kind, _object(parameters, 'document'))
         : parsedDocument;
     final resourceId =
@@ -597,11 +601,22 @@ AuthoringActionDescriptor _descriptor(String id, {required bool delete}) =>
                 'projectStorage': 'working-catalog-only',
                 'preservesExistingChoices': true,
               },
+              'pokemonPngImport': {
+                'requestExtension': 'pokemonPngArtifacts',
+                'value': 'role-to-artifact-handle map',
+                'roles': [
+                  'frontStatic', 'backStatic', 'frontShinyStatic',
+                  'backShinyStatic', 'icon', 'party', 'portrait', 'overworld',
+                ],
+                'path': 'assets/pokemon/images/<sha256>.png',
+                'projectStorage': 'working-catalog-only',
+                'preservesExistingChoices': true,
+              },
             }
           : const {},
     );
 
-void _validatePokemonMediaGifChanges(
+void _validatePokemonMediaAssetChanges(
   Map<String, dynamic> before,
   Map<String, dynamic> after,
   Map artifacts,
@@ -614,16 +629,24 @@ void _validatePokemonMediaGifChanges(
       afterVariants is! Map ||
       beforeVariants[formId] is! Map ||
       afterVariants[formId] is! Map) {
-    throw const FormatException('Invalid battle GIF media document.');
+    throw const FormatException('Invalid Pokemon media document.');
   }
   const roles = {
     'frontAnimated',
     'backAnimated',
     'frontShinyAnimated',
     'backShinyAnimated',
+    'frontStatic',
+    'backStatic',
+    'frontShinyStatic',
+    'backShinyStatic',
+    'icon',
+    'party',
+    'portrait',
+    'overworld',
   };
   if (artifacts.isEmpty || artifacts.keys.any((key) => !roles.contains(key))) {
-    throw const FormatException('Invalid battle GIF selection.');
+    throw const FormatException('Invalid Pokemon media selection.');
   }
   final beforeForm = Map<String, dynamic>.from(beforeVariants[formId] as Map);
   final afterForm = afterVariants[formId] as Map;
@@ -638,7 +661,7 @@ void _validatePokemonMediaGifChanges(
   if (jsonEncode(freezeContractJsonObject(expected, field: 'document')) !=
       jsonEncode(freezeContractJsonObject(after, field: 'document'))) {
     throw const FormatException(
-        'A battle GIF import cannot change other media fields.');
+        'A Pokemon media import cannot change other media fields.');
   }
 }
 

@@ -23,6 +23,7 @@ final class PokemonExternalImport {
     this.gen5Source,
     this.gifSource,
     this.crySource,
+    this.pngSource,
     this.isCurrent,
   }) : _search = SearchExternalPokemonSpeciesUseCase(
          externalSourceRepository: source,
@@ -36,6 +37,7 @@ final class PokemonExternalImport {
   final AveluneGen5BattleSource? gen5Source;
   final AveluneBattleGifSource? gifSource;
   final AvelunePokemonCrySource? crySource;
+  final AvelunePokemonPngSource? pngSource;
   final bool Function()? isCurrent;
   final Future<PokemonWorkspaceIndex> Function() loadIndex;
   final SearchExternalPokemonSpeciesUseCase _search;
@@ -169,6 +171,23 @@ final class PokemonExternalImport {
         if (cry == null) warnings.add('Aucun cri WAV ou MP3 disponible.');
       } on Object {
         warnings.add('Le cri est indisponible ou invalide.');
+      }
+    }
+    PokemonPngSelection? pngSelection;
+    if (session.storage == ProjectSessionStorage.workingCatalog &&
+        pngSource != null &&
+        species.forms.isBaseForm &&
+        cryForm is String) {
+      try {
+        pngSelection = await pngSource!.fetch(
+          speciesId: canonicalId,
+          formId: cryForm,
+        );
+        if (pngSelection.media.isEmpty) {
+          warnings.add('Aucune image PNG disponible pour cette espèce.');
+        }
+      } on Object {
+        warnings.add('Les images PNG sont indisponibles ou invalides.');
       }
     }
     PokemonLearnsetFile? learnset;
@@ -305,6 +324,7 @@ final class PokemonExternalImport {
       gen5Bundle: gen5Bundle,
       gifSelection: gifSelection,
       cry: cry,
+      pngSelection: pngSelection,
     );
   }
 
@@ -362,6 +382,7 @@ final class PokemonExternalImport {
     var gen5Imported = false;
     var gifImported = false;
     var cryImported = false;
+    var pngImported = false;
     var requiresReopen = false;
     final bundle = preview.gen5Bundle;
     final gen5 = gen5Source;
@@ -480,6 +501,32 @@ final class PokemonExternalImport {
         );
       }
     }
+    final pngs = preview.pngSelection;
+    if (pngs != null &&
+        pngs.media.isNotEmpty &&
+        !sharedGifMedia &&
+        !requiresReopen) {
+      try {
+        pngImported = await _importPngs(
+          pngs,
+          preview.speciesId,
+          speciesDocument.relativePath,
+          speciesDocument.document['nationalDex'] as int,
+        );
+        warnings.add(
+          pngImported
+              ? 'Images PNG disponibles importées.'
+              : 'Les images existantes ou la fiche média ont été conservées.',
+        );
+      } on Object {
+        requiresReopen = true;
+        warnings.add(
+          'L’import des images PNG est incertain. Rouvrez le projet avant de réessayer.',
+        );
+      }
+    } else if (pngs != null && pngs.media.isNotEmpty && sharedGifMedia) {
+      warnings.add('La fiche média partagée a été conservée.');
+    }
     return PokemonExternalImportResult(
       speciesId: preview.speciesId,
       created: plan.created,
@@ -490,8 +537,99 @@ final class PokemonExternalImport {
       gen5Imported: gen5Imported,
       gifImported: gifImported,
       cryImported: cryImported,
+      pngImported: pngImported,
       requiresReopen: requiresReopen,
     );
+  }
+
+  Future<bool> _importPngs(
+    PokemonPngSelection selection,
+    String speciesId,
+    String speciesPath,
+    int nationalDex,
+  ) async {
+    if (isCurrent?.call() == false) throw StateError('La sélection a changé.');
+    final speciesBytes = await readOptionalPokemonResource(
+      reader: reader,
+      projectRoot: session.directoryPath,
+      relativePath: speciesPath,
+    );
+    if (speciesBytes == null) throw StateError('La fiche Pokémon est absente.');
+    final species = PokemonSpeciesFile.fromJson(
+      (jsonDecode(utf8.decode(speciesBytes)) as Map).cast<String, dynamic>(),
+    );
+    if (species.id != speciesId ||
+        species.nationalDex != nationalDex ||
+        !species.forms.isBaseForm ||
+        species.refs.media != speciesId) {
+      return false;
+    }
+    final baseline = await mapAdapter.resourceBaseline(session);
+    final mediaPath = pokemonDocumentPath(
+      baseline.manifest.pokemon.mediaDir,
+      speciesId,
+    );
+    final before = await readOptionalPokemonResource(
+      reader: reader,
+      projectRoot: session.directoryPath,
+      relativePath: mediaPath,
+    );
+    final Map<String, dynamic> document;
+    if (before == null) {
+      document = {
+        'schemaVersion': currentPokemonMediaSchemaVersion,
+        'speciesId': speciesId,
+        'defaultFormId': 'base',
+        'variants': {'base': <String, dynamic>{}},
+      };
+    } else {
+      final decoded = jsonDecode(utf8.decode(before));
+      if (decoded is! Map ||
+          !const {
+            1,
+            currentPokemonMediaSchemaVersion,
+          }.contains(decoded['schemaVersion']) ||
+          decoded['speciesId'] != speciesId ||
+          decoded['defaultFormId'] != 'base' ||
+          decoded['variants'] is! Map ||
+          (decoded['variants'] as Map)['base'] is! Map) {
+        return false;
+      }
+      document = decoded.cast<String, dynamic>();
+    }
+    final variants = (document['variants'] as Map).cast<String, dynamic>();
+    final variant = (variants['base'] as Map).cast<String, dynamic>();
+    final artifacts = <String, List<int>>{};
+    for (final entry in selection.media.entries) {
+      final role = entry.key.name;
+      final existing = variant[role];
+      if (existing != null &&
+          (existing is! String || existing.trim().isNotEmpty)) {
+        continue;
+      }
+      variant[role] = 'assets/pokemon/images/${entry.value.sha256}.png';
+      artifacts[role] = entry.value.bytes;
+    }
+    if (artifacts.isEmpty) return false;
+    await PokemonDocumentTransaction(
+      session: session,
+      mapAdapter: mapAdapter,
+      reader: reader,
+    ).applyPokemonPngs(
+      PokemonDocumentWriteRequest(
+        family: PokemonDocumentFamily.media,
+        relativePath: mediaPath,
+        beforeBytes: before,
+        document: document,
+      ),
+      species: (
+        resourceIdentity: pokemonSpeciesResourceIdentity(speciesId),
+        relativePath: speciesPath,
+        beforeBytes: speciesBytes,
+      ),
+      pngs: artifacts,
+    );
+    return true;
   }
 
   Future<bool> _importCry(

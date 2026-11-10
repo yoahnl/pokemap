@@ -10,6 +10,7 @@ import 'package:map_authoring/map_authoring.dart'
         AveluneGen5BattleSource,
         AvelunePokemonCrySource,
         AvelunePokemonMediaSource,
+        AvelunePokemonPngSource,
         BattleMoveRecipeBatchEntry,
         BattleMoveRecipeBatchImporter,
         BattleMoveRecipeBatchResult,
@@ -54,6 +55,7 @@ final class LocalPokemonWorkspaceAdapter
     this._gen5Source,
     this._gifSource,
     this._crySource,
+    this._pngSource,
     this._recipeMediaSource,
   }) : _reader = reader ?? const LocalProjectFileReader();
 
@@ -65,6 +67,7 @@ final class LocalPokemonWorkspaceAdapter
   final AveluneGen5BattleSource? _gen5Source;
   final AveluneBattleGifSource? _gifSource;
   final AvelunePokemonCrySource? _crySource;
+  final AvelunePokemonPngSource? _pngSource;
   final AvelunePokemonMediaSource? _recipeMediaSource;
   http.Client? _gen5Client;
   http.Client? _recipeClient;
@@ -149,6 +152,19 @@ final class LocalPokemonWorkspaceAdapter
           ? _crySource ??
                 (_externalSource == null
                     ? AvelunePokemonCrySource(
+                        media: AvelunePokemonMediaSource(
+                          release: release,
+                          client: HttpPokemonExternalTransport(
+                            _gen5Client ??= http.Client(),
+                          ),
+                        ),
+                      )
+                    : null)
+          : null,
+      pngSource: session.storage == ProjectSessionStorage.workingCatalog
+          ? _pngSource ??
+                (_externalSource == null
+                    ? AvelunePokemonPngSource(
                         media: AvelunePokemonMediaSource(
                           release: release,
                           client: HttpPokemonExternalTransport(

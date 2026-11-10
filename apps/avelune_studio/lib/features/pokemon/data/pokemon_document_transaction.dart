@@ -103,6 +103,19 @@ final class PokemonDocumentTransaction {
     );
   });
 
+  Future<void> applyPokemonPngs(
+    PokemonDocumentWriteRequest media, {
+    required PokemonDocumentReadDependency species,
+    required Map<String, List<int>> pngs,
+  }) => mapAdapter.withResourceMutation(() async {
+    await _apply(
+      [media],
+      scopedMedia: true,
+      expectedDependencies: [species],
+      pokemonPngs: pngs,
+    );
+  });
+
   Future<void> migrateMedia(
     PokemonDocumentWriteRequest media, {
     required PokemonDocumentReadDependency species,
@@ -135,6 +148,7 @@ final class PokemonDocumentTransaction {
     bool scopedMedia = false,
     bool migrateMedia = false,
     Map<String, List<int>> battleGifs = const {},
+    Map<String, List<int>> pokemonPngs = const {},
     ({List<int> bytes, String mediaType})? battleCry,
   }) async {
     if (documents.isEmpty || documents.length > 200) {
@@ -144,7 +158,9 @@ final class PokemonDocumentTransaction {
         scopedMedia &&
         documents.length == 1 &&
         documents.single.family == PokemonDocumentFamily.media;
-    if ((battleGifs.isNotEmpty || battleCry != null) &&
+    if ((battleGifs.isNotEmpty ||
+            pokemonPngs.isNotEmpty ||
+            battleCry != null) &&
         (!mediaOnly ||
             session.storage != ProjectSessionStorage.workingCatalog)) {
       throw const PokemonWorkspaceFailure(
@@ -305,6 +321,13 @@ final class PokemonDocumentTransaction {
           declaredMediaType: 'image/gif',
         )).reference.handle;
       }
+      final pngHandles = <String, String>{};
+      for (final entry in pokemonPngs.entries) {
+        pngHandles[entry.key] = (await api.artifacts.put(
+          entry.value,
+          declaredMediaType: 'image/png',
+        )).reference.handle;
+      }
       final cryHandle = battleCry == null
           ? null
           : (await api.artifacts.put(
@@ -327,6 +350,7 @@ final class PokemonDocumentTransaction {
                       dependency.resourceIdentity: dependency.relativePath,
                   },
                   if (gifHandles.isNotEmpty) 'battleGifArtifacts': gifHandles,
+                  if (pngHandles.isNotEmpty) 'pokemonPngArtifacts': pngHandles,
                   'battleCryArtifact': ?cryHandle,
                 }
               : const {},

@@ -1974,7 +1974,8 @@ final class _LocalMapAuthoringSession {
       {ProjectSnapshot? suppliedSnapshot}) async {
     if (suppliedSnapshot == null &&
         (request.extensions.containsKey('battleGifArtifacts') ||
-            request.extensions.containsKey('battleCryArtifact'))) {
+            request.extensions.containsKey('battleCryArtifact') ||
+            request.extensions.containsKey('pokemonPngArtifacts'))) {
       throw const FormatException('Battle media imports require a working catalog.');
     }
     _requireWorkspace(request.workspaceHandle);

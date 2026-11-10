@@ -31,7 +31,8 @@ class PokemonExternalPreviewPane extends StatelessWidget {
     final hasMediaToImport =
         preview.gen5Bundle != null ||
         (preview.gifSelection?.media.isNotEmpty ?? false) ||
-        preview.cry != null;
+        preview.cry != null ||
+        (preview.pngSelection?.media.isNotEmpty ?? false);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -223,9 +224,18 @@ class PokemonExternalPreviewPane extends StatelessWidget {
             children: [
               const PokemonSectionHeading(title: 'À savoir'),
               const Text(
-                'Les images fixes, les icônes et les sprites du monde '
-                'extérieur restent à associer dans Médias.',
+                'Les ressources absentes du catalogue restent à associer '
+                'dans Médias.',
               ),
+              if (preview.pngSelection?.media.isNotEmpty ?? false)
+                const Padding(
+                  padding: EdgeInsets.only(top: 8),
+                  child: Text(
+                    'Les images disponibles seront ajoutées sans remplacer '
+                    'les médias existants. Le suivi dans le monde dépend '
+                    'aussi de sa configuration dans le projet.',
+                  ),
+                ),
               if (preview.gen5Bundle != null)
                 const Padding(
                   padding: EdgeInsets.only(top: 8),
