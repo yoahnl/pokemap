@@ -25,6 +25,21 @@ void main() {
     expect(canvas.bottom, greaterThan(visible.bottom));
   });
 
+  test('keeps the same sprite placement on an expanded transparent canvas', () {
+    const visible = ui.Rect.fromLTWH(100, 200, 104, 120);
+    const original = ui.Rect.fromLTRB(38, 20, 90, 80);
+    final small = gen5SpriteCanvasRectForReference(
+      visible, original, const ui.Size(128, 128),
+    );
+    final expanded = gen5SpriteCanvasRectForReference(
+      visible, original.shift(const ui.Offset(64, 64)), const ui.Size(256, 256),
+    );
+    expect(
+      ui.Rect.fromLTWH(expanded.left + 128, expanded.top + 128, 256, 256),
+      small,
+    );
+  });
+
   test('tries the native source before falling back to the GIF', () async {
     final directory = await Directory.systemTemp.createTemp('gen5-fallback-');
     addTearDown(() => directory.delete(recursive: true));

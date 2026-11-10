@@ -81,6 +81,8 @@ void main() {
             expect(layout.playerHudRect.overlaps(layout.commandPanelRect), isFalse, reason: reason);
             expect(layout.playerHudRect.right, lessThanOrEqualTo(viewport.width - safe.right), reason: reason);
             expect(layout.playerHudRect.bottom, lessThanOrEqualTo(layout.commandPanelRect.top - 8 + .1), reason: reason);
+            expect(layout.playerHudRect.left, greaterThanOrEqualTo(viewport.width / 2), reason: reason);
+            expect(layout.playerHudRect.width, greaterThan(0), reason: reason);
             expect(layout.playerSpriteRect.width, greaterThan(0), reason: reason);
           }
           expect(layouts[0].playerHudRect, layouts[1].playerHudRect);

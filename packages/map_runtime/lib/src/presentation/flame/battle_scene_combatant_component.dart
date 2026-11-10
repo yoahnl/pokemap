@@ -17,6 +17,8 @@ import 'battle_gen5_mosaic.dart';
 import 'battle_camera_subject_geometry.dart';
 import 'battle_visual_asset_cache.dart';
 
+const _gen5SceneScaleReference = 68.0;
+
 class BattleSceneCombatantComponent extends PositionComponent {
   BattleSceneCombatantComponent({
     required Rect sceneSpriteRect,
@@ -119,9 +121,7 @@ class BattleSceneCombatantComponent extends PositionComponent {
     if (!_rmxpTransformApplied || _animation != _CombatantPresentationAnimation.none) {
       return currentRenderedSpriteRect;
     }
-    final local = _renderedSpriteRectFor(spriteRect: _spriteRect,
-      footAnchor: _footAnchor, footXRatio: _spriteFootXRatio,
-      destinationSize: _currentRenderedSpriteDestinationSize());
+    final local = _spriteRectForSize(_currentRenderedSpriteDestinationSize());
     final origin = Offset(_basePosition.x + _idleLateralOffset, _basePosition.y);
     return Rect.fromLTRB(
       (origin.dx + local.left) * _sceneCameraScale + _sceneCameraOffset.x,
@@ -367,12 +367,8 @@ class BattleSceneCombatantComponent extends PositionComponent {
 
   BattleCameraSubjectGeometry get stableCameraGeometry {
     final position = Offset(_basePosition.x, _basePosition.y);
-    final bounds = _renderedSpriteRectFor(
-      spriteRect: _spriteRect,
-      footAnchor: _footAnchor,
-      footXRatio: _spriteFootXRatio,
-      destinationSize: _currentRenderedSpriteDestinationSize(),
-    ).shift(position);
+    final bounds = _spriteRectForSize(_currentRenderedSpriteDestinationSize())
+        .shift(position);
     return BattleCameraSubjectGeometry(
       foot: _footAnchor + position,
       bounds: bounds,
@@ -1196,7 +1192,9 @@ class BattleSceneCombatantComponent extends PositionComponent {
         normalizeFiveBitPalette: true,
       );
       final rgba = sprite.renderRgba(0);
-      final referenceRect = _opaqueSourceRect(rgba, 128, 128);
+      final referenceRect = _opaqueSourceRect(
+        rgba, Gen5NativeSprite.canvasWidth, Gen5NativeSprite.canvasHeight,
+      );
       if (referenceRect == null) return false;
       frame = await _gen5Image(rgba);
       reservation.ensureCurrent();
@@ -1259,7 +1257,10 @@ class BattleSceneCombatantComponent extends PositionComponent {
 
   Future<ui.Image> _gen5Image(Uint8List rgba) {
     final result = Completer<ui.Image>();
-    ui.decodeImageFromPixels(rgba, 128, 128, ui.PixelFormat.rgba8888, result.complete);
+    ui.decodeImageFromPixels(
+      rgba, Gen5NativeSprite.canvasWidth, Gen5NativeSprite.canvasHeight,
+      ui.PixelFormat.rgba8888, result.complete,
+    );
     return result.future;
   }
 
@@ -1529,11 +1530,26 @@ class BattleSceneCombatantComponent extends PositionComponent {
       targetSize.width * math.max(0.05, _visualScaleX),
       targetSize.height * math.max(0.05, _visualScaleY),
     );
+    return _spriteRectForSize(scaledTargetSize);
+  }
+
+  Rect _spriteRectForSize(Size destinationSize) {
+    final reference = _gen5ReferenceRect;
+    if (reference != null) {
+      final scaleX = destinationSize.width / reference.width;
+      final scaleY = destinationSize.height / reference.height;
+      return Rect.fromLTWH(
+        _footAnchor.dx + (reference.left - Gen5NativeSprite.canvasWidth / 2) * scaleX,
+        _footAnchor.dy + (reference.top - Gen5NativeSprite.canvasHeight / 2) * scaleY,
+        destinationSize.width,
+        destinationSize.height,
+      );
+    }
     return _renderedSpriteRectFor(
       spriteRect: _spriteRect,
       footAnchor: _footAnchor,
       footXRatio: _spriteFootXRatio,
-      destinationSize: scaledTargetSize,
+      destinationSize: destinationSize,
     );
   }
 
@@ -1555,7 +1571,12 @@ class BattleSceneCombatantComponent extends PositionComponent {
     if (image == null) {
       return _fallbackDestinationSize();
     }
-    final inputSubrect = _gen5ReferenceRect ?? _currentSpriteInputSubrect();
+    final reference = _gen5ReferenceRect;
+    if (reference != null) {
+      final scale = _spriteRect.shortestSide / _gen5SceneScaleReference;
+      return Size(reference.width * scale, reference.height * scale);
+    }
+    final inputSubrect = _currentSpriteInputSubrect();
     return applyBoxFit(BoxFit.contain, inputSubrect.size, _spriteRect.size)
         .destination;
   }

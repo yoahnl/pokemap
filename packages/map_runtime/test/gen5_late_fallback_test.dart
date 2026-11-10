@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as image;
 import 'package:map_core/map_core.dart';
@@ -17,7 +18,7 @@ Uint8List _bank(String magic, String section, int length) {
   return bytes;
 }
 
-Gen5BattleSourceBundle _bundleWithLaterInvalidCell() {
+Gen5BattleSourceBundle _bundleWithLaterInvalidCell({int firstCellSize = 8}) {
   final palette = image.PaletteUint8(16, 4)
     ..setRgba(0, 0, 0, 0, 0)
     ..setRgba(1, 255, 255, 255, 255);
@@ -27,8 +28,8 @@ Gen5BattleSourceBundle _bundleWithLaterInvalidCell() {
     withPalette: true,
     palette: palette,
   );
-  for (var y = 0; y < 8; y++) {
-    for (var x = 0; x < 8; x++) {
+  for (var y = 0; y < firstCellSize; y++) {
+    for (var x = 0; x < firstCellSize; x++) {
       atlas.setPixelIndex(x, y, 1);
     }
   }
@@ -72,8 +73,8 @@ Gen5BattleSourceBundle _bundleWithLaterInvalidCell() {
   final info = Uint8List(110);
   ByteData.sublistView(info)
     ..setInt32(0, 2, Endian.little)
-    ..setInt32(20, 8 * 4096, Endian.little)
-    ..setInt32(24, 8 * 4096, Endian.little)
+    ..setInt32(20, firstCellSize * 4096, Endian.little)
+    ..setInt32(24, firstCellSize * 4096, Endian.little)
     ..setInt32(68, 17 * 4096, Endian.little)
     ..setInt32(72, 8 * 4096, Endian.little)
     ..setInt32(76, 240 * 4096, Endian.little);
@@ -109,6 +110,47 @@ Gen5BattleSourceBundle _bundleWithLaterInvalidCell() {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('keeps native pixel proportions and a shared origin across sizes', () async {
+    Future<BattleSceneCombatantComponent> actor(int side) async {
+      final bundle = _bundleWithLaterInvalidCell(firstCellSize: side);
+      final spec = BattleCombatantSpriteSpec(
+        facing: BattleCombatantSpriteFacing.back,
+        gen5Source: BattleGen5SpriteSource(
+          speciesId: 'testmon', shiny: false, loader: (_) async => bundle,
+        ),
+      );
+      final actor = BattleSceneCombatantComponent(
+        sceneSpriteRect: const ui.Rect.fromLTWH(40, 30, 120, 120),
+        scenePlatformRect: const ui.Rect.fromLTWH(52, 136, 110, 18),
+        sceneFootAnchor: const ui.Offset(102, 140),
+        spriteFootXRatio: .68, isPlayerSide: true,
+        speciesLabel: 'testmon', initialSpriteSpec: spec,
+      );
+      await actor.onLoad();
+      actor.onMount();
+      await actor.sync(speciesLabel: 'testmon', spriteSpec: spec);
+      expect(actor.currentSpriteSourcePath, 'gen5:testmon');
+      return actor;
+    }
+
+    final small = await actor(8);
+    final large = await actor(16);
+    addTearDown(small.onRemove);
+    addTearDown(large.onRemove);
+    final smallRect = small.currentRenderedSpriteRect;
+    final largeRect = large.currentRenderedSpriteRect;
+    expect(largeRect.width / smallRect.width, closeTo(2, .01));
+    expect(largeRect.height / smallRect.height, closeTo(2, .01));
+    expect(largeRect.left, closeTo(smallRect.left, .01));
+    expect(largeRect.top, closeTo(smallRect.top, .01));
+    expect(large.stableCameraGeometry.bounds, largeRect);
+    large.applyBattleCameraTransform(offset: Vector2(17, -9), scale: 1.2);
+    final projected = large.currentRenderedSpriteRect;
+    expect(projected.left, closeTo(largeRect.left * 1.2 + 17, .01));
+    expect(projected.top, closeTo(largeRect.top * 1.2 - 9, .01));
+    expect(projected.width, closeTo(largeRect.width * 1.2, .01));
+  });
 
   test('falls back to GIF when a later skeleton frame is invalid', () async {
     final directory = await Directory.systemTemp.createTemp(

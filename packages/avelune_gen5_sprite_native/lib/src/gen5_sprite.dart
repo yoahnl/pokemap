@@ -10,6 +10,9 @@ import 'native_bindings.dart';
 enum Gen5SpriteSide { front, back }
 
 final class Gen5NativeSprite {
+  static const canvasWidth = 256;
+  static const canvasHeight = 256;
+
   Gen5NativeSprite._(
     this._allocations,
     this._request,
@@ -106,15 +109,15 @@ final class Gen5NativeSprite {
       fields.nmar = copy(timeline);
       fields.nmarSize = timeline.length;
       fields.timeline = 0;
-      fields.minX = -64;
-      fields.minY = -64;
-      fields.width = 128;
-      fields.height = 128;
+      fields.minX = -(canvasWidth ~/ 2);
+      fields.minY = -(canvasHeight ~/ 2);
+      fields.width = canvasWidth;
+      fields.height = canvasHeight;
       fields.childMode = 0;
       fields.parentCompleted = 0;
       final info = asset('${prefix}_info.bin');
       final rectangles = copy(info);
-      final output = allocate<Uint8>(16384);
+      final output = allocate<Uint8>(canvasWidth * canvasHeight);
       final details = allocate<Int32>(264 * sizeOf<Int32>());
       final sprite = Gen5NativeSprite._(
         allocations,
@@ -153,7 +156,7 @@ final class Gen5NativeSprite {
     final result = probeRenderRectangles(
       _request,
       _output,
-      16384,
+      canvasWidth * canvasHeight,
       _details,
       264,
       _info,
@@ -161,7 +164,7 @@ final class Gen5NativeSprite {
     );
     if (result != 0)
       throw FormatException('Gen 5 native sprite render failed: $result');
-    return Uint8List.fromList(_output.asTypedList(16384));
+    return Uint8List.fromList(_output.asTypedList(canvasWidth * canvasHeight));
   }
 
   Uint8List renderRgba(int tick) {

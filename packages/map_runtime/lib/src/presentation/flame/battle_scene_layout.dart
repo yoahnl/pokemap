@@ -819,10 +819,14 @@ final class BattleSceneLayout {
             246.3,
       );
       final touchPlayerLeft = math.max(28 * visualScale, safePadding.left + 8);
-      final touchHudLeft =
+      final touchHudRight =
           viewportSize.width -
-          math.max(14 * visualScale, safePadding.right + 8) -
-          218 * visualScale;
+          math.max(14 * visualScale, safePadding.right + 8);
+      final touchHudLeft = touchHudRight - 218 * visualScale;
+      final touchHudDisplayLeft = math.min(
+        touchHudRight,
+        math.max(touchHudLeft, viewportSize.width / 2),
+      );
       final touchPlayerHeight = math.min(
         137 * portraitSpriteScale,
         math.max(0, touchHudLeft - 8 - touchPlayerLeft) * 137 / 147,
@@ -833,7 +837,7 @@ final class BattleSceneLayout {
       );
       final playerHud = Rect.fromLTWH(
         touchPortrait
-            ? touchHudLeft
+            ? touchHudDisplayLeft
             : viewportSize.width -
                   ((isPortrait ? 14 : 24) + (isPortrait ? 218 : 210)) * visualScale,
         isPortrait
@@ -850,7 +854,9 @@ final class BattleSceneLayout {
                     scenePanelTop - 12 * visualScale,
                   ) -
                   68.25 * visualScale,
-        (isPortrait ? 218 : 210) * visualScale,
+        touchPortrait
+            ? touchHudRight - touchHudDisplayLeft
+            : (isPortrait ? 218 : 210) * visualScale,
         68.25 * visualScale,
       );
       final availableSpriteHeight = math.max(
@@ -946,7 +952,14 @@ final class BattleSceneLayout {
       final playerGrown = _growHudRect(
         base: playerHud,
         textScale: textScale,
-        bounds: touchPortrait ? touchBounds : arena,
+        bounds: touchPortrait
+            ? Rect.fromLTRB(
+                touchHudDisplayLeft,
+                touchBounds.top,
+                touchBounds.right,
+                touchBounds.bottom,
+              )
+            : arena,
         obstacles: [
           loweredPortrait
               ? playerSprite.expandToInclude(playerPlatform).inflate(8)
