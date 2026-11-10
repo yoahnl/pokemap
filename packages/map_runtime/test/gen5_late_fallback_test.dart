@@ -111,6 +111,42 @@ Gen5BattleSourceBundle _bundleWithLaterInvalidCell({int firstCellSize = 8}) {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  for (final isPlayerSide in [true, false]) {
+    test('enlarges Gen5 sprites on player side $isPlayerSide', () async {
+      final spec = BattleCombatantSpriteSpec(
+        facing: isPlayerSide
+            ? BattleCombatantSpriteFacing.back
+            : BattleCombatantSpriteFacing.front,
+        gen5Source: BattleGen5SpriteSource(
+          speciesId: 'testmon',
+          shiny: false,
+          loader: (_) async => _bundleWithLaterInvalidCell(),
+        ),
+      );
+      final actor = BattleSceneCombatantComponent(
+        sceneSpriteRect: const ui.Rect.fromLTWH(40, 30, 120, 120),
+        scenePlatformRect: const ui.Rect.fromLTWH(52, 136, 110, 18),
+        sceneFootAnchor: const ui.Offset(102, 140),
+        spriteFootXRatio: .68,
+        isPlayerSide: isPlayerSide,
+        speciesLabel: 'testmon',
+        initialSpriteSpec: spec,
+      );
+      addTearDown(actor.onRemove);
+      await actor.onLoad();
+      actor.onMount();
+      await actor.sync(speciesLabel: 'testmon', spriteSpec: spec);
+
+      expect(actor.currentSpriteSourcePath, 'gen5:testmon');
+      final rect = actor.currentRenderedSpriteRect;
+      expect(rect.width, closeTo(8 * 120 / 68 * 1.08, .01));
+      expect(rect.height, closeTo(8 * 120 / 68 * 1.08, .01));
+      expect(actor.currentFootAnchor, const ui.Offset(102, 140));
+      expect(actor.stableCameraGeometry.bounds, rect);
+      expect(actor.currentEffectAttachmentSpriteRect, rect);
+    });
+  }
+
   test('keeps native pixel proportions and a shared origin across sizes', () async {
     Future<BattleSceneCombatantComponent> actor(int side) async {
       final bundle = _bundleWithLaterInvalidCell(firstCellSize: side);
@@ -194,5 +230,16 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 10));
     }
     expect(component.currentSpriteSourcePath, gif.path);
+    expect(component.currentRenderedSpriteRect.width, closeTo(108, .01));
+    expect(component.currentRenderedSpriteRect.height, closeTo(108, .01));
+    expect(component.currentFootAnchor, const ui.Offset(50, 100));
+    expect(
+      component.stableCameraGeometry.bounds,
+      component.currentRenderedSpriteRect,
+    );
+    expect(
+      component.currentEffectAttachmentSpriteRect,
+      component.currentRenderedSpriteRect,
+    );
   });
 }

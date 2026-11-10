@@ -63,10 +63,20 @@ void main() {
         );
 
         expect(component.hasResolvedExplicitSprite, isTrue);
+        final rect = component.currentRenderedSpriteRect;
+        expect(rect.left, closeTo(29.2, .001));
+        expect(rect.top, closeTo(-1.6, .001));
+        expect(rect.width, closeTo(21.6, .001));
+        expect(rect.height, closeTo(21.6, .001));
         expect(
+          component.stableCameraGeometry.bounds,
           component.currentRenderedSpriteRect,
-          const Rect.fromLTWH(30, 0, 20, 20),
         );
+        expect(
+          component.currentEffectAttachmentSpriteRect,
+          component.currentRenderedSpriteRect,
+        );
+        expect(component.currentFootAnchor, const Offset(40, 20));
         expect(
           component.currentPlatformRect,
           const Rect.fromLTWH(0, 40, 80, 16),
@@ -83,12 +93,21 @@ void main() {
         }
         final expected = await _pixels((canvas) {
           canvas.drawOval(
-            Rect.fromCenter(center: const Offset(40, 22), width: 11, height: 2),
+            Rect.fromCenter(
+              center: const Offset(40, 22),
+              width: 11.88,
+              height: 2,
+            ),
             Paint()
               ..color = const Color(0x26000000)
               ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.5),
           );
-          canvas.drawImage(sprite, const Offset(30, 0), Paint());
+          canvas.drawImageRect(
+            sprite,
+            const Rect.fromLTWH(0, 0, 20, 20),
+            const Rect.fromLTWH(29.2, -1.6, 21.6, 21.6),
+            Paint()..filterQuality = FilterQuality.none,
+          );
         });
         expect(actual, orderedEquals(expected));
 

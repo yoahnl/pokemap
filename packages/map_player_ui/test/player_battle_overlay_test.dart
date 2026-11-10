@@ -49,6 +49,11 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(commands, isEmpty);
+      expect(
+        tester.widget<PlayerBattleSurface>(find.byType(PlayerBattleSurface))
+            .data.viewportLayout?.portraitTouchLayout,
+        touch,
+      );
       expect(tester.takeException(), isNull);
     });
   }
@@ -81,10 +86,15 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(commands, isEmpty);
+      expect(
+        tester.widget<PlayerBattleSurface>(find.byType(PlayerBattleSurface))
+            .data.viewportLayout?.portraitTouchLayout,
+        isTrue,
+      );
       for (var index = 0; index < 4; index++) {
         expect(
           tester.getSize(find.byKey(ValueKey('battle-entry-$index'))).height,
-          inInclusiveRange(48, 64),
+          inInclusiveRange(48, 72),
         );
       }
       expect(find.byType(Scrollable), findsNothing);

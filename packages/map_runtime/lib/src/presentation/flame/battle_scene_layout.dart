@@ -518,12 +518,15 @@ final class BattleSceneLayout {
     };
     final controllerRoot = commandPanelMode == BattleCommandOverlayMode.root;
     final controllerTextScale = textScale.clamp(1.0, 1.6);
+    final compactTouchPortrait =
+        compactController && isPortrait && portraitTouchLayout && textScale <= 1.0;
+    final expandedControllerHeight = compactTouchPortrait
+        ? (viewportSize.width < 360 ? 228.0 : 220.0)
+        : (viewportSize.width < 360 ? 268.0 : 236.0);
     final controllerBottomHeight =
         (controllerRoot
-            ? 128.0
-            : viewportSize.width < 360
-            ? 268.0
-            : 236.0) *
+            ? (compactTouchPortrait ? 160.0 : 128.0)
+            : expandedControllerHeight) *
         controllerTextScale;
     final commandPanelHeight = compactController && isPortrait
         ? math.min(
@@ -787,8 +790,7 @@ final class BattleSceneLayout {
           ? viewportSize.height -
                 math.max(24, safePadding.bottom) -
                 math.min(
-                  (viewportSize.width < 360 ? 268.0 : 236.0) *
-                      controllerTextScale,
+                  expandedControllerHeight * controllerTextScale,
                   viewportRect.height * (textScale > 1.3 ? .62 : .46),
                 )
           : commandPanelRect.top;

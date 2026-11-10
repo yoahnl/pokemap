@@ -225,6 +225,47 @@ void main() {
     },
   );
 
+  testWidgets('portrait touch keeps four commands and moves visible and tappable', (
+    tester,
+  ) async {
+    for (final viewport in [
+      const Size(320, 568),
+      const Size(390, 844),
+      const Size(430, 932),
+    ]) {
+      for (final moves in [false, true]) {
+        final actions = <PlayerBattleAction>[];
+        await _pump(
+          tester,
+          viewport: viewport,
+          moves: moves,
+          referenceMoves: moves,
+          portraitTouchLayout: true,
+          onAction: actions.add,
+        );
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const ValueKey('battle-page-next')),
+          findsNothing,
+          reason: '$viewport moves=$moves',
+        );
+        for (var index = 0; index < 4; index++) {
+          final entry = find.byKey(ValueKey('battle-entry-$index'));
+          expect(entry, findsOneWidget, reason: '$viewport moves=$moves');
+          expect(tester.getSize(entry).height, greaterThanOrEqualTo(48));
+        }
+        if (moves) {
+          for (final key in ['battle-move-info', 'battle-back']) {
+            expect(tester.getSize(find.byKey(ValueKey(key))).height, greaterThanOrEqualTo(48));
+          }
+        }
+        await tester.tap(find.byKey(const ValueKey('battle-entry-1')));
+        expect(actions.single, isA<PlayerBattleSelectEntryAction>());
+        expect(tester.takeException(), isNull);
+      }
+    }
+  });
+
   testWidgets(
     'battle panel motion settles in 140ms and reduced motion has no displacement',
     (tester) async {
@@ -789,6 +830,7 @@ Future<void> _pump(
   required Size viewport,
   bool moves = false,
   bool referenceMoves = false,
+  bool portraitTouchLayout = false,
   String? selectedMoveLabel,
   ProjectBattlePresentationProfile? profile,
   bool busy = false,
@@ -815,6 +857,7 @@ Future<void> _pump(
     controllerLayout:
         source == PlayerInputSource.controller ||
         viewport.height > viewport.width && profile == null,
+    portraitTouchLayout: portraitTouchLayout,
     textScale: textScaler.scale(1),
     commandPanelMode: busy
         ? BattleCommandOverlayMode.continueOnly
@@ -830,7 +873,10 @@ Future<void> _pump(
   await tester.pumpWidget(
     MaterialApp(
       builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(context).copyWith(textScaler: textScaler),
+        data: MediaQuery.of(context).copyWith(
+          textScaler: textScaler,
+          size: portraitTouchLayout ? viewport : null,
+        ),
         child: child!,
       ),
       locale: const Locale('fr'),
@@ -876,6 +922,7 @@ Future<void> _pump(
                   ? PlayerBattleViewportLayout(
                       viewportSize: viewport,
                       panelRect: sceneLayout.commandPanelRect,
+                      portraitTouchLayout: portraitTouchLayout,
                       enemyHudRect: sceneLayout.enemyHudRect,
                       playerHudRect: sceneLayout.playerHudRect,
                     )

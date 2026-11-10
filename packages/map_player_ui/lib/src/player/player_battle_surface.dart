@@ -153,12 +153,14 @@ final class PlayerBattleViewportLayout {
     required this.panelRect,
     required this.enemyHudRect,
     required this.playerHudRect,
+    this.portraitTouchLayout = false,
   });
 
   final Size viewportSize;
   final Rect panelRect;
   final Rect enemyHudRect;
   final Rect playerHudRect;
+  final bool portraitTouchLayout;
 }
 
 @immutable
@@ -2524,6 +2526,11 @@ class _BattleDockEntries extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final compactTouchPortrait =
+        data.viewportLayout?.portraitTouchLayout == true &&
+        !controller &&
+        !landscape &&
+        MediaQuery.textScalerOf(context).scale(1) <= 1.0;
     final fight = data.commands
         .where((entry) => entry.commandId == ProjectBattleCommandId.fight)
         .firstOrNull;
@@ -2543,7 +2550,8 @@ class _BattleDockEntries extends StatelessWidget {
           bag: false,
           columnsOverride: landscape ? 1 : 2,
           minimumRowHeight:
-              52 * MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 2.0),
+              (compactTouchPortrait ? 68 : 52) *
+              MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 2.0),
           naturalRows: true,
           entryBuilder: _entry,
         );
@@ -2624,10 +2632,13 @@ class _BattleDockEntries extends StatelessWidget {
             final scale = MediaQuery.textScalerOf(context)
                 .scale(1)
                 .clamp(1.0, 2.0);
+            final portraitRowHeight = compactTouchPortrait
+                ? (constraints.maxWidth < 320 ? 74.0 : 72.0)
+                : (constraints.maxWidth < 320 ? 96.0 : 80.0);
             final rowHeight = scale > 1.3
                 ? 84.0 * scale
                 : columns == 2
-                ? (constraints.maxWidth < 320 ? 96.0 : 80.0) * scale
+                ? portraitRowHeight * scale
                 : 52.0 * scale;
             final rows = (data.commands.length / columns).ceil();
             final naturalHeight =

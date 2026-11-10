@@ -193,8 +193,8 @@ void main() {
       await component.onLoad();
 
       final renderedRect = component.currentCameraNeutralRenderedSpriteRect;
-      expect(renderedRect.width, closeTo(24, 0.01));
-      expect(renderedRect.height, closeTo(120, 0.01));
+      expect(renderedRect.width, closeTo(25.92, 0.01));
+      expect(renderedRect.height, closeTo(129.6, 0.01));
       expect(renderedRect.bottom,
           closeTo(component.currentCameraNeutralFootAnchor.dy, 0.01));
     });

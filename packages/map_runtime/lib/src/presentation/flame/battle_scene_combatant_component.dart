@@ -18,6 +18,7 @@ import 'battle_camera_subject_geometry.dart';
 import 'battle_visual_asset_cache.dart';
 
 const _gen5SceneScaleReference = 68.0;
+const _battleSpriteDisplayScale = 1.08;
 
 class BattleSceneCombatantComponent extends PositionComponent {
   BattleSceneCombatantComponent({
@@ -1556,8 +1557,8 @@ class BattleSceneCombatantComponent extends PositionComponent {
   Size _fallbackDestinationSize() {
     final sourceSize =
         isPlayerSide ? const Size(172, 172) : const Size(132, 132);
-    return applyBoxFit(BoxFit.contain, sourceSize, _spriteRect.size)
-        .destination;
+    final fitted = applyBoxFit(BoxFit.contain, sourceSize, _spriteRect.size);
+    return fitted.destination * _battleSpriteDisplayScale;
   }
 
   Rect _currentRenderedSpriteRectLocal() {
@@ -1573,12 +1574,14 @@ class BattleSceneCombatantComponent extends PositionComponent {
     }
     final reference = _gen5ReferenceRect;
     if (reference != null) {
-      final scale = _spriteRect.shortestSide / _gen5SceneScaleReference;
+      final scale = _spriteRect.shortestSide /
+          _gen5SceneScaleReference *
+          _battleSpriteDisplayScale;
       return Size(reference.width * scale, reference.height * scale);
     }
     final inputSubrect = _currentSpriteInputSubrect();
-    return applyBoxFit(BoxFit.contain, inputSubrect.size, _spriteRect.size)
-        .destination;
+    final fitted = applyBoxFit(BoxFit.contain, inputSubrect.size, _spriteRect.size);
+    return fitted.destination * _battleSpriteDisplayScale;
   }
 
   Rect _imageRectForReference(Rect visibleRect) {

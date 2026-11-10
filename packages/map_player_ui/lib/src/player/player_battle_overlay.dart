@@ -355,6 +355,7 @@ class _PlayerBattleOverlayState extends State<PlayerBattleOverlay> {
         viewportLayout: PlayerBattleViewportLayout(
           viewportSize: snapshot.viewportSize,
           panelRect: snapshot.panelRect,
+          portraitTouchLayout: snapshot.portraitTouchLayout,
           enemyHudRect: snapshot.enemyHud.rect,
           playerHudRect: snapshot.playerHud.rect,
         ),

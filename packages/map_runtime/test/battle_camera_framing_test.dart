@@ -44,12 +44,9 @@ void main() {
   test(
     'stable geometry uses cached opaque containment and authored foot ratio',
     () async {
-      final directory = Directory(
-        Platform.isMacOS
-            ? '${Platform.environment['HOME']!}/Library/Caches/AveluneQA/battle-camera-consolidation/c2-sprite'
-            : '${Directory.systemTemp.path}/avelune-battle-camera-consolidation/c2-sprite',
+      final directory = await Directory.systemTemp.createTemp(
+        'battle-camera-sprite-',
       );
-      await directory.create(recursive: true);
       final file = File('${directory.path}/opaque.png');
       addTearDown(() async {
         if (await directory.exists()) await directory.delete(recursive: true);
@@ -79,10 +76,10 @@ void main() {
       );
       await actor.onLoad();
       final geometry = actor.stableCameraGeometry;
-      expect(geometry.bounds.width, closeTo(24, .001));
-      expect(geometry.bounds.height, closeTo(120, .001));
+      expect(geometry.bounds.width, closeTo(25.92, .001));
+      expect(geometry.bounds.height, closeTo(129.6, .001));
       expect(geometry.foot, const Offset(102, 140));
-      expect(geometry.bounds.left, closeTo(102 - 24 * .68, .001));
+      expect(geometry.bounds.left, closeTo(102 - 25.92 * .68, .001));
       expect(geometry.bounds.bottom, 140);
       actor.setIdleLateralOffset(12);
       await actor.playLunge(

@@ -94,6 +94,40 @@ void main() {
     }
   });
 
+  test('portrait touch keeps the arena close to the root commands', () {
+    for (final viewport in [
+      const Size(320, 568),
+      const Size(390, 844),
+      const Size(430, 932),
+    ]) {
+      final root = BattleSceneLayout.forViewport(
+        viewportSize: viewport,
+        safePadding: const EdgeInsets.only(top: 32, bottom: 24),
+        controllerLayout: true,
+        portraitTouchLayout: true,
+        commandPanelMode: BattleCommandOverlayMode.root,
+      );
+      final fight = BattleSceneLayout.forViewport(
+        viewportSize: viewport,
+        safePadding: const EdgeInsets.only(top: 32, bottom: 24),
+        controllerLayout: true,
+        portraitTouchLayout: true,
+        commandPanelMode: BattleCommandOverlayMode.fight,
+      );
+      final maximumGap = viewport.width < 360 ? 72 : 64;
+      expect(
+        root.commandPanelRect.top - root.arenaRect.bottom,
+        lessThanOrEqualTo(maximumGap),
+        reason: '$viewport',
+      );
+      expect(root.playerFootAnchor, fight.playerFootAnchor);
+      expect(root.playerHudRect, fight.playerHudRect);
+      expect(root.enemyFootAnchor, fight.enemyFootAnchor);
+      expect(fight.playerSpriteRect.overlaps(fight.commandPanelRect), isFalse);
+      expect(fight.playerHudRect.overlaps(fight.commandPanelRect), isFalse);
+    }
+  });
+
   test('landscape controller keeps the player card above its sprite', () {
     for (final viewport in [
       const Size(760, 360),
