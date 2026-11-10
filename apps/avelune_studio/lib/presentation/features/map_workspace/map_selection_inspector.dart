@@ -12,7 +12,6 @@ import '../../../features/map_workspace/application/warp_editing_commands.dart';
 import '../../shared/widgets/layout/studio_sidebar.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_choice.dart';
-import '../characters/character_inspector.dart';
 import 'map_marker_inspector.dart';
 import 'map_trigger_inspector.dart';
 import 'map_zone_inspector.dart';
@@ -20,7 +19,7 @@ import 'map_warp_inspector.dart';
 import 'map_decor_inspector_tabs.dart';
 import 'map_multi_selection_inspector.dart';
 import 'map_workspace_view_state.dart';
-import 'map_workspace_visuals.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 import 'map_connection_panel.dart';
 import 'map_terrain_inspector.dart';
 
@@ -312,38 +311,6 @@ class MapSelectionInspector extends StatelessWidget {
                         project: project,
                         onLink: onLinkMaps!,
                         onUnlink: onUnlinkMaps!,
-                      ),
-                    ),
-                  )
-                : selected?.npc != null
-                ? StudioSidebar(
-                    width: width,
-                    child: SingleChildScrollView(
-                      child: CharacterInspector(
-                        document: document,
-                        project: project,
-                        entity: selected!,
-                        visuals: visuals,
-                        onChanged: onChanged,
-                        onSelect: (id) {
-                          if (id == null) {
-                            view.clearSelection(document);
-                          } else {
-                            view.select(
-                              document,
-                              MapSelectionFamily.character,
-                              id,
-                            );
-                          }
-                          onChanged();
-                        },
-                        onEditInteraction: onEditInteraction ?? (_) {},
-                        deletionBlocked:
-                            referenceGuard?.call(
-                              mapId: mapId,
-                              entityId: selected.id,
-                            ) !=
-                            null,
                       ),
                     ),
                   )

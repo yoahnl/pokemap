@@ -5,10 +5,10 @@ import 'package:avelune_studio/features/map_workspace/application/map_border_dra
 import 'package:avelune_studio/features/map_workspace/application/map_border_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_border_tool_panel.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_canvas.dart';
+import 'package:avelune_studio/platform/rendering/viewports/map_editing_viewport_2d.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/spatial_map_editor.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
+import 'package:avelune_studio/platform/rendering/viewports/spatial_map_editing_viewport.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -451,8 +451,8 @@ BorderFeature _feature(MapData map) =>
     map.layers.whereType<BorderLayer>().single.content.features.single;
 
 Offset _at(WidgetTester tester, MapWorkspaceViewState view, int x, int y) {
-  final canvas = tester.widget<MapWorkspaceCanvas>(
-    find.byType(MapWorkspaceCanvas),
+  final canvas = tester.widget<MapEditingViewport2D>(
+    find.byType(MapEditingViewport2D),
   );
   final box = tester.renderObject<RenderBox>(
     find.byKey(const ValueKey('map-canvas')),
@@ -525,7 +525,7 @@ _pump(WidgetTester tester, bool spatial, {Model3dVector3? offset}) async {
                 ),
                 Expanded(
                   child: spatial
-                      ? SpatialMapEditor(
+                      ? SpatialMapEditingViewport(
                           document: document,
                           controller: controller,
                           project: fixture.project,
@@ -533,7 +533,7 @@ _pump(WidgetTester tester, bool spatial, {Model3dVector3? offset}) async {
                           view: view,
                           onChanged: refresh,
                         )
-                      : MapWorkspaceCanvas(
+                      : MapEditingViewport2D(
                           document: document,
                           project: fixture.project,
                           visuals: visuals,

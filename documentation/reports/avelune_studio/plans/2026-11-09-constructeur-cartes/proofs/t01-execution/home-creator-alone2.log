@@ -1,0 +1,6 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creator_ui_test.dart
+00:00 +0: creator adapts to Size(1536.0, 960.0) text 1.0 and preserves the five steps
+00:02 +1: creator adapts to Size(1280.0, 800.0) text 1.0 and preserves the five steps
+00:02 +2: creator adapts to Size(1024.0, 640.0) text 1.0 and preserves the five steps
+00:03 +3: creator adapts to Size(1024.0, 640.0) text 1.5 and preserves the five steps
+00:04 +4: All tests passed!

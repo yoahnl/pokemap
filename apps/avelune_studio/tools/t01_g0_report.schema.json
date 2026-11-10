@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "T01 G0 static retirement report",
+  "type": "object",
+  "required": ["schemaVersion", "gate", "proofTier", "passed", "violations"],
+  "properties": {
+    "schemaVersion": {"const": 1},
+    "gate": {"const": "G0"},
+    "proofTier": {"const": "static_retirement"},
+    "passed": {"type": "boolean"},
+    "roots": {"type": "array", "items": {"type": "string"}},
+    "contexts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "roots", "reachableSources"],
+        "properties": {
+          "name": {"type": "string"},
+          "resolverConfig": {"type": "string"},
+          "roots": {"type": "array", "items": {"type": "string"}},
+          "reachableSources": {"type": "integer", "minimum": 0}
+        }
+      }
+    },
+    "counts": {
+      "type": "object",
+      "required": ["inventoryEntries", "approvedExceptions", "reachableSources", "studioSourcesInspected", "violations"],
+      "additionalProperties": {"type": "integer", "minimum": 0}
+    },
+    "exceptions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "symbols", "sha256", "kind", "reason", "approvedBy"],
+        "properties": {
+          "path": {"type": "string"},
+          "symbols": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+          "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+          "kind": {"enum": ["non_visual", "neutral_host", "player_surface", "render_surface"]},
+          "reason": {"type": "string", "minLength": 1},
+          "approvedBy": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "violations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["kind", "message", "chain"],
+        "properties": {
+          "kind": {"enum": ["configuration", "registry", "exception", "physical", "reachability", "historical_symbol", "unclassified_presentation", "source_scan", "resolution"]},
+          "path": {"type": "string"},
+          "context": {"type": "string"},
+          "symbol": {"type": "string"},
+          "specifier": {"type": "string"},
+          "sourceUri": {"type": "string"},
+          "message": {"type": "string"},
+          "chain": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    }
+  }
+}

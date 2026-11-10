@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 import 'event_labels.dart';
-import 'event_map_loader.dart';
+import 'package:avelune_studio/features/events/application/event_map_loader.dart';
 
 class EventSourceIdentity extends StatefulWidget {
   const EventSourceIdentity({

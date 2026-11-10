@@ -3,9 +3,7 @@ part of 'map_workspace_screen.dart';
 extension _WorkspaceContextMenuBinding on _MapWorkspaceScreenState {
   void _releaseStaleMapState() {
     final document = _controller.active;
-    for (final entry in _views.entries) {
-      if (entry.key != document?.base.mapId) entry.value.pendingMove = null;
-    }
+    releaseStaleMapMoves(_views, document);
     if (_contextMapId != null &&
         (_contextMapId != document?.current.id ||
             document?.exteriorDecoration?.editingExterior == true)) {
@@ -13,18 +11,6 @@ extension _WorkspaceContextMenuBinding on _MapWorkspaceScreenState {
       _contextCell = null;
       _contextTarget = null;
       _contextMapId = null;
-    }
-    final view = document == null ? null : _views[document.base.mapId];
-    final armed = view?.pendingMove;
-    if (armed != null &&
-        (view!.tool != StudioMapTool.select ||
-            mapContextAnchorOf(
-                  document!.current,
-                  contextFamilyOf(armed.family),
-                  armed.id,
-                ) ==
-                null)) {
-      view.pendingMove = null;
     }
   }
 
@@ -179,80 +165,26 @@ extension _WorkspaceContextMenuBinding on _MapWorkspaceScreenState {
         openStoryZone: (trigger) =>
             unawaited(_openExistingStoryZone(context.document, trigger)),
         startMove: (target) {
-          final family = selectionFamilyOf(target.family);
-          _view
-            ?..tool = StudioMapTool.select
-            ..select(context.document, family, target.id)
-            ..armMove(
-              MapSelectionTarget(
-                mapId: context.document.current.id,
-                family: family,
-                id: target.id,
-              ),
-              'Faites glisser ${target.label} vers sa nouvelle case, ou '
-              'appuyez sur Échap pour annuler.',
+          final view = _view;
+          if (view != null) {
+            armMapContextMove(
+              document: context.document,
+              view: view,
+              target: target,
+              anchor: context.position,
+              hint:
+                  'Faites glisser ${target.label} vers sa nouvelle case, ou '
+                  'appuyez sur Échap pour annuler.',
             );
-          context.document.stackPosition = context.position;
+          }
           _toolChanged();
         },
       );
 
-  /// Every interaction attached to this exact source: unsaved sessions,
-  /// event drafts and saved records alike.
-  Map<String, String> _interactionsOnSource(String mapId, String triggerId) {
-    final narrative = _narrative;
-    if (narrative == null) return const {};
-    bool matches(NarrativeEventSourceRef? source) {
-      final json = source?.toJson();
-      return json != null &&
-          json['mapId'] == mapId &&
-          json['triggerId'] == triggerId;
-    }
-
-    final found = <String, String>{};
-    for (final entry in narrative.sessions.entries) {
-      final interaction = entry.value.current.interaction;
-      if (matches(interaction.source)) found[entry.key] = interaction.name;
-    }
-    for (final record
-        in _events?.records ??
-            narrative.project.eventRegistry?.records ??
-            const <NarrativeEventRecord>[]) {
-      if (matches(recordSource(record))) {
-        found.putIfAbsent(record.id, () => eventName(record));
-      }
-    }
-    return found;
-  }
-
-  /// Opens the interaction already attached to a story zone. It never creates
-  /// a narrative identity: opening is not authoring.
   Future<void> _openExistingStoryZone(
     EditableMapDocument document,
     MapTrigger trigger,
-  ) async {
-    final mapId = document.current.id;
-    final found = _interactionsOnSource(mapId, trigger.id);
-    if (found.isEmpty) {
-      document.error =
-          'Aucune interaction n’est liée à cette zone. Tracez-la depuis '
-          'Histoire pour en écrire une.';
-      _changed();
-      return;
-    }
-    final id = found.length == 1
-        ? found.keys.single
-        : await _chooseInteraction(found);
-    bool stillHere() =>
-        mounted &&
-        _space == WorkspaceSpace.map &&
-        _controller.active?.current.id == mapId;
-    if (id == null || !stillHere()) return;
-    final problem = await _openStoryInteraction(id, from: WorkspaceSpace.map);
-    if (problem == null || !stillHere()) return;
-    document.error = problem;
-    _changed();
-  }
+  ) => _navigation.openExistingStoryZone(document, trigger, choose: _chooseInteraction);
 
   Future<String?> _chooseInteraction(Map<String, String> found) =>
       showDialog<String>(

@@ -19,7 +19,7 @@ import 'scene_actor_action_form.dart';
 import 'scene_world_visual_action_form.dart';
 import 'scene_npc_pose_action_form.dart';
 import 'scene_pokemon_gift_moves_editor.dart';
-import 'scene_integer_authoring_fields.dart';
+import 'package:avelune_studio/features/scenes/application/scene_integer_authoring_fields.dart';
 import 'scene_image_puzzle_form.dart';
 
 part 'scene_action_references.dart';

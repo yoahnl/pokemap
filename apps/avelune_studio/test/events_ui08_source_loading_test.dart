@@ -3,7 +3,7 @@ import 'package:avelune_studio/features/events/application/event_workspace_contr
 import 'package:avelune_studio/features/events/domain/event_record_view.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/narrative/application/narrative_workspace_controller.dart';
-import 'package:avelune_studio/presentation/features/events/event_map_loader.dart';
+import 'package:avelune_studio/features/events/application/event_map_loader.dart';
 import 'package:avelune_studio/presentation/features/events/event_source_identity.dart';
 import 'package:avelune_studio/presentation/features/events/event_trigger_panel.dart';
 import 'package:avelune_studio/presentation/features/events/event_view_state.dart';

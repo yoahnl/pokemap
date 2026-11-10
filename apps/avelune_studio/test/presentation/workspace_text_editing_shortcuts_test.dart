@@ -1,5 +1,5 @@
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_shortcuts.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/map_editing_shortcuts.dart';
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_draft_field.dart';
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_search_field.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
@@ -47,7 +47,7 @@ void main() {
           MaterialApp(
             theme: studioTheme(),
             home: CallbackShortcuts(
-              bindings: workspaceShortcuts(workspace, null, (action) {
+              bindings: mapEditingShortcuts(workspace, null, (action) {
                 if (FocusManager.instance.primaryFocus?.context
                         ?.findAncestorWidgetOfExactType<EditableText>() ==
                     null) {
@@ -229,7 +229,7 @@ void main() {
         MaterialApp(
           theme: studioTheme(),
           home: CallbackShortcuts(
-            bindings: workspaceShortcuts(
+            bindings: mapEditingShortcuts(
               workspace,
               null,
               (action) {

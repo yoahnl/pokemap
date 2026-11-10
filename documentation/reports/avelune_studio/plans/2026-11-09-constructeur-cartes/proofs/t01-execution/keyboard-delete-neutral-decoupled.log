@@ -1,0 +1,66 @@
+Resolving dependencies...
+Downloading packages...
+  _fe_analyzer_shared 103.0.0 (111.0.0 available)
+  analyzer 13.3.0 (14.7.0 available)
+  archive 4.0.9 (4.6.0 available)
+  code_assets 2.0.0 (2.2.0 available)
+  coverage 1.15.1 (1.16.0 available)
+  cross_file 0.3.5+5 (0.4.0 available)
+  crypto 3.0.7 (3.0.8 available)
+  cupertino_ui 1.1.2 (1.1.6 available)
+  dbus 0.7.15 (0.8.0 available)
+  file_picker 11.0.3 (13.3.2 available)
+  flutter_joystick 0.2.2 (0.2.3 available)
+  flutter_riverpod 3.4.2 (3.5.0 available)
+  frontend_server_client 4.0.0 (4.2.0 available)
+  gamepads 0.1.11 (0.1.15 available)
+  gamepads_android 0.1.9 (0.1.12 available)
+  gamepads_darwin 0.1.3 (0.1.4 available)
+  gamepads_linux 0.1.2 (0.1.4 available)
+  gamepads_platform_interface 0.1.3 (0.1.4 available)
+  gamepads_web 0.1.2 (0.1.3 available)
+  gamepads_windows 0.3.1 (0.3.3 available)
+  http_multi_server 3.2.2 (3.2.3 available)
+  image 4.10.1 (4.12.0 available)
+  jni 1.0.3 (1.1.2 available)
+  jni_flutter 1.0.3 (1.0.4+1 available)
+  marionette_flutter 0.6.0 (0.7.0 available)
+  marionette_mcp 0.6.0 (0.7.0 available)
+  material_color_utilities 0.13.0 (0.13.1 available)
+  material_ui 1.6.0 (1.10.0 available)
+  mcp_dart 2.4.2 (2.4.3 available)
+  native_toolchain_c 0.19.4 (0.19.6 available)
+  objective_c 9.6.0 (9.6.3 available)
+  package_config 2.2.0 (3.0.0 available)
+  package_info_plus 9.0.1 (10.2.2 available)
+  package_info_plus_platform_interface 3.2.1 (4.1.0 available)
+  petitparser 7.0.2 (7.1.0 available)
+  platform 3.1.6 (3.2.0 available)
+  posix 6.5.2 (6.5.4 available)
+  riverpod 3.4.2 (3.5.0 available)
+  shelf 1.4.2 (1.4.3 available)
+  shelf_static 1.1.3 (1.2.0 available)
+  synchronized 3.4.1+2 (3.6.1+1 available)
+  test 1.31.1 (1.33.0 available)
+  test_api 0.7.12 (0.7.15 available)
+  test_core 0.6.18 (0.6.21 available)
+  unorm_dart 0.3.2 (0.3.3 available)
+  url_launcher 6.3.2 (6.3.3 available)
+  vector_math 2.4.2 (2.4.4 available)
+  video_player 2.14.0 (2.14.1 available)
+  video_player_avfoundation 2.12.0 (2.12.3 available)
+  vm_service 15.3.0 (15.4.0 available)
+  web 1.1.1 (1.1.2 available)
+  win32 5.15.0 (6.4.0 available)
+  xml 7.0.1 (7.1.0 available)
+Got dependencies!
+53 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/keyboard_delete_host_test.dart
+00:00 +0: the Delete keys refuse a character an unsaved world rule targets
+00:01 +1: a configured event that is not saved yet protects its character
+00:02 +2: a rule on a twin id elsewhere blocks nothing, and the deletion undoes
+00:02 +3: Delete never acts behind an open context menu
+00:03 +4: a story zone whose interaction is being written refuses both paths
+00:03 +5: every family the menu deletes, the keyboard deletes and undoes
+00:04 +6: All tests passed!

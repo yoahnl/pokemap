@@ -8,8 +8,8 @@ import 'package:avelune_studio/features/resources/domain/model_resource_port.dar
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import 'package:avelune_studio/presentation/features/resources/model_animation_controls.dart';
 import 'package:avelune_studio/presentation/features/resources/model_resource_library.dart';
-import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
-import 'package:avelune_studio/presentation/features/resources/resource_navigation.dart';
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
+import 'package:avelune_studio/features/resources/coordination/resource_navigation.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_toggle_row.dart';
 import 'package:flutter/material.dart';

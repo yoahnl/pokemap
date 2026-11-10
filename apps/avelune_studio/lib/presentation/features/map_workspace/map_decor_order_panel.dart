@@ -7,7 +7,7 @@ import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/inputs/studio_choice.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import 'map_workspace_view_state.dart';
-import 'map_workspace_visuals.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 
 class MapDecorOrderPanel extends StatelessWidget {
   const MapDecorOrderPanel({

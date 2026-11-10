@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "at": "2026-11-10",
+  "status": "partial_not_accepted",
+  "temporalMeaning": "CURRENT AFTER partial T01 extractions; intentional QA fixture mutations only",
+  "attempt2ReceiptSha256": "1088e047c8e3a7654bb7f32d4eec08b9c87ff79207183a1de89bb560252868f0",
+  "originalUnchanged": true,
+  "nativeRender": "not run",
+  "export": "not run",
+  "player": "not run",
+  "saveResume": "not run",
+  "originalTree": {
+    "fileCount": 2393,
+    "bytes": 10477778,
+    "treeSha256": "1559fc8b04ee112ef1bc94a0088e62186e90d5aa4c7448f2d15741f1f96bb3b1"
+  },
+  "copyTree": {
+    "fileCount": 1221,
+    "bytes": 7123220,
+    "treeSha256": "e2365f59719f1b258bfc8a6450913b51c28dfb081721c1e3bf396dce60c230a1"
+  },
+  "copyDelta": [
+    {
+      "path": "assets/.pokemap-assets.json",
+      "before": {
+        "path": "assets/.pokemap-assets.json",
+        "bytes": 300363,
+        "sha256": "ce4f814edf6ec87ceb5a1bac0beefffd68fd21f3bba9a319573db6c0fac6b1cf"
+      },
+      "after": {
+        "path": "assets/.pokemap-assets.json",
+        "bytes": 301819,
+        "sha256": "9364cf497b1704b503bdadca9441707f293e645950b01a025dd56012a60208e3"
+      }
+    },
+    {
+      "path": "assets/.pokemap-store/3c1f2f4c4ba1cbecb21909fc77e84b39d5e73161cb8bf8838ff61630b63b7970.blob",
+      "before": null,
+      "after": {
+        "path": "assets/.pokemap-store/3c1f2f4c4ba1cbecb21909fc77e84b39d5e73161cb8bf8838ff61630b63b7970.blob",
+        "bytes": 4800,
+        "sha256": "e01e897cb2a9a4eedfd8acd393c5aeb71b643c84f9993cecf13294f7d14aeaf9"
+      }
+    },
+    {
+      "path": "assets/.pokemap-store/e935d1d79d6eb748c0e352098a5799c08c4d645835f3b8ba1eb0945f0f12ee5f.blob",
+      "before": null,
+      "after": {
+        "path": "assets/.pokemap-store/e935d1d79d6eb748c0e352098a5799c08c4d645835f3b8ba1eb0945f0f12ee5f.blob",
+        "bytes": 4728,
+        "sha256": "9e6bae9989109205ab134c5dbdc139786d40dd7d6dfbc28dc57e0134ed19b058"
+      }
+    },
+    {
+      "path": "assets/.pokemap-store/f05a45517e6c44dec54e61dafbb35814144c9544dc5a0d6cff7e59dc7497a51a.blob",
+      "before": null,
+      "after": {
+        "path": "assets/.pokemap-store/f05a45517e6c44dec54e61dafbb35814144c9544dc5a0d6cff7e59dc7497a51a.blob",
+        "bytes": 5688,
+        "sha256": "c2cf4d44fc3a46d48e169a8460fda7e9a0650cd5ce50ced02c41e74013990dfa"
+      }
+    },
+    {
+      "path": "assets/models3d/bw2-cliff-route19-step-one-inner.glb",
+      "before": null,
+      "after": {
+        "path": "assets/models3d/bw2-cliff-route19-step-one-inner.glb",
+        "bytes": 5688,
+        "sha256": "c2cf4d44fc3a46d48e169a8460fda7e9a0650cd5ce50ced02c41e74013990dfa"
+      }
+    },
+    {
+      "path": "assets/models3d/bw2-cliff-route19-step-one-rounded-outer.glb",
+      "before": null,
+      "after": {
+        "path": "assets/models3d/bw2-cliff-route19-step-one-rounded-outer.glb",
+        "bytes": 4728,
+        "sha256": "9e6bae9989109205ab134c5dbdc139786d40dd7d6dfbc28dc57e0134ed19b058"
+      }
+    },
+    {
+      "path": "assets/models3d/bw2-cliff-route19-step-one-straight.glb",
+      "before": null,
+      "after": {
+        "path": "assets/models3d/bw2-cliff-route19-step-one-straight.glb",
+        "bytes": 4800,
+        "sha256": "e01e897cb2a9a4eedfd8acd393c5aeb71b643c84f9993cecf13294f7d14aeaf9"
+      }
+    },
+    {
+      "path": "project.json",
+      "before": {
+        "path": "project.json",
+        "bytes": 1995010,
+        "sha256": "4a2e1553c10639b6f6d4498209815dcd9d5ffe5bf90fed8a2eb8be50596d7540"
+      },
+      "after": {
+        "path": "project.json",
+        "bytes": 2000592,
+        "sha256": "e10bcbcd6f1fb13f811502b420d88214ee5088f3f1f646c28a34c1461b8e5b67"
+      }
+    }
+  ],
+  "actionsApplied": 5,
+  "actionTypes": [
+    "model3d.import",
+    "model3d.import",
+    "model3d.import",
+    "border.blueprint.draft.upsert",
+    "border.blueprint.publish"
+  ],
+  "error": "ProjectSnapshotException(project.workshop_scope_required): This action does not have a native workshop dependency scope.",
+  "limits": [
+    "Les trois imports GLB et le blueprint publié ne prouvent pas un Border placé.",
+    "La carte first-map est inchangée : ni nouvelle pente, ni nouveau Border.",
+    "Le second refus vient du mauvais choix de lecteur dans le harness ; pas de correction moteur.",
+    "La reprise doit vérifier les cinq publications existantes et ne pas rejouer les imports.",
+    "Le résumé de préparation est antérieur aux mutations QA ; aucune preuve AVANT les extractions T01."
+  ]
+}

@@ -49,8 +49,10 @@ class Ui12ReturnHarness {
   final LocalSceneAdapter scenePort;
   final LocalPresentationAdapter presentationPort;
 
-  static Future<Ui12ReturnHarness> create() async {
-    final temporary = await Directory.systemTemp.createTemp('avelune_ui12_');
+  static Future<Ui12ReturnHarness> create({Directory? parent}) async {
+    final temporary = await (parent ?? Directory.systemTemp).createTemp(
+      'avelune_ui12_',
+    );
     final directory = Directory(await temporary.resolveSymbolicLinks());
     await writeExampleProject(directory);
     final manifestFile = File('${directory.path}/project.json');

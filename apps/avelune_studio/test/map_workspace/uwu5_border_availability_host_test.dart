@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_canvas.dart';
+import 'package:avelune_studio/platform/rendering/viewports/map_editing_viewport_2d.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -53,7 +53,7 @@ void main() {
     await tester.tap(find.text('Bordures'));
     await pumpIo(tester, frames: 4);
     final view = tester
-        .widget<MapWorkspaceCanvas>(find.byType(MapWorkspaceCanvas))
+        .widget<MapEditingViewport2D>(find.byType(MapEditingViewport2D))
         .view;
     view.borderBlueprintId = 'muret';
     host.maps.notify();

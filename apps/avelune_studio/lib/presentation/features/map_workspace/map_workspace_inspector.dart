@@ -8,7 +8,7 @@ import 'package:avelune_studio/presentation/shared/widgets/layout/studio_sidebar
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_choice.dart';
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_editing_commands.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 
 import '../../shared/widgets/layout/studio_depth_control.dart';
 import '../../shared/widgets/layout/studio_asset_preview.dart';
@@ -20,7 +20,7 @@ import 'map_settings_inspector.dart';
 import 'spatial_model_entity_controls.dart';
 import 'spatial_lift_controls.dart';
 import '../../../features/map_workspace/application/spatial_model_editing_commands.dart';
-import '../resources/resource_catalog.dart';
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 import '../resources/resource_preview.dart';
 import '../resources/model_animation_controls.dart';
 import '../resources/model_shadow_controls.dart';

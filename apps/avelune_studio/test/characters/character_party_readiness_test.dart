@@ -3,16 +3,13 @@ import 'dart:io';
 
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
-import 'package:avelune_studio/presentation/features/characters/character_inspector.dart';
-import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
+import 'package:avelune_studio/features/characters/application/character_editing_commands.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
 import '../support/combat_project_fixture.dart';
 import '../support/m3_story_fixture.dart';
-import '../support/map_workspace_fixture.dart';
 
 void main() {
   testWidgets(
@@ -101,37 +98,14 @@ void main() {
         await tester.pumpWidget(const SizedBox());
         await tester.runAsync(() => source.directory.delete(recursive: true));
       });
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: studioTheme(),
-          home: Scaffold(
-            body: SizedBox(
-              width: 600,
-              child: StatefulBuilder(
-                builder: (context, setState) => SingleChildScrollView(
-                  child: CharacterInspector(
-                    document: document,
-                    project: project,
-                    entity: document.current.entities.singleWhere(
-                      (entity) => entity.id == original.id,
-                    ),
-                    visuals: WorkspaceTestVisuals(),
-                    onChanged: () => setState(() {}),
-                    onSelect: (_) {},
-                    onEditInteraction: (_) {},
-                  ),
-                ),
-              ),
-            ),
-          ),
+      final commands = CharacterEditingCommands(document, project);
+      commands.setTrainerBattleReadiness(
+        original.id,
+        const MapEntityRuntimePredicate(
+          kind: MapEntityRuntimePredicateKind.partyUsableCountAtLeast,
+          minimumCount: 2,
         ),
-      );
-      await _select(tester, 'npc-combat-guide-readiness-mode', 'party');
-      await _select(tester, 'npc-combat-guide-readiness-minimum', '2');
-      await _select(
-        tester,
-        'npc-combat-guide-readiness-refusal',
-        project.dialogues.first.id,
+        DialogueRef(dialogueId: project.dialogues.first.id),
       );
       final saved = document.current;
       final changed = saved.entities.singleWhere((e) => e.id == original.id);
@@ -163,11 +137,7 @@ void main() {
         reopened.entities.singleWhere((e) => e.id == original.id),
         changed,
       );
-      final trainerPicker = tester.widget<DropdownButtonFormField<String>>(
-        find.byKey(const ValueKey('trainer-combat-guide-clock_guard')),
-      );
-      trainerPicker.onChanged!('');
-      await tester.pumpAndSettle();
+      commands.assignTrainer(original.id, null);
       final cleared = document.current.entities
           .singleWhere((e) => e.id == original.id)
           .npc!;
@@ -178,17 +148,4 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
-}
-
-StudioSelect _selectWidget(WidgetTester tester, String key) =>
-    tester.widget<StudioSelect>(find.byKey(ValueKey(key)));
-Future<void> _select(WidgetTester tester, String key, String value) async {
-  final finder = find.byKey(ValueKey(key));
-  await tester.pumpAndSettle();
-  await Scrollable.ensureVisible(tester.element(finder), alignment: .5);
-  await tester.pumpAndSettle();
-  final widget = _selectWidget(tester, key);
-  expect(widget.options, contains(value));
-  widget.onChanged!(value);
-  await tester.pumpAndSettle();
 }

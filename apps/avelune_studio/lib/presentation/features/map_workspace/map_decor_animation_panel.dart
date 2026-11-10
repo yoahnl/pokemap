@@ -8,7 +8,7 @@ import '../../shared/widgets/inputs/studio_choice.dart';
 import '../../shared/widgets/inputs/studio_commit_field.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/layout/studio_asset_preview.dart';
-import 'map_workspace_visuals.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 
 class MapDecorAnimationPanel extends StatefulWidget {
   const MapDecorAnimationPanel({

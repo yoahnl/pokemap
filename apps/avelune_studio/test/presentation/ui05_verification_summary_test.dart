@@ -1,123 +1,86 @@
-import 'package:avelune_studio/presentation/features/narrative/narrative_story_pane.dart';
-import 'package:avelune_studio/presentation/features/stories/story_progression_page.dart';
-import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_action_card.dart';
-import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
-import 'package:flutter/material.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/workspace_navigation_session.dart';
+import 'package:avelune_studio/features/map_workspace/domain/workspace_navigation.dart';
+import 'package:avelune_studio/features/stories/application/story_workspace_controller.dart';
+import 'package:avelune_studio/features/stories/data/local_story_adapter.dart';
+import 'package:avelune_studio/features/verification/application/verification_workspace_controller.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:map_core/map_core_domain.dart';
 
-import '../support/ui13_host_harness.dart';
-import '../support/ui13_widget_verification_port.dart';
+import '../support/ui13_verification_harness.dart';
+import '../support/verification_port_probe.dart';
 
 void main() {
-  testWidgets('overview summarizes the last real verification report', (
-    tester,
-  ) async {
-    late Ui13WidgetVerificationPort monitored;
-    final project = await host(
-      tester,
-      launch: false,
-      wrap: (port) {
-        monitored = port as Ui13WidgetVerificationPort;
-        return port;
-      },
-    );
-    await activate(tester, find.byTooltip('Retour à Histoire'));
-    expect(find.textContaining('Non vérifié'), findsOneWidget);
-    expect(monitored.runs, 0);
-    expect(monitored.analyses, 0);
-    expect(monitored.sourceReads, 0);
-    await activate(tester, find.text('Ouvrir la vérification').first);
-    await activate(tester, find.text('Lancer la vérification').first);
-    final controller = opened(tester);
-    for (var i = 0; i < 40 && controller.report == null; i++) {
-      await tester.pump(const Duration(milliseconds: 50));
-    }
-    final report = opened(tester).report!;
-    final reads = monitored.runs;
-    final analyses = monitored.analyses;
-    final sources = monitored.sourceReads;
-    await activate(tester, find.byTooltip('Retour à Histoire'));
-    expect(find.byType(NarrativeStoryPane), findsOneWidget);
-    expect(find.text('Vérification narrative'), findsWidgets);
-    expect(find.text('Rapport du projet'), findsOneWidget);
-    expect(
-      find.textContaining(
-        '${report.countOf(NarrativeProjectDiagnosticSeverity.error)} erreur(s)',
-      ),
-      findsWidgets,
-    );
-    expect(
-      find.textContaining(
-        '${report.countOf(NarrativeProjectDiagnosticSeverity.warning)} avertissement(s)',
-      ),
-      findsWidgets,
-    );
-    expect(find.textContaining('Périmètre :'), findsOneWidget);
-    expect(find.textContaining('Structure :'), findsOneWidget);
-    expect(find.textContaining('Limites :'), findsOneWidget);
-    expect(monitored.runs, reads);
-    expect(monitored.analyses, analyses);
-    expect(monitored.sourceReads, sources);
-    await activate(
-      tester,
-      find.widgetWithText(StudioActionCard, 'Nouvelle histoire'),
-    );
-    await tester.enterText(find.byType(TextField).last, 'À vérifier');
-    await activate(tester, find.widgetWithText(StudioButton, 'Créer'));
-    expect(find.byType(StoryProgressionPage), findsOneWidget);
-    final storyId = tester
-        .widget<StoryProgressionPage>(find.byType(StoryProgressionPage))
-        .controller
-        .activeId!;
-    await activate(tester, find.widgetWithText(StudioButton, 'Histoire').last);
-    expect(
-      find.textContaining('Modifications depuis ce contrôle'),
-      findsOneWidget,
-    );
-    expect(monitored.runs, reads);
-    expect(monitored.analyses, analyses);
-    await activate(tester, find.text('Ouvrir la vérification').first);
-    await activate(tester, find.text('Lancer la vérification').first);
-    for (
-      var i = 0;
-      i < 40 && controller.report?.requestId == report.requestId;
-      i++
-    ) {
-      await tester.pump(const Duration(milliseconds: 50));
-    }
-    expect(controller.report?.requestId, isNot(report.requestId));
-    final refreshedAnalyses = monitored.analyses;
-    final refreshedSources = monitored.sourceReads;
-    await activate(tester, find.byTooltip('Retour à Histoire'));
-    expect(
-      find.textContaining('Modifications depuis ce contrôle'),
-      findsNothing,
-    );
-    await activate(tester, find.byKey(ValueKey('overview-story-$storyId')));
-    final story = tester.widget<StoryProgressionPage>(
-      find.byType(StoryProgressionPage),
-    );
-    expect(
-      story.controller.mutate(
-        (current) => current.copyWith(
-          storylines: [
-            for (final item in current.storylines)
-              item.id == storyId
-                  ? item.copyWith(title: 'À vérifier encore')
-                  : item,
-          ],
+  test(
+    'overview consultation preserves the real report and never reruns analysis',
+    () async {
+      late VerificationPortProbe probe;
+      final h = await Ui13VerificationHarness.create(
+        wrap: (port) => probe = VerificationPortProbe(port),
+      );
+      addTearDown(h.dispose);
+      final stories = StoryWorkspaceController(
+        h.narrative,
+        LocalStoryAdapter(session: h.session, mapAdapter: h.adapter),
+        changed: () {},
+      );
+      addTearDown(stories.dispose);
+      final navigation = WorkspaceNavigationSession(
+        controller: h.maps,
+        isActive: () => !h.maps.isDisposed,
+        changed: () {},
+        verification: () => h.verification,
+        stories: () => stories,
+      );
+      navigation.show(WorkspaceSpace.story);
+      expect(h.verification.report, isNull);
+      expect(probe.revisions, 0);
+      expect(probe.analyses, 0);
+      expect(probe.sourceReads, 0);
+      navigation.show(WorkspaceSpace.verification);
+      expect(await h.verification.run(), isTrue, reason: h.verification.error);
+      final report = h.verification.report!;
+      final stamp = report.generatedAt;
+      final counts = (probe.revisions, probe.analyses, probe.sourceReads);
+      final diagnostic = report.diagnostics.first;
+      h.verification.select(diagnostic.stableKey);
+      h.verification.setSearch('zzz introuvable zzz');
+      expect(h.verification.visible, isEmpty);
+      expect(h.verification.selected?.stableKey, diagnostic.stableKey);
+      expect(h.verification.selectionHidden, isTrue);
+      expect(h.verification.graph.nodes, isNotEmpty);
+      h.verification.clearFilters();
+      expect(h.verification.visible, isNotEmpty);
+      expect((probe.revisions, probe.analyses, probe.sourceReads), counts);
+      navigation.returnFromVerification();
+      expect(identical(h.verification.report, report), isTrue);
+      expect(report.scope, isNotEmpty);
+      expect((probe.revisions, probe.analyses, probe.sourceReads), counts);
+
+      final story = stories.create('À vérifier')!;
+      expect(h.verification.stale, isTrue);
+      expect(h.verification.report!.generatedAt, stamp);
+      expect((probe.revisions, probe.analyses, probe.sourceReads), counts);
+      navigation.show(WorkspaceSpace.verification);
+      expect(await h.verification.run(), isTrue, reason: h.verification.error);
+      expect(h.verification.report!.requestId, isNot(report.requestId));
+      expect(h.verification.stale, isFalse);
+      final refreshed = (probe.revisions, probe.analyses, probe.sourceReads);
+      navigation.returnFromVerification();
+      expect(stories.open(story.id), isTrue);
+      expect(
+        stories.mutate(
+          (current) => current.copyWith(
+            storylines: [
+              for (final item in current.storylines)
+                item.id == story.id
+                    ? item.copyWith(title: 'À vérifier encore')
+                    : item,
+            ],
+          ),
         ),
-      ),
-      isTrue,
-    );
-    await activate(tester, find.widgetWithText(StudioButton, 'Histoire').last);
-    expect(
-      find.textContaining('Modifications depuis ce contrôle'),
-      findsOneWidget,
-    );
-    expect(monitored.analyses, refreshedAnalyses);
-    expect(monitored.sourceReads, refreshedSources);
-    expect(project.maps.project?.name, isNotEmpty);
-  });
+        isTrue,
+      );
+      expect(h.verification.stale, isTrue);
+      expect((probe.revisions, probe.analyses, probe.sourceReads), refreshed);
+    },
+  );
 }

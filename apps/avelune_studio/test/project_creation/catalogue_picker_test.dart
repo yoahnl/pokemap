@@ -2,12 +2,11 @@ import 'package:avelune_studio/main.dart' as entry;
 import 'package:avelune_studio/app/studio_bootstrap.dart';
 import 'package:avelune_studio/app/studio_app.dart';
 import 'package:avelune_studio/app/di/providers.dart';
+import 'package:avelune_studio/platform/mcp/studio_mcp_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:avelune_studio/features/project_creation/application/project_creation_controller.dart';
-import 'package:avelune_studio/presentation/features/project_creation/project_creation_steps.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/widgets.dart';
 import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_core/map_core_domain.dart';
 
@@ -21,33 +20,20 @@ void main() {
     expect(controller.tileSize, 16);
   });
 
-  testWidgets(
-    'an empty catalogue never advertises an implicit downloaded game',
-    (tester) async {
-      final controller = ProjectCreationController(
-        const LocalProjectCreationService(),
-      )..step = 1;
-      addTearDown(controller.dispose);
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: studioTheme(),
-          home: Scaffold(
-            body: SingleChildScrollView(
-              child: ProjectCreationSteps(
-                controller: controller,
-                chooseParent: () async {},
-              ),
-            ),
-          ),
-        ),
-      );
-      expect(find.text('Petit projet jouable'), findsOneWidget);
-      expect(find.textContaining('GitHub'), findsNothing);
-    },
-  );
-  testWidgets(
-    'two catalogue entries select their identity, geometry and preview independently',
-    (tester) async {
+  test('an empty catalogue never selects an implicit downloaded game', () {
+    final controller = ProjectCreationController(
+      const LocalProjectCreationService(),
+    );
+    addTearDown(controller.dispose);
+    expect(controller.port.templateCatalog.templates, isEmpty);
+    expect(controller.template, ProjectCreationTemplate.playable);
+    expect(controller.selectedTemplate, isNull);
+    expect(controller.request.templateId, isNull);
+  });
+
+  test(
+    'two catalogue entries retain independent identity, geometry and preview',
+    () async {
       final port = _RecordingPort(
         ProjectTemplateCatalog.fromJson({
           'schemaVersion': 1,
@@ -57,30 +43,10 @@ void main() {
           ],
         }),
       );
-      final controller = ProjectCreationController(port)..step = 1;
-      final revision = ValueNotifier(0);
-      controller.addListener(() => revision.value++);
+      final controller = ProjectCreationController(port);
       addTearDown(controller.dispose);
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: studioTheme(),
-          home: Scaffold(
-            body: SingleChildScrollView(
-              child: ValueListenableBuilder<int>(
-                valueListenable: revision,
-                builder: (_, _, _) => ProjectCreationSteps(
-                  controller: controller,
-                  chooseParent: () async {},
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-      await tester.tap(
-        find.byKey(const ValueKey('creation-template-catalogue-alpha')),
-      );
-      await tester.pump();
+      controller.setCatalogueTemplate('alpha');
+      await controller.loadPreview();
       expect(controller.request.template, ProjectCreationTemplate.catalogue);
       expect(controller.request.templateId, 'alpha');
       expect(
@@ -88,23 +54,17 @@ void main() {
         (16, '24', '18'),
       );
       expect(port.previews.last.templateId, 'alpha');
-      await tester.tap(
-        find.byKey(const ValueKey('creation-template-catalogue-beta')),
-      );
-      await tester.pump();
+      controller.setCatalogueTemplate('beta');
+      await controller.loadPreview();
       expect(controller.request.templateId, 'beta');
       expect(
         (controller.tileSize, controller.width, controller.height),
         (48, '12', '10'),
       );
+      expect(controller.selectedTemplate!.label, 'Domaine Beta');
       expect(port.previews.last.templateId, 'beta');
-      controller.change(() => controller.step = 2);
-      await tester.pump();
-      expect(find.text('Votre copie de Domaine Beta'), findsOneWidget);
-      expect(find.byKey(const ValueKey('creation-grid-48')), findsOneWidget);
-      expect(find.byKey(const ValueKey('creation-grid-16')), findsNothing);
       controller.setTemplate(ProjectCreationTemplate.empty);
-      await tester.pump();
+      await controller.loadPreview();
       expect(controller.request.templateId, isNull);
       expect(controller.previewError, isNull);
       expect(
@@ -112,8 +72,6 @@ void main() {
         throwsFormatException,
       );
       expect(controller.request.template, ProjectCreationTemplate.empty);
-      await tester.pumpWidget(const SizedBox());
-      revision.dispose();
     },
   );
 
@@ -124,7 +82,14 @@ void main() {
         entry.loadStudioProjectTemplateCatalog,
       ))!;
       expect(catalog.templates, isEmpty);
-      await tester.pumpWidget(StudioBootstrap(templateCatalog: catalog));
+      await tester.pumpWidget(
+        StudioBootstrap(
+          templateCatalog: catalog,
+          mcpService: StudioMcpService(
+            launch: () async => throw StateError('fixture.unavailable'),
+          ),
+        ),
+      );
       final container = ProviderScope.containerOf(
         tester.element(find.byType(StudioApp)),
         listen: false,

@@ -9,7 +9,7 @@ import 'map_decor_order_panel.dart';
 import 'map_decor_selection_summary.dart';
 import 'map_workspace_inspector.dart';
 import 'map_workspace_view_state.dart';
-import 'map_workspace_visuals.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 
 class MapDecorInspectorTabs extends StatefulWidget {
   const MapDecorInspectorTabs({

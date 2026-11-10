@@ -1,6 +1,6 @@
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_library_navigator.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_canvas.dart';
+import 'package:avelune_studio/platform/rendering/viewports/map_editing_viewport_2d.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_layout.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_toolbar.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_elements_panel.dart';
@@ -73,7 +73,7 @@ void main() {
       'navigator reserves canvas space and dock stays visible $size',
       (tester) async {
         await _mount(tester, size);
-        final canvas = tester.getRect(find.byType(MapWorkspaceCanvas));
+        final canvas = tester.getRect(find.byType(MapEditingViewport2D));
         final navigator = tester.getRect(find.byType(MapLibraryNavigator));
         expect(navigator.right, lessThanOrEqualTo(canvas.left));
         expect(find.byType(MapWorkspacePaletteDock), findsOneWidget);
@@ -113,7 +113,7 @@ void main() {
       };
       expect(rows.length, lessThanOrEqualTo(2));
       expect(find.byType(MapWorkspacePaletteDock), findsOneWidget);
-      final canvas = tester.getSize(find.byType(MapWorkspaceCanvas));
+      final canvas = tester.getSize(find.byType(MapEditingViewport2D));
       expect(canvas.width, greaterThan(400));
       expect(canvas.height, greaterThan(160));
       expect(
@@ -167,7 +167,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull, reason: family);
       expect(
-        tester.getSize(find.byType(MapWorkspaceCanvas)).height,
+        tester.getSize(find.byType(MapEditingViewport2D)).height,
         greaterThanOrEqualTo(32),
         reason: family,
       );
@@ -188,8 +188,8 @@ void main() {
       await tester.pump();
       await gesture.up();
       await tester.pump();
-      final canvas = tester.widget<MapWorkspaceCanvas>(
-        find.byType(MapWorkspaceCanvas),
+      final canvas = tester.widget<MapEditingViewport2D>(
+        find.byType(MapEditingViewport2D),
       );
       final collision = canvas.document.current.layers
           .whereType<CollisionLayer>()

@@ -5,10 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show LogicalKeyboardKey;
 import 'package:map_render_3d/map_render_3d.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/spatial_map_editor.dart';
+import 'package:avelune_studio/platform/rendering/viewports/spatial_map_editing_viewport.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_toolbar.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_palette_dock.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_inspector.dart';
 import '../support/map_workspace_fixture.dart';
@@ -22,7 +22,7 @@ import 'package:map_core/map_core.dart';
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/features/map_workspace/application/spatial_model_editing_commands.dart';
-import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -74,7 +74,7 @@ void main() {
                 children: [
                   const TextField(key: ValueKey('delete-inspector-input')),
                   Expanded(
-                    child: SpatialMapEditor(
+                    child: SpatialMapEditingViewport(
                       document: document,
                       controller: controller,
                       project: project,
@@ -209,7 +209,7 @@ void main() {
       MaterialApp(
         home: Scaffold(
           body: StatefulBuilder(
-            builder: (context, setState) => SpatialMapEditor(
+            builder: (context, setState) => SpatialMapEditingViewport(
               document: document,
               controller: controller,
               project: project,
@@ -310,7 +310,7 @@ void main() {
                     navigatorVisible: true,
                   ),
                   Expanded(
-                    child: SpatialMapEditor(
+                    child: SpatialMapEditingViewport(
                       document: document,
                       controller: controller,
                       project: project,
@@ -490,7 +490,7 @@ void main() {
                 children: [
                   const TextField(key: ValueKey('inspector-input')),
                   Expanded(
-                    child: SpatialMapEditor(
+                    child: SpatialMapEditingViewport(
                       document: document,
                       controller: controller,
                       project: project,
@@ -646,7 +646,7 @@ void main() {
       final visuals = _SpatialTestVisuals();
       Widget canvas() => MaterialApp(
         home: Scaffold(
-          body: SpatialMapEditor(
+          body: SpatialMapEditingViewport(
             document: document,
             controller: controller,
             project: project,

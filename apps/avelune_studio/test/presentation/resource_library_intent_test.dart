@@ -1,166 +1,108 @@
 import 'dart:async';
 
-import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
-import 'package:avelune_studio/presentation/features/resources/resource_library_screen.dart';
-import 'package:flutter/material.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
+import 'package:avelune_studio/features/resources/coordination/resource_navigation.dart';
+import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/map_workspace_fixture.dart';
+import '../support/scoped_map_workspace_port.dart';
 
 void main() {
-  testWidgets('only the latest prepared family changes the resource view', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(1536, 1024);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    final state = ResourceLibraryState();
-    final requests = <ResourceLibraryFamily>[];
-    final pending = {
-      ResourceLibraryFamily.borders: Completer<bool>(),
-      ResourceLibraryFamily.images: Completer<bool>(),
-    };
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: ResourceLibraryScreen(
-            project: workspaceProject,
-            visuals: WorkspaceTestVisuals(),
-            state: state,
-            onUse: (_) {},
-            onEdit: (_) {},
-            onTerrain: (_) {},
-            onCreateBorder: () {},
-            onResumeBorder: (_) {},
-            onImport: () {},
-            onBack: () {},
-            onLoadFamily: (family) {
-              requests.add(family);
-              return pending[family]!.future;
-            },
-          ),
-        ),
-      ),
+  Future<(ResourceNavigation, ScopedTestMapPort, MapWorkspaceController)> open({
+    Future<void> Function(String)? beforeResourceRead,
+  }) async {
+    final port = ScopedTestMapPort(beforeResourceRead: beforeResourceRead);
+    final workspace = MapWorkspaceController(scopedMapSession, port);
+    addTearDown(workspace.dispose);
+    await workspace.initialize();
+    final navigation = ResourceNavigation(
+      workspace: workspace,
+      port: _Resources(),
+      visuals: WorkspaceTestVisuals(),
+      onUse: (_) {},
     );
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('resource-family-chooser')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('resource-family-borders')));
-    await tester.pump();
-    await tester.tap(find.byKey(const ValueKey('resource-family-images')));
-    await tester.pump();
-    expect(requests, [
-      ResourceLibraryFamily.borders,
-      ResourceLibraryFamily.images,
-    ]);
-    expect(state.family, ResourceLibraryFamily.decors);
-    pending[ResourceLibraryFamily.borders]!.complete(true);
-    await tester.pump();
-    expect(state.family, ResourceLibraryFamily.decors);
-    pending[ResourceLibraryFamily.images]!.complete(true);
-    await tester.pumpAndSettle();
-    expect(state.family, ResourceLibraryFamily.images);
-    expect(find.text('Importer une image'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-    await tester.pumpWidget(const SizedBox());
-  });
-  testWidgets('export pack is a common action in global and compact library', (
-    tester,
-  ) async {
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    var exports = 0;
-    for (final size in [const Size(1536, 1024), const Size(700, 500)]) {
-      tester.view.physicalSize = size;
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: ResourceLibraryScreen(
-              project: workspaceProject,
-              visuals: WorkspaceTestVisuals(),
-              state: ResourceLibraryState(),
-              onUse: (_) {},
-              onEdit: (_) {},
-              onTerrain: (_) {},
-              onCreateBorder: () {},
-              onResumeBorder: (_) {},
-              onImport: () {},
-              onExportPack: () => exports++,
-              onBack: () {},
-            ),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-      final action = find.byKey(const ValueKey('resource-export-pack'));
-      if (action.evaluate().isEmpty) {
-        await tester.tap(find.text('Actions'));
-        await tester.pumpAndSettle();
-      }
-      await tester.tap(action);
-      await tester.pumpAndSettle();
-      expect(tester.takeException(), isNull);
-    }
-    expect(exports, 2);
-  });
+    addTearDown(() {
+      if (!navigation.isDisposed) navigation.dispose();
+    });
+    return (navigation, port, workspace);
+  }
 
-  testWidgets('families explain their tools and creation follows selection', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(1536, 1024);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    var imports = 0;
-    var borders = 0;
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: ResourceLibraryScreen(
-            project: workspaceProject,
-            visuals: WorkspaceTestVisuals(),
-            state: ResourceLibraryState(),
-            onUse: (_) {},
-            onEdit: (_) {},
-            onTerrain: (_) {},
-            onCreateBorder: () => borders++,
-            onResumeBorder: (_) {},
-            onImport: () => imports++,
-            onBack: () {},
-          ),
-        ),
-      ),
+  test(
+    'only the latest prepared family can authorize a library change',
+    () async {
+      final firstEntered = Completer<void>();
+      final firstRelease = Completer<void>();
+      final secondEntered = Completer<void>();
+      final secondRelease = Completer<void>();
+      final (navigation, port, workspace) = await open(
+        beforeResourceRead: (kind) async {
+          if (kind == 'borderBlueprint') {
+            firstEntered.complete();
+            await firstRelease.future;
+          } else if (kind == 'tileset') {
+            secondEntered.complete();
+            await secondRelease.future;
+          }
+        },
+      );
+      final first = navigation.loadFamily(ResourceLibraryFamily.borders);
+      await firstEntered.future;
+      final second = navigation.loadFamily(ResourceLibraryFamily.images);
+      expect(port.resourceKinds, ['borderBlueprint']);
+      firstRelease.complete();
+      expect(await first, isFalse);
+      await secondEntered.future;
+      expect(workspace.hasResourceKind('tileset'), isFalse);
+      secondRelease.complete();
+      expect(await second, isTrue);
+      expect(port.resourceKinds, ['borderBlueprint', 'tileset']);
+      expect(workspace.hasResourceKind('tileset'), isTrue);
+      expect(workspace.hasResourceKind('borderBlueprint'), isFalse);
+      expect(navigation.error, isNull);
+      expect(navigation.library.family, ResourceLibraryFamily.decors);
+    },
+  );
+
+  test(
+    'failed preparation keeps the library selection and reports its cause',
+    () async {
+      final (navigation, port, workspace) = await open(
+        beforeResourceRead: (_) async => throw StateError('source unavailable'),
+      );
+      expect(
+        await navigation.loadFamily(ResourceLibraryFamily.images),
+        isFalse,
+      );
+      expect(navigation.error, contains('source unavailable'));
+      expect(navigation.library.family, ResourceLibraryFamily.decors);
+      expect(workspace.hasResourceKind('tileset'), isFalse);
+      expect(port.resourceKinds, ['tileset']);
+    },
+  );
+
+  test('disposing during preparation prevents a late authorization', () async {
+    final entered = Completer<void>();
+    final release = Completer<void>();
+    final (navigation, port, _) = await open(
+      beforeResourceRead: (_) async {
+        entered.complete();
+        await release.future;
+      },
     );
-    expect(find.text('Toutes les ressources'), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey('resource-filter-button')),
-      findsOneWidget,
-    );
-    expect(find.byKey(const ValueKey('resource-import')), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('resource-family-chooser')));
-    await tester.pumpAndSettle();
-    expect(find.text('Poser un objet'), findsOneWidget);
-    expect(find.text('Peindre le sol'), findsOneWidget);
-    expect(find.text('Tracer un contour'), findsOneWidget);
-    expect(find.text('Répartir des décors'), findsOneWidget);
-    expect(find.text('Créer un décor'), findsNothing);
-    expect(find.text('Créer une bordure'), findsNothing);
-    await tester.tap(find.byKey(const ValueKey('resource-family-borders')));
-    await tester.pumpAndSettle();
-    expect(find.text('Créer une bordure'), findsOneWidget);
-    expect(find.text('Créer un décor'), findsNothing);
-    await tester.tap(find.text('Créer une bordure'));
-    expect(borders, 1);
-    expect(imports, 0);
-    await tester.tap(find.byKey(const ValueKey('resource-family-chooser')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('resource-family-images')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Importer une image'));
-    expect(imports, 1);
-    expect(borders, 1);
-    expect(tester.takeException(), isNull);
+    final pending = navigation.loadFamily(ResourceLibraryFamily.images);
+    await entered.future;
+    navigation.dispose();
+    release.complete();
+    expect(await pending, isFalse);
+    expect(navigation.library.family, ResourceLibraryFamily.decors);
+    expect(port.resourceKinds, ['tileset']);
+    expect(navigation.error, isNull);
   });
+}
+
+class _Resources implements ResourcePort {
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

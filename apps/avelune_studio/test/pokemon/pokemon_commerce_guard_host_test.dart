@@ -2,58 +2,52 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
-import 'package:avelune_studio/features/pokemon/application/pokemon_workspace_controller.dart';
+import 'package:avelune_studio/features/pokemon/application/pokemon_workspace_workflow.dart';
 import 'package:avelune_studio/features/pokemon/data/local_pokemon_commerce_adapter.dart';
 import 'package:avelune_studio/features/pokemon/domain/pokemon_workspace_models.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
-import 'package:avelune_studio/presentation/features/pokemon/pokemon_workspace_page.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
-import '../support/m2_ui_fixture.dart' show pumpIo;
+import '../support/pokemon_authoring_fixture.dart';
 import '../support/m3_story_fixture.dart';
-import '../support/map_host_fixture.dart';
 
 void main() {
-  testWidgets('item draft stays intact when changing view is refused', (
-    tester,
-  ) async {
-    final host = await MapHostFixture.open(tester, prepareSource: _seed);
-    await _editItem(tester, host, 'Potion en cours');
-    await tester.tap(find.text('Pokédex').first);
-    await pumpIo(tester);
-    expect(find.text('Conserver le brouillon Pokémon ?'), findsOneWidget);
-    await tester.tap(find.text('Rester'));
-    await pumpIo(tester);
-    expect(_pokemon(tester).view, PokemonWorkspaceView.items);
-    expect(_pokemon(tester).commerce!.item!.displayName, 'Potion en cours');
-    expect(_pokemon(tester).commerce!.dirty, isTrue);
+  Future<PokemonAuthoringFixture> fixture() async {
+    final host = await PokemonAuthoringFixture.create(prepareSource: _seed);
+    addTearDown(host.dispose);
+    return host;
+  }
+
+  test('item draft stays intact when changing owner is refused', () async {
+    final host = await fixture();
+    await _editItem(host, 'Potion en cours');
+    host.decision = PokemonDraftDecision.stay;
+    expect(await host.view(PokemonWorkspaceView.pokedex), isFalse);
+    expect(host.draftConfirmations, 1);
+    expect(host.pokemon.view, PokemonWorkspaceView.items);
+    expect(host.commerce.item!.displayName, 'Potion en cours');
+    expect(host.commerce.dirty, isTrue);
   });
 
-  testWidgets('discard resets item before entering Pokédex', (tester) async {
-    final host = await MapHostFixture.open(tester, prepareSource: _seed);
-    await _editItem(tester, host, 'Potion en cours');
-    await tester.tap(find.text('Pokédex').first);
-    await pumpIo(tester);
-    await tester.tap(find.text('Annuler les modifications').last);
-    await pumpIo(tester);
-    expect(_pokemon(tester).view, PokemonWorkspaceView.pokedex);
-    expect(_pokemon(tester).commerce!.item!.displayName, 'Potion');
-    expect(_pokemon(tester).commerce!.dirty, isFalse);
+  test('discard resets item before entering the Pokedex', () async {
+    final host = await fixture();
+    await _editItem(host, 'Potion en cours');
+    host.decision = PokemonDraftDecision.discard;
+    expect(await host.view(PokemonWorkspaceView.pokedex), isTrue);
+    expect(host.pokemon.view, PokemonWorkspaceView.pokedex);
+    expect(host.commerce.item!.displayName, 'Potion');
+    expect(host.commerce.dirty, isFalse);
   });
 
-  testWidgets('save writes item and independent reopen sees it', (
-    tester,
-  ) async {
-    final host = await MapHostFixture.open(tester, prepareSource: _seed);
-    await _editItem(tester, host, 'Potion du quai');
-    await tester.tap(find.text('Pokédex').first);
-    await pumpIo(tester);
-    await tester.tap(find.text('Enregistrer').last);
-    await pumpIo(tester);
-    expect(_pokemon(tester).view, PokemonWorkspaceView.pokedex);
-    final reopened = (await tester.runAsync(() async {
+  test(
+    'save writes the item and independent reopen sees it before switching',
+    () async {
+      final host = await fixture();
+      await _editItem(host, 'Potion du quai');
+      host.decision = PokemonDraftDecision.save;
+      expect(await host.view(PokemonWorkspaceView.pokedex), isTrue);
+      expect(host.pokemon.view, PokemonWorkspaceView.pokedex);
       final session = ProjectSession(
         sessionId: 'commerce-reopen',
         name: host.source.session.name,
@@ -61,101 +55,84 @@ void main() {
       );
       final maps = LocalMapWorkspaceAdapter();
       await maps.loadProject(session);
-      return LocalPokemonCommerceAdapter(
+      final reopened = await LocalPokemonCommerceAdapter(
         session: session,
         mapAdapter: maps,
       ).load();
-    }))!;
+      expect(
+        reopened.catalog!.entries
+            .firstWhere((item) => item.id == 'potion')
+            .displayName,
+        'Potion du quai',
+      );
+    },
+  );
+
+  test('species draft cannot be hidden by the item owner', () async {
+    final host = await fixture();
+    expect(await host.pokemon.selectSpecies('bulbasaur'), isTrue);
+    host.pokemon.edit(
+      PokemonDocumentFamily.species,
+      (json) => (json['names'] as Map)['fr'] = 'Bulbizarre en cours',
+    );
+    host.decision = PokemonDraftDecision.stay;
+    expect(await host.view(PokemonWorkspaceView.items), isFalse);
+    expect(host.draftConfirmations, 1);
+    expect(host.pokemon.view, PokemonWorkspaceView.pokedex);
+    expect(host.pokemon.selectedDraft!.dirty, isTrue);
+  });
+
+  test('shop draft cannot be hidden by the move owner', () async {
+    final host = await fixture();
+    expect(await host.view(PokemonWorkspaceView.shops), isTrue);
     expect(
-      reopened.catalog!.entries
-          .firstWhere((item) => item.id == 'potion')
-          .displayName,
-      'Potion du quai',
+      host.commerce.selectShop(
+        host.commerce.snapshot!.shops.singleWhere((shop) => shop.id == 'gare'),
+      ),
+      isTrue,
     );
+    host.commerce.editShop((shop) => shop.copyWith(label: 'Boutique modifiée'));
+    host.decision = PokemonDraftDecision.stay;
+    expect(await host.view(PokemonWorkspaceView.moves), isFalse);
+    expect(host.draftConfirmations, 1);
+    expect(host.pokemon.view, PokemonWorkspaceView.shops);
+    expect(host.commerce.shop!.label, 'Boutique modifiée');
   });
 
-  testWidgets('species draft cannot be hidden by Objets', (tester) async {
-    final host = await MapHostFixture.open(tester, prepareSource: _seed);
-    await host.go('Pokémon');
-    await tester.tap(find.byKey(const ValueKey('species-bulbasaur')));
-    await pumpIo(tester);
-    await tester.enterText(
-      find.byKey(const ValueKey('species-names.fr')),
-      'Bulbizarre en cours',
-    );
-    await tester.tap(find.text('Objets').first);
-    await pumpIo(tester);
-    expect(find.text('Conserver le brouillon Pokémon ?'), findsOneWidget);
-    await tester.tap(find.text('Rester'));
-    await pumpIo(tester);
-    expect(_pokemon(tester).view, PokemonWorkspaceView.pokedex);
-    expect(_pokemon(tester).selectedDraft!.dirty, isTrue);
-  });
-
-  testWidgets('shop draft cannot be hidden by Attaques', (tester) async {
-    final host = await MapHostFixture.open(tester, prepareSource: _seed);
-    await host.go('Pokémon');
-    await tester.tap(find.text('Boutiques').first);
-    await pumpIo(tester);
-    await tester.tap(find.byKey(const ValueKey('shop-gare')));
-    await pumpIo(tester);
-    await tester.enterText(
-      find.byKey(const ValueKey('shop-label-gare')),
-      'Boutique modifiée',
-    );
-    await tester.tap(find.text('Attaques').first);
-    await pumpIo(tester);
-    expect(find.text('Conserver le brouillon Pokémon ?'), findsOneWidget);
-    await tester.tap(find.text('Rester'));
-    await pumpIo(tester);
-    expect(_pokemon(tester).view, PokemonWorkspaceView.shops);
-    expect(_pokemon(tester).commerce!.shop!.label, 'Boutique modifiée');
-  });
-
-  testWidgets('revision conflict blocks view change and preserves draft', (
-    tester,
-  ) async {
-    final host = await MapHostFixture.open(tester, prepareSource: _seed);
-    await _editItem(tester, host, 'Brouillon local');
-    final file = File(
-      '${host.source.directory.path}/data/pokemon/catalogs/items.json',
-    );
-    await tester.runAsync(() async {
+  test(
+    'revision conflict blocks owner change and preserves both drafts',
+    () async {
+      final host = await fixture();
+      await _editItem(host, 'Brouillon local');
+      final file = File(
+        '${host.source.directory.path}/data/pokemon/catalogs/items.json',
+      );
       final json =
           jsonDecode(await file.readAsString()) as Map<String, dynamic>;
       (json['entries'] as List).first['displayName'] = 'Modification externe';
       await file.writeAsString(jsonEncode(json));
-    });
-    await tester.tap(find.text('Boutiques').first);
-    await pumpIo(tester);
-    await tester.tap(find.text('Enregistrer').last);
-    await pumpIo(tester);
-    expect(_pokemon(tester).view, PokemonWorkspaceView.items);
-    expect(_pokemon(tester).commerce!.item!.displayName, 'Brouillon local');
-    expect(_pokemon(tester).commerce!.error, contains('changé sur le disque'));
-    expect(
-      await tester.runAsync(file.readAsString),
-      contains('Modification externe'),
-    );
-  });
+      host.decision = PokemonDraftDecision.save;
+      expect(await host.view(PokemonWorkspaceView.shops), isFalse);
+      expect(host.pokemon.view, PokemonWorkspaceView.items);
+      expect(host.commerce.item!.displayName, 'Brouillon local');
+      expect(host.commerce.error, contains('changé sur le disque'));
+      expect(await file.readAsString(), contains('Modification externe'));
+    },
+  );
 }
 
-PokemonWorkspaceController _pokemon(WidgetTester tester) => tester
-    .widget<PokemonWorkspacePage>(find.byType(PokemonWorkspacePage))
-    .controller!;
-
-Future<void> _editItem(
-  WidgetTester tester,
-  MapHostFixture host,
-  String name,
-) async {
-  await host.go('Pokémon');
-  await tester.tap(find.text('Objets').first);
-  await pumpIo(tester);
-  await tester.tap(find.byKey(const ValueKey('item-potion')));
-  await pumpIo(tester);
-  await tester.enterText(find.byKey(const ValueKey('item-name-potion')), name);
-  expect(_pokemon(tester).commerce!.dirty, isTrue);
+Future<void> _editItem(PokemonAuthoringFixture host, String name) async {
+  expect(await host.view(PokemonWorkspaceView.items), isTrue);
+  expect(
+    host.commerce.selectItem(
+      host.commerce.snapshot!.catalog!.entries.firstWhere(
+        (item) => item.id == 'potion',
+      ),
+    ),
+    isTrue,
+  );
+  host.commerce.editItem((item) => item.copyWith(displayName: name));
+  expect(host.commerce.dirty, isTrue);
 }
 
 Future<void> _seed(M3StoryFixture fixture) async {
@@ -173,9 +150,9 @@ Future<void> _seed(M3StoryFixture fixture) async {
     ('evolutions', 'bulbasaur.json'),
     ('media', 'bulbasaur.json'),
   ]) {
-    final document =
-        jsonDecode(await File('$sourcePath/$folder/$file').readAsString())
-            as Map<String, dynamic>;
+    final document = jsonDecode(
+      await File('$sourcePath/$folder/$file').readAsString(),
+    ) as Map<String, dynamic>;
     document['schemaVersion'] = 1;
     final destination = File('$root/data/pokemon/$folder/$file');
     await destination.parent.create(recursive: true);

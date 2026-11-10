@@ -2,13 +2,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
-import '../../../../avelune_studio/test/support/m2_ui_fixture.dart' show pumpIo;
+import '../../../../avelune_studio/test/support/real_test_io.dart';
 
 Future<void> playUwu6AddedMap(
   WidgetTester tester,
   PlayableMapGame game,
   bool Function(RuntimeInputEvent) input,
   String addedMapId,
+  GridPos initialPosition,
 ) async {
   Future<void> step(String mapId, GridPos position) async {
     expect(
@@ -24,7 +25,7 @@ Future<void> playUwu6AddedMap(
           !game.inputAuthoritySnapshot.isGameplayLocked) {
         break;
       }
-      await pumpIo(tester, frames: 2);
+      await RealTestIo.pump(tester, frames: 2);
     }
     expect(game.gameStateSnapshot.currentMapId, mapId);
     expect(game.debugPlayerGridPosition, position);
@@ -32,7 +33,7 @@ Future<void> playUwu6AddedMap(
   }
 
   expect(game.gameStateSnapshot.currentMapId, 'first-map');
-  expect(game.debugPlayerGridPosition, const GridPos(x: 16, y: 16));
+  expect(game.debugPlayerGridPosition, initialPosition);
   await step(addedMapId, const GridPos(x: 2, y: 2));
   void press(RuntimeInputControl control) {
     expect(input(RuntimeInputEvent.press(control)), true);
@@ -52,5 +53,5 @@ Future<void> playUwu6AddedMap(
     press(RuntimeInputControl.left);
   }
   expect(game.debugPlayerGridPosition, const GridPos(x: 2, y: 2));
-  await step('first-map', const GridPos(x: 16, y: 16));
+  await step('first-map', initialPosition);
 }

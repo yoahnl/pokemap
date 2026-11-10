@@ -9,7 +9,8 @@ import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
 import '../scenes/scene_linked_document.dart';
-import 'cinematic_inspector.dart' show cinematicActorChoiceLabel;
+import '../../../features/cinematics/application/cinematic_actor_labels.dart'
+    show cinematicActorChoiceLabel;
 import 'cinematic_labels.dart';
 
 class CinematicPreviewStatus extends StatefulWidget {

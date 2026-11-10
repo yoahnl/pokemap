@@ -1,4 +1,4 @@
-import 'package:avelune_studio/presentation/shared/keyboard/editor_shortcuts.dart';
+import 'package:avelune_studio/platform/input/editor_shortcuts.dart';
 
 import 'dart:async';
 
@@ -12,8 +12,8 @@ import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
 import '../../shared/widgets/layout/studio_page_header.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
-import '../events/event_map_loader.dart';
-import '../map_workspace/map_workspace_visuals.dart';
+import 'package:avelune_studio/features/events/application/event_map_loader.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 import '../narrative/narrative_name_dialog.dart';
 import '../narrative/scene_reference_chooser.dart';
 import '../../../features/narrative/application/scene_node_references.dart';

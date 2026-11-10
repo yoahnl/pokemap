@@ -1,32 +1,34 @@
+import 'package:avelune_studio/features/resources/application/resource_open_map_usage.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 import 'package:map_core/map_core.dart'
     show ProjectModel3dEntry, Model3dPointLight;
 
-import '../map_workspace/map_workspace_visuals.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
+
 import '../map_workspace/workspace_compact_panel.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
-import '../../shared/widgets/feedback/studio_notice.dart';
-import '../../shared/widgets/layout/studio_page_header.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
-import 'resource_catalog.dart';
-import 'resource_catalog_toolbar.dart';
+
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
+
 import 'resource_catalog_view.dart';
 import 'resource_category_filter.dart';
-import 'resource_category_tree.dart';
+
+import 'package:avelune_studio/features/resources/application/resource_category_tree.dart';
+
 import 'resource_detail_panel.dart';
 import 'resource_preview.dart';
 import 'resource_terrain_draft_list.dart';
-import 'resource_terrain_actions.dart';
+import 'package:avelune_studio/features/resources/application/resource_terrain_actions.dart';
 import 'resource_border_draft_bar.dart';
-import 'resource_creation_buttons.dart';
-import 'resource_family_navigation.dart';
-import 'resource_family_tree.dart';
+
+import 'package:avelune_studio/features/resources/application/resource_family_tree.dart';
+
 import 'resource_family_tree_view.dart';
 import 'resource_filter_button.dart';
-import 'resource_image_import.dart';
+import '../../../features/resources/domain/resource_image_picker.dart';
 part 'resource_library_layout.dart';
-part 'resource_library_header.dart';
 
 class ResourceLibraryScreen extends StatefulWidget {
   const ResourceLibraryScreen({
@@ -70,7 +72,6 @@ class ResourceLibraryScreen extends StatefulWidget {
     this.activeMapId,
     this.onModelShadowsChanged,
     this.onModelLightChanged,
-    this.onLoadFamily,
     this.onClassifyMarked,
     this.onExportMarked,
     this.onImportFor,
@@ -79,7 +80,6 @@ class ResourceLibraryScreen extends StatefulWidget {
   final ProjectManifest project;
   final ValueChanged<List<ResourceItem>>? onClassifyMarked;
   final ValueChanged<List<ResourceItem>>? onExportMarked;
-  final Future<bool> Function(ResourceLibraryFamily)? onLoadFamily;
   final List<MapData> openMaps;
   final MapWorkspaceVisuals visuals;
   final ResourceLibraryState state;
@@ -122,15 +122,11 @@ class ResourceLibraryScreen extends StatefulWidget {
 }
 
 class _ResourceLibraryScreenState extends State<ResourceLibraryScreen> {
-  late final search = TextEditingController(text: widget.state.query);
   late final scroll = ScrollController(
     initialScrollOffset: widget.state.offset,
   );
   List<ResourceItem> items = [];
   ResourceLibraryState get state => widget.state;
-  int _familyRequest = 0;
-  bool _familyLoading = false;
-  String? _familyError;
   @override
   void initState() {
     super.initState();
@@ -156,39 +152,12 @@ class _ResourceLibraryScreenState extends State<ResourceLibraryScreen> {
         state.filters.familyId = '';
       }
     }
-    if (search.text != state.query) search.text = state.query;
   }
 
   void change(VoidCallback update) {
     setState(update);
     state.offset = 0;
     if (scroll.hasClients) scroll.jumpTo(0);
-  }
-
-  Future<bool> changeFamily(ResourceLibraryFamily family) async {
-    final request = ++_familyRequest;
-    setState(() {
-      _familyLoading = true;
-      _familyError = null;
-    });
-    try {
-      final loaded = await widget.onLoadFamily?.call(family) ?? true;
-      if (!mounted || request != _familyRequest || !loaded) return false;
-      change(() => state.selectFamily(family));
-      return true;
-    } catch (failure) {
-      if (mounted && request == _familyRequest) {
-        setState(
-          () => _familyError =
-              'Cette famille ne peut pas être chargée : $failure',
-        );
-      }
-      return false;
-    } finally {
-      if (mounted && request == _familyRequest) {
-        setState(() => _familyLoading = false);
-      }
-    }
   }
 
   void changeNatureFamily(String id) => change(() {
@@ -206,31 +175,10 @@ class _ResourceLibraryScreenState extends State<ResourceLibraryScreen> {
         },
       );
 
-  void showAteliers() => showWorkspaceCompactPanel(
-    context,
-    title: 'Ateliers de préparation',
-    closeLabel: 'Retour aux ressources',
-    builder: (context, refresh, close) => families(close: close),
-  );
-
-  Widget families({VoidCallback? close}) => ResourceFamilyNavigation(
-    selected: state.family,
-    onChanged: (family) async {
-      if (await changeFamily(family)) close?.call();
-    },
-    onCharacters: widget.onCharacters == null
-        ? null
-        : () {
-            close?.call();
-            widget.onCharacters!();
-          },
-  );
-
   @override
   void dispose() {
     scroll.removeListener(remember);
     scroll.dispose();
-    search.dispose();
     super.dispose();
   }
 
@@ -331,11 +279,6 @@ class _ResourceLibraryScreenState extends State<ResourceLibraryScreen> {
   );
 
   @override
-  Widget build(BuildContext context) => Column(
-    children: [
-      if (_familyLoading) const LinearProgressIndicator(),
-      if (_familyError != null) StudioNotice(_familyError!, isError: true),
-      Expanded(child: buildLibrary(context)),
-    ],
-  );
+  Widget build(BuildContext context) =>
+      Column(children: [Expanded(child: buildLibrary(context))]);
 }

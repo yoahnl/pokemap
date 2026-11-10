@@ -1,0 +1,1 @@
+["flutter", "test", "--no-pub", "--concurrency=1", "test/map_workspace/workspace_event_source_navigation_test.dart", "-r", "failures-only"]

@@ -1,90 +1,26 @@
 part of 'map_workspace_screen.dart';
 
 extension _WorkspacePresentationBinding on _MapWorkspaceScreenState {
-  void _initializePresentations() {
-    final narrative = _narrative, port = widget.presentationPort;
-    if (narrative == null || port == null) return;
-    _presentations = PresentationWorkspaceController(
-      narrative,
-      port,
-      changed: _changed,
-      sceneDrafts: () =>
-          _scenes?.sessions.values.map((s) => s.current).toList() ?? [],
-    );
-    _presentations!.onScenePublished = (link, published) {
-      final session = _scenes?.sessions[link.scene.id];
-      if (session == null) return;
-      if (session.current == link.scene) session.commit(published);
-      session.acceptSave(published, 'presentation-publication');
-      _changed();
-    };
-  }
-
   void _openPresentations() {
     _presentationOrigin = WorkspaceReturn.story;
     _show(WorkspaceSpace.presentation);
   }
 
-  Future<void> _returnToPresentation(String? presentationId) async {
-    final request = await _prepareWorkshopRoute(
-      MapWorkspaceWorkshop.presentation,
-    );
-    if (request == null) return;
-    final owner = _presentations;
-    if (owner == null) return;
-    if (presentationId != null &&
-        owner.activeId != presentationId &&
-        !await owner.open(presentationId)) {
-      if (!mounted) return;
-      _sceneOrigin = WorkspaceReturn.story;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Cette présentation n’est plus disponible.'),
-        ),
-      );
-      _show(WorkspaceSpace.story);
-      return;
-    }
-    if (mounted && request == _navigationRequest) {
-      _show(WorkspaceSpace.presentation);
-    }
+  void _navigationNotice(String? problem) {
+    if (problem == null || !mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(problem)));
   }
 
-  Future<void> _returnFromPresentation() async {
-    final origin = _presentationOrigin;
-    final sceneId = origin.documentId;
-    if (origin.space == WorkspaceSpace.scene && sceneId != null) {
-      if (_scenes?.open(sceneId) != true) {
-        _presentationOrigin = WorkspaceReturn.story;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Cette scène n’est plus disponible.')),
-        );
-        _show(WorkspaceSpace.story);
-        return;
-      }
-    }
-    _show(origin.space);
-  }
+  Future<void> _returnToPresentation(String? id) async =>
+      _navigationNotice(await _navigation.returnToPresentation(id));
+
+  Future<void> _returnFromPresentation() async =>
+      _navigationNotice(_navigation.returnFromPresentation());
 
   Future<void> _openScenePresentation(
     ScenePresentationCinematicPayload payload,
-  ) async {
-    final request = await _prepareWorkshopRoute(
-      MapWorkspaceWorkshop.presentation,
-    );
-    if (request == null) return;
-    if (_presentations == null) return;
-    if (!await _presentations!.open(payload.presentationCinematicId) ||
-        !mounted ||
-        request != _navigationRequest) {
-      return;
-    }
-    _presentationOrigin = WorkspaceReturn(
-      WorkspaceSpace.scene,
-      documentId: _scenes?.active?.current.id,
-    );
-    _show(WorkspaceSpace.presentation);
-  }
+  ) => _navigation.openScenePresentation(payload);
 
   Future<void> _createScenePresentation(
     ScenePresentationCreationRequest request,
@@ -152,13 +88,7 @@ extension _WorkspacePresentationBinding on _MapWorkspaceScreenState {
           ? _presentationOrigin.documentId
           : null,
       onConsumer: (sceneId, nodeId) async {
-        if (_scenes?.open(sceneId) != true) return;
-        _sceneViews.forScene(sceneId).nodeId = nodeId;
-        _sceneOrigin = WorkspaceReturn(
-          WorkspaceSpace.presentation,
-          documentId: owner.activeId,
-        );
-        _show(WorkspaceSpace.scene);
+        _navigation.openPresentationConsumer(sceneId, nodeId);
       },
       visuals: _presentationVisuals!,
       onBack: () => unawaited(_returnFromPresentation()),

@@ -1,0 +1,1855 @@
+{
+  "schemaVersion": 1,
+  "family": "Home",
+  "status": "home_family_retired_protected_cases_verified",
+  "g0Accepted": false,
+  "policy": "Legacy presentation assertions are retired explicitly; protected behaviors migrate to real controllers/ports. No skipped tests.",
+  "entries": [
+    {
+      "path": "apps/avelune_studio/test/home/history_maintenance_test.dart",
+      "beforeSha256": "35c8de7f86eecf163ff936bc8993ed106b61f128f77e8eb231d2dce91dc6ec41",
+      "caseTemplates": [
+        "maintenance previews, cancels and applies without reopening",
+        "maintenance errors remain visible and release the busy guard"
+      ],
+      "assertions": [
+        {
+          "sourceLine": 47,
+          "source": "expect(button, findsOneWidget)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 50,
+          "source": "expect(maintenance.previews, 0)",
+          "decision": "migrated_protected_behavior",
+          "replacement": "apps/avelune_studio/test/home/history_maintenance_test.dart"
+        },
+        {
+          "sourceLine": 54,
+          "source": "expect(maintenance.previews, 1)",
+          "decision": "migrated_protected_behavior",
+          "replacement": "apps/avelune_studio/test/home/history_maintenance_test.dart"
+        },
+        {
+          "sourceLine": 55,
+          "source": "expect(find.textContaining('50 opérations'), findsOneWidget)",
+          "decision": "migrated_protected_behavior",
+          "replacement": "apps/avelune_studio/test/home/history_maintenance_test.dart"
+        },
+        {
+          "sourceLine": 56,
+          "source": "expect(find.textContaining('360 entrées'), findsOneWidget)",
+          "decision": "migrated_protected_behavior",
+          "replacement": "apps/avelune_studio/test/home/history_maintenance_test.dart"
+        },
+        {
+          "sourceLine": 57,
+          "source": "expect(find.textContaining('annulations indépendantes'), findsOneWidget)",
+          "decision": "migrated_protected_behavior",
+          "replacement": "apps/avelune_studio/test/home/history_maintenance_test.dart"
+        },
+        {
+          "sourceLine": 60,
+          "source": "expect(maintenance.applies, 0)",
+          "decision": "migrated_protected_behavior",
+          "replacement": "apps/avelune_studio/test/home/history_maintenance_test.dart"
+        },
+        {
+          "sourceLine": 65,
+          "source": "expect(maintenance.applies, 1)",
+          "decision": "migrated_protected_behavior",
+          "replacement": "apps/avelune_studio/test/home/history_maintenance_test.dart"
+        },
+        {
+          "sourceLine": 66,
+          "source": "expect(find.text('Entretien de l’historique…'), findsOneWidget)",
+          "decision": "migrated_protected_behavior",
+          "replacement": "apps/avelune_studio/test/home/history_maintenance_test.dart"
+        },
+        {
+          "sourceLine": 67,
+          "source": "expect(sessions.opens, 1)",
+          "decision": "migrated_protected_behavior",
+          "replacement": "apps/avelune_studio/test/home/history_maintenance_test.dart"
+        },
+        {
+          "sourceLine": 68,
+          "source": "expect(sessions.closes, 0)",
+          "decision": "migrated_protected_behavior",
+          "replacement": "apps/avelune_studio/test/home/history_maintenance_test.dart"
+        },
+        {
+          "sourceLine": 76,
+          "source": "expect(find.textContaining('20 fichiers'), findsOneWidget)",
+          "decision": "migrated_protected_behavior",
+          "replacement": "apps/avelune_studio/test/home/history_maintenance_test.dart"
+        },
+        {
+          "sourceLine": 77,
+          "source": "expect(sessions.opens, 1)",
+          "decision": "migrated_protected_behavior",
+          "replacement": "apps/avelune_studio/test/home/history_maintenance_test.dart"
+        },
+        {
+          "sourceLine": 78,
+          "source": "expect(sessions.closes, 0)",
+          "decision": "migrated_protected_behavior",
+          "replacement": "apps/avelune_studio/test/home/history_maintenance_test.dart"
+        },
+        {
+          "sourceLine": 79,
+          "source": "expect(busy.last, false)",
+          "decision": "migrated_protected_behavior",
+          "replacement": "apps/avelune_studio/test/home/history_maintenance_test.dart"
+        },
+        {
+          "sourceLine": 80,
+          "source": "expect(tester.takeException(), isNull)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 111,
+          "source": "expect(\n      find.text('Le projet a changé. Relancez l’analyse.'),\n      findsOneWidget,\n    )",
+          "decision": "migrated_protected_behavior",
+          "replacement": "apps/avelune_studio/test/home/history_maintenance_test.dart"
+        },
+        {
+          "sourceLine": 115,
+          "source": "expect(busy, [true, false])",
+          "decision": "migrated_protected_behavior",
+          "replacement": "apps/avelune_studio/test/home/history_maintenance_test.dart"
+        },
+        {
+          "sourceLine": 116,
+          "source": "expect(maintenance.applies, 0)",
+          "decision": "migrated_protected_behavior",
+          "replacement": "apps/avelune_studio/test/home/history_maintenance_test.dart"
+        }
+      ],
+      "retirementReason": "Old Home presentation is removed; controller, command, data and session guarantees migrate before deletion.",
+      "retiredFile": false,
+      "afterSha256": "8077836e14d12e0c183f86dbd5a92608993a723191258177d9dc879d50aadcd5",
+      "replacementCaseTemplates": [
+        "maintenance previews, cancels and applies without reopening",
+        "maintenance errors preserve diagnostic and release the busy guard",
+        "a changed session after preview prevents confirmation and deletion",
+        "a blocked preview cannot apply even when its caller approves"
+      ]
+    },
+    {
+      "path": "apps/avelune_studio/test/home/home_all_maps_test.dart",
+      "beforeSha256": "ef1024e4ae8e42b9e9d7179bd333369de290325fd4d5245f13aba955a645c4d6",
+      "caseTemplates": [
+        "all maps page shows nested folders and opens any map"
+      ],
+      "assertions": [
+        {
+          "sourceLine": 108,
+          "source": "expect(find.byKey(const ValueKey('home-all-maps-page')), findsOneWidget)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 109,
+          "source": "expect(find.text('Toutes les cartes (7)'), findsOneWidget)",
+          "decision": "migrated_protected_behavior",
+          "replacement": "apps/avelune_studio/test/home/home_all_maps_test.dart"
+        },
+        {
+          "sourceLine": 110,
+          "source": "expect(find.text('Hanazuki'), findsOneWidget)",
+          "decision": "migrated_protected_behavior",
+          "replacement": "apps/avelune_studio/test/home/home_all_maps_test.dart"
+        },
+        {
+          "sourceLine": 111,
+          "source": "expect(find.text('Extérieurs'), findsOneWidget)",
+          "decision": "migrated_protected_behavior",
+          "replacement": "apps/avelune_studio/test/home/home_all_maps_test.dart"
+        },
+        {
+          "sourceLine": 112,
+          "source": "expect(find.text('Intérieurs'), findsOneWidget)",
+          "decision": "migrated_protected_behavior",
+          "replacement": "apps/avelune_studio/test/home/home_all_maps_test.dart"
+        },
+        {
+          "sourceLine": 118,
+          "source": "expect(tester.widget<StudioPanel>(parentPanel).title, 'Hanazuki')",
+          "decision": "migrated_protected_behavior",
+          "replacement": "apps/avelune_studio/test/home/home_all_maps_test.dart"
+        },
+        {
+          "sourceLine": 128,
+          "source": "expect(find.text('Sans dossier'), findsOneWidget)",
+          "decision": "migrated_protected_behavior",
+          "replacement": "apps/avelune_studio/test/home/home_all_maps_test.dart"
+        },
+        {
+          "sourceLine": 136,
+          "source": "expect(opened, ['f'])",
+          "decision": "migrated_protected_behavior",
+          "replacement": "apps/avelune_studio/test/home/home_all_maps_test.dart"
+        },
+        {
+          "sourceLine": 146,
+          "source": "expect(find.byKey(const ValueKey('home-all-maps-page')), findsNothing)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 147,
+          "source": "expect(tester.takeException(), isNull)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        }
+      ],
+      "retirementReason": "Old Home presentation is removed; controller, command, data and session guarantees migrate before deletion.",
+      "retiredFile": false,
+      "afterSha256": "81ac78db107717b782ba27c384f9e2f9948ccf52e94a5a02a2bd501b1a906fb4",
+      "replacementCaseTemplates": [
+        "nested map collection preserves folders and opens an ungrouped map"
+      ]
+    },
+    {
+      "path": "apps/avelune_studio/test/home/home_character_navigation_test.dart",
+      "beforeSha256": "f4cedf901946427c37551f182f154902e351902596a7cb31d1876a57d0f4d0ab",
+      "caseTemplates": [
+        "home character placement preserves map and opens palette: compact=$compact"
+      ],
+      "assertions": [
+        {
+          "sourceLine": 81,
+          "source": "expect(shortcut.hitTestable(), findsOneWidget)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 85,
+          "source": "expect(find.text('Placer un personnage'), findsOneWidget)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 88,
+          "source": "expect(openings, 1)",
+          "decision": "migrated_protected_behavior",
+          "replacement": "apps/avelune_studio/test/home/home_character_navigation_test.dart"
+        },
+        {
+          "sourceLine": 89,
+          "source": "expect(\n          find.byKey(const ValueKey('character-guide')).hitTestable(),\n          findsOneWidget,\n        )",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 108,
+          "source": "expect(view.tool, StudioMapTool.select)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 109,
+          "source": "expect(view.brush, isNull)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 110,
+          "source": "expect(view.tile, isNull)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 111,
+          "source": "expect(view.terrain, isNull)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 112,
+          "source": "expect(view.paletteTab, 'Personnages')",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 113,
+          "source": "expect(find.text('Choisissez un personnage à placer.'), findsOneWidget)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 115,
+          "source": "expect(tester.widget<StudioPrimaryNavigation>(nav).active, 'map')",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 116,
+          "source": "expect(\n          find.descendant(of: nav, matching: find.byTooltip('Personnages')),\n          findsNothing,\n        )",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 120,
+          "source": "expect(controller.active, same(document))",
+          "decision": "migrated_protected_behavior",
+          "replacement": "apps/avelune_studio/test/home/home_character_navigation_test.dart"
+        },
+        {
+          "sourceLine": 121,
+          "source": "expect(document.current, same(before))",
+          "decision": "migrated_protected_behavior",
+          "replacement": "apps/avelune_studio/test/home/home_character_navigation_test.dart"
+        },
+        {
+          "sourceLine": 122,
+          "source": "expect(view.transform.value, transform)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 123,
+          "source": "expect(document.canUndo, isTrue)",
+          "decision": "migrated_protected_behavior",
+          "replacement": "apps/avelune_studio/test/home/home_character_navigation_test.dart"
+        },
+        {
+          "sourceLine": 138,
+          "source": "expect(document.current, same(before))",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 139,
+          "source": "expect(\n          find.byKey(const ValueKey('character-guide')).hitTestable(),\n          findsOneWidget,\n        )",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 145,
+          "source": "expect(view.tool, StudioMapTool.character)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 147,
+          "source": "expect(document.current.entities.single.npc!.characterId, guide.id)",
+          "decision": "migrated_protected_behavior",
+          "replacement": "apps/avelune_studio/test/home/home_character_navigation_test.dart"
+        },
+        {
+          "sourceLine": 148,
+          "source": "expect(document.current.placedElements, before.placedElements)",
+          "decision": "migrated_protected_behavior",
+          "replacement": "apps/avelune_studio/test/home/home_character_navigation_test.dart"
+        },
+        {
+          "sourceLine": 150,
+          "source": "expect(document.current, before)",
+          "decision": "migrated_protected_behavior",
+          "replacement": "apps/avelune_studio/test/home/home_character_navigation_test.dart"
+        },
+        {
+          "sourceLine": 151,
+          "source": "expect(openings, 1)",
+          "decision": "migrated_protected_behavior",
+          "replacement": "apps/avelune_studio/test/home/home_character_navigation_test.dart"
+        },
+        {
+          "sourceLine": 152,
+          "source": "expect(tester.takeException(), isNull)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        }
+      ],
+      "retirementReason": "Old Home presentation is removed; controller, command, data and session guarantees migrate before deletion.",
+      "retiredFile": false,
+      "afterSha256": "55ee95a9bc313dc34f2b0b13e89c5538510d69ec0adb29aef49786a1562a868d",
+      "replacementCaseTemplates": [
+        "character placement keeps active draft and other map content undoable"
+      ]
+    },
+    {
+      "path": "apps/avelune_studio/test/home/home_closed_preview_lifecycle_test.dart",
+      "beforeSha256": "e757b50331794d369721947d551da8f7ef47b9642c726ac17df6e9d3ff44b340",
+      "caseTemplates": [
+        "home closes after export and reopens, opening=$opening"
+      ],
+      "assertions": [
+        {
+          "sourceLine": 94,
+          "source": "expect(find.byType(StudioHomeMapPreview), findsNWidgets(2))",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 97,
+          "source": "expect(find.byType(StudioGameExportPage), findsOneWidget)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 100,
+          "source": "expect(find.byType(StudioHomeMapPreview), findsNWidgets(2))",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 103,
+          "source": "expect(session.state.project, isNull)",
+          "decision": "migrated_protected_behavior",
+          "replacement": "apps/avelune_studio/test/home/home_closed_preview_lifecycle_test.dart"
+        },
+        {
+          "sourceLine": 104,
+          "source": "expect(home!.maps, isEmpty)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 105,
+          "source": "expect(home!.mapLibrary, isNull)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 106,
+          "source": "expect(home!.mapPreviewBuilder, isNull)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 107,
+          "source": "expect(\n        find.byType(StudioHomeMapPreview, skipOffstage: false),\n        findsNothing,\n      )",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 111,
+          "source": "expect(tester.takeException(), isNull)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 115,
+          "source": "expect(session.state.project, isNotNull)",
+          "decision": "migrated_protected_behavior",
+          "replacement": "apps/avelune_studio/test/home/home_closed_preview_lifecycle_test.dart"
+        },
+        {
+          "sourceLine": 116,
+          "source": "expect(visuals, hasLength(2))",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 119,
+          "source": "expect(find.byType(StudioHomeMapPreview), findsNWidgets(2))",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 120,
+          "source": "expect(tester.takeException(), isNull)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        }
+      ],
+      "retirementReason": "Old Home/export-page routing and Home preview widget teardown are retired. This test never produced an exported archive; session close/reopen and stale picker ownership migrate to real ports.",
+      "retiredFile": false,
+      "afterSha256": "53c900297d0ad108fbbe410ac705169bc7cf1b8a7dc9b21ebf8a42c56ecd4fea",
+      "replacementCaseTemplates": [
+        "closed on-disk project reopens with a fresh session and intact maps",
+        "disposed picker cannot replace the new session owner"
+      ]
+    },
+    {
+      "path": "apps/avelune_studio/test/home/home_exit_guard_test.dart",
+      "beforeSha256": "364467d38148a2f2ff8910b85ae85faff28e8c2f700c601199da62223a9c4d65",
+      "caseTemplates": [
+        "old session disposal cannot clear replacement exit guard"
+      ],
+      "assertions": [
+        {
+          "sourceLine": 47,
+          "source": "expect(await tester.binding.handleRequestAppExit(), AppExitResponse.cancel)",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/home_exit_guard_test.dart"
+        },
+        {
+          "sourceLine": 48,
+          "source": "expect(guardCalls, 1)",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/home_exit_guard_test.dart"
+        },
+        {
+          "sourceLine": 49,
+          "source": "expect(session.disposed, isFalse)",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/home_exit_guard_test.dart"
+        },
+        {
+          "sourceLine": 50,
+          "source": "expect(session.state.project, same(exampleB))",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/home_exit_guard_test.dart"
+        },
+        {
+          "sourceLine": 51,
+          "source": "expect(port.released, [exampleA])",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/home_exit_guard_test.dart"
+        },
+        {
+          "sourceLine": 53,
+          "source": "expect(await tester.binding.handleRequestAppExit(), AppExitResponse.exit)",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/home_exit_guard_test.dart"
+        },
+        {
+          "sourceLine": 54,
+          "source": "expect(guardCalls, 2)",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/home_exit_guard_test.dart"
+        },
+        {
+          "sourceLine": 55,
+          "source": "expect(session.disposed, isTrue)",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/home_exit_guard_test.dart"
+        },
+        {
+          "sourceLine": 56,
+          "source": "expect(port.released, [exampleA, exampleB])",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/home_exit_guard_test.dart"
+        },
+        {
+          "sourceLine": 58,
+          "source": "expect(tester.takeException(), isNull)",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/home_exit_guard_test.dart"
+        }
+      ],
+      "retirementReason": "Old Home presentation is removed; controller, command, data and session guarantees migrate before deletion.",
+      "retiredFile": false,
+      "afterSha256": "364467d38148a2f2ff8910b85ae85faff28e8c2f700c601199da62223a9c4d65",
+      "replacementCaseTemplates": [
+        "old session disposal cannot clear replacement exit guard"
+      ]
+    },
+    {
+      "path": "apps/avelune_studio/test/home/home_ground_navigation_test.dart",
+      "beforeSha256": "7f6f7e5c8ca9669f8ee51457fa4689846aa1f821c40c8dac06280d7de9875a78",
+      "caseTemplates": [
+        "the home ground tool returns to the map with the ground gesture"
+      ],
+      "assertions": [
+        {
+          "sourceLine": 49,
+          "source": "expect(\n        find.descendant(of: ground, matching: find.text('Peindre le sol')),\n        findsOneWidget,\n      )",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 56,
+          "source": "expect(tester.widget<StudioPrimaryNavigation>(nav).active, 'map')",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 60,
+          "source": "expect(view.paletteTab, 'Terrains')",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 61,
+          "source": "expect(\n        tester\n            .widget<MapWorkspaceLayout>(find.byType(MapWorkspaceLayout))\n            .palette,\n        isTrue,\n      )",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 67,
+          "source": "expect(\n        {StudioMapTool.terrain, StudioMapTool.select}.contains(view.tool),\n        isTrue,\n      )",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 71,
+          "source": "expect(tester.takeException(), isNull)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        }
+      ],
+      "retirementReason": "Old Home shortcut, palette tab, gesture selection and labels only; no terrain write was executed by this test.",
+      "retiredFile": true
+    },
+    {
+      "path": "apps/avelune_studio/test/home/home_lazy_collection_test.dart",
+      "beforeSha256": "3058d22a1c98d9c1f47e1f2c561a036c425e10dbfdb8eaea715fc715e7f7687b",
+      "caseTemplates": [
+        "compact home builds long recent collections on demand"
+      ],
+      "assertions": [
+        {
+          "sourceLine": 49,
+          "source": "expect(find.text('Projet 99'), findsNothing)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 59,
+          "source": "expect(find.text('Projet 99'), findsOneWidget)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 60,
+          "source": "expect(tester.getRect(find.byType(StudioPrimaryNavigation)), frame)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 61,
+          "source": "expect(tester.takeException(), isNull)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        }
+      ],
+      "retirementReason": "Old Home lazy item construction and fixed frame geometry; presentation removed, no project data was mutated.",
+      "retiredFile": true
+    },
+    {
+      "path": "apps/avelune_studio/test/home/home_map_creation_entry_test.dart",
+      "beforeSha256": "8761d2647e459e474764e2dd1c8c92119335629a1f77ad2ad91f946666bd17c5",
+      "caseTemplates": [
+        "all maps offers the shared creation entry even when empty"
+      ],
+      "assertions": [
+        {
+          "sourceLine": 24,
+          "source": "expect(find.text('Nouvelle carte'), findsOneWidget)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        }
+      ],
+      "retirementReason": "Old button label only; original test did not invoke creation. Real creation controller tests remain.",
+      "retiredFile": true
+    },
+    {
+      "path": "apps/avelune_studio/test/home/home_navigation_test.dart",
+      "beforeSha256": "68ad8bb80c8fb4b1f179a0712db64c16fe2a43b60e24f2fd8d46751da39d271c",
+      "caseTemplates": [
+        "home keeps mounted workspace, document, zoom and undo; cancelled switch preserves it"
+      ],
+      "assertions": [
+        {
+          "sourceLine": 50,
+          "source": "expect(maps.reads, 0)",
+          "decision": "migrated_protected_behavior",
+          "replacement": "apps/avelune_studio/test/home/home_navigation_test.dart"
+        },
+        {
+          "sourceLine": 68,
+          "source": "expect(find.text('Reprendre mon projet'), findsOneWidget)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 69,
+          "source": "expect(controller.active, same(document))",
+          "decision": "migrated_protected_behavior",
+          "replacement": "apps/avelune_studio/test/home/home_navigation_test.dart"
+        },
+        {
+          "sourceLine": 70,
+          "source": "expect(document.dirty, isTrue)",
+          "decision": "migrated_protected_behavior",
+          "replacement": "apps/avelune_studio/test/home/home_navigation_test.dart"
+        },
+        {
+          "sourceLine": 71,
+          "source": "expect(maps.reads, reads + 1)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 72,
+          "source": "expect(controller.documents.keys, ['a'])",
+          "decision": "migrated_protected_behavior",
+          "replacement": "apps/avelune_studio/test/home/home_navigation_test.dart"
+        },
+        {
+          "sourceLine": 73,
+          "source": "expect(maps.writes, 0)",
+          "decision": "migrated_protected_behavior",
+          "replacement": "apps/avelune_studio/test/home/home_navigation_test.dart"
+        },
+        {
+          "sourceLine": 79,
+          "source": "expect(port.opens, ['/fixture'])",
+          "decision": "migrated_protected_behavior",
+          "replacement": "apps/avelune_studio/test/home/home_navigation_test.dart"
+        },
+        {
+          "sourceLine": 80,
+          "source": "expect(port.closed, isEmpty)",
+          "decision": "migrated_protected_behavior",
+          "replacement": "apps/avelune_studio/test/home/home_navigation_test.dart"
+        },
+        {
+          "sourceLine": 81,
+          "source": "expect(controller.active, same(document))",
+          "decision": "migrated_protected_behavior",
+          "replacement": "apps/avelune_studio/test/home/home_navigation_test.dart"
+        },
+        {
+          "sourceLine": 84,
+          "source": "expect(\n        tester.state(find.byType(MapWorkspaceScreen)),\n        same(originalState),\n      )",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 88,
+          "source": "expect(\n        tester.widget<MapWorkspaceLayout>(find.byType(MapWorkspaceLayout)).view,\n        same(view),\n      )",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 92,
+          "source": "expect(view.transform.value, transform)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 93,
+          "source": "expect(document.current.name, 'Modification conservée')",
+          "decision": "migrated_protected_behavior",
+          "replacement": "apps/avelune_studio/test/home/home_navigation_test.dart"
+        },
+        {
+          "sourceLine": 96,
+          "source": "expect(document.current.name, 'a')",
+          "decision": "migrated_protected_behavior",
+          "replacement": "apps/avelune_studio/test/home/home_navigation_test.dart"
+        },
+        {
+          "sourceLine": 97,
+          "source": "expect(maps.reads, reads + 1)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 98,
+          "source": "expect(tester.takeException(), isNull)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        }
+      ],
+      "retirementReason": "Old Home presentation is removed; controller, command, data and session guarantees migrate before deletion.",
+      "retiredFile": false,
+      "afterSha256": "4b9bf337010d604e0f03b3d7e0d7e9bd1c866e9bb7ba8403afc35ff376393d28",
+      "replacementCaseTemplates": [
+        "cancelled project switch preserves document, history and session",
+        "cancelled picker cannot open a project after its choice arrives",
+        "picker failure preserves the active project and releases busy state"
+      ]
+    },
+    {
+      "path": "apps/avelune_studio/test/home/home_next_steps_test.dart",
+      "beforeSha256": "aded5080b037eed7997219f2fb3d97c3ddb0897d82ff5e33e38af6e03d78a005",
+      "caseTemplates": [
+        "an empty project asks for a map and a start, verifies nothing",
+        "map and start are done only when the manifest proves them",
+        "a start pointing to a missing map is not reported as done",
+        "without the project manifest the start stays unverified",
+        "home shows next steps, keeps direct tools and can hide them",
+        "writable session $storage never claims read-only",
+        "published catalog names what is read-only and why"
+      ],
+      "assertions": [
+        {
+          "sourceLine": 24,
+          "source": "expect([for (final step in steps) step.kind], HomeNextStepKind.values)",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/home_next_steps_test.dart"
+        },
+        {
+          "sourceLine": 25,
+          "source": "expect(steps[0].status, HomeNextStepStatus.todo)",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/home_next_steps_test.dart"
+        },
+        {
+          "sourceLine": 26,
+          "source": "expect(steps[0].destination, 'createMap')",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/home_next_steps_test.dart"
+        },
+        {
+          "sourceLine": 27,
+          "source": "expect(steps[1].status, HomeNextStepStatus.todo)",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/home_next_steps_test.dart"
+        },
+        {
+          "sourceLine": 29,
+          "source": "expect(\n        step.status,\n        HomeNextStepStatus.unverified,\n        reason: '${step.kind}',\n      )",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/home_next_steps_test.dart"
+        },
+        {
+          "sourceLine": 43,
+          "source": "expect(steps[0].status, HomeNextStepStatus.done)",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/home_next_steps_test.dart"
+        },
+        {
+          "sourceLine": 44,
+          "source": "expect(steps[0].destination, 'map')",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/home_next_steps_test.dart"
+        },
+        {
+          "sourceLine": 45,
+          "source": "expect(steps[1].status, HomeNextStepStatus.done)",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/home_next_steps_test.dart"
+        },
+        {
+          "sourceLine": 46,
+          "source": "expect(steps[1].mapId, 'bourg')",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/home_next_steps_test.dart"
+        },
+        {
+          "sourceLine": 47,
+          "source": "expect(steps[1].detail, contains('Bourg Geon'))",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/home_next_steps_test.dart"
+        },
+        {
+          "sourceLine": 48,
+          "source": "expect(\n      steps.where((step) => step.status == HomeNextStepStatus.done).length,\n      2,\n    )",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/home_next_steps_test.dart"
+        },
+        {
+          "sourceLine": 52,
+          "source": "expect(steps.last.destination, 'testGame')",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/home_next_steps_test.dart"
+        },
+        {
+          "sourceLine": 53,
+          "source": "expect(steps.last.unavailableReason, isNull)",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/home_next_steps_test.dart"
+        },
+        {
+          "sourceLine": 62,
+          "source": "expect(steps[1].status, HomeNextStepStatus.todo)",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/home_next_steps_test.dart"
+        },
+        {
+          "sourceLine": 63,
+          "source": "expect(steps[1].detail, contains('introuvable'))",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/home_next_steps_test.dart"
+        },
+        {
+          "sourceLine": 64,
+          "source": "expect(steps.last.unavailableReason, isNotNull)",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/home_next_steps_test.dart"
+        },
+        {
+          "sourceLine": 73,
+          "source": "expect(steps[0].status, HomeNextStepStatus.done)",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/home_next_steps_test.dart"
+        },
+        {
+          "sourceLine": 74,
+          "source": "expect(steps[1].status, HomeNextStepStatus.unverified)",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/home_next_steps_test.dart"
+        },
+        {
+          "sourceLine": 82,
+          "source": "expect(find.text('Prochaines étapes'), findsOneWidget)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 83,
+          "source": "expect(find.text('Vos outils de création'), findsOneWidget)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 84,
+          "source": "expect(find.text('Fait'), findsOneWidget)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 85,
+          "source": "expect(find.text('Non vérifié'), findsNWidgets(3))",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 91,
+          "source": "expect(opened, ['map'])",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 97,
+          "source": "expect(find.byKey(const ValueKey('home-next-step-start')), findsNothing)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 98,
+          "source": "expect(find.byKey(const ValueKey('home-next-steps-show')), findsOneWidget)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 99,
+          "source": "expect(find.text('Vos outils de création'), findsOneWidget)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 110,
+          "source": "expect(find.textContaining('lecture seule'), findsNothing)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 111,
+          "source": "expect(find.text('Projet ouvert'), findsOneWidget)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 119,
+          "source": "expect(find.textContaining('lecture seule'), findsOneWidget)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 120,
+          "source": "expect(find.textContaining('projet publié'), findsOneWidget)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 121,
+          "source": "expect(find.textContaining('projet de travail'), findsOneWidget)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        }
+      ],
+      "retirementReason": "Old next-steps visibility and ProjectOpenControls wording retired; four HomeNextSteps contract cases remain. Published read-only mutation protection remains in resource_io/local_model_shadow_mutation_test.dart and working_catalog_adapter_test.dart.",
+      "retiredFile": false,
+      "afterSha256": "40feb6c62514798c2302489e34ffa379cf3ef45d9266f88ad54d3c69d82560c3",
+      "replacementCaseTemplates": [
+        "an empty project asks for a map and a start, verifies nothing",
+        "map and start are done only when the manifest proves them",
+        "a start pointing to a missing map is not reported as done",
+        "without the project manifest the start stays unverified"
+      ]
+    },
+    {
+      "path": "apps/avelune_studio/test/home/home_real_project_test.dart",
+      "beforeSha256": "15ae6a3a2e0950bbd256231cb2b420836ddf2f3790ccf55711c761a7a42f6c87",
+      "caseTemplates": [
+        "opens disposable on-disk project and captures the real active home"
+      ],
+      "assertions": [
+        {
+          "sourceLine": 59,
+          "source": "expect(\n        session.state.project?.directoryPath,\n        fixture.session.directoryPath,\n      )",
+          "decision": "migrated_protected_behavior",
+          "replacement": "apps/avelune_studio/test/home/home_real_project_test.dart"
+        },
+        {
+          "sourceLine": 63,
+          "source": "expect(find.byType(MapWorkspaceLayout), findsOneWidget)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 70,
+          "source": "expect(\n        find.byType(StudioHomeMapPreview, skipOffstage: false),\n        findsNothing,\n      )",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 80,
+          "source": "expect(previews, findsNWidgets(fixture.controller.project!.maps.length))",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 85,
+          "source": "expect(canvases, findsNWidgets(fixture.controller.project!.maps.length))",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 86,
+          "source": "expect(\n        tester\n            .widgetList<StudioMapVisual>(canvases)\n            .every((visual) => visual.preview),\n        isTrue,\n      )",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 92,
+          "source": "expect(\n        tester\n            .widgetList<StudioMapVisual>(canvases)\n            .any((visual) => identical(visual.map, document.current)),\n        isTrue,\n      )",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 98,
+          "source": "expect(find.text('Aperçu indisponible'), findsNothing)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 100,
+          "source": "expect(fixture.controller.active, same(document))",
+          "decision": "migrated_protected_behavior",
+          "replacement": "apps/avelune_studio/test/home/home_real_project_test.dart"
+        },
+        {
+          "sourceLine": 101,
+          "source": "expect(document.dirty, isTrue)",
+          "decision": "migrated_protected_behavior",
+          "replacement": "apps/avelune_studio/test/home/home_real_project_test.dart"
+        },
+        {
+          "sourceLine": 104,
+          "source": "expect(fixture.controller.active, same(document))",
+          "decision": "migrated_protected_behavior",
+          "replacement": "apps/avelune_studio/test/home/home_real_project_test.dart"
+        },
+        {
+          "sourceLine": 105,
+          "source": "expect(tester.takeException(), isNull)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        }
+      ],
+      "retirementReason": "Old Home presentation is removed; controller, command, data and session guarantees migrate before deletion.",
+      "retiredFile": false,
+      "afterSha256": "e0a6b91f5b7cc858d0666b648d5a26ae3ff400bb1b0868f4bf5e11c58fd478d4",
+      "replacementCaseTemplates": [
+        "opening an on-disk project preserves an unsaved active map and original bytes"
+      ]
+    },
+    {
+      "path": "apps/avelune_studio/test/home/home_start_step_scoped_test.dart",
+      "beforeSha256": "21b0cb4762d4cedc2f58a1c6d7b5061d20eb5209c6f7859fe621aab6b02dbe3c",
+      "caseTemplates": [
+        "a scoped catalog proves the start without reading the project",
+        "a scoped catalog without a start reads as to do, not unverified"
+      ],
+      "assertions": [
+        {
+          "sourceLine": 22,
+          "source": "expect(controller.hasCompleteProject, isFalse)",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/home_start_step_scoped_test.dart"
+        },
+        {
+          "sourceLine": 23,
+          "source": "expect(controller.homeNewGame?.startMapId, 'second')",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/home_start_step_scoped_test.dart"
+        },
+        {
+          "sourceLine": 25,
+          "source": "expect(controller.homeNewGame?.startMapId, 'second')",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/home_start_step_scoped_test.dart"
+        },
+        {
+          "sourceLine": 26,
+          "source": "expect(port.fullReads, 0)",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/home_start_step_scoped_test.dart"
+        },
+        {
+          "sourceLine": 36,
+          "source": "expect(start.status, HomeNextStepStatus.done)",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/home_start_step_scoped_test.dart"
+        },
+        {
+          "sourceLine": 37,
+          "source": "expect(start.detail, 'La partie commence sur Seconde.')",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/home_start_step_scoped_test.dart"
+        },
+        {
+          "sourceLine": 52,
+          "source": "expect(start.status, HomeNextStepStatus.todo)",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/home_start_step_scoped_test.dart"
+        }
+      ],
+      "retirementReason": "Old Home presentation is removed; controller, command, data and session guarantees migrate before deletion.",
+      "retiredFile": false,
+      "afterSha256": "21b0cb4762d4cedc2f58a1c6d7b5061d20eb5209c6f7859fe621aab6b02dbe3c",
+      "replacementCaseTemplates": [
+        "a scoped catalog proves the start without reading the project",
+        "a scoped catalog without a start reads as to do, not unverified"
+      ]
+    },
+    {
+      "path": "apps/avelune_studio/test/home/home_tools_cards_test.dart",
+      "beforeSha256": "bcafb44c16c1bf4d82579de74874a8c765db184867383699851fa2ca687e24cc",
+      "caseTemplates": [
+        "creation tool cards share one height at $width and $textScale"
+      ],
+      "assertions": [
+        {
+          "sourceLine": 45,
+          "source": "expect(heights.toSet(), hasLength(1))",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 47,
+          "source": "expect(destinations, ['map'])",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 49,
+          "source": "expect(destinations, ['map', 'regionalMap'])",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 54,
+          "source": "expect(destinations, ['map', 'regionalMap', 'testGame'])",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 55,
+          "source": "expect(tester.takeException(), isNull)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        }
+      ],
+      "retirementReason": "Old card sizing and destination callbacks only; no authoring command was executed.",
+      "retiredFile": true
+    },
+    {
+      "path": "apps/avelune_studio/test/home/home_visual_test.dart",
+      "beforeSha256": "4276e6506df51a5c172dac2e328b42f4f6902950cdfeabcf5e398edf4b681a68",
+      "caseTemplates": [
+        "map cards align with one and two line titles at $textScale",
+        "home fits $size with real layout and local search",
+        "long home collections scroll locally without moving the frame"
+      ],
+      "assertions": [
+        {
+          "sourceLine": 52,
+          "source": "expect(buttons, findsNWidgets(2))",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 53,
+          "source": "expect(\n        tester.getTopLeft(buttons.at(0)).dy,\n        tester.getTopLeft(buttons.at(1)).dy,\n      )",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 57,
+          "source": "expect(tester.takeException(), isNull)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 144,
+          "source": "expect(tester.takeException(), isNull)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 145,
+          "source": "expect(\n        find.descendant(\n          of: find.byType(StudioPrimaryNavigation),\n          matching: find.byTooltip('Exporter le jeu'),\n        ),\n        findsNothing,\n      )",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 153,
+          "source": "expect(\n          find.byKey(const ValueKey('home-local-content-scroll')),\n          findsNothing,\n        )",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 157,
+          "source": "expect(\n          find.descendant(\n            of: find.byType(StudioPrimaryNavigation),\n            matching: find.byType(Scrollable),\n          ),\n          findsNothing,\n        )",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 185,
+          "source": "expect(find.text('Clairière de test'), findsNothing)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 186,
+          "source": "expect(find.text('Village de test'), findsWidgets)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 187,
+          "source": "expect(tester.takeException(), isNull)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 200,
+          "source": "expect(resumed, 1)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 203,
+          "source": "expect(routes.last, 'gameExport')",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 215,
+          "source": "expect(routes.last, destination)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 221,
+          "source": "expect(\n        tester\n            .widget<StudioButton>(\n              find.byKey(const ValueKey('home-export-game')),\n            )\n            .onPressed,\n        isNull,\n      )",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 229,
+          "source": "expect(find.byTooltip('Exporter le jeu'), findsNothing)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 235,
+          "source": "expect(picked, 1)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 240,
+          "source": "expect(routes.last, 'resources')",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 241,
+          "source": "expect(\n          tester\n              .widget<InkWell>(find.byKey(const ValueKey('home-tool-test')))\n              .onTap,\n          isNull,\n        )",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 248,
+          "source": "expect(tester.takeException(), isNull)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 286,
+          "source": "expect(find.text('Projet 99'), findsNothing)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 287,
+          "source": "expect(find.text('Voir toutes les cartes (10)'), findsOneWidget)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 294,
+          "source": "expect(tester.getRect(find.byType(StudioPrimaryNavigation)), navigation)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 295,
+          "source": "expect(tester.getRect(find.text('BIENVENUE DANS AVELUNE STUDIO')), hero)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 305,
+          "source": "expect(find.text('Projet 99'), findsOneWidget)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 308,
+          "source": "expect(find.text('Toutes les cartes (10)'), findsOneWidget)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 309,
+          "source": "expect(routes, isEmpty)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 310,
+          "source": "expect(tester.takeException(), isNull)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        }
+      ],
+      "retirementReason": "Old card alignment, responsive layout, local Home filtering, scrolling and destination callbacks; no persistence or engine action.",
+      "retiredFile": true
+    },
+    {
+      "path": "apps/avelune_studio/test/home/recent_projects_test.dart",
+      "beforeSha256": "a33eb7e8d0136822a50af161cfea72c8ae051bf864fa9221b6996a7c311c7bab",
+      "caseTemplates": [
+        "keeps five most recently opened projects and updates duplicates",
+        "persists exact paths and removal never touches project directories",
+        "imports the last PokeMap project without modifying its files",
+        "reactivates legacy access without restoring a removed recent",
+        "keeps Studio recents when the legacy bookmark is unavailable",
+        "load completes before queued opening and writes are serialized",
+        "reports corrupt storage without modifying it and can recover",
+        "missing preferences start empty and disposed listeners stay silent"
+      ],
+      "assertions": [
+        {
+          "sourceLine": 28,
+          "source": "expect(controller.entries.map((entry) => entry.directoryPath), [\n        '/project-6',\n        '/project-5',\n        '/project-4',\n        '/project-3',\n        '/project-2',\n      ])",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/recent_projects_test.dart"
+        },
+        {
+          "sourceLine": 36,
+          "source": "expect(controller.entries.first.name, 'Nouveau nom')",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/recent_projects_test.dart"
+        },
+        {
+          "sourceLine": 37,
+          "source": "expect(controller.entries, hasLength(5))",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/recent_projects_test.dart"
+        },
+        {
+          "sourceLine": 38,
+          "source": "expect(() => controller.entries.clear(), throwsUnsupportedError)",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/recent_projects_test.dart"
+        },
+        {
+          "sourceLine": 61,
+          "source": "expect(reopened.entries.single.directoryPath, personal.path)",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/recent_projects_test.dart"
+        },
+        {
+          "sourceLine": 63,
+          "source": "expect(await adapter.load(), isEmpty)",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/recent_projects_test.dart"
+        },
+        {
+          "sourceLine": 64,
+          "source": "expect(await manifest.readAsString(), 'unchanged')",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/recent_projects_test.dart"
+        },
+        {
+          "sourceLine": 65,
+          "source": "expect(await personal.exists(), isTrue)",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/recent_projects_test.dart"
+        },
+        {
+          "sourceLine": 66,
+          "source": "expect(await Directory('${root.path}/settings').list().length, 1)",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/recent_projects_test.dart"
+        },
+        {
+          "sourceLine": 89,
+          "source": "expect(imported.single.name, 'Legacy Adventure')",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/recent_projects_test.dart"
+        },
+        {
+          "sourceLine": 90,
+          "source": "expect(imported.single.directoryPath, project.path)",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/recent_projects_test.dart"
+        },
+        {
+          "sourceLine": 91,
+          "source": "expect(imported.single.lastOpenedAt, DateTime.utc(2026, 9, 27))",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/recent_projects_test.dart"
+        },
+        {
+          "sourceLine": 92,
+          "source": "expect(await File(storage).exists(), isTrue)",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/recent_projects_test.dart"
+        },
+        {
+          "sourceLine": 93,
+          "source": "expect(await manifest.readAsString(), 'unchanged')",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/recent_projects_test.dart"
+        },
+        {
+          "sourceLine": 116,
+          "source": "expect(await adapter.load(), hasLength(1))",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/recent_projects_test.dart"
+        },
+        {
+          "sourceLine": 118,
+          "source": "expect(await adapter.load(), isEmpty)",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/recent_projects_test.dart"
+        },
+        {
+          "sourceLine": 119,
+          "source": "expect(resolves, 2)",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/recent_projects_test.dart"
+        },
+        {
+          "sourceLine": 145,
+          "source": "expect((await adapter.load()).single.directoryPath, '/studio-project')",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/recent_projects_test.dart"
+        },
+        {
+          "sourceLine": 146,
+          "source": "expect(await File(storage).readAsString(), before)",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/recent_projects_test.dart"
+        },
+        {
+          "sourceLine": 167,
+          "source": "expect(port.maximumConcurrentWrites, 1)",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/recent_projects_test.dart"
+        },
+        {
+          "sourceLine": 168,
+          "source": "expect(\n        port.saved.map((entry) => entry.directoryPath),\n        containsAll(['/old', '/first', '/second']),\n      )",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/recent_projects_test.dart"
+        },
+        {
+          "sourceLine": 191,
+          "source": "expect(controller.error, isNotNull)",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/recent_projects_test.dart"
+        },
+        {
+          "sourceLine": 192,
+          "source": "expect(controller.entries, isEmpty)",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/recent_projects_test.dart"
+        },
+        {
+          "sourceLine": 193,
+          "source": "expect(await storage.readAsString(), '{broken')",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/recent_projects_test.dart"
+        },
+        {
+          "sourceLine": 195,
+          "source": "expect(controller.error, isNull)",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/recent_projects_test.dart"
+        },
+        {
+          "sourceLine": 196,
+          "source": "expect(notifications, 2)",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/recent_projects_test.dart"
+        },
+        {
+          "sourceLine": 214,
+          "source": "expect(controller.entries, isEmpty)",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/recent_projects_test.dart"
+        },
+        {
+          "sourceLine": 215,
+          "source": "expect(controller.error, isNull)",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/recent_projects_test.dart"
+        },
+        {
+          "sourceLine": 220,
+          "source": "expect(notifications, 1)",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/recent_projects_test.dart"
+        },
+        {
+          "sourceLine": 221,
+          "source": "expect(controller.entries.single.directoryPath, '/first')",
+          "decision": "preserved_unchanged",
+          "replacement": "apps/avelune_studio/test/home/recent_projects_test.dart"
+        }
+      ],
+      "retirementReason": "Old Home presentation is removed; controller, command, data and session guarantees migrate before deletion.",
+      "retiredFile": false,
+      "afterSha256": "a33eb7e8d0136822a50af161cfea72c8ae051bf864fa9221b6996a7c311c7bab",
+      "replacementCaseTemplates": [
+        "keeps five most recently opened projects and updates duplicates",
+        "persists exact paths and removal never touches project directories",
+        "imports the last PokeMap project without modifying its files",
+        "reactivates legacy access without restoring a removed recent",
+        "keeps Studio recents when the legacy bookmark is unavailable",
+        "load completes before queued opening and writes are serialized",
+        "reports corrupt storage without modifying it and can recover",
+        "missing preferences start empty and disposed listeners stay silent"
+      ]
+    },
+    {
+      "path": "apps/avelune_studio/test/project_creation/home_creation_entry_test.dart",
+      "beforeSha256": "f4bc57065bccec84f345cbe267281cb90c856212f7cfece9904597cf58ffd1ea",
+      "caseTemplates": [
+        "new project is an active action inside existing recents"
+      ],
+      "assertions": [
+        {
+          "sourceLine": 29,
+          "source": "expect(action, findsOneWidget)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 33,
+          "source": "expect(find.text('Comment s’appelle votre projet ?'), findsOneWidget)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        }
+      ],
+      "retiredFile": true
+    },
+    {
+      "path": "apps/avelune_studio/test/project_creation/creator_ui_test.dart",
+      "beforeSha256": "67e41a71f142830dd6db02613c57961c6151b698c9c5a2596d0d3da47eabf7cf",
+      "caseTemplates": [
+        "creator adapts to $size text $scale and preserves the five steps"
+      ],
+      "assertions": [
+        {
+          "sourceLine": 57,
+          "source": "expect(button, findsOneWidget)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 66,
+          "source": "expect(find.byType(ProjectCreationDialog), findsOneWidget)",
+          "decision": "preserved_other_family_contract",
+          "replacement": "apps/avelune_studio/test/project_creation/creator_ui_test.dart"
+        },
+        {
+          "sourceLine": 79,
+          "source": "expect(find.text('mon-dossier'), findsOneWidget)",
+          "decision": "preserved_other_family_contract",
+          "replacement": "apps/avelune_studio/test/project_creation/creator_ui_test.dart"
+        },
+        {
+          "sourceLine": 90,
+          "source": "expect(tester.widget<StudioChoiceCard>(emptyTemplate).selected, isTrue)",
+          "decision": "preserved_other_family_contract",
+          "replacement": "apps/avelune_studio/test/project_creation/creator_ui_test.dart"
+        },
+        {
+          "sourceLine": 103,
+          "source": "expect(\n            find.descendant(\n              of: find.byType(ProjectCreationSteps),\n              matching: find.byType(SelectableText),\n            ),\n            findsNothing,\n          )",
+          "decision": "preserved_other_family_contract",
+          "replacement": "apps/avelune_studio/test/project_creation/creator_ui_test.dart"
+        },
+        {
+          "sourceLine": 110,
+          "source": "expect(\n            find.descendant(\n              of: find.byType(ProjectCreationSteps),\n              matching: find.byType(SelectionArea),\n            ),\n            findsNWidgets(2),\n          )",
+          "decision": "preserved_other_family_contract",
+          "replacement": "apps/avelune_studio/test/project_creation/creator_ui_test.dart"
+        },
+        {
+          "sourceLine": 117,
+          "source": "expect(\n            find.byKey(const ValueKey('create-project-confirm')).hitTestable(),\n            findsOneWidget,\n          )",
+          "decision": "preserved_other_family_contract",
+          "replacement": "apps/avelune_studio/test/project_creation/creator_ui_test.dart"
+        },
+        {
+          "sourceLine": 123,
+          "source": "expect(find.textContaining('960 × 720 px'), findsOneWidget)",
+          "decision": "preserved_other_family_contract",
+          "replacement": "apps/avelune_studio/test/project_creation/creator_ui_test.dart"
+        },
+        {
+          "sourceLine": 127,
+          "source": "expect(find.byType(ProjectCreationDialog), findsNothing)",
+          "decision": "preserved_other_family_contract",
+          "replacement": "apps/avelune_studio/test/project_creation/creator_ui_test.dart"
+        },
+        {
+          "sourceLine": 128,
+          "source": "expect(parent.listSync(), isEmpty)",
+          "decision": "preserved_other_family_contract",
+          "replacement": "apps/avelune_studio/test/project_creation/creator_ui_test.dart"
+        },
+        {
+          "sourceLine": 129,
+          "source": "expect(fixture.session.state.project, isNull)",
+          "decision": "preserved_other_family_contract",
+          "replacement": "apps/avelune_studio/test/project_creation/creator_ui_test.dart"
+        },
+        {
+          "sourceLine": 130,
+          "source": "expect(tester.takeException(), isNull)",
+          "decision": "preserved_other_family_contract",
+          "replacement": "apps/avelune_studio/test/project_creation/creator_ui_test.dart"
+        }
+      ],
+      "retiredFile": false,
+      "afterSha256": "44906dae68e99d54850704e2441a6f5c0d70e8612d01af38897be751fb5451f1",
+      "replacementCaseTemplates": [
+        "creator adapts to $size text $scale and preserves the five steps"
+      ]
+    },
+    {
+      "path": "apps/avelune_studio/test/presentation/project_catalog_partition_panel_test.dart",
+      "beforeSha256": "e9e0ea0fbdf8962cd9245b9b19d11bfa4751c7f849e57f52f5bca9d7bd6b67a9",
+      "caseTemplates": [
+        "optimization lives in home without reserving workspace space and remains guarded"
+      ],
+      "assertions": [
+        {
+          "sourceLine": 66,
+          "source": "expect(find.text('Optimiser la bibliothèque'), findsNothing)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 67,
+          "source": "expect(\n        tester.getRect(find.byKey(const ValueKey('workspace-content'))),\n        const Rect.fromLTWH(0, 0, 800, 600),\n      )",
+          "decision": "preserved_other_family_contract",
+          "replacement": "apps/avelune_studio/test/presentation/project_catalog_partition_panel_test.dart"
+        },
+        {
+          "sourceLine": 73,
+          "source": "expect(find.text('Optimiser la bibliothèque'), findsOneWidget)",
+          "decision": "retired_legacy_presentation",
+          "replacement": null
+        },
+        {
+          "sourceLine": 79,
+          "source": "expect(find.text('Optimiser la bibliothèque ?'), findsNothing)",
+          "decision": "preserved_other_family_contract",
+          "replacement": "apps/avelune_studio/test/presentation/project_catalog_partition_panel_test.dart"
+        },
+        {
+          "sourceLine": 80,
+          "source": "expect(partitions, 0)",
+          "decision": "preserved_other_family_contract",
+          "replacement": "apps/avelune_studio/test/presentation/project_catalog_partition_panel_test.dart"
+        },
+        {
+          "sourceLine": 84,
+          "source": "expect(partitions, 0)",
+          "decision": "preserved_other_family_contract",
+          "replacement": "apps/avelune_studio/test/presentation/project_catalog_partition_panel_test.dart"
+        },
+        {
+          "sourceLine": 87,
+          "source": "expect(partitions, 1)",
+          "decision": "preserved_other_family_contract",
+          "replacement": "apps/avelune_studio/test/presentation/project_catalog_partition_panel_test.dart"
+        },
+        {
+          "sourceLine": 88,
+          "source": "expect(reopens, 1)",
+          "decision": "preserved_other_family_contract",
+          "replacement": "apps/avelune_studio/test/presentation/project_catalog_partition_panel_test.dart"
+        },
+        {
+          "sourceLine": 89,
+          "source": "expect(tester.takeException(), isNull)",
+          "decision": "preserved_other_family_contract",
+          "replacement": "apps/avelune_studio/test/presentation/project_catalog_partition_panel_test.dart"
+        }
+      ],
+      "retiredFile": false,
+      "afterSha256": "90f1e873a7de622ac8995aa5845f4dade5a8b5a396705653c76acb5374bfdeee",
+      "replacementCaseTemplates": [
+        "optimization lives in home without reserving workspace space and remains guarded"
+      ]
+    }
+  ],
+  "retiredFiles": [
+    "apps/avelune_studio/test/home/home_ground_navigation_test.dart",
+    "apps/avelune_studio/test/home/home_lazy_collection_test.dart",
+    "apps/avelune_studio/test/home/home_map_creation_entry_test.dart",
+    "apps/avelune_studio/test/home/home_tools_cards_test.dart",
+    "apps/avelune_studio/test/home/home_visual_test.dart",
+    "apps/avelune_studio/test/project_creation/home_creation_entry_test.dart"
+  ],
+  "controllers": [
+    "apps/avelune_studio/lib/features/project_session/application/project_session_open_controller.dart",
+    "apps/avelune_studio/lib/features/project_session/application/project_history_maintenance_controller.dart"
+  ],
+  "outsideConsumersPending": [],
+  "removedPresentation": [
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/home/studio_home_all_maps.dart",
+      "beforeSha256": "5bcf89bd51dc4f1e31e32ff39930a85b971772fa6ff45494efd7818e6411d092",
+      "widgetClasses": [
+        "StudioHomeAllMaps"
+      ],
+      "decision": "retired_legacy_home_presentation",
+      "externalImportConsumersBeforeRemoval": 0
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/home/studio_home_guidance.dart",
+      "beforeSha256": "cf1b5abdcc800c092ace1234eb727c4f10e6b35f9e56f78f3423301e7c07c343",
+      "widgetClasses": [
+        "StudioHomeGuidance"
+      ],
+      "decision": "retired_legacy_home_presentation",
+      "externalImportConsumersBeforeRemoval": 0
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/home/studio_home_hero.dart",
+      "beforeSha256": "935600aca48b56a6c8fb2d9ce6c042e305174547d1f9a22245ed4067af069de4",
+      "widgetClasses": [
+        "StudioHomeHero"
+      ],
+      "decision": "retired_legacy_home_presentation",
+      "externalImportConsumersBeforeRemoval": 0
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/home/studio_home_next_steps.dart",
+      "beforeSha256": "d25fb5b580339ba480e845aa7b0620f0255fc8a03ba7e01a8327d0854a5310ff",
+      "widgetClasses": [
+        "StudioHomeNextSteps",
+        "_StepRow"
+      ],
+      "decision": "retired_legacy_home_presentation",
+      "externalImportConsumersBeforeRemoval": 0
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/home/studio_home_projects.dart",
+      "beforeSha256": "f6fa2438fdca6f9ff0f5078e3945238f4f6352dcd6b5f0de5bb122d6c40c4b32",
+      "widgetClasses": [
+        "StudioHomeRecentProjects",
+        "StudioHomeResume",
+        "StudioHomeMapCard"
+      ],
+      "decision": "retired_legacy_home_presentation",
+      "externalImportConsumersBeforeRemoval": 0
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/home/studio_home_screen.dart",
+      "beforeSha256": "c80f2959df77958c3db74cf1cfe3d1acb18533de6a3e405596bc820c535cc4bc",
+      "widgetClasses": [
+        "StudioHomeScreen"
+      ],
+      "decision": "retired_legacy_home_presentation",
+      "externalImportConsumersBeforeRemoval": 0
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/home/studio_home_tools.dart",
+      "beforeSha256": "817b99b1f9289f507e345a6ac6c55182e975169dac4b78a2dee1b23f837723e0",
+      "widgetClasses": [
+        "StudioHomeTools"
+      ],
+      "decision": "retired_legacy_home_presentation",
+      "externalImportConsumersBeforeRemoval": 0
+    }
+  ],
+  "addedProtectedTests": [
+    {
+      "path": "apps/avelune_studio/test/home/home_creation_guard_test.dart",
+      "sha256": "861c3ef75fb1857c6be3327cf5691a2f6eda843b9927657340b1317ef3b3c6ab",
+      "cases": [
+        "changed session refuses a created project and releases creation access",
+        "disposed owner rejects late receipt and still releases its parent",
+        "creation failure releases visibility and access without opening a project",
+        "a parent release failure still clears the creator visibility guard",
+        "a pending creation blocks duplicate launch and opens its receipt once"
+      ],
+      "reason": "Original creator owner/session and nested finally access/visibility guarantees extracted before removing its dead UI trigger."
+    }
+  ],
+  "knownPendingFamilyDependencies": [
+    {
+      "path": "apps/avelune_studio/test/support/project_creation_workspace_fixture.dart",
+      "symbol": "submitCreation",
+      "reason": "Creation fixture no longer clicks Home; delegates to canonical ProjectCreationController and ProjectSessionOpenController.runCreation with native MapEditingSurface.",
+      "status": "source_migration_complete_runtime_validation_pending"
+    }
+  ],
+  "validation": {
+    "dartFormat": "passed",
+    "gitDiffCheck": "passed",
+    "dartAnalysisLog": "home-dart-analysis-final.log",
+    "flutter": {
+      "batch1": {
+        "log": "home-tests-batch1.log",
+        "exitCode": 1,
+        "passed": 33,
+        "failed": 4,
+        "cause": "Creator test I/O bridge serialization"
+      },
+      "creatorRetry1": {
+        "log": "home-creator-alone.log",
+        "status": "interrupted",
+        "reason": "FakeAsync chained queue blocked; not a successful exit despite tool0"
+      },
+      "creatorRetry2": {
+        "log": "home-creator-alone2.log",
+        "exitCode": 0,
+        "passed": 4
+      },
+      "confirmedDistinctCases": 37,
+      "warning": "First full batch failed;37comes from unchanged33plus corrected creator4."
+    },
+    "ownedTempDirectoryRemoved": "home-temps-uyf75i21",
+    "dartAnalysis": "passed_no_issues",
+    "postFlutterAnalysisOnlyChanges": [
+      "Removed redundant dart:typed_data import from creator test",
+      "Made its local pump helper private; executable bodies unchanged"
+    ]
+  }
+}

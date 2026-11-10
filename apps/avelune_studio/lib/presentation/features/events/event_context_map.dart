@@ -1,11 +1,14 @@
 import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:map_core/map_core_domain.dart';
-import '../map_workspace/map_workspace_visuals.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
+
 import '../../shared/widgets/buttons/studio_tool.dart';
 import '../../shared/widgets/layout/studio_graph_card.dart';
-import 'event_labels.dart';
+import '../../../features/events/application/event_source_targets.dart';
+import '../../../features/events/application/event_labels.dart';
 import 'event_spatial_context_map.dart';
 
 class EventContextMap extends StatefulWidget {
@@ -60,15 +63,20 @@ class _EventContextMapState extends State<EventContextMap> {
     final sourceKind = widget.chooseKind ?? widget.source?.kind;
     if (sourceKind == NarrativeEventSourceKind.triggerBump &&
         (widget.project.settings.dimension != ProjectDimension.twoD ||
-          map.spatialScene != null || map.version == ProjectVersion.v9)) {
+            map.spatialScene != null ||
+            map.version == ProjectVersion.v9)) {
       return const Text('Le contact de zone nécessite une carte 2D.');
     }
     if (map.spatialScene != null) {
       return EventSpatialContextMap(
-        map: map, project: widget.project, visuals: widget.visuals,
-        source: widget.source, chooseKind: widget.chooseKind,
+        map: map,
+        project: widget.project,
+        visuals: widget.visuals,
+        source: widget.source,
+        chooseKind: widget.chooseKind,
         selectableSources: widget.selectableSources,
-        onChoose: widget.onChoose, onCancel: widget.onCancel,
+        onChoose: widget.onChoose,
+        onCancel: widget.onCancel,
       );
     }
     final colors = Theme.of(context).colorScheme;
@@ -123,62 +131,24 @@ class _EventContextMapState extends State<EventContextMap> {
             });
           }
         }
-        final entityKind = widget.chooseKind ??
-            (eventMapId(widget.source) == map.id ? widget.source?.kind : null);
-        NarrativeEventSourceRef entitySource(MapEntity entity) => switch (entityKind) {
-          NarrativeEventSourceKind.entityAutorun =>
-            NarrativeEventSourceRef.entityAutorun(map.id, entity.id),
-          NarrativeEventSourceKind.entityBump =>
-            NarrativeEventSourceRef.entityBump(map.id, entity.id),
-          NarrativeEventSourceKind.entityInteract =>
-            NarrativeEventSourceRef.entityInteract(map.id, entity.id),
-          _ => throw StateError('The current source is not an entity source.'),
-        };
         final targets = <(String, Rect, NarrativeEventSourceRef)>[
-          if (entityKind == NarrativeEventSourceKind.entityInteract ||
-              entityKind == NarrativeEventSourceKind.entityBump ||
-              entityKind == NarrativeEventSourceKind.entityAutorun)
-            for (final entity in map.entities)
-              if ((entityKind != NarrativeEventSourceKind.entityAutorun ||
-                      isNarrativeEntityAutorunSourceAvailable(
-                        project: widget.project,
-                        map: map,
-                        entityId: entity.id,
-                      )) &&
-                  (widget.chooseKind != null
-                  ? _selectable(entitySource(entity)) &&
-                      (entityKind != NarrativeEventSourceKind.entityBump ||
-                        isNarrativeEntityBumpSourceAvailable(
-                          project: widget.project, map: map, entityId: entity.id))
-                  : entity.id == eventTargetId(widget.source)))
-                (
-                  entity.name,
-                  Rect.fromLTWH(
-                    entity.pos.x * cellWidth,
-                    entity.pos.y * cellHeight,
-                    cellWidth,
-                    cellHeight,
-                  ),
-                  entitySource(entity),
-                ),
-          if (entityKind == NarrativeEventSourceKind.triggerEnter ||
-              entityKind == NarrativeEventSourceKind.triggerBump)
-            for (final trigger in map.triggers)
-              if ((entityKind != NarrativeEventSourceKind.triggerBump ||
-                    isNarrativeTriggerBumpSourceAvailable(project: widget.project, map: map, triggerId: trigger.id)) &&
-                  (widget.chooseKind != null
-                    ? _selectable(entityKind == NarrativeEventSourceKind.triggerBump
-                        ? NarrativeEventSourceRef.triggerBump(map.id, trigger.id)
-                        : NarrativeEventSourceRef.triggerEnter(map.id, trigger.id))
-                    : trigger.id == eventTargetId(widget.source)))
-                (
-                  trigger.name,
-                  Rect.fromLTWH(trigger.area.pos.x * cellWidth, trigger.area.pos.y * cellHeight,
-                    trigger.area.size.width * cellWidth, trigger.area.size.height * cellHeight),
-                  entityKind == NarrativeEventSourceKind.triggerBump
-                    ? NarrativeEventSourceRef.triggerBump(map.id, trigger.id)
-                    : NarrativeEventSourceRef.triggerEnter(map.id, trigger.id),
-                ),
+          for (final target in EventSourcePicking(
+            map: map,
+            project: widget.project,
+            source: widget.source,
+            chooseKind: widget.chooseKind,
+            selectableSources: widget.selectableSources,
+          ).flatTargets)
+            (
+              target.label,
+              Rect.fromLTWH(
+                target.area.pos.x * cellWidth,
+                target.area.pos.y * cellHeight,
+                target.area.size.width * cellWidth,
+                target.area.size.height * cellHeight,
+              ),
+              target.source,
+            ),
         ];
         return CallbackShortcuts(
           bindings: {

@@ -11,7 +11,7 @@ import 'package:avelune_studio/presentation/features/map_workspace/map_workspace
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_canvas.dart';
+import 'package:avelune_studio/platform/rendering/viewports/map_editing_viewport_2d.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_elements_panel.dart';
 import 'package:map_core/map_core.dart';
 
@@ -287,7 +287,7 @@ void main() {
                 children: [
                   SizedBox(
                     width: 640,
-                    child: MapWorkspaceCanvas(
+                    child: MapEditingViewport2D(
                       document: h.document,
                       project: h.project,
                       visuals: WorkspaceTestVisuals(),

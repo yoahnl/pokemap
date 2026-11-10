@@ -4,9 +4,9 @@ import 'package:map_core/map_core.dart';
 import '../../../features/resources/domain/resource_port.dart';
 
 import '../../shared/widgets/layout/studio_panel.dart';
-import '../map_workspace/map_workspace_visuals.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 import '../terrains/terrain_spatial_preview.dart';
-import 'resource_catalog.dart';
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 import 'resource_preview.dart';
 
 class BorderPatternPanel extends StatelessWidget {

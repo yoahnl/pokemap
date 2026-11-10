@@ -5,7 +5,7 @@ import 'package:avelune_studio/features/map_workspace/application/editable_map_d
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_panels.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 import 'package:avelune_studio/presentation/features/resources/atlas_selection_view.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import '../support/map_workspace_fixture.dart';

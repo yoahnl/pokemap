@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/presentation/features/cinematics/cinematic_library_thumbnail.dart';
-import 'package:avelune_studio/presentation/features/events/event_map_loader.dart';
+import 'package:avelune_studio/features/events/application/event_map_loader.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';

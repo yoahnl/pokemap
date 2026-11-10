@@ -10,9 +10,9 @@ import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
 void main() {
-  testWidgets('reset resumes paused exploration and refreshes its controls', (
-    tester,
-  ) async {
+  late StudioPlaytestControls controls;
+  setUp(() => controls = StudioPlaytestControls());
+  test('reset resumes paused exploration without Studio controls', () {
     final movement = SpatialMovementController(
       scene: MapSpatialScene(
         width: 8,
@@ -21,29 +21,20 @@ void main() {
       ),
       models: [],
     );
+    final commands = StudioSpatialExplorationCommands(movement: movement);
     movement.setInput(x: 1, z: 0);
     movement.update(.05);
     expect(movement.x, greaterThan(4));
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: StudioSpatialExplorationControls(movement: movement),
-        ),
-      ),
-    );
-    await tester.tap(find.text('Pause'));
-    await tester.pump();
+    commands.togglePause();
     expect(movement.paused, isTrue);
-    expect(find.text('Reprendre'), findsOneWidget);
-    await tester.tap(find.text('Réinitialiser la position'));
-    await tester.pump();
+    commands.resetPosition();
     expect(movement.paused, isFalse);
     expect(movement.x, 4);
-    expect(find.text('Pause'), findsOneWidget);
-    expect(find.text('Reprendre'), findsNothing);
     movement.update(.05);
     expect(movement.x, 4);
-    await tester.pumpWidget(const SizedBox());
+    final diagonal = movement.allowDiagonalMovement;
+    commands.toggleDiagonal();
+    expect(movement.allowDiagonalMovement, !diagonal);
   });
 
   testWidgets(
@@ -83,6 +74,7 @@ void main() {
         MaterialApp(
           home: Scaffold(
             body: StudioPlaytestView(
+              controls: controls,
               session: session,
               entry: project.maps.single,
               expectedRevision: revision,
@@ -108,7 +100,7 @@ void main() {
       }
       expect(find.textContaining('Choisissez un héros animé'), findsOneWidget);
       expect(find.textContaining('2D preparation must not run'), findsNothing);
-      await tester.tap(find.text('Retour à la carte'));
+      controls.requestClose();
       expect(returned, isTrue);
       await tester.pumpWidget(const SizedBox());
     },

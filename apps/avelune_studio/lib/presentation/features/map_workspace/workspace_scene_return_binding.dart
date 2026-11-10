@@ -5,48 +5,7 @@ extension _WorkspaceSceneReturnBinding on _MapWorkspaceScreenState {
     String sceneId, {
     String? nodeId,
     WorkspaceReturn? origin,
-  }) async {
-    final from = _space;
-    final backToOriginScene =
-        from == WorkspaceSpace.cinematic &&
-        _cinematicOrigin == WorkspaceSpace.scene &&
-        _scenes?.active?.current.id == sceneId;
-    if (await _prepareWorkshopRoute(MapWorkspaceWorkshop.scene) == null) {
-      return null;
-    }
-    final scenes = _scenes;
-    if (scenes == null) return 'L’éditeur de scène est indisponible.';
-    if (!scenes.open(sceneId)) return scenes.error;
-    if (!backToOriginScene) {
-      _sceneOrigin =
-          origin ??
-          switch (from) {
-            WorkspaceSpace.progression => const WorkspaceReturn(
-              WorkspaceSpace.progression,
-            ),
-            WorkspaceSpace.events => const WorkspaceReturn(
-              WorkspaceSpace.events,
-            ),
-            WorkspaceSpace.verification => const WorkspaceReturn(
-              WorkspaceSpace.verification,
-            ),
-            WorkspaceSpace.pokemon => const WorkspaceReturn(
-              WorkspaceSpace.pokemon,
-            ),
-            WorkspaceSpace.cinematic => WorkspaceReturn(
-              WorkspaceSpace.cinematic,
-              documentId: _cinematics?.activeId,
-            ),
-            _ => WorkspaceReturn.story,
-          };
-    }
-    final scene = scenes.active?.current;
-    if (nodeId != null && scene != null) {
-      focusSceneNode(_sceneViews, scene, nodeId);
-    }
-    _show(WorkspaceSpace.scene);
-    return null;
-  }
+  }) => _navigation.openScene(sceneId, nodeId: nodeId, origin: origin);
 
   Future<String?> _openSceneAt(String sceneId, String? nodeId) =>
       _openScene(sceneId, nodeId: nodeId);

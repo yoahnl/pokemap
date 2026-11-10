@@ -5,7 +5,7 @@ import 'package:avelune_studio/app/studio_bootstrap.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_editing_commands.dart';
 import 'package:avelune_studio/features/project_session/application/project_session_controller.dart';
 import 'package:avelune_studio/features/project_session/data/local_project_session_adapter.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_canvas.dart';
+import 'package:avelune_studio/platform/rendering/viewports/map_editing_viewport_2d.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -102,15 +102,15 @@ void main() {
       }
       expect(
         tester
-            .widget<MapWorkspaceCanvas>(find.byType(MapWorkspaceCanvas))
+            .widget<MapEditingViewport2D>(find.byType(MapEditingViewport2D))
             .document
             .current
             .placedElements
             .where((element) => element.pos == const GridPos(x: 8, y: 7)),
         hasLength(2),
       );
-      final currentCanvas = tester.widget<MapWorkspaceCanvas>(
-        find.byType(MapWorkspaceCanvas),
+      final currentCanvas = tester.widget<MapEditingViewport2D>(
+        find.byType(MapEditingViewport2D),
       );
       final topBefore = MapEditingCommands(
         currentCanvas.document,
@@ -125,7 +125,7 @@ void main() {
       await tester.pump();
       expect(
         tester
-            .widget<MapWorkspaceCanvas>(find.byType(MapWorkspaceCanvas))
+            .widget<MapEditingViewport2D>(find.byType(MapEditingViewport2D))
             .view
             .tool,
         StudioMapTool.eraseDecor,
@@ -133,7 +133,7 @@ void main() {
       await tester.tapAt(cell);
       await tester.pump();
       MapData current() => tester
-          .widget<MapWorkspaceCanvas>(find.byType(MapWorkspaceCanvas))
+          .widget<MapEditingViewport2D>(find.byType(MapEditingViewport2D))
           .document
           .current;
       Iterable<MapPlacedElement> stack() => current().placedElements.where(

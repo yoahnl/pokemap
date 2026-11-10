@@ -4,28 +4,13 @@ import 'package:avelune_rendering/avelune_rendering.dart';
 import 'package:flutter/material.dart';
 
 import '../../../features/rendering/application/studio_rendering_preferences.dart';
+import '../../../platform/rendering/contracts/studio_rendering_preferences_scope.dart';
+
+export '../../../platform/rendering/contracts/studio_rendering_preferences_scope.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
-
-class StudioRenderingPreferencesScope extends InheritedWidget {
-  const StudioRenderingPreferencesScope({
-    super.key,
-    required this.preferences,
-    required super.child,
-  });
-
-  final StudioRenderingPreferences preferences;
-
-  static StudioRenderingPreferences? maybeOf(BuildContext context) => context
-      .dependOnInheritedWidgetOfExactType<StudioRenderingPreferencesScope>()
-      ?.preferences;
-
-  @override
-  bool updateShouldNotify(StudioRenderingPreferencesScope oldWidget) =>
-      oldWidget.preferences != preferences;
-}
 
 class StudioDisplayPreferencesButton extends StatelessWidget {
   const StudioDisplayPreferencesButton({super.key});

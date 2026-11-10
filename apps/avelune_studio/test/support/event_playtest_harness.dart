@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:avelune_studio/features/events/application/event_workspace_controller.dart';
 import 'package:avelune_studio/features/events/data/local_event_adapter.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
@@ -6,10 +7,11 @@ import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.
 import 'package:avelune_studio/features/narrative/application/narrative_workspace_controller.dart';
 import 'package:avelune_studio/features/narrative/data/local_narrative_adapter.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
-import 'package:avelune_studio/presentation/features/events/event_playtest.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/workspace_actions.dart';
+import 'package:avelune_studio/features/events/application/event_playtest.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/workspace_workflow.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
+
 import 'ui06_scene_fixture.dart';
 
 class EventPlaytestHarness {
@@ -65,23 +67,31 @@ class EventPlaytestHarness {
     );
   }
 
-  Future<String?> launch() => launchPublishedEvent(
-    context: context,
+  Future<String?> launch() => launchPublishedEventVersion(
+    isActive: () => context.mounted,
     events: events,
     scenes: null,
     mapId: maps.active!.current.id,
     eventId: Ui06SceneFixture.eventId,
-    runtimeBuilder: runtime,
+    launch: _launchMap,
   );
-  WorkspaceActions actions() => WorkspaceActions(
+  Future<void> _launchMap(ProjectMapEntry entry, String revision) =>
+      Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (route) =>
+              runtime(entry, revision, () => Navigator.pop(route)),
+        ),
+      );
+  WorkspaceWorkflow actions() => WorkspaceWorkflow(
     controller: maps,
-    context: () => context,
-    mounted: () => context.mounted,
+    isActive: () => context.mounted,
     changed: () => changed++,
     resources: () => null,
     narrative: () => narrative,
     events: () => events,
-    runtimeBuilder: runtime,
+    flushFocus: () {},
+    confirmClose: () async => WorkspaceCloseChoice.cancel,
+    launchMap: _launchMap,
   );
   Future<void> dispose() async {
     events.dispose();

@@ -1,5 +1,5 @@
 import 'package:avelune_studio/features/decors/application/decor_draft.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 import 'package:avelune_studio/presentation/features/resources/decor_collision_mask.dart';
 import 'package:avelune_studio/presentation/features/resources/decor_editor_screen.dart';
 import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';

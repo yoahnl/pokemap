@@ -1,4 +1,4 @@
-import 'package:avelune_studio/presentation/shared/keyboard/editor_shortcuts.dart';
+import 'package:avelune_studio/platform/input/editor_shortcuts.dart';
 
 import 'dart:async';
 
@@ -8,9 +8,8 @@ import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/events/application/event_workspace_controller.dart';
 import '../../../features/events/domain/event_port.dart';
-import '../../../features/events/domain/event_record_view.dart';
 import '../../../features/scenes/application/scene_workspace_controller.dart';
-import '../map_workspace/map_workspace_visuals.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 import '../narrative/narrative_name_dialog.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
@@ -20,14 +19,12 @@ import 'event_status_badge.dart';
 import '../../shared/widgets/inputs/studio_tabs.dart';
 import '../../shared/widgets/inputs/studio_commit_field.dart';
 import 'event_view_state.dart';
-import 'event_map_loader.dart';
+import 'package:avelune_studio/features/events/application/event_map_loader.dart';
 import 'event_labels.dart';
 import 'event_library.dart';
 import 'event_summary.dart';
 import 'event_page_content.dart';
-import 'event_simulation_dialog.dart';
 import 'event_registry_dialog.dart';
-import 'standard_event_template_form.dart';
 
 part 'event_workspace_layout.dart';
 
@@ -169,61 +166,6 @@ class _EventWorkspacePageState extends State<EventWorkspacePage> {
       view.tab = EventTab.trigger;
       view.library = false;
     });
-  }
-
-  Future<void> _guided() async {
-    _flush();
-    await _pending;
-    if (!mounted || !await c.prepare() || !mounted) return;
-    var items = <String, String>{};
-    try {
-      items = await widget.loadItems?.call() ?? {};
-    } catch (_) {
-      items = {};
-    }
-    if (!mounted) return;
-    final source = c.active?.source;
-    final anchor = source?.when(
-      entityAutorun: (map, entity) => (map, entity),
-      entityBump: (map, entity) => (map, entity),
-      entityInteract: (map, entity) => (map, entity),
-      modelInteract: (_, _) => null,
-      triggerBump: (_, _) => null,
-      triggerEnter: (_, _) => null,
-      mapEnter: (_) => null,
-      outcomeReceived: (_) => null,
-    );
-    final result = await showDialog<String>(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Événement guidé'),
-        content: SizedBox(
-          width: 720,
-          height: MediaQuery.sizeOf(dialogContext).height * .72,
-          child: StandardEventTemplateForm(
-            project: c.project,
-            maps: c.maps,
-            loadMap: c.loadMap,
-            itemOptions: items,
-            initialMapId: anchor?.$1 ?? c.workspace.active?.current.id,
-            initialEntityId: anchor?.$2,
-            onSave: (spec) async {
-              final saved = await c.publishTemplate(spec);
-              if (!saved) {
-                throw EventFailure(c.error ?? 'Événement non enregistré.');
-              }
-              widget.loader.invalidate(spec.mapId);
-              return true;
-            },
-            onAdvanced: (sceneId) => Navigator.pop(dialogContext, sceneId),
-            onCancel: () => Navigator.pop(dialogContext),
-          ),
-        ),
-      ),
-    );
-    _refresh();
-    if (result != null && mounted) await _scene(result);
   }
 
   Future<void> _open(String id) async {

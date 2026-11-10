@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../../shared/widgets/inputs/studio_choice.dart';
-import 'map_library_tree.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_library_tree.dart';
 import 'map_library_row_actions.dart';
 
 class MapLibraryRowTile extends StatefulWidget {

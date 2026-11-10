@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
 import '../../shared/widgets/inputs/studio_choice.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
-import 'resource_catalog.dart';
-import 'resource_family_tree.dart';
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
+import 'package:avelune_studio/features/resources/application/resource_family_tree.dart';
 
 class ResourceFamilyTreeView extends StatefulWidget {
   const ResourceFamilyTreeView({

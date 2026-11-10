@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
-import 'resource_catalog.dart';
-import 'resource_navigation.dart';
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
+import 'package:avelune_studio/features/resources/coordination/resource_navigation.dart';
 import 'resource_management_dialog.dart';
 
 Future<bool> resolveResourceDecorOwner(

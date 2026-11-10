@@ -2,7 +2,7 @@ import 'package:avelune_studio/features/map_workspace/application/map_workspace_
 import 'package:avelune_studio/features/narrative/application/narrative_workspace_controller.dart';
 import 'package:avelune_studio/features/narrative/application/narrative_editing.dart';
 import 'package:avelune_studio/features/narrative/domain/narrative_port.dart';
-import 'package:avelune_studio/presentation/features/narrative/narrative_navigation.dart';
+import 'package:avelune_studio/features/narrative/application/narrative_navigation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 

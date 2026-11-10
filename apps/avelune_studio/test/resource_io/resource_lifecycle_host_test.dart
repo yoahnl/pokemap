@@ -1,9 +1,17 @@
-import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
-import 'package:avelune_studio/presentation/features/resources/resource_navigation.dart';
+import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
+import 'package:avelune_studio/features/resources/coordination/resource_navigation.dart';
 import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
 import 'package:avelune_studio/presentation/features/resources/decor_editor_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image/image.dart' as image;
+import 'package:avelune_studio/features/resources/domain/resource_image_picker.dart';
+
+import '../support/resource_replacement_fixture.dart';
+import '../support/run_resource_replacement.dart';
 import '../support/m2_ui_fixture.dart';
 import '../support/uwu4_resource_host.dart';
 
@@ -67,23 +75,43 @@ void main() {
     expect((await host.reopen()).tilesets, before.tilesets);
   });
 
-  testWidgets('image source replacement is reachable without placing image', (
-    tester,
-  ) async {
-    final host = await openUwU4ResourceHost(tester);
-    await host.family(ResourceKind.images);
-    final imported = host.fixture.controller.project!.tilesets.single;
-    final before = host.fixture.controller.active!.current;
-    await host.action('tileset:${imported.id}', 'Remplacer l’image source…');
-    await pumpIo(tester, frames: 6);
-    expect(host.navigation.error, isNull);
-    expect(host.fixture.controller.active!.current, before);
-    expect(find.text('Remplacer l’image source'), findsOneWidget);
-    expect(find.text('Actuellement'), findsOneWidget);
-    expect(find.text('Après remplacement'), findsOneWidget);
-    await host.fixture.capture(tester, 'uwu4-host-replacement-comparison');
-    await host.tap('resource-management-cancel');
-  });
+  test(
+    'source replacement can be prepared without an active map or placement',
+    () async {
+      final host = await ResourceReplacementFixture.create(withMap: false);
+      final fixture = host.fixture;
+      final navigation = host.navigation;
+      final imported = host.item.tileset!;
+      final file = File('${fixture.root.path}/${imported.relativePath}');
+      final bytes = Uint8List.fromList(await file.readAsBytes());
+      final pixels = image.decodeImage(bytes)!;
+      final before = await host.reopen();
+      final maps = await fixture.mapFile.readAsBytes();
+      expect(host.workspace.active, isNull);
+      await runReplacementForTest(
+        navigation: navigation,
+        item: resourceCatalog(host.workspace.project!)
+            .singleWhere((item) => item.tileset?.id == imported.id),
+        picker: () async => PickedResourceImage(
+          file.path,
+          'Source compatible',
+          bytes,
+          pixels.width,
+          pixels.height,
+        ),
+        isActive: () => true,
+        present: (session) async {
+          expect(session.preview.preparation.noChange, isTrue);
+          expect(navigation.error, isNull);
+          expect(host.workspace.active, isNull);
+        },
+      );
+      expect(await host.reopen(), before);
+      expect(await fixture.mapFile.readAsBytes(), maps);
+      expect(await file.readAsBytes(), bytes);
+      expect(navigation.managementDialogActive, isFalse);
+    },
+  );
 
   testWidgets('free definition then planche removal preserve source and map', (
     tester,

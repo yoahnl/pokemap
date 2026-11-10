@@ -5,8 +5,8 @@ import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/inputs/studio_choice.dart';
 import '../../shared/widgets/inputs/studio_search_field.dart';
 import '../../theme/studio_tokens.dart';
-import '../resources/resource_catalog.dart';
-import 'map_border_review.dart';
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_border_review.dart';
 
 List<ResourceItem> mapDecorReplacementChoices(
   ProjectManifest project, {

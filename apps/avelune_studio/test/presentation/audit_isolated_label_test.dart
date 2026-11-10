@@ -1,6 +1,6 @@
-import 'package:avelune_studio/presentation/features/cinematics/cinematic_inspector.dart';
-import 'package:avelune_studio/presentation/features/events/event_scene_effects.dart';
-import 'package:avelune_studio/presentation/features/pokemon/pokemon_pocket_label.dart';
+import 'package:avelune_studio/features/cinematics/application/cinematic_actor_labels.dart';
+import 'package:avelune_studio/features/events/application/event_scene_effects.dart';
+import 'package:avelune_studio/features/pokemon/application/pokemon_pocket_label.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 

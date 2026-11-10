@@ -1,11 +1,11 @@
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_border_drawing_draft.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_canvas.dart';
+import 'package:avelune_studio/platform/rendering/viewports/map_editing_viewport_2d.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_layout.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/spatial_map_editor.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
+import 'package:avelune_studio/platform/rendering/viewports/spatial_map_editing_viewport.dart';
 import 'package:avelune_studio/presentation/shared/widgets/feedback/studio_notice.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import 'package:flutter/material.dart';
@@ -29,7 +29,7 @@ void main() {
       '3D border draft keeps viewport and pointer alignment $size $scale',
       (tester) async {
         final fixture = await _mount(tester, size: size, scale: scale);
-        final editor = tester.getRect(find.byType(SpatialMapEditor));
+        final editor = tester.getRect(find.byType(SpatialMapEditingViewport));
         final viewport = tester.getRect(find.byType(SpatialSceneView));
         final pointer = viewport.topLeft + viewport.size.center(Offset.zero);
         final local = tester
@@ -42,7 +42,7 @@ void main() {
           ),
         );
         await tester.pump();
-        expect(tester.getRect(find.byType(SpatialMapEditor)), editor);
+        expect(tester.getRect(find.byType(SpatialMapEditingViewport)), editor);
         expect(tester.getRect(find.byType(SpatialSceneView)), viewport);
         expect(
           tester
@@ -54,7 +54,7 @@ void main() {
         expect(find.text('Terminer le tracé'), findsOneWidget);
         fixture.scene(tester).onCell(8, 6);
         await tester.pump();
-        expect(tester.getRect(find.byType(SpatialMapEditor)), editor);
+        expect(tester.getRect(find.byType(SpatialMapEditingViewport)), editor);
         expect(fixture.view.borderDraft!.anchors, [
           const GridPos(x: 2, y: 6),
           const GridPos(x: 8, y: 6),
@@ -240,8 +240,8 @@ void main() {
     fixture.document.error = 'Erreur 2D conservée';
     fixture.refresh();
     await tester.pump();
-    expect(find.byType(MapWorkspaceCanvas), findsOneWidget);
-    expect(find.byType(SpatialMapEditor), findsNothing);
+    expect(find.byType(MapEditingViewport2D), findsOneWidget);
+    expect(find.byType(SpatialMapEditingViewport), findsNothing);
     expect(find.text('Créer un autre modèle'), findsOneWidget);
     expect(find.text('Terminer le tracé'), findsOneWidget);
     expect(_notices('Erreur 2D conservée'), findsOneWidget);

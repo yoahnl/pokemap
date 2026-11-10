@@ -5,7 +5,7 @@ import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/inputs/studio_palette_tabs.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import 'terrain_scratch_view.dart';
-import '../map_workspace/map_workspace_visuals.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 
 class TerrainTrialPanel extends StatelessWidget {
   const TerrainTrialPanel({

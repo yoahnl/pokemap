@@ -4,10 +4,10 @@ import '../../../features/resources/domain/resource_mutation_preparation.dart';
 import '../../../features/resources/domain/resource_usage_port.dart';
 import 'border_creation_dialog.dart';
 import 'resource_border_confirmation_dialog.dart';
-import 'resource_border_management.dart';
+import 'package:avelune_studio/features/resources/coordination/resource_border_management.dart';
 import 'resource_border_draft_bar.dart';
 import 'resource_management_dialog.dart';
-import 'resource_navigation.dart';
+import 'package:avelune_studio/features/resources/coordination/resource_navigation.dart';
 import 'resource_usage_dialog.dart';
 
 Future<void> openBorderPreparation(

@@ -3,7 +3,7 @@ import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_design_system/avelune_design_system.dart';
 
 import '../../../features/pokemon/application/pokemon_commerce_controller.dart';
-import 'pokemon_pocket_label.dart';
+import '../../../features/pokemon/application/pokemon_pocket_label.dart';
 import 'pokemon_ui_parts.dart';
 
 Future<void> showPokemonBagCapacityDialog(

@@ -5,15 +5,15 @@ import 'package:avelune_studio/features/map_workspace/application/spatial_model_
 import 'package:avelune_studio/presentation/features/map_workspace/map_border_tool_panel.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_tool_strip.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/spatial_map_editor.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
+import 'package:avelune_studio/platform/rendering/viewports/spatial_map_editing_viewport.dart';
 import 'package:avelune_studio/presentation/features/resources/border_source_panel.dart';
 import 'package:avelune_studio/presentation/features/resources/border_creation_dialog.dart';
 import 'package:avelune_studio/presentation/features/resources/border_pattern_panel.dart';
 import 'package:avelune_studio/presentation/features/terrains/terrain_spatial_preview.dart';
-import 'package:avelune_studio/presentation/features/resources/resource_navigation.dart';
+import 'package:avelune_studio/features/resources/coordination/resource_navigation.dart';
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
-import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import 'package:flutter/material.dart';
@@ -1022,7 +1022,7 @@ void main() {
         MaterialApp(
           home: Scaffold(
             body: StatefulBuilder(
-              builder: (context, refresh) => SpatialMapEditor(
+              builder: (context, refresh) => SpatialMapEditingViewport(
                 document: document,
                 controller: controller,
                 project: project,
@@ -1110,7 +1110,7 @@ void main() {
           body: StatefulBuilder(
             builder: (context, refresh) {
               rebuild = () => refresh(() {});
-              return SpatialMapEditor(
+              return SpatialMapEditingViewport(
                 document: document,
                 controller: controller,
                 project: project,

@@ -3,7 +3,7 @@ import 'package:map_core/map_core_domain.dart';
 import '../../shared/widgets/inputs/studio_draft_field.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import 'map_catalogue_form_dialog.dart';
-import 'map_library_tree.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_library_tree.dart';
 
 typedef CreateMapFromForm =
     Future<String?> Function({

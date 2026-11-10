@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import 'package:avelune_studio/features/resources/domain/resource_pack_port.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
-import 'package:avelune_studio/presentation/features/resources/resource_image_import.dart';
+import 'package:avelune_studio/features/resources/domain/resource_image_picker.dart';
 
 final resourcePortProvider = Provider.autoDispose
     .family<ResourcePort, ProjectSession>(

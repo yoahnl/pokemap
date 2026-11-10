@@ -1,123 +1,93 @@
-import 'package:avelune_studio/features/game_export/data/studio_game_export_controller.dart';
+import 'dart:async';
+import 'dart:io';
+
+import 'package:avelune_studio/features/home/application/recent_projects_controller.dart';
 import 'package:avelune_studio/features/home/data/memory_recent_projects_adapter.dart';
 import 'package:avelune_studio/features/project_session/application/project_session_controller.dart';
+import 'package:avelune_studio/features/project_session/application/project_session_open_controller.dart';
 import 'package:avelune_studio/features/project_session/data/local_project_session_adapter.dart';
-import 'package:avelune_studio/platform/rendering/studio_map_resources.dart';
-import 'package:avelune_studio/presentation/features/game_export/studio_game_export_page.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_screen.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/studio_home_map_preview.dart';
-import 'package:avelune_studio/presentation/features/project_session/project_session_screen.dart';
-import 'package:avelune_studio/presentation/shell/studio_home_navigation.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import '../support/m2_ui_fixture.dart';
+import '../../tool/create_example_project.dart';
+import '../support/controlled_project_session_port.dart';
 
 void main() {
-  for (final opening in ['picker', 'preopened', 'replacement']) {
-    testWidgets('home closes after export and reopens, opening=$opening', (
-      tester,
-    ) async {
-      final openedBeforeMount = opening != 'picker';
-      tester.view.physicalSize = const Size(1536, 1024);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-      final fixture = (await tester.runAsync(
-        () => M2UiFixture.create(tester),
-      ))!;
+  test(
+    'closed on-disk project reopens with a fresh session and intact maps',
+    () async {
+      final root = await Directory.systemTemp.createTemp(
+        'home-reopen-project-',
+      );
       final session = ProjectSessionController(LocalProjectSessionAdapter());
-      if (openedBeforeMount) {
-        await tester.runAsync(() => session.open(fixture.directory.path));
-      }
-      final export = StudioGameExportController(
-        projectRoot: fixture.directory,
-        projectName: fixture.session.name,
+      final recents = RecentProjectsController(MemoryRecentProjectsAdapter());
+      final opening = ProjectSessionOpenController(
+        session: session,
+        chooseDirectory: () async => root.path,
+        recentProjects: recents,
       );
-      final visuals = <StudioMapResources>[];
-      StudioHomeNavigation? home;
       addTearDown(() async {
-        await tester.pumpWidget(const SizedBox());
-        export.dispose();
-        await tester.runAsync(() async {
-          await session.dispose();
-          await fixture.dispose();
-        });
+        opening.dispose();
+        recents.dispose();
+        await session.dispose();
+        await root.delete(recursive: true);
       });
-      Widget app(ProjectSessionController owner) => MaterialApp(
-        theme: studioTheme(),
-        home: ProjectSessionScreen(
-          session: owner,
-          recentProjects: MemoryRecentProjectsAdapter(),
-          chooseDirectory: () async => fixture.directory.path,
-          workspaceBuilder: (_, close) => Builder(
-            builder: (context) {
-              home = StudioHomeScope.of(context);
-              return MapWorkspaceScreen(
-                controller: fixture.controller,
-                home: home,
-                gameExport: export,
-                gameExportPicker: (_) async => null,
-                loadVisuals: (session, manifest) async {
-                  final loaded = await StudioMapResources.load(
-                    session,
-                    manifest,
-                  );
-                  visuals.add(loaded);
-                  return loaded;
-                },
-                resourcePort: WidgetResourcePort(fixture.resources, tester),
-                runtimeBuilder: (_, _, _) => const SizedBox(),
-                onClose: close,
-                registerExitGuard: (_) {},
-              );
-            },
-          ),
-        ),
-      );
-      if (opening == 'replacement') {
-        final previous = ProjectSessionController(LocalProjectSessionAdapter());
-        await tester.pumpWidget(app(previous));
-        await tester.pumpAndSettle();
-        addTearDown(previous.dispose);
-      }
-      await tester.pumpWidget(app(session));
-      await tester.pumpAndSettle();
-      if (!openedBeforeMount) {
-        await tester.tap(find.byKey(const ValueKey('open-project-picker')));
-        await pumpIoUntil(tester, () => session.state.project != null);
-      }
-      await pumpIo(tester, frames: 60);
-      if (!openedBeforeMount) await tester.tap(find.byTooltip('Accueil'));
-      await pumpIo(tester, frames: 60);
-      expect(find.byType(StudioHomeMapPreview), findsNWidgets(2));
-      await tester.tap(find.byKey(const ValueKey('home-export-game')));
-      await pumpIo(tester, frames: 16);
-      expect(find.byType(StudioGameExportPage), findsOneWidget);
-      await tester.tap(find.text('Retour à l’accueil'));
-      await pumpIo(tester, frames: 16);
-      expect(find.byType(StudioHomeMapPreview), findsNWidgets(2));
-      await tester.tap(find.text('Fermer le projet'));
-      await pumpIo(tester, frames: 16);
+      await writeExampleProject(root);
+      await recents.load();
+      expect(await opening.open(browse: true), isTrue);
+      final first = session.state.project!;
+      final mapFiles = await Directory('${root.path}/maps')
+          .list()
+          .where((entity) => entity is File)
+          .cast<File>()
+          .toList();
+      final originals = {
+        for (final map in mapFiles) map.path: await map.readAsBytes(),
+      };
+      expect(await opening.close(), isTrue);
       expect(session.state.project, isNull);
-      expect(home!.maps, isEmpty);
-      expect(home!.mapLibrary, isNull);
-      expect(home!.mapPreviewBuilder, isNull);
-      expect(
-        find.byType(StudioHomeMapPreview, skipOffstage: false),
-        findsNothing,
-      );
-      expect(tester.takeException(), isNull);
-      await tester.tap(find.byKey(const ValueKey('open-project-picker')));
-      await pumpIoUntil(tester, () => session.state.project != null);
-      await pumpIo(tester, frames: 60);
-      expect(session.state.project, isNotNull);
-      expect(visuals, hasLength(2));
-      await tester.tap(find.byTooltip('Accueil'));
-      await pumpIo(tester, frames: 16);
-      expect(find.byType(StudioHomeMapPreview), findsNWidgets(2));
-      expect(tester.takeException(), isNull);
+      expect(await opening.open(directoryPath: first.directoryPath), isTrue);
+      final second = session.state.project!;
+      expect(second.sessionId, isNot(first.sessionId));
+      expect(second.directoryPath, first.directoryPath);
+      for (final entry in originals.entries) {
+        expect(await File(entry.key).readAsBytes(), entry.value);
+      }
+      await recents.load();
+      expect(recents.entries, hasLength(1));
+      expect(recents.entries.single.directoryPath, second.directoryPath);
+    },
+  );
+
+  test('disposed picker cannot replace the new session owner', () async {
+    final oldPort = ControlledProjectSessionPort();
+    final nextPort = ControlledProjectSessionPort();
+    final oldSession = ProjectSessionController(oldPort);
+    final nextSession = ProjectSessionController(nextPort);
+    final delayed = Completer<String?>();
+    final oldOpening = ProjectSessionOpenController(
+      session: oldSession,
+      chooseDirectory: () => delayed.future,
+    );
+    final nextOpening = ProjectSessionOpenController(
+      session: nextSession,
+      chooseDirectory: () async => exampleB.directoryPath,
+    );
+    addTearDown(() async {
+      oldOpening.dispose();
+      nextOpening.dispose();
+      await oldSession.dispose();
+      await nextSession.dispose();
     });
-  }
+    final lateChoice = oldOpening.open(browse: true);
+    oldOpening.dispose();
+    final next = nextOpening.open(browse: true);
+    await Future<void>.delayed(Duration.zero);
+    nextPort.pending.single.complete(exampleB);
+    expect(await next, isTrue);
+    delayed.complete(exampleA.directoryPath);
+    expect(await lateChoice, isFalse);
+    expect(oldPort.requests, isEmpty);
+    expect(nextSession.state.project, same(exampleB));
+    expect(nextPort.released, isEmpty);
+  });
 }

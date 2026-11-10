@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
-import 'resource_catalog.dart';
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 import 'resource_management_dialog.dart';
 
 Future<void> showResourceDuplicate(

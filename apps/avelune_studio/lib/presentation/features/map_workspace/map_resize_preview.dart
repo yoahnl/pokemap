@@ -2,7 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
-import 'map_workspace_visuals.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 
 class MapResizePreview extends StatelessWidget {
   const MapResizePreview({

@@ -1,5 +1,5 @@
 import 'package:avelune_studio/presentation/features/resources/resource_library_screen.dart';
-import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 
 import 'dart:async';
 

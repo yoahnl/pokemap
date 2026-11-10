@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'studio_mcp_providers.dart';
 import '../../features/project_audio/domain/project_audio_port.dart';
-import '../../presentation/features/project_settings/project_settings_page.dart';
+import '../../platform/playtest/studio_playtest_builders.dart';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,8 +12,7 @@ import 'package:avelune_studio/features/map_workspace/domain/map_connection_port
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_catalog_port.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_screen.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 
 final mapWorkspacePortProvider = Provider.autoDispose
     .family<MapWorkspacePort, ProjectSession>(

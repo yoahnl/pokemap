@@ -1,0 +1,205 @@
+{
+  "schemaVersion": 1,
+  "family": "WorldVerification",
+  "status": "14_legacy_UI_sources_removed_contracts_verified",
+  "g0Accepted": false,
+  "reviewer": "t01_dependency_review",
+  "reviewOutcome": "Extracted picker mutations and non-mutating preview match original source; missing counter invariant from scale identified in review and restored before test run.",
+  "entries": [
+    {
+      "path": "apps/avelune_studio/test/ui12_world_page_test.dart",
+      "baselineHead": "c69ffb95ac86bde48816955e9b663e93f996485d",
+      "beforeSha256": "317f65b35b6bf591f328f98039237486cf783a02628a45dc7427fa13fa5c9e8e",
+      "beforeAssertionSites": 26,
+      "beforeCaseTemplates": [
+        "a state and its rule are composed from the page controls",
+        "a rule refuses to outrun the state it reads, and offers it"
+      ],
+      "decision": "migrated",
+      "reason": "Real controllers, simulation, dependency publication and disk persistence; invalid inputs/type guards in world_editor_workflow_test.dart.",
+      "afterExists": true,
+      "afterSha256": "3b4325b3af126c04745d1d4ebac58b825a53caa91e0d2f3c190ab8c0995f85e5"
+    },
+    {
+      "path": "apps/avelune_studio/test/ui12_world_close_test.dart",
+      "baselineHead": "c69ffb95ac86bde48816955e9b663e93f996485d",
+      "beforeSha256": "71f211c69ecb08e9a41a4b4125b157a52216b75da3537da4a1a43622b4d4c7c3",
+      "beforeAssertionSites": 32,
+      "beforeCaseTemplates": [
+        "invalid rule input blocks global save until corrected",
+        "an incomplete rule is never silently dropped",
+        "a close asked during a publication is refused"
+      ],
+      "decision": "migrated",
+      "reason": "Real WorkspaceWorkflow with pending World drafts, save/discard/refusal and held publication.",
+      "afterExists": true,
+      "afterSha256": "81f5cc93aad065094afd9d28d19e81e9072029b56487211f0328fcba9fed7b04"
+    },
+    {
+      "path": "apps/avelune_studio/test/ui12_world_global_close_test.dart",
+      "baselineHead": "c69ffb95ac86bde48816955e9b663e93f996485d",
+      "beforeSha256": "e3439e68a1e54586abb8b0810fc05c4f2fb1fc48787e465007445a4598bc85eb",
+      "beforeAssertionSites": 34,
+      "beforeCaseTemplates": [
+        "global close saves new world states with Stories connected",
+        "invalid input on a clean rule still requires an explicit choice",
+        "a failed rule keeps close blocked after its new state is saved"
+      ],
+      "decision": "migrated",
+      "reason": "Real Stories-connected global workflow with invalid-input and partial-publication refusal.",
+      "afterExists": true,
+      "afterSha256": "d8249238ad819e43e4a1a3f96bcd806d3ddebdbf72b298de22eb06dbbae28682"
+    },
+    {
+      "path": "apps/avelune_studio/test/ui12_world_responsive_test.dart",
+      "baselineHead": "c69ffb95ac86bde48816955e9b663e93f996485d",
+      "beforeSha256": "c78a098ea5695648326a4b19879a30341d4f18cc9c4fbd8e4d0f4404106aa70f",
+      "beforeAssertionSites": 9,
+      "beforeCaseTemplates": [
+        "UI12 stays usable at $width"
+      ],
+      "decision": "retired_ui",
+      "reason": "Four old viewport sizes exercised labels, layout and hit targets; no responsive acceptance claimed for replacement.",
+      "afterExists": false,
+      "afterSha256": null
+    },
+    {
+      "path": "apps/avelune_studio/test/ui12_world_navigation_test.dart",
+      "baselineHead": "c69ffb95ac86bde48816955e9b663e93f996485d",
+      "beforeSha256": "3eb704564ce7d8daffee17fdf6609b3511f2504e1df0b5c8e7d20d90d0034dfb",
+      "beforeAssertionSites": 3,
+      "beforeCaseTemplates": [
+        "Histoire opens the states and rules page and comes back"
+      ],
+      "decision": "retired_ui",
+      "reason": "Old page button route checks; typed real navigation guarantees preserved in ui12_workspace_return_test.dart and ui13_verification_navigation_test.dart, independently reviewed, runtime validation pending in navigation batch.",
+      "afterExists": false,
+      "afterSha256": null
+    },
+    {
+      "path": "apps/avelune_studio/test/ui13_verification_page_test.dart",
+      "baselineHead": "c69ffb95ac86bde48816955e9b663e93f996485d",
+      "beforeSha256": "b4758fa322b0e0ebd3499efc420e2dc3e1a584beb9754d13097858a581943316",
+      "beforeAssertionSites": 25,
+      "beforeCaseTemplates": [
+        "the page states that nothing was checked before a launch",
+        "a diagnostic shows its context, its target and its editor",
+        "an empty filter is the filter’s zero, not the project’s",
+        "the report announces that the work moved under it"
+      ],
+      "decision": "retired_ui_with_contract_coverage",
+      "reason": "Idle/dimensions, graph identity, hidden selection and stale report covered by ui13_verification_controller_test.dart, identity/selection cases and ui05_verification_summary_test.dart.",
+      "afterExists": false,
+      "afterSha256": null
+    },
+    {
+      "path": "apps/avelune_studio/test/ui13_verification_host_recovery_test.dart",
+      "baselineHead": "c69ffb95ac86bde48816955e9b663e93f996485d",
+      "beforeSha256": "7490fded1774c6799d6cd30fb2efe746539d6d67f6b219759776094a6327e8f0",
+      "beforeAssertionSites": 11,
+      "beforeCaseTemplates": [
+        "saving from an editor during a control frees the page"
+      ],
+      "decision": "retired_duplicate_host",
+      "reason": "Five real save/analysis/stale/relaunch/reopen cases in ui13_verification_recovery_test.dart retain stronger contract coverage.",
+      "afterExists": false,
+      "afterSha256": null
+    },
+    {
+      "path": "apps/avelune_studio/test/ui13_verification_scale_test.dart",
+      "baselineHead": "c69ffb95ac86bde48816955e9b663e93f996485d",
+      "beforeSha256": "85fcc15c6508f132630957cbdda16f4c79e9f4f380b54f0927e336e9dbae1d96",
+      "beforeAssertionSites": 17,
+      "beforeCaseTemplates": [
+        "UI13 stays usable at $width",
+        "a few thousand lines stay lazy and start no control"
+      ],
+      "decision": "retired_ui_with_contract_coverage",
+      "reason": "Old four layouts and synthetic lazy rows removed; source-read/analysis/revision counters during filtering/selection/navigation preserved with real VerificationPortProbe in ui05_verification_summary_test.dart. No replacement laziness/performance claim.",
+      "afterExists": false,
+      "afterSha256": null
+    },
+    {
+      "path": "apps/avelune_studio/test/presentation/ui05_verification_summary_test.dart",
+      "baselineHead": "c69ffb95ac86bde48816955e9b663e93f996485d",
+      "beforeSha256": "12d07f21d754334cfb15d2c7644f607050ece902699621750f6489b25270f4cc",
+      "beforeAssertionSites": 26,
+      "beforeCaseTemplates": [
+        "overview summarizes the last real verification report"
+      ],
+      "decision": "migrated",
+      "reason": "Real canonical analysis, typed navigation, retained report identity and timestamp, real Story mutations; explicit relaunch needed; no hidden source reads or analysis.",
+      "afterExists": true,
+      "afterSha256": "1493d4cc638c014565feaa35753e90183d3c3a80a8b98853b2f81379bd6b4489"
+    },
+    {
+      "path": "apps/avelune_studio/test/scenes/periodic_reward_picker_test.dart",
+      "baselineHead": "c69ffb95ac86bde48816955e9b663e93f996485d",
+      "beforeSha256": "8a6594f30e31f068f04dcfdd43b883bac01070a97c568bf4963e330b1805101e",
+      "beforeAssertionSites": 35,
+      "beforeCaseTemplates": [
+        "refresh removes stale published nodes and ignores old get late=$lateGet",
+        "World Rule source modal preserves an existing negative daily predicate",
+        "a changed reward identity stays unresolved until explicitly selected",
+        "Event modal retains the published source scope across Navigator overlay",
+        "guided Scene picker applies an explicit published reward without raw fields",
+        "late source response cannot overwrite a newer explicit selection",
+        "missing published source preserves the unresolved condition"
+      ],
+      "decision": "partially_migrated",
+      "reason": "Only the World Rule case migrated to WorldEditorWorkflow with existing negative predicate and exact published reward reference; seven other picker/Scene/Event cases retained and executed.",
+      "afterExists": true,
+      "afterSha256": "43fa06525a72e71dfaa88848a1842a794cbcc4062c24750dfe8aabed40612e9d"
+    }
+  ],
+  "removedPresentation": [
+    "apps/avelune_studio/lib/presentation/features/verification/verification_detail.dart",
+    "apps/avelune_studio/lib/presentation/features/verification/verification_graph_view.dart",
+    "apps/avelune_studio/lib/presentation/features/verification/verification_list.dart",
+    "apps/avelune_studio/lib/presentation/features/verification/verification_summary.dart",
+    "apps/avelune_studio/lib/presentation/features/verification/verification_view_state.dart",
+    "apps/avelune_studio/lib/presentation/features/verification/verification_workspace_page.dart",
+    "apps/avelune_studio/lib/presentation/features/world/world_context_panel.dart",
+    "apps/avelune_studio/lib/presentation/features/world/world_fact_editor.dart",
+    "apps/avelune_studio/lib/presentation/features/world/world_library.dart",
+    "apps/avelune_studio/lib/presentation/features/world/world_preview.dart",
+    "apps/avelune_studio/lib/presentation/features/world/world_rule_composer.dart",
+    "apps/avelune_studio/lib/presentation/features/world/world_rule_pickers.dart",
+    "apps/avelune_studio/lib/presentation/features/world/world_view_state.dart",
+    "apps/avelune_studio/lib/presentation/features/world/world_workspace_page.dart"
+  ],
+  "extractedOwners": [
+    "apps/avelune_studio/lib/features/world/application/world_draft_inputs.dart",
+    "apps/avelune_studio/lib/features/world/application/world_editor_workflow.dart",
+    "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_navigation_session.dart"
+  ],
+  "validation": {
+    "log": "world-verification-retirement.log",
+    "exitCode": 0,
+    "passed": 50,
+    "failed": 0,
+    "groups": {
+      "world": 17,
+      "periodicReward": 8,
+      "verificationController": 12,
+      "verificationRecovery": 5,
+      "verificationSelection": 2,
+      "verificationIdentity": 5,
+      "overviewConsultation": 1
+    },
+    "command": "flutter test --no-pub --concurrency=1 --timeout=60s -r expanded test/world/world_editor_workflow_test.dart test/ui12_world_page_test.dart test/ui12_world_close_test.dart test/ui12_world_global_close_test.dart test/scenes/periodic_reward_picker_test.dart test/ui13_verification_controller_test.dart test/ui13_verification_recovery_test.dart test/ui13_verification_selection_test.dart test/ui13_verification_identity_test.dart test/presentation/ui05_verification_summary_test.dart",
+    "runnerPid": 26236,
+    "observedDescendants": [
+      26353,
+      26393
+    ],
+    "ownedProcessesGone": true,
+    "tmpDirectoryRemoved": true
+  },
+  "limits": [
+    "Navigation migration reviewed separately; runtime validation belongs to agent map batch.",
+    "Controller tests and software test viewports do not prove native GPU/device or rebuilt UI acceptance.",
+    "Remaining Studio UI and report widget still exist; G0 remains red."
+  ],
+  "mcpParity": "N/A"
+}

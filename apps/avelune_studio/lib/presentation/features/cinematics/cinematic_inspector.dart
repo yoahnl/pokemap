@@ -18,6 +18,9 @@ import 'cinematic_action_palette.dart';
 import 'cinematic_labels.dart';
 import 'cinematic_map_model.dart';
 import 'cinematic_view_state.dart';
+import '../../../features/cinematics/application/cinematic_actor_labels.dart';
+
+export '../../../features/cinematics/application/cinematic_actor_labels.dart';
 
 part 'cinematic_inspector_actors.dart';
 part 'cinematic_inspector_step.dart';

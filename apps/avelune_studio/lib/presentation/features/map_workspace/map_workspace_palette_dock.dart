@@ -3,14 +3,14 @@ import 'package:map_core/map_core_domain.dart';
 
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/layout/studio_palette_card.dart';
-import '../resources/resource_catalog.dart';
-import '../resources/resource_family_tree.dart';
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
+import 'package:avelune_studio/features/resources/application/resource_family_tree.dart';
 import '../resources/resource_filter_button.dart';
 import '../resources/resource_preview.dart';
 import '../../../features/map_workspace/application/editable_map_document.dart';
 import 'map_palette_intent.dart';
 import 'map_workspace_view_state.dart';
-import 'map_workspace_visuals.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 import 'map_workspace_panels.dart';
 import 'map_workspace_palette_dock_header.dart';
 import 'map_workspace_palette_dock_filters.dart';

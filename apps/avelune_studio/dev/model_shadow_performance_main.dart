@@ -7,9 +7,9 @@ import 'package:avelune_studio/features/map_workspace/application/map_workspace_
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/platform/rendering/studio_map_resources.dart';
 import 'package:avelune_studio/presentation/features/resources/model_resource_library.dart';
-import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_detail_panel.dart';
-import 'package:avelune_studio/presentation/features/resources/resource_navigation.dart';
+import 'package:avelune_studio/features/resources/coordination/resource_navigation.dart';
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_toggle_row.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import 'package:flutter/gestures.dart';

@@ -35,6 +35,8 @@ class ProjectCreationController {
   List<int>? previewBytes;
   String? previewError;
   bool previewLoading = false;
+  bool selecting = false, opening = false;
+  String? openError;
 
   Future<void> loadPreview() async {
     final key =
@@ -115,7 +117,52 @@ class ProjectCreationController {
       phase != ProjectCreationPhase.writing &&
       phase != ProjectCreationPhase.verifying &&
       phase != ProjectCreationPhase.completed;
-  bool get canClose => !running && !checking;
+  bool get canClose => !running && !checking && !selecting && !opening;
+
+  Future<void> chooseParent(Future<String?> Function() choose) async {
+    if (selecting || _disposed) return;
+    selecting = true;
+    _notify();
+    try {
+      final path = await choose();
+      if (_disposed || path == null) return;
+      change(() => parentPath = path);
+      await checkDestination();
+    } catch (_) {
+      if (!_disposed) error = 'Le sélecteur de dossier est indisponible.';
+    } finally {
+      if (!_disposed) {
+        selecting = false;
+        _notify();
+      }
+    }
+  }
+
+  Future<bool> openCreated(
+    Future<bool> Function(ProjectCreationReceipt) open,
+  ) async {
+    final receipt = this.receipt;
+    if (_disposed || opening || receipt == null) return false;
+    opening = true;
+    openError = null;
+    _notify();
+    var opened = false;
+    try {
+      opened = await open(receipt);
+    } catch (_) {
+      opened = false;
+    }
+    if (_disposed) return false;
+    opening = false;
+    if (!opened) {
+      openError =
+          'Projet créé et conservé à cet emplacement. '
+          'L’ouverture n’a pas abouti ou le basculement a été annulé. '
+          'Votre projet courant reste disponible.';
+    }
+    _notify();
+    return opened;
+  }
 
   ProjectCreationRequest get request => ProjectCreationRequest(
     name: name.trim(),
@@ -219,7 +266,14 @@ class ProjectCreationController {
   }
 
   Future<ProjectCreationReceipt?> create() async {
-    if (running || checking || _disposed || receipt != null) return null;
+    if (running ||
+        checking ||
+        selecting ||
+        opening ||
+        _disposed ||
+        receipt != null) {
+      return null;
+    }
     final captured = request;
     running = true;
     cancelled = false;

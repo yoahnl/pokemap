@@ -6,7 +6,7 @@ import 'map_library_navigator.dart';
 import 'workspace_compact_panel.dart';
 import 'map_catalogue_workspace_actions.dart';
 import 'map_lifecycle_workspace_actions.dart';
-import 'map_workspace_visuals.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 
 Future<void> showMapLibraryCompactPanel(
   BuildContext context, {

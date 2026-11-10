@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:avelune_studio/presentation/features/cinematics/cinematic_map_model.dart';
 import 'package:avelune_studio/presentation/features/cinematics/cinematic_map_overlay.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 
 import 'package:avelune_studio/features/cinematics/application/cinematic_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';

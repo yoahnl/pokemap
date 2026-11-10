@@ -16,7 +16,7 @@ import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/platform/rendering/studio_map_resources.dart';
 import 'package:avelune_studio/platform/playtest/studio_playtest_view.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_screen.dart';
-import 'package:avelune_studio/presentation/features/resources/resource_image_import.dart';
+import 'package:avelune_studio/features/resources/domain/resource_image_picker.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import '../../tool/create_example_project.dart';
 import '../../tool/example_project_assets.dart';

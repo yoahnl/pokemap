@@ -1,0 +1,17 @@
++1 -1: /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/dependency-resource-HEAD-source/apps/avelune_studio/test/infrastructure/studio_resource_lifecycle_test.dart: small budget evicts unused A and reloads A after B without destroying leases [E]
+  Null check operator used on a null value
+  test/infrastructure/studio_resource_lifecycle_test.dart 74:43  main.<fn>
+  
++17 -2: /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/dependency-resource-HEAD-source/apps/avelune_studio/test/infrastructure/studio_resource_catalog_update_test.dart: 4096 by 5280 atlas uses existing chunks with bounded whole-decode reservation [E]
+  Expected: contains 'large'
+    Actual: {}
+     Which: does not contain 'large'
+  reads=1, decodes=1, transient=346225298, diagnostics=decodeFailure: Runtime resource admission failed: image_dimensions
+  
+  package:matcher                                                     expect
+  package:flutter_test/src/widget_tester.dart 473:18                  expect
+  test/infrastructure/studio_resource_catalog_update_test.dart 490:7  main.<fn>
+  
++17 -2: Some tests failed.
+
+EXIT_CODE=1

@@ -1,3 +1,5 @@
+import '../../../features/map_workspace/application/map_metadata_settings_draft.dart';
+
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
@@ -14,11 +16,7 @@ Future<void> showEscapeRopeMapSettings(
   required Future<String?> Function(Map<String, Object?>) save,
   Future<Map<String, String>> Function()? loadItems,
 }) {
-  var dungeon = map.mapMetadata.escapeRopeDungeonId ?? '';
-  var allowed = map.mapMetadata.allowEscapeRope;
-  var bicycle = map.mapMetadata.allowBicycle;
-  var rules = [...map.contextualItemUses];
-  var rulesEdited = false;
+  final draft = MapMetadataSettingsDraft(map);
   var loadingItems = false;
   String? itemError;
   return showMapCatalogueForm(
@@ -26,17 +24,22 @@ Future<void> showEscapeRopeMapSettings(
     title: 'Déplacements et Corde Sortie',
     submitLabel: 'Enregistrer',
     additionalBusy: () => loadingItems,
-    valid: () =>
-        dungeon.isEmpty || project.groups.any((group) => group.id == dungeon),
+    valid: () => draft.valid(project),
     fields: (refresh, busy) => Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         StudioToggleRow(
-          label: 'Autoriser le vélo', value: bicycle,
+          label: 'Autoriser le vélo',
+          value: draft.bicycle,
           description: map.mapMetadata.isIndoor
               ? 'Les cartes intérieures interdisent toujours le vélo.'
               : 'Entrer dans une carte interdite remet automatiquement à pied.',
-          onChanged: busy ? null : (value) { bicycle = value; refresh(); },
+          onChanged: busy
+              ? null
+              : (value) {
+                  draft.bicycle = value;
+                  refresh();
+                },
         ),
         const SizedBox(height: 12),
         const Text(
@@ -45,7 +48,7 @@ Future<void> showEscapeRopeMapSettings(
         const SizedBox(height: 12),
         StudioSelect(
           label: 'Donjon de cette carte',
-          value: dungeon,
+          value: draft.dungeon,
           options: {
             '': 'Aucun donjon',
             for (final group in project.groups) group.id: group.name,
@@ -53,52 +56,61 @@ Future<void> showEscapeRopeMapSettings(
           onChanged: busy
               ? null
               : (value) {
-                  dungeon = value;
+                  draft.dungeon = value;
                   refresh();
                 },
         ),
         const SizedBox(height: 12),
         StudioToggleRow(
           label: 'Autoriser la Corde Sortie sur cet étage',
-          value: allowed,
+          value: draft.allowed,
           description: 'Le retour utilise l’entrée mémorisée du donjon, sur les cartes 2D et 3D, à pied.',
           onChanged: busy
               ? null
               : (value) {
-                  allowed = value;
+                  draft.allowed = value;
                   refresh();
                 },
         ),
         const SizedBox(height: 16),
-        Text('${rules.length} utilisation(s) d’objets dans le décor'),
+        Text('${draft.rules.length} utilisation(s) d’objets dans le décor'),
         if (itemError != null) Text(itemError!),
-        StudioButton(label: 'Configurer les objets dans le décor', secondary: true,
-          onPressed: busy || loadItems == null ? null : () async {
-            loadingItems = true;
-            itemError = null;
-            refresh();
-            try {
-              final items = await loadItems();
-              if (!context.mounted) return;
-              loadingItems = false;
-              refresh();
-              await showContextualItemUseSettings(context, map: map, project: project, items: items, rules: rules,
-                onChanged: (value) { rules = value; rulesEdited = true; });
-            } on Object catch (error) {
-              itemError = 'Le catalogue des objets est indisponible : $error';
-            } finally {
-              loadingItems = false;
-              if (context.mounted) refresh();
-            }
-          }),
+        StudioButton(
+          label: 'Configurer les objets dans le décor',
+          secondary: true,
+          onPressed: busy || loadItems == null
+              ? null
+              : () async {
+                  loadingItems = true;
+                  itemError = null;
+                  refresh();
+                  try {
+                    final items = await loadItems();
+                    if (!context.mounted) return;
+                    loadingItems = false;
+                    refresh();
+                    await showContextualItemUseSettings(
+                      context,
+                      map: map,
+                      project: project,
+                      items: items,
+                      rules: draft.rules,
+                      onChanged: (value) {
+                        draft.rules = value;
+                        draft.rulesEdited = true;
+                      },
+                    );
+                  } on Object catch (error) {
+                    itemError =
+                        'Le catalogue des objets est indisponible : $error';
+                  } finally {
+                    loadingItems = false;
+                    if (context.mounted) refresh();
+                  }
+                },
+        ),
       ],
     ),
-    submit: () => save({
-      'mapId': map.id,
-      'escapeRopeDungeonId': dungeon.isEmpty ? null : dungeon,
-      'allowEscapeRope': allowed,
-      'allowBicycle': bicycle,
-      if (rulesEdited) 'contextualItemUses': rules.map((rule) => rule.toJson()).toList(),
-    }),
+    submit: () => save(draft.parameters),
   );
 }

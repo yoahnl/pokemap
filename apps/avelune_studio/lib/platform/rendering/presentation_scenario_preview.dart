@@ -4,7 +4,8 @@ import 'package:map_player_ui/presentation_renderer.dart';
 import 'package:map_player_ui/player_surfaces.dart';
 import 'package:map_runtime/map_runtime.dart'
     show RuntimePresentationFrameDeltas;
-import '../../presentation/features/presentations/presentation_scenario_preview.dart';
+
+import 'contracts/presentation_scenario_preview.dart';
 
 class StudioPresentationScenarioPreview implements PresentationScenarioPreview {
   StudioPresentationScenarioPreview({

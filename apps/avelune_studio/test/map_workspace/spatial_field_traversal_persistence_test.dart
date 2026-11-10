@@ -8,9 +8,9 @@ import 'package:avelune_studio/features/map_workspace/application/map_workspace_
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_zone_inspector.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/spatial_map_editor.dart';
+import 'package:avelune_studio/platform/rendering/viewports/spatial_map_editing_viewport.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 import 'package:map_render_3d/map_render_3d.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -116,7 +116,7 @@ void main() {
             MaterialApp(
               home: Scaffold(
                 body: StatefulBuilder(
-                  builder: (context, refresh) => SpatialMapEditor(
+                  builder: (context, refresh) => SpatialMapEditingViewport(
                     document: document,
                     controller: controller,
                     project: controller.project!,

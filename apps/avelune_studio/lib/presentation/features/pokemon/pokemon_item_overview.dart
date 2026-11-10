@@ -5,7 +5,7 @@ import '../../../features/pokemon/application/pokemon_commerce_controller.dart';
 import '../../shared/widgets/inputs/studio_draft_field.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import 'pokemon_commerce_integer_field.dart';
-import 'pokemon_pocket_label.dart';
+import '../../../features/pokemon/application/pokemon_pocket_label.dart';
 import 'pokemon_ui_parts.dart';
 
 const pokemonNewPocketChoice = '__new_pocket__';

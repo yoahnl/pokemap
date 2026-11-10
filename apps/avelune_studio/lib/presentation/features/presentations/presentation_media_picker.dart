@@ -1,4 +1,1 @@
-import 'package:map_core/map_core_domain.dart';
-
-typedef PickPresentationMedia =
-    Future<({String path, String label})?> Function(ProjectMediaKind kind);
+export 'package:avelune_studio/features/presentations/domain/presentation_media_picker.dart';

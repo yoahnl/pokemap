@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
-import 'map_workspace_visuals.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 import 'workspace_resource_diagnostics.dart';
 
 /// What the canvas cannot show but the game still honours, kept under the map

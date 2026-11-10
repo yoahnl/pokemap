@@ -1,0 +1,11 @@
++43 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_workspace_editing_session_test.dart: twoD terrain session interpolates and preserves one undo entry [E]
+  FormatException: A v9 map requires a 3D scene, spatial Environment layers, Smart Tile ground/path surfaces and collision layers.
+  package:map_core/src/models/map_data.dart 154:5                                          validateSpatialMapStructure
+  package:map_core/src/validation/validators.dart 3138:7                                   MapValidator.validate
+  package:map_core/src/operations/smart_tile_layer_creation.dart 123:18                    planNativeSmartTileLayerCreationForMap
+  package:map_authoring/src/editing/native_terrain_brush.dart 62:20                        prepareTerrainStrokeLayer
+  package:map_authoring/src/editing/native_terrain_brush.dart 17:20                        applyTerrainStroke
+  package:avelune_studio/features/map_workspace/application/map_canvas_stroke.dart 214:24  MapCanvasStroke.start
+  test/map_workspace/map_workspace_editing_session_test.dart 130:40                        main.<fn>.<fn>
+  
++83 -1: Some tests failed.

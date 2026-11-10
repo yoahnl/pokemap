@@ -1,159 +1,110 @@
+import 'package:avelune_studio/features/characters/application/character_editing_commands.dart';
+import 'package:avelune_studio/features/characters/application/character_presence_references.dart';
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_element_catalog.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
-import 'package:avelune_studio/presentation/features/characters/character_inspector.dart';
-import 'package:avelune_studio/presentation/features/characters/character_presence_rule.dart';
-import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
 import '../support/map_workspace_fixture.dart';
 
 void main() {
-  testWidgets(
-    'an unresolved presence reference is kept, flagged and survives an effect change',
-    (tester) async {
-      final document = _document([
-        _npc(
-          'guard',
-          rule: const MapEntityNpcVisibilityRule(
-            mode: MapEntityNpcVisibilityMode.visibleWhen,
-            predicate: MapEntityRuntimePredicate(
-              kind: MapEntityRuntimePredicateKind.storyFlagSet,
-              refId: 'ghost_flag',
-            ),
+  test('unresolved presence reference is described and retained across an effect change', () {
+    final document = _document([
+      _npc(
+        'guard',
+        rule: const MapEntityNpcVisibilityRule(
+          mode: MapEntityNpcVisibilityMode.visibleWhen,
+          predicate: MapEntityRuntimePredicate(
+            kind: MapEntityRuntimePredicateKind.storyFlagSet,
+            refId: 'ghost_flag',
           ),
-          variants: [
-            MapEntityConditionalDialogue(
-              when: const MapEntityRuntimePredicate(
-                kind: MapEntityRuntimePredicateKind.stepCompleted,
-                refId: 'got_dex',
-              ),
-              dialogue: DialogueRef(dialogueId: 'lost_dialogue'),
+        ),
+        variants: [
+          MapEntityConditionalDialogue(
+            when: const MapEntityRuntimePredicate(
+              kind: MapEntityRuntimePredicateKind.stepCompleted,
+              refId: 'got_dex',
             ),
-          ],
-        ),
-      ]);
-      await _pump(tester, document, 'guard');
+            dialogue: DialogueRef(dialogueId: 'lost_dialogue'),
+          ),
+        ],
+      ),
+    ]);
+    final references = CharacterPresenceReferences(_project);
+    final original = _entity(document, 'guard').npc!;
+    expect(isCharacterStoryPresence(original.visibilityRule), isTrue);
+    final description = references.describe(
+      original.visibilityRule!.predicate!,
+    );
+    expect(description.missing, isTrue);
+    expect(description.phrase, contains('ghost_flag'));
+    expect(
+      references.describe(original.conditionalDialogues.single.when).phrase,
+      contains('Recevoir le Pokédex'),
+    );
+    CharacterEditingCommands(document, _project).setVisibilityRule(
+      'guard',
+      original.visibilityRule!.copyWith(
+        mode: MapEntityNpcVisibilityMode.hiddenWhen,
+      ),
+    );
+    final rule = _entity(document, 'guard').npc!.visibilityRule!;
+    expect(rule.mode, MapEntityNpcVisibilityMode.hiddenWhen);
+    expect(rule.predicate!.kind, MapEntityRuntimePredicateKind.storyFlagSet);
+    expect(rule.predicate!.refId, 'ghost_flag');
+    expect(
+      _entity(
+        document,
+        'guard',
+      ).npc!.conditionalDialogues.single.dialogue.dialogueId,
+      'lost_dialogue',
+    );
+  });
 
-      expect(_select(tester, 'npc-guard-presence-mode').value, 'story');
-      expect(
-        find.descendant(
-          of: find.byKey(const ValueKey('npc-guard-presence-missing')),
-          matching: find.textContaining('ghost_flag'),
-        ),
-        findsOneWidget,
-      );
-      expect(
-        find.descendant(
-          of: find.byKey(const ValueKey('npc-guard-dialogue-variant-0')),
-          matching: find.textContaining('Recevoir le Pokédex'),
-        ),
-        findsOneWidget,
-      );
-      expect(
-        find.descendant(
-          of: find.byKey(const ValueKey('npc-guard-dialogue-variant-0')),
-          matching: find.textContaining('lost_dialogue'),
-        ),
-        findsOneWidget,
-      );
-
-      await _choose(tester, 'npc-guard-presence-effect', 'hiddenWhen');
-      final rule = _entity(document, 'guard').npc!.visibilityRule!;
-      expect(rule.mode, MapEntityNpcVisibilityMode.hiddenWhen);
-      expect(rule.predicate!.kind, MapEntityRuntimePredicateKind.storyFlagSet);
-      expect(rule.predicate!.refId, 'ghost_flag');
-      expect(
-        _entity(
-          document,
-          'guard',
-        ).npc!.conditionalDialogues.single.dialogue.dialogueId,
-        'lost_dialogue',
-      );
-      expect(tester.takeException(), isNull);
-    },
-  );
-
-  testWidgets(
-    'a story presence is composed with pickers, explained and tested on both branches',
-    (tester) async {
+  test(
+    'presence references preserve identity and independent NPC bindings',
+    () {
       final document = _document([_npc('traveller'), _npc('chief')]);
-      await _pump(tester, document, 'traveller');
       final untouched = document.current;
-
-      await _choose(tester, 'npc-traveller-presence-mode', 'story');
+      final references = CharacterPresenceReferences(_project);
+      final step = references
+          .of(CharacterPresenceSubject.step)
+          .singleWhere((entry) => entry.refId == 'got_dex');
+      expect(step.label, 'Recevoir le Pokédex');
+      expect(step.detail, 'Aventure · Départ');
       expect(document.current, same(untouched));
-      expect(
-        find.byKey(const ValueKey('npc-traveller-presence-pending')),
-        findsOneWidget,
+      final commands = CharacterEditingCommands(document, _project);
+      commands.setVisibilityRule(
+        'traveller',
+        MapEntityNpcVisibilityRule(
+          mode: MapEntityNpcVisibilityMode.visibleWhen,
+          predicate: MapEntityRuntimePredicate(
+            kind: MapEntityRuntimePredicateKind.stepCompleted,
+            refId: step.refId,
+          ),
+        ),
       );
-
-      await _choose(
-        tester,
-        'npc-traveller-presence-condition',
-        'stepCompleted',
-      );
-      expect(document.current, same(untouched));
-      await tester.enterText(
-        find.byKey(const ValueKey('npc-traveller-presence-search')),
-        'pokédex',
-      );
-      await tester.pumpAndSettle();
-      expect(
-        find.byKey(const ValueKey('npc-traveller-presence-ref-gym_one')),
-        findsNothing,
-      );
-      await _tap(tester, 'npc-traveller-presence-ref-got_dex');
-
       final rule = _entity(document, 'traveller').npc!.visibilityRule!;
       expect(rule.mode, MapEntityNpcVisibilityMode.visibleWhen);
       expect(rule.predicate!.kind, MapEntityRuntimePredicateKind.stepCompleted);
       expect(rule.predicate!.refId, 'got_dex');
+      final description = references.describe(rule.predicate!);
+      expect(description.phrase, contains('Recevoir le Pokédex'));
       expect(
-        find.descendant(
-          of: find.byKey(const ValueKey('npc-traveller-presence-result')),
-          matchRoot: true,
-          matching: find.textContaining('Recevoir le Pokédex'),
+        characterPresenceSentence(rule.mode, description.phrase),
+        contains('présent seulement quand'),
+      );
+      commands.setVisibilityRule(
+        'traveller',
+        const MapEntityNpcVisibilityRule(
+          mode: MapEntityNpcVisibilityMode.visibleWhen,
+          predicate: MapEntityRuntimePredicate(
+            kind: MapEntityRuntimePredicateKind.badgeOwned,
+            refId: 'zephyr',
+          ),
         ),
-        findsOneWidget,
       );
-      expect(
-        find.descendant(
-          of: find.byKey(const ValueKey('npc-traveller-presence-origin')),
-          matchRoot: true,
-          matching: find.textContaining('Guide'),
-        ),
-        findsOneWidget,
-      );
-
-      await _tap(tester, 'npc-traveller-presence-test-unmet');
-      expect(
-        find.descendant(
-          of: find.byKey(const ValueKey('npc-traveller-presence-test-outcome')),
-          matchRoot: true,
-          matching: find.textContaining('absent'),
-        ),
-        findsOneWidget,
-      );
-      await _tap(tester, 'npc-traveller-presence-test-met');
-      expect(
-        find.descendant(
-          of: find.byKey(const ValueKey('npc-traveller-presence-test-outcome')),
-          matchRoot: true,
-          matching: find.textContaining('présent'),
-        ),
-        findsOneWidget,
-      );
-
-      await _choose(tester, 'npc-traveller-presence-condition', 'badgeOwned');
-      expect(
-        _entity(document, 'traveller').npc!.visibilityRule!.predicate!.refId,
-        'got_dex',
-      );
-      await _tap(tester, 'npc-traveller-presence-ref-zephyr');
       expect(
         _entity(document, 'traveller').npc!.visibilityRule!.predicate,
         const MapEntityRuntimePredicate(
@@ -161,11 +112,15 @@ void main() {
           refId: 'zephyr',
         ),
       );
-
-      await _choose(
-        tester,
-        'npc-traveller-presence-condition',
-        'badgeNotOwned',
+      commands.setVisibilityRule(
+        'traveller',
+        const MapEntityNpcVisibilityRule(
+          mode: MapEntityNpcVisibilityMode.visibleWhen,
+          predicate: MapEntityRuntimePredicate(
+            kind: MapEntityRuntimePredicateKind.badgeNotOwned,
+            refId: 'zephyr',
+          ),
+        ),
       );
       expect(
         _entity(document, 'traveller').npc!.visibilityRule!.predicate,
@@ -174,9 +129,19 @@ void main() {
           refId: 'zephyr',
         ),
       );
-
-      await _choose(tester, 'npc-traveller-presence-condition', 'storyFlagSet');
-      await _tap(tester, 'npc-traveller-presence-ref-rival_seen');
+      final state = references.states.singleWhere(
+        (entry) => entry.key == 'rival_seen',
+      );
+      commands.setVisibilityRule(
+        'traveller',
+        MapEntityNpcVisibilityRule(
+          mode: MapEntityNpcVisibilityMode.visibleWhen,
+          predicate: MapEntityRuntimePredicate(
+            kind: MapEntityRuntimePredicateKind.storyFlagSet,
+            refId: state.refId,
+          ),
+        ),
+      );
       expect(
         _entity(document, 'traveller').npc!.visibilityRule!.predicate,
         const MapEntityRuntimePredicate(
@@ -184,147 +149,113 @@ void main() {
           refId: 'rival_flag',
         ),
       );
-
       expect(
         _entity(document, 'chief'),
         _entity(_document([_npc('chief')]), 'chief'),
       );
       expect(_entity(document, 'traveller').npc!.characterId, 'guide');
       expect(_entity(document, 'traveller').npc!.conditionalDialogues, isEmpty);
-      expect(tester.takeException(), isNull);
     },
   );
 
-  testWidgets('chapter and cutscene rules stay preserved and described', (
-    tester,
-  ) async {
-    final document = _document([
-      _npc(
-        'warden',
-        rule: const MapEntityNpcVisibilityRule(
-          mode: MapEntityNpcVisibilityMode.hiddenWhen,
-          predicate: MapEntityRuntimePredicate(
-            kind: MapEntityRuntimePredicateKind.chapterCompleted,
-            refId: 'chapter_two',
+  test('chapter and cutscene rules retain their advanced description', () {
+    final references = CharacterPresenceReferences(_project);
+    for (final kind in [
+      MapEntityRuntimePredicateKind.chapterCompleted,
+      MapEntityRuntimePredicateKind.cutsceneCompleted,
+    ]) {
+      final document = _document([
+        _npc(
+          'warden',
+          rule: MapEntityNpcVisibilityRule(
+            mode: MapEntityNpcVisibilityMode.hiddenWhen,
+            predicate: MapEntityRuntimePredicate(
+              kind: kind,
+              refId: 'chapter_two',
+            ),
           ),
         ),
-      ),
-    ]);
-    await _pump(tester, document, 'warden');
-    expect(_select(tester, 'npc-warden-presence-mode').value, 'advanced');
-    expect(
-      find.descendant(
-        of: find.byKey(const ValueKey('npc-warden-presence-advanced')),
-        matchRoot: true,
-        matching: find.textContaining('chapter_two'),
-      ),
-      findsOneWidget,
-    );
-    expect(tester.takeException(), isNull);
+      ]);
+      final rule = _entity(document, 'warden').npc!.visibilityRule!;
+      expect(isCharacterStoryPresence(rule), isFalse);
+      expect(
+        references.describe(rule.predicate!).phrase,
+        contains('chapter_two'),
+      );
+      expect(MapData.fromJson(document.current.toJson()), document.current);
+    }
   });
 
-  testWidgets(
-    'references not yet loaded are requested instead of flagged missing',
-    (tester) async {
+  test('unloaded references are requested once and never flagged missing prematurely', () async {
+    var ready = false;
+    var loads = 0;
+    final loader = CharacterPresenceReferenceLoader(
+      ready: () => ready,
+      load: () async {
+        loads++;
+      },
+    );
+    addTearDown(loader.dispose);
+    await loader.request('guard', needed: true);
+    await loader.request('guard', needed: true);
+    expect(loads, 1);
+    final reference = const MapEntityRuntimePredicate(
+      kind: MapEntityRuntimePredicateKind.stepCompleted,
+      refId: 'got_dex',
+    );
+    expect(
+      CharacterPresenceReferences(
+        workspaceProject,
+        ready: ready,
+      ).describe(reference).missing,
+      isFalse,
+    );
+    ready = true;
+    await loader.request('guard', needed: true);
+    expect(loads, 1);
+    expect(
+      CharacterPresenceReferences(
+        _project,
+        ready: ready,
+      ).resolve(reference)!.refId,
+      'got_dex',
+    );
+  });
+
+  test(
+    'failed reference load keeps the persisted rule and reports failed state',
+    () async {
       final document = _document([
         _npc(
           'guard',
           rule: const MapEntityNpcVisibilityRule(
             mode: MapEntityNpcVisibilityMode.visibleWhen,
             predicate: MapEntityRuntimePredicate(
-              kind: MapEntityRuntimePredicateKind.stepCompleted,
-              refId: 'got_dex',
+              kind: MapEntityRuntimePredicateKind.badgeOwned,
+              refId: 'zephyr',
             ),
           ),
         ),
       ]);
-      var ready = false;
-      var loads = 0;
-      await _pump(
-        tester,
-        document,
-        'guard',
-        project: workspaceProject.copyWith(characters: _project.characters),
-        wrap: (child) => CharacterReferenceScope(
-          ready: () => ready,
-          load: () async {
-            loads++;
-          },
-          child: child,
-        ),
-      );
-      expect(loads, 1);
-      expect(
-        find.byKey(const ValueKey('npc-guard-presence-loading')),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(const ValueKey('npc-guard-presence-missing')),
-        findsNothing,
-      );
-      ready = true;
-      await _pump(
-        tester,
-        document,
-        'guard',
-        wrap: (child) => CharacterReferenceScope(
-          ready: () => ready,
-          load: () async {
-            loads++;
-          },
-          child: child,
-        ),
-      );
-      expect(loads, 1);
-      expect(
-        find.byKey(const ValueKey('npc-guard-presence-loading')),
-        findsNothing,
-      );
-      expect(
-        find.byKey(const ValueKey('npc-guard-presence-ref-got_dex')),
-        findsOneWidget,
-      );
-      expect(tester.takeException(), isNull);
-    },
-  );
-
-  testWidgets('a failed reference load keeps the rule and says so', (
-    tester,
-  ) async {
-    final document = _document([
-      _npc(
-        'guard',
-        rule: const MapEntityNpcVisibilityRule(
-          mode: MapEntityNpcVisibilityMode.visibleWhen,
-          predicate: MapEntityRuntimePredicate(
-            kind: MapEntityRuntimePredicateKind.badgeOwned,
-            refId: 'zephyr',
-          ),
-        ),
-      ),
-    ]);
-    final before = document.current;
-    await _pump(
-      tester,
-      document,
-      'guard',
-      wrap: (child) => CharacterReferenceScope(
+      final before = document.current;
+      final loader = CharacterPresenceReferenceLoader(
         ready: () => false,
         load: () async => throw StateError('lecteur absent'),
-        child: child,
-      ),
-    );
-    expect(
-      find.descendant(
-        of: find.byKey(const ValueKey('npc-guard-presence-loading')),
-        matchRoot: true,
-        matching: find.textContaining('n’ont pas pu être chargés'),
-      ),
-      findsOneWidget,
-    );
-    expect(document.current, same(before));
-    expect(tester.takeException(), isNull);
-  });
+      );
+      addTearDown(loader.dispose);
+      await loader.request('guard', needed: true);
+      expect(loader.failed, isTrue);
+      expect(
+        CharacterPresenceReferences(
+          _project,
+          ready: false,
+          failed: loader.failed,
+        ).failed,
+        isTrue,
+      );
+      expect(document.current, same(before));
+    },
+  );
 
   test('a conditional presence stays findable in map content', () {
     final map = _document([
@@ -427,64 +358,3 @@ EditableMapDocument _document(List<MapEntity> entities) => EditableMapDocument(
 
 MapEntity _entity(EditableMapDocument document, String id) =>
     document.current.entities.singleWhere((entity) => entity.id == id);
-
-Future<void> _pump(
-  WidgetTester tester,
-  EditableMapDocument document,
-  String id, {
-  ProjectManifest? project,
-  Widget Function(Widget child)? wrap,
-}) async {
-  tester.view.physicalSize = const Size(900, 1400);
-  tester.view.devicePixelRatio = 1;
-  addTearDown(tester.view.resetPhysicalSize);
-  addTearDown(tester.view.resetDevicePixelRatio);
-  await tester.pumpWidget(
-    MaterialApp(
-      theme: studioTheme(),
-      home: Scaffold(
-        body: SizedBox(
-          width: 600,
-          child: StatefulBuilder(
-            builder: (context, setState) => (wrap ?? (child) => child)(
-              SingleChildScrollView(
-                child: CharacterInspector(
-                  document: document,
-                  project: project ?? _project,
-                  entity: _entity(document, id),
-                  visuals: WorkspaceTestVisuals(),
-                  onChanged: () => setState(() {}),
-                  onSelect: (_) {},
-                  onEditInteraction: (_) {},
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    ),
-  );
-  await tester.pumpAndSettle();
-}
-
-StudioSelect _select(WidgetTester tester, String key) =>
-    tester.widget<StudioSelect>(find.byKey(ValueKey(key)));
-
-Future<void> _choose(WidgetTester tester, String key, String value) async {
-  final finder = find.byKey(ValueKey(key));
-  await tester.pumpAndSettle();
-  await Scrollable.ensureVisible(tester.element(finder), alignment: .5);
-  await tester.pumpAndSettle();
-  final widget = _select(tester, key);
-  expect(widget.options, contains(value));
-  widget.onChanged!(value);
-  await tester.pumpAndSettle();
-}
-
-Future<void> _tap(WidgetTester tester, String key) async {
-  final finder = find.byKey(ValueKey(key));
-  await Scrollable.ensureVisible(tester.element(finder), alignment: .5);
-  await tester.pumpAndSettle();
-  await tester.tap(finder);
-  await tester.pumpAndSettle();
-}

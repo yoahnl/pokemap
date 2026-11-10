@@ -1,3 +1,4 @@
+import 'package:avelune_studio/features/map_workspace/coordination/workspace_map_catalog_actions.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
@@ -7,9 +8,8 @@ import 'map_library_row_actions.dart';
 import 'map_duplicate_dialog.dart';
 import 'map_resize_dialog.dart';
 import 'map_delete_dialog.dart';
-import 'map_workspace_visuals.dart';
 
-final _lifecycleDialogs = Expando<bool>();
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 
 Future<void> manageWorkspaceMap(
   BuildContext context,
@@ -18,43 +18,36 @@ Future<void> manageWorkspaceMap(
   MapLibraryAction action, {
   MapWorkspaceVisuals? visuals,
 }) async {
-  if (_lifecycleDialogs[controller] == true ||
-      controller.catalogBusy ||
-      controller.isDisposed) {
-    return;
-  }
-  _lifecycleDialogs[controller] = true;
-  final project = controller.project;
-  try {
-    if (!await _saveTarget(context, controller, entry, action) ||
-        !context.mounted ||
-        controller.isDisposed ||
-        controller.project != project) {
-      return;
-    }
-    switch (action) {
-      case MapLibraryAction.duplicate:
-        await showDuplicateMapDialog(context, controller, entry);
-      case MapLibraryAction.resize:
-        await showResizeMapDialog(context, controller, entry, visuals: visuals);
-      case MapLibraryAction.deleteMap:
-        await showDeleteMapDialog(context, controller, entry);
-      default:
-        break;
-    }
-  } finally {
-    _lifecycleDialogs[controller] = false;
-  }
+  await runMapLifecycleOperation(
+    controller: controller,
+    entry: entry,
+    isActive: () => context.mounted,
+    confirmSave: () => _confirmTargetSave(context, entry, action),
+    operation: () async {
+      switch (action) {
+        case MapLibraryAction.duplicate:
+          await showDuplicateMapDialog(context, controller, entry);
+        case MapLibraryAction.resize:
+          await showResizeMapDialog(
+            context,
+            controller,
+            entry,
+            visuals: visuals,
+          );
+        case MapLibraryAction.deleteMap:
+          await showDeleteMapDialog(context, controller, entry);
+        default:
+          break;
+      }
+    },
+  );
 }
 
-Future<bool> _saveTarget(
+Future<bool> _confirmTargetSave(
   BuildContext context,
-  MapWorkspaceController controller,
   ProjectMapEntry entry,
   MapLibraryAction action,
 ) async {
-  final document = controller.documents[entry.id];
-  if (document?.dirty != true) return document?.saving != true;
   final label = action == MapLibraryAction.duplicate
       ? 'Enregistrer et dupliquer'
       : 'Enregistrer puis poursuivre l’analyse';
@@ -79,8 +72,5 @@ Future<bool> _saveTarget(
       ],
     ),
   );
-  if (accepted != true || !context.mounted || controller.isDisposed) {
-    return false;
-  }
-  return controller.save(document!);
+  return accepted == true;
 }

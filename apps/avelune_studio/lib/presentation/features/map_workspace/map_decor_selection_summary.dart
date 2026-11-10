@@ -4,7 +4,7 @@ import 'package:map_core/map_core_domain.dart';
 import '../../../features/map_workspace/application/editable_map_document.dart';
 import '../../../features/map_workspace/application/map_editing_commands.dart';
 import '../../shared/widgets/layout/studio_asset_preview.dart';
-import 'map_workspace_visuals.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 
 class MapDecorSelectionSummary extends StatelessWidget {
   const MapDecorSelectionSummary({

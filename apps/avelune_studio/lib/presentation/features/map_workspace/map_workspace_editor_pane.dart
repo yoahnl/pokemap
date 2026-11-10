@@ -1,20 +1,18 @@
-import 'dart:async';
-import 'dart:typed_data';
-
-import 'package:flutter/foundation.dart' show listEquals;
-import 'package:map_render_3d/map_render_3d.dart';
-
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/map_workspace/application/editable_map_document.dart';
-import '../../../features/map_workspace/domain/map_exterior_decoration_port.dart';
+import '../../../features/map_workspace/coordination/spatial_map_neighbor_session.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../../features/map_workspace/application/map_workspace_controller.dart';
 import 'map_library_navigator.dart';
-import '../resources/resource_catalog.dart';
+
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
+
 import 'map_workspace_compact_navigator.dart';
-import 'map_workspace_canvas.dart';
+
+import 'package:avelune_studio/platform/rendering/viewports/map_editing_viewport_2d.dart';
+
 import 'map_workspace_palette_dock.dart';
 import 'map_elements_panel.dart';
 import 'map_intent_status_chip.dart';
@@ -22,8 +20,10 @@ import 'map_palette_intent.dart';
 import 'map_workspace_left_column.dart';
 import 'map_workspace_tool_strip.dart';
 import 'map_workspace_view_state.dart';
-import 'map_workspace_visuals.dart';
-import 'spatial_map_editor.dart';
+
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
+import 'package:avelune_studio/platform/rendering/viewports/spatial_map_editing_viewport.dart';
+
 import 'map_exterior_decoration_controls.dart';
 import 'map_border_tool_panel.dart';
 import 'map_environment_tool_panel.dart';
@@ -31,8 +31,6 @@ import 'map_terrain_tool_panel.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
 import 'map_catalogue_workspace_actions.dart';
 import 'map_lifecycle_workspace_actions.dart';
-
-part 'map_workspace_spatial_neighbors.dart';
 
 class MapWorkspaceEditorPane extends StatefulWidget {
   const MapWorkspaceEditorPane({
@@ -86,19 +84,21 @@ class MapWorkspaceEditorPane extends StatefulWidget {
 }
 
 class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
-  final _neighborSources = <Object, Future<_EditorNeighborSource>>{};
-  List<SpatialSceneNeighbor> _neighbors = const [];
-  List<SpatialSceneDecoration> _neighborDecorations = const [];
-  List<Object?>? _neighborRequest;
-  int _neighborGeneration = 0;
-  Object? _neighborFailure;
-  bool _neighborLoading = false;
+  final _neighbors = SpatialMapNeighborSession();
 
-  void _updateSpatialNeighbors(VoidCallback action) => setState(action);
+  void _neighborsChanged() => setState(() {});
+
+  void _loadSpatialNeighbors() => _neighbors.refresh(
+    map: widget.document.current,
+    controller: widget.controller,
+    project: widget.project,
+    visuals: widget.visuals,
+  );
 
   @override
   void initState() {
     super.initState();
+    _neighbors.addListener(_neighborsChanged);
     _loadSpatialNeighbors();
   }
 
@@ -110,8 +110,8 @@ class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
 
   @override
   void dispose() {
-    _neighborGeneration++;
-    _neighborSources.clear();
+    _neighbors.removeListener(_neighborsChanged);
+    _neighbors.dispose();
     super.dispose();
   }
 
@@ -145,6 +145,7 @@ class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
       widget.onChanged();
     });
   }
+
   bool get _exteriorActive =>
       widget.document.exteriorDecoration?.editingExterior == true;
   EditableMapDocument get _toolDocument => _exteriorActive
@@ -156,12 +157,12 @@ class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
   Widget _nativePanel(Widget child) =>
       IgnorePointer(ignoring: !_nativeReady, child: child);
   Widget _canvas() => widget.document.current.spatialScene != null
-      ? SpatialMapEditor(
+      ? SpatialMapEditingViewport(
           key: ValueKey(widget.document.base.mapId),
           document: widget.document,
-          neighbors: _neighbors,
-          exteriorContextReady: !_neighborLoading && _neighborFailure == null,
-          neighborDecorations: _neighborDecorations,
+          neighbors: _neighbors.neighbors,
+          exteriorContextReady: _neighbors.ready,
+          neighborDecorations: _neighbors.decorations,
           controller: widget.controller,
           project: widget.project,
           visuals: widget.visuals,
@@ -169,7 +170,7 @@ class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
           onChanged: widget.onChanged,
           onContextMenu: widget.onContextMenu,
         )
-      : MapWorkspaceCanvas(
+      : MapEditingViewport2D(
           key: ValueKey(widget.document.base.mapId),
           document: widget.document,
           project: widget.project,
@@ -365,9 +366,9 @@ class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
                                   ),
                                 ),
                               ),
-                            if (_neighborFailure != null)
+                            if (_neighbors.failure != null)
                               StudioNotice(
-                                'Les cartes voisines ne peuvent pas être affichées : $_neighborFailure',
+                                'Les cartes voisines ne peuvent pas être affichées : ${_neighbors.failure}',
                               ),
                             Expanded(
                               child: Stack(
@@ -472,34 +473,37 @@ class _MapWorkspaceEditorPaneState extends State<MapWorkspaceEditorPane> {
 
   Widget _navigator(BuildContext context, {double width = 252}) =>
       MapLibraryNavigator(
-    width: width,
-    project: widget.project,
-    activeMapId: widget.document.base.mapId,
-    dirtyMapIds: {
-      for (final entry in widget.controller.documents.entries)
-        if (entry.value.dirty) entry.key,
-    },
-    onActivate: widget.onActivate,
-    onOrganize: widget.onOrganizeMaps,
-    onRetryCatalogue: widget.controller.pendingCatalogReceipt == null
-        ? null
-        : () => widget.controller.retryCatalogRefresh(),
-    onCreateMap: widget.controller.catalogPort == null
-        ? null
-        : (groupId) =>
-              createWorkspaceMap(context, widget.controller, groupId: groupId),
-    onRenameMap: widget.controller.catalogPort == null
-        ? null
-        : (entry) => renameWorkspaceMap(context, widget.controller, entry),
-    onLifecycleMap: widget.controller.catalogPort == null
-        ? null
-        : (entry, action) => manageWorkspaceMap(
-            context,
-            widget.controller,
-            entry,
-            action,
-            visuals: widget.visuals,
-          ),
-    onCollapse: () => setState(() => widget.view.navigatorCollapsed = true),
-  );
+        width: width,
+        project: widget.project,
+        activeMapId: widget.document.base.mapId,
+        dirtyMapIds: {
+          for (final entry in widget.controller.documents.entries)
+            if (entry.value.dirty) entry.key,
+        },
+        onActivate: widget.onActivate,
+        onOrganize: widget.onOrganizeMaps,
+        onRetryCatalogue: widget.controller.pendingCatalogReceipt == null
+            ? null
+            : () => widget.controller.retryCatalogRefresh(),
+        onCreateMap: widget.controller.catalogPort == null
+            ? null
+            : (groupId) => createWorkspaceMap(
+                context,
+                widget.controller,
+                groupId: groupId,
+              ),
+        onRenameMap: widget.controller.catalogPort == null
+            ? null
+            : (entry) => renameWorkspaceMap(context, widget.controller, entry),
+        onLifecycleMap: widget.controller.catalogPort == null
+            ? null
+            : (entry, action) => manageWorkspaceMap(
+                context,
+                widget.controller,
+                entry,
+                action,
+                visuals: widget.visuals,
+              ),
+        onCollapse: () => setState(() => widget.view.navigatorCollapsed = true),
+      );
 }

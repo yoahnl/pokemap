@@ -1,0 +1,15 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/standard_event_template_form_test.dart
+00:00 +0: busy or disposed template sessions never publish a second request
+00:00 +1: guided map selection loads only the chosen map once
+00:00 +2: unavailable item blocks guided publication catalogue=0
+00:00 +3: unavailable item blocks guided publication catalogue=1
+00:00 +4: conditionalNpc previews both states with selected resources
+00:00 +5: pickup previews both states with selected resources
+00:00 +6: lockedDoor previews both states with selected resources
+00:00 +7: trainer previews both states with selected resources
+00:00 +8: advanced actions publish the current recipe before navigation
+00:00 +9: shared resource selection changes only the recipe
+00:00 +10: reusing a recipe selects a new owner without altering the first
+00:00 +11: invalid references prevent publication and retain the authored input
+00:00 +12: a failed publication keeps local settings and prevents advanced navigation
+00:00 +13: All tests passed!

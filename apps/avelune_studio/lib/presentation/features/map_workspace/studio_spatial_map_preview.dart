@@ -3,7 +3,7 @@ import 'package:map_core/map_core_domain.dart';
 import 'package:map_render_3d/map_render_3d.dart';
 
 import '../../shared/widgets/feedback/studio_notice.dart';
-import 'map_workspace_visuals.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 
 class StudioSpatialMapPreview extends StatefulWidget {
   const StudioSpatialMapPreview({

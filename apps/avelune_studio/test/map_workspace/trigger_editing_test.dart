@@ -1,8 +1,8 @@
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/trigger_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_canvas.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
+import 'package:avelune_studio/platform/rendering/viewports/map_editing_viewport_2d.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -132,7 +132,7 @@ void main() {
     tester,
   ) async {
     commands.add(trigger('quai'));
-    final view = MapWorkspaceViewState()..tool = StudioMapTool.zone;
+    final view = MapEditingViewportSession()..tool = StudioMapTool.zone;
     addTearDown(view.dispose);
     final drawn = <MapRect>[];
 
@@ -140,7 +140,7 @@ void main() {
       MaterialApp(
         home: Scaffold(
           body: StatefulBuilder(
-            builder: (context, setState) => MapWorkspaceCanvas(
+            builder: (context, setState) => MapEditingViewport2D(
               document: document,
               project: workspaceProject,
               visuals: WorkspaceTestVisuals(),

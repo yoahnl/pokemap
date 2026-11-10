@@ -10,8 +10,8 @@ import 'package:avelune_studio/features/resources/data/local_resource_pack_adapt
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import 'package:avelune_studio/features/terrains/domain/terrain_draft_compatibility.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_border_lifecycle.dart';
-import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
-import 'package:avelune_studio/presentation/features/resources/resource_navigation.dart';
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
+import 'package:avelune_studio/features/resources/coordination/resource_navigation.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';

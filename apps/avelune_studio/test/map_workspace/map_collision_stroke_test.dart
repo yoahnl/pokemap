@@ -1,8 +1,8 @@
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_canvas_stroke.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_canvas_stroke.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_workspace_editing_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
@@ -14,8 +14,8 @@ void main() {
     final document = EditableMapDocument(
       MapWorkspaceDocument(map: initial, revision: 'r0', mapId: 'a'),
     );
-    final view = MapWorkspaceViewState()..tool = StudioMapTool.collisionPaint;
-    addTearDown(view.dispose);
+    final view = MapWorkspaceEditingState()
+      ..tool = StudioMapTool.collisionPaint;
     final commands = MapEditingCommands(document, workspaceProject);
     final stroke = MapCanvasStroke.start(
       map: document.current,
@@ -75,8 +75,7 @@ void main() {
       final document = EditableMapDocument(
         MapWorkspaceDocument(map: map, revision: 'r0', mapId: 'a'),
       );
-      final view = MapWorkspaceViewState()..tool = StudioMapTool.erase;
-      addTearDown(view.dispose);
+      final view = MapWorkspaceEditingState()..tool = StudioMapTool.erase;
       final stroke = MapCanvasStroke.start(
         map: map,
         project: workspaceProject,
@@ -97,8 +96,7 @@ void main() {
     final document = EditableMapDocument(
       MapWorkspaceDocument(map: map, revision: 'r0', mapId: 'a'),
     );
-    final view = MapWorkspaceViewState()..tool = StudioMapTool.erase;
-    addTearDown(view.dispose);
+    final view = MapWorkspaceEditingState()..tool = StudioMapTool.erase;
     expect(
       MapCanvasStroke.start(
         map: map,
@@ -143,8 +141,7 @@ void main() {
         final document = EditableMapDocument(
           MapWorkspaceDocument(map: map, revision: 'r0', mapId: 'a'),
         );
-        final view = MapWorkspaceViewState()..tool = StudioMapTool.erase;
-        addTearDown(view.dispose);
+        final view = MapWorkspaceEditingState()..tool = StudioMapTool.erase;
         final stroke = MapCanvasStroke.start(
           map: map,
           project: workspaceProject,

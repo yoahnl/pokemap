@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:avelune_studio/app/studio_bootstrap.dart';
 import 'package:avelune_studio/features/project_session/application/project_session_controller.dart';
 import 'package:avelune_studio/features/project_session/data/local_project_session_adapter.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_canvas.dart';
+import 'package:avelune_studio/platform/rendering/viewports/map_editing_viewport_2d.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -41,8 +41,8 @@ void main() {
       await tester.pump();
       expect(find.text('Bloquer les cases'), findsOneWidget);
       expect(find.text('Libérer les cases'), findsOneWidget);
-      final canvas = tester.widget<MapWorkspaceCanvas>(
-        find.byType(MapWorkspaceCanvas),
+      final canvas = tester.widget<MapEditingViewport2D>(
+        find.byType(MapEditingViewport2D),
       );
       expect(canvas.view.tool, StudioMapTool.collisionPaint);
       final bounds = tester.getRect(find.byKey(const ValueKey('map-canvas')));
@@ -51,8 +51,8 @@ void main() {
           Offset((x + .5) * bounds.width / 24, (y + .5) * bounds.height / 16);
       await tester.dragFrom(cell(8, 2), cell(11, 2) - cell(8, 2));
       await tester.pump();
-      final activeCanvas = tester.widget<MapWorkspaceCanvas>(
-        find.byType(MapWorkspaceCanvas),
+      final activeCanvas = tester.widget<MapEditingViewport2D>(
+        find.byType(MapEditingViewport2D),
       );
       expect(
         activeCanvas.document.current.layers

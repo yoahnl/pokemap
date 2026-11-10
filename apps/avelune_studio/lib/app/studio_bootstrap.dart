@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+
 import '../platform/mcp/studio_mcp_project_access.dart';
 
 import '../platform/rendering/studio_project_audio_preview.dart';
@@ -58,10 +59,7 @@ import 'package:avelune_studio/features/project_session/data/local_project_sessi
 import 'package:avelune_studio/platform/files/native_project_directory_picker.dart';
 import 'package:avelune_studio/platform/files/native_resource_image_picker.dart';
 import 'package:avelune_studio/features/resources/data/local_resource_adapter.dart';
-import 'package:avelune_studio/platform/playtest/studio_playtest_view.dart';
-import 'package:avelune_studio/platform/playtest/studio_game_playtest_view.dart';
 import 'package:avelune_studio/platform/rendering/studio_map_resources.dart';
-import 'package:avelune_studio/presentation/shell/studio_workspace_host.dart';
 
 class StudioBootstrap extends StatelessWidget {
   const StudioBootstrap({
@@ -84,8 +82,13 @@ class StudioBootstrap extends StatelessWidget {
     overrides: [
       studioMcpServiceProvider.overrideWith((ref) {
         final service =
-            mcpService ?? StudioMcpService(launch: launchStudioMcpProcess,
-              projectBookmark: Platform.isMacOS ? createStudioMcpProjectBookmark : null);
+            mcpService ??
+            StudioMcpService(
+              launch: launchStudioMcpProcess,
+              projectBookmark: Platform.isMacOS
+                  ? createStudioMcpProjectBookmark
+                  : null,
+            );
         ref.onDispose(service.dispose);
         return service;
       }),
@@ -269,7 +272,12 @@ class StudioBootstrap extends StatelessWidget {
         ),
       ),
       projectAudioPreviewProvider.overrideWith((ref, session) {
-        final preview = StudioProjectAudioPreview(session: session, port: ref.watch(mapWorkspacePortProvider(session)) as LocalMapWorkspaceAdapter);
+        final preview = StudioProjectAudioPreview(
+          session: session,
+          port: ref.watch(
+            mapWorkspacePortProvider(session),
+          ) as LocalMapWorkspaceAdapter,
+        );
         ref.onDispose(() => unawaited(preview.close()));
         return preview;
       }),
@@ -308,39 +316,7 @@ class StudioBootstrap extends StatelessWidget {
           ) as LocalMapWorkspaceAdapter,
         ),
       ),
-      projectRuntimeBuilderProvider.overrideWith((ref) {
-        final preferences = ref.read(studioRenderingPreferencesProvider);
-        return (session, close) => StudioGamePlaytestView(
-          projectFilePath: '${session.directoryPath}/project.json',
-          onClose: close,
-          renderingPreferences: preferences,
-        );
-      }),
-      workspaceVisualTestBuilderProvider.overrideWithValue((session, port) {
-        final saves = StudioPlaytestSession();
-        return (entry, revision, close, preview) => StudioPlaytestView(session: session,
-          entry: entry, expectedRevision: revision, port: port, onClose: close,
-          testSession: saves, previewVisuals: preview);
-      }),
-      workspaceRuntimeBuilderProvider.overrideWithValue((session, port) {
-        final testSession = StudioPlaytestSession();
-        return (entry, revision, close) => StudioPlaytestView(
-          session: session,
-          entry: entry,
-          expectedRevision: revision,
-          port: port,
-          onClose: close,
-          testSession: testSession,
-        );
-      }),
     ],
-    child: StudioApp(
-      workspaceBuilder: (session, close, guard) => StudioWorkspaceHost(
-        key: ValueKey(session.sessionId),
-        session: session,
-        onClose: close,
-        registerExitGuard: guard,
-      ),
-    ),
+    child: const StudioApp(),
   );
 }

@@ -3,7 +3,7 @@ import 'package:avelune_studio/features/resources/domain/model_resource_port.dar
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/workspace_actions.dart';
 import 'package:avelune_studio/presentation/features/resources/model_resource_library.dart';
-import 'package:avelune_studio/presentation/features/resources/resource_navigation.dart';
+import 'package:avelune_studio/features/resources/coordination/resource_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';

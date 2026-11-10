@@ -1,161 +1,101 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:avelune_studio/features/characters/application/character_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
-import 'package:avelune_studio/presentation/features/characters/character_inspector.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_panels.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 
 import '../support/map_workspace_fixture.dart';
 import 'character_editing_test.dart' show guide;
 
 void main() {
   for (final spatial in [false, true]) {
-  testWidgets(
-    'palette and inspector support real instance edits at enlarged text spatial=$spatial',
-    (tester) async {
-      tester.view.physicalSize = const Size(1024, 640);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-      final document = EditableMapDocument(
-        MapWorkspaceDocument(
-          map: spatial ? workspaceMap('a').copyWith(version: ProjectVersion.v9, visualStack: null, layers: const [], spatialScene: MapSpatialScene(width: workspaceMap('a').size.width, depth: workspaceMap('a').size.height)) : workspaceMap('a'),
-          revision: 'base',
-          mapId: 'a',
-        ),
-      );
-      final project = workspaceProject.copyWith(
-        settings: workspaceProject.settings.copyWith(dimension: spatial ? ProjectDimension.threeD : ProjectDimension.twoD),
-        characters: [
-          guide,
-          guide.copyWith(id: 'traveler', name: 'Voyageuse'),
-        ],
-        trainers: [
-          const ProjectTrainerEntry(
-            id: 'alice',
-            name: 'Alice',
-            trainerClass: 'Dresseuse',
+    test(
+      '2D/3D character instance editing preserves independent identity and history spatial=$spatial',
+      () {
+        final document = EditableMapDocument(
+          MapWorkspaceDocument(
+            map: spatial
+                ? workspaceMap('a').copyWith(
+                    version: ProjectVersion.v9,
+                    visualStack: null,
+                    layers: const [],
+                    spatialScene: MapSpatialScene(
+                      width: workspaceMap('a').size.width,
+                      depth: workspaceMap('a').size.height,
+                    ),
+                  )
+                : workspaceMap('a'),
+            revision: 'base',
+            mapId: 'a',
           ),
-        ],
-      );
-      final view = MapWorkspaceViewState()..paletteTab = 'Personnages';
-      final search = TextEditingController();
-      addTearDown(view.dispose);
-      addTearDown(search.dispose);
-      Widget app(Widget child) => MaterialApp(
-        theme: studioTheme(),
-        builder: (context, child) => MediaQuery(
-          data: MediaQuery.of(context)
-              .copyWith(textScaler: TextScaler.linear(1.5)),
-          child: child!,
-        ),
-        home: Scaffold(body: SizedBox(width: 300, child: child)),
-      );
-      await tester.pumpWidget(
-        app(
-          StatefulBuilder(
-            builder: (context, setState) => MapWorkspacePalette(
-              project: project,
-              document: document,
-              visuals: WorkspaceTestVisuals(),
-              view: view,
-              search: search,
-              onChanged: () => setState(() {}),
+        );
+        final project = workspaceProject.copyWith(
+          settings: workspaceProject.settings.copyWith(
+            dimension: spatial
+                ? ProjectDimension.threeD
+                : ProjectDimension.twoD,
+          ),
+          characters: [
+            guide,
+            guide.copyWith(id: 'traveler', name: 'Voyageuse'),
+          ],
+          trainers: [
+            const ProjectTrainerEntry(
+              id: 'alice',
+              name: 'Alice',
+              trainerClass: 'Dresseuse',
             ),
-          ),
-        ),
-      );
-      await tester.enterText(
-        find.byKey(const ValueKey('character-search')),
-        'Voyageuse',
-      );
-      await tester.pump();
-      expect(find.text('Chef de gare'), findsNothing);
-      await tester.tap(find.byKey(const ValueKey('character-traveler')));
-      await tester.pump();
-      expect(view.character!.id, 'traveler');
-      expect(view.characterQuery, 'Voyageuse');
-      expect(view.tool, StudioMapTool.character);
-      expect(document.dirty, isFalse);
-      final commands = CharacterEditingCommands(document, project);
-      var selected = commands
-          .place(view.character!, const GridPos(x: 3, y: 4))
-          .id;
-      MapEntity? edited;
-      await tester.pumpWidget(
-        app(
-          StatefulBuilder(
-            builder: (context, setState) => SingleChildScrollView(
-              child: CharacterInspector(
-                document: document,
-                project: project,
-                entity: commands.selected(selected)!,
-                visuals: WorkspaceTestVisuals(),
-                onChanged: () => setState(() {}),
-                onSelect: (id) => setState(() => selected = id!),
-                onEditInteraction: (entity) => edited = entity,
-              ),
-            ),
-          ),
-        ),
-      );
-      final before = document.undoCount;
-      await tester.enterText(
-        find.byKey(const ValueKey('character-name')),
-        'Voyageuse du quai',
-      );
-      await tester.testTextInput.receiveAction(TextInputAction.done);
-      await tester.pump();
-      expect(
-        commands.selected(selected)!.npc!.displayName,
-        'Voyageuse du quai',
-      );
-      expect(document.undoCount, before + 1);
-      await tester.ensureVisible(find.text('Bloque le passage'));
-      await tester.tap(find.text('Bloque le passage'));
-      await tester.pump();
-      expect(commands.selected(selected)!.blocksMovement, isFalse);
-      final trainerPicker = find.byKey(ValueKey('trainer-$selected-null'));
-      await tester.ensureVisible(trainerPicker);
-      await tester.tap(trainerPicker);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Alice').last);
-      await tester.pumpAndSettle();
-      expect(commands.selected(selected)!.npc!.trainerId, 'alice');
-      final beforeCounter = document.current;
-      final counter = find.byKey(const ValueKey('counter-side-south'));
-      await tester.ensureVisible(counter);
-      await tester.tap(counter);
-      await tester.pump();
-      expect(commands.selected(selected)!.npc!.counterInteractionSides, [
-        EntityFacing.south,
-      ]);
-      document.restore(redo: false);
-      expect(document.current, beforeCounter);
-      document.restore(redo: true);
-      expect(commands.selected(selected)!.npc!.counterInteractionSides, [
-        EntityFacing.south,
-      ]);
-      await tester.pump();
-      await tester.tap(counter);
-      await tester.pump();
-      expect(
-        commands.selected(selected)!.npc!.counterInteractionSides,
-        isEmpty,
-      );
-      await tester.ensureVisible(find.text('Écrire son interaction'));
-      await tester.tap(find.text('Écrire son interaction'));
-      expect(edited!.id, selected);
-      await tester.ensureVisible(find.byTooltip('Dupliquer le personnage'));
-      await tester.tap(find.byTooltip('Dupliquer le personnage'));
-      await tester.pump();
-      expect(document.current.entities, hasLength(2));
-      expect(tester.takeException(), isNull);
-    },
-  );
+          ],
+        );
+
+        expect(document.dirty, isFalse);
+        final commands = CharacterEditingCommands(document, project);
+        final selected = commands
+            .place(project.characters.last, const GridPos(x: 3, y: 4))
+            .id;
+        expect(commands.selected(selected)!.npc!.characterId, 'traveler');
+        final before = document.undoCount;
+        commands.update(selected, name: 'Voyageuse du quai');
+        expect(
+          commands.selected(selected)!.npc!.displayName,
+          'Voyageuse du quai',
+        );
+        expect(document.undoCount, before + 1);
+        commands.update(selected, blocks: false);
+        expect(commands.selected(selected)!.blocksMovement, isFalse);
+        commands.assignTrainer(selected, 'alice');
+        expect(commands.selected(selected)!.npc!.trainerId, 'alice');
+        final beforeCounter = document.current;
+        commands.setCounterInteractionSides(selected, const [
+          EntityFacing.south,
+        ]);
+        expect(commands.selected(selected)!.npc!.counterInteractionSides, [
+          EntityFacing.south,
+        ]);
+        document.restore(redo: false);
+        expect(document.current, beforeCounter);
+        document.restore(redo: true);
+        expect(commands.selected(selected)!.npc!.counterInteractionSides, [
+          EntityFacing.south,
+        ]);
+        commands.setCounterInteractionSides(selected, const []);
+        expect(
+          commands.selected(selected)!.npc!.counterInteractionSides,
+          isEmpty,
+        );
+        final clone = commands.duplicate(selected);
+        expect(clone.id, isNot(selected));
+        expect(document.current.entities, hasLength(2));
+        commands.update(clone.id, name: 'Copie indépendante');
+        expect(
+          commands.selected(selected)!.npc!.displayName,
+          'Voyageuse du quai',
+        );
+        expect(
+          commands.selected(clone.id)!.npc!.displayName,
+          'Copie indépendante',
+        );
+      },
+    );
   }
 }

@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
 import '../../shared/widgets/inputs/studio_search_field.dart';
-import '../resources/resource_catalog.dart';
-import '../resources/resource_family_tree.dart';
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
+import 'package:avelune_studio/features/resources/application/resource_family_tree.dart';
 import '../resources/resource_family_tree_view.dart';
 import '../resources/resource_filter_button.dart';
 

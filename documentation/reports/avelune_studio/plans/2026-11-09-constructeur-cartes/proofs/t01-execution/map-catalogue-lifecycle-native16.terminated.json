@@ -1,0 +1,20 @@
+{
+  "reason": "Bounded interrupted after no progress; isolate catalogue group preview",
+  "owned_live": [
+    {
+      "pid": 72355,
+      "ppid": 72345,
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dartvm --resolved_executable_name=/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart --executable_name=/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dart --packages=/opt/homebrew/share/flutter-3.47.5/packages/flutter_tools/.dart_tool/package_config.json /opt/homebrew/share/flutter-3.47.5/bin/cache/flutter_tools.snapshot test --concurrency=1 test/map_workspace/map_catalogue_host_test.dart test/map_workspace/map_catalogue_groups_host_test.dart test/map_workspace/map_catalogue_home_entry_host_test.dart test/map_workspace/map_lifecycle_host_test.dart test/map_workspace/map_lifecycle_layout_host_test.dart test/map_workspace/uwu2_resize_runtime_host_test.dart test/map_workspace/uwu6_empty_map_host_test.dart -r failures-only"
+    },
+    {
+      "pid": 72423,
+      "ppid": 72355,
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/dartaotruntime /opt/homebrew/share/flutter-3.47.5/bin/cache/dart-sdk/bin/snapshots/frontend_server_aot.dart.snapshot --sdk-root /opt/homebrew/share/flutter-3.47.5/bin/cache/artifacts/engine/common/flutter_patched_sdk/ --incremental --no-print-incremental-dependencies --target=flutter --experimental-emit-debug-metadata -DFLUTTER_BUILD_NAME=0.3.37 -DFLUTTER_BUILD_NUMBER=337 -DFLUTTER_VERSION=3.47.5 -DFLUTTER_CHANNEL=stable -DFLUTTER_GIT_URL=https://github.com/flutter/flutter.git -DFLUTTER_FRAMEWORK_REVISION=6a19cca564 -DFLUTTER_ENGINE_REVISION=af7e796e16 -DFLUTTER_DART_VERSION=3.13.4 --output-dill /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/flutter_tools.tiQOf7/flutter_test_compiler.DVSB3E/output.dill --packages /Users/karim/Project/pokemonProject/apps/avelune_studio/.dart_tool/package_config.json -Ddart.vm.profile=false -Ddart.vm.product=false --enable-asserts --track-widget-creation --initialize-from-dill /Users/karim/Project/pokemonProject/apps/avelune_studio/build/test_cache/build/454d9ef0bca602967be51e4bf41273f5.cache.dill.track.dill --verbosity=error --enable-experiment=alternative-invalidation-strategy"
+    },
+    {
+      "pid": 72565,
+      "ppid": 72355,
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/cache/artifacts/engine/darwin-x64/flutter_tester --disable-vm-service --enable-checked-mode --verify-entry-points --enable-software-rendering --skia-deterministic-rendering --enable-dart-profiling --non-interactive --use-test-fonts --disable-asset-fonts --packages=/Users/karim/Project/pokemonProject/apps/avelune_studio/.dart_tool/package_config.json --flutter-assets-dir=/Users/karim/Project/pokemonProject/apps/avelune_studio/build/unit_test_assets /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/flutter_tools.tiQOf7/flutter_test_listener.3i1PB4/listener.dart.dill"
+    }
+  ]
+}

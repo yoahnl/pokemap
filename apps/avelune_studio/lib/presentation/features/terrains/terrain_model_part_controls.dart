@@ -1,3 +1,4 @@
+import 'package:avelune_studio/features/terrains/application/terrain_numeric_input.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
@@ -51,15 +52,11 @@ class _TerrainModelPartControlsState extends State<TerrainModelPartControls> {
     rotation = widget.part.transform.quarterTurns;
   }
 
-  double? _number(String value) {
-    final parsed = double.tryParse(value.trim().replaceAll(',', '.'));
-    return parsed != null && parsed.isFinite ? parsed : null;
-  }
-
   @override
   Widget build(BuildContext context) {
-    final factor = _number(scale), height = _number(offset);
-    final x = _number(offsetX), z = _number(offsetZ);
+    final factor = terrainFiniteNumber(scale),
+        height = terrainFiniteNumber(offset);
+    final x = terrainFiniteNumber(offsetX), z = terrainFiniteNumber(offsetZ);
     final validScale = factor != null && factor > 0;
     final followsTerrain =
         (widget.part.source as SmartTileModel3dSource).followTerrain;

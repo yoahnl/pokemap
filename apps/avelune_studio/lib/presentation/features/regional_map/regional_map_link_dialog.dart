@@ -3,7 +3,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
-import '../map_workspace/map_library_tree.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_library_tree.dart';
 
 typedef RegionalMapLink = ({String name, String mapId});
 

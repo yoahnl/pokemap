@@ -1,3 +1,5 @@
+import 'package:avelune_studio/features/map_workspace/application/map_generated_owner.dart';
+export 'package:avelune_studio/features/map_workspace/application/map_generated_owner.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
@@ -5,39 +7,6 @@ import '../../../features/map_workspace/application/environment_editing_commands
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
 import 'map_workspace_view_state.dart';
-
-final class MapGeneratedOwner {
-  const MapGeneratedOwner({
-    required this.layerId,
-    required this.areaId,
-    required this.areaName,
-    required this.presetName,
-  });
-
-  final String layerId, areaId, areaName, presetName;
-}
-
-MapGeneratedOwner? mapGeneratedOwner(
-  MapData map,
-  ProjectManifest project,
-  String elementId,
-) {
-  for (final layer in map.layers.whereType<EnvironmentLayer>()) {
-    for (final area in layer.content.areas) {
-      if (!area.generatedPlacementIds.contains(elementId)) continue;
-      final preset = project.environmentPresets
-          .where((preset) => preset.id == area.presetId)
-          .firstOrNull;
-      return MapGeneratedOwner(
-        layerId: layer.id,
-        areaId: area.id,
-        areaName: area.name,
-        presetName: preset?.name ?? 'environnement introuvable',
-      );
-    }
-  }
-  return null;
-}
 
 String mapEnvironmentAreaSummary(
   EnvironmentArea area,

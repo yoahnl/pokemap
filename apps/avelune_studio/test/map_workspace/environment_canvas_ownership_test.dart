@@ -1,8 +1,8 @@
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/environment_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_canvas.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
+import 'package:avelune_studio/platform/rendering/viewports/map_editing_viewport_2d.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
@@ -38,7 +38,7 @@ void main() {
       final commands = EnvironmentEditingCommands(document, project);
       final first = commands.create(preset);
       final second = commands.create(preset);
-      final view = MapWorkspaceViewState()
+      final view = MapEditingViewportSession()
         ..tool = StudioMapTool.environment
         ..environment = first;
       addTearDown(view.dispose);
@@ -46,7 +46,7 @@ void main() {
         MaterialApp(
           home: Scaffold(
             body: StatefulBuilder(
-              builder: (context, setState) => MapWorkspaceCanvas(
+              builder: (context, setState) => MapEditingViewport2D(
                 document: document,
                 project: project,
                 visuals: WorkspaceTestVisuals(),

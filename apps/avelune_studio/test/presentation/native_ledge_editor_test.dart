@@ -6,7 +6,7 @@ import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import 'package:avelune_studio/presentation/features/resources/border_creation_dialog.dart';
 import 'package:avelune_studio/presentation/features/resources/border_pattern_panel.dart';
 import 'package:avelune_studio/presentation/features/resources/border_source_panel.dart';
-import 'package:avelune_studio/presentation/features/resources/resource_navigation.dart';
+import 'package:avelune_studio/features/resources/coordination/resource_navigation.dart';
 import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';

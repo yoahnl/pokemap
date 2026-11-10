@@ -1,10 +1,7 @@
-import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
-import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
-import 'package:avelune_studio/presentation/features/events/event_conditions.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_trigger_inspector.dart';
-import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_choice.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
-import 'package:flutter/material.dart';
+import 'package:avelune_studio/features/events/application/event_condition_editing.dart';
+import 'package:avelune_studio/features/events/application/event_condition_labels.dart';
+import 'package:avelune_studio/features/events/application/event_labels.dart';
+import 'package:avelune_studio/features/map_workspace/application/story_zone_sources.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
@@ -24,197 +21,97 @@ void main() {
     NarrativeEventCondition.fact('ready', true),
   );
 
-  Future<List<NarrativeEventConditionExpression>> pump(
-    WidgetTester tester,
-    NarrativeEventConditionExpression expression,
-  ) async {
-    final changes = <NarrativeEventConditionExpression>[];
-    tester.view.physicalSize = const Size(1000, 1200);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: studioTheme(),
-        home: Scaffold(
-          body: EventConditions(
-            expression: expression,
-            facts: facts,
-            records: const [],
-            onChanged: changes.add,
-          ),
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-    return changes;
-  }
-
-  String text(WidgetTester tester, String key) =>
-      tester.widget<Text>(find.byKey(ValueKey(key))).data!;
-
-  testWidgets('the result sentence states the group logic and the inversion', (
-    tester,
-  ) async {
-    await pump(
-      tester,
+  test('the result sentence states group logic and inversion', () {
+    final result = eventTriggerSentence(
       NarrativeEventConditionExpression.any([notTicket, ready]),
+      facts,
+      const [],
     );
-    final result = text(tester, 'event-conditions-result');
     expect(result, contains('au moins une'));
     expect(result, contains('il n’est pas vrai que'));
     expect(result, contains('Billet'));
     expect(result, contains(' ou '));
     expect(result, contains('Prêt'));
-    expect(find.text('Au moins une condition'), findsOneWidget);
-    expect(find.text('Inverser cette condition'), findsOneWidget);
-    expect(tester.takeException(), isNull);
   });
 
-  testWidgets('a group logic is chosen explicitly and keeps its children', (
-    tester,
-  ) async {
-    final changes = await pump(
-      tester,
-      NarrativeEventConditionExpression.any([notTicket, ready]),
-    );
-    final all = find.byKey(const ValueKey('event-group-all-root'));
-    final any = find.byKey(const ValueKey('event-group-any-root'));
-    expect(all, findsOneWidget);
-    expect(any, findsOneWidget);
-    expect(tester.widget<StudioChoice>(any).selected, isTrue);
-    expect(tester.widget<StudioChoice>(all).selected, isFalse);
-    await tester.tap(all);
-    await tester.pump();
-    expect(
-      changes.single,
-      NarrativeEventConditionExpression.all([notTicket, ready]),
-    );
-    expect(find.byTooltip('Au moins une'), findsNothing);
-    expect(tester.takeException(), isNull);
+  test('changing group logic preserves every child and inversion', () {
+    final source = NarrativeEventConditionExpression.any([notTicket, ready]);
+    final changed = changeEventConditionGroupKind(source, any: false);
+    expect(changed, NarrativeEventConditionExpression.all([notTicket, ready]));
+    expect(source, NarrativeEventConditionExpression.any([notTicket, ready]));
+    expect(changeEventConditionGroupKind(changed, any: true), source);
   });
 
-  testWidgets('inverting announces its effect before it is applied', (
-    tester,
-  ) async {
-    final changes = await pump(
-      tester,
-      NarrativeEventConditionExpression.all([ready]),
-    );
+  test(
+    'inversion labels preserve the authored fact and original expression',
+    () {
+      final source = NarrativeEventConditionExpression.all([ready]);
+      expect(
+        eventTriggerSentence(source, facts, const []),
+        'L’événement se déclenche quand Prêt est égal à Oui.',
+      );
+      final inverse = NarrativeEventConditionExpression.not(ready);
+      expect(
+        eventExpressionSentence(inverse, facts, const []),
+        contains('il n’est pas vrai que'),
+      );
+      expect(source, NarrativeEventConditionExpression.all([ready]));
+    },
+  );
+
+  test('an empty condition list reads as no condition', () {
     expect(
-      find.byTooltip(
-        'Inverser : se déclencher quand « Prêt est égal à Oui » est faux',
+      eventTriggerSentence(
+        NarrativeEventConditionExpression.all(const []),
+        facts,
+        const [],
       ),
-      findsWidgets,
-    );
-    expect(changes, isEmpty);
-    expect(
-      text(tester, 'event-conditions-result'),
-      'L’événement se déclenche quand Prêt est égal à Oui.',
-    );
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('an empty condition list reads as no condition', (tester) async {
-    await pump(tester, NarrativeEventConditionExpression.all(const []));
-    expect(
-      text(tester, 'event-conditions-result'),
       'L’événement se déclenche sans condition.',
     );
   });
 
-  testWidgets('a story zone names the events it triggers', (tester) async {
-    final document = EditableMapDocument(
-      MapWorkspaceDocument(
-        map: workspaceMap('a').copyWith(
-          triggers: const [
-            MapTrigger(
-              id: 'quai',
-              name: 'Quai',
-              type: TriggerType.event,
-              area: MapRect(
-                pos: GridPos(x: 2, y: 3),
-                size: GridSize(width: 2, height: 1),
-              ),
-            ),
-          ],
-        ),
-        revision: 'r0',
-        mapId: 'a',
+  test('story zone sources retain the exact map and zone identity', () {
+    NarrativeEventRecord record(
+      String id,
+      String name,
+      String map,
+      String zone,
+    ) => NarrativeEventRecord.draft(
+      NarrativeEventDraft(
+        id: id,
+        name: name,
+        source: NarrativeEventSourceRef.triggerEnter(map, zone),
+        conditions: const [],
+        priority: 0,
+        order: 0,
       ),
     );
-    final project = workspaceProject.copyWith(
-      eventRegistry: NarrativeEventRegistry(
-        schemaVersion: 1,
-        mode: EventSystemMode.legacyOnly,
-        records: [
-          NarrativeEventRecord.draft(
-            NarrativeEventDraft(
-              id: 'evt_00000000-0000-7000-8000-000000000011',
-              name: 'Annonce du train',
-              source: NarrativeEventSourceRef.triggerEnter('a', 'quai'),
-              conditions: const [],
-              priority: 0,
-              order: 0,
-            ),
-          ),
-          NarrativeEventRecord.draft(
-            NarrativeEventDraft(
-              id: 'evt_00000000-0000-7000-8000-000000000012',
-              name: 'Autre zone',
-              source: NarrativeEventSourceRef.triggerEnter('a', 'ailleurs'),
-              conditions: const [],
-              priority: 0,
-              order: 0,
-            ),
-          ),
-        ],
-        legacyClaims: const [],
+    final records = [
+      record(
+        'evt_00000000-0000-7000-8000-000000000011',
+        'Annonce du train',
+        'a',
+        'quai',
       ),
-    );
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: studioTheme(),
-        home: Scaffold(
-          body: MapTriggerInspector(
-            document: document,
-            project: project,
-            trigger: document.current.triggers.single,
-            onChanged: () {},
-            onDeleted: () {},
-          ),
-        ),
+      record(
+        'evt_00000000-0000-7000-8000-000000000012',
+        'Autre zone',
+        'a',
+        'ailleurs',
       ),
-    );
-    final events = find.byKey(const ValueKey('trigger-events'));
-    expect(
-      find.descendant(
-        of: events,
-        matching: find.textContaining('Annonce du train'),
+      record(
+        'evt_00000000-0000-7000-8000-000000000013',
+        'Autre carte',
+        'b',
+        'quai',
       ),
-      findsOneWidget,
-    );
-    expect(
-      find.descendant(of: events, matching: find.textContaining('en entrant')),
-      findsOneWidget,
-    );
-    expect(find.textContaining('Autre zone'), findsNothing);
-    final admissible = find.byKey(const ValueKey('trigger-admissible'));
-    expect(
-      find.descendant(
-        of: admissible,
-        matching: find.text('En entrant dans la zone : oui'),
-      ),
-      findsOneWidget,
-    );
-    expect(
-      find.descendant(
-        of: admissible,
-        matching: find.text('En touchant la zone : oui'),
-      ),
-      findsOneWidget,
-    );
-    expect(tester.takeException(), isNull);
+    ];
+    final sources = [
+      for (final event in records)
+        if (storyZoneEventMoment(event, 'a', 'quai') case final moment?)
+          (eventName(event), moment),
+    ];
+    expect(sources, [('Annonce du train', 'en entrant dans la zone')]);
   });
 
   test('a story zone states which activations its profile admits', () {

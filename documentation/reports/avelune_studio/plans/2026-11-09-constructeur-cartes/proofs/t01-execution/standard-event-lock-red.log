@@ -1,0 +1,14 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/standard_event_template_form_test.dart
+00:00 +0: busy or disposed template sessions never publish a second request
+00:00 +0 -1: busy or disposed template sessions never publish a second request [E]
+  Expected: <1>
+    Actual: <2>
+  
+  package:matcher                                          expect
+  package:flutter_test/src/widget_tester.dart 473:18       expect
+  test/events/standard_event_template_form_test.dart 34:7  main.<fn>
+  
+00:00 +0 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/standard_event_template_form_test.dart: busy or disposed template sessions never publish a second request

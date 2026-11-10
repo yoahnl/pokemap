@@ -1,0 +1,63 @@
++0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_draft_guard_host_test.dart: closing creation leaves the mounted draft and bytes untouched
+[neutral-host] disposing sessions
+[neutral-host] sessions disposed
+[creation-fixture] disposing creation lifetime
+[creation-fixture] closing native viewport
+[creation-fixture] disposing session
+[creation-fixture] session disposed
++1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_draft_guard_host_test.dart: cancelled switch keeps A and the created B can be reopened
+[neutral-host] disposing sessions
+[neutral-host] sessions disposed
+[neutral-host] disposing sessions
+[neutral-host] sessions disposed
+[creation-fixture] disposing creation lifetime
+[creation-fixture] closing native viewport
+[creation-fixture] disposing session
+[creation-fixture] session disposed
++2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_draft_guard_host_test.dart: real creation guard failed save retains draft and B on disk
+[neutral-host] disposing sessions
+[neutral-host] sessions disposed
+[creation-fixture] disposing creation lifetime
+[creation-fixture] closing native viewport
+[creation-fixture] disposing session
+[creation-fixture] session disposed
++3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_session_safety_host_test.dart: created project switch preserves a cancelled narrative draft
+[neutral-host] disposing sessions
+[neutral-host] sessions disposed
+[creation-fixture] disposing creation lifetime
+[creation-fixture] closing native viewport
+[creation-fixture] disposing session
+[creation-fixture] session disposed
++4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creation_session_safety_host_test.dart: late canonical creation cannot open in a replaced session owner
+[neutral-host] disposing sessions
+[neutral-host] sessions disposed
+[creation-fixture] disposing creation lifetime
+[creation-fixture] closing native viewport
+[creation-fixture] disposing session
+[creation-fixture] session disposed
++5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/catalogue_creation_host_test.dart: canonical creation downloads Template Alpha once and opens an independent native copy
+[runtime_loader] bundle load start projectFilePath=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/creation-session-tmp-vpcndjt5/alpha-host-GEYjsf/mon-template-alpha/project.json mapId=first-map
+[runtime_loader] bundle map resolved mapId=first-map relativePath=maps/first-map.json mapPath=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/creation-session-tmp-vpcndjt5/alpha-host-GEYjsf/mon-template-alpha/maps/first-map.json
+[runtime_loader] bundle tilesets collected ids=starter
+[runtime_loader] bundle tileset path id=starter path=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/creation-session-tmp-vpcndjt5/alpha-host-GEYjsf/mon-template-alpha/assets/.pokemap-store/ee24287ff6edc579f9c5817110b8b45cbd39df69b2bc7fbb406368dfed731193.blob
+[runtime_loader] bundle load ok mapId=first-map projectRoot=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/creation-session-tmp-vpcndjt5/alpha-host-GEYjsf/mon-template-alpha tilesets=1
+[runtime_game] tileset image load start map=first-map
+[runtime_game] tileset cache resolve requested=2
+[runtime_game] tileset cache resolve ok result=2
+[runtime_game] onLoad start map=first-map projectFilePath=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/creation-session-tmp-vpcndjt5/alpha-host-GEYjsf/mon-template-alpha/project.json tilesets=1
+[runtime] New game created from project contract on first-map at (6, 5)
+[runtime_game] tileset image load ok count=2 map=first-map
+[runtime_game] mount root map start map=first-map
+[runtime_game] mount root map ok map=first-map
+[runtime_game] onLoad completed activeMapId=first-map
+[event_v2] mapEnter activation=mapact_1794265285822956_1 map=first-map reason=initialBoot result=MapEnterProductionDispatchLegacyFallback
+[neutral-host] disposing sessions
+[neutral-host] sessions disposed
+[creation-fixture] disposing creation lifetime
+[creation-fixture] closing native viewport
+[creation-fixture] disposing session
+[creation-fixture] session disposed
++6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/game_export/studio_game_export_project_switch_test.dart: mounted project exports a real package and retains the native map and viewport
+[neutral-host] disposing sessions
+[neutral-host] sessions disposed
++8: All tests passed!

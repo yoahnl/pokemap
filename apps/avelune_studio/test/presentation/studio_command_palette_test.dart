@@ -1,7 +1,7 @@
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_commands.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_tool_strip.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
-import 'package:avelune_studio/presentation/shared/keyboard/editor_shortcuts.dart';
+import 'package:avelune_studio/platform/input/editor_shortcuts.dart';
 import 'package:avelune_studio/presentation/shared/text/studio_help_families.dart';
 import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
 import 'package:avelune_studio/presentation/shared/widgets/dialogs/studio_command_palette.dart';

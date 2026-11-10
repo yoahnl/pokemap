@@ -3,7 +3,7 @@ import 'package:avelune_studio/features/map_workspace/application/map_workspace_
 import 'package:avelune_studio/features/map_workspace/application/spatial_terrain_stroke.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/spatial_map_editor.dart';
+import 'package:avelune_studio/platform/rendering/viewports/spatial_map_editing_viewport.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/spatial_terrain_controls.dart';
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
 import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
@@ -57,7 +57,7 @@ void main() {
               builder: (context, refresh) => Row(
                 children: [
                   Expanded(
-                    child: SpatialMapEditor(
+                    child: SpatialMapEditingViewport(
                       document: document,
                       controller: controller,
                       project: project,

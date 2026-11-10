@@ -4,9 +4,9 @@ import '../../../features/resources/domain/resource_mutation_preparation.dart';
 import '../../../features/resources/domain/resource_usage_port.dart';
 import '../../shared/widgets/inputs/studio_choice.dart';
 import '../../shared/widgets/inputs/studio_search_field.dart';
-import 'resource_catalog.dart';
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 import 'resource_management_dialog.dart';
-import 'resource_navigation.dart';
+import 'package:avelune_studio/features/resources/coordination/resource_navigation.dart';
 
 Future<String?> replaceResourceUsages(
   BuildContext context,

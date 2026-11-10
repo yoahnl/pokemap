@@ -1,0 +1,5 @@
++4 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/resource_io/spatial_terrain_publication_test.dart: spatial terrain transforms publish through the local writer and reopen without an atlas [E]
+  Bad state: Le catalogue du projet ne peut pas être chargé.
+  test/support/authoring_resource_fixture.dart 79:9  AuthoringResourceFixture.create
+  
++11 -1: Some tests failed.

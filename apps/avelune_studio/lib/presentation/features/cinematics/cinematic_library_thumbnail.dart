@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 import '../../shared/widgets/layout/studio_asset_preview.dart';
-import '../events/event_map_loader.dart';
-import '../map_workspace/map_workspace_visuals.dart';
+import 'package:avelune_studio/features/events/application/event_map_loader.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 
 class CinematicLibraryThumbnail extends StatefulWidget {
   const CinematicLibraryThumbnail({

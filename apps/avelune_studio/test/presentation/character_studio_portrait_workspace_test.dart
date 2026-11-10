@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:avelune_studio/features/dialogues/data/local_dialogue_adapter.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
-import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
-import 'package:avelune_studio/presentation/features/characters/character_studio_controller.dart';
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
+import 'package:avelune_studio/features/characters/coordination/character_studio_controller.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_workspace_pane.dart';
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_tabs.dart';
 

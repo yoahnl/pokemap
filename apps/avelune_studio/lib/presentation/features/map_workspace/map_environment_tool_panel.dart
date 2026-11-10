@@ -8,7 +8,7 @@ import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import 'map_generated_owner.dart';
 import 'map_workspace_view_state.dart';
-import '../resources/resource_catalog.dart';
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 import '../resources/resource_filter_button.dart';
 
 class MapEnvironmentToolPanel extends StatelessWidget {

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../features/dialogues/application/dialogue_workspace_controller.dart';
+import 'package:avelune_studio/features/scenes/application/scene_linked_document_reader.dart';
 
 import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/features/narrative/application/narrative_workspace_controller.dart';
@@ -13,55 +13,8 @@ import 'package:avelune_studio/presentation/shared/widgets/feedback/studio_notic
 
 part 'scene_linked_cinematic.dart';
 
-class SceneLinkedDocuments {
-  DialogueWorkspaceController? dialogues;
+class SceneLinkedDocuments extends SceneLinkedDocumentReader {
   PresentationCinematicAsset? Function(String)? presentationFor;
-  final _dialogues = <Object, Future<NarrativeDialogueSource>>{};
-  final _compiled = <String, RuntimeDialogueDocument>{};
-
-  Future<RuntimeDialogueDocument> readDialogueDocument(
-    String dialogueId,
-    ProjectManifest project,
-    NarrativeWorkspaceController? narrative,
-  ) async {
-    if (narrative == null) {
-      throw StateError('La source du dialogue est indisponible.');
-    }
-    final workspace = narrative.workspace;
-    final working = resolveDialogueWorkingSource(
-      narrative: narrative,
-      dialogueId: dialogueId,
-      dialogues: dialogues,
-    );
-    if (working.problem case final problem?) throw StateError(problem);
-    var source = working.source;
-    if (source == null) {
-      final entry = project.dialogues
-          .where((entry) => entry.id == dialogueId)
-          .firstOrNull;
-      if (entry == null) throw StateError('Le document est introuvable.');
-      final key = (narrative.workspace, project, entry);
-      source = await _dialogues.putIfAbsent(
-        key,
-        () => narrative.port.readDialogue(entry),
-      );
-      if (narrative.workspace != workspace) {
-        throw StateError('Le projet a changé pendant la lecture du dialogue.');
-      }
-      final latest = resolveDialogueWorkingSource(
-        narrative: narrative,
-        dialogueId: dialogueId,
-        dialogues: dialogues,
-      );
-      if (latest.problem case final problem?) throw StateError(problem);
-      source = latest.source ?? source;
-    }
-    final text = source.source;
-    return _compiled.putIfAbsent(
-      text,
-      () => const YarnDialogueCompiler().compile(text),
-    );
-  }
 
   Future<void> open(
     BuildContext context,
@@ -136,10 +89,7 @@ class SceneLinkedDocuments {
     final key = (narrative.workspace, project, entry);
     return FutureBuilder<NarrativeDialogueSource>(
       key: ValueKey(key),
-      future: _dialogues.putIfAbsent(
-        key,
-        () => narrative.port.readDialogue(entry),
-      ),
+      future: readSource(key, () => narrative.port.readDialogue(entry)),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return StudioNotice(
@@ -175,10 +125,7 @@ class SceneLinkedDocuments {
   }) {
     RuntimeDialogueDocument compiled;
     try {
-      compiled = _compiled.putIfAbsent(
-        source.source,
-        () => const YarnDialogueCompiler().compile(source.source),
-      );
+      compiled = compileSource(source.source);
     } catch (error) {
       return StudioNotice(
         'Aperçu indisponible : $error. Le document original est conservé.',

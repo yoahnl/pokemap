@@ -3,20 +3,18 @@ import 'dart:io';
 
 import 'package:avelune_studio/features/project_session/application/project_session_controller.dart';
 import 'package:avelune_studio/features/project_session/data/local_project_session_adapter.dart';
-import 'package:avelune_studio/presentation/features/narrative/narrative_story_pane.dart';
-import 'package:avelune_studio/presentation/features/project_creation/project_creation_dialog.dart';
-import 'package:avelune_studio/presentation/shared/widgets/layout/studio_primary_navigation.dart';
-import 'package:flutter/material.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/workspace_workflow.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring_local.dart';
 
-import '../support/m2_ui_fixture.dart' show pumpIo;
 import '../support/project_creation_workspace_fixture.dart';
+import '../support/real_test_io.dart';
 import '../support/synthetic_template_fixture.dart';
 
 void main() {
   Future<ProjectCreationWorkspaceFixture> fixture(WidgetTester tester) async {
-    final parent = (await tester.runAsync(
+    final parent = (await RealTestIo.run(
+      tester,
       () => Directory.systemTemp.createTemp('creation-session-'),
     ))!;
     final fixture = ProjectCreationWorkspaceFixture(
@@ -26,7 +24,7 @@ void main() {
     );
     addTearDown(() async {
       await fixture.dispose();
-      await tester.runAsync(() => parent.delete(recursive: true));
+      await RealTestIo.run(tester, () => parent.delete(recursive: true));
     });
     return fixture;
   }
@@ -39,61 +37,29 @@ void main() {
     await host.create(32, name: 'Projet A');
     final session = host.session.state.project!;
     final manifestFile = File('${session.directoryPath}/project.json');
-    final before = (await tester.runAsync(manifestFile.readAsBytes))!;
-    await tester.tap(
-      find.descendant(
-        of: find.byType(StudioPrimaryNavigation),
-        matching: find.byTooltip('Histoire'),
-      ),
-    );
-    await pumpIo(tester, frames: 12);
-    final owner = tester
-        .widget<NarrativeStoryPane>(find.byType(NarrativeStoryPane))
-        .controller;
+    final before = (await RealTestIo.run(tester, manifestFile.readAsBytes))!;
+    final owner = host.viewport!.sessions.narrative!;
     owner.addStory('Histoire en cours', ['Une étape encore non publiée']);
     final draft = owner.pendingStories.values.single;
-    await pumpIo(tester, frames: 4);
+    await host.pump();
     expect(owner.dirty, isTrue);
     expect(host.maps.dirty, isFalse);
-    await tester.tap(find.text('Accueil'));
-    await pumpIo(tester, frames: 12);
+    host.closeChoice = WorkspaceCloseChoice.cancel;
     await host.submitCreation(32, name: 'Projet B');
-    expect(find.text('Conserver vos modifications ?'), findsOneWidget);
-    await tester.tap(
-      find.descendant(
-        of: find.byType(AlertDialog),
-        matching: find.text('Annuler'),
-      ),
-    );
-    await pumpIo(tester, frames: 12);
+    expect(host.creator!.openError, contains('Projet créé et conservé'));
     expect(host.session.state.project, same(session));
     expect(owner.pendingStories.values.single, same(draft));
     expect(owner.dirty, isTrue);
     expect(
-      await tester.runAsync(manifestFile.readAsBytes),
+      await RealTestIo.run(tester, manifestFile.readAsBytes),
       orderedEquals(before),
     );
-    await tester.tap(find.byKey(const ValueKey('creation-close')));
-    await pumpIo(tester, frames: 8);
-    await tester.tap(find.text('Reprendre mon projet'));
-    await pumpIo(tester, frames: 12);
-    await tester.tap(
-      find.descendant(
-        of: find.byType(StudioPrimaryNavigation),
-        matching: find.byTooltip('Histoire'),
-      ),
-    );
-    await pumpIo(tester, frames: 12);
-    expect(
-      tester
-          .widget<NarrativeStoryPane>(find.byType(NarrativeStoryPane))
-          .controller,
-      same(owner),
-    );
+    expect(await host.closeCreation(), isTrue);
+    expect(host.viewport!.sessions.narrative, same(owner));
     expect(owner.pendingStories[draft.id], same(draft));
     expect(owner.dirty, isTrue);
     expect(
-      await tester.runAsync(manifestFile.readAsBytes),
+      await RealTestIo.run(tester, manifestFile.readAsBytes),
       orderedEquals(before),
     );
     expect(tester.takeException(), isNull);
@@ -106,7 +72,7 @@ void main() {
       final replacement = ProjectSessionController(
         LocalProjectSessionAdapter(),
       );
-      final targetPath = (await tester.runAsync(() async {
+      final targetPath = (await RealTestIo.run(tester, () async {
         final receipt = await const LocalProjectCreationService().create(
           ProjectCreationRequest(
             name: 'Projet B',
@@ -137,39 +103,37 @@ void main() {
         if (!release.isCompleted) release.complete();
       });
       await host.submitCreation(32, name: 'Ancienne création', confirm: false);
-      await tester.runAsync(() async {
-        await tester.tap(find.byKey(const ValueKey('create-project-confirm')));
-        await reached.future;
-        expect(host.parent.listSync().whereType<Directory>().length, 1);
-        await host.mount(
-          creationPort: service,
-          sessionController: replacement,
-          settle: false,
-          bridgeCreate: false,
-        );
-        expect(host.session.state.project, isNull);
-      });
-      await tester.runAsync(() => replacement.open(targetPath));
-      await pumpIo(tester, frames: 12);
+      final pending = Zone.root.run(host.performCreation);
+      await RealTestIo.run(tester, () => reached.future);
+      expect(host.parent.listSync().whereType<Directory>(), hasLength(1));
+      await host.mount(
+        creationPort: service,
+        sessionController: replacement,
+        settle: false,
+        bridgeCreate: false,
+      );
+      expect(host.session.state.project, isNull);
+      await RealTestIo.run(tester, () => replacement.open(targetPath));
+      await host.mountCurrent();
       final target = replacement.state.project!;
       expect(host.maps.project!.name, 'Projet B');
       release.complete();
-      await tester.runAsync(() => service.completed.future);
-      await tester.pumpAndSettle();
+      await RealTestIo.run(tester, () => service.completed.future);
+      expect(await RealTestIo.run(tester, () => pending), isFalse);
+      await host.pump();
       expect(reached.isCompleted, isTrue);
       expect(host.session.state.project, same(target));
       expect(previous.state.project, isNull);
-      expect(find.byType(ProjectCreationDialog), findsOneWidget);
-      expect(find.textContaining('Projet créé et conservé'), findsOneWidget);
-      expect(host.parent.listSync().whereType<Directory>().length, 2);
+      expect(host.creator!.receipt, isNotNull);
+      expect(host.creator!.openError, contains('Projet créé et conservé'));
+      expect(host.parent.listSync().whereType<Directory>(), hasLength(2));
       expect(
         (await host.recents.load()).any(
           (entry) => entry.name == 'Ancienne création',
         ),
         isFalse,
       );
-      await tester.tap(find.byKey(const ValueKey('creation-close')));
-      await pumpIo(tester, frames: 8);
+      expect(await host.closeCreation(), isTrue);
       expect(host.session.state.project, same(target));
       expect(host.maps.session, same(target));
       expect(host.maps.project!.name, 'Projet B');

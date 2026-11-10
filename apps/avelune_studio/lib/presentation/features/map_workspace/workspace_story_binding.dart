@@ -1,17 +1,6 @@
 part of 'map_workspace_screen.dart';
 
 extension _WorkspaceStoryBinding on _MapWorkspaceScreenState {
-  void _initializeScenes() {
-    if (widget.scenePort case final port?) {
-      _scenes = SceneWorkspaceController(
-        _controller,
-        port,
-        narrative: _narrative,
-        changed: _changed,
-      );
-    }
-  }
-
   void _saveWorkspaceDocument() {
     if (_space == WorkspaceSpace.presentation) {
       unawaited(_presentations?.save());
@@ -148,78 +137,10 @@ extension _WorkspaceStoryBinding on _MapWorkspaceScreenState {
   Future<String?> _openStoryInteraction(
     String id, {
     WorkspaceSpace from = WorkspaceSpace.story,
-  }) async {
-    final narrative = _narrative;
-    final local = narrative?.sessions[id];
-    if (local?.dirty != true && _events?.record(id) != null) {
-      _openEvents(id);
-      return null;
-    }
-    if (narrative == null) return 'Le projet narratif est indisponible.';
-    final request = ++_navigationRequest;
-    final record = narrative.project.eventRegistry?.records
-        .where((record) => record.id == id)
-        .firstOrNull;
-    if (local == null && record == null) {
-      return 'Cette interaction n’existe plus.';
-    }
-    final opened = local != null
-        ? await narrative.openSession(local)
-        : await narrative.openRecord(record!);
-    if (!mounted ||
-        request != _navigationRequest ||
-        _space != from ||
-        widget.home?.visible == true) {
-      return null;
-    }
-    if (!opened) {
-      return narrative.error ?? 'Cette interaction est indisponible.';
-    }
-    _interactionOrigin = from;
-    _show(WorkspaceSpace.interaction);
-    return null;
-  }
+  }) => _navigation.openStoryInteraction(id, from: from);
 
-  Future<String?> _locateStoryInteraction(String id) async {
-    final narrative = _narrative;
-    if (narrative == null) return 'Le projet narratif est indisponible.';
-    final request = ++_navigationRequest;
-    final location = await narrative.locateInteraction(id);
-    if (!mounted ||
-        request != _navigationRequest ||
-        _space != WorkspaceSpace.story ||
-        widget.home?.visible == true) {
-      return null;
-    }
-    if (location == null) {
-      return narrative.error ?? 'La source est indisponible.';
-    }
-    final view = _view!;
-    view.tool = StudioMapTool.select;
-    view.positioned = true;
-    final entityId = location.entityId;
-    final triggerId = location.triggerId;
-    if (entityId != null) {
-      view.select(location.document, MapSelectionFamily.character, entityId);
-    } else if (triggerId != null) {
-      view.select(location.document, MapSelectionFamily.trigger, triggerId);
-    } else if (location.instanceId case final instanceId?) {
-      view.select(location.document, MapSelectionFamily.decor, instanceId);
-    } else {
-      view.clearSelection(location.document);
-    }
-    location.document.stackPosition = location.position;
-    _openMap();
-    _toolChanged();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted &&
-          _space == WorkspaceSpace.map &&
-          _controller.active == location.document) {
-        view.centerOn?.call(location.position);
-      }
-    });
-    return null;
-  }
+  Future<String?> _locateStoryInteraction(String id) =>
+      _navigation.locateStoryInteraction(id);
 
   Future<void> _createStoryInteraction() async {
     final project = _controller.project;

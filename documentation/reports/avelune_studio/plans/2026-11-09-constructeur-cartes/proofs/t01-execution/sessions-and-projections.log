@@ -1,0 +1,7 @@
++31: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/map_workspace/map_connection_journey_test.dart: a paired border link saves both maps and resolves the next cell
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_connection_bgbILH/project.json mapId=jardin
+[runtime_loader] bundle map resolved mapId=jardin relativePath=maps/jardin.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_connection_bgbILH/maps/jardin.json
+[runtime_loader] bundle tilesets collected ids=atelier
+[runtime_loader] bundle tileset path id=atelier path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_connection_bgbILH/assets/atelier.png
+[runtime_loader] bundle load ok mapId=jardin projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/avelune_connection_bgbILH tilesets=1
++60: All tests passed!

@@ -5,7 +5,7 @@ import '../../../features/pokemon/application/pokemon_commerce_controller.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/inputs/studio_search_field.dart';
 import 'pokemon_commerce_integer_field.dart';
-import 'pokemon_pocket_label.dart';
+import '../../../features/pokemon/application/pokemon_pocket_label.dart';
 import 'pokemon_ui_parts.dart';
 
 class PokemonShopCatalog extends StatelessWidget {
@@ -79,8 +79,7 @@ class PokemonShopCatalog extends StatelessWidget {
             children: [
               PokemonSectionHeading(
                 title: 'Catalogue · ${shop.entries.length} objet(s)',
-                description:
-                    'La boutique référence les objets. Le prix et le stock sont propres à chaque ligne.',
+                description: 'La boutique référence les objets. Le prix et le stock sont propres à chaque ligne.',
                 trailing: StudioButton(
                   label: 'Ajouter un objet',
                   icon: Icons.add,

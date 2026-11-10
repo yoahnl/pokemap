@@ -1,8 +1,7 @@
-import 'package:avelune_studio/features/resources/domain/resource_port.dart';
-import 'package:avelune_studio/presentation/features/characters/character_studio_controller.dart';
-import 'package:avelune_studio/presentation/features/characters/character_studio_portrait_panel.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
-import 'package:flutter/material.dart';
+import 'dart:async';
+
+import 'package:avelune_studio/features/characters/coordination/character_studio_controller.dart';
+import 'package:avelune_studio/features/characters/coordination/character_studio_portrait_actions.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
 
@@ -21,81 +20,45 @@ void main() {
     characters: [character],
   );
 
-  for (final action in ['Créer l’expression', 'Annuler', 'Barrière']) {
-    testWidgets('focused portrait state dialog closes safely through $action', (
-      tester,
-    ) async {
-      var calls = 0;
-      String? operation;
-      Map<String, Object?>? parameters;
-      final controller = CharacterStudioController(
-        project: () => project,
-        mutate: (actionId, values) async {
-          calls++;
-          operation = actionId;
-          parameters = values;
-          return project;
-        },
-      );
-      addTearDown(controller.dispose);
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: studioTheme(),
-          home: Scaffold(
-            body: ListenableBuilder(
-              listenable: controller,
-              builder: (context, _) => CharacterStudioPortraitPanel(
-                project: project,
-                character: character,
-                controller: controller,
-                port: _UnusedResourcePort(),
-                onImport: (_) => fail('No portrait import was requested'),
-              ),
-            ),
-          ),
-        ),
-      );
-      await tester.tap(find.text('Créer une expression'));
-      await tester.pumpAndSettle();
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Nom de l’expression'),
-        ' Neutre accentué ',
-      );
-      expect(
-        tester
-            .state<EditableTextState>(find.byType(EditableText))
-            .widget
-            .focusNode
-            .hasFocus,
-        isTrue,
-      );
-      if (action == 'Barrière') {
-        await tester.tapAt(const Offset(5, 5));
-      } else {
-        await tester.tap(find.text(action));
-      }
-      await tester.pump();
-      expect(find.byType(TextField), findsOneWidget);
-      await tester.pumpAndSettle();
-      expect(tester.takeException(), isNull);
-      expect(find.byType(AlertDialog), findsNothing);
-      expect(find.text('Créer une expression'), findsOneWidget);
-      expect(controller.error, isNull);
-      expect(controller.saving, isFalse);
-      if (action == 'Créer l’expression') {
-        expect(calls, 1);
-        expect(operation, 'characterStudio.portraitState.create');
-        expect(parameters, {'displayName': 'Neutre accentué'});
-      } else {
-        expect(calls, 0);
-      }
-      await tester.pumpWidget(const SizedBox());
-    });
-  }
-}
+  test('portrait state creation retains normalized command and completed saving state', () async {
+    final calls = <(String, Map<String, Object?>)>[];
+    final controller = CharacterStudioController(
+      project: () => project,
+      mutate: (action, parameters) async {
+        calls.add((action, parameters));
+        return project;
+      },
+    );
+    addTearDown(controller.dispose);
+    expect(await controller.createPortraitState(' Neutre accentué '), isTrue);
+    expect(calls, hasLength(1));
+    expect(calls.single.$1, 'characterStudio.portraitState.create');
+    expect(calls.single.$2, {'displayName': 'Neutre accentué'});
+    expect(controller.error, isNull);
+    expect(controller.saving, isFalse);
+  });
 
-class _UnusedResourcePort implements ResourcePort {
-  @override
-  dynamic noSuchMethod(Invocation invocation) =>
-      throw StateError('Unexpected resource access: ${invocation.memberName}');
+  test('pending portrait state prevents duplicate operation and refusal remains retryable', () async {
+    final pending = Completer<ProjectManifest>();
+    var calls = 0;
+    final controller = CharacterStudioController(
+      project: () => project,
+      mutate: (_, _) {
+        calls++;
+        return calls == 1 ? pending.future : Future.value(project);
+      },
+    );
+    addTearDown(controller.dispose);
+    final opening = controller.createPortraitState('Neutre');
+    expect(controller.saving, isTrue);
+    expect(await controller.createPortraitState('Duplicate'), isFalse);
+    expect(calls, 1);
+    pending.completeError(StateError('portrait.refused'));
+    expect(await opening, isFalse);
+    expect(controller.error, contains('portrait.refused'));
+    expect(controller.saving, isFalse);
+    expect(await controller.createPortraitState('Neutre'), isTrue);
+    expect(controller.error, isNull);
+    expect(calls, 2);
+  });
 }

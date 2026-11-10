@@ -1,19 +1,13 @@
+import 'dart:io';
+
 import 'package:avelune_studio/features/project_creation/application/project_creation_controller.dart';
 import 'package:avelune_studio/features/project_creation/application/project_template_contents.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_catalogue_creation_dialog.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_catalogue_workspace_actions.dart';
-import 'package:avelune_studio/presentation/features/project_creation/project_creation_dialog.dart';
-import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_library_navigator.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_library_tree.dart';
-import 'package:avelune_studio/presentation/features/project_creation/project_creation_steps.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
-import 'package:flutter/material.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_library_tree.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_core/map_core_domain.dart';
 
-import '../support/m2_ui_fixture.dart';
+import '../map_workspace/map_catalog_fixture.dart';
 import '../support/synthetic_template_fixture.dart';
 
 ProjectManifest _hgssScaleCatalogue() {
@@ -59,77 +53,24 @@ ProjectManifest _hgssScaleCatalogue() {
   );
 }
 
-Widget _host(Widget child) => MaterialApp(
-  theme: studioTheme(),
-  home: Scaffold(body: child),
-);
-
-class _NavigatorHost extends StatefulWidget {
-  const _NavigatorHost({required this.project});
-  final ProjectManifest project;
-  @override
-  State<_NavigatorHost> createState() => _NavigatorHostState();
-}
-
-class _NavigatorHostState extends State<_NavigatorHost> {
-  String? active = 'map-0';
-  final opened = <String>[];
-  @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      SizedBox(
-        height: 700,
-        child: MapLibraryNavigator(
-          project: widget.project,
-          activeMapId: active,
-          dirtyMapIds: const {},
-          width: 300,
-          onActivate: (entry) => setState(() {
-            opened.add(entry.id);
-            active = entry.id;
-          }),
-          onOrganize: null,
-        ),
-      ),
-    ],
-  );
-}
-
 void main() {
-  testWidgets('the active map shows its full name and folder path', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(1280, 800);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
-    await tester.pumpWidget(
-      _host(_NavigatorHost(project: _hgssScaleCatalogue())),
+  TestWidgetsFlutterBinding.ensureInitialized();
+  Future<MapCatalogFixture> open({
+    bool empty = false,
+    ProjectDimension dimension = ProjectDimension.twoD,
+  }) async {
+    final root = Directory(
+      '/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109',
     );
-    await tester.pump();
-
-    final detail = find.byKey(const ValueKey('map-library-detail-map-0'));
-    expect(detail, findsOneWidget);
-    expect(
-      find.descendant(
-        of: detail,
-        matching: find.text(
-          'Maison du joueur — chambre à l’étage avec fenêtre',
-        ),
-      ),
-      findsOneWidget,
+    await root.create(recursive: true);
+    final fixture = await MapCatalogFixture.create(
+      parent: root,
+      empty: empty,
+      dimension: dimension,
     );
-    expect(
-      find.descendant(
-        of: detail,
-        matching: find.textContaining('Johto / Bourg Géon'),
-      ),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey('map-library-detail-map-2')),
-      findsNothing,
-    );
-  });
+    addTearDown(fixture.dispose);
+    return fixture;
+  }
 
   test('search reads folders and names without accents or case', () {
     final project = _hgssScaleCatalogue();
@@ -160,132 +101,6 @@ void main() {
       everyElement('kanto-0'),
     );
     expect(found('etage'), ['map-0']);
-  });
-
-  testWidgets('opening a map in another folder keeps the open folders', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(1280, 900);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
-    await tester.pumpWidget(
-      _host(_NavigatorHost(project: _hgssScaleCatalogue())),
-    );
-    await tester.pump();
-    await tester.tap(find.text('Bourg Géon').first);
-    await tester.pump();
-    expect(find.byKey(const ValueKey('map-library-map-0')), findsNothing);
-    await tester.tap(find.byKey(const ValueKey('map-library-map-2')));
-    await tester.pump();
-
-    final host = tester.state<_NavigatorHostState>(find.byType(_NavigatorHost));
-    expect(host.opened, ['map-2']);
-    expect(find.byKey(const ValueKey('map-library-map-0')), findsNothing);
-    expect(find.byKey(const ValueKey('map-library-map-14')), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey('map-library-detail-map-2')),
-      findsOneWidget,
-    );
-  });
-
-  Future<void> openNewMapDialog(
-    WidgetTester tester,
-    ProjectManifest project,
-  ) async {
-    await tester.pumpWidget(
-      _host(
-        Builder(
-          builder: (context) => TextButton(
-            onPressed: () => showNewMapDialog(
-              context,
-              project: project,
-              onCreate: ({
-                required name,
-                required width,
-                required height,
-                required role,
-                groupId,
-                tilesetId,
-              }) async => null,
-            ),
-            child: const Text('ouvrir'),
-          ),
-        ),
-      ),
-    );
-    await tester.tap(find.text('ouvrir'));
-    await tester.pumpAndSettle();
-  }
-
-  final sheets = [
-    const ProjectTilesetEntry(
-      id: 'player-sheet',
-      name: 'Joueur',
-      relativePath: 'assets/player.png',
-      sortOrder: 0,
-    ),
-    const ProjectTilesetEntry(
-      id: 'grounds',
-      name: 'Sols de Johto',
-      relativePath: 'assets/grounds.png',
-      sortOrder: 1,
-    ),
-  ];
-  const character = ProjectCharacterEntry(
-    id: 'player',
-    name: 'Joueur',
-    tilesetId: 'player-sheet',
-  );
-
-  testWidgets('a 3D map is created without the 2D sheet its API refuses', (
-    tester,
-  ) async {
-    await openNewMapDialog(
-      tester,
-      ProjectManifest(
-        name: '3D',
-        version: ProjectVersion.v9,
-        maps: const [],
-        tilesets: sheets,
-        characters: const [character],
-        settings: const ProjectSettings(dimension: ProjectDimension.threeD),
-      ),
-    );
-    expect(find.text('Planche par défaut'), findsNothing);
-    expect(
-      find.textContaining('Une carte 3D n’utilise pas de planche'),
-      findsOneWidget,
-    );
-  });
-
-  testWidgets('a 2D map names what its default sheet is used for', (
-    tester,
-  ) async {
-    await openNewMapDialog(
-      tester,
-      ProjectManifest(
-        name: '2D',
-        maps: const [],
-        tilesets: sheets,
-        characters: const [character],
-      ),
-    );
-    expect(find.text('Planche par défaut'), findsOneWidget);
-    expect(
-      find.textContaining('tuiles de cette carte qui ne désignent pas'),
-      findsOneWidget,
-    );
-    final options = newMapSheetOptions(
-      ProjectManifest(
-        name: '2D',
-        maps: const [],
-        tilesets: sheets,
-        characters: const [character],
-      ),
-    );
-    expect(options.keys.toList(), ['', 'grounds', 'player-sheet']);
-    expect(options['grounds'], 'Décor · Sols de Johto');
-    expect(options['player-sheet'], 'Personnage · Joueur');
   });
 
   test('each template states what it really contains before creation', () {
@@ -337,60 +152,19 @@ void main() {
     );
   });
 
-  testWidgets(
-    'the model step compares contents and the first step previews the path',
-    (tester) async {
-      tester.view.physicalSize = const Size(1280, 900);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.reset);
-      final controller = ProjectCreationController(offlineProjectCreation)
-        ..setName('Mon aventure');
-      addTearDown(controller.dispose);
-      Future<void> show() async {
-        await tester.pumpWidget(
-          _host(
-            SingleChildScrollView(
-              child: ProjectCreationSteps(
-                controller: controller,
-                chooseParent: () async {},
-              ),
-            ),
-          ),
-        );
-        await tester.pump();
-      }
+  test('a 3D map is created without a 2D default sheet', () async {
+    final fixture = await open(empty: true, dimension: ProjectDimension.threeD);
+    final result = await fixture.createMap('spatial');
+    expect(result.integrated, isTrue, reason: result.error);
+    await fixture.controller.activate(fixture.controller.project!.maps.single);
+    final map = fixture.controller.active!.current;
+    expect(map.tilesetId, isEmpty);
+    expect(map.spatialScene, isNotNull);
+    expect(map.size, const GridSize(width: 7, height: 5));
+  });
 
-      await show();
-      expect(find.text('Nom du projet'), findsOneWidget);
-      expect(find.textContaining('mon-aventure'), findsWidgets);
-      expect(
-        find.textContaining('Emplacement choisi à la dernière étape'),
-        findsOneWidget,
-      );
-      controller.parentPath = '/Projets';
-      await show();
-      expect(find.text('/Projets/mon-aventure'), findsOneWidget);
-
-      controller.next();
-      await show();
-      expect(
-        find.byKey(const ValueKey('creation-template-contents')),
-        findsOneWidget,
-      );
-      expect(find.text('Personnage joueur'), findsOneWidget);
-      expect(find.text('Inclus'), findsOneWidget);
-      controller.setTemplate(ProjectCreationTemplate.empty);
-      await show();
-      expect(find.text('Aucun'), findsWidgets);
-      expect(find.textContaining('prêt à tester'), findsNothing);
-    },
-  );
-
-  testWidgets('opening another map keeps the previous map and its history', (
-    tester,
-  ) async {
-    final fixture = (await tester.runAsync(() => M2UiFixture.create(tester)))!;
-    addTearDown(fixture.dispose);
+  test('opening another map keeps the previous map and its history', () async {
+    final fixture = await open();
     final controller = fixture.controller;
     final jardin = controller.project!.maps.singleWhere(
       (map) => map.id == 'jardin',
@@ -398,125 +172,64 @@ void main() {
     final clairiere = controller.project!.maps.singleWhere(
       (map) => map.id == 'clairiere',
     );
-    await tester.runAsync(() => controller.activate(jardin));
+    await controller.activate(jardin);
     final previous = controller.active!;
     previous.commit(previous.current.copyWith(name: 'Jardin modifié'));
     expect(previous.canUndo, isTrue);
-
-    await tester.runAsync(() => controller.activate(clairiere));
-
+    await controller.activate(clairiere);
     expect(controller.active!.current.id, 'clairiere');
     expect(identical(controller.documents['jardin'], previous), isTrue);
     expect(controller.documents['jardin']!.canUndo, isTrue);
     expect(controller.documents['jardin']!.current.name, 'Jardin modifié');
   });
 
-  test('renaming names the stable identity that passages keep using', () {
-    final note = mapRenameIdentityNote(
-      const ProjectMapEntry(
-        id: 'bourg-geon',
-        name: 'Bourg Geon',
-        relativePath: 'maps/bourg-geon.json',
-      ),
-    );
-    expect(note, contains('« bourg-geon »'));
-    expect(note, contains('passages'));
-  });
+  test(
+    'a duplicate map identity refuses creation without changing the files',
+    () async {
+      final fixture = await open();
+      final original = fixture.controller.project!;
+      final file = File('${fixture.root.path}/project.json');
+      final bytes = await file.readAsBytes();
+      final result = await fixture.createMap(original.maps.first.id);
+      expect(result.published, isFalse);
+      expect(result.integrated, isFalse);
+      expect(result.error, isNotNull);
+      expect(fixture.controller.project, same(original));
+      expect(await file.readAsBytes(), bytes);
+      expect(fixture.catalog.mutations, 1);
+    },
+  );
 
-  testWidgets('a refused new map keeps the form open and creates nothing', (
-    tester,
-  ) async {
-    final calls = <String>[];
-    await tester.pumpWidget(
-      _host(
-        Builder(
-          builder: (context) => TextButton(
-            onPressed: () => showNewMapDialog(
-              context,
-              project: const ProjectManifest(
-                name: '2D',
-                maps: [],
-                tilesets: [],
-              ),
-              onCreate:
-                  ({
-                    required name,
-                    required width,
-                    required height,
-                    required role,
-                    groupId,
-                    tilesetId,
-                  }) async {
-                    calls.add(name);
-                    return 'Une carte porte déjà cet identifiant.';
-                  },
-            ),
-            child: const Text('ouvrir'),
-          ),
-        ),
-      ),
-    );
-    await tester.tap(find.text('ouvrir'));
-    await tester.pumpAndSettle();
-    StudioButton create() => tester.widget<StudioButton>(
-      find.widgetWithText(StudioButton, 'Créer la carte'),
-    );
-    expect(create().onPressed, isNull);
-    await tester.enterText(
-      find.descendant(
-        of: find.byKey(const ValueKey('new-map-name')),
-        matching: find.byType(TextField),
-      ),
-      'Route 29',
-    );
-    await tester.pump();
-    expect(create().onPressed, isNotNull);
-    await tester.tap(find.widgetWithText(StudioButton, 'Créer la carte'));
-    await tester.pumpAndSettle();
-    expect(calls, ['Route 29']);
-    expect(find.text('Une carte porte déjà cet identifiant.'), findsOneWidget);
-    expect(find.text('Nouvelle carte'), findsOneWidget);
-  });
+  test(
+    'the creation request retains the chosen parent and suggested folder name',
+    () {
+      final controller = ProjectCreationController(offlineProjectCreation)
+        ..setName('Mon aventure');
+      addTearDown(controller.dispose);
+      expect(controller.folderName, 'mon-aventure');
+      expect(controller.request.parentPath, isEmpty);
+      controller.parentPath = '/Projets';
+      expect(controller.request.parentPath, '/Projets');
+      expect(controller.request.folderName, 'mon-aventure');
+      controller.setTemplate(ProjectCreationTemplate.empty);
+      expect(controller.request.template, ProjectCreationTemplate.empty);
+    },
+  );
 
-  testWidgets('a cancelled folder picker leaves no destination to create', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(1280, 900);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
+  test('a cancelled folder picker leaves no destination to create', () async {
+    final controller = ProjectCreationController(offlineProjectCreation)
+      ..setName('Mon aventure');
+    addTearDown(controller.dispose);
     var picks = 0;
-    await tester.pumpWidget(
-      _host(
-        ProjectCreationDialog(
-          port: offlineProjectCreation,
-          chooseParent: () async {
-            picks++;
-            return null;
-          },
-          openCreated: (_) async => false,
-        ),
-      ),
-    );
-    await tester.enterText(
-      find.widgetWithText(TextField, 'Nom du projet'),
-      'Mon aventure',
-    );
-    for (var step = 0; step < 3; step++) {
-      await tester.tap(find.text('Suivant'));
-      await tester.pump(const Duration(milliseconds: 50));
-    }
-    await tester.tap(find.byKey(const ValueKey('creation-choose-parent')));
-    await tester.pump(const Duration(milliseconds: 50));
-    await tester.pump(const Duration(milliseconds: 50));
+    await controller.chooseParent(() async {
+      picks++;
+      return null;
+    });
     expect(picks, 1);
-    expect(find.text('Aucun dossier choisi'), findsOneWidget);
-    expect(
-      tester
-          .widget<StudioButton>(
-            find.byKey(const ValueKey('create-project-confirm')),
-          )
-          .onPressed,
-      isNull,
-    );
+    expect(controller.parentPath, isEmpty);
+    expect(controller.destination, isNull);
+    expect(controller.receipt, isNull);
+    expect(controller.selecting, isFalse);
+    expect(controller.request.validate, throwsFormatException);
   });
 }

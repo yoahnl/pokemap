@@ -7,8 +7,8 @@ import 'package:avelune_studio/app/studio_bootstrap.dart';
 import 'package:avelune_studio/features/project_session/application/project_session_controller.dart';
 import 'package:avelune_studio/features/project_session/data/local_project_session_adapter.dart';
 import 'package:avelune_studio/platform/files/scoped_project_session_adapter.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/spatial_map_editor.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
+import 'package:avelune_studio/platform/rendering/viewports/spatial_map_editing_viewport.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
 import 'package:avelune_studio/platform/playtest/studio_spatial_playtest_view.dart';
 import 'package:avelune_studio/platform/playtest/studio_playtest_view.dart';
 import 'package:avelune_studio/platform/playtest/studio_game_playtest_view.dart';
@@ -358,12 +358,12 @@ Future<void> main() async {
     method,
     params,
   ) async {
-    SpatialMapEditor? editor;
+    SpatialMapEditingViewport? editor;
     SpatialSceneView? canvas;
     Element? canvasElement;
     void visit(Element element) {
       final widget = element.widget;
-      if (widget is SpatialMapEditor) editor = widget;
+      if (widget is SpatialMapEditingViewport) editor = widget;
       if (widget is SpatialSceneView) {
         canvas = widget;
         canvasElement = element;
@@ -415,7 +415,6 @@ Future<void> main() async {
         );
       }
       current.view.select(current.document, MapSelectionFamily.decor, id);
-      current.view.revealInspector = true;
       current.onChanged();
       await WidgetsBinding.instance.endOfFrame;
     }

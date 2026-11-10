@@ -1,0 +1,73 @@
+{
+  "mode": "release",
+  "architectures": [
+    "arm64",
+    "x86_64"
+  ],
+  "flutterRevision": "6a19cca56475dbfba1478ee68d7bd0c2ef891da1",
+  "dartRevision": "b530c21f7de367b94fb04787bfed9d8e989d75e8",
+  "archiveSha256": "9124cbfeb60db1b246d572a9de298ef9d46ac2347816e2c327e3af8fd10cdfeb",
+  "frameworkTreeSha256": "fae4748f79e31e130e713d9ef25ce826a23a8c578252d8a608d4adeeabf07411",
+  "commands": [
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/opt/homebrew/share/flutter-3.47.5",
+        "rev-parse",
+        "HEAD"
+      ],
+      "exitCode": 0
+    },
+    {
+      "argv": [
+        "lipo",
+        "-archs",
+        "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/native/root/apps/avelune_studio/build/macos/Build/Products/Release/Avelune Studio T01.app/Contents/MacOS/Avelune Studio T01"
+      ],
+      "exitCode": 0
+    },
+    {
+      "argv": [
+        "lipo",
+        "-archs",
+        "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/native/root/apps/avelune_studio/build/macos/Build/Products/Release/Avelune Studio T01.app/Contents/Frameworks/.avelune-release-engine-pke9wlhn/FlutterMacOS.framework/FlutterMacOS"
+      ],
+      "exitCode": 0
+    }
+  ],
+  "schemaVersion": 1,
+  "purpose": "mandatory Studio QA engine packaging",
+  "bundleIdentifier": "dev.avelune.studio.qa.t01",
+  "binarySha256": "b25b47e733fb543634e1ce9c432ad587553660b49603374db316ed5a9a031e1e",
+  "completionFenceVerified": true,
+  "verificationCommands": [
+    {
+      "argv": [
+        "codesign",
+        "--force",
+        "--sign",
+        "-",
+        "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/native/root/apps/avelune_studio/build/macos/Build/Products/Release/Avelune Studio T01.app/Contents/Frameworks/FlutterMacOS.framework"
+      ],
+      "exitCode": 0
+    },
+    {
+      "argv": [
+        "codesign",
+        "--verify",
+        "--strict",
+        "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/native/root/apps/avelune_studio/build/macos/Build/Products/Release/Avelune Studio T01.app/Contents/Frameworks/FlutterMacOS.framework"
+      ],
+      "exitCode": 0
+    },
+    {
+      "argv": [
+        "otool",
+        "-tvV",
+        "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/native/root/apps/avelune_studio/build/macos/Build/Products/Release/Avelune Studio T01.app/Contents/Frameworks/FlutterMacOS.framework/FlutterMacOS"
+      ],
+      "exitCode": 0
+    }
+  ]
+}

@@ -1,3 +1,13 @@
+import 'package:avelune_studio/features/map_workspace/application/map_library_commands.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/workspace_navigation_session.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/workspace_map_catalog_bindings.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/map_resource_placement.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/workspace_session_controllers.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/workspace_resource_owner_bindings.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/workspace_workshop_routes.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/workspace_visual_projection_queue.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_workspace_connection_actions.dart';
+
 import '../../../features/narrative/data/local_periodic_reward_choice_adapter.dart';
 
 import 'package:map_authoring/map_authoring_api.dart'
@@ -5,20 +15,20 @@ import 'package:map_authoring/map_authoring_api.dart'
 
 import '../scenes/periodic_reward_picker.dart';
 import '../../../features/project_cs/application/project_cs_controller.dart';
-import '../../../features/project_cs/domain/project_cs_port.dart';
 import '../../../features/project_audio/application/project_audio_controller.dart';
 import '../../../features/project_audio/domain/project_audio_port.dart';
 import '../../../features/project_settings/application/project_identity_controller.dart';
 import '../../../features/project_settings/application/project_settings_session_controller.dart';
 import '../../../features/verification/application/studio_failure_diagnosis.dart';
 import '../verification/test_launch_dialog.dart';
+
 import 'dart:async';
+
 import '../../../features/map_workspace/application/map_layout_preferences.dart';
 import '../../shared/widgets/dialogs/studio_command_palette.dart';
 import 'map_ambiance_panel.dart';
 import 'map_tool_command_runner.dart';
 import 'map_workspace_commands.dart';
-import '../../../features/project_surf/domain/project_surf_port.dart';
 import '../../../features/project_surf/application/project_surf_controller.dart';
 import '../project_settings/project_settings_page.dart';
 import '../../../features/project_visuals/domain/project_visuals_port.dart';
@@ -30,8 +40,6 @@ import '../../../features/regional_map/application/regional_map_controller.dart'
 import '../../../features/regional_map/domain/regional_map_port.dart';
 import '../regional_map/regional_map_page.dart';
 import '../../../features/pokemon/application/pokemon_workspace_controller.dart';
-import '../../../features/pokemon/application/pokemon_commerce_controller.dart';
-import '../../../features/pokemon/application/pokemon_combat_controller.dart';
 import '../../../features/pokemon/domain/pokemon_workspace_port.dart';
 import '../../../features/pokemon/domain/pokemon_commerce_port.dart';
 import '../../../features/pokemon/domain/pokemon_combat_port.dart';
@@ -50,15 +58,14 @@ import '../../../features/cinematics/application/cinematic_workspace_controller.
 import '../cinematics/cinematic_view_state.dart';
 import '../../../features/dialogues/domain/dialogue_port.dart';
 import '../../../features/dialogues/application/dialogue_workspace_controller.dart';
-import '../../../features/scenes/application/scene_dialogue_results.dart';
 import '../dialogues/dialogue_view_state.dart';
 import '../../../features/events/domain/event_port.dart';
 import '../../../features/events/application/event_workspace_controller.dart';
 import '../events/event_view_state.dart';
-import '../events/event_map_loader.dart';
+import 'package:avelune_studio/features/events/application/event_map_loader.dart';
 import '../events/event_labels.dart';
 import '../narrative/scene_node_focus.dart';
-import '../events/event_playtest.dart';
+import '../../../features/events/application/event_playtest.dart';
 import '../narrative/narrative_name_dialog.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../../features/stories/domain/story_port.dart';
@@ -75,15 +82,16 @@ import '../../../features/resources/domain/resource_pack_port.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import 'workspace_actions.dart';
-import 'workspace_session_loader.dart';
+
+import 'package:avelune_studio/features/map_workspace/coordination/workspace_session_loader.dart';
+
 import '../../../features/verification/application/verification_workspace_controller.dart';
 import '../../../features/world/application/world_workspace_controller.dart';
 import '../stories/story_view_state.dart';
-import '../verification/verification_view_state.dart';
-import '../verification/verification_workspace_page.dart';
-import '../world/world_view_state.dart';
-import '../world/world_workspace_page.dart';
-import '../narrative/narrative_navigation.dart';
+import '../../../features/world/application/world_draft_inputs.dart';
+
+import 'package:avelune_studio/features/narrative/application/narrative_navigation.dart';
+
 import '../narrative/narrative_overview_view_state.dart';
 
 import 'package:flutter/services.dart';
@@ -97,15 +105,18 @@ import 'package:avelune_studio/features/map_workspace/application/map_workspace_
 import '../../../features/map_workspace/domain/map_workspace_port.dart';
 
 import 'package:avelune_studio/features/map_workspace/domain/map_connection_port.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_selection_context.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_shortcuts.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_selection_context.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/map_editing_shortcuts.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 
-import '../resources/resource_navigation.dart';
+import 'package:avelune_studio/features/resources/coordination/resource_navigation.dart';
+
 import '../resources/model_resource_library.dart';
-import '../resources/resource_catalog.dart';
+
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
+
 import '../../../features/resources/domain/resource_usage_port.dart';
 import '../resources/resource_image_import.dart';
 import 'workspace_secondary_content.dart';
@@ -114,14 +125,12 @@ import 'map_context_menu.dart';
 import 'map_workspace_layout.dart';
 import 'map_catalogue_workspace_actions.dart';
 import 'studio_home_map_preview.dart';
-import '../../../features/map_workspace/application/environment_editing_commands.dart';
 import '../../../features/narrative/domain/narrative_port.dart';
 import '../../../features/narrative/application/narrative_workspace_controller.dart';
 import '../../shell/studio_home_navigation.dart';
 export 'workspace_actions.dart' show StudioRuntimeBuilder;
 import '../../../features/map_workspace/domain/map_dive_pair_port.dart';
 import 'map_dive_zone_panel.dart';
-import '../characters/character_presence_rule.dart';
 
 part 'workspace_scoped_catalog_binding.dart';
 part 'workspace_home_binding.dart';
@@ -235,145 +244,189 @@ class MapWorkspaceScreen extends StatefulWidget {
 
 class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   final _views = <String, MapWorkspaceViewState>{};
+  late final _navigation = WorkspaceNavigationSession(
+    controller: _controller,
+    isActive: () => mounted,
+    changed: _changed,
+    scenes: () => _scenes,
+    dialogues: () => _dialogues,
+    presentations: () => _presentations,
+    cinematics: () => _cinematics,
+    events: () => _events,
+    narrative: () => _narrative,
+    homeVisible: () => widget.home?.visible == true,
+    readEventFilter: () => _eventView.filterMapId,
+    eventFilterChanged: (value) => _eventView.filterMapId = value,
+    stories: () => _stories,
+    world: () => _world,
+    verification: () => _verification,
+    prepareWorkshop: _prepareWorkshopRoute,
+    navigationRequest: () => _navigationRequest,
+    nextNavigationRequest: () => ++_navigationRequest,
+    mapView: () => _view,
+    toolChanged: _toolChanged,
+    afterViewportLayout: (action) => WidgetsBinding.instance.addPostFrameCallback((_) => action()),
+    onShow: _show,
+    focusScene: (scene, id) => focusSceneNode(_sceneViews, scene, id),
+    nodeSelected: (sceneId, id) => _sceneViews.forScene(sceneId).nodeId = id,
+    selectProgressionNode: (id, node) {
+      final owner = _stories;
+      if (owner != null) {
+        _progressionViews.forStory(owner.project, id).selection = StoryGraphSelection.node(node);
+      }
+    },
+  );
+  late final _mapCatalogBindings = WorkspaceMapCatalogBindings(
+    controller: _controller,
+    views: () => _views,
+    activeView: () => _view,
+    preparedMap: () => _preparedMap,
+    reconcileBrushes: _reconcileResourceBrushes,
+    isBusy: () => _actions.busy,
+    hasDependencyDraft: () => _actions.hasCatalogDependencyDraft,
+    boundsChanged: () => _gestureGeneration++,
+  );
+  late final _sessions = WorkspaceSessionControllers(
+    controller: _controller,
+    changed: _changed,
+    visualCatalogChanged: (project) => _visualCatalog = project,
+    flushEditors: () => _actions.flushEditors(),
+    pokemonPort: widget.pokemonPort,
+    pokemonCommercePort: widget.pokemonCommercePort,
+    pokemonCombatPort: widget.pokemonCombatPort,
+    regionalMapPort: widget.regionalMapPort,
+    scenePort: widget.scenePort,
+    storyPort: widget.storyPort,
+    eventPort: widget.eventPort,
+    dialoguePort: widget.dialoguePort,
+    cinematicPort: widget.cinematicPort,
+    presentationPort: widget.presentationPort,
+    worldPort: widget.worldPort,
+    verificationPort: widget.verificationPort,
+    audioPreview: widget.audioPreview,
+    gameExport: widget.gameExport,
+  );
   late final _layout = widget.layoutPreferences ?? MapLayoutPreferences();
   final _search = TextEditingController(),
       _homeSearch = TextEditingController();
-  bool _palette = true, _connectionBusy = false;
-  WorkspaceSpace _space = WorkspaceSpace.map;
+  bool _palette = true;
+  late final _connections = MapWorkspaceConnectionActions(
+    controller: _controller,
+    port: widget.mapConnectionPort,
+    isActive: () => mounted,
+    changed: _changed,
+  );
+  bool get _connectionBusy => _connections.busy;
+  String? get _connectionError => _connections.error;
+  WorkspaceSpace get _space => _navigation.space;
+  set _space(WorkspaceSpace value) => _navigation.space = value;
   ProjectSettingsSection _settingsSection = ProjectSettingsSection.general;
-  WorkspaceSpace _interactionOrigin = WorkspaceSpace.map;
+  WorkspaceSpace get _interactionOrigin => _navigation.interactionOrigin;
+  set _interactionOrigin(WorkspaceSpace value) => _navigation.interactionOrigin = value;
   final _storyViewState = NarrativeOverviewViewState();
   ResourceNavigation? _resources;
+  late final _resourceOwners = WorkspaceResourceOwnerBindings(
+    controller: _controller,
+    views: () => _views,
+    pokemon: () => _pokemon,
+    dialogues: () => _dialogues,
+    narrative: () => _narrative,
+    cinematics: () => _cinematics,
+    drawEnvironment: _drawEnvironment,
+    retainBrush: () => retainWorkspaceBrush(_visuals, _view),
+  );
   Future<bool> Function()? _libraryExitGuard;
   Widget? _resourceLibrary;
-  PokemonWorkspaceController? _pokemon;
-  NarrativeWorkspaceController? _narrative;
-  RegionalMapController? _regionalMap;
-  SceneWorkspaceController? _scenes;
-  StoryWorkspaceController? _stories;
-  EventWorkspaceController? _events;
-  DialogueWorkspaceController? _dialogues;
-  PresentationWorkspaceController? _presentations;
-  final _presentationViews = PresentationViewStore();
-  PresentationWorkspaceVisuals? _presentationVisuals;
+  PokemonWorkspaceController? get _pokemon => _sessions.pokemon;
+  NarrativeWorkspaceController? get _narrative => _sessions.narrative;
+  RegionalMapController? get _regionalMap => _sessions.regionalMap;
+  SceneWorkspaceController? get _scenes => _sessions.scenes;
+  StoryWorkspaceController? get _stories => _sessions.stories;
+  EventWorkspaceController? get _events => _sessions.events;
+  DialogueWorkspaceController? get _dialogues => _sessions.dialogues;
+  PresentationWorkspaceController? get _presentations =>
+      _sessions.presentations;
+  late final _presentationViews = PresentationViewStore(editingSessions: _sessions.presentationEditing);
+  PresentationWorkspaceVisuals? get _presentationVisuals =>
+      _sessions.presentationVisuals;
+  set _presentationVisuals(PresentationWorkspaceVisuals? value) =>
+      _sessions.presentationVisuals = value;
   Object? _presentationVisualKey;
-  WorkspaceReturn _presentationOrigin = WorkspaceReturn.story;
-  CinematicWorkspaceController? _cinematics;
+  WorkspaceReturn get _presentationOrigin => _navigation.presentationOrigin;
+  set _presentationOrigin(WorkspaceReturn value) => _navigation.presentationOrigin = value;
+  CinematicWorkspaceController? get _cinematics => _sessions.cinematics;
   final _cinematicViews = CinematicViewStore();
-  WorkspaceSpace _cinematicOrigin = WorkspaceSpace.story;
+  WorkspaceSpace get _cinematicOrigin => _navigation.cinematicOrigin;
+  set _cinematicOrigin(WorkspaceSpace value) => _navigation.cinematicOrigin = value;
   bool _cinematicMapReturn = false;
   final _dialogueViews = DialogueViewStore();
-  WorkspaceSpace _dialogueOrigin = WorkspaceSpace.story;
+  WorkspaceSpace get _dialogueOrigin => _navigation.dialogueOrigin;
+  set _dialogueOrigin(WorkspaceSpace value) => _navigation.dialogueOrigin = value;
   final _eventView = EventViewState();
   late final _eventMaps = EventMapLoader(_controller);
-  late final _draftReferences = MapDraftReferenceIndex(_draftReferenceSources);
+  MapDraftReferenceIndex get _draftReferences => _sessions.draftReferences;
   GridPos? _contextCell;
   MapContextTarget? _contextTarget;
   MapContextMenuRequest? _contextRequest;
   String? _contextMapId;
-  WorkspaceSpace _eventOrigin = WorkspaceSpace.story;
-  bool _eventMapReturn = false;
+  WorkspaceSpace get _eventOrigin => _navigation.eventOrigin;
+  bool get _eventMapReturn => _navigation.eventMapReturn;
+  set _eventMapReturn(bool value) => _navigation.eventMapReturn = value;
   final _progressionViews = StoryProgressionViewStore();
-  WorkspaceReturn _sceneOrigin = WorkspaceReturn.story;
-  WorldWorkspaceController? _world;
-  final _worldView = WorldViewState();
-  WorkspaceReturn _worldOrigin = WorkspaceReturn.story;
-  bool _verificationMapReturn = false;
+  WorkspaceReturn get _sceneOrigin => _navigation.sceneOrigin;
+  set _sceneOrigin(WorkspaceReturn value) => _navigation.sceneOrigin = value;
+  WorldWorkspaceController? get _world => _sessions.world;
+  final _worldInputs = WorldDraftInputs();
+  set _worldOrigin(WorkspaceReturn value) => _navigation.worldOrigin = value;
+  bool get _verificationMapReturn => _navigation.verificationMapReturn;
+  set _verificationMapReturn(bool value) => _navigation.verificationMapReturn = value;
   bool _pokemonMapReturn = false;
   bool Function()? _pokemonReferenceUnchanged;
-  WorkspaceReturn _progressionOrigin = WorkspaceReturn.story;
-  VerificationWorkspaceController? _verification;
-  final _verificationView = VerificationViewState();
-  WorkspaceReturn _verificationOrigin = WorkspaceReturn.story;
+  WorkspaceReturn get _progressionOrigin => _navigation.progressionOrigin;
+  set _progressionOrigin(WorkspaceReturn value) => _navigation.progressionOrigin = value;
+  VerificationWorkspaceController? get _verification => _sessions.verification;
+  set _verificationOrigin(WorkspaceReturn value) => _navigation.verificationOrigin = value;
   final _sceneViews = SceneBuilderViewStore();
   bool? _inspector;
   MapData? _preparedMap;
   MapWorkspaceVisuals? _visuals;
   ProjectManifest? _visualCatalog;
-  bool _projectionVisualsLoading = false;
-  bool _openingWorkshop = false;
-  var _projectionVisualGeneration = 0;
-  Future<void> _projectionVisualQueue = Future.value();
-  String? _resourceError, _connectionError;
+  late final _visualProjection = WorkspaceVisualProjectionQueue(
+    currentVisuals: () => _visuals,
+    activeMap: () => _controller.active?.current,
+    isActive: () => mounted,
+    prepared: (map) => _preparedMap = map,
+    failed: (failure) => _resourceError =
+        'Les ressources de cette carte ne peuvent pas être chargées : $failure',
+    changed: _changed,
+  );
+  bool get _projectionVisualsLoading => _visualProjection.loading;
+  late final _workshops = WorkspaceWorkshopRoutes(
+    controller: _controller,
+    isActive: () => mounted,
+    failed: (failure) => _resourceError = failure == null
+        ? null
+        : 'Cet atelier ne peut pas être chargé : $failure',
+    changed: _changed,
+  );
+  bool get _openingWorkshop => _workshops.loading;
+  set _openingWorkshop(bool value) => _workshops.loading = value;
+  String? _resourceError;
   ScaffoldFeatureController<SnackBar, SnackBarClosedReason>? _interactionNotice;
   int _gestureGeneration = 0;
-  int _navigationRequest = 0;
+  int get _navigationRequest => _workshops.request;
+  set _navigationRequest(int value) => _workshops.request = value;
   late final WorkspaceActions _actions;
-  ProjectSurfController? _projectSurf;
-  ProjectSurfController? get _surfOwner {
-    final source = _controller.port;
-    if (source is! ProjectSurfPort) return null;
-    return _projectSurf ??= ProjectSurfController(
-      session: _controller.session,
-      port: source as ProjectSurfPort,
-      dimension: _controller.project!.settings.dimension,
-      onSaved: _acceptSurfConfiguration,
-      onRevisionChanged: _adoptSettingsRevision,
-    );
-  }
-
-  void _acceptSurfConfiguration(ProjectSurfSettings? configuration) {
-    _controller.acceptSurfConfiguration(configuration, notifyChange: false);
-    _visualCatalog = _controller.visualProject;
-    _controller.notify();
-  }
-
-  ProjectCsController? _projectCs;
-  ProjectAudioController? _projectAudio;
-  ProjectCsController? get _csOwner {
-    final source = _controller.port;
-    if (source is! ProjectCsPort) return null;
-    return _projectCs ??= ProjectCsController(
-      session: _controller.session,
-      port: source as ProjectCsPort,
-      onRevisionChanged: _adoptSettingsRevision,
-      onSaved: (configuration) {
-        _controller.acceptFieldAbilities(configuration, notifyChange: false);
-        _acceptSettingsVisuals();
-      },
-    );
-  }
-
-  ProjectAudioController? get _audioOwner {
-    final source = _controller.port;
-    if (source is! ProjectAudioPort) return null;
-    return _projectAudio ??= ProjectAudioController(
-      session: _controller.session,
-      port: source as ProjectAudioPort,
-      audition: widget.audioPreview,
-      onRevisionChanged: _adoptSettingsRevision,
-      onSaved: (configuration) {
-        _controller.acceptAudio(configuration, notifyChange: false);
-        _acceptSettingsVisuals();
-      },
-    );
-  }
-
-  ProjectIdentityController? _projectIdentity;
-  ProjectIdentityController? get _identityOwner {
-    final export = _gameExport;
-    if (export == null) return null;
-    return _projectIdentity ??= ProjectIdentityController(port: export);
-  }
-
-  void _adoptSettingsRevision(String before, String after) {
-    _projectSurf?.adoptRevision(before, after);
-    _projectCs?.adoptRevision(before, after);
-    _projectAudio?.adoptRevision(before, after);
-  }
-
-  void _acceptSettingsVisuals() {
-    _visualCatalog = _controller.visualProject;
-    _controller.notify();
-  }
-
-  ProjectVisualsController? _projectVisuals;
-  ProjectVisualsController get _visualOwner {
-    final owner = _projectVisuals ??= ProjectVisualsController(session: _controller.session, port: _controller.port as ProjectVisualsPort,
-    );
-    _controller.settingsVisualsOwner = owner;
-    return owner;
-  }
+  ProjectSurfController? get _projectSurf => _sessions.projectSurf;
+  ProjectCsController? get _projectCs => _sessions.projectCs;
+  ProjectAudioController? get _projectAudio => _sessions.projectAudio;
+  ProjectIdentityController? get _projectIdentity => _sessions.projectIdentity;
+  ProjectVisualsController? get _projectVisuals => _sessions.projectVisuals;
+  ProjectSurfController? get _surfOwner => _sessions.surfOwner;
+  ProjectCsController? get _csOwner => _sessions.csOwner;
+  ProjectAudioController? get _audioOwner => _sessions.audioOwner;
+  ProjectIdentityController? get _identityOwner => _sessions.identityOwner;
+  ProjectVisualsController get _visualOwner => _sessions.visualOwner;
   StudioGameExportPort? get _gameExport => widget.gameExport;
   MapWorkspaceController get _controller => widget.controller;
   @override
@@ -403,7 +456,7 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
       projectAudio: () => _projectAudio,
       projectIdentity: () => _projectIdentity,
       confirmLaunch: (preflight) => showTestLaunchDialog(context, preflight),
-      worldInputsValid: () => _worldView.invalidFields.isEmpty,
+      worldInputsValid: () => _worldInputs.valid,
       publishedCinematicContext: () => _space == WorkspaceSpace.cinematic,
       runtimeBuilder: widget.runtimeBuilder,
       projectRuntimeBuilder: widget.projectRuntimeBuilder,
@@ -461,24 +514,8 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
     child: PeriodicRewardChoiceScope(
       projectRootPath: _controller.session.directoryPath,
       query: _readPeriodicRewards,
-      child: CharacterReferenceScope(
-        ready: () => _characterReferenceWorkshops.every(_controller.hasWorkshop),
-        load: () => Future.wait([
-          for (final workshop in _characterReferenceWorkshops)
-            _controller.ensureWorkshop(workshop),
-        ]),
-        openInteractionScene:
-            widget.eventPort == null || widget.scenePort == null
-            ? null
-            : _openInteractionScene,
-        child: _buildWorkspace(context),
-      ),
-  ),
+      child: _buildWorkspace(context),
+    ),
   );
 
-  static const _characterReferenceWorkshops = [
-    MapWorkspaceWorkshop.progression,
-    MapWorkspaceWorkshop.pokemon,
-    MapWorkspaceWorkshop.dialogue,
-  ];
 }

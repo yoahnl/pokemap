@@ -1,131 +1,131 @@
 import 'dart:io';
 import 'dart:typed_data';
-import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
-import 'package:avelune_studio/presentation/features/resources/resource_image_import.dart';
+
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
+import 'package:avelune_studio/features/resources/application/resource_containers.dart';
+import 'package:avelune_studio/features/resources/coordination/resource_navigation.dart';
+import 'package:avelune_studio/features/resources/domain/resource_image_picker.dart';
+import 'package:avelune_studio/features/resources/domain/resource_port.dart';
+
+import '../../tool/example_project_assets.dart';
+
 import 'package:avelune_studio/presentation/features/resources/resource_usage_results.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as image;
+
 import '../support/m2_ui_fixture.dart';
+import '../support/resource_replacement_fixture.dart';
+import '../support/run_resource_replacement.dart';
 import '../support/resource_administration_host.dart';
 
+Future<T> _runResourceCommand<T>(
+  WidgetTester tester,
+  Future<T> Function() action,
+) async {
+  var completed = false;
+  T? value;
+  Object? failure;
+  StackTrace? trace;
+  action().then(
+    (result) {
+      value = result;
+      completed = true;
+    },
+    onError: (Object error, StackTrace stack) {
+      failure = error;
+      trace = stack;
+      completed = true;
+    },
+  );
+  await pumpIoUntil(tester, () => completed);
+  expect(completed, isTrue);
+  if (failure case final error?) {
+    Error.throwWithStackTrace(error, trace!);
+  }
+  return value as T;
+}
+
 void main() {
-  testWidgets(
-    'successful replacement clears the previous incompatible candidate banner',
-    (tester) async {
-      final sources = (await tester.runAsync(
-        () => Directory.systemTemp.createTemp('avelune_replacement_retry_'),
-      ))!;
-      addTearDown(() => sources.delete(recursive: true));
-      Uint8List png(int size, image.Color color) {
-        final pixels = image.Image(width: size, height: size, numChannels: 4);
-        image.fill(pixels, color: color);
-        return Uint8List.fromList(image.encodePng(pixels));
+  test(
+    'successful replacement clears the previous incompatible candidate error',
+    () async {
+      final host = await ResourceReplacementFixture.create();
+      final fixture = host.fixture;
+      final navigation = host.navigation;
+      final imported = host.item.tileset!;
+      final item = host.item;
+      final originalFile = File(
+        '${fixture.root.path}/${imported.relativePath}',
+      );
+      final before = await originalFile.readAsBytes();
+      final pixels = image.decodeImage(before)!;
+      final maps = await fixture.mapFile.readAsBytes();
+      Future<PickedResourceImage> candidate(
+        int width,
+        int height,
+        String name,
+      ) async {
+        final pixels = image.Image(
+          width: width,
+          height: height,
+          numChannels: 4,
+        );
+        image.fill(pixels, color: image.ColorRgba8(255, 0, 255, 255));
+        final bytes = Uint8List.fromList(image.encodePng(pixels));
+        final file = File('${fixture.root.path}/$name.png');
+        await file.writeAsBytes(bytes);
+        return PickedResourceImage(file.path, name, bytes, width, height);
       }
 
-      final before = png(32, image.ColorRgba8(20, 160, 80, 255));
-      final incompatible = png(16, image.ColorRgba8(20, 80, 160, 255));
-      final replacement = png(32, image.ColorRgba8(255, 0, 255, 255));
-      final candidates = [before, incompatible, replacement];
-      var picked = 0;
-      tester.view.physicalSize = const Size(1536, 1024);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-      final seed = (await tester.runAsync(() => M2UiFixture.create(tester)))!;
-      addTearDown(seed.dispose);
-      await prepareResourceAdministrationAtlas(tester, seed);
-      seed.controller.dispose();
-      await tester.runAsync(seed.resources.dispose);
-      final host = await reopenResourceAdministrationHost(
-        tester,
-        seed,
-        imagePicker: () async {
-          final index = picked++;
-          final bytes = candidates[index];
-          final file = File('${sources.path}/candidate-$index.png');
-          await WidgetResourcePort.serial(
-            tester,
-            () => file.writeAsBytes(bytes),
-          );
-          final size = index == 1 ? 16 : 32;
-          return PickedResourceImage(
-            file.path,
-            'Planche reprise',
-            bytes,
-            size,
-            size,
-          );
+      final incompatible = await candidate(1, 1, 'incompatible');
+      await runReplacementForTest(
+        navigation: navigation,
+        item: item,
+        picker: () async => incompatible,
+        isActive: () => true,
+        shouldPresent: false,
+        present: (_) async =>
+            fail('An incompatible candidate cannot be confirmed'),
+      );
+      expect(navigation.error, contains('tileset.candidate_geometry'));
+      expect(await originalFile.readAsBytes(), before);
+      expect(navigation.pendingReceipt, isNull);
+      expect(navigation.managementDialogActive, isFalse);
+      final replacement = await candidate(
+        pixels.width,
+        pixels.height,
+        'compatible',
+      );
+      await runReplacementForTest(
+        navigation: navigation,
+        item: item,
+        picker: () async => replacement,
+        isActive: () => true,
+        present: (session) async {
+          session.confirm(true);
+          expect(await session.apply(), isNull);
         },
       );
-      await host.family(ResourceKind.images);
-      await tapResourceAdministrationText(tester, 'Importer une image');
-      await tapResourceAdministrationText(tester, 'Importer');
-      expect(host.navigation.decor, isNull);
-      await host.tap('resource-import-create-decor');
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Nom du décor'),
-        'Décor reprise',
-      );
-      final beforeSave = host.fixture.controller.active!.current;
-      await tapResourceAdministrationText(tester, 'Enregistrer le décor');
-      expect(host.fixture.controller.active!.current, beforeSave);
-      await tester.tap(find.byTooltip('Ressources').first);
-      await pumpIo(tester);
-      await host.family(ResourceKind.images);
-      final imported = host.fixture.controller.project!.tilesets.singleWhere(
-        (item) => item.name == 'Planche reprise',
-      );
-      final originalFile = File(
-        '${host.fixture.directory.path}/${imported.relativePath}',
-      );
-      expect(
-        await WidgetResourcePort.serial(tester, originalFile.readAsBytes),
-        before,
-      );
-      await host.action('tileset:${imported.id}', 'Remplacer l’image source…');
-      expect(host.navigation.error, contains('tileset.candidate_geometry'));
-      expect(find.textContaining('tileset.candidate_geometry'), findsWidgets);
-      expect(
-        await WidgetResourcePort.serial(tester, originalFile.readAsBytes),
-        before,
-      );
-      expect(host.navigation.pendingReceipt, isNull);
-      await host.action('tileset:${imported.id}', 'Remplacer l’image source…');
-      expect(
-        find.byKey(const ValueKey('resource-replacement-confirm')),
-        findsOneWidget,
-        reason: 'Picked $picked; ${host.navigation.error}',
-      );
-      await host.tap('resource-replacement-confirm');
-      await host.tap('resource-management-save');
-      final updated = host.fixture.controller.project!.tilesets.singleWhere(
+      final updated = host.workspace.project!.tilesets.singleWhere(
         (item) => item.id == imported.id,
       );
       final publishedFile = File(
-        '${host.fixture.directory.path}/${updated.relativePath}',
+        '${fixture.root.path}/${updated.relativePath}',
       );
-      expect(
-        await WidgetResourcePort.serial(tester, publishedFile.readAsBytes),
-        replacement,
-      );
+      expect(await publishedFile.readAsBytes(), replacement.bytes);
       expect(updated.id, imported.id);
       expect(updated.source, imported.source);
-      expect(host.navigation.pendingReceipt, isNull);
-      expect(host.navigation.error, isNull);
-      expect(find.textContaining('tileset.candidate_geometry'), findsNothing);
-      final reopened = await host.reopen();
+      expect(navigation.pendingReceipt, isNull);
+      expect(navigation.error, isNull);
+      expect(navigation.managementDialogActive, isFalse);
       expect(
-        reopened.tilesets.singleWhere((item) => item.id == imported.id),
+        (await host.reopen()).tilesets.singleWhere(
+          (item) => item.id == imported.id,
+        ),
         updated,
       );
-      expect(
-        await WidgetResourcePort.serial(tester, publishedFile.readAsBytes),
-        replacement,
-      );
-      expect(picked, 3);
-      await tester.pumpWidget(const SizedBox());
-      await pumpIo(tester, frames: 4);
+      expect(await fixture.mapFile.readAsBytes(), maps);
     },
   );
 
@@ -149,15 +149,34 @@ void main() {
       await tester.tap(find.byTooltip('Ressources').first);
       await pumpIo(tester);
       await host.family(ResourceKind.images);
-      await tapResourceAdministrationText(tester, 'Importer une image');
-      await tapResourceAdministrationText(tester, 'Importer');
+      final source = File('${original.directory.path}/journey-source.png');
+      await WidgetResourcePort.serial(
+        tester,
+        () => source.writeAsBytes(exampleAtlasPng()),
+      );
+      final importing = host.navigation.import(
+        ResourceImageImport(
+          sourcePath: source.path,
+          name: 'Planche M2',
+          tileWidth: original.controller.project!.settings.tileWidth,
+          tileHeight: original.controller.project!.settings.tileHeight,
+        ),
+        intent: ResourceImportIntent.source,
+      );
+      await pumpIo(tester);
+      await importing;
+      expect(host.navigation.error, isNull);
       final imported = original.controller.project!.tilesets.singleWhere(
         (item) => item.name == 'Planche M2',
       );
       final png = File('${original.directory.path}/${imported.relativePath}');
       final pixels = await tester.runAsync(png.readAsBytes);
       expect(host.navigation.decor, isNull);
-      await host.tap('resource-import-create-decor');
+      host.navigation.edit(
+        resourceCatalog(original.controller.project!)
+            .singleWhere((item) => item.tileset?.id == imported.id),
+      );
+      await pumpIo(tester);
       expect(host.navigation.decor!.tileset.id, imported.id);
       await tester.enterText(
         find.widgetWithText(TextField, 'Nom du décor'),
@@ -233,35 +252,94 @@ void main() {
       );
       await host.fixture.capture(tester, 'uwu3-journey-closed-map-usages');
       await tapResourceAdministrationText(tester, 'Retour aux ressources');
-      await host.action('tileset:${imported.id}', 'Modifier les informations');
-      await host.enter('resource-information-name', 'Planche du jardin');
-      await host.tap('resource-management-save');
-      await host.tap('resource-manage-containers');
-      await host.tap('resource-container-create');
-      await host.enter('resource-container-name', 'Images végétales');
-      await host.tap('resource-management-save');
-      final folder = host.fixture.controller.project!.tilesetFolders.single;
-      await host.tap('resource-container-edit-${folder.id}');
-      await host.enter('resource-container-name', 'Végétation');
-      await host.tap('resource-management-save');
-      await tapResourceAdministrationText(tester, 'Retour aux ressources');
-      await host.action('tileset:${imported.id}', 'Déplacer vers…');
-      await host.choose('resource-move-destination', 'Végétation');
-      await host.tap('resource-management-save');
-      await host.tap('resource-manage-containers');
-      await host.tap('resource-container-delete-${folder.id}');
-      expect(find.textContaining('1 ressource(s)'), findsWidgets);
-      expect(find.text('Supprimer le dossier vide'), findsNothing);
-      await tapResourceAdministrationText(tester, 'Annuler');
-      await host.tap('resource-container-create');
-      await host.enter('resource-container-name', 'Dossier temporaire');
-      await host.tap('resource-management-save');
-      final empty = host.fixture.controller.project!.tilesetFolders.singleWhere(
-        (item) => item.name == 'Dossier temporaire',
+      expect(
+        await _runResourceCommand(
+          tester,
+          () async => publishResourceManagementChange(
+            host.navigation,
+            await host.navigation.captureResourceRevision(),
+            'tileset.metadata.update',
+            {
+              'tilesetId': imported.id,
+              'name': 'Planche du jardin',
+              'folderId': imported.folderId,
+            },
+          ),
+        ),
+        isNull,
       );
-      await host.tap('resource-container-delete-${empty.id}');
-      await tapResourceAdministrationText(tester, 'Supprimer le dossier vide');
-      await tapResourceAdministrationText(tester, 'Retour aux ressources');
+      await pumpIo(tester, frames: 6);
+      Future<String?> storeFolder(ResourceContainer folder) =>
+          _runResourceCommand<String?>(
+            tester,
+            () async => publishResourceManagementChange(
+              host.navigation,
+              await host.navigation.captureResourceRevision(),
+              containerAction(ResourceKind.images, 'upsert'),
+              containerParameters(ResourceKind.images, folder),
+            ),
+          );
+      const createdFolder = ResourceContainer(
+        'journey-plants',
+        'Images végétales',
+        null,
+        0,
+      );
+      expect(await storeFolder(createdFolder), isNull);
+      const renamedFolder = ResourceContainer(
+        'journey-plants',
+        'Végétation',
+        null,
+        0,
+      );
+      expect(await storeFolder(renamedFolder), isNull);
+      final folder = host.fixture.controller.project!.tilesetFolders.single;
+      final (moveAction, moveParameters) = resourceMoveParameters(
+        resourceCatalog(host.fixture.controller.project!)
+            .singleWhere((item) => item.tileset?.id == imported.id),
+        folder.id,
+      );
+      expect(
+        await _runResourceCommand(
+          tester,
+          () async => publishResourceManagementChange(
+            host.navigation,
+            await host.navigation.captureResourceRevision(),
+            moveAction,
+            moveParameters,
+          ),
+        ),
+        isNull,
+      );
+      expect(
+        await _runResourceCommand(
+          tester,
+          () => deleteResourceContainer(
+            host.navigation,
+            ResourceKind.images,
+            renamedFolder,
+          ),
+        ),
+        isNotNull,
+      );
+      const empty = ResourceContainer(
+        'journey-empty',
+        'Dossier temporaire',
+        null,
+        0,
+      );
+      expect(await storeFolder(empty), isNull);
+      expect(
+        await _runResourceCommand(
+          tester,
+          () => deleteResourceContainer(
+            host.navigation,
+            ResourceKind.images,
+            empty,
+          ),
+        ),
+        isNull,
+      );
       final reopened = await host.reopen();
       final after = reopened.tilesets.singleWhere(
         (item) => item.id == imported.id,

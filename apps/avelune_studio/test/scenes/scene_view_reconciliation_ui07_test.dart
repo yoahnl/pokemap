@@ -1,4 +1,5 @@
-import 'package:avelune_studio/presentation/features/scenes/scene_builder_view_state.dart';
+import 'package:flutter/widgets.dart';
+import 'package:avelune_studio/features/scenes/coordination/scene_builder_session.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
@@ -10,7 +11,7 @@ void main() {
         const ProjectManifest(name: 'Scène', maps: [], tilesets: []),
         name: 'Rencontre',
       ).createdScene;
-      final view = SceneBuilderViewState();
+      final view = SceneBuilderSession();
       addTearDown(view.viewport.dispose);
       view.nodeId = original.graph.nodes.last.id;
       view.edgeId = original.graph.edges.first.id;

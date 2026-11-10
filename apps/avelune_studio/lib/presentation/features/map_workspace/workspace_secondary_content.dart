@@ -1,3 +1,5 @@
+import 'package:avelune_studio/features/map_workspace/domain/workspace_navigation.dart';
+export 'package:avelune_studio/features/map_workspace/domain/workspace_navigation.dart';
 import '../../../features/presentations/application/presentation_workspace_controller.dart';
 import '../../../features/scenes/domain/scene_presentation_creation_request.dart';
 import '../../../features/cinematics/application/cinematic_workspace_controller.dart';
@@ -17,7 +19,7 @@ import 'package:map_core/map_core_domain.dart';
 
 import '../events/event_workspace_page.dart';
 import '../events/event_view_state.dart';
-import '../events/event_map_loader.dart';
+import 'package:avelune_studio/features/events/application/event_map_loader.dart';
 import '../../../features/stories/application/story_workspace_controller.dart';
 import '../../../features/verification/application/verification_workspace_controller.dart';
 import '../stories/story_progression_page.dart';
@@ -29,37 +31,10 @@ import '../narrative/narrative_interaction_pane.dart';
 import '../narrative/narrative_story_pane.dart';
 import '../narrative/narrative_overview_view_state.dart';
 import '../../../features/narrative/application/scene_node_references.dart';
-import '../resources/resource_navigation.dart';
+import 'package:avelune_studio/features/resources/coordination/resource_navigation.dart';
 import '../resources/resource_image_import.dart';
 import '../resources/resource_workspace_pane.dart';
-import 'map_workspace_visuals.dart';
-
-enum WorkspaceSpace {
-  projectSettings,
-  map,
-  regionalMap,
-  resources,
-  story,
-  pokemon,
-  interaction,
-  scene,
-  progression,
-  events,
-  dialogue,
-  cinematic,
-  presentation,
-  world,
-  verification,
-  gameExport,
-}
-
-class WorkspaceReturn {
-  const WorkspaceReturn(this.space, {this.documentId, this.elementId});
-  static const story = WorkspaceReturn(WorkspaceSpace.story);
-  final WorkspaceSpace space;
-  final String? documentId;
-  final String? elementId;
-}
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 
 Widget? workspaceSecondaryContent({
   required WorkspaceSpace space,

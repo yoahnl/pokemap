@@ -11,7 +11,7 @@ import 'package:avelune_studio/features/project_visuals/domain/project_visuals_p
 import 'package:avelune_studio/presentation/features/map_workspace/workspace_actions.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_screen.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_layout.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 import 'package:avelune_studio/presentation/features/project_settings/project_settings_page.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import 'package:flutter/material.dart';

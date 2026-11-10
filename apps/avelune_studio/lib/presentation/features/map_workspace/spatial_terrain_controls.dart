@@ -7,7 +7,7 @@ import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/inputs/studio_draft_field.dart';
 import 'map_workspace_view_state.dart';
-import 'map_workspace_visuals.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 import 'spatial_ramp_editor.dart';
 import 'spatial_ledge_editor.dart';
 import 'spatial_fishing_editor.dart';

@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_border_drawing_draft.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_canvas.dart';
+import 'package:avelune_studio/platform/rendering/viewports/map_editing_viewport_2d.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -96,7 +96,7 @@ void main() {
     await tester.sendEventToBinding(pointer.hover(fixture.cellAt(13, 8)));
     await pumpIo(tester, frames: 3);
     final previewView = tester
-        .widget<MapWorkspaceCanvas>(find.byType(MapWorkspaceCanvas))
+        .widget<MapEditingViewport2D>(find.byType(MapEditingViewport2D))
         .view;
     expect(
       previewView.borderDraft?.previewCells,
@@ -106,7 +106,7 @@ void main() {
     await fixture.tapCell(13, 8);
     expect(fixture.document.current, initial);
     final view = tester
-        .widget<MapWorkspaceCanvas>(find.byType(MapWorkspaceCanvas))
+        .widget<MapEditingViewport2D>(find.byType(MapEditingViewport2D))
         .view;
     expect(
       view.borderDraft?.anchors.length,
@@ -162,7 +162,7 @@ void main() {
     await pumpIo(tester, frames: 3);
 
     final view = tester
-        .widget<MapWorkspaceCanvas>(find.byType(MapWorkspaceCanvas))
+        .widget<MapEditingViewport2D>(find.byType(MapEditingViewport2D))
         .view;
     expect(view.borderDraft, isNull);
     expect(fixture.document.current, initial);
@@ -181,7 +181,7 @@ void main() {
     await fixture.tapCell(10, 8);
     await fixture.tapCell(13, 8);
     final view = tester
-        .widget<MapWorkspaceCanvas>(find.byType(MapWorkspaceCanvas))
+        .widget<MapEditingViewport2D>(find.byType(MapEditingViewport2D))
         .view;
     final draft = view.borderDraft;
     await tester.ensureVisible(find.byKey(const ValueKey('Sélectionner')));
@@ -197,7 +197,7 @@ void main() {
     expect(fixture.document.dirty, isFalse);
     await fixture.switchMap('Clairière');
     final otherView = tester
-        .widget<MapWorkspaceCanvas>(find.byType(MapWorkspaceCanvas))
+        .widget<MapEditingViewport2D>(find.byType(MapEditingViewport2D))
         .view;
     expect(otherView.borderDraft, isNull);
     await fixture.switchMap('Jardin des essais');
@@ -290,7 +290,7 @@ void main() {
     await fixture.tapCell(10, 8);
     await fixture.tapCell(13, 8);
     final draft = tester
-        .widget<MapWorkspaceCanvas>(find.byType(MapWorkspaceCanvas))
+        .widget<MapEditingViewport2D>(find.byType(MapEditingViewport2D))
         .view
         .borderDraft;
     expect(draft?.alignment, BorderStrokeAlignment.gridEdges);

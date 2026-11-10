@@ -4,7 +4,7 @@ import '../../shared/widgets/inputs/studio_choice.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../map_workspace/workspace_compact_panel.dart';
-import 'resource_terrain_actions.dart';
+import 'package:avelune_studio/features/resources/application/resource_terrain_actions.dart';
 
 class ResourceTerrainDraftList extends StatelessWidget {
   const ResourceTerrainDraftList({

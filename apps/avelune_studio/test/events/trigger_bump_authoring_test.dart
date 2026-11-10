@@ -16,7 +16,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:avelune_studio/features/events/application/event_workspace_controller.dart';
-import 'package:avelune_studio/presentation/features/events/event_map_loader.dart';
+import 'package:avelune_studio/features/events/application/event_map_loader.dart';
 import 'package:avelune_studio/presentation/features/events/event_trigger_panel.dart';
 import 'package:avelune_studio/presentation/features/events/event_view_state.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';

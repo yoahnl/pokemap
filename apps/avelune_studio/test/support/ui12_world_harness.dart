@@ -33,8 +33,11 @@ class Ui12WorldHarness {
   static Future<Ui12WorldHarness> create({
     WorldPort Function(WorldPort)? wrap,
     bool initialize = true,
+    Directory? parent,
   }) async {
-    final temporary = await Directory.systemTemp.createTemp('avelune_ui12w_');
+    final temporary = await (parent ?? Directory.systemTemp).createTemp(
+      'avelune_ui12w_',
+    );
     final directory = Directory(await temporary.resolveSymbolicLinks());
     await writeExampleProject(directory);
     return open(directory, wrap: wrap, initialize: initialize);

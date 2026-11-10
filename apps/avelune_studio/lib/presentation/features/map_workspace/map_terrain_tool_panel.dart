@@ -7,11 +7,11 @@ import '../../../features/terrains/application/terrain_brush.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/feedback/studio_badge.dart';
-import '../resources/resource_catalog.dart';
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 import '../resources/resource_preview.dart';
 import 'map_workspace_view_state.dart';
-import 'map_workspace_visuals.dart';
-import 'map_terrain_patterns.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_terrain_patterns.dart';
 
 class MapTerrainToolPanel extends StatelessWidget {
   const MapTerrainToolPanel({

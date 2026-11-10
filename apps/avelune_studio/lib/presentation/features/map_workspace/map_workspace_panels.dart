@@ -5,9 +5,8 @@ import 'package:avelune_studio/features/map_workspace/application/editable_map_d
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/layout/studio_sidebar.dart';
 import '../../shared/widgets/inputs/studio_search_field.dart';
-import '../characters/character_palette.dart';
-import '../resources/resource_catalog.dart';
-import '../resources/resource_family_tree.dart';
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
+import 'package:avelune_studio/features/resources/application/resource_family_tree.dart';
 import '../resources/resource_filter_button.dart';
 import '../resources/resource_preview.dart';
 import '../../shared/widgets/layout/studio_palette_card.dart';
@@ -17,7 +16,7 @@ import 'map_tile_palette.dart';
 import 'map_warp_palette.dart';
 import 'map_workspace_view_state.dart';
 import 'map_workspace_tool_strip_selection.dart';
-import 'map_workspace_visuals.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 import 'map_workspace_palette_dock_filters.dart';
 
 class MapWorkspacePalette extends StatefulWidget {
@@ -96,35 +95,6 @@ class _MapWorkspacePaletteState extends State<MapWorkspacePalette> {
 
   Widget catalog() {
     final view = widget.view;
-    if (kind == 'Personnages') {
-      return CharacterPalette(
-        project: widget.project.copyWith(
-          characters: items.map((item) => item.character).nonNulls.toList(),
-        ),
-        visuals: widget.visuals,
-        compact: widget.compactContent,
-        selectedId: view.character?.id,
-        query: view.characterQuery,
-        scrollOffset: view.characterScrollOffset,
-        onScrollChanged: (offset) => view.characterScrollOffset = offset,
-        onQueryChanged: (query) => view.characterQuery = query,
-        onPick: (character) {
-          if (widget.onPickResource != null) {
-            widget.onPickResource!(
-              items.firstWhere((item) => item.id == character.id),
-            );
-            return;
-          }
-          view.character = character;
-          view.brush = null;
-          view.model3d = null;
-          view.tile = null;
-          view.terrain = null;
-          view.tool = StudioMapTool.character;
-          widget.onChanged();
-        },
-      );
-    }
     if (kind == 'Passages') {
       return MapWarpPalette(
         groups: widget.project.groups,

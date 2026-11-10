@@ -63,18 +63,23 @@ class Ui13VerificationHarness {
 
   static Future<Ui13VerificationHarness> create({
     VerificationPort Function(VerificationPort)? wrap,
+    Directory? parent,
     bool seedProblems = true,
     bool homonyms = false,
     bool configureRuntimeProfile = true,
     NarrativeRuntimeSmokeProfile? runtimeProfile,
   }) async {
-    final temporary = await Directory.systemTemp.createTemp('avelune_ui13_');
+    final temporary = await (parent ?? Directory.systemTemp).createTemp(
+      'avelune_ui13_',
+    );
     final directory = Directory(await temporary.resolveSymbolicLinks());
     await writeExampleProject(directory);
     final manifestFile = File('${directory.path}/project.json');
-    final manifestJson = jsonDecode(await manifestFile.readAsString()) as Map<String, dynamic>;
+    final manifestJson =
+        jsonDecode(await manifestFile.readAsString()) as Map<String, dynamic>;
     if (configureRuntimeProfile) {
-      manifestJson['runtimeSmokeProfile'] = (runtimeProfile ?? runtimeSmokeProfileFixture).toJson();
+      manifestJson['runtimeSmokeProfile'] =
+          (runtimeProfile ?? runtimeSmokeProfileFixture).toJson();
     } else {
       manifestJson.remove('runtimeSmokeProfile');
     }

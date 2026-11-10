@@ -1,0 +1,190 @@
+{
+  "schemaVersion": 1,
+  "at": "2026-11-10T01:29:49.188716+00:00",
+  "scope": "T01 scoped checkpoint review and commit; not theme acceptance",
+  "acceptedLots": 0,
+  "parentHead": "9ffc480212d6535dbaa07e3c2c254f6af7f59b96",
+  "checks": [
+    {
+      "scope": "Contrats Home/app/architecture/character/replacement/events/carte",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "failures-only",
+        "test/home",
+        "test/app",
+        "test/architecture/t01_retirement_gate_test.dart",
+        "test/architecture/t01_consumer_roots_test.dart",
+        "test/architecture/t01_inventory_drift_test.dart",
+        "test/architecture/t01_package_uri_resolution_test.dart",
+        "test/characters/character_removal_workflow_test.dart",
+        "test/resource_io/resource_replacement_dialog_test.dart",
+        "test/events/standard_event_template_form_test.dart",
+        "test/events/event_condition_draft_test.dart",
+        "test/events/event_conditions_logic_test.dart",
+        "test/events/event_editing_session_test.dart",
+        "test/map_workspace/spatial_model_visibility_persistence_test.dart",
+        "test/map_workspace/map_catalog_lifecycle_session_test.dart",
+        "test/map_workspace/workspace_event_source_navigation_test.dart"
+      ],
+      "exitCode": 0,
+      "passed": 136,
+      "failed": 0,
+      "interrupted": false,
+      "durationSeconds": 50.55195093154907,
+      "liveOwnedPids": [],
+      "fullLogSha256": "74b77dbe8de3ea679e50be3ff5fd22694e57ef4c9b137e0b88e57b86bd1d71a3"
+    },
+    {
+      "scope": "Ressources/Terrain après migration des attentes UI retirées",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "failures-only",
+        "test/resource_io/resource_replacement_dialog_test.dart",
+        "test/resource_io/resource_administration_journey_host_test.dart",
+        "test/resource_io/resource_lifecycle_host_test.dart",
+        "test/presentation/ui04_terrain_journey_test.dart"
+      ],
+      "exitCode": 0,
+      "passed": 13,
+      "failed": 0,
+      "interrupted": false,
+      "durationSeconds": 58.00697612762451,
+      "liveOwnedPids": [],
+      "fullLogSha256": "005de7bbce857949c63aa4cc71e9e2fc6f5516609497330644624788891cb2f8"
+    },
+    {
+      "scope": "Hub : création, CRUD cartes/passages et export Player",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "failures-only",
+        "test/features/installation/as_project_creation_player_e2e_test.dart",
+        "test/features/installation/uwu6_map_lifecycle_player_e2e_test.dart",
+        "test/features/installation/avelune_studio_export_player_e2e_test.dart"
+      ],
+      "exitCode": 1,
+      "passed": 2,
+      "failed": 1,
+      "interrupted": false,
+      "durationSeconds": 26.92600989341736,
+      "liveOwnedPids": [],
+      "fullLogSha256": "fe77f4490fc62ecd790aa0db57f43f2998b1573f66e00a3aef64e1ba9126eb48"
+    },
+    {
+      "scope": "Hub : création/export/installation/Player après correction du témoin export-profile lock",
+      "command": [
+        "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+        "test",
+        "--no-pub",
+        "--concurrency=1",
+        "--timeout=120s",
+        "-r",
+        "expanded",
+        "test/features/installation/as_project_creation_player_e2e_test.dart"
+      ],
+      "exitCode": 0,
+      "passed": 1,
+      "failed": 0,
+      "interrupted": false,
+      "durationSeconds": 9.6911780834198,
+      "liveOwnedPids": [],
+      "fullLogSha256": "9ed12d02feea4bb5bc09f554d3ccd073b98c6bec40121c4e08752cd9cd8c351f"
+    }
+  ],
+  "codeFiles": [
+    {
+      "path": "apps/avelune_studio/test/presentation/ui04_terrain_journey_test.dart",
+      "sha256": "230b1697294e5224a19d7129f79275286daba772494182df6f3f851a7fddc356"
+    },
+    {
+      "path": "apps/avelune_studio/test/resource_io/resource_administration_journey_host_test.dart",
+      "sha256": "d564974a30d4a1264013fa4ed7b51ad7605c5293f6d62fdb118279e5c0d2b05a"
+    },
+    {
+      "path": "apps/avelune_studio/test/resource_io/resource_lifecycle_host_test.dart",
+      "sha256": "fbfc28106b849640bf8a1d8ae8a25fa603932c3e04cfe5eb0052292a61142932"
+    },
+    {
+      "path": "apps/avelune_studio/test/resource_io/resource_replacement_dialog_test.dart",
+      "sha256": "10d4a5a14d94cd53b051ac3fb74ab78d6f8ec30ec8d3670e28171c7f20e95ca4"
+    },
+    {
+      "path": "apps/avelune_studio/test/resource_io/resource_fixture.dart",
+      "sha256": "141ee943b9ecefee63ccf18d038c4a4c1f0db3ed79d64024561021f4b4786482"
+    },
+    {
+      "path": "apps/avelune_studio/test/support/resource_family_gestures.dart",
+      "sha256": "466f08839534f1280526b1c02ede6530b3d1084359656a65dad65c4252fe31fc"
+    },
+    {
+      "path": "apps/avelune_studio/test/support/resource_replacement_fixture.dart",
+      "sha256": "d18c6d5702e8d77a76bcd71a71d73b8b2fff9c041c5cafdf3c58e9b5fd40b923"
+    },
+    {
+      "path": "apps/avelune_studio/test/support/run_resource_replacement.dart",
+      "sha256": "69854de6386e88e68e7c68c087f96c9c389ca7f82bbce43216380dda9cefc3f1"
+    },
+    {
+      "path": "apps/pokemap_hub/test/features/installation/as_project_creation_player_e2e_test.dart",
+      "sha256": "c646f1ac19741649c895d30cedc5663d87713d0520d46c3c0d38bcff220e4975"
+    }
+  ],
+  "staticG0": {
+    "exitCode": 1,
+    "inventoryEntries": 992,
+    "approvedExceptions": 12,
+    "reachableSources": 4370,
+    "studioSourcesInspected": 1957,
+    "violations": 2352,
+    "accepted": false
+  },
+  "analysis": {
+    "Studio": {
+      "exitCode": 2,
+      "errors": 0,
+      "warnings": 4,
+      "infos": 5
+    },
+    "HubInstallationTests": {
+      "exitCode": 0,
+      "issues": 0
+    }
+  },
+  "unitValidator": {
+    "tests": 10,
+    "exitCode": 0
+  },
+  "independentSourceReview": {
+    "reviewer": "t01_dependency_review",
+    "verdict": "bounded_technical_agreement",
+    "limits": "Source review only; no native visual acceptance."
+  },
+  "fixes": [
+    "Ancienne assertion paletteTab remplacée par outil Terrain réellement armé.",
+    "Deux attentes de dialogue replacement retiré migrées vers workflow réel avec assertions hors catch.",
+    "Navigation de familles dans les fixtures préparée par commandes réelles ; aucune validation de navigation UI revendiquée.",
+    "Fixture replacement canonique partagée, option sans carte, et orchestration async sans runAsync imbriqué.",
+    "Témoin de non-mutation Hub ignore seulement le profil export et son verrou dans .pokemap."
+  ],
+  "limits": [
+    "G0 reste rouge ; T00 et T01 non acceptés ; aucune nouvelle UI reconstruite.",
+    "Quatre méthodes privées inutilisées restent dans les anciennes liaisons UI en cours de retrait.",
+    "Les deux défauts Ressources historiques et le cas combat plan.stale ne sont pas déclarés corrigés.",
+    "Pas de recette visuelle native complète ni de suite globale.",
+    "Harnesses T00, deux prototypes lifecycle non câblés et six changements de combat exclus du commit."
+  ]
+}

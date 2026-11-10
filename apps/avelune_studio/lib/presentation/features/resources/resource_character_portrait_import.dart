@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../features/resources/domain/resource_port.dart';
 import 'resource_image_import.dart';
-import 'resource_navigation.dart';
+import 'package:avelune_studio/features/resources/coordination/resource_navigation.dart';
 
 Future<void> importCharacterPortrait(
   BuildContext context,

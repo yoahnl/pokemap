@@ -3,7 +3,6 @@ import 'package:avelune_studio/features/narrative/application/dialogue_draft_cod
 import 'package:avelune_studio/features/narrative/application/narrative_interaction_reader.dart';
 import 'package:avelune_studio/features/narrative/data/local_narrative_adapter.dart';
 import 'package:avelune_studio/platform/playtest/studio_playtest_view.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -15,6 +14,8 @@ import 'support/load_desktop_capture_fonts.dart';
 import 'support/capture_m3_widget.dart';
 
 void main() {
+  late StudioPlaytestControls controls;
+  setUp(() => controls = StudioPlaytestControls());
   testWidgets(
     'published story plays choices, conditions, one-shot and isolated save/load',
     (tester) async {
@@ -36,11 +37,11 @@ void main() {
       final saves = StudioPlaytestSession();
       await tester.pumpWidget(
         MaterialApp(
-          theme: studioTheme(),
           home: RepaintBoundary(
             key: captureKey,
             child: Scaffold(
               body: StudioPlaytestView(
+                controls: controls,
                 session: fixture.session,
                 entry: fixture.receipt.manifest.maps.first,
                 expectedRevision: fixture.receipt.revision,
@@ -135,7 +136,7 @@ void main() {
       await driver.walk(RuntimeInputControl.left);
       await driver.walk(RuntimeInputControl.right);
       expect(game.dialoguePresentationListenable.value, isNull);
-      await tester.tap(find.text('Nouvelle partie'));
+      await controls.newGame();
       await tester.pump();
       await driver.until(() {
         final finder = find.byType(StudioPlaytestView);

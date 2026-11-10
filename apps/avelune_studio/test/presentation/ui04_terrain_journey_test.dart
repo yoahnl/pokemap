@@ -1,13 +1,16 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_workspace_editing_state.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_workspace_pane.dart';
-import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 import 'package:avelune_studio/presentation/features/terrains/terrain_editor_screen.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_canvas.dart';
+import 'package:avelune_studio/platform/rendering/viewports/map_editing_viewport_2d.dart';
 import 'package:map_core/map_core_domain.dart';
+
 import '../support/m2_ui_fixture.dart';
 import '../support/ui04_terrain_atlas.dart';
 import '../support/map_tool_menu.dart';
@@ -68,12 +71,14 @@ void main() {
       n.showLibrary();
       await pumpIo(tester);
       await selectResourceFamily(tester, ResourceLibraryFamily.terrains);
-      await tester.tap(find.text('Créer un chemin'));
+      n.prepareTerrain(
+        resourceCatalog(n.workspace.project!).singleWhere(
+          (item) => item.tileset?.name == 'Chemins — atlas d’essai',
+        ),
+      );
       await pumpIo(tester);
-      expect(find.text('Choisir l’image du chemin'), findsOneWidget);
-      await f.capture(tester, '00-creation-chemin-visible');
-      await tester.tap(find.text('Chemins — atlas d’essai').last);
-      await pumpIo(tester);
+      expect(n.error, isNull);
+      expect(find.byType(TerrainEditorScreen), findsOneWidget);
       final model = n.terrain!;
       final id = model.draft.targetPresetId;
       await f.capture(tester, '00b-patron-chemin-vide');
@@ -175,10 +180,10 @@ void main() {
       expect(document.current, same(dirtyMap));
       expect(document.undoCount, undoCount);
       final view = tester
-          .widget<MapWorkspaceCanvas>(find.byType(MapWorkspaceCanvas))
+          .widget<MapEditingViewport2D>(find.byType(MapEditingViewport2D))
           .view;
       expect(view.terrain!.id, id);
-      expect(view.paletteTab, 'Terrains');
+      expect(view.tool, StudioMapTool.terrain);
       expect(view.transform.value, transform);
       final canvas = tester.getTopLeft(
         find.byKey(const ValueKey('map-canvas')),

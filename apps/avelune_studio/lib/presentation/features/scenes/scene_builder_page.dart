@@ -22,7 +22,7 @@ import 'package:avelune_studio/presentation/features/scenes/scene_payload_picker
 import 'package:avelune_studio/presentation/features/scenes/scene_linked_document.dart';
 import 'package:avelune_studio/presentation/features/scenes/scene_node_finder.dart';
 import 'package:avelune_studio/presentation/features/scenes/scene_readable_summary.dart';
-import '../events/event_map_loader.dart';
+import 'package:avelune_studio/features/events/application/event_map_loader.dart';
 export 'package:avelune_studio/presentation/features/scenes/scene_builder_view_state.dart';
 
 part 'scene_builder_commands.dart';

@@ -1,46 +1,45 @@
 import 'dart:collection';
 import 'dart:ui';
 
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
 
-import '../../presentation/shared/widgets/feedback/studio_badge.dart';
+class StudioPlaytestPerformanceSample {
+  const StudioPlaytestPerformanceSample({
+    required this.fps,
+    required this.buildMs,
+    required this.rasterMs,
+  });
 
-class StudioPlaytestPerformance extends StatefulWidget {
-  const StudioPlaytestPerformance({super.key, required this.active});
-
-  final bool active;
-
-  @override
-  State<StudioPlaytestPerformance> createState() =>
-      _StudioPlaytestPerformanceState();
+  final double fps;
+  final double buildMs;
+  final double rasterMs;
 }
 
-class _StudioPlaytestPerformanceState extends State<StudioPlaytestPerformance> {
-  final _frames = Queue<FrameTiming>();
-  int? _lastPublication;
-  String _label = 'FPS —';
-  StudioTone _tone = StudioTone.neutral;
-
-  @override
-  void initState() {
-    super.initState();
+class StudioPlaytestPerformanceMonitor extends ChangeNotifier {
+  StudioPlaytestPerformanceMonitor({bool active = true}) : _active = active {
     SchedulerBinding.instance.addTimingsCallback(_observe);
   }
 
-  @override
-  void didUpdateWidget(StudioPlaytestPerformance oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.active != widget.active) {
-      _frames.clear();
-      _lastPublication = null;
-      _label = 'FPS —';
-      _tone = StudioTone.neutral;
-    }
+  final _frames = Queue<FrameTiming>();
+  int? _lastPublication;
+  StudioPlaytestPerformanceSample? _sample;
+  bool _active;
+  bool _disposed = false;
+
+  StudioPlaytestPerformanceSample? get sample => _sample;
+
+  void setActive(bool active) {
+    if (_disposed || _active == active) return;
+    _active = active;
+    _frames.clear();
+    _lastPublication = null;
+    _sample = null;
+    notifyListeners();
   }
 
   void _observe(List<FrameTiming> timings) {
-    if (!mounted || !widget.active) return;
+    if (_disposed || !_active) return;
     for (final timing in timings) {
       final timestamp = timing.timestampInMicroseconds(FramePhase.rasterFinish);
       if (_frames.isNotEmpty &&
@@ -77,31 +76,19 @@ class _StudioPlaytestPerformanceState extends State<StudioPlaytestPerformance> {
         ) /
         _frames.length /
         1000;
-    setState(() {
-      _label =
-          'FPS ${fps.toStringAsFixed(1)} · UI ${build.toStringAsFixed(1)} ms · rendu ${raster.toStringAsFixed(1)} ms';
-      _tone = fps < 15
-          ? StudioTone.danger
-          : fps < 30
-          ? StudioTone.warning
-          : StudioTone.neutral;
-    });
+    _sample = StudioPlaytestPerformanceSample(
+      fps: fps,
+      buildMs: build,
+      rasterMs: raster,
+    );
+    notifyListeners();
   }
 
   @override
   void dispose() {
+    if (_disposed) return;
+    _disposed = true;
     SchedulerBinding.instance.removeTimingsCallback(_observe);
     super.dispose();
   }
-
-  @override
-  Widget build(BuildContext context) => Tooltip(
-    message: 'Images réellement calculées par Flutter. UI : calcul de l’image ; rendu : traitement par le moteur graphique. Moyenne sur les deux dernières secondes.',
-    child: StudioBadge(
-      _label,
-      key: const ValueKey('playtest-fps'),
-      tone: _tone,
-      icon: Icons.speed,
-    ),
-  );
 }

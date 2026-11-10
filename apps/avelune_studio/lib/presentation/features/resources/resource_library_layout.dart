@@ -158,7 +158,6 @@ extension _ResourceLibraryLayout on _ResourceLibraryScreenState {
         final content = Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            libraryHeader(context, bounds),
             if (!inlineFamilies)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -181,41 +180,6 @@ extension _ResourceLibraryLayout on _ResourceLibraryScreenState {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  ResourceCatalogToolbar(
-                    search: search,
-                    compact: !regular || bounds.maxHeight < 550,
-                    state: state,
-                    count: filtered.length,
-                    onSearch: (value) => change(() => state.query = value),
-                    onSort: (value) => change(() => state.sort = value),
-                    onGrid: (value) => change(() => state.grid = value),
-                    onUsableOnly: (value) =>
-                        change(() => state.filters.usableOnly = value),
-                    onMarking: regular
-                        ? (value) => updateMarks(() {
-                            if (value) {
-                              state.marking = true;
-                            } else {
-                              state.clearMarks(stopMarking: true);
-                            }
-                          })
-                        : null,
-                    filters: ResourceFilterButton(
-                      showType: !state.atelierVisible,
-                      filters: state.filters,
-                      activeMapName: widget.targetMapName,
-                      categoryTree: regular && state.atelierVisible
-                          ? categoriesTree
-                          : null,
-                      category: state.category,
-                      onCategoryChanged: regular && state.atelierVisible
-                          ? (value) => state.category = value
-                          : null,
-                      onChanged: () => change(() {}),
-                      countResults: (filters, category) =>
-                          matchingResources(filters, category).length,
-                    ),
-                  ),
                   if (state.filters.familyId.isNotEmpty ||
                       state.filters.showComponents ||
                       state.filters.typeKind.isNotEmpty ||

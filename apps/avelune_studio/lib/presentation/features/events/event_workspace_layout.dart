@@ -132,13 +132,6 @@ extension _EventWorkspaceLayout on _EventWorkspacePageState {
                           const SizedBox(width: 8),
                         ],
                         StudioButton(
-                          key: const ValueKey('event-guided'),
-                          label: 'Événement guidé',
-                          icon: Icons.auto_fix_high_outlined,
-                          onPressed: c.busy ? null : _guided,
-                        ),
-                        const SizedBox(width: 8),
-                        StudioButton(
                           label: 'Nouvel événement',
                           icon: Icons.add,
                           onPressed: _create,
@@ -148,26 +141,6 @@ extension _EventWorkspaceLayout on _EventWorkspacePageState {
                           label: 'Enregistrer',
                           icon: Icons.save_outlined,
                           onPressed: c.busy ? null : _save,
-                        ),
-                        const SizedBox(width: 8),
-                        StudioButton(
-                          label: 'Simulation',
-                          secondary: true,
-                          icon: Icons.science_outlined,
-                          onPressed: record == null
-                              ? null
-                              : () async {
-                                  _flush();
-                                  await _pending;
-                                  if (await c.prepareAllMaps() &&
-                                      context.mounted) {
-                                    await showEventSimulation(
-                                      context,
-                                      c,
-                                      record.id,
-                                    );
-                                  }
-                                },
                         ),
                         const SizedBox(width: 8),
                         StudioButton(

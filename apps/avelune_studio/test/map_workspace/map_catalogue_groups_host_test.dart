@@ -2,34 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/map_catalogue_host_fixture.dart';
-import '../support/m2_ui_fixture.dart' show pumpIo;
 import '../support/capture_m3_widget.dart';
 import '../support/load_desktop_capture_fonts.dart';
 
 void main() {
-  testWidgets(
-    'home refreshes an already mounted preview after a closed map title changes',
-    (tester) async {
-      final f = await MapCatalogueHostFixture.open(tester);
-      expect(f.host.maps.documents.containsKey('annex'), isFalse);
-      await tester.tap(find.text('Accueil'));
-      await pumpIo(tester, frames: 30);
-      await tester.tap(find.text('Carte').first);
-      await pumpIo(tester, frames: 20);
-      await f.renameMap('annex', 'Maison des saules');
-      await tester.tap(find.text('Accueil'));
-      await pumpIo(tester, frames: 30);
-      expect(
-        find.byWidgetPredicate(
-          (widget) =>
-              widget is Semantics &&
-              widget.properties.label == 'Aperçu de Maison des saules',
-        ),
-        findsOneWidget,
-      );
-      expect(f.host.maps.documents.containsKey('annex'), isFalse);
-    },
-  );
+  testWidgets('native preview refreshes after a closed map title changes', (
+    tester,
+  ) async {
+    final f = await MapCatalogueHostFixture.open(tester);
+    expect(f.host.maps.documents.containsKey('annex'), isFalse);
+    final before = await tester.runAsync(() => f.host.maps.previewMap('annex'));
+    expect(before, isNotNull);
+    expect(await f.renameMap('annex', 'Maison des saules'), isNull);
+    final after = await tester.runAsync(() => f.host.maps.previewMap('annex'));
+    expect(after!.name, 'Maison des saules');
+    expect(f.host.maps.documents.containsKey('annex'), isFalse);
+  });
   testWidgets(
     'real workspace organizes nested folders and preserves referenced maps',
     (tester) async {
@@ -39,45 +27,34 @@ void main() {
       final before = await f.reopen();
       final active = f.host.maps.active!;
       final root = await f.createFolder('Région');
-      final town = await f.createFolder('Village', parent: 'Région');
-      final houses = await f.createFolder(
-        'Intérieurs',
-        parent: 'Région / Village',
-      );
+      final town = await f.createFolder('Village', parentId: root.id);
+      final houses = await f.createFolder('Intérieurs', parentId: town.id);
       expect(houses.parentGroupId, town.id);
-      await f.mapAction('annex', 'Déplacer…');
-      await f.choose('Dossier de destination', 'Région / Village / Intérieurs');
-      await tester.tap(find.text('Déplacer').last);
-      await pumpIo(tester, frames: 20);
+      expect(await f.moveMap('annex', houses.id), isNull);
       expect(f.host.maps.active, same(active));
       expect(
         f.host.maps.project!.maps.singleWhere((e) => e.id == 'annex').groupId,
         houses.id,
       );
-      await f.groupAction(houses.id, 'Renommer…');
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Nom du dossier'),
-        'Maisons',
-      );
-      await tester.tap(find.text('Enregistrer').last);
-      await pumpIo(tester, frames: 20);
+      expect(await f.updateFolder(houses.copyWith(name: 'Maisons')), isNull);
       expect(
         f.host.maps.project!.groups.singleWhere((g) => g.id == houses.id).name,
         'Maisons',
       );
-      await f.groupAction(root.id, 'Supprimer le dossier');
-      expect(find.textContaining('Déplacez-les d’abord'), findsOneWidget);
-      await tester.tap(find.text('Annuler').last);
-      await pumpIo(tester, frames: 4);
-      await f.groupAction(houses.id, 'Déplacer…');
-      await f.choose('Dossier parent', 'Sans dossier');
-      await tester.tap(find.text('Enregistrer').last);
-      await pumpIo(tester, frames: 20);
+      expect(await f.deleteFolder(root.id), isNotNull);
+      final renamedHouses = f.host.maps.project!.groups.singleWhere(
+        (group) => group.id == houses.id,
+      );
+      expect(
+        await f.updateFolder(renamedHouses.copyWith(parentGroupId: null)),
+        isNull,
+      );
       final empty = await f.createFolder('Dossier provisoire');
-      await f.groupAction(empty.id, 'Supprimer le dossier');
-      await tester.tap(find.text('Supprimer').last);
-      await pumpIo(tester, frames: 20);
-      expect(f.host.maps.project!.groups.any((g) => g.id == empty.id), isFalse);
+      expect(await f.deleteFolder(empty.id), isNull);
+      expect(
+        f.host.maps.project!.groups.any((group) => group.id == empty.id),
+        isFalse,
+      );
       final after = await f.reopen();
       expect(
         after.project.groups
@@ -101,22 +78,21 @@ void main() {
       final active = f.host.maps.active!;
       await f.paintCollision();
       final draft = active.current;
-      await f.mapAction(active.base.mapId, 'Renommer…');
       expect(
-        find.text('Enregistrer cette carte avant de la renommer ?'),
-        findsOneWidget,
+        await f.renameMap(
+          active.base.mapId,
+          'Synthetic — orchard',
+          confirmSave: false,
+        ),
+        isNotNull,
       );
-      await tester.tap(find.text('Annuler').last);
-      await pumpIo(tester, frames: 3);
       expect(active.current, draft);
       expect(active.dirty, isTrue);
       expect((await f.reopen()).maps, before.maps);
-      await f.mapAction(active.base.mapId, 'Renommer…');
-      await tester.tap(find.text('Enregistrer cette carte puis renommer'));
-      await pumpIo(tester, frames: 20);
-      await f.field('rename-map-name', 'Synthetic — orchard');
-      await tester.tap(find.text('Enregistrer').last);
-      await pumpIo(tester, frames: 20);
+      expect(
+        await f.renameMap(active.base.mapId, 'Synthetic — orchard'),
+        isNull,
+      );
       expect(active.dirty, isFalse);
       final after = await f.reopen();
       expect(

@@ -2,7 +2,7 @@ import 'package:avelune_studio/features/map_workspace/application/map_draft_refe
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_selection_inspector.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_canvas.dart';
+import 'package:avelune_studio/platform/rendering/viewports/map_editing_viewport_2d.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import 'package:flutter/material.dart';
@@ -53,7 +53,7 @@ class MapSelectionHarness {
                 children: [
                   SizedBox(
                     width: 640,
-                    child: MapWorkspaceCanvas(
+                    child: MapEditingViewport2D(
                       document: document,
                       project: project,
                       visuals: WorkspaceTestVisuals(),

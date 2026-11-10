@@ -11,7 +11,7 @@ import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
 
 import '../support/map_catalogue_host_fixture.dart';
-import '../support/m2_ui_fixture.dart' show pumpIo;
+import '../support/real_test_io.dart';
 
 void main() {
   testWidgets(
@@ -25,7 +25,7 @@ void main() {
       final spawn = GridPos(x: originalSize.width - 2, y: 1);
       final entities = MapEntityEditingCommands(document, workspace.project!);
       entities.place(MapEntityKind.spawn, spawn);
-      await fixture.tapKey('Enregistrer');
+      await fixture.saveActive();
       expect(document.dirty, isFalse, reason: workspace.error);
       final saved = await fixture.reopen();
       final source = saved.maps[entry.id]!;
@@ -34,14 +34,10 @@ void main() {
         height: originalSize.height + 3,
       );
 
-      await fixture.mapAction(entry.id, 'Redimensionner…');
-      await fixture.field('resize-map-width', '${targetSize.width}');
-      await fixture.field('resize-map-height', '${targetSize.height}');
-      await tester.tap(find.text('Analyser les conséquences'));
-      await pumpIo(tester, frames: 20);
+      final preparation = (await fixture.prepareResize(entry.id, targetSize))!;
+      expect(preparation.canApply, isTrue);
       expect((await fixture.reopen()).maps[entry.id], source);
-      await tester.tap(find.text('Appliquer le redimensionnement'));
-      await pumpIo(tester, frames: 30);
+      expect((await fixture.apply(preparation)).integrated, isTrue);
       expect(workspace.active!.current.size, targetSize);
       expect(workspace.active!.dirty, isFalse, reason: workspace.error);
       final sourcePath = fixture.host.session.state.project!.directoryPath;
@@ -93,7 +89,7 @@ void main() {
         game.pauseEngine();
         await tester.pumpWidget(const SizedBox());
       });
-      await pumpIo(tester, frames: 40);
+      await RealTestIo.pump(tester, frames: 40);
       await tester.runAsync(() async => await game.toBeLoaded());
       await _until(tester, game, () {
         return !game.debugIsMapActivationDispatchInFlight &&
@@ -171,7 +167,7 @@ Future<void> _until(
 ) async {
   for (var frame = 0; frame < 600 && !ready(); frame++) {
     game.update(1 / 60);
-    await pumpIo(tester, frames: 1);
+    await RealTestIo.pump(tester, frames: 1);
   }
   expect(ready(), isTrue, reason: 'The runtime reached the expected state.');
 }

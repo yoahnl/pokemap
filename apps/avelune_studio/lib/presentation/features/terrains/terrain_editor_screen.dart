@@ -11,8 +11,8 @@ import 'terrain_scratch_view.dart';
 import 'terrain_source_panel.dart';
 import 'terrain_trial_panel.dart';
 import 'terrain_usage_summary.dart';
-import '../map_workspace/map_workspace_visuals.dart';
-import '../resources/resource_catalog.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 import '../resources/resource_preview.dart';
 
 class TerrainEditorScreen extends StatefulWidget {

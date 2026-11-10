@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 import '../../../features/map_workspace/application/map_workspace_controller.dart';
-import 'map_workspace_visuals.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 
 class StudioHomeMapPreview extends StatefulWidget {
   const StudioHomeMapPreview({

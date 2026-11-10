@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:developer' as developer;
 
-import 'package:avelune_studio/presentation/features/characters/character_studio_page.dart';
-import 'package:avelune_studio/presentation/features/resources/working_catalog_workspace.dart';
+import 'package:avelune_studio/features/characters/coordination/character_studio_controller.dart';
+import 'package:avelune_studio/features/resources/application/working_catalog_controller.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 
@@ -18,8 +18,12 @@ final class _SaveView {
   static _SaveView find() {
     _SaveView? result;
     void visit(Element element) {
-      switch (element.widget) {
-        case CharacterStudioPage(:final controller):
+      final owner = switch (element.widget) {
+        AnimatedWidget(:final listenable) => listenable,
+        _ => null,
+      };
+      switch (owner) {
+        case final CharacterStudioController controller:
           result = _SaveView(
             controller,
             () => controller.saving,
@@ -37,7 +41,7 @@ final class _SaveView {
                   .actorContactShadowsByDefault,
             },
           );
-        case WorkingCatalogWorkspace(:final controller):
+        case final WorkingCatalogController controller:
           result = _SaveView(
             controller,
             () => controller.saving,
@@ -67,6 +71,8 @@ final class _SaveView {
     return result ?? (throw StateError('A resource editor is required.'));
   }
 }
+
+Map<String, Object?> readStudioSaveLatencyState() => _SaveView.find().state();
 
 Future<void> main() async {
   const root = String.fromEnvironment('MARIONETTE_PROJECT_PATH');

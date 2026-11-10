@@ -10,17 +10,16 @@ import 'package:path/path.dart' as p;
 
 import 'studio_playtest_session.dart';
 import 'studio_playtest_start.dart';
-import 'studio_playtest_performance.dart';
+import 'studio_playtest_controls.dart';
 import 'studio_playtest_player_view.dart';
 import 'studio_spatial_playtest.dart';
 import 'studio_spatial_playtest_view.dart';
 import '../../features/pokemon/data/studio_project_item_icons.dart';
 import '../../features/verification/application/studio_failure_diagnosis.dart';
-import '../../presentation/features/verification/studio_failure_report.dart';
 
 export 'studio_playtest_session.dart';
+export 'studio_playtest_controls.dart';
 
-import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 
@@ -36,8 +35,10 @@ class StudioPlaytestView extends StatefulWidget {
     this.previewVisuals,
     this.prepareProjectAssets,
     this.spatialViewBuilder,
+    this.controls,
   });
 
+  final StudioPlaytestControls? controls;
   final ProjectSession session;
   final ProjectMapEntry entry;
   final String expectedRevision;
@@ -74,6 +75,58 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
   HeadlessSceneInteractionPort? _preSessionInteractions;
   StreamSubscription<SceneInteractionRequest>? _preSessionSubscription;
   SceneInteractionRequest? _preSessionRequest;
+
+  late StudioPlaytestControls _controls;
+
+  @override
+  void initState() {
+    super.initState();
+    _controls = widget.controls ?? StudioPlaytestControls();
+    _attachControls();
+  }
+
+  @override
+  void didUpdateWidget(StudioPlaytestView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.controls, widget.controls)) {
+      _controls.detach(this);
+      _controls = widget.controls ?? StudioPlaytestControls();
+      _attachControls();
+    }
+  }
+
+  void _attachControls() {
+    _controls.attach(
+      this,
+      status: () => StudioPlaytestStatus(
+        ready: _ready,
+        busy: _busy,
+        hasSave: _saves.hasSave,
+        paused: _spatialPaused,
+        message: _message,
+      ),
+      requestClose: () => widget.onClose(),
+      save: _save,
+      resume: _resume,
+      newGame: _newGame,
+      togglePause: _toggleSpatialPause,
+      setSpeed: (speed) => _game?.setTestSpeed(speed),
+      toggleDiagonal: () {
+        final playtest = _spatialPlaytest;
+        final spatial = _spatial;
+        if (playtest == null ||
+            spatial == null ||
+            !playtest.runtime.inputAuthority.value.acceptsOverworldInput) {
+          return;
+        }
+        setState(
+          () => spatial.movement.setDiagonalMovement(
+            !spatial.movement.allowDiagonalMovement,
+          ),
+        );
+      },
+    );
+  }
 
   Future<Object> _load({bool restoreSpatialSave = false}) async {
     final document = await widget.port.loadMap(widget.session, widget.entry);
@@ -253,6 +306,7 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
 
   @override
   void dispose() {
+    _controls.detach(this);
     _preSessionInteractions?.close();
     unawaited(_preSessionSubscription?.cancel());
     _game?.pauseEngine();
@@ -340,9 +394,11 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
         if (!mounted) throw StateError('Test fermé');
         final loaded = await _load(restoreSpatialSave: restoreSpatialSave);
         if (mounted) {
-          setState(() => _message = restoreSpatialSave
-              ? 'Sauvegarde du test reprise.'
-              : 'Nouvelle partie : état de test réinitialisé.');
+          setState(
+            () => _message = restoreSpatialSave
+                ? 'Sauvegarde du test reprise.'
+                : 'Nouvelle partie : état de test réinitialisé.',
+          );
         }
         return loaded;
       }();
@@ -360,310 +416,84 @@ class _StudioPlaytestViewState extends State<StudioPlaytestView> {
     if (mounted) setState(() => _spatialPaused = !_spatialPaused);
   }
 
-  Widget _launchFailure(BuildContext context, Object error) => Center(
-    child: ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 560),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Le test ne peut pas démarrer',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 12),
-            StudioFailureReport(diagnosis: diagnoseLaunchFailure(error)),
-          ],
-        ),
-      ),
-    ),
-  );
+  Widget _launchFailure(BuildContext context, Object error) {
+    final diagnosis = diagnoseLaunchFailure(error);
+    return Center(child: Text('${diagnosis.summary}\n${diagnosis.detail}'));
+  }
 
   @override
-  Widget build(BuildContext context) => Column(
-    children: [
-      Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          border: Border(
-            bottom: BorderSide(
-              color: Theme.of(context).colorScheme.outlineVariant,
+  Widget build(BuildContext context) => FutureBuilder<Object>(
+    future: _loading,
+    builder: (context, snapshot) {
+      if (snapshot.hasError) {
+        return _launchFailure(context, snapshot.error!);
+      }
+      if (_preSessionRequest case final request?) {
+        return Localizations.override(
+          context: context,
+          delegates: PokeMapPlayerLocalizations.localizationsDelegates,
+          child: Theme(
+            data: Theme.of(context).brightness == Brightness.dark
+                ? PokeMapPlayerTheme.dark()
+                : PokeMapPlayerTheme.light(),
+            child: PlayerSceneInteractionSurface(
+              request: request,
+              onResult: (result) {
+                final resolution = _preSessionInteractions?.resolve(result);
+                if (resolution?.isAccepted == true && mounted) {
+                  if (result is SceneCancelledInteractionResult) {
+                    widget.onClose();
+                    return;
+                  }
+                  setState(() => _preSessionRequest = null);
+                }
+              },
             ),
           ),
-        ),
-        child: Row(
-          children: [
-            StudioButton(
-              label: 'Retour à la carte',
-              icon: Icons.arrow_back,
-              onPressed: widget.onClose,
-              secondary: true,
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Text(
-                '${widget.entry.name} · révision ${widget.expectedRevision.substring(0, 8)} · sauvegardes de test temporaires',
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Flexible(flex: 2, child: StudioPlaytestPerformance(active: _ready)),
-          ],
-        ),
-      ),
-      Padding(
-        padding: const EdgeInsets.all(8),
-        child: Text(
-          _spatial == null
-              ? 'Cliquez dans la carte · flèches pour marcher · Entrée pour interagir'
-              : 'Cliquez dans la carte · flèches / ZQSD pour marcher · Maj pour courir · Entrée pour interagir · Échap pour interrompre l’action en cours',
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
-      ),
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        child: Wrap(
-          spacing: 8,
-          runSpacing: 4,
-          children: [
-            StudioButton(
-              label: 'Enregistrer le test',
-              icon: Icons.save_outlined,
-              secondary: true,
-              onPressed: _busy || !_ready ? null : _save,
-            ),
-            StudioButton(
-              label: 'Reprendre le test',
-              icon: Icons.restore,
-              secondary: true,
-              onPressed: _busy || !_ready || !_saves.hasSave ? null : _resume,
-            ),
-            StudioButton(
-              label: 'Nouvelle partie',
-              icon: Icons.restart_alt,
-              secondary: true,
-              onPressed: _busy || !_ready ? null : _newGame,
-            ),
-            if (_spatialPlaytest != null)
-              StudioButton(
-                label: _spatialPaused ? 'Reprendre' : 'Pause',
-                secondary: true,
-                onPressed: _busy || !_ready ? null : _toggleSpatialPause,
-              ),
-            if (_game case final game?)
-              ValueListenableBuilder<PlaytestSpeed>(
-                valueListenable: game.testSpeed,
-                builder: (context, speed, _) => Wrap(
-                  spacing: 4,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    Text(
-                      'Vitesse du test ×${speed.multiplier}',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                    for (final preset in PlaytestSpeed.values)
-                      StudioButton(
-                        key: ValueKey('playtest-speed-${preset.multiplier}'),
-                        label: '×${preset.multiplier}',
-                        secondary: preset != speed,
-                        onPressed: _busy || !_ready
-                            ? null
-                            : () => game.setTestSpeed(preset),
-                      ),
-                  ],
-                ),
-              ),
-            if (_spatial case final spatial?)
-              ListenableBuilder(
-                listenable: Listenable.merge([
-                  spatial.mapRevision,
-                  _spatialPlaytest!.runtime.inputAuthority,
-                ]),
-                builder: (context, _) => StudioButton(
-                  label: spatial.movement.allowDiagonalMovement
-                      ? 'Diagonales activées'
-                      : 'Diagonales désactivées',
-                  secondary: true,
-                  onPressed:
-                      _busy ||
-                          !_ready ||
-                          !_spatialPlaytest!
-                              .runtime
-                              .inputAuthority
-                              .value
-                              .acceptsOverworldInput
-                      ? null
-                      : () => setState(() {
-                          spatial.movement.setDiagonalMovement(
-                            !spatial.movement.allowDiagonalMovement,
-                          );
-                        }),
-                ),
-              ),
-            if (_message != null)
-              Text(_message!, style: Theme.of(context).textTheme.bodySmall),
-          ],
-        ),
-      ),
-      Expanded(
-        child: FutureBuilder<Object>(
-          future: _loading,
-          builder: (context, snapshot) {
-            if (snapshot.hasError) {
-              return _launchFailure(context, snapshot.error!);
-            }
-            if (_preSessionRequest case final request?) {
-              return Localizations.override(
-                context: context,
-                delegates: PokeMapPlayerLocalizations.localizationsDelegates,
-                child: Theme(
-                  data: Theme.of(context).brightness == Brightness.dark
-                      ? PokeMapPlayerTheme.dark()
-                      : PokeMapPlayerTheme.light(),
-                  child: PlayerSceneInteractionSurface(
-                    request: request,
-                    onResult: (result) {
-                      final resolution = _preSessionInteractions?.resolve(
-                        result,
-                      );
-                      if (resolution?.isAccepted == true && mounted) {
-                        if (result is SceneCancelledInteractionResult) {
-                          widget.onClose();
-                          return;
-                        }
-                        setState(() => _preSessionRequest = null);
-                      }
-                    },
-                  ),
-                ),
-              );
-            }
-            final game = snapshot.connectionState == ConnectionState.done
-                ? snapshot.data
-                : (_spatial == null ? null : _spatialPlaytest);
-            if (game == null) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (game is StudioSpatialPlaytest) {
-              if (!identical(game, _spatialPlaytest)) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              void ready() {
-                if (mounted && identical(game, _spatialPlaytest)) {
-                  _finishSpatialMount();
-                }
-              }
+        );
+      }
+      final game = snapshot.connectionState == ConnectionState.done
+          ? snapshot.data
+          : (_spatial == null ? null : _spatialPlaytest);
+      if (game == null) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      if (game is StudioSpatialPlaytest) {
+        if (!identical(game, _spatialPlaytest)) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        void ready() {
+          if (mounted && identical(game, _spatialPlaytest)) {
+            _finishSpatialMount();
+          }
+        }
 
-              void failed(Object error) {
-                if (mounted && identical(game, _spatialPlaytest)) {
-                  _finishSpatialMount(error);
-                }
-              }
+        void failed(Object error) {
+          if (mounted && identical(game, _spatialPlaytest)) {
+            _finishSpatialMount(error);
+          }
+        }
 
-              final builder = widget.spatialViewBuilder;
-              if (builder != null) {
-                return builder(context, game, ready, failed);
-              }
-              return StudioSpatialPlaytestView(
-                key: ObjectKey(game),
-                runtime: game.runtime,
-                previewVisuals: widget.previewVisuals,
-                onReady: ready,
-                onError: failed,
-              );
-            }
-            return StudioPlaytestPlayerView(
-              key: ObjectKey(game),
-              game: game as PlayableMapGame,
-              bundle: _playerBundle!,
-              services: _playerServices!,
-            );
-          },
-        ),
-      ),
-    ],
+        final builder = widget.spatialViewBuilder;
+        if (builder != null) {
+          return builder(context, game, ready, failed);
+        }
+        return StudioSpatialPlaytestView(
+          key: ObjectKey(game),
+          runtime: game.runtime,
+          previewVisuals: widget.previewVisuals,
+          onReady: ready,
+          onError: failed,
+        );
+      }
+      return StudioPlaytestPlayerView(
+        key: ObjectKey(game),
+        game: game as PlayableMapGame,
+        bundle: _playerBundle!,
+        services: _playerServices!,
+      );
+    },
   );
 }
 
 class StudioPlaytestSaveRepository extends StudioPlaytestSession {}
-
-class StudioSpatialExplorationControls extends StatefulWidget {
-  const StudioSpatialExplorationControls({
-    super.key,
-    required this.movement,
-    this.session,
-  });
-  final SpatialMovementController movement;
-  final SpatialExplorationSession? session;
-  @override
-  State<StudioSpatialExplorationControls> createState() =>
-      _StudioSpatialExplorationControlsState();
-}
-
-class _StudioSpatialExplorationControlsState
-    extends State<StudioSpatialExplorationControls> {
-  SpatialMovementController get movement =>
-      widget.session?.movement ?? widget.movement;
-  @override
-  Widget build(BuildContext context) => widget.session == null
-      ? controls(context)
-      : ListenableBuilder(
-          listenable: Listenable.merge([
-            widget.session!.mapRevision,
-            widget.session!.transitioning,
-          ]),
-          builder: (context, child) => controls(context),
-        );
-
-  Widget controls(BuildContext context) => Wrap(
-    spacing: 8,
-    runSpacing: 4,
-    children: [
-      StudioButton(
-        label: 'Réinitialiser la position',
-        icon: Icons.restart_alt,
-        secondary: true,
-        onPressed: (widget.session?.transitioning.value ?? false)
-            ? null
-            : () => setState(() {
-                widget.session?.closeDialogue();
-                widget.session?.dialoguePaused = false;
-                if (widget.session case final session?) {
-                  session.resetPosition();
-                } else {
-                  movement.reset();
-                }
-              }),
-      ),
-      StudioButton(
-        label: (widget.session?.dialoguePaused ?? movement.paused)
-            ? 'Reprendre'
-            : 'Pause',
-        secondary: true,
-        onPressed: () => setState(() {
-          final paused = !(widget.session?.dialoguePaused ?? movement.paused);
-          widget.session?.dialoguePaused = paused;
-          movement.setPaused(
-            (widget.session?.presentationPaused ?? paused) ||
-                (widget.session?.interactionActive.value ?? false) ||
-                (widget.session?.transitioning.value ?? false),
-          );
-        }),
-      ),
-      StudioButton(
-        label: movement.allowDiagonalMovement
-            ? 'Diagonales activées'
-            : 'Diagonales désactivées',
-        secondary: true,
-        onPressed: () => setState(
-          () => movement.setDiagonalMovement(!movement.allowDiagonalMovement),
-        ),
-      ),
-    ],
-  );
-}

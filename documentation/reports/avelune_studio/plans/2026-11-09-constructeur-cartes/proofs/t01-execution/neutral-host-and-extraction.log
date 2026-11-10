@@ -1,0 +1,10 @@
++2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/app/studio_lifecycle_controller_test.dart: closing twice disposes session and releases its project once
+Studio MCP connection failed (companion.unavailable).
++3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/app/studio_bootstrap_test.dart: bootstrap keeps its session until the root scope is removed
+Studio MCP startup failed (launch.unavailable).
+Studio MCP startup failed (launch.unavailable).
++12: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/app/studio_update_controller_test.dart: native launch failure releases operation so installation can retry
+Studio update launch failed: Bad state: native.unavailable
++26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/home/home_exit_guard_test.dart: old session disposal cannot clear replacement exit guard
+Studio MCP startup failed (launch.unavailable).
++37: All tests passed!

@@ -1,101 +1,70 @@
-import 'dart:io';
-import 'dart:typed_data';
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:image/image.dart' as image;
 import 'package:map_core/map_core_domain.dart';
-import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
-import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
-import 'package:avelune_studio/presentation/features/resources/resource_image_import.dart';
-import 'package:avelune_studio/presentation/features/resources/resource_workspace_pane.dart';
-import 'package:avelune_studio/presentation/features/characters/character_studio_dedicated_only_panel.dart';
-import 'package:avelune_studio/presentation/features/characters/character_studio_animation_select.dart';
+import 'package:avelune_studio/features/characters/coordination/character_import_workflow.dart';
+import 'package:avelune_studio/features/characters/coordination/character_studio_animation_actions.dart';
+import 'package:avelune_studio/features/resources/domain/resource_port.dart';
+import 'package:avelune_studio/features/resources/domain/resource_image_picker.dart';
 
-import '../support/m2_ui_fixture.dart';
-import '../support/map_tool_menu.dart';
-import '../support/resource_family_gestures.dart';
+import '../support/authoring_resource_fixture.dart';
+import '../support/character_test_image.dart';
 
 void main() {
-  testWidgets('a dedicated three-pose strip imports and its timing reopens', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(1536, 1024);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    final fixture = (await tester.runAsync(() => M2UiFixture.create(tester)))!;
+  test('dedicated strip saves pending atlas clips, imports one direction and persists timing', () async {
+    final fixture = await AuthoringResourceFixture.create();
     addTearDown(fixture.dispose);
-    final strip = await tester.runAsync(() async {
-      final picture = image.Image(width: 96, height: 32, numChannels: 4);
-      for (var i = 0; i < 3; i++) {
-        image.fillRect(
-          picture,
-          x1: i * 32,
-          y1: 0,
-          x2: i * 32 + 31,
-          y2: 31,
-          color: image.ColorRgba8(40 + i * 60, 80, 190, 255),
-        );
-      }
-      final bytes = Uint8List.fromList(image.encodePng(picture));
-      final file = File('${fixture.directory.path}/marche-dediee.png');
-      await file.writeAsBytes(bytes);
-      return PickedResourceImage(file.path, 'Marche dédiée', bytes, 96, 32);
-    });
-    final atlas = await tester.runAsync(() async {
-      final picture = image.Image(width: 256, height: 256, numChannels: 4);
-      image.fill(picture, color: image.ColorRgba8(70, 110, 150, 255));
-      final bytes = Uint8List.fromList(image.encodePng(picture));
-      final file = File('${fixture.directory.path}/planche-base.png');
-      await file.writeAsBytes(bytes);
-      return PickedResourceImage(file.path, 'Planche de base', bytes, 256, 256);
-    });
-    var picks = 0;
-    await tester.pumpWidget(
-      fixture.app(
-        tester,
-        imagePicker: () async => ++picks == 1 ? atlas : strip,
+    final atlas = await characterTestImage(
+      fixture.directory,
+      'Planche-base',
+      256,
+      256,
+    );
+    final strip = await characterTestImage(
+      fixture.directory,
+      'Marche-dediee',
+      96,
+      32,
+    );
+    final navigation = fixture.navigation;
+    await navigation.import(
+      ResourceImageImport(
+        sourcePath: atlas.path,
+        name: atlas.name,
+        tileWidth: 16,
+        tileHeight: 16,
       ),
+      intent: ResourceImportIntent.source,
     );
-    await pumpIo(tester);
-    await chooseMapExtraTool(tester, 'Gérer les ressources');
-    await pumpIo(tester);
-    await selectResourceFamily(tester, ResourceLibraryFamily.images);
-    await tester.tap(find.text('Importer une image'));
-    await pumpIo(tester);
-    await tester.tap(find.text('Importer').last);
-    await pumpIo(tester);
-    await tester.tap(find.byKey(const ValueKey('resource-import-dismiss')));
-    await pumpIo(tester);
-    await openResourceCharacters(tester);
-    await tester.tap(find.text('Nouveau personnage'));
-    await tester.pump();
-    await tester.enterText(find.widgetWithText(TextField, 'Nom'), 'Agent');
-    await tester.tap(find.text('Créer'));
-    await pumpIo(tester);
-    final navigation = tester
-        .widget<ResourceWorkspacePane>(find.byType(ResourceWorkspacePane))
-        .navigation;
-    await tester.tap(find.text('Découper automatiquement'));
-    await tester.pump();
+    final tileset = navigation.importedSource!.tileset!;
+    final characters = navigation.characters;
+    expect(await characters.create('Agent', tileset.id), isTrue);
     expect(
-      navigation.characters.selectedDraft!.changedClips.toList(),
-      hasLength(4),
+      characters.assignClassicSheet(
+        tileset.source as ProjectRegularAtlasTilesetSource,
+      ),
+      isTrue,
     );
-    await tester.tap(find.text('Importer une animation dédiée'));
-    await tester.pump();
-    await tester.tap(find.text('Enregistrer puis importer'));
-    for (var attempt = 0; attempt < 120 && picks < 2; attempt++) {
-      await pumpIo(tester, frames: 1);
-    }
-    expect(navigation.characters.error, isNull);
-    expect(navigation.characters.selectedDraft!.dirty, isFalse);
-    expect(picks, 2);
-    expect(find.text('Importer'), findsWidgets);
-    await tester.tap(find.text('Importer').last);
-    await pumpIo(tester);
-    final saved = navigation.workspace.project!;
+    expect(characters.selectedDraft!.changedClips.toList(), hasLength(4));
+    var picks = 0;
+    var confirmations = 0;
+    final importer = CharacterImportWorkflow(
+      navigation: navigation,
+      picker: () async {
+        picks++;
+        return strip;
+      },
+      isActive: () => !navigation.isDisposed,
+      confirmImage: (_) async => true,
+      confirmSave: () async {
+        confirmations++;
+        return true;
+      },
+    );
+    await importer.animation(CharacterAnimationState.walk, EntityFacing.south);
+    expect(confirmations, 1);
+    expect(picks, 1);
+    expect(characters.error, isNull);
+    expect(characters.selectedDraft!.dirty, isFalse);
+    final saved = fixture.workspace.project!;
     final character = saved.characters.firstWhere(
       (entry) => entry.name == 'Agent',
     );
@@ -117,17 +86,9 @@ void main() {
           .sourceAssetId,
       isNull,
     );
-    await fixture.capture(tester, 'character-studio-dedicated');
-    await tester.tap(find.text('150 ms').first);
-    await tester.pump();
-    await tester.tap(find.text('300 ms').last);
-    await tester.pump();
-    await tester.tap(find.text('Enregistrer'));
-    await pumpIo(tester);
-    final reopened = await tester.runAsync(
-      () => LocalMapWorkspaceAdapter().loadProject(fixture.session),
-    );
-    final persisted = reopened!.characters
+    characters.setFrameDuration(EntityFacing.south, 0, 300);
+    expect(await characters.saveSelected(), isTrue);
+    final persisted = (await fixture.reopen()).characters
         .firstWhere((entry) => entry.id == character.id)
         .animations
         .singleWhere(
@@ -137,36 +98,9 @@ void main() {
         );
     expect(persisted.sourceAssetId, clip.sourceAssetId);
     expect(persisted.frames.first.durationMs, 300);
-    EntityFacing? requestedDirection;
-    CharacterAnimationState? requestedState;
-    Navigator.of(tester.element(find.byType(ResourceWorkspacePane))).push(
-      MaterialPageRoute<void>(
-        builder: (_) => Scaffold(
-          body: CharacterStudioDedicatedOnlyPanel(
-            hasAtlas: false,
-            draft: navigation.characters.selectedDraft!,
-            controller: navigation.characters,
-            visuals: fixture.visuals!,
-            onImport: (state, direction) {
-              requestedState = state; requestedDirection = direction;
-            },
-          ),
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Bas'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Haut').last);
-    await tester.pump();
-    await tester.tap(find.byType(CharacterStudioAnimationSelect).last);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Vélo').last);
-    await tester.pump();
-    await tester.tap(find.text('Importer une animation dédiée'));
-    expect(requestedDirection, EntityFacing.north);
-    expect(requestedState, CharacterAnimationState.bicycle);
-    await tester.pumpWidget(const SizedBox());
-    await pumpIo(tester);
+    characters.setPreviewDirection(EntityFacing.north);
+    characters.setAnimationState(CharacterAnimationState.bicycle);
+    expect(characters.previewDirection, EntityFacing.north);
+    expect(characters.animationState, CharacterAnimationState.bicycle);
   });
 }

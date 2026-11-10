@@ -1,9 +1,8 @@
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_canvas.dart';
+import 'package:avelune_studio/platform/rendering/viewports/map_editing_viewport_2d.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../support/map_catalogue_host_fixture.dart';
-import '../support/m2_ui_fixture.dart' show pumpIo;
 
 void main() {
   testWidgets('workspace duplicates the saved source into an independent map', (
@@ -12,12 +11,9 @@ void main() {
     final f = await MapCatalogueHostFixture.open(tester);
     final source = await f.createMap('Source des essais');
     await f.paintCollision();
-    await f.tapKey('Enregistrer');
+    await f.saveActive();
     final before = await f.reopen();
-    await f.mapAction(source.id, 'Dupliquer…');
-    await f.field('duplicate-map-name', 'Copie indépendante');
-    await tester.tap(find.text('Dupliquer la carte').last);
-    await pumpIo(tester, frames: 30);
+    await f.duplicateMap(source.id, 'Copie indépendante');
     final after = await f.reopen();
     final copy = after.project.maps.singleWhere(
       (entry) => entry.name == 'Copie indépendante',
@@ -36,7 +32,7 @@ void main() {
       ),
     );
     expect(f.host.maps.active!.dirty, isTrue);
-    await f.tapKey('Enregistrer');
+    await f.saveActive();
     final independentlySaved = await f.reopen();
     expect(independentlySaved.maps[source.id], before.maps[source.id]);
     expect(independentlySaved.maps[copy.id], isNot(after.maps[copy.id]));
@@ -50,14 +46,13 @@ void main() {
       final entry = await f.createMap('Carte à agrandir');
       final before = await f.reopen();
       final source = before.maps[entry.id]!;
-      await f.mapAction(entry.id, 'Redimensionner…');
-      await f.field('resize-map-width', '${source.size.width + 4}');
-      await f.field('resize-map-height', '${source.size.height + 3}');
-      await tester.tap(find.text('Analyser les conséquences'));
-      await pumpIo(tester, frames: 20);
+      final preparation = (await f.prepareResize(
+        entry.id,
+        GridSize(width: source.size.width + 4, height: source.size.height + 3),
+      ))!;
+      expect(preparation.canApply, isTrue);
       expect((await f.reopen()).maps[entry.id], source);
-      await tester.tap(find.text('Appliquer le redimensionnement'));
-      await pumpIo(tester, frames: 30);
+      expect((await f.apply(preparation)).integrated, isTrue);
       final after = await f.reopen();
       final targetSize = GridSize(
         width: source.size.width + 4,
@@ -69,7 +64,7 @@ void main() {
       expect(f.host.maps.project!.settings, before.project.settings);
       expect(
         tester
-            .widget<MapWorkspaceCanvas>(find.byType(MapWorkspaceCanvas))
+            .widget<MapEditingViewport2D>(find.byType(MapEditingViewport2D))
             .document
             .current
             .size,
@@ -87,11 +82,13 @@ void main() {
       final entry = await f.createMap('Carte indépendante');
       final removedOwner = f.host.maps.active!;
       final before = await f.reopen();
-      await f.mapAction(entry.id, 'Supprimer la carte…');
-      await pumpIo(tester, frames: 20);
+      final preparation = (await f.prepareDeletion(entry.id))!;
+      expect(preparation.canApply, isTrue);
       expect((await f.reopen()).project, before.project);
-      await tester.tap(find.text('Supprimer définitivement').last);
-      await pumpIo(tester, frames: 30);
+      expect(
+        (await f.apply(preparation, confirmDestructive: true)).integrated,
+        isTrue,
+      );
       final after = await f.reopen();
       expect(after.project.maps.any((map) => map.id == entry.id), isFalse);
       expect(after.maps.containsKey(entry.id), isFalse);

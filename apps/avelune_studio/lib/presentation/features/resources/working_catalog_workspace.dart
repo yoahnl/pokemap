@@ -10,7 +10,6 @@ import '../../../features/project_session/domain/project_session.dart';
 import '../../../features/resources/application/working_catalog_controller.dart';
 import '../../../features/resources/domain/working_catalog_port.dart';
 import '../../../features/resources/domain/resource_port.dart';
-import '../characters/character_contact_shadow_controls.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/dialogs/studio_review_dialog.dart';
 import '../../shared/widgets/feedback/studio_empty_state.dart';
@@ -693,15 +692,6 @@ class _WorkingCatalogWorkspaceState extends State<WorkingCatalogWorkspace> {
                       ? (value) => catalog.edit(placementContext: value)
                       : null,
                 ),
-                if (selected.entry.kind == 'character') ...[
-                  const SizedBox(height: 16),
-                  CharacterContactShadowControls(
-                    projectDefault: selected.contactShadowProjectDefault,
-                    value: draft.contactShadow,
-                    onChanged: (value) => catalog.edit(contactShadow: value),
-                    busy: !editable,
-                  ),
-                ],
                 const SizedBox(height: 16),
                 Wrap(
                   spacing: 8,

@@ -1,3 +1,5 @@
+export 'package:avelune_studio/features/map_workspace/application/map_workspace_editing_state.dart'
+    show isExteriorDecorationTool;
 import 'package:flutter/material.dart';
 
 import 'map_palette_intent.dart';
@@ -8,18 +10,6 @@ const exteriorDecorationPaletteTabs = {
   'Terrains',
   'Bordures',
   'Environnements',
-};
-
-bool isExteriorDecorationTool(StudioMapTool tool) => switch (tool) {
-  StudioMapTool.select ||
-  StudioMapTool.pan ||
-  StudioMapTool.place ||
-  StudioMapTool.terrain ||
-  StudioMapTool.border ||
-  StudioMapTool.environment ||
-  StudioMapTool.erase ||
-  StudioMapTool.eraseDecor => true,
-  _ => false,
 };
 
 (String, IconData)? mapExtraToolSelection(StudioMapTool tool) => switch (tool) {

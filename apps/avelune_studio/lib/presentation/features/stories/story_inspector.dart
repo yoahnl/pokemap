@@ -4,7 +4,7 @@ import '../../../features/stories/application/story_workspace_controller.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
-import 'story_document_commands.dart';
+import 'package:avelune_studio/features/stories/application/story_document_commands.dart';
 import 'story_metadata_fields.dart';
 import 'story_relation_details.dart';
 import 'story_scene_links.dart';

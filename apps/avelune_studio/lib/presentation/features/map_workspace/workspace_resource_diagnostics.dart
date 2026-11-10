@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
 import '../../shared/widgets/feedback/studio_badge.dart';
-import 'map_workspace_visuals.dart';
-import 'workspace_resource_diagnostic.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
+import 'package:avelune_studio/platform/rendering/contracts/workspace_resource_diagnostic.dart';
 import 'workspace_resource_diagnostic_detail.dart';
 
 typedef OpenDiagnosticOwner = Future<bool> Function(String kind, String id);

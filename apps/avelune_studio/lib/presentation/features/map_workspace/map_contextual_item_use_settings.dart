@@ -1,3 +1,5 @@
+import '../../../features/map_workspace/application/map_metadata_settings_draft.dart';
+
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
@@ -15,7 +17,7 @@ Future<void> showContextualItemUseSettings(
   required List<ContextualItemUseRule> rules,
   required ValueChanged<List<ContextualItemUseRule>> onChanged,
 }) {
-  final drafts = rules.map(_ItemUseDraft.fromRule).toList();
+  final drafts = rules.map(MapContextualItemUseDraft.fromRule).toList();
   final scenes = {for (final scene in project.scenes) scene.id: scene.name};
   bool valid() => drafts.every((draft) => draft.isValid(map, items, scenes));
   return showMapCatalogueForm(
@@ -166,7 +168,7 @@ Future<void> showContextualItemUseSettings(
               ? null
               : () {
                   drafts.add(
-                    _ItemUseDraft(
+                    MapContextualItemUseDraft(
                       'context-item-${DateTime.now().microsecondsSinceEpoch}-${drafts.length}',
                     ),
                   );
@@ -179,60 +181,5 @@ Future<void> showContextualItemUseSettings(
       onChanged([for (final draft in drafts) draft.toRule()]);
       return null;
     },
-  );
-}
-
-final class _ItemUseDraft {
-  _ItemUseDraft(this.id);
-  factory _ItemUseDraft.fromRule(ContextualItemUseRule rule) =>
-      _ItemUseDraft(rule.id)
-        ..itemId = rule.itemId
-        ..sceneId = rule.sceneId
-        ..priority = rule.priority.toString()
-        ..precise = rule.position != null
-        ..x = (rule.position?.x ?? 0).toString()
-        ..y = (rule.position?.y ?? 0).toString()
-        ..facing = rule.facing?.name ?? ''
-        ..condition = rule.conditionExpression;
-  final String id;
-  String itemId = '',
-      sceneId = '',
-      priority = '0',
-      x = '0',
-      y = '0',
-      facing = '';
-  bool precise = false;
-  NarrativeEventConditionExpression? condition;
-
-  bool isValid(
-    MapData map,
-    Map<String, String> items,
-    Map<String, String> scenes,
-  ) {
-    final p = int.tryParse(priority),
-        px = int.tryParse(x),
-        py = int.tryParse(y);
-    return items.containsKey(itemId) &&
-        scenes.containsKey(sceneId) &&
-        p != null &&
-        p >= -1000000 &&
-        p <= 1000000 &&
-        (!precise ||
-            px != null &&
-                py != null &&
-                px >= 0 &&
-                py >= 0 &&
-                px < map.size.width &&
-                py < map.size.height);
-  }
-
-  ContextualItemUseRule toRule() => ContextualItemUseRule(
-    id: id,
-    itemId: itemId,
-    sceneId: sceneId,
-    priority: int.parse(priority),
-    position: precise ? GridPos(x: int.parse(x), y: int.parse(y)) : null,
-    facing: facing.isEmpty ? null : EntityFacing.values.byName(facing),
-    conditionExpression: condition,
   );
 }

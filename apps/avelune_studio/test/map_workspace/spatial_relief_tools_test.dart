@@ -3,8 +3,8 @@ import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.
 import 'package:avelune_studio/features/map_workspace/application/spatial_terrain_stroke.dart';
 import 'package:avelune_studio/features/map_workspace/application/spatial_model_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/spatial_map_editor.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
+import 'package:avelune_studio/platform/rendering/viewports/spatial_map_editing_viewport.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/spatial_terrain_controls.dart';
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
 import 'package:flutter/services.dart';
@@ -21,7 +21,7 @@ import '../support/map_workspace_fixture.dart';
 
 void main() {
   testWidgets(
-    'slope preview shows its complete area, rise and invalid guidance',
+    'slope viewport preserves complete preview geometry and invalid diagnostics',
     (tester) async {
       final map = reliefMap(raised: true);
       final document = EditableMapDocument(
@@ -40,7 +40,7 @@ void main() {
         MaterialApp(
           home: Scaffold(
             body: StatefulBuilder(
-              builder: (context, setState) => SpatialMapEditor(
+              builder: (context, setState) => SpatialMapEditingViewport(
                 document: document,
                 controller: controller,
                 project: workspaceProject,
@@ -62,9 +62,12 @@ void main() {
         ),
         hasLength(6),
       );
-      expect(find.textContaining('vers le nord'), findsOneWidget);
-      expect(find.textContaining('0.0 → 1.0 blocs'), findsOneWidget);
-      expect(find.textContaining('Zone 2 × 3 cases'), findsOneWidget);
+      final ramp = canvas().scene.navigation.ramps.single;
+      expect(ramp.direction, SpatialRampDirection.north);
+      expect(ramp.lowLevel, 0);
+      expect(ramp.highLevel, 1);
+      expect(ramp.width, 2);
+      expect(ramp.depth, 3);
       expect(document.current, same(map));
       await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
@@ -78,10 +81,7 @@ void main() {
       expect(canvas().onDragStart!(0, 5, null), isTrue);
       canvas().onDragUpdate!((1, 3));
       await tester.pump();
-      expect(
-        find.textContaining('La pente doit relier un sol bas'),
-        findsOneWidget,
-      );
+      expect(document.error, contains('La pente doit relier un sol bas'));
       expect(document.undoCount, 0);
       canvas().onDragEnd!();
       expect(document.current, same(map));
@@ -128,7 +128,7 @@ void main() {
                 children: [
                   const TextField(key: ValueKey('precision-focus-field')),
                   Expanded(
-                    child: SpatialMapEditor(
+                    child: SpatialMapEditingViewport(
                       document: document,
                       controller: controller,
                       project: project,
@@ -221,7 +221,7 @@ void main() {
         MaterialApp(
           home: Scaffold(
             body: StatefulBuilder(
-              builder: (context, setState) => SpatialMapEditor(
+              builder: (context, setState) => SpatialMapEditingViewport(
                 document: document,
                 controller: controller,
                 project: workspaceProject,
@@ -729,7 +729,7 @@ void main() {
           body: StatefulBuilder(
             builder: (context, setState) {
               redraw = () => setState(() {});
-              return SpatialMapEditor(
+              return SpatialMapEditingViewport(
                 document: document,
                 controller: controller,
                 project: workspaceProject,
@@ -760,7 +760,7 @@ void main() {
       ),
       hasLength(1),
     );
-    expect(find.textContaining('0 → 2 blocs'), findsOneWidget);
+    expect(canvas.scene.heightAt(1, 4), 0);
     expect(
       canvas.cellOverlays.where(
         (item) =>

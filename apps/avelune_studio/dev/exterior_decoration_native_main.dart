@@ -15,7 +15,7 @@ import 'package:avelune_studio/features/map_workspace/application/map_exterior_d
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/platform/rendering/studio_map_resources.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_screen.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/spatial_map_editor.dart';
+import 'package:avelune_studio/platform/rendering/viewports/spatial_map_editing_viewport.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 
 import 'save_disk_trace.dart';
@@ -38,7 +38,7 @@ final traceEnabled = Platform.environment['AVELUNE_QA_TRACE'] != 'off';
 late ReceivePort workerDiagnostics;
 int initializationMicroseconds = 0;
 
-({SpatialMapEditor? editor, SpatialSceneView? scene}) activeView() =>
+({SpatialMapEditingViewport? editor, SpatialSceneView? scene}) activeView() =>
     sceneProbe.sourceView();
 
 Future<void> main() async {

@@ -1,5 +1,5 @@
 import 'package:avelune_studio/features/pokemon/domain/pokemon_workspace_models.dart';
-import 'package:avelune_studio/presentation/features/pokemon/pokemon_species_provenance.dart';
+import 'package:avelune_studio/features/pokemon/application/pokemon_species_provenance.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
 

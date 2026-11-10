@@ -4,8 +4,8 @@ import 'package:avelune_studio/features/map_workspace/application/editable_map_d
 import 'package:avelune_studio/features/map_workspace/application/warp_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_warp_inspector.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_canvas.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_canvas_overlay.dart';
+import 'package:avelune_studio/platform/rendering/viewports/map_editing_viewport_2d.dart';
+import 'package:avelune_studio/platform/rendering/viewports/map_editing_overlay.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_panels.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
@@ -65,7 +65,7 @@ void main() {
                     ),
                   ),
                   Expanded(
-                    child: MapWorkspaceCanvas(
+                    child: MapEditingViewport2D(
                       document: document,
                       project: project,
                       visuals: WorkspaceTestVisuals(),
@@ -294,7 +294,7 @@ void main() {
           triggerMode: mode,
         );
         final recorder = ui.PictureRecorder();
-        final painter = MapCanvasOverlay(
+        final painter = MapEditingOverlay(
           map: MapData(
             id: 'a',
             name: 'Map',

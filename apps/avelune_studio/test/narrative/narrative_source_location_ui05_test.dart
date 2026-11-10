@@ -1,7 +1,7 @@
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/narrative/application/narrative_workspace_controller.dart';
 import 'package:avelune_studio/features/narrative/domain/narrative_port.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/map_workspace_viewport_state.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
@@ -143,8 +143,8 @@ void main() {
   }
 
   test('explicit recenter keeps zoom and does not affect another map view', () {
-    final selected = MapWorkspaceViewState();
-    final other = MapWorkspaceViewState();
+    final selected = MapWorkspaceViewportState();
+    final other = MapWorkspaceViewportState();
     selected.transform.value = Matrix4.identity()..scaleByDouble(2, 2, 1, 1);
     final unchanged = other.transform.value.clone();
     selected.centerCell(

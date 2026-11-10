@@ -1,0 +1,15 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/standard_event_template_publication_test.dart
+00:00 +0: working guided publication saves and edits without unrelated map files
+00:02 +0 -1: working guided publication saves and edits without unrelated map files [E]
+  Expected: <0>
+    Actual: <6>
+  
+  package:matcher                                                   expect
+  package:flutter_test/src/widget_tester.dart 473:18                expect
+  test/events/standard_event_template_publication_test.dart 713:5   _GuidedReadCounter.expectTargeted
+  test/events/standard_event_template_publication_test.dart 376:16  main.<fn>
+  
+00:02 +0 -1: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/standard_event_template_publication_test.dart: working guided publication saves and edits without unrelated map files

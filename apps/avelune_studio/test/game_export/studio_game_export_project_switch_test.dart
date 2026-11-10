@@ -2,232 +2,161 @@ import 'dart:io';
 
 import 'package:avelune_studio/features/game_export/data/studio_game_export_controller.dart';
 import 'package:avelune_studio/features/game_export/domain/studio_game_export_port.dart';
-import 'package:avelune_studio/features/home/data/memory_recent_projects_adapter.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/workspace_workflow.dart';
 import 'package:avelune_studio/features/project_session/application/project_session_controller.dart';
+import 'package:avelune_studio/features/project_session/application/project_session_open_controller.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_screen.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_layout.dart';
-import 'package:avelune_studio/presentation/features/game_export/studio_game_export_page.dart';
-import 'package:avelune_studio/presentation/features/project_session/project_session_screen.dart';
-import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
-import 'package:avelune_studio/presentation/shell/studio_home_navigation.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 
 import '../support/game_export_fixture.dart';
-import '../support/capture_m3_widget.dart';
-import '../support/load_desktop_capture_fonts.dart';
-import '../support/map_workspace_fixture.dart' show WorkspaceTestVisuals;
-import '../support/m2_ui_fixture.dart' show pumpIo;
+import '../support/neutral_map_host_fixture.dart';
+import '../support/real_test_io.dart';
 import '../support/m3_story_fixture.dart';
 
 void main() {
   testWidgets(
-    'home opens the export page on its mounted project and exports a package',
+    'mounted project exports a real package and retains the native map and viewport',
     (tester) async {
-      tester.view.physicalSize = const Size(1280, 720);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-      await tester.runAsync(loadDesktopCaptureFonts);
-      final source = (await tester.runAsync(M3StoryFixture.create))!;
-      await tester.runAsync(() => prepareGameExportFixture(source));
-      final output = (await tester.runAsync(
-        () => Directory.systemTemp.createTemp('as-exp-home-'),
+      final source = (await RealTestIo.run(tester, M3StoryFixture.create))!;
+      await RealTestIo.run(tester, () => prepareGameExportFixture(source));
+      final output = (await RealTestIo.run(
+        tester,
+        () => Directory.systemTemp.createTemp('as-exp-session-'),
       ))!;
-      final destination = File(p.join(output.path, 'home.avelunegame'));
+      final destination = File(p.join(output.path, 'session.avelunegame'));
       final session = ProjectSessionController(
         _ExportSessions(source.session, source.session),
       );
       await session.open(source.directory.path);
       final maps = MapWorkspaceController(source.session, source.maps);
-      await tester.runAsync(maps.initialize);
+      await RealTestIo.run(tester, maps.initialize);
       final export = StudioGameExportController(
         projectRoot: source.directory,
         projectName: source.session.name,
       );
+      final host = await NeutralMapHostFixture.fromController(
+        tester,
+        maps,
+        mapAdapter: source.maps,
+      );
       addTearDown(() async {
-        await tester.pumpWidget(const SizedBox());
+        await host.dispose();
         export.dispose();
         maps.dispose();
         await session.dispose();
-        await tester.runAsync(() async {
+        await RealTestIo.run(tester, () async {
           await source.directory.delete(recursive: true);
           await output.delete(recursive: true);
         });
       });
-      final capture = GlobalKey();
-      await tester.pumpWidget(
-        RepaintBoundary(
-          key: capture,
-          child: MaterialApp(
-            debugShowCheckedModeBanner: false,
-            theme: studioTheme(),
-            home: ProjectSessionScreen(
-              session: session,
-              recentProjects: MemoryRecentProjectsAdapter(),
-              chooseDirectory: () async => source.directory.path,
-              workspaceBuilder: (_, close) => Builder(
-                builder: (context) => MapWorkspaceScreen(
-                  controller: maps,
-                  home: StudioHomeScope.of(context),
-                  gameExport: export,
-                  gameExportPicker: (_) async => StudioGameExportDestination(
-                    destination.path,
-                    exists: await destination.exists(),
-                  ),
-                  loadVisuals: (_, _) async => WorkspaceTestVisuals(),
-                  runtimeBuilder: (_, _, _) => const SizedBox(),
-                  onClose: close,
-                  registerExitGuard: (_) {},
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-      await pumpIo(tester, frames: 12);
       final document = maps.active!;
-      final workspaceState = tester.state(
-        find.byType(MapWorkspaceScreen, skipOffstage: false),
-      );
-      final layout = tester.widget<MapWorkspaceLayout>(
-        find.byType(MapWorkspaceLayout, skipOffstage: false),
-      );
-      final view = layout.view!;
+      final view = host.nativeView;
       view.transform.value = Matrix4.identity()..scaleByDouble(1.5, 1.5, 1, 1);
       final transform = view.transform.value.clone();
-      expect(find.byTooltip('Exporter le jeu'), findsNothing);
-      await captureM3Widget(tester, capture, 'export-home');
-      await tester.tap(find.byKey(const ValueKey('home-export-game')));
-      await pumpIo(tester, frames: 12);
-      final page = tester.widget<StudioGameExportPage>(
-        find.byType(StudioGameExportPage),
+      final workflow = WorkspaceWorkflow(
+        controller: maps,
+        isActive: () => !maps.isDisposed,
+        changed: maps.notify,
+        resources: () => null,
+        narrative: () => null,
+        confirmClose: () async => WorkspaceCloseChoice.cancel,
+        flushFocus: () {},
+        launchMap: (_, _) async {},
       );
-      expect(page.controller, same(export));
-      expect(
-        find.textContaining(
-          'Créez un paquet .avelunegame pour Avelune Player.',
-        ),
-        findsOneWidget,
-      );
-      expect(find.byTooltip('Exporter le jeu'), findsNothing);
-      await captureM3Widget(tester, capture, 'export-home-ready');
-      await tester.tap(find.text('Retour à l’accueil'));
-      await pumpIo(tester, frames: 16);
-      expect(find.byType(StudioGameExportPage), findsNothing);
-      expect(maps.active, same(document));
+      await RealTestIo.run(tester, export.load);
       expect(export.operationActive, isFalse);
-      await tester.tap(find.text('Reprendre mon projet'));
-      await pumpIo(tester, frames: 4);
-      expect(
-        tester.state(find.byType(MapWorkspaceScreen)),
-        same(workspaceState),
+      expect(export.canStart, isTrue);
+      final result = await RealTestIo.run(
+        tester,
+        () => export.export(
+          metadata: const StudioGameExportMetadata(
+            gameId: 'games.avelune.session-export',
+            title: 'Départ Avelune',
+            version: '0.1.0',
+            author: 'Avelune',
+            locale: 'fr',
+            locales: 'fr',
+          ),
+          outputPath: destination.path,
+          overwriteConfirmed: false,
+          publication: true,
+          prepare: workflow.saveForExport,
+          preparationFailure: () => workflow.exportPreparationFailure,
+          hasPendingChanges: () => workflow.hasPendingChanges,
+          isCurrentProject: () =>
+              identical(session.state.project, source.session),
+        ),
       );
-      expect(
-        tester.widget<MapWorkspaceLayout>(find.byType(MapWorkspaceLayout)).view,
-        same(view),
-      );
+      expect(result, isTrue, reason: export.error);
+      expect(export.outputPath, destination.path);
+      expect(await RealTestIo.run(tester, destination.exists), isTrue);
+      expect(export.packageSha256, isNotEmpty);
+      expect(export.stage, StudioExportStage.completed);
+      expect(export.operationActive, isFalse);
+      expect(maps.active, same(document));
+      expect(host.nativeView, same(view));
       expect(view.transform.value, transform);
-      await tester.tap(find.byTooltip('Accueil'));
-      await pumpIo(tester, frames: 4);
-      await tester.tap(find.byKey(const ValueKey('home-export-game')));
-      await pumpIo(tester, frames: 12);
-      expect(find.byKey(const ValueKey('export-edit-identity')), findsOneWidget);
-      expect(find.widgetWithText(TextField, 'Auteur'), findsNothing);
-      await tester.tap(find.byKey(const ValueKey('start-game-export')));
-      await pumpIo(tester, frames: 120);
-      expect(export.outputPath, destination.path, reason: export.error);
-      expect(await tester.runAsync(destination.exists), isTrue);
-      expect(find.text('Paquet produit'), findsOneWidget);
-      await captureM3Widget(tester, capture, 'export-home-complete');
+      expect(session.state.project, same(source.session));
+      expect(tester.takeException(), isNull);
     },
     timeout: const Timeout(Duration(minutes: 3)),
   );
 
-  testWidgets('home switches a real workspace despite its unreadable profile', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(1536, 1024);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    final first = (await tester.runAsync(M3StoryFixture.create))!;
-    final second = (await tester.runAsync(M3StoryFixture.create))!;
-    final invalid = File(
-      p.join(first.directory.path, '.pokemap', 'export-profile-v1.json'),
-    );
-    await tester.runAsync(() async {
+  test(
+    'unreadable export profile does not prevent switching the current project',
+    () async {
+      final first = await M3StoryFixture.create();
+      final second = await M3StoryFixture.create();
+      final invalid = File(
+        p.join(first.directory.path, '.pokemap', 'export-profile-v1.json'),
+      );
       await prepareGameExportFixture(first);
       await invalid.parent.create(recursive: true);
       await invalid.writeAsString('{invalid', flush: true);
-    });
-    final sessions = ProjectSessionController(
-      _ExportSessions(first.session, second.session),
-    );
-    await sessions.open(first.directory.path);
-    final maps = MapWorkspaceController(first.session, first.maps);
-    await tester.runAsync(maps.initialize);
-    final export = StudioGameExportController(
-      projectRoot: first.directory,
-      projectName: first.session.name,
-    );
-    addTearDown(() async {
-      await tester.pumpWidget(const SizedBox());
-      export.dispose();
-      maps.dispose();
-      await sessions.dispose();
-      await tester.runAsync(() async {
+      final sessions = ProjectSessionController(
+        _ExportSessions(first.session, second.session),
+      );
+      await sessions.open(first.directory.path);
+      final maps = MapWorkspaceController(first.session, first.maps);
+      await maps.initialize();
+      final export = StudioGameExportController(
+        projectRoot: first.directory,
+        projectName: first.session.name,
+      );
+      final workflow = WorkspaceWorkflow(
+        controller: maps,
+        isActive: () => !maps.isDisposed,
+        changed: maps.notify,
+        resources: () => null,
+        narrative: () => null,
+        confirmClose: () async => WorkspaceCloseChoice.cancel,
+        flushFocus: () {},
+        launchMap: (_, _) async {},
+      );
+      final opening = ProjectSessionOpenController(
+        session: sessions,
+        chooseDirectory: () async => second.directory.path,
+        allowSwitch: workflow.allowClose,
+      );
+      addTearDown(() async {
+        opening.dispose();
+        export.dispose();
+        maps.dispose();
+        await sessions.dispose();
         await first.directory.delete(recursive: true);
         await second.directory.delete(recursive: true);
       });
-    });
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: studioTheme(),
-        home: ProjectSessionScreen(
-          session: sessions,
-          recentProjects: MemoryRecentProjectsAdapter(),
-          chooseDirectory: () async => second.directory.path,
-          workspaceBuilder: (session, close) =>
-              session.sessionId == first.session.sessionId
-              ? Builder(
-                  builder: (context) => MapWorkspaceScreen(
-                    controller: maps,
-                    home: StudioHomeScope.of(context),
-                    gameExport: export,
-                    gameExportPicker: (_) async => null,
-                    loadVisuals: (_, _) async => WorkspaceTestVisuals(),
-                    runtimeBuilder: (_, _, _) => const SizedBox(),
-                    onClose: close,
-                    registerExitGuard: (_) {},
-                  ),
-                )
-              : const Center(child: Text('Second projet ouvert')),
-        ),
-      ),
-    );
-    await pumpIo(tester);
-    await tester.tap(find.byKey(const ValueKey('home-export-game')));
-    await pumpIo(tester, frames: 20);
-    expect(find.textContaining('Profil d’export illisible'), findsOneWidget);
-    expect(
-      tester
-          .widget<StudioButton>(find.byKey(const ValueKey('start-game-export')))
-          .onPressed,
-      isNull,
-    );
-    await tester.tap(find.text('Retour à l’accueil'));
-    await pumpIo(tester, frames: 5);
-    await tester.tap(find.text('Ouvrir un autre projet'));
-    await pumpIo(tester, frames: 12);
-    expect(sessions.state.project?.sessionId, second.session.sessionId);
-    expect(find.text('Second projet ouvert'), findsOneWidget);
-    expect(await tester.runAsync(invalid.readAsString), '{invalid');
-  });
+      await export.load();
+      expect(export.error, contains('Profil d’export illisible'));
+      expect(export.canStart, isFalse);
+      expect(await opening.open(browse: true), isTrue);
+      expect(sessions.state.project, same(second.session));
+      expect(await invalid.readAsString(), '{invalid');
+    },
+  );
 }
 
 class _ExportSessions implements ProjectSessionPort {

@@ -1,0 +1,188 @@
+Xcode is fetching Swift Package Manager dependencies. This may take several minutes...
+  Fetching from https://github.com/sparkle-project/Sparkle (cached)...     
+Building macOS application...                                   
+Xcode 27 no longer requires macOS binaries to support the x86_64 architecture. To build ARM-only macOS apps now, run: "flutter config --enable-macos-arm64-only". This will become the default behavior in a future Flutter release.
+ 1 | #import "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/native/root/apps/avelune_studio/macos/Flutter/ephemeral/Packages/.packages/video_player_avfoundation-2.12.0/Sources/video_player_avfoundation_objc/include/video_player_avfoundation_objc/AVAssetTrackUtils.h"
+ 2 | #import "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/native/root/apps/avelune_studio/macos/Flutter/ephemeral/Packages/.packages/video_player_avfoundation-2.12.0/Sources/video_player_avfoundation_objc/include/video_player_avfoundation_objc/FVPAVFactory.h"
+ 3 | #import "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/native/root/apps/avelune_studio/macos/Flutter/ephemeral/Packages/.packages/video_player_avfoundation-2.12.0/Sources/video_player_avfoundation_objc/include/video_player_avfoundation_objc/FVPAssetProvider.h"
+ 4 | #import "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/native/root/apps/avelune_studio/macos/Flutter/ephemeral/Packages/.packages/video_player_avfoundation-2.12.0/Sources/video_player_avfoundation_objc/include/video_player_avfoundation_objc/FVPDisplayLink.h"
+
+1 warning generated.
+/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/native/root/apps/avelune_studio/macos/Flutter/ephemeral/Packages/.packages/video_player_avfoundation-2.12.0/Sources/video_player_avfoundation_objc/include/video_player_avfoundation_objc/FVPAVFactory.h:38:4: warning: 'AVKeyValueStatus' is deprecated: first deprecated in macOS 13.0 - Use AVAsyncProperty.Status instead
+ 36 | 
+ 37 | /// Wraps the underlying asset's statusOfValueForKey:error: method.
+ 38 | - (AVKeyValueStatus)statusOfValueForKey:(NSString *)key
+    |    `- warning: 'AVKeyValueStatus' is deprecated: first deprecated in macOS 13.0 - Use AVAsyncProperty.Status instead
+ 39 |                                   error:(NSError *_Nullable *_Nullable)outError;
+ 40 | 
+
+14 | NS_ASSUME_NONNULL_BEGIN
+15 | 
+16 | typedef NS_ENUM(NSInteger, AVKeyValueStatus) {
+17 | 	AVKeyValueStatusUnknown = 0,
+18 | 	AVKeyValueStatusLoading = 1,
+/Users/karim/.pub-cache/hosted/pub.dev/audioplayers_darwin-6.5.0/darwin/audioplayers_darwin/Sources/audioplayers_darwin/WrappedMediaPlayer.swift:205:14: warning: main actor-isolated property 'eventHandler' can not be referenced from a Sendable closure
+ 18 | 
+ 19 | @MainActor class WrappedMediaPlayer {
+ 20 |   private(set) var eventHandler: AudioPlayersStreamHandler
+ 21 |   private(set) var isPlaying: Bool
+ 22 |   var releaseMode: ReleaseMode
+    :
+203 |         }
+204 |         let status = playerItem.status
+205 |         self.eventHandler.onLog(message: "player status: \(status), change: \(change)")
+    |              `- warning: main actor-isolated property 'eventHandler' can not be referenced from a Sendable closure
+206 | 
+207 |         switch status {
+
+/Users/karim/.pub-cache/hosted/pub.dev/audioplayers_darwin-6.5.0/darwin/audioplayers_darwin/Sources/audioplayers_darwin/WrappedMediaPlayer.swift:211:16: warning: call to main actor-isolated instance method 'reset()' in a synchronous nonisolated context [#ActorIsolatedCall]
+209 |           continuation.resume()
+210 |         case .failed:
+211 |           self.reset()
+    |                `- warning: call to main actor-isolated instance method 'reset()' in a synchronous nonisolated context [#ActorIsolatedCall]
+212 |           continuation.resume(throwing: AudioPlayerError.error("Failed to set playerItem"))
+213 |         default:
+    :
+248 |   }
+249 | 
+250 |   private func reset() {
+251 |     playerItemStatusObservation?.invalidate()
+252 |     playerItemStatusObservation = nil
+
+/Users/karim/.pub-cache/hosted/pub.dev/audioplayers_darwin-6.5.0/darwin/audioplayers_darwin/Sources/audioplayers_darwin/WrappedMediaPlayer.swift:233:31: warning: 'weak' ownership of capture 'self' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+229 |       object: playerItem,
+230 |       queue: nil
+231 |     ) {
+232 |       (notification) in
+233 |       Task { @MainActor [weak self] in
+    |                               |- warning: 'weak' ownership of capture 'self' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+234 |         guard let self = self else {
+235 |           return
+
+[#ActorIsolatedCall]: <https://docs.swift.org/compiler/documentation/diagnostics/actor-isolated-call>
+[#ImplicitStrongCapture]: <https://docs.swift.org/compiler/documentation/diagnostics/implicit-strong-capture>
+/Users/karim/.pub-cache/hosted/pub.dev/video_player_avfoundation-2.12.0/darwin/video_player_avfoundation/Sources/video_player_avfoundation/NativeVideoViewFactory.swift:53:8: warning: result of 'createArgsCodec()' has different optionality than expected by protocol 'FlutterPlatformViewFactory'
+51 |   #endif
+52 | 
+53 |   func createArgsCodec() -> FlutterMessageCodec & NSObjectProtocol {
+   |        `- warning: result of 'createArgsCodec()' has different optionality than expected by protocol 'FlutterPlatformViewFactory'
+54 |     return VideoPlayerPluginMessagesPigeonCodec.shared
+55 |   }
+
+35 |  */
+36 | @optional
+37 | - (nullable NSObject<FlutterMessageCodec>*)createArgsCodec;
+38 | @end
+39 | 
+ 1 | #import "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/native/root/apps/avelune_studio/macos/Flutter/ephemeral/Packages/.packages/video_player_avfoundation-2.12.0/Sources/video_player_avfoundation_objc/include/video_player_avfoundation_objc/AVAssetTrackUtils.h"
+ 2 | #import "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/native/root/apps/avelune_studio/macos/Flutter/ephemeral/Packages/.packages/video_player_avfoundation-2.12.0/Sources/video_player_avfoundation_objc/include/video_player_avfoundation_objc/FVPAVFactory.h"
+ 3 | #import "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/native/root/apps/avelune_studio/macos/Flutter/ephemeral/Packages/.packages/video_player_avfoundation-2.12.0/Sources/video_player_avfoundation_objc/include/video_player_avfoundation_objc/FVPAssetProvider.h"
+ 4 | #import "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/native/root/apps/avelune_studio/macos/Flutter/ephemeral/Packages/.packages/video_player_avfoundation-2.12.0/Sources/video_player_avfoundation_objc/include/video_player_avfoundation_objc/FVPDisplayLink.h"
+
+1 warning generated.
+/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/native/root/apps/avelune_studio/macos/Flutter/ephemeral/Packages/.packages/video_player_avfoundation-2.12.0/Sources/video_player_avfoundation_objc/include/video_player_avfoundation_objc/FVPAVFactory.h:38:4: warning: 'AVKeyValueStatus' is deprecated: first deprecated in macOS 13.0 - Use AVAsyncProperty.Status instead
+ 36 | 
+ 37 | /// Wraps the underlying asset's statusOfValueForKey:error: method.
+ 38 | - (AVKeyValueStatus)statusOfValueForKey:(NSString *)key
+    |    `- warning: 'AVKeyValueStatus' is deprecated: first deprecated in macOS 13.0 - Use AVAsyncProperty.Status instead
+ 39 |                                   error:(NSError *_Nullable *_Nullable)outError;
+ 40 | 
+
+14 | NS_ASSUME_NONNULL_BEGIN
+15 | 
+16 | typedef NS_ENUM(NSInteger, AVKeyValueStatus) {
+17 | 	AVKeyValueStatusUnknown = 0,
+18 | 	AVKeyValueStatusLoading = 1,
+/Users/karim/.pub-cache/hosted/pub.dev/audioplayers_darwin-6.5.0/darwin/audioplayers_darwin/Sources/audioplayers_darwin/WrappedMediaPlayer.swift:205:14: warning: main actor-isolated property 'eventHandler' can not be referenced from a Sendable closure
+ 18 | 
+ 19 | @MainActor class WrappedMediaPlayer {
+ 20 |   private(set) var eventHandler: AudioPlayersStreamHandler
+ 21 |   private(set) var isPlaying: Bool
+ 22 |   var releaseMode: ReleaseMode
+    :
+203 |         }
+204 |         let status = playerItem.status
+205 |         self.eventHandler.onLog(message: "player status: \(status), change: \(change)")
+    |              `- warning: main actor-isolated property 'eventHandler' can not be referenced from a Sendable closure
+206 | 
+207 |         switch status {
+
+/Users/karim/.pub-cache/hosted/pub.dev/audioplayers_darwin-6.5.0/darwin/audioplayers_darwin/Sources/audioplayers_darwin/WrappedMediaPlayer.swift:211:16: warning: call to main actor-isolated instance method 'reset()' in a synchronous nonisolated context [#ActorIsolatedCall]
+209 |           continuation.resume()
+210 |         case .failed:
+211 |           self.reset()
+    |                `- warning: call to main actor-isolated instance method 'reset()' in a synchronous nonisolated context [#ActorIsolatedCall]
+212 |           continuation.resume(throwing: AudioPlayerError.error("Failed to set playerItem"))
+213 |         default:
+    :
+248 |   }
+249 | 
+250 |   private func reset() {
+251 |     playerItemStatusObservation?.invalidate()
+252 |     playerItemStatusObservation = nil
+
+/Users/karim/.pub-cache/hosted/pub.dev/audioplayers_darwin-6.5.0/darwin/audioplayers_darwin/Sources/audioplayers_darwin/WrappedMediaPlayer.swift:233:31: warning: 'weak' ownership of capture 'self' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+229 |       object: playerItem,
+230 |       queue: nil
+231 |     ) {
+232 |       (notification) in
+233 |       Task { @MainActor [weak self] in
+    |                               |- warning: 'weak' ownership of capture 'self' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+234 |         guard let self = self else {
+235 |           return
+
+[#ActorIsolatedCall]: <https://docs.swift.org/compiler/documentation/diagnostics/actor-isolated-call>
+[#ImplicitStrongCapture]: <https://docs.swift.org/compiler/documentation/diagnostics/implicit-strong-capture>
+/Users/karim/.pub-cache/hosted/pub.dev/video_player_avfoundation-2.12.0/darwin/video_player_avfoundation/Sources/video_player_avfoundation/NativeVideoViewFactory.swift:53:8: warning: result of 'createArgsCodec()' has different optionality than expected by protocol 'FlutterPlatformViewFactory'
+51 |   #endif
+52 | 
+53 |   func createArgsCodec() -> FlutterMessageCodec & NSObjectProtocol {
+   |        `- warning: result of 'createArgsCodec()' has different optionality than expected by protocol 'FlutterPlatformViewFactory'
+54 |     return VideoPlayerPluginMessagesPigeonCodec.shared
+55 |   }
+
+35 |  */
+36 | @optional
+37 | - (nullable NSObject<FlutterMessageCodec>*)createArgsCodec;
+38 | @end
+39 | 
+ 1 | #import "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/native/root/apps/avelune_studio/macos/Flutter/ephemeral/Packages/.packages/video_player_avfoundation-2.12.0/Sources/video_player_avfoundation_objc/include/video_player_avfoundation_objc/AVAssetTrackUtils.h"
+ 2 | #import "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/native/root/apps/avelune_studio/macos/Flutter/ephemeral/Packages/.packages/video_player_avfoundation-2.12.0/Sources/video_player_avfoundation_objc/include/video_player_avfoundation_objc/FVPAVFactory.h"
+ 3 | #import "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/native/root/apps/avelune_studio/macos/Flutter/ephemeral/Packages/.packages/video_player_avfoundation-2.12.0/Sources/video_player_avfoundation_objc/include/video_player_avfoundation_objc/FVPAssetProvider.h"
+ 4 | #import "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/native/root/apps/avelune_studio/macos/Flutter/ephemeral/Packages/.packages/video_player_avfoundation-2.12.0/Sources/video_player_avfoundation_objc/include/video_player_avfoundation_objc/FVPDisplayLink.h"
+
+1 warning generated.
+/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/native/root/apps/avelune_studio/macos/Flutter/ephemeral/Packages/.packages/video_player_avfoundation-2.12.0/Sources/video_player_avfoundation_objc/include/video_player_avfoundation_objc/FVPAVFactory.h:38:4: warning: 'AVKeyValueStatus' is deprecated: first deprecated in macOS 13.0 - Use AVAsyncProperty.Status instead
+ 36 | 
+ 37 | /// Wraps the underlying asset's statusOfValueForKey:error: method.
+ 38 | - (AVKeyValueStatus)statusOfValueForKey:(NSString *)key
+    |    `- warning: 'AVKeyValueStatus' is deprecated: first deprecated in macOS 13.0 - Use AVAsyncProperty.Status instead
+ 39 |                                   error:(NSError *_Nullable *_Nullable)outError;
+ 40 | 
+
+14 | NS_ASSUME_NONNULL_BEGIN
+15 | 
+16 | typedef NS_ENUM(NSInteger, AVKeyValueStatus) {
+17 | 	AVKeyValueStatusUnknown = 0,
+18 | 	AVKeyValueStatusLoading = 1,
+ 1 | #import "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/native/root/apps/avelune_studio/macos/Flutter/ephemeral/Packages/.packages/video_player_avfoundation-2.12.0/Sources/video_player_avfoundation_objc/include/video_player_avfoundation_objc/AVAssetTrackUtils.h"
+ 2 | #import "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/native/root/apps/avelune_studio/macos/Flutter/ephemeral/Packages/.packages/video_player_avfoundation-2.12.0/Sources/video_player_avfoundation_objc/include/video_player_avfoundation_objc/FVPAVFactory.h"
+ 3 | #import "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/native/root/apps/avelune_studio/macos/Flutter/ephemeral/Packages/.packages/video_player_avfoundation-2.12.0/Sources/video_player_avfoundation_objc/include/video_player_avfoundation_objc/FVPAssetProvider.h"
+ 4 | #import "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/native/root/apps/avelune_studio/macos/Flutter/ephemeral/Packages/.packages/video_player_avfoundation-2.12.0/Sources/video_player_avfoundation_objc/include/video_player_avfoundation_objc/FVPDisplayLink.h"
+
+1 warning generated.
+/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/native/root/apps/avelune_studio/macos/Flutter/ephemeral/Packages/.packages/video_player_avfoundation-2.12.0/Sources/video_player_avfoundation_objc/include/video_player_avfoundation_objc/FVPAVFactory.h:38:4: warning: 'AVKeyValueStatus' is deprecated: first deprecated in macOS 13.0 - Use AVAsyncProperty.Status instead
+ 36 | 
+ 37 | /// Wraps the underlying asset's statusOfValueForKey:error: method.
+ 38 | - (AVKeyValueStatus)statusOfValueForKey:(NSString *)key
+    |    `- warning: 'AVKeyValueStatus' is deprecated: first deprecated in macOS 13.0 - Use AVAsyncProperty.Status instead
+ 39 |                                   error:(NSError *_Nullable *_Nullable)outError;
+ 40 | 
+
+14 | NS_ASSUME_NONNULL_BEGIN
+15 | 
+16 | typedef NS_ENUM(NSInteger, AVKeyValueStatus) {
+17 | 	AVKeyValueStatusUnknown = 0,
+18 | 	AVKeyValueStatusLoading = 1,
+warning: Run script build phase 'Run Script' will be run during every build because it does not specify any outputs. To address this issue, either add output dependencies to the script phase, or configure it to run in every build by unchecking "Based on dependency analysis" in the script phase. (in target 'Flutter Assemble' from project 'Runner')
+✓ Built build/macos/Build/Products/Release/Avelune Studio T01.app (108.0MB)

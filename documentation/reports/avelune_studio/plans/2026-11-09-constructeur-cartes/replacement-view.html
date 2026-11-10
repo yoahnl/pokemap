@@ -1,0 +1,22 @@
+<section id="replacement" class="panel" hidden>
+<div class="rp-intro"><div><div class="rp-eyebrow">Plan exécutoire / Studio entier</div><h2>Tout retirer. Puis reconstruire.</h2><p>Une nouvelle UI, les contrats et moteurs existants, deux profils à vérifier. Le plan détaillé et l’avancement restent ici ; une capture ou un build ne suffisent pas à valider un lot.</p></div><div class="rp-stats" id="rp-stats"></div></div>
+<div class="rp-gates" id="rp-gates"></div>
+<div class="rp-source" id="rp-source" role="status">État canonique embarqué lors de la génération de cet artefact. Aucun lot natif réalisé par la préparation du plan.</div>
+<div class="rp-actions"><a href="ui-replacement-plan.json">JSON canonique complet</a><a href="README.md#27-remplacement-ui">Index Markdown des lots</a><a href="ui-retirement-inventory.json">Inventaire de retrait</a><button id="rp-import" type="button">Importer un brouillon JSON</button><button id="rp-export" type="button">Exporter le brouillon</button><input id="rp-file" type="file" accept=".json,application/json" hidden></div>
+<details class="rp-contract"><summary>Mandat, seuils de refus et mise à jour du plan</summary><div id="rp-contract"></div></details>
+<div class="rp-workspace">
+<aside class="rp-sidebar"><h3>15 thématiques</h3><div id="rp-themes"></div></aside>
+<div class="rp-main">
+<div class="rp-search"><label>Rechercher un lot, un fichier ou un comportement<input id="rp-query" type="search" placeholder="RUI-010, pente, Pokémon, sauvegarde…"></label><label>Avancement<select id="rp-status"><option value="">Tous les statuts</option><option value="planned">Planifié</option><option value="in_progress">En cours</option><option value="blocked">Bloqué</option><option value="review">À revoir</option><option value="rejected">Refusé</option><option value="accepted">Accepté</option></select></label></div>
+<p id="rp-count" aria-live="polite"></p>
+<div id="rp-lots"></div>
+</div></div>
+<dialog id="rp-comparison" aria-labelledby="rp-comparison-title">
+<div class="rp-dialog-head"><h2 id="rp-comparison-title"></h2><button id="rp-close" type="button">Fermer</button></div>
+<div class="rp-compare-controls"><label>Profil<select id="rp-profile"><option value="twoD">2D</option><option value="threeD">3D</option></select></label><label>État attendu<select id="rp-state"></select></label><label>Tentative<select id="rp-attempt"></select></label><label>Vue<select id="rp-mode"><option value="side">Côte à côte</option><option value="overlay">Superposition</option></select></label><label>Opacité du natif<input id="rp-opacity" type="range" min="0" max="100" value="50"></label></div>
+<div id="rp-proof-status" class="rp-proof-status"></div>
+<div id="rp-compare-images" class="rp-compare-images"><figure><figcaption>Maquette / cible</figcaption><img id="rp-reference-image" alt="Référence de maquette"><p id="rp-reference-empty"></p><a id="rp-reference-link" href="">Ouvrir la référence originale</a></figure><figure><figcaption>Réalisation native</figcaption><img id="rp-native-image" alt="Capture native du même état"><p id="rp-native-empty"></p><a id="rp-native-link" href="">Ouvrir la capture native originale</a></figure></div>
+<div class="rp-local-preview"><label>Comparer une image locale provisoire<input id="rp-native-file" type="file" accept="image/png,image/jpeg,image/webp"></label><p>Cette image reste un aperçu en mémoire. Elle ne constitue pas une preuve durable et ne valide aucun lot.</p></div>
+<div id="rp-measures"></div>
+</dialog>
+</section>

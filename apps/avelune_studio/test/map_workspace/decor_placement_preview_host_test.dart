@@ -1,19 +1,26 @@
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_canvas.dart';
+import 'package:avelune_studio/platform/rendering/viewports/map_editing_viewport_2d.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import '../support/map_host_fixture.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
+
+import '../support/neutral_map_host_fixture.dart';
 
 void main() {
   testWidgets('the selected decor follows the mouse without editing the map', (
     tester,
   ) async {
-    final fixture = await MapHostFixture.open(tester);
+    final fixture = await NeutralMapHostFixture.open(tester);
     final before = fixture.document.current;
     final undo = fixture.document.undoCount;
-    await tester.tap(find.byKey(const ValueKey('decor-arbre')));
-    await tester.pump();
+    fixture.nativeView
+      ..brush = fixture.maps.project!.elements.singleWhere(
+        (e) => e.id == 'arbre',
+      )
+      ..tool = StudioMapTool.place;
+    fixture.maps.notify();
+    await fixture.pump();
 
     final mouse = TestPointer(25, PointerDeviceKind.mouse);
     await tester.sendEventToBinding(mouse.hover(fixture.cellAt(8, 7)));
@@ -25,7 +32,7 @@ void main() {
     final first = tester.getRect(preview);
     final size = fixture.document.current.size;
     final brush = tester
-        .widget<MapWorkspaceCanvas>(find.byType(MapWorkspaceCanvas))
+        .widget<MapEditingViewport2D>(find.byType(MapEditingViewport2D))
         .view
         .brush!;
     expect(first.left, closeTo(canvas.left + 8 * canvas.width / size.width, 1));
@@ -57,17 +64,23 @@ void main() {
       before.placedElements.length + 1,
     );
 
-    await tester.tap(find.byKey(const ValueKey('Sélectionner')));
-    await tester.pump();
+    fixture.nativeView.tool = StudioMapTool.select;
+    fixture.maps.notify();
+    await fixture.pump();
     expect(preview, findsNothing);
   });
 
   testWidgets('the preview clears when the pointer leaves the map', (
     tester,
   ) async {
-    final fixture = await MapHostFixture.open(tester);
-    await tester.tap(find.byKey(const ValueKey('decor-arbre')));
-    await tester.pump();
+    final fixture = await NeutralMapHostFixture.open(tester);
+    fixture.nativeView
+      ..brush = fixture.maps.project!.elements.singleWhere(
+        (e) => e.id == 'arbre',
+      )
+      ..tool = StudioMapTool.place;
+    fixture.maps.notify();
+    await fixture.pump();
     final mouse = TestPointer(26, PointerDeviceKind.mouse);
     await tester.sendEventToBinding(mouse.hover(fixture.cellAt(8, 7)));
     await tester.pump();

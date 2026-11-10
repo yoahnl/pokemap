@@ -1,0 +1,53 @@
+{
+  "at": "2026-11-10T00:28:49.621840+00:00",
+  "scope": "RUI-004 bounded fingerprint fix",
+  "red": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes -p test_update_plan.py -v",
+    "exitCode": 1,
+    "tests": 10,
+    "failingAssertions": 9,
+    "reason": "Documentary early return skips missing/supplied codeFiles, including record after source mutation",
+    "codeBeforeSha256": "fe12f050e73cf828770e49ba2ba7149ec34533dda5e4834761d589143ddee502"
+  },
+  "canonicalPlanSha256Before": "061f99e46aa50370a70ede7d4b22c84b5939b587c4fd65767a009a98d959f7b5",
+  "acceptance": "not accepted; unit validator contracts only",
+  "green": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes -p test_update_plan.py -v",
+    "exitCode": 0,
+    "tests": 10,
+    "failingAssertions": 0,
+    "result": "OK"
+  },
+  "validate": {
+    "command": "python3 documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes/update_plan.py validate",
+    "exitCode": 0,
+    "result": {
+      "lots": 88,
+      "themes": 15,
+      "references": 611,
+      "accepted": 0,
+      "attempts": 1
+    }
+  },
+  "codeFiles": [
+    {
+      "path": "documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes/update_plan.py",
+      "sha256": "fff47d33f3c269bb904dd7bac28cc40aa3f9ae6fe523a8e5e8267d8a245e3de4"
+    },
+    {
+      "path": "documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes/test_update_plan.py",
+      "sha256": "91c4c3d32a3e25dafc26b4cdaf83daa63d7e804013f679c931449e504e80f6fe"
+    }
+  ],
+  "canonicalPlanSha256After": "061f99e46aa50370a70ede7d4b22c84b5939b587c4fd65767a009a98d959f7b5",
+  "canonicalPlanUnchanged": true,
+  "leftoverOwnedTemporaryDirectories": [],
+  "limits": [
+    "No RUI-004 acceptance created.",
+    "G0/G1 declared counters remain distinct from execution of the separate G0 checker.",
+    "record is append-only; direct manual JSON edits are not compared with a previous trusted snapshot.",
+    "Synthetic validator contracts do not prove native/product visual acceptance.",
+    "No Flutter test executed.",
+    "MCP parity: N/A."
+  ]
+}

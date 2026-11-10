@@ -1,7 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/features/cinematics/application/cinematic_preview_transport.dart';
-import 'package:avelune_studio/presentation/features/cinematics/cinematic_actor_animation.dart';
+import 'package:avelune_studio/platform/rendering/cinematic_actor_animation.dart';
+
 import '../support/ui10_cinematic_fixture.dart';
 
 void main() {

@@ -1,4 +1,4 @@
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_canvas.dart';
+import 'package:avelune_studio/platform/rendering/viewports/map_editing_viewport_2d.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_palette_column.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
 import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
@@ -80,8 +80,8 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('decor-arbre')));
     await pumpIo(tester);
     expect(find.byType(MapWorkspacePaletteColumn), findsNothing);
-    final canvas = tester.widget<MapWorkspaceCanvas>(
-      find.byType(MapWorkspaceCanvas),
+    final canvas = tester.widget<MapEditingViewport2D>(
+      find.byType(MapEditingViewport2D),
     );
     expect(canvas.view.tool, StudioMapTool.place);
     final count = fixture.document.current.placedElements.length;
@@ -97,8 +97,8 @@ void main() {
     await MapHostFixture.open(tester);
     await chooseMapExtraTool(tester, 'Gomme de tuiles');
 
-    final canvas = tester.widget<MapWorkspaceCanvas>(
-      find.byType(MapWorkspaceCanvas),
+    final canvas = tester.widget<MapEditingViewport2D>(
+      find.byType(MapEditingViewport2D),
     );
     expect(canvas.view.tool, StudioMapTool.erase);
     expect(

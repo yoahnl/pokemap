@@ -1,0 +1,61 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/world/world_editor_workflow_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/world/world_editor_workflow_test.dart: source selection keeps the fact type and initial value
+00:00 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/world/world_editor_workflow_test.dart: target change retains compatible effects and clears incompatible ones
+00:00 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/world/world_editor_workflow_test.dart: effect choices preserve dialogue and atmosphere payloads
+00:00 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/world/world_editor_workflow_test.dart: simulation preview hides entities without mutating the authored map
+00:00 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/world/world_editor_workflow_test.dart: raw fact name and integer parsing preserve rejected input until correction
+00:00 +5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/world/world_editor_workflow_test.dart: invalid rule label preserves draft and blocks publication until corrected
+00:01 +6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/world/world_editor_workflow_test.dart: invalid integer preserves its source and blocks save until corrected
+00:01 +7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/world/world_editor_workflow_test.dart: invalid fact field never discards metadata or publishes its previous value
+00:01 +8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/world/world_editor_workflow_test.dart: fact type change keeps a legacy boolean binding protected
+00:01 +9: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui12_world_page_test.dart
+00:02 +9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui12_world_page_test.dart: a state and its rule are composed without an old page
+00:03 +10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui12_world_page_test.dart: a rule refuses to outrun the state it reads, and offers it
+00:03 +11: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui12_world_close_test.dart
+00:04 +11: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui12_world_close_test.dart: invalid rule input blocks global save until corrected
+00:05 +12: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui12_world_close_test.dart: an incomplete rule is never silently dropped
+00:05 +13: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui12_world_close_test.dart: a close asked during a publication is refused
+00:05 +14: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui12_world_global_close_test.dart
+00:06 +14: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui12_world_global_close_test.dart: global close saves new world states with Stories connected
+00:07 +15: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui12_world_global_close_test.dart: invalid input on a clean rule still requires an explicit choice
+00:08 +16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui12_world_global_close_test.dart: a failed rule keeps close blocked after its new state is saved
+00:08 +17: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/scenes/periodic_reward_picker_test.dart
+00:09 +17: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/scenes/periodic_reward_picker_test.dart: refresh removes stale published nodes and ignores old get late=false
+00:09 +18: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/scenes/periodic_reward_picker_test.dart: refresh removes stale published nodes and ignores old get late=true
+00:10 +19: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/scenes/periodic_reward_picker_test.dart: World Rule coordinator preserves an existing negative daily predicate
+00:10 +20: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/scenes/periodic_reward_picker_test.dart: a changed reward identity stays unresolved until explicitly selected
+00:10 +21: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/scenes/periodic_reward_picker_test.dart: Event modal retains the published source scope across Navigator overlay
+00:10 +22: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/scenes/periodic_reward_picker_test.dart: guided Scene picker applies an explicit published reward without raw fields
+00:10 +23: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/scenes/periodic_reward_picker_test.dart: late source response cannot overwrite a newer explicit selection
+00:10 +24: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/scenes/periodic_reward_picker_test.dart: missing published source preserves the unresolved condition
+00:10 +25: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_controller_test.dart
+00:11 +25: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_controller_test.dart: opening, filtering and selecting never run a control
+00:12 +26: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_controller_test.dart: the report matches the canonical function on the same input
+00:12 +27: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_controller_test.dart: the four dimensions stay distinct and none is invented
+00:13 +28: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_controller_test.dart: a second launch while one runs is ignored, not queued
+00:13 +29: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_controller_test.dart: an incomplete rule draft is listed apart, never analysed
+00:13 +30: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_controller_test.dart: a change without new documents makes the report stale
+00:13 +31: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_controller_test.dart: a filter never turns a failing report into a valid project
+00:14 +32: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_controller_test.dart: a hidden selection is announced, and keeps its own target
+00:14 +33: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_controller_test.dart: a full consultation writes nothing on disk
+00:14 +34: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_controller_test.dart: a correction made in its editor changes the next report
+00:14 +35: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_controller_test.dart: a report of another project never replaces the current one
+00:14 +36: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_controller_test.dart: the report carries its own identity and scope
+00:15 +37: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_recovery_test.dart
+00:15 +37: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_recovery_test.dart: saving during an analysis leaves no ghost control
+00:17 +38: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_recovery_test.dart: a revision that moves during the reads is prepared again
+00:17 +39: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_recovery_test.dart: a failed preparation still frees the page
+00:17 +40: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_recovery_test.dart: a refused input check frees the page too
+00:17 +41: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_recovery_test.dart: the end of a replaced request does not disturb the new one
+00:18 +42: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_selection_test.dart
+00:18 +42: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_selection_test.dart: a new control keeps a selection whose key survives
+00:19 +43: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_selection_test.dart: a selection that vanished is explained, not called solved
+00:20 +44: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_identity_test.dart
+00:21 +44: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_identity_test.dart: two entities sharing an identifier stay two documents
+00:22 +45: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_identity_test.dart: an identifier answered by several documents is not guessed
+00:22 +46: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_identity_test.dart: a fact never resolves to an entity of the same name
+00:22 +47: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_identity_test.dart: every identity carries its kind, scope and parent
+00:22 +48: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/ui13_verification_identity_test.dart: a real diagnostic still finds its own document
+00:23 +49: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui05_verification_summary_test.dart
+00:24 +49: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui05_verification_summary_test.dart: overview consultation preserves the real report and never reruns analysis
+00:24 +50: All tests passed!

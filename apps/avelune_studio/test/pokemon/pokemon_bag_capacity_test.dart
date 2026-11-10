@@ -6,71 +6,52 @@ import 'package:avelune_studio/features/pokemon/application/pokemon_commerce_con
 import 'package:avelune_studio/features/pokemon/data/local_pokemon_commerce_adapter.dart';
 import 'package:avelune_studio/features/pokemon/domain/pokemon_commerce_port.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
-import 'package:avelune_studio/presentation/features/pokemon/pokemon_bag_capacity_dialog.dart';
-import 'package:avelune_design_system/avelune_design_system.dart';
-import 'package:flutter/material.dart';
+import 'package:avelune_studio/features/pokemon/application/pokemon_bag_capacity_controller.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_authoring/map_authoring.dart';
 
 void main() {
-  testWidgets('Studio preserves invalid raw across pockets and saves bounds', (
-    tester,
-  ) async {
-    final port = _Port();
-    final commerce = PokemonCommerceController(port, changed: () {});
-    addTearDown(commerce.dispose);
-    await commerce.load();
-    await _pump(tester, commerce);
-    await tester.tap(find.byKey(const Key('bag-capacity-quantity-mode')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Limité').last);
-    await tester.pumpAndSettle();
-    await tester.enterText(_field('medicine', 'quantity'), '2.5');
-    await _mode(tester, 'quantity', 'limited');
-    _pocket(tester, 'tools');
-    await tester.pump();
-    expect(
-      tester
-          .widget<StudioReviewDialog>(find.byType(StudioReviewDialog))
-          .onConfirmed,
-      isNull,
-    );
-    _pocket(tester, 'medicine');
-    await tester.pump();
-    expect(
-      tester.widget<TextField>(_field('medicine', 'quantity')).controller!.text,
-      '2.5',
-    );
-    await tester.enterText(_field('medicine', 'quantity'), '99');
-    await _mode(tester, 'distinct', 'limited');
-    await tester.enterText(_field('medicine', 'distinct'), '2');
-    await tester.pump();
-    await tester.tap(find.text('Enregistrer'));
-    await tester.pumpAndSettle();
-    expect(port.saved.single.pockets, {
-      'medicine': const BagPocketCapacity(
-        maxDistinctItems: 2,
-        maxQuantityPerItem: 99,
-      ),
-    });
-    expect(commerce.snapshot!.project.bagCapacity, port.saved.single);
-    await tester.tap(find.text('Open'));
-    await tester.pumpAndSettle();
-    expect(
-      tester.widget<TextField>(_field('medicine', 'distinct')).controller!.text,
-      '2',
-    );
-    await tester.tap(find.text('Tout rendre illimité'));
-    await tester.pump();
-    await tester.tap(find.text('Enregistrer'));
-    await tester.pumpAndSettle();
-    expect(port.saved.last.isUnlimited, true);
-  });
+  test(
+    'bag capacity preserves invalid raw per pocket and saves normalized limits',
+    () async {
+      final port = _Port();
+      final commerce = PokemonCommerceController(port, changed: () {});
+      addTearDown(commerce.dispose);
+      await commerce.load();
+      final draft = PokemonBagCapacityController(commerce);
+      addTearDown(draft.dispose);
+      draft.setLimited('medicine', distinct: false, limited: true);
+      draft.setRaw('medicine', '2.5', distinct: false);
+      draft.setLimited('medicine', distinct: false, limited: true);
+      draft.select('tools');
+      expect(draft.canSave, isFalse);
+      draft.select('medicine');
+      expect(draft.drafts['medicine']!.quantity, '2.5');
+      draft.setRaw('medicine', '99', distinct: false);
+      draft.setLimited('medicine', distinct: true, limited: true);
+      draft.setRaw('medicine', '2', distinct: true);
+      expect(await draft.save(), isTrue);
+      expect(port.saved.single.pockets, {
+        'medicine': const BagPocketCapacity(
+          maxDistinctItems: 2,
+          maxQuantityPerItem: 99,
+        ),
+      });
+      expect(commerce.snapshot!.project.bagCapacity, port.saved.single);
+      expect(draft.canSave, isFalse);
+      final reopened = PokemonBagCapacityController(commerce);
+      addTearDown(reopened.dispose);
+      expect(reopened.drafts['medicine']!.distinct, '2');
+      reopened.unlimitAll();
+      expect(await reopened.save(), isTrue);
+      expect(port.saved.last.isUnlimited, isTrue);
+    },
+  );
 
-  testWidgets(
-    'Studio orphan pockets remain accessible and cancel never writes',
-    (tester) async {
+  test(
+    'orphan bag pockets remain accessible and cancellation never writes',
+    () async {
       final port = _Port(
         capacity: const ProjectBagCapacity(
           pockets: {'orphan': BagPocketCapacity(maxDistinctItems: 1)},
@@ -79,18 +60,10 @@ void main() {
       final commerce = PokemonCommerceController(port, changed: () {});
       addTearDown(commerce.dispose);
       await commerce.load();
-      await _pump(tester, commerce);
-      expect(
-        tester
-            .widget<StudioSelect>(find.byKey(const Key('bag-capacity-pocket')))
-            .options
-            .keys,
-        contains('orphan'),
-      );
-      await tester.tap(find.text('Tout rendre illimité'));
-      await tester.pump();
-      await tester.tap(find.text('Annuler'));
-      await tester.pumpAndSettle();
+      final draft = PokemonBagCapacityController(commerce);
+      expect(draft.pockets, contains('orphan'));
+      draft.unlimitAll();
+      draft.dispose();
       expect(port.saved, isEmpty);
       expect(
         commerce.snapshot!.project.bagCapacity.pockets,
@@ -99,26 +72,23 @@ void main() {
     },
   );
 
-  testWidgets('Studio save refusal preserves raw and does not commit draft', (
-    tester,
-  ) async {
-    final port = _Port()..reject = true;
-    final commerce = PokemonCommerceController(port, changed: () {});
-    addTearDown(commerce.dispose);
-    await commerce.load();
-    await _pump(tester, commerce);
-    await _mode(tester, 'distinct', 'limited');
-    await tester.enterText(_field('medicine', 'distinct'), '3');
-    await tester.pump();
-    await tester.tap(find.text('Enregistrer'));
-    await tester.pumpAndSettle();
-    expect(find.textContaining('Changed externally'), findsOneWidget);
-    expect(
-      tester.widget<TextField>(_field('medicine', 'distinct')).controller!.text,
-      '3',
-    );
-    expect(port.saved, isEmpty);
-  });
+  test(
+    'capacity save refusal preserves raw text and does not commit the draft',
+    () async {
+      final port = _Port()..reject = true;
+      final commerce = PokemonCommerceController(port, changed: () {});
+      addTearDown(commerce.dispose);
+      await commerce.load();
+      final draft = PokemonBagCapacityController(commerce);
+      addTearDown(draft.dispose);
+      draft.setLimited('medicine', distinct: true, limited: true);
+      draft.setRaw('medicine', '3', distinct: true);
+      expect(await draft.save(), isFalse);
+      expect(draft.error, contains('Changed externally'));
+      expect(draft.drafts['medicine']!.distinct, '3');
+      expect(port.saved, isEmpty);
+    },
+  );
 
   test(
     'Studio controller refuses capacity writes while an item is dirty',
@@ -241,44 +211,6 @@ void main() {
       },
     );
   }
-}
-
-Finder _field(String pocket, String field) => find.descendant(
-  of: find.byKey(ValueKey('bag-capacity-$pocket-$field-value')),
-  matching: find.byType(TextField),
-);
-
-Future<void> _mode(WidgetTester tester, String field, String value) async {
-  tester
-      .widget<StudioSelect>(find.byKey(ValueKey('bag-capacity-$field-mode')))
-      .onChanged!(value);
-  await tester.pump();
-}
-
-void _pocket(WidgetTester tester, String id) => tester
-    .widget<StudioSelect>(find.byKey(const Key('bag-capacity-pocket')))
-    .onChanged!(id);
-
-Future<void> _pump(
-  WidgetTester tester,
-  PokemonCommerceController commerce,
-) async {
-  await tester.binding.setSurfaceSize(const Size(1100, 900));
-  addTearDown(() => tester.binding.setSurfaceSize(null));
-  await tester.pumpWidget(
-    MaterialApp(
-      home: Builder(
-        builder: (context) => Scaffold(
-          body: TextButton(
-            onPressed: () => showPokemonBagCapacityDialog(context, commerce),
-            child: const Text('Open'),
-          ),
-        ),
-      ),
-    ),
-  );
-  await tester.tap(find.text('Open'));
-  await tester.pumpAndSettle();
 }
 
 const _catalog = ProjectItemCatalog(

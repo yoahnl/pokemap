@@ -1,9 +1,11 @@
+import 'package:avelune_studio/platform/rendering/terrain_spatial_render_surface.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 import 'package:map_render_3d/map_render_3d.dart';
 
 import '../../shared/widgets/feedback/studio_notice.dart';
-import '../map_workspace/map_workspace_visuals.dart';
+
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 
 class TerrainSpatialPreview extends StatefulWidget {
   const TerrainSpatialPreview({
@@ -45,24 +47,16 @@ class _TerrainSpatialPreviewState extends State<TerrainSpatialPreview> {
       return const StudioNotice('Aperçu 3D indisponible');
     }
     final sources = visuals as SpatialWorkspaceVisuals;
-    final colors = Theme.of(context).colorScheme;
-    return SpatialSceneView(
-      scene: widget.map.spatialScene!,
-      models: widget.project.models3d,
-      loadModel: sources.readModel,
-      controller: controls,
-      onCell: widget.onCell ?? (_, _) {},
-      selectContent: false,
+    return TerrainSpatialRenderSurface(
+      map: widget.map,
+      project: widget.project,
+      sources: sources,
+      controls: controls,
+      onCell: widget.onCell,
       onDragStart: widget.onDragStart,
       onDragUpdate: widget.onDragUpdate,
       onDragEnd: widget.onDragEnd,
       onDragCancel: widget.onDragCancel,
-      groundMap: widget.map,
-      groundProject: widget.project,
-      loadGroundImage: sources.readGroundImage,
-      background: colors.surfaceContainerLowest,
-      ground: colors.surfaceContainerHigh,
-      edge: colors.outlineVariant,
       errorBuilder: (_, _) => const StudioNotice('Aperçu 3D indisponible'),
     );
   }

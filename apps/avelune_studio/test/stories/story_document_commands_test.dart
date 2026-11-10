@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
-import 'package:avelune_studio/presentation/features/stories/story_document_commands.dart';
+import 'package:avelune_studio/features/stories/application/story_document_commands.dart';
 import '../support/story_backend_fixture.dart';
 
 void main() {

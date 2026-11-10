@@ -10,7 +10,7 @@ import '../../shared/widgets/feedback/studio_badge.dart';
 import '../../shared/widgets/feedback/studio_empty_state.dart';
 import '../../shared/widgets/layout/studio_asset_preview.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
-import 'resource_catalog.dart';
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 import 'resource_item_actions.dart';
 import 'model_shadow_controls.dart';
 import 'model_light_controls.dart';

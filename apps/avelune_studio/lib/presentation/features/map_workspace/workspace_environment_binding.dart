@@ -21,15 +21,14 @@ extension _WorkspaceEnvironments on _MapWorkspaceScreenState {
 
   Future<void> _drawEnvironment(EnvironmentPreset preset) async {
     final resources = _resources;
-    final project = _controller.project;
-    if (resources == null || resources.busy || project == null) return;
-    if (resources.environments[preset.id]?.dirty == true) {
-      resources.error = 'Enregistrez ou annulez la préparation de cet environnement avant de dessiner sa zone.';
-      resources.changed();
-      return;
-    }
-    if (_controller.active == null) {
-      final entry = await showDialog<ProjectMapEntry>(
+    if (resources == null) return;
+    final used = await useMapEnvironment(
+      workspace: _controller,
+      resources: resources,
+      preset: preset,
+      view: () => _view,
+      isActive: () => mounted && identical(resources, _resources),
+      chooseMap: (entries) => showDialog<ProjectMapEntry>(
         context: context,
         builder: (context) => AlertDialog(
           title: const Text('Choisir une carte'),
@@ -38,17 +37,12 @@ extension _WorkspaceEnvironments on _MapWorkspaceScreenState {
             height: 280,
             child: ListView(
               children: [
-                for (final entry in project.maps)
-                  if (project.resourceLibraryCatalog.availableForMap(
-                    'environmentPreset',
-                    preset.id,
-                    entry.id,
-                  ))
-                    StudioButton(
-                      label: entry.name,
-                      secondary: true,
-                      onPressed: () => Navigator.pop(context, entry),
-                    ),
+                for (final entry in entries)
+                  StudioButton(
+                    label: entry.name,
+                    secondary: true,
+                    onPressed: () => Navigator.pop(context, entry),
+                  ),
               ],
             ),
           ),
@@ -60,46 +54,11 @@ extension _WorkspaceEnvironments on _MapWorkspaceScreenState {
             ),
           ],
         ),
-      );
-      if (entry == null || !mounted || !identical(resources, _resources)) {
-        return;
-      }
-      await _controller.activate(
-        entry,
-        isCurrent: () => mounted && identical(resources, _resources),
-      );
-    }
-    final document = _controller.active;
-    final current = _controller.project;
-    final view = _view;
-    if (!mounted ||
-        document == null ||
-        current == null ||
-        view == null ||
-        !identical(resources, _resources)) {
-      return;
-    }
-    final selected = current.environmentPresets
-        .where((entry) => entry.id == preset.id)
-        .firstOrNull;
-    if (selected == null) return;
-    if (!current.resourceLibraryCatalog.availableForMap(
-      'environmentPreset',
-      selected.id,
-      document.current.id,
-    )) {
-      resources.setImportError(
-        'Cet environnement est propre à une autre carte.',
-      );
-      return;
-    }
-    try {
-      view.selectEnvironmentPreset(document, current, selected);
+      ),
+    );
+    if (used) {
       _openMap();
       _toolChanged();
-    } on Object catch (failure) {
-      resources.error = environmentEditingMessage(failure);
-      resources.changed();
     }
   }
 }

@@ -4,8 +4,8 @@ import 'package:map_core/map_core_domain.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/feedback/studio_empty_state.dart';
 import '../../shared/widgets/inputs/studio_choice.dart';
-import '../map_workspace/map_workspace_visuals.dart';
-import 'resource_catalog.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 import 'resource_preview.dart';
 
 class EnvironmentLibrary extends StatefulWidget {

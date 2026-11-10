@@ -7,9 +7,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 
-import '../../presentation/shared/widgets/buttons/studio_button.dart';
 import '../../features/verification/application/studio_failure_diagnosis.dart';
-import '../../presentation/features/verification/studio_failure_report.dart';
 import 'studio_game_playtest.dart';
 import '../../features/rendering/application/studio_rendering_preferences.dart';
 
@@ -342,59 +340,13 @@ class _StudioGamePlaytestViewState extends State<StudioGamePlaytestView>
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    body: SafeArea(
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(8),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Tester le jeu depuis le début',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                ),
-                StudioButton(
-                  label: 'Retour à Studio',
-                  icon: Icons.close,
-                  secondary: true,
-                  onPressed: widget.onClose,
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: _error != null
-                ? Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 560),
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.all(24),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              'Le jeu ne peut pas démarrer',
-                              style: Theme.of(context).textTheme.titleLarge,
-                            ),
-                            const SizedBox(height: 12),
-                            StudioFailureReport(
-                              diagnosis: diagnoseLaunchFailure(_error!),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  )
-                : _game == null
-                ? const Center(child: CircularProgressIndicator())
-                : _player(context),
-          ),
-        ],
-      ),
-    ),
-  );
+  Widget build(BuildContext context) {
+    if (_error case final error?) {
+      final diagnosis = diagnoseLaunchFailure(error);
+      return Center(child: Text('${diagnosis.summary}\n${diagnosis.detail}'));
+    }
+    return _game == null
+        ? const Center(child: CircularProgressIndicator())
+        : _player(context);
+  }
 }

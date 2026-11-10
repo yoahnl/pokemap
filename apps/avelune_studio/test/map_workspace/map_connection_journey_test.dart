@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_workspace_connection_actions.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_connection_adapter.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
@@ -45,16 +46,16 @@ void main() {
   test(
     'a paired border link saves both maps and resolves the next cell',
     () async {
-      final original = controller.active!.current;
       final connection = LocalMapConnectionAdapter(adapter);
-      await connection.link(
-        session: session,
-        source: original,
-        direction: MapConnectionDirection.east,
-        targetMapId: 'clairiere',
-        offset: 0,
+      final actions = MapWorkspaceConnectionActions(
+        controller: controller,
+        port: connection,
+        isActive: () => true,
+        changed: () {},
       );
-      await controller.refreshSavedMaps({'jardin', 'clairiere'});
+      await actions.link(MapConnectionDirection.east, 'clairiere', 0);
+      expect(actions.error, isNull);
+      expect(actions.busy, isFalse);
       expect(
         controller.active!.current.connections.single.targetMapId,
         'clairiere',
@@ -141,16 +142,15 @@ void main() {
       external.active!.commit(source.copyWith(name: 'Modifiée ailleurs'));
       expect(await external.save(external.active!), isTrue);
 
-      await expectLater(
-        LocalMapConnectionAdapter(adapter).link(
-          session: session,
-          source: source,
-          direction: MapConnectionDirection.east,
-          targetMapId: 'clairiere',
-          offset: 0,
-        ),
-        throwsA(isA<Object>()),
+      final actions = MapWorkspaceConnectionActions(
+        controller: controller,
+        port: LocalMapConnectionAdapter(adapter),
+        isActive: () => true,
+        changed: () {},
       );
+      await actions.link(MapConnectionDirection.east, 'clairiere', 0);
+      expect(actions.error, isNotNull);
+      expect(actions.busy, isFalse);
       final reopened = MapWorkspaceController(
         session,
         LocalMapWorkspaceAdapter(),
@@ -162,6 +162,37 @@ void main() {
         reopened.project!.maps.firstWhere((entry) => entry.id == 'clairiere'),
       );
       expect(reopened.active!.current.connections, isEmpty);
+    },
+  );
+  test(
+    'an unsaved source blocks the transaction and preserves both maps',
+    () async {
+      final source = controller.active!;
+      final saved = source.current;
+      source.commit(saved.copyWith(name: 'Brouillon protégé'));
+      final actions = MapWorkspaceConnectionActions(
+        controller: controller,
+        port: LocalMapConnectionAdapter(adapter),
+        isActive: () => true,
+        changed: () {},
+      );
+
+      await actions.link(MapConnectionDirection.east, 'clairiere', 0);
+
+      expect(actions.error, contains('brouillons'));
+      expect(source.current.name, 'Brouillon protégé');
+      expect(source.dirty, isTrue);
+      final persisted = await adapter.loadMap(
+        session,
+        controller.project!.maps.firstWhere((entry) => entry.id == saved.id),
+      );
+      final target = await adapter.loadMap(
+        session,
+        controller.project!.maps.firstWhere((entry) => entry.id == 'clairiere'),
+      );
+      expect(persisted.map.name, saved.name);
+      expect(persisted.map.connections, isEmpty);
+      expect(target.map.connections, isEmpty);
     },
   );
 }

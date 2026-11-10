@@ -8,8 +8,8 @@ import '../../shared/widgets/layout/studio_application_frame.dart';
 import 'package:avelune_studio/presentation/shared/widgets/feedback/studio_notice.dart';
 
 import 'map_workspace_view_state.dart';
-import '../resources/resource_catalog.dart';
-import 'map_workspace_visuals.dart';
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 import 'map_workspace_toolbar.dart';
 import 'map_workspace_palette_column.dart';
 import 'map_library_navigator.dart';

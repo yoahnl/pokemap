@@ -1,5 +1,5 @@
 import 'package:avelune_studio/features/terrains/domain/terrain_connections.dart';
-import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_detail_panel.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_preview.dart';
 import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';

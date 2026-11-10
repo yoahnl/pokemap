@@ -1,0 +1,60 @@
+import 'package:map_core/map_core_domain.dart';
+
+import '../../../platform/rendering/contracts/map_workspace_visuals.dart';
+
+class WorkspaceVisualProjectionQueue {
+  WorkspaceVisualProjectionQueue({
+    required this.currentVisuals,
+    required this.activeMap,
+    required this.isActive,
+    required this.prepared,
+    required this.failed,
+    required this.changed,
+  });
+
+  final MapWorkspaceVisuals? Function() currentVisuals;
+  final MapData? Function() activeMap;
+  final bool Function() isActive;
+  final void Function(MapData?) prepared;
+  final void Function(Object) failed;
+  final void Function() changed;
+  bool loading = false;
+  int generation = 0;
+  Future<void> queue = Future.value();
+
+  Future<void> refresh(ProjectManifest definitions) async {
+    final visuals = currentVisuals();
+    if (visuals == null || visuals is! ResourceWorkspaceVisuals) return;
+    final ticket = ++generation;
+    loading = true;
+    try {
+      final queued = queue.then((_) async {
+        if (!isActive() ||
+            ticket != generation ||
+            !identical(visuals, currentVisuals())) {
+          return;
+        }
+        await (visuals as ResourceWorkspaceVisuals).updateCatalog(definitions);
+      });
+      queue = queued.then<void>((_) {}, onError: (Object _, StackTrace _) {});
+      await queued;
+      if (!isActive() ||
+          ticket != generation ||
+          !identical(visuals, currentVisuals())) {
+        return;
+      }
+      final map = activeMap();
+      prepared(map);
+      if (map != null) visuals.setActiveMap(map);
+    } catch (failure) {
+      if (isActive() && ticket == generation) {
+        failed(failure);
+      }
+    } finally {
+      if (isActive() && ticket == generation) {
+        loading = false;
+        changed();
+      }
+    }
+  }
+}

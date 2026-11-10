@@ -7,7 +7,6 @@ import 'package:avelune_studio/features/map_workspace/application/map_workspace_
 import 'package:avelune_studio/features/narrative/application/narrative_workspace_controller.dart';
 import 'package:avelune_studio/features/narrative/data/local_narrative_adapter.dart';
 import 'package:avelune_studio/features/narrative/domain/narrative_port.dart';
-import 'package:avelune_studio/features/world/application/world_workspace_controller.dart';
 import 'package:avelune_studio/features/world/data/local_world_adapter.dart';
 import 'package:avelune_studio/presentation/features/events/event_workspace_page.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_screen.dart';
@@ -17,10 +16,9 @@ import 'package:avelune_studio/features/pokemon/data/pokemon_moves_snapshot_sour
 import 'package:map_authoring/map_authoring.dart'
     show PokemonExternalSourceRepository;
 import 'package:map_authoring/map_authoring_local.dart' show ProjectFileReader;
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 import 'package:avelune_studio/presentation/shell/studio_home_navigation.dart';
 import 'package:avelune_studio/presentation/features/narrative/narrative_story_pane.dart';
-import 'package:avelune_studio/presentation/features/world/world_workspace_page.dart';
 import 'package:avelune_studio/presentation/shared/widgets/layout/studio_primary_navigation.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import 'package:flutter/gestures.dart';
@@ -55,7 +53,6 @@ class MapHostFixture {
   final MapWorkspaceVisuals visuals;
   final StudioHomeNavigation? home;
   late final StudioGameExportController gameExport;
-
   EditableMapDocument get document => maps.active!;
 
   static Future<MapHostFixture> open(
@@ -121,9 +118,8 @@ class MapHostFixture {
       debugShowCheckedModeBanner: false,
       theme: studioTheme(),
       builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(
-          context,
-        ).copyWith(textScaler: TextScaler.linear(textScale)),
+        data: MediaQuery.of(context)
+            .copyWith(textScaler: TextScaler.linear(textScale)),
         child: child!,
       ),
       home: MapWorkspaceScreen(
@@ -272,20 +268,6 @@ class MapHostFixture {
     final owner = tester
         .widget<NarrativeStoryPane>(find.byType(NarrativeStoryPane))
         .controller;
-    await go('Carte');
-    return owner;
-  }
-
-  Future<WorldWorkspaceController> worldOwner() async {
-    await go('Histoire');
-    await enter('Voir tous les documents');
-    await enter('États et règles du monde');
-    final owner = tester
-        .widget<WorldWorkspacePage>(find.byType(WorldWorkspacePage))
-        .controller;
-    for (var i = 0; i < 40 && !owner.initialized; i++) {
-      await pumpIo(tester, frames: 3);
-    }
     await go('Carte');
     return owner;
   }

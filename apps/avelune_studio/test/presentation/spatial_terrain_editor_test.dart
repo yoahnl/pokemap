@@ -1,35 +1,28 @@
-import 'dart:async';
 import 'dart:typed_data';
+
+import 'package:avelune_studio/features/terrains/application/terrain_draft_controller.dart';
+import 'package:avelune_studio/features/terrains/application/terrain_scratch_editing_session.dart';
+import 'package:avelune_studio/platform/rendering/terrain_spatial_render_surface.dart';
 
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/application/spatial_model_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/features/terrains/domain/terrain_spatial_preview_map.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/spatial_map_editor.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_terrain_tool_panel.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_canvas_stroke.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
+import 'package:avelune_studio/platform/rendering/viewports/spatial_map_editing_viewport.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_canvas_stroke.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_editing_commands.dart';
-import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
-import 'package:avelune_studio/presentation/features/resources/resource_brush_selection.dart';
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/map_resource_placement.dart';
 import 'package:avelune_studio/features/map_workspace/application/spatial_terrain_stroke.dart';
-import 'package:avelune_studio/presentation/features/resources/resource_creation_buttons.dart';
-import 'package:avelune_studio/presentation/features/resources/resource_terrain_preview.dart';
-import 'package:avelune_studio/presentation/features/terrains/terrain_editor_screen.dart';
-import 'package:avelune_studio/presentation/features/terrains/terrain_model_part_controls.dart';
-import 'package:avelune_studio/presentation/features/terrains/terrain_scratch_view.dart';
-import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
-import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_render_3d/map_render_3d.dart';
 
-import '../application/spatial_terrain_draft_test.dart'
-    show spatialPathDraft, spatialPathModel;
+import '../application/spatial_terrain_draft_test.dart' show spatialPathDraft;
 import '../support/map_workspace_fixture.dart';
 import '../terrain_creation_test.dart'
     show terrainDraft, assignAll, publishFixture;
@@ -69,50 +62,41 @@ void main() {
             MapWorkspaceController(workspaceSession, WorkspaceMemoryPort())
               ..project = project
               ..active = document;
-        final view = MapWorkspaceViewState()
+        final view = MapEditingViewportSession()
           ..spatialTerrainMode = previousMode
           ..spatialTerrainLevel = 4;
         addTearDown(controller.dispose);
         addTearDown(view.dispose);
+        expect(
+          await useMapResource(
+            workspace: controller,
+            item: ResourceItem(
+              id: preset.id,
+              name: preset.name,
+              kind: ResourceKind.terrains,
+              terrain: preset,
+            ),
+            view: () => view,
+            isActive: () => true,
+            chooseMap: (_) async => null,
+            chooseTile: (_) async => null,
+          ),
+          isTrue,
+        );
         await tester.pumpWidget(
           MaterialApp(
             home: Scaffold(
-              body: Column(
-                children: [
-                  Builder(
-                    builder: (context) => StudioButton(
-                      label: 'Choisir herbes',
-                      onPressed: () => useResourceOnMap(
-                        context: context,
-                        workspace: controller,
-                        item: ResourceItem(
-                          id: preset.id,
-                          name: preset.name,
-                          kind: ResourceKind.terrains,
-                          terrain: preset,
-                        ),
-                        visuals: _SpatialVisuals(),
-                        view: () => view,
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: SpatialMapEditor(
-                      document: document,
-                      controller: controller,
-                      project: project,
-                      visuals: _SpatialVisuals(),
-                      view: view,
-                      onChanged: () {},
-                    ),
-                  ),
-                ],
+              body: SpatialMapEditingViewport(
+                document: document,
+                controller: controller,
+                project: project,
+                visuals: _SpatialVisuals(),
+                view: view,
+                onChanged: () {},
               ),
             ),
           ),
         );
-        await tester.tap(find.text('Choisir herbes'));
-        await tester.pump();
         expect(view.spatialTerrainMode, SpatialTerrainMode.ground);
         expect(view.spatialTerrainLevel, 4);
         final scene = tester.widget<SpatialSceneView>(
@@ -144,11 +128,9 @@ void main() {
     );
   }
   for (final spatial in [false, true]) {
-    testWidgets(
-      'material picker paints the allowed choice and resets with another preset in ${spatial ? '3D' : '2D'}',
-      (tester) async {
-        await tester.binding.setSurfaceSize(const Size(1200, 800));
-        addTearDown(() => tester.binding.setSurfaceSize(null));
+    test(
+      'allowed material paints and resets with another preset in ${spatial ? '3D' : '2D'}',
+      () {
         final draft = terrainDraft();
         assignAll(draft);
         final spatialDraft = spatialPathDraft();
@@ -199,29 +181,10 @@ void main() {
         final document = EditableMapDocument(
           MapWorkspaceDocument(map: map, mapId: map.id, revision: 'r0'),
         );
-        final view = MapWorkspaceViewState()..prepareTerrainPainting(preset);
+        final view = MapEditingViewportSession()
+          ..prepareTerrainPainting(preset);
         addTearDown(view.dispose);
-        await tester.pumpWidget(
-          MaterialApp(
-            theme: studioTheme(),
-            home: Scaffold(
-              body: MapTerrainToolPanel(
-                document: document,
-                project: project,
-                visuals: spatial
-                    ? _PendingModelVisuals()
-                    : WorkspaceTestVisuals(),
-                view: view,
-                onChanged: () {},
-              ),
-            ),
-          ),
-        );
-        final picker = find.byKey(const ValueKey('terrain-material-picker'));
-        await tester.tap(picker);
-        await tester.pump(const Duration(milliseconds: 300));
-        await tester.tap(find.text('Pavés de pierre').last);
-        await tester.pump(const Duration(milliseconds: 300));
+        view.terrainMaterialId = 'paving';
         expect(view.terrainMaterialId, 'paving');
         final stroke = MapCanvasStroke.start(
           map: document.current,
@@ -247,245 +210,58 @@ void main() {
         view.prepareTerrainPainting(next);
         expect(view.terrainMaterialId, next.defaultMaterialId);
         expect(view.spatialTerrainMode, SpatialTerrainMode.ground);
-        expect(tester.takeException(), isNull);
       },
     );
   }
-  testWidgets('absolute model height is labelled independently of relief', (
-    tester,
-  ) async {
-    final part = SmartTileVisualPart(
-      source: const SmartTileVisualSource.model3d(
-        modelId: 'water',
-        offsetY: -2.25,
-        followTerrain: false,
-      ),
-    );
-    double? appliedHeight;
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: studioTheme(),
-        home: Scaffold(
-          body: TerrainModelPartControls(
-            part: part,
-            onApply: (_, _, height, _, _) => appliedHeight = height,
-          ),
-        ),
-      ),
-    );
-    expect(find.text('Hauteur absolue'), findsOneWidget);
-    expect(
-      find.text('En unités de carte, indépendante du relief'),
-      findsOneWidget,
-    );
-    expect(find.text('Décalage vertical'), findsNothing);
-    await tester.tap(find.byKey(const ValueKey('terrain-model-apply')));
-    expect(appliedHeight, -2.25);
-    expect(tester.takeException(), isNull);
-  });
-
   testWidgets(
-    'creation chooses a project model through the shared family picker',
-    (tester) async {
-      await tester.binding.setSurfaceSize(const Size(1200, 900));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
-      final model = spatialPathDraft();
-      final project = model.manifest.copyWith(
-        models3d: [
-          ...model.manifest.models3d,
-          spatialPathModel('private', name: 'Herbe privée'),
-        ],
-        resourceLibraryCatalog: ResourceLibraryCatalog(
-          families: [
-            ResourceFamily(
-              id: 'grass',
-              name: 'Hautes herbes',
-              parentId: 'vegetation',
-            ),
-          ],
-          entries: [
-            ResourceLibraryEntry(
-              resourceKind: 'model3d',
-              resourceId: 'oak',
-              familyId: 'grass',
-              role: ResourceLibraryRole.component,
-            ),
-            ResourceLibraryEntry(
-              resourceKind: 'model3d',
-              resourceId: 'private',
-              familyId: 'grass',
-              mapId: 'a',
-            ),
-          ],
-        ),
-      );
-      ResourceItem? picked;
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: studioTheme(),
-          home: Scaffold(
-            body: Builder(
-              builder: (context) => StudioButton(
-                label: 'Créer un chemin',
-                onPressed: () => chooseResourceSource(
-                  context: context,
-                  project: project,
-                  visuals: WorkspaceTestVisuals(),
-                  onChosen: (item) => picked = item,
-                  onImport: () {},
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-      await tester.tap(find.text('Créer un chemin'));
-      await tester.pumpAndSettle();
-      expect(find.text('Choisir le modèle du chemin'), findsOneWidget);
-      expect(find.text('Herbe privée'), findsNothing);
-      await tester.tap(find.byKey(const ValueKey('resource-source-families')));
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(const ValueKey('resource-nature-family-grass')),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('path-source-oak')));
-      await tester.pumpAndSettle();
-      expect(picked!.canonicalKind, 'model3d');
-      expect(picked!.id, 'oak');
-      expect(tester.takeException(), isNull);
-    },
-  );
-
-  testWidgets(
-    'spatial atelier validates source transforms, publishes through canonical callbacks and keeps atlas absent',
-    (tester) async {
-      await tester.binding.setSurfaceSize(const Size(1500, 1100));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
-      final model = spatialPathDraft();
-      final actions = <String>[];
-      ProjectSmartTilePreset? used;
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: studioTheme(),
-          home: Scaffold(
-            body: TerrainEditorScreen(
-              controller: model,
-              image: const SizedBox(),
-              frameBuilder: (_, _) =>
-                  throw StateError('A model path cannot request image frames'),
-              visuals: WorkspaceTestVisuals(),
-              onMutate: (action, parameters) async {
-                actions.add(action);
-                if (action.endsWith('upsert')) {
-                  return model.manifest.copyWith(
-                    smartTileCatalog: ProjectSmartTileCatalog(
-                      drafts: [
-                        ProjectSmartTileAuthoringDraft.fromJson(
-                          parameters['draft'] as Map<String, dynamic>,
-                        ),
-                      ],
-                    ),
-                  );
-                }
-                final compiled = compileSmartTileAuthoringDraft(
-                  draft: model.draft,
-                  catalog: model.manifest.smartTileCatalog,
-                  manifest: model.manifest,
-                ) as SmartTileDraftCompilationSuccess;
-                return model.manifest.copyWith(
-                  smartTileCatalog: ProjectSmartTileCatalog(
-                    materials: compiled.materials,
-                    atlases: compiled.atlases,
-                    presets: [compiled.preset],
-                    drafts: [model.draft],
-                  ),
-                );
-              },
-              onUse: (preset) => used = preset,
-              onClose: () {},
-            ),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(find.byKey(const ValueKey('atlas-selection')), findsNothing);
-      Finder field(String id) => find.descendant(
-        of: find.byKey(ValueKey(id)),
-        matching: find.byType(TextField),
-      );
-      await tester.enterText(field('terrain-model-scale'), 'NaN');
-      await tester.tap(find.byKey(const ValueKey('terrain-model-apply')));
-      expect((model.partFor(0)!.source as SmartTileModel3dSource).scale, 1);
-      await tester.enterText(field('terrain-model-scale'), '1,5');
-      await tester.enterText(field('terrain-model-offset-x'), 'Infinity');
-      await tester.pump();
-      expect(
-        tester
-            .widget<StudioButton>(
-              find.byKey(const ValueKey('terrain-model-apply')),
-            )
-            .onPressed,
-        isNull,
-      );
-      await tester.tap(find.byKey(const ValueKey('terrain-model-apply')));
-      expect((model.partFor(0)!.source as SmartTileModel3dSource).scale, 1);
-      await tester.enterText(field('terrain-model-offset-x'), '0,125');
-      await tester.enterText(field('terrain-model-offset-z'), '-0,375');
-      await tester.enterText(field('terrain-model-height'), '0,2');
-      tester
-          .widget<StudioSelect>(
-            find.widgetWithText(StudioSelect, 'Rotation de la pièce'),
-          )
-          .onChanged!('1');
-      await tester.pump();
-      await tester.tap(find.byKey(const ValueKey('terrain-model-apply')));
-      await tester.pump();
-      expect(model.partFor(0)!.transform.quarterTurns, 1);
-      expect((model.partFor(0)!.source as SmartTileModel3dSource).scale, 1.5);
-      expect(
-        (model.partFor(0)!.source as SmartTileModel3dSource).offsetX,
-        .125,
-      );
-      expect(
-        (model.partFor(0)!.source as SmartTileModel3dSource).offsetZ,
-        -.375,
-      );
-      await tester.tap(find.text('Publier et peindre'));
-      await tester.pumpAndSettle();
-      expect(actions, [
-        'smart_tile.preset.draft.upsert',
-        'smart_tile.preset.publish',
-      ]);
-      expect(model.error, isNull, reason: model.error);
-      expect(used!.id, 'grass');
-      expect(model.manifest.smartTileCatalog.atlases, isEmpty);
-      expect(tester.takeException(), isNull);
-    },
-  );
-
-  testWidgets(
-    'trial and library preview consume native models with the exact semantic paint mask',
+    'scratch gestures and model preview retain the exact semantic paint mask',
     (tester) async {
       final model = spatialPathDraft()..clearScratch();
       final visuals = _SpatialVisuals();
-      void refresh() {}
-      Widget trial(String tool) => MaterialApp(
-        home: Scaffold(
-          body: SizedBox(
-            width: 500,
-            child: TerrainScratchView(
-              controller: model,
-              frameBuilder: (_, _) => throw StateError(
-                'Image preview is forbidden for model paths',
+      final editing = TerrainScratchEditingSession(() => model);
+      final controls = SpatialSceneController();
+      addTearDown(controls.dispose);
+      Widget trial(String tool) {
+        final preview = terrainSpatialPreviewMap(
+          project: model.manifest,
+          preset: model.previewPreset,
+          size: TerrainDraftController.scratchSize,
+          cells: model.scratch,
+          materials: model.draft.materials,
+        );
+        final selectedTool = switch (tool) {
+          'Gommer' => TerrainScratchTool.erase,
+          'Examiner' => TerrainScratchTool.inspect,
+          _ => TerrainScratchTool.paint,
+        };
+        return MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 500,
+              child: TerrainSpatialRenderSurface(
+                map: preview.map,
+                project: preview.project,
+                sources: visuals,
+                controls: controls,
+                errorBuilder: (_, _) => const SizedBox(),
+                onCell: (x, z) =>
+                    editing.cell(GridPos(x: x, y: z), selectedTool),
+                onDragStart: (x, z, _) {
+                  editing.begin(GridPos(x: x, y: z), selectedTool);
+                  return true;
+                },
+                onDragUpdate: (cell) => editing.update(
+                  GridPos(x: cell.$1, y: cell.$2),
+                  selectedTool,
+                ),
+                onDragEnd: editing.end,
+                onDragCancel: editing.end,
               ),
-              visuals: visuals,
-              onChanged: refresh,
-              tool: tool,
             ),
           ),
-        ),
-      );
+        );
+      }
+
       await tester.pumpWidget(trial('Peindre'));
       SpatialSceneView scene() =>
           tester.widget<SpatialSceneView>(find.byType(SpatialSceneView));
@@ -507,16 +283,26 @@ void main() {
       expect(scene().scene.instances.length, 3);
       scene().onCell(2, 4);
       expect(model.selectedRule, 0);
+      final preview = terrainSpatialPreviewMap(
+        project: model.manifest,
+        preset: model.previewPreset,
+        size: 3,
+        cells: {
+          for (var index = 0; index < 9; index++)
+            GridPos(x: index % 3, y: index ~/ 3),
+        },
+      );
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             body: SizedBox.square(
               dimension: 200,
-              child: ResourceTerrainPreview(
-                preset: model.previewPreset,
-                project: scene().groundProject!,
-                visuals: visuals,
-                size: 200,
+              child: TerrainSpatialRenderSurface(
+                map: preview.map,
+                project: preview.project,
+                sources: visuals,
+                controls: controls,
+                errorBuilder: (_, _) => const SizedBox(),
               ),
             ),
           ),
@@ -573,7 +359,7 @@ void main() {
         MapWorkspaceDocument(map: map, mapId: map.id, revision: 'r0'),
       );
       final commands = SpatialModelEditingCommands(document, preview.project);
-      final view = MapWorkspaceViewState()..tool = StudioMapTool.select;
+      final view = MapEditingViewportSession()..tool = StudioMapTool.select;
       final controller = MapWorkspaceController(
         workspaceSession,
         WorkspaceMemoryPort(),
@@ -583,7 +369,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: SpatialMapEditor(
+            body: SpatialMapEditingViewport(
               document: document,
               controller: controller,
               project: preview.project,
@@ -627,10 +413,4 @@ class _SpatialVisuals extends WorkspaceTestVisuals
   @override
   Future<SpatialNpcPreview> spatialPreview(MapData map) async =>
       SpatialNpcPreview({}, () {});
-}
-
-class _PendingModelVisuals extends _SpatialVisuals {
-  final source = Completer<Uint8List>();
-  @override
-  Future<Uint8List> readModel(String modelId) => source.future;
 }

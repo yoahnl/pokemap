@@ -1,117 +1,112 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_test/flutter_test.dart';
+import 'dart:async';
+
+import 'package:avelune_studio/features/home/application/recent_projects_controller.dart';
 import 'package:avelune_studio/features/home/data/memory_recent_projects_adapter.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/project_session/application/project_session_controller.dart';
-import 'package:avelune_studio/features/project_session/domain/project_session.dart';
-import 'package:avelune_studio/presentation/features/project_session/project_session_screen.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_screen.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_layout.dart';
-import 'package:avelune_studio/presentation/shell/studio_home_navigation.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
+import 'package:avelune_studio/features/project_session/application/project_session_open_controller.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import '../support/controlled_project_session_port.dart';
 import '../support/map_workspace_fixture.dart';
 
 void main() {
-  testWidgets(
-    'home keeps mounted workspace, document, zoom and undo; cancelled switch preserves it',
-    (tester) async {
-      tester.view.physicalSize = const Size(1536, 1024);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-      final port = _Sessions();
+  test(
+    'cancelled project switch preserves document, history and session',
+    () async {
+      final port = ControlledProjectSessionPort();
       final session = ProjectSessionController(port);
+      final recent = RecentProjectsController(MemoryRecentProjectsAdapter());
       final maps = WorkspaceMemoryPort();
-      final controller = MapWorkspaceController(workspaceSession, maps);
-      final visuals = WorkspaceTestVisuals();
-      final recent = MemoryRecentProjectsAdapter();
-      var chosen = '/fixture';
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: studioTheme(),
-          home: ProjectSessionScreen(
-            session: session,
-            recentProjects: recent,
-            chooseDirectory: () async => chosen,
-            workspaceBuilder: (_, close) => Builder(
-              builder: (context) => MapWorkspaceScreen(
-                controller: controller,
-                home: StudioHomeScope.of(context),
-                loadVisuals: (_, _) async => visuals,
-                runtimeBuilder: (_, _, _) => const SizedBox(),
-                onClose: close,
-                registerExitGuard: (_) {},
-              ),
-            ),
-          ),
-        ),
+      final workspace = MapWorkspaceController(workspaceSession, maps);
+      var allowed = true;
+      var selected = '/fixture';
+      final opening = ProjectSessionOpenController(
+        session: session,
+        chooseDirectory: () async => selected,
+        recentProjects: recent,
+        allowSwitch: () async => allowed,
       );
-      await tester.pumpAndSettle();
+      addTearDown(() async {
+        opening.dispose();
+        recent.dispose();
+        workspace.dispose();
+        await session.dispose();
+      });
       expect(maps.reads, 0);
-      await tester.tap(find.byKey(const ValueKey('open-project-picker')));
-      await tester.pumpAndSettle();
-      final document = controller.active!;
+      final first = opening.open(browse: true);
+      await Future<void>.delayed(Duration.zero);
+      port.pending.single.complete(workspaceSession);
+      expect(await first, isTrue);
+      await workspace.initialize();
+      final document = workspace.active!;
       document.commit(
         document.current.copyWith(name: 'Modification conservée'),
       );
-      final originalState = tester.state(find.byType(MapWorkspaceScreen));
-      final layout = tester.widget<MapWorkspaceLayout>(
-        find.byType(MapWorkspaceLayout),
-      );
-      final view = layout.view!;
-      view.transform.value = Matrix4.identity()
-        ..scaleByDouble(1.75, 1.75, 1, 1);
-      final transform = view.transform.value.clone();
       final reads = maps.reads;
-      layout.onHome!();
-      await tester.pumpAndSettle();
-      expect(find.text('Reprendre mon projet'), findsOneWidget);
-      expect(controller.active, same(document));
+      allowed = false;
+      selected = '/other';
+      expect(await opening.open(browse: true), isFalse);
+      expect(port.requests, ['/fixture']);
+      expect(port.released, isEmpty);
+      expect(session.state.project, same(workspaceSession));
+      expect(workspace.active, same(document));
       expect(document.dirty, isTrue);
-      expect(maps.reads, reads + 1);
-      expect(controller.documents.keys, ['a']);
-      expect(maps.writes, 0);
-      chosen = '/other';
-      await tester.tap(find.text('Ouvrir un autre projet'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Annuler'));
-      await tester.pumpAndSettle();
-      expect(port.opens, ['/fixture']);
-      expect(port.closed, isEmpty);
-      expect(controller.active, same(document));
-      await tester.tap(find.text('Reprendre mon projet'));
-      await tester.pumpAndSettle();
-      expect(
-        tester.state(find.byType(MapWorkspaceScreen)),
-        same(originalState),
-      );
-      expect(
-        tester.widget<MapWorkspaceLayout>(find.byType(MapWorkspaceLayout)).view,
-        same(view),
-      );
-      expect(view.transform.value, transform);
       expect(document.current.name, 'Modification conservée');
-      controller.restore(redo: false);
-      await tester.pumpAndSettle();
+      expect(workspace.documents.keys, ['a']);
+      expect(maps.reads, reads);
+      expect(maps.writes, 0);
+      await workspace.activate(workspace.project!.maps.first);
+      expect(workspace.active, same(document));
+      workspace.restore(redo: false);
       expect(document.current.name, 'a');
-      expect(maps.reads, reads + 1);
-      expect(tester.takeException(), isNull);
-      await tester.pumpWidget(const SizedBox());
-      await session.dispose();
-      controller.dispose();
+      expect(maps.reads, reads);
+      expect(maps.writes, 0);
     },
   );
-}
 
-class _Sessions implements ProjectSessionPort {
-  final opens = <String>[];
-  final closed = <ProjectSession>[];
-  @override
-  Future<ProjectSession> open(String directoryPath) async {
-    opens.add(directoryPath);
-    return workspaceSession;
-  }
+  test(
+    'cancelled picker cannot open a project after its choice arrives',
+    () async {
+      final port = ControlledProjectSessionPort();
+      final session = ProjectSessionController(port);
+      final choice = Completer<String?>();
+      final opening = ProjectSessionOpenController(
+        session: session,
+        chooseDirectory: () => choice.future,
+      );
+      addTearDown(opening.dispose);
+      addTearDown(session.dispose);
+      final pending = opening.open(browse: true);
+      expect(opening.picking, isTrue);
+      opening.cancel();
+      choice.complete('/late');
+      expect(await pending, isFalse);
+      expect(port.requests, isEmpty);
+      expect(opening.picking, isFalse);
+      expect(session.state.project, isNull);
+    },
+  );
 
-  @override
-  Future<void> close(ProjectSession session) async => closed.add(session);
+  test(
+    'picker failure preserves the active project and releases busy state',
+    () async {
+      final port = ControlledProjectSessionPort();
+      final session = ProjectSessionController(port);
+      final first = session.open(exampleA.directoryPath);
+      port.pending.single.complete(exampleA);
+      await first;
+      final opening = ProjectSessionOpenController(
+        session: session,
+        chooseDirectory: () async => throw StateError('picker.unavailable'),
+      );
+      addTearDown(opening.dispose);
+      addTearDown(session.dispose);
+      expect(await opening.open(browse: true), isFalse);
+      expect(opening.error, contains('sélecteur de dossier'));
+      expect(opening.picking, isFalse);
+      expect(session.state.project, same(exampleA));
+      expect(port.released, isEmpty);
+    },
+  );
 }

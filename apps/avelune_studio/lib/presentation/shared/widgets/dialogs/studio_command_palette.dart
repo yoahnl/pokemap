@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../text/studio_search_text.dart';
+import 'package:avelune_studio/features/resources/domain/studio_search_text.dart';
 import '../../../theme/studio_tokens.dart';
 import '../buttons/studio_button.dart';
 import '../feedback/studio_notice.dart';

@@ -1,19 +1,18 @@
 import 'dart:async';
 
+import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/workspace_navigation_session.dart';
+import 'package:avelune_studio/features/map_workspace/domain/workspace_navigation.dart';
+import 'package:avelune_studio/features/narrative/application/narrative_editing.dart';
 import 'package:avelune_studio/features/narrative/application/narrative_workspace_controller.dart';
+import 'package:avelune_studio/features/narrative/data/local_narrative_adapter.dart';
+import 'package:avelune_studio/features/narrative/domain/dialogue_draft.dart';
 import 'package:avelune_studio/features/narrative/domain/narrative_port.dart';
-import 'package:avelune_studio/presentation/features/events/event_workspace_page.dart';
-import 'package:avelune_studio/presentation/features/narrative/narrative_interaction_pane.dart';
-import 'package:avelune_studio/presentation/features/narrative/narrative_story_pane.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
-import '../support/m2_ui_fixture.dart' show pumpIo;
-import '../support/map_host_fixture.dart';
-import '../support/map_tool_menu.dart';
-import '../support/ui05_narrative_fixture.dart';
+import '../support/neutral_map_host_fixture.dart';
+import '../support/real_test_io.dart';
 
 class HeldNarrativePort implements NarrativePort {
   HeldNarrativePort(this.inner);
@@ -36,202 +35,263 @@ class HeldNarrativePort implements NarrativePort {
   ) => inner.publish(publication);
 }
 
-Finder get pane => find.byType(NarrativeInteractionPane);
+WorkspaceNavigationSession navigationFor(
+  NeutralMapHostFixture fixture, {
+  NarrativeWorkspaceController? narrative,
+  bool events = true,
+}) => WorkspaceNavigationSession(
+  controller: fixture.maps,
+  isActive: () => !fixture.maps.isDisposed,
+  changed: fixture.maps.notify,
+  narrative: () => narrative ?? fixture.sessions.narrative,
+  events: events ? () => fixture.sessions.events : null,
+  mapView: () => fixture.nativeView,
+);
+
+Future<void> openZone(
+  NeutralMapHostFixture fixture,
+  WorkspaceNavigationSession navigation,
+  String triggerId, {
+  Future<String?> Function(Map<String, String>)? choose,
+}) async {
+  await RealTestIo.run(
+    fixture.tester,
+    () => navigation.openExistingStoryZone(
+      fixture.document,
+      fixture.document.current.triggers.singleWhere((e) => e.id == triggerId),
+      choose: choose ?? (_) async => throw StateError('Unexpected choice'),
+    ),
+  );
+  await fixture.pump();
+}
+
+Future<String> drawZone(NeutralMapHostFixture fixture) async {
+  fixture.nativeView.tool = StudioMapTool.zone;
+  fixture.maps.notify();
+  await fixture.pump();
+  await fixture.drag(3, 11, 5, 13);
+  final interaction = fixture.sessions.narrative!.active!.current.interaction;
+  return interaction.source.toJson()['triggerId'] as String;
+}
 
 void main() {
-  Future<void> openFromMenu(MapHostFixture f, int x, int y) async {
-    await f.rightClick(x, y);
-    await f.choose('Ouvrir son interaction');
-    await pumpIo(f.tester, frames: 10);
-  }
-
-  Future<void> backToMap(MapHostFixture f) async {
-    await f.tester.tap(find.text('Retour à la carte'));
-    await pumpIo(f.tester, frames: 10);
-  }
-
-  testWidgets(
-    'an interaction never saved reopens from the map with its own draft',
-    (tester) async {
-      final f = await MapHostFixture.open(tester);
-      final NarrativeWorkspaceController narrative = await f.narrativeOwner();
-      await chooseMapExtraTool(tester, 'Dessiner une zone d’histoire');
-      await pumpIo(tester, frames: 4);
-      await f.drag(3, 11, 5, 13);
-      await pumpIo(tester, frames: 12);
-      expect(pane, findsOneWidget, reason: 'tracing opened its interaction');
-
-      final session = narrative.active!;
-      final interaction = session.current.interaction;
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Nom de l’interaction'),
-        'Brume sur le quai',
+  testWidgets('an interaction never saved reopens from its own native draft', (
+    tester,
+  ) async {
+    final f = await NeutralMapHostFixture.open(tester);
+    final narrative = await f.narrativeOwner();
+    final navigation = navigationFor(f);
+    final triggerId = await drawZone(f);
+    final session = narrative.active!;
+    final interaction = session.current.interaction;
+    session.change(interaction: interaction.revise(name: 'Brume sur le quai'));
+    final sessions = {...narrative.sessions.keys};
+    final triggers = f.document.current.triggers;
+    final disk = await f.disk();
+    final framing = f.nativeView.transform.value.clone();
+    f.nativeView.select(f.document, MapSelectionFamily.trigger, triggerId);
+    for (var round = 0; round < 2; round++) {
+      await openZone(f, navigation, triggerId);
+      expect(navigation.space, WorkspaceSpace.interaction);
+      expect(narrative.active, same(session));
+      expect(narrative.active!.current.interaction.id, interaction.id);
+      expect(
+        narrative.active!.current.interaction.dialogueId,
+        interaction.dialogueId,
       );
-      await pumpIo(tester, frames: 4);
-      expect(session.dirty, isTrue);
-      await backToMap(f);
+      expect(narrative.active!.current.interaction.name, 'Brume sur le quai');
+      expect({...narrative.sessions.keys}, sessions);
+      navigation.show(WorkspaceSpace.map);
+      expect(f.document.current.triggers, triggers);
+      expect(f.nativeView.transform.value, framing);
+    }
+    expect(await f.disk(), disk);
+    expect(f.document.dirty, isTrue);
+    expect(
+      f.nativeView.selectedFor(
+        f.document.current.id,
+        MapSelectionFamily.trigger,
+      ),
+      triggerId,
+    );
+  });
 
-      final sessions = {...narrative.sessions.keys};
-      final triggers = f.document.current.triggers.length;
-      final disk = await f.disk();
-      final view = f.transform;
+  testWidgets('a saved interaction edited again reopens its simplified draft', (
+    tester,
+  ) async {
+    final f = await NeutralMapHostFixture.open(tester);
+    final narrative = await f.narrativeOwner();
+    final navigation = navigationFor(f);
+    final triggerId = await drawZone(f);
+    final session = narrative.active!;
+    final id = session.current.interaction.id;
+    final dialogue = session.current.dialogue;
+    session.change(
+      interaction: session.current.interaction.revise(name: 'Première version'),
+      dialogue: dialogue.copyWith(
+        branches: [
+          dialogue.branches.first.copyWith(
+            lines: [const DialogueLineDraft(text: 'Bienvenue au quai.')],
+          ),
+        ],
+      ),
+    );
+    expect(
+      await RealTestIo.run(tester, () => narrative.save(document: f.document)),
+      isTrue,
+      reason: narrative.error ?? narrative.publicationError,
+    );
+    expect(session.dirty, isFalse);
+    expect(
+      narrative.project.eventRegistry!.records.any((r) => r.id == id),
+      isTrue,
+    );
+    session.change(
+      interaction: session.current.interaction.revise(name: 'Version en cours'),
+    );
+    expect(session.dirty, isTrue);
+    final disk = await f.disk();
+    await openZone(f, navigation, triggerId);
+    expect(navigation.space, WorkspaceSpace.interaction);
+    expect(narrative.active, same(session));
+    expect(narrative.active!.current.interaction.id, id);
+    expect(narrative.active!.current.interaction.name, 'Version en cours');
+    expect(await f.disk(), disk);
+  });
 
-      for (var round = 0; round < 2; round++) {
-        await openFromMenu(f, 4, 12);
-        expect(pane, findsOneWidget, reason: 'round $round opened the draft');
-        expect(identical(narrative.active, session), isTrue);
-        final current = narrative.active!.current.interaction;
-        expect(current.id, interaction.id);
-        expect(current.dialogueId, interaction.dialogueId);
-        expect(current.name, 'Brume sur le quai');
-        expect({...narrative.sessions.keys}, sessions, reason: 'no new id');
-        await backToMap(f);
-        expect(f.document.current.triggers, hasLength(triggers));
-        expect(f.transform, view, reason: 'the map keeps its framing');
+  testWidgets('a saved zone interaction opens its events owner', (
+    tester,
+  ) async {
+    final f = await NeutralMapHostFixture.open(tester);
+    final events = await f.eventOwner();
+    final navigation = navigationFor(f);
+    final disk = await f.disk();
+    final id = navigation
+        .interactionsOnSource(f.document.current.id, 'quai')
+        .keys
+        .single;
+    await openZone(f, navigation, 'quai');
+    expect(navigation.space, WorkspaceSpace.events);
+    expect(events.activeId, id);
+    expect(navigation.eventOrigin, WorkspaceSpace.map);
+    expect(navigation.eventFilterMapId, f.document.current.id);
+    navigation.show(WorkspaceSpace.story);
+    navigation.eventFilterMapId = 'retained-map-filter';
+    await RealTestIo.run(tester, () => navigation.openEvents(id));
+    expect(navigation.eventOrigin, WorkspaceSpace.story);
+    expect(navigation.eventFilterMapId, 'retained-map-filter');
+    await RealTestIo.run(
+      tester,
+      () => navigation.openEvents(id, filterSource: true),
+    );
+    expect(navigation.eventFilterMapId, f.document.current.id);
+    expect(await f.disk(), disk);
+  });
+
+  testWidgets('a late read cannot reopen a zone after navigation', (
+    tester,
+  ) async {
+    final f = await NeutralMapHostFixture.open(tester);
+    final held = (await tester.runAsync(
+      () async => HeldNarrativePort(
+        LocalNarrativeAdapter(
+          session: f.maps.session,
+          mapAdapter: f.source.maps,
+        ),
+      ),
+    ))!;
+    final narrative = NarrativeWorkspaceController(
+      f.maps,
+      held,
+      f.maps.notify,
+      (_, _) async {},
+    );
+    addTearDown(narrative.dispose);
+    final navigation = navigationFor(f, narrative: narrative, events: false);
+    late Future<void> opening;
+    await tester.runAsync(() async {
+      opening = navigation.openExistingStoryZone(
+        f.document,
+        f.document.current.triggers.singleWhere((e) => e.id == 'quai'),
+        choose: (_) async => throw StateError('Unexpected choice'),
+      );
+      for (var index = 0; index < 200 && held.reads == 0; index++) {
+        await Future<void>.delayed(const Duration(milliseconds: 1));
       }
-      expect(await f.disk(), disk, reason: 'opening published nothing');
-      expect(f.document.dirty, isTrue, reason: 'the map drafts are kept');
-      await f.key(LogicalKeyboardKey.f10, shift: true);
-      expect(
-        tester
-            .widget<Text>(find.byKey(const ValueKey('map-context-target')))
-            .data,
-        'Zone d’histoire',
-        reason: 'the zone selected before opening is still the target after',
-      );
-    },
-    timeout: const Timeout(Duration(minutes: 3)),
-  );
+    });
+    expect(held.reads, 1);
+    navigation.show(WorkspaceSpace.story);
+    await tester.runAsync(() async {
+      held.gate.complete();
+      await opening;
+    });
+    await f.pump();
+    expect(navigation.space, WorkspaceSpace.story);
+  });
 
   testWidgets(
-    'a saved interaction edited again reopens its current simplified draft',
+    'one zone offers only its exact interactions and opens the chosen draft',
     (tester) async {
-      final f = await MapHostFixture.open(tester);
+      final f = await NeutralMapHostFixture.open(tester);
       final narrative = await f.narrativeOwner();
-      await chooseMapExtraTool(tester, 'Dessiner une zone d’histoire');
-      await pumpIo(tester, frames: 4);
-      await f.drag(3, 11, 5, 13);
-      await pumpIo(tester, frames: 12);
-
-      final session = narrative.active!;
-      final id = session.current.interaction.id;
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Nom de l’interaction'),
-        'Première version',
+      await f.eventOwner();
+      final navigation = navigationFor(f);
+      await RealTestIo.run(
+        tester,
+        () => narrative.openSource(
+          f.document,
+          NarrativeEventSourceRef.triggerEnter(f.document.current.id, 'quai'),
+          'Retour au quai',
+        ),
       );
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Texte de la réplique 1'),
-        'Bienvenue au quai.',
-      );
-      await pumpIo(tester, frames: 4);
-      await pumpIo(tester, frames: 4);
-      await tester.tap(find.text('Enregistrer l’interaction et la carte'));
-      await pumpIo(tester, frames: 16);
-      expect(
-        session.dirty,
-        isFalse,
-        reason: narrative.error ?? narrative.publicationError,
-      );
-      expect(
-        narrative.project.eventRegistry?.records.any((r) => r.id == id),
-        isTrue,
-      );
-
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Nom de l’interaction'),
-        'Version en cours',
-      );
-      await pumpIo(tester, frames: 4);
-      expect(session.dirty, isTrue);
+      final second = narrative.active!;
+      final sessions = {...narrative.sessions.keys};
       final disk = await f.disk();
-      await backToMap(f);
-      await openFromMenu(f, 4, 12);
-
-      expect(pane, findsOneWidget);
-      expect(identical(narrative.active, session), isTrue);
-      expect(narrative.active!.current.interaction.id, id);
-      expect(narrative.active!.current.interaction.name, 'Version en cours');
-      expect(
-        await f.disk(),
-        disk,
-        reason: 'reopening did not publish the draft',
+      await openZone(
+        f,
+        navigation,
+        'quai',
+        choose: (found) async {
+          expect(found, hasLength(2));
+          expect(found.values, containsAll(['Accueil quai', 'Retour au quai']));
+          return second.current.interaction.id;
+        },
       );
-    },
-    timeout: const Timeout(Duration(minutes: 3)),
-  );
-
-  testWidgets(
-    'a saved zone interaction opens in its events owner',
-    (tester) async {
-      final f = await MapHostFixture.open(tester);
-      final disk = await f.disk();
-
-      await openFromMenu(f, 11, 9);
-
-      final page = tester.widget<EventWorkspacePage>(
-        find.byType(EventWorkspacePage),
-      );
-      expect(page.controller.activeId, Ui05NarrativeFixture.eventId(7));
+      expect(navigation.space, WorkspaceSpace.interaction);
+      expect(narrative.active, same(second));
+      expect({...narrative.sessions.keys}, sessions);
       expect(await f.disk(), disk);
     },
-    timeout: const Timeout(Duration(minutes: 3)),
   );
 
   testWidgets(
-    'a late read never reopens the zone once the author went elsewhere',
+    'a zone without an interaction refuses without creating an identity',
     (tester) async {
-      late HeldNarrativePort held;
-      final f = await MapHostFixture.open(
-        tester,
-        events: false,
-        narrative: (port) => held = HeldNarrativePort(port),
-      );
-
-      await openFromMenu(f, 11, 9);
-      expect(held.reads, 1, reason: 'the saved dialogue is being read');
-      await f.go('Histoire');
-      held.gate.complete();
-      await pumpIo(tester, frames: 12);
-
-      expect(pane, findsNothing);
-      expect(find.byType(NarrativeStoryPane), findsOneWidget);
-    },
-    timeout: const Timeout(Duration(minutes: 3)),
-  );
-
-  testWidgets(
-    'several interactions on one zone offer only those, then open the one',
-    (tester) async {
-      final f = await MapHostFixture.open(tester);
+      final f = await NeutralMapHostFixture.open(tester);
       final narrative = await f.narrativeOwner();
-      await narrative.openSource(
-        f.document,
-        NarrativeEventSourceRef.triggerEnter(f.document.current.id, 'quai'),
-        'Retour au quai',
+      final navigation = navigationFor(f);
+      final sessions = {...narrative.sessions.keys};
+      final disk = await f.disk();
+      await RealTestIo.run(
+        tester,
+        () => navigation.openExistingStoryZone(
+          f.document,
+          const MapTrigger(
+            id: 'unbound',
+            name: 'Sans interaction',
+            type: TriggerType.event,
+            area: MapRect(
+              pos: GridPos(x: 1, y: 1),
+              size: GridSize(width: 1, height: 1),
+            ),
+          ),
+          choose: (_) async => throw StateError('Unexpected choice'),
+        ),
       );
-      await pumpIo(tester, frames: 8);
-      final second = narrative.active!;
-      await f.go('Carte');
-
-      await openFromMenu(f, 11, 9);
-      final chooser = find.byType(AlertDialog);
-      expect(chooser, findsOneWidget);
-      expect(
-        find.descendant(of: chooser, matching: find.text('Accueil quai')),
-        findsOneWidget,
-      );
-      expect(
-        find.descendant(of: chooser, matching: find.text('Retour au quai')),
-        findsOneWidget,
-      );
-      await tester.tap(
-        find.descendant(of: chooser, matching: find.text('Retour au quai')),
-      );
-      await pumpIo(tester, frames: 12);
-
-      expect(pane, findsOneWidget);
-      expect(identical(narrative.active, second), isTrue);
+      expect(f.document.error, contains('Aucune interaction'));
+      expect(navigation.space, WorkspaceSpace.map);
+      expect({...narrative.sessions.keys}, sessions);
+      expect(await f.disk(), disk);
     },
-    timeout: const Timeout(Duration(minutes: 3)),
   );
 }

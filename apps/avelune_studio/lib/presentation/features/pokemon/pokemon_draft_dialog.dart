@@ -1,8 +1,11 @@
+import '../../../features/pokemon/application/pokemon_workspace_workflow.dart';
+
 import 'package:flutter/material.dart';
 
 import '../../shared/widgets/buttons/studio_button.dart';
 
-enum PokemonDraftDecision { stay, discard, save }
+export '../../../features/pokemon/application/pokemon_workspace_workflow.dart'
+    show PokemonDraftDecision;
 
 Future<PokemonDraftDecision?> showPokemonDraftDialog(BuildContext context) =>
     showDialog<PokemonDraftDecision>(

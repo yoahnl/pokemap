@@ -1,7 +1,7 @@
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_canvas.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
+import 'package:avelune_studio/platform/rendering/viewports/map_editing_viewport_2d.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -141,7 +141,7 @@ void main() {
 Future<
   ({
     EditableMapDocument document,
-    MapWorkspaceViewState view,
+    MapEditingViewportSession view,
     MapData original,
     List<GridPos> contexts,
   })
@@ -164,13 +164,13 @@ mountCanvas(WidgetTester tester, StudioMapTool tool) async {
   final document = EditableMapDocument(
     MapWorkspaceDocument(map: original, revision: 'r0', mapId: 'a'),
   );
-  final view = MapWorkspaceViewState()..tool = tool;
+  final view = MapEditingViewportSession()..tool = tool;
   addTearDown(view.dispose);
   final contexts = <GridPos>[];
   await tester.pumpWidget(
     MaterialApp(
       home: Scaffold(
-        body: MapWorkspaceCanvas(
+        body: MapEditingViewport2D(
           document: document,
           project: workspaceProject,
           visuals: WorkspaceTestVisuals(),

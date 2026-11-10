@@ -1,3 +1,4 @@
+import 'package:avelune_studio/features/map_workspace/coordination/workspace_map_catalog_actions.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
@@ -22,6 +23,9 @@ Future<void> showDeleteMapDialog(
   }
   if (!context.mounted || controller.isDisposed) return;
   var published = false;
+  final operation = preparation == null
+      ? null
+      : WorkspaceMapPreparedMutation(controller, preparation);
   await showMapCatalogueForm(
     context,
     title: 'Supprimer la carte',
@@ -64,12 +68,7 @@ Future<void> showDeleteMapDialog(
       ],
     ),
     submit: () async {
-      final result = published
-          ? await controller.retryCatalogRefresh()
-          : await controller.applyPreparedCatalog(
-              preparation!,
-              confirmDestructive: true,
-            );
+      final result = await operation!.apply(confirmDestructive: true);
       published = result.published;
       return result.integrated
           ? null

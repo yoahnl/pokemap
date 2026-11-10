@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "proofTier": "historical_command_execution_recovered",
+  "status": "executed_passed_scope_limited",
+  "command": "/opt/homebrew/share/flutter-3.47.5/bin/flutter test test/map_workspace/selection_identity_test.dart test/map_workspace/locked_element_selection_test.dart test/terrain_canvas_test.dart test/map_workspace/spatial_terrain_painting_test.dart test/map_workspace/spatial_environment_gesture_test.dart test/resource_io/resource_navigation_receipt_recovery_test.dart test/resource_io/resource_navigation_save_test.dart test/resource_io/resource_pixel_invalidation_test.dart test/platform/rendering/studio_map_visual_animation_test.dart -r failures-only",
+  "cwd": "apps/avelune_studio",
+  "testFiles": [
+    "test/map_workspace/selection_identity_test.dart",
+    "test/map_workspace/locked_element_selection_test.dart",
+    "test/terrain_canvas_test.dart",
+    "test/map_workspace/spatial_terrain_painting_test.dart",
+    "test/map_workspace/spatial_environment_gesture_test.dart",
+    "test/resource_io/resource_navigation_receipt_recovery_test.dart",
+    "test/resource_io/resource_navigation_save_test.dart",
+    "test/resource_io/resource_pixel_invalidation_test.dart",
+    "test/platform/rendering/studio_map_visual_animation_test.dart"
+  ],
+  "testsPassed": 62,
+  "exitCode": 0,
+  "startedAt": "2026-11-09T20:42:54.332Z",
+  "finishedAt": "2026-11-09T20:43:15.473Z",
+  "durationSeconds": 21.140912666,
+  "provenance": {
+    "kind": "own_codex_tool_execution_journal",
+    "threadId": "01a1bd79-6137-75b1-93da-4261484b0175",
+    "turnId": "01a1c206-5678-7d72-b404-dee711ae6f1c",
+    "toolCallId": "call_880da231ebba4e8cb3cae5cab0d7171c",
+    "executionItemId": "exec-24fb38a0-a362-49bc-be50-d94f96cab290",
+    "execSessionId": "89408",
+    "callJournalLine": 11404,
+    "completionJournalLine": 11422,
+    "retrievedDuringT00Recovery": true
+  },
+  "log": {
+    "path": "proofs/t01-execution/before-characterization.log",
+    "sha256": "bbb577af55645bfc681d56c71cb4c96d4b67373995edd542370f6638bec0ce02"
+  },
+  "coverage": [
+    "selection identity and locked elements",
+    "2D terrain canvas and 3D terrain/environment gestures",
+    "resource receipt recovery, save and pixel invalidation",
+    "map visual animation"
+  ],
+  "limits": [
+    "No code-file fingerprints were attached to the command at execution.",
+    "The command did not explicitly set concurrency or TMPDIR; no retroactive claim of controlled settings.",
+    "These nine files do not prove Home, current-format progression saves, package export or Player scenarios.",
+    "This receipt does not establish two complete owned 2D/3D witness copies before UI retirement.",
+    "Inventory historical HEAD, execution-start HEAD and later concurrent HEAD are separate observations; no reconstructed dirty tree claimed."
+  ],
+  "g0Accepted": false,
+  "rui002Accepted": false
+}

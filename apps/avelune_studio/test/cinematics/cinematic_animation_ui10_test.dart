@@ -1,4 +1,4 @@
-import 'package:avelune_studio/presentation/features/events/event_map_loader.dart';
+import 'package:avelune_studio/features/events/application/event_map_loader.dart';
 import '../support/map_workspace_fixture.dart';
 import 'package:avelune_studio/presentation/features/cinematics/cinematic_library.dart';
 import 'package:flutter/material.dart';

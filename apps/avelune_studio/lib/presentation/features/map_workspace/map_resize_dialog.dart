@@ -1,3 +1,4 @@
+import 'package:avelune_studio/features/map_workspace/coordination/workspace_map_catalog_actions.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
@@ -9,7 +10,8 @@ import '../../shared/widgets/inputs/studio_draft_field.dart';
 import 'map_catalogue_form_dialog.dart';
 import 'map_lifecycle_issues.dart';
 import 'map_resize_preview.dart';
-import 'map_workspace_visuals.dart';
+
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 
 Future<void> showResizeMapDialog(
   BuildContext context,
@@ -32,6 +34,7 @@ Future<void> showResizeMapDialog(
       height = '${source?.size.height ?? ''}';
   var analyzing = false, published = false;
   MapCatalogPreparation? preparation;
+  WorkspaceMapPreparedMutation? operation;
   int? positive(String value) {
     final parsed = int.tryParse(value);
     return parsed != null && parsed > 0 ? parsed : null;
@@ -68,6 +71,7 @@ Future<void> showResizeMapDialog(
           onChanged: (value) {
             width = value;
             preparation = null;
+            operation = null;
             error = null;
             refresh();
           },
@@ -82,6 +86,7 @@ Future<void> showResizeMapDialog(
           onChanged: (value) {
             height = value;
             preparation = null;
+            operation = null;
             error = null;
             refresh();
           },
@@ -112,12 +117,18 @@ Future<void> showResizeMapDialog(
                   error = null;
                   refresh();
                   try {
-                    preparation = await controller
-                        .prepareCatalog('map.resize_apply', {
-                          'mapId': entry.id,
-                          'width': positive(width)!,
-                          'height': positive(height)!,
-                        });
+                    preparation = await controller.prepareCatalog(
+                      'map.resize_apply',
+                      {
+                        'mapId': entry.id,
+                        'width': positive(width)!,
+                        'height': positive(height)!,
+                      },
+                    );
+                    operation = WorkspaceMapPreparedMutation(
+                      controller,
+                      preparation!,
+                    );
                   } on Object catch (failure) {
                     error = '$failure';
                   }
@@ -163,9 +174,7 @@ Future<void> showResizeMapDialog(
       ],
     ),
     submit: () async {
-      final result = published
-          ? await controller.retryCatalogRefresh()
-          : await controller.applyPreparedCatalog(preparation!);
+      final result = await operation!.apply();
       published = result.published;
       return result.integrated
           ? null

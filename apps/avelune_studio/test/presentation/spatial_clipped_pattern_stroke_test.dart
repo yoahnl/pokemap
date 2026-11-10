@@ -3,8 +3,8 @@ import 'dart:convert';
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_canvas_stroke.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_canvas_stroke.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_workspace_editing_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
@@ -81,10 +81,9 @@ void main() {
             revision: 'clipped-floor',
           ),
         );
-        final view = MapWorkspaceViewState()
+        final view = MapWorkspaceEditingState()
           ..prepareTerrainPainting(preset)
           ..selectTerrainPattern(pattern);
-        addTearDown(view.dispose);
         final commands = MapEditingCommands(document, project);
         final stroke = MapCanvasStroke.start(
           map: map,
@@ -127,13 +126,10 @@ void main() {
           map: document.current,
           catalog: project.smartTileCatalog,
         );
-        expect(
-          remaining.where((instance) => instance.clip != null),
-          [
-            for (var i = 0; i < before.length; i++)
-              if (i != erasedIndex) before[i],
-          ],
-        );
+        expect(remaining.where((instance) => instance.clip != null), [
+          for (var i = 0; i < before.length; i++)
+            if (i != erasedIndex) before[i],
+        ]);
         final projected = projectSpatialSmartTileModels(
           map: document.current,
           catalog: project.smartTileCatalog,

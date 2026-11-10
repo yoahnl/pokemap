@@ -1,10 +1,9 @@
+import 'package:avelune_studio/features/world/application/world_editor_workflow.dart';
+
+import '../support/world_authoring_workflow_fixture.dart';
+
 import 'package:avelune_studio/presentation/features/events/event_condition_dialog.dart';
-import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
-import 'package:avelune_studio/features/narrative/application/narrative_workspace_controller.dart';
-import 'package:avelune_studio/features/narrative/domain/narrative_port.dart';
 import 'package:avelune_studio/features/world/application/world_workspace_controller.dart';
-import 'package:avelune_studio/presentation/features/world/world_workspace_page.dart';
-import 'package:avelune_studio/presentation/features/world/world_view_state.dart';
 
 import 'dart:async';
 
@@ -16,8 +15,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
-
-import '../support/map_workspace_fixture.dart';
 
 final revision = 'sha256:${List.filled(64, '0').join()}';
 AuthoringQueryPage page(List<Map<String, Object?>> items) => AuthoringQueryPage(
@@ -119,32 +116,12 @@ void main() {
       },
     );
   }
-  testWidgets(
-    'World Rule source modal preserves an existing negative daily predicate',
-    (tester) async {
-      tester.view.reset();
-      tester.view.physicalSize = const Size(1600, 1200);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.reset);
-      final maps = MapWorkspaceController(
-        workspaceSession,
-        WorkspaceMemoryPort(),
-      );
-      await maps.initialize();
-      addTearDown(maps.dispose);
-      final narrative = NarrativeWorkspaceController(
-        maps,
-        _UnusedNarrativePort(),
-        () {},
-        (_, _) async {},
-      );
-      final world = WorldWorkspaceController(
-        narrative,
-        _UnusedWorldPort(),
-        changed: () {},
-      );
-      addTearDown(world.dispose);
-      await world.initialize();
+  test(
+    'World Rule coordinator preserves an existing negative daily predicate',
+    () async {
+      final h = await WorldAuthoringWorkflowFixture.create();
+      addTearDown(h.dispose);
+      final world = h.world;
       final id = world.createRule();
       world.editRule(
         id,
@@ -153,52 +130,19 @@ void main() {
           expectedValue: false,
         ),
       );
-      final view = WorldViewState()..view = WorldView.rules;
-      addTearDown(view.dispose);
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: PeriodicRewardChoiceScope(
-              projectRootPath: '/project',
-              query: (request) async =>
-                  request.resourceKind == 'periodicRewardScene'
-                  ? page([scene('A')])
-                  : page([node('A')]),
-              child: WorldWorkspacePage(
-                controller: world,
-                view: view,
-                onBack: () {},
-              ),
-            ),
-          ),
-        ),
+      final initial = worldPeriodicRewardSelection(world.ruleDraft(id)!.source);
+      expect(initial.reference, reference('A'));
+      expect(initial.expectedValue, isFalse);
+      h.editor.applyPeriodicRewardCondition(
+        id,
+        initial.reference!,
+        initial.expectedValue,
       );
-      await tester.pumpAndSettle();
-      final block = find.byKey(const ValueKey('rule-block-Condition'));
-      await tester.tapAt(tester.getTopLeft(block) + const Offset(20, 20));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Récompense quotidienne').last);
-      await tester.pumpAndSettle();
-      final dialog = find.byType(AlertDialog);
-      final expected = tester
-          .widgetList<StudioSelect>(
-            find.descendant(of: dialog, matching: find.byType(StudioSelect)),
-          )
-          .singleWhere((value) => value.label == 'Disponibilité attendue');
-      expect(expected.value, 'false');
-      await tester.tap(
-        find.descendant(
-          of: dialog,
-          matching: find.text('Appliquer la condition quotidienne'),
-        ),
-      );
-      await tester.pumpAndSettle();
       expect(
         world.ruleDraft(id)!.source!.predicate,
         WorldRuleSourcePredicate.isFalse,
       );
       expect(world.ruleDraft(id)!.source!.rewardReference, reference('A'));
-      expect(tester.takeException(), isNull);
     },
   );
   testWidgets(
@@ -442,16 +386,4 @@ void main() {
     expect(changes, 0);
     expect(tester.takeException(), isNull);
   });
-}
-
-class _UnusedNarrativePort implements NarrativePort {
-  @override
-  dynamic noSuchMethod(Invocation invocation) =>
-      throw StateError('Unexpected publication');
-}
-
-class _UnusedWorldPort implements WorldPort {
-  @override
-  dynamic noSuchMethod(Invocation invocation) =>
-      throw StateError('Unexpected publication');
 }

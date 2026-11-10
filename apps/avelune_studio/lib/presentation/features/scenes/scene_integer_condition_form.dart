@@ -5,7 +5,7 @@ import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button
 import 'package:avelune_studio/presentation/shared/widgets/feedback/studio_notice.dart';
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_draft_field.dart';
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
-import 'scene_integer_authoring_fields.dart';
+import 'package:avelune_studio/features/scenes/application/scene_integer_authoring_fields.dart';
 
 class SceneIntegerConditionForm extends StatefulWidget {
   const SceneIntegerConditionForm({super.key, this.current, required this.project, required this.onApply, this.loadItems});

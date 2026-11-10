@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../shared/widgets/inputs/studio_choice.dart';
-import 'resource_catalog.dart';
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 
 extension ResourceLibraryFamilyLabels on ResourceLibraryFamily {
   String get label => switch (this) {

@@ -6,7 +6,7 @@ import 'package:map_runtime/map_runtime.dart';
 import 'package:avelune_studio/presentation/features/resources/decor_editor_screen.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_workspace_pane.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_catalog_view.dart';
-import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 import 'package:avelune_studio/presentation/features/terrains/terrain_editor_screen.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import '../support/m2_ui_fixture.dart';

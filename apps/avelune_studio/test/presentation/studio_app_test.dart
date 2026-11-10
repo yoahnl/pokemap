@@ -1,101 +1,147 @@
 import 'dart:async';
 
-import '../support/test_studio_app.dart';
-import '../support/open_project_path.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/features/project_session/application/project_session_controller.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:avelune_studio/features/project_session/application/project_session_state.dart';
+import 'package:avelune_studio/features/project_session/application/project_session_open_controller.dart';
+import 'package:avelune_studio/features/project_session/application/project_open_message.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/widgets.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:avelune_studio/app/studio_app.dart';
+import 'package:avelune_studio/app/di/providers.dart';
+
+import '../support/test_studio_app.dart';
+
+import '../support/controlled_project_session_port.dart';
 
 void main() {
-  testWidgets('releases the path field while the native picker owns input', (
-    tester,
-  ) async {
-    final port = _Port();
-    final picked = Completer<String?>();
-    await tester.pumpWidget(
-      TestStudioApp(
-        createSession: () => ProjectSessionController(port),
-        chooseDirectory: () => picked.future,
-      ),
+  test(
+    'pending picker retains entered path and blocks duplicate selection',
+    () async {
+      final port = ControlledProjectSessionPort();
+      final session = ProjectSessionController(port);
+      final picked = Completer<String?>();
+      var selections = 0;
+      final opening = ProjectSessionOpenController(
+        session: session,
+        chooseDirectory: () {
+          selections++;
+          return picked.future;
+        },
+      );
+      addTearDown(() async {
+        opening.dispose();
+        await session.dispose();
+      });
+      opening.path = '/brouillon';
+      final pending = opening.open(browse: true);
+      expect(opening.picking, isTrue);
+      expect(await opening.open(browse: true), isFalse);
+      expect(selections, 1);
+      picked.complete(null);
+      expect(await pending, isFalse);
+      expect(opening.path, '/brouillon');
+      expect(opening.picking, isFalse);
+      expect(port.requests, isEmpty);
+    },
+  );
+
+  test('opening coordinator does not load a project on construction', () async {
+    final port = ControlledProjectSessionPort();
+    final session = ProjectSessionController(port);
+    final opening = ProjectSessionOpenController(
+      session: session,
+      chooseDirectory: () async => null,
     );
-    await enterProjectPath(tester, '/brouillon');
-    await tapVisible(tester, find.byKey(const ValueKey('open-project-picker')));
-    await tester.pump(const Duration(milliseconds: 100));
-    expect(studioProjectPathField(), findsNothing);
-    picked.complete(null);
-    await tester.pumpAndSettle();
-    await revealProjectPath(tester);
-    expect(studioProjectPathField(), findsOneWidget);
-    expect(find.text('/brouillon'), findsOneWidget);
-    expect(port.opened, isEmpty);
-    await tester.pumpWidget(const SizedBox());
+    opening.dispose();
+    await session.dispose();
+    expect(port.requests, isEmpty);
+    expect(port.released, isEmpty);
   });
 
-  testWidgets('shows the real opening action without loading at startup', (
-    tester,
-  ) async {
-    final port = _Port();
-    await tester.pumpWidget(_app(port));
-    expect(find.bySemanticsLabel('Avelune Studio'), findsWidgets);
-    expect(find.text('Ouvrir un projet'), findsWidgets);
-    expect(port.opened, isEmpty);
-    await tester.pumpWidget(const SizedBox());
-  });
+  test(
+    'native selection opens identity then releases its real session',
+    () async {
+      final port = ControlledProjectSessionPort();
+      final session = ProjectSessionController(port);
+      final opening = ProjectSessionOpenController(
+        session: session,
+        chooseDirectory: () async => exampleA.directoryPath,
+      );
+      addTearDown(() async {
+        opening.dispose();
+        await session.dispose();
+      });
+      final pending = opening.open(browse: true);
+      await Future<void>.delayed(Duration.zero);
+      expect(session.state.status, ProjectSessionStatus.opening);
+      expect(port.requests, [exampleA.directoryPath]);
+      port.pending.single.complete(exampleA);
+      expect(await pending, isTrue);
+      expect(session.state.project, same(exampleA));
+      expect(opening.path, exampleA.directoryPath);
+      expect(await opening.close(), isTrue);
+      expect(session.state.project, isNull);
+      expect(port.released, [exampleA]);
+    },
+  );
 
-  testWidgets('opens from the native selection, displays identity and closes', (
-    tester,
-  ) async {
-    final port = _Port();
-    await tester.pumpWidget(_app(port));
-    await tapVisible(tester, find.byKey(const ValueKey('open-project-picker')));
-    await tester.pump();
-    expect(find.text('Lecture du projet…'), findsOneWidget);
-    expect(port.opened, ['/exemple']);
-    port.pending.complete(_project);
-    await tester.pumpAndSettle();
-    expect(find.text('Projet Exemple réellement lu'), findsWidgets);
-    await revealProjectPath(tester);
-    expect(find.text('/exemple'), findsWidgets);
-    expect(find.text('Projet ouvert'), findsOneWidget);
-    await tapVisible(tester, find.byKey(const ValueKey('Fermer le projet')));
-    await tester.pumpAndSettle();
-    expect(find.text('Projet ouvert'), findsNothing);
-    expect(port.closed, [_project]);
-    await tester.pumpWidget(const SizedBox());
-  });
+  test(
+    'invalid manifest has an actionable message and corrected path can retry',
+    () async {
+      final port = ControlledProjectSessionPort();
+      final session = ProjectSessionController(port);
+      final opening = ProjectSessionOpenController(
+        session: session,
+        chooseDirectory: () async => null,
+      );
+      addTearDown(() async {
+        opening.dispose();
+        await session.dispose();
+      });
+      final failed = opening.open(directoryPath: '/invalide');
+      port.pending.single.completeError(
+        const ProjectOpenFailure(ProjectOpenProblem.manifestInvalid),
+      );
+      expect(await failed, isFalse);
+      expect(projectOpenMessage(session.state.problem), contains('manifeste'));
+      expect(session.state.project, isNull);
+      final retry = opening.open(directoryPath: '/corrige');
+      port.pending.last.complete(exampleA);
+      expect(await retry, isTrue);
+      expect(port.requests, ['/invalide', '/corrige']);
+      expect(session.state.project, same(exampleA));
+    },
+  );
 
-  testWidgets('shows an actionable failure and retries the entered directory', (
-    tester,
-  ) async {
-    final port = _Port();
-    await tester.pumpWidget(_app(port));
-    await enterProjectPath(tester, '/invalide');
-    await tapVisible(tester, find.byKey(const ValueKey('open-project-path')));
-    await tester.pump();
-    port.pending.completeError(
-      const ProjectOpenFailure(ProjectOpenProblem.manifestInvalid),
-    );
-    await tester.pumpAndSettle();
-    expect(find.textContaining('manifeste'), findsWidgets);
-    expect(find.text('Projet ouvert'), findsNothing);
-    port.pending = Completer<ProjectSession>();
-    await enterProjectPath(tester, '/corrige');
-    await tapVisible(tester, find.byKey(const ValueKey('open-project-path')));
-    await tester.pump();
-    port.pending.complete(_project);
-    await tester.pumpAndSettle();
-    expect(port.opened, ['/invalide', '/corrige']);
-    expect(find.text('Projet Exemple réellement lu'), findsWidgets);
-    await tester.pumpWidget(const SizedBox());
-  });
+  test(
+    'cancelling pending read releases its late result without opening it',
+    () async {
+      final port = ControlledProjectSessionPort();
+      final session = ProjectSessionController(port);
+      final opening = ProjectSessionOpenController(
+        session: session,
+        chooseDirectory: () async => null,
+      );
+      addTearDown(() async {
+        opening.dispose();
+        await session.dispose();
+      });
+      final pending = opening.open(directoryPath: '/exemple');
+      opening.cancel();
+      port.pending.single.complete(exampleA);
+      expect(await pending, isFalse);
+      expect(session.state.project, isNull);
+      expect(port.released, [exampleA]);
+    },
+  );
 
   testWidgets(
-    'rebuilds and resizes without recreating or reloading a session',
+    'neutral host rebuild and resize retain the opened session scope',
     (tester) async {
       var created = 0;
-      final port = _Port();
+      final port = ControlledProjectSessionPort();
       ProjectSessionController create() {
         created++;
         return ProjectSessionController(port);
@@ -103,108 +149,47 @@ void main() {
 
       Widget app() => TestStudioApp(
         createSession: create,
-        chooseDirectory: () async => '/exemple',
+        chooseDirectory: () async => null,
       );
       await tester.pumpWidget(app());
-      await tapVisible(
-        tester,
-        find.byKey(const ValueKey('open-project-picker')),
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(StudioApp)),
+        listen: false,
       );
-      await tester.pump();
-      port.pending.complete(_project);
-      await tester.pumpAndSettle();
+      final session = container.read(projectSessionControllerProvider);
+      final pending = session.open(exampleA.directoryPath);
+      port.pending.single.complete(exampleA);
+      await pending;
       await tester.pumpWidget(app());
       await tester.binding.setSurfaceSize(const Size(480, 360));
       addTearDown(() => tester.binding.setSurfaceSize(null));
       await tester.pumpAndSettle();
-      expect(tester.takeException(), isNull);
+      expect(container.read(projectSessionControllerProvider), same(session));
+      expect(session.state.project, same(exampleA));
       expect(created, 1);
-      expect(port.opened, ['/exemple']);
-      expect(port.closed, isEmpty);
+      expect(port.requests, [exampleA.directoryPath]);
+      expect(port.released, isEmpty);
+      expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
       await tester.pump();
-      expect(port.closed, [_project]);
+      expect(session.disposed, isTrue);
+      expect(port.released, [exampleA]);
     },
   );
 
-  testWidgets('supports keyboard submission and focus traversal', (
-    tester,
-  ) async {
-    final port = _Port();
-    await tester.pumpWidget(_app(port));
-    await enterProjectPath(tester, '/clavier');
-    await tester.testTextInput.receiveAction(TextInputAction.done);
-    await tester.pump();
-    expect(port.opened, ['/clavier']);
-    port.pending.complete(_project);
-    await tester.pumpAndSettle();
-    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
-    expect(FocusManager.instance.primaryFocus, isNotNull);
-    expect(tester.takeException(), isNull);
-    await tester.pumpWidget(const SizedBox());
-  });
-
-  testWidgets('cancels a pending read and disposes its late result', (
-    tester,
-  ) async {
-    final port = _Port();
-    await tester.pumpWidget(_app(port));
-    await tapVisible(tester, find.byKey(const ValueKey('open-project-picker')));
-    await tester.pump();
-    await tapVisible(tester, find.text('Annuler l’ouverture'));
-    await tester.pump();
-    port.pending.complete(_project);
-    await tester.pumpAndSettle();
-    expect(find.text('Projet Exemple réellement lu'), findsNothing);
-    expect(port.closed, [_project]);
-    await tester.pumpWidget(const SizedBox());
-  });
-
-  testWidgets('does not open a directory picker result after disposal', (
-    tester,
-  ) async {
-    final port = _Port();
+  test('disposed coordinator ignores a late directory result', () async {
+    final port = ControlledProjectSessionPort();
+    final session = ProjectSessionController(port);
     final picked = Completer<String?>();
-    await tester.pumpWidget(
-      TestStudioApp(
-        createSession: () => ProjectSessionController(port),
-        chooseDirectory: () => picked.future,
-      ),
+    final opening = ProjectSessionOpenController(
+      session: session,
+      chooseDirectory: () => picked.future,
     );
-    await tapVisible(tester, find.byKey(const ValueKey('open-project-picker')));
-    await tester.pump();
-    await tester.pumpWidget(const SizedBox());
+    final pending = opening.open(browse: true);
+    opening.dispose();
     picked.complete('/tardif');
-    await tester.pumpAndSettle();
-    expect(port.opened, isEmpty);
-    expect(tester.takeException(), isNull);
+    expect(await pending, isFalse);
+    expect(port.requests, isEmpty);
+    await session.dispose();
   });
-}
-
-const _project = ProjectSession(
-  sessionId: 'session-exemple',
-  name: 'Projet Exemple réellement lu',
-  directoryPath: '/exemple',
-);
-
-Widget _app(_Port port) => TestStudioApp(
-  createSession: () => ProjectSessionController(port),
-  chooseDirectory: () async => '/exemple',
-);
-
-class _Port implements ProjectSessionPort {
-  var pending = Completer<ProjectSession>();
-  final opened = <String>[];
-  final closed = <ProjectSession>[];
-
-  @override
-  Future<ProjectSession> open(String directoryPath) {
-    opened.add(directoryPath);
-    return pending.future;
-  }
-
-  @override
-  Future<void> close(ProjectSession session) async {
-    closed.add(session);
-  }
 }

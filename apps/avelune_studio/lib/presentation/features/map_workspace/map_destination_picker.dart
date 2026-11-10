@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
-import '../../shared/text/studio_search_text.dart';
+import 'package:avelune_studio/features/resources/domain/studio_search_text.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/inputs/studio_choice.dart';
 import '../../shared/widgets/inputs/studio_search_field.dart';
 import '../../theme/studio_tokens.dart';
-import 'map_library_tree.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_library_tree.dart';
 
 final class MapDestinationChoice {
   const MapDestinationChoice(this.map, this.folderPath);

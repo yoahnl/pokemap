@@ -2,9 +2,9 @@ import 'package:avelune_studio/features/map_workspace/application/editable_map_d
 import 'package:avelune_studio/features/map_workspace/application/map_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/features/terrains/application/terrain_brush.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_canvas_stroke.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_terrain_highlight.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_canvas_stroke.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_terrain_highlight.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_workspace_editing_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
@@ -15,14 +15,14 @@ import '../terrain_creation_test.dart'
 void main() {
   late ProjectManifest project;
   late ProjectSmartTilePreset preset;
-  late MapWorkspaceViewState view;
+  late MapWorkspaceEditingState view;
   late MapData source;
   setUp(() {
     final draft = terrainDraft();
     assignAll(draft);
     project = publishFixture(draft);
     preset = project.smartTileCatalog.presets.single;
-    view = MapWorkspaceViewState()
+    view = MapWorkspaceEditingState()
       ..terrain = preset
       ..tool = StudioMapTool.terrain;
     source = applyTerrainStroke(
@@ -37,7 +37,6 @@ void main() {
       ],
     );
   });
-  tearDown(() => view.dispose());
 
   test('highlight follows painted cells, holes and disconnected islands', () {
     final highlight = MapTerrainHighlight.resolve(source, view)!;
@@ -129,10 +128,9 @@ void main() {
   );
 
   test('tool, preset and view changes do not leak highlight across maps', () {
-    final second = MapWorkspaceViewState()
+    final second = MapWorkspaceEditingState()
       ..terrain = preset
       ..tool = StudioMapTool.terrain;
-    addTearDown(second.dispose);
     view.highlightTerrain = false;
     expect(MapTerrainHighlight.resolve(source, view), isNull);
     expect(MapTerrainHighlight.resolve(source, second), isNotNull);

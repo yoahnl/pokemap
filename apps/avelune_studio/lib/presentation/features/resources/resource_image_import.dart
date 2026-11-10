@@ -1,32 +1,15 @@
 import 'dart:math';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
-import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
+import 'package:avelune_studio/features/resources/domain/resource_image_picker.dart';
+
+export 'package:avelune_studio/features/resources/domain/resource_image_picker.dart';
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 import 'package:avelune_studio/presentation/shared/widgets/layout/studio_panel.dart';
 import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
 import 'package:avelune_studio/presentation/shared/widgets/feedback/studio_notice.dart';
-
-class PickedResourceImage {
-  const PickedResourceImage(
-    this.path,
-    this.name,
-    this.bytes,
-    this.width,
-    this.height,
-  );
-  final String path;
-  final String name;
-  final Uint8List bytes;
-  final int width;
-  final int height;
-}
-
-typedef PickResourceImage = Future<PickedResourceImage?> Function();
-
-enum ResourceImportIntent { source, decor, terrain }
 
 class ResourceImportResult extends StatelessWidget {
   const ResourceImportResult({

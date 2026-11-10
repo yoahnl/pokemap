@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
-import 'event_condition_labels.dart';
+import 'package:avelune_studio/features/events/application/event_condition_labels.dart';
 import 'event_labels.dart';
 
 Future<NarrativeEventCondition?> chooseEventCondition(

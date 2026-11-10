@@ -3,9 +3,9 @@ import 'dart:typed_data';
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/spatial_map_editor.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
+import 'package:avelune_studio/platform/rendering/viewports/spatial_map_editing_viewport.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -37,7 +37,7 @@ void main() {
     final document = EditableMapDocument(
       MapWorkspaceDocument(map: map, mapId: map.id, revision: 'r0'),
     )..visualProfile = profile;
-    final view = MapWorkspaceViewState();
+    final view = MapEditingViewportSession();
     final workspace = MapWorkspaceController(
       workspaceSession,
       WorkspaceMemoryPort(),
@@ -50,7 +50,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: SpatialMapEditor(
+          body: SpatialMapEditingViewport(
             document: document,
             controller: workspace,
             project: project,

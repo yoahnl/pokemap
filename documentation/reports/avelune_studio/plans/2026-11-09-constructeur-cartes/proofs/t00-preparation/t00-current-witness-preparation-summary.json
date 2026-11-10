@@ -1,0 +1,55 @@
+{
+  "twoD": {
+    "copy": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/twoD",
+    "original": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/source-twoD/avelune_m3_story_3jjxRd",
+    "originalUnchanged": true,
+    "copyMatchesOriginalBeforeReader": true,
+    "readerDidNotChangeCopy": true,
+    "files": 11,
+    "bytes": 35182,
+    "tree": "7e9cd24cbb15d3c6d5556b70035ec77746912895ce9a42b6a0ac573210bd8ef5",
+    "reader": "read",
+    "validationValid": true,
+    "maps": [
+      "clairiere",
+      "jardin"
+    ],
+    "sceneIds": [
+      "scene_evt_019abcde-9000-7000-8000-000000000007",
+      "scene.export.complete"
+    ],
+    "artifactRecords": 0,
+    "glbs": 0,
+    "atlases": 1
+  },
+  "threeD": {
+    "copy": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/threeD",
+    "original": "/Users/karim/Project/avelune project/HGSS 3D Pack/reconstruction-bourg-geon-20261022/doors-wind-20261022/story-prototype-ui",
+    "originalUnchanged": true,
+    "copyMatchesOriginalBeforeReader": true,
+    "readerDidNotChangeCopy": true,
+    "files": 2393,
+    "bytes": 10477778,
+    "tree": "1559fc8b04ee112ef1bc94a0088e62186e90d5aa4c7448f2d15741f1f96bb3b1",
+    "reader": "read",
+    "validationValid": true,
+    "maps": [
+      "first-map",
+      "maison-etage",
+      "maison-rdc"
+    ],
+    "sceneIds": [
+      "hgss_door_player_enter",
+      "hgss_door_player_exit"
+    ],
+    "artifactRecords": 607,
+    "glbs": 587,
+    "atlases": 15
+  },
+  "runner": {
+    "exitCode": 0,
+    "liveOwnedPids": [],
+    "tmpRemoved": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/creation-session-tmp-piovz_xc",
+    "logCompletion": "+2: All tests passed!"
+  }
+}

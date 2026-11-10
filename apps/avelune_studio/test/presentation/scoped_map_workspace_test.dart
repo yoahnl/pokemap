@@ -5,8 +5,8 @@ import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_screen.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/workspace_resource_diagnostic.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
+import 'package:avelune_studio/platform/rendering/contracts/workspace_resource_diagnostic.dart';
 import 'package:avelune_studio/features/resources/application/working_catalog_controller.dart';
 import 'package:avelune_studio/features/resources/domain/working_catalog_port.dart';
 import 'package:avelune_studio/presentation/features/resources/working_catalog_workspace.dart';

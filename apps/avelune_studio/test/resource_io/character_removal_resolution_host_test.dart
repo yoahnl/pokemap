@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:avelune_studio/presentation/features/characters/character_studio_controller.dart';
+import 'package:avelune_studio/features/characters/coordination/character_studio_controller.dart';
 import '../support/m2_ui_fixture.dart';
 import '../support/uwu5_character_host.dart';
 

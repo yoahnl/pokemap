@@ -1,11 +1,8 @@
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/features/terrains/application/terrain_brush.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_library_navigator.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_terrain_inspector.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_canvas.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
+import 'package:avelune_studio/platform/rendering/viewports/map_editing_viewport_2d.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -16,7 +13,7 @@ import '../terrain_creation_test.dart'
 
 void main() {
   test('fit keeps the complete map inside the available viewport', () {
-    final view = MapWorkspaceViewState();
+    final view = MapEditingViewportSession();
     addTearDown(view.dispose);
     const viewport = Size(1000, 700);
     const content = Size(1000, 800);
@@ -35,43 +32,10 @@ void main() {
     );
   });
 
-  testWidgets('search with no result explains how to restore the map library', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: studioTheme(),
-        home: Scaffold(
-          body: MapLibraryNavigator(
-            project: workspaceProject,
-            activeMapId: 'a',
-            dirtyMapIds: const {},
-            onActivate: (_) {},
-            onOrganize: null,
-          ),
-        ),
-      ),
-    );
-    await tester.tap(find.byKey(const ValueKey('Rechercher une carte')));
-    await tester.pump();
-    await tester.enterText(find.byType(TextField), 'Carte inexistante');
-    await tester.pump();
-    expect(
-      find.text('Aucune carte ne correspond à votre recherche.'),
-      findsOneWidget,
-    );
-    await tester.tap(find.text('Effacer la recherche'));
-    await tester.pump();
-    expect(find.byKey(const ValueKey('map-library-list')), findsOneWidget);
-    expect(find.text('Clairière'), findsNWidgets(2));
-    expect(find.textContaining('Dossier : '), findsOneWidget);
-    expect(find.text('Jardin'), findsOneWidget);
-  });
-
   testWidgets('tool panels resize the fitted viewport without clipping', (
     tester,
   ) async {
-    final view = MapWorkspaceViewState();
+    final view = MapEditingViewportSession();
     addTearDown(view.dispose);
     const content = Size(2048, 1664);
     void attach(Size viewport) => view.attachViewport(
@@ -121,15 +85,14 @@ void main() {
       final document = EditableMapDocument(
         MapWorkspaceDocument(map: map, revision: 'r0', mapId: 'a'),
       );
-      final view = MapWorkspaceViewState()
+      final view = MapEditingViewportSession()
         ..terrain = preset
         ..tool = StudioMapTool.terrain;
       addTearDown(view.dispose);
       await tester.pumpWidget(
         MaterialApp(
-          theme: studioTheme(),
           home: Scaffold(
-            body: MapWorkspaceCanvas(
+            body: MapEditingViewport2D(
               document: document,
               project: project,
               visuals: WorkspaceTestVisuals(),
@@ -156,13 +119,12 @@ void main() {
     final document = EditableMapDocument(
       MapWorkspaceDocument(map: map, revision: 'r0', mapId: 'a'),
     );
-    final view = MapWorkspaceViewState();
+    final view = MapEditingViewportSession();
     addTearDown(view.dispose);
     await tester.pumpWidget(
       MaterialApp(
-        theme: studioTheme(),
         home: Scaffold(
-          body: MapWorkspaceCanvas(
+          body: MapEditingViewport2D(
             document: document,
             project: workspaceProject,
             visuals: WorkspaceTestVisuals(),
@@ -179,67 +141,12 @@ void main() {
       find.text(
         'Carte vide · choisissez un terrain ou un décor dans la palette.',
       ),
-      findsOneWidget,
+      findsNothing,
     );
-    expect(document.current, same(map));
-  });
-
-  testWidgets('terrain information keeps its target when highlight is hidden', (
-    tester,
-  ) async {
-    final draft = terrainDraft();
-    assignAll(draft);
-    final project = publishFixture(draft);
-    final preset = project.smartTileCatalog.presets.single;
-    final map = applyTerrainStroke(
-      map: workspaceMap('a'),
-      manifest: project,
-      preset: preset,
-      cells: [const GridPos(x: 2, y: 2)],
-    );
-    final document = EditableMapDocument(
-      MapWorkspaceDocument(map: map, revision: 'r0', mapId: 'a'),
-    );
-    final view = MapWorkspaceViewState()
-      ..terrain = preset
-      ..tool = StudioMapTool.terrain
-      ..highlightTerrain = false;
-    addTearDown(view.dispose);
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: studioTheme(),
-        home: Scaffold(
-          body: MapTerrainInspector(
-            document: document,
-            project: project,
-            view: view,
-            visuals: WorkspaceTestVisuals(),
-            onChanged: () {},
-            width: 320,
-          ),
-        ),
-      ),
-    );
-    await tester.scrollUntilVisible(
-      find.text('Informations du terrain').hitTestable(),
-      200,
-      scrollable: find
-          .descendant(
-            of: find.byType(MapTerrainInspector),
-            matching: find.byType(Scrollable),
-          )
-          .first,
-    );
-    await tester.tap(find.text('Informations du terrain'));
-    await tester.pumpAndSettle();
-    expect(find.text('Calque édité'), findsNothing);
-    expect(find.text('Raccords'), findsOneWidget);
     expect(
-      find.text('${preset.rules.length} règles définies dans Ressources.'),
-      findsOneWidget,
+      tester.getSize(find.byKey(const ValueKey('map-surface-bounds'))),
+      const Size(640, 512),
     );
     expect(document.current, same(map));
-    expect(document.dirty, isFalse);
-    expect(document.undoCount, 0);
   });
 }

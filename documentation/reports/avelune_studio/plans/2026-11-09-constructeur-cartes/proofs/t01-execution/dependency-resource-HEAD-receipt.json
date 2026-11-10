@@ -1,0 +1,29 @@
+{
+  "head": "c69ffb95ac86bde48816955e9b663e93f996485d",
+  "studioSource": "git archive HEAD apps/avelune_studio",
+  "runtimeSource": "git archive HEAD packages/map_runtime",
+  "packageConfigOverrides": {
+    "map_runtime": "file:///Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/dependency-resource-HEAD-source/packages/map_runtime/",
+    "avelune_studio": "file:///Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/dependency-resource-HEAD-source/apps/avelune_studio/"
+  },
+  "otherDependencies": "Current configured dependency paths; no repository mutation",
+  "compilerSetupChanges": [
+    "Copied package_graph.json required by Flutter --no-pub",
+    "Copied plugin dependency metadata; no source/build/cache copied"
+  ],
+  "sourceSha256": {
+    "apps/avelune_studio/lib/platform/rendering/studio_resource_decoder.dart": "3e17dd7a7cf4a0d8b59530a57d91a115e125e2ffa66e8c9b8eca9e27e8756e9c",
+    "packages/map_runtime/lib/src/infrastructure/tile_image_loader.dart": "1e3488e5af29ee232e33f6d5a7f51dbc60f2cc8fd32cc0a89296b0533acd5a52",
+    "apps/avelune_studio/test/infrastructure/studio_resource_lifecycle_test.dart": "81a6cca6c77d38fb72a159890814110cefa6d4023fbeab92da55c0bbf6963123",
+    "apps/avelune_studio/test/infrastructure/studio_resource_catalog_update_test.dart": "9c13696738317f0b9aedc432bd03958baec1515c1101c2d92f5e4542a88e9004"
+  },
+  "result": {
+    "exitCode": 1,
+    "passed": 17,
+    "failed": 2,
+    "sameFailuresAsWorkingTree": true,
+    "claim": "Both failures reproduce with HEAD Studio and map_runtime sources; this is not a diagnosis of the underlying image descriptor failure."
+  },
+  "activeProcessesAfterRun": [],
+  "temporarySourceRemoved": true
+}

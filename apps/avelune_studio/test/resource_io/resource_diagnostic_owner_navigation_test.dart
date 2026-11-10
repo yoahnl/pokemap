@@ -1,6 +1,6 @@
 import 'package:avelune_studio/platform/rendering/studio_resource_index.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/workspace_resource_diagnostic.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
+import 'package:avelune_studio/platform/rendering/contracts/workspace_resource_diagnostic.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/workspace_resource_diagnostics.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import 'package:flutter/material.dart';

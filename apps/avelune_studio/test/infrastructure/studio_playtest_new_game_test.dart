@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -15,7 +16,11 @@ import 'package:map_runtime/map_runtime.dart';
 import '../../tool/create_example_project.dart';
 
 void main() {
-  testWidgets('cancelling the player name returns to the editor', (tester) async {
+  late StudioPlaytestControls controls;
+  setUp(() => controls = StudioPlaytestControls());
+  testWidgets('cancelling the player name returns to the editor', (
+    tester,
+  ) async {
     late Directory root;
     late ProjectSession session;
     late ProjectManifest project;
@@ -61,6 +66,7 @@ void main() {
           body: StatefulBuilder(
             builder: (context, setHostState) => playtestOpen
                 ? StudioPlaytestView(
+                    controls: controls,
                     session: session,
                     entry: project.maps.first,
                     expectedRevision: revision,
@@ -188,6 +194,7 @@ void main() {
         MaterialApp(
           home: Scaffold(
             body: StudioPlaytestView(
+              controls: controls,
               session: session,
               entry: project.maps.first,
               expectedRevision: revision,
@@ -229,15 +236,19 @@ void main() {
       expect(game.gameStateSnapshot.party.members.single.speciesId, 'second');
       expect(game.gameStateSnapshot.trainerProfile.name, 'Yoahn');
       expect(game.gameStateSnapshot.currentMapId, 'jardin');
-      await tester.tap(find.text('Enregistrer le test'));
-      await _waitFor(
-        tester,
-        find.text('Test enregistré en mémoire pour cette session.'),
+      await tester.runAsync(controls.save);
+      expect(
+        controls.status.message,
+        'Test enregistré en mémoire pour cette session.',
       );
-      await tester.tap(find.text('Reprendre le test'));
-      await _waitFor(tester, find.text('Sauvegarde du test reprise.'));
+      unawaited(controls.resume());
+      await _waitForControl(
+        tester,
+        () => controls.status.message == 'Sauvegarde du test reprise.',
+      );
       expect(game.gameStateSnapshot.party.members.single.speciesId, 'second');
-      await tester.tap(find.text('Nouvelle partie'));
+      await controls.newGame();
+      await tester.pump();
       await _waitFor(tester, find.byType(PlayerSceneInteractionSurface));
       expect(find.byType(GameWidget<PlayableMapGame>), findsNothing);
       await tester.pumpWidget(const SizedBox());
@@ -259,5 +270,22 @@ Future<void> _waitFor(WidgetTester tester, Finder finder) async {
     await tester.pump(const Duration(milliseconds: 16));
     if (finder.evaluate().isNotEmpty) return;
   }
-  expect(finder, findsWidgets);
+  expect(
+    finder,
+    findsWidgets,
+    reason: tester
+        .widgetList<Text>(find.byType(Text))
+        .map((text) => text.data)
+        .join(' | '),
+  );
+}
+
+Future<void> _waitForControl(WidgetTester tester, bool Function() ready) async {
+  for (var attempt = 0; attempt < 300 && !ready(); attempt++) {
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 10)),
+    );
+    await tester.pump(const Duration(milliseconds: 16));
+  }
+  expect(ready(), isTrue);
 }

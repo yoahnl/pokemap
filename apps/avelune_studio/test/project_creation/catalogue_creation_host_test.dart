@@ -4,21 +4,21 @@ import 'dart:io';
 import 'package:avelune_studio/features/project_session/data/local_project_session_adapter.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/platform/rendering/studio_map_resources.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_canvas.dart';
+import 'package:avelune_studio/platform/rendering/viewports/map_editing_viewport_2d.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring_local.dart';
 
 import '../support/synthetic_template_fixture.dart';
 import '../support/project_creation_workspace_fixture.dart';
-import '../support/m2_ui_fixture.dart' show pumpIo;
+import '../support/real_test_io.dart';
 import '../support/capture_m3_widget.dart';
 import '../support/load_desktop_capture_fonts.dart';
 import '../support/synthetic_player_recipe.dart';
 
 void main() {
   testWidgets(
-    'real home creator downloads Template Alpha and opens an independent copy',
+    'canonical creation downloads Template Alpha once and opens an independent native copy',
     (tester) async {
       final parent = (await tester.runAsync(() async {
         await loadDesktopCaptureFonts();
@@ -45,38 +45,25 @@ void main() {
           },
         ),
       );
-      await tester.tap(find.text('Nouveau projet'));
-      await pumpIo(tester, frames: 4);
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Nom du projet'),
-        'Mon Template Alpha',
+      await host.submitCreation(
+        16,
+        name: 'Mon Template Alpha',
+        templateId: 'alpha',
+        confirm: false,
       );
-      await host.next();
-      final chosenTemplate = find.byKey(
-        const ValueKey('creation-template-catalogue-alpha'),
-      );
-      await Scrollable.ensureVisible(tester.element(chosenTemplate));
-      await tester.pumpAndSettle();
-      await tester.tap(chosenTemplate);
-      await pumpIo(tester, frames: 8);
-      expect(find.textContaining(syntheticDescriptor.label), findsWidgets);
+      expect(host.creator!.selectedTemplate!.label, syntheticDescriptor.label);
+      expect(host.creator!.previewBytes, isNotEmpty);
+      expect(host.creator!.previewError, isNull);
       expect(
         urls.where((uri) => uri == syntheticDescriptor.archiveUri),
         isEmpty,
       );
-      await captureM3Widget(tester, key, 'alpha-model');
-      await host.next();
-      expect(find.byKey(const ValueKey('creation-grid-32')), findsNothing);
-      expect(find.byKey(const ValueKey('creation-grid-48')), findsNothing);
-      await host.next();
-      await tester.tap(find.byKey(const ValueKey('creation-choose-parent')));
-      await pumpIo(tester, frames: 8);
-      expect(await tester.runAsync(() => parent.list().toList()), isEmpty);
-      await tester.tap(find.byKey(const ValueKey('create-project-confirm')));
-      for (var i = 0; i < 100 && host.session.state.project == null; i++) {
-        await pumpIo(tester, frames: 3);
-      }
-      await pumpIo(tester, frames: 30);
+      expect(
+        await RealTestIo.run(tester, () => parent.list().toList()),
+        isEmpty,
+      );
+      expect(await host.performCreation(), isTrue);
+      await host.pump(frames: 30);
       expect(
         urls.where((uri) => uri == syntheticDescriptor.archiveUri).length,
         1,
@@ -86,7 +73,9 @@ void main() {
       expect(host.maps.project!.maps.length, 2);
       final resources =
           tester
-                  .widget<MapWorkspaceCanvas>(find.byType(MapWorkspaceCanvas))
+                  .widget<MapEditingViewport2D>(
+                    find.byType(MapEditingViewport2D),
+                  )
                   .visuals
               as StudioMapResources;
       var ready = false;

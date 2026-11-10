@@ -1,118 +1,133 @@
 import 'dart:convert';
+
 import 'package:avelune_studio/features/events/application/event_workspace_controller.dart';
+import 'package:avelune_studio/features/events/application/event_simulation_session.dart';
+import 'package:avelune_studio/features/events/application/event_condition_editing.dart';
+import 'package:avelune_studio/features/events/application/event_labels.dart';
 import 'package:avelune_studio/features/events/domain/event_record_view.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_entity_editing_commands.dart';
-import 'package:avelune_studio/presentation/features/events/event_conditions.dart';
-import 'package:avelune_studio/presentation/features/events/event_page_content.dart';
-import 'package:avelune_studio/presentation/features/events/event_view_state.dart';
-import 'package:avelune_studio/presentation/features/events/event_map_loader.dart';
-import 'package:avelune_studio/presentation/features/events/event_simulation_dialog.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
-import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import 'support/event_backend_fixture.dart';
 import 'support/ui06_scene_fixture.dart';
-import 'support/map_workspace_fixture.dart';
+
+Future<EventBackendFixture> prepared() async {
+  final fixture = await EventBackendFixture.create();
+  addTearDown(fixture.dispose);
+  final controller = fixture.attach();
+  expect(await controller.prepareAllMaps(), isTrue, reason: controller.error);
+  return fixture;
+}
 
 void main() {
-  testWidgets('condition workspace passes a real owner only for entity sources', (tester) async {
-    final fixture = (await tester.runAsync(EventBackendFixture.create))!;
-    addTearDown(fixture.dispose);
+  test('condition scope supplies an owner only for entity sources', () async {
+    final fixture = await prepared();
     final document = fixture.workspace.documents.values.first;
-    final owner = MapEntityEditingCommands(document, fixture.workspace.project!)
-        .place(MapEntityKind.sign, const GridPos(x: 1, y: 1));
-    final controller = fixture.attach();
-    expect(await tester.runAsync(controller.prepare), isTrue);
-    final map = controller.maps.singleWhere((map) => map.id == document.current.id);
-    final view = EventViewState()..tab = EventTab.conditions;
-    addTearDown(view.dispose);
+    final owner = MapEntityEditingCommands(
+      document,
+      fixture.workspace.project!,
+    ).place(MapEntityKind.sign, const GridPos(x: 1, y: 1));
+    final controller = fixture.controller!;
     for (final entitySource in [true, false]) {
-      final record = controller.create('Conditions', source: entitySource
-          ? NarrativeEventSourceRef.entityInteract(map.id, owner.id)
-          : NarrativeEventSourceRef.mapEnter(map.id))!;
-      await tester.pumpWidget(MaterialApp(theme: studioTheme(), home: Scaffold(body:
-        EventPageContent(record: record, controller: controller, view: view,
-          loader: EventMapLoader(fixture.workspace), visuals: WorkspaceTestVisuals(),
-          onLocate: (_) {}, onScene: (_) {}, mutate: (_) {}, sceneDirtyIds: {}, onMode: () {}))));
-      final conditions = tester.widget<EventConditions>(find.byType(EventConditions));
-      expect(conditions.entityId, entitySource ? owner.id : null);
-      expect(conditions.mapId, entitySource ? map.id : null);
+      final record = controller.create(
+        'Conditions',
+        source: entitySource
+            ? NarrativeEventSourceRef.entityInteract(
+                document.current.id,
+                owner.id,
+              )
+            : NarrativeEventSourceRef.mapEnter(document.current.id),
+      )!;
+      final scope = eventConditionOwner(record.source);
+      expect(scope.entityId, entitySource ? owner.id : null);
+      expect(scope.mapId, entitySource ? document.current.id : null);
     }
   });
-  testWidgets('local simulation uses real owners and reports an absent instance', (tester) async {
-    final fixture = (await tester.runAsync(EventBackendFixture.create))!;
-    addTearDown(fixture.dispose);
-    final controller = fixture.attach();
-    expect(await tester.runAsync(controller.prepare), isTrue);
-    final map = controller.maps.firstWhere((map) => map.entities.isNotEmpty);
-    final owner = map.entities.first;
-    expect(controller.setEnabled(Ui06SceneFixture.eventId, false), isTrue);
-    expect(controller.setExpression(Ui06SceneFixture.eventId,
-      NarrativeEventConditionExpression.leaf(NarrativeEventCondition.mapEventInstanceBoolean(
-        mapId: map.id, eventId: owner.id, key: 'opened', expectedValue: true))), isTrue,
-      reason: controller.error);
-    expect(controller.setEnabled(Ui06SceneFixture.eventId, true), isTrue,
-      reason: controller.error);
-    final bytes = jsonEncode(controller.project.toJson());
-    await _openSimulation(tester, controller);
-    await tester.tap(find.text('Simuler'));
-    await tester.pumpAndSettle();
-    expect(find.text('Aucun événement sélectionné'), findsOneWidget);
-    final local = find.byKey(ValueKey('simulation-local:${map.id}:${owner.id}:opened'));
-    await tester.ensureVisible(local);
-    final select = tester.widget<StudioSelect>(local);
-    select.onChanged!('true');
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Simuler'));
-    await tester.pumpAndSettle();
-    expect(find.text('Cet événement est sélectionné'), findsOneWidget);
-    tester.widget<StudioSelect>(find.byKey(ValueKey('simulation-instance:${map.id}'))).onChanged!('absent');
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Simuler'));
-    await tester.pumpAndSettle();
-    expect(find.text('Aucun événement sélectionné'), findsOneWidget);
-    expect(jsonEncode(controller.project.toJson()), bytes);
-    expect(tester.takeException(), isNull);
-  });
-  testWidgets(
-    'simulation reruns against a removed source without stale success',
-    (tester) async {
-      final fixture = (await tester.runAsync(EventBackendFixture.create))!;
-      addTearDown(fixture.dispose);
-      final controller = fixture.attach();
-      expect(await tester.runAsync(controller.prepare), isTrue);
-      await _openSimulation(tester, controller);
-      await tester.tap(find.text('Simuler'));
-      await tester.pumpAndSettle();
-      expect(find.text('Cet événement est sélectionné'), findsOneWidget);
-      expect(controller.setSource(Ui06SceneFixture.eventId, null), isTrue);
-      await tester.tap(find.text('Simuler'));
-      await tester.pumpAndSettle();
-      expect(find.text('Cet événement est sélectionné'), findsNothing);
-      expect(find.text('Aucun événement sélectionné'), findsOneWidget);
-      expect(find.textContaining('Source absente'), findsWidgets);
-    },
-  );
 
-  testWidgets(
-    'simulation names the competing event instead of selecting target',
-    (tester) async {
-      final fixture = (await tester.runAsync(EventBackendFixture.create))!;
-      addTearDown(fixture.dispose);
-      final controller = fixture.attach();
-      expect(await tester.runAsync(controller.prepare), isTrue);
-      final source = controller.record(Ui06SceneFixture.eventId)!.source;
+  test(
+    'local simulation uses real owners and reports an absent instance',
+    () async {
+      final fixture = await prepared();
+      final controller = fixture.controller!;
+      final map = controller.maps.firstWhere((map) => map.entities.isNotEmpty);
+      final owner = map.entities.first;
+      expect(controller.setEnabled(Ui06SceneFixture.eventId, false), isTrue);
       expect(
-        await tester.runAsync(
-          () => controller.changeMode(EventSystemMode.dualRead),
+        controller.setExpression(
+          Ui06SceneFixture.eventId,
+          NarrativeEventConditionExpression.leaf(
+            NarrativeEventCondition.mapEventInstanceBoolean(
+              mapId: map.id,
+              eventId: owner.id,
+              key: 'opened',
+              expectedValue: true,
+            ),
+          ),
         ),
         isTrue,
         reason: controller.error,
       );
-      expect(await tester.runAsync(controller.prepare), isTrue);
+      expect(
+        controller.setEnabled(Ui06SceneFixture.eventId, true),
+        isTrue,
+        reason: controller.error,
+      );
+      final bytes = jsonEncode(controller.project.toJson());
+      final simulation = EventSimulationSession(
+        controller,
+        Ui06SceneFixture.eventId,
+      );
+      expect(
+        simulation.localConditions,
+        contains((map.id, owner.id, 'opened')),
+      );
+      simulation.run();
+      expect(simulation.report!.handledEventId, isNull);
+      simulation.setLocalBoolean(map.id, owner.id, 'opened', true);
+      expect(simulation.report, isNull);
+      simulation.run();
+      expect(simulation.report!.handledEventId, Ui06SceneFixture.eventId);
+      simulation.setMapAbsent(map.id, true);
+      simulation.run();
+      expect(simulation.report!.handledEventId, isNull);
+      expect(jsonEncode(controller.project.toJson()), bytes);
+    },
+  );
+
+  test(
+    'simulation reruns against a removed source without stale success',
+    () async {
+      final fixture = await prepared();
+      final controller = fixture.controller!;
+      final simulation = EventSimulationSession(
+        controller,
+        Ui06SceneFixture.eventId,
+      );
+      simulation.run();
+      expect(simulation.report!.handledEventId, Ui06SceneFixture.eventId);
+      expect(controller.setSource(Ui06SceneFixture.eventId, null), isTrue);
+      simulation.run();
+      expect(simulation.report!.handledEventId, isNull);
+      expect(
+        simulation.report!.reasons,
+      contains(NarrativeEventSimulationReason.sourceMissing),
+      );
+    },
+  );
+
+  test(
+    'simulation names the competing event instead of selecting target',
+    () async {
+      final fixture = await prepared();
+      final controller = fixture.controller!;
+      final source = controller.record(Ui06SceneFixture.eventId)!.source;
+      expect(
+        await controller.changeMode(EventSystemMode.dualRead),
+        isTrue,
+        reason: controller.error,
+      );
+      expect(await controller.prepare(), isTrue);
       final rival = controller.create('Annonce prioritaire', source: source)!;
       expect(controller.setScene(rival.id, Ui06SceneFixture.sceneId), isTrue);
       expect(
@@ -127,19 +142,23 @@ void main() {
         reason: controller.error,
       );
       final bytes = jsonEncode(controller.project.toJson());
-      await _openSimulation(tester, controller);
-      await tester.tap(find.text('Simuler'));
-      await tester.pumpAndSettle();
-      expect(find.text('Un autre événement est prioritaire'), findsOneWidget);
-      expect(find.text('Cet événement est sélectionné'), findsNothing);
-      expect(find.text('Annonce prioritaire'), findsWidgets);
+      final simulation = EventSimulationSession(
+        controller,
+        Ui06SceneFixture.eventId,
+      )..run();
+      expect(simulation.report!.handledEventId, rival.id);
+      expect(
+        simulation.report!.candidates.any(
+          (candidate) =>
+              candidate.name == 'Annonce prioritaire' && candidate.selected,
+        ),
+        isTrue,
+      );
       expect(jsonEncode(controller.project.toJson()), bytes);
     },
   );
 
-  testWidgets('grouped conditions remain ANY and NOT when removing a sibling', (
-    tester,
-  ) async {
+  test('grouped conditions remain ANY and NOT when removing a sibling', () {
     final left = NarrativeEventConditionExpression.not(
       NarrativeEventConditionExpression.leaf(
         NarrativeEventCondition.fact('ticket', false),
@@ -148,116 +167,73 @@ void main() {
     final right = NarrativeEventConditionExpression.leaf(
       NarrativeEventCondition.fact('ready', true),
     );
-    NarrativeEventConditionExpression? changed;
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: studioTheme(),
-        home: Scaffold(
-          body: EventConditions(
-            expression: NarrativeEventConditionExpression.any([left, right]),
-            facts: [
-              NarrativeFactDefinition(id: 'ticket', label: 'Billet'),
-              NarrativeFactDefinition(id: 'ready', label: 'Prêt'),
-            ],
-            records: [],
-            onChanged: (value) => changed = value,
-          ),
-        ),
-      ),
+    final group = NarrativeEventConditionExpression.any([left, right]);
+    expect(
+      removeEventConditionChild(group, 1),
+      NarrativeEventConditionExpression.any([left]),
     );
-    expect(find.text('Au moins une condition'), findsOneWidget);
-    expect(find.text('Inverser cette condition'), findsOneWidget);
-    await tester.tap(find.byTooltip('Retirer la condition').last);
-    await tester.pump();
-    expect(changed, NarrativeEventConditionExpression.any([left]));
-    expect(tester.takeException(), isNull);
+    expect(group, NarrativeEventConditionExpression.any([left, right]));
+    expect(
+      rebuildEventConditionGroup(group, [right, left]),
+      NarrativeEventConditionExpression.any([right, left]),
+    );
   });
 
-  testWidgets('invalid numeric simulation never reports a stale success', (
-    tester,
-  ) async {
-    final fixture = (await tester.runAsync(EventBackendFixture.create))!;
-    addTearDown(() => fixture.dispose());
-    fixture.narrative.pendingFacts['ui08.count'] = NarrativeFactDefinition(
+  test('invalid numeric simulation never reports a stale success', () async {
+    final fixture = await prepared();
+    final fact = NarrativeFactDefinition(
       id: 'ui08.count',
       label: 'Nombre de billets',
       initialValue: NarrativeValue.integer(2),
     );
-    final controller = fixture.attach();
-    expect(await tester.runAsync(controller.prepare), isTrue);
+    fixture.narrative.pendingFacts[fact.id] = fact;
+    final controller = fixture.controller!;
     final bytes = jsonEncode(controller.project.toJson());
-    await _openSimulation(tester, controller);
-    await tester.tap(find.text('Simuler'));
-    await tester.pumpAndSettle();
-    expect(find.text('Cet événement est sélectionné'), findsOneWidget);
-    final field = find.descendant(
-      of: find.byKey(const ValueKey('simulation:ui08.count')),
-      matching: find.byType(TextField),
-    );
-    await tester.enterText(field, 'pas un entier');
-    await tester.tap(find.text('Simuler'));
-    await tester.pumpAndSettle();
-    expect(find.text('Cet événement est sélectionné'), findsNothing);
-    expect(find.textContaining('avant de simuler'), findsOneWidget);
-    await tester.enterText(field, '2');
-    await tester.tap(find.text('Simuler'));
-    await tester.pumpAndSettle();
-    expect(find.text('Cet événement est sélectionné'), findsOneWidget);
-    expect(jsonEncode(controller.project.toJson()), bytes);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('consumed simulation input is isolated and withdraws selection', (
-    tester,
-  ) async {
-    final fixture = (await tester.runAsync(EventBackendFixture.create))!;
-    addTearDown(() => fixture.dispose());
-    final controller = fixture.attach();
-    expect(await tester.runAsync(controller.prepare), isTrue);
-    controller.setReuse(
+    final simulation = EventSimulationSession(
+      controller,
       Ui06SceneFixture.eventId,
-      NarrativeEventReusePolicy.oneShot,
-    );
-    controller.setEnabled(Ui06SceneFixture.eventId, true);
-    final bytes = jsonEncode(controller.project.toJson());
-    await _openSimulation(tester, controller);
-    await tester.tap(find.text('Simuler'));
-    await tester.pumpAndSettle();
-    expect(find.text('Cet événement est sélectionné'), findsOneWidget);
-    await tester.tap(find.byType(CheckboxListTile).first);
-    await tester.pumpAndSettle();
-    expect(find.text('Cet événement est sélectionné'), findsNothing);
-    await tester.tap(find.text('Simuler'));
-    await tester.pumpAndSettle();
-    expect(find.text('Aucun événement sélectionné'), findsOneWidget);
-    expect(find.textContaining('Déjà joué'), findsWidgets);
+    )..run();
+    expect(simulation.report!.handledEventId, Ui06SceneFixture.eventId);
+    simulation.setFactText(fact, 'pas un entier');
+    expect(simulation.report, isNull);
+    simulation.run();
+    expect(simulation.report, isNull);
+    expect(simulation.error, contains('avant de simuler'));
+    simulation.setFactText(fact, '2');
+    simulation.run();
+    expect(simulation.report!.handledEventId, Ui06SceneFixture.eventId);
+    expect(simulation.error, isNull);
     expect(jsonEncode(controller.project.toJson()), bytes);
-    expect(tester.takeException(), isNull);
   });
-}
 
-Future<void> _openSimulation(
-  WidgetTester tester,
-  EventWorkspaceController controller,
-) async {
-  expect(await tester.runAsync(controller.prepareAllMaps), isTrue);
-  await tester.pumpWidget(
-    MaterialApp(
-      theme: studioTheme(),
-      home: Scaffold(
-        body: Builder(
-          builder: (context) => TextButton(
-            onPressed: () => showEventSimulation(
-              context,
-              controller,
-              Ui06SceneFixture.eventId,
-            ),
-            child: const Text('Ouvrir la simulation'),
-          ),
+  test(
+    'consumed simulation input is isolated and withdraws selection',
+    () async {
+      final fixture = await prepared();
+      final controller = fixture.controller!;
+      expect(
+        controller.setReuse(
+          Ui06SceneFixture.eventId,
+          NarrativeEventReusePolicy.oneShot,
         ),
-      ),
-    ),
+        isTrue,
+      );
+      expect(controller.setEnabled(Ui06SceneFixture.eventId, true), isTrue);
+      final bytes = jsonEncode(controller.project.toJson());
+      final simulation = EventSimulationSession(
+        controller,
+        Ui06SceneFixture.eventId,
+      )..run();
+      expect(simulation.report!.handledEventId, Ui06SceneFixture.eventId);
+      simulation.setConsumed(Ui06SceneFixture.eventId, true);
+      expect(simulation.report, isNull);
+      simulation.run();
+      expect(simulation.report!.handledEventId, isNull);
+      expect(
+        simulation.report!.candidates.expand((candidate) => candidate.reasons),
+        contains(NarrativeEventSimulationReason.eventConsumed),
+      );
+      expect(jsonEncode(controller.project.toJson()), bytes);
+    },
   );
-  await tester.tap(find.text('Ouvrir la simulation'));
-  await tester.pumpAndSettle();
 }

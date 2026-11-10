@@ -7,7 +7,7 @@ import 'package:avelune_studio/features/map_workspace/application/gameplay_zone_
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_canvas_overlay.dart';
+import 'package:avelune_studio/platform/rendering/viewports/map_editing_overlay.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_zone_inspector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -193,7 +193,7 @@ void main() {
       );
       Future<List<int>> pixels(MapData map) async {
         final recorder = ui.PictureRecorder();
-        MapCanvasOverlay(
+        MapEditingOverlay(
           map: map,
           project: const ProjectManifest(
             name: 'Tourbillon',

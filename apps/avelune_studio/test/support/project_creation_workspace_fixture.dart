@@ -3,32 +3,25 @@ import 'dart:io';
 
 import 'package:avelune_studio/features/game_export/data/studio_game_export_controller.dart';
 import 'package:avelune_studio/features/game_export/domain/studio_game_export_port.dart';
+import 'package:avelune_studio/features/home/application/recent_projects_controller.dart';
 import 'package:avelune_studio/features/home/data/memory_recent_projects_adapter.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/workspace_workflow.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_catalog_adapter.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
+import 'package:avelune_studio/features/project_creation/application/project_creation_controller.dart';
 import 'package:avelune_studio/features/project_session/application/project_session_controller.dart';
-import 'package:avelune_studio/features/narrative/data/local_narrative_adapter.dart';
+import 'package:avelune_studio/features/project_session/application/project_session_open_controller.dart';
 import 'package:avelune_studio/features/project_session/data/local_project_session_adapter.dart';
-import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/platform/rendering/studio_map_resources.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_screen.dart';
-import 'package:avelune_studio/presentation/features/project_session/project_session_screen.dart';
-import 'package:avelune_studio/presentation/shell/studio_home_navigation.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring_local.dart';
-import 'package:path/path.dart' as p;
 
-import 'm2_ui_fixture.dart'
-    show WidgetResourcePort, WidgetMapController, pumpIo;
-import 'ui05_narrative_fixture.dart' show Ui05NarrativePort;
-import 'ui08_workspace_harness.dart' show Ui08MapPort;
+import 'neutral_map_host_fixture.dart';
+import 'real_test_io.dart';
 import 'synthetic_template_fixture.dart';
-import 'widget_map_catalog_port.dart';
 
 class ProjectCreationWorkspaceFixture {
   ProjectCreationWorkspaceFixture(this.tester, this.parent, this.packageFile);
@@ -36,82 +29,104 @@ class ProjectCreationWorkspaceFixture {
   final Directory parent;
   final File packageFile;
   late ProjectSessionController session = ProjectSessionController(
-    _SessionIo(tester),
+    LocalProjectSessionAdapter(),
   );
   final recents = MemoryRecentProjectsAdapter();
+  late final _recents = RecentProjectsController(recents);
+  ProjectSessionOpenController? _opening;
+  ProjectCreationController? creator;
+  MapWorkspaceController? _maps;
+  NeutralMapHostFixture? viewport;
+  WorkspaceWorkflow? workflow;
+  StudioGameExportController? gameExport;
+  late final LocalMapWorkspaceAdapter adapter;
+  bool _adapterReady = false;
+  ProjectCreationPort _creationPort = offlineProjectCreation;
+  MapWorkspacePort Function(MapWorkspacePort)? _mapPort;
+  bool _withNarrative = false;
+  bool _withViewport = true;
+  bool _bridgeCreate = true;
+  GlobalKey? _captureKey;
+  Completer<void>? _creatorClosed;
+  Future<void>? _creationLifetime;
+  Future<bool> Function(String)? _openCreated;
+  WorkspaceCloseChoice closeChoice = WorkspaceCloseChoice.cancel;
+  Future<void>? _disposal;
+  bool _disposed = false;
+  int releases = 0;
+  final creatorVisibility = <bool>[];
+
+  MapWorkspaceController get maps => _maps!;
 
   Future<void> mount({
     ProjectCreationPort? creationPort,
     MapWorkspacePort Function(MapWorkspacePort)? mapPort,
     ProjectSessionController? sessionController,
     bool withNarrative = false,
+    bool withViewport = true,
     bool settle = true,
     bool bridgeCreate = true,
     Size size = const Size(1536, 960),
     double textScale = 1,
     GlobalKey? captureKey,
-    Widget Function(ProjectSession, VoidCallback)? createdWorkspaceBuilder,
   }) async {
-    if (sessionController != null) session = sessionController;
-    final mapAdapter = Zone.root.run(LocalMapWorkspaceAdapter.new);
+    if (!_adapterReady) {
+      adapter = (await RealTestIo.run(tester, () async => LocalMapWorkspaceAdapter()))!;
+      _adapterReady = true;
+    }
+    if (sessionController != null && !identical(sessionController, session)) {
+      _opening?.dispose();
+      _opening = null;
+      await _closeViewport();
+      session = sessionController;
+    }
+    _creationPort = creationPort ?? offlineProjectCreation;
+    _mapPort = mapPort;
+    _withNarrative = withNarrative;
+    _withViewport = withViewport;
+    _bridgeCreate = bridgeCreate;
+    _captureKey = captureKey;
+    _opening ??= ProjectSessionOpenController(
+      session: session,
+      chooseDirectory: () async => null,
+      recentProjects: _recents,
+      allowSwitch: () async => await workflow?.allowClose() ?? true,
+    );
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    final app = DefaultAssetBundle(
-      bundle: CreationStudioAssets(),
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        theme: studioTheme(),
-        builder: (context, child) => MediaQuery(
-          data: MediaQuery.of(context)
-              .copyWith(textScaler: TextScaler.linear(textScale)),
-          child: child!,
-        ),
-        home: ProjectSessionScreen(
-          session: session,
-          chooseDirectory: () async => null,
-          recentProjects: recents,
-          creationPort: _CreationIo(
-            tester,
-            creationPort ?? offlineProjectCreation,
-            bridgeCreate,
-          ),
-          chooseCreationParent: () async => parent.path,
-          workspaceBuilder:
-              createdWorkspaceBuilder ??
-              (project, close) => _CreatedWorkspace(
-                tester: tester,
-                adapter: mapAdapter,
-                session: project,
-                onClose: close,
-                packageFile: packageFile,
-                mapPort: mapPort,
-                withNarrative: withNarrative,
-              ),
-        ),
-      ),
-    );
-    await tester.pumpWidget(
-      captureKey == null ? app : RepaintBoundary(key: captureKey, child: app),
-    );
-    if (settle) await pumpIo(tester);
+    await _recents.load();
+    if (session.state.project != null) {
+      await mountCurrent();
+    } else {
+      await tester.pumpWidget(const MaterialApp(home: SizedBox()));
+    }
+    if (settle) await pump();
   }
 
-  MapWorkspaceController get maps => tester
-      .widget<MapWorkspaceScreen>(
-        find.byType(MapWorkspaceScreen, skipOffstage: false),
-      )
-      .controller;
-
-  Future<void> create(int tileSize, {String? name, String? templateId}) async {
-    await submitCreation(tileSize, name: name, templateId: templateId);
-    for (var i = 0; i < 100 && session.state.project == null; i++) {
-      await pumpIo(tester, frames: 2);
+  Future<ProjectCreationController> beginCreation({String? name}) async {
+    if (!await closeCreation()) {
+      throw StateError(
+        'The pending creation must finish before another starts',
+      );
     }
-    expect(session.state.project, isNotNull);
-    await pumpIo(tester, frames: 30);
-    expect(find.byType(MapWorkspaceScreen), findsOneWidget);
+    final controller = ProjectCreationController(_creationPort);
+    creator = controller;
+    controller.setName(name ?? 'Nouveau projet');
+    _creatorClosed = Completer<void>();
+    final owner = _opening!;
+    _creationLifetime = owner.runCreation(
+      releaseParent: () async {
+        releases++;
+      },
+      onVisibilityChanged: creatorVisibility.add,
+      present: (open) async {
+        _openCreated = open;
+        await _creatorClosed!.future;
+      },
+    );
+    return controller;
   }
 
   Future<void> submitCreation(
@@ -121,190 +136,199 @@ class ProjectCreationWorkspaceFixture {
     bool confirm = true,
     String? templateId,
   }) async {
-    await tester.tap(find.text('Nouveau projet'));
-    await pumpIo(tester, frames: 4);
-    await tester.enterText(
-      find.widgetWithText(TextField, 'Nom du projet'),
-      name ?? 'Projet grille $tileSize',
+    final controller = await beginCreation(
+      name: name ?? 'Projet grille $tileSize',
     );
-    await next();
-    final template = templateId == null
-        ? find.text('Petit projet jouable')
-        : find.byKey(ValueKey('creation-template-catalogue-$templateId'));
-    await Scrollable.ensureVisible(tester.element(template));
-    await tester.pumpAndSettle();
-    await tester.tap(template);
-    await pumpIo(tester, frames: 4);
-    await next();
-    if (templateId == null) {
-      await tester.tap(find.byKey(ValueKey('creation-grid-$tileSize')));
-    }
-    await next();
-    await tester.tap(find.byKey(const ValueKey('creation-choose-parent')));
-    await pumpIo(tester, frames: 8);
-    if (confirm) {
-      await tester.tap(find.byKey(const ValueKey('create-project-confirm')));
-    }
-    if (settle) await pumpIo(tester, frames: 20);
-  }
-
-  Future<void> next() async {
-    await tester.tap(find.text('Suivant'));
-    await pumpIo(tester, frames: 4);
-  }
-
-  Future<void> dispose() async {
-    await tester.pumpWidget(const SizedBox());
-    await session.dispose();
-  }
-}
-
-class _CreationIo implements ProjectCreationPort {
-  _CreationIo(this.tester, this.delegate, this.bridgeCreate);
-  final WidgetTester tester;
-  final ProjectCreationPort delegate;
-  @override
-  ProjectTemplateCatalog get templateCatalog => delegate.templateCatalog;
-  final bool bridgeCreate;
-  Future<T> _run<T>(Future<T> Function() action) async {
-    final result = await WidgetResourcePort.serial(tester, () async {
-      try {
-        return (value: await action(), error: null);
-      } catch (error) {
-        return (value: null, error: error);
+    await RealTestIo.run(tester, () async {
+      expect(controller.next(), isTrue);
+      if (templateId == null) {
+        controller.setTemplate(ProjectCreationTemplate.playable);
+      } else {
+        controller.setCatalogueTemplate(templateId);
       }
+      expect(controller.next(), isTrue);
+      if (templateId == null) {
+        controller.change(() => controller.tileSize = tileSize);
+      }
+      expect(controller.next(), isTrue);
+      await controller.loadPreview();
+      await controller.chooseParent(() async => parent.path);
+      expect(controller.error, isNull);
     });
-    if (result!.error case final error?) throw error;
-    return result.value as T;
+    if (confirm) await performCreation();
+    if (settle) await pump();
   }
 
-  @override
-  Future<List<int>?> preview(ProjectCreationRequest request) => bridgeCreate
-      ? _run(() => delegate.preview(request))
-      : delegate.preview(request);
-
-  @override
-  Future<String> validateDestination(ProjectCreationRequest request) =>
-      bridgeCreate
-      ? _run(() => delegate.validateDestination(request))
-      : delegate.validateDestination(request);
-
-  @override
-  Future<ProjectCreationReceipt> create(
-    ProjectCreationRequest request, {
-    void Function(ProjectCreationPhase)? onPhase,
-    bool Function()? isCancelled,
-    String? expectedDestination,
-  }) => bridgeCreate
-      ? _run(
-          () => delegate.create(
-            request,
-            onPhase: onPhase,
-            isCancelled: isCancelled,
-            expectedDestination: expectedDestination,
-          ),
-        )
-      : delegate.create(
-          request,
-          onPhase: onPhase,
-          isCancelled: isCancelled,
-          expectedDestination: expectedDestination,
-        );
-}
-
-class _SessionIo implements ProjectSessionPort {
-  _SessionIo(this.tester);
-  final WidgetTester tester;
-  final delegate = LocalProjectSessionAdapter();
-  @override
-  Future<ProjectSession> open(String path) async =>
-      (await WidgetResourcePort.serial(tester, () => delegate.open(path)))!;
-  @override
-  Future<void> close(ProjectSession session) => delegate.close(session);
-}
-
-class _CreatedWorkspace extends StatefulWidget {
-  const _CreatedWorkspace({
-    required this.tester,
-    required this.adapter,
-    required this.session,
-    required this.onClose,
-    required this.packageFile,
-    this.mapPort,
-    this.withNarrative = false,
-  });
-  final WidgetTester tester;
-  final LocalMapWorkspaceAdapter adapter;
-  final ProjectSession session;
-  final Future<void> Function() onClose;
-  final File packageFile;
-  final MapWorkspacePort Function(MapWorkspacePort)? mapPort;
-  final bool withNarrative;
-  @override
-  State<_CreatedWorkspace> createState() => _CreatedWorkspaceState();
-}
-
-class _CreatedWorkspaceState extends State<_CreatedWorkspace> {
-  late final adapter = widget.adapter;
-  late final ioPort = Ui08MapPort(adapter, widget.tester)..interactive = true;
-  late final port = widget.mapPort?.call(ioPort) ?? ioPort;
-  late final maps = WidgetMapController(
-    widget.session,
-    port,
-    widget.tester,
-    catalogPort: WidgetMapCatalogPort(
-      LocalMapCatalogAdapter(adapter),
-      widget.tester,
-    ),
-  );
-  late final export = StudioGameExportController(
-    projectRoot: Directory(widget.session.directoryPath),
-    projectName: widget.session.name,
-  );
-  @override
-  void dispose() {
-    maps.dispose();
-    export.dispose();
-    super.dispose();
+  Future<bool> performCreation() async {
+    final controller = creator!;
+    final receipt = _bridgeCreate
+        ? await RealTestIo.run(tester, controller.create)
+        : await controller.create();
+    if (receipt == null) return false;
+    return tryOpenCreated();
   }
 
-  @override
-  Widget build(BuildContext context) => MapWorkspaceScreen(
-    controller: maps,
-    home: StudioHomeScope.of(context),
-    loadVisuals: (session, manifest) async => (await WidgetResourcePort.serial(
-      widget.tester,
-      () => StudioMapResources.load(session, manifest),
-    ))!,
-    narrativePort: widget.withNarrative
-        ? Ui05NarrativePort(
-            LocalNarrativeAdapter(session: widget.session, mapAdapter: adapter),
-            widget.tester,
-          )
-        : null,
-    gameExport: export,
-    gameExportPicker: (_) async => StudioGameExportDestination(
-      widget.packageFile.path,
-      exists: (await WidgetResourcePort.serial(
-        widget.tester,
-        widget.packageFile.exists,
-      ))!,
-    ),
-    runtimeBuilder: (_, _, _) => const SizedBox(),
-    onClose: widget.onClose,
-    registerExitGuard: (_) {},
-  );
-}
+  Future<bool> tryOpenCreated() async {
+    final controller = creator!;
+    final open = _openCreated!;
+    final opened = _bridgeCreate
+        ? await RealTestIo.run(
+                tester,
+                () => controller.openCreated(
+                  (receipt) => open(receipt.projectPath),
+                ),
+              ) ??
+              false
+        : await controller.openCreated((receipt) => open(receipt.projectPath));
+    if (opened) {
+      await closeCreation();
+      await mountCurrent();
+    }
+    return opened;
+  }
 
-class CreationStudioAssets extends CachingAssetBundle {
-  @override
-  Future<ByteData> load(String key) async {
-    if (!key.startsWith('assets/home/')) return rootBundle.load(key);
-    final studio = p.basename(Directory.current.path) == 'avelune_studio'
-        ? Directory.current.path
-        : p.join(Directory.current.path, '../avelune_studio');
-    return ByteData.sublistView(
-      Uint8List.fromList(await File(p.join(studio, key)).readAsBytes()),
+  Future<void> create(int tileSize, {String? name, String? templateId}) async {
+    await submitCreation(tileSize, name: name, templateId: templateId);
+    expect(session.state.project, isNotNull);
+    expect(maps.active, isNotNull);
+  }
+
+  Future<bool> openExisting(String path) async {
+    final opened = await RealTestIo.run(
+      tester,
+      () => _opening!.open(directoryPath: path),
     );
+    if (opened == true) await mountCurrent();
+    return opened ?? false;
+  }
+
+  Future<bool> exportPackage({
+    required StudioGameExportMetadata metadata,
+    bool publication = false,
+  }) async {
+    final owner = session.state.project!;
+    final exporter = gameExport!;
+    final guard = workflow!;
+    await RealTestIo.run(tester, exporter.load);
+    return await RealTestIo.run(
+          tester,
+          () => exporter.export(
+            metadata: metadata,
+            outputPath: packageFile.path,
+            overwriteConfirmed: false,
+            publication: publication,
+            prepare: guard.saveForExport,
+            preparationFailure: () => guard.exportPreparationFailure,
+            hasPendingChanges: () => guard.hasPendingChanges,
+            isCurrentProject: () => identical(session.state.project, owner),
+          ),
+        ) ??
+        false;
+  }
+
+  Future<void> mountCurrent() async {
+    final current = session.state.project!;
+    if (_maps?.session.sessionId == current.sessionId) return;
+    await _closeViewport();
+    final port = _mapPort?.call(adapter) ?? adapter;
+    final controller = MapWorkspaceController(
+      current,
+      port,
+      catalogPort: LocalMapCatalogAdapter(adapter),
+    );
+    _maps = controller;
+    await RealTestIo.run(tester, controller.initialize);
+    expect(controller.error, isNull);
+    gameExport = StudioGameExportController(
+      projectRoot: Directory(current.directoryPath),
+      projectName: current.name,
+    );
+    if (_withViewport) {
+      final visuals = (await RealTestIo.run(
+        tester,
+        () => StudioMapResources.load(current, controller.project!),
+      ))!;
+      viewport = await NeutralMapHostFixture.fromController(
+        tester,
+        controller,
+        mapAdapter: adapter,
+        withNarrative: _withNarrative,
+        visuals: visuals,
+        captureKey: _captureKey,
+      );
+    }
+    final host = viewport;
+    workflow = WorkspaceWorkflow(
+      controller: controller,
+      isActive: () => !controller.isDisposed && identical(_maps, controller),
+      changed: controller.notify,
+      resources: () => null,
+      narrative: () => host?.sessions.narrative,
+      scenes: () => host?.sessions.scenes,
+      events: () => host?.sessions.events,
+      dialogues: () => host?.sessions.dialogues,
+      cinematics: () => host?.sessions.cinematics,
+      presentations: () => host?.sessions.presentations,
+      regionalMap: () => host?.sessions.regionalMap,
+      world: () => host?.sessions.world,
+      projectVisuals: () => host?.sessions.projectVisuals,
+      projectSurf: () => host?.sessions.projectSurf,
+      projectCs: () => host?.sessions.projectCs,
+      projectAudio: () => host?.sessions.projectAudio,
+      projectIdentity: () => host?.sessions.projectIdentity,
+      confirmClose: () async => closeChoice,
+      flushFocus: () {},
+      launchMap: (_, _) async =>
+          throw StateError('No playtest launch requested by creation fixture'),
+    );
+  }
+
+  Future<bool> closeCreation() async {
+    final controller = creator;
+    if (controller == null) return true;
+    if (!controller.canClose) {
+      controller.cancel();
+      return false;
+    }
+    final closed = _creatorClosed;
+    if (closed != null && !closed.isCompleted) closed.complete();
+    await _creationLifetime;
+    _creationLifetime = null;
+    _creatorClosed = null;
+    controller.dispose();
+    creator = null;
+    _openCreated = null;
+    return true;
+  }
+
+  Future<void> pump({int frames = 4}) =>
+      RealTestIo.pump(tester, frames: frames);
+
+  Future<void> _closeViewport() async {
+    await viewport?.dispose();
+    viewport = null;
+    workflow = null;
+    gameExport?.dispose();
+    gameExport = null;
+    _maps?.dispose();
+    _maps = null;
+  }
+
+  Future<void> dispose() {
+    if (_disposed) return Future<void>.value();
+    return _disposal ??= _dispose().whenComplete(() => _disposed = true);
+  }
+
+  Future<void> _dispose() async {
+    _opening?.dispose();
+    final closed = _creatorClosed;
+    if (closed != null && !closed.isCompleted) closed.complete();
+    await _creationLifetime;
+    creator?.dispose();
+    creator = null;
+    await _closeViewport();
+    _recents.dispose();
+    await session.dispose();
+    await tester.pumpWidget(const SizedBox());
   }
 }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -5,7 +6,6 @@ import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_a
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/platform/playtest/studio_playtest_view.dart';
 import 'package:avelune_studio/platform/playtest/studio_spatial_playtest_view.dart';
-import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as image;
@@ -14,6 +14,8 @@ import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 void main() {
+  late StudioPlaytestControls controls;
+  setUp(() => controls = StudioPlaytestControls());
   testWidgets(
     'new game detaches the old lifecycle observer before disposing its runtime',
     (tester) async {
@@ -28,6 +30,7 @@ void main() {
         MaterialApp(
           home: Scaffold(
             body: StudioPlaytestView(
+              controls: controls,
               session: fixture.session,
               entry: fixture.project.maps.single,
               expectedRevision: fixture.revision,
@@ -50,67 +53,28 @@ void main() {
           ),
         ),
       );
-      await _waitFor(
-        tester,
-        () =>
-            runtimes.isNotEmpty &&
-            tester
-                    .widget<StudioButton>(
-                      find.widgetWithText(StudioButton, 'Nouvelle partie'),
-                    )
-                    .onPressed !=
-                null,
-      );
+      await _waitFor(tester, () => runtimes.isNotEmpty && controls.available);
       final oldRuntime = runtimes.single;
-      await tester.tap(find.text('Nouvelle partie'));
+      await controls.newGame();
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
       await tester.pump();
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
-      await _waitFor(
-        tester,
-        () =>
-            runtimes.length == 2 &&
-            tester
-                    .widget<StudioButton>(
-                      find.widgetWithText(StudioButton, 'Nouvelle partie'),
-                    )
-                    .onPressed !=
-                null,
-      );
+      await _waitFor(tester, () => runtimes.length == 2 && controls.available);
       expect(tester.takeException(), isNull);
       expect(identical(runtimes.last, oldRuntime), isFalse);
-      await tester.tap(find.text('Enregistrer le test'));
+      await tester.runAsync(controls.save);
       await _waitFor(tester, () => fixture.saves.hasSave);
       expect(fixture.saves.hasSave, isTrue);
-      await _waitFor(
-        tester,
-        () =>
-            tester
-                .widget<StudioButton>(
-                  find.widgetWithText(StudioButton, 'Reprendre le test'),
-                )
-                .onPressed !=
-            null,
-      );
-      await tester.tap(find.text('Reprendre le test'));
+      await _waitFor(tester, () => controls.canResume);
+      unawaited(controls.resume());
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
       await tester.pump();
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
-      await _waitFor(
-        tester,
-        () =>
-            runtimes.length == 3 &&
-            tester
-                    .widget<StudioButton>(
-                      find.widgetWithText(StudioButton, 'Nouvelle partie'),
-                    )
-                    .onPressed !=
-                null,
-      );
+      await _waitFor(tester, () => runtimes.length == 3 && controls.available);
       expect(tester.takeException(), isNull);
       expect(fixture.saves.hasSave, isTrue);
       await tester.pumpWidget(const SizedBox());

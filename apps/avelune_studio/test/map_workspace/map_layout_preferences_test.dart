@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:avelune_studio/features/map_workspace/application/map_layout_preferences.dart';
 import 'package:avelune_studio/platform/files/local_map_layout_preferences_store.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 final class _FailingStore implements MapLayoutPreferencesStore {
@@ -15,15 +14,27 @@ final class _FailingStore implements MapLayoutPreferencesStore {
 }
 
 void main() {
-  test('map-only and folded column are shared by every map view', () {
+  test('layout owner publishes shared choices to every map consumer', () {
     final layout = MapLayoutPreferences(MemoryMapLayoutPreferencesStore());
-    final first = MapWorkspaceViewState(layout: layout);
-    final second = MapWorkspaceViewState(layout: layout);
-    first.mapOnly = true;
-    first.navigatorCollapsed = true;
-    expect(second.mapOnly, isTrue);
-    expect(second.navigatorCollapsed, isTrue);
-    expect(MapWorkspaceViewState().mapOnly, isFalse);
+    addTearDown(layout.dispose);
+    final first = <MapLayoutSnapshot>[];
+    final second = <MapLayoutSnapshot>[];
+    MapLayoutSnapshot snapshot() => (
+      mapOnly: layout.mapOnly,
+      navigatorCollapsed: layout.navigatorCollapsed,
+    );
+    layout.addListener(() => first.add(snapshot()));
+    layout.addListener(() => second.add(snapshot()));
+
+    layout.update(mapOnly: true);
+    layout.update(navigatorCollapsed: true);
+
+    expect(first, second);
+    expect(first, [
+      (mapOnly: true, navigatorCollapsed: false),
+      (mapOnly: true, navigatorCollapsed: true),
+    ]);
+    expect(MapLayoutPreferences().mapOnly, isFalse);
   });
 
   test('layout choices survive a reopening through the Studio file', () async {

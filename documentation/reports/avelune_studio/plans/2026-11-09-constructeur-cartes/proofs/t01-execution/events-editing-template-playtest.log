@@ -1,0 +1,71 @@
+00:00 +0: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/event_editing_session_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/event_editing_session_test.dart: reload clears only the reloaded record input and preserves other drafts
+00:00 +1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/event_editing_session_test.dart: invalid numbers block publication without replacing the stored value
+00:01 +2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/event_editing_session_test.dart: queued changes preserve canonical undo order
+00:01 +3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/event_editing_session_test.dart: a rejected edit remains a save guard until a successful edit
+00:01 +4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/event_editing_session_test.dart: replacing an editing surface retains its previous flush failure
+00:02 +5: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_playtest_test.dart
+00:03 +5: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_playtest_test.dart: published event opens runtime using revalidated map and returns
+00:04 +6: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_playtest_test.dart: pending event input is flushed and dirty record blocks launch before disk reads
+00:04 +7: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_playtest_test.dart: published disabled event refuses runtime launch
+00:05 +8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_playtest_test.dart: published draft refuses runtime launch
+00:05 +9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_playtest_test.dart: launch refuses selection changing during asynchronous read
+00:05 +10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_playtest_test.dart: launch refuses record changing during asynchronous read
+00:05 +11: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_playtest_test.dart: launch refuses map changing during asynchronous read
+00:06 +12: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_playtest_test.dart: launch refuses project changing during asynchronous read
+00:06 +13: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/ui08_event_playtest_test.dart: flush failure blocks close and both playtest routes without rejected UI futures
+00:06 +14: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/standard_event_template_form_test.dart
+00:07 +14: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/standard_event_template_form_test.dart: guided map selection loads only the chosen map once
+00:07 +15: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/standard_event_template_form_test.dart: unavailable item blocks guided publication catalogue=0
+00:07 +16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/standard_event_template_form_test.dart: unavailable item blocks guided publication catalogue=1
+00:07 +17: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/standard_event_template_form_test.dart: conditionalNpc previews both states with selected resources
+00:07 +18: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/standard_event_template_form_test.dart: pickup previews both states with selected resources
+00:07 +19: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/standard_event_template_form_test.dart: lockedDoor previews both states with selected resources
+00:07 +19 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/standard_event_template_form_test.dart: lockedDoor previews both states with selected resources [E]
+  Expected: not 'Porte avec objet requis'
+    Actual: 'Porte avec objet requis'
+  
+  package:matcher                                           expect
+  package:flutter_test/src/widget_tester.dart 473:18        expect
+  test/events/standard_event_template_form_test.dart 134:7  main.<fn>
+  
+00:07 +19 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/standard_event_template_form_test.dart: trainer previews both states with selected resources
+00:07 +19 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/standard_event_template_form_test.dart: trainer previews both states with selected resources [E]
+  Expected: not 'Dresseur avant / après victoire'
+    Actual: 'Dresseur avant / après victoire'
+  
+  package:matcher                                           expect
+  package:flutter_test/src/widget_tester.dart 473:18        expect
+  test/events/standard_event_template_form_test.dart 134:7  main.<fn>
+  
+00:07 +19 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/standard_event_template_form_test.dart: advanced actions publish the current recipe before navigation
+00:07 +20 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/standard_event_template_form_test.dart: shared resource selection changes only the recipe
+00:07 +21 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/standard_event_template_form_test.dart: reusing a recipe selects a new owner without altering the first
+00:07 +22 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/standard_event_template_form_test.dart: invalid references prevent publication and retain the authored input
+00:07 +23 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/standard_event_template_form_test.dart: a failed publication keeps local settings and prevents advanced navigation
+00:07 +24 -2: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/standard_event_template_publication_test.dart
+00:08 +24 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/standard_event_template_publication_test.dart: guided controller refreshes the open map and its linked event together
+00:09 +25 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/standard_event_template_publication_test.dart: guided controller refuses a dirty map without erasing its draft
+00:09 +26 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/standard_event_template_publication_test.dart: guided scene forking preserves locks on the previously generated scene
+00:09 +27 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/standard_event_template_publication_test.dart: one semantic publication saves map, pages, scenes and cold reopens for editing
+00:10 +28 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/standard_event_template_publication_test.dart: native guided publication saves and edits without unrelated map files
+00:10 +29 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/standard_event_template_publication_test.dart: working guided publication saves and edits without unrelated map files
+00:12 +29 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/standard_event_template_publication_test.dart: working guided publication saves and edits without unrelated map files [E]
+  Expected: <0>
+    Actual: <6>
+  
+  package:matcher                                                   expect
+  package:flutter_test/src/widget_tester.dart 473:18                expect
+  test/events/standard_event_template_publication_test.dart 713:5   _GuidedReadCounter.expectTargeted
+  test/events/standard_event_template_publication_test.dart 376:16  main.<fn>
+  
+00:12 +29 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/standard_event_template_publication_test.dart: a second parameterized instance leaves the first generated assets intact
+00:13 +30 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/standard_event_template_publication_test.dart: a stale map refuses the entire publication without a partial registry
+00:13 +31 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/standard_event_template_publication_test.dart: atomic recovery after AuthoringTransactionCheckpoint.beforeResourcePromotion leaves a coherent editable event
+00:13 +32 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/standard_event_template_publication_test.dart: atomic recovery after AuthoringTransactionCheckpoint.afterResourcePromoted leaves a coherent editable event
+00:14 +33 -3: Some tests failed.
+
+Failing tests:
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/standard_event_template_form_test.dart: lockedDoor previews both states with selected resources
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/standard_event_template_form_test.dart: trainer previews both states with selected resources
+  /Users/karim/Project/pokemonProject/apps/avelune_studio/test/events/standard_event_template_publication_test.dart: working guided publication saves and edits without unrelated map files

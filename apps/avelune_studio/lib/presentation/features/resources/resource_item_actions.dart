@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
-import 'resource_catalog.dart';
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 
 class ResourceItemActions extends StatelessWidget {
   const ResourceItemActions({

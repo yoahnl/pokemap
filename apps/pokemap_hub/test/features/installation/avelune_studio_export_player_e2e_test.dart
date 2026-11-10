@@ -1,10 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:avelune_studio/presentation/features/game_export/studio_game_export_page.dart';
 import 'package:flame/components.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
@@ -12,20 +9,17 @@ import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
 import 'package:pokemap_hub/pokemap_hub.dart';
 import 'package:pokemap_hub/features/session/data/repositories/installed_game_launch_resolver.dart';
-import 'package:pub_semver/pub_semver.dart';
 
 import '../../../../avelune_studio/test/support/game_export_fixture.dart';
-import '../../../../avelune_studio/test/support/map_host_fixture.dart';
-import '../../../../avelune_studio/test/support/m2_ui_fixture.dart' show pumpIo;
+import '../../../../avelune_studio/test/support/authoring_export_fixture.dart';
 
 void main() {
   testWidgets('Studio package installs and plays from Avelune Player storage', (
     tester,
   ) async {
-    final temporary =
-        (await tester.runAsync(
-          () => Directory.systemTemp.createTemp('as-exp-player-'),
-        ))!;
+    final temporary = (await tester.runAsync(
+      () => Directory.systemTemp.createTemp('as-exp-player-'),
+    ))!;
     addTearDown(() => temporary.delete(recursive: true));
     final packageFile = File(p.join(temporary.path, 'demo.avelunegame'));
     late MapData expectedMap;
@@ -63,7 +57,7 @@ void main() {
       expect(placed.quarterTurns, 1);
     }
 
-    final author = await MapHostFixture.open(
+    final author = await AuthoringExportFixture.open(
       tester,
       prepareSource: (source) async {
         await prepareGameExportFixture(source);
@@ -115,26 +109,11 @@ void main() {
           flush: true,
         );
       },
-      gameExportPicker: (_) async => packageFile,
-      assetBundle: _StudioAssetBundle(),
     );
     final before = await author.disk();
-    await author.openExport();
-    await tester.enterText(find.widgetWithText(TextField, 'Auteur'), 'Avelune');
-    await tester.tap(find.byKey(const ValueKey('start-game-export')));
-    await pumpIo(tester, frames: 120);
-    expect(
-      find.text('Dernier paquet produit'),
-      findsOneWidget,
-      reason:
-          tester
-              .widget<StudioGameExportPage>(find.byType(StudioGameExportPage))
-              .controller
-              .error,
-    );
+    await author.export(packageFile);
     expect(await tester.runAsync(packageFile.exists), isTrue);
     expect(await author.disk(), before);
-    await tester.pumpWidget(const SizedBox());
 
     final source = author.source.directory;
     final hiddenSource = Directory('${source.path}.offline');
@@ -173,10 +152,7 @@ void main() {
         launch.project,
       );
       expect(installedProject.path, isNot(source.path));
-      final manifest = ProjectManifest.fromJson(
-        jsonDecode(await installedProject.readAsString())
-            as Map<String, dynamic>,
-      );
+      final manifest = await loadProjectManifestFromFile(installedProject.path);
       expect(manifest.maps, hasLength(2));
       final bundle = await loadRuntimeMapBundle(
         projectFilePath: installedProject.path,
@@ -218,43 +194,17 @@ void main() {
         () => game.gameStateSnapshot.currentMapId == 'clairiere',
       );
       expect(game.gameStateSnapshot.currentMapId, 'clairiere');
-      await packageFile.copy('/tmp/avelune_as_exp_001_demo.avelunegame');
     });
   }, timeout: const Timeout(Duration(minutes: 5)));
 }
 
-GamePackageHostCompatibility _compatibility() => GamePackageHostCompatibility(
-  hubVersion: Version.parse('1.2.0'),
-  runtimeApiVersion: Version.parse('1.4.0'),
-  capabilities: const {
-    'dialogue.choices@1',
-    'map@1',
-    'overworld.menu@1',
-    'world.shop@1',
-  },
-  supportedProjectFormats: const {'v8'},
-  currentProjectFormat: 'v8',
-  supportedSaveFormats: const {1},
-);
+GamePackageHostCompatibility _compatibility() =>
+    AveluneRuntimeCompatibility.host();
 
 class _InstalledDemoGame extends PlayableMapGame {
   _InstalledDemoGame({required super.bundle, required super.projectFilePath});
   @override
   bool get isLoaded => true;
-}
-
-class _StudioAssetBundle extends CachingAssetBundle {
-  @override
-  Future<ByteData> load(String key) async {
-    if (key.startsWith('assets/home/')) {
-      final bytes =
-          await File(
-            p.join(Directory.current.path, '../avelune_studio', key),
-          ).readAsBytes();
-      return ByteData.sublistView(Uint8List.fromList(bytes));
-    }
-    return rootBundle.load(key);
-  }
 }
 
 Future<void> _move(PlayableMapGame game, RuntimeInputControl direction) async {

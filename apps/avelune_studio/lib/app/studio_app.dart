@@ -2,105 +2,41 @@ import 'dart:async';
 import 'dart:ui' show AppExitResponse;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'di/home_providers.dart';
-import 'di/rendering_providers.dart';
-import 'di/studio_mcp_providers.dart';
-import '../platform/mcp/studio_mcp_service.dart';
-import '../features/rendering/application/studio_rendering_preferences.dart';
-import '../features/project_session/data/local_project_history_maintenance_adapter.dart';
-import '../presentation/features/rendering/studio_display_preferences.dart';
-
-import 'package:avelune_studio/app/di/providers.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
-
-import 'package:avelune_studio/features/project_session/application/project_session_controller.dart';
-import 'package:avelune_studio/features/project_session/domain/project_session.dart';
-import 'package:avelune_studio/features/updates/studio_update_host.dart';
-import 'package:avelune_studio/presentation/features/project_session/project_session_screen.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
+import '../platform/rendering/contracts/studio_rendering_preferences_scope.dart';
+import 'di/studio_lifecycle_providers.dart';
+import 'studio_lifecycle_controller.dart';
 
 class StudioApp extends ConsumerStatefulWidget {
-  const StudioApp({super.key, this.workspaceBuilder});
-
-  final Widget Function(
-    ProjectSession,
-    Future<void> Function(),
-    void Function(Future<bool> Function()?),
-  )?
-  workspaceBuilder;
+  const StudioApp({super.key});
 
   @override
   ConsumerState<StudioApp> createState() => _StudioAppState();
 }
 
 class _StudioAppState extends ConsumerState<StudioApp> {
-  late final ProjectSessionController _session;
-  late final StudioRenderingPreferences _renderingPreferences;
-  late final AppLifecycleListener _lifecycle;
-  late final StudioMcpService _mcp;
-  Future<bool> Function()? _exitGuard;
-  String? _guardSession;
-  bool _creatorVisible = false;
-  bool _historyMaintenanceBusy = false;
-  bool _updatePrepared = false;
+  late final StudioLifecycleController _lifecycle;
+  late final AppLifecycleListener _appLifecycle;
 
   @override
   void initState() {
     super.initState();
-    _session = ref.read(projectSessionControllerProvider);
-    _mcp = ref.read(studioMcpServiceProvider);
-    _session.addListener(_synchronizeMcpProject);
-    _synchronizeMcpProject();
-    unawaited(_mcp.start());
-    _renderingPreferences = ref.read(studioRenderingPreferencesProvider);
-    unawaited(_renderingPreferences.load());
-    _lifecycle = AppLifecycleListener(
-      onExitRequested: () async {
-        return await _prepareForExit()
-            ? AppExitResponse.exit
-            : AppExitResponse.cancel;
-      },
+    _lifecycle = ref.read(studioLifecycleControllerProvider);
+    unawaited(_lifecycle.start());
+    ref.read(studioUpdateControllerProvider);
+    _appLifecycle = AppLifecycleListener(
+      onExitRequested: () async => await _lifecycle.prepareForExit()
+          ? AppExitResponse.exit
+          : AppExitResponse.cancel,
     );
-  }
-
-  Future<bool> _prepareForUpdate() async {
-    if (!await _canRestartUpdate()) return false;
-    await _mcp.stop();
-    if (_mcp.state != StudioMcpState.stopped) return false;
-    _updatePrepared = true;
-    return true;
-  }
-
-  Future<void> _resumeAfterUpdateFailure() async {
-    if (!_updatePrepared) return;
-    _updatePrepared = false;
-    await _mcp.start();
-  }
-
-  Future<bool> _prepareForExit() async {
-    if (!await _canRestartUpdate()) return false;
-    await _mcp.stop();
-    if (_mcp.state != StudioMcpState.stopped) return false;
-    await _session.dispose();
-    return true;
-  }
-
-  void _synchronizeMcpProject() {
-    unawaited(_mcp.setProjectRoot(_session.state.project?.directoryPath));
-  }
-
-  Future<bool> _canRestartUpdate() async {
-    if (_creatorVisible || _historyMaintenanceBusy) return false;
-    return _exitGuard == null || await _exitGuard!();
   }
 
   @override
   void dispose() {
-    _session.removeListener(_synchronizeMcpProject);
-    unawaited(_mcp.stop());
-    _lifecycle.dispose();
+    _appLifecycle.dispose();
+    unawaited(_lifecycle.close());
     super.dispose();
   }
 
@@ -108,40 +44,16 @@ class _StudioAppState extends ConsumerState<StudioApp> {
   Widget build(BuildContext context) => MaterialApp(
     title: 'Avelune Studio',
     debugShowCheckedModeBanner: false,
-    theme: studioTheme(),
     locale: const Locale('fr'),
     supportedLocales: const [Locale('fr')],
     localizationsDelegates: GlobalMaterialLocalizations.delegates,
     builder: (context, child) => StudioRenderingPreferencesScope(
-      preferences: _renderingPreferences,
+      preferences: _lifecycle.renderingPreferences,
       child: child ?? const SizedBox(),
     ),
-    home: StudioUpdateHost(
-      onRestartRequested: _prepareForUpdate,
-      onRestartAborted: _resumeAfterUpdateFailure,
-      child: ProjectSessionScreen(
-        recentProjects: ref.watch(recentProjectsPortProvider),
-        session: _session,
-        chooseDirectory: ref.watch(projectDirectoryPickerProvider),
-        creationPort: ref.watch(projectCreationPortProvider),
-        chooseCreationParent: ref.watch(projectCreationPickerProvider),
-        releaseCreationParent: ref.watch(projectCreationReleaseProvider),
-        onCreatorVisibility: (visible) => _creatorVisible = visible,
-        historyMaintenance: LocalProjectHistoryMaintenanceAdapter(),
-        onMaintenanceBusy: (busy) => _historyMaintenanceBusy = busy,
-        workspaceBuilder: widget.workspaceBuilder == null
-            ? null
-            : (session, close) =>
-                  widget.workspaceBuilder!(session, close, (guard) {
-                    if (guard != null) {
-                      _exitGuard = guard;
-                      _guardSession = session.sessionId;
-                    } else if (_guardSession == session.sessionId) {
-                      _exitGuard = null;
-                      _guardSession = null;
-                    }
-                  }),
-      ),
+    home: const Scaffold(
+      key: ValueKey('studio-neutral-host'),
+      body: Center(child: Text('Avelune Studio — hôte technique')),
     ),
   );
 }

@@ -1,0 +1,119 @@
++14: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/home/home_exit_guard_test.dart: old session disposal cannot clear replacement exit guard
+Studio MCP startup failed (launch.unavailable).
++33: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creator_ui_test.dart: creator adapts to Size(1536.0, 960.0) text 1.0 and preserves the five steps
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Reentrant call to runAsync() denied.
+runAsync() was called, then before its future completed, it was called again. You must wait for the
+first returned future to complete before calling runAsync() again.
+
+When the exception was thrown, this was the stack:
+#0      fail (package:matcher/src/expect/expect.dart:187:31)
+#1      AutomatedTestWidgetsFlutterBinding.runAsync.<anonymous closure> (package:flutter_test/src/binding.dart:2274:7)
+#2      AutomatedTestWidgetsFlutterBinding.runAsync (package:flutter_test/src/binding.dart:2280:6)
+#3      WidgetTester.runAsync (package:flutter_test/src/widget_tester.dart:838:17)
+#4      pumpIo (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creator_ui_test.dart:181:18)
+#5      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creator_ui_test.dart:113:17)
+<asynchronous suspension>
+#6      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#7      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  creator adapts to Size(1536.0, 960.0) text 1.0 and preserves the five steps
+════════════════════════════════════════════════════════════════════════════════════════════════════
++33 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creator_ui_test.dart: creator adapts to Size(1536.0, 960.0) text 1.0 and preserves the five steps [E]
+  Test failed. See exception logs above.
+  The test description was: creator adapts to Size(1536.0, 960.0) text 1.0 and preserves the five steps
+  
++33 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creator_ui_test.dart: creator adapts to Size(1280.0, 800.0) text 1.0 and preserves the five steps
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Reentrant call to runAsync() denied.
+runAsync() was called, then before its future completed, it was called again. You must wait for the
+first returned future to complete before calling runAsync() again.
+
+When the exception was thrown, this was the stack:
+#0      fail (package:matcher/src/expect/expect.dart:187:31)
+#1      AutomatedTestWidgetsFlutterBinding.runAsync.<anonymous closure> (package:flutter_test/src/binding.dart:2274:7)
+#2      AutomatedTestWidgetsFlutterBinding.runAsync (package:flutter_test/src/binding.dart:2280:6)
+#3      WidgetTester.runAsync (package:flutter_test/src/widget_tester.dart:838:17)
+#4      pumpIo (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creator_ui_test.dart:181:18)
+#5      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creator_ui_test.dart:113:17)
+<asynchronous suspension>
+#6      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#7      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  creator adapts to Size(1280.0, 800.0) text 1.0 and preserves the five steps
+════════════════════════════════════════════════════════════════════════════════════════════════════
++33 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creator_ui_test.dart: creator adapts to Size(1280.0, 800.0) text 1.0 and preserves the five steps [E]
+  Test failed. See exception logs above.
+  The test description was: creator adapts to Size(1280.0, 800.0) text 1.0 and preserves the five steps
+  
++33 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creator_ui_test.dart: creator adapts to Size(1024.0, 640.0) text 1.0 and preserves the five steps
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Reentrant call to runAsync() denied.
+runAsync() was called, then before its future completed, it was called again. You must wait for the
+first returned future to complete before calling runAsync() again.
+
+When the exception was thrown, this was the stack:
+#0      fail (package:matcher/src/expect/expect.dart:187:31)
+#1      AutomatedTestWidgetsFlutterBinding.runAsync.<anonymous closure> (package:flutter_test/src/binding.dart:2274:7)
+#2      AutomatedTestWidgetsFlutterBinding.runAsync (package:flutter_test/src/binding.dart:2280:6)
+#3      WidgetTester.runAsync (package:flutter_test/src/widget_tester.dart:838:17)
+#4      pumpIo (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creator_ui_test.dart:181:18)
+#5      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creator_ui_test.dart:113:17)
+<asynchronous suspension>
+#6      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#7      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  creator adapts to Size(1024.0, 640.0) text 1.0 and preserves the five steps
+════════════════════════════════════════════════════════════════════════════════════════════════════
++33 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creator_ui_test.dart: creator adapts to Size(1024.0, 640.0) text 1.0 and preserves the five steps [E]
+  Test failed. See exception logs above.
+  The test description was: creator adapts to Size(1024.0, 640.0) text 1.0 and preserves the five steps
+  
++33 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creator_ui_test.dart: creator adapts to Size(1024.0, 640.0) text 1.5 and preserves the five steps
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Reentrant call to runAsync() denied.
+runAsync() was called, then before its future completed, it was called again. You must wait for the
+first returned future to complete before calling runAsync() again.
+
+When the exception was thrown, this was the stack:
+#0      fail (package:matcher/src/expect/expect.dart:187:31)
+#1      AutomatedTestWidgetsFlutterBinding.runAsync.<anonymous closure> (package:flutter_test/src/binding.dart:2274:7)
+#2      AutomatedTestWidgetsFlutterBinding.runAsync (package:flutter_test/src/binding.dart:2280:6)
+#3      WidgetTester.runAsync (package:flutter_test/src/widget_tester.dart:838:17)
+#4      pumpIo (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creator_ui_test.dart:181:18)
+#5      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creator_ui_test.dart:113:17)
+<asynchronous suspension>
+#6      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#7      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  creator adapts to Size(1024.0, 640.0) text 1.5 and preserves the five steps
+════════════════════════════════════════════════════════════════════════════════════════════════════
++33 -4: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creator_ui_test.dart: creator adapts to Size(1024.0, 640.0) text 1.5 and preserves the five steps [E]
+  Test failed. See exception logs above.
+  The test description was: creator adapts to Size(1024.0, 640.0) text 1.5 and preserves the five steps
+  
++33 -4: Some tests failed.

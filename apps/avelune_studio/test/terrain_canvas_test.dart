@@ -1,8 +1,8 @@
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_canvas.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_canvas_surface_bounds.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
+import 'package:avelune_studio/platform/rendering/viewports/map_editing_viewport_2d.dart';
+import 'package:avelune_studio/platform/rendering/viewports/map_viewport_bounds.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -41,7 +41,7 @@ void main() {
       final document = EditableMapDocument(
         MapWorkspaceDocument(map: source, revision: 'saved', mapId: 'a'),
       );
-      final view = MapWorkspaceViewState()
+      final view = MapEditingViewportSession()
         ..terrain = preset
         ..tool = StudioMapTool.terrain;
       addTearDown(view.dispose);
@@ -54,7 +54,7 @@ void main() {
             body: StatefulBuilder(
               builder: (context, setState) {
                 redraw = setState;
-                return MapWorkspaceCanvas(
+                return MapEditingViewport2D(
                   document: document,
                   project: manifest,
                   visuals: visuals,
@@ -83,7 +83,7 @@ void main() {
       );
       expect(
         tester
-            .widget<MapCanvasSurfaceBounds>(find.byType(MapCanvasSurfaceBounds))
+            .widget<MapViewportBounds>(find.byType(MapViewportBounds))
             .map
             .layers,
         isNotEmpty,

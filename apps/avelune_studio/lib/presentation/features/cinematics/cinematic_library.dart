@@ -8,8 +8,8 @@ import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import 'cinematic_view_state.dart';
 import 'cinematic_library_thumbnail.dart';
-import '../events/event_map_loader.dart';
-import '../map_workspace/map_workspace_visuals.dart';
+import 'package:avelune_studio/features/events/application/event_map_loader.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 
 class CinematicLibrary extends StatelessWidget {
   const CinematicLibrary({

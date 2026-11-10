@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:avelune_studio/presentation/features/resources/resource_navigation.dart';
-import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_canvas.dart';
+import 'package:avelune_studio/features/resources/coordination/resource_navigation.dart';
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
+import 'package:avelune_studio/platform/rendering/viewports/map_editing_viewport_2d.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -57,9 +57,9 @@ void main() {
       await tester.pump();
       await tester.tap(find.text('Dessiner sur la carte'));
       await pumpIo(tester, frames: 10);
-      expect(find.byType(MapWorkspaceCanvas), findsOneWidget);
-      final canvas = tester.widget<MapWorkspaceCanvas>(
-        find.byType(MapWorkspaceCanvas),
+      expect(find.byType(MapEditingViewport2D), findsOneWidget);
+      final canvas = tester.widget<MapEditingViewport2D>(
+        find.byType(MapEditingViewport2D),
       );
       final document = host.fixture.controller.active!;
       final session = canvas.view.environment!;

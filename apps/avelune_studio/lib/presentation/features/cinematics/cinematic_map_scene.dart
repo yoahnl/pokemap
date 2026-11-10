@@ -6,7 +6,7 @@ import 'package:map_core/map_core_domain.dart';
 import '../../../features/cinematics/application/cinematic_preview_transport.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
 import '../../shared/widgets/layout/studio_graph_card.dart';
-import '../map_workspace/map_workspace_visuals.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 import 'cinematic_map_model.dart';
 import 'cinematic_map_overlay.dart';
 import 'cinematic_playback_viewport.dart';

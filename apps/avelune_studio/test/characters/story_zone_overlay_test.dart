@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_canvas_overlay.dart';
+import 'package:avelune_studio/platform/rendering/viewports/map_editing_overlay.dart';
 import '../support/map_workspace_fixture.dart';
 
 void main() {
@@ -45,7 +45,7 @@ void main() {
       final restored = MapData.fromJson(
         jsonDecode(jsonEncode(map.toJson())) as Map<String, dynamic>,
       );
-      final painter = MapCanvasOverlay(
+      final painter = MapEditingOverlay(
         map: restored,
         project: workspaceProject,
         selected: null,
@@ -78,7 +78,7 @@ void main() {
   test('fitted map keeps zone outlines without unreadable labels', () async {
     final transform = TransformationController()
       ..value = (Matrix4.identity()..scaleByDouble(.5, .5, 1, 1));
-    final painter = MapCanvasOverlay(
+    final painter = MapEditingOverlay(
       map: workspaceMap('a').copyWith(
         triggers: const [
           MapTrigger(

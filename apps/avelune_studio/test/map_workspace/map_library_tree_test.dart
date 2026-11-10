@@ -1,4 +1,4 @@
-import 'package:avelune_studio/presentation/features/map_workspace/map_library_tree.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_library_tree.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
 

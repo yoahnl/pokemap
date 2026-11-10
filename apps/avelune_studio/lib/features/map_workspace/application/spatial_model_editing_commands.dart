@@ -7,6 +7,20 @@ class SpatialModelEditingCommands {
   const SpatialModelEditingCommands(this.document, this.project);
   final EditableMapDocument document;
   final ProjectManifest project;
+  Future<bool> configureVisibility(
+    String id,
+    NarrativeEventConditionExpression? value,
+  ) {
+    final publish = document.configureSpatialModelVisibility;
+    if (publish == null) return Future.value(false);
+    return publish(
+      id,
+      value is NarrativeEventConditionAll && value.children.isEmpty
+          ? null
+          : value,
+    );
+  }
+
   static const operations = SpatialMapOperations();
   static const environments = EnvironmentEditing();
   static const paintedTerrainMessage =

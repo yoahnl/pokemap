@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../features/resources/domain/resource_mutation_preparation.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
-import 'resource_catalog.dart';
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 import 'resource_management_dialog.dart';
 
 class ResourceRemovalDialog extends StatefulWidget {

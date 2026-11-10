@@ -34,8 +34,11 @@ final class ResourceFixture {
   File get manifestFile => File('${root.path}/project.json');
   File get mapFile => File('${root.path}/garden.json');
 
-  static Future<ResourceFixture> create() async {
-    final temporary = await Directory.systemTemp.createTemp(
+  static Future<ResourceFixture> create({
+    Directory? parent,
+    bool withMap = true,
+  }) async {
+    final temporary = await (parent ?? Directory.systemTemp).createTemp(
       'studio_resources_',
     );
     final root = Directory(await temporary.resolveSymbolicLinks());
@@ -49,7 +52,7 @@ final class ResourceFixture {
       jsonEncode(
         ProjectManifest(
           name: 'Ressources',
-          maps: [entry],
+          maps: withMap ? [entry] : [],
           tilesets: [],
         ).toJson(),
       ),

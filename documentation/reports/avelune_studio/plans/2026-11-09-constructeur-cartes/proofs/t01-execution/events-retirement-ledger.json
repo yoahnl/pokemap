@@ -1,0 +1,151 @@
+{
+  "schemaVersion": 1,
+  "family": "Events",
+  "status": "in_progress",
+  "g0Accepted": false,
+  "baselineHead": "c69ffb95ac86bde48816955e9b663e93f996485d",
+  "entries": [
+    {
+      "path": "apps/avelune_studio/test/events/standard_event_template_form_test.dart",
+      "beforeSha256": "4ca266ae7c5d1920c0529dd797550e17c26015ee3a179ee287d5ae8eefb7c6ab",
+      "beforeAssertionSites": 34,
+      "beforeCaseTemplates": [
+        "guided map picker loads only the chosen map once",
+        "history opens guided event authoring without creating a blank draft",
+        "a removed catalog item blocks the guided save",
+        "${kind.name} previews both states with selected resources",
+        "advanced actions publish the current recipe before navigation",
+        "failed publication never navigates away from guided settings",
+        "edits one logical NPC with named references and both pages",
+        "reusing a recipe selects a new owner without altering the first",
+        "invalid references prevent publication and explain the problem",
+        "a failed publication keeps the local settings available"
+      ],
+      "afterSha256": "9a839ba510485aa702afb5198c49eb784f6f5b12070357da99ce49b44f4bed20",
+      "classification": "Mixed historical chrome migrated to canonical controllers, compiler or neutral host; existing backend publication cases retained."
+    },
+    {
+      "path": "apps/avelune_studio/test/events_ui08_conditions_simulation_test.dart",
+      "beforeSha256": "4b77c84edae6937f760144565988a7986b7ff9cb5fb98ad0f493fd1e98ed4519",
+      "beforeAssertionSites": 49,
+      "beforeCaseTemplates": [
+        "condition workspace passes a real owner only for entity sources",
+        "local simulation uses real owners and reports an absent instance",
+        "simulation reruns against a removed source without stale success",
+        "simulation names the competing event instead of selecting target",
+        "grouped conditions remain ANY and NOT when removing a sibling",
+        "invalid numeric simulation never reports a stale success",
+        "consumed simulation input is isolated and withdraws selection"
+      ],
+      "afterSha256": "cc362e4b52f715936679b961cd1ed5c586ad40062588283785ee66a4377a977a",
+      "classification": "Mixed historical chrome migrated to canonical controllers, compiler or neutral host; existing backend publication cases retained."
+    },
+    {
+      "path": "apps/avelune_studio/test/presentation/ui08_event_playtest_test.dart",
+      "beforeSha256": "e8e1fa1261fcca434e22b3ae3e3cabdfc36ba37fdaee4019916a38de0f1de7ca",
+      "beforeAssertionSites": 21,
+      "beforeCaseTemplates": [
+        "published event opens runtime using revalidated map and returns",
+        "pending event input is flushed and dirty record blocks launch before disk reads",
+        "published ${draft ? ",
+        "launch refuses $change changing during asynchronous read",
+        "flush failure blocks close and both playtest routes without rejected UI futures"
+      ],
+      "afterSha256": "e8e1fa1261fcca434e22b3ae3e3cabdfc36ba37fdaee4019916a38de0f1de7ca",
+      "classification": "Mixed historical chrome migrated to canonical controllers, compiler or neutral host; existing backend publication cases retained."
+    },
+    {
+      "path": "apps/avelune_studio/test/events/standard_event_template_publication_test.dart",
+      "beforeSha256": "064b621f4858b29ad75741f73cd0cba43ff2a9a64c7355c18e6f31f1db19c9e0",
+      "beforeAssertionSites": 46,
+      "beforeCaseTemplates": [
+        "guided controller refreshes the open map and its linked event together",
+        "guided controller refuses a dirty map without erasing its draft",
+        "guided scene forking preserves locks on the previously generated scene",
+        "one semantic publication saves map, pages, scenes and cold reopens for editing",
+        "${workingCatalog ? ",
+        "a second parameterized instance leaves the first generated assets intact",
+        "a stale map refuses the entire publication without a partial registry",
+        "atomic recovery after $checkpoint leaves a coherent editable event"
+      ],
+      "afterSha256": "b204c8d709b38b788b57ee662dd32efdbffe6f2b57ec0135cb94ff8810df7d1b",
+      "classification": "Mixed historical chrome migrated to canonical controllers, compiler or neutral host; existing backend publication cases retained."
+    }
+  ],
+  "sourceRemoved": [
+    "apps/avelune_studio/lib/presentation/features/events/event_map_loader.dart",
+    "apps/avelune_studio/lib/presentation/features/events/event_condition_labels.dart",
+    "apps/avelune_studio/lib/presentation/features/events/standard_event_template_form.dart",
+    "apps/avelune_studio/lib/presentation/features/events/event_simulation_dialog.dart",
+    "apps/avelune_studio/lib/presentation/features/events/event_playtest.dart"
+  ],
+  "extractedOwners": [
+    "apps/avelune_studio/lib/features/events/application/event_map_loader.dart",
+    "apps/avelune_studio/lib/features/events/application/event_labels.dart",
+    "apps/avelune_studio/lib/features/events/application/event_condition_labels.dart",
+    "apps/avelune_studio/lib/features/events/application/event_editing_session.dart",
+    "apps/avelune_studio/lib/features/events/application/standard_event_editing_session.dart",
+    "apps/avelune_studio/lib/features/events/application/event_playtest.dart",
+    "apps/avelune_studio/lib/features/events/application/event_simulation_session.dart",
+    "apps/avelune_studio/lib/features/events/application/event_condition_editing.dart"
+  ],
+  "review": {
+    "reviewer": "t01_dependency_review",
+    "confirmed": "Queue/guards, target lookup, template typed fields, reuse and 4 family simulations, published playtest identity/revision checks.",
+    "finding": "Template save lock formerly lived in disabled UI button. Regression reproduced two publications instead of one, then busy/disposed service guard added and validated.",
+    "pending": "Final simulation helper source comparison review requested; seven real cases pass."
+  },
+  "retiredUiChecks": [
+    {
+      "path": "apps/avelune_studio/test/events/standard_event_template_form_test.dart",
+      "case": "history opens guided event authoring without creating a blank draft",
+      "classification": "Historical landing button routing/callback counts only, explicitly retired; no replacement navigation/visual claim."
+    }
+  ],
+  "validation": {
+    "eventsBatch": {
+      "log": "events-editing-template-playtest.log",
+      "exitCode": 1,
+      "passed": 33,
+      "failed": 3,
+      "details": "Editing5 and playtest9 passed; template12 had two new incorrect label assertions, corrected to canonical branch/actions; backend publication9 passed and one working-catalog targeted-read case failed."
+    },
+    "templateLockRed": {
+      "log": "standard-event-lock-red.log",
+      "exitCode": 1,
+      "reason": "Second publish observed while first was held."
+    },
+    "templateGreen": {
+      "log": "standard-event-lock-and-templates-green.log",
+      "exitCode": 0,
+      "passed": 13
+    },
+    "simulationGreen": {
+      "log": "event-simulation-seven.log",
+      "exitCode": 0,
+      "passed": 7
+    },
+    "guidedPublisherGreen": {
+      "log": "event-guided-publisher-one.log",
+      "exitCode": 0,
+      "passed": 1,
+      "details": "Real LocalEventAdapter publication via extracted EventEditingSession; open map and linked event refreshed together."
+    },
+    "isolatedBackendFailure": {
+      "log": "standard-event-working-publication-isolated.log",
+      "exitCode": 1,
+      "case": "working guided publication saves and edits without unrelated map files",
+      "expectedUnrelatedUnits": 0,
+      "actualUnrelatedUnits": 6,
+      "attribution": "Failure originates before new UI sessions; backend/test failing case unchanged at first run. Concurrent changes exist under map_authoring/map_core, no causal attribution established and no test expectation relaxed."
+    },
+    "targetedAnalysis": "dart analyze lib/features/events/application lib/presentation/features/events and affected five test files: exit0, No issues found.",
+    "scopedDiffCheck": "exit0"
+  },
+  "limits": [
+    "Other Events UI/pages and mixed host consumers remain; no global lot or G0 accepted.",
+    "Template submit callback probes prove order/refusal; real backend publication cases are listed separately.",
+    "Software widget host playtest guards do not prove native Player GPU or a complete game scenario."
+  ],
+  "mcpParity": "N/A"
+}

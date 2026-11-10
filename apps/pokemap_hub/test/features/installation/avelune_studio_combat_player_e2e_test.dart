@@ -1,136 +1,47 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:avelune_studio/presentation/features/game_export/studio_game_export_page.dart';
+import 'package:avelune_studio/features/characters/application/character_editing_commands.dart';
+import 'package:avelune_studio/features/map_workspace/application/gameplay_zone_editing_commands.dart';
+import 'package:avelune_studio/features/map_workspace/domain/map_workspace_workshop.dart';
+import 'package:avelune_studio/features/pokemon/application/pokemon_combat_controller.dart';
+import 'package:avelune_studio/features/pokemon/data/local_pokemon_combat_adapter.dart';
+import 'package:avelune_studio/features/pokemon/data/local_pokemon_workspace_adapter.dart';
 import 'package:flame/components.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
 import 'package:pokemap_hub/pokemap_hub_player.dart';
-import 'package:pub_semver/pub_semver.dart';
 
 import '../../../../avelune_studio/test/support/combat_project_fixture.dart';
 import '../../../../avelune_studio/test/support/game_export_fixture.dart';
-import '../../../../avelune_studio/test/support/map_host_fixture.dart';
-import '../../../../avelune_studio/test/support/m2_ui_fixture.dart' show pumpIo;
+import '../../../../avelune_studio/test/support/authoring_export_fixture.dart';
 import '../../../../avelune_studio/test/support/m3_story_fixture.dart';
 
 void main() {
   testWidgets(
     'Studio combat package installs and starts battles from Player storage',
     (tester) async {
-      final temporary =
-          (await tester.runAsync(
-            () => Directory.systemTemp.createTemp('avelune-combat-player-'),
-          ))!;
+      final temporary = (await tester.runAsync(
+        () => Directory.systemTemp.createTemp('avelune-combat-player-'),
+      ))!;
       addTearDown(() => temporary.delete(recursive: true));
       final packageFile = File(p.join(temporary.path, 'combat.avelunegame'));
-      final author = await MapHostFixture.open(
+      final author = await AuthoringExportFixture.open(
         tester,
         prepareSource: _prepareCombatExportFixture,
-        gameExportPicker: (_) async => packageFile,
-        assetBundle: _StudioAssetBundle(),
+        prepareProjectAssets: _prepareStudioPokemonResources,
       );
-
-      await author.go('Pokémon');
-      await tester.tap(find.text('Combats').first);
-      await pumpIo(tester);
-      await tester.tap(find.text('Créer une table').last);
-      await pumpIo(tester);
-      await tester.enterText(find.byType(TextField).last, 'Jardin sauvage');
-      await tester.tap(find.text('Créer').last);
-      await pumpIo(tester);
-      await tester.tap(find.text('Ajouter une espèce').last);
-      await pumpIo(tester);
-      await tester.tap(find.text('sproutle').last);
-      await pumpIo(tester);
-      await tester.enterText(
-        find.descendant(
-          of: find.byKey(const ValueKey('jardin_sauvage:chance')),
-          matching: find.byType(TextField),
-        ),
-        '100',
-      );
-      await tester.tap(find.text('Enregistrer').last);
-      await pumpIo(tester);
-      expect(author.maps.project!.encounterTables, hasLength(1));
-
-      await tester.tap(find.text('Dresseurs').last);
-      await pumpIo(tester);
-      await tester.tap(find.text('Créer un dresseur').last);
-      await pumpIo(tester);
-      await tester.enterText(find.byType(TextField).last, 'Chef gare');
-      await tester.tap(find.text('Créer').last);
-      await pumpIo(tester);
-      await tester.tap(find.text('Ajouter un Pokémon').last);
-      await pumpIo(tester);
-      await tester.tap(find.text('sproutle').last);
-      await pumpIo(tester);
-      final movePicker = find.widgetWithText(
-        DropdownButtonFormField<String>,
-        'Ajouter une attaque',
-      );
-      await tester.ensureVisible(movePicker);
-      await tester.tap(movePicker);
-      await pumpIo(tester);
-      await tester.tap(find.text('Charge').last);
-      await pumpIo(tester);
-      await tester.tap(find.text('Enregistrer').last);
-      await pumpIo(tester);
-      expect(author.maps.project!.trainers, hasLength(1));
-
-      await author.go('Carte');
-      await tester.ensureVisible(find.text('Zones').first);
-      await tester.tap(find.text('Zones').first);
-      await pumpIo(tester);
-      await tester.ensureVisible(find.text('Case par case'));
-      await tester.tap(find.text('Case par case'));
-      await pumpIo(tester);
-      await author.tapCell(9, 9);
-      final zone = author.document.current.gameplayZones.single;
-      await tester.tap(find.byKey(ValueKey('zone-table-${zone.id}')));
-      await pumpIo(tester);
-      await tester.tap(find.text('Jardin sauvage').last);
-      await pumpIo(tester);
-      final selectTool = find.byKey(const ValueKey('Sélectionner')).first;
-      await tester.ensureVisible(selectTool);
-      await tester.tap(selectTool);
-      await pumpIo(tester);
-      await author.tapCell(7, 9);
-      await tester.tap(find.byKey(const ValueKey('trainer-combat-guide-null')));
-      await pumpIo(tester);
-      await tester.tap(find.text('Chef gare').last);
-      await pumpIo(tester);
-      expect(
-        await tester.runAsync(() => author.maps.save(author.document)),
-        isTrue,
-      );
+      await tester.runAsync(() => _configureCombatAuthoring(author));
 
       final authorBefore = await author.disk();
-      await author.openExport();
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Auteur'),
-        'Avelune',
-      );
-      await tester.tap(find.byKey(const ValueKey('start-game-export')));
-      await pumpIo(tester, frames: 120);
-      expect(
-        find.text('Dernier paquet produit'),
-        findsOneWidget,
-        reason:
-            tester
-                .widget<StudioGameExportPage>(find.byType(StudioGameExportPage))
-                .controller
-                .error,
-      );
+      await author.export(packageFile);
       expect(await tester.runAsync(packageFile.exists), isTrue);
       expect(await author.disk(), authorBefore);
-      await tester.pumpWidget(const SizedBox());
 
       final source = author.source.directory;
       final hiddenSource = Directory('${source.path}.offline');
@@ -166,9 +77,8 @@ void main() {
           launch.project,
         );
         expect(installedProject.path, isNot(source.path));
-        final manifest = ProjectManifest.fromJson(
-          jsonDecode(await installedProject.readAsString())
-              as Map<String, dynamic>,
+        final manifest = await loadProjectManifestFromFile(
+          installedProject.path,
         );
         expect(manifest.encounterTables.single.id, 'jardin_sauvage');
         expect(manifest.trainers.single.id, 'chef_gare');
@@ -259,6 +169,82 @@ void main() {
   );
 }
 
+Future<void> _configureCombatAuthoring(AuthoringExportFixture author) async {
+  final source = author.source;
+  final pokemon = LocalPokemonWorkspaceAdapter(
+    session: source.session,
+    mapAdapter: source.maps,
+  );
+  final combat = PokemonCombatController(
+    LocalPokemonCombatAdapter(session: source.session, mapAdapter: source.maps),
+    changed: () {},
+    projectChanged: (project) {
+      final current = author.maps.project!;
+      author.maps.acceptResources(
+        current,
+        mergeProjectMetadataSections(current, project, const {
+          'pokemon',
+          'trainers',
+          'encounterTables',
+        }),
+      );
+    },
+  );
+  try {
+    final index = await pokemon.loadIndex();
+    await combat.load();
+    expect(combat.createTable('Jardin sauvage'), isTrue);
+    combat.editTable(
+      (table) => table.copyWith(
+        chancePerStep: 1,
+        entries: [
+          ProjectEncounterEntry(
+            speciesId: 'sproutle',
+            minLevel: 5,
+            maxLevel: 5,
+          ),
+        ],
+      ),
+    );
+    expect(await combat.save(index), isTrue, reason: combat.error);
+    expect(author.maps.project!.encounterTables, hasLength(1));
+    expect(combat.createTrainer('Chef gare'), isTrue);
+    combat.editTrainer(
+      (trainer) => trainer.copyWith(
+        team: [
+          ProjectTrainerPokemonEntry(
+            speciesId: 'sproutle',
+            level: 5,
+            moves: ['tackle'],
+          ),
+        ],
+      ),
+    );
+    expect(await combat.save(index), isTrue, reason: combat.error);
+    expect(author.maps.project!.trainers, hasLength(1));
+    final zones = GameplayZoneEditingCommands(
+      author.document,
+      author.maps.project!,
+    );
+    final zone = zones.paintEncounterCells([
+      const GridPos(x: 9, y: 9),
+    ], erase: false)!;
+    zones.updateEncounter(zone.id, tableId: 'jardin_sauvage');
+    CharacterEditingCommands(
+      author.document,
+      author.maps.project!,
+    ).assignTrainer('combat-guide', 'chef_gare');
+    expect(
+      await author.maps.save(author.document),
+      isTrue,
+      reason: author.document.error,
+    );
+  } finally {
+    combat.dispose();
+    await pokemon.close();
+  }
+}
+
 Future<void> _prepareCombatExportFixture(M3StoryFixture source) async {
   await prepareGameExportFixture(source);
   await seedCombatProject(source);
@@ -271,9 +257,8 @@ Future<void> _prepareCombatExportFixture(M3StoryFixture source) async {
     jsonDecode(await File(p.join(goldenRoot, 'project.json')).readAsString())
         as Map<String, dynamic>,
   );
-  await Directory(
-    p.join(source.directory.path, 'data/pokemon'),
-  ).delete(recursive: true);
+  await Directory(p.join(source.directory.path, 'data/pokemon'))
+      .delete(recursive: true);
   await _copyDirectory(
     Directory(p.join(goldenRoot, 'data/pokemon')),
     Directory(p.join(source.directory.path, 'data/pokemon')),
@@ -329,6 +314,35 @@ Future<void> _prepareCombatExportFixture(M3StoryFixture source) async {
           .toJson(),
     ),
   );
+  await _prepareStudioPokemonResources(source.directory.path);
+}
+
+Future<void> _prepareStudioPokemonResources(String projectPath) async {
+  final assets = Directory('../avelune_studio/assets/pokemon');
+  await provisionProjectItemIcons(
+    projectPath: projectPath,
+    loadPack: () async => ProjectItemIconPack(
+      manifestBytes: await File(p.join(assets.path, 'item_icons/manifest.json'))
+          .readAsBytes(),
+      archiveBytes: await File(p.join(assets.path, 'item_icons/icons.zip'))
+          .readAsBytes(),
+    ),
+  );
+  try {
+    await provisionProjectCaptureSprites(
+      projectPath: projectPath,
+      loadPack: () async => ProjectCaptureSpritePack(
+        manifestBytes: await File(
+          p.join(assets.path, 'capture_sprites/manifest.json'),
+        ).readAsBytes(),
+        archiveBytes: await File(
+          p.join(assets.path, 'capture_sprites/sprites.zip'),
+        ).readAsBytes(),
+      ),
+    );
+  } on ProjectCaptureSpriteProvisioningPartialFailure catch (failure) {
+    throw StateError(failure.error);
+  }
 }
 
 Future<void> _copyDirectory(Directory source, Directory destination) async {
@@ -342,39 +356,14 @@ Future<void> _copyDirectory(Directory source, Directory destination) async {
   }
 }
 
-GamePackageHostCompatibility _compatibility() => GamePackageHostCompatibility(
-  hubVersion: Version.parse('1.2.0'),
-  runtimeApiVersion: Version.parse('1.4.0'),
-  capabilities: const {
-    'dialogue.choices@1',
-    'map@1',
-    'overworld.menu@1',
-    'world.shop@1',
-  },
-  supportedProjectFormats: const {'v8'},
-  currentProjectFormat: 'v8',
-  supportedSaveFormats: const {1},
-);
+GamePackageHostCompatibility _compatibility() =>
+    AveluneRuntimeCompatibility.host();
 
 class _InstalledCombatGame extends PlayableMapGame {
   _InstalledCombatGame({required super.bundle, required super.projectFilePath});
 
   @override
   bool get isLoaded => true;
-}
-
-class _StudioAssetBundle extends CachingAssetBundle {
-  @override
-  Future<ByteData> load(String key) async {
-    if (key.startsWith('assets/home/')) {
-      final bytes =
-          await File(
-            p.join(Directory.current.path, '../avelune_studio', key),
-          ).readAsBytes();
-      return ByteData.sublistView(Uint8List.fromList(bytes));
-    }
-    return rootBundle.load(key);
-  }
 }
 
 Future<void> _until(PlayableMapGame game, bool Function() done) async {

@@ -6,7 +6,7 @@ import 'package:map_render_3d/map_render_3d.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/layout/studio_graph_card.dart';
-import '../map_workspace/map_workspace_visuals.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 import '../map_workspace/studio_spatial_map_preview.dart';
 import 'event_labels.dart';
 

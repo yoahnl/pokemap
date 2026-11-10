@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' as rendering show ScrollCacheExtent;
 import 'package:map_core/map_core_domain.dart';
 
-import '../../shared/text/studio_search_text.dart';
+import 'package:avelune_studio/features/resources/domain/studio_search_text.dart';
 import '../../shared/widgets/feedback/studio_empty_state.dart';
 import '../../shared/widgets/inputs/studio_search_field.dart';
 import '../../shared/widgets/layout/studio_palette_card.dart';
-import 'map_library_tree.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_library_tree.dart';
 
 class MapWarpPalette extends StatefulWidget {
   const MapWarpPalette({

@@ -1,5 +1,7 @@
+import 'package:avelune_studio/features/map_workspace/coordination/workspace_map_catalog_actions.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
+
 import '../../../features/map_workspace/application/map_workspace_controller.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/inputs/studio_draft_field.dart';
@@ -48,18 +50,11 @@ VoidCallback? mapCatalogueEscapeRopeAction(
       map: document.current,
       project: project,
       loadItems: loadItems,
-      save: (values) async {
-        if (document.dirty && !await controller.save(document)) {
-          return 'La carte doit être enregistrée avant de modifier ses paramètres.';
-        }
-        final result = await controller.mutateCatalog(
-          'map.update_metadata',
-          values,
-        );
-        return result.integrated
-            ? null
-            : result.error ?? 'Les paramètres n’ont pas pu être enregistrés.';
-      },
+      save: (values) => saveWorkspaceMapMetadata(
+        controller: controller,
+        document: document,
+        values: values,
+      ),
     ),
   );
 }
@@ -96,13 +91,12 @@ Future<void> _createWorkspaceMap(
   if (project == null || controller.catalogBusy || controller.isDisposed) {
     return;
   }
-  final id = 'studio_map_${DateTime.now().microsecondsSinceEpoch}';
-  bool published = false;
+  final operation = WorkspaceMapCreation(controller, groupId: groupId);
   await showNewMapDialog(
     context,
     project: project,
     initialGroupId: groupId,
-    submitLabel: () => published ? 'Réouvrir' : 'Créer la carte',
+    submitLabel: () => operation.published ? 'Réouvrir' : 'Créer la carte',
     onCreate:
         ({
           required name,
@@ -112,42 +106,14 @@ Future<void> _createWorkspaceMap(
           groupId,
           tilesetId,
         }) async {
-          if (controller.isDisposed) return 'Le projet a été fermé.';
-          if (!published) {
-            final result = await controller.mutateCatalog('map.create', {
-              'mapId': id,
-              'name': name,
-              'width': width,
-              'height': height,
-              'role': role.name,
-              'groupId': ?groupId,
-              'tilesetId': ?tilesetId,
-            });
-            published = result.published || result.integrated;
-            if (!result.integrated) {
-              return published
-                  ? 'La carte est créée sur disque. ${result.error ?? ''} Réouvrez-la pour reprendre la relecture.'
-                  : result.error ?? 'La création a été refusée.';
-            }
-          } else if (controller.pendingCatalogReceipt != null) {
-            final result = await controller.retryCatalogRefresh();
-            if (!result.integrated) {
-              return 'La carte est créée. ${result.error ?? 'Relecture impossible.'}';
-            }
-          }
-          if (controller.isDisposed) {
-            return 'La carte est créée, mais le projet a été fermé.';
-          }
-          final entry = controller.project?.maps
-              .where((entry) => entry.id == id)
-              .firstOrNull;
-          if (entry == null) {
-            return 'La carte est créée ; relisez le catalogue avant de la rouvrir.';
-          }
-          await controller.activate(entry);
-          return controller.active?.base.mapId == id
-              ? null
-              : 'La carte est créée. ${controller.error ?? 'Ouverture impossible.'} Utilisez Réouvrir.';
+          operation
+            ..name = name
+            ..width = '$width'
+            ..height = '$height'
+            ..role = role
+            ..groupId = groupId
+            ..tilesetId = tilesetId;
+          return operation.submit();
         },
   );
 }
@@ -196,24 +162,25 @@ Future<void> _renameWorkspaceMap(
     }
   }
   if (!context.mounted || controller.isDisposed) return;
-  var name = entry.name, published = false;
+  final operation = WorkspaceMapRename(controller, entry);
   await showMapCatalogueForm(
     context,
     title: 'Renommer la carte',
     submitLabel: 'Enregistrer',
-    currentSubmitLabel: () => published ? 'Relire le catalogue' : 'Enregistrer',
-    valid: () => name.trim().isNotEmpty,
+    currentSubmitLabel: () =>
+        operation.published ? 'Relire le catalogue' : 'Enregistrer',
+    valid: () => operation.name.trim().isNotEmpty,
     fields: (refresh, busy) => Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
         StudioDraftField(
           key: const ValueKey('rename-map-name'),
-          value: name,
+          value: operation.name,
           label: 'Nom de la carte',
           enabled: !busy,
           onChanged: (value) {
-            name = value;
+            operation.name = value;
             refresh();
           },
         ),
@@ -225,20 +192,7 @@ Future<void> _renameWorkspaceMap(
         ),
       ],
     ),
-    submit: () async {
-      final result = published
-          ? await controller.retryCatalogRefresh()
-          : await controller.mutateCatalog('map.update_metadata', {
-              'mapId': entry.id,
-              'name': name.trim(),
-            });
-      published = result.published;
-      return result.integrated
-          ? null
-          : result.published
-          ? 'Le titre est enregistré sur disque. ${result.error ?? ''} Relisez le catalogue.'
-          : result.error ?? 'Le renommage a été refusé.';
-    },
+    submit: operation.submit,
   );
 }
 

@@ -2,8 +2,8 @@ import 'package:avelune_studio/features/characters/application/character_editing
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/warp_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_canvas.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
+import 'package:avelune_studio/platform/rendering/viewports/map_editing_viewport_2d.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -17,7 +17,7 @@ ProjectMapEntry get garden =>
 void main() {
   late EditableMapDocument document;
   late ProjectManifest project;
-  late MapWorkspaceViewState view;
+  late MapEditingViewportSession view;
 
   Future<StateSetter> host(WidgetTester tester) async {
     late StateSetter redraw;
@@ -28,7 +28,7 @@ void main() {
           body: StatefulBuilder(
             builder: (context, setState) {
               redraw = setState;
-              return MapWorkspaceCanvas(
+              return MapEditingViewport2D(
                 document: document,
                 project: project,
                 visuals: WorkspaceTestVisuals(),
@@ -58,7 +58,7 @@ void main() {
       ),
     );
     project = workspaceProject.copyWith(characters: [guide]);
-    view = MapWorkspaceViewState();
+    view = MapEditingViewportSession();
   });
   tearDown(() => view.dispose());
 

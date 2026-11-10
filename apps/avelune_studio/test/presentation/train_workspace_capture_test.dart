@@ -8,7 +8,7 @@ import 'package:avelune_studio/features/map_workspace/application/map_workspace_
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/platform/rendering/studio_map_resources.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_canvas.dart';
+import 'package:avelune_studio/platform/rendering/viewports/map_editing_viewport_2d.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_screen.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
@@ -159,7 +159,7 @@ void main() {
               (item) => item.id == previewElementId,
             );
             final view = tester
-                .widget<MapWorkspaceCanvas>(find.byType(MapWorkspaceCanvas))
+                .widget<MapEditingViewport2D>(find.byType(MapEditingViewport2D))
                 .view;
             view.brush = element;
             view.tool = StudioMapTool.place;

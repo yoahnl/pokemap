@@ -1,9 +1,9 @@
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_editing_commands.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_canvas_stroke.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_canvas.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_canvas_stroke.dart';
+import 'package:avelune_studio/platform/rendering/viewports/map_editing_viewport_2d.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -19,7 +19,7 @@ void main() {
         mapId: 'a',
       ),
     );
-    final view = MapWorkspaceViewState()
+    final view = MapEditingViewportSession()
       ..tool = StudioMapTool.paint
       ..tile = const TileLayerPaletteEntry(tilesetId: 'atlas', localTileId: 0);
     addTearDown(view.dispose);
@@ -47,7 +47,7 @@ void main() {
           mapId: 'a',
         ),
       );
-      final view = MapWorkspaceViewState()
+      final view = MapEditingViewportSession()
         ..tool = StudioMapTool.paint
         ..tile = const TileLayerPaletteEntry(
           tilesetId: 'atlas',
@@ -58,7 +58,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: MapWorkspaceCanvas(
+            body: MapEditingViewport2D(
               document: document,
               project: workspaceProject,
               visuals: visuals,

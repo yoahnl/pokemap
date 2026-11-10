@@ -3,6 +3,8 @@ import 'dart:convert';
 
 import 'package:avelune_studio/features/events/data/local_event_adapter.dart';
 import 'package:avelune_studio/features/events/application/event_workspace_controller.dart';
+import 'package:avelune_studio/features/events/application/event_editing_session.dart';
+import 'package:avelune_studio/features/events/application/event_map_loader.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_workshop.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
@@ -101,8 +103,12 @@ void main() {
       fixture.workspace.active!.acceptCatalogContent(base);
       final controller = fixture.attach();
       expect(await controller.prepare(), isTrue);
+      final editing = EventEditingSession(controller, changed: () {});
       expect(
-        await controller.publishTemplate(spec(project)),
+        await editing.publishTemplate(
+          spec(project),
+          mapLoader: EventMapLoader(fixture.workspace),
+        ),
         isTrue,
         reason: controller.error,
       );

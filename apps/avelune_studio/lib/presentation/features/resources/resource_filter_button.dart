@@ -6,9 +6,9 @@ import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/inputs/studio_toggle_row.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import '../map_workspace/workspace_compact_panel.dart';
-import 'resource_catalog.dart';
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 import 'resource_category_filter.dart';
-import 'resource_category_tree.dart';
+import 'package:avelune_studio/features/resources/application/resource_category_tree.dart';
 
 extension ResourceCatalogUsageLabels on ResourceCatalogUsage {
   String get label => switch (this) {

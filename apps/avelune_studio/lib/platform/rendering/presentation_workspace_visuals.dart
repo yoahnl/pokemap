@@ -7,10 +7,10 @@ import 'package:map_player_ui/presentation_renderer.dart';
 
 import '../../features/presentations/application/presentation_preview_transport.dart';
 import '../../features/presentations/domain/presentation_port.dart';
-import '../../presentation/features/presentations/presentation_workspace_visuals.dart';
+import 'contracts/presentation_workspace_visuals.dart';
 import 'presentation_content_store.dart';
 import 'presentation_scenario_preview.dart';
-import '../../presentation/features/presentations/presentation_scenario_preview.dart';
+import 'contracts/presentation_scenario_preview.dart';
 import 'presentation_frame_bindings.dart';
 import 'presentation_unavailable_content.dart';
 

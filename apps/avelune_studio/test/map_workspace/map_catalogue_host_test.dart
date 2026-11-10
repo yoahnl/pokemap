@@ -1,10 +1,10 @@
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_canvas.dart';
+import 'package:avelune_studio/platform/rendering/viewports/map_editing_viewport_2d.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../support/map_catalogue_host_fixture.dart';
-import '../support/m2_ui_fixture.dart' show pumpIo;
+import '../support/real_test_io.dart';
 import '../support/synthetic_player_recipe.dart';
 import '../support/capture_m3_widget.dart';
 import '../support/load_desktop_capture_fonts.dart';
@@ -19,7 +19,7 @@ void main() {
       final initial = await f.reopen();
       final original = f.host.maps.active!;
       final originalViewport = tester
-          .widget<MapWorkspaceCanvas>(find.byType(MapWorkspaceCanvas))
+          .widget<MapEditingViewport2D>(find.byType(MapEditingViewport2D))
           .view;
       final originalTransform = originalViewport.transform.value.clone();
       final created = await f.createMap('Île des saules');
@@ -37,7 +37,7 @@ void main() {
       await f.paintCollision();
       expect(draft.dirty, isTrue);
       expect(draft.undoCount, 1);
-      await f.tapKey('Enregistrer');
+      await f.saveActive();
       expect(
         draft.dirty,
         isFalse,
@@ -76,11 +76,8 @@ void main() {
       expect(finalRead.maps['annex'], initial.maps['annex']);
       expect(original.current.name, 'Template Alpha — village');
       expect(originalViewport.transform.value, originalTransform);
-      await f.createFolder('Template Alpha');
-      await f.mapAction('first-map', 'Déplacer…');
-      await f.choose('Dossier de destination', 'Template Alpha');
-      await tester.tap(find.text('Déplacer').last);
-      await pumpIo(tester, frames: 20);
+      final folder = await f.createFolder('Template Alpha');
+      expect(await f.moveMap('first-map', folder.id), isNull);
       expect(
         (await f.reopen()).maps['first-map']!.warps,
         initial.maps['first-map']!.warps,
@@ -103,7 +100,7 @@ void main() {
       expect(f.host.maps.project!.settings.tileHeight, 16);
       await f.paintCollision();
       expect(document.dirty, isTrue);
-      await f.tapKey('Enregistrer');
+      await f.saveActive();
       expect(
         document.dirty,
         isFalse,
@@ -118,16 +115,13 @@ void main() {
     (tester) async {
       final f = await MapCatalogueHostFixture.open(tester);
       final initial = await f.reopen();
-      await f.tapKey('new-map');
-      await f.field('new-map-name', 'Brouillon conservé');
-      await f.field('new-map-width', '1.5');
-      await tester.tap(find.text('Créer la carte'));
-      await pumpIo(tester, frames: 3);
-      expect(find.text('Brouillon conservé'), findsOneWidget);
-      expect(find.text('Entier positif requis'), findsOneWidget);
+      final operation = f.beginMapCreation()
+        ..name = 'Brouillon conservé'
+        ..width = '1.5';
+      expect(operation.valid, isFalse);
+      expect(await RealTestIo.run(tester, operation.submit), isNotNull);
+      expect(operation.name, 'Brouillon conservé');
       expect(f.host.maps.project, initial.project);
-      await tester.tap(find.text('Annuler').last);
-      await pumpIo(tester, frames: 4);
       final after = await f.reopen();
       expect(after.project, initial.project);
       expect(after.maps, initial.maps);

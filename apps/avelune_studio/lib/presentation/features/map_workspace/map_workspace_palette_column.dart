@@ -3,10 +3,10 @@ import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 
 import 'map_creation_tools.dart';
-import '../resources/resource_catalog.dart';
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 import 'map_workspace_panels.dart';
 import 'map_workspace_view_state.dart';
-import 'map_workspace_visuals.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 
 class MapWorkspacePaletteColumn extends StatelessWidget {
   const MapWorkspacePaletteColumn({

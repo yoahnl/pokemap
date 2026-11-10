@@ -1,179 +1,145 @@
-import 'package:avelune_studio/presentation/features/events/standard_event_template_form.dart';
-import 'package:avelune_studio/features/narrative/application/narrative_overview.dart';
-import 'package:avelune_studio/presentation/features/narrative/narrative_overview_landing.dart';
-import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
-import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
-import 'package:flutter/material.dart';
+import 'dart:async';
+
+import 'package:avelune_studio/features/events/application/standard_event_editing_session.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 
+StandardEventEditingSession editing({
+  StandardEventTemplateSpec? initial,
+  Map<String, String> items = const {'key': 'Clé de démonstration'},
+}) => StandardEventEditingSession(
+  project: _project(),
+  maps: [_map()],
+  itemOptions: items,
+  initial: initial ?? _spec(),
+);
+
 void main() {
-  testWidgets('guided map picker loads only the chosen map once', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(1500, 1200);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    final requested = <String>[];
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: studioTheme(),
-        home: Scaffold(
-          body: StandardEventTemplateForm(
-            project: _project().copyWith(
-              maps: [
-                ..._project().maps,
-                const ProjectMapEntry(
-                  id: 'second',
-                  name: 'Jardin',
-                  relativePath: 'maps/second.json',
-                ),
-                const ProjectMapEntry(
-                  id: 'unrelated',
-                  name: 'Autre',
-                  relativePath: 'maps/unrelated.json',
-                ),
-              ],
-            ),
-            maps: [_map()],
-            itemOptions: const {},
-            loadMap: (id) async {
-              requested.add(id);
-              return _map().copyWith(id: id);
-            },
-            onSave: (_) async => true,
-            onAdvanced: (_) {},
-            onCancel: () {},
-          ),
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-    expect(requested, isEmpty);
-    StudioSelect picker() => tester.widget<StudioSelect>(
-      find.byKey(const ValueKey('standard-event-map')),
-    );
-    expect(picker().options.keys, ['room', 'second', 'unrelated']);
-    picker().onChanged!('second');
-    await tester.pumpAndSettle();
-    expect(requested, ['second']);
-    expect(
-      tester
-          .widget<StudioSelect>(
-            find.byKey(const ValueKey('standard-event-entity')),
-          )
-          .options
-          .keys,
-      ['guide', 'other'],
-    );
-    picker().onChanged!('room');
-    await tester.pumpAndSettle();
-    picker().onChanged!('second');
-    await tester.pumpAndSettle();
-    expect(requested, ['second']);
-    expect(tester.takeException(), isNull);
-    await tester.pumpWidget(const SizedBox());
-  });
-  testWidgets(
-    'history opens guided event authoring without creating a blank draft',
-    (tester) async {
-      tester.view.physicalSize = const Size(1500, 1200);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-      final search = TextEditingController();
-      final scroll = ScrollController();
-      addTearDown(search.dispose);
-      addTearDown(scroll.dispose);
-      var opened = 0;
-      var created = 0;
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: studioTheme(),
-          home: Scaffold(
-            body: NarrativeOverviewLanding(
-              overview: NarrativeOverview(
-                stories: [],
-                facts: [],
-                interactions: [],
-                stepsById: {},
-                stepLinks: {},
-                factLinks: {},
-                dirtyCount: 0,
-              ),
-              project: _project(),
-              scenes: const [],
-              dialogues: const [],
-              events: const [],
-              search: search,
-              onSearch: (_) {},
-              resultsScroll: scroll,
-              onLibrary: () {},
-              onCreateStory: null,
-              onCreateScene: null,
-              onCreateEvent: () => created++,
-              onProgression: null,
-              onScenes: null,
-              onEvents: () => opened++,
-              onVerification: null,
-              onOpenStory: (_) {},
-              onOpenStep: (_, _) {},
-              onOpenScene: null,
-              onOpenInteraction: (_) {},
-              onOpenDialogue: null,
-              onOpenEvent: null,
-              onOpenMap: null,
-            ),
-          ),
-        ),
+  test(
+    'busy or disposed template sessions never publish a second request',
+    () async {
+      final session = editing();
+      addTearDown(session.dispose);
+      final gate = Completer<bool>();
+      var publications = 0;
+      final first = session.save(
+        publish: (_) {
+          publications++;
+          return gate.future;
+        },
       );
-      await tester.pumpAndSettle();
-      final guided = find.byKey(const ValueKey('overview-guided-events'));
-      expect(guided, findsOneWidget);
-      await tester.ensureVisible(guided);
-      await tester.tap(guided);
-      await tester.pumpAndSettle();
-      expect(opened, 1);
-      expect(created, 0);
+      try {
+        expect(session.busy, isTrue);
+        expect(
+          await session.save(
+            publish: (_) async {
+              publications++;
+              return false;
+            },
+          ),
+          isFalse,
+        );
+        expect(publications, 1);
+      } finally {
+        gate.complete(true);
+        await first;
+      }
+      session.dispose();
+      expect(
+        await session.save(
+          publish: (_) async {
+            publications++;
+            return true;
+          },
+        ),
+        isFalse,
+      );
+      expect(publications, 1);
     },
   );
-
-  testWidgets('a removed catalog item blocks the guided save', (tester) async {
-    await _open(
-      tester,
-      initial: StandardEventTemplateSpec(
-        kind: StandardEventTemplateKind.pickup,
-        mapId: 'room',
-        entityId: 'guide',
-        name: 'Objet',
-        parameters: const {
-          'itemId': 'removed',
-          'quantity': 1,
-          'characterId': 'person',
-        },
+  test('guided map selection loads only the chosen map once', () async {
+    final requested = <String>[];
+    final session = StandardEventEditingSession(
+      project: _project().copyWith(
+        maps: [
+          ..._project().maps,
+          const ProjectMapEntry(
+            id: 'second',
+            name: 'Jardin',
+            relativePath: 'maps/second.json',
+          ),
+          const ProjectMapEntry(
+            id: 'unrelated',
+            name: 'Autre',
+            relativePath: 'maps/unrelated.json',
+          ),
+        ],
       ),
+      maps: [_map()],
+      itemOptions: const {},
+      loadMapSource: (id) async {
+        requested.add(id);
+        return _map().copyWith(id: id);
+      },
     );
-    expect(
-      tester
-          .widget<StudioButton>(
-            find.byKey(const ValueKey('standard-event-save')),
-          )
-          .onPressed,
-      isNull,
-    );
-    expect(
-      find.byKey(const ValueKey('standard-event-problem')),
-      findsOneWidget,
-    );
+    addTearDown(session.dispose);
+    await session.initialize();
+    expect(requested, isEmpty);
+    await session.selectMap('second');
+    expect(requested, ['second']);
+    expect(session.selectedMap!.entities.map((entity) => entity.id), [
+      'guide',
+      'other',
+    ]);
+    await session.selectMap('room');
+    await session.selectMap('second');
+    expect(requested, ['second']);
+    expect(session.entityId, isNull);
   });
 
+  for (final items in [
+    const <String, String>{},
+    const {'key': 'Clé'},
+  ]) {
+    test(
+      'unavailable item blocks guided publication catalogue=${items.length}',
+      () async {
+        final session = editing(
+          items: items,
+          initial: StandardEventTemplateSpec(
+            kind: StandardEventTemplateKind.pickup,
+            mapId: 'room',
+            entityId: 'guide',
+            name: 'Objet',
+            parameters: const {
+              'itemId': 'removed',
+              'quantity': 1,
+              'characterId': 'person',
+            },
+          ),
+        );
+        addTearDown(session.dispose);
+        var publications = 0;
+        expect(
+          await session.save(
+            publish: (_) async {
+              publications++;
+              return true;
+            },
+          ),
+          isFalse,
+        );
+        expect(publications, 0);
+        expect(session.error, contains('catalogue'));
+        expect(session.parameters['itemId'], 'removed');
+        expect(session.busy, isFalse);
+      },
+    );
+  }
+
   for (final kind in StandardEventTemplateKind.values) {
-    testWidgets('${kind.name} previews both states with selected resources', (
-      tester,
-    ) async {
+    test('${kind.name} previews both states with selected resources', () {
       final initial = StandardEventTemplateSpec(
         kind: kind,
         mapId: 'room',
@@ -200,133 +166,104 @@ void main() {
           },
         },
       );
-      await _open(tester, initial: initial);
-      expect(
-        tester
-            .widget<StudioButton>(
-              find.byKey(const ValueKey('standard-event-save')),
-            )
-            .onPressed,
-        isNotNull,
+      final session = editing(initial: initial);
+      addTearDown(session.dispose);
+      final projection = session.projection;
+      final before = projection.preview(
+        project: session.project,
+        gameState: session.simulation(projection),
       );
-      final preview = tester.widget<StudioSelect>(
-        find.byKey(const ValueKey('standard-event-simulation')),
+      session.simulated = true;
+      final after = projection.preview(
+        project: session.project,
+        gameState: session.simulation(projection),
       );
-      preview.onChanged!('true');
-      await tester.pumpAndSettle();
-      expect(
-        find.byKey(const ValueKey('standard-event-active-page')),
-        findsOneWidget,
-      );
-      if (kind == StandardEventTemplateKind.pickup) {
-        expect(
-          find.text('Entité masquée et collision retirée'),
-          findsOneWidget,
-        );
+      expect(before.label, isNotEmpty);
+      expect(after.label, isNotEmpty);
+      if (kind == StandardEventTemplateKind.lockedDoor ||
+          kind == StandardEventTemplateKind.trainer) {
+        expect(after.branch, isNot(before.branch));
+        expect(after.actions, isNot(before.actions));
+      } else {
+        expect(after.label, isNot(before.label));
       }
-      expect(tester.takeException(), isNull);
+      if (kind == StandardEventTemplateKind.pickup) {
+        expect(after.visible, isFalse);
+      }
+      expect(session.project.eventRegistry!.records, isEmpty);
+      expect(session.spec.parameters, initial.parameters);
     });
   }
 
-  testWidgets('advanced actions publish the current recipe before navigation', (
-    tester,
-  ) async {
-    final order = <String>[];
-    await _open(
-      tester,
-      onSave: (_) async {
-        order.add('saved');
-        return true;
-      },
-      onAdvanced: (_) => order.add('advanced'),
-    );
-    final advanced = find.textContaining('ouvrir les actions avancées').first;
-    await tester.ensureVisible(advanced);
-    await tester.tap(advanced);
-    await tester.pumpAndSettle();
-    expect(order, ['saved', 'advanced']);
-  });
-
-  testWidgets('failed publication never navigates away from guided settings', (
-    tester,
-  ) async {
-    final opened = <String>[];
-    await _open(tester, onSave: (_) async => false, onAdvanced: opened.add);
-    final advanced = find.textContaining('ouvrir les actions avancées').first;
-    await tester.ensureVisible(advanced);
-    await tester.tap(advanced);
-    await tester.pumpAndSettle();
-    expect(opened, isEmpty);
-    expect(find.textContaining('Vos réglages restent ici'), findsOneWidget);
-  });
-
-  testWidgets('edits one logical NPC with named references and both pages', (
-    tester,
-  ) async {
-    final submissions = <StandardEventTemplateSpec>[];
-    await _open(
-      tester,
-      onSave: (spec) async {
-        submissions.add(spec);
-        return false;
-      },
-    );
-    expect(find.text('Pages et conséquences'), findsOneWidget);
-    expect(find.text('Guide après changement'), findsOneWidget);
-    final picker = tester.widget<StudioSelect>(
-      find.byKey(const ValueKey('standard-event-alternateDialogueId')),
-    );
-    expect(picker.options, {'hello': 'Bonjour', 'after': 'Après la rencontre'});
-    picker.onChanged!('hello');
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(
-      find.byKey(const ValueKey('standard-event-save')),
-    );
-    await tester.tap(find.byKey(const ValueKey('standard-event-save')));
-    await tester.pumpAndSettle();
-    expect(submissions.single.parameters['alternateDialogueId'], 'hello');
-    expect(submissions.single.entityId, 'guide');
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets(
-    'reusing a recipe selects a new owner without altering the first',
-    (tester) async {
-      final submissions = <StandardEventTemplateSpec>[];
-      await _open(
-        tester,
-        onSave: (spec) async {
-          submissions.add(spec);
-          return false;
-        },
+  test(
+    'advanced actions publish the current recipe before navigation',
+    () async {
+      final session = editing();
+      addTearDown(session.dispose);
+      final order = <String>[];
+      final sceneId = session.projection.scenes.first.id;
+      expect(
+        await session.save(
+          publish: (spec) async {
+            expect(spec.entityId, 'guide');
+            order.add('saved');
+            return true;
+          },
+          advancedSceneId: sceneId,
+          openAdvanced: (id) {
+            expect(id, sceneId);
+            order.add('advanced');
+          },
+        ),
+        isTrue,
       );
-      await tester.ensureVisible(
-        find.byKey(const ValueKey('standard-event-reuse')),
-      );
-      await tester.tap(find.byKey(const ValueKey('standard-event-reuse')));
-      await tester.pumpAndSettle();
-      final owner = tester.widget<StudioSelect>(
-        find.byKey(const ValueKey('standard-event-entity')),
-      );
-      expect(owner.value, isNull);
-      owner.onChanged!('other');
-      await tester.pumpAndSettle();
-      await tester.ensureVisible(
-        find.byKey(const ValueKey('standard-event-save')),
-      );
-      await tester.tap(find.byKey(const ValueKey('standard-event-save')));
-      await tester.pumpAndSettle();
-      expect(submissions.single.entityId, 'other');
-      expect(submissions.single.parameters['factId'], 'met');
-      expect(_spec().entityId, 'guide');
+      expect(order, ['saved', 'advanced']);
+      expect(session.busy, isFalse);
     },
   );
 
-  testWidgets(
-    'invalid references prevent publication and explain the problem',
-    (tester) async {
-      await _open(
-        tester,
+  test('shared resource selection changes only the recipe', () async {
+    final session = editing();
+    addTearDown(session.dispose);
+    session.parameters['alternateDialogueId'] = 'hello';
+    final submitted = <StandardEventTemplateSpec>[];
+    expect(
+      await session.save(
+        publish: (spec) async {
+          submitted.add(spec);
+          return false;
+        },
+      ),
+      isFalse,
+    );
+    expect(submitted.single.parameters['alternateDialogueId'], 'hello');
+    expect(submitted.single.entityId, 'guide');
+    expect(session.project.dialogues.map((dialogue) => dialogue.id), [
+      'hello',
+      'after',
+    ]);
+    expect(session.parameters['factId'], 'met');
+    expect(session.error, contains('refusé'));
+  });
+
+  test('reusing a recipe selects a new owner without altering the first', () {
+    final original = _spec();
+    final session = editing(initial: original);
+    addTearDown(session.dispose);
+    session.reuse();
+    expect(session.entityId, isNull);
+    session.selectEntity('other');
+    expect(session.spec.entityId, 'other');
+    expect(session.spec.parameters['factId'], 'met');
+    expect(session.projection.events, isNotEmpty);
+    expect(original.entityId, 'guide');
+    expect(session.name, original.name);
+  });
+
+  test(
+    'invalid references prevent publication and retain the authored input',
+    () async {
+      final session = editing(
         initial: StandardEventTemplateSpec(
           kind: StandardEventTemplateKind.conditionalNpc,
           mapId: 'room',
@@ -335,40 +272,39 @@ void main() {
           parameters: {..._spec().parameters, 'factId': 'removed'},
         ),
       );
-      final save = tester.widget<StudioButton>(
-        find.byKey(const ValueKey('standard-event-save')),
-      );
-      expect(save.onPressed, isNull);
+      addTearDown(session.dispose);
+      var publications = 0;
       expect(
-        find.byKey(const ValueKey('standard-event-problem')),
-        findsOneWidget,
+        await session.save(
+          publish: (_) async {
+            publications++;
+            return true;
+          },
+        ),
+        isFalse,
       );
-      expect(tester.takeException(), isNull);
+      expect(publications, 0);
+      expect(session.error, isNotEmpty);
+      expect(session.parameters['factId'], 'removed');
+      expect(session.busy, isFalse);
     },
   );
 
-  testWidgets('a failed publication keeps the local settings available', (
-    tester,
-  ) async {
-    await _open(
-      tester,
-      onSave: (_) async => throw StateError('Conflit de révision'),
-    );
-    await tester.ensureVisible(
-      find.byKey(const ValueKey('standard-event-save')),
-    );
-    await tester.tap(find.byKey(const ValueKey('standard-event-save')));
-    await tester.pumpAndSettle();
-    expect(find.textContaining('Conflit de révision'), findsOneWidget);
-    expect(find.byType(StandardEventTemplateForm), findsOneWidget);
+  test('a failed publication keeps local settings and prevents advanced navigation', () async {
+    final session = editing();
+    addTearDown(session.dispose);
     expect(
-      tester
-          .widget<StudioSelect>(
-            find.byKey(const ValueKey('standard-event-factId')),
-          )
-          .value,
-      'met',
+      await session.save(
+        publish: (_) async => throw StateError('Conflit de révision'),
+        advancedSceneId: session.projection.scenes.first.id,
+        openAdvanced: (_) => fail('Rejected publication must never navigate'),
+      ),
+      isFalse,
     );
+    expect(session.error, contains('Conflit de révision'));
+    expect(session.parameters['factId'], 'met');
+    expect(session.entityId, 'guide');
+    expect(session.busy, isFalse);
   });
 }
 
@@ -455,32 +391,3 @@ ProjectManifest _project() => ProjectManifest(
     legacyClaims: [],
   ),
 );
-
-Future<void> _open(
-  WidgetTester tester, {
-  StandardEventTemplateSpec? initial,
-  Future<bool> Function(StandardEventTemplateSpec)? onSave,
-  ValueChanged<String>? onAdvanced,
-}) async {
-  tester.view.physicalSize = const Size(1500, 1200);
-  tester.view.devicePixelRatio = 1;
-  addTearDown(tester.view.resetPhysicalSize);
-  addTearDown(tester.view.resetDevicePixelRatio);
-  await tester.pumpWidget(
-    MaterialApp(
-      theme: studioTheme(),
-      home: Scaffold(
-        body: StandardEventTemplateForm(
-          project: _project(),
-          maps: [_map()],
-          initial: initial ?? _spec(),
-          itemOptions: const {'key': 'Clé de démonstration'},
-          onSave: onSave ?? (_) async => true,
-          onAdvanced: onAdvanced ?? (_) {},
-          onCancel: () {},
-        ),
-      ),
-    ),
-  );
-  await tester.pumpAndSettle();
-}

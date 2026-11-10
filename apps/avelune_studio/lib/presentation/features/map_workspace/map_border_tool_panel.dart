@@ -8,9 +8,9 @@ import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_draft_field.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
-import '../resources/resource_catalog.dart';
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 import '../resources/resource_filter_button.dart';
-import 'map_border_review.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_border_review.dart';
 import 'map_cliff_guide.dart';
 import 'map_workspace_view_state.dart';
 

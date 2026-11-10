@@ -1,9 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../features/presentations/domain/presentation_port.dart';
 import '../../features/project_session/domain/project_session.dart';
 import '../../features/verification/domain/verification_port.dart';
 import '../../features/world/domain/world_port.dart';
-import '../../presentation/features/presentations/presentation_media_picker.dart';
+import '../../features/presentations/domain/presentation_media_picker.dart';
 
 final presentationMediaPickerProvider = Provider<PickPresentationMedia>(
   (ref) =>

@@ -1,58 +1,79 @@
+import 'dart:io';
+
+import 'package:avelune_studio/features/map_workspace/coordination/workspace_navigation_session.dart';
+import 'package:avelune_studio/features/map_workspace/domain/workspace_navigation.dart';
+import 'package:avelune_studio/features/stories/application/story_workspace_controller.dart';
+import 'package:avelune_studio/features/stories/data/local_story_adapter.dart';
 import 'package:avelune_studio/features/verification/application/verification_workspace_controller.dart';
-import 'package:avelune_studio/presentation/features/dialogues/dialogue_workspace_page.dart';
-import 'package:avelune_studio/presentation/features/scenes/scene_builder_page.dart';
-import 'package:avelune_studio/presentation/features/stories/story_progression_page.dart';
-import 'package:avelune_studio/presentation/features/verification/verification_workspace_page.dart';
-import 'package:avelune_studio/presentation/features/world/world_workspace_page.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
 
-import 'support/m2_ui_fixture.dart';
 import 'support/ui06_scene_fixture.dart';
-import 'support/ui13_host_harness.dart';
 import 'support/ui13_verification_harness.dart';
+import 'support/verification_report_fixture.dart';
 
 void main() {
-  testWidgets('a rule opened from the report comes back to that report', (
-    tester,
-  ) async {
-    await host(tester);
-    final controller = opened(tester);
-    controller
-      ..toggleSeverity(NarrativeProjectDiagnosticSeverity.error)
-      ..setSearch('conducteur');
-    final rule = controller.report!.diagnostics.firstWhere(
-      (item) => item.worldRuleId == Ui13VerificationHarness.orphanRuleId,
+  TestWidgetsFlutterBinding.ensureInitialized();
+  Future<(Ui13VerificationHarness, WorkspaceNavigationSession)> open() async {
+    final root = Directory(
+      '/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109',
     );
-    controller.select(rule.stableKey);
-    await openSelected(tester);
-
-    expect(find.byType(WorldWorkspacePage), findsOneWidget);
-    expect(
-      tester
-          .widget<WorldWorkspacePage>(find.byType(WorldWorkspacePage))
-          .controller
-          .selectedRuleId,
-      Ui13VerificationHarness.orphanRuleId,
+    await root.create(recursive: true);
+    final h = await Ui13VerificationHarness.create(parent: root);
+    addTearDown(h.dispose);
+    final stories = StoryWorkspaceController(
+      h.narrative,
+      LocalStoryAdapter(session: h.session, mapAdapter: h.adapter),
+      changed: () {},
     );
+    addTearDown(stories.dispose);
+    final navigation = WorkspaceNavigationSession(
+      controller: h.maps,
+      isActive: () => true,
+      changed: () {},
+      scenes: () => h.scenes,
+      dialogues: () => h.dialogues,
+      world: () => h.world,
+      stories: () => stories,
+      verification: () => h.verification,
+    );
+    expect(await h.verification.run(), isTrue, reason: h.verification.error);
+    navigation.show(WorkspaceSpace.verification);
+    return (h, navigation);
+  }
 
-    await activate(tester, find.byTooltip('Retour à la vérification'));
-    expect(find.byType(VerificationWorkspacePage), findsOneWidget);
-    expect(identical(opened(tester).report, controller.report), isTrue);
-    expect(opened(tester).selectedKey, rule.stableKey);
-    expect(opened(tester).search, 'conducteur');
-    expect(opened(tester).severities, {
-      NarrativeProjectDiagnosticSeverity.error,
-    });
-    expect(tester.takeException(), isNull);
-  });
+  test(
+    'a rule opened from the report comes back to that same report and filters',
+    () async {
+      final (h, navigation) = await open();
+      final controller = h.verification;
+      controller
+        ..toggleSeverity(NarrativeProjectDiagnosticSeverity.error)
+        ..setSearch('conducteur');
+      final report = controller.report;
+      final rule = report!.diagnostics.firstWhere(
+        (item) => item.worldRuleId == Ui13VerificationHarness.orphanRuleId,
+      );
+      controller.select(rule.stableKey);
+      await navigation.openDiagnostic(rule);
+      expect(navigation.space, WorkspaceSpace.world);
+      expect(h.world.selectedRuleId, Ui13VerificationHarness.orphanRuleId);
+      expect(navigation.worldRules, isTrue);
+      expect(navigation.worldOrigin.space, WorkspaceSpace.verification);
+      navigation.returnFromWorld();
+      expect(navigation.space, WorkspaceSpace.verification);
+      expect(controller.report, same(report));
+      expect(controller.selectedKey, rule.stableKey);
+      expect(controller.search, 'conducteur');
+      expect(controller.severities, {NarrativeProjectDiagnosticSeverity.error});
+    },
+  );
 
-  testWidgets('a story diagnostic opens its own step and comes back', (
-    tester,
-  ) async {
-    await host(tester);
-    final controller = opened(tester);
-    final step = controller.report!.diagnostics.firstWhere(
+  test('a story diagnostic opens its own step and returns without rebuilding its report', () async {
+    final (h, navigation) = await open();
+    final controller = h.verification;
+    final report = controller.report;
+    final step = report!.diagnostics.firstWhere(
       (item) =>
           item.destination == NarrativeProjectDiagnosticDestination.storyline &&
           (item.stepId ?? '').isNotEmpty,
@@ -60,47 +81,21 @@ void main() {
     controller
       ..setSearch('étape')
       ..select(step.stableKey);
-    await pumpIo(tester, frames: 6);
-    expect(
-      find.textContaining('étape ciblée'),
-      findsOneWidget,
-      reason: 'the page only promises the precision it has',
-    );
-
-    await openSelected(tester);
-    expect(find.byType(StoryProgressionPage), findsOneWidget);
-    final page = tester.widget<StoryProgressionPage>(
-      find.byType(StoryProgressionPage),
-    );
-    expect(page.controller.activeId, step.storylineId);
-    final view = page.views.forStory(
-      page.controller.project,
-      step.storylineId!,
-    );
-    expect(
-      view.selection?.node?.stepId,
-      step.stepId,
-      reason: 'the diagnostic named a step, so that step is selected',
-    );
-
-    await activate(tester, find.text('Vérification'));
-    expect(
-      find.byType(VerificationWorkspacePage),
-      findsOneWidget,
-      reason: 'the return finds the report, not the Histoire hub',
-    );
-    expect(identical(opened(tester).report, controller.report), isTrue);
-    expect(opened(tester).selectedKey, step.stableKey);
-    expect(opened(tester).search, 'étape');
-    expect(tester.takeException(), isNull);
+    await navigation.openDiagnostic(step);
+    expect(navigation.space, WorkspaceSpace.progression);
+    expect(navigation.stories!.call()!.activeId, step.storylineId);
+    expect(navigation.progressionNodes[step.storylineId]?.stepId, step.stepId);
+    navigation.returnFromProgression();
+    expect(navigation.space, WorkspaceSpace.verification);
+    expect(controller.report, same(report));
+    expect(controller.selectedKey, step.stableKey);
+    expect(controller.search, 'étape');
   });
 
-  testWidgets('verification, scene, dialogue, scene and back again', (
-    tester,
-  ) async {
-    await host(tester);
-    final controller = opened(tester);
-    final scene = NarrativeProjectDiagnostic(
+  test('verification, scene, dialogue, scene and back preserve the original diagnostic', () async {
+    final (h, navigation) = await open();
+    final controller = h.verification;
+    final diagnostic = NarrativeProjectDiagnostic(
       code: 'sceneSynthetique',
       severity: NarrativeProjectDiagnosticSeverity.warning,
       domain: NarrativeProjectDiagnosticDomain.scene,
@@ -110,67 +105,69 @@ void main() {
       sceneId: Ui06SceneFixture.sceneId,
     );
     controller
-      ..report = withExtra(controller.report!, scene)
-      ..select(scene.stableKey);
-    final kept = controller.report;
-    await openSelected(tester);
-    expect(find.byType(SceneBuilderPage), findsOneWidget);
-
-    final scenePage = tester.widget<SceneBuilderPage>(
-      find.byType(SceneBuilderPage),
+      ..report = withExtra(controller.report!, diagnostic)
+      ..select(diagnostic.stableKey);
+    final report = controller.report;
+    await navigation.openDiagnostic(diagnostic);
+    expect(navigation.space, WorkspaceSpace.scene);
+    expect(h.scenes.active!.current.id, Ui06SceneFixture.sceneId);
+    navigation.selectSceneNode(h.scenes.active!.current, 'welcome');
+    final node = h.scenes.active!.current.graph.nodes.firstWhere(
+      (node) => node.id == 'welcome',
     );
-    scenePage.views.forScene(Ui06SceneFixture.sceneId).nodeId = 'welcome';
-    scenePage.controller.changed();
-    await pumpIo(tester, frames: 8);
-    await activate(tester, find.text('Ouvrir le dialogue'));
-    expect(find.byType(DialogueWorkspacePage), findsOneWidget);
-
-    await activate(tester, find.text('Retour à la scène'));
+    final payload = node.payload as SceneYarnDialoguePayload;
     expect(
-      find.byType(SceneBuilderPage),
-      findsOneWidget,
-      reason: 'the dialogue returns to the scene it came from',
+      await navigation.openDialogue(
+        payload.dialogueId,
+        WorkspaceSpace.scene,
+        startNode: payload.yarnNodeName,
+      ),
+      isNull,
     );
-
-    await activate(tester, find.text('Vérification'));
-    expect(
-      find.byType(VerificationWorkspacePage),
-      findsOneWidget,
-      reason: 'the second detour did not overwrite where the scene came from',
-    );
-    expect(identical(opened(tester).report, kept), isTrue);
-    expect(opened(tester).selectedKey, scene.stableKey);
-    expect(tester.takeException(), isNull);
+    expect(navigation.space, WorkspaceSpace.dialogue);
+    expect(h.dialogues.active!.entry.id, payload.dialogueId);
+    navigation.returnFromDialogue();
+    expect(navigation.space, WorkspaceSpace.scene);
+    expect(navigation.sceneNodes[Ui06SceneFixture.sceneId], 'welcome');
+    expect(navigation.sceneOrigin.space, WorkspaceSpace.verification);
+    navigation.show(navigation.sceneOrigin.space);
+    expect(navigation.space, WorkspaceSpace.verification);
+    expect(controller.report, same(report));
+    expect(controller.selectedKey, diagnostic.stableKey);
   });
 
-  testWidgets('a map diagnostic opens its map and offers the way back', (
-    tester,
-  ) async {
-    final project = await host(tester);
-    final controller = opened(tester);
-    final report = controller.report!;
-    final mapId = project.maps.project!.maps.first.id;
-    // The validators produce no map diagnostic on this fixture; the
-    // destination, the opening and the return are the real ones.
-    final diagnostic = NarrativeProjectDiagnostic(
-      code: 'carteSynthetique',
-      severity: NarrativeProjectDiagnosticSeverity.warning,
-      domain: NarrativeProjectDiagnosticDomain.map,
-      message: 'Cas de destination.',
-      path: 'maps.$mapId',
-      destination: NarrativeProjectDiagnosticDestination.map,
-      mapId: mapId,
-    );
-    controller.report = withExtra(report, diagnostic);
-    final kept = controller.report;
-    controller.select(diagnostic.stableKey);
-    await openSelected(tester);
-
-    expect(find.byType(VerificationWorkspacePage), findsNothing);
-    await activate(tester, find.text('Retour à la vérification'));
-    expect(find.byType(VerificationWorkspacePage), findsOneWidget);
-    expect(identical(opened(tester).report, kept), isTrue);
-    expect(opened(tester).selectedKey, diagnostic.stableKey);
-    expect(tester.takeException(), isNull);
-  });
+  test(
+    'a map diagnostic opens its map and retains its report on return',
+    () async {
+      final (h, navigation) = await open();
+      final controller = h.verification;
+      final mapId = h.maps.project!.maps.first.id;
+      final diagnostic = NarrativeProjectDiagnostic(
+        code: 'carteSynthetique',
+        severity: NarrativeProjectDiagnosticSeverity.warning,
+        domain: NarrativeProjectDiagnosticDomain.map,
+        message: 'Cas de destination.',
+        path: 'maps.$mapId',
+        destination: NarrativeProjectDiagnosticDestination.map,
+        mapId: mapId,
+      );
+      controller
+        ..report = withExtra(controller.report!, diagnostic)
+        ..select(diagnostic.stableKey);
+      final report = controller.report;
+      await navigation.openDiagnostic(diagnostic);
+      expect(navigation.space, WorkspaceSpace.map);
+      expect(navigation.verificationMapReturn, isTrue);
+      for (var i = 0; i < 1000 && h.maps.loading; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 1));
+      }
+      expect(h.maps.loading, isFalse);
+      expect(h.maps.active!.current.id, mapId);
+      navigation.returnFromDiagnosticMap();
+      expect(navigation.space, WorkspaceSpace.verification);
+      expect(navigation.verificationMapReturn, isFalse);
+      expect(controller.report, same(report));
+      expect(controller.selectedKey, diagnostic.stableKey);
+    },
+  );
 }

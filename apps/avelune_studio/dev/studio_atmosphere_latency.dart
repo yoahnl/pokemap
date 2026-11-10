@@ -3,7 +3,7 @@ import 'dart:developer' as developer;
 
 import 'package:avelune_studio/features/map_workspace/application/map_atmosphere_controller.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_atmosphere_settings_panel.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/spatial_map_editor.dart';
+import 'package:avelune_studio/platform/rendering/viewports/spatial_map_editing_viewport.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
@@ -22,7 +22,7 @@ import '../test/support/studio_shadow_probe.dart';
 })
 readState() {
   MapAtmosphereController? settings;
-  SpatialMapEditor? editor;
+  SpatialMapEditingViewport? editor;
   SpatialSceneController? renderer;
   SpatialExplorationView? runtime;
   Game? renderGame;
@@ -31,8 +31,8 @@ readState() {
     switch (element.widget) {
       case MapAtmosphereSettingsPanel(:final controller):
         settings = controller;
-      case SpatialMapEditor():
-        editor = element.widget as SpatialMapEditor;
+      case SpatialMapEditingViewport():
+        editor = element.widget as SpatialMapEditingViewport;
       case SpatialSceneView(:final controller):
         renderer = controller;
       case GameWidget(:final game):

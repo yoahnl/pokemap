@@ -1,3 +1,4 @@
+import 'package:avelune_studio/features/map_workspace/coordination/workspace_map_catalog_actions.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
@@ -6,7 +7,8 @@ import '../../../features/map_workspace/domain/map_catalog_preparation.dart';
 import '../../shared/widgets/inputs/studio_draft_field.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import 'map_catalogue_form_dialog.dart';
-import 'map_library_tree.dart';
+
+import 'package:avelune_studio/features/map_workspace/application/map_library_tree.dart';
 
 Future<void> showDuplicateMapDialog(
   BuildContext context,
@@ -27,16 +29,19 @@ Future<void> showDuplicateMapDialog(
     analysisError = '$error';
   }
   if (!context.mounted || controller.isDisposed) return;
-  var published = false;
-  String? createdId;
+  final operation = preparation == null
+      ? null
+      : WorkspaceMapDuplicate(controller, preparation);
   await showMapCatalogueForm(
     context,
     title: 'Dupliquer la carte',
     submitLabel: 'Dupliquer la carte',
-    currentSubmitLabel: () =>
-        published ? 'Réouvrir la copie' : 'Dupliquer la carte',
+    currentSubmitLabel: () => operation?.published == true
+        ? 'Réouvrir la copie'
+        : 'Dupliquer la carte',
     valid: () =>
-        published || (preparation?.canApply == true && name.trim().isNotEmpty),
+        operation?.published == true ||
+        (preparation?.canApply == true && name.trim().isNotEmpty),
     fields: (refresh, busy) => Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -46,7 +51,7 @@ Future<void> showDuplicateMapDialog(
           key: const ValueKey('duplicate-map-name'),
           value: name,
           label: 'Nom de la copie',
-          enabled: !busy && !published,
+          enabled: !busy && operation?.published != true,
           onChanged: (value) {
             name = value;
             refresh();
@@ -57,7 +62,7 @@ Future<void> showDuplicateMapDialog(
           label: 'Dossier de destination',
           value: group,
           options: mapLibraryFolderLabels(project.groups),
-          onChanged: busy || published
+          onChanged: busy || operation?.published == true
               ? null
               : (value) {
                   group = value;
@@ -81,38 +86,7 @@ Future<void> showDuplicateMapDialog(
           Text(issue.message),
       ],
     ),
-    submit: () async {
-      if (!published) {
-        final result = await controller.applyPreparedCatalog(
-          preparation!.withDuplicateDestination(
-            name: name.trim(),
-            groupId: group.isEmpty ? null : group,
-          ),
-        );
-        published = result.published;
-        createdId = result.receipt?.createdMapId;
-        if (!result.integrated) {
-          return published
-              ? 'La copie est créée sur disque. ${result.error ?? ''} Réouvrez cette copie.'
-              : result.error ?? 'La duplication a été refusée.';
-        }
-      } else if (controller.pendingCatalogReceipt != null) {
-        final result = await controller.retryCatalogRefresh();
-        if (!result.integrated) return 'La copie existe. ${result.error ?? ''}';
-      }
-      if (controller.isDisposed) {
-        return 'La copie existe ; le projet a été fermé.';
-      }
-      final copy = controller.project?.maps
-          .where((entry) => entry.id == createdId)
-          .firstOrNull;
-      if (copy == null) {
-        return 'La copie existe ; relisez le catalogue pour la retrouver.';
-      }
-      await controller.activate(copy);
-      return controller.active?.base.mapId == copy.id
-          ? null
-          : 'La copie existe. ${controller.error ?? 'Ouverture impossible.'} Réouvrez-la.';
-    },
+    submit: () =>
+        operation!.submit(name: name, groupId: group.isEmpty ? null : group),
   );
 }

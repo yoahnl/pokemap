@@ -18,8 +18,8 @@ class M3StoryFixture {
   final LocalMapWorkspaceAdapter maps;
   final NarrativePublicationReceipt receipt;
 
-  static Future<M3StoryFixture> create() async {
-    final temporary = await Directory.systemTemp.createTemp(
+  static Future<M3StoryFixture> create({Directory? parent}) async {
+    final temporary = await (parent ?? Directory.systemTemp).createTemp(
       'avelune_m3_story_',
     );
     final directory = Directory(await temporary.resolveSymbolicLinks());

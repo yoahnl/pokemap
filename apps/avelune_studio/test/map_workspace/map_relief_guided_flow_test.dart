@@ -7,7 +7,7 @@ import 'package:avelune_studio/features/map_workspace/application/map_cliff_leve
 import 'package:avelune_studio/features/map_workspace/application/spatial_terrain_stroke.dart';
 import 'package:avelune_studio/features/map_workspace/application/spatial_terrain_surface_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_border_review.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_border_review.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_border_tool_panel.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_cliff_guide.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';

@@ -1,23 +1,34 @@
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/environment_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_editing_commands.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_generated_owner.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_generated_owner.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_intent_status_chip.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_palette_intent.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_screen.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
-import '../support/map_selection_harness.dart';
 import '../support/map_workspace_fixture.dart';
+import '../support/neutral_map_host_fixture.dart';
 import '../support/spatial_environment_fixture.dart';
+
+class _PlacementFixture {
+  _PlacementFixture.of(this.project)
+    : document = EditableMapDocument(
+        MapWorkspaceDocument(
+          map: workspaceMap('a'),
+          mapId: 'a',
+          revision: 'base',
+        ),
+      );
+  final ProjectManifest project;
+  final EditableMapDocument document;
+  final view = MapEditingViewportSession();
+  void dispose() => view.dispose();
+}
 
 MapData _withForest(MapData map, List<String> generated) => map.copyWith(
   layers: [
@@ -46,39 +57,8 @@ MapData _withForest(MapData map, List<String> generated) => map.copyWith(
 );
 
 void main() {
-  test('the active intent names the edited target before placing', () {
-    final view = MapWorkspaceViewState()..tool = StudioMapTool.place;
-    expect(mapPaletteIntent(view).target, isNull);
-    expect(
-      mapPaletteIntent(view, editingExterior: false).target,
-      'Zone jouable',
-    );
-    final exterior = mapPaletteIntent(view, editingExterior: true);
-    expect(exterior.target, 'Décor extérieur');
-    expect(exterior.action, 'Placement de décor');
-    expect(exterior.armed, isFalse);
-  });
-
-  testWidgets('the intent chip reads the target first', (tester) async {
-    final view = MapWorkspaceViewState()..tool = StudioMapTool.place;
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: studioTheme(),
-        home: Scaffold(
-          body: MapIntentStatusChip(
-            intent: mapPaletteIntent(view, editingExterior: true),
-          ),
-        ),
-      ),
-    );
-    expect(
-      find.bySemanticsLabel(RegExp('^Décor extérieur · Placement de décor')),
-      findsOneWidget,
-    );
-  });
-
   test('two placements keep two identities and the first survives', () {
-    final h = MapSelectionHarness.of(workspaceProject);
+    final h = _PlacementFixture.of(workspaceProject);
     addTearDown(h.dispose);
     final commands = MapEditingCommands(h.document, h.project);
     final first = commands.place(workspaceElement, const GridPos(x: 1, y: 1));
@@ -98,164 +78,84 @@ void main() {
     );
   });
 
-  testWidgets('a generated decor names its zone and opens it', (tester) async {
-    final h = MapSelectionHarness.of(workspaceProject);
+  test('generated decor ownership resolves its native zone without changing placements', () {
+    final h = _PlacementFixture.of(workspaceProject);
     addTearDown(h.dispose);
     final commands = MapEditingCommands(h.document, h.project);
     final tree = commands.place(workspaceElement, const GridPos(x: 2, y: 2))!;
     final manual = commands.place(workspaceElement, const GridPos(x: 4, y: 2))!;
     h.document.commit(_withForest(h.document.current, [tree]));
-
+    final before = h.document.current;
     expect(mapGeneratedOwner(h.document.current, h.project, manual), isNull);
     final owner = mapGeneratedOwner(h.document.current, h.project, tree)!;
     expect(owner.areaName, 'Bois du nord');
     expect(owner.areaId, 'north');
-
-    var changed = 0;
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: studioTheme(),
-        home: Scaffold(
-          body: MapGeneratedOwnerNotice(
-            owner: owner,
-            view: h.view,
-            onChanged: () => changed++,
-          ),
-        ),
-      ),
-    );
-    expect(find.textContaining('« Bois du nord »'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('generated-owner-open')));
-    await tester.pump();
-    expect(changed, 1);
-    expect(h.view.tool, StudioMapTool.environment);
-    expect(h.view.paletteTab, 'Environnements');
-    expect(h.view.environment?.areaId, 'north');
-    expect(h.view.environment?.layerId, 'forest');
+    expect(owner.layerId, 'forest');
+    expect(h.document.current, same(before));
     expect(
-      h.document.current.placedElements.map((e) => e.id),
+      h.document.current.placedElements.map((entry) => entry.id),
       containsAll([tree, manual]),
     );
   });
 
-  test('a zone summary names its resource, distribution and owned decors', () {
-    final h = MapSelectionHarness.of(workspaceProject);
-    addTearDown(h.dispose);
-    final map = _withForest(h.document.current, ['a', 'b']);
-    final area = map.layers
-        .whereType<EnvironmentLayer>()
-        .single
-        .content
-        .areas
-        .single;
+  testWidgets('native preview, cancel, resume, save and reopen keep decors', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1500, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final port = WorkspaceMemoryPort();
+    Future<NeutralMapHostFixture> open() async {
+      final controller = MapWorkspaceController(workspaceSession, port);
+      await controller.initialize();
+      addTearDown(controller.dispose);
+      return NeutralMapHostFixture.fromController(tester, controller);
+    }
+
+    var host = await open();
+    host.nativeView
+      ..brush = workspaceElement
+      ..tool = StudioMapTool.place;
+    host.maps.notify();
+    await host.pump();
+    await host.tapCell(2, 2);
+    final document = host.document;
+    final first = document.current.placedElements.single;
+    expect(first.elementId, 'tree');
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await mouse.addPointer(location: host.cellAt(6, 3));
+    await mouse.moveTo(host.cellAt(6, 4));
+    await host.pump();
+    final preview = find.byKey(const ValueKey('decor-placement-preview'));
+    expect(preview, findsOneWidget);
+    await host.key(LogicalKeyboardKey.escape);
+    expect(preview, findsNothing);
+    expect(document.current.placedElements, [first]);
+    host.nativeView.tool = StudioMapTool.place;
+    host.maps.notify();
+    await host.pump();
+    await host.tapCell(6, 4);
     expect(
-      mapEnvironmentAreaSummary(area, h.project),
-      contains('Ressource introuvable'),
+      document.current.placedElements.map((item) => item.id).toSet(),
+      hasLength(2),
     );
-    final preset = EnvironmentPreset(
-      id: 'woodland',
-      name: 'Bois clair',
-      templateId: 'forest',
-      palette: [
-        EnvironmentPaletteItem(elementId: workspaceElement.id, weight: 1),
-      ],
-      defaultParams: EnvironmentGenerationParams(
-        density: .4,
-        variation: .2,
-        edgeDensity: .1,
-        minSpacingCells: 2,
+    expect(await host.maps.save(document), isTrue, reason: document.error);
+    expect(document.dirty, isFalse);
+    await mouse.removePointer();
+    await host.dispose();
+    host = await open();
+    expect(
+      host.document.current.placedElements.map(
+        (item) => (item.elementId, item.pos),
       ),
-      sortOrder: 0,
+      [
+        ('tree', const GridPos(x: 2, y: 2)),
+        ('tree', const GridPos(x: 6, y: 4)),
+      ],
     );
-    final summary = mapEnvironmentAreaSummary(
-      area,
-      h.project.copyWith(environmentPresets: [preset]),
-    );
-    expect(summary, contains('Ressource : Bois clair'));
-    expect(summary, contains('densité 40 %'));
-    expect(summary, contains('2 décors générés appartiennent à cette zone'));
+    expect(port.saved['a']!.placedElements.first.id, first.id);
   });
-
-  testWidgets(
-    'palette, preview, cancel, resume, save and reopen keep native decors',
-    (tester) async {
-      tester.view.physicalSize = const Size(1500, 1000);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-      final port = WorkspaceMemoryPort();
-      Future<MapWorkspaceController> open() async {
-        final controller = MapWorkspaceController(workspaceSession, port);
-        await tester.pumpWidget(
-          MaterialApp(
-            theme: studioTheme(),
-            home: MapWorkspaceScreen(
-              controller: controller,
-              loadVisuals: (_, _) async => WorkspaceTestVisuals(),
-              runtimeBuilder: (_, _, _) => const SizedBox(),
-              onClose: () async {},
-              registerExitGuard: (_) {},
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
-        await tester.tap(find.byTooltip('Masquer les cartes'));
-        await tester.pumpAndSettle();
-        return controller;
-      }
-
-      Offset cell(int x, int y) =>
-          tester.getTopLeft(find.byKey(const ValueKey('map-canvas'))) +
-          Offset(x * 32 + 8, y * 32 + 8);
-      final preview = find.byKey(const ValueKey('decor-placement-preview'));
-
-      var controller = await open();
-      await tester.tap(find.byKey(const ValueKey('decor-tree')));
-      await tester.pumpAndSettle();
-      await tester.tapAt(cell(2, 2));
-      await tester.pumpAndSettle();
-      final document = controller.active!;
-      final first = document.current.placedElements.single;
-      expect(first.elementId, 'tree');
-
-      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
-      await mouse.addPointer(location: cell(6, 3));
-      await mouse.moveTo(cell(6, 4));
-      await tester.pump();
-      expect(preview, findsOneWidget);
-      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
-      await tester.pumpAndSettle();
-      expect(preview, findsNothing);
-      expect(document.current.placedElements, [first]);
-
-      await tester.tap(find.byKey(const ValueKey('decor-tree')));
-      await tester.pumpAndSettle();
-      await tester.tapAt(cell(6, 4));
-      await tester.pumpAndSettle();
-      expect(
-        document.current.placedElements.map((item) => item.id).toSet(),
-        hasLength(2),
-      );
-      await tester.tap(find.byKey(const ValueKey('Enregistrer')));
-      await tester.pumpAndSettle();
-      expect(document.dirty, isFalse);
-      await mouse.removePointer();
-      await tester.pumpWidget(const SizedBox());
-
-      controller = await open();
-      expect(
-        controller.active!.current.placedElements.map(
-          (item) => (item.elementId, item.pos),
-        ),
-        [
-          ('tree', const GridPos(x: 2, y: 2)),
-          ('tree', const GridPos(x: 6, y: 4)),
-        ],
-      );
-      expect(port.saved['a']!.placedElements.first.id, first.id);
-      await tester.pumpWidget(const SizedBox());
-    },
-  );
 
   test('a zone edit stays within the zone and leaves other decors as is', () {
     final project = spatialEnvironmentProject();

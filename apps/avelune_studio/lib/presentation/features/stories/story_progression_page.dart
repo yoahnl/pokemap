@@ -5,7 +5,7 @@ import '../../shared/widgets/feedback/studio_notice.dart';
 import '../narrative/narrative_name_dialog.dart';
 import 'story_create_dialog.dart';
 import 'story_coherence_dialog.dart';
-import 'story_document_commands.dart';
+import 'package:avelune_studio/features/stories/application/story_document_commands.dart';
 import 'story_graph_canvas.dart';
 import 'story_inspector.dart';
 import 'story_library_panel.dart';

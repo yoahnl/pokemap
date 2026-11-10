@@ -5,7 +5,7 @@ import 'package:avelune_studio/features/map_workspace/application/editable_map_d
 import 'package:avelune_studio/features/map_workspace/application/gameplay_zone_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_zone_inspector.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_canvas_overlay.dart';
+import 'package:avelune_studio/platform/rendering/viewports/map_editing_overlay.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -87,7 +87,7 @@ void main() {
       );
       Future<List<int>> pixels(MapData map) async {
         final recorder = ui.PictureRecorder();
-        MapCanvasOverlay(
+        MapEditingOverlay(
           map: map,
           project: workspaceProject,
           selected: null,

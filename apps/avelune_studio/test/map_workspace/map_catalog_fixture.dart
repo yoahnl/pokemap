@@ -28,19 +28,33 @@ final class MapCatalogFixture {
 
   static Future<MapCatalogFixture> create({
     bool empty = false,
+    Directory? parent,
+    ProjectDimension dimension = ProjectDimension.twoD,
     List<ProjectSnapshotLoadProfile>? profiles,
     Future<void> Function()? beforeTransactionPrecondition,
   }) async {
-    final temporary = await Directory.systemTemp.createTemp('uwu_catalog_');
+    final temporary = await (parent ?? Directory.systemTemp).createTemp(
+      'uwu_catalog_',
+    );
     final root = Directory(await temporary.resolveSymbolicLinks());
     if (empty) {
       await File(p.join(root.path, 'project.json')).writeAsString(
         jsonEncode(
-          const ProjectManifest(
+          ProjectManifest(
             name: 'Projet vide',
-            maps: [],
-            tilesets: [],
-            settings: ProjectSettings(tileWidth: 48, tileHeight: 48),
+            version: dimension == ProjectDimension.threeD
+                ? ProjectVersion.v9
+                : ProjectVersion.v8,
+            maps: const [],
+            tilesets: const [],
+            settings: ProjectSettings(
+              tileWidth: 48,
+              tileHeight: 48,
+              dimension: dimension,
+              spatialCamera: dimension == ProjectDimension.threeD
+                  ? SpatialCameraProfile()
+                  : null,
+            ),
           ).toJson(),
         ),
       );

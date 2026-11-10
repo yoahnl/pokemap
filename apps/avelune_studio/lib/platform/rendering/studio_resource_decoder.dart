@@ -7,7 +7,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime_authoring.dart';
 import 'package:path/path.dart' as p;
 
-import 'package:avelune_studio/presentation/features/map_workspace/workspace_resource_diagnostic.dart';
+import 'package:avelune_studio/platform/rendering/contracts/workspace_resource_diagnostic.dart';
 
 final class StudioResourceFailure implements Exception {
   const StudioResourceFailure(this.cause, this.detail, {this.retryable = true});

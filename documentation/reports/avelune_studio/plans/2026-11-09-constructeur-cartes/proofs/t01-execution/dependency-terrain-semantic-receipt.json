@@ -1,0 +1,28 @@
+{
+  "runs": [
+    {
+      "label": "dependency-terrain-semantic",
+      "exitCode": 1,
+      "passed": 11,
+      "failed": 1,
+      "cause": "3D fixture version v8 rejected by canonical manifest preflight requiring v9"
+    },
+    {
+      "label": "dependency-terrain-publication-fixed",
+      "exitCode": 1,
+      "passed": 0,
+      "failed": 1,
+      "cause": "incorrect test assumption that successful canonical publish retains its consumed draft"
+    },
+    {
+      "label": "dependency-terrain-publication-canonical",
+      "exitCode": 0,
+      "passed": 1,
+      "failed": 0
+    }
+  ],
+  "remainingOwned": [],
+  "fixtureChildrenRemaining": [],
+  "claim": "11 unchanged contracts pass plus 1 isolated canonical publication passes; no native GPU acceptance",
+  "temporaryDirectoryRemoved": true
+}

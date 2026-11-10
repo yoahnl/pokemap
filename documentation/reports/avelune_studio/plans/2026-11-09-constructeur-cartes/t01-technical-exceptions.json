@@ -1,0 +1,128 @@
+{
+  "schemaVersion": 1,
+  "reviewScope": "Revue indépendante de source et empreinte exacte ; aucune validation du G0 global, aucun score visuel natif. Les exceptions ne permettent pas de garder un ancien écran.",
+  "exceptions": [
+    {
+      "path": "apps/avelune_studio/lib/app/studio_app.dart",
+      "symbols": [
+        "StudioApp",
+        "_StudioAppState"
+      ],
+      "sha256": "aa533dbdd7c5b8ebfde82f4e6110744763607b8d39687f00e2d997987fd2131b",
+      "kind": "neutral_host",
+      "reason": "Hôte neutre : MaterialApp technique sans ancienne destination ; garde lifecycle/MCP/preferences/exit via contrôleur.",
+      "approvedBy": "t01_dependency_review"
+    },
+    {
+      "path": "apps/avelune_studio/lib/app/studio_bootstrap.dart",
+      "symbols": [
+        "StudioBootstrap"
+      ],
+      "sha256": "8b5d72c11884f8400bd89c1cfad2940572a60a3be2e52f0caf19c834bff0f41f",
+      "kind": "neutral_host",
+      "reason": "Composition des ports/adaptateurs conservée ; aucune factory de shell/page/playtest historique montée.",
+      "approvedBy": "t01_dependency_review"
+    },
+    {
+      "path": "apps/avelune_studio/lib/platform/playtest/studio_playtest_view.dart",
+      "symbols": [
+        "StudioPlaytestView"
+      ],
+      "sha256": "d48fbf87ef0a70f826957924400bea2915d5b5804ea864477a11471bc1f227b9",
+      "kind": "player_surface",
+      "reason": "Exécuteur carte 2D/3D et surfaces Player, révisions/chargement/ressources conservés ; ancien chrome supprimé, commandes via port technique.",
+      "approvedBy": "t01_map_boundary"
+    },
+    {
+      "path": "apps/avelune_studio/lib/platform/playtest/studio_game_playtest_view.dart",
+      "symbols": [
+        "StudioGamePlaytestView"
+      ],
+      "sha256": "68d25e6757efc9a65bcafe98868b2b25529de75862ce82ae2dd6d6464daf6667",
+      "kind": "player_surface",
+      "reason": "Surfaces Player du jeu complet et lifecycle, sans Scaffold/AppBar/boutons Studio ni rapport UI historique.",
+      "approvedBy": "t01_map_boundary"
+    },
+    {
+      "path": "apps/avelune_studio/lib/platform/playtest/studio_playtest_player_view.dart",
+      "symbols": [
+        "StudioPlaytestPlayerView"
+      ],
+      "sha256": "d8a8ea14ce0898a354034e7cb101fc266597cd322cf62b3a61af03e4cfab96a5",
+      "kind": "player_surface",
+      "reason": "Composition des overlays et input authority appartenant au Player ; aucune palette/toolbar éditeur.",
+      "approvedBy": "t01_map_boundary"
+    },
+    {
+      "path": "apps/avelune_studio/lib/platform/playtest/studio_spatial_playtest_view.dart",
+      "symbols": [
+        "StudioSpatialPlaytestView"
+      ],
+      "sha256": "5ba37341c56bbb1a4da01f961d8ed0aff46e26d036b2576dc5ad52417a97e5b4",
+      "kind": "player_surface",
+      "reason": "Vue exploration 3D et services Player ; renderer/lifecycle protégés, pas de chrome éditeur.",
+      "approvedBy": "t01_map_boundary"
+    },
+    {
+      "path": "apps/avelune_studio/lib/platform/playtest/studio_playtest_performance.dart",
+      "symbols": [
+        "StudioPlaytestPerformanceSample",
+        "StudioPlaytestPerformanceMonitor"
+      ],
+      "sha256": "4d99df19b7396f83534650cb4aa610840d6ffc63bff4f0ec6d7debaff301b717",
+      "kind": "non_visual",
+      "reason": "Ancien badge widget retiré ; moniteur sans UI conservé. Service disponible mais collecte non activée automatiquement, aucun FPS réel revendiqué.",
+      "approvedBy": "t01_map_boundary"
+    },
+    {
+      "path": "apps/avelune_studio/lib/platform/rendering/studio_atlas_preview.dart",
+      "symbols": [
+        "StudioAtlasPreview"
+      ],
+      "sha256": "c3c8672e57c4cdc2ee10f97a05a1740059501c14961d80b52f2314fee045d31f",
+      "kind": "render_surface",
+      "reason": "Surface technique image atlas : retain/release/CustomPaint, pas de menu/bouton/navigation de Studio.",
+      "approvedBy": "t01_global_boundary"
+    },
+    {
+      "path": "apps/avelune_studio/lib/platform/rendering/studio_character_thumbnail.dart",
+      "symbols": [
+        "StudioCharacterThumbnail"
+      ],
+      "sha256": "bf336cf2835648b7bf4ef4da29f46c36e2e4569e5e66f01633b433659ed54bf8",
+      "kind": "render_surface",
+      "reason": "Surface renderer personnages et durées de vie des frames, sans chrome éditeur.",
+      "approvedBy": "t01_global_boundary"
+    },
+    {
+      "path": "apps/avelune_studio/lib/platform/rendering/studio_resource_thumbnail.dart",
+      "symbols": [
+        "StudioResourceThumbnail"
+      ],
+      "sha256": "168a93cf6a2ffc0ece382018aac64280c9acab8b50c85f1795c1ef8ddf4b0fb2",
+      "kind": "render_surface",
+      "reason": "Peinture de slices source/transforms et leases image ; pas de commande/navigation/panneau produit.",
+      "approvedBy": "t01_global_boundary"
+    },
+    {
+      "path": "apps/avelune_studio/lib/platform/rendering/studio_map_visual_widgets.dart",
+      "symbols": [
+        "StudioMapVisual"
+      ],
+      "sha256": "8e35a2fafffc7ba6e96f6150d312f9ff4d0b825af85c2ae3b7576b1f23cbf386",
+      "kind": "render_surface",
+      "reason": "RuntimeAuthoringMapRenderer, peinture/grille/collisions/Borders et ressources ; placeholders techniques conservés, sans toolbar/palette/inspecteur.",
+      "approvedBy": "t01_global_boundary"
+    },
+    {
+      "path": "apps/avelune_studio/lib/platform/rendering/terrain_spatial_render_surface.dart",
+      "symbols": [
+        "TerrainSpatialRenderSurface"
+      ],
+      "sha256": "2308eb1fada354934f3683a8e8d393f6d0eba705ec61cfe1c7e7a0465e265ecc",
+      "kind": "render_surface",
+      "reason": "Surface technique de terrain 3D extraite sans notices ni chrome, mêmes descriptors/callbacks ; état et contrôles appartiennent à l’hôte. Revue indépendante de source, sans revendication GPU native.",
+      "approvedBy": "t01_map_boundary"
+    }
+  ]
+}

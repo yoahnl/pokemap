@@ -3,208 +3,23 @@ part of 'map_workspace_screen.dart';
 extension _WorkspaceLifecycle on _MapWorkspaceScreenState {
   void _bindResourceManagement(ResourceNavigation? resources) {
     _resources = resources;
-    resources?.drawEnvironment = _drawEnvironment;
-    resources?.additionalCharacterOwners = _characterDraftOwners;
-    resources?.characterSourceProblem = (ids) =>
-        _dialogues?.characterSourceProblem(ids) ??
-        _narrativeCharacterSourceProblem(ids);
-    resources?.characterSourcesChanged = (ids) {
-      final project = _controller.project;
-      if (project != null) {
-        _pokemon?.combat?.reconcileCharacterReferences(
-          project,
-          resources.pendingReceipt?.changedMaps ?? const {},
-        );
-      }
-      _dialogues?.invalidateCharacterSources(ids);
-      for (final id in ids) {
-        _narrative?.invalidateCleanDialogueSessions(id);
-      }
-    };
-    resources?.borderDrawingOwner = (blueprintId) {
-      for (final entry in _views.entries) {
-        if (entry.value.borderDraft?.blueprintId == blueprintId) {
-          final name =
-              _controller.documents[entry.key]?.current.name ?? entry.key;
-          return 'Carte · $name · tracé de bordure en cours';
-        }
-      }
-      return null;
-    };
+    _resourceOwners.bind(resources);
   }
 
-  List<String> _characterDraftOwners(String characterId) => [
-    ?_pokemon?.combat?.characterDraftOwner(characterId),
-    ...?_dialogues?.characterDraftOwners(characterId),
-    if (_narrative != null)
-      for (final session in _narrative!.sessions.values)
-        if (session.dirty &&
-            [session.current, session.saved].any(
-              (state) => state.dialogue.branches.any(
-                (branch) =>
-                    branch.lines.any((line) => line.speakerId == characterId),
-              ),
-            ))
-          'Interaction · ${session.current.dialogue.entry.name}',
-    for (final asset in _cinematics?.entries ?? <CinematicAsset>[])
-      if (_cinematics?.accessProblem(asset.id) != null &&
-          [
-            asset,
-            ...?_controller.project?.cinematics.where((c) => c.id == asset.id),
-          ].any(
-            (value) =>
-                value.stageContext?.actorAppearanceBindings.any(
-                  (binding) => binding.characterId == characterId,
-                ) ??
-                false,
-          ))
-        'Cinématique · ${asset.title}',
-  ];
+  void _reconcileResourceBrushes() => _resourceOwners.reconcileBrushes();
 
-  String? _narrativeCharacterSourceProblem(Set<String> ids) {
-    for (final id in ids) {
-      final problem = _narrative?.dialogueInteractionAccessProblem(id);
-      if (problem != null) return problem;
-    }
-    return null;
-  }
-
-  void _reconcileResourceBrushes() {
-    final project = _controller.project;
-    if (project == null) return;
-    var changed = false;
-    for (final entry in _views.entries) {
-      if (!_controller.hasCompleteProject &&
-          entry.key != _controller.active?.base.mapId) {
-        continue;
-      }
-      final view = entry.value;
-      final characterId = view.character?.id;
-      if (characterId != null) {
-        final before = view.character;
-        view.character = project.characters
-            .where((character) => character.id == characterId)
-            .firstOrNull;
-        changed |= before != view.character;
-        if (view.character == null && view.tool == StudioMapTool.character) {
-          view.tool = StudioMapTool.select;
-        }
-      }
-      final brushId = view.brush?.id;
-      if (brushId != null) {
-        final before = view.brush;
-        view.brush = project.elements
-            .where((element) => element.id == brushId)
-            .firstOrNull;
-        changed |= before != view.brush;
-        if (view.brush == null && view.tool == StudioMapTool.place) {
-          view.tool = StudioMapTool.select;
-        }
-      }
-      final tileId = view.tile?.tilesetId;
-      if (tileId != null && !project.tilesets.any((t) => t.id == tileId)) {
-        view.tile = null;
-        changed = true;
-        if (view.tool == StudioMapTool.paint) view.tool = StudioMapTool.select;
-      }
-      final terrainId = view.terrain?.id;
-      if (terrainId != null) {
-        final before = view.terrain;
-        view.terrain = project.smartTileCatalog.presets
-            .where((preset) => preset.id == terrainId)
-            .firstOrNull;
-        changed |= before != view.terrain;
-        if (view.terrain == null && view.tool == StudioMapTool.terrain) {
-          view.tool = StudioMapTool.select;
-        }
-      }
-      final borderId = view.borderBlueprintId;
-      if (borderId != null &&
-          !project.borderCatalog.records.any(
-            (record) =>
-                record.id == borderId &&
-                !record.isDeprecated &&
-                record.latestPublished != null,
-          )) {
-        view.borderBlueprintId = null;
-        changed = true;
-        if (view.tool == StudioMapTool.border) view.tool = StudioMapTool.select;
-      }
-    }
-    if (changed) retainWorkspaceBrush(_visuals, _view);
-  }
-
-  void _initializePokemon() {
-    if (_pokemon != null) return;
-    final port = widget.pokemonPort;
-    if (port != null) {
-      _pokemon = PokemonWorkspaceController(
-        port,
-        changed: _changed,
-        commerce: widget.pokemonCommercePort == null
-            ? null
-            : PokemonCommerceController(
-                widget.pokemonCommercePort!,
-                changed: _changed,
-              ),
-        combat: widget.pokemonCombatPort == null
-            ? null
-            : PokemonCombatController(
-                widget.pokemonCombatPort!,
-                changed: _changed,
-                projectChanged: (manifest) {
-                  final current = _controller.project;
-                  if (current != null && current != manifest) {
-                    _controller.acceptResources(
-                      current,
-                      mergeProjectMetadataSections(current, manifest, const {
-                        'pokemon',
-                        'trainers',
-                        'encounterTables',
-                      }),
-                    );
-                  }
-                },
-              ),
-      );
-    }
-  }
+  void _initializePokemon() => _sessions.initializePokemon();
 
   /// Releases every controller, view store and visual this host owns.
   void disposeWorkspace() {
     widget.registerExitGuard(null);
     _controller.removeListener(_changed);
-    _controller.historyGuard = null;
-    final visuals = _visuals;
-    if (visuals != null) {
-      visuals.removeListener(_changed);
-      unawaited(visuals.dispose());
-    }
-    _resources?.removeListener(_changed);
-    _resources?.dispose();
-    _pokemon?.dispose();
-    _narrative?.dispose();
-    _scenes?.dispose();
-    _stories?.dispose();
-    _events?.dispose();
-    _dialogues?.dispose();
-    _presentations?.dispose();
-    _regionalMap?.dispose();
-    _world?.dispose();
-    if (identical(_controller.settingsVisualsOwner, _projectVisuals)) {
-      _controller.settingsVisualsOwner = null;
-    }
-    _projectVisuals?.dispose();
-    _projectSurf?.dispose();
-    _projectCs?.dispose();
-    _projectAudio?.dispose();
-    _projectIdentity?.dispose();
-    _worldView.dispose();
-    _verification?.dispose();
-    _verificationView.dispose();
-    _presentationViews.dispose();
-    if (_presentationVisuals != null) unawaited(_presentationVisuals!.close());
-    _cinematics?.dispose();
+    _mapCatalogBindings.dispose();
+    unawaited(
+      _sessions.dispose(
+        releasePresentationViews: _presentationViews.dispose,
+      ),
+    );
     _cinematicViews.dispose();
     _dialogueViews.dispose();
     _eventView.dispose();
@@ -221,8 +36,15 @@ extension _WorkspaceLifecycle on _MapWorkspaceScreenState {
   Future<void> _initialize() async {
     try {
       final loaded = await loadWorkspaceSession(
-        widget,
-        mounted: () => mounted,
+        workspace: _controller,
+        loadVisuals: widget.loadVisuals,
+        narrativePort: widget.narrativePort,
+        resourcePort: widget.resourcePort,
+        resourcePackPort: widget.resourcePackPort,
+        resourcePackPicker: widget.resourcePackPicker,
+        resourcePackLicensePicker: widget.resourcePackLicensePicker,
+        resourcePackExportSink: widget.resourcePackExportSink,
+        isActive: () => mounted,
         changed: _changed,
         onUse: _useResource,
         openUsage: _openResourceUsage,
@@ -230,46 +52,14 @@ extension _WorkspaceLifecycle on _MapWorkspaceScreenState {
         additionalDraftOwners: _resourceUsageDraftOwners,
       );
       if (loaded == null) return;
+      if (!mounted) {
+        await loaded.dispose();
+        return;
+      }
       _visuals = loaded.visuals;
       _visualCatalog = _controller.visualProject;
       _bindResourceManagement(loaded.resources);
-      _narrative = loaded.narrative;
-      _initializeScenes();
-      _initializeStories();
-      _initializeEvents();
-      _initializeDialogues();
-      _initializeCinematics();
-      _initializePresentations();
-      if (widget.regionalMapPort case final port?) {
-        _regionalMap = RegionalMapController(
-          port,
-          changed: _changed,
-          mapDraftProblem: (ids) =>
-              _controller.documents.values.any(
-                (document) =>
-                    document.dirty && ids.contains(document.current.id),
-              )
-              ? 'Enregistrez les cartes liées avant de publier la carte régionale.'
-              : null,
-          projectChanged: (before, after) {
-            final current = _controller.project;
-            if (current == null || current.regionalMap != before.regionalMap) {
-              throw const MapWorkspaceFailure(
-                MapWorkspaceProblem.conflict,
-                'La carte régionale a changé pendant la publication.',
-              );
-            }
-            _controller.acceptResources(
-              current,
-              mergeProjectMetadataSections(current, after, const {
-                'regionalMap',
-              }),
-            );
-          },
-        );
-      }
-      _initializeWorld();
-      _initializeVerification();
+      _sessions.initializeLoaded(loaded);
       _changed();
     } catch (_) {
       if (mounted) {

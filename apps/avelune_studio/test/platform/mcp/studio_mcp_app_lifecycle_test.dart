@@ -1,12 +1,10 @@
 import 'dart:ui' show AppExitResponse;
 
-import 'package:avelune_studio/app/di/home_providers.dart';
+import 'package:avelune_studio/app/di/studio_lifecycle_providers.dart';
 import 'package:avelune_studio/app/di/providers.dart';
 import 'package:avelune_studio/app/di/studio_mcp_providers.dart';
 import 'package:avelune_studio/app/studio_app.dart';
-import 'package:avelune_studio/features/home/data/memory_recent_projects_adapter.dart';
 import 'package:avelune_studio/features/project_session/application/project_session_controller.dart';
-import 'package:avelune_studio/features/updates/studio_update_host.dart';
 import 'package:avelune_studio/platform/mcp/studio_mcp_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -36,20 +34,16 @@ void main() {
         overrides: [
           studioMcpServiceProvider.overrideWithValue(service),
           projectSessionControllerProvider.overrideWithValue(session),
-          projectDirectoryPickerProvider.overrideWithValue(() async => null),
-          recentProjectsPortProvider.overrideWith(
-            (ref) => MemoryRecentProjectsAdapter(),
-          ),
         ],
-        child: StudioApp(
-          workspaceBuilder: (project, close, register) {
-            register(() async => allowExit);
-            return const SizedBox();
-          },
-        ),
+        child: const StudioApp(),
       );
       await tester.pumpWidget(app());
-      expect(find.byTooltip('Connexion aux assistants'), findsOneWidget);
+      final lifecycle = ProviderScope.containerOf(
+        tester.element(find.byType(StudioApp)),
+        listen: false,
+      ).read(studioLifecycleControllerProvider);
+      lifecycle.registerExitGuard(exampleA.sessionId, () async => allowExit);
+      expect(find.byKey(const ValueKey('studio-neutral-host')), findsOneWidget);
       expect(service.state, StudioMcpState.starting);
       process.ready();
       await tester.pump();
@@ -99,25 +93,22 @@ void main() {
           overrides: [
             studioMcpServiceProvider.overrideWithValue(service),
             projectSessionControllerProvider.overrideWithValue(session),
-            projectDirectoryPickerProvider.overrideWithValue(() async => null),
-            recentProjectsPortProvider.overrideWith(
-              (ref) => MemoryRecentProjectsAdapter(),
-            ),
           ],
           child: const StudioApp(),
         ),
       );
       process.ready();
       await tester.pump();
-      final update = tester.widget<StudioUpdateHost>(
-        find.byType(StudioUpdateHost),
-      );
-      expect(await tester.runAsync(update.onRestartRequested), isTrue);
+      final lifecycle = ProviderScope.containerOf(
+        tester.element(find.byType(StudioApp)),
+        listen: false,
+      ).read(studioLifecycleControllerProvider);
+      expect(await tester.runAsync(lifecycle.prepareForUpdate), isTrue);
       expect(process.shutdowns, 1);
       expect(session.disposed, isFalse);
       expect(service.state, StudioMcpState.stopped);
       await tester.runAsync(() async {
-        final restarting = update.onRestartAborted!();
+        final restarting = lifecycle.resumeAfterUpdateFailure();
         await Future<void>.delayed(Duration.zero);
         resumed.ready();
         await restarting;

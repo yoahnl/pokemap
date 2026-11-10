@@ -1,6 +1,6 @@
-import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
-import 'package:avelune_studio/presentation/features/resources/resource_family_tree.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
+import 'package:avelune_studio/features/resources/application/resource_family_tree.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_workspace_editing_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
@@ -209,13 +209,12 @@ void main() {
           ],
         ),
       );
-      final view = MapWorkspaceViewState()
+      final view = MapWorkspaceEditingState()
         ..brush = workspaceElement
         ..tool = StudioMapTool.place;
-      addTearDown(view.dispose);
       expect(view.resourceFilters.context, ResourceCatalogContext.all);
       view.resourceFilters.context = ResourceCatalogContext.exterior;
-      expect(view.paletteResources(project, 'a'), isEmpty);
+      expect(view.paletteResourcesFor(project, 'a', 'Décors'), isEmpty);
       view.reconcileResources(project, mapId: 'a', map: workspaceMap('a'));
       expect(view.brush?.id, workspaceElement.id);
       expect(view.tool, StudioMapTool.place);
@@ -230,7 +229,7 @@ void main() {
       );
       view.resourceFilters.context = ResourceCatalogContext.all;
       expect(
-        view.paletteResources(project, 'a').single.id,
+        view.paletteResourcesFor(project, 'a', 'Décors').single.id,
         workspaceElement.id,
       );
     },
@@ -244,7 +243,7 @@ void main() {
             for (final map in workspaceProject.maps) map.copyWith(role: role),
           ],
         );
-        final view = MapWorkspaceViewState();
+        final view = MapWorkspaceEditingState();
         view.reconcileResources(
           project,
           mapId: 'a',
@@ -256,9 +255,12 @@ void main() {
           ResourceCatalogContext.all,
           reason: '$role $indoor',
         );
-        expect(view.paletteResources(project, 'a').map((item) => item.id), [
-          workspaceElement.id,
-        ]);
+        expect(
+          view
+              .paletteResourcesFor(project, 'a', 'Décors')
+              .map((item) => item.id),
+          [workspaceElement.id],
+        );
         view.resourceFilters.context = ResourceCatalogContext.interior;
         view.reconcileResources(
           project,
@@ -267,7 +269,6 @@ void main() {
               .copyWith(mapMetadata: MapMetadata(isIndoor: !indoor)),
         );
         expect(view.resourceFilters.context, ResourceCatalogContext.interior);
-        view.dispose();
       }
     }
   });
@@ -287,14 +288,17 @@ void main() {
           ],
         ),
       );
-      final view = MapWorkspaceViewState()..paletteTab = 'Décors';
-      expect(view.paletteResources(project, 'a'), isEmpty);
+      final view = MapWorkspaceEditingState();
+      expect(view.paletteResourcesFor(project, 'a', 'Décors'), isEmpty);
       expect(
-        view.paletteResources(project, 'a', applyFilters: false).single.id,
+        view
+            .paletteResourcesFor(project, 'a', 'Décors', applyFilters: false)
+            .single
+            .id,
         'oak',
       );
       view.resourceFilters.showComponents = true;
-      expect(view.paletteResources(project, 'a').single.id, 'oak');
+      expect(view.paletteResourcesFor(project, 'a', 'Décors').single.id, 'oak');
       view.model3d = project.models3d.single;
       view.resourceFilters.showComponents = false;
       view.reconcileResources(project, mapId: 'a');

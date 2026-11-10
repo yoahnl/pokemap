@@ -1,0 +1,15 @@
++11 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creator_ui_test.dart: real creation request empty-16 preserves steps, receipt and manual folder [E]
+  Bad state: No element
+  dart:collection                                    ListBase.first
+  test/project_creation/creator_ui_test.dart 119:66  main.<fn>
+  
++12 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/creator_ui_test.dart: real creation request empty-48 preserves steps, receipt and manual folder [E]
+  Bad state: No element
+  dart:collection                                    ListBase.first
+  test/project_creation/creator_ui_test.dart 119:66  main.<fn>
+  
++16 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/project_creation/catalogue_picker_test.dart: the declared bundle catalogue reaches the creation port through composition
+Studio MCP startup failed (launch.unavailable).
++35 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/presentation/studio_app_test.dart: neutral host rebuild and resize retain the opened session scope
+Studio MCP startup failed (launch.unavailable).
++42 -2: Some tests failed.

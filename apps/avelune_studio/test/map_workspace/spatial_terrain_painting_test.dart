@@ -5,8 +5,8 @@ import 'package:avelune_studio/features/map_workspace/application/map_workspace_
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_tool_strip.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/spatial_map_editor.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
+import 'package:avelune_studio/platform/rendering/viewports/spatial_map_editing_viewport.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -121,7 +121,7 @@ void main() {
       addTearDown(controller.dispose);
       Widget canvas() => MaterialApp(
         home: Scaffold(
-          body: SpatialMapEditor(
+          body: SpatialMapEditingViewport(
             document: document,
             controller: controller,
             project: paintingProject,
@@ -254,7 +254,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: SpatialMapEditor(
+            body: SpatialMapEditingViewport(
               document: document,
               controller: controller,
               project: project,
@@ -385,7 +385,7 @@ void main() {
       addTearDown(controller.dispose);
       Widget canvas() => MaterialApp(
         home: Scaffold(
-          body: SpatialMapEditor(
+          body: SpatialMapEditingViewport(
             document: document,
             controller: controller,
             project: paintingProject,

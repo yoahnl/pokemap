@@ -12,9 +12,9 @@ import 'package:avelune_studio/presentation/features/map_workspace/map_workspace
 import 'package:avelune_studio/presentation/features/resources/environment_editor_screen.dart';
 import 'package:avelune_studio/presentation/features/resources/environment_library.dart';
 import 'package:avelune_studio/presentation/features/resources/model_resource_library.dart';
-import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_library_screen.dart';
-import 'package:avelune_studio/presentation/features/resources/resource_navigation.dart';
+import 'package:avelune_studio/features/resources/coordination/resource_navigation.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_source_list.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_family_tree_view.dart';
 import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';

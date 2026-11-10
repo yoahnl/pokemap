@@ -6,7 +6,7 @@ import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_choice.dart';
 import '../../shared/widgets/inputs/studio_search_field.dart';
 import '../../shared/widgets/layout/studio_section.dart';
-import '../map_workspace/map_library_tree.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_library_tree.dart';
 import 'regional_map_link_dialog.dart';
 
 class RegionalMapLinkedMaps extends StatefulWidget {

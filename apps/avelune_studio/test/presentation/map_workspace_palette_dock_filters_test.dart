@@ -1,9 +1,9 @@
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_palette_dock_filters.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_palette_dock.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
-import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_family_tree_view.dart';
-import 'package:avelune_studio/presentation/features/resources/resource_family_tree.dart';
+import 'package:avelune_studio/features/resources/application/resource_family_tree.dart';
 import 'package:flutter/material.dart';
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
 import 'package:flutter_test/flutter_test.dart';

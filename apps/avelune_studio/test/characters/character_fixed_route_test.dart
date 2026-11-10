@@ -1,45 +1,49 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:avelune_studio/features/characters/application/character_editing_commands.dart';
+import 'package:avelune_studio/features/characters/application/character_movement_inputs.dart';
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
-import 'package:avelune_studio/presentation/features/characters/character_inspector.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 
 import '../support/map_workspace_fixture.dart';
 import 'character_editing_test.dart' show guide;
 
 void main() {
-  testWidgets('Studio authors a random step without an invented direction', (
-    tester,
-  ) async {
-    final fixture = _fixture();
-    await _surface(tester, fixture);
-    await _select(tester, 'npc-fixed-route-kind-0', 'Pas aléatoire');
-    final movement = fixture.$1.current.entities.single.npc!.movement;
-    expect(movement.routeSteps.first, const MapEntityNpcRouteStep.randomMove());
-    expect(
-      find.byKey(const ValueKey('npc-fixed-route-direction-0')),
-      findsNothing,
-    );
-    expect(
-      MapData.fromJson(fixture.$1.current.toJson())
-          .entities
-          .single
-          .npc!
-          .movement,
-      movement,
-    );
-    expect(fixture.$1.undoCount, 1);
-    fixture.$1.restore(redo: false);
-    expect(
-      fixture.$1.current.entities.single.npc!.movement.routeSteps.first,
-      const MapEntityNpcRouteStep.face(direction: EntityFacing.west),
-    );
-    expect(tester.takeException(), isNull);
-  });
-
+  test(
+    'random step remains directionless across typed command, JSON and history',
+    () {
+      final fixture = _fixture();
+      final command = CharacterEditingCommands(fixture.$1, fixture.$2);
+      command.setMovementConfiguration(
+        'npc',
+        fixture.$1.current.entities.single.npc!.movement.copyWith(
+          routeSteps: const [
+            MapEntityNpcRouteStep.randomMove(),
+            MapEntityNpcRouteStep.randomFacing(),
+          ],
+        ),
+      );
+      final movement = fixture.$1.current.entities.single.npc!.movement;
+      expect(
+        movement.routeSteps.first,
+        const MapEntityNpcRouteStep.randomMove(),
+      );
+      expect(
+        MapData.fromJson(fixture.$1.current.toJson())
+            .entities
+            .single
+            .npc!
+            .movement,
+        movement,
+      );
+      expect(fixture.$1.undoCount, 1);
+      fixture.$1.restore(redo: false);
+      expect(
+        fixture.$1.current.entities.single.npc!.movement.routeSteps.first,
+        const MapEntityNpcRouteStep.face(direction: EntityFacing.west),
+      );
+    },
+  );
   test('Studio typed command preserves NPC bindings and native history', () {
     final fixture = _fixture();
     final commands = CharacterEditingCommands(fixture.$1, fixture.$2);
@@ -65,18 +69,37 @@ void main() {
     expect(fixture.$1.current, committed);
   });
 
-  testWidgets(
-    'Studio inspector guides typed actions, order and scoped suspension',
-    (tester) async {
+  test(
+    'typed route actions preserve ordering, bindings and scoped suspension',
+    () {
       final fixture = _fixture();
-      await _surface(tester, fixture);
-      await _select(tester, 'npc-fixed-route-kind-0', 'Avancer');
-      await _select(tester, 'npc-fixed-route-direction-0', 'Est');
-      final up = find.byTooltip('Monter l’action 2');
-      await tester.ensureVisible(up);
-      await tester.tap(up);
-      await tester.pumpAndSettle();
-      var movement = fixture.$1.current.entities.single.npc!.movement;
+      final document = fixture.$1;
+      final commands = CharacterEditingCommands(document, fixture.$2);
+      MapEntityNpcMovementConfig current() =>
+          document.current.entities.single.npc!.movement;
+      commands.setMovementConfiguration(
+        'npc',
+        current().copyWith(
+          routeSteps: const [
+            MapEntityNpcRouteStep.move(direction: EntityFacing.west),
+            MapEntityNpcRouteStep.randomFacing(),
+          ],
+        ),
+      );
+      commands.setMovementConfiguration(
+        'npc',
+        current().copyWith(
+          routeSteps: const [
+            MapEntityNpcRouteStep.move(direction: EntityFacing.east),
+            MapEntityNpcRouteStep.randomFacing(),
+          ],
+        ),
+      );
+      commands.setMovementConfiguration(
+        'npc',
+        current().copyWith(routeSteps: current().routeSteps.reversed.toList()),
+      );
+      final movement = current();
       expect(movement.routeSteps, const [
         MapEntityNpcRouteStep.randomFacing(),
         MapEntityNpcRouteStep.move(direction: EntityFacing.east),
@@ -85,96 +108,101 @@ void main() {
         movement.suspendWhenInstanceBoolean,
         MapEntityNpcRouteInstanceBoolean(key: 'npc.autonomousRouteStopped'),
       );
-      expect(fixture.$1.current.entities.single.npc!.counterInteractionSides, [
+      expect(document.current.entities.single.npc!.counterInteractionSides, [
         EntityFacing.north,
       ]);
-      await _select(tester, 'npc-fixed-route-suspension', 'Ne pas suspendre');
+      commands.setMovementConfiguration(
+        'npc',
+        current().copyWith(suspendWhenInstanceBoolean: null),
+      );
+      expect(current().suspendWhenInstanceBoolean, isNull);
+      commands.setMovementConfiguration(
+        'npc',
+        current().copyWith(
+          suspendWhenInstanceBoolean: MapEntityNpcRouteInstanceBoolean(
+            key: 'npc.autonomousRouteStopped',
+          ),
+        ),
+      );
       expect(
-        fixture
-            .$1
-            .current
+        current().suspendWhenInstanceBoolean?.key,
+        'npc.autonomousRouteStopped',
+      );
+      expect(
+        MapData.fromJson(document.current.toJson())
             .entities
             .single
             .npc!
-            .movement
-            .suspendWhenInstanceBoolean,
-        isNull,
+            .movement,
+        current(),
       );
-      await _select(tester, 'npc-fixed-route-suspension', 'Après la victoire');
-      movement = fixture.$1.current.entities.single.npc!.movement;
-      expect(
-        movement.suspendWhenInstanceBoolean?.key,
-        'npc.autonomousRouteStopped',
-      );
-      final encoded = MapData.fromJson(fixture.$1.current.toJson());
-      expect(encoded.entities.single.npc!.movement, movement);
-      expect(fixture.$1.undoCount, 5);
-      expect(tester.takeException(), isNull);
+      expect(document.undoCount, 5);
     },
   );
 
-  testWidgets(
-    'Studio timing fields reject invalid values before history mutation',
-    (tester) async {
-      final fixture = _fixture();
-      await _surface(tester, fixture);
-      final field = find.descendant(
-        of: find.byKey(const ValueKey('npc-fixed-route-duration')),
-        matching: find.byType(TextField),
-      );
-      await tester.ensureVisible(field);
-      await tester.enterText(field, '0');
-      await tester.testTextInput.receiveAction(TextInputAction.done);
-      await tester.pumpAndSettle();
+  test('timing input rejects invalid values before history mutation and commits valid values', () {
+    final fixture = _fixture();
+    final inputs = CharacterMovementInputs();
+    final commands = CharacterEditingCommands(fixture.$1, fixture.$2);
+    final original = fixture.$1.current.entities.single.npc!.movement;
+    for (final invalid in ['0', '-1', '60001', 'not a number']) {
+      expect(inputs.timing(original, invalid, pause: false), isNull);
       expect(fixture.$1.undoCount, 0);
       expect(
         fixture.$1.current.entities.single.npc!.movement.stepDurationMs,
         250,
       );
-      expect(
-        find.text('La durée du pas doit être comprise entre 1 et 60 000 ms.'),
-        findsOneWidget,
-      );
-      await tester.enterText(field, '480');
-      await tester.testTextInput.receiveAction(TextInputAction.done);
-      await tester.pumpAndSettle();
-      expect(
-        fixture.$1.current.entities.single.npc!.movement.stepDurationMs,
-        480,
-      );
-      expect(fixture.$1.undoCount, 1);
-      expect(tester.takeException(), isNull);
-    },
-  );
+    }
+    expect(
+      inputs.problem,
+      'La durée du pas doit être comprise entre 1 et 60 000 ms.',
+    );
+    commands.setMovementConfiguration(
+      'npc',
+      inputs.timing(original, '480', pause: false)!,
+    );
+    expect(
+      fixture.$1.current.entities.single.npc!.movement.stepDurationMs,
+      480,
+    );
+    expect(fixture.$1.undoCount, 1);
+    expect(inputs.timing(original, '0', pause: true)!.pauseDurationMs, 0);
+    expect(inputs.timing(original, '3600001', pause: true), isNull);
+  });
 
-  testWidgets('3D Studio offers fixed routes and guided fixed bounds', (
-    tester,
-  ) async {
+  test('3D fixed routes retain bounded movement area and random pauses', () {
     final fixture = _fixture(spatial: true);
     final commands = CharacterEditingCommands(fixture.$1, fixture.$2);
+    final inputs = CharacterMovementInputs();
     commands.setMovementConfiguration('npc', _movement());
     expect(fixture.$1.current.entities.single.npc!.movement, _movement());
     expect(fixture.$1.undoCount, 1);
-    await _surface(tester, fixture);
-    final picker = find.byKey(const ValueKey('npc-movement-mode'));
-    await tester.ensureVisible(picker);
-    await tester.tap(picker);
-    await tester.pumpAndSettle();
-    expect(find.text('Suite de pas'), findsWidgets);
-    await tester.tapAt(const Offset(900, 20));
-    await tester.pumpAndSettle();
-    final area = find.byKey(const ValueKey('npc-limit-movement-area'));
-    await tester.ensureVisible(area);
-    await tester.tap(area);
-    await tester.pumpAndSettle();
-    expect(fixture.$1.current.entities.single.npc!.movement.movementArea,
-        const MapRect(pos: GridPos(x: 2, y: 3), size: GridSize(width: 3, height: 3)));
-    final choices = find.byKey(const ValueKey('npc-random-pauses'));
-    await tester.ensureVisible(choices);
-    await tester.tap(choices);
-    await tester.pumpAndSettle();
-    expect(fixture.$1.current.entities.single.npc!.movement.pauseDurationsMs, [500, 1000]);
-    expect(tester.takeException(), isNull);
+    final bounded = inputs.toggleArea(
+      _movement(),
+      fixture.$1.current,
+      fixture.$1.current.entities.single,
+    );
+    commands.setMovementConfiguration('npc', bounded);
+    expect(
+      fixture.$1.current.entities.single.npc!.movement.movementArea,
+      const MapRect(
+        pos: GridPos(x: 2, y: 3),
+        size: GridSize(width: 3, height: 3),
+      ),
+    );
+    commands.setMovementConfiguration(
+      'npc',
+      bounded.copyWith(pauseDurationsMs: const [500, 1000]),
+    );
+    final current = fixture.$1.current.entities.single.npc!.movement;
+    expect(current.pauseDurationsMs, [500, 1000]);
+    expect(inputs.area(current, fixture.$1.current, 'x', '-1'), isNull);
+    expect(inputs.problem, 'La zone doit rester dans les limites de la carte.');
+    expect(inputs.pauseChoice(current, 0, '-1'), isNull);
+    expect(inputs.pauseChoice(current, 0, '250')!.pauseDurationsMs, [
+      250,
+      1000,
+    ]);
   });
 }
 
@@ -262,47 +290,4 @@ MapEntityNpcMovementConfig _movement() => MapEntityNpcMovementConfig(
     ),
     project,
   );
-}
-
-Future<void> _surface(
-  WidgetTester tester,
-  (EditableMapDocument, ProjectManifest) fixture,
-) async {
-  tester.view.physicalSize = const Size(1024, 800);
-  tester.view.devicePixelRatio = 1;
-  addTearDown(tester.view.resetPhysicalSize);
-  addTearDown(tester.view.resetDevicePixelRatio);
-  await tester.pumpWidget(
-    MaterialApp(
-      theme: studioTheme(),
-      home: Scaffold(
-        body: SizedBox(
-          width: 340,
-          child: StatefulBuilder(
-            builder: (context, setState) => SingleChildScrollView(
-              child: CharacterInspector(
-                document: fixture.$1,
-                project: fixture.$2,
-                entity: fixture.$1.current.entities.single,
-                visuals: WorkspaceTestVisuals(),
-                onChanged: () => setState(() {}),
-                onSelect: (_) {},
-                onEditInteraction: (_) {},
-              ),
-            ),
-          ),
-        ),
-      ),
-    ),
-  );
-  await tester.pumpAndSettle();
-}
-
-Future<void> _select(WidgetTester tester, String key, String value) async {
-  final picker = find.byKey(ValueKey(key));
-  await tester.ensureVisible(picker);
-  await tester.tap(picker);
-  await tester.pumpAndSettle();
-  await tester.tap(find.text(value).last);
-  await tester.pumpAndSettle();
 }

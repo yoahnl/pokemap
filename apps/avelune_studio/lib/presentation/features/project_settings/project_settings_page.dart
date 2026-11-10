@@ -5,6 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:map_core/map_core_domain.dart';
 
+import '../../../platform/playtest/studio_playtest_builders.dart';
+
+export '../../../platform/playtest/studio_playtest_builders.dart'
+    show StudioVisualTestBuilder;
+
 import '../../../features/map_workspace/application/map_workspace_controller.dart';
 import '../../../features/map_workspace/domain/map_atmosphere_port.dart';
 import '../../../features/project_audio/application/project_audio_controller.dart';
@@ -32,13 +37,6 @@ import 'project_settings_section_footer.dart';
 import 'project_surf_panel.dart';
 import 'project_verification_panel.dart';
 import 'spatial_visual_controls.dart';
-
-typedef StudioVisualTestBuilder = Widget Function(
-  ProjectMapEntry entry,
-  String revision,
-  VoidCallback close,
-  ValueListenable<SpatialVisualPatch> preview,
-);
 
 class ProjectSettingsPage extends StatefulWidget {
   const ProjectSettingsPage({
@@ -502,8 +500,7 @@ class _ProjectSettingsPageState extends State<ProjectSettingsPage> {
     ProjectSettingsSection.verification => ProjectVerificationPanel(
       rows: projectVerificationOverview(
         sectionLabels: {
-          for (final value in ProjectSettingsSection.values)
-            value: value.label,
+          for (final value in ProjectSettingsSection.values) value: value.label,
         },
         blocked: {
           for (final value in ProjectSettingsSection.values)

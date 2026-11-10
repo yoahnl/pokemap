@@ -1,0 +1,299 @@
+Resolving dependencies...
+Downloading packages...
+  _fe_analyzer_shared 103.0.0 (111.0.0 available)
+  analyzer 13.3.0 (14.7.0 available)
+  archive 4.0.9 (4.6.0 available)
+  code_assets 2.0.0 (2.2.0 available)
+  coverage 1.15.1 (1.16.0 available)
+  cross_file 0.3.5+5 (0.4.0 available)
+  crypto 3.0.7 (3.0.8 available)
+  cupertino_ui 1.1.2 (1.1.6 available)
+  dbus 0.7.15 (0.8.0 available)
+  file_picker 11.0.3 (13.3.2 available)
+  flutter_joystick 0.2.2 (0.2.3 available)
+  flutter_riverpod 3.4.2 (3.5.0 available)
+  frontend_server_client 4.0.0 (4.2.0 available)
+  gamepads 0.1.11 (0.1.15 available)
+  gamepads_android 0.1.9 (0.1.12 available)
+  gamepads_darwin 0.1.3 (0.1.4 available)
+  gamepads_linux 0.1.2 (0.1.4 available)
+  gamepads_platform_interface 0.1.3 (0.1.4 available)
+  gamepads_web 0.1.2 (0.1.3 available)
+  gamepads_windows 0.3.1 (0.3.3 available)
+  http_multi_server 3.2.2 (3.2.3 available)
+  image 4.10.1 (4.12.0 available)
+  jni 1.0.3 (1.1.2 available)
+  jni_flutter 1.0.3 (1.0.4+1 available)
+  marionette_flutter 0.6.0 (0.7.0 available)
+  marionette_mcp 0.6.0 (0.7.0 available)
+  material_color_utilities 0.13.0 (0.13.1 available)
+  material_ui 1.6.0 (1.10.0 available)
+  mcp_dart 2.4.2 (2.4.3 available)
+  native_toolchain_c 0.19.4 (0.19.6 available)
+  objective_c 9.6.0 (9.6.3 available)
+  package_config 2.2.0 (3.0.0 available)
+  package_info_plus 9.0.1 (10.2.2 available)
+  package_info_plus_platform_interface 3.2.1 (4.1.0 available)
+  petitparser 7.0.2 (7.1.0 available)
+  platform 3.1.6 (3.2.0 available)
+  posix 6.5.2 (6.5.4 available)
+  riverpod 3.4.2 (3.5.0 available)
+  shelf 1.4.2 (1.4.3 available)
+  shelf_static 1.1.3 (1.2.0 available)
+  synchronized 3.4.1+2 (3.6.1+1 available)
+  test 1.31.1 (1.33.0 available)
+  test_api 0.7.12 (0.7.15 available)
+  test_core 0.6.18 (0.6.21 available)
+  unorm_dart 0.3.2 (0.3.3 available)
+  url_launcher 6.3.2 (6.3.3 available)
+  vector_math 2.4.2 (2.4.4 available)
+  video_player 2.14.0 (2.14.1 available)
+  video_player_avfoundation 2.12.0 (2.12.3 available)
+  vm_service 15.3.0 (15.4.0 available)
+  web 1.1.1 (1.1.2 available)
+  win32 5.15.0 (6.4.0 available)
+  xml 7.0.1 (7.1.0 available)
+Got dependencies!
+53 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
++8: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/platform/playtest/studio_playtest_lifecycle_test.dart: new game detaches the old lifecycle observer before disposing its runtime
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/surf-lifecycle-PHHm3K/project.json mapId=field
++9: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/platform/playtest/studio_playtest_lifecycle_test.dart: new game detaches the old lifecycle observer before disposing its runtime
+[runtime_loader] bundle map resolved mapId=field relativePath=field.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/surf-lifecycle-PHHm3K/field.json
++10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/platform/playtest/studio_playtest_lifecycle_test.dart: new game detaches the old lifecycle observer before disposing its runtime
+[runtime_loader] bundle tilesets collected ids=
+[runtime_loader] bundle load ok mapId=field projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/surf-lifecycle-PHHm3K tilesets=0
++10: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_game_playtest_test.dart: full project composes the Presentation runner and commits player input before launch
+[runtime_loader] project manifest lookup path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-full-game-nwXyvc/project.json
+[runtime_loader] project manifest read ok bytes=5957
+[runtime_loader] project manifest validated maps=2 tilesets=1 scenarios=0
+[runtime_loader] bundle load start projectFilePath=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-full-game-nwXyvc/project.json mapId=jardin
+[runtime_loader] bundle map resolved mapId=jardin relativePath=maps/jardin.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-full-game-nwXyvc/maps/jardin.json
+[runtime_loader] bundle tilesets collected ids=atelier
+[runtime_loader] bundle tileset path id=atelier path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-full-game-nwXyvc/assets/atelier.png
+[runtime_loader] bundle load ok mapId=jardin projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-full-game-nwXyvc tilesets=1
++11: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_game_playtest_test.dart: effective reduced motion preferences update the existing Presentation
+[runtime_loader] project manifest lookup path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-motion-hT2yVb/project.json
+[runtime_loader] project manifest read ok bytes=8523
+[runtime_loader] project manifest validated maps=2 tilesets=1 scenarios=0
++12: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_game_playtest_test.dart: Presentation cues choose identity before mounting the authored 3D spawn
+[runtime_loader] project manifest lookup path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-full-spatial-EgwnY7/project.json
+[runtime_loader] project manifest read ok bytes=8434
+[runtime_loader] project manifest validated maps=1 tilesets=1 scenarios=0
+[runtime_loader] bundle load start projectFilePath=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-full-spatial-EgwnY7/project.json mapId=room
+[runtime_loader] bundle map resolved mapId=room relativePath=room.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-full-spatial-EgwnY7/room.json
+[runtime_loader] bundle tilesets collected ids=atelier
+[runtime_loader] bundle tileset path id=atelier path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-full-spatial-EgwnY7/assets/atelier.png
+[runtime_loader] bundle load ok mapId=room projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-full-spatial-EgwnY7 tilesets=1
++12: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/platform/playtest/studio_playtest_lifecycle_test.dart: new game detaches the old lifecycle observer before disposing its runtime
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/surf-lifecycle-PHHm3K/project.json mapId=field
++12: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_spatial_playtest_test.dart: saved spatial map enters the 3D loader and reports missing hero before GPU
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-spatial-playtest-Mxd6RP/game/project.json mapId=first-map
++12: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_game_playtest_test.dart: Presentation cues choose identity before mounting the authored 3D spawn
+[runtime_loader] bundle load start projectFilePath=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-full-spatial-EgwnY7/project.json mapId=room
+[runtime_loader] bundle map resolved mapId=room relativePath=room.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-full-spatial-EgwnY7/room.json
+[runtime_loader] bundle tilesets collected ids=atelier
+[runtime_loader] bundle tileset path id=atelier path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-full-spatial-EgwnY7/assets/atelier.png
+[runtime_loader] bundle load ok mapId=room projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-full-spatial-EgwnY7 tilesets=1
++13: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/platform/playtest/studio_playtest_lifecycle_test.dart: new game detaches the old lifecycle observer before disposing its runtime
+[runtime_loader] bundle map resolved mapId=field relativePath=field.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/surf-lifecycle-PHHm3K/field.json
++13: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_spatial_playtest_test.dart: saved spatial map enters the 3D loader and reports missing hero before GPU
+[runtime_loader] bundle map resolved mapId=first-map relativePath=maps/first-map.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-spatial-playtest-Mxd6RP/game/maps/first-map.json
+[runtime_loader] bundle tilesets collected ids=
+[runtime_loader] bundle load ok mapId=first-map projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-spatial-playtest-Mxd6RP/game tilesets=0
++13: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/platform/playtest/studio_playtest_lifecycle_test.dart: new game detaches the old lifecycle observer before disposing its runtime
+[runtime_loader] bundle tilesets collected ids=
+[runtime_loader] bundle load ok mapId=field projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/surf-lifecycle-PHHm3K tilesets=0
++14: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_game_playtest_test.dart: keeps the same player controller when its prepared view rebuilds
+[runtime_loader] project manifest lookup path=/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-game-controller-RORZJx/project.json
+[runtime_loader] project manifest read ok bytes=8523
+[runtime_loader] project manifest validated maps=2 tilesets=1 scenarios=0
++14: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/platform/playtest/studio_playtest_lifecycle_test.dart: new game detaches the old lifecycle observer before disposing its runtime
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/surf-lifecycle-PHHm3K/project.json mapId=field
++15: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/platform/playtest/studio_playtest_lifecycle_test.dart: new game detaches the old lifecycle observer before disposing its runtime
+[runtime_loader] bundle map resolved mapId=field relativePath=field.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/surf-lifecycle-PHHm3K/field.json
+[runtime_loader] bundle tilesets collected ids=
+[runtime_loader] bundle load ok mapId=field projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/surf-lifecycle-PHHm3K tilesets=0
++16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_playtest_new_game_test.dart: cancelling the player name returns to the editor
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-cancel-start-VG1bZg/project.json mapId=jardin
++16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_playtest_test.dart: saved example mounts real runtime, walks, and returns
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_playtest_YVa223/project.json mapId=jardin
++16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_playtest_new_game_test.dart: cancelling the player name returns to the editor
+[runtime_loader] bundle map resolved mapId=jardin relativePath=maps/jardin.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-cancel-start-VG1bZg/maps/jardin.json
++16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_playtest_test.dart: saved example mounts real runtime, walks, and returns
+[runtime_loader] bundle map resolved mapId=jardin relativePath=maps/jardin.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_playtest_YVa223/maps/jardin.json
++16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/platform/playtest/studio_playtest_projection_guard_test.dart: native 3D brush projection reaches hero validation
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-playtest-projection-LF9q64/project.json mapId=map
++16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_playtest_new_game_test.dart: cancelling the player name returns to the editor
+[runtime_loader] bundle tilesets collected ids=atelier
+[runtime_loader] bundle tileset path id=atelier path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-cancel-start-VG1bZg/assets/atelier.png
+[runtime_loader] bundle load ok mapId=jardin projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-cancel-start-VG1bZg tilesets=1
++16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_playtest_test.dart: saved example mounts real runtime, walks, and returns
+[runtime_loader] bundle tilesets collected ids=atelier
+[runtime_loader] bundle tileset path id=atelier path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_playtest_YVa223/assets/atelier.png
+[runtime_loader] bundle load ok mapId=jardin projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_playtest_YVa223 tilesets=1
++16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/platform/playtest/studio_playtest_projection_guard_test.dart: native 3D brush projection reaches hero validation
+[runtime_loader] bundle map resolved mapId=map relativePath=map.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-playtest-projection-LF9q64/map.json
++16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_playtest_new_game_test.dart: cancelling the player name returns to the editor
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-cancel-start-VG1bZg/project.json mapId=jardin
+[runtime_loader] bundle map resolved mapId=jardin relativePath=maps/jardin.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-cancel-start-VG1bZg/maps/jardin.json
++16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_playtest_test.dart: saved example mounts real runtime, walks, and returns
+[runtime_game] tileset image load start map=jardin
+[runtime_game] tileset cache resolve requested=1
++16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_playtest_new_game_test.dart: cancelling the player name returns to the editor
+[runtime_loader] bundle tilesets collected ids=atelier
+[runtime_loader] bundle tileset path id=atelier path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-cancel-start-VG1bZg/assets/atelier.png
+[runtime_loader] bundle load ok mapId=jardin projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-cancel-start-VG1bZg tilesets=1
++16: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/platform/playtest/studio_playtest_projection_guard_test.dart: native 3D brush projection reaches hero validation
+[runtime_loader] bundle tilesets collected ids=
+[runtime_loader] bundle load ok mapId=map projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-playtest-projection-LF9q64 tilesets=0
++17: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_playtest_test.dart: saved example mounts real runtime, walks, and returns
+[runtime_game] tileset cache resolve ok result=1
+[runtime_game] onLoad start map=jardin projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_playtest_YVa223/project.json tilesets=1
+[runtime_game] world build start map=jardin
+[runtime] Map loaded: jardin, spawn at (8, 9)
+[runtime_game] tileset image load ok count=1 map=jardin
+[runtime_game] mount root map start map=jardin
+[runtime_game] mount root map ok map=jardin
+[runtime_game] onLoad completed activeMapId=jardin
+[event_v2] mapEnter activation=mapact_1794258512085895_1 map=jardin reason=initialBoot result=MapEnterProductionDispatchLegacyFallback
++17: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/platform/playtest/studio_playtest_projection_guard_test.dart: a real change during first spatial load is rejected
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-playtest-projection-LfetnF/project.json mapId=map
+[runtime_loader] bundle map resolved mapId=map relativePath=map.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-playtest-projection-LfetnF/map.json
++17: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_playtest_test.dart: saved example mounts real runtime, walks, and returns
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: exactly one matching candidate
+  Actual: _TextWidgetFinder:<Found 0 widgets with text "Que doit faire Charmander ?": []>
+   Which: means none were found but one was expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_playtest_test.dart:182:7)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_playtest_test.dart line 182
+The test description was:
+  saved example mounts real runtime, walks, and returns
+════════════════════════════════════════════════════════════════════════════════════════════════════
++17 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_playtest_test.dart: saved example mounts real runtime, walks, and returns [E]
+  Test failed. See exception logs above.
+  The test description was: saved example mounts real runtime, walks, and returns
+  
++17 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/platform/playtest/studio_playtest_projection_guard_test.dart: a real change during first spatial load is rejected
+[runtime_loader] bundle tilesets collected ids=
+[runtime_loader] bundle load ok mapId=map projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-playtest-projection-LfetnF tilesets=0
++19 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/platform/playtest/studio_playtest_projection_guard_test.dart: a real change during spatial asset preparation is rejected
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-playtest-projection-N64Xnv/project.json mapId=map
+[runtime_loader] bundle map resolved mapId=map relativePath=map.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-playtest-projection-N64Xnv/map.json
+[runtime_loader] bundle tilesets collected ids=actor
+[runtime_loader] bundle tileset path id=actor path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-playtest-projection-N64Xnv/actor.png
+[runtime_loader] bundle load ok mapId=map projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-playtest-projection-N64Xnv tilesets=1
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-playtest-projection-N64Xnv/project.json mapId=map
+[runtime_loader] bundle map resolved mapId=map relativePath=map.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-playtest-projection-N64Xnv/map.json
+[runtime_loader] bundle tilesets collected ids=actor
+[runtime_loader] bundle tileset path id=actor path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-playtest-projection-N64Xnv/actor.png
+[runtime_loader] bundle load ok mapId=map projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-playtest-projection-N64Xnv tilesets=1
++20 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/platform/playtest/studio_playtest_projection_guard_test.dart: a real change during 2D asset preparation stays rejected
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-playtest-projection-XeinXq/project.json mapId=map
+[runtime_loader] bundle map resolved mapId=map relativePath=map.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-playtest-projection-XeinXq/map.json
+[runtime_loader] bundle tilesets collected ids=
+[runtime_loader] bundle load ok mapId=map projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-playtest-projection-XeinXq tilesets=0
++21 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_playtest_test.dart: selected map without a spawn starts an isolated test game
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_other_map_P6Rfoa/project.json mapId=clairiere
+[runtime_loader] bundle map resolved mapId=clairiere relativePath=maps/clairiere.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_other_map_P6Rfoa/maps/clairiere.json
+[runtime_loader] bundle tilesets collected ids=atelier
+[runtime_loader] bundle tileset path id=atelier path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_other_map_P6Rfoa/assets/atelier.png
+[runtime_loader] bundle load ok mapId=clairiere projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_other_map_P6Rfoa tilesets=1
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_other_map_P6Rfoa/project.json mapId=jardin
++21 -1: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/m3_story_runtime_test.dart: published story plays choices, conditions, one-shot and isolated save/load
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Runtime condition timed out
+
+When the exception was thrown, this was the stack:
+#0      fail (package:matcher/src/expect/expect.dart:187:31)
+#1      M3RuntimeDriver.until (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/support/m3_runtime_driver.dart:29:5)
+<asynchronous suspension>
+#2      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/m3_story_runtime_test.dart:71:7)
+<asynchronous suspension>
+#3      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#4      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+The test description was:
+  published story plays choices, conditions, one-shot and isolated save/load
+════════════════════════════════════════════════════════════════════════════════════════════════════
++21 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/m3_story_runtime_test.dart: published story plays choices, conditions, one-shot and isolated save/load [E]
+  Test failed. See exception logs above.
+  The test description was: published story plays choices, conditions, one-shot and isolated save/load
+  
++21 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_playtest_test.dart: selected map without a spawn starts an isolated test game
+[runtime_loader] bundle map resolved mapId=jardin relativePath=maps/jardin.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_other_map_P6Rfoa/maps/jardin.json
+[runtime_loader] bundle tilesets collected ids=atelier
+[runtime_loader] bundle tileset path id=atelier path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_other_map_P6Rfoa/assets/atelier.png
+[runtime_loader] bundle load ok mapId=jardin projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_other_map_P6Rfoa tilesets=1
+[runtime_game] tileset image load start map=clairiere
+[runtime_game] tileset cache resolve requested=1
+[runtime_game] tileset cache resolve ok result=1
+[runtime_game] onLoad start map=clairiere projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio_other_map_P6Rfoa/project.json tilesets=1
+[runtime] New game created from project contract on clairiere at (12, 8)
+[runtime_game] tileset image load ok count=1 map=clairiere
+[runtime_game] mount root map start map=clairiere
+[runtime_game] mount root map ok map=clairiere
+[runtime_game] onLoad completed activeMapId=clairiere
+[event_v2] mapEnter activation=mapact_1794258516207320_1 map=clairiere reason=initialBoot result=MapEnterProductionDispatchLegacyFallback
++21 -2: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_playtest_new_game_test.dart: normal playtest asks for a starter and resets through the same flow
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-guided-start-I498yi/project.json mapId=jardin
+[runtime_loader] bundle map resolved mapId=jardin relativePath=maps/jardin.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-guided-start-I498yi/maps/jardin.json
+[runtime_loader] bundle tilesets collected ids=atelier
+[runtime_loader] bundle tileset path id=atelier path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-guided-start-I498yi/assets/atelier.png
+[runtime_loader] bundle load ok mapId=jardin projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-guided-start-I498yi tilesets=1
+[runtime_loader] bundle load start projectFilePath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-guided-start-I498yi/project.json mapId=jardin
+[runtime_loader] bundle map resolved mapId=jardin relativePath=maps/jardin.json mapPath=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-guided-start-I498yi/maps/jardin.json
+[runtime_loader] bundle tilesets collected ids=atelier
+[runtime_loader] bundle tileset path id=atelier path=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-guided-start-I498yi/assets/atelier.png
+[runtime_loader] bundle load ok mapId=jardin projectRoot=/private/var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/studio-guided-start-I498yi tilesets=1
+══╡ EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK ╞════════════════════════════════════════════════════
+The following TestFailure was thrown running a test:
+Expected: at least one matching candidate
+  Actual: _TypeWidgetFinder:<Found 0 widgets with type "PlayerSceneInteractionSurface": []>
+   Which: means none were found but some were expected
+
+When the exception was thrown, this was the stack:
+#4      _waitFor (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_playtest_new_game_test.dart:272:3)
+<asynchronous suspension>
+#5      main.<anonymous closure> (file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_playtest_new_game_test.dart:207:7)
+<asynchronous suspension>
+#6      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:192:15)
+<asynchronous suspension>
+#7      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1953:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_playtest_new_game_test.dart line 272
+The test description was:
+  normal playtest asks for a starter and resets through the same flow
+════════════════════════════════════════════════════════════════════════════════════════════════════
++21 -3: /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_playtest_new_game_test.dart: normal playtest asks for a starter and resets through the same flow [E]
+  Test failed. See exception logs above.
+  The test description was: normal playtest asks for a starter and resets through the same flow
+  
++21 -4: loading /Users/karim/Project/pokemonProject/apps/avelune_studio/test/infrastructure/studio_playtest_test.dart [E]
+  Bad state: Cannot close sink while adding stream.
+  package:stream_channel/src/guarantee_channel.dart 180:7      _GuaranteeSink.close
+  package:flutter_tools/src/test/flutter_platform.dart 765:43  FlutterPlatform._startTest
+  
+One or more uncaught errors occurred shutting down:
+  Bad state: Cannot add event while adding stream.

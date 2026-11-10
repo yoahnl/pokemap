@@ -13,7 +13,7 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
         _connectionError ??
         _resourceError;
     return CallbackShortcuts(
-      bindings: workspaceShortcuts(
+      bindings: mapEditingShortcuts(
         _controller,
         _view,
         _keyboard,

@@ -10,7 +10,7 @@ import '../../shared/widgets/inputs/studio_select.dart';
 import 'pokemon_commerce_detail.dart';
 import 'pokemon_commerce_import_button.dart';
 import 'pokemon_commerce_create_dialog.dart';
-import 'pokemon_pocket_label.dart';
+import '../../../features/pokemon/application/pokemon_pocket_label.dart';
 import 'pokemon_commerce_row.dart';
 import 'pokemon_ui_parts.dart';
 import 'pokemon_bag_capacity_dialog.dart';
@@ -227,11 +227,12 @@ class _PokemonCommercePageState extends State<PokemonCommercePage> {
                 value: commerce.pocketFilter ?? '',
                 options: {
                   '': 'Toutes les poches',
-                  for (final pocket in pockets.toList()
-                    ..sort(
-                      (a, b) =>
-                          pokemonPocketLabel(a).compareTo(pokemonPocketLabel(b)),
-                    ))
+                  for (final pocket
+                      in pockets.toList()..sort(
+                        (a, b) =>
+                            pokemonPocketLabel(a)
+                                .compareTo(pokemonPocketLabel(b)),
+                      ))
                     pocket: pokemonPocketLabel(pocket),
                 },
                 onChanged: (value) => setState(

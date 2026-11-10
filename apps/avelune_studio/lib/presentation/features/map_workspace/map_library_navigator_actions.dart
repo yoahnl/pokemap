@@ -52,32 +52,17 @@ extension _MapLibraryActions on _MapLibraryNavigatorState {
       ),
       submit: () async {
         final name = _name.trim(), parentId = _parent.isEmpty ? null : _parent;
-        final groups = widget.project.groups;
-        if (groups.any(
-          (group) =>
-              group.parentGroupId == parentId &&
-              group.name.trim().toLowerCase() == name.toLowerCase(),
-        )) {
-          return 'Un dossier du même nom existe déjà ici.';
-        }
-        final id = 'studio_folder_${DateTime.now().microsecondsSinceEpoch}';
-        return _submitOrganization(
-          groups: [
-            ...groups,
-            ProjectMapGroup(
-              id: id,
-              name: name,
-              type: MapGroupType.special,
-              parentGroupId: parentId,
-              sortOrder: groups.length,
-            ),
-          ],
-          assignments: const [],
-          onSuccess: () {
-            _collapsed.remove(parentId);
-            _folderSelection = id;
-          },
+        final error = await _libraryCommands.createFolder(
+          name,
+          parentId: parentId,
         );
+        if (mounted && error == null) {
+          _update(() {
+            _collapsed.remove(parentId);
+            _folderSelection = _libraryCommands.lastCreatedGroupId;
+          });
+        }
+        return error;
       },
     );
     _creating = false;

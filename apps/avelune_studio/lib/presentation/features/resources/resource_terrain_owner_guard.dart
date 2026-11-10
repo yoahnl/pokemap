@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import 'resource_management_dialog.dart';
-import 'resource_navigation.dart';
-import 'resource_terrain_management.dart';
+import 'package:avelune_studio/features/resources/coordination/resource_navigation.dart';
+import 'package:avelune_studio/features/resources/coordination/resource_terrain_management.dart';
 
 Future<bool> resolveTerrainManagementOwner(
   BuildContext context,

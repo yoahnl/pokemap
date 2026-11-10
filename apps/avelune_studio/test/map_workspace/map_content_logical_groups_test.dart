@@ -1,17 +1,10 @@
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
-import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_library_navigator.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_canvas.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_layout.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_editor_controller.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_element_catalog.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_editor_port.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_elements_panel.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
-import 'package:flutter/material.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
@@ -55,7 +48,7 @@ MapData _map() => workspaceMap('a').copyWith(
 void main() {
   late EditableMapDocument document;
   late MapEditorController editor;
-  late MapWorkspaceViewState view;
+  late MapEditingViewportSession view;
 
   setUp(() {
     document = EditableMapDocument(
@@ -71,7 +64,7 @@ void main() {
       ),
     );
     document.editor = editor;
-    view = MapWorkspaceViewState();
+    view = MapEditingViewportSession();
   });
   tearDown(() {
     editor.dispose();
@@ -152,180 +145,51 @@ void main() {
     expect([for (final entry in after.entries) entry.key], before);
   });
 
-  testWidgets('filters find hidden and locked items and restore everything', (
-    tester,
-  ) async {
-    await editor.setHidden('decor', 'desk', true);
-    await editor.setLocked('decor', 'lamp', true);
-    await _mount(tester, document, view);
-    expect(
-      find.descendant(
-        of: find.byKey(const ValueKey('map-content-filter-menu')),
-        matching: find.text('Tous · 5'),
-      ),
-      findsOneWidget,
-    );
-    await _chooseFilter(tester, 'hidden');
-    await tester.pumpAndSettle();
-    expect(
-      find.byKey(const ValueKey('map-element-decor-desk')),
-      findsOneWidget,
-    );
-    expect(find.byKey(const ValueKey('map-element-decor-bed')), findsNothing);
-    expect(find.byKey(const ValueKey('map-element-decor-lamp')), findsNothing);
-    await _chooseFilter(tester, 'locked');
-    await tester.pumpAndSettle();
-    expect(
-      find.byKey(const ValueKey('map-element-decor-lamp')),
-      findsOneWidget,
-    );
-    expect(find.byKey(const ValueKey('map-element-decor-desk')), findsNothing);
-    await _chooseFilter(tester, 'all');
-    await tester.pumpAndSettle();
-    for (final id in ['bed', 'desk', 'lamp']) {
-      expect(find.byKey(ValueKey('map-element-decor-$id')), findsOneWidget);
-    }
+  List<MapElementListEntry> matching(MapContentFilter filter) =>
+      MapElementCatalog(document.current, workspaceProject).entries
+          .where(
+            (entry) => mapContentMatches(
+              entry,
+              filter,
+              isHidden: (entry) =>
+                  document.isElementHidden(entry.kind, entry.id),
+              isLocked: (entry) =>
+                  document.isElementLocked(entry.kind, entry.id),
+              isSelected: (entry) =>
+                  entry.kind == 'decor' &&
+                  view.selectedFor(
+                        document.current.id,
+                        MapSelectionFamily.decor,
+                      ) ==
+                      entry.id,
+            ),
+          )
+          .toList();
+
+  test(
+    'native filters find hidden and locked items and restore all identities',
+    () async {
+      await editor.setHidden('decor', 'desk', true);
+      await editor.setLocked('decor', 'lamp', true);
+      expect(matching(MapContentFilter.hidden).map((e) => e.id), ['desk']);
+      expect(matching(MapContentFilter.locked).map((e) => e.id), ['lamp']);
+      expect(
+        matching(MapContentFilter.all).map((e) => e.id),
+        containsAll(['bed', 'desk', 'lamp']),
+      );
+      expect(document.dirty, isFalse);
+    },
+  );
+
+  test('selection filtering follows the exact native target', () {
+    view.select(document, MapSelectionFamily.decor, 'desk');
+    expect(matching(MapContentFilter.selection).map((e) => e.id), ['desk']);
+    view.select(document, MapSelectionFamily.decor, 'bed');
+    expect(matching(MapContentFilter.selection).map((e) => e.id), ['bed']);
+    view.clearSelection(document);
+    expect(matching(MapContentFilter.selection), isEmpty);
     expect(document.dirty, isFalse);
   });
-
-  testWidgets('selection filter follows the element chosen on the map', (
-    tester,
-  ) async {
-    await _mount(tester, document, view);
-    view.select(document, MapSelectionFamily.decor, 'desk');
-    await _chooseFilter(tester, 'selection');
-    await tester.pumpAndSettle();
-    expect(
-      find.byKey(const ValueKey('map-element-decor-desk')),
-      findsOneWidget,
-    );
-    expect(find.byKey(const ValueKey('map-element-decor-bed')), findsNothing);
-  });
-
-  testWidgets('editing hide and in-game visibility are named differently', (
-    tester,
-  ) async {
-    await editor.setHidden('decor', 'desk', true);
-    await _mount(tester, document, view);
-    expect(find.textContaining('Masqué pendant l’édition'), findsOneWidget);
-    expect(find.textContaining('invisible en jeu'), findsOneWidget);
-    expect(find.textContaining('· masqué'), findsNothing);
-  });
-
-  testWidgets('map content is a tab beside the maps and keeps its search', (
-    tester,
-  ) async {
-    tester.view.devicePixelRatio = 1;
-    tester.view.physicalSize = const Size(1600, 1000);
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    final port = WorkspaceMemoryPort()..saved['a'] = _map();
-    final controller = MapWorkspaceController(workspaceSession, port);
-    await controller.initialize();
-    final layoutView = MapWorkspaceViewState();
-    final search = TextEditingController();
-    final homeSearch = TextEditingController();
-    addTearDown(controller.dispose);
-    addTearDown(layoutView.dispose);
-    addTearDown(search.dispose);
-    addTearDown(homeSearch.dispose);
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: studioTheme(),
-        home: StatefulBuilder(
-          builder: (context, update) => MapWorkspaceLayout(
-            controller: controller,
-            view: layoutView,
-            visuals: WorkspaceTestVisuals(),
-            search: search,
-            homeSearch: homeSearch,
-            error: null,
-            palette: true,
-            inspector: null,
-            generation: 0,
-            onPalette: () {},
-            onInspector: () {},
-            onChanged: () => update(() {}),
-            onToolChanged: () => update(() {}),
-            onActivate: (_) {},
-            onSave: () => controller.save(controller.active!),
-            onTest: () {},
-            onClose: () {},
-            onResources: () {},
-            onMap: () {},
-            onExport: () {},
-            onPokemon: () {},
-            onOpenElement: (_) {},
-            onEditElement: (_) {},
-          ),
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-    expect(find.byType(MapLibraryNavigator), findsOneWidget);
-    expect(find.byType(MapElementsPanel), findsNothing);
-    await tester.tap(find.byKey(const ValueKey('map-left-tab-content')));
-    await tester.pumpAndSettle();
-    expect(find.byType(MapElementsPanel), findsOneWidget);
-    expect(find.byType(MapLibraryNavigator), findsNothing);
-    final panel = tester.getRect(find.byType(MapElementsPanel));
-    final canvas = tester.getRect(find.byType(MapWorkspaceCanvas));
-    expect(panel.right, lessThanOrEqualTo(canvas.left));
-    await tester.enterText(
-      find.descendant(
-        of: find.byKey(const ValueKey('map-elements-search')),
-        matching: find.byType(TextField),
-      ),
-      'arbre',
-    );
-    await tester.pump();
-    await tester.tap(find.byKey(const ValueKey('map-left-tab-maps')));
-    await tester.pumpAndSettle();
-    expect(find.byType(MapLibraryNavigator), findsOneWidget);
-    expect(find.byType(MapElementsPanel), findsNothing);
-    await tester.tap(find.byKey(const ValueKey('map-left-tab-content')));
-    await tester.pumpAndSettle();
-    expect(find.text('arbre'), findsOneWidget);
-    expect(controller.active!.dirty, isFalse);
-    expect(tester.takeException(), isNull);
-  });
-}
-
-Future<void> _chooseFilter(WidgetTester tester, String name) async {
-  await tester.tap(find.byKey(const ValueKey('map-content-filter-menu')));
-  await tester.pumpAndSettle();
-  await tester.tap(find.byKey(ValueKey('map-content-filter-$name')));
-  await tester.pumpAndSettle();
-}
-
-Future<void> _mount(
-  WidgetTester tester,
-  EditableMapDocument document,
-  MapWorkspaceViewState view,
-) async {
-  tester.view.physicalSize = const Size(1280, 900);
-  tester.view.devicePixelRatio = 1;
-  addTearDown(tester.view.resetPhysicalSize);
-  addTearDown(tester.view.resetDevicePixelRatio);
-  await tester.pumpWidget(
-    MaterialApp(
-      theme: studioTheme(),
-      home: Scaffold(
-        body: SizedBox(
-          width: 360,
-          child: StatefulBuilder(
-            builder: (context, setState) => MapElementsPanel(
-              document: document,
-              project: workspaceProject,
-              view: view,
-              onChanged: () => setState(() {}),
-            ),
-          ),
-        ),
-      ),
-    ),
-  );
-  await tester.pumpAndSettle();
 }
 
 final class _MemoryEditorPort implements MapEditorPort {

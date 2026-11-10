@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
-import '../map_workspace/map_workspace_visuals.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 import '../../../features/terrains/domain/terrain_spatial_preview_map.dart';
 import '../terrains/terrain_spatial_preview.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';

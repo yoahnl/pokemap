@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime_authoring.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/workspace_resource_diagnostic.dart';
+import 'package:avelune_studio/platform/rendering/contracts/workspace_resource_diagnostic.dart';
 import 'studio_resource_decoder.dart';
 
 final class StudioImageStore {

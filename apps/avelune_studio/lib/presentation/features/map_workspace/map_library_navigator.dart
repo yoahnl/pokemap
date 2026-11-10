@@ -1,10 +1,15 @@
+import 'package:avelune_studio/features/map_workspace/application/map_library_commands.dart';
+export 'package:avelune_studio/features/map_workspace/application/map_library_commands.dart'
+    show OrganizeMapLibrary;
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../../shared/widgets/buttons/studio_tool.dart';
 import '../../shared/widgets/inputs/studio_search_field.dart';
 import '../../shared/widgets/layout/studio_sidebar.dart';
-import 'map_library_tree.dart';
+
+import 'package:avelune_studio/features/map_workspace/application/map_library_tree.dart';
+
 import 'map_library_navigator_forms.dart';
 import 'map_library_row_tile.dart';
 import 'map_library_row_actions.dart';
@@ -15,12 +20,6 @@ import '../../shared/widgets/inputs/studio_select.dart';
 
 part 'map_library_navigator_actions.dart';
 part 'map_library_group_actions.dart';
-
-typedef OrganizeMapLibrary =
-    Future<String?> Function({
-      List<ProjectMapGroup>? groups,
-      required List<Map<String, Object?>> assignments,
-    });
 
 class MapLibraryNavigator extends StatefulWidget {
   const MapLibraryNavigator({
@@ -54,6 +53,11 @@ class MapLibraryNavigator extends StatefulWidget {
 }
 
 class _MapLibraryNavigatorState extends State<MapLibraryNavigator> {
+  late final _libraryCommands = WorkspaceMapLibraryCommands(
+    project: () => widget.project,
+    submit: ({groups, required assignments}) =>
+        _submitOrganization(groups: groups, assignments: assignments),
+  );
   final _search = TextEditingController();
   final _collapsed = <String>{};
   final _selected = <String>{};

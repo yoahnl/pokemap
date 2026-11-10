@@ -1,10 +1,13 @@
+import 'package:avelune_studio/features/terrains/application/terrain_scratch_editing_session.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/terrains/application/terrain_draft_controller.dart';
 import '../../../features/terrains/domain/terrain_spatial_preview_map.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
-import '../map_workspace/map_workspace_visuals.dart';
+
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
+
 import 'terrain_spatial_preview.dart';
 
 typedef TerrainFrameBuilder = Widget Function(
@@ -32,20 +35,17 @@ class TerrainScratchView extends StatefulWidget {
 }
 
 class _TerrainScratchViewState extends State<TerrainScratchView> {
-  GridPos? _previous;
+  late final editing = TerrainScratchEditingSession(() => controller);
   TerrainDraftController get controller => widget.controller;
 
+  TerrainScratchTool get tool => switch (widget.tool) {
+    'Examiner' => TerrainScratchTool.inspect,
+    'Gommer' => TerrainScratchTool.erase,
+    _ => TerrainScratchTool.paint,
+  };
+
   void _act(GridPos point) {
-    if (widget.tool == 'Examiner') {
-      controller.inspect(point);
-    } else {
-      controller.paintLine(
-        _previous ?? point,
-        point,
-        erase: widget.tool == 'Gommer',
-      );
-    }
-    _previous = point;
+    editing.update(point, tool);
     widget.onChanged();
   }
 
@@ -70,18 +70,18 @@ class _TerrainScratchViewState extends State<TerrainScratchView> {
                   project: preview.project,
                   visuals: widget.visuals!,
                   onCell: (x, z) {
-                    _previous = null;
+                    editing.end();
                     _act(GridPos(x: x, y: z));
-                    _previous = null;
+                    editing.end();
                   },
                   onDragStart: (x, z, _) {
-                    _previous = null;
+                    editing.end();
                     _act(GridPos(x: x, y: z));
                     return true;
                   },
                   onDragUpdate: (cell) => _act(GridPos(x: cell.$1, y: cell.$2)),
-                  onDragEnd: () => _previous = null,
-                  onDragCancel: () => _previous = null,
+                  onDragEnd: () => editing.end(),
+                  onDragCancel: () => editing.end(),
                 ),
         );
       } on FormatException {
@@ -103,17 +103,7 @@ class _TerrainScratchViewState extends State<TerrainScratchView> {
           if (point.x < 0 || point.y < 0 || point.x >= 17 || point.y >= 17) {
             return;
           }
-          if (widget.tool == 'Examiner') {
-            controller.inspect(point);
-          } else {
-            controller.paintLine(
-              _previous ?? point,
-              point,
-              erase: widget.tool == 'Gommer',
-            );
-          }
-          _previous = point;
-          widget.onChanged();
+          _act(point);
         }
 
         return Align(
@@ -125,11 +115,11 @@ class _TerrainScratchViewState extends State<TerrainScratchView> {
               key: const ValueKey('terrain-scratch'),
               behavior: HitTestBehavior.opaque,
               onPointerDown: (event) {
-                _previous = null;
+                editing.end();
                 act(event.localPosition);
               },
-              onPointerUp: (_) => _previous = null,
-              onPointerCancel: (_) => _previous = null,
+              onPointerUp: (_) => editing.end(),
+              onPointerCancel: (_) => editing.end(),
               onPointerMove: (event) {
                 if (event.buttons != 0) act(event.localPosition);
               },

@@ -1,146 +1,99 @@
 import 'dart:async';
 
+import 'package:avelune_studio/features/map_workspace/coordination/workspace_workflow.dart';
 import 'package:avelune_studio/features/world/application/world_workspace_controller.dart';
-import 'package:avelune_studio/presentation/features/world/world_view_state.dart';
-import 'package:avelune_studio/presentation/features/world/world_workspace_page.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'support/m2_ui_fixture.dart';
-import 'support/ui12_close_harness.dart';
 import 'support/ui12_held_world_port.dart';
 import 'support/ui12_world_harness.dart';
-
-const _label = 'Train parti de Kisaragi';
+import 'support/world_authoring_workflow_fixture.dart';
 
 void main() {
-  testWidgets('invalid rule input blocks global save until corrected', (
-    tester,
-  ) async {
-    final (h, guard) = await host(tester);
-    final world = opened(tester);
-    unawaited(world.saveFact(state(world, _label)));
-    await pumpIo(tester, frames: 12);
-    final factId = world.project.facts
-        .firstWhere((fact) => fact.label == _label)
-        .id;
-    final ruleId = composeRule(world, factId);
-    state(world, 'Conducteur prévenu');
+  test('invalid rule input blocks global save until corrected', () async {
+    final h = await WorldAuthoringWorkflowFixture.create();
+    addTearDown(h.dispose);
+    final world = h.world;
+    await world.saveFact(createWorldFact(world, 'Train parti de Kisaragi'));
+    final factId = world.selectedFactId!;
+    final ruleId = composeWorldRule(world, factId);
+    createWorldFact(world, 'Conducteur prévenu');
+    expect(world.hasRuleDraft, isTrue);
+    expect(h.editor.commitRuleLabel(ruleId, ''), isFalse);
+
+    h.closeChoice = null;
+    expect(await h.workspace.allowClose(), isFalse);
+    expect(world.hasRuleDraft, isTrue);
+    h.closeChoice = WorkspaceCloseChoice.cancel;
+    expect(await h.workspace.allowClose(), isFalse);
     expect(world.hasRuleDraft, isTrue);
 
-    final page = tester.widget<WorldWorkspacePage>(
-      find.byType(WorldWorkspacePage),
-    );
-    page.view.view = WorldView.rules;
-    await pumpIo(tester, frames: 6);
-    final field = find.widgetWithText(TextField, 'Nom de la règle');
-    await tester.enterText(field, '');
-    await tester.pump();
-    expect(tester.widget<TextField>(field).controller!.text, isEmpty);
-
-    var pending = guard();
-    await pumpIo(tester, frames: 8);
-    expect(find.text('Conserver vos modifications ?'), findsOneWidget);
-    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
-    await pumpIo(tester, frames: 8);
-    expect(await pending, isFalse);
-    expect(world.hasRuleDraft, isTrue);
-
-    pending = guard();
-    await pumpIo(tester, frames: 8);
-    await tester.tap(inDialog('Annuler'));
-    await pumpIo(tester, frames: 8);
-    expect(await pending, isFalse);
-    expect(world.hasRuleDraft, isTrue);
-
-    pending = guard();
-    await pumpIo(tester, frames: 8);
-    await tester.tap(inDialog('Enregistrer'));
-    await pumpIo(tester, frames: 8);
-    expect(await pending, isFalse);
+    h.closeChoice = WorkspaceCloseChoice.save;
+    expect(await h.workspace.allowClose(), isFalse);
     expect(world.pendingRules, contains(ruleId));
     expect(world.project.worldRules, isEmpty);
     expect(world.error, contains('Corrigez les champs invalides'));
-    expect(page.view.invalidFields, isNotEmpty);
+    expect(h.inputs.invalidFields, isNotEmpty);
     expect(
       world.project.facts.any((fact) => fact.label == 'Conducteur prévenu'),
       isFalse,
     );
 
-    await tester.enterText(field, 'Masquer le conducteur');
-    await tester.testTextInput.receiveAction(TextInputAction.done);
-    await pumpIo(tester, frames: 6);
-    expect(page.view.invalidFields, isEmpty);
-
-    pending = guard();
-    await pumpIo(tester, frames: 8);
-    await tester.tap(inDialog('Enregistrer'));
-    await pumpIo(tester, frames: 30);
-    expect(await pending, isTrue, reason: world.error ?? '');
+    expect(h.editor.commitRuleLabel(ruleId, 'Masquer le conducteur'), isTrue);
+    expect(h.inputs.valid, isTrue);
+    expect(await h.workspace.allowClose(), isTrue, reason: world.error);
     expect(world.pendingRules, isEmpty);
-    expect(world.project.worldRules, hasLength(1));
     expect(world.project.worldRules.single.label, 'Masquer le conducteur');
     expect(
       world.project.facts.map((fact) => fact.label),
-      containsAll([_label, 'Conducteur prévenu']),
+      containsAll(['Train parti de Kisaragi', 'Conducteur prévenu']),
     );
-
-    final reopened = await tester.runAsync(
-      () => Ui12WorldHarness.open(h.directory),
-    );
-    addTearDown(() async {
-      await tester.runAsync(() => reopened!.dispose(deleteDirectory: false));
-    });
-    expect(reopened!.world.project.worldRules, hasLength(1));
-    expect(tester.takeException(), isNull);
+    final reopened = await Ui12WorldHarness.open(h.harness.directory);
+    addTearDown(() => reopened.dispose(deleteDirectory: false));
+    expect(reopened.world.project.worldRules, hasLength(1));
   });
 
-  testWidgets('an incomplete rule is never silently dropped', (tester) async {
-    final (_, guard) = await host(tester);
-    final world = opened(tester);
-    unawaited(world.saveFact(state(world, _label)));
-    await pumpIo(tester, frames: 12);
-    final factId = world.project.facts
-        .firstWhere((fact) => fact.label == _label)
-        .id;
-    final ruleId = composeRule(world, factId, complete: false);
-
-    final pending = guard();
-    await pumpIo(tester, frames: 8);
-    expect(find.text('Conserver vos modifications ?'), findsOneWidget);
-    await tester.tap(inDialog('Enregistrer'));
-    await pumpIo(tester, frames: 20);
-    expect(await pending, isFalse);
-    expect(world.ruleDraft(ruleId), isNotNull);
-    expect(world.error, contains('la cible'));
-    expect(world.project.worldRules, isEmpty);
+  test('an incomplete rule is never silently dropped', () async {
+    final h = await WorldAuthoringWorkflowFixture.create();
+    addTearDown(h.dispose);
+    await h.world.saveFact(createWorldFact(h.world, 'Train parti de Kisaragi'));
+    final ruleId = composeWorldRule(
+      h.world,
+      h.world.selectedFactId!,
+      complete: false,
+    );
+    expect(await h.workspace.allowClose(), isFalse);
+    expect(h.world.ruleDraft(ruleId), isNotNull);
+    expect(h.world.error, contains('la cible'));
+    expect(h.world.project.worldRules, isEmpty);
   });
 
-  testWidgets('a close asked during a publication is refused', (tester) async {
+  test('a close asked during a publication is refused', () async {
+    final started = Completer<void>();
     late Ui12HeldWorldPort held;
-    final (_, guard) = await host(
-      tester,
-      wrap: (port) => held = Ui12HeldWorldPort(port),
+    final h = await WorldAuthoringWorkflowFixture.create(
+      wrap: (port) => held = Ui12HeldWorldPort(
+        port,
+        onRule: () {
+          if (!started.isCompleted) started.complete();
+        },
+      ),
     );
-    final world = opened(tester);
-    unawaited(world.saveFact(state(world, _label)));
-    await pumpIo(tester, frames: 12);
-    final factId = world.project.facts
-        .firstWhere((fact) => fact.label == _label)
-        .id;
-    final ruleId = composeRule(world, factId);
-
+    addTearDown(h.dispose);
+    await h.world.saveFact(createWorldFact(h.world, 'Train parti de Kisaragi'));
+    final ruleId = composeWorldRule(h.world, h.world.selectedFactId!);
     held.ruleGate = Completer<void>();
-    final writing = world.saveRule(ruleId);
-    expect(world.saving, isTrue);
-    expect(await guard(), isFalse);
-    expect(find.text('Conserver vos modifications ?'), findsNothing);
-
+    final writing = h.world.saveRule(ruleId);
+    addTearDown(() async {
+      if (!held.ruleGate!.isCompleted) held.ruleGate!.complete();
+      await writing;
+    });
+    await started.future.timeout(const Duration(seconds: 10));
+    expect(h.world.saving, isTrue);
+    expect(await h.workspace.allowClose(), isFalse);
+    expect(h.closeQuestions, 0);
     held.ruleGate!.complete();
-    await pumpIo(tester, frames: 20);
-    expect(await writing, isTrue, reason: world.error ?? '');
-    expect(world.pendingRules, isEmpty);
-    expect(world.project.worldRules, hasLength(1));
+    expect(await writing, isTrue, reason: h.world.error);
+    expect(h.world.pendingRules, isEmpty);
+    expect(h.world.project.worldRules, hasLength(1));
   });
 }

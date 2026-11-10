@@ -20,6 +20,8 @@ import 'package:path/path.dart' as p;
 import '../../tool/create_example_project.dart';
 
 void main() {
+  late StudioPlaytestControls controls;
+  setUp(() => controls = StudioPlaytestControls());
   test('playtest saves are isolated per launch and discarded', () async {
     final first = StudioPlaytestSaveRepository();
     final second = StudioPlaytestSaveRepository();
@@ -66,6 +68,7 @@ void main() {
       MaterialApp(
         home: Scaffold(
           body: StudioPlaytestView(
+            controls: controls,
             session: const ProjectSession(
               sessionId: 'session',
               name: 'Test',
@@ -85,11 +88,9 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.textContaining('La carte a changé sur disque'), findsOneWidget);
-    expect(find.text('Lancement'), findsOneWidget);
-    expect(find.text('À corriger dans : Carte'), findsOneWidget);
-    expect(find.byKey(const ValueKey('playtest-fps')), findsOneWidget);
-    expect(find.textContaining('FPS —'), findsOneWidget);
-    await tester.tap(find.text('Retour à la carte'));
+    expect(find.text('Retour à la carte'), findsNothing);
+    expect(find.byKey(const ValueKey('playtest-fps')), findsNothing);
+    controls.requestClose();
     expect(closed, isTrue);
     await tester.pumpWidget(const SizedBox());
   });
@@ -119,6 +120,7 @@ void main() {
       MaterialApp(
         home: Scaffold(
           body: StudioPlaytestView(
+            controls: controls,
             session: session,
             entry: project.maps.first,
             expectedRevision: document.revision,
@@ -144,11 +146,19 @@ void main() {
     expect(game!.isLoaded, isTrue);
     expect(game.testSpeed.value, PlaytestSpeed.normal);
     for (final speed in PlaytestSpeed.values.reversed) {
-      await tester.tap(find.byKey(ValueKey('playtest-speed-${speed.multiplier}')));
+      controls.setTestSpeed(speed);
       await tester.pump();
       expect(game.testSpeed.value, speed);
-      expect(tester.widget<GameWidget<PlayableMapGame>>(find.byType(GameWidget<PlayableMapGame>)).focusNode!.hasFocus, isTrue);
-      expect(find.text('Vitesse du test ×${speed.multiplier}'), findsOneWidget);
+      expect(
+        tester
+            .widget<GameWidget<PlayableMapGame>>(
+              find.byType(GameWidget<PlayableMapGame>),
+            )
+            .focusNode!
+            .hasFocus,
+        isTrue,
+      );
+      expect(find.textContaining('Vitesse du test'), findsNothing);
     }
     addTearDown(() => tester.binding.setSurfaceSize(null));
     for (final size in const [Size(960, 810), Size(700, 620)]) {
@@ -169,7 +179,14 @@ void main() {
         find.byKey(const ValueKey('battle-hud-target-enemy')),
         findsOneWidget,
       );
-      expect(find.text('Que doit faire Charmander ?'), findsOneWidget);
+      expect(
+        find.text('Que doit faire Charmander ?'),
+        findsOneWidget,
+        reason: tester
+            .widgetList<Text>(find.byType(Text))
+            .map((text) => text.data)
+            .join(' | '),
+      );
       expect(find.byKey(const ValueKey('battle-entry-0')), findsOneWidget);
       final viewportRect = tester.getRect(
         find.byType(GameWidget<PlayableMapGame>),
@@ -221,13 +238,13 @@ void main() {
     await tester.sendKeyUpEvent(LogicalKeyboardKey.arrowRight);
     game.update(.3);
     expect(game.debugPlayerGridPosition, const GridPos(x: 9, y: 9));
-    await tester.tap(find.text('Enregistrer le test'));
+    await tester.runAsync(controls.save);
     await tester.pump();
     expect(
-      find.text('Test enregistré en mémoire pour cette session.'),
-      findsOneWidget,
+      controls.status.message,
+      'Test enregistré en mémoire pour cette session.',
     );
-    await tester.tap(find.text('Retour à la carte'));
+    controls.requestClose();
     expect(returned, isTrue);
     await tester.pumpWidget(const SizedBox());
     expect(game.isPaused, isTrue);
@@ -287,6 +304,7 @@ void main() {
       MaterialApp(
         home: Scaffold(
           body: StudioPlaytestView(
+            controls: controls,
             session: session,
             entry: entry,
             expectedRevision: document.revision,
@@ -327,7 +345,8 @@ void main() {
       if (find.byType(PlayerPcOverlay).evaluate().isNotEmpty) break;
     }
     expect(find.byType(PlayerPcOverlay), findsOneWidget);
-    await tester.tap(find.text('Nouvelle partie'));
+    await controls.newGame();
+    await tester.pump();
     await tester.runAsync(
       () async => expect(
         (await pendingPc).status,

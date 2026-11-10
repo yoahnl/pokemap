@@ -1,18 +1,6 @@
 part of 'map_workspace_screen.dart';
 
 extension _WorkspaceProgressionBinding on _MapWorkspaceScreenState {
-  void _initializeStories() {
-    final narrative = _narrative;
-    final port = widget.storyPort;
-    if (narrative == null || port == null) return;
-    _stories = StoryWorkspaceController(
-      narrative,
-      port,
-      changed: _changed,
-      sceneDrafts: () => _scenes?.scenes ?? narrative.project.scenes,
-    );
-  }
-
   void _openProgression() {
     final stories = _stories;
     if (stories == null) return;

@@ -5,7 +5,7 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:map_render_3d/map_render_3d.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/spatial_map_editor.dart';
+import 'package:avelune_studio/platform/rendering/viewports/spatial_map_editing_viewport.dart';
 
 final class ExteriorDecorationSceneProbe {
   final sourceKey = GlobalKey();
@@ -14,8 +14,8 @@ final class ExteriorDecorationSceneProbe {
   final _paused = <Game, bool>{};
   SpatialSceneView? presentedScene;
 
-  ({SpatialMapEditor? editor, SpatialSceneView? scene}) sourceView() {
-    SpatialMapEditor? editor;
+  ({SpatialMapEditingViewport? editor, SpatialSceneView? scene}) sourceView() {
+    SpatialMapEditingViewport? editor;
     SpatialSceneView? scene;
     void findScene(Element element) {
       if (scene == null && element.widget is SpatialSceneView) {
@@ -25,8 +25,8 @@ final class ExteriorDecorationSceneProbe {
     }
 
     void findEditor(Element element) {
-      if (editor == null && element.widget is SpatialMapEditor) {
-        editor = element.widget as SpatialMapEditor;
+      if (editor == null && element.widget is SpatialMapEditingViewport) {
+        editor = element.widget as SpatialMapEditingViewport;
         element.visitChildren(findScene);
         return;
       }

@@ -1,6 +1,6 @@
 import 'dart:ui' as ui;
 
-import 'package:avelune_studio/presentation/features/map_workspace/map_canvas_overlay.dart';
+import 'package:avelune_studio/platform/rendering/viewports/map_editing_overlay.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -100,7 +100,7 @@ void main() {
 }
 
 Future<List<int>> _paint(MapData map, MapEditorState state) async {
-  final painter = MapCanvasOverlay(
+  final painter = MapEditingOverlay(
     map: map,
     project: ProjectManifest(
       name: 'Overlays',

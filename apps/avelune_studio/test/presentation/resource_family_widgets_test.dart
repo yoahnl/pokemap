@@ -1,8 +1,8 @@
-import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_filter_button.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_library_screen.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_preview.dart';
-import 'package:avelune_studio/presentation/features/characters/character_workspace_visuals.dart';
+import 'package:avelune_studio/platform/rendering/contracts/character_workspace_visuals.dart';
 import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import 'package:flutter/material.dart';

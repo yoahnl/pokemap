@@ -4,20 +4,20 @@ import 'package:avelune_studio/features/world/application/world_workspace_contro
 import 'package:avelune_studio/features/map_workspace/application/gameplay_zone_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_entity_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/warp_editing_commands.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
-import '../support/m2_ui_fixture.dart' show pumpIo;
-import '../support/map_host_fixture.dart';
-import '../support/map_tool_menu.dart';
-import '../support/ui05_narrative_fixture.dart';
+import '../support/neutral_map_host_fixture.dart';
+
+import 'package:avelune_studio/features/map_workspace/application/map_workspace_editing_state.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_context_menu_model.dart';
+import 'package:avelune_studio/features/narrative/application/narrative_editing.dart';
 
 const free = GridPos(x: 3, y: 12);
 
 void main() {
-  MapEntity placeCharacter(MapHostFixture f) {
+  MapEntity placeCharacter(NeutralMapHostFixture f) {
     final project = f.maps.project!;
     return CharacterEditingCommands(f.document, project).place(
       project.characters.firstWhere((entry) => entry.id == 'guide'),
@@ -25,11 +25,11 @@ void main() {
     );
   }
 
-  bool present(MapHostFixture f, String id) =>
+  bool present(NeutralMapHostFixture f, String id) =>
       f.document.current.entities.any((entity) => entity.id == id);
 
   Future<void> expectRefused(
-    MapHostFixture f,
+    NeutralMapHostFixture f,
     String id,
     LogicalKeyboardKey key,
   ) async {
@@ -47,7 +47,7 @@ void main() {
   testWidgets(
     'the Delete keys refuse a character an unsaved world rule targets',
     (tester) async {
-      final f = await MapHostFixture.open(tester);
+      final f = await NeutralMapHostFixture.open(tester);
       final world = await f.worldOwner();
       final npc = placeCharacter(f);
       final rule = world.createRule();
@@ -71,10 +71,10 @@ void main() {
   testWidgets(
     'a configured event that is not saved yet protects its character',
     (tester) async {
-      final f = await MapHostFixture.open(tester);
+      final f = await NeutralMapHostFixture.open(tester);
       final events = await f.eventOwner();
       final npc = placeCharacter(f);
-      final id = Ui05NarrativeFixture.eventId(2);
+      final id = 'evt_019abcde-9000-7000-8000-000000000002';
       expect(
         events.setSource(
           id,
@@ -99,7 +99,7 @@ void main() {
   testWidgets(
     'a rule on a twin id elsewhere blocks nothing, and the deletion undoes',
     (tester) async {
-      final f = await MapHostFixture.open(tester);
+      final f = await NeutralMapHostFixture.open(tester);
       final world = await f.worldOwner();
       final npc = placeCharacter(f);
       final other = f.maps.project!.maps
@@ -129,52 +129,45 @@ void main() {
     timeout: const Timeout(Duration(minutes: 3)),
   );
 
-  testWidgets(
-    'Delete never acts behind an open context menu',
-    (tester) async {
-      final f = await MapHostFixture.open(tester);
-      final npc = placeCharacter(f);
-      await f.rightClick(free.x, free.y);
-      expect(f.menu, findsOneWidget);
-      final steps = f.document.undoCount;
+  testWidgets('Delete never acts behind an open context menu', (tester) async {
+    final f = await NeutralMapHostFixture.open(tester);
+    final npc = placeCharacter(f);
+    await f.rightClick(free.x, free.y);
+    expect(f.input.contextOpen, isTrue);
+    final steps = f.document.undoCount;
 
-      await f.key(LogicalKeyboardKey.delete);
-      await f.key(LogicalKeyboardKey.backspace);
+    await f.key(LogicalKeyboardKey.delete);
+    await f.key(LogicalKeyboardKey.backspace);
 
-      expect(present(f, npc.id), isTrue);
-      expect(f.document.undoCount, steps);
-    },
-    timeout: const Timeout(Duration(minutes: 3)),
-  );
+    expect(present(f, npc.id), isTrue);
+    expect(f.document.undoCount, steps);
+  }, timeout: const Timeout(Duration(minutes: 3)));
 
   testWidgets(
     'a story zone whose interaction is being written refuses both paths',
     (tester) async {
-      final f = await MapHostFixture.open(tester);
+      final f = await NeutralMapHostFixture.open(tester);
       final narrative = await f.narrativeOwner();
-      await chooseMapExtraTool(tester, 'Dessiner une zone d’histoire');
-      await pumpIo(tester, frames: 4);
+      f.nativeView.tool = StudioMapTool.zone;
+      await f.pump(frames: 4);
       await f.drag(3, 11, 5, 13);
-      await pumpIo(tester, frames: 12);
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Nom de l’interaction'),
-        'Brume sur le quai',
+      await f.pump(frames: 12);
+      narrative.active!.change(
+        interaction: narrative.active!.current.interaction.revise(
+          name: 'Brume sur le quai',
+        ),
       );
-      await pumpIo(tester, frames: 4);
+      await f.pump(frames: 4);
       expect(narrative.active!.dirty, isTrue);
-      await tester.tap(find.text('Retour à la carte'));
-      await pumpIo(tester, frames: 10);
+      await f.pump(frames: 10);
       final zone = narrative.active!.current.interaction.source
           .toJson()['triggerId'];
 
       await f.rightClick(4, 12);
-      final remove = tester.widget<TextButton>(
-        find.ancestor(
-          of: f.inMenu('Supprimer la zone'),
-          matching: find.byType(TextButton),
-        ),
+      final remove = f.input.actions.singleWhere(
+        (action) => action.command == MapContextCommand.delete,
       );
-      expect(remove.onPressed, isNull, reason: 'the menu blocks it');
+      expect(remove.enabled, isFalse, reason: remove.unavailable);
       await f.key(LogicalKeyboardKey.escape);
 
       final steps = f.document.undoCount;
@@ -192,9 +185,7 @@ void main() {
   testWidgets(
     'every family the menu deletes, the keyboard deletes and undoes',
     (tester) async {
-      final f = await MapHostFixture.open(tester);
-      await tester.tap(find.byTooltip('Masquer les cartes'));
-      await pumpIo(tester);
+      final f = await NeutralMapHostFixture.open(tester);
       final project = f.maps.project!;
       final sign = MapEntityEditingCommands(
         f.document,
@@ -211,7 +202,7 @@ void main() {
           size: GridSize(width: 2, height: 2),
         ),
       );
-      await pumpIo(tester, frames: 4);
+      await f.pump(frames: 4);
       final cases = <(String, GridPos, bool Function())>[
         (
           'sign',

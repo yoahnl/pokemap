@@ -1,17 +1,26 @@
 import 'dart:math';
+
 import '../../../features/terrains/domain/terrain_connections.dart';
 import '../../../features/terrains/domain/terrain_draft_compatibility.dart';
+
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
+
 import '../../../features/resources/domain/resource_mutation_preparation.dart';
-import 'resource_catalog.dart';
+
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
+
 import 'resource_lifecycle_bindings.dart';
 import 'resource_management_bindings.dart';
 import 'resource_management_dialog.dart';
-import 'resource_navigation.dart';
-import 'resource_terrain_actions.dart';
+
+import 'package:avelune_studio/features/resources/coordination/resource_navigation.dart';
+import 'package:avelune_studio/features/resources/application/resource_terrain_actions.dart';
+
 import 'resource_terrain_deletion_dialog.dart';
-import 'resource_terrain_management.dart';
+
+import 'package:avelune_studio/features/resources/coordination/resource_terrain_management.dart';
+
 import 'resource_terrain_management_dialog.dart';
 import 'resource_terrain_owner_guard.dart';
 
@@ -182,18 +191,6 @@ Future<void> manageTerrainResource(
         .where((entry) => entry.id == createdDraftId)
         .firstOrNull;
     if (draft != null) navigation.resumeTerrain(draft);
-  }
-}
-
-void renameResourceOrTerrain(
-  BuildContext context,
-  ResourceNavigation navigation,
-  ResourceItem item,
-) {
-  if (item.terrain != null) {
-    manageTerrainItem(context, navigation, item, TerrainResourceAction.rename);
-  } else {
-    openResourceInformation(context, navigation, item);
   }
 }
 

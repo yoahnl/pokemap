@@ -1,18 +1,6 @@
 part of 'map_workspace_screen.dart';
 
 extension _WorkspaceCinematicBinding on _MapWorkspaceScreenState {
-  void _initializeCinematics() {
-    final narrative = _narrative, port = widget.cinematicPort;
-    if (narrative == null || port == null) return;
-    _cinematics = CinematicWorkspaceController(
-      narrative,
-      port,
-      changed: _changed,
-      sceneDrafts: () =>
-          _scenes?.sessions.values.map((s) => s.current).toList() ?? [],
-    );
-  }
-
   void _openCinematics() {
     _cinematicOrigin = WorkspaceSpace.story;
     _show(WorkspaceSpace.cinematic);

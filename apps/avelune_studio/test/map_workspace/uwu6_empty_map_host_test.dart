@@ -15,7 +15,7 @@ void main() {
       final original = fixture.host.maps.active!.current;
       await fixture.paintCollision();
       expect(fixture.host.maps.active!.dirty, isTrue);
-      await fixture.tapKey('Enregistrer');
+      await fixture.saveActive();
       final disk = await fixture.reopen();
       expect(disk.project.maps.single, entry);
       expect(disk.maps[entry.id], fixture.host.maps.active!.current);

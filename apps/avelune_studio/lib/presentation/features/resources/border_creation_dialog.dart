@@ -11,13 +11,13 @@ import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/inputs/studio_commit_field.dart';
 import '../../shared/widgets/inputs/studio_draft_field.dart';
 import '../../shared/widgets/inputs/studio_toggle_row.dart';
-import '../map_workspace/map_workspace_visuals.dart';
-import 'resource_navigation.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
+import 'package:avelune_studio/features/resources/coordination/resource_navigation.dart';
 import 'border_discard_dialog.dart';
 import 'border_pattern_panel.dart';
 import 'border_source_panel.dart';
 import 'border_sequence_controls.dart';
-import 'resource_catalog.dart';
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 import 'native_ledge_panel.dart';
 
 class BorderCreationDialog extends StatefulWidget {

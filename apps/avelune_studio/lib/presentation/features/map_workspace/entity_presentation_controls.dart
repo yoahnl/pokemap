@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../events/event_conditions.dart';
-import '../characters/character_fixed_route_inspector.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
@@ -167,17 +166,6 @@ class _EntityPresentationControlsState
                 }),
               ),
               if (entry.$2.characterId != null) ...[
-                CharacterFixedRouteInspector(
-                  key: ValueKey('variant-movement:${entry.$2.id}'),
-                  entity: entity.copyWith(npc: (entity.npc ?? const MapEntityNpcData()).copyWith(
-                    characterId: entry.$2.characterId,
-                    facing: entry.$2.facing,
-                    movement: entry.$2.movement,
-                  )),
-                  map: widget.map,
-                  project: project,
-                  onChanged: (value) => _replace(entry.$1, {'movement': value.toJson()}),
-                ),
                 if (project.settings.dimension == ProjectDimension.twoD && entry.$2.blocksMovement)
                   StudioChoice(
                     label: 'Déclencher le contact quand le PNJ atteint le joueur',

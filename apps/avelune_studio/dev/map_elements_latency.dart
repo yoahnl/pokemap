@@ -9,7 +9,7 @@ import 'package:avelune_studio/features/map_workspace/application/map_workspace_
 import 'package:avelune_studio/platform/rendering/studio_map_visual_widgets.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_elements_panel.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_screen.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/spatial_map_editor.dart';
+import 'package:avelune_studio/platform/rendering/viewports/spatial_map_editing_viewport.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
@@ -32,7 +32,7 @@ import 'save_disk_trace.dart';
 readMapElementsState() {
   MapWorkspaceScreen? workspace;
   MapElementsPanel? panel;
-  SpatialMapEditor? spatial;
+  SpatialMapEditingViewport? spatial;
   SpatialSceneController? renderer;
   StudioMapVisual? visual2d;
   Object? renderer2d;
@@ -45,8 +45,8 @@ readMapElementsState() {
         workspace = element.widget as MapWorkspaceScreen;
       case MapElementsPanel():
         panel = element.widget as MapElementsPanel;
-      case SpatialMapEditor():
-        spatial = element.widget as SpatialMapEditor;
+      case SpatialMapEditingViewport():
+        spatial = element.widget as SpatialMapEditingViewport;
       case SpatialSceneView(:final controller):
         renderer = controller;
       case StudioMapVisual(preview: false):

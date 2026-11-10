@@ -39,16 +39,7 @@ class MapWorkspaceToolbar extends StatelessWidget {
   Widget build(BuildContext context) {
     final largeText = MediaQuery.textScalerOf(context).scale(14) > 20;
     final document = controller.active;
-    void zoom(double factor) {
-      final transform = view?.transform;
-      if (transform == null) return;
-      final scale = view!.scale;
-      if ((factor < 1 && scale * factor < .15) || scale * factor > 8) {
-        return;
-      }
-      transform.value = transform.value.clone()
-        ..scaleByDouble(factor, factor, 1, 1);
-    }
+    void zoom(double factor) => view?.viewport.zoomBy(factor);
 
     final actions = Wrap(
       spacing: 6,
@@ -258,9 +249,15 @@ class MapWorkspaceToolbar extends StatelessWidget {
               final atmosphere = document?.atmosphere;
               final editor = document?.editor;
               final label =
-                  document?.saving == true || atmosphere?.saving == true || editor?.saving == true || document?.weatherVisuals?.saving == true
+                  document?.saving == true ||
+                      atmosphere?.saving == true ||
+                      editor?.saving == true ||
+                      document?.weatherVisuals?.saving == true
                   ? 'Enregistrement…'
-                  : document?.dirty == true || atmosphere?.dirty == true || editor?.dirty == true || document?.weatherVisuals?.dirty == true
+                  : document?.dirty == true ||
+                        atmosphere?.dirty == true ||
+                        editor?.dirty == true ||
+                        document?.weatherVisuals?.dirty == true
                   ? 'Non enregistré'
                   : 'Enregistré';
               return Tooltip(
@@ -276,10 +273,17 @@ class MapWorkspaceToolbar extends StatelessWidget {
 
             final atmosphere = document?.atmosphere;
             final editor = document?.editor;
-            final status = atmosphere == null && editor == null && document?.weatherVisuals == null
+            final status =
+                atmosphere == null &&
+                    editor == null &&
+                    document?.weatherVisuals == null
                 ? buildStatus()
                 : ListenableBuilder(
-                    listenable: Listenable.merge([?atmosphere, ?editor, ?document?.weatherVisuals]),
+                    listenable: Listenable.merge([
+                      ?atmosphere,
+                      ?editor,
+                      ?document?.weatherVisuals,
+                    ]),
                     builder: (context, _) => buildStatus(),
                   );
             if (largeText) {

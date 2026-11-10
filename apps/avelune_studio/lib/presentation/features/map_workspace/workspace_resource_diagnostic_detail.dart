@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../shared/widgets/buttons/studio_tool.dart';
-import 'workspace_resource_diagnostic.dart';
+import 'package:avelune_studio/platform/rendering/contracts/workspace_resource_diagnostic.dart';
 
 class WorkspaceResourceDiagnosticDetail extends StatelessWidget {
   const WorkspaceResourceDiagnosticDetail({super.key, required this.items});

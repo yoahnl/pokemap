@@ -4,8 +4,8 @@ import 'package:avelune_studio/features/map_workspace/application/map_workspace_
 import 'package:avelune_studio/features/map_workspace/application/spatial_ramp_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/spatial_terrain_stroke.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_visuals.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/spatial_map_editor.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
+import 'package:avelune_studio/platform/rendering/viewports/spatial_map_editing_viewport.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/spatial_ramp_editor.dart';
 import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
@@ -414,7 +414,7 @@ void main() {
             body: StatefulBuilder(
               builder: (context, setter) {
                 refresh = setter;
-                return SpatialMapEditor(
+                return SpatialMapEditingViewport(
                   document: document,
                   controller: controller,
                   project: project,

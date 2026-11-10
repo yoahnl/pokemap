@@ -4,9 +4,7 @@ import 'dart:io';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
-import 'package:avelune_studio/presentation/features/events/event_conditions.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/spatial_model_entity_controls.dart';
-import 'package:flutter/material.dart';
+import 'package:avelune_studio/features/map_workspace/application/spatial_model_editing_commands.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_authoring/map_authoring_local.dart'
@@ -22,12 +20,14 @@ void main() {
     ProjectSessionStorage.manifest,
   ]) {
     for (final unrelated in [0, 80]) {
-      testWidgets(
-        'daily visibility UI persists and preserves preview first/repeat foreign=$unrelated ${storage.name}',
-        (tester) async {
-          final root = Directory(
-            '/Users/karim/Library/Caches/AveluneQA/ecorcia-chapitre7-annexes/periodic-availability-authoring/fixture',
+      test(
+        'daily visibility command persists and preserves preview first/repeat foreign=$unrelated ${storage.name}',
+        () async {
+          final parent = Directory(
+            '/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109',
           );
+          await parent.create(recursive: true);
+          final root = await parent.createTemp('model-visibility-');
           addTearDown(() async {
             if (await root.exists()) await root.delete(recursive: true);
           });
@@ -101,7 +101,7 @@ void main() {
           );
           final controller = MapWorkspaceController(session, adapter);
           addTearDown(controller.dispose);
-          await tester.runAsync(() async {
+          await Future<void>(() async {
             await root.create(recursive: true);
             if (storage == ProjectSessionStorage.workingCatalog) {
               final store = await CatalogStorageStore.open(
@@ -136,25 +136,9 @@ void main() {
           });
           final document = controller.active!;
           final renderMap = document.spatialPreviewMap;
-          final publish = document.configureSpatialModelVisibility!;
-          late Future<bool> publication;
-          document.configureSpatialModelVisibility = (id, value) =>
-              publication = publish(id, value);
-          await tester.pumpWidget(
-            MaterialApp(
-              home: Scaffold(
-                body: SingleChildScrollView(
-                  child: StatefulBuilder(
-                    builder: (context, refresh) => SpatialModelEntityControls(
-                      document: document,
-                      project: controller.project!,
-                      instance: document.current.spatialScene!.instances.single,
-                      onChanged: () => refresh(() {}),
-                    ),
-                  ),
-                ),
-              ),
-            ),
+          final commands = SpatialModelEditingCommands(
+            document,
+            controller.project!,
           );
           final measured = <int>[];
           for (final expected in [true, false]) {
@@ -170,11 +154,11 @@ void main() {
                 expectedValue: expected,
               ),
             );
-            final controls = tester.widget<EventConditions>(
-              find.byType(EventConditions),
-            );
-            await tester.runAsync(() async {
-              controls.onChanged(condition);
+            await Future<void>(() async {
+              final publication = commands.configureVisibility(
+                'oak-1',
+                condition,
+              );
               expect(
                 document
                     .current
@@ -187,7 +171,6 @@ void main() {
               expect(identical(document.spatialPreviewMap, renderMap), isTrue);
               expect(await publication, isTrue, reason: document.error);
             });
-            await tester.pump();
             expect(identical(document.spatialPreviewMap, renderMap), isTrue);
             expect(
               document.current.spatialScene!.instances.single.blocksMovement,
@@ -208,7 +191,7 @@ void main() {
           final baseline = counts[storage];
           if (baseline != null) expect(measured, baseline);
           counts[storage] = measured;
-          await tester.runAsync(() async {
+          await Future<void>(() async {
             for (final redo in [false, false, true, true]) {
               controller.restore(redo: redo);
               while (document.saving) {
@@ -241,7 +224,6 @@ void main() {
               reopened.dispose();
             }
           });
-          expect(tester.takeException(), isNull);
         },
       );
     }

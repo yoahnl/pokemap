@@ -2,7 +2,7 @@ import 'package:avelune_studio/features/pokemon/application/pokemon_workspace_co
 import 'package:avelune_studio/features/pokemon/domain/pokemon_workspace_models.dart';
 import 'package:avelune_studio/features/pokemon/domain/pokemon_workspace_port.dart';
 import 'package:avelune_studio/presentation/features/pokemon/pokemon_evolution_entry.dart';
-import 'package:avelune_studio/presentation/features/pokemon/pokemon_evolution_rule.dart';
+import 'package:avelune_studio/features/pokemon/application/pokemon_evolution_rule.dart';
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import 'package:flutter/material.dart';

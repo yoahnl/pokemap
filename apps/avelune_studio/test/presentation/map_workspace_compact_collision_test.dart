@@ -1,5 +1,5 @@
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_canvas.dart';
+import 'package:avelune_studio/platform/rendering/viewports/map_editing_viewport_2d.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_screen.dart';
 import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
@@ -46,8 +46,8 @@ void main() {
     }
 
     Future<void> paint() async {
-      final canvas = tester.widget<MapWorkspaceCanvas>(
-        find.byType(MapWorkspaceCanvas),
+      final canvas = tester.widget<MapEditingViewport2D>(
+        find.byType(MapEditingViewport2D),
       );
       final surface = tester.renderObject<RenderBox>(
         find.byKey(const ValueKey('map-canvas')),
@@ -66,7 +66,7 @@ void main() {
     await choose('Collisions');
     expect(
       tester
-          .widget<MapWorkspaceCanvas>(find.byType(MapWorkspaceCanvas))
+          .widget<MapEditingViewport2D>(find.byType(MapEditingViewport2D))
           .view
           .tool,
       StudioMapTool.collisionPaint,
@@ -83,7 +83,7 @@ void main() {
     await choose('Libérer les cases');
     expect(
       tester
-          .widget<MapWorkspaceCanvas>(find.byType(MapWorkspaceCanvas))
+          .widget<MapEditingViewport2D>(find.byType(MapEditingViewport2D))
           .view
           .tool,
       StudioMapTool.collisionErase,

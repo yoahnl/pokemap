@@ -1,6 +1,6 @@
 import 'package:avelune_studio/features/resources/application/environment_draft.dart';
 import 'package:avelune_studio/presentation/features/resources/environment_editor_screen.dart';
-import 'package:avelune_studio/presentation/features/resources/resource_catalog.dart';
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';

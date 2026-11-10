@@ -3,7 +3,7 @@ import 'package:map_core/map_core_domain.dart';
 import '../resources/atlas_selection_view.dart';
 import '../../shared/widgets/layout/studio_palette_card.dart';
 import 'map_workspace_view_state.dart';
-import 'map_workspace_visuals.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 
 class MapTilePalette extends StatelessWidget {
   const MapTilePalette({

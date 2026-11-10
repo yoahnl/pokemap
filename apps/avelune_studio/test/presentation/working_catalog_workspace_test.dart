@@ -125,69 +125,26 @@ void main() {
     },
   );
 
-  testWidgets(
-    'character shadow controls preserve the sprite preview when saved',
-    (tester) async {
-      await tester.binding.setSurfaceSize(const Size(1400, 1000));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
-      final port = _Port()
-        ..entry = const WorkingCatalogEntry(
-          id: 'guide',
-          kind: 'character',
-          name: 'Guide',
-        );
-      final controller = WorkingCatalogController(port);
-      addTearDown(controller.dispose);
-      var previews = 0;
-      await tester.pumpWidget(
-        MaterialApp(
-          home: WorkingCatalogWorkspace(
-            session: const ProjectSession(
-              sessionId: 'shadow',
-              name: 'Projet',
-              directoryPath: '/project',
-              storage: ProjectSessionStorage.workingCatalog,
-            ),
-            controller: controller,
-            onClose: () async {},
-            registerExitGuard: (_) {},
-            previewBuilder: (_) {
-              previews++;
-              return const Text('Sprite conservé');
-            },
-          ),
-        ),
+  test('character shadow draft publishes and returns to inheritance through the catalogue controller', () async {
+    final port = _Port()
+      ..entry = const WorkingCatalogEntry(
+        id: 'guide',
+        kind: 'character',
+        name: 'Guide',
       );
-      await tester.pumpAndSettle();
-      await controller.select(port.entry);
-      await tester.pumpAndSettle();
-      expect(previews, 1);
-      expect(find.text('Ombre sous les pieds'), findsOneWidget);
-      await tester.ensureVisible(
-        find.byKey(const ValueKey('character-contact-shadow')),
-      );
-      await tester.tap(find.byKey(const ValueKey('character-contact-shadow')));
-      await tester.pumpAndSettle();
-      expect(controller.draft!.contactShadow, isTrue);
-      await tester.ensureVisible(
-        find.byKey(const ValueKey('working-resource-save')),
-      );
-      await tester.tap(find.byKey(const ValueKey('working-resource-save')));
-      await tester.pumpAndSettle();
-      expect(port.saved!.contactShadow, isTrue);
-      expect(previews, 1);
-      await tester.ensureVisible(
-        find.byKey(const ValueKey('character-contact-shadow-inherit')),
-      );
-      await tester.tap(
-        find.byKey(const ValueKey('character-contact-shadow-inherit')),
-      );
-      await tester.pumpAndSettle();
-      expect(controller.draft!.contactShadow, isNull);
-      expect(previews, 1);
-      await tester.pumpWidget(const SizedBox());
-    },
-  );
+    final controller = WorkingCatalogController(port);
+    addTearDown(controller.dispose);
+    await controller.search('', kind: 'character');
+    await controller.select(port.entry);
+    controller.edit(contactShadow: true);
+    expect(controller.draft!.contactShadow, isTrue);
+    expect(await controller.save(), isTrue);
+    expect(port.saved!.contactShadow, isTrue);
+    controller.edit(contactShadow: null);
+    expect(controller.draft!.contactShadow, isNull);
+    expect(await controller.save(), isTrue);
+    expect(port.saved!.contactShadow, isNull);
+  });
 
   testWidgets('library keeps edits made while synchronizing a saved resource', (
     tester,

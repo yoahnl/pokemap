@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
+
 import '../../shared/widgets/layout/studio_panel.dart';
 import '../../shared/widgets/inputs/studio_choice.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
 import 'event_labels.dart';
-import 'event_condition_labels.dart';
+import 'package:avelune_studio/features/events/application/event_condition_labels.dart';
 import 'event_view_state.dart';
-import 'event_scene_effects.dart';
+import '../../../features/events/application/event_scene_effects.dart';
 import '../../shared/widgets/feedback/studio_badge.dart';
 import '../../shared/widgets/feedback/studio_icon_tile.dart';
 import 'event_status_badge.dart';

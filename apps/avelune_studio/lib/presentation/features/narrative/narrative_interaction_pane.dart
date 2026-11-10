@@ -4,7 +4,7 @@ import '../../../features/narrative/application/dialogue_editing_controller.dart
 import '../../../features/narrative/application/narrative_editing.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/inputs/studio_draft_field.dart';
-import '../map_workspace/map_workspace_visuals.dart';
+import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 import 'dialogue_lines_editor.dart';
 import 'narrative_conditions_editor.dart';
 import 'narrative_sequence_editor.dart';
