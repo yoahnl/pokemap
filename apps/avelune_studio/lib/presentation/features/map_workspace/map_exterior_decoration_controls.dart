@@ -51,11 +51,8 @@ final class MapExteriorDecorationControls extends StatelessWidget {
                 onChanged: controller.saving
                     ? null
                     : (value) {
-                        view.pendingMove = null;
+                        view.prepareExteriorEditing(value == 'exterior');
                         if (value == 'exterior') {
-                          if (!isExteriorDecorationTool(view.tool)) {
-                            view.tool = StudioMapTool.select;
-                          }
                           if (!exteriorDecorationPaletteTabs.contains(
                             view.paletteTab,
                           )) {

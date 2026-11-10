@@ -1,113 +1,107 @@
-import 'package:avelune_studio/platform/rendering/viewports/map_editing_viewport_2d.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_palette_column.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
-import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
-import 'package:flutter/material.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_palette_intent.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_palette_queries.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_tool_command_runner.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_workspace_editing_state.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
 
-import '../support/map_host_fixture.dart';
-import '../support/m2_ui_fixture.dart';
-import '../support/map_tool_menu.dart';
+import '../support/map_selection_harness.dart';
+import '../support/map_workspace_fixture.dart';
 
 void main() {
   for (final label in ['Terrains', 'Passages']) {
-    testWidgets('$label tool reveals its hidden asset picker', (tester) async {
-      await MapHostFixture.open(tester, size: const Size(1536, 960));
-      await tester.tap(find.byTooltip('Palette'));
-      await pumpIo(tester);
-      final button = find.widgetWithText(StudioButton, label);
-      await tester.ensureVisible(button);
-      await tester.tap(button);
-      await pumpIo(tester);
-      expect(find.byType(MapWorkspacePaletteColumn), findsOneWidget);
-      expect(
-        tester
-            .widget<MapWorkspacePaletteColumn>(
-              find.byType(MapWorkspacePaletteColumn),
-            )
-            .view
-            .paletteTab,
-        label,
+    test('$label requests the resource picker when it is hidden', () {
+      final view = MapWorkspaceEditingState();
+      final queries = MapPaletteQueries(view.resourceFilters);
+      var reveals = 0;
+      final runner = MapToolCommandRunner(
+        view: view,
+        paletteTab: () => queries.intent,
+        selectPalette: queries.select,
+        spatial: false,
+        paletteVisible: false,
+        onChanged: () {},
+        onMoreTools: () => reveals++,
+        onResources: () {},
       );
-      expect(tester.takeException(), isNull);
+      runner.runFamily(label);
+      expect(queries.intent, label);
+      expect(reveals, 1);
     });
   }
 
-  testWidgets('character placement reveals the hidden character picker', (
-    tester,
-  ) async {
-    await MapHostFixture.open(tester, size: const Size(1536, 960));
-    await tester.tap(find.byTooltip('Palette'));
-    await pumpIo(tester);
-    await chooseMapExtraTool(tester, 'Placer un personnage');
-    expect(find.byType(MapWorkspacePaletteColumn), findsOneWidget);
-    expect(
-      tester
-          .widget<MapWorkspacePaletteColumn>(
-            find.byType(MapWorkspacePaletteColumn),
-          )
-          .view
-          .paletteTab,
-      'Personnages',
+  test('character placement requests its hidden resource picker', () {
+    final view = MapWorkspaceEditingState();
+    final queries = MapPaletteQueries(view.resourceFilters);
+    var reveals = 0;
+    final runner = MapToolCommandRunner(
+      view: view,
+      paletteTab: () => queries.intent,
+      selectPalette: queries.select,
+      spatial: false,
+      paletteVisible: false,
+      onChanged: () {},
+      onMoreTools: () => reveals++,
+      onResources: () {},
     );
-    expect(tester.takeException(), isNull);
+    runner.runExtra('Placer un personnage');
+    expect(queries.intent, 'Personnages');
+    expect(view.tool, StudioMapTool.select);
+    expect(view.character, isNull);
+    expect(reveals, 1);
   });
 
-  testWidgets('visible palette remains inline when selecting the decor tool', (
-    tester,
-  ) async {
-    await MapHostFixture.open(tester);
-    await tester.tap(find.widgetWithText(StudioButton, 'Décors'));
-    await pumpIo(tester);
-    expect(find.byType(Dialog), findsNothing);
-    expect(find.byKey(const ValueKey('decor-arbre')), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
+  testWidgets(
+    'decor intention arms the selected asset and native placement consumes it',
+    (tester) async {
+      final h = MapSelectionHarness.of(workspaceProject);
+      addTearDown(h.dispose);
+      final queries = MapPaletteQueries(h.view.resourceFilters);
+      var reveals = 0;
+      h.view.brush = workspaceElement;
+      final runner = MapToolCommandRunner(
+        view: h.view,
+        paletteTab: () => queries.intent,
+        selectPalette: queries.select,
+        spatial: false,
+        paletteVisible: false,
+        onChanged: () {},
+        onMoreTools: () => reveals++,
+        onResources: () {},
+      );
+      runner.runFamily('Décors');
+      expect(h.view.tool, StudioMapTool.place);
+      expect(reveals, 1);
+      await h.pump(tester);
+      final count = h.document.current.placedElements.length;
+      await h.tapCell(tester, 4, 4);
+      expect(h.document.current.placedElements.length, count + 1);
+      expect(
+        h.document.current.placedElements.last.elementId,
+        workspaceElement.id,
+      );
+      expect(
+        h.document.current.placedElements.last.pos,
+        const GridPos(x: 4, y: 4),
+      );
+    },
+  );
 
-  testWidgets('decor tool reveals a hidden palette and adds a chosen asset', (
-    tester,
-  ) async {
-    final fixture = await MapHostFixture.open(
-      tester,
-      size: const Size(1536, 960),
+  test('choosing an eraser changes the active tool and derived intention', () {
+    final view = MapWorkspaceEditingState();
+    final queries = MapPaletteQueries(view.resourceFilters);
+    final runner = MapToolCommandRunner(
+      view: view,
+      paletteTab: () => queries.intent,
+      selectPalette: queries.select,
+      spatial: false,
+      paletteVisible: true,
+      onChanged: () {},
+      onMoreTools: () {},
+      onResources: () {},
     );
-    await tester.tap(find.byTooltip('Palette'));
-    await pumpIo(tester);
-    expect(find.byType(MapWorkspacePaletteColumn), findsNothing);
-    await tester.tap(find.widgetWithText(StudioButton, 'Décors'));
-    await pumpIo(tester);
-    expect(find.byType(MapWorkspacePaletteColumn), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('decor-arbre')));
-    await pumpIo(tester);
-    expect(find.byType(MapWorkspacePaletteColumn), findsNothing);
-    final canvas = tester.widget<MapEditingViewport2D>(
-      find.byType(MapEditingViewport2D),
-    );
-    expect(canvas.view.tool, StudioMapTool.place);
-    final count = fixture.document.current.placedElements.length;
-    await fixture.tapCell(4, 4);
-    await pumpIo(tester);
-    expect(fixture.document.current.placedElements.length, count + 1);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('a chosen eraser replaces the misleading selection highlight', (
-    tester,
-  ) async {
-    await MapHostFixture.open(tester);
-    await chooseMapExtraTool(tester, 'Gomme de tuiles');
-
-    final canvas = tester.widget<MapEditingViewport2D>(
-      find.byType(MapEditingViewport2D),
-    );
-    expect(canvas.view.tool, StudioMapTool.erase);
-    expect(
-      tester
-          .widget<StudioButton>(find.byKey(const ValueKey('Sélectionner')))
-          .secondary,
-      isTrue,
-    );
-    expect(find.byKey(const ValueKey('active-extra-tool')), findsOneWidget);
-    expect(find.text('Gomme de tuiles'), findsOneWidget);
+    runner.runExtra('Gomme de tuiles');
+    expect(view.tool, StudioMapTool.erase);
+    expect(mapPaletteIntent(view).action, 'Gomme de tuiles');
   });
 }

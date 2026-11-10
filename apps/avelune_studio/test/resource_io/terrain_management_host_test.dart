@@ -1,115 +1,124 @@
-import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
+import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
+import 'package:avelune_studio/features/resources/application/resource_terrain_actions.dart';
 import 'package:avelune_studio/features/terrains/domain/terrain_draft_compatibility.dart';
-import 'package:avelune_studio/presentation/features/terrains/terrain_editor_screen.dart';
-import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import '../support/m2_ui_fixture.dart';
-import '../support/uwu5_terrain_host.dart';
+
+import '../support/terrain_lifecycle_fixture.dart';
 
 void main() {
-  testWidgets('published path rename persists without publishing draft rules', (
-    tester,
-  ) async {
-    final host = await openUwU5TerrainHost(tester, savedDraft: true);
-    final before = await host.reopen();
-    final preset = before.smartTileCatalog.presets.single;
-    await host.family(ResourceKind.terrains);
-    await host.action('smartTilePreset:${preset.id}', 'Renommer le terrain…');
-    await host.enter('resource-terrain-name', 'Sentier des étoiles');
-    await host.tap('resource-management-save');
-    final after = await host.reopen();
-    expect(after.smartTileCatalog.presets.single.name, 'Sentier des étoiles');
-    expect(after.smartTileCatalog.presets.single.rules, preset.rules);
-    expect(after.smartTileCatalog.drafts.single.name, 'Sentier des étoiles');
-    expect(
-      after.smartTileCatalog.drafts.single.rules,
-      before.smartTileCatalog.drafts.single.rules,
-    );
-    expect(after.tilesets, before.tilesets);
-    expect(find.textContaining('Modifications non publiées'), findsWidgets);
-    await tester.tap(
-      find.text('Reprendre le brouillon : Sentier des étoiles').last,
-    );
-    await pumpIo(tester);
-    await tester.tap(find.text('Publier et peindre').last);
-    await pumpIo(tester, frames: 20);
-    final republished = await host.reopen();
-    expect(
-      republished.smartTileCatalog.presets.single.name,
-      'Sentier des étoiles',
-    );
-    expect(
-      republished.smartTileCatalog.presets.single.rules,
-      after.smartTileCatalog.drafts.single.rules,
-    );
-    expect(republished.smartTileCatalog.drafts, isEmpty);
-  });
+  TestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('published path duplicates into independent saved preparation', (
-    tester,
-  ) async {
-    final host = await openUwU5TerrainHost(tester);
-    final before = await host.reopen();
-    final preset = before.smartTileCatalog.presets.single;
-    await host.family(ResourceKind.terrains);
-    await host.action('smartTilePreset:${preset.id}', 'Dupliquer le terrain…');
-    expect(find.textContaining('Version publiée'), findsWidgets);
-    await host.enter('resource-terrain-name', 'Chemin indépendant');
-    await host.tap('resource-management-save');
-    final after = await host.reopen();
-    expect(after.smartTileCatalog.presets, before.smartTileCatalog.presets);
-    final draft = after.smartTileCatalog.drafts.single;
-    expect(draft.name, 'Chemin indépendant');
-    expect(draft.targetPresetId, isNot(preset.id));
-    expect(draft.sourcePresetId, isNull);
-    await pumpIo(tester, frames: 12);
-    expect(terrainDraftCompatibilityProblem(after, draft), isNull);
-    expect(find.byType(TerrainEditorScreen), findsOneWidget);
-  });
+  test(
+    'published path rename persists without publishing draft rules',
+    () async {
+      final host = await openTerrainLifecycle(savedDraft: true);
+      final before = host.workspace.project!;
+      final preset = before.smartTileCatalog.presets.single;
+      String? error;
+      await manageTerrainLifecycle(host, TerrainResourceAction.rename, (
+        controller,
+      ) async {
+        controller.name = 'Sentier des étoiles';
+        error = await controller.apply();
+      }, presetId: preset.id);
+      final after = await LocalMapWorkspaceAdapter().loadProject(
+        host.fixture.session,
+      );
+      expect(error, isNull);
+      expect(after.smartTileCatalog.presets.single.name, 'Sentier des étoiles');
+      expect(after.smartTileCatalog.presets.single.rules, preset.rules);
+      expect(after.smartTileCatalog.drafts.single.name, 'Sentier des étoiles');
+      expect(
+        after.smartTileCatalog.drafts.single.rules,
+        before.smartTileCatalog.drafts.single.rules,
+      );
+      expect(after.tilesets, before.tilesets);
+      host.navigation.resumeTerrain(after.smartTileCatalog.drafts.single);
+      expect(
+        await host.navigation.terrain!.save(
+          host.navigation.mutate,
+          publish: true,
+        ),
+        isTrue,
+      );
+      final republished = await LocalMapWorkspaceAdapter().loadProject(
+        host.fixture.session,
+      );
+      expect(
+        republished.smartTileCatalog.presets.single.name,
+        'Sentier des étoiles',
+      );
+      expect(
+        republished.smartTileCatalog.presets.single.rules,
+        after.smartTileCatalog.drafts.single.rules,
+      );
+      expect(republished.smartTileCatalog.drafts, isEmpty);
+    },
+  );
 
-  testWidgets('draft withdrawal preserves published terrain and source', (
-    tester,
-  ) async {
-    final host = await openUwU5TerrainHost(tester, savedDraft: true);
-    final before = await host.reopen();
-    await host.family(ResourceKind.terrains);
-    await host.tap('terrain-draft-actions-draft-path-draft');
-    await tester.tap(find.text('Supprimer le brouillon…').last);
-    await pumpIo(tester);
-    expect(find.textContaining('publication reste'), findsOneWidget);
-    await host.tap('resource-terrain-confirm');
-    await host.tap('resource-management-save');
-    final after = await host.reopen();
+  test(
+    'published path duplicates into an independent saved preparation',
+    () async {
+      final host = await openTerrainLifecycle();
+      final before = host.workspace.project!;
+      final preset = before.smartTileCatalog.presets.single;
+      String? error;
+      await manageTerrainLifecycle(host, TerrainResourceAction.duplicate, (
+        controller,
+      ) async {
+        controller.name = 'Chemin indépendant';
+        error = await controller.apply();
+      }, presetId: preset.id);
+      final after = await LocalMapWorkspaceAdapter().loadProject(
+        host.fixture.session,
+      );
+      expect(error, isNull);
+      expect(after.smartTileCatalog.presets, before.smartTileCatalog.presets);
+      final draft = after.smartTileCatalog.drafts.single;
+      expect(draft.name, 'Chemin indépendant');
+      expect(draft.targetPresetId, isNot(preset.id));
+      expect(draft.sourcePresetId, isNull);
+      expect(terrainDraftCompatibilityProblem(after, draft), isNull);
+      expect(host.navigation.terrain!.draft.id, draft.id);
+    },
+  );
+
+  test('draft withdrawal preserves published terrain and source', () async {
+    final host = await openTerrainLifecycle(savedDraft: true);
+    final before = host.workspace.project!;
+    String? error;
+    await manageTerrainLifecycle(host, TerrainResourceAction.deleteDraft, (
+      controller,
+    ) async {
+      await controller.prepareRemoval();
+      controller.confirm(true);
+      error = await controller.apply();
+    }, draftId: before.smartTileCatalog.drafts.single.id);
+    final after = await LocalMapWorkspaceAdapter().loadProject(
+      host.fixture.session,
+    );
+    expect(error, isNull);
     expect(after.smartTileCatalog.drafts, isEmpty);
     expect(after.smartTileCatalog.presets, before.smartTileCatalog.presets);
     expect(after.tilesets, before.tilesets);
   });
 
-  testWidgets('painted path deletion is refused through real preparation', (
-    tester,
-  ) async {
-    final host = await openUwU5TerrainHost(tester, used: true);
-    final before = await host.reopen();
-    await host.family(ResourceKind.terrains);
-    await host.action(
-      'smartTilePreset:${before.smartTileCatalog.presets.single.id}',
-      'Supprimer le terrain…',
-    );
-    await pumpIo(tester, frames: 20);
-    expect(
-      find.byKey(const ValueKey('resource-terrain-refusal')),
-      findsOneWidget,
-    );
-    expect(
-      tester
-          .widget<StudioButton>(
-            find.byKey(const ValueKey('resource-management-save')),
-          )
-          .onPressed,
-      isNull,
-    );
-    await host.tap('resource-management-cancel');
-    expect((await host.reopen()).smartTileCatalog, before.smartTileCatalog);
+  test('painted path deletion is refused through real preparation', () async {
+    final host = await openTerrainLifecycle(used: true);
+    final before = host.workspace.project!;
+    final bytes = await host.fixture.manifestFile.readAsBytes();
+    String? error;
+    bool? canApply;
+    await manageTerrainLifecycle(host, TerrainResourceAction.deleteDraft, (
+      controller,
+    ) async {
+      await controller.prepareRemoval();
+      error = controller.error;
+      controller.confirm(true);
+      canApply = controller.canApply;
+    }, presetId: before.smartTileCatalog.presets.single.id);
+    expect(error, isNotNull);
+    expect(canApply, isFalse);
+    expect(await host.fixture.manifestFile.readAsBytes(), bytes);
   });
 }

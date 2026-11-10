@@ -56,6 +56,32 @@ void main() {
       expect(serialized, isNot(contains('#0 private frame')));
     });
 
+    test('narrative trace messages keep their narrative fallback and safe paths',
+        () async {
+      final worker = JsonlWorker(
+        api: _ThrowingNarrativeReadApi(
+          NarrativeAuthoringException(
+            'event_v2.validation_failed',
+            'The narrative operation failed.\n#0 /Users/private/compiler.dart:1',
+            details: {'path': 'events/opening.json'},
+          ),
+        ),
+      );
+      addTearDown(worker.close);
+      final result = await _request(
+        worker,
+        id: 'narrative-fallback',
+        command: 'describe',
+      );
+      expect(result.status, AuthoringResultStatus.failure);
+      expect(result.error?.message,
+          'The narrative operation was rejected safely.');
+      expect(result.error?.details, {
+        'domainCode': 'event_v2.validation_failed',
+        'path': 'events/opening.json',
+      });
+    });
+
     test('sanitizes presentation failures while retaining diagnostic paths',
         () async {
       final result = await _request(
@@ -131,6 +157,89 @@ void main() {
       expect(exportApi.mode, GamePackageExportMode.publication);
       expect(result.data['sha256'], 'a' * 64);
     });
+
+    for (final sample in const [
+      (
+        'safe text',
+        'The dialogue could not be compiled.',
+        'The dialogue could not be compiled.',
+      ),
+      (
+        'a local path',
+        'The dialogue /Users/private/project/dialogue.json could not be compiled.',
+        'The dialogue <absolute-path> could not be compiled.',
+      ),
+      (
+        'a quoted local path',
+        'Dialogue "/Users/private/opening.yarn" could not be compiled.',
+        'The export operation was rejected safely.',
+      ),
+      (
+        'a stack trace label',
+        'The dialogue failed with a stack trace from /Users/private/compiler.dart.',
+        'The export operation was rejected safely.',
+      ),
+      (
+        'a stack frame',
+        'The dialogue failed.\n#0 /Users/private/compiler.dart:1',
+        'The export operation was rejected safely.',
+      ),
+    ]) {
+      test(
+          'unit export error boundary sanitizes ${sample.$1} with a controlled export port',
+          () async {
+        final exportApi = _ThrowingGamePackageExportApi(
+          GamePackageExportException(
+            code: 'dialogueCompilationFailed',
+            path: 'dialogues/opening.json',
+            message: sample.$2,
+          ),
+        );
+        final readApi = _ExportBoundaryReadApi();
+        final worker = JsonlWorker(
+          api: readApi,
+          gameExport: exportApi,
+        );
+        addTearDown(worker.close);
+        final described = await _request(
+          worker,
+          id: 'before-export-message',
+          command: 'describe',
+        );
+        expect(described.status, AuthoringResultStatus.success);
+        expect(readApi.describeCalls, 1);
+        final result = await _request(
+          worker,
+          id: 'export-message',
+          command: 'game_export',
+          args: const {
+            'projectRoot': '/allowed/project',
+            'outputPath': '/allowed/output/game.avelunegame',
+            'mode': 'localTest',
+          },
+        );
+        expect(exportApi.calls, 1);
+        expect(result.status, AuthoringResultStatus.failure);
+        expect(result.error?.code, AuthoringErrorCode.validationFailed);
+        expect(result.error?.details, {
+          'domainCode': 'dialogueCompilationFailed',
+          'path': 'dialogues/opening.json',
+        });
+        expect(result.error?.message, sample.$3);
+        expect(result.error?.retryable, isFalse);
+        final serialized = jsonEncode(result.toJson());
+        expect(serialized, isNot(contains('/Users/private')));
+        expect(serialized, isNot(contains('stack trace')));
+        expect(serialized, isNot(contains('#0')));
+        final continued = await _request(
+          worker,
+          id: 'after-export-message',
+          command: 'describe',
+        );
+        expect(continued.status, AuthoringResultStatus.success);
+        expect(readApi.describeCalls, 2);
+      });
+    }
 
     test('routes local test mode and rejects unknown export modes', () async {
       final exportApi = _RecordingGamePackageExportApi();
@@ -1228,6 +1337,45 @@ final class _RecordingGamePackageExportApi implements GamePackageExportApiPort {
       fileCount: 3,
       treeSha256: 'b' * 64,
     );
+  }
+}
+
+final class _ExportBoundaryReadApi implements AuthoringReadApiPort {
+  var describeCalls = 0;
+
+  @override
+  Map<String, Object?> describe() {
+    describeCalls++;
+    return AuthoringReadDescription(
+      commands: const [
+        AuthoringReadCommandDescriptor(
+          id: 'describe',
+          summary: 'Describe the export boundary unit-test read API.',
+        ),
+      ],
+      queryOperations: const [],
+      resourceKinds: const [],
+    ).toJson();
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+final class _ThrowingGamePackageExportApi implements GamePackageExportApiPort {
+  _ThrowingGamePackageExportApi(this.error);
+
+  final GamePackageExportException error;
+  var calls = 0;
+
+  @override
+  Future<GamePackageExportReceipt> export({
+    required String projectRoot,
+    required String outputPath,
+    GamePackageExportMode mode = GamePackageExportMode.publication,
+  }) async {
+    calls++;
+    throw error;
   }
 }
 

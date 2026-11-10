@@ -2,12 +2,8 @@ import 'package:avelune_studio/features/map_workspace/application/editable_map_d
 import 'package:avelune_studio/features/map_workspace/application/map_editing_commands.dart';
 import 'package:map_authoring/map_authoring_editing.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_moving_prop_panel.dart';
-import 'package:avelune_studio/presentation/features/scenes/scene_action_form.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
-import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
-import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_toggle_row.dart';
-import 'package:flutter/material.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_moving_prop_commands.dart';
+import 'package:avelune_studio/features/scenes/application/scene_action_draft.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
@@ -64,128 +60,142 @@ void main() {
     expect(document.current, authored);
   });
 
-  testWidgets(
-    'selected decor configures a rail with undo and serialized reopen',
-    (tester) async {
-      final source = _map();
+  test('selected decor configures a rail with undo and serialized reopen', () {
+    final source = _map();
+    final document = EditableMapDocument(
+      MapWorkspaceDocument(map: source, mapId: source.id, revision: 'test'),
+    );
+    final commands = MapMovingPropCommands(document, _project());
+    final draft = MapMovingPropDraft.fromPlacement(
+      source,
+      _project(),
+      'visual',
+    );
+    expect(commands.save('visual', draft), isNull);
+    final prop = document.current.movingProps.single;
+    expect(prop.placedElementId, 'visual');
+    expect(prop.closedPositionPx, const PixelOffset(x: 64, y: 64));
+    expect(prop.openPositionPx, const PixelOffset(x: 96, y: 64));
+    expect(MapData.fromJson(document.current.toJson()).movingProps, [prop]);
+    expect(document.undoCount, 1);
+    document.restore(redo: false);
+    expect(document.current, source);
+  });
+
+  test(
+    'moving prop draft retains opening direction collision and initial state',
+    () {
+      final map = _map(withProps: true);
       final document = EditableMapDocument(
-        MapWorkspaceDocument(map: source, mapId: source.id, revision: 'test'),
+        MapWorkspaceDocument(map: map, mapId: map.id, revision: 'test'),
       );
-      await tester.pumpWidget(
-        _shell(
-          MapMovingPropPanel(
-            document: document,
-            project: _project(),
-            placement: source.placedElements.first,
-            onChanged: () {},
-          ),
-        ),
+      final commands = MapMovingPropCommands(document, _project());
+      final draft = MapMovingPropDraft.fromPlacement(map, _project(), 'visual')
+        ..direction = 'north'
+        ..distance = '16'
+        ..width = '16'
+        ..height = '24'
+        ..left = '4'
+        ..top = '8'
+        ..initialState = 'open';
+      expect(commands.save('visual', draft), isNull);
+      final reopened = MapData.fromJson(document.current.toJson());
+      final changed = MapMovingPropDraft.fromPlacement(
+        reopened,
+        _project(),
+        'visual',
       );
-      await tester.ensureVisible(find.byKey(const ValueKey('prop-save')));
-      await tester.tap(find.byKey(const ValueKey('prop-save')));
-      await tester.pumpAndSettle();
-      final prop = document.current.movingProps.single;
-      expect(prop.placedElementId, 'visual');
-      expect(prop.closedPositionPx, const PixelOffset(x: 64, y: 64));
-      expect(prop.openPositionPx, const PixelOffset(x: 96, y: 64));
-      expect(MapData.fromJson(document.current.toJson()).movingProps, [prop]);
-      expect(document.canUndo, isTrue);
-      document.restore(redo: false);
-      expect(document.current, source);
+      expect(changed.direction, 'north');
+      expect(changed.distance, '16');
+      expect(changed.width, '16');
+      expect(changed.height, '24');
+      expect(changed.left, '4');
+      expect(changed.top, '8');
+      expect(changed.initialState, 'open');
+      expect(reopened.movingProps.last.id, 'gate');
+      expect(reopened.movingProps.first.id, 'gate-two');
     },
   );
 
-  testWidgets('scene form selects synchronized props without raw identifiers', (
-    tester,
-  ) async {
-    final map = _map(withProps: true);
-    SceneNodePayload? published;
-    await tester.pumpWidget(
-      _shell(
-        SceneActionForm(
-          project: _project(),
-          current: SceneActionPayload.interactive(
-            SceneInteractiveCommand.setPropState(
-              mapId: 'hall',
-              propIds: ['gate'],
-              state: MovingPropState.open,
-            ),
-          ),
-          loadMap: (_) async => map,
-          onApply: (value) => published = value,
-        ),
-      ),
+  test('invalid rail input preserves current data and undo history', () {
+    final map = _map();
+    final document = EditableMapDocument(
+      MapWorkspaceDocument(map: map, mapId: map.id, revision: 'test'),
     );
-    await tester.pumpAndSettle();
-    final toggle = tester.widget<StudioToggleRow>(
-      find.byKey(const ValueKey('scene-prop-gate-two')),
-    );
-    toggle.onChanged!(true);
-    await tester.pumpAndSettle();
-    final apply = find.byWidgetPredicate(
-      (widget) =>
-          widget is StudioButton && widget.label == 'Appliquer l’action',
-    );
-    final duration = find.descendant(
-      of: find.byKey(const ValueKey('action-setPropState-durationMs')),
-      matching: find.byType(TextField),
-    );
-    await tester.enterText(duration, '10001');
-    await tester.pump();
-    expect(tester.widget<StudioButton>(apply).onPressed, isNull);
-    await tester.enterText(duration, '350');
-    await tester.pump();
-    await tester.ensureVisible(apply);
-    await tester.tap(apply);
-    await tester.pumpAndSettle();
-    final command =
-        (published as SceneActionPayload).interactiveCommand!
-            as SceneSetPropStateInteractiveCommand;
-    expect(command.propIds, ['gate', 'gate-two']);
-    expect(command.durationMs, 350);
-    expect(command.state, MovingPropState.open);
+    final commands = MapMovingPropCommands(document, _project());
+    final draft = MapMovingPropDraft.fromPlacement(map, _project(), 'visual');
+    for (final invalid in ['0', '1025', '1.5', 'text']) {
+      draft.distance = invalid;
+      expect(commands.save('visual', draft), isNotNull);
+    }
+    expect(document.current, same(map));
+    expect(document.canUndo, isFalse);
+    draft.distance = '32';
+    expect(commands.save('visual', draft), isNull);
+    expect(commands.delete(document.current.movingProps.single.id), isNull);
+    expect(document.current.movingProps, isEmpty);
+    document.restore(redo: false);
+    expect(document.current.movingProps, hasLength(1));
   });
 
-  testWidgets('missing props stay visible and prevent scene publication', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      _shell(
-        SceneActionForm(
-          project: _project(),
-          current: SceneActionPayload.interactive(
-            SceneInteractiveCommand.setPropState(
-              mapId: 'hall',
-              propIds: ['removed'],
-              state: MovingPropState.open,
-            ),
+  test(
+    'scene draft selects synchronized props and rejects invalid duration',
+    () async {
+      final map = _map(withProps: true);
+      final draft = SceneActionDraft(
+        project: _project(),
+        changed: () {},
+        current: SceneActionPayload.interactive(
+          SceneInteractiveCommand.setPropState(
+            mapId: 'hall',
+            propIds: ['gate'],
+            state: MovingPropState.open,
           ),
-          loadMap: (_) async => _map(withProps: true),
-          onApply: (_) => fail('Missing reference'),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
-    expect(
-      find.textContaining('Un décor sélectionné n’existe plus'),
-      findsOneWidget,
-    );
-    final apply = tester.widget<StudioButton>(
-      find.byWidgetPredicate(
-        (widget) =>
-            widget is StudioButton && widget.label == 'Appliquer l’action',
-      ),
-    );
-    expect(apply.onPressed, isNull);
-  });
+        loadMap: (_) async => map,
+      );
+      addTearDown(draft.dispose);
+      await Future<void>.delayed(Duration.zero);
+      expect(draft.movingProps.keys, containsAll(['gate', 'gate-two']));
+      draft.changeParameter('propIds', '["gate","gate-two"]');
+      draft.changeParameter('durationMs', '10001');
+      expect(draft.valid, isFalse);
+      draft.changeParameter('durationMs', '350');
+      expect(draft.valid, isTrue);
+      final command =
+          (draft.buildPayload() as SceneActionPayload).interactiveCommand!
+              as SceneSetPropStateInteractiveCommand;
+      expect(command.propIds, ['gate', 'gate-two']);
+      expect(command.durationMs, 350);
+      expect(command.state, MovingPropState.open);
+    },
+  );
+
+  test(
+    'missing props remain in the draft and prevent scene publication',
+    () async {
+      final original = SceneActionPayload.interactive(
+        SceneInteractiveCommand.setPropState(
+          mapId: 'hall',
+          propIds: ['removed'],
+          state: MovingPropState.open,
+        ),
+      );
+      final draft = SceneActionDraft(
+        project: _project(),
+        changed: () {},
+        current: original,
+        loadMap: (_) async => _map(withProps: true),
+      );
+      addTearDown(draft.dispose);
+      await Future<void>.delayed(Duration.zero);
+      expect(draft.values['propIds'], '["removed"]');
+      expect(draft.movingProps.containsKey('removed'), isFalse);
+      expect(draft.valid, isFalse);
+      expect(draft.current, same(original));
+    },
+  );
 }
-
-Widget _shell(Widget child) => MaterialApp(
-  theme: studioTheme(),
-  home: Scaffold(
-    body: SingleChildScrollView(child: SizedBox(width: 420, child: child)),
-  ),
-);
 
 ProjectManifest _project() => const ProjectManifest(
   name: 'Props',

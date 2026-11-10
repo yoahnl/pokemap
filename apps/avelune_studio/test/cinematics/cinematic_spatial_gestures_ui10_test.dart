@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:avelune_studio/features/cinematics/application/cinematic_preview_transport.dart';
-import 'package:avelune_studio/presentation/features/cinematics/cinematic_map_model.dart';
+import 'package:avelune_studio/features/cinematics/application/cinematic_map_model.dart';
 import 'package:avelune_studio/presentation/features/cinematics/cinematic_map_scene.dart';
 import 'package:avelune_studio/presentation/features/cinematics/cinematic_view_state.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';

@@ -1,13 +1,5 @@
 import 'package:avelune_studio/features/project_surf/application/project_surf_controller.dart';
 import 'package:avelune_studio/features/project_surf/domain/project_surf_port.dart';
-import 'package:avelune_studio/presentation/features/project_settings/project_cs_panel.dart';
-import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_choice.dart';
-import 'package:flutter/material.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
-import 'package:avelune_studio/presentation/features/project_settings/project_audio_panel.dart';
-import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
-import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_draft_field.dart';
-import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
 
 import 'dart:async';
 
@@ -16,6 +8,9 @@ import 'package:avelune_studio/features/project_audio/domain/project_audio_port.
 import 'package:avelune_studio/features/project_cs/application/project_cs_controller.dart';
 import 'package:avelune_studio/features/project_cs/domain/project_cs_port.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/foundation.dart';
+import 'package:avelune_studio/features/project_audio/application/project_audio_editing_session.dart';
+import 'package:avelune_studio/features/project_cs/application/field_ability_support.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../support/map_workspace_fixture.dart';
@@ -87,94 +82,41 @@ void main() {
     },
   );
   for (final dimension in [ProjectDimension.twoD, ProjectDimension.threeD]) {
-    testWidgets(
-      'Escalade and Anti-Brume status is unimplemented for $dimension',
-      (tester) async {
-        final port = _Port();
-        final owner = ProjectCsController(
-          session: workspaceSession,
-          port: port,
-        );
-        final surf = ProjectSurfController(
-          session: workspaceSession,
-          port: _SurfPort(),
-          dimension: dimension,
-        );
-        addTearDown(owner.dispose);
-        addTearDown(surf.dispose);
-        await tester.pumpWidget(
-          MaterialApp(
-            theme: studioTheme(),
-            home: Scaffold(
-              body: SingleChildScrollView(
-                child: ProjectCsPanel(
-                  owner: owner,
-                  surf: surf,
-                  settings: ProjectSettings(dimension: dimension),
-                ),
-              ),
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
-        for (final id in ['rock_climb', 'defog']) {
-          final row = find.byKey(ValueKey('cs-$id'));
-          expect(
-            tester.widget<StudioChoice>(row).subtitle,
-            contains('mécanique à implémenter en 2D et 3D'),
-          );
-          await tester.ensureVisible(row);
-          await tester.tap(row);
-          await tester.pump();
-        }
-        expect(owner.preview.value.disabledAbilityIds, {'rock_climb', 'defog'});
-        expect(port.writes, 0);
-        expect(tester.takeException(), isNull);
-        await tester.pumpWidget(const SizedBox());
-      },
-    );
+    test('Escalade and Anti-Brume remain activation-only for $dimension', () async {
+      final port = _Port();
+      final owner = ProjectCsController(session: workspaceSession, port: port);
+      addTearDown(owner.dispose);
+      await owner.open();
+      for (final id in ['rock_climb', 'defog']) {
+        final entry = ProjectFieldAbilityRegistry.entries.singleWhere((entry) => entry.id == id);
+        expect(entry.activationOnly, isTrue);
+        expect(fieldAbilitySupport(entry, dimension), 'Activation seule');
+        owner.setEnabledId(id, false);
+      }
+      expect(owner.preview.value.disabledAbilityIds, {'rock_climb', 'defog'});
+      expect(port.writes, 0);
+    });
   }
 
-  testWidgets(
-    'an old project sound is visible, explicitly adopted and selected',
-    (tester) async {
-      final port = _Port()..legacyAvailable = true;
-      final owner = ProjectAudioController(
-        session: workspaceSession,
-        port: port,
-      );
-      addTearDown(owner.dispose);
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: studioTheme(),
-          home: Scaffold(
-            body: SingleChildScrollView(child: ProjectAudioPanel(owner: owner)),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-      final adopt = find.byKey(
-        const ValueKey('adopt-project-audio-legacy-bell'),
-      );
-      expect(adopt, findsOneWidget);
-      expect(port.adoptionWrites, 0);
-      await tester.ensureVisible(adopt);
-      await tester.tap(adopt);
-      await tester.pumpAndSettle();
-      expect(port.adoptionWrites, 1);
-      final selected = owner.preview.value.cues[ProjectSoundCue.uiConfirm]!;
-      expect(selected.source, ProjectSoundSource.custom);
-      expect(selected.mediaId, port.adoptedAssets['legacy-bell']!.id);
-      expect(
-        owner.library.values.map((entry) => entry.label),
-        contains('Ancienne cloche.wav'),
-      );
-      expect(owner.dirty, isTrue);
-      expect(port.audio, isNull);
-      expect(tester.takeException(), isNull);
-      await tester.pumpWidget(const SizedBox());
-    },
-  );
+  test('an old project sound is explicitly adopted and selected through its owner', () async {
+    final port = _Port()..legacyAvailable = true;
+    final owner = ProjectAudioController(session: workspaceSession, port: port);
+    addTearDown(owner.dispose);
+    final editing = ProjectAudioEditingSession(owner: owner);
+    addTearDown(editing.close);
+    await editing.open();
+    expect(owner.legacyLibrary, contains('legacy-bell'));
+    expect(port.adoptionWrites, 0);
+    await owner.adopt(owner.legacyLibrary['legacy-bell']!, editing.selected);
+    expect(port.adoptionWrites, 1);
+    final selected = owner.preview.value.cues[ProjectSoundCue.uiConfirm]!;
+    expect(selected.source, ProjectSoundSource.custom);
+    expect(selected.mediaId, port.adoptedAssets['legacy-bell']!.id);
+    expect(owner.library.values.map((entry) => entry.label), contains('Ancienne cloche.wav'));
+    expect(owner.dirty, isTrue);
+    expect(port.audio, isNull);
+  });
+
   test('legacy pages and duplicate adoption preserve other drafts and invalid gain', () async {
     final port = _Port()..legacyAvailable = true;
     final owner = ProjectAudioController(session: workspaceSession, port: port);
@@ -224,145 +166,56 @@ void main() {
     expect(owner.error, contains('conflict'));
   });
 
-  testWidgets(
-    'eleven CS share one Surf authority and label unimplemented mechanics',
-    (tester) async {
-      final owner = ProjectCsController(
-        session: workspaceSession,
-        port: _Port(),
-      );
-      final surf = ProjectSurfController(
-        session: workspaceSession,
-        port: _SurfPort(),
-        dimension: ProjectDimension.threeD,
-      );
-      addTearDown(owner.dispose);
-      addTearDown(surf.dispose);
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: studioTheme(),
-          home: Scaffold(
-            body: SingleChildScrollView(
-              child: ProjectCsPanel(
-                owner: owner,
-                surf: surf,
-                settings: const ProjectSettings(
-                  dimension: ProjectDimension.threeD,
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(
-        find
-            .byType(StudioChoice)
-            .evaluate()
-            .where((element) => element.widget.key.toString().contains('cs-')),
-        hasLength(11),
-      );
-      expect(find.byKey(const ValueKey('cs-rock_climb')), findsOneWidget);
-      expect(find.byKey(const ValueKey('cs-defog')), findsOneWidget);
-      expect(find.text('Escalade'), findsOneWidget);
-      expect(find.text('Anti-Brume'), findsOneWidget);
-      expect(find.byKey(const ValueKey('surf-enabled')), findsNothing);
-      await tester.tap(find.byKey(const ValueKey('cs-surf')));
-      await tester.pump();
-      expect(surf.preview.value.enabled, isFalse);
-      expect(surf.preview.value.speedCellsPerSecond, 6);
-      expect(
-        surf.preview.value.condition,
-        ScriptConditionFactory.badgeOwned('cascade'),
-      );
-      await tester.ensureVisible(find.byKey(const ValueKey('cs-dive')));
-      await tester.tap(find.byKey(const ValueKey('cs-dive')));
-      expect(owner.preview.value.disabledAbilities, {FieldAbility.dive});
-      expect(owner.dirty, isTrue);
-    },
-  );
+  test('eleven CS share one Surf authority without changing its progression', () async {
+    final owner = ProjectCsController(session: workspaceSession, port: _Port());
+    final surf = ProjectSurfController(
+      session: workspaceSession, port: _SurfPort(), dimension: ProjectDimension.threeD,
+    );
+    addTearDown(owner.dispose);
+    addTearDown(surf.dispose);
+    await owner.open();
+    await surf.open();
+    expect(ProjectFieldAbilityRegistry.entries, hasLength(11));
+    final original = surf.preview.value;
+    owner.setEnabled(FieldAbility.surf, false);
+    expect(surf.preview.value, same(original));
+    expect(owner.preview.value.disabledAbilityIds, isNot(contains('surf')));
+    surf.change(enabled: false);
+    expect(surf.preview.value.enabled, isFalse);
+    expect(surf.preview.value.speedCellsPerSecond, 6);
+    expect(surf.preview.value.condition, ScriptConditionFactory.badgeOwned('cascade'));
+    owner.setEnabled(FieldAbility.dive, false);
+    expect(owner.preview.value.disabledAbilities, {FieldAbility.dive});
+    expect(owner.dirty, isTrue);
+  });
 
-  testWidgets(
-    'audio library assignment, invalid text and lifecycle stop use the shared owner',
-    (tester) async {
-      final port = _Port();
-      final player = _Preview();
-      final owner = ProjectAudioController(
-        session: workspaceSession,
-        port: port,
-        audition: player,
-      );
-      addTearDown(owner.dispose);
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: studioTheme(),
-          home: Scaffold(
-            body: SingleChildScrollView(child: ProjectAudioPanel(owner: owner)),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-      tester
-          .widget<StudioSelect>(
-            find.byKey(const ValueKey('project-audio-source-ui.confirm')),
-          )
-          .onChanged!('custom');
-      await tester.pumpAndSettle();
-      expect(
-        tester
-            .widget<StudioButton>(
-              find.byKey(const ValueKey('save-project-audio')),
-            )
-            .onPressed,
-        isNull,
-      );
-      tester
-          .widget<StudioSelect>(
-            find.byKey(const ValueKey('project-audio-media-ui.confirm')),
-          )
-          .onChanged!('bell');
-      await tester.pumpAndSettle();
-      final field = find.descendant(
-        of: find.byKey(const ValueKey('project-audio-gain-ui.confirm')),
-        matching: find.byType(TextField),
-      );
-      await tester.enterText(field, 'bad');
-      await tester.pump();
-      expect(
-        tester
-            .widget<StudioDraftField>(
-              find.byKey(const ValueKey('project-audio-gain-ui.confirm')),
-            )
-            .value,
-        'bad',
-      );
-      expect(
-        tester
-            .widget<StudioButton>(
-              find.byKey(const ValueKey('save-project-audio')),
-            )
-            .onPressed,
-        isNull,
-      );
-      await tester.enterText(field, '40');
-      await tester.pump();
-      await tester.ensureVisible(
-        find.byKey(const ValueKey('save-project-audio')),
-      );
-      await tester.tap(find.byKey(const ValueKey('save-project-audio')));
-      await tester.pumpAndSettle();
-      expect(port.audio!.cues[ProjectSoundCue.uiConfirm]!.gain, .4);
-      await owner.listen('bell');
-      expect(owner.playingId, 'bell');
-      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
-      await tester.pump();
-      expect(owner.playingId, isNull);
-      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
-      await tester.pumpWidget(const SizedBox());
-      await tester.pump();
-      expect(tester.takeException(), isNull);
-    },
-  );
+
+  test('audio assignment, invalid text and suspension use the shared owner', () async {
+    final port = _Port();
+    final player = _Preview();
+    final owner = ProjectAudioController(
+      session: workspaceSession, port: port, audition: player,
+    );
+    addTearDown(owner.dispose);
+    final editing = ProjectAudioEditingSession(owner: owner);
+    addTearDown(editing.close);
+    await editing.open();
+    owner.source(ProjectSoundCue.uiConfirm, 'custom');
+    expect(editing.canSaveAssociation, isFalse);
+    owner.assign(ProjectSoundCue.uiConfirm, 'bell');
+    owner.gain(ProjectSoundCue.uiConfirm, 'bad');
+    expect(owner.rawGains[ProjectSoundCue.uiConfirm], 'bad');
+    expect(editing.canSaveAssociation, isFalse);
+    expect(await owner.save(), isFalse);
+    owner.gain(ProjectSoundCue.uiConfirm, '40');
+    expect(await owner.save(), isTrue);
+    expect(port.audio!.cues[ProjectSoundCue.uiConfirm]!.gain, .4);
+    await owner.listen('bell');
+    expect(owner.playingId, 'bell');
+    await editing.suspend();
+    expect(owner.playingId, isNull);
+    await editing.close();
+  });
 
   test(
     'CS defaults, local undo and disjoint revision adoption preserve drafts',

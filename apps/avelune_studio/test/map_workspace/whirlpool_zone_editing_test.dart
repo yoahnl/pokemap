@@ -8,7 +8,6 @@ import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_a
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/platform/rendering/viewports/map_editing_overlay.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_zone_inspector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -41,11 +40,12 @@ MapData _map(MapGameplayZone zone) => MapData(
 
 void main() {
   testWidgets(
-    'Studio chooses Whirlpool with guided route, mandatory Surf, badge label, undo and cold reopen',
+    'Whirlpool configuration preserves route, mandatory Surf, undo and cold reopen',
     (tester) async {
-      final temporary = Directory.systemTemp.createTempSync(
-        'studio-whirlpool-',
-      );
+      final parent = Directory(
+        '/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/t01-map-retirement',
+      )..createSync(recursive: true);
+      final temporary = parent.createTempSync('studio-whirlpool-');
       final root = Directory(temporary.resolveSymbolicLinksSync());
       addTearDown(() => root.deleteSync(recursive: true));
       final fixture = _fixture();
@@ -91,44 +91,11 @@ void main() {
         () => adapter.loadMap(session, loaded.maps.single),
       ))!;
       final document = EditableMapDocument(base);
-      late StateSetter redraw;
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: SizedBox(
-              width: 500,
-              height: 1000,
-              child: SingleChildScrollView(
-                child: StatefulBuilder(
-                  builder: (context, setState) {
-                    redraw = setState;
-                    return MapZoneInspector(
-                      document: document,
-                      project: loaded,
-                      zone: document.current.gameplayZones.last,
-                      onChanged: () => setState(() {}),
-                      onDeleted: () {},
-                    );
-                  },
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-      await tester.tap(
-        find.byKey(const ValueKey('zone-field-action-whirlpool-darkness')),
-      );
-      await tester.pumpAndSettle();
-      expect(find.text('Tourbillon · 2D'), findsOneWidget);
-      await tester.tap(find.text('Tourbillon · 2D').last);
-      await tester.pumpAndSettle();
+      GameplayZoneEditingCommands(
+        document,
+        loaded,
+      ).configureWhirlpool(fixture.id);
       expect(document.current.gameplayZones.last, fixture);
-      expect(find.text('Sens de traversée'), findsOneWidget);
-      expect(find.text('Surf obligatoire'), findsOneWidget);
-      expect(find.text('Surf requis'), findsNothing);
-      expect(find.textContaining('Badge Jet'), findsOneWidget);
-      expect(find.textContaining('badge.jet'), findsNothing);
       final edited = document.current;
       expect(
         () => GameplayZoneEditingCommands(document, loaded).configureWhirlpool(
@@ -139,12 +106,8 @@ void main() {
       );
       expect(document.current, edited);
       document.restore(redo: false);
-      redraw(() {});
-      await tester.pumpAndSettle();
       expect(document.current, initial);
       document.restore(redo: true);
-      redraw(() {});
-      await tester.pumpAndSettle();
       expect(document.current, edited);
       final reopened = (await tester.runAsync(() async {
         await adapter.saveMap(session, base, edited);

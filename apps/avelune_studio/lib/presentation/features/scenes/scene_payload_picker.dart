@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../features/scenes/application/scene_edit_session.dart';
 import '../../../features/pokemon/domain/pokemon_workspace_models.dart';
 
 import 'package:map_core/map_core_domain.dart';
@@ -17,51 +19,7 @@ Future<SceneNodePayload?> chooseScenePayload(
 }) => showDialog<SceneNodePayload>(
   context: context,
   builder: (context) {
-    final choices = <String, (String, SceneNodePayload)>{
-      if (kind == SceneNodeKind.yarnDialogue)
-        for (final d in project.dialogues)
-          d.id: (
-            d.name,
-            SceneYarnDialoguePayload(
-              dialogueId: d.id,
-              yarnNodeName: d.defaultStartNode,
-              expectedOutcomes: d.declaredOutcomes.map((o) => o.id).toList(),
-            ),
-          ),
-      if (kind == SceneNodeKind.cinematic)
-        for (final c in project.cinematics)
-          c.id: (c.title, SceneCinematicPayload(cinematicId: c.id)),
-      if (kind == SceneNodeKind.presentationCinematic)
-        for (final c in project.presentationCinematics)
-          c.id: (
-            c.title,
-            ScenePresentationCinematicPayload(presentationCinematicId: c.id),
-          ),
-      if (kind == SceneNodeKind.battle)
-        for (final t in project.trainers)
-          'trainer:${t.id}': (
-            t.name,
-            SceneBattlePayload(trainerId: t.id, battleKind: 'trainer'),
-          ),
-      if (kind == SceneNodeKind.battle)
-        for (final table in project.encounterTables)
-          if (table.tags.contains('studio:unique') &&
-              table.entries.length == 1 &&
-              table.entries.single.minLevel == table.entries.single.maxLevel)
-            'unique:${table.id}': (
-              'Rencontre unique : ${table.name}',
-              SceneBattlePayload(
-                battleKind: 'wild',
-                battleTemplateId: table.id,
-                declaredOutcomes: const [
-                  'victory',
-                  'captured',
-                  'defeat',
-                  'runaway',
-                ],
-              ),
-            ),
-    };
+    final choices = scenePayloadChoices(project, kind);
     return AlertDialog(
       title: Text(
         kind == SceneNodeKind.action

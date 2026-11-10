@@ -8,7 +8,6 @@ import 'package:avelune_studio/features/map_workspace/application/map_workspace_
 import 'package:avelune_studio/features/map_workspace/application/warp_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
@@ -40,100 +39,74 @@ ProjectManifest projectUsing(String mapId, String entityId) =>
     );
 
 void main() {
-  testWidgets('menu and inspector delete the same way and refuse alike', (
-    tester,
-  ) async {
-    final h = MapContextHarness.of(workspaceProject);
-    addTearDown(h.dispose);
-    final sign = MapEntityEditingCommands(
-      h.document,
-      h.project,
-    ).place(MapEntityKind.sign, const GridPos(x: 4, y: 4));
-    await h.pump(tester);
+  testWidgets(
+    'context actions and direct commands honour the same deletion guard',
+    (tester) async {
+      final h = MapContextHarness.of(workspaceProject);
+      addTearDown(h.dispose);
+      final sign = MapEntityEditingCommands(
+        h.document,
+        h.project,
+      ).place(MapEntityKind.sign, const GridPos(x: 4, y: 4));
+      await h.pump(tester);
+      h.project = projectUsing('a', sign.id);
+      await h.rightClick(tester, 4, 4);
+      final action = h.request!.actions.singleWhere(
+        (action) => action.command == MapContextCommand.delete,
+      );
+      expect(action.enabled, isFalse);
+      expect(action.unavailable, contains('histoire'));
+      expect(
+        MapEntityEditingCommands(
+          h.document,
+          h.project,
+        ).deletionProblem(sign.id),
+        isNotNull,
+      );
+      h.close();
+      h.project = workspaceProject;
+      await h.rightClick(tester, 4, 4);
+      h.run(MapContextCommand.delete);
+      expect(
+        MapEntityEditingCommands(h.document, h.project).selected(sign.id),
+        isNull,
+      );
+    },
+  );
 
-    // The inspector refuses it once the story references it.
-    h.project = projectUsing('a', sign.id);
-    h.redraw();
-    await tester.pumpAndSettle();
-    await h.rightClick(tester, 4, 4);
-    await tester.tap(
-      find.descendant(
-        of: find.byKey(const ValueKey('map-context-menu')),
-        matching: find.text('Supprimer'),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(
-      MapEntityEditingCommands(h.document, h.project).selected(sign.id),
-      isNotNull,
-      reason: 'the menu honours the same guard as the inspector',
-    );
-    expect(
-      find.byKey(const ValueKey('map-context-menu')),
-      findsOneWidget,
-      reason: 'a blocked action is inert, it does not silently close',
-    );
-    await h.escape(tester);
-
-    // Freed again, both paths delete it.
-    h.project = workspaceProject;
-    h.redraw();
-    await tester.pumpAndSettle();
-    await h.rightClick(tester, 4, 4);
-    await tester.tap(
-      find.descendant(
-        of: find.byKey(const ValueKey('map-context-menu')),
-        matching: find.text('Supprimer'),
-      ),
-    );
-    await tester.pumpAndSettle();
-    expect(
-      MapEntityEditingCommands(h.document, h.project).selected(sign.id),
-      isNull,
-    );
-  });
-
-  testWidgets('a dependency added while the menu is open still blocks', (
-    tester,
-  ) async {
-    final h = MapContextHarness.of(workspaceProject);
-    addTearDown(h.dispose);
-    final sign = MapEntityEditingCommands(
-      h.document,
-      h.project,
-    ).place(MapEntityKind.sign, const GridPos(x: 5, y: 5));
-    await h.pump(tester);
-
-    await h.rightClick(tester, 5, 5);
-    expect(
-      find.descendant(
-        of: find.byKey(const ValueKey('map-context-menu')),
-        matching: find.text('Supprimer'),
-      ),
-      findsOneWidget,
-    );
-
-    // The dependency appears after the menu was drawn.
-    h.project = projectUsing('a', sign.id);
-    await tester.tap(
-      find.descendant(
-        of: find.byKey(const ValueKey('map-context-menu')),
-        matching: find.text('Supprimer'),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(
-      MapEntityEditingCommands(h.document, h.project).selected(sign.id),
-      isNotNull,
-      reason: 'the command re-reads the guard when it acts, not at opening',
-    );
-    expect(h.document.error, contains('histoire'));
-  });
+  testWidgets(
+    'a dependency added after opening the request is still enforced at execution',
+    (tester) async {
+      final h = MapContextHarness.of(workspaceProject);
+      addTearDown(h.dispose);
+      final sign = MapEntityEditingCommands(
+        h.document,
+        h.project,
+      ).place(MapEntityKind.sign, const GridPos(x: 5, y: 5));
+      await h.pump(tester);
+      await h.rightClick(tester, 5, 5);
+      expect(
+        h.request!.actions
+            .singleWhere((action) => action.command == MapContextCommand.delete)
+            .enabled,
+        isTrue,
+      );
+      h.project = projectUsing('a', sign.id);
+      h.run(MapContextCommand.delete);
+      expect(
+        MapEntityEditingCommands(h.document, h.project).selected(sign.id),
+        isNotNull,
+      );
+      expect(h.document.error, contains('histoire'));
+    },
+  );
 
   test('a menu edit survives saving and reopening from disk', () async {
-    final temporary = await Directory.systemTemp.createTemp('avelune_ctx_');
+    final parent = Directory(
+      '/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/t01-map-retirement',
+    );
+    await parent.create(recursive: true);
+    final temporary = await parent.createTemp('avelune_ctx_');
     final directory = Directory(await temporary.resolveSymbolicLinks());
     addTearDown(() async {
       if (directory.existsSync()) await directory.delete(recursive: true);
@@ -162,7 +135,6 @@ void main() {
         )
         .id;
 
-    // The menu command, run through the shared runner.
     final context = MapContextActionContext(
       document: workspace.active!,
       project: workspace.project!,

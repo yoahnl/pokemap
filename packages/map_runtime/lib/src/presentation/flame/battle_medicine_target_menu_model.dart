@@ -170,7 +170,7 @@ BattleMedicineTargetDisabledReason? _effectDisabledReason({
     ProjectItemCureStatusEffectDefinition() =>
       combatant.isFainted
           ? BattleMedicineTargetDisabledReason.fainted
-          : _effectCuresStatus(effect, combatant.majorStatus)
+          : (effect.curesConfusion && confused) || _effectCuresStatus(effect, combatant.majorStatus)
           ? null
           : BattleMedicineTargetDisabledReason.noCompatibleStatus,
     ProjectItemReviveEffectDefinition() =>

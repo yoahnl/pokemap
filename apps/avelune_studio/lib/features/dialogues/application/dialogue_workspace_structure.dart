@@ -13,6 +13,12 @@ Iterable<DialogueEditorStep> dialogueSteps(
   }
 }
 
+Iterable<DeChoiceBranch> dialogueBranches(DialogueEditorNode node) sync* {
+  for (final step in dialogueSteps(node.steps).whereType<DeChoiceStep>()) {
+    yield* step.branches;
+  }
+}
+
 DialogueEditorStep _step(DialogueEditorDocument doc, String id) => doc.nodes
     .expand((n) => dialogueSteps(n.steps))
     .firstWhere((s) => s.id == id);

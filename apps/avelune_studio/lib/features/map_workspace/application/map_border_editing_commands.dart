@@ -22,15 +22,85 @@ final class MapBorderRegenerationPreview {
       identical(source, map) && identical(project, manifest);
 }
 
+final class MapBorderRegenerationStatus {
+  const MapBorderRegenerationStatus({required this.stale, this.diagnostic});
+  final bool stale;
+  final String? diagnostic;
+}
+
 final class MapBorderEditingCommands {
   MapBorderEditingCommands(this.document, this.project);
 
   final EditableMapDocument document;
   final ProjectManifest project;
 
-  void setForeground({required String layerId, required bool renderInForeground}) =>
-      document.commit(const BorderActions().setForeground(document.current,
-          layerId: layerId, renderInForeground: renderInForeground));
+  List<({BorderLayer layer, BorderFeature feature})> get visibleFeatures => [
+    for (final layer in document.current.layers.whereType<BorderLayer>())
+      for (final feature in layer.content.features)
+        if (layer.isVisible && feature.geometry is BorderStrokeGeometry)
+          (layer: layer, feature: feature),
+  ];
+
+  MapBorderRegenerationStatus regenerationStatus({
+    required String layerId,
+    required String featureId,
+  }) {
+    final map = document.current;
+    try {
+      if (map.spatialScene != null) {
+        final report = diagnoseSpatialBorderFeature(
+          manifest: project,
+          map: map,
+          layerId: layerId,
+          featureId: featureId,
+        );
+        return MapBorderRegenerationStatus(
+          stale: report.diagnostics.any(
+            (issue) => issue.code == 'border.spatial.materialization_stale',
+          ),
+          diagnostic: report.hasErrors
+              ? 'Cette bordure doit être corrigée avant régénération.'
+              : null,
+        );
+      }
+      return MapBorderRegenerationStatus(
+        stale: previewExisting(layerId: layerId, featureId: featureId) != map,
+      );
+    } on Object {
+      return const MapBorderRegenerationStatus(
+        stale: false,
+        diagnostic: 'La bordure ne peut pas être préparée. Vérifiez ses pièces sources.',
+      );
+    }
+  }
+
+  MapBorderRegenerationPreview prepareExisting({
+    required String layerId,
+    required String featureId,
+  }) => MapBorderRegenerationPreview(
+    source: document.current,
+    project: project,
+    result: previewExisting(layerId: layerId, featureId: featureId),
+    layerId: layerId,
+    featureId: featureId,
+  );
+
+  void applyRegeneration(MapBorderRegenerationPreview preview) => applyExisting(
+    preview.result,
+    source: preview.source,
+    sourceProject: preview.project,
+  );
+
+  void setForeground({
+    required String layerId,
+    required bool renderInForeground,
+  }) => document.commit(
+    const BorderActions().setForeground(
+      document.current,
+      layerId: layerId,
+      renderInForeground: renderInForeground,
+    ),
+  );
 
   static List<BorderBlueprintRecord> publishedLines(ProjectManifest project) =>
       project.borderCatalog.records
@@ -150,7 +220,9 @@ final class MapBorderEditingCommands {
     if (!result.canApply) {
       final issue = result.diagnostics.first.code;
       if (issue == 'border.resolution.horizontal_facade_stroke_required') {
-        throw const ValidationException('Une façade doit suivre un tracé horizontal ouvert. Séparez les tracés pour les ouvertures.');
+        throw const ValidationException(
+          'Une façade doit suivre un tracé horizontal ouvert. Séparez les tracés pour les ouvertures.',
+        );
       }
       throw ValidationException(
         'Ce modèle ne peut pas produire ce tracé ($issue).',
@@ -179,15 +251,22 @@ final class MapBorderEditingCommands {
 
   MapData previewErase(MapBorderEraseDraft draft) {
     if (!draft.validFor(document.current, project)) {
-      throw const ValidationException('La carte ou le projet a changé pendant la gomme. Recommencez.');
+      throw const ValidationException(
+        'La carte ou le projet a changé pendant la gomme. Recommencez.',
+      );
     }
     draft.geometry;
-    return const BorderActions().eraseStroke(manifest: project,
-        map: document.current, layerId: draft.layerId,
-        featureId: draft.featureId, sampledPoints: draft.points);
+    return const BorderActions().eraseStroke(
+      manifest: project,
+      map: document.current,
+      layerId: draft.layerId,
+      featureId: draft.featureId,
+      sampledPoints: draft.points,
+    );
   }
 
-  void finishErase(MapBorderEraseDraft draft) => document.commit(previewErase(draft));
+  void finishErase(MapBorderEraseDraft draft) =>
+      document.commit(previewErase(draft));
 
   void setSpatialOffset({
     required String layerId,

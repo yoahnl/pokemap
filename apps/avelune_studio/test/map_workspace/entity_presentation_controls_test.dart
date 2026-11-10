@@ -1,12 +1,7 @@
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_entity_editing_commands.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_entity_presentation_draft.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/entity_presentation_controls.dart';
-import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_choice.dart';
-import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
-import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_commit_field.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
@@ -15,9 +10,7 @@ void main() {
     MapEntityNpcMovementMode.idle,
     MapEntityNpcMovementMode.patrol,
   ]) {
-    testWidgets('Studio authors page movement and contact from ${mode.name}', (
-      tester,
-    ) async {
+    test('presentation movement and contact from ${mode.name}', () {
       final map = MapData(
         id: 'map',
         name: 'Map',
@@ -51,34 +44,46 @@ void main() {
           ),
         ],
       );
-      final document = EditableMapDocument(
-        MapWorkspaceDocument(map: map, revision: 'base', mapId: map.id),
-      );
+      final document = _document(map);
       final commands = MapEntityEditingCommands(document, project);
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: studioTheme(),
-          home: Scaffold(
-            body: StatefulBuilder(
-              builder: (context, redraw) => SingleChildScrollView(
-                child: EntityPresentationControls(
-                  entity: document.current.entities.single,
-                  project: project,
-                  map: map,
-                  onChanged: (value) =>
-                      redraw(() => commands.setPresentation('guide', value)),
-                ),
-              ),
-            ),
-          ),
-        ),
+      MapEntityPresentationDraft draft() => MapEntityPresentationDraft(
+        document.current,
+        document.current.entities.single,
       );
-      await tester.tap(find.text('Ajouter une variante'));
-      await tester.pumpAndSettle();
-      tester
-          .widget<StudioSelect>(find.byKey(const ValueKey('npc-movement-mode')))
-          .onChanged!('fixedRoute');
-      await tester.pumpAndSettle();
+      commands.setPresentation('guide', draft().add());
+      expect(
+        document
+            .current
+            .entities
+            .single
+            .presentation!
+            .variants
+            .single
+            .movement
+            .mode,
+        MapEntityNpcMovementMode.idle,
+      );
+      final beforeRoute = document.current;
+      expect(
+        () => draft().replace(0, {
+          'movement': const MapEntityNpcMovementConfig(
+            mode: MapEntityNpcMovementMode.fixedRoute,
+          ).toJson(),
+        }),
+        throwsFormatException,
+      );
+      expect(document.current, same(beforeRoute));
+      commands.setPresentation(
+        'guide',
+        draft().replace(0, {
+          'movement': const MapEntityNpcMovementConfig(
+            mode: MapEntityNpcMovementMode.fixedRoute,
+            routeSteps: [
+              MapEntityNpcRouteStep.face(direction: EntityFacing.south),
+            ],
+          ).toJson(),
+        }),
+      );
       expect(
         document
             .current
@@ -91,15 +96,10 @@ void main() {
             .mode,
         MapEntityNpcMovementMode.fixedRoute,
       );
-      final contact = find.byWidgetPredicate(
-        (widget) =>
-            widget is StudioChoice &&
-            widget.label ==
-                'Déclencher le contact quand le PNJ atteint le joueur',
+      commands.setPresentation(
+        'guide',
+        draft().replace(0, {'startsOnNpcContact': true}),
       );
-      await tester.ensureVisible(contact);
-      await tester.tap(contact);
-      await tester.pumpAndSettle();
       expect(
         document
             .current
@@ -111,145 +111,108 @@ void main() {
             .startsOnNpcContact,
         isTrue,
       );
-      final graphic = tester
-          .widgetList<StudioSelect>(find.byType(StudioSelect))
-          .singleWhere((widget) => widget.label == 'Personnage de la variante');
-      graphic.onChanged!('');
-      await tester.pumpAndSettle();
+      commands.setPresentation(
+        'guide',
+        draft().replace(0, {'characterId': null}),
+      );
       final variant =
           document.current.entities.single.presentation!.variants.single;
       expect(variant.characterId, isNull);
       expect(variant.movement.mode, MapEntityNpcMovementMode.idle);
       expect(variant.startsOnNpcContact, isFalse);
-      expect(tester.takeException(), isNull);
     });
   }
-  testWidgets(
-    'Studio edits variants through canonical action with validation and undo',
-    (tester) async {
-      final map = MapData(
-        id: 'map',
-        name: 'Map',
-        size: const GridSize(width: 6, height: 6),
-        entities: const [
-          MapEntity(
-            id: 'owner',
-            kind: MapEntityKind.custom,
-            pos: GridPos(x: 1, y: 1),
-          ),
-        ],
-      );
-      const project = ProjectManifest(name: 'Test', maps: [], tilesets: []);
-      final document = EditableMapDocument(
-        MapWorkspaceDocument(map: map, revision: 'base', mapId: 'map'),
-      );
-      final commands = MapEntityEditingCommands(document, project);
-      late StateSetter redraw;
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: studioTheme(),
-          home: Scaffold(
-            body: StatefulBuilder(
-              builder: (context, setState) {
-                redraw = setState;
-                return SingleChildScrollView(
-                  child: EntityPresentationControls(
-                    entity: document.current.entities.single,
-                    project: project,
-                    map: map,
-                    onChanged: (value) => setState(
-                      () => commands.setPresentation('owner', value),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
+
+  test('variants use canonical action with validation and one-step undo', () {
+    final map = MapData(
+      id: 'map',
+      name: 'Map',
+      size: const GridSize(width: 6, height: 6),
+      entities: const [
+        MapEntity(
+          id: 'owner',
+          kind: MapEntityKind.custom,
+          pos: GridPos(x: 1, y: 1),
         ),
-      );
-      await tester.tap(find.text('Ajouter une variante'));
-      await tester.pumpAndSettle();
+      ],
+    );
+    final document = _document(map);
+    final commands = MapEntityEditingCommands(
+      document,
+      const ProjectManifest(name: 'Test', maps: [], tilesets: []),
+    );
+    MapEntityPresentationDraft draft() => MapEntityPresentationDraft(
+      document.current,
+      document.current.entities.single,
+    );
+    commands.setPresentation('owner', draft().add());
+    expect(
+      document.current.entities.single.presentation!.variants,
+      hasLength(1),
+    );
+    commands.setPresentation(
+      'owner',
+      draft().replace(0, {'blocksMovement': false}),
+    );
+    expect(
+      document
+          .current
+          .entities
+          .single
+          .presentation!
+          .variants
+          .single
+          .blocksMovement,
+      isFalse,
+    );
+    final before = document.current;
+    final undo = document.undoCount;
+    for (final invalid in ['wrong', '0', '65', '6']) {
       expect(
-        document.current.entities.single.presentation!.variants,
-        hasLength(1),
+        () => draft().resize(0, invalid, width: true),
+        throwsFormatException,
       );
-      final blocking = find.byWidgetPredicate(
-        (widget) =>
-            widget is StudioChoice &&
-            widget.label == 'La variante bloque le passage',
-      );
-      await tester.ensureVisible(blocking);
-      await tester.tap(blocking);
-      await tester.pumpAndSettle();
-      expect(
-        document
-            .current
-            .entities
-            .single
-            .presentation!
-            .variants
-            .single
-            .blocksMovement,
-        isFalse,
-      );
-      final size = find.byWidgetPredicate(
-        (widget) =>
-            widget is StudioCommitField && widget.label == 'Largeur en cases',
-      );
-      await tester.ensureVisible(size);
-      final input = find.descendant(of: size, matching: find.byType(TextField));
-      await tester.enterText(input, 'n’importe quoi');
-      await tester.testTextInput.receiveAction(TextInputAction.done);
-      await tester.pumpAndSettle();
-      expect(
-        document
-            .current
-            .entities
-            .single
-            .presentation!
-            .variants
-            .single
-            .size
-            .width,
-        1,
-      );
-      expect(
-        find.text(
-          'Choisissez une taille de 1 à 64 cases qui reste dans la carte.',
-        ),
-        findsOneWidget,
-      );
-      await tester.enterText(input, '2');
-      await tester.testTextInput.receiveAction(TextInputAction.done);
-      await tester.pumpAndSettle();
-      expect(
-        document
-            .current
-            .entities
-            .single
-            .presentation!
-            .variants
-            .single
-            .size
-            .width,
-        2,
-      );
-      expect(tester.takeException(), isNull);
-      document.restore(redo: false);
-      redraw(() {});
-      await tester.pumpAndSettle();
-      expect(
-        document
-            .current
-            .entities
-            .single
-            .presentation!
-            .variants
-            .single
-            .size
-            .width,
-        1,
-      );
-    },
-  );
+    }
+    expect(document.current, same(before));
+    expect(document.undoCount, undo);
+    commands.setPresentation('owner', draft().resize(0, '2', width: true));
+    expect(
+      document.current.entities.single.presentation!.variants.single.size.width,
+      2,
+    );
+    document.restore(redo: false);
+    expect(document.current, before);
+  });
+
+  test('variant ordering, unique identifiers and last removal preserve base entity', () {
+    const entity = MapEntity(
+      id: 'owner',
+      kind: MapEntityKind.custom,
+      pos: GridPos(x: 1, y: 1),
+    );
+    final map = MapData(
+      id: 'map',
+      name: 'Map',
+      size: const GridSize(width: 6, height: 6),
+      entities: [entity],
+    );
+    var current = entity;
+    MapEntityPresentationDraft draft() =>
+        MapEntityPresentationDraft(map, current);
+    current = current.copyWith(presentation: draft().add());
+    current = current.copyWith(presentation: draft().add());
+    expect(current.presentation!.variants.map((value) => value.id), [
+      'variant_1',
+      'variant_2',
+    ]);
+    current = current.copyWith(presentation: draft().promote(1));
+    expect(current.presentation!.variants.first.id, 'variant_2');
+    current = current.copyWith(presentation: draft().remove(0));
+    expect(draft().remove(0), isNull);
+    expect(entity.presentation, isNull);
+  });
 }
+
+EditableMapDocument _document(MapData map) => EditableMapDocument(
+  MapWorkspaceDocument(map: map, revision: 'base', mapId: map.id),
+);

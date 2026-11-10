@@ -1,221 +1,127 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/material.dart';
+import 'package:avelune_studio/features/pokemon/application/pokemon_workspace_controller.dart';
+import 'package:avelune_studio/features/pokemon/domain/pokemon_workspace_models.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import '../support/capture_m3_widget.dart';
-import '../support/load_desktop_capture_fonts.dart';
-import '../support/map_host_fixture.dart';
-import '../support/m2_ui_fixture.dart' show pumpIo;
+import '../support/m3_story_fixture.dart';
+import '../support/pokemon_authoring_fixture.dart';
 
 void main() {
-  testWidgets('overwriting selected species reloads its draft before editing', (
-    tester,
-  ) async {
-    await tester.runAsync(loadDesktopCaptureFonts);
-    final captureKey = GlobalKey();
-    final source = (await tester.runAsync(() async {
-      final directory = await Directory.systemTemp.createTemp(
-        'avelune_pokemon_reimport_',
-      );
-      final file = File('${directory.path}/species/0001-bulbasaur.json');
-      await file.parent.create(recursive: true);
-      final json = jsonDecode(await File(fixturePath).readAsString()) as Map;
-      json['schemaVersion'] = 1;
-      (json['names'] as Map)['fr'] = 'Bulbizarre importé';
-      await file.writeAsString(jsonEncode(json));
-      return file;
-    }))!;
-    addTearDown(() async => source.parent.parent.delete(recursive: true));
-    final host = await MapHostFixture.open(
-      tester,
-      prepareSource: (fixture) async {
-        final destination = File(
-          '${fixture.directory.path}/data/pokemon/species/0001-bulbasaur.json',
-        );
-        await destination.parent.create(recursive: true);
-        final json = jsonDecode(await File(fixturePath).readAsString()) as Map;
-        json['schemaVersion'] = 1;
-        await destination.writeAsString(jsonEncode(json));
-      },
-      pokemonJsonPicker: () async => source.path,
-      captureKey: captureKey,
+  test('confirmed overwrite reloads selected species before further editing', () async {
+    final host = await PokemonAuthoringFixture.create(
+      prepareSource: _seedSpecies,
     );
+    addTearDown(host.dispose);
+    final source = await _createSource(host, name: 'Bulbizarre importé');
     final destination = File(
       '${host.source.directory.path}/data/pokemon/species/0001-bulbasaur.json',
     );
-    await host.go('Pokémon');
-    await pumpIo(tester);
-    await tester.tap(find.byKey(const ValueKey('species-bulbasaur')));
-    await pumpIo(tester);
-    await tester.tap(find.text('Importer un JSON'));
-    await pumpIo(tester);
-    await captureM3Widget(tester, captureKey, 'pokemon-07-import-json');
-    await tester.tap(find.text('Importer bulbasaur'));
-    await pumpIo(tester);
-    await tester.tap(find.text('Confirmer le remplacement'));
-    await pumpIo(tester);
-    expect(find.text('Bulbizarre importé'), findsWidgets);
-    await tester.enterText(
-      find.byKey(const ValueKey('species-names.fr')),
-      'Bulbizarre après import',
+    final before = await destination.readAsBytes();
+    expect(await host.workflow.requestSpecies('bulbasaur'), isTrue);
+    final originalDraft = host.pokemon.selectedDraft;
+    expect(await host.workflow.pickJson(() async => source.path), isTrue);
+    final preview = host.pokemon.importPreview;
+    expect(preview!.hasConflicts, isTrue);
+    var confirmations = 0;
+    expect(
+      await host.workflow.applyJsonImport(() async {
+        confirmations++;
+        return false;
+      }),
+      isFalse,
     );
-    await tester.pump();
-    await tester.tap(find.text('Enregistrer').first);
-    await pumpIo(tester);
-    final saved = (await tester.runAsync(() async {
-      return jsonDecode(await destination.readAsString()) as Map;
-    }))!;
+    expect(confirmations, 1);
+    expect(host.pokemon.importPreview, same(preview));
+    expect(host.pokemon.selectedDraft, same(originalDraft));
+    expect(await destination.readAsBytes(), before);
+    final confirmation = Completer<bool>();
+    final applying = host.workflow.applyJsonImport(() {
+      confirmations++;
+      return confirmation.future;
+    });
+    expect(confirmations, 2);
+    expect(await destination.readAsBytes(), before);
+    confirmation.complete(true);
+    expect(await applying, isTrue);
+    expect(host.pokemon.selectedDraft, isNot(same(originalDraft)));
+    expect(
+      host.pokemon.selectedDraft!.document(
+        PokemonDocumentFamily.species,
+      )!['names']['fr'],
+      'Bulbizarre importé',
+    );
+    host.pokemon.edit(PokemonDocumentFamily.species, (json) {
+      (json['names'] as Map)['fr'] = 'Bulbizarre après import';
+    });
+    expect(await host.pokemon.saveActiveOwner(), isTrue);
+    final saved = jsonDecode(await destination.readAsString()) as Map;
     expect((saved['names'] as Map)['fr'], 'Bulbizarre après import');
-    expect(tester.takeException(), isNull);
   });
 
-  testWidgets('JSON import does not replace a different species by filename', (
-    tester,
-  ) async {
-    const fixture =
-        '../../packages/map_editor/test/fixtures/manual_pokemon_import_pack_10/species/0001-bulbasaur.json';
-    final source = (await tester.runAsync(() async {
-      final directory = await Directory.systemTemp.createTemp(
-        'avelune_pokemon_collision_',
-      );
-      final file = File('${directory.path}/0001-bulbasaur.json');
-      final json = jsonDecode(await File(fixture).readAsString()) as Map;
-      json['schemaVersion'] = 1;
-      json['id'] = 'ivysaur';
-      json['slug'] = 'ivysaur';
-      await file.writeAsString(jsonEncode(json));
-      return file;
-    }))!;
-    addTearDown(() async => source.parent.delete(recursive: true));
-    final host = await MapHostFixture.open(
-      tester,
-      prepareSource: (fixture) async {
-        final destination = File(
-          '${fixture.directory.path}/data/pokemon/species/0001-bulbasaur.json',
-        );
-        await destination.parent.create(recursive: true);
-        final json = jsonDecode(await File(fixturePath).readAsString()) as Map;
-        json['schemaVersion'] = 1;
-        await destination.writeAsString(jsonEncode(json));
-      },
-      pokemonJsonPicker: () async => source.path,
+  test('JSON import does not replace a different species by filename', () async {
+    final host = await PokemonAuthoringFixture.create(
+      prepareSource: _seedSpecies,
     );
+    addTearDown(host.dispose);
+    final source = await _createSource(host, id: 'ivysaur');
     final destination = File(
       '${host.source.directory.path}/data/pokemon/species/0001-bulbasaur.json',
     );
-    final before = (await tester.runAsync(destination.readAsBytes))!;
-    await host.go('Pokémon');
-    await pumpIo(tester);
-    await tester.tap(find.text('Importer un JSON'));
-    await pumpIo(tester);
-    expect(find.textContaining('appartient déjà'), findsWidgets);
-    expect((await tester.runAsync(destination.readAsBytes))!, before);
-    expect(tester.takeException(), isNull);
+    final before = await destination.readAsBytes();
+    expect(await host.workflow.pickJson(() async => source.path), isFalse);
+    expect(host.pokemon.importPreview, isNull);
+    expect(host.pokemon.error, contains('appartient déjà'));
+    expect(await destination.readAsBytes(), before);
   });
 
-  testWidgets('invalid companion rejects JSON preview before writing', (
-    tester,
-  ) async {
-    final source = (await tester.runAsync(() async {
-      final directory = await Directory.systemTemp.createTemp(
-        'avelune_pokemon_invalid_companion_',
-      );
-      final species = File('${directory.path}/species/0001-bulbasaur.json');
-      final learnset = File('${directory.path}/learnsets/bulbasaur.json');
-      await species.parent.create(recursive: true);
-      await learnset.parent.create(recursive: true);
-      final json = jsonDecode(await File(fixturePath).readAsString()) as Map;
-      json['schemaVersion'] = 1;
-      await species.writeAsString(jsonEncode(json));
-      await learnset.writeAsString('{bad json');
-      return species;
-    }))!;
-    addTearDown(() async => source.parent.parent.delete(recursive: true));
-    final host = await MapHostFixture.open(
-      tester,
-      pokemonJsonPicker: () async => source.path,
-    );
+  test('invalid companion rejects JSON preview before writing', () async {
+    final host = await PokemonAuthoringFixture.create();
+    addTearDown(host.dispose);
+    final source = await _createSource(host, invalidCompanion: true);
     final destination = File(
       '${host.source.directory.path}/data/pokemon/species/0001-bulbasaur.json',
     );
-    await host.go('Pokémon');
-    await pumpIo(tester);
-    await tester.tap(find.text('Importer un JSON'));
-    await pumpIo(tester);
-    expect(find.textContaining('Import JSON refusé'), findsWidgets);
-    expect((await tester.runAsync(destination.exists))!, isFalse);
-    expect(tester.takeException(), isNull);
+    expect(await host.workflow.pickJson(() async => source.path), isFalse);
+    expect(host.pokemon.importPreview, isNull);
+    expect(host.pokemon.error, contains('Import JSON refusé'));
+    expect(await destination.exists(), isFalse);
   });
 
-  testWidgets('JSON import keeps a legacy companion reference identity', (
-    tester,
-  ) async {
-    final source = (await tester.runAsync(() async {
-      final directory = await Directory.systemTemp.createTemp(
-        'avelune_pokemon_legacy_json_',
-      );
-      final species = File('${directory.path}/species/0001-bulbasaur.json');
-      final learnset = File('${directory.path}/learnsets/custom-learn.json');
-      await species.parent.create(recursive: true);
-      await learnset.parent.create(recursive: true);
-      final speciesJson =
-          jsonDecode(await File(fixturePath).readAsString()) as Map;
-      speciesJson['schemaVersion'] = 1;
-      (speciesJson['refs'] as Map)['learnset'] = 'custom-learn';
-      final learnsetJson =
-          jsonDecode(await File(learnsetPath).readAsString()) as Map;
-      learnsetJson['schemaVersion'] = 1;
-      learnsetJson['speciesId'] = 'custom-learn';
-      await species.writeAsString(jsonEncode(speciesJson));
-      await learnset.writeAsString(jsonEncode(learnsetJson));
-      return species;
-    }))!;
-    addTearDown(() async => source.parent.parent.delete(recursive: true));
-    final host = await MapHostFixture.open(
-      tester,
-      pokemonJsonPicker: () async => source.path,
+  test('JSON import keeps a legacy companion reference identity', () async {
+    final host = await PokemonAuthoringFixture.create();
+    addTearDown(host.dispose);
+    final source = await _createSource(host, companionId: 'custom-learn');
+    expect(await host.workflow.pickJson(() async => source.path), isTrue);
+    expect(host.pokemon.importPreview!.items, hasLength(2));
+    expect(
+      await host.workflow.applyJsonImport(() async {
+        throw StateError('New content needs no overwrite decision.');
+      }),
+      isTrue,
     );
-    await host.go('Pokémon');
-    await pumpIo(tester);
-    await tester.tap(find.text('Importer un JSON'));
-    await pumpIo(tester);
-    expect(find.textContaining('2 document(s) retenu(s)'), findsOneWidget);
-    await tester.tap(find.text('Importer bulbasaur'));
-    await pumpIo(tester);
     final companion = File(
       '${host.source.directory.path}/data/pokemon/learnsets/custom-learn.json',
     );
-    expect((await tester.runAsync(companion.exists))!, isTrue);
-    expect(find.text('Bulbizarre'), findsWidgets);
-    expect(tester.takeException(), isNull);
+    expect(await companion.exists(), isTrue);
+    final saved = jsonDecode(await companion.readAsString()) as Map;
+    expect(saved['speciesId'], 'custom-learn');
+    final draft = host.pokemon.selectedDraft!;
+    expect(draft.id, 'bulbasaur');
+    expect(
+      draft.document(PokemonDocumentFamily.species)!['refs']['learnset'],
+      'custom-learn',
+    );
+    expect(
+      draft.document(PokemonDocumentFamily.learnset)!['speciesId'],
+      'custom-learn',
+    );
   });
 
-  testWidgets('JSON import refuses a companion owned by another species', (
-    tester,
-  ) async {
-    final source = (await tester.runAsync(() async {
-      final directory = await Directory.systemTemp.createTemp(
-        'avelune_pokemon_companion_collision_',
-      );
-      final species = File('${directory.path}/species/0001-bulbasaur.json');
-      final learnset = File('${directory.path}/learnsets/bulbasaur.json');
-      await species.parent.create(recursive: true);
-      await learnset.parent.create(recursive: true);
-      final speciesJson =
-          jsonDecode(await File(fixturePath).readAsString()) as Map;
-      speciesJson['schemaVersion'] = 1;
-      await species.writeAsString(jsonEncode(speciesJson));
-      final learnsetJson =
-          jsonDecode(await File(learnsetPath).readAsString()) as Map;
-      learnsetJson['schemaVersion'] = 1;
-      await learnset.writeAsString(jsonEncode(learnsetJson));
-      return species;
-    }))!;
-    addTearDown(() async => source.parent.parent.delete(recursive: true));
-    final host = await MapHostFixture.open(
-      tester,
+  test('JSON import refuses a companion owned by another species', () async {
+    final host = await PokemonAuthoringFixture.create(
       prepareSource: (fixture) async {
         final file = File(
           '${fixture.directory.path}/data/pokemon/learnsets/bulbasaur.json',
@@ -226,24 +132,64 @@ void main() {
         json['speciesId'] = 'ivysaur';
         await file.writeAsString(jsonEncode(json));
       },
-      pokemonJsonPicker: () async => source.path,
     );
+    addTearDown(host.dispose);
+    final source = await _createSource(host, companionId: 'bulbasaur');
     final companion = File(
       '${host.source.directory.path}/data/pokemon/learnsets/bulbasaur.json',
     );
     final destination = File(
       '${host.source.directory.path}/data/pokemon/species/0001-bulbasaur.json',
     );
-    final before = (await tester.runAsync(companion.readAsBytes))!;
-    await host.go('Pokémon');
-    await pumpIo(tester);
-    await tester.tap(find.text('Importer un JSON'));
-    await pumpIo(tester);
-    expect(find.textContaining('appartient déjà'), findsWidgets);
-    expect((await tester.runAsync(companion.readAsBytes))!, before);
-    expect((await tester.runAsync(destination.exists))!, isFalse);
-    expect(tester.takeException(), isNull);
+    final before = await companion.readAsBytes();
+    expect(await host.workflow.pickJson(() async => source.path), isFalse);
+    expect(host.pokemon.importPreview, isNull);
+    expect(host.pokemon.error, contains('appartient déjà'));
+    expect(await companion.readAsBytes(), before);
+    expect(await destination.exists(), isFalse);
   });
+}
+
+Future<void> _seedSpecies(M3StoryFixture fixture) async {
+  final destination = File(
+    '${fixture.directory.path}/data/pokemon/species/0001-bulbasaur.json',
+  );
+  await destination.parent.create(recursive: true);
+  final json = jsonDecode(await File(fixturePath).readAsString()) as Map;
+  json['schemaVersion'] = 1;
+  await destination.writeAsString(jsonEncode(json));
+}
+
+Future<File> _createSource(
+  PokemonAuthoringFixture host, {
+  String id = 'bulbasaur',
+  String? name,
+  String? companionId,
+  bool invalidCompanion = false,
+}) async {
+  final root = '${host.source.directory.path}/incoming';
+  final species = File('$root/species/0001-bulbasaur.json');
+  await species.parent.create(recursive: true);
+  final json = jsonDecode(await File(fixturePath).readAsString()) as Map;
+  json['schemaVersion'] = 1;
+  json['id'] = id;
+  json['slug'] = id;
+  if (name != null) (json['names'] as Map)['fr'] = name;
+  if (companionId != null) (json['refs'] as Map)['learnset'] = companionId;
+  await species.writeAsString(jsonEncode(json));
+  if (companionId != null || invalidCompanion) {
+    final learnset = File('$root/learnsets/${companionId ?? 'bulbasaur'}.json');
+    await learnset.parent.create(recursive: true);
+    if (invalidCompanion) {
+      await learnset.writeAsString('{bad json');
+    } else {
+      final data = jsonDecode(await File(learnsetPath).readAsString()) as Map;
+      data['schemaVersion'] = 1;
+      data['speciesId'] = companionId;
+      await learnset.writeAsString(jsonEncode(data));
+    }
+  }
+  return species;
 }
 
 const fixturePath =

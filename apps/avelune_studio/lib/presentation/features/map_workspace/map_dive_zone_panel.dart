@@ -1,3 +1,5 @@
+import '../../../features/map_workspace/application/dive_pair_publishing_session.dart';
+
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
@@ -37,96 +39,44 @@ class MapDiveZonePanel extends StatefulWidget {
 }
 
 class _MapDiveZonePanelState extends State<MapDiveZonePanel> {
-  String? _targetMapId, _targetZoneId, _message;
-  MapData? _target;
-  bool _busy = false;
-  int _epoch = 0;
+  DivePairPublishingSession? _publishing;
+  String? get _targetMapId => _publishing?.targetMapId;
+  String? get _targetZoneId => _publishing?.targetZoneId;
+  set _targetZoneId(String? value) => _publishing?.targetZoneId = value;
+  String? get _message => _publishing?.message;
+  MapData? get _target => _publishing?.target;
+  bool get _busy => _publishing?.busy == true;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final scope = DivePairPublishingScope.maybeOf(context);
+    if (scope == null) {
+      _publishing?.dispose();
+      _publishing = null;
+      return;
+    }
+    if (_publishing?.controller != scope.controller ||
+        _publishing?.port != scope.port) {
+      _publishing?.dispose();
+      _publishing = DivePairPublishingSession(
+        controller: scope.controller,
+        port: scope.port,
+        changed: () {
+          if (mounted) setState(() {});
+        },
+      );
+    }
     final link = widget.zone.fieldAction?.dive?.link;
-    if (scope != null && link != null && _targetMapId != link.mapId) {
-      _selectMap(scope, link.mapId);
+    if (link != null && _targetMapId != link.mapId) {
+      _publishing!.selectMap(link.mapId);
     }
   }
 
-  Future<void> _selectMap(DivePairPublishingScope scope, String id) async {
-    final epoch = ++_epoch;
-    setState(() {
-      _targetMapId = id;
-      _targetZoneId = null;
-      _target = null;
-      _message = null;
-    });
-    try {
-      final map =
-          scope.controller.documents[id]?.current ??
-          await scope.controller.previewMap(id);
-      if (mounted && epoch == _epoch) setState(() => _target = map);
-    } on Object catch (error) {
-      if (mounted && epoch == _epoch) setState(() => _message = '$error');
-    }
-  }
-
-  Future<void> _publish(DivePairPublishingScope scope) async {
-    final source = widget.commands.document;
-    final controller = scope.controller;
-    final zone = widget.zone;
-    final link = zone.fieldAction!.dive!.link;
-    final targetId = link?.mapId ?? _targetMapId;
-    final targetZoneId = link?.zoneId ?? _targetZoneId;
-    if (scope.port == null ||
-        targetId == null ||
-        targetZoneId == null ||
-        _busy) {
-      return;
-    }
-    if (source.dirty ||
-        source.saving ||
-        controller.documents[targetId]?.dirty == true ||
-        controller.documents[targetId]?.saving == true) {
-      setState(
-        () => _message = 'Enregistrez les brouillons des deux cartes avant de publier leur liaison.',
-      );
-      return;
-    }
-    setState(() {
-      _busy = true;
-      _message = null;
-    });
-    try {
-      final target =
-          controller.documents[targetId]?.current ??
-          (link == null ? _target : null) ??
-          await controller.previewMap(targetId);
-      if (target == null) {
-        throw StateError('Carte opposée indisponible.');
-      }
-      if (source.dirty || controller.documents[targetId]?.dirty == true) {
-        throw StateError('Un brouillon a changé avant la publication.');
-      }
-      await scope.port!.publishDivePair(
-        session: controller.session,
-        source: source.current,
-        expectedTarget: target,
-        zoneId: zone.id,
-        targetZoneId: targetZoneId,
-        unlink: link != null,
-      );
-      await controller.refreshSavedMaps({source.current.id, targetId});
-      if (mounted) {
-        setState(
-          () => _message = link == null
-              ? 'Les deux points sont liés. Délier annule cette publication.'
-              : 'Les deux points sont déliés et conservés en préparation.',
-        );
-      }
-    } on Object catch (error) {
-      if (mounted) setState(() => _message = '$error');
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
+  @override
+  void dispose() {
+    _publishing?.dispose();
+    super.dispose();
   }
 
   String _endpointLabel(MapGameplayZone? point) => point == null
@@ -209,7 +159,7 @@ class _MapDiveZonePanelState extends State<MapDiveZonePanel> {
               ))
                 map.id: map.name,
             },
-            onChanged: _busy ? null : (id) => _selectMap(scope, id),
+            onChanged: _busy ? null : (id) => _publishing!.selectMap(id),
           ),
           const SizedBox(height: 8),
           StudioSelect(
@@ -248,7 +198,8 @@ class _MapDiveZonePanelState extends State<MapDiveZonePanel> {
                   (link == null &&
                       (_targetMapId == null || _targetZoneId == null))
               ? null
-              : () => _publish(scope!),
+              : () =>
+                    _publishing!.publish(widget.commands.document, widget.zone),
         ),
         const Text(
           'Lier et Délier publient les deux cartes. Cette publication se défait avec Délier ; Ctrl+Z reste local au brouillon.',

@@ -3,6 +3,20 @@ import 'package:map_core/map_core_domain.dart';
 import '../domain/map_connection_port.dart';
 import 'map_workspace_controller.dart';
 
+List<ProjectMapEntry> mapConnectionDestinations(
+  ProjectManifest project,
+  String sourceMapId,
+) => project.maps.where((entry) => entry.id != sourceMapId).toList();
+
+String? mapConnectionTarget(
+  List<ProjectMapEntry> destinations,
+  String? selectedId,
+) => destinations.any((entry) => entry.id == selectedId)
+    ? selectedId
+    : destinations.firstOrNull?.id;
+
+int? mapConnectionOffset(String text) => int.tryParse(text.trim());
+
 class MapWorkspaceConnectionActions {
   MapWorkspaceConnectionActions({
     required this.controller,

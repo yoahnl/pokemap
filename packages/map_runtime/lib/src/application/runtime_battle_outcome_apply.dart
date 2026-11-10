@@ -704,7 +704,7 @@ GameState writePlayerBattleLineupBackToPartySlots({
     );
   }
 
-  final lineupToParty = _resolvePlayerLineupPartyIndices(
+  final lineupToParty = resolvePlayerBattleLineupPartyIndices(
     gameState: gameState,
     context: context,
   );
@@ -808,7 +808,7 @@ GameState writePlayerPsdkHeldItemsBackToPartySlots({
   required ItemCatalogSnapshot itemCatalog,
 }) {
   final lineup = psdkState.partyForBank(psdkPlayerSlot.bank);
-  final mapping = _resolvePlayerLineupPartyIndices(
+  final mapping = resolvePlayerBattleLineupPartyIndices(
     gameState: gameState,
     context: context,
   );
@@ -862,7 +862,7 @@ GameState writePlayerPsdkHeldItemsBackToPartySlots({
   );
 }
 
-List<int> _resolvePlayerLineupPartyIndices({
+List<int> resolvePlayerBattleLineupPartyIndices({
   required GameState gameState,
   required RuntimeActiveBattleContext context,
 }) {

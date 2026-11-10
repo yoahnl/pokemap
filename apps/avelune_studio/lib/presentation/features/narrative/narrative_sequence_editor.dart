@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
+
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/inputs/studio_draft_field.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import '../../shared/widgets/inputs/studio_toggle_row.dart';
 import '../../../features/narrative/application/narrative_interaction.dart';
+import '../../../features/narrative/application/narrative_editing.dart';
 import '../../../features/narrative/application/narrative_workspace_controller.dart';
 
 class NarrativeSequenceEditor extends StatelessWidget {
@@ -17,37 +19,16 @@ class NarrativeSequenceEditor extends StatelessWidget {
   final NarrativeWorkspaceController controller;
   final List<NarrativeSequenceStep> steps;
   final ValueChanged<List<NarrativeSequenceStep>> onChanged;
-  static const labels = {
-    NarrativeSequenceKind.dialogue: 'Afficher un dialogue',
-    NarrativeSequenceKind.facing: 'Orienter un personnage',
-    NarrativeSequenceKind.wait: 'Attendre',
-    NarrativeSequenceKind.setFact: 'Changer un état',
-    NarrativeSequenceKind.completeStep: 'Terminer une étape',
-  };
+  static const labels = narrativeSequenceLabels;
 
-  Map<String, String> targets(NarrativeSequenceKind kind) => switch (kind) {
-    NarrativeSequenceKind.dialogue => {
-      for (final d in controller.project.dialogues) d.id: d.name,
-    },
-    NarrativeSequenceKind.facing => {
-      for (final e in controller.active!.document.current.entities.where(
-        (e) => e.npc != null,
-      ))
-        e.id: e.name,
-    },
-    NarrativeSequenceKind.setFact => {
-      for (final f in controller.facts.where(
-        (f) => f.valueKind == NarrativeValueKind.boolean,
-      ))
-        f.id: f.label,
-    },
-    NarrativeSequenceKind.completeStep => {
-      for (final s in controller.stories)
-        for (final c in s.chapters)
-          for (final step in c.steps) step.id: '${s.title} · ${step.title}',
-    },
-    NarrativeSequenceKind.wait => {},
-  };
+  Map<String, String> targets(NarrativeSequenceKind kind) =>
+      narrativeSequenceTargets(
+        kind,
+        project: controller.project,
+        map: controller.active?.document.current,
+        stories: controller.stories,
+        facts: controller.facts,
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -72,12 +53,11 @@ class NarrativeSequenceEditor extends StatelessWidget {
                 int? ms,
               }) => replace(
                 i,
-                NarrativeSequenceStep(
-                  kind: step.kind,
-                  targetId: target ?? step.targetId,
-                  value: value ?? step.value,
-                  facing: facing ?? step.facing,
-                  milliseconds: ms ?? step.milliseconds,
+                step.revise(
+                  target: target,
+                  value: value,
+                  facing: facing,
+                  milliseconds: ms,
                 ),
               );
               return Padding(

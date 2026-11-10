@@ -1,36 +1,15 @@
-import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
-import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/spatial_fishing_editor.dart';
-import 'package:flutter/material.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_spatial_settings_commands.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/spatial_environment_fixture.dart';
+import '../support/spatial_ramp_fixture.dart';
 
 void main() {
-  testWidgets('fishing height commits validates and supports undo', (
-    tester,
-  ) async {
+  test('fishing height commits French decimals and supports undo', () {
     final map = spatialEnvironmentMap();
-    final document = EditableMapDocument(
-      MapWorkspaceDocument(map: map, mapId: map.id, revision: 'fishing'),
-    );
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: StatefulBuilder(
-            builder: (context, refresh) => SpatialFishingEditor(
-              document: document,
-              project: spatialEnvironmentProject(),
-              onChanged: () => refresh(() {}),
-            ),
-          ),
-        ),
-      ),
-    );
-    final field = find.byType(TextField);
-    await tester.enterText(field, '0,5');
-    await tester.testTextInput.receiveAction(TextInputAction.done);
-    await tester.pump();
+    final document = rampDocument(map);
+    final commands = MapSpatialSettingsCommands(document);
+    expect(commands.fishingDrop('0,5', spatialEnvironmentProject()), isTrue);
     expect(
       document.current.spatialScene!.navigation.maximumFishingDropWorld,
       .5,
@@ -40,15 +19,28 @@ void main() {
       document.current.spatialScene!.instances,
       map.spatialScene!.instances,
     );
-    await tester.enterText(field, '5');
-    await tester.testTextInput.receiveAction(TextInputAction.done);
-    await tester.pump();
-    expect(
-      document.current.spatialScene!.navigation.maximumFishingDropWorld,
-      .5,
-    );
+    final changed = document.current;
+    for (final invalid in ['5', '-1', 'NaN', 'Infinity', 'text']) {
+      expect(
+        commands.fishingDrop(invalid, spatialEnvironmentProject()),
+        isFalse,
+      );
+    }
+    expect(document.current, same(changed));
     expect(document.undoCount, 1);
     document.restore(redo: false);
     expect(document.current, map);
+  });
+
+  test('fishing refuses writes while saving', () {
+    final map = spatialEnvironmentMap();
+    final document = rampDocument(map)..saving = true;
+    expect(
+      MapSpatialSettingsCommands(document)
+          .fishingDrop('1', spatialEnvironmentProject()),
+      isFalse,
+    );
+    expect(document.current, same(map));
+    expect(document.canUndo, isFalse);
   });
 }

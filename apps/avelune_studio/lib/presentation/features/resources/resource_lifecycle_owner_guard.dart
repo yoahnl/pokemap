@@ -1,18 +1,16 @@
 import 'package:flutter/material.dart';
+
 import '../../shared/widgets/buttons/studio_button.dart';
+
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
-import 'package:avelune_studio/features/resources/coordination/resource_navigation.dart';
+
 import 'resource_management_dialog.dart';
 
-Future<bool> resolveResourceDecorOwner(
+Future<bool> confirmResourceDecorOwnerSave(
   BuildContext context,
-  ResourceNavigation navigation,
   ResourceItem item, {
   bool duplicate = false,
 }) async {
-  if (item.element == null || navigation.decorDraftFor(item.id) == null) {
-    return true;
-  }
   var save = false;
   await showResourceManagementRoute(
     context,
@@ -40,5 +38,5 @@ Future<bool> resolveResourceDecorOwner(
       ],
     ),
   );
-  return save && await navigation.saveDecorOwner(item.id);
+  return save;
 }

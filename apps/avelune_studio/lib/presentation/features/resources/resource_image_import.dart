@@ -1,5 +1,5 @@
-import 'dart:math';
-import 'dart:ui' as ui;
+import '../../../features/resources/application/resource_image_import_draft.dart';
+import '../../../platform/rendering/resource_image_content_verifier.dart';
 
 import 'package:flutter/material.dart';
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
@@ -149,7 +149,12 @@ class _ImageImportDialogState extends State<_ImageImportDialog> {
   late final name = TextEditingController(text: widget.image.name);
   late final width = TextEditingController(text: '${widget.tileWidth}');
   late final height = TextEditingController(text: '${widget.tileHeight}');
-  bool? _decoded;
+  late final _draft = ResourceImageImportDraft(
+    image: widget.image,
+    tileWidth: widget.tileWidth,
+    tileHeight: widget.tileHeight,
+    existingNames: widget.takenNames,
+  );
 
   @override
   void initState() {
@@ -158,27 +163,13 @@ class _ImageImportDialogState extends State<_ImageImportDialog> {
   }
 
   Future<void> _verifyContent() async {
-    var decoded = false;
-    try {
-      final codec = await ui.instantiateImageCodec(
-        widget.image.bytes,
-        targetWidth: min(widget.image.width, 256),
-      );
-      try {
-        final frame = await codec.getNextFrame();
-        frame.image.dispose();
-        decoded = codec.frameCount == 1;
-      } finally {
-        codec.dispose();
-      }
-    } on Object {
-      decoded = false;
-    }
-    if (mounted) setState(() => _decoded = decoded);
+    await _draft.verify(verifyResourceImageContent);
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
+    _draft.dispose();
     name.dispose();
     width.dispose();
     height.dispose();
@@ -190,22 +181,13 @@ class _ImageImportDialogState extends State<_ImageImportDialog> {
   @override
   Widget build(BuildContext context) {
     final image = widget.image;
-    final takenNames = widget.takenNames;
     final intent = widget.intent;
-    final w = int.tryParse(width.text) ?? 0;
-    final h = int.tryParse(height.text) ?? 0;
-    final nameTaken = takenNames.contains(name.text.trim().toLowerCase());
-    final restWidth = w > 0 ? image.width % w : 0;
-    final restHeight = h > 0 ? image.height % h : 0;
-    final valid =
-        _decoded == true &&
-        name.text.trim().isNotEmpty &&
-        w > 0 &&
-        h > 0 &&
-        w <= image.width &&
-        h <= image.height &&
-        restWidth == 0 &&
-        restHeight == 0;
+    final w = _draft.cellWidth;
+    final h = _draft.cellHeight;
+    final nameTaken = _draft.nameTaken;
+    final restWidth = _draft.restWidth;
+    final restHeight = _draft.restHeight;
+    final valid = _draft.valid;
     return Dialog(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 650),
@@ -245,7 +227,7 @@ class _ImageImportDialogState extends State<_ImageImportDialog> {
                       style: Theme.of(context).textTheme.titleSmall,
                     ),
                     const SizedBox(height: 8),
-                    switch (_decoded) {
+                    switch (_draft.decoded) {
                       null => const _PreflightLine(
                         'Vérification du contenu PNG…',
                         pending: true,
@@ -313,7 +295,7 @@ class _ImageImportDialogState extends State<_ImageImportDialog> {
                 key: const ValueKey('resource-import-name'),
                 controller: name,
                 decoration: const InputDecoration(labelText: 'Nom'),
-                onChanged: (_) => rebuild(() {}),
+                onChanged: (value) => rebuild(() => _draft.name = value),
               ),
               const SizedBox(height: 12),
               Row(
@@ -326,7 +308,7 @@ class _ImageImportDialogState extends State<_ImageImportDialog> {
                         labelText: 'Largeur de cellule (px)',
                       ),
                       keyboardType: TextInputType.number,
-                      onChanged: (_) => rebuild(() {}),
+                      onChanged: (value) => rebuild(() => _draft.width = value),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -338,7 +320,8 @@ class _ImageImportDialogState extends State<_ImageImportDialog> {
                         labelText: 'Hauteur de cellule (px)',
                       ),
                       keyboardType: TextInputType.number,
-                      onChanged: (_) => rebuild(() {}),
+                      onChanged: (value) =>
+                          rebuild(() => _draft.height = value),
                     ),
                   ),
                 ],
@@ -360,15 +343,7 @@ class _ImageImportDialogState extends State<_ImageImportDialog> {
                   StudioButton(
                     label: 'Importer',
                     onPressed: valid
-                        ? () => Navigator.pop(
-                            context,
-                            ResourceImageImport(
-                              sourcePath: image.path,
-                              name: name.text.trim(),
-                              tileWidth: w,
-                              tileHeight: h,
-                            ),
-                          )
+                        ? () => Navigator.pop(context, _draft.build())
                         : null,
                   ),
                 ],

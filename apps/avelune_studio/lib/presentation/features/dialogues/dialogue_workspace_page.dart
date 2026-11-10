@@ -1,7 +1,8 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:map_authoring/map_authoring_dialogue.dart';
+
 import '../../../features/dialogues/application/dialogue_workspace_controller.dart'
     hide dialogueSteps;
 import '../../shared/widgets/buttons/studio_button.dart';
@@ -12,7 +13,6 @@ import 'dialogue_document_toolbar.dart';
 import '../narrative/narrative_name_dialog.dart';
 import 'dialogue_view_state.dart';
 import 'dialogue_library.dart';
-import 'dialogue_graph_canvas.dart';
 import 'dialogue_inspector.dart';
 import 'dialogue_preview_panel.dart';
 import 'dialogue_portrait_image.dart';
@@ -110,9 +110,7 @@ class _DialogueWorkspacePageState extends State<DialogueWorkspacePage> {
                 StudioPageHeader(
                   title: 'Éditeur de dialogue',
                   prominent: !small,
-                  description: small
-                      ? null
-                      : 'Écrivez les répliques, reliez les réponses, essayez chaque chemin.',
+                  description: small ? null : 'Écrivez les répliques, reliez les réponses, essayez chaque chemin.',
                   alignActionsToEnd: true,
                   actions: [
                     StudioTool(
@@ -246,28 +244,7 @@ class _DialogueWorkspacePageState extends State<DialogueWorkspacePage> {
                                           onNarration: () => addLine(true),
                                           onChoice: addChoice,
                                         ),
-                                      Expanded(
-                                        child: DialogueGraphCanvas(
-                                          key: ValueKey(session.entry.id),
-                                          document: session.document,
-                                          view: state!,
-                                          changed: refresh,
-                                          onConnect: connect,
-                                          portrait: portrait,
-                                          outcomes: {
-                                            for (final o
-                                                in session
-                                                    .entry
-                                                    .declaredOutcomes)
-                                              o.id: o.label,
-                                          },
-                                          onDelete: deleteSelection,
-                                          onUndo: controller.undo,
-                                          onRedo: controller.redo,
-                                          onSave: save,
-                                        ),
-                                      ),
-                                      if (state.previewOpen &&
+                                      if (state!.previewOpen &&
                                           !small &&
                                           !compact) ...[
                                         const SizedBox(height: 8),

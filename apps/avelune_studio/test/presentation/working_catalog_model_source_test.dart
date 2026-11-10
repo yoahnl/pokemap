@@ -1,76 +1,87 @@
 import 'dart:async';
 
-import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/features/resources/application/working_catalog_controller.dart';
+import 'package:avelune_studio/features/resources/coordination/working_catalog_workflow.dart';
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import 'package:avelune_studio/features/resources/domain/working_catalog_port.dart';
-import 'package:avelune_studio/presentation/features/resources/working_catalog_workspace.dart';
-import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
-import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_choice.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
-void main() {
-  testWidgets(
-    'source replacement refreshes only the selected detail and remounts unchanged inspection preview',
-    (tester) async {
-      final port = _Port();
-      final complete = Completer<bool>();
-      var calls = 0;
-      final fixture = await _mount(tester, port, (_) {
-        calls++;
-        return complete.future;
-      });
-      await _tap(tester);
-      expect(calls, 1);
-      expect(find.text('Remplacement…'), findsOneWidget);
-      expect(await fixture.exit!(), false);
-      port.color = 'nouvelle couleur';
-      complete.complete(true);
-      await tester.pumpAndSettle();
-      expect(port.opens, 2);
-      expect(port.queries, 1);
-      expect(fixture.globalRefreshes, 0);
-      expect(find.text('nouvelle couleur'), findsOneWidget);
-      expect(find.text('Modèle remplacé.'), findsOneWidget);
-      expect(await fixture.exit!(), true);
-      await tester.pumpWidget(const SizedBox());
-    },
+Future<(WorkingCatalogController, WorkingCatalogWorkflow)> _open(
+  _Port port,
+  Future<bool> Function(String) replace, {
+  Future<void> Function()? synchronize,
+}) async {
+  final catalog = WorkingCatalogController(port);
+  addTearDown(catalog.dispose);
+  await catalog.search('');
+  await catalog.select(_entry);
+  final workflow = WorkingCatalogWorkflow(
+    catalog: catalog,
+    isActive: () => true,
+    confirmExit: () async => WorkingCatalogExitDecision.stay,
+    changed: () {},
+    onSaved: synchronize,
+    onReplaceModelSource: replace,
   );
+  addTearDown(workflow.dispose);
+  return (catalog, workflow);
+}
 
-  testWidgets(
+void main() {
+  test('source replacement refreshes only selected detail and invalidates the unchanged preview identity', () async {
+    final port = _Port();
+    final gate = Completer<bool>();
+    var calls = 0, globalRefreshes = 0;
+    final (catalog, workflow) = await _open(
+      port,
+      (_) {
+        calls++;
+        return gate.future;
+      },
+      synchronize: () async {
+        globalRefreshes++;
+      },
+    );
+    final replacing = workflow.replaceModelSource();
+    expect(calls, 1);
+    expect(workflow.sourceReplacementActive, isTrue);
+    expect(await workflow.allowExit(closing: true), isFalse);
+    final identity = catalog.detail!.visualIdentity;
+    gate.complete(true);
+    await replacing;
+    expect(port.opens, 2);
+    expect(port.queries, 1);
+    expect(globalRefreshes, 0);
+    expect(catalog.detail!.visualIdentity, same(identity));
+    expect(workflow.sourcePreviewRevision, 1);
+    expect(workflow.saved, 'Modèle remplacé.');
+    expect(await workflow.allowExit(closing: true), isTrue);
+  });
+
+  test(
     'dirty model metadata blocks replacement without dropping its draft',
-    (tester) async {
+    () async {
       final port = _Port();
       var calls = 0;
-      final fixture = await _mount(tester, port, (_) async {
+      final (catalog, workflow) = await _open(port, (_) async {
         calls++;
         return true;
       });
-      fixture.controller.edit(name: 'Mon brouillon');
-      await tester.pump();
-      expect(
-        tester
-            .widget<StudioButton>(
-              find.byKey(const ValueKey('working-model-source-replace')),
-            )
-            .onPressed,
-        isNull,
-      );
+      catalog.edit(name: 'Mon brouillon');
+      await workflow.replaceModelSource();
       expect(calls, 0);
-      expect(fixture.controller.draft!.name, 'Mon brouillon');
+      expect(catalog.draft!.name, 'Mon brouillon');
       expect(port.opens, 1);
-      await tester.pumpWidget(const SizedBox());
     },
   );
 
   for (final refused in [false, true]) {
-    testWidgets(
-      'source ${refused ? 'refusal' : 'picker cancellation'} keeps selected detail and preview',
-      (tester) async {
+    test(
+      'source ${refused ? 'refusal' : 'picker cancellation'} keeps selected detail and preview identity',
+      () async {
         final port = _Port();
-        await _mount(tester, port, (_) async {
+        final (catalog, workflow) = await _open(port, (_) async {
           if (refused) {
             throw const ResourceFailure(
               'Conservez les deux animations de porte.',
@@ -78,29 +89,29 @@ void main() {
           }
           return false;
         });
-        await _tap(tester);
-        await tester.pumpAndSettle();
+        final detail = catalog.detail;
+        await workflow.replaceModelSource();
         expect(port.opens, 1);
         expect(port.queries, 1);
-        expect(find.text('couleur initiale'), findsOneWidget);
-        expect(find.text('Modèle remplacé.'), findsNothing);
+        expect(catalog.detail, same(detail));
+        expect(workflow.sourcePreviewRevision, 0);
+        expect(workflow.saved, isNull);
         if (refused) {
           expect(
-            find.text('Conservez les deux animations de porte.'),
-            findsOneWidget,
+            workflow.navigationNotice,
+            'Conservez les deux animations de porte.',
           );
         }
-        await tester.pumpWidget(const SizedBox());
       },
     );
   }
 
-  testWidgets(
+  test(
     'published source reconciliation retries without publishing another source',
-    (tester) async {
+    () async {
       final port = _Port();
       var publications = 0, callbacks = 0;
-      final fixture = await _mount(tester, port, (_) async {
+      final (_, workflow) = await _open(port, (_) async {
         callbacks++;
         if (callbacks == 1) {
           publications++;
@@ -117,111 +128,70 @@ void main() {
         }
         return true;
       });
-      await _tap(tester);
-      await tester.pumpAndSettle();
-      expect(await fixture.exit!(), true);
-      expect(
-        tester
-            .widget<StudioChoice>(
-              find.byKey(const ValueKey('working-resource-model3d:door')),
-            )
-            .onTap,
-        isNull,
-      );
-      expect(find.text('Actualiser le modèle'), findsOneWidget);
-      await _tap(tester);
-      await tester.pumpAndSettle();
-      expect(publications, 1);
+      await workflow.replaceModelSource();
+      expect(workflow.sourceReconciliationPending, isTrue);
+      expect(workflow.editable, isFalse);
+      expect(await workflow.allowExit(closing: true), isTrue);
+      expect(await workflow.allowExit(), isFalse);
+      await workflow.replaceModelSource();
       expect(callbacks, 2);
+      expect(publications, 1);
+      expect(workflow.sourceReplacementPending, isFalse);
       expect(port.opens, 2);
       expect(port.queries, 1);
-      expect(await fixture.exit!(), true);
-      await tester.pumpWidget(const SizedBox());
     },
   );
 
-  testWidgets(
-    'failed detail refresh retries the read without reopening the source picker',
-    (tester) async {
+  test('failed detail refresh retries the read without reopening the source picker', () async {
+    final port = _Port();
+    var replacements = 0;
+    final (_, workflow) = await _open(port, (_) async {
+      replacements++;
+      port.failOpen = true;
+      return true;
+    });
+    await workflow.replaceModelSource();
+    expect(workflow.sourceReloadPending, isTrue);
+    expect(workflow.editable, isFalse);
+    expect(await workflow.allowExit(closing: true), isTrue);
+    await workflow.replaceModelSource();
+    expect(replacements, 1);
+    expect(port.opens, 3);
+    expect(port.queries, 1);
+    expect(workflow.sourceReplacementPending, isFalse);
+    expect(await workflow.allowExit(closing: true), isTrue);
+  });
+  test(
+    'a newer selected detail cannot acknowledge the previous model reload',
+    () async {
       final port = _Port();
-      var replacements = 0;
-      final fixture = await _mount(tester, port, (_) async {
-        replacements++;
-        port.failOpen = true;
-        return true;
-      });
-      await _tap(tester);
-      await tester.pumpAndSettle();
-      expect(find.text('Actualiser le modèle'), findsOneWidget);
-      expect(await fixture.exit!(), true);
-      expect(
-        tester
-            .widget<StudioChoice>(
-              find.byKey(const ValueKey('working-resource-model3d:door')),
-            )
-            .onTap,
-        isNull,
+      final (catalog, workflow) = await _open(port, (_) async => true);
+      final gate = Completer<WorkingCatalogDetail>();
+      final started = Completer<void>();
+      port.doorGate = gate;
+      port.doorStarted = started;
+      final replacing = workflow.replaceModelSource();
+      await started.future;
+      const other = WorkingCatalogEntry(
+        id: 'other',
+        kind: 'model3d',
+        name: 'Autre modèle',
       );
-      await _tap(tester);
-      await tester.pumpAndSettle();
-      expect(replacements, 1);
-      expect(port.opens, 3);
-      expect(port.queries, 1);
-      expect(await fixture.exit!(), true);
-      await tester.pumpWidget(const SizedBox());
+      await catalog.select(other);
+      gate.complete(
+        WorkingCatalogDetail(
+          entry: _entry,
+          revision: 'r',
+          definitions: _project,
+        ),
+      );
+      await replacing;
+      expect(catalog.selected?.identity, other.identity);
+      expect(catalog.detail?.entry.identity, other.identity);
+      expect(workflow.sourceReloadPending, isTrue);
+      expect(workflow.saved, isNull);
     },
   );
-}
-
-Future<void> _tap(WidgetTester tester) async {
-  final button = find.byKey(const ValueKey('working-model-source-replace'));
-  await tester.ensureVisible(button);
-  await tester.tap(button);
-  await tester.pump();
-}
-
-final class _Fixture {
-  _Fixture(this.controller);
-  final WorkingCatalogController controller;
-  Future<bool> Function()? exit;
-  int globalRefreshes = 0;
-}
-
-Future<_Fixture> _mount(
-  WidgetTester tester,
-  _Port port,
-  Future<bool> Function(String) replace,
-) async {
-  await tester.binding.setSurfaceSize(const Size(1400, 1000));
-  addTearDown(() => tester.binding.setSurfaceSize(null));
-  final fixture = _Fixture(WorkingCatalogController(port));
-  addTearDown(fixture.controller.dispose);
-  await tester.pumpWidget(
-    MaterialApp(
-      home: WorkingCatalogWorkspace(
-        session: const ProjectSession(
-          sessionId: 'source',
-          name: 'Projet',
-          directoryPath: '/project',
-          storage: ProjectSessionStorage.workingCatalog,
-        ),
-        controller: fixture.controller,
-        onClose: () async {},
-        registerExitGuard: (value) => fixture.exit = value,
-        onSaved: () async {
-          fixture.globalRefreshes++;
-        },
-        onReplaceModelSource: replace,
-        previewBuilder: (_) => _Preview(port),
-      ),
-    ),
-  );
-  await tester.pumpAndSettle();
-  await fixture.controller.select(_entry);
-  await tester.pumpAndSettle();
-  expect(fixture.controller.error, isNull);
-  expect(fixture.controller.detail?.definitions.models3d, hasLength(1));
-  return fixture;
 }
 
 const _entry = WorkingCatalogEntry(id: 'door', kind: 'model3d', name: 'Porte');
@@ -252,6 +222,8 @@ final class _Port implements WorkingCatalogPort {
   int queries = 0, opens = 0;
   String color = 'couleur initiale';
   bool failOpen = false;
+  Completer<WorkingCatalogDetail>? doorGate;
+  Completer<void>? doorStarted;
   @override
   Future<WorkingCatalogPage> query({
     required String kind,
@@ -266,12 +238,16 @@ final class _Port implements WorkingCatalogPort {
   @override
   Future<WorkingCatalogDetail> open(WorkingCatalogEntry entry) async {
     opens++;
+    if (entry.id == 'door' && doorGate != null) {
+      doorStarted?.complete();
+      return await doorGate!.future;
+    }
     if (failOpen) {
       failOpen = false;
       throw StateError('Lecture momentanément indisponible');
     }
     return WorkingCatalogDetail(
-      entry: _entry,
+      entry: entry,
       revision: 'r',
       definitions: _project,
       previewIdentity: identity,
@@ -288,17 +264,4 @@ final class _Port implements WorkingCatalogPort {
     WorkingCatalogDraft draft, {
     required String revision,
   }) => throw StateError('Unexpected metadata save');
-}
-
-class _Preview extends StatefulWidget {
-  const _Preview(this.port);
-  final _Port port;
-  @override
-  State<_Preview> createState() => _PreviewState();
-}
-
-class _PreviewState extends State<_Preview> {
-  late final color = widget.port.color;
-  @override
-  Widget build(BuildContext context) => Text(color);
 }

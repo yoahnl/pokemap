@@ -21,45 +21,15 @@ extension _DialoguePageCommands on _DialogueWorkspacePageState {
 
   Future<void> connect(String id, String target) async {
     flush();
-    final document = controller.active?.document;
-    if (document == null) return;
-    final node = document.nodes
-        .where(
-          (n) =>
-              n.id == id ||
-              n.steps.whereType<DeJumpStep>().any((s) => s.id == id),
-        )
-        .firstOrNull;
-    final branch = document.nodes
-        .expand(dialogueBranches)
-        .where((b) => b.id == id)
-        .firstOrNull;
-    final jumps =
-        node?.steps.whereType<DeJumpStep>() ??
-        branch?.steps.whereType<DeJumpStep>() ??
-        [];
-    final destination = document.nodeById(target);
-    final replacing = jumps.any(
-      (jump) => jump.targetTitle != destination?.title,
+    await controller.connectSelection(
+      id,
+      target,
+      confirmReplacement: () => confirm(
+        'Remplacer la destination ?',
+        'Le texte et le résultat de la réponse sont conservés. Seule sa destination change.',
+      ),
+      isActive: () => mounted,
     );
-    final owner = controller.activeId, revision = controller.active!.revision;
-    if (replacing &&
-        !await confirm(
-          'Remplacer la destination ?',
-          'Le texte et le résultat de la réponse sont conservés. Seule sa destination change.',
-        )) {
-      return;
-    }
-    if (!mounted ||
-        controller.activeId != owner ||
-        controller.active?.revision != revision) {
-      return;
-    }
-    if (node != null) {
-      controller.connectNode(node.id, target, replace: replacing);
-    } else {
-      controller.connect(id, target, replace: replacing);
-    }
   }
 
   void save() {
@@ -201,25 +171,18 @@ extension _DialoguePageCommands on _DialogueWorkspacePageState {
     flush();
     final state = view;
     if (state == null) return;
-    if (state.wireId case final id?) {
-      final step = controller.active!.document.nodes
-          .expand((n) => dialogueSteps(n.steps))
-          .where((s) => s.id == id)
-          .firstOrNull;
-      if (step is DeJumpStep) {
-        controller.disconnectJump(id);
-      } else {
-        controller.disconnect(id);
-      }
+    controller.deleteSelection(
+      wireId: state.wireId,
+      branchId: state.branchId,
+      stepId: state.stepId,
+      nodeId: state.nodeId,
+    );
+    if (state.wireId != null) {
       state.wireId = null;
-    } else if (state.branchId case final id?) {
-      controller.removeResponse(id);
+    } else if (state.branchId != null) {
       state.branchId = null;
-    } else if (state.stepId case final id?) {
-      controller.removeStep(id);
+    } else if (state.stepId != null) {
       state.stepId = null;
-    } else if (state.nodeId case final id?) {
-      controller.deleteNode(id);
     }
     refresh();
   }

@@ -4,11 +4,9 @@ import 'package:avelune_studio/features/project_session/domain/project_session.d
 import 'package:avelune_studio/features/project_settings/application/project_settings_session_controller.dart';
 import 'package:avelune_studio/features/project_visuals/application/project_visuals_controller.dart';
 import 'package:avelune_studio/features/project_visuals/domain/project_visuals_port.dart';
-import 'package:avelune_studio/presentation/features/project_settings/project_audio_panel.dart';
-import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
-import 'package:flutter/material.dart';
+import 'package:avelune_studio/features/project_audio/application/project_audio_editing_session.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/foundation.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../support/map_workspace_fixture.dart';
@@ -32,62 +30,45 @@ void main() {
 
   tearDown(() => audio.dispose());
 
-  Future<void> pump(WidgetTester tester) async {
-    tester.view.physicalSize = const Size(1400, 2600);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: studioTheme(),
-        home: Scaffold(
-          body: SingleChildScrollView(
-            child: ProjectAudioPanel(owner: audio, showActions: false),
-          ),
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-  }
-
-  testWidgets('every cue of the native catalog is listed with its intention', (
-    tester,
-  ) async {
-    await pump(tester);
-    for (final entry in ProjectSoundCueCatalog.entries) {
-      expect(
-        find.byKey(ValueKey('project-audio-row-${entry.cue.wireName}')),
-        findsOneWidget,
-      );
-    }
-    final intentions = tester
-        .widget<StudioSelect>(
-          find.byKey(const ValueKey('project-audio-source-ui.confirm')),
-        )
-        .options;
-    expect(intentions.keys, ['inherit', 'builtin', 'silent', 'custom']);
-    expect(intentions['inherit'], contains('défaut'));
+  test('association source options retain intentions and distinguish an unfinished custom choice', () async {
+    final editing = ProjectAudioEditingSession(owner: audio);
+    addTearDown(editing.close);
+    expect(projectAudioSourceOptions.keys, ['inherit', 'builtin', 'silent', 'custom']);
+    expect(projectAudioSourceOptions['inherit'], contains('défaut'));
+    expect(editing.intention(ProjectSoundCue.uiConfirm), 'Réglage par défaut');
+    audio.source(ProjectSoundCue.uiConfirm, 'builtin');
+    audio.gain(ProjectSoundCue.uiConfirm, '40');
+    expect(editing.intention(ProjectSoundCue.uiConfirm), 'Son intégré · 40 %');
+    audio.source(ProjectSoundCue.uiConfirm, 'custom');
+    expect(editing.intention(ProjectSoundCue.uiConfirm), 'Son de la bibliothèque à choisir');
+    expect(editing.canSaveAssociation, isFalse);
+    audio.assign(ProjectSoundCue.uiConfirm, 'bell');
+    expect(editing.intention(ProjectSoundCue.uiConfirm), startsWith('Cloche · '));
+    expect(editing.canSaveAssociation, isTrue);
+    audio.source(ProjectSoundCue.uiConfirm, 'silent');
+    expect(editing.intention(ProjectSoundCue.uiConfirm), 'Aucun son');
   });
 
-  testWidgets(
-    'silence disables listening and an invalid gain blocks saving and listening',
-    (tester) async {
-      await pump(tester);
-      audio.source(ProjectSoundCue.uiConfirm, 'silent');
-      await tester.pumpAndSettle();
-      final listen = find.byKey(const ValueKey('project-audio-listen'));
-      expect(_enabled(tester, listen), isFalse);
-      audio.source(ProjectSoundCue.uiConfirm, 'custom');
-      audio.assign(ProjectSoundCue.uiConfirm, 'bell');
-      await tester.pumpAndSettle();
-      expect(_enabled(tester, listen), isTrue);
-      audio.gain(ProjectSoundCue.uiConfirm, 'abc');
-      await tester.pumpAndSettle();
-      expect(_enabled(tester, listen), isFalse);
-      expect(await audio.save(), isFalse);
-      expect(port.writes, 0);
-    },
-  );
+  test('silence and invalid gain block association playback and persistence', () async {
+    final editing = ProjectAudioEditingSession(owner: audio);
+    addTearDown(editing.close);
+    audio.source(ProjectSoundCue.uiConfirm, 'silent');
+    expect(editing.canListenAssociation, isFalse);
+    await editing.listenAssociation();
+    expect(player.plays, 0);
+    audio.source(ProjectSoundCue.uiConfirm, 'custom');
+    audio.assign(ProjectSoundCue.uiConfirm, 'bell');
+    expect(editing.canListenAssociation, isTrue);
+    await editing.listenAssociation();
+    expect(player.plays, 1);
+    audio.gain(ProjectSoundCue.uiConfirm, 'abc');
+    expect(editing.canListenAssociation, isFalse);
+    expect(editing.canSaveAssociation, isFalse);
+    await editing.listenAssociation();
+    expect(player.plays, 1);
+    expect(await audio.save(), isFalse);
+    expect(port.writes, 0);
+  });
 
   test('two actions sharing one sound keep independent gains', () async {
     audio.source(ProjectSoundCue.uiConfirm, 'custom');
@@ -140,44 +121,38 @@ void main() {
     },
   );
 
-  testWidgets('changing action or leaving the screen stops the real player', (
-    tester,
-  ) async {
-    await pump(tester);
+  test('changing action, suspending and closing stop the preview port', () async {
+    final editing = ProjectAudioEditingSession(owner: audio);
     await audio.listen('bell');
     expect(player.playing.value, 'bell');
-    tester
-        .widget<StudioSelect>(find.byKey(const ValueKey('project-audio-cue')))
-        .onChanged!(ProjectSoundCue.uiCancel.wireName);
-    await tester.pumpAndSettle();
+    expect(await editing.select(ProjectSoundCue.uiCancel), isTrue);
+    expect(editing.selected, ProjectSoundCue.uiCancel);
     expect(player.playing.value, isNull);
     await audio.listen('bell');
-    await tester.pumpWidget(const SizedBox());
-    await tester.pump();
-    expect(player.stops, greaterThanOrEqualTo(2));
+    await editing.suspend();
     expect(player.playing.value, isNull);
+    await audio.listen('bell');
+    await editing.close();
+    expect(player.stops, greaterThanOrEqualTo(3));
+    expect(player.playing.value, isNull);
+    expect(editing.canListenAssociation, isFalse);
+    expect(await editing.select(ProjectSoundCue.uiConfirm), isFalse);
+    expect(editing.selected, ProjectSoundCue.uiCancel);
   });
-}
 
-bool _enabled(WidgetTester tester, Finder button) =>
-    tester
-        .widget<ButtonStyleButton>(
-          find.descendant(
-            of: button,
-            matching: find.byWidgetPredicate((w) => w is ButtonStyleButton),
-          ),
-        )
-        .onPressed !=
-    null;
+}
 
 final class _Player implements ProjectAudioPreviewPort {
   final _playing = ValueNotifier<String?>(null);
   @override
   ValueNotifier<String?> get playing => _playing;
-  int stops = 0;
+  int stops = 0, plays = 0;
 
   @override
-  Future<void> play(String mediaId) async => playing.value = mediaId;
+  Future<void> play(String mediaId) async {
+    plays++;
+    playing.value = mediaId;
+  }
 
   @override
   Future<void> stop() async {

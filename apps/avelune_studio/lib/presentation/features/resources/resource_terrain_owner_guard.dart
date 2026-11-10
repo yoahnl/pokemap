@@ -1,19 +1,13 @@
 import 'package:flutter/material.dart';
+
 import '../../shared/widgets/buttons/studio_button.dart';
 import 'resource_management_dialog.dart';
-import 'package:avelune_studio/features/resources/coordination/resource_navigation.dart';
-import 'package:avelune_studio/features/resources/coordination/resource_terrain_management.dart';
+import '../../../features/resources/coordination/resource_terrain_lifecycle.dart';
 
 Future<bool> resolveTerrainManagementOwner(
   BuildContext context,
-  ResourceNavigation navigation,
-  Map<String, Object?> target,
+  TerrainManagementOwners session,
 ) async {
-  final owners = navigation
-      .terrainManagementModels(target)
-      .where((model) => model.dirty)
-      .toList();
-  if (owners.isEmpty) return true;
   var proceed = false;
   await showResourceManagementRoute(
     context,
@@ -21,12 +15,12 @@ Future<bool> resolveTerrainManagementOwner(
       title: 'Enregistrer la préparation avant de continuer ?',
       submitLabel: 'Enregistrer et continuer',
       dirty: () => false,
-      valid: () => navigation.pendingReceipt == null && !navigation.isDisposed,
+      valid: () => session.canSave,
       fields: (_, busy) => Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'Préparations concernées : ${owners.map((model) => model.draft.name).join(' · ')}',
+            'Préparations concernées : ${session.owners.map((model) => model.draft.name).join(' · ')}',
           ),
           const SizedBox(height: 12),
           const Text(
@@ -41,11 +35,8 @@ Future<bool> resolveTerrainManagementOwner(
         ],
       ),
       submit: () async {
-        for (final owner in owners) {
-          if (!await owner.save(navigation.mutate)) {
-            return owner.error ?? 'La préparation n’a pas pu être enregistrée.';
-          }
-        }
+        final error = await session.save();
+        if (error != null) return error;
         proceed = true;
         return null;
       },

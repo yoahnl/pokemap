@@ -1,3 +1,5 @@
+import 'package:avelune_studio/features/map_workspace/application/map_element_catalog.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_element_visibility_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_editing_commands.dart';
 import 'package:avelune_studio/features/characters/application/character_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_entity_editing_commands.dart';
@@ -7,12 +9,9 @@ import 'package:avelune_studio/features/map_workspace/application/trigger_editin
 import 'package:avelune_studio/features/map_workspace/application/map_editor_controller.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_editor_port.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_workspace_editing_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
-import 'package:avelune_studio/platform/rendering/viewports/map_editing_viewport_2d.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_elements_panel.dart';
 import 'package:map_core/map_core.dart';
 
 import '../support/map_selection_harness.dart';
@@ -256,79 +255,46 @@ void main() {
     },
   );
 
-  testWidgets(
-    'family lock in the panel allows clicking behind all its effects',
-    (tester) async {
-      final effect = workspaceElement.copyWith(
-        id: 'mist',
-        name: 'Brume',
-        categoryId: 'effects',
-      );
-      h.project = h.project.copyWith(
-        elements: [workspaceElement, effect],
-        elementCategories: const [
-          ProjectElementCategory(id: 'effects', name: 'Effets'),
-        ],
-      );
-      final commands = MapEditingCommands(h.document, h.project);
-      final back = commands.place(workspaceElement, const GridPos(x: 4, y: 4))!;
-      final front = commands.place(effect, const GridPos(x: 4, y: 4))!;
-      final other = commands.place(effect, const GridPos(x: 7, y: 7))!;
-      tester.view.physicalSize = const Size(1280, 900);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: studioTheme(),
-          home: Scaffold(
-            body: StatefulBuilder(
-              builder: (context, setState) => Row(
-                children: [
-                  SizedBox(
-                    width: 640,
-                    child: MapEditingViewport2D(
-                      document: h.document,
-                      project: h.project,
-                      visuals: WorkspaceTestVisuals(),
-                      view: h.view,
-                      onChanged: () => setState(() {}),
-                      gestureGeneration: 0,
-                    ),
-                  ),
-                  Expanded(
-                    child: MapElementsPanel(
-                      document: h.document,
-                      project: h.project,
-                      view: h.view,
-                      onChanged: () => setState(() {}),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-      await h.tapCell(tester, 4, 4);
-      expect(h.document.selectedId, front);
-      final before = h.document.current;
-      await tester.tap(
-        find.byTooltip('Verrouiller ou déverrouiller Décors · Effets'),
-      );
-      await tester.pumpAndSettle();
-      expect(h.document.current, same(before));
-      expect(h.document.isElementLocked('decor', front), isTrue);
-      expect(h.document.isElementLocked('decor', other), isTrue);
-      expect(h.document.selectedId, isNull);
-      await h.tapCell(tester, 4, 4);
-      expect(h.document.selectedId, back);
-      commands.move(front, const GridPos(x: 9, y: 9));
-      expect(h.document.current, same(before));
-      expect(tester.takeException(), isNull);
-    },
-  );
+  testWidgets('family lock allows clicking behind all its effects', (
+    tester,
+  ) async {
+    final effect = workspaceElement.copyWith(
+      id: 'mist',
+      name: 'Brume',
+      categoryId: 'effects',
+    );
+    h.project = h.project.copyWith(
+      elements: [workspaceElement, effect],
+      elementCategories: const [
+        ProjectElementCategory(id: 'effects', name: 'Effets'),
+      ],
+    );
+    final commands = MapEditingCommands(h.document, h.project);
+    final back = commands.place(workspaceElement, const GridPos(x: 4, y: 4))!;
+    final front = commands.place(effect, const GridPos(x: 4, y: 4))!;
+    final other = commands.place(effect, const GridPos(x: 7, y: 7))!;
+    await h.pump(tester);
+    await h.tapCell(tester, 4, 4);
+    expect(h.document.selectedId, front);
+    final before = h.document.current;
+    final catalog = MapElementCatalog(h.document.current, h.project);
+    await MapElementVisibilityCommands(
+      h.document,
+      h.view,
+      catalog: () => catalog,
+    ).setLocked(catalog.families['Décors · Effets']!, true);
+    h.redraw();
+    await tester.pumpAndSettle();
+    expect(h.document.current, same(before));
+    expect(h.document.isElementLocked('decor', front), isTrue);
+    expect(h.document.isElementLocked('decor', other), isTrue);
+    expect(h.document.selectedId, isNull);
+    await h.tapCell(tester, 4, 4);
+    expect(h.document.selectedId, back);
+    commands.move(front, const GridPos(x: 9, y: 9));
+    expect(h.document.current, same(before));
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('locking an effects layer makes its decor click through', (
     tester,

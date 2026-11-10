@@ -1,14 +1,14 @@
+import 'package:avelune_studio/features/map_workspace/application/map_tool_command_runner.dart';
+
 import 'dart:typed_data';
 
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/environment_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_tool_strip.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
 import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 import 'package:avelune_studio/platform/rendering/viewports/spatial_map_editing_viewport.dart';
-import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -18,39 +18,24 @@ import '../support/map_workspace_fixture.dart';
 import '../support/spatial_environment_fixture.dart';
 
 void main() {
-  testWidgets(
-    'the existing environment and border tools are enabled in spatial maps',
-    (tester) async {
-      final view = MapWorkspaceViewState();
-      addTearDown(view.dispose);
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: MapWorkspaceToolStrip(
-              view: view,
-              onChanged: () {},
-              onMoreTools: () {},
-              onResources: () {},
-              storyAvailable: false,
-              paletteVisible: true,
-              spatial: true,
-              onUndo: null,
-              onRedo: null,
-            ),
-          ),
-        ),
-      );
-      expect(
-        tester
-            .widget<StudioButton>(find.widgetWithText(StudioButton, 'Bordures'))
-            .onPressed,
-        isNotNull,
-      );
-      await tester.tap(find.text('Environnements'));
-      expect(view.tool, StudioMapTool.environment);
-      expect(view.paletteTab, 'Environnements');
-    },
-  );
+  test('spatial terrain and environment commands select their intended resource family', () {
+    final view = MapEditingViewportSession();
+    addTearDown(view.dispose);
+    var selected = '';
+    final runner = MapToolCommandRunner(
+      view: view,
+      paletteTab: () => selected,
+      selectPalette: (value) => selected = value,
+      spatial: true,
+      paletteVisible: true,
+      onChanged: () {},
+      onMoreTools: () {},
+      onResources: () {},
+    );
+    runner.runFamily('Environnements');
+    expect(view.tool, StudioMapTool.environment);
+    expect(selected, 'Environnements');
+  });
 
   testWidgets(
     'spatial strokes preview exact cells, commit once and render generation',
@@ -63,7 +48,7 @@ void main() {
       final commands = EnvironmentEditingCommands(document, project);
       final first = commands.create(project.environmentPresets.single);
       final second = commands.create(project.environmentPresets.single);
-      final view = MapWorkspaceViewState()
+      final view = MapEditingViewportSession()
         ..tool = StudioMapTool.environment
         ..environment = first;
       final controller = MapWorkspaceController(

@@ -7,6 +7,47 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('imports normal and shiny overworld atlases as Pokemon media', () async {
+    for (final jsonl in [false, true]) {
+      final fixture = await _Fixture.create();
+      addTearDown(fixture.dispose);
+      final png = image.encodePng(image.Image(width: 128, height: 128));
+      final staged = await fixture.artifacts.put(png, declaredMediaType: 'image/png');
+      final entries = [
+        for (final role in ['overworld', 'overworldShiny'])
+          {
+            'speciesId': 'sproutle',
+            'formId': 'base',
+            'role': role,
+            'artifactHandle': staged.reference.handle,
+          },
+      ];
+      final plan = await fixture.plan(entries, jsonl: jsonl);
+      await fixture.apply(plan, jsonl: jsonl);
+      final variant = ((await fixture.media())['variants'] as Map)['base'] as Map;
+      final path = variant['overworld'] as String;
+      expect(path, contains('/overworld/'));
+      expect(variant['overworldShiny'], path);
+      expect(await File('${fixture.root.path}/$path').readAsBytes(), png);
+    }
+  });
+
+  test('rejects overworld images that are not a four-by-four atlas', () async {
+    final fixture = await _Fixture.create();
+    addTearDown(fixture.dispose);
+    await expectLater(
+      fixture.plan([
+        {
+          'speciesId': 'sproutle',
+          'formId': 'base',
+          'role': 'overworld',
+          'artifactHandle': fixture.handle,
+        },
+      ]),
+      throwsFormatException,
+    );
+  });
+
   test(
       'direct and JSONL batch import preserve choices, share files, and preview a no-op rerun',
       () async {
@@ -360,7 +401,11 @@ final class _Fixture {
   }
 
   List<Map<String, Object?>> entries() => [
-        for (final role in PokemonMediaImportRole.values)
+        for (final role in [
+          PokemonMediaImportRole.icon,
+          PokemonMediaImportRole.party,
+          PokemonMediaImportRole.portrait,
+        ])
           PokemonMediaImportEntry(
                   speciesId: 'sproutle',
                   formId: 'base',

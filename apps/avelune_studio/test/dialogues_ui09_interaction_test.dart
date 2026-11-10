@@ -1,14 +1,13 @@
 import 'package:avelune_studio/features/dialogues/application/dialogue_workspace_controller.dart';
 import 'package:avelune_studio/presentation/features/dialogues/dialogue_preview_panel.dart';
-import 'package:avelune_studio/presentation/features/dialogues/dialogue_graph_node.dart';
-import 'package:avelune_studio/presentation/features/dialogues/dialogue_graph_painter.dart';
+import 'package:avelune_studio/features/dialogues/application/dialogue_structure_projection.dart';
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_commit_field.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring_dialogue.dart';
 import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
+
 import 'support/m2_ui_fixture.dart';
 import 'support/ui09_dialogue_harness.dart';
 import 'support/ui09_runtime_fixture.dart';
@@ -28,6 +27,22 @@ Future<Ui09DialogueHarness> setup(WidgetTester tester) async {
   return h;
 }
 
+Future<void> selectDialogue(
+  WidgetTester tester,
+  Ui09DialogueHarness harness, {
+  String? step,
+  String? branch,
+}) async {
+  FocusManager.instance.primaryFocus?.unfocus();
+  FocusManager.instance.applyFocusChangesIfNeeded();
+  final node = harness.dialogues.active!.document.nodes.first;
+  harness.views
+      .forDialogue(ui09DialogueId)
+      .select(node.id, step: step, branch: branch);
+  harness.notify();
+  await pumpIo(tester, frames: 4);
+}
+
 Finder field(String label) => find.descendant(
   of: find.byWidgetPredicate((w) => w is StudioCommitField && w.label == label),
   matching: find.byType(TextField),
@@ -40,23 +55,36 @@ Future<void> tap(WidgetTester tester, Finder target) async {
 }
 
 void main() {
-  testWidgets('EV04 guided value picker distinguishes player identity from a Fact of the same name', (tester) async {
-    final h = await setup(tester);
-    h.maps.project = h.maps.project!.copyWith(facts: [...h.maps.project!.facts,
-      NarrativeFactDefinition(id: 'player_name', label: 'Nom de la gare', initialValue: const NarrativeValue.string('Selbrume'))]);
-    final line = h.dialogues.active!.document.nodes.first.steps.whereType<DeLineStep>().first;
-    await tap(tester, find.byKey(ValueKey('dialogue-row-${line.id}')));
-    final picker = find.byKey(ValueKey('dialogue-text-value-${line.id}'));
-    final select = tester.widget<StudioSelect>(picker);
-    expect(select.options['player_name'], 'Nom du joueur');
-    expect(select.options['fact:player_name'], contains('Nom de la gare'));
-    select.onChanged!('fact:player_name');
-    await pumpIo(tester, frames: 4);
-    expect(h.dialogues.active!.source, contains('{{ fact.player_name }}'));
-    tester.widget<StudioSelect>(picker).onChanged!('player_name');
-    await pumpIo(tester, frames: 4);
-    expect(h.dialogues.active!.source, contains('{{ player_name }}'));
-  });
+  testWidgets(
+    'EV04 guided value picker distinguishes player identity from a Fact of the same name',
+    (tester) async {
+      final h = await setup(tester);
+      h.maps.project = h.maps.project!.copyWith(
+        facts: [
+          ...h.maps.project!.facts,
+          NarrativeFactDefinition(
+            id: 'player_name',
+            label: 'Nom de la gare',
+            initialValue: const NarrativeValue.string('Selbrume'),
+          ),
+        ],
+      );
+      final line = h.dialogues.active!.document.nodes.first.steps
+          .whereType<DeLineStep>()
+          .first;
+      await selectDialogue(tester, h, step: line.id);
+      final picker = find.byKey(ValueKey('dialogue-text-value-${line.id}'));
+      final select = tester.widget<StudioSelect>(picker);
+      expect(select.options['player_name'], 'Nom du joueur');
+      expect(select.options['fact:player_name'], contains('Nom de la gare'));
+      select.onChanged!('fact:player_name');
+      await pumpIo(tester, frames: 4);
+      expect(h.dialogues.active!.source, contains('{{ fact.player_name }}'));
+      tester.widget<StudioSelect>(picker).onChanged!('player_name');
+      await pumpIo(tester, frames: 4);
+      expect(h.dialogues.active!.source, contains('{{ player_name }}'));
+    },
+  );
 
   testWidgets('switching inspector tab commits focused text before disposal', (
     tester,
@@ -65,7 +93,7 @@ void main() {
     final line = h.dialogues.active!.document.nodes.first.steps
         .whereType<DeLineStep>()
         .first;
-    await tap(tester, find.byKey(ValueKey('dialogue-row-${line.id}')));
+    await selectDialogue(tester, h, step: line.id);
     await tester.enterText(
       field('Texte'),
       'Réplique conservée pendant le changement d’onglet.',
@@ -83,7 +111,7 @@ void main() {
     final h = await setup(tester);
     final node = h.dialogues.active!.document.nodes.first;
     final line = node.steps.whereType<DeLineStep>().first;
-    await tap(tester, find.byKey(ValueKey('dialogue-row-${line.id}')));
+    await selectDialogue(tester, h, step: line.id);
     await tester.enterText(field('Texte'), 'Le prochain train vous attend.');
     expect(h.dialogues.active!.source, isNot(contains('Le prochain train')));
     await tap(tester, find.text('Enregistrer'));
@@ -91,9 +119,8 @@ void main() {
     expect(h.dialogues.busy, isFalse);
     expect(h.dialogues.dirty, isFalse);
     expect(
-      (await tester.runAsync(
-        () => h.fixture.port.load(ui09DialogueId),
-      ))!.source,
+      (await tester.runAsync(() => h.fixture.port.load(ui09DialogueId)))!
+          .source,
       contains('Le prochain train vous attend.'),
     );
     await tap(tester, find.byTooltip('Annuler le dialogue'));
@@ -142,72 +169,36 @@ void main() {
     expect(h.dialogues.dirty, isFalse);
   });
 
-  for (final zoom in [.55, .9]) {
-    testWidgets(
-      'wire drag cancellation and real reconnection preserve history at $zoom',
-      (tester) async {
-        final h = await setup(tester);
-        final node = h.dialogues.active!.document.nodes.first;
-        final branch = node.steps
-            .whereType<DeChoiceStep>()
-            .first
-            .branches
-            .first;
-        final destination = h.dialogues.active!.document.nodes[1];
-        h.dialogues.disconnect(branch.id);
-        final viewport = h.views.forDialogue(ui09DialogueId).viewport;
-        viewport.zoomAt(zoom, viewport.size.center(Offset.zero));
-        await pumpIo(tester);
-        final before = h.dialogues.active!.source;
-        final port = find.byKey(ValueKey('dialogue-port-${branch.id}'));
-        final start = tester.getCenter(port);
-        final gesture = await tester.startGesture(start);
-        await gesture.moveBy(const Offset(40, -25));
-        await tester.pump();
-        await tester.sendKeyEvent(LogicalKeyboardKey.escape);
-        await gesture.up();
-        await tester.pumpAndSettle();
-        expect(h.dialogues.active!.source, before);
-        final end =
-            tester.getTopLeft(
-              find.byKey(ValueKey('dialogue-node-${destination.id}')),
-            ) +
-            const Offset(1, 19);
-        final reconnect = await tester.startGesture(tester.getCenter(port));
-        await reconnect.moveBy(const Offset(20, 0));
-        await tester.pump();
-        await reconnect.moveTo(end);
-        await tester.pump();
-        final painter = tester
-            .widgetList<CustomPaint>(find.byType(CustomPaint))
-            .map((w) => w.painter)
-            .whereType<DialogueGraphPainter>()
-            .single;
-        expect(painter.pendingStart, isNotNull);
-        expect(
-          painter.pendingEnd,
-          painter.geometry.view.viewport.worldToLocal(
-            painter.geometry.input(destination.id),
-          ),
-          reason:
-              'input=$end start=$start zoom=${painter.geometry.view.viewport.zoom}',
-        );
-        expect(
-          tester
-              .widgetList<DialogueGraphNode>(find.byType(DialogueGraphNode))
-              .where((w) => w.target)
-              .map((w) => w.node.id),
-          contains(destination.id),
-        );
-        await h.capture(tester, '02-connexion-en-cours');
-        await reconnect.up();
-        await pumpIo(tester);
-        expect(h.dialogues.active!.source, contains('<<jump Depart>>'));
-        await tap(tester, find.byTooltip('Annuler le dialogue'));
-        expect(h.dialogues.active!.source, before);
-        await tap(tester, find.byTooltip('Rétablir le dialogue'));
-        expect(h.dialogues.active!.source, contains('<<jump Depart>>'));
-      },
-    );
-  }
+  testWidgets(
+    'projected response reconnection preserves history without publishing',
+    (tester) async {
+      final h = await setup(tester);
+      final node = h.dialogues.active!.document.nodes.first;
+      final branch = node.steps.whereType<DeChoiceStep>().first.branches.first;
+      final destination = h.dialogues.active!.document.nodes[1];
+      expect(h.dialogues.disconnect(branch.id), isTrue);
+      final before = h.dialogues.active!.source;
+      final projection = DialogueStructureProjection(
+        h.dialogues.active!.document,
+      );
+      final row = projection.rows[node.id]!.indexWhere(
+        (row) => row.id == branch.id,
+      );
+      final port = projection.portIdAt(node.id, row)!;
+      expect(
+        await h.dialogues.connectSelection(
+          port,
+          destination.id,
+          confirmReplacement: () async => throw StateError('No replacement'),
+        ),
+        isTrue,
+      );
+      expect(h.dialogues.active!.source, contains('<<jump Depart>>'));
+      await tap(tester, find.byTooltip('Annuler le dialogue'));
+      expect(h.dialogues.active!.source, before);
+      await tap(tester, find.byTooltip('Rétablir le dialogue'));
+      expect(h.dialogues.active!.source, contains('<<jump Depart>>'));
+      expect(h.port.writes, 0);
+    },
+  );
 }

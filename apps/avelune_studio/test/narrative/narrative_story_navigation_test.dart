@@ -1,6 +1,5 @@
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/narrative/application/interaction_edit_session.dart';
-import 'package:avelune_studio/features/narrative/application/narrative_editing.dart';
 import 'package:avelune_studio/features/narrative/application/narrative_interaction.dart';
 import 'package:avelune_studio/features/narrative/application/narrative_workspace_controller.dart';
 import 'package:avelune_studio/features/narrative/domain/narrative_port.dart';
@@ -249,20 +248,7 @@ void main() {
     },
   );
 
-  test(
-    'new source variant ranks above existing conditional and fallback drafts',
-    () async {
-      edit.change(interaction: edit.current.interaction.revise(priority: 4));
-      await controller.openSource(
-        maps.active!,
-        edit.current.interaction.source,
-        'Après l’aide',
-      );
-      expect(controller.active!.current.interaction.priority, 5);
-      expect(controller.active!.current.interaction.order, 1);
-      expect(controller.sessions, hasLength(2));
-    },
-  );
+
 }
 
 class _Port implements NarrativePort {

@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/features/cinematics/application/cinematic_workspace_controller.dart';
@@ -6,13 +5,13 @@ import 'package:avelune_studio/features/cinematics/domain/cinematic_port.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/narrative/application/narrative_workspace_controller.dart';
 import 'package:avelune_studio/features/narrative/domain/narrative_port.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/workspace_actions.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/workspace_workflow.dart';
 import '../support/map_workspace_fixture.dart';
 
 void main() {
-  testWidgets(
+  test(
     'published cinematic test preserves dirty dependencies and focused invalid edit blocks close',
-    (tester) async {
+    () async {
       final maps = MapWorkspaceController(
         workspaceSession,
         WorkspaceMemoryPort(),
@@ -34,29 +33,23 @@ void main() {
       await c.open('film');
       document.commit(document.current.copyWith(name: 'Carte à préserver'));
       var launches = 0;
-      late WorkspaceActions actions;
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Builder(
-            builder: (context) {
-              actions = WorkspaceActions(
-                controller: maps,
-                context: () => context,
-                mounted: () => true,
-                changed: () {},
-                resources: () => null,
-                narrative: () => narrative,
-                cinematics: () => c,
-                publishedCinematicContext: () => true,
-                runtimeBuilder: (_, _, _) {
-                  launches++;
-                  return const SizedBox();
-                },
-              );
-              return const Scaffold(body: Text('Atelier'));
-            },
-          ),
-        ),
+      var closePrompts = 0;
+      final actions = WorkspaceWorkflow(
+        controller: maps,
+        isActive: () => true,
+        changed: () {},
+        resources: () => null,
+        narrative: () => narrative,
+        cinematics: () => c,
+        publishedCinematicContext: () => true,
+        confirmClose: () async {
+          closePrompts++;
+          return WorkspaceCloseChoice.cancel;
+        },
+        flushFocus: () {},
+        launchMap: (_, _) async {
+          launches++;
+        },
       );
       await actions.test();
       expect(launches, 0);
@@ -66,9 +59,8 @@ void main() {
       expect(c.error, contains('aucun brouillon n’a été publié'));
       c.flushEdits = () => false;
       expect(await actions.allowClose(), false);
-      expect(find.text('Enregistrer'), findsNothing);
+      expect(closePrompts, 0);
       expect(await c.saveAll(), false);
-      await tester.pumpWidget(const SizedBox());
       c.dispose();
       narrative.dispose();
       maps.dispose();

@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/features/presentations/application/presentation_workspace_controller.dart';
+
 import '../support/presentation_controller_fixture.dart';
 
 void main() {
@@ -14,6 +16,43 @@ void main() {
   });
   tearDown(() async {
     await f.dispose();
+  });
+  test('guided clip creation is atomic with defaults, lock refusal and publication', () async {
+    await c.create(title: 'Montage');
+    final original = c.active!.asset;
+    final id = c.addText(timeUs: 2000000);
+    expect(id, isNotNull, reason: c.error);
+    final clip =
+        c.active!.asset.tracks.single.clips.single as PresentationTextClip;
+    expect(clip.text, 'Votre titre');
+    expect(clip.startUs, 2000000);
+    expect(clip.durationUs, original.durationUs - 2000000);
+    expect(c.active!.asset.layers.single.id, clip.layerId);
+    c.undo();
+    expect(c.active!.asset, original);
+    c.redo();
+    expect(c.patchClip(id!, {'text': 'Révisé'}), isTrue, reason: c.error);
+    final layer = c.active!.asset.layers.single;
+    expect(
+      c.apply('presentationLayer.update', {
+        'layer': {...encodePresentationLayer(layer), 'locked': true},
+      }),
+      isTrue,
+      reason: c.error,
+    );
+    final locked = c.active!.asset;
+    expect(c.patchClip(id, {'text': 'Interdit'}), isFalse);
+    expect(c.active!.asset, locked);
+    expect(
+      c.addMarker(timeUs: original.durationUs, interaction: true),
+      isNotNull,
+    );
+    final marker =
+        c.active!.asset.tracks.last.clips.single as PresentationMarkerClip;
+    expect(marker.startUs, 0);
+    expect(marker.markerKind, PresentationMarkerKind.interactionCue);
+    expect(await c.save(), isTrue, reason: c.error);
+    expect((await f.port.inner.load(c.activeId!)).asset, c.active!.asset);
   });
   test(
     'create no disk write, grouped canonical intent, undo redo save and reopen',
@@ -127,23 +166,20 @@ void main() {
     expect(await loading, false);
     expect(other.activeId, b);
   });
-  test(
-    'editing during save remains dirty and next save does not lose current text',
-    () async {
-      await c.create(title: 'Snapshot');
-      f.port.publishGate = Completer<void>();
-      final saved = c.save();
-      await Future<void>.delayed(Duration.zero);
-      expect(c.rename('Texte ultérieur'), true);
-      f.port.publishGate!.complete();
-      expect(await saved, true, reason: c.error);
-      expect(c.active!.asset.title, 'Texte ultérieur');
-      expect(c.active!.dirty, true);
-      expect((await f.port.inner.load(c.activeId!)).asset.title, 'Snapshot');
-      expect(await c.save(), true, reason: c.error);
-      expect(c.active!.dirty, false);
-    },
-  );
+  test('editing during save remains dirty and next save does not lose current text', () async {
+    await c.create(title: 'Snapshot');
+    f.port.publishGate = Completer<void>();
+    final saved = c.save();
+    await Future<void>.delayed(Duration.zero);
+    expect(c.rename('Texte ultérieur'), true);
+    f.port.publishGate!.complete();
+    expect(await saved, true, reason: c.error);
+    expect(c.active!.asset.title, 'Texte ultérieur');
+    expect(c.active!.dirty, true);
+    expect((await f.port.inner.load(c.activeId!)).asset.title, 'Snapshot');
+    expect(await c.save(), true, reason: c.error);
+    expect(c.active!.dirty, false);
+  });
   test(
     'unpublished duplicates have unique identities and do not replace original',
     () async {

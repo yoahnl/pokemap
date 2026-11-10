@@ -1,4 +1,5 @@
 import 'package:map_core/map_core_domain.dart';
+
 import 'narrative_interaction.dart';
 import 'interaction_edit_session.dart';
 
@@ -56,5 +57,55 @@ extension NarrativeInteractionEditing on NarrativeInteractionDraft {
           (value, rank) => rank.priority > value ? rank.priority : value,
         ) +
         1,
+  );
+}
+
+const narrativeSequenceLabels = {
+  NarrativeSequenceKind.dialogue: 'Afficher un dialogue',
+  NarrativeSequenceKind.facing: 'Orienter un personnage',
+  NarrativeSequenceKind.wait: 'Attendre',
+  NarrativeSequenceKind.setFact: 'Changer un état',
+  NarrativeSequenceKind.completeStep: 'Terminer une étape',
+};
+
+Map<String, String> narrativeSequenceTargets(
+  NarrativeSequenceKind kind, {
+  required ProjectManifest project,
+  MapData? map,
+  List<StorylineAsset>? stories,
+  List<NarrativeFactDefinition>? facts,
+}) => switch (kind) {
+  NarrativeSequenceKind.dialogue => {
+    for (final dialogue in project.dialogues) dialogue.id: dialogue.name,
+  },
+  NarrativeSequenceKind.facing => {
+    for (final entity in map?.entities ?? const <MapEntity>[])
+      if (entity.npc != null) entity.id: entity.name,
+  },
+  NarrativeSequenceKind.setFact => {
+    for (final fact in facts ?? project.facts)
+      if (fact.valueKind == NarrativeValueKind.boolean) fact.id: fact.label,
+  },
+  NarrativeSequenceKind.completeStep => {
+    for (final story in stories ?? project.storylines)
+      for (final chapter in story.chapters)
+        for (final step in chapter.steps)
+          step.id: '${story.title} · ${step.title}',
+  },
+  NarrativeSequenceKind.wait => {},
+};
+
+extension NarrativeSequenceStepEditing on NarrativeSequenceStep {
+  NarrativeSequenceStep revise({
+    String? target,
+    bool? value,
+    EntityFacing? facing,
+    int? milliseconds,
+  }) => NarrativeSequenceStep(
+    kind: kind,
+    targetId: target ?? targetId,
+    value: value ?? this.value,
+    facing: facing ?? this.facing,
+    milliseconds: milliseconds ?? this.milliseconds,
   );
 }

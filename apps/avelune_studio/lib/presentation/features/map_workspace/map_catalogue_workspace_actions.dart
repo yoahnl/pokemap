@@ -68,19 +68,10 @@ Future<void> createWorkspaceMap(
   () => _createWorkspaceMap(context, controller, groupId: groupId),
 );
 
-final _openCatalogueDialogs = Expando<bool>();
 Future<void> _withCatalogueDialog(
   MapWorkspaceController controller,
   Future<void> Function() open,
-) async {
-  if (_openCatalogueDialogs[controller] == true) return;
-  _openCatalogueDialogs[controller] = true;
-  try {
-    await open();
-  } finally {
-    _openCatalogueDialogs[controller] = false;
-  }
-}
+) => runWorkspaceMapCatalogOperation(controller, open);
 
 Future<void> _createWorkspaceMap(
   BuildContext context,
@@ -133,33 +124,35 @@ Future<void> _renameWorkspaceMap(
   ProjectMapEntry entry,
 ) async {
   if (controller.catalogBusy || controller.isDisposed) return;
-  final document = controller.documents[entry.id];
-  if (document?.dirty == true) {
-    final accepted = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Enregistrer cette carte avant de la renommer ?'),
-        content: Text(
-          '« ${entry.name} » contient des modifications. Seule cette carte sera enregistrée.',
+  if (!await saveMapLifecycleTarget(
+    controller: controller,
+    entry: entry,
+    isActive: () => context.mounted,
+    confirmSave: () async {
+      final accepted = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Enregistrer cette carte avant de la renommer ?'),
+          content: Text(
+            '« ${entry.name} » contient des modifications. Seule cette carte sera enregistrée.',
+          ),
+          actions: [
+            StudioButton(
+              label: 'Annuler',
+              secondary: true,
+              onPressed: () => Navigator.pop(context, false),
+            ),
+            StudioButton(
+              label: 'Enregistrer cette carte puis renommer',
+              onPressed: () => Navigator.pop(context, true),
+            ),
+          ],
         ),
-        actions: [
-          StudioButton(
-            label: 'Annuler',
-            secondary: true,
-            onPressed: () => Navigator.pop(context, false),
-          ),
-          StudioButton(
-            label: 'Enregistrer cette carte puis renommer',
-            onPressed: () => Navigator.pop(context, true),
-          ),
-        ],
-      ),
-    );
-    if (accepted != true ||
-        !context.mounted ||
-        !await controller.save(document!)) {
-      return;
-    }
+      );
+      return accepted == true;
+    },
+  )) {
+    return;
   }
   if (!context.mounted || controller.isDisposed) return;
   final operation = WorkspaceMapRename(controller, entry);

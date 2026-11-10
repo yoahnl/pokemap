@@ -9,9 +9,7 @@ import 'package:avelune_studio/features/pokemon/domain/pokemon_external_import_m
 import 'package:avelune_studio/features/pokemon/domain/pokemon_workspace_port.dart';
 import 'package:avelune_studio/features/pokemon/domain/pokemon_workspace_models.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
-import 'package:avelune_studio/presentation/features/pokemon/pokemon_external_preview_pane.dart';
 import 'package:crypto/crypto.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
@@ -124,9 +122,11 @@ void main() {
   late _Gen5Transport transport;
 
   setUp(() async {
-    final temporary = await Directory.systemTemp.createTemp(
-      'studio-gen5-import-',
+    final parent = Directory(
+      Platform.environment['AVELUNE_QA_ROOT'] ?? '/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109',
     );
+    await parent.create(recursive: true);
+    final temporary = await parent.createTemp('studio-gen5-import-');
     root = Directory(await temporary.resolveSymbolicLinks());
     final files = spatialFeaturePayload('companion');
     final manifest = ProjectManifest.fromJson(
@@ -327,40 +327,22 @@ void main() {
     },
   );
 
-  testWidgets('preview offers the animation for a retained species', (
-    tester,
-  ) async {
-    final preview = (await tester.runAsync(() async {
-      transport.statusCode = 404;
-      final first = await adapter.previewExternal('bulbasaur');
-      await adapter.applyExternal(
-        first,
-        PokemonExternalConflictPolicy.failOnConflict,
-      );
-      transport.statusCode = 200;
-      return adapter.previewExternal('bulbasaur');
-    }))!;
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: PokemonExternalPreviewPane(
-            preview: preview,
-            policy: PokemonExternalConflictPolicy.skipExisting,
-            busy: false,
-            onPolicyChanged: (_) {},
-            onBack: () {},
-            onApply: () {},
-          ),
-        ),
-      ),
+  test('preview retains the animation for a retained species', () async {
+    transport.statusCode = 404;
+    final first = await adapter.previewExternal('bulbasaur');
+    await adapter.applyExternal(
+      first,
+      PokemonExternalConflictPolicy.failOnConflict,
     );
-    expect(find.text('Appliquer l’import'), findsOneWidget);
-    expect(find.text('Terminer sans importer'), findsNothing);
-    expect(find.textContaining('si la fiche correspond'), findsOneWidget);
-    expect(
-      find.textContaining('ne recevra pas de nouvelle animation'),
-      findsNothing,
-    );
+    transport.statusCode = 200;
+    final species = File('${root.path}/data/pokemon/species/bulbasaur.json');
+    final before = await species.readAsBytes();
+    final preview = await adapter.previewExternal('bulbasaur');
+    final plan = preview.plan(PokemonExternalConflictPolicy.skipExisting);
+    expect(plan.selected, isEmpty);
+    expect(plan.kept, preview.documents.length);
+    expect(preview.gen5Bundle, isNotNull);
+    expect(await species.readAsBytes(), before);
   });
 
   test(

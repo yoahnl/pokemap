@@ -149,60 +149,16 @@ extension _SceneBuilderCommands on _SceneBuilderPageState {
         return;
       }
     }
-    final selectedPayload = payload;
-    String? createdId;
-    final applied = session.mutate((scene) {
-      late SceneAsset next;
-      late SceneNode node;
-      if (selectedPayload is SceneActionPayload) {
-        final result = selectedPayload.consequence != null
-            ? addSceneConsequenceActionNodeDraft(
-                scene,
-                consequence: selectedPayload.consequence!,
-                title: block.label,
-              )
-            : addSceneCommandActionNodeDraft(
-                scene,
-                payload: selectedPayload,
-                title: block.label,
-              );
-        next = result.updatedScene;
-        node = result.createdNode;
-      } else {
-        final result = selectedPayload != null
-            ? addSceneLinkedAssetNodeDraft(
-                scene,
-                payload: selectedPayload,
-                title: block.label,
-              )
-            : block.kind == SceneNodeKind.branchByOutcome
-            ? addSceneLinkedAssetNodeDraft(
-                scene,
-                payload: SceneBranchByOutcomePayload(),
-                title: block.label,
-              )
-            : addSceneNodeDraft(scene, kind: block.kind, title: block.label);
-        next = result.updatedScene;
-        node = result.createdNode;
-      }
-      next = updateSceneNodeLayout(
-        next,
-        nodeId: node.id,
-        x: point.dx,
-        y: point.dy,
-      ).updatedScene;
-      if (fromNodeId != null && fromPortId != null) {
-        next = addSceneEdgeDraft(
-          next,
-          fromNodeId: fromNodeId,
-          fromPortId: fromPortId,
-          toNodeId: node.id,
-        ).updatedScene;
-      }
-      createdId = node.id;
-      return next;
-    });
-    if (applied) {
+    final createdId = session.addAt(
+      block.kind,
+      title: block.label,
+      payload: payload,
+      x: point.dx,
+      y: point.dy,
+      fromNodeId: fromNodeId,
+      fromPortId: fromPortId,
+    );
+    if (createdId != null) {
       view!.nodeId = createdId;
       view!.edgeId = null;
     }

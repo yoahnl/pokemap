@@ -1,11 +1,11 @@
 import 'dart:typed_data';
-import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../../features/regional_map/application/regional_map_controller.dart';
+import '../../../platform/rendering/regional_map_image_decoder.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
 import '../../shared/widgets/dialogs/studio_review_dialog.dart';
@@ -34,29 +34,8 @@ class _RegionalMapPageState extends State<RegionalMapPage> {
   Object? _imageKey;
   Future<({Uint8List bytes, int width, int height})?>? _image;
 
-  Future<({Uint8List bytes, int width, int height})?> _loadImage(
-    String path,
-  ) async {
-    try {
-      final bytes = await owner.port.readImage(path);
-      if (bytes == null) return null;
-      final codec = await ui.instantiateImageCodec(bytes);
-      try {
-        final frame = await codec.getNextFrame();
-        final result = (
-          bytes: bytes,
-          width: frame.image.width,
-          height: frame.image.height,
-        );
-        frame.image.dispose();
-        return result;
-      } finally {
-        codec.dispose();
-      }
-    } on Object catch (error) {
-      throw StateError('$error');
-    }
-  }
+  Future<({Uint8List bytes, int width, int height})?> _loadImage(String path) =>
+      decodeRegionalMapImage(owner.port, path);
 
   Future<void> _createRegion() async {
     final name = await askNarrativeName(context, 'Créer une région');

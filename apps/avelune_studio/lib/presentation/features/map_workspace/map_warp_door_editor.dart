@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import '../../../features/map_workspace/application/map_warp_drafts.dart';
+
 import 'package:map_core/map_core.dart';
 
 import '../../shared/widgets/buttons/studio_button.dart';
@@ -25,142 +28,50 @@ class MapWarpDoorEditor extends StatefulWidget {
 }
 
 class _MapWarpDoorEditorState extends State<MapWarpDoorEditor> {
-  MapWarpDoor? _draft;
-  bool _enabled = false;
+  late MapWarpDoorDraft form;
 
   @override
   void initState() {
     super.initState();
-    _reset();
+    form = MapWarpDoorDraft(widget.map, widget.project, widget.warp);
   }
 
   @override
   void didUpdateWidget(MapWarpDoorEditor oldWidget) {
     super.didUpdateWidget(oldWidget);
+    form.map = widget.map;
+    form.project = widget.project;
+    form.warp = widget.warp;
     if (oldWidget.warp.id != widget.warp.id ||
         oldWidget.map.id != widget.map.id ||
         oldWidget.warp.door != widget.warp.door) {
-      _reset();
+      form.reset(widget.warp);
     }
-  }
-
-  void _reset() {
-    _draft = widget.warp.door;
-    _enabled = _draft != null;
-  }
-
-  ProjectModel3dEntry? _model(SpatialModelInstance instance) {
-    final models = widget.project.models3d.where(
-      (model) => model.id == instance.modelId,
-    );
-    return models.length == 1 ? models.single : null;
-  }
-
-  List<Model3dAnimation> _clips(ProjectModel3dEntry? model) {
-    final clips = model?.inspection.animations ?? <Model3dAnimation>[];
-    return clips
-        .where(
-          (clip) =>
-              clip.durationSeconds.isFinite &&
-              clip.durationSeconds > 0 &&
-              clips.where((other) => other.index == clip.index).length == 1,
-        )
-        .toList();
-  }
-
-  Map<GridPos, String> _exits() {
-    final position = widget.warp.pos;
-    final candidates = {
-      GridPos(x: position.x, y: position.y + 1): 'Sud',
-      GridPos(x: position.x, y: position.y - 1): 'Nord',
-      GridPos(x: position.x + 1, y: position.y): 'Est',
-      GridPos(x: position.x - 1, y: position.y): 'Ouest',
-    };
-    return Map.fromEntries(
-      candidates.entries.where((entry) {
-        final position = entry.key;
-        return position.x >= 0 &&
-            position.y >= 0 &&
-            position.x < widget.map.size.width &&
-            position.y < widget.map.size.height &&
-            !(widget.map.spatialScene?.navigation.blockedAreas.any(
-                  (area) => area.contains(position.x + .5, position.y + .5),
-                ) ??
-                false);
-      }),
-    );
-  }
-
-  String _exitId(GridPos position) => '${position.x},${position.y}';
-
-  MapWarpDoor _binding(SpatialModelInstance instance, GridPos exit) {
-    final clips = _clips(_model(instance));
-    return MapWarpDoor(
-      instanceId: instance.id,
-      openAnimationIndex: clips.first.index,
-      closeAnimationIndex: clips.length > 1
-          ? clips[1].index
-          : clips.first.index,
-      exitPos: exit,
-    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final instances =
-        widget.map.spatialScene?.instances ?? <SpatialModelInstance>[];
-    final candidates = instances
-        .where(
-          (instance) =>
-              instance.clip == null &&
-              instance.animationIndex == null &&
-              instances.where((other) => other.id == instance.id).length == 1 &&
-              _clips(_model(instance)).isNotEmpty,
-        )
-        .toList();
-    final exits = _exits();
-    final draft = _draft;
+    final candidates = form.candidates;
+    final exits = form.exits();
+    final draft = form.value;
     final instance = candidates
         .where((item) => item.id == draft?.instanceId)
         .firstOrNull;
-    final clips = _clips(instance == null ? null : _model(instance));
-    final changed =
-        _enabled != (widget.warp.door != null) ||
-        (_enabled && draft != widget.warp.door);
-    String? problem;
-    if (_enabled) {
-      if (draft == null) {
-        problem = 'Choisissez un modèle animé et une case de dégagement.';
-      } else {
-        try {
-          validateMapWarpDoor(
-            widget.map,
-            widget.warp.copyWith(door: draft),
-            models: widget.project.models3d,
-          );
-        } on ValidationException catch (error) {
-          problem = error.message;
-        }
-      }
-    }
+    final clips = form.clips(instance == null ? null : form.model(instance));
+    final changed = form.changed;
+    final problem = form.problem;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         StudioToggleRow(
           label: 'Porte animée',
           description: 'Ouvre et ferme une porte placée sur cette carte lors du passage.',
-          value: _enabled,
+          value: form.enabled,
           onChanged: (value) => setState(() {
-            _enabled = value;
-            if (value &&
-                _draft == null &&
-                candidates.isNotEmpty &&
-                exits.isNotEmpty) {
-              _draft = _binding(candidates.first, exits.keys.first);
-            }
+            form.enable(value);
           }),
         ),
-        if (_enabled) ...[
+        if (form.enabled) ...[
           if (candidates.isEmpty) ...[
             const StudioNotice(
               'Placez un modèle avec une animation, sans lecture automatique, sur cette carte.',
@@ -173,12 +84,12 @@ class _MapWarpDoorEditorState extends State<MapWarpDoorEditor> {
             options: {
               for (final item in candidates)
                 item.id:
-                    '${_model(item)!.name} · ${item.position.x.toStringAsFixed(1)}, ${item.position.z.toStringAsFixed(1)}',
+                    '${form.model(item)!.name} · ${item.position.x.toStringAsFixed(1)}, ${item.position.z.toStringAsFixed(1)}',
             },
             onChanged: exits.isEmpty
                 ? null
                 : (id) => setState(() {
-                    _draft = _binding(
+                    form.value = form.binding(
                       candidates.singleWhere((item) => item.id == id),
                       draft?.exitPos ?? exits.keys.first,
                     );
@@ -192,7 +103,7 @@ class _MapWarpDoorEditorState extends State<MapWarpDoorEditor> {
             onChanged: draft == null
                 ? null
                 : (index) => setState(() {
-                    _draft = draft.copyWith(
+                    form.value = draft.copyWith(
                       openAnimationIndex: int.parse(index),
                     );
                   }),
@@ -205,7 +116,7 @@ class _MapWarpDoorEditorState extends State<MapWarpDoorEditor> {
             onChanged: draft == null
                 ? null
                 : (index) => setState(() {
-                    _draft = draft.copyWith(
+                    form.value = draft.copyWith(
                       closeAnimationIndex: int.parse(index),
                     );
                   }),
@@ -213,18 +124,18 @@ class _MapWarpDoorEditorState extends State<MapWarpDoorEditor> {
           const SizedBox(height: 8),
           StudioSelect(
             label: 'Case de dégagement',
-            value: draft == null ? null : _exitId(draft.exitPos),
+            value: draft == null ? null : form.exitId(draft.exitPos),
             options: {
               for (final entry in exits.entries)
-                _exitId(entry.key):
+                form.exitId(entry.key):
                     '${entry.value} · ${entry.key.x}, ${entry.key.y}',
             },
             onChanged: draft == null
                 ? null
                 : (id) => setState(() {
-                    _draft = draft.copyWith(
+                    form.value = draft.copyWith(
                       exitPos: exits.keys.singleWhere(
-                        (position) => _exitId(position) == id,
+                        (position) => form.exitId(position) == id,
                       ),
                     );
                   }),
@@ -243,7 +154,7 @@ class _MapWarpDoorEditorState extends State<MapWarpDoorEditor> {
           StudioButton(
             label: 'Appliquer la porte',
             onPressed: problem == null
-                ? () => widget.onApply(_enabled ? _draft : null)
+                ? () => widget.onApply(form.enabled ? form.value : null)
                 : null,
           ),
         ],

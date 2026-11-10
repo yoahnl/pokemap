@@ -89,7 +89,7 @@ PlayerItemEffectApplication applyPlayerItemEffect(
       PlayerItemUseFailure.unsupportedCapability,
     );
   }
-  return switch (use.effect) {
+  final application = switch (use.effect) {
     ProjectItemBattleBoostEffectDefinition(:final stat) =>
       !targetIsActiveBattler || target.isFainted
           ? const PlayerItemEffectApplication.failed(
@@ -117,11 +117,12 @@ PlayerItemEffectApplication applyPlayerItemEffect(
       ),
     ProjectItemHealHpEffectDefinition(:final mode, :final amount) =>
       _applyHpHealing(target, mode: mode, amount: amount, maxHp: maxHp),
-    ProjectItemCureStatusEffectDefinition(:final mode, :final statusIds) =>
+    ProjectItemCureStatusEffectDefinition(:final mode, :final statusIds, :final curesConfusion) =>
       _applyStatusCure(
         target,
         mode: mode,
         statusIds: statusIds,
+        cureBattleConfusion: curesConfusion && targetHasBattleConfusion,
       ),
     ProjectItemReviveEffectDefinition(
       :final rateNumerator,
@@ -148,6 +149,10 @@ PlayerItemEffectApplication applyPlayerItemEffect(
         PlayerItemUseFailure.unsupportedCapability,
       ),
   };
+  if (!application.isApplied || use.friendshipLoss == null) return application;
+  return PlayerItemEffectApplication.applied(application.pokemon!.copyWith(
+    friendship: use.friendshipLoss!.apply(application.pokemon!.friendship),
+  ));
 }
 
 PlayerItemEffectApplication _applyVitamin(
@@ -223,17 +228,21 @@ PlayerItemEffectApplication _applyStatusCure(
   PlayerPokemon target, {
   required ProjectItemStatusCureMode mode,
   required Set<String> statusIds,
+  bool cureBattleConfusion = false,
 }) {
+  if (target.isFainted) {
+    return const PlayerItemEffectApplication.failed(PlayerItemUseFailure.wrongTarget);
+  }
   final statusId = target.statusId.trim();
   if (statusId.isEmpty) {
-    return const PlayerItemEffectApplication.failed(
+    return cureBattleConfusion ? PlayerItemEffectApplication.applied(target) : const PlayerItemEffectApplication.failed(
       PlayerItemUseFailure.noEffect,
     );
   }
   final canonicalStatusId = _canonicalItemStatusId(statusId);
   if (mode == ProjectItemStatusCureMode.listed &&
       !statusIds.map(_canonicalItemStatusId).contains(canonicalStatusId)) {
-    return const PlayerItemEffectApplication.failed(
+    return cureBattleConfusion ? PlayerItemEffectApplication.applied(target) : const PlayerItemEffectApplication.failed(
       PlayerItemUseFailure.wrongTarget,
     );
   }

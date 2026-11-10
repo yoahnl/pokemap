@@ -1,4 +1,7 @@
 import 'package:avelune_studio/features/map_workspace/application/map_library_commands.dart';
+
+import '../../../features/map_workspace/application/map_library_organization_session.dart';
+
 export 'package:avelune_studio/features/map_workspace/application/map_library_commands.dart'
     show OrganizeMapLibrary;
 import 'package:flutter/material.dart';
@@ -58,15 +61,19 @@ class _MapLibraryNavigatorState extends State<MapLibraryNavigator> {
     submit: ({groups, required assignments}) =>
         _submitOrganization(groups: groups, assignments: assignments),
   );
+  late final _organization = MapLibraryOrganizationSession(
+    action: () => widget.onOrganize,
+    changed: () {
+      if (mounted) setState(() {});
+    },
+  );
+  bool get _busy => _organization.busy;
+  String? get _error => _organization.error;
   final _search = TextEditingController();
   final _collapsed = <String>{};
   final _selected = <String>{};
-  var _creating = false,
-      _selecting = false,
-      _busy = false,
-      _searchExpanded = false;
+  var _creating = false, _selecting = false, _searchExpanded = false;
   var _name = '', _parent = '', _destination = '';
-  String? _error;
   String? _folderSelection;
   String? _notice;
   final _createdMapIds = <String>{};
@@ -98,6 +105,7 @@ class _MapLibraryNavigatorState extends State<MapLibraryNavigator> {
 
   @override
   void dispose() {
+    _organization.dispose();
     _search.dispose();
     super.dispose();
   }

@@ -135,154 +135,23 @@ extension _CinematicPageCommands on _CinematicWorkspacePageState {
 
   Future<void> addAction(CinematicTimelineStepKind kind) async {
     if (!flush()) return;
-    final state = view!, asset = controller.active!.asset;
-    final after = state.stepId;
-    String? id;
-    switch (kind) {
-      case CinematicTimelineStepKind.atmosphere:
-        id = controller.addCommand(kind, afterStepId: after, durationMs: 1000,
-          visualSettings: SpatialVisualPatch({SpatialVisualParameter.depthOfFieldEnabled: true}));
-      case CinematicTimelineStepKind.wait:
-        id = controller.addBasic(
-          CinematicTimelineBasicBlockKind.wait,
-          afterStepId: after,
-          durationMs: 1000,
-        );
-      case CinematicTimelineStepKind.camera:
-        id = controller.addBasic(
-          CinematicTimelineBasicBlockKind.camera,
-          afterStepId: after,
-          durationMs: 1000,
-          cameraMode: CinematicTimelineCameraMode.focus,
-          cameraFocusBinding: CinematicTimelineCameraFocusBinding(
-            target: CinematicCameraTargetBinding.sceneCenter(),
-            zoomPreset: CinematicCameraZoomPreset.medium,
-          ),
-        );
-      case CinematicTimelineStepKind.fade:
-        id = controller.addBasic(
-          CinematicTimelineBasicBlockKind.fade,
-          afterStepId: after,
-          durationMs: 600,
-        );
-      case CinematicTimelineStepKind.actorMove:
-        final actor = state.actorId;
-        if (actor == null) {
-          state.actionError = 'Ajoutez et sélectionnez un acteur.';
-          break;
-        }
-        final target =
-            asset.movementTargets.firstOrNull?.targetId ??
-            controller.addTarget('Destination à choisir');
-        if (target != null) {
-          id = controller.addMove(actor, target, afterStepId: after);
-        }
-        state.mode = CinematicMapMode.destination;
-      case CinematicTimelineStepKind.actorJump:
-        final actor = state.actorId;
-        if (actor == null) {
-          state.actionError = 'Ajoutez et sélectionnez un acteur.';
-          break;
-        }
-        final target =
-            asset.movementTargets.firstOrNull?.targetId ??
-            controller.addTarget('Destination du saut');
-        if (target != null) {
-          id = controller.addJump(actor, target, afterStepId: after);
-        }
-        state.mode = CinematicMapMode.destination;
-      case CinematicTimelineStepKind.actorFace:
-        if (state.actorId == null) {
-          state.actionError = 'Sélectionnez un acteur.';
-          break;
-        }
-        id = controller.addFace(
-          state.actorId!,
-          CinematicTimelineActorFacingDirection.down,
-          afterStepId: after,
-        );
-      case CinematicTimelineStepKind.actorEmote:
-        if (state.actorId == null) {
-          state.actionError = 'Sélectionnez un acteur.';
-          break;
-        }
-        id = controller.addEmote(
-          state.actorId!,
-          afterStepId: after,
-          durationMs: 1000,
-        );
-      case CinematicTimelineStepKind.dialogueLine:
-        final selected = await choose('Dialogue', {
-          for (final d in controller.project.dialogues) d.id: d.name,
-        });
-        if (selected != null && mounted && controller.activeId == asset.id) {
-          id = controller.addCommand(
-            kind,
-            dialogueId: selected,
-            afterStepId: after,
-          );
-        }
-      case CinematicTimelineStepKind.sound ||
-          CinematicTimelineStepKind.music ||
-          CinematicTimelineStepKind.fx:
-        final type = kind == CinematicTimelineStepKind.sound
-            ? CinematicMediaAssetKind.sound
-            : kind == CinematicTimelineStepKind.music
-            ? CinematicMediaAssetKind.music
-            : CinematicMediaAssetKind.cinematicFx;
-        final media = controller.project.cinematicMediaAssets
-            .where((m) => m.kind == type)
-            .toList();
-        final selected = await choose('Média disponible', {
-          for (final m in media) m.id: m.label,
-        });
-        if (selected != null && mounted && controller.activeId == asset.id) {
-          id = controller.addCommand(
-            kind,
-            mediaAsset: media.firstWhere((m) => m.id == selected),
-            afterStepId: after,
-          );
-        }
-      case CinematicTimelineStepKind.marker || CinematicTimelineStepKind.shake:
-        id = controller.addCommand(
-          kind,
-          afterStepId: after,
-          durationMs: kind == CinematicTimelineStepKind.shake ? 600 : null,
-          label: kind == CinematicTimelineStepKind.marker ? 'Repère' : null,
-        );
-      case CinematicTimelineStepKind.actorAnimation:
-        final actorId = state.actorId;
-        final characterId =
-            model?.actors.actorById(actorId ?? '')?.appearance.characterId ??
-            asset.stageContext?.actorAppearanceBindings
-                .where((b) => b.actorId == actorId)
-                .firstOrNull
-                ?.characterId;
-        final character = controller.project.characters
-            .where((c) => c.id == characterId)
-            .firstOrNull;
-        final clips = character?.customAnimations ?? const [];
-        final selected = await choose('Animation disponible', {
-          for (var i = 0; i < clips.length; i++)
-            '$i':
-                '${controller.project.characterStudioCatalog.customAnimationDefinitions.where((d) => d.id == clips[i].definitionId).firstOrNull?.displayName ?? clips[i].definitionId}${clips[i].direction == null ? '' : ' · ${clips[i].direction!.name}'}',
-        });
-        if (selected != null &&
-            mounted &&
-            controller.activeId == asset.id &&
-            actorId != null) {
-          final clip = clips[int.parse(selected)];
-          id = controller.addAnimation(
-            CharacterCustomAnimationRuntimeCommand(
-              actorId: actorId,
-              definitionId: clip.definitionId,
-              direction: clip.direction,
-            ),
-            afterStepId: after,
-          );
-        }
+    final state = view!;
+    final id = await controller.addAction(
+      kind,
+      actorId: state.actorId,
+      afterStepId: state.stepId,
+      actorDisplay: model?.actors,
+      choose: choose,
+      isActive: () => mounted,
+    );
+    if (state.actorId != null &&
+        (kind == CinematicTimelineStepKind.actorMove ||
+            kind == CinematicTimelineStepKind.actorJump)) {
+      state.mode = CinematicMapMode.destination;
     }
     if (!mounted) return;
+    if (id == null && controller.error != null)
+      state.actionError = controller.error;
     if (id != null) {
       state.selection
         ..clear()

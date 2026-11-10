@@ -1,3 +1,5 @@
+import '../../../features/scenes/application/scene_image_puzzle_draft.dart';
+
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
@@ -23,168 +25,86 @@ class SceneImagePuzzleForm extends StatefulWidget {
 }
 
 class _SceneImagePuzzleFormState extends State<SceneImagePuzzleForm> {
-  late Map<String, dynamic> _value;
-  Map<String, String> _images = const {};
+  late final SceneImagePuzzleDraft draft;
   Widget? _imagePicker;
-  String? _mediaError;
-  var _request = 0;
-  var _page = 0;
-  int get _count => (_value['rows'] as int) * (_value['columns'] as int);
-  List<int> get _fixed => (_value['fixedPieceIds'] as List).cast<int>();
-  List<int> get _turns => (_value['allowedQuarterTurns'] as List).cast<int>();
-  List<Map<String, dynamic>>? get _pieces => (_value['initialPieces'] as List?)
-      ?.map((piece) => Map<String, dynamic>.from(piece as Map))
-      .toList();
-
+  int _imageRevision = -1, _page = 0;
   @override
   void initState() {
     super.initState();
-    _read();
-    _load();
+    draft = SceneImagePuzzleDraft(
+      current: widget.current,
+      loadVisualMedia: widget.loadVisualMedia,
+      changed: () {
+        if (mounted) setState(() {});
+      },
+    );
   }
 
   @override
   void didUpdateWidget(SceneImagePuzzleForm oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.current != widget.current) _read();
-    if (oldWidget.loadVisualMedia != widget.loadVisualMedia) _load();
+    if (oldWidget.current != widget.current) _page = 0;
+    draft.configure(
+      current: widget.current,
+      loadVisualMedia: widget.loadVisualMedia,
+    );
   }
 
-  void _read() {
-    _imagePicker = null;
-    _value =
-        widget.current?.definition.toJson() ??
-        {
-          'schemaVersion': 1,
-          'puzzleId': '',
-          'imageResourceId': '',
-          'rows': 4,
-          'columns': 4,
-          'trayCapacity': 1,
-          'allowedQuarterTurns': [0, 1, 2, 3],
-          'fixedPieceIds': <int>[],
-          'allowReset': true,
-          'allowSwap': false,
-        };
-    _page = 0;
+  @override
+  void dispose() {
+    draft.dispose();
+    super.dispose();
   }
-
-  Future<void> _load() async {
-    final request = ++_request;
-    _images = const {};
-    _imagePicker = null;
-    _mediaError = null;
-    final load = widget.loadVisualMedia;
-    if (load == null) return;
-    try {
-      final media = await load();
-      if (mounted && request == _request) {
-        setState(() {
-          _imagePicker = null;
-          _images = {
-            for (final entry in media.entries)
-              if (entry.kind == ProjectMediaKind.image) entry.id: entry.label,
-          };
-        });
-      }
-    } on Object {
-      if (mounted && request == _request) {
-        setState(
-          () => _mediaError = 'La médiathèque est indisponible. Rechargez-la avant d’appliquer.',
-        );
-      }
-    }
-  }
-
-  ImagePuzzleDefinition? get _definition {
-    if (!_images.containsKey(_value['imageResourceId'])) return null;
-    try {
-      return ImagePuzzleDefinition.fromJson(_value);
-    } on Object {
-      return null;
-    }
-  }
-
-  void _change(String field, Object value) => setState(() {
-    if (field == 'imageResourceId') _imagePicker = null;
-    _value[field] = value;
-  });
-
-  List<Map<String, dynamic>> _initial() {
-    final movable = [
-      for (var id = 0; id < _count; id++)
-        if (!_fixed.contains(id)) id,
-    ];
-    return [
-      for (var id = 0; id < _count; id++)
-        {
-          'pieceId': id,
-          'slot': _fixed.contains(id)
-              ? id
-              : movable.length > 1
-              ? movable[(movable.indexOf(id) + 1) % movable.length]
-              : (_value['trayCapacity'] as int) > 0
-              ? _count
-              : id,
-          'quarterTurns':
-              !_fixed.contains(id) &&
-                  movable.length == 1 &&
-                  _value['trayCapacity'] == 0 &&
-                  _turns.length > 1
-              ? _turns.last
-              : 0,
-        },
-    ];
-  }
-
-  void _piece(int id, String field, int value) => _change('initialPieces', [
-    for (final piece in _pieces!)
-      piece['pieceId'] == id ? {...piece, field: value} : piece,
-  ]);
 
   @override
   Widget build(BuildContext context) {
-    final columns = _value['columns'] as int;
+    if (_imageRevision != draft.imageRevision) {
+      _imageRevision = draft.imageRevision;
+      _imagePicker = null;
+    }
+    final columns = draft.value['columns'] as int;
     final validGrid =
-        (_value['rows'] as int) > 0 &&
+        (draft.value['rows'] as int) > 0 &&
         columns > 0 &&
-        _count <= ImagePuzzleDefinition.maximumPieces &&
-        (_value['trayCapacity'] as int) >= 0 &&
-        (_value['trayCapacity'] as int) <= ImagePuzzleDefinition.maximumPieces;
-    final pages = validGrid ? (_count / 16).ceil() : 1;
+        draft.count <= ImagePuzzleDefinition.maximumPieces &&
+        (draft.value['trayCapacity'] as int) >= 0 &&
+        (draft.value['trayCapacity'] as int) <=
+            ImagePuzzleDefinition.maximumPieces;
+    final pages = validGrid ? (draft.count / 16).ceil() : 1;
     final page = _page.clamp(0, pages - 1);
-    final pieces = _pieces;
-    final imageId = _value['imageResourceId'] as String;
-    final definition = _definition;
+    final pieces = draft.pieces;
+    final imageId = draft.value['imageResourceId'] as String;
+    final definition = draft.definition;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         StudioDraftField(
           key: const ValueKey('puzzle-id'),
           label: 'Identité stable du puzzle',
-          value: _value['puzzleId'] as String,
-          onChanged: (value) => _change('puzzleId', value),
+          value: draft.value['puzzleId'] as String,
+          onChanged: (value) => draft.change('puzzleId', value),
         ),
         _imagePicker ??= StudioSelect(
           key: const ValueKey('puzzle-image'),
           label: 'Image du puzzle',
           value: imageId.isEmpty ? null : imageId,
           options: {
-            if (imageId.isNotEmpty && !_images.containsKey(imageId))
+            if (imageId.isNotEmpty && !draft.images.containsKey(imageId))
               imageId: 'Image enregistrée indisponible',
-            ..._images,
+            ...draft.images,
           },
-          onChanged: (value) => _change('imageResourceId', value),
+          onChanged: (value) => draft.change('imageResourceId', value),
         ),
-        if (_mediaError != null) StudioNotice(_mediaError!, isError: true),
-        if (_images.isEmpty)
+        if (draft.mediaError != null)
+          StudioNotice(draft.mediaError!, isError: true),
+        if (draft.images.isEmpty)
           const StudioNotice(
             'Ajoutez une image à la médiathèque du projet pour créer ce puzzle.',
           ),
         StudioButton(
           label: 'Recharger les images',
           secondary: true,
-          onPressed: () => setState(_load),
+          onPressed: () => setState(draft.load),
         ),
         for (final entry in {
           'rows': 'Lignes',
@@ -194,29 +114,30 @@ class _SceneImagePuzzleFormState extends State<SceneImagePuzzleForm> {
           StudioDraftField(
             key: ValueKey('puzzle-${entry.key}'),
             label: entry.value,
-            value: '${_value[entry.key]}',
+            value: '${draft.value[entry.key]}',
             keyboardType: TextInputType.number,
-            onChanged: (value) => _change(entry.key, int.tryParse(value) ?? 0),
+            onChanged: (value) =>
+                draft.change(entry.key, int.tryParse(value) ?? 0),
           ),
         StudioToggleRow(
           label: 'Autoriser le recommencement',
-          value: _value['allowReset'] as bool,
-          onChanged: (value) => _change('allowReset', value),
+          value: draft.value['allowReset'] as bool,
+          onChanged: (value) => draft.change('allowReset', value),
         ),
         StudioToggleRow(
           label: 'Autoriser les échanges',
-          value: _value['allowSwap'] as bool,
-          onChanged: (value) => _change('allowSwap', value),
+          value: draft.value['allowSwap'] as bool,
+          onChanged: (value) => draft.change('allowSwap', value),
         ),
         for (final turn in [1, 2, 3])
           StudioToggleRow(
             key: ValueKey('puzzle-rotation-$turn'),
             label: 'Rotation de ${turn * 90}°',
-            value: _turns.contains(turn),
+            value: draft.turns.contains(turn),
             onChanged: (enabled) {
-              final turns = {..._turns};
+              final turns = {...draft.turns};
               enabled ? turns.add(turn) : turns.remove(turn);
-              _change('allowedQuarterTurns', turns.toList()..sort());
+              draft.change('allowedQuarterTurns', turns.toList()..sort());
             },
           ),
         if (validGrid) ...[
@@ -226,9 +147,9 @@ class _SceneImagePuzzleFormState extends State<SceneImagePuzzleForm> {
             value: pieces != null,
             onChanged: (enabled) => setState(() {
               if (enabled) {
-                _value['initialPieces'] = _initial();
+                draft.value['initialPieces'] = draft.initial();
               } else {
-                _value.remove('initialPieces');
+                draft.value.remove('initialPieces');
               }
             }),
           ),
@@ -237,27 +158,27 @@ class _SceneImagePuzzleFormState extends State<SceneImagePuzzleForm> {
             value: '$page',
             options: {
               for (var i = 0; i < pages; i++)
-                '$i': '${i * 16 + 1}–${((i + 1) * 16).clamp(1, _count)}',
+                '$i': '${i * 16 + 1}–${((i + 1) * 16).clamp(1, draft.count)}',
             },
             onChanged: (next) => setState(() => _page = int.parse(next)),
           ),
           for (
             var id = page * 16;
-            id < ((page + 1) * 16).clamp(0, _count);
+            id < ((page + 1) * 16).clamp(0, draft.count);
             id++
           ) ...[
             StudioToggleRow(
               key: ValueKey('puzzle-piece-$id-fixed'),
               label:
                   'Fixer la pièce ${id + 1} · ligne ${id ~/ columns + 1}, colonne ${id % columns + 1}',
-              value: _fixed.contains(id),
+              value: draft.fixed.contains(id),
               onChanged: (enabled) {
-                final fixed = {..._fixed};
+                final fixed = {...draft.fixed};
                 enabled ? fixed.add(id) : fixed.remove(id);
                 setState(() {
-                  _value['fixedPieceIds'] = fixed.toList()..sort();
+                  draft.value['fixedPieceIds'] = fixed.toList()..sort();
                   if (pieces != null && enabled) {
-                    _value['initialPieces'] = [
+                    draft.value['initialPieces'] = [
                       for (final piece in pieces)
                         piece['pieceId'] == id
                             ? {...piece, 'slot': id, 'quarterTurns': 0}
@@ -276,14 +197,14 @@ class _SceneImagePuzzleFormState extends State<SceneImagePuzzleForm> {
                 options: {
                   for (
                     var slot = 0;
-                    slot < _count + (_value['trayCapacity'] as int);
+                    slot < draft.count + (draft.value['trayCapacity'] as int);
                     slot++
                   )
-                    '$slot': slot < _count
+                    '$slot': slot < draft.count
                         ? 'Ligne ${slot ~/ columns + 1}, colonne ${slot % columns + 1}'
-                        : 'Réserve ${slot - _count + 1}',
+                        : 'Réserve ${slot - draft.count + 1}',
                 },
-                onChanged: (next) => _piece(id, 'slot', int.parse(next)),
+                onChanged: (next) => draft.piece(id, 'slot', int.parse(next)),
               ),
               StudioSelect(
                 label: 'Rotation initiale de la pièce ${id + 1}',
@@ -293,7 +214,7 @@ class _SceneImagePuzzleFormState extends State<SceneImagePuzzleForm> {
                   for (var turn = 0; turn < 4; turn++) '$turn': '${turn * 90}°',
                 },
                 onChanged: (next) =>
-                    _piece(id, 'quarterTurns', int.parse(next)),
+                    draft.piece(id, 'quarterTurns', int.parse(next)),
               ),
             ],
           ],

@@ -1,3 +1,5 @@
+import '../../../features/pokemon/application/pokemon_document_editing.dart';
+
 import 'package:flutter/material.dart';
 
 import '../../../features/pokemon/application/pokemon_workspace_controller.dart';
@@ -14,7 +16,7 @@ class PokemonDraftControls {
   Map<String, dynamic> get data => controller.selectedDraft!.document(family)!;
 
   Widget text(String label, List<String> path, {int lines = 1}) {
-    final value = _read(path);
+    final value = PokemonDocumentEditing.read(data, path);
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: StudioDraftField(
@@ -22,40 +24,20 @@ class PokemonDraftControls {
         label: label,
         value: value?.toString() ?? '',
         lines: lines,
-        onChanged: (text) =>
-            controller.edit(family, (json) => _write(json, path, text)),
+        onChanged: (text) => controller.edit(
+          family,
+          (json) => PokemonDocumentEditing.write(json, path, text),
+        ),
       ),
     );
   }
 
   Widget toggle(String label, List<String> path) => StudioToggleRow(
     label: label,
-    value: _read(path) == true,
-    onChanged: (value) =>
-        controller.edit(family, (json) => _write(json, path, value)),
+    value: PokemonDocumentEditing.read(data, path) == true,
+    onChanged: (value) => controller.edit(
+      family,
+      (json) => PokemonDocumentEditing.write(json, path, value),
+    ),
   );
-
-  Object? _read(List<String> path) {
-    Object? value = data;
-    for (final segment in path) {
-      if (value is! Map) return null;
-      value = value[segment];
-    }
-    return value;
-  }
-
-  void _write(Map<String, dynamic> json, List<String> path, Object? value) {
-    Map<String, dynamic> current = json;
-    for (final segment in path.take(path.length - 1)) {
-      final next = current[segment];
-      if (next is Map<String, dynamic>) {
-        current = next;
-      } else {
-        final created = <String, dynamic>{};
-        current[segment] = created;
-        current = created;
-      }
-    }
-    current[path.last] = value;
-  }
 }

@@ -1,3 +1,5 @@
+import '../../../features/resources/application/model_definition_drafts.dart';
+
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
@@ -23,11 +25,16 @@ class ModelRampControls extends StatefulWidget {
 }
 
 class _ModelRampControlsState extends State<ModelRampControls> {
-  late bool enabled;
-  late SpatialRampDirection direction;
-  late List<String> values;
-  bool saving = false;
-  String? error;
+  late ModelRampDraft _draft;
+  bool get saving => _draft.saving;
+  bool get enabled => _draft.enabled;
+  set enabled(bool value) => _draft.enabled = value;
+  SpatialRampDirection get direction => _draft.direction;
+  set direction(SpatialRampDirection value) => _draft.direction = value;
+  List<String> get values => _draft.values;
+  set values(List<String> value) => _draft.values = value;
+  String? get error => _draft.error;
+  set error(String? value) => _draft.error = value;
 
   @override
   void initState() {
@@ -40,62 +47,30 @@ class _ModelRampControlsState extends State<ModelRampControls> {
     super.didUpdateWidget(old);
     if (old.model.id != widget.model.id ||
         old.model.rampProfile != widget.model.rampProfile) {
+      _draft.dispose();
       reset();
     }
   }
 
   void reset() {
-    final profile = widget.model.rampProfile;
-    final bounds = widget.model.inspection.bounds;
-    enabled = profile != null;
-    direction = profile?.direction ?? SpatialRampDirection.north;
-    values = [
-      profile?.x ?? bounds.min.x,
-      profile?.z ?? bounds.min.z,
-      profile?.width ?? bounds.size.x,
-      profile?.depth ?? bounds.size.z,
-      profile?.lowHeight ?? bounds.min.y,
-      profile?.highHeight ?? bounds.max.y,
-    ].map((v) => '$v').toList();
-    error = null;
+    _draft = ModelRampDraft(widget.model);
   }
 
   Future<void> save() async {
-    if (saving || widget.busy) return;
-    setState(() {
-      saving = true;
-      error = null;
-    });
-    try {
-      Model3dRampProfile? profile;
-      if (enabled) {
-        final parsed = values
-            .map((v) => double.tryParse(v.replaceAll(',', '.')))
-            .toList();
-        if (parsed.any((v) => v == null || !v.isFinite)) {
-          throw const FormatException('Saisissez des dimensions valides.');
-        }
-        final n = parsed.cast<double>();
-        profile = Model3dRampProfile(
-          x: n[0],
-          z: n[1],
-          width: n[2],
-          depth: n[3],
-          lowHeight: n[4],
-          highHeight: n[5],
-          direction: direction,
-        );
-      }
-      await widget.onSave(profile);
-    } on Object catch (failure) {
-      if (mounted) {
-        setState(
-          () => error = 'Impossible d’appliquer cet escalier : $failure',
-        );
-      }
-    } finally {
-      if (mounted) setState(() => saving = false);
-    }
+    final owner = _draft;
+    final saving = owner.save(
+      widget.onSave,
+      canSave: () => mounted && !widget.busy,
+    );
+    setState(() {});
+    await saving;
+    if (mounted && identical(_draft, owner)) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _draft.dispose();
+    super.dispose();
   }
 
   @override

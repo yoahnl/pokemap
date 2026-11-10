@@ -95,6 +95,16 @@ class EventSourcePicking {
     ];
   }
 
+  Map<String, String> get modelChoices => {
+    for (final instance
+        in map.spatialScene?.instances ?? const <SpatialModelInstance>[])
+      if (selectable(
+        NarrativeEventSourceRef.modelInteract(map.id, instance.id),
+      ))
+        instance.id:
+            '${project.models3d.where((model) => model.id == instance.modelId).firstOrNull?.name ?? 'Ressource absente'} · (${instance.position.x.toStringAsFixed(1)}, ${instance.position.z.toStringAsFixed(1)})',
+  };
+
   NarrativeEventSourceRef? modelHit(String id) =>
       accept(NarrativeEventSourceRef.modelInteract(map.id, id));
 

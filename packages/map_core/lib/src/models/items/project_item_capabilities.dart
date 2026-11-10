@@ -26,6 +26,44 @@ enum ProjectItemConsumptionPolicy {
 
 enum ProjectMoveMachineKind { tm, hm }
 
+int _friendshipLossInteger(Object? value) {
+  if (value is! int) {
+    throw FormatException('Friendship loss must be an integer', value);
+  }
+  return value;
+}
+
+@freezed
+abstract class ProjectItemFriendshipLoss with _$ProjectItemFriendshipLoss {
+  const ProjectItemFriendshipLoss._();
+
+  @JsonSerializable(disallowUnrecognizedKeys: true)
+  const factory ProjectItemFriendshipLoss({
+    @JsonKey(fromJson: _friendshipLossInteger) required int low,
+    @JsonKey(fromJson: _friendshipLossInteger) required int medium,
+    @JsonKey(fromJson: _friendshipLossInteger) required int high,
+  }) = _ProjectItemFriendshipLoss;
+
+  factory ProjectItemFriendshipLoss.fromJson(Map<String, dynamic> json) =>
+      _$ProjectItemFriendshipLossFromJson(json).normalized();
+
+  ProjectItemFriendshipLoss normalized() {
+    if ([low, medium, high].any((value) => value < 0 || value > 255)) {
+      throw StateError('Friendship losses must be between 0 and 255');
+    }
+    return this;
+  }
+
+  int apply(int friendship) =>
+      (friendship -
+              (friendship < 100
+                  ? low
+                  : friendship < 200
+                  ? medium
+                  : high))
+          .clamp(0, 255);
+}
+
 @freezed
 abstract class ProjectItemUseDefinition with _$ProjectItemUseDefinition {
   const ProjectItemUseDefinition._();
@@ -36,6 +74,7 @@ abstract class ProjectItemUseDefinition with _$ProjectItemUseDefinition {
     required ProjectItemTargetKind target,
     required ProjectItemConsumptionPolicy consumption,
     required ProjectItemEffectDefinition effect,
+    @JsonKey(includeIfNull: false) ProjectItemFriendshipLoss? friendshipLoss,
   }) = _ProjectItemUseDefinition;
 
   factory ProjectItemUseDefinition.fromJson(Map<String, dynamic> json) =>
@@ -45,9 +84,21 @@ abstract class ProjectItemUseDefinition with _$ProjectItemUseDefinition {
     if (contexts.isEmpty) {
       throw StateError('ProjectItemUseDefinition contexts must not be empty');
     }
+    if (friendshipLoss != null &&
+        target != ProjectItemTargetKind.partyMember &&
+        target != ProjectItemTargetKind.partyMove) {
+      throw StateError('Friendship loss requires a party target');
+    }
+    if (friendshipLoss != null &&
+        consumption != ProjectItemConsumptionPolicy.onApplied) {
+      throw StateError(
+        'Friendship loss requires consumption after application',
+      );
+    }
     return copyWith(
       contexts: Set.unmodifiable(contexts),
       effect: effect.normalized(),
+      friendshipLoss: friendshipLoss?.normalized(),
     );
   }
 }

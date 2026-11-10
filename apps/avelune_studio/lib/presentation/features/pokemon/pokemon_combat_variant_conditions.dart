@@ -70,15 +70,7 @@ Widget _buildCombatVariantConditions(
           icon: Icons.add,
           onPressed: facts.isEmpty
               ? null
-              : () => change(
-                  (current) => [
-                    ...current,
-                    ScriptConditionFactory.factEquals(
-                      facts.first.id,
-                      facts.first.initialValue,
-                    ),
-                  ],
-                ),
+              : () => combat.addVariantCondition(variant.id, facts.first),
         ),
       ),
     ],
@@ -113,10 +105,8 @@ Widget _buildCombatVariantCondition(
         value: id,
         options: {for (final fact in facts) fact.id: fact.label},
         onChanged: (id) {
-          combat.numericInputs.remove(numericKey);
-          combat.fieldErrors.remove(numericKey);
           final selected = facts.singleWhere((fact) => fact.id == id);
-          change(ScriptConditionFactory.factEquals(id, selected.initialValue));
+          combat.selectVariantFact(variant.id, position, selected);
         },
       ),
       const SizedBox(height: 10),

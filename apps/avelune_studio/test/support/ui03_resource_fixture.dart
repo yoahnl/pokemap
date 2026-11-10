@@ -1,11 +1,11 @@
-import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/features/terrains/application/terrain_draft_controller.dart';
-import 'm2_ui_fixture.dart';
 
-Future<M2UiFixture> createUi03Fixture(WidgetTester tester) async {
-  final fixture = await M2UiFixture.create(tester);
-  final project = fixture.controller.project!;
+import 'resource_map_journey_fixture.dart';
+
+Future<ResourceMapJourneyFixture> createUi03Fixture() async {
+  final fixture = await ResourceMapJourneyFixture.create();
+  final project = fixture.workspace.project!;
   final tileset = project.tilesets.first.copyWith(
     name: 'Atelier — planche complète',
     source: const ProjectTilesetSource.regularAtlas(
@@ -35,7 +35,7 @@ Future<M2UiFixture> createUi03Fixture(WidgetTester tester) async {
     terrain.selectedRule = mask;
     terrain.assign(1, 0);
   }
-  fixture.controller.project = project.copyWith(
+  fixture.workspace.project = project.copyWith(
     tilesets: [tileset],
     elementCategories: [
       ...project.elementCategories,

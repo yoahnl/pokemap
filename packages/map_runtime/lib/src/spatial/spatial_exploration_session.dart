@@ -27,6 +27,7 @@ import '../presentation/flame/flame_narrative_sound_playback_adapter.dart';
 import '../player/runtime_music_service.dart';
 import '../player/runtime_project_audio_controller.dart';
 import '../player/runtime_graphics_preferences.dart';
+import '../player/runtime_pokemon_overworld_resolver.dart';
 import 'spatial_entity_visual_plan.dart';
 import 'spatial_cinematic_runtime_playback_sink.dart';
 import 'spatial_cinematic_emote_visuals.dart';
@@ -276,6 +277,7 @@ final class SpatialExplorationSession {
   Map<String, SpatialActorTexture> get _textures => _assets.textures;
   final Object _assetOwner = Object();
   final Object _avatarAssetOwner = Object();
+  final Object _companionAssetOwner = Object();
   Set<String> _imageIds = {};
   final _preparedMaps = <String, _PreparedSpatialMap>{};
   final _modelPresenceIndices = Expando<_SpatialModelPresenceIndex>();
@@ -448,6 +450,9 @@ final class SpatialExplorationSession {
   bool platformTransportActive = false;
   final _companionTrail = PartyCompanionTrail();
   ProjectCharacterEntry? _companionCharacter;
+  ({String root, String species, String form, bool shiny})? _companionMediaKey;
+  ({String imageId, double width, double height})? _companionAtlas;
+  int _companionMediaGeneration = 0;
 
   PartyCompanionTrailPoint? get companionPosition => _companionTrail.position;
   String? get companionCharacterId => _companionCharacter?.id;
@@ -479,21 +484,23 @@ final class SpatialExplorationSession {
         ? null
         : config.resolve(lead.speciesId, lead.formId);
     if (!config.enabled ||
-        visual == null ||
+        lead == null ||
         transitioning.value) {
       _companionTrail.clear();
       _companionCharacter = null;
+      if (lead == null || !config.enabled) _clearCompanionMedia();
       return;
     }
     _companionCharacter = bundle.manifest.characters
-        .where((actor) => actor.id == visual.characterId)
+        .where((actor) => actor.id == visual?.characterId)
         .firstOrNull;
+    _prepareCompanionMedia(lead);
     final previousCompanion = _companionTrail.position;
     final story = heroStoryPose?.call();
     final groundY = story == null ? movement.groundY : cinematicHeightAt(story.x, story.z);
     _companionTrail.observe(
       mapId: bundle.map.id,
-      individualId: lead!.individualId,
+      individualId: lead.individualId,
       x: story?.x ?? movement.x,
       z: story?.z ?? movement.z,
       y: story == null ? movement.y : groundY + story.liftCells,
@@ -518,13 +525,107 @@ final class SpatialExplorationSession {
     }
   }
 
+  void _clearCompanionMedia() {
+    if (_companionMediaKey == null && _companionAtlas == null) return;
+    _companionMediaGeneration++;
+    _companionMediaKey = null;
+    _companionAtlas = null;
+    _assets.owners.remove(_companionAssetOwner);
+    if (!_disposed) {
+      _assets.retain({
+        for (final prepared in _preparedMaps.values) ...prepared.imageIds,
+      });
+    }
+  }
+
+  void _prepareCompanionMedia(PlayerPokemon lead) {
+    final key = (
+      root: bundle.projectRootDirectory,
+      species: lead.speciesId,
+      form: lead.formId,
+      shiny: lead.isShiny,
+    );
+    if (_companionMediaKey == key) return;
+    _clearCompanionMedia();
+    _companionMediaKey = key;
+    final generation = ++_companionMediaGeneration;
+    final resolver = RuntimePokemonOverworldResolver(
+      projectRootDirectory: key.root,
+      pokemonConfig: bundle.manifest.pokemon,
+    );
+    final plan = _entityVisuals;
+    unawaited(() async {
+      final preparationOwner = Object();
+      try {
+        final path = await resolver.resolve(lead);
+        if (path == null || _disposed || generation != _companionMediaGeneration) {
+          return;
+        }
+        final id = 'pokemon-overworld:$path';
+        _assets.owners[preparationOwner] = {id};
+        await _assets.load(id, path, plan);
+        if (_disposed || generation != _companionMediaGeneration) return;
+        final image = _images[id];
+        if (image == null || image.width < 4 || image.height < 4 ||
+            image.width % 4 != 0 || image.height % 4 != 0) {
+          return;
+        }
+        _companionAtlas = (
+          imageId: id,
+          width: image.width / 4,
+          height: image.height / 4,
+        );
+        _assets.owners[_companionAssetOwner] = {id};
+        onFrame?.call();
+      } on Object {
+        return;
+      } finally {
+        _assets.owners.remove(preparationOwner);
+        if (!_disposed) {
+          _assets.retain({
+            for (final prepared in _preparedMaps.values) ...prepared.imageIds,
+          });
+        }
+      }
+    }());
+  }
+
   SpatialActorVisual? _companionFrame() {
     final actor = _companionCharacter;
     final position = _companionTrail.position;
-    if (actor == null || position == null) return null;
+    if (position == null) return null;
     final facing = _companionTrail.facingX.abs() > _companionTrail.facingZ.abs()
         ? (_companionTrail.facingX > 0 ? EntityFacing.east : EntityFacing.west)
         : (_companionTrail.facingZ < 0 ? EntityFacing.north : EntityFacing.south);
+    final atlas = _companionAtlas;
+    final texture = atlas == null ? null : _textures[atlas.imageId];
+    if (atlas != null && texture != null) {
+      final row = switch (facing) {
+        EntityFacing.south => 0,
+        EntityFacing.west => 1,
+        EntityFacing.east => 2,
+        EntityFacing.north => 3,
+      };
+      final column = _companionTrail.moving
+          ? (_companionTrail.animationSeconds * 8).floor() % 4
+          : 0;
+      final ground = liftHeightAt?.call(bundle.map.id, position.x, position.z) ??
+          position.groundY;
+      return SpatialActorVisual(
+        x: position.x,
+        z: position.z,
+        y: ground + position.y - position.groundY,
+        groundY: ground,
+        texture: texture,
+        frame: ui.Rect.fromLTWH(column * atlas.width, row * atlas.height,
+            atlas.width, atlas.height),
+        height: 1.92 * atlas.height / 32,
+        contactShadow: bundle.manifest.settings.actorContactShadowsByDefault,
+        airborne: position.airborne,
+        landingDust: true,
+      );
+    }
+    if (actor == null) return null;
     final motion = _companionTrail.moving
         ? CharacterAnimationState.walk
         : CharacterAnimationState.idle;
@@ -2645,6 +2746,7 @@ final class SpatialExplorationSession {
     _preparedMaps.clear();
     _assets.owners.remove(_assetOwner);
     _assets.owners.remove(_avatarAssetOwner);
+    _assets.owners.remove(_companionAssetOwner);
     if (_ownsAssets) _assets.dispose();
   }
 

@@ -4,7 +4,7 @@ import 'package:map_core/map_core_domain.dart';
 
 enum PokemonWorkspaceView { pokedex, moves, items, shops, combats }
 
-enum PokemonDetailSection { overview, forms, learnset, evolution, media }
+enum PokemonDetailSection { overview, forms, learnset, evolution }
 
 enum PokemonDocumentFamily { species, learnset, evolution, media }
 
@@ -55,6 +55,7 @@ String pokemonMediaRoleLabel(String role) => switch (role) {
   'frontShinyStatic' => 'Face avant chromatique',
   'backShinyStatic' => 'Face arrière chromatique',
   'overworld' => 'Monde extérieur',
+  'overworldShiny' => 'Monde extérieur chromatique',
   'cry' => 'Cri',
   _ => role,
 };

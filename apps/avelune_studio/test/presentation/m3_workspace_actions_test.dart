@@ -3,8 +3,7 @@ import 'dart:convert';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/narrative/application/narrative_workspace_controller.dart';
 import 'package:avelune_studio/features/narrative/domain/narrative_port.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/workspace_actions.dart';
-import 'package:flutter/material.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/workspace_workflow.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
@@ -32,25 +31,16 @@ void main() {
       );
       await owner.load();
       owner.createRegion('Kanto');
-      late WorkspaceActions actions;
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Builder(
-            builder: (context) {
-              actions = WorkspaceActions(
+      final actions = WorkspaceWorkflow(
                 controller: maps,
-                context: () => context,
-                mounted: () => true,
+                isActive: () => true,
                 changed: () {},
                 resources: () => null,
                 narrative: () => null,
                 regionalMap: () => owner,
-                runtimeBuilder: (_, _, _) => const SizedBox(),
-              );
-              return const Scaffold();
-            },
-          ),
-        ),
+                confirmClose: () async => WorkspaceCloseChoice.save,
+        flushFocus: () {},
+        launchMap: (_, _) async {},
       );
       expect(actions.hasCatalogDependencyDraft, isTrue);
       expect(actions.hasPendingChanges, isTrue);
@@ -113,32 +103,20 @@ void main() {
               ],
             ),
           );
-          late WorkspaceActions actions;
-          await tester.pumpWidget(
-            MaterialApp(
-              home: Builder(
-                builder: (context) {
-                  actions = WorkspaceActions(
+          final actions = WorkspaceWorkflow(
                     controller: maps,
-                    context: () => context,
-                    mounted: () => true,
+                    isActive: () => true,
                     changed: () {},
                     resources: () => null,
                     narrative: () => null,
                     regionalMap: () => owner,
-                    runtimeBuilder: (_, _, _) => const SizedBox(),
-                  );
-                  return const Scaffold();
-                },
-              ),
-            ),
+                    confirmClose: () async => WorkspaceCloseChoice.save,
+            flushFocus: () {},
+            launchMap: (_, _) async {},
           );
           expect(actions.hasPendingChanges, isTrue);
           if (saveOnClose) {
             final close = actions.allowClose();
-            await tester.pumpAndSettle();
-            await tester.tap(find.text('Enregistrer'));
-            await tester.pumpAndSettle();
             expect(await close, isTrue, reason: owner.error);
           } else {
             expect(await actions.flushEditors(), isTrue, reason: owner.error);
@@ -201,25 +179,16 @@ void main() {
           ),
         );
         maps.active!.commit(maps.active!.current.copyWith(entities: []));
-        late WorkspaceActions actions;
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Builder(
-              builder: (context) {
-                actions = WorkspaceActions(
+        final actions = WorkspaceWorkflow(
                   controller: maps,
-                  context: () => context,
-                  mounted: () => true,
+                  isActive: () => true,
                   changed: () {},
                   resources: () => null,
                   narrative: () => null,
                   regionalMap: () => owner,
-                  runtimeBuilder: (_, _, _) => const SizedBox(),
-                );
-                return const Scaffold();
-              },
-            ),
-          ),
+                  confirmClose: () async => WorkspaceCloseChoice.save,
+          flushFocus: () {},
+          launchMap: (_, _) async {},
         );
         expect(await actions.flushEditors(), isFalse);
         expect(await actions.saveForExport(), isFalse);
@@ -262,28 +231,18 @@ void main() {
         (_, _) async {},
       );
       narrative.addFact('À conserver');
-      late WorkspaceActions actions;
       var launches = 0;
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Builder(
-            builder: (context) {
-              actions = WorkspaceActions(
+      final actions = WorkspaceWorkflow(
                 controller: maps,
-                context: () => context,
-                mounted: () => true,
+                isActive: () => true,
                 changed: () {},
                 resources: () => null,
                 narrative: () => narrative,
-                runtimeBuilder: (_, _, _) {
-                  launches++;
-                  return const SizedBox();
-                },
-              );
-              return const Scaffold(body: Text('Éditeur'));
-            },
-          ),
-        ),
+                confirmClose: () async => WorkspaceCloseChoice.save,
+        flushFocus: () {},
+        launchMap: (_, _) async {
+          launches++;
+        },
       );
       await actions.test();
       expect(launches, 0);
@@ -293,9 +252,6 @@ void main() {
       expect(second.dirty, isTrue);
       expect(narrative.pendingFacts, hasLength(1));
       final close = actions.allowClose();
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Enregistrer'));
-      await tester.pumpAndSettle();
       expect(await close, isFalse);
       expect(actions.closing, isFalse);
       expect(failing.attempts, 2);
@@ -305,7 +261,6 @@ void main() {
       expect(second.dirty, isTrue);
       expect(narrative.pendingFacts, hasLength(1));
       expect(narrative.error, contains('Conflit externe'));
-      await tester.pumpWidget(const SizedBox());
       maps.dispose();
     },
   );

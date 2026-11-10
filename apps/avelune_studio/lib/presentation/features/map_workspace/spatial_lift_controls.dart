@@ -1,3 +1,5 @@
+import '../../../features/map_workspace/application/spatial_lift_editing_session.dart';
+
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
@@ -22,86 +24,41 @@ class SpatialLiftControls extends StatefulWidget {
 }
 
 class _SpatialLiftControlsState extends State<SpatialLiftControls> {
-  final values = <String, String>{};
-  SpatialLiftDefinition? lift;
-  MapData? source;
-  String? error;
+  late SpatialLiftEditingSession editing;
+  MapData? get source => editing.source;
+  SpatialLiftDefinition? get lift => editing.lift;
+  Map<String, String> get values => editing.values;
+  String? get error => editing.error;
+
   @override
   void initState() {
     super.initState();
-    load();
+    editing = SpatialLiftEditingSession(widget.document, widget.instance);
   }
 
   @override
   void didUpdateWidget(SpatialLiftControls old) {
     super.didUpdateWidget(old);
-    if (!identical(source, widget.document.current) ||
+    if (!identical(old.document, widget.document) ||
         old.instance.id != widget.instance.id) {
-      load();
+      editing.dispose();
+      editing = SpatialLiftEditingSession(widget.document, widget.instance);
+    } else {
+      editing.instance = widget.instance;
+      if (!identical(source, widget.document.current)) editing.load();
     }
   }
 
-  void load() {
-    source = widget.document.current;
-    lift = source!.spatialScene!.lifts
-        .where((v) => v.instanceId == widget.instance.id)
-        .firstOrNull;
-    final point = widget.instance.position;
-    final ground = source!.spatialScene!.worldHeightAt(point.x, point.z);
-    values.addAll({
-      'name': lift?.name ?? 'Ascenseur',
-      'x': '${lift?.x ?? point.x.floor()}',
-      'z': '${lift?.z ?? point.z.floor()}',
-      'width': '${lift?.width ?? 1}',
-      'depth': '${lift?.depth ?? 1}',
-      'lower': '${lift?.lowerHeight ?? ground}',
-      'upper': '${lift?.upperHeight ?? ground + 1}',
-      'duration': '${lift?.durationMs ?? 1000}',
-    });
-    error = null;
-  }
-
-  String nextId() {
-    var index = 1;
-    while (source!.spatialScene!.lifts.any(
-      (v) => v.id == 'vertical-platform-$index',
-    )) {
-      index++;
-    }
-    return 'vertical-platform-$index';
+  @override
+  void dispose() {
+    editing.dispose();
+    super.dispose();
   }
 
   void apply() {
-    try {
-      if (widget.document.saving ||
-          !identical(source, widget.document.current) ||
-          widget.document.isElementLocked('model', widget.instance.id)) {
-        throw StateError('La carte a changé ou cet élément est verrouillé.');
-      }
-      final definition = SpatialLiftDefinition(
-        id: lift?.id ?? nextId(),
-        name: values['name']!.trim(),
-        instanceId: widget.instance.id,
-        x: int.parse(values['x']!),
-        z: int.parse(values['z']!),
-        width: int.parse(values['width']!),
-        depth: int.parse(values['depth']!),
-        lowerHeight: double.parse(values['lower']!.replaceAll(',', '.')),
-        upperHeight: double.parse(values['upper']!.replaceAll(',', '.')),
-        durationMs: int.parse(values['duration']!),
-      );
-      widget.document.commit(
-        const SpatialMapOperations().upsertLifts(widget.document.current, [
-          definition,
-        ]),
-      );
-      setState(load);
-      widget.onChanged();
-    } catch (e) {
-      setState(
-        () => error = e is StateError ? e.message.toString() : 'Vérifiez la zone, les deux hauteurs et une durée entre 100 et 30000 ms.',
-      );
-    }
+    final applied = editing.apply();
+    setState(() {});
+    if (applied) widget.onChanged();
   }
 
   @override
@@ -142,20 +99,10 @@ class _SpatialLiftControlsState extends State<SpatialLiftControls> {
           onPressed: widget.document.saving
               ? null
               : () {
-                  if (widget.document.isElementLocked(
-                    'model',
-                    widget.instance.id,
-                  )) {
-                    return;
+                  if (editing.delete()) {
+                    setState(() {});
+                    widget.onChanged();
                   }
-                  widget.document.commit(
-                    const SpatialMapOperations().deleteLifts(
-                      widget.document.current,
-                      [lift!.id],
-                    ),
-                  );
-                  setState(load);
-                  widget.onChanged();
                 },
         ),
     ],

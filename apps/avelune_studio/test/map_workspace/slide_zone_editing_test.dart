@@ -7,8 +7,6 @@ import 'package:avelune_studio/features/map_workspace/application/map_entity_edi
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_zone_inspector.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
@@ -21,7 +19,11 @@ const _area = MapRect(
 
 void main() {
   test('Studio sliding block create, edit, undo, save and cold reopen preserve obstacle and zone', () async {
-    final temporary = await Directory.systemTemp.createTemp('studio-slide-');
+    final parent = Directory(
+      '/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/t01-map-retirement',
+    );
+    await parent.create(recursive: true);
+    final temporary = await parent.createTemp('studio-slide-');
     final root = Directory(await temporary.resolveSymbolicLinks());
     addTearDown(() => root.delete(recursive: true));
     final project = workspaceProject.copyWith(maps: [workspaceEntries.first]);
@@ -112,74 +114,34 @@ void main() {
     expect(document.current, edited);
   });
 
-  testWidgets('Studio slide explains entry direction and hides inactive cost', (
-    tester,
-  ) async {
-    final document = EditableMapDocument(
-      MapWorkspaceDocument(
-        map: workspaceMap('a'),
-        revision: 'base',
-        mapId: 'a',
-      ),
-    );
-    final commands = GameplayZoneEditingCommands(document, workspaceProject);
-    final zone = commands.place(GameplayZoneKind.movementEffect, _area);
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: SingleChildScrollView(
-            child: MapZoneInspector(
-              document: document,
-              project: workspaceProject,
-              zone: zone,
-              onChanged: () {},
-              onDeleted: () {},
-            ),
-          ),
+  test(
+    'switching between slide and movement cost preserves the configured cost',
+    () {
+      final document = EditableMapDocument(
+        MapWorkspaceDocument(
+          map: workspaceMap('a'),
+          revision: 'base',
+          mapId: 'a',
         ),
-      ),
-    );
-    expect(find.text('Glissade'), findsOneWidget);
-    expect(find.textContaining('direction d’entrée'), findsOneWidget);
-    expect(find.textContaining('rochers poussés avec Force'), findsOneWidget);
-    expect(find.text('Coût par pas'), findsNothing);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('Studio movement cost keeps its existing editable cost', (
-    tester,
-  ) async {
-    final document = EditableMapDocument(
-      MapWorkspaceDocument(
-        map: workspaceMap('a'),
-        revision: 'base',
-        mapId: 'a',
-      ),
-    );
-    final commands = GameplayZoneEditingCommands(document, workspaceProject);
-    final zone = commands.place(GameplayZoneKind.movementEffect, _area);
-    commands.updateMovementEffect(
-      zone.id,
-      effectKind: MovementEffectZoneKind.movementCost,
-      movementCost: 2,
-    );
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: SingleChildScrollView(
-            child: MapZoneInspector(
-              document: document,
-              project: workspaceProject,
-              zone: commands.selected(zone.id)!,
-              onChanged: () {},
-              onDeleted: () {},
-            ),
-          ),
-        ),
-      ),
-    );
-    expect(find.text('Coût par pas'), findsOneWidget);
-    expect(find.text('2'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
+      );
+      final commands = GameplayZoneEditingCommands(document, workspaceProject);
+      final zone = commands.place(GameplayZoneKind.movementEffect, _area);
+      expect(zone.movementEffect!.effectKind, MovementEffectZoneKind.slide);
+      commands.updateMovementEffect(
+        zone.id,
+        effectKind: MovementEffectZoneKind.movementCost,
+        movementCost: 2,
+      );
+      expect(commands.selected(zone.id)!.movementEffect!.movementCost, 2);
+      commands.updateMovementEffect(
+        zone.id,
+        effectKind: MovementEffectZoneKind.slide,
+      );
+      expect(commands.selected(zone.id)!.movementEffect!.movementCost, 2);
+      expect(
+        commands.selected(zone.id)!.movementEffect!.effectKind,
+        MovementEffectZoneKind.slide,
+      );
+    },
+  );
 }

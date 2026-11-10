@@ -35,7 +35,7 @@ test("MCP imports a PNG without replacing existing Pokémon media", { timeout: 1
     const authoringPackage = resolve("../../packages/map_authoring");
     await promisify(execFile)(process.env.POKEMAP_TEST_DART ?? "dart", [
       `--packages=${join(authoringPackage, ".dart_tool/package_config.json")}`,
-      join(authoringPackage, "test/support/create_working_catalog_fixture.dart"), root, "--companion",
+      join(authoringPackage, "test/support/create_pokemon_bulk_fixture.dart"), root,
     ], { timeout: 60_000 });
     const relativePath = "data/pokemon/media/pikachu.json";
     const mediaPath = join(root, relativePath);
@@ -52,18 +52,24 @@ test("MCP imports a PNG without replacing existing Pokémon media", { timeout: 1
     const describe = await call("pokemap_describe");
     const action = (describe.mutationActions as JsonRecord[]).find((entry) => entry.id === "pokemon.media.write");
     assert.equal(record(record(action).extensions).pokemonPngImport instanceof Object, true);
+    const roles = record(record(record(action).extensions).pokemonPngImport).roles as string[];
+    assert.ok(roles.includes("overworldShiny"));
+    const batchAction = (describe.mutationActions as JsonRecord[]).find((entry) => entry.id === "pokemon.media.import");
+    assert.ok((record(record(batchAction).extensions).roles as string[]).includes("overworld"));
     const opened = await call("pokemap_workspace", { operation: "open", projectRoot: root });
     await call("pokemap_workshop", { operation: "prepare", projectHandle: opened.projectHandle });
     const staged = await call("pokemap_artifact_stage", { sourcePath, declaredMediaType: "image/png" });
     const parameters = { relativePath, beforeBytesBase64: before.toString("base64"),
-      document: { ...media, variants: { base: { ...media.variants.base, icon: imagePath } } } };
+      document: { ...media, variants: { base: { ...media.variants.base, icon: imagePath,
+        overworld: imagePath, overworldShiny: imagePath } } } };
     const scope = await call("pokemap_workshop", { operation: "read", projectHandle: opened.projectHandle,
       actionId: "pokemon.media.write", parameters });
     const plan = await call("pokemap_plan", { projectHandle: opened.projectHandle, request: {
       requestId: "png-mcp", actionId: "pokemon.media.write", actionVersion: 1,
       workspaceHandle: opened.workspaceHandle, expectedRevision: scope.snapshotRevision,
       idempotencyKey: "png-mcp", parameters, dryRun: false,
-      extensions: { ...record(scope.planExtensions), pokemonPngArtifacts: { icon: staged.artifactHandle } },
+      extensions: { ...record(scope.planExtensions), pokemonPngArtifacts: { icon: staged.artifactHandle,
+        overworld: staged.artifactHandle, overworldShiny: staged.artifactHandle } },
     } });
     await assert.rejects(stat(join(root, imagePath)));
     const applied = await call("pokemap_apply", { operation: "apply", projectHandle: opened.projectHandle,
@@ -73,12 +79,29 @@ test("MCP imports a PNG without replacing existing Pokémon media", { timeout: 1
     assert.deepEqual(saved.vendorExtension, { keep: true });
     assert.equal(record(record(saved.variants).base).frontStatic, "assets/front.png");
     assert.equal(record(record(saved.variants).base).icon, imagePath);
+    assert.equal(record(record(saved.variants).base).overworld, imagePath);
+    assert.equal(record(record(saved.variants).base).overworldShiny, imagePath);
     const receiptId = record(applied.receipt).receiptId;
     await call("pokemap_history", { operation: "undo", projectHandle: opened.projectHandle,
       entryId: receiptId, idempotencyKey: "undo-png" });
     await call("pokemap_history", { operation: "redo", projectHandle: opened.projectHandle,
       entryId: receiptId, idempotencyKey: "redo-png" });
     assert.deepEqual(await readFile(join(root, imagePath)), png);
+    const validation = await call("pokemap_validate", { projectHandle: opened.projectHandle });
+    const bulkPlan = await call("pokemap_plan", { projectHandle: opened.projectHandle, request: {
+      requestId: "overworld-mcp", actionId: "pokemon.media.import", actionVersion: 1,
+      workspaceHandle: opened.workspaceHandle, expectedRevision: validation.snapshotRevision,
+      idempotencyKey: "overworld-mcp", parameters: { entries: [
+        { speciesId: "riolu", formId: "base", role: "overworld", artifactHandle: staged.artifactHandle },
+        { speciesId: "riolu", formId: "base", role: "overworldShiny", artifactHandle: staged.artifactHandle },
+      ] },
+    } });
+    await call("pokemap_apply", { operation: "apply", projectHandle: opened.projectHandle,
+      planId: bulkPlan.planId, operationId: "overworld-mcp" });
+    const riolu = record(JSON.parse(await readFile(join(root, "data/pokemon/media/riolu.json"), "utf8")));
+    const rioluBase = record(record(riolu.variants).base);
+    assert.ok(String(rioluBase.overworld).includes("/overworld/"));
+    assert.equal(rioluBase.overworldShiny, rioluBase.overworld);
     await call("pokemap_workspace", { operation: "close", workspaceHandle: opened.workspaceHandle });
   } finally {
     await client.close();

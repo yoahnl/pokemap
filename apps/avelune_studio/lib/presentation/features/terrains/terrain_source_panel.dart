@@ -7,8 +7,10 @@ import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import '../resources/atlas_selection_view.dart';
 import 'terrain_scratch_view.dart';
+
 import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
+
 import '../resources/resource_source_list.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
@@ -110,17 +112,8 @@ class TerrainSourcePanel extends StatelessWidget {
                 onChanged: selectedModel.inspection.animations.isEmpty
                     ? null
                     : (value) {
-                        model.assignModel(
-                          selectedModel,
-                          scale: source.scale,
-                          offsetX: source.offsetX,
-                          offsetY: source.offsetY,
-                          offsetZ: source.offsetZ,
-                          quarterTurns: part.transform.quarterTurns,
-                          animationIndex: value.isEmpty
-                              ? null
-                              : int.parse(value),
-                          changeAnimation: true,
+                        model.setSelectedModelAnimation(
+                          value.isEmpty ? null : int.parse(value),
                         );
                         onChanged();
                       },

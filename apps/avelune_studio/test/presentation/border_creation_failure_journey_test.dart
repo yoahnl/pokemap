@@ -1,36 +1,23 @@
 import 'dart:io';
 
+import 'package:avelune_studio/features/resources/application/border_creation_draft.dart';
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
+import 'package:avelune_studio/features/resources/coordination/border_creation_workflow.dart';
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
-import 'package:avelune_studio/presentation/features/resources/resource_workspace_pane.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as image;
 import 'package:map_core/map_core_domain.dart';
 
-import '../support/m2_ui_fixture.dart';
+import '../support/resource_replacement_fixture.dart';
 
 void main() {
-  testWidgets('invalid border keeps its pattern and explains the failed join', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(1536, 1024);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    final fixture = (await tester.runAsync(() => M2UiFixture.create(tester)))!;
-    addTearDown(fixture.dispose);
-    final resources = _BorderResourcePort(fixture.resources, tester);
-    await tester.pumpWidget(fixture.app(tester, resourcePort: resources));
-    await pumpIo(tester);
-    await tester.tap(find.text('Bordures'));
-    await pumpIo(tester);
-    await tester.tap(find.text('Créer un modèle'));
-    await pumpIo(tester);
-    final navigation = tester
-        .widget<ResourceWorkspacePane>(find.byType(ResourceWorkspacePane))
-        .navigation;
-    await tester.runAsync(() async {
-      final pixels = image.Image(width: 48, height: 32, numChannels: 4);
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  test(
+    'invalid border keeps its native pattern and explains the failed join',
+    () async {
+      final host = await ResourceReplacementFixture.create();
+      final pixels = image.Image(width: 48, height: 24, numChannels: 4);
       for (var piece = 0; piece < 3; piece++) {
         image.fillRect(
           pixels,
@@ -41,114 +28,76 @@ void main() {
           color: image.ColorRgba8(80, 150, 200, 255),
         );
       }
-      final source = File('${fixture.directory.path}/disconnected-border.png');
+      final source = File('${host.fixture.root.path}/disconnected-border.png');
       await source.writeAsBytes(image.encodePng(pixels));
-      final imported = await fixture.resources.importImage(
+      final sourceBytes = await source.readAsBytes();
+      final imported = await host.fixture.resources.importImage(
         ResourceImageImport(
           sourcePath: source.path,
           name: 'Pièces séparées',
           tileWidth: 16,
-          tileHeight: 16,
+          tileHeight: 24,
         ),
       );
-      await navigation.accept(imported);
+      await host.navigation.accept(imported);
       for (final (id, x) in [('cap', 0), ('straight', 1), ('corner', 2)]) {
-        await navigation.accept(
-          await fixture.resources.saveElement(
-            ProjectElementEntry(
-              id: id,
-              name: id,
-              tilesetId: imported.createdTilesetId!,
-              categoryId: '',
-              frames: [
-                TilesetVisualFrame(source: TilesetSourceRect(x: x, y: 0)),
-              ],
-            ),
+        await host.navigation.accept(
+          await host.fixture.resources.saveElement(
+            host.fixture
+                .element(imported.createdTilesetId!, id: id)
+                .copyWith(
+                  frames: [
+                    TilesetVisualFrame(source: TilesetSourceRect(x: x, y: 0)),
+                  ],
+                ),
           ),
         );
       }
-    });
-    await pumpIo(tester);
-    await tester.tap(find.text('Créer une bordure'));
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.byKey(const ValueKey('border-name')),
-      'Clôture sans raccords',
-    );
-    final sourceList = tester.state<ScrollableState>(
-      find
-          .ancestor(
-            of: find.byKey(const ValueKey('border-library-cap')),
-            matching: find.byType(Scrollable),
-          )
-          .first,
-    );
-    for (final (id, slot) in [
-      ('cap', 'Extrémité haute'),
-      ('straight', 'Bord haut'),
-      ('corner', 'Angle haut gauche'),
-    ]) {
-      final source = find.byKey(ValueKey('border-library-$id'));
-      final position = sourceList.position;
-      position.jumpTo(0);
-      await tester.pump();
-      while (source.evaluate().isEmpty &&
-          position.pixels < position.maxScrollExtent) {
-        position.jumpTo(position.pixels + 60);
-        await tester.pump();
+      final draft = BorderCreationDraft(
+        project: host.workspace.project!,
+        unavailableResourceIds: () => const {},
+      )..name = 'Clôture sans raccords';
+      for (final (role, id) in [
+        ('lineCap', 'cap'),
+        ('lineStraight', 'straight'),
+        ('lineCorner', 'corner'),
+      ]) {
+        draft.assignRole(
+          role,
+          resourceCatalog(host.workspace.project!)
+              .firstWhere((item) => item.element?.id == id),
+        );
       }
-      await tester.ensureVisible(source);
-      await tester.tap(source);
-      await tester.pumpAndSettle();
-      final target = find.byKey(ValueKey('border-pattern-$slot'));
-      await tester.ensureVisible(target);
-      await tester.tap(target);
-      await tester.pumpAndSettle();
-    }
-    expect(find.text('3 / 3 familles de pièces associées'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('border-publish')));
-    await pumpIo(tester);
-    expect(find.textContaining('Courbe en S'), findsOneWidget);
-    expect(find.textContaining('Réassociez'), findsOneWidget);
-    expect(find.textContaining('MapAuthoringException'), findsNothing);
-    expect(find.text('3 / 3 familles de pièces associées'), findsOneWidget);
-    expect(fixture.controller.project!.borderCatalog.records, hasLength(1));
-    expect(
-      fixture.controller.project!.borderCatalog.records.single.latestPublished,
-      isNull,
-    );
-    tester.view.physicalSize = const Size(1024, 640);
-    await tester.pumpWidget(
-      fixture.app(tester, textScale: 1.5, resourcePort: resources),
-    );
-    await tester.pumpAndSettle();
-    expect(tester.takeException(), isNull);
-    expect(find.textContaining('Courbe en S'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('border-publish')));
-    await pumpIo(tester);
-    expect(fixture.controller.project!.borderCatalog.records, hasLength(1));
-  });
-}
-
-class _BorderResourcePort extends WidgetResourcePort {
-  _BorderResourcePort(super.port, super.tester);
-
-  @override
-  Future<ResourceMutationReceipt> run(
-    Future<ResourceMutationReceipt> Function() action,
-  ) async {
-    ResourceMutationReceipt? receipt;
-    Object? failure;
-    StackTrace? failureStack;
-    await WidgetResourcePort.serial(tester, () async {
-      try {
-        receipt = await action();
-      } catch (error, stack) {
-        failure = error;
-        failureStack = stack;
-      }
-    });
-    if (failure != null) Error.throwWithStackTrace(failure!, failureStack!);
-    return receipt!;
-  }
+      final workflow = BorderCreationWorkflow(
+        navigation: host.navigation,
+        draft: draft,
+        isActive: () => true,
+        confirmDiscard: () async => false,
+        confirmRepublication: (_) async => true,
+      );
+      addTearDown(workflow.dispose);
+      final mapBefore = await host.fixture.mapFile.readAsBytes();
+      expect(draft.complete, isTrue);
+      expect(await workflow.save(publish: true), isFalse);
+      expect(draft.error, contains('Courbe en S'));
+      expect(draft.error, contains('Réassociez'));
+      expect(draft.error, isNot(contains('MapAuthoringException')));
+      expect(draft.complete, isTrue);
+      expect(
+        draft.chosen.keys,
+        containsAll(['lineCap', 'lineStraight', 'lineCorner']),
+      );
+      final record = (await host.reopen()).borderCatalog.records.single;
+      expect(record.latestPublished, isNull);
+      expect(draft.pendingId, record.id);
+      expect(draft.expectedRecord, record);
+      expect(await workflow.save(publish: true), isFalse);
+      final records = (await host.reopen()).borderCatalog.records;
+      expect(records, hasLength(1));
+      expect(records.single.id, record.id);
+      expect(records.single.latestPublished, isNull);
+      expect(await host.fixture.mapFile.readAsBytes(), mapBefore);
+      expect(await source.readAsBytes(), sourceBytes);
+    },
+  );
 }

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/project_surf/application/project_surf_controller.dart';
+import '../../../features/project_surf/application/project_surf_condition_controller.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/inputs/studio_draft_field.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
@@ -25,111 +26,45 @@ class ProjectSurfConditionEditor extends StatefulWidget {
 
 class _ProjectSurfConditionEditorState
     extends State<ProjectSurfConditionEditor> {
-  String _kind = 'fact';
-  Map<String, String> _items = const {};
-  NarrativeFactDefinition? _fact;
-  String? _error;
-  bool _loading = false;
-  ScriptCondition? _currentCondition;
-  String? _currentSourceDraft;
-  int _generation = 0;
+  late ProjectSurfConditionController _condition;
+  String get _kind => _condition.kind;
+  Map<String, String> get _items => _condition.items;
+  NarrativeFactDefinition? get _fact => _condition.fact;
+  String? get _error => _condition.error;
+  bool get _loading => _condition.loading;
 
   @override
   void initState() {
     super.initState();
-    _sync();
+    _createCondition();
   }
 
-  void _sync() {
-    final condition = widget.owner.preview.value.condition;
-    _currentCondition = condition;
-    _currentSourceDraft = widget.owner.conditionSourceDraft;
-    _kind =
-        widget.owner.conditionSourceDraft ??
-        switch (condition?.type) {
-          ScriptConditionType.badgeOwned => 'badge',
-          ScriptConditionType.itemQuantityAtLeast => 'item',
-          ScriptConditionType.factEquals || null => 'fact',
-          _ => 'advanced',
-        };
-    if (_kind == 'item') unawaited(_loadItems());
-    if (_kind == 'fact' &&
-        condition != null &&
-        widget.owner.conditionSourceDraft == null) {
-      final id = condition.params[ScriptConditionParams.factId];
-      if (id != null && _fact?.id != id) unawaited(_loadFact(id, apply: false));
-    }
+  void _createCondition() {
+    _condition = ProjectSurfConditionController(
+      owner: widget.owner,
+      loadItems: widget.loadItems,
+    );
+    _condition.addListener(_changed);
+    final condition = _condition;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && identical(_condition, condition)) {
+        unawaited(condition.start());
+      }
+    });
+  }
+
+  void _changed() {
+    if (mounted) setState(() {});
   }
 
   @override
   void didUpdateWidget(ProjectSurfConditionEditor oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (_currentCondition != widget.owner.preview.value.condition ||
-        _currentSourceDraft != widget.owner.conditionSourceDraft) {
-      _sync();
-    }
-    if (widget.owner.inputError == null) _error = null;
-  }
-
-  Future<void> _loadItems() async {
-    if (_items.isNotEmpty || _loading) return;
-    final generation = ++_generation;
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final loader = widget.loadItems;
-      if (loader == null) {
-        throw StateError('Le catalogue des objets est indisponible.');
-      }
-      final items = await loader();
-      if (mounted && generation == _generation) setState(() => _items = items);
-    } on Object catch (error) {
-      if (mounted && generation == _generation) {
-        setState(() => _error = '$error');
-      }
-    } finally {
-      if (mounted && generation == _generation) {
-        setState(() => _loading = false);
-      }
-    }
-  }
-
-  Future<void> _loadFact(String id, {bool apply = true}) async {
-    if (apply) widget.owner.selectConditionSource('fact');
-    final draftRevision = widget.owner.draftRevision;
-    final generation = ++_generation;
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      final fact = await widget.owner.port.loadSurfFact(
-        widget.owner.session,
-        id,
-      );
-      if (!mounted ||
-          generation != _generation ||
-          widget.owner.preview.value.accessMode !=
-              ProjectSurfAccessMode.condition ||
-          widget.owner.draftRevision != draftRevision) {
-        return;
-      }
-      setState(() => _fact = fact);
-      if (apply) {
-        widget.owner.change(
-          condition: ScriptConditionFactory.factEquals(id, fact.initialValue),
-        );
-      }
-    } on Object catch (error) {
-      if (mounted && generation == _generation) {
-        setState(() => _error = '$error');
-      }
-    } finally {
-      if (mounted && generation == _generation) {
-        setState(() => _loading = false);
-      }
+    if (oldWidget.owner != widget.owner ||
+        oldWidget.loadItems != widget.loadItems) {
+      _condition.removeListener(_changed);
+      _condition.dispose();
+      _createCondition();
     }
   }
 
@@ -178,17 +113,7 @@ class _ProjectSurfConditionEditorState
             if (_kind == 'advanced') 'advanced': 'Condition avancée existante',
           },
           onChanged: widget.enabled
-              ? (value) {
-                  _generation++;
-                  owner.selectConditionSource(value);
-                  setState(() {
-                    _kind = value;
-                    _fact = null;
-                    _error = null;
-                    _loading = false;
-                  });
-                  if (value == 'item') unawaited(_loadItems());
-                }
+              ? (value) => unawaited(_condition.selectSource(value))
               : null,
         ),
         const SizedBox(height: 8),
@@ -203,22 +128,7 @@ class _ProjectSurfConditionEditorState
             value: id,
             options: options,
             onChanged: enabled
-                ? (value) {
-                    if (_kind == 'fact') {
-                      unawaited(_loadFact(value));
-                    } else if (_kind == 'badge') {
-                      owner.change(
-                        condition: ScriptConditionFactory.badgeOwned(value),
-                      );
-                    } else {
-                      owner.change(
-                        condition: ScriptConditionFactory.itemQuantityAtLeast(
-                          value,
-                          1,
-                        ),
-                      );
-                    }
-                  }
+                ? (value) => unawaited(_condition.selectReference(value))
                 : null,
           ),
         if (_kind == 'fact' && id != null && _fact?.id == id) ...[
@@ -228,14 +138,7 @@ class _ProjectSurfConditionEditorState
               label: 'Valeur attendue',
               value: condition!.params[ScriptConditionParams.value],
               options: const {'true': 'Activé', 'false': 'Désactivé'},
-              onChanged: enabled
-                  ? (value) => owner.change(
-                      condition: ScriptConditionFactory.factEquals(
-                        id,
-                        NarrativeValue.boolean(value == 'true'),
-                      ),
-                    )
-                  : null,
+              onChanged: enabled ? _condition.editValue : null,
             )
           else
             StudioDraftField(
@@ -245,29 +148,7 @@ class _ProjectSurfConditionEditorState
                   condition!.params[ScriptConditionParams.value] ??
                   '',
               enabled: enabled,
-              onChanged: (value) {
-                final integer = int.tryParse(value);
-                if (_fact!.valueKind == NarrativeValueKind.integer &&
-                    (integer == null ||
-                        integer < -9007199254740991 ||
-                        integer > 9007199254740991)) {
-                  setState(
-                    () => _error = 'Saisissez un entier compris entre −9007199254740991 et 9007199254740991.',
-                  );
-                  owner.rejectInput(_error!, value: value);
-                  return;
-                }
-                setState(() => _error = null);
-                owner.acceptInput();
-                owner.change(
-                  condition: ScriptConditionFactory.factEquals(
-                    id,
-                    _fact!.valueKind == NarrativeValueKind.integer
-                        ? NarrativeValue.integer(integer!)
-                        : NarrativeValue.string(value),
-                  ),
-                );
-              },
+              onChanged: _condition.editValue,
             ),
         ],
         if (_kind == 'item' && id != null) ...[
@@ -279,26 +160,7 @@ class _ProjectSurfConditionEditorState
                 condition!.params[ScriptConditionParams.quantity] ??
                 '1',
             enabled: enabled,
-            onChanged: (value) {
-              final quantity = int.tryParse(value);
-              if (quantity == null ||
-                  quantity < 1 ||
-                  quantity > 9007199254740991) {
-                setState(
-                  () => _error = 'Saisissez une quantité supérieure à zéro.',
-                );
-                owner.rejectInput(_error!, value: value);
-                return;
-              }
-              setState(() => _error = null);
-              owner.acceptInput();
-              owner.change(
-                condition: ScriptConditionFactory.itemQuantityAtLeast(
-                  id,
-                  quantity,
-                ),
-              );
-            },
+            onChanged: _condition.editQuantity,
           ),
         ],
         if (owner.loadingReferences || _loading)
@@ -331,7 +193,8 @@ class _ProjectSurfConditionEditorState
 
   @override
   void dispose() {
-    _generation++;
+    _condition.removeListener(_changed);
+    _condition.dispose();
     super.dispose();
   }
 }

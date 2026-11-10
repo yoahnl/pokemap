@@ -1,3 +1,5 @@
+import '../../../features/scenes/application/scene_npc_pose_draft.dart';
+
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
@@ -24,143 +26,34 @@ class SceneNpcPoseActionForm extends StatefulWidget {
 }
 
 class _SceneNpcPoseActionFormState extends State<SceneNpcPoseActionForm> {
-  String? _mapId, _entityId, _facing;
-  String _mode = 'position', _x = '', _y = '';
-  MapData? _map;
-  bool _loading = false;
-  String? _error;
-  int _request = 0;
-
+  late final SceneNpcPoseDraft draft;
   @override
   void initState() {
     super.initState();
-    _read();
+    draft = SceneNpcPoseDraft(
+      project: widget.project,
+      current: widget.current,
+      loadMap: widget.loadMap,
+      changed: () {
+        if (mounted) setState(() {});
+      },
+    );
   }
 
   @override
-  void didUpdateWidget(SceneNpcPoseActionForm old) {
-    super.didUpdateWidget(old);
-    if (old.current != widget.current) {
-      _read();
-    } else if (old.project != widget.project || old.loadMap != widget.loadMap) {
-      _load();
-    }
+  void didUpdateWidget(SceneNpcPoseActionForm oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    draft.configure(
+      project: widget.project,
+      current: widget.current,
+      loadMap: widget.loadMap,
+    );
   }
 
-  void _read() {
-    final pose = widget.current?.consequence;
-    _mapId = null;
-    _entityId = null;
-    _mode = 'position';
-    _facing = null;
-    _x = '';
-    _y = '';
-    if (pose is SceneSetNpcPoseConsequence) {
-      _mapId = pose.mapId;
-      _entityId = pose.entityId;
-      _mode = pose.x == null ? 'facing' : 'position';
-      _x = pose.x?.toString() ?? '';
-      _y = pose.y?.toString() ?? '';
-      _facing = pose.facing?.name;
-    }
-    _load();
-  }
-
-  Map<String, String> get _maps => {
-    if (widget.project.settings.dimension == ProjectDimension.twoD)
-      for (final entry in widget.project.maps)
-        if (widget.project.maps.where((value) => value.id == entry.id).length ==
-            1)
-          entry.id: entry.name,
-  };
-
-  Map<String, String> get _actors => {
-    if (_map case final map?)
-      for (final entity in map.entities)
-        if (map.entities.where((value) => value.id == entity.id).length == 1 &&
-            entity.presentation != null &&
-            entity.presentation!.variants.any(
-              (variant) => variant.characterId != null,
-            ) &&
-            validateMapEntityPresentation(
-              project: widget.project,
-              map: map,
-              entity: entity,
-            ).isEmpty)
-          entity.id: entity.name.isEmpty ? 'PNJ (${entity.id})' : entity.name,
-  };
-
-  Future<void> _load() async {
-    final token = ++_request;
-    _map = null;
-    _error = null;
-    _loading = false;
-    final id = _mapId;
-    if (id == null) return;
-    _loading = true;
-    await Future<void>.value();
-    try {
-      if (!_maps.containsKey(id) || widget.loadMap == null) {
-        throw StateError('Unavailable');
-      }
-      final map = await widget.loadMap!(id);
-      if (map.id != id ||
-          map.version == ProjectVersion.v9 ||
-          map.spatialScene != null) {
-        throw StateError('Unavailable');
-      }
-      if (mounted && token == _request) setState(() => _map = map);
-    } on Object {
-      if (mounted && token == _request) {
-        setState(() => _error = 'Carte indisponible. Les références enregistrées sont conservées.');
-      }
-    } finally {
-      if (mounted && token == _request) setState(() => _loading = false);
-    }
-  }
-
-  SceneSetNpcPoseConsequence? get _pose {
-    if (_loading ||
-        _error != null ||
-        !_maps.containsKey(_mapId) ||
-        !_actors.containsKey(_entityId)) {
-      return null;
-    }
-    try {
-      final facing = _facing == null || _facing!.isEmpty
-          ? null
-          : EntityFacing.values.byName(_facing!);
-      if (_mode == 'facing') {
-        return SceneConsequence.setNpcPose(
-          mapId: _mapId!,
-          entityId: _entityId!,
-          facing: facing,
-        ) as SceneSetNpcPoseConsequence;
-      }
-      final x = int.tryParse(_x), y = int.tryParse(_y);
-      if (x == null || y == null) return null;
-      final owner = _map!.entities.singleWhere(
-        (entity) => entity.id == _entityId,
-      );
-      if (x + owner.size.width > _map!.size.width ||
-          y + owner.size.height > _map!.size.height ||
-          owner.presentation!.variants.any(
-            (variant) =>
-                x + variant.size.width > _map!.size.width ||
-                y + variant.size.height > _map!.size.height,
-          )) {
-        return null;
-      }
-      return SceneConsequence.setNpcPose(
-        mapId: _mapId!,
-        entityId: _entityId!,
-        x: x,
-        y: y,
-        facing: facing,
-      ) as SceneSetNpcPoseConsequence;
-    } on Object {
-      return null;
-    }
+  @override
+  void dispose() {
+    draft.dispose();
+    super.dispose();
   }
 
   @override
@@ -169,50 +62,50 @@ class _SceneNpcPoseActionFormState extends State<SceneNpcPoseActionForm> {
     children: [
       StudioSelect(
         label: 'Carte du PNJ',
-        value: _mapId,
-        options: _maps,
+        value: draft.selectedMapId,
+        options: draft.mapOptions,
         onChanged: (value) => setState(() {
-          _mapId = value;
-          _entityId = null;
-          _load();
+          draft.selectedMapId = value;
+          draft.selectedEntityId = null;
+          draft.reloadMap();
         }),
       ),
       const SizedBox(height: 12),
       StudioSelect(
         label: 'PNJ à variantes',
-        value: _entityId,
-        options: _actors,
-        onChanged: _loading
+        value: draft.selectedEntityId,
+        options: draft.actorOptions,
+        onChanged: draft.loading
             ? null
-            : (value) => setState(() => _entityId = value),
+            : (value) => setState(() => draft.selectedEntityId = value),
       ),
-      if (_loading) const StudioNotice('Chargement des PNJ…'),
-      if (_error != null) StudioNotice(_error!, isError: true),
+      if (draft.loading) const StudioNotice('Chargement des PNJ…'),
+      if (draft.error != null) StudioNotice(draft.error!, isError: true),
       const SizedBox(height: 12),
       StudioSelect(
         label: 'Modification du PNJ',
-        value: _mode,
+        value: draft.mode,
         options: const {
           'position': 'Position et direction',
           'facing': 'Direction uniquement',
         },
-        onChanged: (value) => setState(() => _mode = value),
+        onChanged: (value) => setState(() => draft.mode = value),
       ),
-      if (_mode == 'position') ...[
+      if (draft.mode == 'position') ...[
         const StudioNotice(
           'Le placement est réservé à un PNJ actuellement masqué.',
         ),
         StudioDraftField(
           label: 'Case X',
-          value: _x,
+          value: draft.xText,
           keyboardType: TextInputType.number,
-          onChanged: (value) => setState(() => _x = value),
+          onChanged: (value) => setState(() => draft.xText = value),
         ),
         StudioDraftField(
           label: 'Case Y',
-          value: _y,
+          value: draft.yText,
           keyboardType: TextInputType.number,
-          onChanged: (value) => setState(() => _y = value),
+          onChanged: (value) => setState(() => draft.yText = value),
         ),
       ] else
         const StudioNotice(
@@ -221,24 +114,24 @@ class _SceneNpcPoseActionFormState extends State<SceneNpcPoseActionForm> {
       const SizedBox(height: 12),
       StudioSelect(
         label: 'Direction du PNJ',
-        value: _facing,
+        value: draft.facingName,
         options: {
-          if (_mode == 'position') '': 'Conserver la direction',
+          if (draft.mode == 'position') '': 'Conserver la direction',
           'south': 'Sud',
           'north': 'Nord',
           'east': 'Est',
           'west': 'Ouest',
         },
-        onChanged: (value) => setState(() => _facing = value),
+        onChanged: (value) => setState(() => draft.facingName = value),
       ),
       const SizedBox(height: 12),
       StudioButton(
         label: widget.current == null
             ? 'Ajouter l’action'
             : 'Appliquer l’action',
-        onPressed: _pose == null
+        onPressed: draft.pose == null
             ? null
-            : () => widget.onApply(SceneActionPayload.consequence(_pose!)),
+            : () => widget.onApply(SceneActionPayload.consequence(draft.pose!)),
       ),
     ],
   );

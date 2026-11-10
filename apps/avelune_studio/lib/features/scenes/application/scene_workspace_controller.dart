@@ -1,4 +1,5 @@
 import 'package:map_core/map_core_domain.dart';
+
 import '../../map_workspace/application/map_workspace_controller.dart';
 import '../../narrative/application/narrative_workspace_controller.dart';
 import '../domain/scene_port.dart';
@@ -122,6 +123,7 @@ class SceneWorkspaceController {
   bool discard(String id) {
     if (sessions[id]?.saving == true) return false;
     final removed = sessions.remove(id);
+    removed?.cancelDialogueReads();
     if (active == removed) active = null;
     changed();
     return removed != null;
@@ -179,6 +181,9 @@ class SceneWorkspaceController {
 
   void dispose() {
     _disposed = true;
+    for (final session in sessions.values) {
+      session.cancelDialogueReads();
+    }
     workspace.removeListener(_catalogChanged);
     if (narrative?.sceneAccessProblem == _sceneAccessProblem) {
       narrative?.sceneAccessProblem = null;

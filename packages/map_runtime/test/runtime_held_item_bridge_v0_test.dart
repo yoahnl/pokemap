@@ -325,7 +325,7 @@ void main() {
       );
     });
 
-    for (final effectId in ['lum_berry', 'persim_berry', 'sitrus_berry', 'smoke_ball']) {
+    for (final effectId in ['lum_berry', 'persim_berry', 'sitrus_berry', 'smoke_ball', 'oran_berry', 'pecha_berry']) {
       test(
         'proven held effect $effectId survives its real lifecycle write-back',
         () {
@@ -387,7 +387,7 @@ void main() {
           );
           expect(untouched.party.members.single.heldItemId, itemId);
           final PsdkBattleState after;
-          if (effectId == 'lum_berry') {
+          if (effectId == 'lum_berry' || effectId == 'pecha_berry') {
             after = const BattleStatusChangeHandler()
                 .applyMajorStatus(
                   context: BattleHandlerContext(
@@ -440,7 +440,7 @@ void main() {
                   .contains(PsdkBattleEffectIds.confusion),
               isFalse,
             );
-          } else if (effectId == 'sitrus_berry') {
+          } else if (effectId == 'sitrus_berry' || effectId == 'oran_berry') {
             after = const BattleEndTurnHandler()
                 .resolveEndTurn(
                   BattleHandlerContext(
@@ -454,7 +454,7 @@ void main() {
                   ),
                 )
                 .state;
-            expect(after.battlerAt(psdkPlayerSlot).currentHp, 60);
+            expect(after.battlerAt(psdkPlayerSlot).currentHp, effectId == 'oran_berry' ? 50 : 60);
           } else {
             final fled = BattleEngine.fromPsdk(setup: setup)
                 .submit(const BattleDecision.flee());
@@ -476,6 +476,7 @@ void main() {
             consumed ? '' : itemId,
           );
           expect(updated.bag, gameState.bag);
+          expect(GameState.fromJson(updated.toJson()), updated);
           expect(
             writePlayerPsdkHeldItemsBackToPartySlots(
               gameState: updated,

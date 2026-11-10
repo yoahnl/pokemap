@@ -1,9 +1,7 @@
 import 'package:image/image.dart' as image;
 import 'package:avelune_studio/features/project_audio/application/project_audio_controller.dart';
+import 'package:avelune_studio/features/project_settings/application/project_settings_drafts.dart';
 import 'package:avelune_studio/features/project_cs/application/project_cs_controller.dart';
-import 'package:avelune_studio/presentation/features/project_settings/project_audio_panel.dart';
-import 'package:avelune_studio/presentation/features/project_settings/project_cs_panel.dart';
-import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
 
 import 'dart:typed_data';
 import 'dart:convert';
@@ -13,10 +11,7 @@ import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_a
 import 'package:avelune_studio/features/project_session/data/local_workshop_reader.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter/material.dart';
 import 'package:avelune_studio/features/project_surf/application/project_surf_controller.dart';
-import 'package:avelune_studio/presentation/features/project_settings/project_surf_panel.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 
@@ -311,192 +306,131 @@ void main() {
     );
   }
 
-  testWidgets(
-    'CS and Son widgets persist their drafts through canonical actions and reopen',
-    (tester) async {
-      final fixture = (await tester.runAsync(() async {
-        final root = await _temporaryRoot('settings-widget-');
-        final store = await CatalogStorageStore.open(projectRoot: root.path);
-        await WorkingProjectCatalog.create(
-          store: store,
-          projectId: 'settings-widget',
-          project: const ProjectManifest(
-            name: 'Settings',
-            maps: [],
-            tilesets: [],
-          ),
-        );
-        final oldArtifact = ContentArtifactRef.fromBytes(
-          _audioWav(),
-          mediaType: 'audio/wav',
-        );
-        final oldFile = File(
-          '${root.path}/${assetBlobStorageKey(oldArtifact)}',
-        );
-        await oldFile.parent.create(recursive: true);
-        await oldFile.writeAsBytes(_audioWav());
-        await File('${root.path}/$assetCatalogStorageKey').writeAsString(
-          jsonEncode(
-            AssetCatalog(
-              records: [
-                AssetRecord(
-                  id: 'widget-old',
-                  logicalPath: 'assets/audio/old-bell.wav',
-                  artifact: oldArtifact,
-                ),
-              ],
-            ).toJson(),
-          ),
-        );
-        final session = ProjectSession(
-          sessionId: root.path,
+  test('CS and audio owners persist their drafts through canonical actions and reopen', () async {
+    final fixture = await () async {
+      final root = await _temporaryRoot('settings-widget-');
+      final store = await CatalogStorageStore.open(projectRoot: root.path);
+      await WorkingProjectCatalog.create(
+        store: store,
+        projectId: 'settings-widget',
+        project: const ProjectManifest(
           name: 'Settings',
-          directoryPath: root.path,
-          storage: ProjectSessionStorage.workingCatalog,
-        );
-        final reader = _Reader();
-        final adapter = LocalMapWorkspaceAdapter(reader: reader);
-        await adapter.loadCatalog(session);
-        final audio = ProjectAudioController(session: session, port: adapter);
-        final cs = ProjectCsController(
-          session: session,
-          port: adapter,
-          onRevisionChanged: audio.adoptRevision,
-        );
-        final surf = ProjectSurfController(
-          session: session,
-          port: adapter,
-          dimension: ProjectDimension.threeD,
-        );
-        await cs.open();
-        await surf.open();
-        await audio.open();
-        await audio.loadLegacyLibrary();
-        return (
-          root: root,
-          session: session,
-          reader: reader,
-          cs: cs,
-          surf: surf,
-          audio: audio,
-        );
-      }))!;
-      addTearDown(fixture.cs.dispose);
-      addTearDown(fixture.surf.dispose);
-      addTearDown(fixture.audio.dispose);
-      addTearDown(() => fixture.root.delete(recursive: true));
-      Widget app(Widget child) => MaterialApp(
-        theme: studioTheme(),
-        home: Scaffold(body: SingleChildScrollView(child: child)),
-      );
-      await tester.pumpWidget(
-        app(
-          ProjectCsPanel(
-            owner: fixture.cs,
-            surf: fixture.surf,
-            settings: const ProjectSettings(dimension: ProjectDimension.threeD),
-          ),
+          maps: [],
+          tilesets: [],
         ),
       );
-      await tester.pumpAndSettle();
-      final reads = fixture.reader.paths.length;
-      await tester.ensureVisible(find.byKey(const ValueKey('cs-dive')));
-      await tester.tap(find.byKey(const ValueKey('cs-dive')));
-      await tester.pump();
-      for (final id in ['rock_climb', 'defog']) {
-        final row = find.byKey(ValueKey('cs-$id'));
-        await tester.ensureVisible(row);
-        await tester.tap(row);
-        await tester.pump();
-      }
-      expect(fixture.cs.preview.value.disabledAbilityIds, {
-        'dive',
-        'rock_climb',
-        'defog',
-      });
-      expect(fixture.reader.paths.length, reads);
-      await tester.ensureVisible(find.byKey(const ValueKey('save-project-cs')));
-      await tester.runAsync(() async {
-        await tester.tap(find.byKey(const ValueKey('save-project-cs')));
-        while (fixture.cs.saving) {
-          await Future<void>.delayed(const Duration(milliseconds: 5));
-        }
-      });
-      await tester.pumpAndSettle();
-      expect(fixture.cs.error, isNull);
-      expect(fixture.cs.dirty, isFalse);
-      await tester.pumpWidget(app(ProjectAudioPanel(owner: fixture.audio)));
-      await tester.pumpAndSettle();
-      tester
-          .widget<StudioSelect>(
-            find.byKey(const ValueKey('project-audio-source-ui.confirm')),
-          )
-          .onChanged!('builtin');
-      await tester.pump();
-      await tester.ensureVisible(
-        find.byKey(const ValueKey('save-project-audio')),
+      final oldArtifact = ContentArtifactRef.fromBytes(
+        _audioWav(),
+        mediaType: 'audio/wav',
       );
-      await tester.runAsync(() async {
-        await tester.tap(find.byKey(const ValueKey('save-project-audio')));
-        while (fixture.audio.saving) {
-          await Future<void>.delayed(const Duration(milliseconds: 5));
-        }
-      });
-      await tester.pumpAndSettle();
-      expect(fixture.audio.error, isNull);
-      expect(fixture.audio.dirty, isFalse);
-      final adopt = find.byKey(
-        const ValueKey('adopt-project-audio-widget-old'),
+      final oldFile = File('${root.path}/${assetBlobStorageKey(oldArtifact)}');
+      await oldFile.parent.create(recursive: true);
+      await oldFile.writeAsBytes(_audioWav());
+      await File('${root.path}/$assetCatalogStorageKey').writeAsString(
+        jsonEncode(
+          AssetCatalog(
+            records: [
+              AssetRecord(
+                id: 'widget-old',
+                logicalPath: 'assets/audio/old-bell.wav',
+                artifact: oldArtifact,
+              ),
+            ],
+          ).toJson(),
+        ),
       );
-      await tester.ensureVisible(adopt);
-      await tester.runAsync(() async {
-        await tester.tap(adopt);
-        while (fixture.audio.busy) {
-          await Future<void>.delayed(const Duration(milliseconds: 5));
-        }
-      });
-      await tester.pumpAndSettle();
-      expect(fixture.audio.error, isNull);
-      expect(fixture.audio.dirty, isTrue);
-      expect(
-        fixture.audio.preview.value.cues[ProjectSoundCue.uiConfirm]!.source,
-        ProjectSoundSource.custom,
+      final session = ProjectSession(
+        sessionId: root.path,
+        name: 'Settings',
+        directoryPath: root.path,
+        storage: ProjectSessionStorage.workingCatalog,
       );
-      await tester.ensureVisible(
-        find.byKey(const ValueKey('save-project-audio')),
+      final reader = _Reader();
+      final adapter = LocalMapWorkspaceAdapter(reader: reader);
+      await adapter.loadCatalog(session);
+      final audio = ProjectAudioController(session: session, port: adapter);
+      final cs = ProjectCsController(
+        session: session,
+        port: adapter,
+        onRevisionChanged: audio.adoptRevision,
       );
-      await tester.runAsync(() async {
-        await tester.tap(find.byKey(const ValueKey('save-project-audio')));
-        while (fixture.audio.saving) {
-          await Future<void>.delayed(const Duration(milliseconds: 5));
-        }
-      });
-      await tester.pumpAndSettle();
-      expect(fixture.audio.error, isNull);
-      expect(fixture.audio.dirty, isFalse);
-      await tester.runAsync(() async {
-        final reopened = LocalMapWorkspaceAdapter();
-        expect(
-          (await reopened.loadFieldAbilities(fixture.session))
-              .configuration!
-              .disabledAbilityIds,
-          {'dive', 'rock_climb', 'defog'},
-        );
-        expect(
-          (await reopened.loadAudio(fixture.session))
-              .configuration!
-              .cues[ProjectSoundCue.uiConfirm]!
-              .source,
-          ProjectSoundSource.custom,
-        );
-      });
-      expect(
-        fixture.reader.paths.where((path) => path.startsWith('maps/')),
-        isEmpty,
+      final surf = ProjectSurfController(
+        session: session,
+        port: adapter,
+        dimension: ProjectDimension.threeD,
       );
-      await tester.pumpWidget(const SizedBox());
-    },
-  );
+      await cs.open();
+      await surf.open();
+      await audio.open();
+      await audio.loadLegacyLibrary();
+      return (
+        root: root,
+        session: session,
+        reader: reader,
+        cs: cs,
+        surf: surf,
+        audio: audio,
+      );
+    }();
+    addTearDown(fixture.cs.dispose);
+    addTearDown(fixture.surf.dispose);
+    addTearDown(fixture.audio.dispose);
+    addTearDown(() => fixture.root.delete(recursive: true));
+    final reads = fixture.reader.paths.length;
+    for (final id in ['dive', 'rock_climb', 'defog']) {
+      fixture.cs.setEnabledId(id, false);
+    }
+    expect(fixture.cs.preview.value.disabledAbilityIds, {
+      'dive',
+      'rock_climb',
+      'defog',
+    });
+    expect(fixture.reader.paths.length, reads);
+      final draft = FieldAbilitySettingsDraft(fixture.cs, fixture.surf);
+      final beforeSave = await LocalMapWorkspaceAdapter().loadFieldAbilities(fixture.session);
+      final speed = '${fixture.surf.preview.value.speedCellsPerSecond}';
+      fixture.surf.editSpeed('invalid');
+      expect(await draft.save(), isFalse);
+      expect(fixture.cs.dirty, isTrue);
+      expect((await LocalMapWorkspaceAdapter().loadFieldAbilities(fixture.session)).revision,
+        beforeSave.revision);
+      fixture.surf.editSpeed(speed);
+      expect(await draft.save(), isTrue, reason: draft.error);
+    expect(fixture.cs.dirty, isFalse);
+    fixture.audio.source(ProjectSoundCue.uiConfirm, 'builtin');
+    expect(await fixture.audio.save(), isTrue, reason: fixture.audio.error);
+    expect(fixture.audio.dirty, isFalse);
+    final legacy = fixture.audio.legacyLibrary.values.singleWhere(
+      (entry) => entry.id == 'widget-old',
+    );
+    await fixture.audio.adopt(legacy, ProjectSoundCue.uiConfirm);
+    expect(fixture.audio.error, isNull);
+    expect(fixture.audio.dirty, isTrue);
+    expect(
+      fixture.audio.preview.value.cues[ProjectSoundCue.uiConfirm]!.source,
+      ProjectSoundSource.custom,
+    );
+    expect(await fixture.audio.save(), isTrue, reason: fixture.audio.error);
+    expect(fixture.audio.dirty, isFalse);
+    final reopened = LocalMapWorkspaceAdapter();
+    expect(
+      (await reopened.loadFieldAbilities(fixture.session))
+          .configuration!
+          .disabledAbilityIds,
+      {'dive', 'rock_climb', 'defog'},
+    );
+    expect(
+      (await reopened.loadAudio(fixture.session))
+          .configuration!
+          .cues[ProjectSoundCue.uiConfirm]!
+          .source,
+      ProjectSoundSource.custom,
+    );
+    expect(
+      fixture.reader.paths.where((path) => path.startsWith('maps/')),
+      isEmpty,
+    );
+  });
 
   for (final storage in [
     ProjectSessionStorage.manifest,
@@ -638,74 +572,47 @@ void main() {
     expect(reader.paths.where((path) => path.startsWith('maps/')), isEmpty);
   });
 
-  testWidgets(
-    'the Surf widget persists through the canonical adapter and reopens without map reads',
-    (tester) async {
-      final fixture = (await tester.runAsync(() async {
-        final root = await _temporaryRoot('surf-widget-persist-');
-        final store = await CatalogStorageStore.open(projectRoot: root.path);
-        await WorkingProjectCatalog.create(
-          store: store,
-          projectId: 'surf-ui',
-          project: const ProjectManifest(name: 'Surf', maps: [], tilesets: []),
-        );
-        final session = ProjectSession(
-          sessionId: root.path,
-          name: 'Surf',
-          directoryPath: root.path,
-          storage: ProjectSessionStorage.workingCatalog,
-        );
-        final reader = _Reader();
-        final adapter = LocalMapWorkspaceAdapter(reader: reader);
-        await adapter.loadCatalog(session);
-        final owner = ProjectSurfController(
-          session: session,
-          port: adapter,
-          dimension: ProjectDimension.threeD,
-        );
-        await owner.open();
-        return (root: root, session: session, reader: reader, owner: owner);
-      }))!;
-      addTearDown(fixture.owner.dispose);
-      addTearDown(() => fixture.root.delete(recursive: true));
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: studioTheme(),
-          home: Scaffold(
-            body: SingleChildScrollView(
-              child: ProjectSurfPanel(owner: fixture.owner),
-            ),
-          ),
-        ),
+  test('the Surf owner persists through the canonical adapter and reopens without map reads', () async {
+    final fixture = await () async {
+      final root = await _temporaryRoot('surf-widget-persist-');
+      final store = await CatalogStorageStore.open(projectRoot: root.path);
+      await WorkingProjectCatalog.create(
+        store: store,
+        projectId: 'surf-ui',
+        project: const ProjectManifest(name: 'Surf', maps: [], tilesets: []),
       );
-      final reads = fixture.reader.paths.length;
-      await tester.tap(find.byKey(const ValueKey('surf-enabled')));
-      await tester.pump();
-      expect(fixture.owner.preview.value.enabled, isTrue);
-      expect(fixture.reader.paths.length, reads);
-      await tester.runAsync(() async {
-        await tester.ensureVisible(
-          find.byKey(const ValueKey('save-project-surf')),
-        );
-        await tester.tap(find.byKey(const ValueKey('save-project-surf')));
-        while (fixture.owner.saving) {
-          await Future<void>.delayed(const Duration(milliseconds: 5));
-        }
-      });
-      await tester.pumpAndSettle();
-      expect(fixture.owner.error, isNull);
-      expect(fixture.owner.dirty, isFalse);
-      final reopened = await tester.runAsync(
-        () => LocalMapWorkspaceAdapter().loadSurf(fixture.session),
+      final session = ProjectSession(
+        sessionId: root.path,
+        name: 'Surf',
+        directoryPath: root.path,
+        storage: ProjectSessionStorage.workingCatalog,
       );
-      expect(reopened!.configuration!.enabled, isTrue);
-      expect(
-        fixture.reader.paths.where((path) => path.startsWith('maps/')),
-        isEmpty,
+      final reader = _Reader();
+      final adapter = LocalMapWorkspaceAdapter(reader: reader);
+      await adapter.loadCatalog(session);
+      final owner = ProjectSurfController(
+        session: session,
+        port: adapter,
+        dimension: ProjectDimension.threeD,
       );
-      await tester.pumpWidget(const SizedBox());
-    },
-  );
+      await owner.open();
+      return (root: root, session: session, reader: reader, owner: owner);
+    }();
+    addTearDown(fixture.owner.dispose);
+    addTearDown(() => fixture.root.delete(recursive: true));
+    final reads = fixture.reader.paths.length;
+    fixture.owner.change(enabled: true);
+    expect(fixture.owner.preview.value.enabled, isTrue);
+    expect(fixture.reader.paths.length, reads);
+    expect(await fixture.owner.save(), isTrue, reason: fixture.owner.error);
+    expect(fixture.owner.dirty, isFalse);
+    final reopened = await LocalMapWorkspaceAdapter().loadSurf(fixture.session);
+    expect(reopened.configuration!.enabled, isTrue);
+    expect(
+      fixture.reader.paths.where((path) => path.startsWith('maps/')),
+      isEmpty,
+    );
+  });
   test(
     'native metadata reader does not decode unrelated malformed sections',
     () async {

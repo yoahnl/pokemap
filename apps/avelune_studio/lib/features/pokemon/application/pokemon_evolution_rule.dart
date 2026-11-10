@@ -128,3 +128,29 @@ PokemonEvolutionRule pokemonEvolutionRule(
       );
   }
 }
+
+Map<String, String> pokemonEvolutionMethodOptions(Map<String, dynamic> entry) {
+  final method = '${entry['method'] ?? ''}'.trim();
+  return {
+    ...pokemonGuidedEvolutionMethods,
+    if (!pokemonGuidedEvolutionMethods.containsKey(method))
+      method: pokemonEvolutionMethodLabel(method),
+  };
+}
+
+bool pokemonEvolutionGuidedMethodLocked(Map<String, dynamic> entry) =>
+    pokemonEvolutionRuleKind(entry) == PokemonEvolutionRuleKind.trade;
+
+bool pokemonEvolutionShowsField(Map<String, dynamic> entry, String key) {
+  final kind = pokemonEvolutionRuleKind(entry);
+  if (key == 'minLevel') {
+    return kind != PokemonEvolutionRuleKind.trade || entry[key] != null;
+  }
+  final owner = switch (key) {
+    'minFriendship' => PokemonEvolutionRuleKind.friendship,
+    'itemId' => PokemonEvolutionRuleKind.item,
+    'requiredMoveId' => PokemonEvolutionRuleKind.knownMove,
+    _ => null,
+  };
+  return kind == owner || (entry[key] != null && '${entry[key]}'.isNotEmpty);
+}

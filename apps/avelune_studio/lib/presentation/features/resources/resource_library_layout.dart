@@ -76,15 +76,6 @@ extension _ResourceLibraryLayout on _ResourceLibraryScreenState {
       state.kind,
       items,
     );
-    bool atelierIncludes(ResourceItem item) => switch (state.family) {
-      ResourceLibraryFamily.decors =>
-        item.element != null || item.model3d != null,
-      ResourceLibraryFamily.terrains => item.terrain != null,
-      ResourceLibraryFamily.images => item.tileset != null,
-      ResourceLibraryFamily.borders => item.border != null,
-      ResourceLibraryFamily.environments => item.environment != null,
-      ResourceLibraryFamily.models3d => item.model3d != null,
-    };
     List<ResourceItem> matchingResources(
       ResourceCatalogFilterState filters,
       String category,
@@ -100,7 +91,7 @@ extension _ResourceLibraryLayout on _ResourceLibraryScreenState {
       return candidates
           .where(
             (item) =>
-                atelierIncludes(item) &&
+                state.includesFamily(item) &&
                 (category.isEmpty ||
                     (category == uncategorizedResourceCategory
                         ? item.category.isEmpty
@@ -261,7 +252,7 @@ extension _ResourceLibraryLayout on _ResourceLibraryScreenState {
                           scroll: scroll,
                           grid: state.grid,
                           catalogEmpty: state.atelierVisible
-                              ? !items.any(atelierIncludes)
+                              ? !items.any(state.includesFamily)
                               : items.isEmpty,
                           onSelect: (item) {
                             select(item);

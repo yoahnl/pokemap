@@ -3,12 +3,7 @@ import 'package:avelune_studio/features/project_settings/application/project_set
 import 'package:avelune_studio/features/project_settings/application/project_verification_overview.dart';
 import 'package:avelune_studio/features/verification/application/studio_failure_diagnosis.dart';
 import 'package:avelune_studio/features/verification/application/test_launch_preflight.dart';
-import 'package:avelune_studio/presentation/features/project_settings/project_verification_panel.dart';
-import 'package:avelune_studio/presentation/features/verification/studio_failure_report.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/workspace_actions.dart';
-import 'package:avelune_studio/presentation/features/verification/test_launch_dialog.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
-import 'package:flutter/material.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/workspace_workflow.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
 
@@ -36,56 +31,9 @@ void main() {
     expect(game.scopeNote, contains('joueurs ne sont pas touchées'));
   });
 
-  testWidgets(
-    'a blocking draft disables the launch and names where to resolve it',
-    (tester) async {
-      bool? result;
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: studioTheme(),
-          home: Builder(
-            builder: (context) => Scaffold(
-              body: Center(
-                child: TextButton(
-                  onPressed: () async => result = await showTestLaunchDialog(
-                    context,
-                    TestLaunchPreflight(
-                      scope: TestLaunchScope.game,
-                      mapName: 'Bourg Geon',
-                      saves: const ['Scènes'],
-                      blockers: const [
-                        TestLaunchBlocker('Dialogues', 'Histoire › Dialogues'),
-                      ],
-                    ),
-                  ),
-                  child: const Text('ouvrir'),
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-      await tester.tap(find.text('ouvrir'));
-      await tester.pumpAndSettle();
-      expect(find.text('Tester le jeu'), findsOneWidget);
-      expect(find.textContaining('Histoire › Dialogues'), findsOneWidget);
-      expect(find.textContaining('Scènes'), findsOneWidget);
-      final confirm = tester.widget<ButtonStyleButton>(
-        find.descendant(
-          of: find.byKey(const ValueKey('confirm-reviewed-plan')),
-          matching: find.byWidgetPredicate((w) => w is ButtonStyleButton),
-        ),
-      );
-      expect(confirm.onPressed, isNull);
-      await tester.tap(find.text('Annuler'));
-      await tester.pumpAndSettle();
-      expect(result, isFalse);
-    },
-  );
-
-  testWidgets(
+  test(
     'the map test saves its drafts only after confirmation and returns without reloading',
-    (tester) async {
+    () async {
       final port = WorkspaceMemoryPort();
       final controller = MapWorkspaceController(workspaceSession, port);
       addTearDown(controller.dispose);
@@ -95,22 +43,9 @@ void main() {
       TestLaunchPreflight? reviewed;
       var confirm = false;
       var launches = 0;
-      late BuildContext context;
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: studioTheme(),
-          home: Builder(
-            builder: (value) {
-              context = value;
-              return const Scaffold(body: SizedBox());
-            },
-          ),
-        ),
-      );
-      final actions = WorkspaceActions(
+      final actions = WorkspaceWorkflow(
         controller: controller,
-        context: () => context,
-        mounted: () => true,
+        isActive: () => true,
         changed: () {},
         resources: () => null,
         narrative: () => null,
@@ -118,10 +53,10 @@ void main() {
           reviewed = preflight;
           return confirm;
         },
-        runtimeBuilder: (entry, revision, close) {
+        confirmClose: () async => WorkspaceCloseChoice.cancel,
+        flushFocus: () {},
+        launchMap: (entry, revision) async {
           launches++;
-          WidgetsBinding.instance.addPostFrameCallback((_) => close());
-          return const SizedBox();
         },
       );
       await actions.test();
@@ -132,9 +67,7 @@ void main() {
       expect(document.dirty, isTrue);
       final catalogs = port.catalogs;
       confirm = true;
-      final running = actions.test();
-      await tester.pumpAndSettle();
-      await running;
+      await actions.test();
       expect(port.writes, 1);
       expect(launches, 1);
       expect(identical(controller.active, document), isTrue);
@@ -211,52 +144,6 @@ void main() {
     expect(unknown.detail, contains('moteur'));
   });
 
-  testWidgets('an undetermined cause offers no repair and keeps the detail', (
-    tester,
-  ) async {
-    StudioFailureOwner? opened;
-    Future<void> show(StudioFailureDiagnosis diagnosis) => tester.pumpWidget(
-      MaterialApp(
-        theme: studioTheme(),
-        home: Scaffold(
-          body: SingleChildScrollView(
-            child: StudioFailureReport(
-              diagnosis: diagnosis,
-              onOpenOwner: (owner) => opened = owner,
-            ),
-          ),
-        ),
-      ),
-    );
-    await show(
-      const StudioFailureDiagnosis(
-        summary: 'Le test n’a pas pu démarrer.',
-        detail: 'StateError: moteur',
-      ),
-    );
-    expect(find.text('Cause non déterminée'), findsOneWidget);
-    expect(find.textContaining('pas encore été déterminée'), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey('studio-failure-open-owner')),
-      findsNothing,
-    );
-    await tester.tap(find.text('Afficher le détail technique'));
-    await tester.pumpAndSettle();
-    expect(find.text('StateError: moteur'), findsOneWidget);
-    await show(
-      const StudioFailureDiagnosis(
-        family: StudioCheckFamily.resources,
-        owner: StudioFailureOwner.resources,
-        summary: 'Image absente.',
-        detail: 'missingProjectFile · assets/a.png',
-      ),
-    );
-    expect(find.text('Validation des ressources'), findsOneWidget);
-    expect(find.text('À corriger dans : Ressources'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('studio-failure-open-owner')));
-    expect(opened, StudioFailureOwner.resources);
-  });
-
   test('the settings overview separates the five families honestly', () {
     final labels = {
       ProjectSettingsSection.general: 'Général',
@@ -305,43 +192,4 @@ void main() {
     expect(disabled[3].summary, contains('désactivée'));
   });
 
-  testWidgets('the settings overview opens an invalid section or its owner', (
-    tester,
-  ) async {
-    ProjectSettingsSection? selected;
-    StudioFailureOwner? opened;
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: studioTheme(),
-        home: Scaffold(
-          body: SingleChildScrollView(
-            child: ProjectVerificationPanel(
-              rows: projectVerificationOverview(
-                sectionLabels: const {
-                  ProjectSettingsSection.image: 'Image et caméra',
-                },
-                blocked: {ProjectSettingsSection.image},
-                dirty: const {},
-                newGame: const ProjectNewGameConfig(enabled: true),
-                mapNames: const {},
-                threeD: false,
-              ),
-              onSelectSection: (section) => selected = section,
-              onOpenOwner: (owner) => opened = owner,
-            ),
-          ),
-        ),
-      ),
-    );
-    expect(find.text('Erreur de saisie'), findsOneWidget);
-    expect(find.text('Validation des ressources'), findsOneWidget);
-    expect(find.text('Capacités du jeu'), findsOneWidget);
-    expect(find.text('Lancement'), findsOneWidget);
-    expect(find.text('Compatibilité des sauvegardes'), findsOneWidget);
-    expect(find.text('Non vérifié ici'), findsNWidgets(3));
-    await tester.tap(find.byKey(const ValueKey('project-check-open-image')));
-    expect(selected, ProjectSettingsSection.image);
-    await tester.tap(find.byKey(const ValueKey('project-check-owner-launch')));
-    expect(opened, StudioFailureOwner.map);
-  });
 }

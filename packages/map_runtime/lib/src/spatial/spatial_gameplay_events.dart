@@ -291,6 +291,10 @@ final class SpatialGameplayEvents {
         conditionContext: PresentationConditionContext(project: project, map: _map,
           maps: mapsById.values.toList(), lookupRewardScenes: rewardScenes));
       if (selection is! ContextualItemUseMatched || selection.rule != rule) return false;
+      await _transactions.transact<void>(
+        (_) => NarrativeEventStateTransaction.commit(expected, null),
+      );
+      _ensureCurrent();
       final executionId = _runtimeIdFactory('evx');
       late GameState updated;
       try {

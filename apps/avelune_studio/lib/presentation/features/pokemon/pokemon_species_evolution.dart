@@ -1,3 +1,5 @@
+import '../../../features/pokemon/application/pokemon_document_editing.dart';
+
 import 'package:flutter/material.dart';
 
 import '../../../features/pokemon/application/pokemon_workspace_controller.dart';
@@ -193,11 +195,10 @@ class _PokemonSpeciesEvolutionEditorState
       options[id] ?? '$id · non résolu';
 
   void _remove(int index) {
-    widget.controller.edit(PokemonDocumentFamily.evolution, (json) {
-      final entries = List<dynamic>.from(json['evolutions'] as List? ?? []);
-      entries.removeAt(index);
-      json['evolutions'] = entries;
-    });
+    widget.controller.edit(
+      PokemonDocumentFamily.evolution,
+      (json) => PokemonDocumentEditing.removeEvolution(json, index),
+    );
     setState(() => selectedIndex = 0);
   }
 
@@ -235,15 +236,10 @@ class _PokemonSpeciesEvolutionEditorState
       ),
     );
     if (target == null || target.isEmpty || !mounted) return;
-    widget.controller.edit(PokemonDocumentFamily.evolution, (json) {
-      final entries = List<dynamic>.from(json['evolutions'] as List? ?? []);
-      entries.add(<String, dynamic>{
-        'targetSpeciesId': target,
-        'method': 'level',
-        'conditionText': <String, String>{},
-      });
-      json['evolutions'] = entries;
-    });
+    widget.controller.edit(
+      PokemonDocumentFamily.evolution,
+      (json) => PokemonDocumentEditing.addEvolution(json, target),
+    );
     setState(() => selectedIndex = newIndex);
   }
 }

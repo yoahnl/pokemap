@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring_dialogue.dart';
-import 'dialogues_ui09_interaction_test.dart' show setup, tap, field;
+
+import 'dialogues_ui09_interaction_test.dart'
+    show setup, tap, field, selectDialogue;
 import 'support/m2_ui_fixture.dart';
 import 'support/ui09_runtime_fixture.dart';
 
@@ -12,7 +14,7 @@ void main() {
     const Size(1024, 640),
   ]) {
     testWidgets(
-      'responsive ${size.width.toInt()}x${size.height.toInt()} edits text and response then saves',
+      'responsive ${size.width.toInt()}x${size.height.toInt()} edits application-selected text and response then saves',
       (tester) async {
         final h = await setup(tester);
         final node = h.dialogues.active!.document.nodes.first;
@@ -22,7 +24,7 @@ void main() {
             .first
             .branches
             .first;
-        await tap(tester, find.byKey(ValueKey('dialogue-row-${line.id}')));
+        await selectDialogue(tester, h, step: line.id);
         tester.view.physicalSize = size;
         final compact = size.width == 1024;
         await tester.pumpWidget(h.app(textScale: compact ? 1.5 : 1));
@@ -37,16 +39,19 @@ void main() {
         expect(h.port.writes, 1);
         expect(h.dialogues.dirty, isFalse);
         expect(
-          (await tester.runAsync(
-            () => h.fixture.port.load(ui09DialogueId),
-          ))!.source,
+          (await tester.runAsync(() => h.fixture.port.load(ui09DialogueId)))!
+              .source,
           contains(text),
         );
         if (compact) {
           await tap(tester, find.byTooltip('Inspecteur du dialogue'));
         }
-        await tap(tester, find.byTooltip('Cadrer le dialogue'));
-        await tap(tester, find.byKey(ValueKey('dialogue-row-${branch.id}')));
+        await selectDialogue(
+          tester,
+          h,
+          step: node.steps.whereType<DeChoiceStep>().first.id,
+          branch: branch.id,
+        );
         if (compact) {
           await tap(tester, find.byTooltip('Inspecteur du dialogue'));
         }

@@ -11029,6 +11029,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
           session: psdkSession,
           gameState: _battleRuntimeGameState,
           itemCatalog: _itemCatalogSnapshot,
+          context: _activeBattleContext,
         );
         _replaceBattleRuntimeGameState(committed.state);
       }

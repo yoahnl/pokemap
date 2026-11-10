@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
+
 import 'support/ui11_workspace_harness.dart';
 import 'ui11_presentation_widget_test.dart' show tapUi11;
 
@@ -37,8 +38,8 @@ void main() {
       expect(harness.port.writes, 0);
       await tapUi11(tester, harness, find.text('Enregistrer'));
       expect(harness.port.writes, 0);
-      await tapUi11(tester, harness, find.text('Éléments'));
-      expect(view.elements, isFalse);
+      await tapUi11(tester, harness, find.text('Animations'));
+      expect(view.inspectorTab, 'properties');
       expect(view.selectedId, 'title.clip');
       await tester.ensureVisible(duration);
       await tester.enterText(duration, '8');
@@ -52,8 +53,8 @@ void main() {
           .single;
       expect(text.durationUs, 8000000);
       expect(controller.active!.dirty, isFalse);
-      await tapUi11(tester, harness, find.text('Éléments'));
-      expect(view.elements, isTrue);
+      await tapUi11(tester, harness, find.text('Animations'));
+      expect(view.inspectorTab, 'animations');
       expect(tester.takeException(), isNull);
     },
   );

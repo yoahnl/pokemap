@@ -1,4 +1,5 @@
 import 'spatial_platform_controls.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' as rendering show ScrollCacheExtent;
 import 'package:map_core/map_core_domain.dart';
@@ -20,7 +21,9 @@ import 'map_settings_inspector.dart';
 import 'spatial_model_entity_controls.dart';
 import 'spatial_lift_controls.dart';
 import '../../../features/map_workspace/application/spatial_model_editing_commands.dart';
+
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
+
 import '../resources/resource_preview.dart';
 import '../resources/model_animation_controls.dart';
 import '../resources/model_shadow_controls.dart';
@@ -122,13 +125,12 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
       label: label,
       value: '$value',
       tryCommit: (text) {
-        final number = double.tryParse(text.trim());
-        if (number == null || !number.isFinite) {
-          document.error = 'Saisissez un nombre valide.';
-          onChanged();
-          return false;
-        }
-        return change(() => update(number));
+        final result = SpatialModelEditingCommands(
+          document,
+          project,
+        ).number(text, update);
+        onChanged();
+        return result;
       },
     );
     return StudioSidebar(
@@ -182,7 +184,13 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
               onChanged: onChanged,
             ),
             const SizedBox(height: 12),
-            SpatialPlatformControls(key: ValueKey('platform-${instance.id}'), document: document, project: project, instance: instance, onChanged: onChanged),
+            SpatialPlatformControls(
+              key: ValueKey('platform-${instance.id}'),
+              document: document,
+              project: project,
+              instance: instance,
+              onChanged: onChanged,
+            ),
             const SizedBox(height: 12),
             SpatialLiftControls(
               key: ValueKey('lift-${instance.id}'),

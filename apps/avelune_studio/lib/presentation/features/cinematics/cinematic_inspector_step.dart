@@ -13,12 +13,24 @@ extension CinematicInspectorStep on CinematicInspector {
     Text(step.label ?? cinematicActionLabel(step.kind)),
     ..._parallelFields(asset, step),
     if (step.kind == CinematicTimelineStepKind.atmosphere)
-      SpatialVisualControls(patch: step.visualSettings!,
-        inherited: SpatialVisualPatch.fromScene(camera: SpatialCameraProfile(), atmosphere: SpatialAtmosphereSettings()),
+      SpatialVisualControls(
+        patch: step.visualSettings!,
+        inherited: SpatialVisualPatch.fromScene(
+          camera: SpatialCameraProfile(),
+          atmosphere: SpatialAtmosphereSettings(),
+        ),
         onChanged: (value) {
           if (value.isEmpty) return;
-          _edit(asset, (a) => updateCinematicTimelineCommandStep(a, stepId: step.id, visualSettings: value).cinematic);
-        }),
+          _edit(
+            asset,
+            (a) => updateCinematicTimelineCommandStep(
+              a,
+              stepId: step.id,
+              visualSettings: value,
+            ).cinematic,
+          );
+        },
+      ),
     if (cinematicDurationEditable(step))
       StudioCommitField(
         key: ValueKey('duration-${asset.id}-${step.id}'),
@@ -205,7 +217,9 @@ extension CinematicInspectorStep on CinematicInspector {
                 joined ||
                 step.kind == CinematicTimelineStepKind.marker
             ? null
-            : () => edit((current) => _joinParallel(current, step.id)),
+            : () => edit(
+                (current) => joinCinematicParallelSteps(current, step.id),
+              ),
       ),
       if (index <= 0)
         const Text(
@@ -226,8 +240,9 @@ extension CinematicInspectorStep on CinematicInspector {
           label: 'Dissocier le groupe',
           secondary: true,
           icon: Icons.link_off,
-          onPressed: () =>
-              edit((current) => _dissolveParallel(current, step.id)),
+          onPressed: () => edit(
+            (current) => dissolveCinematicParallelSteps(current, step.id),
+          ),
         ),
       ],
     ];
@@ -394,36 +409,22 @@ extension CinematicInspectorStep on CinematicInspector {
             options: {
               '': 'Carte (position absolue)',
               for (final actor in asset.stageContext!.actorBindings)
-                if (actor.kind == CinematicActorBindingKind.player || actor.kind == CinematicActorBindingKind.mapEntity)
-                actor.actorId:
-                    'Départ de ${asset.requiredActors.where((entry) => entry.actorId == actor.actorId).firstOrNull?.label ?? actor.actorId}',
+                if (actor.kind == CinematicActorBindingKind.player ||
+                    actor.kind == CinematicActorBindingKind.mapEntity)
+                  actor.actorId:
+                      'Départ de ${asset.requiredActors.where((entry) => entry.actorId == actor.actorId).firstOrNull?.label ?? actor.actorId}',
             },
             onChanged: (value) {
-              if (value.isNotEmpty && model?.map.spatialScene != null) {
-                view.error = 'Les repères relatifs aux acteurs sont disponibles sur les cartes 2D.';
+              bool accepted;
+              try {
+                accepted = controller.setStagePoint(
+                  model!.rebasePoint(point, value.isEmpty ? null : value),
+                );
+              } catch (error) {
+                view.error = error.toString();
                 changed();
                 return;
               }
-              final origin = value.isEmpty ? null : model?.actorOrigins[value];
-              final resolved = model?.resolvedStagePoints
-                  .where((entry) => entry.id == point.id)
-                  .firstOrNull;
-              if (resolved == null || (value.isNotEmpty && origin == null)) {
-                view.error =
-                    'L’acteur d’origine doit être présent dans l’aperçu.';
-                changed();
-                return;
-              }
-              final accepted = controller.setStagePoint(
-                CinematicStagePoint(
-                  id: point.id,
-                  label: point.label,
-                  x: resolved.x - (origin?.x ?? 0),
-                  y: resolved.y - (origin?.y ?? 0),
-                  description: point.description,
-                  relativeToActorId: value.isEmpty ? null : value,
-                ),
-              );
               if (!accepted) view.error = controller.error;
               changed();
             },
@@ -495,53 +496,6 @@ extension CinematicInspectorStep on CinematicInspector {
       ],
     );
   }
-}
-
-CinematicAsset _joinParallel(CinematicAsset asset, String stepId) {
-  final steps = asset.timeline.steps;
-  final index = steps.indexWhere((step) => step.id == stepId);
-  if (index <= 0) throw ArgumentError('Une étape précédente est nécessaire.');
-  final previous = steps[index - 1];
-  final current = steps[index];
-  final groups = {
-    if (previous.parallelGroupId != null) previous.parallelGroupId!,
-    if (current.parallelGroupId != null) current.parallelGroupId!,
-  };
-  final ids = {
-    previous.id,
-    current.id,
-    for (final step in steps)
-      if (groups.contains(step.parallelGroupId)) step.id,
-  };
-  final used = steps.map((step) => step.parallelGroupId).toSet();
-  var number = 1;
-  while (used.contains('parallel_$number')) {
-    number++;
-  }
-  final groupId =
-      previous.parallelGroupId ?? current.parallelGroupId ?? 'parallel_$number';
-  return setCinematicTimelineParallelGroup(
-    asset,
-    stepIds: ids,
-    parallelGroupId: groupId,
-  ).cinematic;
-}
-
-CinematicAsset _dissolveParallel(CinematicAsset asset, String stepId) {
-  final group = asset.timeline.steps
-      .firstWhere((step) => step.id == stepId)
-      .parallelGroupId;
-  if (group == null) {
-    return asset;
-  }
-  return setCinematicTimelineParallelGroup(
-    asset,
-    stepIds: {
-      for (final step in asset.timeline.steps)
-        if (step.parallelGroupId == group) step.id,
-    },
-    parallelGroupId: null,
-  ).cinematic;
 }
 
 const _parallelEditError =

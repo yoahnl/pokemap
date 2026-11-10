@@ -1,12 +1,18 @@
+import '../../../features/resources/application/border_pattern_associations.dart';
+
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../../features/resources/domain/resource_port.dart';
 
 import '../../shared/widgets/layout/studio_panel.dart';
+
 import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
+
 import '../terrains/terrain_spatial_preview.dart';
+
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
+
 import 'resource_preview.dart';
 
 class BorderPatternPanel extends StatelessWidget {
@@ -61,26 +67,11 @@ class BorderPatternPanel extends StatelessWidget {
     'Extrémité gauche',
   ];
 
-  List<String> get _roles => [
-    'lineStraight',
-    'lineCap',
-    if (!straightOnly) 'lineCorner',
-    if (!straightOnly && followContourDirection) 'lineCornerLeft',
-  ];
-
-  List<String> get _missingRoleLabels => [
-    for (final role in _roles)
-      if (!chosen.containsKey(role)) _roleLabel(role),
-  ];
-
-  String _roleLabel(String role) => switch (role) {
-    'lineStraight' when straightOnly || followContourDirection => 'corps',
-    'lineStraight' => 'bords',
-    'lineCap' => 'extrémités',
-    'lineCorner' when followContourDirection => 'angle sortant',
-    'lineCorner' => 'angles',
-    _ => 'angle rentrant',
-  };
+  BorderPatternAssociations get _associations => BorderPatternAssociations(
+    assigned: chosen.keys,
+    straightOnly: straightOnly,
+    followContourDirection: followContourDirection,
+  );
 
   Widget _slot(
     BuildContext context,
@@ -257,7 +248,7 @@ class BorderPatternPanel extends StatelessWidget {
       ),
       const SizedBox(height: 5),
       Text(
-        '${_roles.where(chosen.containsKey).length} / ${_roles.length} familles de pièces associées',
+        _associations.countLabel,
         style: Theme.of(context).textTheme.labelMedium,
       ),
       const SizedBox(height: 10),
@@ -266,7 +257,7 @@ class BorderPatternPanel extends StatelessWidget {
         const SizedBox(height: 12),
       ],
       if (variantSelector != null)
-        for (final role in _roles) variantSelector!(role),
+        for (final role in _associations.roles) variantSelector!(role),
       if (straightOnly) ...[
         const Text(
           'Tracés droits uniquement. Le corps et une extrémité sont nécessaires.',
@@ -361,9 +352,7 @@ class BorderPatternPanel extends StatelessWidget {
         ],
       const SizedBox(height: 8),
       Text(
-        _missingRoleLabels.isEmpty
-            ? 'Associations complètes. Les raccords restent à valider avant publication.'
-            : 'Pièces manquantes avant publication : ${_missingRoleLabels.join(', ')}.',
+        _associations.statusLabel,
         style: Theme.of(context).textTheme.bodySmall,
       ),
     ],

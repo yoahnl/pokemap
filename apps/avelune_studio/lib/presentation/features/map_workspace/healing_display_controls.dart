@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import '../../../features/map_workspace/application/map_healing_display_draft.dart';
+
 import 'package:map_core/map_core_domain.dart';
 
 import '../../shared/widgets/buttons/studio_button.dart';
@@ -9,11 +12,13 @@ class HealingDisplayControls extends StatefulWidget {
     super.key,
     required this.entity,
     required this.project,
+    required this.map,
     required this.onChanged,
     this.elementPreview,
   });
   final MapEntity entity;
   final ProjectManifest project;
+  final MapData map;
   final ValueChanged<MapEntityHealingDisplayData?> onChanged;
   final Widget Function(ProjectElementEntry)? elementPreview;
   @override
@@ -21,7 +26,7 @@ class HealingDisplayControls extends StatefulWidget {
 }
 
 class _HealingDisplayControlsState extends State<HealingDisplayControls> {
-  late List<String?> _variants;
+  late MapHealingDisplayDraft draft;
   @override
   void initState() {
     super.initState();
@@ -34,87 +39,20 @@ class _HealingDisplayControlsState extends State<HealingDisplayControls> {
     if (widget.entity.id != oldWidget.entity.id ||
         widget.entity.healingDisplay != oldWidget.entity.healingDisplay) {
       _reset();
+    } else {
+      draft.updateContext(widget.map, widget.project);
     }
   }
 
   void _reset() {
-    _variants =
-        widget.entity.healingDisplay?.variantElementIds
-            .cast<String?>()
-            .toList() ??
-        List<String?>.filled(6, null);
-  }
-
-  (int, int)? _geometry(ProjectElementEntry element) {
-    if (element.frames.isEmpty ||
-        element.collisionProfile != null ||
-        widget.project.elements.where((e) => e.id == element.id).length != 1) {
-      return null;
-    }
-    (int, int)? size;
-    for (final frame in element.frames) {
-      final id = frame.tilesetId.isEmpty ? element.tilesetId : frame.tilesetId;
-      final sources = widget.project.tilesets.where((t) => t.id == id).toList();
-      if (sources.length != 1 ||
-          sources.single.source is! ProjectRegularAtlasTilesetSource ||
-          (frame.durationMs != null && frame.durationMs! <= 0)) {
-        return null;
-      }
-      final source = sources.single.source! as ProjectRegularAtlasTilesetSource;
-      try {
-        final bounds = const ProjectTilesetVisualResolver()
-            .resolve(
-              source: source,
-              selection: ProjectTilesetVisualSelection.regularAtlas(
-                source: frame.source,
-              ),
-              cellWidth: source.tileWidth,
-              cellHeight: source.tileHeight,
-            )
-            .animationBounds;
-        final next = (bounds.width, bounds.height);
-        if (bounds.width > 512 ||
-            bounds.height > 512 ||
-            (size != null && size != next)) {
-          return null;
-        }
-        size = next;
-      } on ProjectTilesetVisualResolutionException {
-        return null;
-      }
-    }
-    return size;
+    draft = MapHealingDisplayDraft(widget.map, widget.project, widget.entity);
   }
 
   @override
   Widget build(BuildContext context) {
-    final candidates = <String, ProjectElementEntry>{};
-    final geometry = <(int, int), int>{};
-    for (final element in widget.project.elements) {
-      final size = _geometry(element);
-      if (size == null) {
-        continue;
-      }
-      candidates[element.id] = element;
-      geometry[size] = (geometry[size] ?? 0) + 1;
-    }
-    candidates.removeWhere(
-      (id, element) => (geometry[_geometry(element)] ?? 0) < 6,
-    );
-    final selected = _variants
-        .whereType<String>()
-        .map((id) => candidates[id])
-        .whereType<ProjectElementEntry>()
-        .firstOrNull;
-    final size = selected == null ? null : _geometry(selected);
-    final valid =
-        _variants.every(
-          (id) =>
-              id != null &&
-              candidates.containsKey(id) &&
-              (size == null || _geometry(candidates[id]!) == size),
-        ) &&
-        _variants.toSet().length == 6;
+    final candidates = draft.candidates;
+    final size = draft.selectedSize;
+    final valid = draft.valid;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -132,15 +70,15 @@ class _HealingDisplayControlsState extends State<HealingDisplayControls> {
           StudioSelect(
             key: ValueKey('healing-display-variant-$i'),
             label: '${i + 1} Pokémon',
-            value: _variants[i],
+            value: draft.variants[i],
             options: {
               for (final entry in candidates.entries)
-                if (size == null || _geometry(entry.value) == size)
+                if (size == null || draft.geometry(entry.value) == size)
                   entry.key: entry.value.name,
             },
-            onChanged: (id) => setState(() => _variants[i] = id),
+            onChanged: (id) => setState(() => draft.variants[i] = id),
           ),
-          if (candidates[_variants[i]] case final element?
+          if (candidates[draft.variants[i]] case final element?
               when widget.elementPreview != null)
             SizedBox(
               height: 64,
@@ -153,13 +91,7 @@ class _HealingDisplayControlsState extends State<HealingDisplayControls> {
           label: widget.entity.healingDisplay == null
               ? 'Utiliser cet affichage de soin'
               : 'Appliquer les variantes',
-          onPressed: valid
-              ? () => widget.onChanged(
-                  MapEntityHealingDisplayData(
-                    variantElementIds: _variants.cast<String>(),
-                  ),
-                )
-              : null,
+          onPressed: valid ? () => widget.onChanged(draft.value) : null,
         ),
         if (widget.entity.healingDisplay != null) ...[
           const SizedBox(height: 8),

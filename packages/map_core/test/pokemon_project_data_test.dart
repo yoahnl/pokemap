@@ -85,6 +85,26 @@ void main() {
       );
     });
 
+    test('round-trips an optional shiny overworld atlas', () {
+      final document = PokemonMediaFile.fromJson({
+        'schemaVersion': 2,
+        'speciesId': 'riolu',
+        'defaultFormId': 'base',
+        'variants': {
+          'base': {
+            'overworld': 'assets/riolu.png',
+            'overworldShiny': 'assets/riolu-shiny.png',
+          },
+        },
+      });
+      expect(document.variants['base']!.overworldShiny,
+          'assets/riolu-shiny.png');
+      final encoded = (document.toJson()['variants'] as Map)['base'] as Map;
+      expect(encoded['overworldShiny'], 'assets/riolu-shiny.png');
+      expect(PokemonMediaVariant.fromJson({}).toJson(),
+          isNot(contains('overworldShiny')));
+    });
+
     test('round-trips all schema v2 animated sprite variants', () {
       final paths = {
         'frontAnimated': 'assets/front.gif',

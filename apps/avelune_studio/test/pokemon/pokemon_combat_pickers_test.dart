@@ -1,7 +1,5 @@
 import 'package:avelune_studio/features/pokemon/domain/pokemon_workspace_models.dart';
-import 'package:avelune_studio/presentation/features/pokemon/pokemon_combat_species_picker.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
-import 'package:flutter/material.dart';
+import 'package:avelune_studio/features/pokemon/application/pokemon_combat_choices.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 PokemonSpeciesSummary _species(
@@ -62,29 +60,6 @@ final _index = PokemonWorkspaceIndex(
 );
 
 void main() {
-  Future<List<String?>> open(
-    WidgetTester tester,
-    Future<String?> Function(BuildContext context) choose,
-  ) async {
-    final chosen = <String?>[];
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: studioTheme(),
-        home: Scaffold(
-          body: Builder(
-            builder: (context) => TextButton(
-              onPressed: () async => chosen.add(await choose(context)),
-              child: const Text('Ouvrir'),
-            ),
-          ),
-        ),
-      ),
-    );
-    await tester.tap(find.text('Ouvrir'));
-    await tester.pumpAndSettle();
-    return chosen;
-  }
-
   test('species and moves describe themselves with useful details', () {
     expect(
       combatSpeciesDetails(_index.entries[1]),
@@ -100,57 +75,33 @@ void main() {
     );
   });
 
-  testWidgets('a species is searched by type and chosen with its details', (
-    tester,
-  ) async {
-    final chosen = await open(
-      tester,
-      (context) => chooseCombatSpecies(context, _index),
-    );
-    expect(find.text('2 sur 2'), findsOneWidget);
-    expect(find.text('MissingNo'), findsNothing);
-    await tester.enterText(
-      find.byKey(const ValueKey('combat-choice-search')),
-      'roche',
-    );
-    await tester.pump();
-    expect(find.text('1 sur 2'), findsOneWidget);
-    expect(find.text('n° 095 · Roche / Sol · Génération 1'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('combat-choice-onix')));
-    await tester.pumpAndSettle();
-    expect(chosen, ['onix']);
+  test('a species is searched by type with its details and disabled species are excluded', () {
+    final choices = combatSpeciesChoices(_index);
+    expect(choices, hasLength(2));
+    expect(choices.map((choice) => choice.id), isNot(contains('missingno')));
+    final matches = combatChoiceSearch(choices, 'roche');
+    expect(matches.single.id, 'onix');
+    expect(matches.single.details, 'n° 095 · Roche / Sol · Génération 1');
   });
 
-  testWidgets('a move already known is not offered again', (tester) async {
-    final chosen = await open(
-      tester,
-      (context) =>
-          chooseCombatMove(context, _index, exclude: const ['thunderbolt']),
-    );
-    expect(find.text('2 sur 2'), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey('combat-choice-thunderbolt')),
-      findsNothing,
-    );
-    await tester.enterText(
-      find.byKey(const ValueKey('combat-choice-search')),
-      'physique',
-    );
-    await tester.pump();
-    expect(find.text('Jet-Pierres'), findsOneWidget);
-    expect(find.text('Rugissement'), findsNothing);
-    await tester.tap(find.byKey(const ValueKey('combat-choice-rock-throw')));
-    await tester.pumpAndSettle();
-    expect(chosen, ['rock-throw']);
+  test('a move already known is not offered again and category search resolves its identity', () {
+    final choices = combatMoveChoices(_index, exclude: const ['thunderbolt']);
+    expect(choices, hasLength(2));
+    expect(choices.map((choice) => choice.id), isNot(contains('thunderbolt')));
+    expect(combatChoiceSearch(choices, 'physique').single.id, 'rock-throw');
+    expect(combatChoiceSearch(choices, 'SPÉCIALE'), isEmpty);
   });
 
-  testWidgets('cancelling a choice changes nothing', (tester) async {
-    final chosen = await open(
-      tester,
-      (context) => chooseCombatMove(context, _index),
-    );
-    await tester.tap(find.text('Annuler'));
-    await tester.pumpAndSettle();
-    expect(chosen, [null]);
+  test('building and filtering choices leave the source catalogue intact', () {
+    final entries = _index.moves.entries;
+    final species = _index.entries;
+    final selected = combatChoiceSearch(combatMoveChoices(_index), 'unknown');
+    expect(selected, isEmpty);
+    final choices = combatMoveChoices(_index)..clear();
+    expect(choices, isEmpty);
+    expect(_index.moves.entries, same(entries));
+    expect(_index.moves.entries, hasLength(3));
+    expect(_index.entries, same(species));
+    expect(_index.entries, hasLength(3));
   });
 }

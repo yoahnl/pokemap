@@ -1,15 +1,10 @@
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_entity_editing_commands.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_healing_display_draft.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_marker_inspector.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
-import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
-import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
-import '../support/map_selection_harness.dart';
 import '../support/map_workspace_fixture.dart';
 
 const _entity = MapEntity(
@@ -54,49 +49,30 @@ ProjectManifest _project() => workspaceProject.copyWith(
   ],
 );
 void main() {
-  testWidgets(
-    'Studio guides six native healing variants and preserves undo redo reopen',
-    (tester) async {
+  test(
+    'six native healing variants preserve undo redo and serialized reopen',
+    () {
       final original = workspaceMap('a').copyWith(entities: [_entity]);
+      final project = _project();
       final document = EditableMapDocument(
         MapWorkspaceDocument(map: original, revision: 'base', mapId: 'a'),
       );
-      final h = MapSelectionHarness(document, _project());
-      addTearDown(h.dispose);
-      await h.pump(tester);
-      await h.use(tester, StudioMapTool.select);
-      await h.tapCell(tester, 2, 2);
-      expect(
-        find.byKey(const ValueKey('healing-display-variant-0')),
-        findsOneWidget,
-      );
+      final draft = MapHealingDisplayDraft(original, project, _entity);
+      expect(draft.canConfigure, isTrue);
+      expect(draft.candidates, hasLength(6));
       for (var n = 1; n <= 6; n++) {
-        final picker = find.byKey(ValueKey('healing-display-variant-${n - 1}'));
-        await tester.ensureVisible(picker);
-        await tester.tap(picker);
-        await tester.pumpAndSettle();
+        draft.variants[n - 1] = 'balls-$n';
         if (n == 2) {
-          await tester.tap(find.text('Boules 1').last);
-          await tester.pumpAndSettle();
-          expect(document.current, original);
-          expect(
-            tester
-                .widget<StudioButton>(
-                  find.byKey(const ValueKey('healing-display-apply')),
-                )
-                .onPressed,
-            isNull,
-          );
-          await tester.tap(picker);
-          await tester.pumpAndSettle();
+          draft.variants[n - 1] = 'balls-1';
+          expect(draft.valid, isFalse);
+          expect(draft.value, isNull);
+          expect(document.current, same(original));
+          draft.variants[n - 1] = 'balls-$n';
         }
-        await tester.tap(find.text('Boules $n').last);
-        await tester.pumpAndSettle();
       }
-      final apply = find.byKey(const ValueKey('healing-display-apply'));
-      await tester.ensureVisible(apply);
-      await tester.tap(apply);
-      await tester.pumpAndSettle();
+      expect(draft.valid, isTrue);
+      final commands = MapEntityEditingCommands(document, project);
+      commands.setHealingDisplay(_entity.id, draft.value);
       final expected = MapEntityHealingDisplayData(
         variantElementIds: [for (var n = 1; n <= 6; n++) 'balls-$n'],
       );
@@ -105,33 +81,28 @@ void main() {
         document.current.entities.single.copyWith(healingDisplay: null),
         _entity,
       );
-      final saved = MapData.fromJson(document.current.toJson());
-      expect(saved.entities.single.healingDisplay, expected);
+      expect(
+        MapData.fromJson(document.current.toJson())
+            .entities
+            .single
+            .healingDisplay,
+        expected,
+      );
+      expect(document.undoCount, 1);
       document.restore(redo: false);
-      h.redraw();
-      await tester.pumpAndSettle();
       expect(document.current, original);
       document.restore(redo: true);
-      h.redraw();
-      await tester.pumpAndSettle();
       expect(document.current.entities.single.healingDisplay, expected);
-      final clear = find.byKey(const ValueKey('healing-display-clear'));
-      await tester.ensureVisible(clear);
-      await tester.tap(clear);
-      await tester.pumpAndSettle();
+      commands.setHealingDisplay(_entity.id, null);
       expect(document.current, original);
-      expect(tester.takeException(), isNull);
     },
   );
+
   for (final mode in ['blocking', 'wide', 'collision', 'visual', 'spatial']) {
-    testWidgets('Studio refuses healing display on $mode target', (
-      tester,
-    ) async {
+    test('healing authoring refuses $mode target', () {
       var entity = _entity;
       var map = workspaceMap('a');
-      if (mode == 'blocking') {
-        entity = entity.copyWith(blocksMovement: true);
-      }
+      if (mode == 'blocking') entity = entity.copyWith(blocksMovement: true);
       if (mode == 'wide') {
         entity = entity.copyWith(size: const GridSize(width: 2, height: 1));
       }
@@ -153,26 +124,63 @@ void main() {
         );
       }
       map = map.copyWith(entities: [entity]);
-      final document = EditableMapDocument(
-        MapWorkspaceDocument(map: map, revision: 'base', mapId: 'a'),
+      expect(
+        MapHealingDisplayDraft(map, _project(), entity).canConfigure,
+        isFalse,
       );
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: studioTheme(),
-          home: Scaffold(
-            body: MapMarkerInspector(
-              document: document,
-              project: _project(),
-              entity: entity,
-              onChanged: () {},
-              onDeleted: () {},
-            ),
-          ),
-        ),
-      );
-      expect(find.byType(StudioSelect), findsNothing);
-      expect(document.current, map);
-      expect(tester.takeException(), isNull);
+      expect(map.entities.single.healingDisplay, isNull);
     });
   }
+
+  test('healing candidates require six matching native geometries and unique sources', () {
+    final project = _project();
+    final map = workspaceMap('a').copyWith(entities: [_entity]);
+    final tooFew = project.copyWith(
+      elements: project.elements.take(5).toList(),
+    );
+    expect(MapHealingDisplayDraft(map, tooFew, _entity).candidates, isEmpty);
+    final duplicate = project.copyWith(
+      elements: [...project.elements, project.elements.first],
+    );
+    expect(
+      MapHealingDisplayDraft(
+        map,
+        duplicate,
+        _entity,
+      ).geometry(project.elements.first),
+      isNull,
+    );
+    final invalidFrames = project.elements.first.copyWith(
+      frames: [
+        const TilesetVisualFrame(source: TilesetSourceRect(x: 100, y: 100)),
+      ],
+    );
+    final invalid = project.copyWith(
+      elements: [invalidFrames, ...project.elements.skip(1)],
+    );
+    expect(MapHealingDisplayDraft(map, invalid, _entity).candidates, isEmpty);
+  });
+  test(
+    'catalogue refresh preserves choices and rejects removed native resources',
+    () {
+      final project = _project();
+      final map = workspaceMap('a').copyWith(entities: [_entity]);
+      final draft = MapHealingDisplayDraft(map, project, _entity);
+      for (var n = 1; n <= 6; n++) {
+        draft.variants[n - 1] = 'balls-$n';
+      }
+      expect(draft.valid, isTrue);
+      final choices = [...draft.variants];
+      draft.updateContext(
+        map,
+        project.copyWith(elements: project.elements.skip(1).toList()),
+      );
+      expect(draft.variants, choices);
+      expect(draft.valid, isFalse);
+      expect(draft.value, isNull);
+      draft.updateContext(map, project);
+      expect(draft.valid, isTrue);
+      expect(draft.value!.variantElementIds, choices);
+    },
+  );
 }

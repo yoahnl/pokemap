@@ -100,9 +100,11 @@ GameState runtimeBattleStateWithAvailableItems({
   required RuntimePsdkBattleSessionAdapter session,
   required GameState gameState,
   required ItemCatalogSnapshot itemCatalog,
+  RuntimeActiveBattleContext? context,
 }) {
   final events = session.resolvedItemEvents;
   var bag = gameState.bag;
+  final members = [...gameState.party.members];
   final receipts = <BattlePositionRef, ItemConsumptionReceipt>{};
   for (final event in events) {
     final definition = itemCatalog.definitionFor(event.itemId);
@@ -120,10 +122,17 @@ GameState runtimeBattleStateWithAvailableItems({
       throw StateError('Resolved battle item cannot be consumed from the bag.');
     }
     bag = result.bag;
+    final use = ItemCapabilityResolver(itemCatalog).resolveUse(itemId: event.itemId, context: ProjectItemUseContext.battle).use;
+    final loss = use?.friendshipLoss;
+    if (loss != null) {
+      final partyIndex = context == null || event.partyIndex == null ? null : _runtimePartyIndexForLineup(gameState: gameState, context: context, targetLineupIndex: event.partyIndex!);
+      if (partyIndex == null || partyIndex >= members.length) throw StateError('Resolved bitter medicine requires its party mapping.');
+      members[partyIndex] = members[partyIndex].copyWith(friendship: loss.apply(members[partyIndex].friendship));
+    }
     receipts[event.user] = result.consumptionReceipt!;
   }
   session.acknowledgeResolvedItemEvents(events);
-  return (state: gameState.copyWith(bag: bag), receipts: Map.unmodifiable(receipts));
+  return (state: gameState.copyWith(bag: bag, party: gameState.party.copyWith(members: members)), receipts: Map.unmodifiable(receipts));
 }
 
 RuntimePsdkBattleItemApplyResult? tryApplyRuntimePsdkBattleItemUse({
@@ -195,6 +204,7 @@ RuntimePsdkBattleItemApplyResult? tryApplyRuntimePsdkBattleItemUse({
     return null;
   }
   final runtimePartyIndex = _runtimePartyIndexForLineup(
+    gameState: gameState,
     context: context,
     targetLineupIndex: targetLineupIndex,
   );
@@ -311,10 +321,12 @@ RuntimePsdkBattleItemApplyResult? tryApplyRuntimePsdkBattleItemUse({
   );
   final committed = psdkSession.isDoubles
       ? commitRuntimeResolvedBattleItems(
-          session: psdkSession, gameState: gameState, itemCatalog: itemCatalog,
+          session: psdkSession, gameState: gameState, itemCatalog: itemCatalog, context: context,
         ) : null;
+  final members = [...projectedGameState.party.members];
+  members[runtimePartyIndex] = members[runtimePartyIndex].copyWith(friendship: itemUseResult.state.party.members[runtimePartyIndex].friendship);
   final withWriteBack = turn.timeline.events.isEmpty ? gameState : writePlayerBattleLineupBackToPartySlots(
-    gameState: committed?.state ?? projectedGameState.copyWith(bag: itemUseResult.state.bag),
+    gameState: committed?.state ?? projectedGameState.copyWith(bag: itemUseResult.state.bag, party: projectedGameState.party.copyWith(members: members)),
     context: context,
     battleState: psdkSession.createLegacyWriteBackState(),
   );
@@ -348,13 +360,11 @@ RuntimePsdkBattleItemApplyResult? tryApplyRuntimePsdkBattleItemUse({
 }
 
 int? _runtimePartyIndexForLineup({
+  required GameState gameState,
   required RuntimeActiveBattleContext context,
   required int targetLineupIndex,
 }) {
-  final mapping = context.playerPartySlotIndicesByLineupIndex;
-  if (mapping.isEmpty) {
-    return targetLineupIndex == 0 ? context.playerPartyIndex : null;
-  }
+  final mapping = resolvePlayerBattleLineupPartyIndices(gameState: gameState, context: context);
   if (targetLineupIndex < 0 || targetLineupIndex >= mapping.length) {
     return null;
   }
@@ -383,6 +393,7 @@ RuntimeBattleItemApplyResult? _tryApplyRuntimeBattleHpHealItemUse({
   }
 
   final runtimePartyIndex = _runtimePartyIndexForLineup(
+    gameState: gameState,
     context: context,
     targetLineupIndex: targetLineupIndex,
   );
@@ -532,20 +543,20 @@ PsdkBattleStatusCureItemEffect? _statusCureEffectFor({
   required PsdkBattleCombatant target,
 }) {
   final status = target.majorStatus;
-  if (status == null || target.isFainted) {
+  if (target.isFainted) {
     return null;
   }
   if (effect.mode == ProjectItemStatusCureMode.all) {
-    return const PsdkBattleStatusCureItemEffect.any();
+    return status == null && !(effect.curesConfusion && target.effects.contains(PsdkBattleEffectIds.confusion)) ? null : PsdkBattleStatusCureItemEffect.any(curesConfusion: effect.curesConfusion);
   }
   final statuses = effect.statusIds
       .map(_psdkStatusForGameplayItemStatus)
       .whereType<PsdkBattleMajorStatus>()
       .toSet();
-  if (!statuses.contains(status)) {
+  if (!statuses.contains(status) && !(effect.curesConfusion && target.effects.contains(PsdkBattleEffectIds.confusion))) {
     return null;
   }
-  return PsdkBattleStatusCureItemEffect.only(statuses);
+  return PsdkBattleStatusCureItemEffect.only(statuses, curesConfusion: effect.curesConfusion);
 }
 
 bool _isSupportedBattleMedicineEffect(ProjectItemEffectDefinition effect) {

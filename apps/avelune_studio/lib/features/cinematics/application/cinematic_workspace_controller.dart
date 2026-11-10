@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:map_core/map_core_domain.dart';
+
 import '../../narrative/application/narrative_workspace_controller.dart';
 import '../domain/cinematic_port.dart';
 import 'cinematic_edit_session.dart';
+import 'cinematic_map_model.dart';
 import 'cinematic_preview_transport.dart';
 
 export 'cinematic_edit_session.dart';
@@ -143,6 +147,88 @@ class CinematicWorkspaceController {
     changed();
   }
 
+  CinematicMapModel? previewModel;
+  MapData? _previewMap;
+  String? previewMapId, previewMapProblem;
+  int _mapGeneration = 0;
+  Object? _mediaIdentity;
+
+  void prepareMapPreview({
+    required Future<MapData> Function(String mapId) load,
+    CinematicMediaPlaybackPort Function(ProjectManifest)? media,
+  }) {
+    final asset = _active?.asset;
+    if (_closed || asset == null) return;
+    if (previewMapId != asset.mapId) {
+      previewMapId = asset.mapId;
+      _previewMap = null;
+      previewModel = null;
+      previewMapProblem = null;
+      final generation = ++_mapGeneration, id = asset.mapId;
+      if (id != null) {
+        unawaited(
+          load(id)
+              .then((map) {
+                if (_closed ||
+                    generation != _mapGeneration ||
+                    previewMapId != id) {
+                  return;
+                }
+                _previewMap = map;
+                changed();
+              })
+              .catchError((Object failure) {
+                if (_closed || generation != _mapGeneration) return;
+                previewMapProblem = failure.toString();
+                changed();
+              }),
+        );
+      }
+    }
+    final open = narrative.workspace.documents[asset.mapId]?.current;
+    if (open != null) _previewMap = open;
+    final map = _previewMap;
+    if (map != null &&
+        (previewModel?.asset != asset ||
+            previewModel?.project != project ||
+            previewModel?.map != map)) {
+      previewModel = CinematicMapModel(asset, project, map);
+    }
+    prepareMapPlan(media: media);
+  }
+
+  void prepareMapPlan({
+    CinematicMediaPlaybackPort Function(ProjectManifest)? media,
+  }) {
+    if (_closed) return;
+    final identity = (activeId, project);
+    if (media != null && _mediaIdentity != identity) {
+      _mediaIdentity = identity;
+      transport.configureMedia(media(project));
+    }
+    final current = previewModel;
+    preparePreview(
+      actorDisplay: current?.actors,
+      resolvedTargets: current?.targets ?? const {},
+      stageBounds: current?.bounds,
+    );
+  }
+
+  void retryMapPreview() {
+    previewMapId = null;
+    _mapGeneration++;
+  }
+
+  void suspendMapPreview() {
+    _mapGeneration++;
+    previewMapId = null;
+    _previewMap = null;
+    previewModel = null;
+    previewMapProblem = null;
+    _mediaIdentity = null;
+    transport.pause();
+  }
+
   void preparePreview({
     CinematicActorDisplayPreviewModel? actorDisplay,
     Map<String, CinematicPreviewPlaybackPoint> resolvedTargets = const {},
@@ -208,6 +294,7 @@ class CinematicWorkspaceController {
 
   void dispose() {
     _disposed = true;
+    _mapGeneration++;
     _generation++;
     narrative.workspace.removeListener(reconcileCatalog);
     narrative.cinematicAccessProblem = null;

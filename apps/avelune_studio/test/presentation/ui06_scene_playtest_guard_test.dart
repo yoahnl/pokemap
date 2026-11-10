@@ -2,8 +2,7 @@ import 'package:avelune_studio/features/map_workspace/application/map_workspace_
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/features/scenes/application/scene_workspace_controller.dart';
 import 'package:avelune_studio/features/scenes/data/local_scene_adapter.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/workspace_actions.dart';
-import 'package:flutter/material.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/workspace_workflow.dart';
 import 'package:flutter_test/flutter_test.dart';
 import '../support/ui06_scene_fixture.dart';
 import '../support/delayed_map_save_port.dart';
@@ -33,29 +32,19 @@ void main() {
       maps.active!.commit(
         maps.active!.current.copyWith(name: 'Carte modifiée'),
       );
-      late WorkspaceActions actions;
       var launches = 0;
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Builder(
-            builder: (context) {
-              actions = WorkspaceActions(
-                controller: maps,
-                context: () => context,
-                mounted: () => true,
-                changed: () {},
-                resources: () => null,
-                narrative: () => null,
-                scenes: () => scenes,
-                runtimeBuilder: (_, _, _) {
-                  launches++;
-                  return const SizedBox();
-                },
-              );
-              return const Scaffold(body: Text('Éditeur'));
-            },
-          ),
-        ),
+      final actions = WorkspaceWorkflow(
+        controller: maps,
+        isActive: () => true,
+        changed: () {},
+        resources: () => null,
+        narrative: () => null,
+        scenes: () => scenes,
+        confirmClose: () async => WorkspaceCloseChoice.cancel,
+        flushFocus: () {},
+        launchMap: (_, _) async {
+          launches++;
+        },
       );
       late Future<void> running;
       var completed = false;
@@ -98,7 +87,6 @@ void main() {
       ))!;
       expect(fresh.scenes.single, savedSnapshot);
       expect(scene.current, isNot(savedSnapshot));
-      await tester.pumpWidget(const SizedBox());
     },
   );
 }

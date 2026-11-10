@@ -82,23 +82,21 @@ extension ResourceWorkspaceActions on ResourceWorkspacePane {
     BuildContext context, {
     ResourceImportIntent intent = ResourceImportIntent.source,
   }) async {
-    try {
-      final image = await picker();
-      if (image == null || !context.mounted) return;
-      final project = navigation.workspace.project!;
-      final settings = project.settings;
-      final request = await confirmImageImport(
+    final workflow = ResourceWorkspaceImportWorkflow(
+      navigation: navigation,
+      isActive: () => context.mounted,
+    );
+    await workflow.importImage(
+      picker: picker,
+      intent: intent,
+      confirm: (image, project) => confirmImageImport(
         context,
         image,
-        settings.tileWidth,
-        settings.tileHeight,
+        project.settings.tileWidth,
+        project.settings.tileHeight,
         existingNames: {for (final tileset in project.tilesets) tileset.name},
         intent: intent,
-      );
-      if (request != null) await navigation.import(request, intent: intent);
-    } catch (e) {
-      navigation.error = e.toString();
-      navigation.showLibrary();
-    }
+      ),
+    );
   }
 }

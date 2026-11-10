@@ -20,6 +20,8 @@ dev_dependencies:
   image: ^4.0.9
   flutter_test:
     sdk: flutter
+  integration_test:
+    sdk: flutter
   flutter_lints: ^6.0.0
 
 flutter:

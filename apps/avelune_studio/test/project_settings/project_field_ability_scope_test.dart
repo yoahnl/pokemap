@@ -3,9 +3,7 @@ import 'package:avelune_studio/features/project_cs/domain/project_cs_port.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/features/project_surf/application/project_surf_controller.dart';
 import 'package:avelune_studio/features/project_surf/domain/project_surf_port.dart';
-import 'package:avelune_studio/presentation/features/project_settings/project_cs_panel.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
-import 'package:flutter/material.dart';
+import 'package:avelune_studio/features/project_cs/application/field_ability_support.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
 
@@ -33,84 +31,33 @@ void main() {
     surf.dispose();
   });
 
-  Future<void> pump(WidgetTester tester) async {
-    tester.view.physicalSize = const Size(1400, 2600);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: studioTheme(),
-        home: Scaffold(
-          body: SingleChildScrollView(
-            child: ProjectCsPanel(
-              owner: abilities,
-              surf: surf,
-              settings: ProjectSettings(dimension: ProjectDimension.threeD),
-              showActions: false,
-            ),
-          ),
-        ),
-      ),
+  test('the eleven abilities report real support and activation-only entries stay so', () {
+    final entries = ProjectFieldAbilityRegistry.entries;
+    expect(entries, hasLength(11));
+    expect(entries.map((entry) => entry.id).toSet(), hasLength(11));
+    for (final id in ['rock_climb', 'defog']) {
+      expect(fieldAbilitySupport(entries.singleWhere((entry) => entry.id == id),
+        ProjectDimension.threeD), 'Activation seule');
+    }
+    expect(fieldAbilitySupport(entries.singleWhere((entry) => entry.id == 'surf'),
+      ProjectDimension.threeD), 'Mécanique disponible');
+    expect(FieldAbility.values, hasLength(9));
+  });
+
+  test('enabling Surf preserves its separate progression condition', () async {
+    port.surf = ProjectSurfSettings(
+      enabled: false,
+      accessMode: ProjectSurfAccessMode.condition,
+      condition: _badge,
     );
-    await tester.pumpAndSettle();
-  }
-
-  testWidgets(
-    'the eleven abilities show their real support and activation-only ones stay so',
-    (tester) async {
-      await pump(tester);
-      for (final entry in ProjectFieldAbilityRegistry.entries) {
-        expect(find.byKey(ValueKey('cs-${entry.id}')), findsOneWidget);
-        expect(find.byKey(ValueKey('cs-support-${entry.id}')), findsOneWidget);
-      }
-      expect(
-        tester
-            .widget<Text>(find.byKey(const ValueKey('cs-support-rock_climb')))
-            .data,
-        'Activation seule',
-      );
-      expect(
-        tester
-            .widget<Text>(find.byKey(const ValueKey('cs-support-defog')))
-            .data,
-        'Activation seule',
-      );
-      expect(
-        tester.widget<Text>(find.byKey(const ValueKey('cs-support-surf'))).data,
-        'Mécanique disponible',
-      );
-      expect(FieldAbility.values, hasLength(9));
-    },
-  );
-
-  testWidgets(
-    'enabling Surf keeps unlocking a separate progression condition',
-    (tester) async {
-      port.surf = ProjectSurfSettings(
-        enabled: false,
-        accessMode: ProjectSurfAccessMode.condition,
-        condition: _badge,
-      );
-      await pump(tester);
-      await tester.tap(find.byKey(const ValueKey('cs-surf')));
-      await tester.pumpAndSettle();
-      expect(surf.preview.value.enabled, isTrue);
-      expect(surf.preview.value.accessMode, ProjectSurfAccessMode.condition);
-      expect(surf.preview.value.condition, isNotNull);
-      final summary = find.byKey(const ValueKey('cs-summary-surf'));
-      expect(summary, findsOneWidget);
-      expect(find.textContaining('Autorisée dans ce jeu'), findsOneWidget);
-      expect(
-        find.textContaining('Débloquée pour le joueur : selon une condition'),
-        findsOneWidget,
-      );
-      expect(
-        find.textContaining('Pokémon de l’équipe doit connaître Surf'),
-        findsOneWidget,
-      );
-    },
-  );
+    await abilities.open();
+    await surf.open();
+    surf.change(enabled: true);
+    expect(surf.preview.value.enabled, isTrue);
+    expect(surf.preview.value.accessMode, ProjectSurfAccessMode.condition);
+    expect(surf.preview.value.condition, _badge);
+    expect(port.writes, 0);
+  });
 
   test(
     'disabling an ability keeps its settings and progression references',

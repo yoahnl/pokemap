@@ -1,15 +1,12 @@
-
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 
 import 'package:avelune_studio/features/map_workspace/application/map_border_drawing_draft.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_border_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_border_tool_panel.dart';
 import 'package:avelune_studio/platform/rendering/viewports/map_editing_viewport_2d.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
 import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 import 'package:avelune_studio/platform/rendering/viewports/spatial_map_editing_viewport.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -121,7 +118,7 @@ void main() {
     '2D selected local eraser previews fragments then release commits and Escape cancels',
     (tester) async {
       final host = await _pump(tester, false);
-      await tester.tap(find.byKey(const ValueKey('border-stroke-erase-mode')));
+      _armErase(host);
       await tester.pump();
       final initial = host.document.current;
       final point = _at(tester, host.view, 5, 5);
@@ -159,7 +156,7 @@ void main() {
     '2D drag erases sampled cells and rejects changed zoom or selection',
     (tester) async {
       final host = await _pump(tester, false);
-      await tester.tap(find.byKey(const ValueKey('border-stroke-erase-mode')));
+      _armErase(host);
       await tester.pump();
       Offset at(int x) => _at(tester, host.view, x, 5);
       final drag = await tester.startGesture(
@@ -210,7 +207,7 @@ void main() {
     '3D local erase shows native preview and preserves foreign models with one undo',
     (tester) async {
       final host = await _pump(tester, true);
-      await tester.tap(find.byKey(const ValueKey('border-stroke-erase-mode')));
+      _armErase(host);
       await tester.pump();
       SpatialSceneView scene() => tester.widget(find.byType(SpatialSceneView));
       final before = host.document.current;
@@ -248,7 +245,7 @@ void main() {
 
   testWidgets('3D erase rejects camera and tool changes', (tester) async {
     final host = await _pump(tester, true);
-    await tester.tap(find.byKey(const ValueKey('border-stroke-erase-mode')));
+    _armErase(host);
     await tester.pump();
     SpatialSceneView scene() => tester.widget(find.byType(SpatialSceneView));
     final before = host.document.current;
@@ -279,7 +276,7 @@ void main() {
     'complete erasure returns to draw mode and never silently selects another trace',
     (tester) async {
       final host = await _pump(tester, true);
-      await tester.tap(find.byKey(const ValueKey('border-stroke-erase-mode')));
+      _armErase(host);
       await tester.pump();
       SpatialSceneView scene() => tester.widget(find.byType(SpatialSceneView));
       expect(scene().onDragStart!(2, 5, null), true);
@@ -316,7 +313,7 @@ void main() {
         true,
         offset: Model3dVector3(x: .5, y: .25, z: .5),
       );
-      await tester.tap(find.byKey(const ValueKey('border-stroke-erase-mode')));
+      _armErase(host);
       await tester.pump();
       final scene = tester.widget<SpatialSceneView>(
         find.byType(SpatialSceneView),
@@ -340,9 +337,7 @@ void main() {
       '${spatial ? '3D' : '2D'} hidden selection requires an explicit visible trace choice',
       (tester) async {
         final host = await _pump(tester, spatial);
-        await tester.tap(
-          find.byKey(const ValueKey('border-stroke-erase-mode')),
-        );
+        _armErase(host);
         await tester.pump();
         final original = host.document.current;
         final first = original.layers.whereType<BorderLayer>().single;
@@ -374,15 +369,24 @@ void main() {
         host.document.current = map;
         host.refresh();
         await tester.pump();
-        final picker = tester
-            .widget<DropdownButton<({String layerId, String featureId})>>(
-              find.byKey(const ValueKey('border-feature-picker')),
-            );
-        expect(picker.value, isNull);
-        expect(find.text('Choisir un tracé visible'), findsOneWidget);
-        expect(find.textContaining('n’est plus visible'), findsOneWidget);
+        final commands = MapBorderEditingCommands(host.document, host.project);
+        final visible = commands.visibleFeatures;
+        expect(visible, hasLength(1));
+        expect(visible.single.layer.id, 'other-border');
+        expect(
+          visible.any(
+            (entry) =>
+                entry.layer.id == host.view.borderFeature?.layerId &&
+                entry.feature.id == host.view.borderFeature?.featureId,
+          ),
+          isFalse,
+        );
         final before = host.document.current;
-        picker.onChanged!((layerId: 'other-border', featureId: 'other'));
+        host.view.selectBorderFeature((
+          layerId: visible.single.layer.id,
+          featureId: visible.single.feature.id,
+        ));
+        host.refresh();
         await tester.pump();
         expect(host.view.borderFeature, (
           layerId: 'other-border',
@@ -450,7 +454,7 @@ void main() {
 BorderFeature _feature(MapData map) =>
     map.layers.whereType<BorderLayer>().single.content.features.single;
 
-Offset _at(WidgetTester tester, MapWorkspaceViewState view, int x, int y) {
+Offset _at(WidgetTester tester, MapEditingViewportSession view, int x, int y) {
   final canvas = tester.widget<MapEditingViewport2D>(
     find.byType(MapEditingViewport2D),
   );
@@ -481,22 +485,38 @@ void _expectSplit(MapData map) {
   expect(feature.materialization, isNotNull);
 }
 
-Future<
-  ({
-    EditableMapDocument document,
-    MapWorkspaceViewState view,
-    _Visuals visuals,
-    VoidCallback refresh,
-  })
->
-_pump(WidgetTester tester, bool spatial, {Model3dVector3? offset}) async {
+typedef _EraseHost = ({
+  EditableMapDocument document,
+  MapEditingViewportSession view,
+  ProjectManifest project,
+  _Visuals visuals,
+  VoidCallback refresh,
+});
+
+void _armErase(_EraseHost host) {
+  final feature = MapBorderEditingCommands(
+    host.document,
+    host.project,
+  ).visibleFeatures.first;
+  host.view.prepareBorderErase((
+    layerId: feature.layer.id,
+    featureId: feature.feature.id,
+  ));
+  host.refresh();
+}
+
+Future<_EraseHost> _pump(
+  WidgetTester tester,
+  bool spatial, {
+  Model3dVector3? offset,
+}) async {
   tester.view.physicalSize = const Size(1440, 1000);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
   final fixture = _fixture(spatial, offset: offset);
   final document = borderDocument(fixture.map);
-  final view = MapWorkspaceViewState()
+  final view = MapEditingViewportSession()
     ..tool = StudioMapTool.border
     ..borderBlueprintId = spatial ? 'fence' : 'muret';
   final controller = MapWorkspaceController(
@@ -509,20 +529,12 @@ _pump(WidgetTester tester, bool spatial, {Model3dVector3? offset}) async {
   late VoidCallback refresh;
   await tester.pumpWidget(
     MaterialApp(
-      theme: studioTheme(),
       home: Scaffold(
         body: StatefulBuilder(
           builder: (context, setState) {
             refresh = () => setState(() {});
             return Column(
               children: [
-                MapBorderToolPanel(
-                  document: document,
-                  project: fixture.project,
-                  view: view,
-                  onChanged: refresh,
-                  onCreateModel: () {},
-                ),
                 Expanded(
                   child: spatial
                       ? SpatialMapEditingViewport(
@@ -550,7 +562,13 @@ _pump(WidgetTester tester, bool spatial, {Model3dVector3? offset}) async {
     ),
   );
   await tester.pump();
-  return (document: document, view: view, visuals: visuals, refresh: refresh);
+  return (
+    document: document,
+    view: view,
+    project: fixture.project,
+    visuals: visuals,
+    refresh: refresh,
+  );
 }
 
 class _Visuals extends WorkspaceTestVisuals implements SpatialWorkspaceVisuals {

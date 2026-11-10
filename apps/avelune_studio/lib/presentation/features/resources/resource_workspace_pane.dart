@@ -6,6 +6,7 @@ import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button
 import 'package:avelune_studio/presentation/shared/widgets/feedback/studio_notice.dart';
 
 import 'package:avelune_studio/features/resources/coordination/resource_navigation.dart';
+import '../../../features/resources/coordination/resource_workspace_import_workflow.dart';
 
 import 'model_resource_library.dart';
 import 'resource_library_screen.dart';

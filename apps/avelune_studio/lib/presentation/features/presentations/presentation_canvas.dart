@@ -2,14 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:map_core/map_core_domain.dart';
 import 'package:map_player_ui/presentation_frame_geometry.dart';
+
 import '../../../features/presentations/application/presentation_preview_transport.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
 import '../../theme/studio_tokens.dart';
-import 'presentation_workspace_visuals.dart';
+
+import 'package:avelune_studio/platform/rendering/contracts/presentation_workspace_visuals.dart';
+
 import 'presentation_view_state.dart';
 import 'presentation_transport_listenable.dart';
-import 'presentation_pose_projection.dart';
-import 'presentation_gesture_projection.dart';
+import '../../../features/presentations/application/presentation_pose_projection.dart';
+
+import 'package:avelune_studio/features/presentations/application/presentation_gesture_projection.dart';
 
 part 'presentation_canvas_gestures.dart';
 

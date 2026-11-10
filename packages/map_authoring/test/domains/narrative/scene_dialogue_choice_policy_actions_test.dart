@@ -87,7 +87,11 @@ void main() {
       final catalog = await command('describe', {});
       expect(jsonEncode(catalog.toJson()), contains(_actionId));
       final parity = AuthoringFullParityCatalog.canonical().requireMutationAction(_actionId);
-      expect(parity.endToEndEvidence.keys.toSet(), AuthoringTransport.values.toSet());
+      expect(parity.endToEndEvidence.keys.toSet(), {
+        AuthoringTransport.directApi,
+        AuthoringTransport.cli,
+        AuthoringTransport.mcp,
+      });
       final request = await fixture.request(_policy);
       final before = await fixture.projectFile.readAsBytes();
       final plan = jsonl

@@ -326,10 +326,13 @@ final class JsonlWorker {
         requestId,
         code: AuthoringErrorCode.validationFailed,
         domainCode: error.code,
-        message: error.message,
-        details: <String, Object?>{
+        message: _safeNarrativeText(
+          error.message,
+          fallback: 'The export operation was rejected safely.',
+        ),
+        details: _safeDetails(<String, Object?>{
           if (error.path != null) 'path': error.path,
-        },
+        }),
       );
     } on ProjectSnapshotException catch (error) {
       result = _failure(
@@ -2357,11 +2360,23 @@ Map<String, Object?> _safeDetails(Map<String, Object?> details) {
   return redacted is Map<String, Object?> ? redacted : const {};
 }
 
-String _safeNarrativeText(String value) {
+String _safeNarrativeText(
+  String value, {
+  String fallback = 'The narrative operation was rejected safely.',
+}) {
   if (_containsNarrativeTrace(value)) {
-    return 'The narrative operation was rejected safely.';
+    return fallback;
   }
-  return const AuthoringOutputRedactor().redact(value)! as String;
+  final redacted = const AuthoringOutputRedactor().redact(value)! as String;
+  try {
+    return AuthoringError(
+      code: AuthoringErrorCode.validationFailed,
+      message: redacted,
+      retryable: false,
+    ).message;
+  } on ArgumentError {
+    return fallback;
+  }
 }
 
 bool _containsNarrativeTrace(String value) =>

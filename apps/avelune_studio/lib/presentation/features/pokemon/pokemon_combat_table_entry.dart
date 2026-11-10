@@ -123,24 +123,10 @@ Widget _buildCombatTableEntry(
 List<ProjectEncounterEntry> _combatTableEntries(
   ProjectEncounterTable table,
   String? variantId,
-) => variantId == null
-    ? table.entries
-    : table.variants.singleWhere((variant) => variant.id == variantId).entries;
+) => encounterTableEntries(table, variantId);
 
 void _changeCombatTableEntries(
   PokemonCombatController combat,
   String? variantId,
   List<ProjectEncounterEntry> Function(List<ProjectEncounterEntry>) change,
-) => combat.editTable(
-  (table) => variantId == null
-      ? table.copyWith(entries: change(table.entries))
-      : table.copyWith(
-          variants: [
-            for (final variant in table.variants)
-              if (variant.id == variantId)
-                variant.copyWith(entries: change(variant.entries))
-              else
-                variant,
-          ],
-        ),
-);
+) => combat.editEncounterEntries(variantId, change);

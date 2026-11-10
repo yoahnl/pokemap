@@ -11,6 +11,22 @@ class PokemonCaptureSpritePickerController {
   bool choosing = false;
   bool _disposed = false;
 
+  void remove() {
+    if (_disposed ||
+        !isActive() ||
+        choosing ||
+        commerce.importing ||
+        commerce.saving ||
+        commerce.item?.capture == null) {
+      return;
+    }
+    commerce.editItem(
+      (item) => item.copyWith(
+        capture: item.capture!.copyWith(animationSpritePath: null),
+      ),
+    );
+  }
+
   Future<bool> choose(Future<String?> Function() picker) async {
     if (_disposed ||
         !isActive() ||

@@ -120,8 +120,8 @@ void main() {
     await root.delete(recursive: true);
   });
 
-  for (final failSave in [false, true]) {
-    test('contextual rope secret is durable without debit or transfer saveFailure=$failSave', () async {
+  for (final (failSave, walkToWall) in [(false, false), (true, false), (false, true), (true, true)]) {
+    test('contextual rope secret is durable without debit or transfer saveFailure=$failSave walkToWall=$walkToWall', () async {
       await runtime.dispose();
       final scene = SceneAsset(id: 'secret', name: 'Secret', graph: SceneGraph(startNodeId: 'start', nodes: [
         SceneNode(id: 'start', kind: SceneNodeKind.start),
@@ -154,8 +154,8 @@ void main() {
       await File('${root.path}/project.json').writeAsString(jsonEncode(manifest.toJson()));
       await Directory('${root.path}/maps').create();
       await File('${root.path}/maps/field.json').writeAsString(jsonEncode(bundle.map.toJson()));
-      final initial = descriptor().initialGameState!.copyWith(currentMapId: alphaMapId, playerPosition: const GridPos(x: 6, y: 3),
-        playerSpatialPosition: PlayerSpatialPosition(x: 6.5, z: 3.5), playerFacing: EntityFacing.north,
+      final initial = descriptor().initialGameState!.copyWith(currentMapId: alphaMapId, playerPosition: GridPos(x: 6, y: walkToWall ? 4 : 3),
+        playerSpatialPosition: PlayerSpatialPosition(x: 6.5, z: walkToWall ? 4.5 : 3.5), playerFacing: EntityFacing.north,
         bag: const Bag(entries: [BagEntry(itemId: 'rope', quantity: 2)]));
       var attempts = 0;
       final saved = <GameState>[];
@@ -170,6 +170,17 @@ void main() {
       await runtime.load((_) {});
       await runtime.gameplayReady;
       expect(runtime.session!.entityIsPresent!(alphaMapId, blocker), isTrue);
+      if (walkToWall) {
+        runtime.handleInput(const RuntimeInputEvent.press(RuntimeInputControl.up));
+        for (var i = 0; i < 20; i++) {
+          runtime.session!.frame(1 / 60);
+          runtime.session!.frames(1 / 60);
+          await Future<void>.delayed(Duration.zero);
+        }
+        runtime.handleInput(const RuntimeInputEvent.release(RuntimeInputControl.up));
+      }
+      final beforeUse = runtime.gameStateSnapshot;
+      expect(beforeUse.playerPosition, const GridPos(x: 6, y: 3));
       await runtime.pause();
       final menu = await runtime.readCompanionMenuData();
       final bag = menu.pauseDetails[RuntimePlayerPauseSection.bag]!;
@@ -182,7 +193,9 @@ void main() {
       for (var i = 0; i < 300 && runtime.session!.movement.paused; i++) { await Future<void>.delayed(const Duration(milliseconds: 10)); }
       expect(attempts, 1);
       expect(runtime.gameStateSnapshot.currentMapId, alphaMapId);
-      expect(runtime.gameStateSnapshot.playerPosition, initial.playerPosition);
+      expect(runtime.gameStateSnapshot.playerPosition, beforeUse.playerPosition);
+      expect(runtime.gameStateSnapshot.playerSpatialPosition, beforeUse.playerSpatialPosition);
+      expect(runtime.gameStateSnapshot.playerFacing, beforeUse.playerFacing);
       expect(runtime.gameStateSnapshot.bag, initial.bag);
       expect(runtime.session!.character.id, failSave ? 'hero' : 'costume');
       expect(runtime.session!.entityIsPresent!(alphaMapId, blocker), failSave);

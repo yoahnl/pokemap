@@ -1,8 +1,12 @@
+import '../../../features/map_workspace/application/map_tile_choices.dart';
+
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
+
 import '../resources/atlas_selection_view.dart';
 import '../../shared/widgets/layout/studio_palette_card.dart';
 import 'map_workspace_view_state.dart';
+
 import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 
 class MapTilePalette extends StatelessWidget {
@@ -23,11 +27,7 @@ class MapTilePalette extends StatelessWidget {
   final VoidCallback onAtlasChanged;
 
   void pick(TileLayerPaletteEntry tile) {
-    view.tile = tile;
-    view.brush = null;
-    view.terrain = null;
-    view.character = null;
-    view.tool = StudioMapTool.paint;
+    view.selectTile(tile);
     onChanged();
   }
 
@@ -36,24 +36,17 @@ class MapTilePalette extends StatelessWidget {
     if (sources.isEmpty) {
       return const Text('Aucun atlas ne correspond à la recherche.');
     }
-    final atlas =
-        sources.where((s) => s.id == view.paletteAtlasId).firstOrNull ??
-        sources.where((s) => s.id == view.tile?.tilesetId).firstOrNull ??
-        sources
-            .where((s) => knownTiles.any((tile) => tile.tilesetId == s.id))
-            .firstOrNull ??
-        sources.first;
+    final atlas = mapPaletteAtlas(
+      sources,
+      atlasId: view.paletteAtlasId,
+      selected: view.tile,
+      knownTiles: knownTiles,
+    )!;
     final source = atlas.source;
     final selected = view.tile?.tilesetId == atlas.id
         ? view.tile!.localTileId
         : 0;
-    final ids = source is ProjectImageCollectionTilesetSource
-        ? source.tileDefinitions.map((t) => t.tileId).toList()
-        : knownTiles
-              .where((t) => t.tilesetId == atlas.id)
-              .map((t) => t.localTileId)
-              .toSet()
-              .toList();
+    final ids = mapPaletteAtlasTileIds(atlas, knownTiles);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -111,12 +104,8 @@ class MapTilePalette extends StatelessWidget {
                         image: (visuals as ResourceWorkspaceVisuals)
                             .atlasPreview(atlas.id),
                         singleCell: true,
-                        onSelected: (r) => pick(
-                          TileLayerPaletteEntry(
-                            tilesetId: atlas.id,
-                            localTileId: r.y * source.columns + r.x,
-                          ),
-                        ),
+                        onSelected: (r) =>
+                            pick(mapPaletteAtlasSelection(atlas.id, source, r)),
                       )
                     : Column(
                         children: [

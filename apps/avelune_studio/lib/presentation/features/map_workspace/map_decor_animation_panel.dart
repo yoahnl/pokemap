@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/map_workspace/application/editable_map_document.dart';
+import '../../../features/map_workspace/application/map_decor_animation_commands.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
 import '../../shared/widgets/inputs/studio_choice.dart';
 import '../../shared/widgets/inputs/studio_commit_field.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/layout/studio_asset_preview.dart';
+
 import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 
 class MapDecorAnimationPanel extends StatefulWidget {
@@ -32,48 +34,22 @@ class _MapDecorAnimationPanelState extends State<MapDecorAnimationPanel> {
   MapPlacedElementTriggerType _trigger = MapPlacedElementTriggerType.onAction;
   String _effect = 'once';
 
-  void _updateAnimation(MapPlacedElementAnimation animation) {
-    final selected = widget.document.selected;
-    if (selected == null) return;
-    widget.document.commit(
-      setMapPlacedElementAnimation(
-        widget.document.current,
-        instanceId: selected.id,
-        animation: animation,
-      ),
-    );
-    widget.onChanged();
-  }
+  MapDecorAnimationCommands get commands =>
+      MapDecorAnimationCommands(widget.document, widget.project);
 
-  void _updateBehavior(MapData Function(MapData) update) {
-    widget.document.commit(update(widget.document.current));
-    widget.onChanged();
+  void _updateAnimation(MapPlacedElementAnimation animation) {
+    if (commands.animation(animation)) widget.onChanged();
   }
 
   @override
   Widget build(BuildContext context) {
     final selected = widget.document.selected;
     if (selected == null) return const SizedBox();
-    final definition = widget.project.elements
-        .where((entry) => entry.id == selected.elementId)
-        .firstOrNull;
+    final definition = commands.definition;
     final frames = definition?.frames.length ?? 0;
     final animation = selected.animation ?? const MapPlacedElementAnimation();
-    final durations = normalizeElementFrameDurationsMs(
-      definition?.frames.map((frame) => frame.durationMs).toList() ?? const [],
-    );
-    final idleFrame = resolvePlacedElementAnimationFrameIndex(
-      frameDurationsMs: durations,
-      elapsedMs: 0,
-      animation: animation.copyWith(autoplay: false),
-      deterministicSeed: stableHash32(selected.id),
-    );
-    final behaviors = selected.behaviors.indexed.where(
-      (entry) =>
-          entry.$2.effect.type ==
-              MapPlacedElementEffectType.setAnimationEnabled ||
-          entry.$2.effect.type == MapPlacedElementEffectType.playAnimationOnce,
-    );
+    final idleFrame = commands.idleFrame;
+    final behaviors = commands.behaviors;
     final text = Theme.of(context).textTheme;
     return ListView(
       padding: const EdgeInsets.all(12),
@@ -148,21 +124,7 @@ class _MapDecorAnimationPanelState extends State<MapDecorAnimationPanel> {
                 '$index': 'Image ${index + 1}',
             },
             onChanged: (value) {
-              final index = int.parse(value);
-              final offset = durations
-                  .take(index)
-                  .fold<int>(0, (sum, duration) => sum + duration);
-              _updateAnimation(
-                animation.copyWith(
-                  enabled: true,
-                  mode: animation.mode == MapPlacedElementAnimationMode.none
-                      ? MapPlacedElementAnimationMode.loop
-                      : animation.mode,
-                  autoplay: false,
-                  randomStart: false,
-                  startOffsetMs: offset.toDouble(),
-                ),
-              );
+              if (commands.idleImage(int.parse(value))) widget.onChanged();
             },
           ),
           const SizedBox(height: 6),
@@ -188,10 +150,9 @@ class _MapDecorAnimationPanelState extends State<MapDecorAnimationPanel> {
             label: 'Vitesse',
             value: animation.speed.toString(),
             tryCommit: (value) {
-              final speed = double.tryParse(value.replaceAll(',', '.'));
-              if (speed == null || !speed.isFinite || speed <= 0) return false;
-              _updateAnimation(animation.copyWith(speed: speed));
-              return true;
+              final result = commands.speed(value);
+              if (result) widget.onChanged();
+              return result;
             },
           ),
           const SizedBox(height: 16),
@@ -207,28 +168,21 @@ class _MapDecorAnimationPanelState extends State<MapDecorAnimationPanel> {
                 Expanded(
                   child: StudioChoice(
                     label:
-                        '${_triggerLabel(behavior.trigger)} · ${_effectLabel(behavior.effect)}',
+                        '${mapDecorTriggerLabel(behavior.trigger)} · ${mapDecorEffectLabel(behavior.effect)}',
                     selected: behavior.enabled,
-                    onTap: () => _updateBehavior(
-                      (map) => setMapPlacedElementBehaviorEnabledAt(
-                        map,
-                        instanceId: selected.id,
-                        behaviorIndex: index,
-                        enabled: !behavior.enabled,
-                      ),
-                    ),
+                    onTap: () {
+                      commands.setBehaviorEnabled(index, !behavior.enabled);
+                      widget.onChanged();
+                    },
                   ),
                 ),
                 StudioTool(
                   label: 'Supprimer ce déclencheur',
                   icon: Icons.close,
-                  onPressed: () => _updateBehavior(
-                    (map) => removeMapPlacedElementBehaviorAt(
-                      map,
-                      instanceId: selected.id,
-                      behaviorIndex: index,
-                    ),
-                  ),
+                  onPressed: () {
+                    commands.removeBehavior(index);
+                    widget.onChanged();
+                  },
                 ),
               ],
             ),
@@ -241,7 +195,7 @@ class _MapDecorAnimationPanelState extends State<MapDecorAnimationPanel> {
               for (final trigger in MapPlacedElementTriggerType.values)
                 DropdownMenuItem(
                   value: trigger,
-                  child: Text(_triggerLabel(trigger)),
+                  child: Text(mapDecorTriggerLabel(trigger)),
                 ),
             ],
             onChanged: (value) => setState(() => _trigger = value ?? _trigger),
@@ -268,42 +222,13 @@ class _MapDecorAnimationPanelState extends State<MapDecorAnimationPanel> {
           StudioButton(
             label: 'Ajouter le déclencheur',
             icon: Icons.add,
-            onPressed: () => _updateBehavior(
-              (map) => addMapPlacedElementBehavior(
-                map,
-                instanceId: selected.id,
-                behavior: MapPlacedElementBehavior(
-                  trigger: _trigger,
-                  effect: MapPlacedElementEffect(
-                    type: _effect == 'once'
-                        ? MapPlacedElementEffectType.playAnimationOnce
-                        : MapPlacedElementEffectType.setAnimationEnabled,
-                    animationEnabled: _effect == 'once'
-                        ? null
-                        : _effect == 'start',
-                  ),
-                ),
-              ),
-            ),
+            onPressed: () {
+              commands.addBehavior(_trigger, _effect);
+              widget.onChanged();
+            },
           ),
         ],
       ],
     );
   }
-
-  String _triggerLabel(MapPlacedElementTriggerType trigger) =>
-      switch (trigger) {
-        MapPlacedElementTriggerType.onAction => 'À l’interaction',
-        MapPlacedElementTriggerType.onEnter => 'À l’entrée',
-        MapPlacedElementTriggerType.onBump => 'Au contact',
-        MapPlacedElementTriggerType.onExit => 'À la sortie',
-        MapPlacedElementTriggerType.onNear => 'À proximité',
-      };
-
-  String _effectLabel(MapPlacedElementEffect effect) => switch (effect.type) {
-    MapPlacedElementEffectType.playAnimationOnce => 'Jouer une fois',
-    MapPlacedElementEffectType.setAnimationEnabled =>
-      effect.animationEnabled == true ? 'Activer' : 'Arrêter',
-    _ => 'Autre effet',
-  };
 }

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../../features/pokemon/application/pokemon_workspace_controller.dart';
 import '../../../features/pokemon/domain/pokemon_workspace_models.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
-import 'pokemon_species_thumbnail.dart';
 import 'pokemon_ui_parts.dart';
 
 class PokemonSpeciesHeader extends StatelessWidget {
@@ -24,9 +23,6 @@ class PokemonSpeciesHeader extends StatelessWidget {
     final species = draft.document(PokemonDocumentFamily.species)!;
     final names = (species['names'] as Map?)?.cast<String, dynamic>() ?? {};
     final title = '${names['fr'] ?? names['en'] ?? draft.id}';
-    final entry = controller.index?.entries
-        .where((candidate) => candidate.id == draft.id)
-        .firstOrNull;
     final types = (species['typing'] as Map?)?['types'] as List? ?? const [];
     final active =
         (species['classification'] as Map?)?['isEnabledInProject'] == true;
@@ -35,24 +31,6 @@ class PokemonSpeciesHeader extends StatelessWidget {
         final compact =
             bounds.maxWidth < 650 ||
             MediaQuery.textScalerOf(context).scale(14) > 20;
-        final image = PokemonSurface(
-          emphasized: true,
-          padding: const EdgeInsets.all(12),
-          child: SizedBox(
-            width: compact ? 88 : 120,
-            height: compact ? 88 : 120,
-            child: entry == null
-                ? const Icon(Icons.image_not_supported_outlined, size: 36)
-                : PokemonSpeciesThumbnail(
-                    entry: entry,
-                    port: controller.port,
-                    mediaRevision: controller.mediaRevision(
-                      entry.mediaRelativePath,
-                    ),
-                    size: compact ? 88 : 120,
-                  ),
-          ),
-        );
         final identity = Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
@@ -97,22 +75,13 @@ class PokemonSpeciesHeader extends StatelessWidget {
               ? Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        image,
-                        const SizedBox(width: 14),
-                        Expanded(child: identity),
-                      ],
-                    ),
+                    identity,
                     if (save != null) ...[const SizedBox(height: 12), save],
                   ],
                 )
               : Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    image,
-                    const SizedBox(width: 18),
                     Expanded(child: identity),
                     const SizedBox(width: 8),
                     if (save != null) SizedBox(width: 290, child: save),

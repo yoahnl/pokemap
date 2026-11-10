@@ -1,3 +1,5 @@
+export '../../../features/scenes/application/scene_labels.dart';
+
 import 'package:flutter/material.dart';
 
 import '../../../features/pokemon/domain/pokemon_workspace_models.dart';
@@ -21,18 +23,6 @@ import 'package:avelune_studio/features/narrative/application/narrative_workspac
 import 'scene_battle_demonstration_form.dart';
 
 part 'scene_inspector_fields.dart';
-
-SceneAsset replaceSceneNode(SceneAsset scene, SceneNode node) =>
-    SceneAsset.fromJson({
-      ...scene.toJson(),
-      'graph': {
-        ...scene.graph.toJson(),
-        'nodes': [
-          for (final current in scene.graph.nodes)
-            (current.id == node.id ? node : current).toJson(),
-        ],
-      },
-    });
 
 class SceneInspector extends StatelessWidget {
   const SceneInspector({
@@ -77,18 +67,10 @@ class SceneInspector extends StatelessWidget {
     changed();
   }
 
-  void payload(SceneNode node, SceneNodePayload value) => edit(
-    (scene) => replaceSceneNode(
-      scene,
-      SceneNode(
-        id: node.id,
-        kind: node.kind,
-        title: node.title,
-        description: node.description,
-        payload: value,
-      ),
-    ),
-  );
+  void payload(SceneNode node, SceneNodePayload value) {
+    session.replacePayload(node, value);
+    changed();
+  }
 
   Future<void> retargetDialogue(
     BuildContext context,
@@ -98,65 +80,19 @@ class SceneInspector extends StatelessWidget {
     required String? start,
     required List<String> outcomes,
   }) async {
-    final request = session.beginDialogueRead(node.id);
-    try {
-      if ((documents == null || narrative == null) &&
-          original.choicePolicies.isEmpty &&
-          original.linePolicies.isEmpty &&
-          original.declaredCancellationOutcomes.isEmpty) {
-        payload(
-          node,
-          SceneYarnDialoguePayload.fromJson({
-            ...original.toJson(),
-            'dialogueId': target.id,
-            'yarnNodeName': start,
-            'expectedOutcomes': outcomes,
-          }),
-        );
-        return;
-      }
-      final linked = documents;
-      if (linked == null) {
-        throw StateError('La source du dialogue est indisponible.');
-      }
-      final compiled = await linked.readDialogueDocument(
-        target.id,
-        project,
-        narrative,
-      );
-      if (!context.mounted ||
-          !session.isCurrentDialogueRead(node.id, request)) {
-        return;
-      }
-      final scene = session.current;
-      final current = scene.graph.nodes
-          .where((candidate) => candidate.id == node.id)
-          .firstOrNull;
-      if (current?.payload != original) {
-        throw StateError(
-          'La scène a changé pendant la lecture du dialogue. Réessayez.',
-        );
-      }
-      final updated = retargetSceneDialogue(
-        scene,
-        nodeId: node.id,
-        dialogueId: target.id,
-        yarnNodeName: start,
-        expectedOutcomes: outcomes,
-        dialogue: compiled,
-      );
-      session.commit(updated);
-      changed();
-    } catch (_) {
-      if (!context.mounted ||
-          !session.isCurrentDialogueRead(node.id, request)) {
-        return;
-      }
-      session.error = 'Le document est indisponible ou incompatible avec les réglages conservés. Le dialogue et ses réglages n’ont pas été modifiés.';
-      changed();
-    } finally {
-      session.finishDialogueRead(node.id, request);
-    }
+    await session.retargetDialogue(
+      node: node,
+      original: original,
+      target: target,
+      start: start,
+      outcomes: outcomes,
+      read: documents == null || narrative == null
+          ? null
+          : () =>
+                documents!.readDialogueDocument(target.id, project, narrative),
+      isActive: () => context.mounted,
+    );
+    if (context.mounted) changed();
   }
 
   @override
@@ -335,27 +271,9 @@ class SceneInspector extends StatelessWidget {
       ),
     );
     if (name == null) return;
-    edit((scene) {
-      var suffix = scene.declaredOutcomes.length + 1;
-      while (scene.declaredOutcomes.any((o) => o.id == 'result_$suffix')) {
-        suffix++;
-      }
-      return SceneAsset.fromJson({
-        ...scene.toJson(),
-        'declaredOutcomes': [
-          ...scene.declaredOutcomes.map((o) => o.toJson()),
-          SceneOutcome(id: 'result_$suffix', label: name).toJson(),
-        ],
-      });
-    });
+    session.addOutcome(name);
+    changed();
   }
-}
-
-String sceneNodeName(SceneGraph graph, String id) {
-  final node = graph.nodes.where((item) => item.id == id).firstOrNull;
-  if (node == null) return id;
-  final title = node.title?.trim();
-  return title == null || title.isEmpty ? sceneKindLabel(node.kind) : title;
 }
 
 class SceneNodeLinks extends StatelessWidget {

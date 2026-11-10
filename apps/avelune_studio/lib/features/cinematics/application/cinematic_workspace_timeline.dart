@@ -134,3 +134,53 @@ extension CinematicWorkspaceTimeline on CinematicWorkspaceController {
     return result.cinematic;
   });
 }
+
+CinematicAsset joinCinematicParallelSteps(CinematicAsset asset, String stepId) {
+  final steps = asset.timeline.steps;
+  final index = steps.indexWhere((step) => step.id == stepId);
+  if (index <= 0) throw ArgumentError('Une étape précédente est nécessaire.');
+  final previous = steps[index - 1];
+  final current = steps[index];
+  final groups = {
+    if (previous.parallelGroupId != null) previous.parallelGroupId!,
+    if (current.parallelGroupId != null) current.parallelGroupId!,
+  };
+  final ids = {
+    previous.id,
+    current.id,
+    for (final step in steps)
+      if (groups.contains(step.parallelGroupId)) step.id,
+  };
+  final used = steps.map((step) => step.parallelGroupId).toSet();
+  var number = 1;
+  while (used.contains('parallel_$number')) {
+    number++;
+  }
+  final groupId =
+      previous.parallelGroupId ?? current.parallelGroupId ?? 'parallel_$number';
+  return setCinematicTimelineParallelGroup(
+    asset,
+    stepIds: ids,
+    parallelGroupId: groupId,
+  ).cinematic;
+}
+
+CinematicAsset dissolveCinematicParallelSteps(
+  CinematicAsset asset,
+  String stepId,
+) {
+  final group = asset.timeline.steps
+      .firstWhere((step) => step.id == stepId)
+      .parallelGroupId;
+  if (group == null) {
+    return asset;
+  }
+  return setCinematicTimelineParallelGroup(
+    asset,
+    stepIds: {
+      for (final step in asset.timeline.steps)
+        if (step.parallelGroupId == group) step.id,
+    },
+    parallelGroupId: null,
+  ).cinematic;
+}

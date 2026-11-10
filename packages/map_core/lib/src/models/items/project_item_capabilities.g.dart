@@ -6,6 +6,25 @@ part of 'project_item_capabilities.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
+_ProjectItemFriendshipLoss _$ProjectItemFriendshipLossFromJson(
+  Map<String, dynamic> json,
+) {
+  $checkKeys(json, allowedKeys: const ['low', 'medium', 'high']);
+  return _ProjectItemFriendshipLoss(
+    low: _friendshipLossInteger(json['low']),
+    medium: _friendshipLossInteger(json['medium']),
+    high: _friendshipLossInteger(json['high']),
+  );
+}
+
+Map<String, dynamic> _$ProjectItemFriendshipLossToJson(
+  _ProjectItemFriendshipLoss instance,
+) => <String, dynamic>{
+  'low': instance.low,
+  'medium': instance.medium,
+  'high': instance.high,
+};
+
 _ProjectItemUseDefinition _$ProjectItemUseDefinitionFromJson(
   Map<String, dynamic> json,
 ) => _ProjectItemUseDefinition(
@@ -20,6 +39,11 @@ _ProjectItemUseDefinition _$ProjectItemUseDefinitionFromJson(
   effect: ProjectItemEffectDefinition.fromJson(
     json['effect'] as Map<String, dynamic>,
   ),
+  friendshipLoss: json['friendshipLoss'] == null
+      ? null
+      : ProjectItemFriendshipLoss.fromJson(
+          json['friendshipLoss'] as Map<String, dynamic>,
+        ),
 );
 
 Map<String, dynamic> _$ProjectItemUseDefinitionToJson(
@@ -31,6 +55,7 @@ Map<String, dynamic> _$ProjectItemUseDefinitionToJson(
   'target': _$ProjectItemTargetKindEnumMap[instance.target]!,
   'consumption': _$ProjectItemConsumptionPolicyEnumMap[instance.consumption]!,
   'effect': instance.effect.toJson(),
+  'friendshipLoss': ?instance.friendshipLoss?.toJson(),
 };
 
 const _$ProjectItemUseContextEnumMap = {

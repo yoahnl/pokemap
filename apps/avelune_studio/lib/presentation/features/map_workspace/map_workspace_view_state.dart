@@ -1,3 +1,5 @@
+import '../../../features/map_workspace/application/map_palette_queries.dart';
+
 import 'package:flutter/widgets.dart';
 import 'package:map_core/map_core.dart';
 
@@ -5,7 +7,6 @@ import 'package:avelune_studio/features/map_workspace/coordination/map_editing_v
 
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_layout_preferences.dart';
-import 'package:avelune_studio/features/map_workspace/application/map_workspace_editing_state.dart';
 
 export 'package:avelune_studio/features/map_workspace/application/map_workspace_editing_state.dart';
 
@@ -38,24 +39,18 @@ class MapWorkspaceViewState extends MapEditingViewportSession {
   bool paletteTiles = false;
   bool revealPalette = false;
   bool revealInspector = false;
-  String _paletteTab = 'Décors';
-  String get paletteTab => _paletteTab;
+  late final _paletteQueries = MapPaletteQueries(resourceFilters);
+  String get paletteTab => _paletteQueries.intent;
   set paletteTab(String value) {
-    if (value == _paletteTab) return;
+    if (value == paletteTab) return;
     final search = paletteSearch;
-    paletteQueries[_paletteTab] = search?.text ?? resourceFilters.query;
-    paletteFamilies[_paletteTab] = resourceFilters.familyId;
-    _paletteTab = value;
-    final query = paletteQueries[value] ?? '';
-    if (search != null && search.text != query) search.text = query;
-    resourceFilters
-      ..query = query
-      ..familyId = paletteFamilies[value] ?? '';
+    _paletteQueries.select(value, currentQuery: search?.text);
+    if (search != null && search.text != resourceFilters.query) {
+      search.text = resourceFilters.query;
+    }
   }
 
   StudioMapTool? paletteRevealedFor;
-  final paletteQueries = <String, String>{};
-  final paletteFamilies = <String, String>{};
   TextEditingController? paletteSearch;
   final paletteScrollOffsets = <String, double>{};
   final paletteAtlasTransforms = <String, TransformationController>{};

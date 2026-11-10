@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:map_core/map_core_domain.dart';
@@ -9,12 +7,17 @@ import '../../../features/cinematics/application/cinematic_preview_transport.dar
 import '../../shared/widgets/buttons/studio_tool.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/layout/studio_graph_card.dart';
+
 import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
+
 import '../map_workspace/studio_spatial_map_preview.dart';
-import 'cinematic_map_model.dart';
+
+import 'package:avelune_studio/features/cinematics/application/cinematic_map_model.dart';
+
 import 'cinematic_transport_listenable.dart';
 import 'cinematic_view_state.dart';
-import 'cinematic_workspace_visuals.dart';
+
+import 'package:avelune_studio/platform/rendering/contracts/cinematic_workspace_visuals.dart';
 
 class CinematicSpatialMapScene extends StatefulWidget {
   const CinematicSpatialMapScene({
@@ -85,7 +88,9 @@ class _CinematicSpatialMapSceneState extends State<CinematicSpatialMapScene> {
       setState(() {
         _preview?.dispose();
         _preview = preview;
-        _camera.applyAtmosphereSettings(preview.atmosphere ?? SpatialAtmosphereSettings());
+        _camera.applyAtmosphereSettings(
+          preview.atmosphere ?? SpatialAtmosphereSettings(),
+        );
       });
     } catch (error) {
       if (mounted && request == _request) {
@@ -407,65 +412,7 @@ List<SpatialCellOverlay> cinematicSpatialOverlays(
   CinematicMapModel model,
   Color color,
 ) {
-  final cells = <(int, int)>{};
-  final points = {
-    for (final point
-        in model.asset.stageContext?.stagePoints ?? <CinematicStagePoint>[])
-      point.id: Offset(point.x, point.y),
-  };
-  void line(Offset start, Offset end) {
-    final count =
-        math.max((end.dx - start.dx).abs(), (end.dy - start.dy).abs()).ceil() *
-        2;
-    for (var i = 0; i <= count; i++) {
-      final point = Offset.lerp(start, end, count == 0 ? 0 : i / count)!;
-      cells.add((point.dx.floor(), point.dy.floor()));
-    }
-  }
-
-  final positions = {
-    for (final actor in model.actors.actors)
-      if (actor.position.isResolved)
-        actor.actorId: Offset(
-          actor.position.x!.toDouble(),
-          actor.position.y!.toDouble(),
-        ),
-  };
-  for (final step in model.asset.timeline.steps.where(
-    (step) =>
-        step.kind == CinematicTimelineStepKind.actorMove ||
-        step.kind == CinematicTimelineStepKind.actorJump,
-  )) {
-    var origin = positions[step.actorId];
-    if (origin == null) continue;
-    final path = model.asset.stageContext?.manualPaths
-        .where((path) => path.ownerActorMoveStepId == step.id)
-        .firstOrNull;
-    for (final id in path?.waypointStagePointIds ?? <String>[]) {
-      final point = points[id];
-      if (point != null) {
-        line(origin!, point);
-        origin = point;
-      }
-    }
-    final binding = model.asset.stageContext?.movementTargetBindings
-        .where((binding) => binding.targetId == step.targetId)
-        .firstOrNull;
-    final target =
-        binding?.kind == CinematicMovementTargetBindingKind.stagePoint
-        ? points[binding?.sourceId]
-        : null;
-    final external = model.targets[step.targetId];
-    final end =
-        target ?? (external == null ? null : Offset(external.x, external.y));
-    if (end != null) {
-      line(origin!, end);
-      positions[step.actorId!] = end;
-    }
-  }
-  cells.addAll(
-    points.values.map((point) => (point.dx.floor(), point.dy.floor())),
-  );
+  final cells = cinematicPreviewCells(model);
   return [
     for (final cell in cells)
       SpatialCellOverlay(

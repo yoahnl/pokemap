@@ -1,118 +1,64 @@
-import 'package:avelune_studio/presentation/features/resources/border_pattern_panel.dart';
-import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
-import 'package:flutter/material.dart';
+import 'package:avelune_studio/features/resources/application/border_pattern_associations.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import '../support/map_workspace_fixture.dart';
-
-ResourceItem _piece() => ResourceItem(
-  id: workspaceElement.id,
-  name: workspaceElement.name,
-  kind: ResourceKind.decors,
-  element: workspaceElement,
-);
-
-Future<void> _pumpPanel(
-  WidgetTester tester,
-  List<String> roles, {
-  bool straightOnly = false,
-  bool followContourDirection = false,
-}) => tester.pumpWidget(
-  MaterialApp(
-    home: Scaffold(
-      body: BorderPatternPanel(
-        chosen: {for (final role in roles) role: _piece()},
-        active: null,
-        visuals: WorkspaceTestVisuals(),
-        project: workspaceProject,
-        straightOnly: straightOnly,
-        followContourDirection: followContourDirection,
-        onAssign: (_, _) {},
-      ),
-    ),
-  ),
-);
-
 void main() {
-  testWidgets('a contour names the pieces it still needs before publication', (
-    tester,
-  ) async {
-    await _pumpPanel(tester, ['lineStraight']);
-    expect(find.text('1 / 3 familles de pièces associées'), findsOneWidget);
+  test('a contour names the pieces it still needs before publication', () {
+    final incomplete = BorderPatternAssociations(assigned: ['lineStraight']);
+    expect(incomplete.countLabel, '1 / 3 familles de pièces associées');
     expect(
-      find.text('Pièces manquantes avant publication : extrémités, angles.'),
-      findsOneWidget,
+      incomplete.statusLabel,
+      'Pièces manquantes avant publication : extrémités, angles.',
     );
-    await _pumpPanel(tester, ['lineStraight', 'lineCap']);
-    expect(
-      find.text('Pièces manquantes avant publication : angles.'),
-      findsOneWidget,
+    final withCap = BorderPatternAssociations(
+      assigned: ['lineStraight', 'lineCap'],
     );
-  });
-
-  testWidgets('only the explicit straight mode completes without corners', (
-    tester,
-  ) async {
-    await _pumpPanel(tester, ['lineStraight', 'lineCap'], straightOnly: true);
-    expect(find.text('2 / 2 familles de pièces associées'), findsOneWidget);
     expect(
-      find.text(
-        'Associations complètes. Les raccords restent à valider avant publication.',
-      ),
-      findsOneWidget,
-    );
-    await _pumpPanel(tester, ['lineStraight'], straightOnly: true);
-    expect(
-      find.text('Pièces manquantes avant publication : extrémités.'),
-      findsOneWidget,
+      withCap.statusLabel,
+      'Pièces manquantes avant publication : angles.',
     );
   });
 
-  testWidgets('a directed cliff asks for its inner corner by name', (
-    tester,
-  ) async {
-    await _pumpPanel(tester, [
-      'lineStraight',
-      'lineCap',
-      'lineCorner',
-    ], followContourDirection: true);
-    expect(find.text('3 / 4 familles de pièces associées'), findsOneWidget);
+  test('only the explicit straight mode completes without corners', () {
+    final complete = BorderPatternAssociations(
+      assigned: ['lineStraight', 'lineCap'],
+      straightOnly: true,
+    );
+    expect(complete.countLabel, '2 / 2 familles de pièces associées');
     expect(
-      find.text('Pièces manquantes avant publication : angle rentrant.'),
-      findsOneWidget,
+      complete.statusLabel,
+      'Associations complètes. Les raccords restent à valider avant publication.',
+    );
+    final incomplete = BorderPatternAssociations(
+      assigned: ['lineStraight'],
+      straightOnly: true,
+    );
+    expect(
+      incomplete.statusLabel,
+      'Pièces manquantes avant publication : extrémités.',
     );
   });
 
-  testWidgets('three associations still require canonical validation', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: BorderPatternPanel(
-            chosen: {
-              for (final role in ['lineCap', 'lineStraight', 'lineCorner'])
-                role: ResourceItem(
-                  id: workspaceElement.id,
-                  name: workspaceElement.name,
-                  kind: ResourceKind.decors,
-                  element: workspaceElement,
-                ),
-            },
-            active: null,
-            visuals: WorkspaceTestVisuals(),
-            project: workspaceProject,
-            onAssign: (_, _) {},
-          ),
-        ),
-      ),
+  test('a directed cliff asks for its inner corner by name', () {
+    final directed = BorderPatternAssociations(
+      assigned: ['lineStraight', 'lineCap', 'lineCorner'],
+      followContourDirection: true,
     );
-    expect(find.text('3 / 3 familles de pièces associées'), findsOneWidget);
+    expect(directed.countLabel, '3 / 4 familles de pièces associées');
     expect(
-      find.text(
-        'Associations complètes. Les raccords restent à valider avant publication.',
-      ),
-      findsOneWidget,
+      directed.statusLabel,
+      'Pièces manquantes avant publication : angle rentrant.',
+    );
+  });
+
+  test('three associations still require canonical validation', () {
+    final complete = BorderPatternAssociations(
+      assigned: ['lineCap', 'lineStraight', 'lineCorner'],
+    );
+    expect(complete.missing, isEmpty);
+    expect(complete.countLabel, '3 / 3 familles de pièces associées');
+    expect(
+      complete.statusLabel,
+      'Associations complètes. Les raccords restent à valider avant publication.',
     );
   });
 }

@@ -1,10 +1,9 @@
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/resources/domain/model_resource_port.dart';
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/workspace_actions.dart';
-import 'package:avelune_studio/presentation/features/resources/model_resource_library.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/workspace_workflow.dart';
+import 'package:avelune_studio/features/resources/coordination/model_resource_workflow.dart';
 import 'package:avelune_studio/features/resources/coordination/resource_navigation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
@@ -63,50 +62,38 @@ void main() {
   );
 
   for (final source in [true, false]) {
-    testWidgets(
+    test(
       '${source ? 'published source permits guarded close' : 'other pending publication blocks close'} without discarding map drafts',
-      (tester) async {
+      () async {
         final receipt = _receipt(source: source);
         navigation.pendingReceipt = receipt;
         final document = workspace.active!;
         document.commit(document.current.copyWith(name: 'Brouillon conservé'));
-        late WorkspaceActions actions;
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Builder(
-              builder: (context) {
-                actions = WorkspaceActions(
-                  controller: workspace,
-                  context: () => context,
-                  mounted: () => true,
-                  changed: () {},
-                  resources: () => navigation,
-                  narrative: () => null,
-                  runtimeBuilder: (_, _, _) => const SizedBox(),
-                );
-                return const Scaffold();
-              },
-            ),
-          ),
+        var prompts = 0;
+        var choice = WorkspaceCloseChoice.cancel;
+        final actions = WorkspaceWorkflow(
+          controller: workspace,
+          isActive: () => true,
+          changed: () {},
+          resources: () => navigation,
+          narrative: () => null,
+          confirmClose: () async {
+            prompts++;
+            return choice;
+          },
+          flushFocus: () {},
+          launchMap: (_, _) async {},
         );
-        final closing = actions.allowClose();
-        await tester.pumpAndSettle();
-        if (source) {
-          expect(find.text('Conserver vos modifications ?'), findsOneWidget);
-          await tester.tap(find.text('Annuler'));
-          await tester.pumpAndSettle();
-        }
-        expect(await closing, false);
+        expect(await actions.allowClose(), false);
+        expect(prompts, source ? 1 : 0);
         expect(document.dirty, true);
         expect(document.current.name, 'Brouillon conservé');
         expect(navigation.pendingReceipt, same(receipt));
         expect(port.mutations, 0);
         if (source) {
-          final confirmed = actions.allowClose();
-          await tester.pumpAndSettle();
-          await tester.tap(find.text('Abandonner'));
-          await tester.pumpAndSettle();
-          expect(await confirmed, true);
+          choice = WorkspaceCloseChoice.discard;
+          expect(await actions.allowClose(), true);
+          expect(prompts, 2);
           expect(navigation.pendingReceipt, same(receipt));
           expect(document.current.name, 'Brouillon conservé');
           expect(port.mutations, 0);

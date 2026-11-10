@@ -48,16 +48,12 @@ extension _PresentationPageHeader on _PresentationWorkspacePageState {
                 }
               },
             ),
-            StudioTool(
-              label: 'Bibliothèque visible',
-              icon: Icons.view_sidebar_outlined,
-              selected: view!.libraryOpen,
-              onPressed: () {
-                if (flush()) {
-                  view!.libraryOpen = !view!.libraryOpen;
-                  refresh();
-                }
-              },
+            StudioButton(
+              label: 'Nouvelle présentation',
+              icon: Icons.add,
+              onPressed: create,
+              secondary: true,
+              loading: controller.busy,
             ),
             StudioTool(
               label: 'Inspecteur visible',

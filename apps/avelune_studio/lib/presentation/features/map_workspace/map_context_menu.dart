@@ -1,20 +1,9 @@
+import '../../../features/map_workspace/application/map_context_interaction_session.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'package:avelune_studio/features/map_workspace/application/map_context_menu_model.dart';
-
-class MapContextMenuRequest {
-  const MapContextMenuRequest({
-    required this.position,
-    required this.targets,
-    required this.selected,
-    required this.actions,
-  });
-  final Offset position;
-  final List<MapContextTarget> targets;
-  final MapContextTarget? selected;
-  final List<MapContextAction> actions;
-}
 
 /// The map context menu: compact, keyboard reachable, and always naming the
 /// element it will act on.
@@ -272,9 +261,8 @@ class _MenuLayout extends SingleChildLayoutDelegate {
 
   @override
   BoxConstraints getConstraintsForChild(BoxConstraints constraints) =>
-      BoxConstraints.loose(
-        constraints.biggest,
-      ).deflate(const EdgeInsets.all(8));
+      BoxConstraints.loose(constraints.biggest)
+          .deflate(const EdgeInsets.all(8));
 
   @override
   Offset getPositionForChild(Size size, Size childSize) => Offset(

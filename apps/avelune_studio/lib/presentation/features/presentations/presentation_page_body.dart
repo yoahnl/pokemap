@@ -31,23 +31,9 @@ extension _PresentationPageBody on _PresentationWorkspacePageState {
             final compact =
                 constraints.maxWidth < 1000 ||
                 MediaQuery.textScalerOf(context).scale(14) > 20;
-            final library = PresentationLibrary(
-              visuals: widget.visuals,
-              beforeSelection: flush,
-              controller: controller,
-              views: widget.views,
-              changed: refresh,
-              onOpen: open,
-              onCreate: create,
-              onLayer: (action, params) {
-                if (flush()) controller.apply(action, params);
-                refresh();
-              },
-            );
             final inspector = asset == null || state == null
                 ? null
                 : PresentationInspector(
-                    mediaCatalog: controller.active?.mediaCatalog,
                     consumers: consumers(asset),
                     beforeSelection: flush,
                     asset: asset,
@@ -74,22 +60,16 @@ extension _PresentationPageBody on _PresentationWorkspacePageState {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        if (!compact && (state?.libraryOpen ?? true)) ...[
-                          SizedBox(width: 250, child: library),
-                          const SizedBox(width: 10),
-                        ],
                         Expanded(
                           child: asset == null || state == null
-                              ? (compact
-                                    ? library
-                                    : Center(
-                                        child: StudioButton(
-                                          label: 'Nouvelle présentation',
-                                          icon: Icons.add,
-                                          loading: controller.busy,
-                                          onPressed: create,
-                                        ),
-                                      ))
+                              ? Center(
+                                  child: StudioButton(
+                                    label: 'Nouvelle présentation',
+                                    icon: Icons.add,
+                                    loading: controller.busy,
+                                    onPressed: create,
+                                  ),
+                                )
                               : Column(
                                   children: [
                                     Expanded(
@@ -219,11 +199,6 @@ extension _PresentationPageBody on _PresentationWorkspacePageState {
                   if (compact)
                     Row(
                       children: [
-                        StudioButton(
-                          label: 'Bibliothèque',
-                          secondary: true,
-                          onPressed: () => panel(library),
-                        ),
                         if (inspector != null)
                           StudioButton(
                             label: 'Inspecteur',

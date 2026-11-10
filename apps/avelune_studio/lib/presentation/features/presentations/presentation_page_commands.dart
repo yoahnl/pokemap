@@ -8,14 +8,6 @@ extension _PresentationPageCommands on _PresentationWorkspacePageState {
     refresh();
   }
 
-  Future<void> open(String id) async {
-    if (!flush()) return;
-    transport.stop();
-    await widget.visuals.release();
-    await controller.open(id);
-    refresh();
-  }
-
   Future<void> create() async {
     if (!flush()) return;
     final name = await askNarrativeName(context, 'Nouvelle présentation');
@@ -28,19 +20,8 @@ extension _PresentationPageCommands on _PresentationWorkspacePageState {
   }
 
   bool patch(Map<String, Object?> values) {
-    final asset = controller.active?.asset, clip = view?.selected;
-    if (asset == null ||
-        clip == null ||
-        !view!.editing.isClipEditable(clip.id)) {
-      return false;
-    }
-    final track = asset.tracks.firstWhere(
-      (track) => track.clips.any((c) => c.id == clip.id),
-    );
-    final success = controller.apply('presentationClip.update', {
-      'trackId': track.id,
-      'clip': {...encodePresentationClip(clip), ...values},
-    });
+    final clip = view?.selected;
+    final success = clip != null && controller.patchClip(clip.id, values);
     refresh();
     return success;
   }
@@ -55,80 +36,27 @@ extension _PresentationPageCommands on _PresentationWorkspacePageState {
     refresh();
   }
 
-  String identity(String prefix) => controller.narrative.identity(prefix);
-  void addClip(
-    PresentationClip clip, {
-    PresentationLayer? layer,
-    required String label,
-  }) {
-    final trackId = identity('track');
-    final commands = <PresentationCommand>[
-      if (layer != null)
-        PresentationCommand('presentationLayer.create', {
-          'layer': encodePresentationLayer(layer),
-        }),
-      PresentationCommand('presentationTrack.create', {
-        'track': {
-          'id': trackId,
-          'label': label,
-          'kind': clip.trackKind.name,
-          'clips': [encodePresentationClip(clip)],
-        },
-      }),
-    ];
-    if (controller.applyBatch(commands)) {
+  void selectAddedClip(String? id) {
+    if (id != null) {
       sync();
-      view!.editing.selectClip(clip.id);
-      transport.seek(clip.startUs);
+      view!.editing.selectClip(id);
+      transport.seek(view!.selected!.startUs);
     }
     refresh();
   }
 
-  PresentationLayer newLayer(String title) => PresentationLayer(
-    id: identity('element'),
-    label: title,
-    zIndex:
-        (controller.active!.asset.layers
-            .map((l) => l.zIndex)
-            .fold<int>(-1, (a, b) => a > b ? a : b)) +
-        1,
-  );
-  int get startUs =>
-      transport.timeUs >= transport.durationUs ? 0 : transport.timeUs;
-  int get remainingUs => controller.active!.asset.durationUs - startUs;
   void addText() {
-    if (!flush() || controller.active == null) return;
-    final layer = newLayer('Texte');
-    addClip(
-      PresentationTextClip(
-        id: identity('text'),
-        startUs: startUs,
-        durationUs: remainingUs,
-        layerId: layer.id,
-        text: 'Votre titre',
-        style: PresentationTextStyle(
-          fontSize: 48,
-          weight: PresentationTextWeight.bold,
-        ),
-      ),
-      layer: layer,
-      label: 'Texte',
-    );
+    if (flush()) selectAddedClip(controller.addText(timeUs: transport.timeUs));
   }
 
   void addMarker({bool interaction = false}) {
-    if (!flush() || controller.active == null) return;
-    addClip(
-      PresentationMarkerClip(
-        id: identity('marker'),
-        startUs: startUs,
-        label: interaction ? 'Interaction' : 'Repère',
-        markerKind: interaction
-            ? PresentationMarkerKind.interactionCue
-            : PresentationMarkerKind.ordinary,
-      ),
-      label: 'Repères',
-    );
+    if (flush())
+      selectAddedClip(
+        controller.addMarker(
+          timeUs: transport.timeUs,
+          interaction: interaction,
+        ),
+      );
   }
 
   Future<void> addMedia(ProjectMediaKind kind) async {
@@ -193,43 +121,6 @@ extension _PresentationPageCommands on _PresentationWorkspacePageState {
       ),
     );
     if (!mounted || owner != controller.activeId || media == null) return;
-    if (kind == ProjectMediaKind.audio) {
-      addClip(
-        PresentationAudioClip(
-          id: identity('audio'),
-          startUs: startUs,
-          durationUs: remainingUs,
-          resourceId: media.id,
-          audioKind: PresentationAudioKind.music,
-        ),
-        label: media.label,
-      );
-    } else if (kind == ProjectMediaKind.captions) {
-      addClip(
-        PresentationCaptionClip(
-          id: identity('caption'),
-          startUs: startUs,
-          durationUs: remainingUs,
-          captionId: media.id,
-        ),
-        label: media.label,
-      );
-    } else {
-      final layer = newLayer(media.label);
-      addClip(
-        PresentationVisualClip(
-          id: identity('image'),
-          startUs: startUs,
-          durationUs: remainingUs,
-          layerId: layer.id,
-          resourceId: media.id,
-          mediaKind: kind == ProjectMediaKind.video
-              ? PresentationVisualMediaKind.video
-              : PresentationVisualMediaKind.image,
-        ),
-        layer: layer,
-        label: media.label,
-      );
-    }
+    selectAddedClip(controller.addMediaClip(media, timeUs: transport.timeUs));
   }
 }

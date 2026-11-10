@@ -1,14 +1,10 @@
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_entity_editing_commands.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_draft_reference_guard.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
-import 'package:flutter/widgets.dart';
-import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_tool.dart';
-
-import '../support/map_selection_harness.dart';
 import '../support/map_workspace_fixture.dart';
 
 const eventId = 'evt_0192bc3d-4e5f-7a1b-8c2d-3e4f5a6b7c8d';
@@ -157,67 +153,32 @@ void main() {
     expect(() => guarded.delete(sign.id), throwsStateError);
   });
 
-  testWidgets('the inspector blocks and explains instead of deleting', (
-    tester,
-  ) async {
-    final h = MapSelectionHarness.of(workspaceProject);
-    addTearDown(h.dispose);
+  test('an unsaved interaction draft blocks deletion until released', () {
+    final document = documentFor('a');
     final sign = MapEntityEditingCommands(
-      h.document,
-      h.project,
+      document,
+      workspaceProject,
     ).place(MapEntityKind.sign, const GridPos(x: 4, y: 4));
-
-    await h.pump(tester);
-    await h.use(tester, StudioMapTool.select);
-    await h.tapCell(tester, 4, 4);
-    expect(find.byTooltip('Supprimer le panneau'), findsOneWidget);
-
-    h.project = projectUsing('a', sign.id);
-    h.redraw();
-    await tester.pumpAndSettle();
-
-    expect(
-      find.byKey(const ValueKey('marker-deletion-problem')),
-      findsOneWidget,
-      reason: 'the reason is shown, not just a greyed out button',
+    var sources = MapDraftReferenceSources(
+      interactionDrafts: [
+        (mapId: 'a', kind: MapDraftReferenceKind.entity, id: sign.id),
+      ],
     );
-    expect(find.byTooltip('Supprimer le panneau'), findsNothing);
-    expect(
-      tester
-          .widget<StudioTool>(
-            find.byWidgetPredicate(
-              (widget) =>
-                  widget is StudioTool &&
-                  widget.label == 'Suppression bloquée par l’histoire',
-            ),
-          )
-          .onPressed,
-      isNull,
-      reason: 'the command cannot even be reached from the button',
+    final index = MapDraftReferenceIndex(() => sources);
+    final commands = MapEntityEditingCommands(
+      document,
+      workspaceProject,
+      draftGuard: index.guard,
     );
-    expect(h.document.current.entities, hasLength(1));
-  });
-
-  testWidgets('an unsaved interaction draft also holds the sign', (
-    tester,
-  ) async {
-    final h = MapSelectionHarness.of(workspaceProject);
-    addTearDown(h.dispose);
-    final sign = MapEntityEditingCommands(
-      h.document,
-      h.project,
-    ).place(MapEntityKind.sign, const GridPos(x: 4, y: 4));
-    h.draftBlocked = (id) => id == sign.id;
-
-    await h.pump(tester);
-    await h.use(tester, StudioMapTool.select);
-    await h.tapCell(tester, 4, 4);
-
-    expect(
-      find.byKey(const ValueKey('marker-deletion-problem')),
-      findsOneWidget,
-      reason: 'a dirty draft counts as a dependency, like for a character',
-    );
-    expect(h.document.current.entities, hasLength(1));
+    final before = document.current;
+    final steps = document.undoCount;
+    expect(commands.deletionProblem(sign.id), contains('brouillon'));
+    expect(() => commands.delete(sign.id), throwsStateError);
+    expect(document.current, same(before));
+    expect(document.undoCount, steps);
+    sources = const MapDraftReferenceSources();
+    expect(commands.deletionProblem(sign.id), isNull);
+    commands.delete(sign.id);
+    expect(document.current.entities, isEmpty);
   });
 }

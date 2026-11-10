@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/pokemon/application/pokemon_commerce_controller.dart';
 import '../../shared/widgets/inputs/studio_draft_field.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import 'pokemon_commerce_integer_field.dart';
-import '../../../features/pokemon/application/pokemon_pocket_label.dart';
 import 'pokemon_ui_parts.dart';
 
 const pokemonNewPocketChoice = '__new_pocket__';
@@ -27,14 +25,6 @@ class _PokemonItemOverviewState extends State<PokemonItemOverview> {
   @override
   Widget build(BuildContext context) {
     final item = commerce.item!;
-    final snapshot = commerce.snapshot;
-    final pockets = <String>{
-      for (final entry
-          in snapshot?.catalog?.entries ?? const <ProjectItemDefinition>[])
-        entry.pocketId,
-      ...?snapshot?.project.bagCapacity.pockets.keys,
-      item.pocketId,
-    }.where((id) => id.isNotEmpty).toList()..sort();
     final creating = _creatingFor == item.id;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -74,7 +64,7 @@ class _PokemonItemOverviewState extends State<PokemonItemOverview> {
                 label: 'Poche',
                 value: creating ? pokemonNewPocketChoice : item.pocketId,
                 options: {
-                  for (final id in pockets) id: pokemonPocketLabel(id),
+                  ...commerce.itemPocketOptions,
                   pokemonNewPocketChoice: 'Nouvelle poche…',
                 },
                 onChanged: (value) {
@@ -83,9 +73,7 @@ class _PokemonItemOverviewState extends State<PokemonItemOverview> {
                     return;
                   }
                   setState(() => _creatingFor = null);
-                  commerce.editItem(
-                    (current) => current.copyWith(pocketId: value),
-                  );
+                  commerce.setItemPocket(value);
                 },
               ),
               const SizedBox(height: 4),
@@ -101,11 +89,7 @@ class _PokemonItemOverviewState extends State<PokemonItemOverview> {
                   value: '',
                   helperText: 'La poche apparaît dans le sac du joueur dès qu’un objet y est rangé.',
                   onChanged: (value) {
-                    final id = value.trim();
-                    if (id.isEmpty) return;
-                    commerce.editItem(
-                      (current) => current.copyWith(pocketId: id),
-                    );
+                    commerce.setItemPocket(value);
                   },
                 ),
               ],

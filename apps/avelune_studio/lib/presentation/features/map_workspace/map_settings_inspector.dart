@@ -4,14 +4,11 @@ import 'package:map_core/map_core_domain.dart';
 import '../../../features/map_workspace/application/editable_map_document.dart';
 import '../../shared/widgets/inputs/studio_tabs.dart';
 import '../../shared/widgets/layout/studio_sidebar.dart';
-import 'map_atmosphere_preview_controls.dart';
-import 'map_atmosphere_settings_panel.dart';
 import 'map_camera_panel.dart';
 import 'map_catalogue_properties.dart';
-import 'map_day_night_panel.dart';
 import 'map_workspace_view_state.dart';
 
-enum MapSettingsTab { image, time, game }
+enum MapSettingsTab { image, game }
 
 class MapSettingsInspector extends StatefulWidget {
   const MapSettingsInspector({
@@ -45,7 +42,6 @@ class _MapSettingsInspectorState extends State<MapSettingsInspector> {
     final spatial = document.current.spatialScene != null;
     final tabs = {
       if (spatial) MapSettingsTab.image: 'Image',
-      if (spatial) MapSettingsTab.time: 'Temps',
       MapSettingsTab.game: 'Jeu',
     };
     final tab = tabs.containsKey(_tab) ? _tab! : tabs.keys.first;
@@ -88,15 +84,6 @@ class _MapSettingsInspectorState extends State<MapSettingsInspector> {
         ],
         ...switch (tab) {
           MapSettingsTab.image => _image(),
-          MapSettingsTab.time => [
-            MapDayNightPanel(
-              project: widget.project,
-              document: document,
-              controller: widget.view.spatialSceneController,
-              onChanged: widget.onChanged,
-              showAtmosphere: false,
-            ),
-          ],
           MapSettingsTab.game => [
             MapCatalogueProperties(
               map: document.current,
@@ -111,23 +98,8 @@ class _MapSettingsInspectorState extends State<MapSettingsInspector> {
 
   List<Widget> _image() {
     final document = widget.document;
-    final preview = widget.view.spatialSceneController;
     return [
       MapCameraPanel(document: document, onChanged: widget.onChanged),
-      if (document.atmosphere case final atmosphere?) ...[
-        const SizedBox(height: 16),
-        MapAtmosphereSettingsPanel(
-          controller: atmosphere,
-          preview: preview,
-          map: document.current,
-          project: widget.project,
-          visualOverrides: document.visualProfile,
-          localOverrides: document.weatherVisuals?.preview.value,
-        ),
-      ] else if (preview != null) ...[
-        const SizedBox(height: 16),
-        MapAtmospherePreviewControls(controller: preview),
-      ],
       const SizedBox(height: 16),
     ];
   }

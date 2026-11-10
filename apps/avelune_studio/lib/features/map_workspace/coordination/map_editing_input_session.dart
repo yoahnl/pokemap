@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:map_core/map_core_domain.dart';
 
+import '../application/editable_map_document.dart';
 import '../application/map_context_command_runner.dart';
 import '../application/map_context_menu_actions.dart';
 import '../application/map_context_menu_model.dart';
@@ -23,6 +24,7 @@ class MapEditingInputSession extends ChangeNotifier {
   final MapContextNavigation? navigation;
   GridPos? cell;
   String? mapId;
+  EditableMapDocument? _document;
   MapContextTarget? target;
   List<MapContextTarget> targets = const [];
   List<MapContextAction> actions = const [];
@@ -51,6 +53,7 @@ class MapEditingInputSession extends ChangeNotifier {
     if (context == null) return;
     cell = position;
     mapId = context.document.current.id;
+    _document = context.document;
     targets = mapContextTargetsAt(context.document, context.project, position);
     target = selected == null
         ? targets.firstOrNull
@@ -62,7 +65,13 @@ class MapEditingInputSession extends ChangeNotifier {
 
   void select(MapContextTarget selected) {
     final context = cell == null ? null : contextAt(cell!);
-    if (context == null || !targets.any(selected.sameAs)) return;
+    if (context == null ||
+        !identical(context.document, _document) ||
+        context.document.current.id != mapId) {
+      dismiss();
+      return;
+    }
+    if (!targets.any(selected.sameAs)) return;
     target = selected;
     actions = mapContextActionsFor(selected, context);
     _applySelection();
@@ -84,6 +93,7 @@ class MapEditingInputSession extends ChangeNotifier {
     if (!contextOpen) return;
     cell = null;
     mapId = null;
+    _document = null;
     target = null;
     targets = const [];
     actions = const [];
@@ -93,7 +103,8 @@ class MapEditingInputSession extends ChangeNotifier {
   void reconcile() {
     final document = controller.active;
     if (mapId != null &&
-        (mapId != document?.current.id ||
+        (!identical(document, _document) ||
+            mapId != document?.current.id ||
             document?.exteriorDecoration?.editingExterior == true)) {
       dismiss();
     }
@@ -103,7 +114,9 @@ class MapEditingInputSession extends ChangeNotifier {
     final position = cell;
     final selected = target;
     final context = position == null ? null : contextAt(position);
-    if (context == null || mapId != context.document.current.id) {
+    if (context == null ||
+        !identical(context.document, _document) ||
+        mapId != context.document.current.id) {
       dismiss();
       return;
     }

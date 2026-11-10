@@ -1,3 +1,6 @@
+import '../../../features/pokemon/application/pokemon_commerce_import_workflow.dart';
+import '../../../features/pokemon/domain/pokemon_commerce_port.dart';
+
 import 'package:flutter/material.dart';
 
 import '../../../features/pokemon/application/pokemon_commerce_controller.dart';
@@ -24,21 +27,38 @@ class PokemonCommerceImportButton extends StatefulWidget {
 
 class _PokemonCommerceImportButtonState
     extends State<PokemonCommerceImportButton> {
-  Future<void> _import() async {
-    if (widget.commerce.dirty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Enregistrez ou annulez le brouillon avant l’import.'),
-        ),
+  late final PokemonCommerceImportWorkflow _workflow =
+      PokemonCommerceImportWorkflow(
+        commerce: widget.commerce,
+        isActive: () =>
+            mounted && identical(widget.commerce, _workflow.commerce),
       );
-      return;
-    }
-    final path = await widget.pickJson();
-    if (!mounted || path == null) return;
-    await widget.commerce.prepareImport(path, item: widget.items);
+
+  Future<void> _import() async {
+    final importing = _workflow.importJson(
+      items: widget.items,
+      picker: widget.pickJson,
+      confirm: _confirm,
+    );
+    setState(() {});
+    final imported = await importing;
     if (!mounted) return;
-    final preview = widget.commerce.importPreview;
-    if (preview == null) return;
+    if (imported) {
+      widget.onImported();
+    } else if (_workflow.refusal case final refusal?) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(refusal)));
+    }
+    setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _workflow.dispose();
+    super.dispose();
+  }
+
+  Future<bool> _confirm(PokemonCommerceImportPreview preview) async {
     final accept = await showDialog<bool>(
       context: context,
       builder: (dialog) => AlertDialog(
@@ -65,14 +85,7 @@ class _PokemonCommerceImportButtonState
         ],
       ),
     );
-    if (!mounted || accept != true) {
-      widget.commerce.cancelImport();
-      return;
-    }
-    if (await widget.commerce.applyImport(confirmOverwrite: preview.conflict) &&
-        mounted) {
-      widget.onImported();
-    }
+    return accept == true;
   }
 
   @override
@@ -80,7 +93,10 @@ class _PokemonCommerceImportButtonState
     label: widget.commerce.importing ? 'Import en cours…' : 'Importer un JSON',
     secondary: true,
     icon: Icons.file_upload_outlined,
-    onPressed: widget.commerce.importing || widget.commerce.saving
+    onPressed:
+        _workflow.choosing ||
+            widget.commerce.importing ||
+            widget.commerce.saving
         ? null
         : _import,
   );

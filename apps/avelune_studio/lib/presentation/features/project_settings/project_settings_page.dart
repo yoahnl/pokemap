@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:map_core/map_core_domain.dart';
@@ -11,11 +10,11 @@ export '../../../platform/playtest/studio_playtest_builders.dart'
     show StudioVisualTestBuilder;
 
 import '../../../features/map_workspace/application/map_workspace_controller.dart';
-import '../../../features/map_workspace/domain/map_atmosphere_port.dart';
 import '../../../features/project_audio/application/project_audio_controller.dart';
 import '../../../features/project_cs/application/project_cs_controller.dart';
 import '../../../features/project_settings/application/project_identity_controller.dart';
 import '../../../features/project_settings/application/project_settings_session_controller.dart';
+import '../../../features/project_settings/application/project_settings_preview_controller.dart';
 import '../../../features/project_settings/application/project_verification_overview.dart';
 import '../../../features/verification/application/studio_failure_diagnosis.dart';
 import '../../../features/project_surf/application/project_surf_controller.dart';
@@ -26,7 +25,7 @@ import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/inputs/studio_tabs.dart';
 import '../../shared/widgets/layout/studio_page_header.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
-import '../presentations/presentation_media_picker.dart';
+import 'package:avelune_studio/features/presentations/domain/presentation_media_picker.dart';
 export 'project_settings_navigator.dart' show ProjectSettingsSectionLabels;
 
 import 'project_audio_panel.dart';
@@ -75,20 +74,19 @@ class _ProjectSettingsPageState extends State<ProjectSettingsPage> {
   ProjectVisualsController get owner => widget.owner;
   MapWorkspaceController get workspace => widget.workspace;
   late final ProjectSettingsSessionController session;
-  final rendered = ValueNotifier(SpatialVisualPatch());
-  SpatialVisualPatch base = SpatialVisualPatch.fromScene(
-    camera: SpatialCameraProfile(),
-    atmosphere: SpatialAtmosphereSettings(),
-  );
-  ProjectMapEntry? preview;
-  ProjectVisualsController? mapDraft;
-  SpatialVisualPatch local = SpatialVisualPatch();
-  bool previewLoading = false, previewSpatial = false, showSaved = false;
-  String? previewProblem, scopeNotice, testError;
+  late final ProjectSettingsPreviewController _previewController;
+  ValueNotifier<SpatialVisualPatch> get rendered => _previewController.rendered;
+  SpatialVisualPatch get base => _previewController.base;
+  ProjectMapEntry? get preview => _previewController.preview;
+  ProjectVisualsController? get mapDraft => _previewController.mapDraft;
+  bool get previewLoading => _previewController.previewLoading;
+  bool get previewSpatial => _previewController.previewSpatial;
+  bool get showSaved => _previewController.showSaved;
+  String? get previewProblem => _previewController.previewProblem;
+  String? get scopeNotice => _previewController.scopeNotice;
+  String? get testError => _previewController.testError;
   Widget? test;
-  int _previewGeneration = 0;
   bool _refreshScheduled = false;
-  (String?, String)? _applied;
 
   @override
   void initState() {
@@ -105,29 +103,19 @@ class _ProjectSettingsPageState extends State<ProjectSettingsPage> {
       },
       initialSection: widget.initialSection,
     );
-    session.addListener(_changed);
-    owner.addListener(_changed);
-    final maps = workspace.project?.maps ?? <ProjectMapEntry>[];
-    preview =
-        maps.where((e) => e.id == workspace.active?.base.mapId).firstOrNull ??
-        maps.firstOrNull;
-    if ((owner.saved == null && !owner.loading) ||
-        (owner.scope != null && !owner.dirty)) {
-      unawaited(owner.open());
-    }
+    _previewController = ProjectSettingsPreviewController(
+      workspace: workspace,
+      owner: owner,
+      session: session,
+    );
+    _previewController.addListener(_changed);
     if (widget.identity case final identity?
         when !identity.ready && !identity.loading) {
       unawaited(identity.open());
     }
-    if (preview case final entry?) {
-      previewLoading = true;
-      SchedulerBinding.instance.addPostFrameCallback((_) {
-        if (mounted && identical(preview, entry)) {
-          unawaited(_loadPreview(entry));
-        }
-      });
-    }
-    _changed();
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (mounted) unawaited(_previewController.start());
+    });
   }
 
   ProjectVisualsController? _mapVisuals(String mapId) {
@@ -150,135 +138,22 @@ class _ProjectSettingsPageState extends State<ProjectSettingsPage> {
       });
       return;
     }
-    final saved = owner.saved;
-    if (saved != null &&
-        owner.scope == null &&
-        _applied != (null, saved.revision)) {
-      _applied = (null, saved.revision);
-      workspace.acceptVisualProfile(saved.profile);
-    }
-    rendered.value = showSaved
-        ? base
-              .overriddenBy(owner.saved?.profile ?? owner.preview.value)
-              .overriddenBy(mapDraft?.saved?.profile ?? local)
-        : base
-              .overriddenBy(owner.preview.value)
-              .overriddenBy(mapDraft?.preview.value ?? local);
+    if (previewLoading) test = null;
     setState(() {});
   }
 
-  void _watchMapDraft(ProjectVisualsController? next) {
-    if (identical(next, mapDraft)) return;
-    mapDraft?.removeListener(_changed);
-    mapDraft = next;
-    mapDraft?.addListener(_changed);
-  }
+  void _choosePreview(String id) =>
+      unawaited(_previewController.choosePreview(id));
 
-  Future<void> _loadPreview(ProjectMapEntry entry) async {
-    final generation = ++_previewGeneration;
-    setState(() {
-      previewLoading = true;
-      previewProblem = null;
-      testError = null;
-      test = null;
-    });
-    bool current() => mounted && generation == _previewGeneration;
-    try {
-      await workspace.activate(entry, isCurrent: current);
-      if (!current()) return;
-      final document = workspace.documents[entry.id];
-      final scene = document?.current.spatialScene;
-      if (document == null || scene == null) {
-        base = SpatialVisualPatch.fromScene(
-          camera: SpatialCameraProfile(),
-          atmosphere: SpatialAtmosphereSettings(),
-        );
-        previewSpatial = false;
-        local = SpatialVisualPatch();
-        _watchMapDraft(null);
-        previewProblem =
-            'La carte « ${entry.name} » n’a pas de rendu 3D : l’aperçu en jeu '
-            'est indisponible. Les réglages du projet restent modifiables.';
-      } else {
-        final source = workspace.port;
-        final atmosphere =
-            document.atmosphere?.current ??
-            (source is MapAtmospherePort
-                ? (await (source as MapAtmospherePort).loadAtmosphere(
-                    workspace.session,
-                    entry.id,
-                  )).settings
-                : SpatialAtmosphereSettings());
-        if (!current()) return;
-        final existing = document.weatherVisuals;
-        final saved =
-            existing?.saved?.profile ??
-            (await owner.port.loadVisuals(
-              workspace.session,
-              map: entry,
-            )).profile;
-        if (!current()) return;
-        base = SpatialVisualPatch.fromScene(
-          camera: scene.camera,
-          atmosphere: atmosphere,
-          cycle: scene.dayNightCycle,
-        );
-        previewSpatial = true;
-        local = saved;
-        _watchMapDraft(existing);
-      }
-      if (session.scopeMapId != null) {
-        if (!previewSpatial) {
-          session.scopeTo(null);
-          scopeNotice =
-              'La portée est revenue à « Tout le projet » : la carte '
-              '« ${entry.name} » n’a pas de réglages 3D locaux. Les brouillons '
-              'restent conservés.';
-        } else {
-          session.scopeTo(entry.id);
-          _watchMapDraft(document?.weatherVisuals);
-        }
-      }
-    } on Object catch (failure) {
-      if (current()) previewProblem = '$failure';
-    } finally {
-      if (current()) {
-        previewLoading = false;
-        _changed();
-      }
-    }
-  }
-
-  void _choosePreview(String id) {
-    final entry = workspace.project?.maps.where((e) => e.id == id).firstOrNull;
-    if (entry == null || entry.id == preview?.id) return;
-    preview = entry;
-    scopeNotice = null;
-    unawaited(_loadPreview(entry));
-  }
-
-  void _chooseScope(String value) {
-    scopeNotice = null;
-    final id = value == 'map' && previewSpatial ? preview?.id : null;
-    session.scopeTo(id);
-    if (id != null) _watchMapDraft(workspace.documents[id]?.weatherVisuals);
-  }
+  void _chooseScope(String value) => _previewController.chooseScope(value);
 
   Future<void> _startTest() async {
-    final entry = preview;
     final builder = widget.testBuilder;
-    final active = workspace.active;
-    if (entry == null || builder == null || active == null) return;
-    if (active.dirty) {
-      setState(
-        () => testError =
-            'Enregistrez d’abord les modifications de la carte dans '
-            'l’éditeur. Les réglages restent en aperçu.',
-      );
-      return;
-    }
+    if (builder == null) return;
+    final launch = _previewController.preparePlaytest();
+    if (launch == null) return;
     setState(
-      () => test = builder(entry, active.base.revision, () {
+      () => test = builder(launch.entry, launch.revision, () {
         if (mounted) setState(() => test = null);
       }, rendered),
     );
@@ -286,12 +161,9 @@ class _ProjectSettingsPageState extends State<ProjectSettingsPage> {
 
   @override
   void dispose() {
-    _previewGeneration++;
-    session.removeListener(_changed);
-    owner.removeListener(_changed);
-    mapDraft?.removeListener(_changed);
+    _previewController.removeListener(_changed);
+    _previewController.dispose();
     session.dispose();
-    rendered.dispose();
     super.dispose();
   }
 
@@ -367,8 +239,7 @@ class _ProjectSettingsPageState extends State<ProjectSettingsPage> {
             items: const {false: 'Brouillon', true: 'Mémorisé'},
             selected: showSaved,
             onChanged: (value) {
-              showSaved = value;
-              _changed();
+              _previewController.compareSaved(value);
             },
           ),
           const SizedBox(height: 4),

@@ -1,10 +1,12 @@
 import '../../presentations/coordination/presentation_editing_sessions.dart';
+import '../../presentations/coordination/presentation_visual_session.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../../pokemon/application/pokemon_workspace_controller.dart';
 import '../../pokemon/application/pokemon_commerce_controller.dart';
 import '../../pokemon/application/pokemon_combat_controller.dart';
 import '../../pokemon/domain/pokemon_workspace_port.dart';
+import '../../pokemon/domain/pokemon_workspace_models.dart';
 import '../../pokemon/domain/pokemon_commerce_port.dart';
 import '../../pokemon/domain/pokemon_combat_port.dart';
 import '../../regional_map/application/regional_map_controller.dart';
@@ -63,6 +65,7 @@ class WorkspaceSessionControllers {
     this.verificationPort,
     this.audioPreview,
     this.gameExport,
+    this.isActive,
   });
 
   final MapWorkspaceController controller;
@@ -83,6 +86,7 @@ class WorkspaceSessionControllers {
   final VerificationPort? verificationPort;
   final ProjectAudioPreviewPort? audioPreview;
   final StudioGameExportPort? gameExport;
+  final bool Function()? isActive;
   PokemonWorkspaceController? pokemon;
   NarrativeWorkspaceController? narrative;
   RegionalMapController? regionalMap;
@@ -100,9 +104,93 @@ class WorkspaceSessionControllers {
   ProjectAudioController? projectAudio;
   ProjectIdentityController? projectIdentity;
   ProjectVisualsController? projectVisuals;
-  PresentationWorkspaceVisuals? presentationVisuals;
+  final presentationPreview = PresentationVisualSession();
+  PresentationWorkspaceVisuals? synchronizePresentationVisuals(
+    PresentationMediaWorkspaceVisuals factory,
+  ) {
+    final owner = presentations;
+    if (_disposal != null || owner == null) return null;
+    return presentationPreview.synchronize(
+      factory: factory,
+      activeId: owner.activeId,
+      session: owner.active,
+    );
+  }
   final presentationEditing = PresentationEditingSessions();
   LoadedWorkspaceSession? loadedSession;
+
+  PokemonWorkspaceController _scenePokemonOwner() {
+    final owner = pokemon ?? (throw StateError('Catalogue indisponible.'));
+    _checkScenePokemonOwner(owner);
+    return owner;
+  }
+
+  void _checkScenePokemonOwner(PokemonWorkspaceController owner) {
+    if (_disposal != null ||
+        !(isActive?.call() ?? !controller.isDisposed) ||
+        !identical(owner, pokemon)) {
+      throw StateError('Le projet a changé.');
+    }
+  }
+
+  Future<List<PokemonSpeciesSummary>> loadSceneSpecies() async {
+    final owner = _scenePokemonOwner();
+    final index = await owner.port.loadIndex();
+    _checkScenePokemonOwner(owner);
+    if (!index.enabled) throw StateError('Catalogue Pokémon désactivé.');
+    return index.entries;
+  }
+
+  Future<Map<String, String>> loadSceneMoves() async {
+    final owner = _scenePokemonOwner();
+    await owner.load(refresh: true);
+    _checkScenePokemonOwner(owner);
+    final moves = owner.index?.moves;
+    if (owner.error != null ||
+        moves == null ||
+        !moves.available ||
+        moves.diagnostics.isNotEmpty) {
+      throw StateError('Le catalogue des capacités est indisponible ou ambigu.');
+    }
+    return {for (final move in moves.entries) move.id: move.name};
+  }
+
+  Future<Map<String, String>> loadSceneCaptureItems() =>
+      loadSceneItems(captureOnly: true);
+
+  Future<Map<String, String>> loadSceneItems({bool captureOnly = false}) async {
+    final owner = _scenePokemonOwner();
+    final index = await owner.port.loadIndex();
+    _checkScenePokemonOwner(owner);
+    if (!index.enabled) throw StateError('Catalogue Pokémon désactivé.');
+    final catalog = index.itemCatalog;
+    final itemIds = <String>{};
+    if (catalog == null ||
+        catalog.entries.any(
+          (item) =>
+              item.id.isEmpty ||
+              item.id.trim() != item.id ||
+              item.displayName.trim().isEmpty ||
+              !itemIds.add(item.id),
+        )) {
+      throw StateError('Le catalogue des objets est indisponible ou ambigu.');
+    }
+    return {
+      for (final item in catalog.entries)
+        if (!captureOnly || item.capture != null) item.id: item.displayName,
+    };
+  }
+
+  List<String> get resourceUsageDraftOwners => [
+    if (narrative?.dirty == true) 'Narration',
+    if (scenes?.dirty == true) 'Scènes',
+    if (events?.dirty == true) 'Événements',
+    if (dialogues?.dirty == true) 'Dialogues',
+    if (cinematics?.dirty == true) 'Cinématiques',
+    if (presentations?.dirty == true) 'Présentations',
+    if (regionalMap?.dirty == true) 'Carte régionale',
+    if (pokemon?.hasPendingChanges == true) 'Pokémon',
+  ];
   ProjectSurfController? get surfOwner {
     final source = controller.port;
     if (source is! ProjectSurfPort) return null;
@@ -218,7 +306,7 @@ class WorkspaceSessionControllers {
     releaseVerificationViews?.call();
     releasePresentationViews?.call();
     presentationEditing.dispose();
-    if (presentationVisuals != null) released.add(presentationVisuals!.close());
+    released.add(presentationPreview.close());
     cinematics?.dispose();
     await Future.wait(released);
   }

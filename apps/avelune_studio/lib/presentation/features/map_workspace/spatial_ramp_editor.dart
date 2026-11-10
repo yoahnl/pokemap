@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../../features/map_workspace/application/editable_map_document.dart';
-import '../../../features/map_workspace/application/spatial_ramp_editing_commands.dart';
+import '../../../features/map_workspace/application/spatial_ramp_editing_session.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_draft_field.dart';
@@ -29,135 +29,60 @@ class SpatialRampEditor extends StatefulWidget {
 }
 
 class _SpatialRampEditorState extends State<SpatialRampEditor> {
-  MapData? _source;
-  SpatialRamp? _ramp;
-  SpatialRampEditingPreview? _ownPreview;
-  String _x = '', _y = '', _width = '', _depth = '';
-  String _lowLevel = '0', _highLevel = '1';
-  SpatialRampDirection _direction = SpatialRampDirection.north;
-  String? _surfaceInstanceId;
-  String? _error;
-  String? _notice;
+  late SpatialRampEditingSession _editing;
 
   @override
   void initState() {
     super.initState();
-    _load(widget.document.current);
+    _editing = SpatialRampEditingSession(
+      widget.document,
+      widget.view,
+      project: widget.project,
+    );
   }
 
   @override
   void didUpdateWidget(SpatialRampEditor oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (!identical(_source, widget.document.current) ||
+    if (!identical(oldWidget.document, widget.document) ||
         !identical(oldWidget.view, widget.view)) {
-      _clearPreview(oldWidget.view);
-      _load(widget.document.current);
-      _notice = 'La carte a changé. Les valeurs affichées ont été actualisées.';
+      final selectedId = _editing.source?.id == widget.document.current.id
+          ? _editing.ramp?.id
+          : null;
+      _editing.dispose();
+      _editing = SpatialRampEditingSession(
+        widget.document,
+        widget.view,
+        project: widget.project,
+      );
+
+      if (selectedId != null) {
+        _editing.load(widget.document.current, rampId: selectedId);
+      }
+    } else {
+      _editing.synchronize();
     }
+    _editing.updateProject(widget.project);
   }
 
   @override
   void dispose() {
-    _clearPreview(widget.view);
+    _editing.dispose();
     super.dispose();
   }
 
-  void _clearPreview(MapWorkspaceViewState view) {
-    if (identical(view.rampPreview, _ownPreview)) view.rampPreview = null;
-    _ownPreview = null;
-  }
-
-  void _load(MapData map, {String? rampId}) {
-    final sameMap = _source?.id == map.id;
-    final selectedId = rampId ?? (sameMap ? _ramp?.id : null);
-    final ramps = map.spatialScene?.navigation.ramps ?? const <SpatialRamp>[];
-    _source = map;
-    _ramp =
-        ramps.where((ramp) => ramp.id == selectedId).firstOrNull ??
-        ramps.firstOrNull;
-    final ramp = _ramp;
-    if (ramp != null) {
-      _x = '${ramp.x}';
-      _y = '${ramp.z}';
-      _width = '${ramp.width}';
-      _depth = '${ramp.depth}';
-      _lowLevel = '${ramp.lowLevel}';
-      _highLevel = '${ramp.highLevel}';
-      _direction = ramp.direction;
-      _surfaceInstanceId = ramp.surfaceInstanceId;
-    }
-    _error = null;
-    _notice = null;
-  }
-
   void _edit(VoidCallback change) {
-    setState(() {
-      _clearPreview(widget.view);
-      _error = null;
-      _notice = null;
-      change();
-    });
+    setState(() => _editing.edit(change));
     widget.onChanged();
   }
 
-  double _number(String value, String label) {
-    final number = double.tryParse(value.trim().replaceAll(',', '.'));
-    if (number == null || !number.isFinite) {
-      throw StateError('$label doit être un nombre fini, par exemple 1,25.');
-    }
-    return number;
-  }
-
   void _preview() {
-    _clearPreview(widget.view);
-    try {
-      if (!identical(_source, widget.document.current)) {
-        throw StateError('La carte a changé. Choisissez à nouveau la pente.');
-      }
-      final ramp = _ramp!;
-      final preview =
-          SpatialRampEditingCommands(
-            widget.document,
-            project: widget.project,
-          ).preview(
-            ramp.copyWith(
-              x: _number(_x, 'X'),
-              z: _number(_y, 'Y'),
-              width: _number(_width, 'La largeur'),
-              depth: _number(_depth, 'La profondeur'),
-              lowLevel: _number(_lowLevel, 'Le niveau bas'),
-              highLevel: _number(_highLevel, 'Le niveau haut'),
-              direction: _direction,
-              surfaceInstanceId: _surfaceInstanceId,
-            ),
-          );
-      _ownPreview = preview;
-      widget.view.rampPreview = preview;
-      _error = null;
-      _notice = null;
-    } on Object catch (failure) {
-      _error = spatialRampEditingFailureMessage(failure);
-    }
-    setState(() {});
+    setState(_editing.preview);
     widget.onChanged();
   }
 
   void _apply() {
-    final preview = widget.view.rampPreview;
-    if (preview == null) return;
-    try {
-      SpatialRampEditingCommands(
-        widget.document,
-        project: widget.project,
-      ).apply(preview);
-      _clearPreview(widget.view);
-      _load(widget.document.current);
-      _notice = 'Pente appliquée. Une seule annulation restaure la carte.';
-    } on Object catch (failure) {
-      _clearPreview(widget.view);
-      _error = spatialRampEditingFailureMessage(failure);
-    }
-    setState(() {});
+    setState(_editing.apply);
     widget.onChanged();
   }
 
@@ -166,49 +91,30 @@ class _SpatialRampEditorState extends State<SpatialRampEditor> {
     final map = widget.document.current;
     final scene = map.spatialScene;
     final ramps = scene?.navigation.ramps ?? const <SpatialRamp>[];
-    final ownedInstances = <String>{};
-    for (final layer in map.layers) {
-      if (layer is EnvironmentLayer) {
-        for (final area in layer.content.areas) {
-          ownedInstances.addAll(area.generatedPlacementIds);
-        }
-      } else if (layer is BorderLayer) {
-        for (final feature in layer.content.features) {
-          ownedInstances.addAll(feature.generatedPlacementIds);
-        }
-      }
-    }
-    final surfaces = (scene?.instances ?? const <SpatialModelInstance>[])
-        .where(
-          (instance) =>
-              !instance.blocksMovement &&
-              !instance.id.startsWith('smt_') &&
-              !ownedInstances.contains(instance.id),
-        )
-        .toList();
+    final surfaces = _editing.surfaceChoices;
     final modelNames = {
       for (final model
           in widget.project?.models3d ?? const <ProjectModel3dEntry>[])
         model.id: model.name,
     };
-    final enabled = !widget.document.saving && _ramp != null;
+    final enabled = _editing.enabled;
     final preview = widget.view.rampPreview;
     final validPreview = preview != null && preview.validFor(map);
     final picker = StudioSelect(
       key: const ValueKey('spatial-ramp-picker'),
       label: 'Pente de la carte',
-      value: _ramp?.id,
+      value: _editing.ramp?.id,
       options: {
         for (var index = 0; index < ramps.length; index++)
           ramps[index].id:
               'Pente ${index + 1} · X ${ramps[index].x}, Y ${ramps[index].z}',
       },
       onChanged: enabled
-          ? (value) => _edit(() => _load(map, rampId: value))
+          ? (value) => _edit(() => _editing.load(map, rampId: value))
           : null,
     );
     final attachedInstance = scene?.instances
-        .where((instance) => instance.id == _ramp?.surfaceInstanceId)
+        .where((instance) => instance.id == _editing.ramp?.surfaceInstanceId)
         .firstOrNull;
     final automatic =
         widget.project?.models3d.any(
@@ -242,10 +148,10 @@ class _SpatialRampEditorState extends State<SpatialRampEditor> {
           picker,
           const SizedBox(height: 12),
           for (final field in <(String, String, ValueChanged<String>)>[
-            ('X', _x, (value) => _x = value),
-            ('Y', _y, (value) => _y = value),
-            ('Largeur', _width, (value) => _width = value),
-            ('Profondeur', _depth, (value) => _depth = value),
+            ('X', _editing.x, (value) => _editing.x = value),
+            ('Y', _editing.y, (value) => _editing.y = value),
+            ('Largeur', _editing.width, (value) => _editing.width = value),
+            ('Profondeur', _editing.depth, (value) => _editing.depth = value),
           ]) ...[
             StudioDraftField(
               key: ValueKey('spatial-ramp-${field.$1}'),
@@ -266,25 +172,25 @@ class _SpatialRampEditorState extends State<SpatialRampEditor> {
           StudioDraftField(
             key: const ValueKey('spatial-ramp-low-level'),
             label: 'Niveau bas',
-            value: _lowLevel,
+            value: _editing.lowLevel,
             enabled: enabled,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            onChanged: (value) => _edit(() => _lowLevel = value),
+            onChanged: (value) => _edit(() => _editing.lowLevel = value),
           ),
           const SizedBox(height: 12),
           StudioDraftField(
             key: const ValueKey('spatial-ramp-high-level'),
             label: 'Niveau haut',
-            value: _highLevel,
+            value: _editing.highLevel,
             enabled: enabled,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            onChanged: (value) => _edit(() => _highLevel = value),
+            onChanged: (value) => _edit(() => _editing.highLevel = value),
           ),
           const SizedBox(height: 12),
           StudioSelect(
             key: const ValueKey('spatial-ramp-direction'),
             label: 'Montée vers',
-            value: _direction.name,
+            value: _editing.direction.name,
             options: const {
               'north': 'Le haut de la carte',
               'south': 'Le bas de la carte',
@@ -293,8 +199,8 @@ class _SpatialRampEditorState extends State<SpatialRampEditor> {
             },
             onChanged: enabled
                 ? (value) => _edit(
-                    () =>
-                        _direction = SpatialRampDirection.values.byName(value),
+                    () => _editing.direction = SpatialRampDirection.values
+                        .byName(value),
                   )
                 : null,
           ),
@@ -302,7 +208,7 @@ class _SpatialRampEditorState extends State<SpatialRampEditor> {
           StudioSelect(
             key: const ValueKey('spatial-ramp-surface'),
             label: 'Apparence de la pente',
-            value: _surfaceInstanceId ?? '',
+            value: _editing.surfaceInstanceId ?? '',
             options: {
               '': 'Terrain peint',
               for (var index = 0; index < surfaces.length; index++)
@@ -311,7 +217,9 @@ class _SpatialRampEditorState extends State<SpatialRampEditor> {
             },
             onChanged: enabled
                 ? (value) => _edit(
-                    () => _surfaceInstanceId = value.isEmpty ? null : value,
+                    () => _editing.surfaceInstanceId = value.isEmpty
+                        ? null
+                        : value,
                   )
                 : null,
           ),
@@ -353,13 +261,13 @@ class _SpatialRampEditorState extends State<SpatialRampEditor> {
                   : 'La pente correspond déjà à ces valeurs.',
             ),
           ],
-          if (_error != null) ...[
+          if (_editing.error != null) ...[
             const SizedBox(height: 12),
-            StudioNotice(_error!, isError: true),
+            StudioNotice(_editing.error!, isError: true),
           ],
-          if (_notice != null) ...[
+          if (_editing.notice != null) ...[
             const SizedBox(height: 12),
-            StudioNotice(_notice!),
+            StudioNotice(_editing.notice!),
           ],
         ],
       ],

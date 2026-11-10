@@ -10,7 +10,11 @@ import '../../narrative/application/narrative_workspace_controller.dart';
 import '../application/editable_map_document.dart';
 import 'map_editing_viewport_session.dart';
 import '../../presentations/application/presentation_workspace_controller.dart';
+import '../../resources/application/resource_catalog.dart';
+import '../../resources/coordination/resource_navigation.dart';
+import '../../resources/domain/resource_usage_port.dart';
 import '../../scenes/application/scene_workspace_controller.dart';
+import '../../scenes/domain/scene_presentation_creation_request.dart';
 import '../../stories/application/story_workspace_controller.dart';
 import '../../verification/application/verification_workspace_controller.dart';
 import '../../world/application/world_workspace_controller.dart';
@@ -21,6 +25,8 @@ import '../domain/workspace_navigation.dart';
 part 'workspace_navigation_diagnostics.dart';
 part 'workspace_navigation_event_source.dart';
 part 'workspace_navigation_interactions.dart';
+part 'workspace_navigation_resources.dart';
+part 'workspace_navigation_presentations.dart';
 
 class WorkspaceNavigationSession {
   WorkspaceNavigationSession({
@@ -50,6 +56,9 @@ class WorkspaceNavigationSession {
     this.nodeSelected,
     this.selectProgressionNode,
     this.selectWorldMode,
+    this.resources,
+    this.resourceUsageBusy,
+    this.flushResourceFocus,
   });
 
   final MapWorkspaceController controller;
@@ -78,6 +87,9 @@ class WorkspaceNavigationSession {
   final void Function(String, String)? nodeSelected;
   final void Function(String, StorylineProgressionNode)? selectProgressionNode;
   final void Function(bool)? selectWorldMode;
+  final ResourceNavigation? Function()? resources;
+  final bool Function()? resourceUsageBusy;
+  final void Function()? flushResourceFocus;
   WorkspaceSpace space = WorkspaceSpace.map;
   WorkspaceReturn sceneOrigin = WorkspaceReturn.story;
   WorkspaceReturn presentationOrigin = WorkspaceReturn.story;
@@ -179,6 +191,50 @@ class WorkspaceNavigationSession {
   }
 
   void returnFromDialogue() => show(dialogueOrigin);
+
+  Future<void> openSceneCinematic(
+    SceneCinematicPayload payload, {
+    void Function()? flushFocus,
+  }) async {
+    final ticket = await _prepare(MapWorkspaceWorkshop.cinematic);
+    if (ticket == null) return;
+    final owner = cinematics?.call();
+    if (owner == null) return;
+    flushFocus?.call();
+    if (!await owner.open(payload.cinematicId) ||
+        !isActive() ||
+        ticket != request) {
+      return;
+    }
+    final backToTriggeredCinematic =
+        sceneOrigin.space == WorkspaceSpace.cinematic &&
+        sceneOrigin.documentId == payload.cinematicId;
+    if (!backToTriggeredCinematic) cinematicOrigin = WorkspaceSpace.scene;
+    show(WorkspaceSpace.cinematic);
+  }
+
+  Future<String?> locateCinematic(
+    String id, {
+    void Function()? mapReturn,
+  }) async {
+    final entries =
+        controller.project?.maps.where((map) => map.id == id).toList() ?? [];
+    if (entries.length != 1) return 'Cette carte est absente ou ambiguë.';
+    final ticket = nextNavigationRequest?.call() ?? ++_request;
+    bool current() =>
+        isActive() && ticket == request && space == WorkspaceSpace.cinematic;
+    await controller.activate(entries.single, isCurrent: current);
+    if (!current()) return null;
+    if (controller.active?.current.id != id) {
+      return controller.error ?? 'Carte indisponible.';
+    }
+    mapView?.call()?.tool = StudioMapTool.select;
+    controller.active?.selectedId = null;
+    mapReturn?.call();
+    show(WorkspaceSpace.map);
+    toolChanged?.call();
+    return null;
+  }
 
   Future<void> openScenePresentation(
     ScenePresentationCinematicPayload payload,

@@ -311,7 +311,9 @@ final class BattleItemActionHandler {
     final targetBattler =
         context.state.partyForBank(action.target.bank)[partyIndex];
     final status = targetBattler.majorStatus;
-    if (status == null) {
+    final confused = effect.curesConfusion && targetBattler.effects.contains(PsdkBattleEffectIds.confusion);
+    final cureMajor = status != null && effect.cures(status);
+    if (status == null && !confused) {
       return BattleHandlerResult(
         state: context.state,
         rng: context.rng,
@@ -319,7 +321,7 @@ final class BattleItemActionHandler {
         reason: 'no_major_status',
       );
     }
-    if (!effect.cures(status)) {
+    if (!cureMajor && !confused) {
       return BattleHandlerResult(
         state: context.state,
         rng: context.rng,
@@ -328,14 +330,15 @@ final class BattleItemActionHandler {
       );
     }
 
+    final curedEffects = cureMajor ? targetBattler.effects.remove(status.name) : targetBattler.effects;
     final curedBattler = targetBattler.copyWith(
-      clearMajorStatus: true,
+      clearMajorStatus: cureMajor,
       sleepTurns:
-          status == PsdkBattleMajorStatus.sleep ? 0 : targetBattler.sleepTurns,
-      toxicCounter: status == PsdkBattleMajorStatus.toxic
+          cureMajor && status == PsdkBattleMajorStatus.sleep ? 0 : targetBattler.sleepTurns,
+      toxicCounter: cureMajor && status == PsdkBattleMajorStatus.toxic
           ? 0
           : targetBattler.toxicCounter,
-      effects: targetBattler.effects.remove(status.name),
+      effects: confused ? curedEffects.remove(PsdkBattleEffectIds.confusion) : curedEffects,
     );
     final state = context.state.replacePartyBattler(
       bank: action.target.bank,
@@ -347,12 +350,14 @@ final class BattleItemActionHandler {
       rng: context.rng,
       events: <PsdkBattleEvent>[
         _itemEvent(context, action, partyIndex),
-        PsdkBattleStatusCureEvent(
+        if (cureMajor) PsdkBattleStatusCureEvent(
           user: action.user,
           target: action.target,
           moveId: 'item:${action.itemId}',
           status: status,
         ),
+        if (confused) PsdkBattleEffectEvent.removed(turn: context.turn, target: action.target,
+          effectId: PsdkBattleEffectIds.confusion, reason: 'item:${action.itemId}'),
       ],
     );
   }

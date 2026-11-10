@@ -132,11 +132,9 @@ class SceneLinkedDocuments extends SceneLinkedDocumentReader {
         isError: true,
       );
     }
-    final selectedStart =
-        start ?? source.entry.defaultStartNode ?? compiled.nodes.first.title;
-    final selected = compiled.nodes
-        .where((node) => node.title == selectedStart)
-        .firstOrNull;
+    final selection = selectLinkedDialogueStart(source, compiled, start);
+    final selectedStart = selection.start;
+    final selected = selection.node;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [

@@ -2,7 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 import '../../../features/cinematics/application/cinematic_preview_transport.dart';
-import 'cinematic_map_model.dart';
+import 'package:avelune_studio/features/cinematics/application/cinematic_map_model.dart';
 import 'cinematic_transport_listenable.dart';
 
 class CinematicPlaybackViewport extends StatefulWidget {

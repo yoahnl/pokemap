@@ -19,6 +19,9 @@ enum ProjectItemPpScope {
 String? _itemPpScopeToJson(ProjectItemPpScope scope) =>
     scope == ProjectItemPpScope.allMoves ? 'all_moves' : null;
 
+bool? _itemCuresConfusionToJson(bool curesConfusion) =>
+    curesConfusion ? true : null;
+
 enum ProjectItemVitaminStat {
   hp,
   attack,
@@ -104,6 +107,9 @@ abstract class ProjectItemEffectDefinition with _$ProjectItemEffectDefinition {
   const factory ProjectItemEffectDefinition.cureStatus({
     required ProjectItemStatusCureMode mode,
     @Default(<String>{}) Set<String> statusIds,
+    @JsonKey(includeIfNull: false, toJson: _itemCuresConfusionToJson)
+    @Default(false)
+    bool curesConfusion,
   }) = ProjectItemCureStatusEffectDefinition;
 
   @JsonSerializable(explicitToJson: true)
@@ -117,7 +123,8 @@ abstract class ProjectItemEffectDefinition with _$ProjectItemEffectDefinition {
     required ProjectItemAmountMode mode,
     int? amount,
     @JsonKey(includeIfNull: false, toJson: _itemPpScopeToJson)
-    @Default(ProjectItemPpScope.selectedMove) ProjectItemPpScope scope,
+    @Default(ProjectItemPpScope.selectedMove)
+    ProjectItemPpScope scope,
   }) = ProjectItemRestorePpEffectDefinition;
 
   @JsonSerializable(explicitToJson: true)

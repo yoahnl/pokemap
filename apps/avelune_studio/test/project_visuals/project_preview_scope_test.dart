@@ -1,148 +1,114 @@
+import 'package:avelune_studio/features/project_settings/application/project_settings_preview_controller.dart';
+import 'package:avelune_studio/features/project_visuals/application/spatial_visual_editing.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/features/project_settings/application/project_settings_session_controller.dart';
 import 'package:avelune_studio/features/project_visuals/application/project_visuals_controller.dart';
 import 'package:avelune_studio/features/project_visuals/domain/project_visuals_port.dart';
-import 'package:avelune_studio/presentation/features/project_settings/project_settings_page.dart';
-import 'package:avelune_studio/presentation/features/project_settings/spatial_visual_controls.dart';
-import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_draft_field.dart';
-import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
 import '../support/map_workspace_fixture.dart';
 
 void main() {
-  Future<(MapWorkspaceController, ProjectVisualsController, _Maps)> open(
-    WidgetTester tester, {
-    bool fail = false,
-    StudioVisualTestBuilder? testBuilder,
-  }) async {
-    tester.view.physicalSize = const Size(1600, 1100);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
+  Future<
+    (ProjectSettingsPreviewController, ProjectSettingsSessionController, _Maps)
+  >
+  open({bool fail = false}) async {
     final maps = _Maps()..fail = fail;
     final workspace = MapWorkspaceController(workspaceSession, maps);
+    addTearDown(workspace.dispose);
     await workspace.initialize();
     final owner = ProjectVisualsController(
       session: workspaceSession,
       port: maps,
     );
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: studioTheme(),
-        home: Scaffold(
-          body: ProjectSettingsPage(
-            workspace: workspace,
-            owner: owner,
-            testBuilder: testBuilder,
-          ),
-        ),
-      ),
+    addTearDown(owner.dispose);
+    await owner.open();
+    final settings = ProjectSettingsSessionController(projectVisuals: owner);
+    addTearDown(settings.dispose);
+    final preview = ProjectSettingsPreviewController(
+      workspace: workspace,
+      owner: owner,
+      session: settings,
     );
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('settings-section-image')));
-    await tester.pumpAndSettle();
-    return (workspace, owner, maps);
+    addTearDown(preview.dispose);
+    await preview.start();
+    settings.select(ProjectSettingsSection.image);
+    return (preview, settings, maps);
   }
 
-  Future<void> close(
-    WidgetTester tester,
-    MapWorkspaceController workspace,
-    ProjectVisualsController owner,
-  ) async {
-    await tester.pumpWidget(const SizedBox());
-    owner.dispose();
-    workspace.dispose();
-  }
+  SpatialVisualEditing editing(ProjectSettingsPreviewController preview) =>
+      SpatialVisualEditing(
+        patch: preview.owner.preview.value,
+        inherited: preview.base,
+        onChanged: preview.owner.edit,
+        onInvalidInput: (parameter, text) => text == null
+            ? preview.owner.clearInvalid(parameter)
+            : preview.owner.reportInvalid(parameter, text),
+      );
 
-  testWidgets(
+  test(
     'changing the preview map writes nothing and keeps the project distance',
-    (tester) async {
-      final (workspace, owner, maps) = await open(tester);
-      expect(
-        find.byKey(const ValueKey('visual-provenance-cameraDistance')),
-        findsOneWidget,
-      );
-      expect(find.text('Défini par le projet'), findsWidgets);
-      tester
-          .widget<StudioSelect>(
-            find.byKey(const ValueKey('settings-preview-map')),
-          )
-          .onChanged!(workspaceEntries.last.id);
-      await tester.pumpAndSettle();
+    () async {
+      final (preview, _, maps) = await open();
+      await preview.choosePreview(workspaceEntries.last.id);
       expect(maps.visualWrites, 0);
       expect(
-        owner.preview.value.number(SpatialVisualParameter.cameraDistance),
-        24,
-      );
-      final distance = tester.widget<StudioDraftField>(
-        find.byKey(const ValueKey('visual-entry-cameraDistance')),
-      );
-      expect(distance.value, '24.00');
-      expect(tester.takeException(), isNull);
-      await close(tester, workspace, owner);
-    },
-  );
-
-  testWidgets(
-    'an invalid camera value blocks saving, keeps the text and never reaches the renderer',
-    (tester) async {
-      final (workspace, owner, maps) = await open(tester);
-      final field = find.descendant(
-        of: find.byKey(const ValueKey('visual-entry-cameraDistance')),
-        matching: find.byType(TextField),
-      );
-      await tester.enterText(field, 'abc');
-      await tester.pump();
-      expect(find.text('abc'), findsOneWidget);
-      expect(find.textContaining('Saisissez un nombre'), findsOneWidget);
-      expect(
-        owner.preview.value.number(SpatialVisualParameter.cameraDistance),
-        24,
-      );
-      final save = tester.widget<ButtonStyleButton>(
-        find.descendant(
-          of: find.byKey(const ValueKey('settings-section-save')),
-          matching: find.byWidgetPredicate((w) => w is ButtonStyleButton),
+        preview.owner.preview.value.number(
+          SpatialVisualParameter.cameraDistance,
         ),
+        24,
       );
-      expect(save.onPressed, isNull);
-      await tester.enterText(field, '30');
-      await tester.pump();
       expect(
-        owner.preview.value.number(SpatialVisualParameter.cameraDistance),
-        30,
+        preview.rendered.value.number(SpatialVisualParameter.cameraDistance),
+        24,
       );
-      expect(find.textContaining('Saisissez un nombre'), findsNothing);
-      expect(owner.invalidInputs, isEmpty);
-      expect(maps.visualWrites, 0);
-      await close(tester, workspace, owner);
     },
   );
 
-  testWidgets(
+  test('an invalid camera value blocks saving, keeps the text and never reaches the renderer', () async {
+    final (preview, settings, maps) = await open();
+    editing(preview).editNumber(SpatialVisualParameter.cameraDistance, 'abc');
+    expect(
+      preview.owner.invalidInputs[SpatialVisualParameter.cameraDistance],
+      'abc',
+    );
+    expect(
+      preview.owner.preview.value.number(SpatialVisualParameter.cameraDistance),
+      24,
+    );
+    expect(
+      preview.rendered.value.number(SpatialVisualParameter.cameraDistance),
+      24,
+    );
+    expect(settings.canSave(ProjectSettingsSection.image), isFalse);
+    expect(await settings.save(ProjectSettingsSection.image), isFalse);
+    editing(preview).editNumber(SpatialVisualParameter.cameraDistance, '30');
+    expect(
+      preview.owner.preview.value.number(SpatialVisualParameter.cameraDistance),
+      30,
+    );
+    expect(preview.owner.invalidInputs, isEmpty);
+    expect(maps.visualWrites, 0);
+  });
+
+  test(
     'a failed first save keeps the draft and the history on the targeted port',
-    (tester) async {
-      final (workspace, owner, maps) = await open(tester, fail: true);
-      tester
-          .widget<SpatialVisualControls>(find.byType(SpatialVisualControls))
-          .change(SpatialVisualParameter.fieldOfViewDegrees, 30.0);
-      await tester.pumpAndSettle();
+    () async {
+      final (preview, settings, maps) = await open(fail: true);
+      final owner = preview.owner;
+      editing(preview).change(SpatialVisualParameter.fieldOfViewDegrees, 30.0);
       final draft = owner.preview.value;
       expect(draft.number(SpatialVisualParameter.fieldOfViewDegrees), 30);
       expect(draft.number(SpatialVisualParameter.cameraDistance), isNot(24));
-      await tester.tap(find.byKey(const ValueKey('settings-section-save')));
-      await tester.pumpAndSettle();
+      expect(await settings.save(ProjectSettingsSection.image), isFalse);
       expect(maps.visualAttempts, 1);
       expect(maps.lastVisualMap, isNull);
       expect(owner.preview.value, draft);
       expect(owner.canUndo, isTrue);
+      expect(owner.error, contains('Écriture refusée'));
       owner.undo();
       expect(
         owner.preview.value.number(SpatialVisualParameter.cameraDistance),
@@ -152,40 +118,38 @@ void main() {
         owner.preview.value.number(SpatialVisualParameter.fieldOfViewDegrees),
         isNull,
       );
-      expect(find.text('Réessayer l’enregistrement'), findsOneWidget);
-      await close(tester, workspace, owner);
     },
   );
 
-  testWidgets('the in-game preview compares the saved values with the draft', (
-    tester,
-  ) async {
-    ValueListenable<SpatialVisualPatch>? rendered;
-    final (workspace, owner, maps) = await open(
-      tester,
-      testBuilder: (entry, revision, close, preview) {
-        rendered = preview;
-        return const SizedBox(key: ValueKey('fake-runtime'));
-      },
-    );
-    await tester.tap(find.byKey(const ValueKey('test-project-visuals')));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('fake-runtime')), findsOneWidget);
-    owner.edit(
-      owner.preview.value.set(SpatialVisualParameter.cameraDistance, 60.0),
-    );
-    await tester.pumpAndSettle();
-    expect(rendered!.value.number(SpatialVisualParameter.cameraDistance), 60);
-    await tester.tap(find.text('Mémorisé'));
-    await tester.pumpAndSettle();
-    expect(rendered!.value.number(SpatialVisualParameter.cameraDistance), 24);
-    expect(
-      owner.preview.value.number(SpatialVisualParameter.cameraDistance),
-      60,
-    );
-    expect(maps.visualWrites, 0);
-    await close(tester, workspace, owner);
-  });
+  test(
+    'the in-game preview compares the saved values with the draft',
+    () async {
+      final (preview, _, maps) = await open();
+      expect(preview.preparePlaytest(), isNotNull);
+      preview.owner.edit(
+        preview.owner.preview.value.set(
+          SpatialVisualParameter.cameraDistance,
+          60.0,
+        ),
+      );
+      expect(
+        preview.rendered.value.number(SpatialVisualParameter.cameraDistance),
+        60,
+      );
+      preview.compareSaved(true);
+      expect(
+        preview.rendered.value.number(SpatialVisualParameter.cameraDistance),
+        24,
+      );
+      expect(
+        preview.owner.preview.value.number(
+          SpatialVisualParameter.cameraDistance,
+        ),
+        60,
+      );
+      expect(maps.visualWrites, 0);
+    },
+  );
 
   test(
     'image and time-weather sections block only on their own invalid inputs',

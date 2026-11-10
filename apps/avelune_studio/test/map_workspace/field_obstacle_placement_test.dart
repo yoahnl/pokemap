@@ -1,3 +1,5 @@
+import 'package:avelune_studio/features/map_workspace/application/map_workspace_editing_state.dart';
+
 import 'dart:convert';
 import 'dart:io';
 
@@ -6,12 +8,6 @@ import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_a
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_character_gesture.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_creation_tools.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_tool_strip.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
-import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
@@ -27,10 +23,6 @@ void main() {
     testWidgets('$label creates one undoable native object and cold reopens', (
       tester,
     ) async {
-      tester.view.physicalSize = const Size(1400, 1000);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
       final project = workspaceProject.copyWith(
         maps: [workspaceEntries.first],
         elementCategories: const [
@@ -41,22 +33,8 @@ void main() {
       final document = EditableMapDocument(
         MapWorkspaceDocument(map: source, mapId: 'a', revision: 'initial'),
       );
-      final view = MapWorkspaceViewState()..brush = workspaceElement;
-      addTearDown(view.dispose);
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: studioTheme(),
-          home: Scaffold(
-            body: MapCreationTools(
-              view: view,
-              onChanged: () {},
-              storyAvailable: true,
-            ),
-          ),
-        ),
-      );
-      expect(find.byTooltip(label), findsOneWidget);
-      await tester.tap(find.byTooltip(label));
+      final view = MapWorkspaceEditingState()..brush = workspaceElement;
+      view.prepareFieldObstaclePlacement(kind);
       expect(view.tool.name, 'fieldObstacle');
       expect(
         MapCharacterGesture.start(
@@ -83,7 +61,11 @@ void main() {
       document.restore(redo: true);
       expect(document.current, changed);
       await tester.runAsync(() async {
-        final temporary = await Directory.systemTemp.createTemp(
+        final parent = Directory(
+          '/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/t01-map-retirement',
+        );
+        await parent.create(recursive: true);
+        final temporary = await parent.createTemp(
           'studio-native-obstacle-placement-',
         );
         final root = Directory(await temporary.resolveSymbolicLinks());
@@ -120,78 +102,37 @@ void main() {
     });
   }
 
-  testWidgets(
-    'toolbar guides the visual choice before placing a Force boulder',
-    (tester) async {
-      tester.view.physicalSize = const Size(1400, 1000);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-      final view = MapWorkspaceViewState();
-      addTearDown(view.dispose);
-      final source = workspaceMap('a');
-      final document = EditableMapDocument(
-        MapWorkspaceDocument(map: source, mapId: 'a', revision: 'initial'),
-      );
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: studioTheme(),
-          home: Scaffold(
-            body: StatefulBuilder(
-              builder: (context, rebuild) => MapWorkspaceToolStrip(
-                view: view,
-                elements: workspaceProject.elements,
-                onChanged: () => rebuild(() {}),
-                onMoreTools: () {},
-                onResources: () {},
-                storyAvailable: true,
-                paletteVisible: false,
-                onUndo: null,
-                onRedo: null,
-              ),
-            ),
-          ),
-        ),
-      );
-      await tester.tap(find.byTooltip('Peupler la carte'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Placer un rocher à pousser'));
-      await tester.pumpAndSettle();
-      expect(view.fieldObstacleKind, FieldObstacleKind.strengthBoulder);
-      expect(view.brush, isNull);
-      MapCharacterGesture.start(
-        document: document,
-        project: workspaceProject,
-        view: view,
-        origin: const GridPos(x: 3, y: 4),
-      );
-      expect(document.current, source);
-      expect(document.canUndo, isFalse);
-      expect(document.error, contains('Choisissez le visuel'));
-      await tester.tap(
-        find.byWidgetPredicate(
-          (widget) =>
-              widget is StudioSelect && widget.label == 'Visuel de l’obstacle',
-        ),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Arbre').last);
-      await tester.pumpAndSettle();
-      expect(view.brush, workspaceElement);
-      expect(view.tool, StudioMapTool.fieldObstacle);
-      MapCharacterGesture.start(
-        document: document,
-        project: workspaceProject,
-        view: view,
-        origin: const GridPos(x: 3, y: 4),
-      );
-      expect(
-        document.current.entities.single.fieldObstacle?.kind,
-        FieldObstacleKind.strengthBoulder,
-      );
-      expect(document.current.entities.single.editorVisual?.elementId, 'tree');
-      expect(document.error, isNull);
-      expect(tester.takeException(), isNull);
-    },
-  );
+  test('a Force obstacle requires its visual before native placement', () {
+    final view = MapWorkspaceEditingState();
+    final source = workspaceMap('a');
+    final document = EditableMapDocument(
+      MapWorkspaceDocument(map: source, mapId: 'a', revision: 'initial'),
+    );
+    view.prepareFieldObstaclePlacement(FieldObstacleKind.strengthBoulder);
+    expect(view.fieldObstacleKind, FieldObstacleKind.strengthBoulder);
+    expect(view.brush, isNull);
+    MapCharacterGesture.start(
+      document: document,
+      project: workspaceProject,
+      view: view,
+      origin: const GridPos(x: 3, y: 4),
+    );
+    expect(document.current, source);
+    expect(document.canUndo, isFalse);
+    expect(document.error, contains('Choisissez le visuel'));
+    view.brush = workspaceElement;
+    expect(view.tool, StudioMapTool.fieldObstacle);
+    MapCharacterGesture.start(
+      document: document,
+      project: workspaceProject,
+      view: view,
+      origin: const GridPos(x: 3, y: 4),
+    );
+    expect(
+      document.current.entities.single.fieldObstacle!.kind,
+      FieldObstacleKind.strengthBoulder,
+    );
+    expect(document.current.entities.single.editorVisual!.elementId, 'tree');
+    expect(document.error, isNull);
+  });
 }

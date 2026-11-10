@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:map_core/map_core_domain.dart';
 
 import '../domain/pokemon_commerce_port.dart';
+import 'pokemon_pocket_label.dart';
 
 part 'pokemon_commerce_import_commands.dart';
 
@@ -35,6 +36,7 @@ final class PokemonCommerceController {
   bool importing = false;
   PokemonCommerceImportPreview? importPreview;
   final fieldErrors = <String, String>{};
+  final numericInputs = <String, String>{};
   int formVersion = 0;
   bool _disposed = false;
   int _generation = 0;
@@ -68,6 +70,26 @@ final class PokemonCommerceController {
             value.label.toLowerCase().contains(query))
           value,
     ];
+  }
+
+  Map<String, String> get itemPocketOptions {
+    final ids = <String>{
+      for (final entry
+          in snapshot?.catalog?.entries ?? const <ProjectItemDefinition>[])
+        entry.pocketId,
+      ...?snapshot?.project.bagCapacity.pockets.keys,
+      if (item != null) item!.pocketId,
+    }.where((id) => id.isNotEmpty).toList()..sort();
+    return {for (final id in ids) id: pokemonPocketLabel(id)};
+  }
+
+  bool setItemPocket(String value) {
+    final id = value.trim();
+    if (_disposed || item == null || saving || importing || id.isEmpty) {
+      return false;
+    }
+    editItem((current) => current.copyWith(pocketId: id));
+    return true;
   }
 
   Future<void> analyzeReferences() =>
@@ -127,6 +149,7 @@ final class PokemonCommerceController {
     if (dirty || saving || importing) return false;
     _baseItem = value;
     fieldErrors.clear();
+    numericInputs.clear();
     formVersion++;
     item = value;
     shop = null;
@@ -141,6 +164,7 @@ final class PokemonCommerceController {
     if (dirty || saving || importing) return false;
     _baseShop = value;
     fieldErrors.clear();
+    numericInputs.clear();
     formVersion++;
     shop = value;
     item = null;
@@ -169,6 +193,7 @@ final class PokemonCommerceController {
     shop = null;
     _baseShop = null;
     fieldErrors.clear();
+    numericInputs.clear();
     formVersion++;
     section = PokemonCommerceSection.overview;
     changed();
@@ -189,6 +214,7 @@ final class PokemonCommerceController {
     item = null;
     _baseItem = null;
     fieldErrors.clear();
+    numericInputs.clear();
     formVersion++;
     section = PokemonCommerceSection.overview;
     changed();
@@ -217,6 +243,7 @@ final class PokemonCommerceController {
       shop = _baseShop;
     }
     fieldErrors.clear();
+    numericInputs.clear();
     formVersion++;
     error = null;
     changed();
@@ -229,6 +256,31 @@ final class PokemonCommerceController {
       fieldErrors[id] = message;
     }
     changed();
+  }
+
+  String? setIntegerInput({
+    required String fieldId,
+    required String value,
+    required void Function(int?) onChanged,
+    int minimum = 0,
+    int? maximum,
+    bool optional = true,
+  }) {
+    final number = int.tryParse(value);
+    final valid = value.isEmpty
+        ? optional
+        : number != null &&
+              number >= minimum &&
+              (maximum == null || number <= maximum);
+    final problem = valid
+        ? null
+        : maximum == null
+        ? 'Valeur entière ≥ $minimum requise'
+        : 'Valeur entière entre $minimum et $maximum requise';
+    numericInputs[fieldId] = value;
+    setFieldError(fieldId, problem);
+    if (valid) onChanged(value.isEmpty ? null : number);
+    return problem;
   }
 
   Future<bool> save() async {

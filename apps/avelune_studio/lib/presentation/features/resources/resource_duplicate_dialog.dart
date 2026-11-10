@@ -1,28 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
-import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
+
+import '../../../features/resources/coordination/resource_definition_lifecycle.dart';
 import 'resource_management_dialog.dart';
 
 Future<void> showResourceDuplicate(
   BuildContext context, {
-  required ResourceItem item,
+  required ResourceDuplicateSession session,
   required ProjectManifest project,
-  required Future<String?> Function(String name, String categoryId) save,
-  required bool Function() canApply,
 }) async {
-  final originalName = '${item.name} — copie';
+  final originalName = session.name;
   final name = TextEditingController(text: originalName);
-  var category = item.category;
+  final originalCategory = session.categoryId;
   try {
     await showResourceManagementRoute(
       context,
       (_) => ResourceManagementDialog(
         title: 'Dupliquer la définition de décor',
         submitLabel: 'Créer la copie',
-        dirty: () => name.text != originalName || category != item.category,
-        valid: () =>
-            canApply() && name.text.trim().isNotEmpty && category.isNotEmpty,
-        submit: () => save(name.text, category),
+        dirty: () =>
+            name.text != originalName || session.categoryId != originalCategory,
+        valid: () => session.canApply,
+        submit: session.apply,
         fields: (refresh, busy) => Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -31,29 +30,34 @@ Future<void> showResourceDuplicate(
               controller: name,
               enabled: !busy,
               decoration: const InputDecoration(labelText: 'Nom de la copie'),
-              onChanged: (_) => refresh(),
+              onChanged: (value) {
+                session.name = value;
+                refresh();
+              },
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
               key: const ValueKey('resource-duplicate-category'),
-              initialValue: category,
+              initialValue: session.categoryId,
               isExpanded: true,
               decoration: const InputDecoration(labelText: 'Catégorie'),
               items: [
                 for (final entry in project.elementCategories)
                   DropdownMenuItem(value: entry.id, child: Text(entry.name)),
                 if (!project.elementCategories.any(
-                  (entry) => entry.id == category,
+                  (entry) => entry.id == session.categoryId,
                 ))
                   DropdownMenuItem(
-                    value: category,
-                    child: Text('Catégorie introuvable · $category'),
+                    value: session.categoryId,
+                    child: Text(
+                      'Catégorie introuvable · ${session.categoryId}',
+                    ),
                   ),
               ],
               onChanged: busy
                   ? null
                   : (value) {
-                      if (value != null) category = value;
+                      if (value != null) session.categoryId = value;
                       refresh();
                     },
             ),

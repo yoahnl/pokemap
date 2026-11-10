@@ -3,11 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_screen.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/workspace_workflow.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/workspace_publication_workflow.dart';
 import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 import 'package:avelune_studio/features/resources/coordination/resource_navigation.dart';
-import 'package:avelune_studio/presentation/features/resources/resource_workspace_pane.dart';
-import 'package:avelune_studio/presentation/shell/studio_home_navigation.dart';
 
 import '../support/map_workspace_fixture.dart';
 
@@ -28,7 +27,7 @@ import 'resource_pack_import_host_test.dart' show ResourcePackTestHost;
 
 void main() {
   testWidgets(
-    'real shell blocks close and switch until unknown publication is reconciled',
+    'workspace publication guard blocks close and switch until unknown publication is reconciled',
     (tester) async {
       final sink = PendingExportTestSink();
       final host = await mountPackShell(
@@ -44,18 +43,18 @@ void main() {
       await c.export();
       expect(c.requiresPublicationReconciliation, isTrue);
       expect(await host.exit(), isFalse);
-      expect(await host.home.allowSwitch!(), isFalse);
+      expect(await host.switchProject(), isFalse);
       await c.retryPublication();
       expect(c.outputPath, '/published.aveluneassets');
       expect(await host.exit(), isTrue);
-      expect(await host.home.allowSwitch!(), isTrue);
+      expect(await host.switchProject(), isTrue);
       await tester.pumpWidget(const SizedBox());
     },
   );
 
   for (final verb in ['stage_license', 'prepare', 'export']) {
     testWidgets(
-      'real shell close and switch wait for export $verb cancellation',
+      'workspace publication guard close and switch wait for export $verb cancellation',
       (tester) async {
         final port = DelayedExportPackPort();
         final host = await mountPackShell(
@@ -82,7 +81,7 @@ void main() {
           exited = true;
           return v;
         });
-        final switching = host.home.allowSwitch!().then((v) {
+        final switching = host.switchProject().then((v) {
           switched = true;
           return v;
         });
@@ -98,13 +97,12 @@ void main() {
         expect(c.outputPath, isNull);
         expect(port.applies, 0);
         await tester.pumpWidget(const SizedBox());
-        host.home.dispose();
         host.workspace.dispose();
       },
     );
   }
   testWidgets(
-    'real shell waits during sink writing and refuses close at the publication barrier',
+    'workspace publication guard waits during sink writing and refuses close at the publication barrier',
     (tester) async {
       for (final publishing in [false, true]) {
         final port = ExportPackTestPort();
@@ -121,7 +119,7 @@ void main() {
         if (publishing) {
           expect(c.phase, ResourcePackTransferPhase.publishing);
           expect(await host.exit(), isFalse);
-          expect(await host.home.allowSwitch!(), isFalse);
+          expect(await host.switchProject(), isFalse);
           sink.gate.complete();
           await exporting;
           expect(c.outputPath, '/published.aveluneassets');
@@ -132,7 +130,7 @@ void main() {
             done = true;
             return v;
           });
-          final switching = host.home.allowSwitch!();
+          final switching = host.switchProject();
           await tester.pump();
           expect(done, isFalse);
           sink.gate.complete();
@@ -142,7 +140,6 @@ void main() {
           expect(c.outputPath, isNull);
         }
         await tester.pumpWidget(const SizedBox());
-        host.home.dispose();
         host.workspace.dispose();
       }
     },
@@ -150,7 +147,7 @@ void main() {
 
   TestWidgetsFlutterBinding.ensureInitialized();
   testWidgets(
-    'real shell close and project switch await cancellation before reservation',
+    'workspace publication guard close and project switch await cancellation before reservation',
     (tester) async {
       final port = DelayedPackPort();
       final host = await mountPackShell(tester, port);
@@ -162,7 +159,7 @@ void main() {
         exitDone = true;
         return value;
       });
-      final switching = host.home.allowSwitch!().then((value) {
+      final switching = host.switchProject().then((value) {
         switchDone = true;
         return value;
       });
@@ -182,12 +179,11 @@ void main() {
       await importing;
       expect(port.applies, 0);
       await tester.pumpWidget(const SizedBox());
-      host.home.dispose();
       host.workspace.dispose();
     },
   );
   testWidgets(
-    'real shell blocks close and switch during finalization and receipt reconciliation',
+    'workspace publication guard blocks close and switch during finalization and receipt reconciliation',
     (tester) async {
       final port = FinalizingPackPort();
       final visuals = GuardVisuals();
@@ -200,22 +196,21 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
       await port.entered.future;
       expect(await host.exit(), isFalse);
-      expect(await host.home.allowSwitch!(), isFalse);
+      expect(await host.switchProject(), isFalse);
       port.terminal.complete();
       await tester.pump();
       await applying;
       expect(controller.requiresReconciliation, isTrue);
       expect(host.navigation.pendingReceipt, isNotNull);
       expect(await host.exit(), isFalse);
-      expect(await host.home.allowSwitch!(), isFalse);
+      expect(await host.switchProject(), isFalse);
       visuals.fail = false;
       expect(await host.navigation.retryReconciliation(), isTrue);
       expect(controller.requiresReconciliation, isFalse);
       expect(await host.exit(), isTrue);
-      expect(await host.home.allowSwitch!(), isTrue);
+      expect(await host.switchProject(), isTrue);
       expect(port.applies, 1);
       await tester.pumpWidget(const SizedBox());
-      host.home.dispose();
       host.workspace.dispose();
     },
   );
@@ -367,9 +362,9 @@ class FinalizingPackPort extends PackTestPort {
 Future<
   ({
     ResourceNavigation navigation,
-    StudioHomeNavigation home,
     MapWorkspaceController workspace,
     Future<bool> Function() exit,
+    Future<bool> Function() switchProject,
   })
 >
 mountPackShell(
@@ -382,38 +377,48 @@ mountPackShell(
     workspaceSession,
     WorkspaceMemoryPort(),
   );
-  final home = StudioHomeNavigation();
-  Future<bool> Function()? exit;
-  await tester.pumpWidget(
-    MaterialApp(
-      home: MapWorkspaceScreen(
-        controller: workspace,
-        loadVisuals: (_, _) async => visuals ?? WorkspaceTestVisuals(),
-        runtimeBuilder: (_, _, _) => const SizedBox(),
-        onClose: () async {},
-        registerExitGuard: (value) => exit = value,
-        resourcePort: GuardResourcePort(),
-        resourcePackPort: pack,
-        resourcePackLicensePicker: () async => ['/LICENSE'],
-        resourcePackExportSink: exportSink,
-        resourcePackPicker: () async => '/chosen.aveluneassets',
-        home: home,
-      ),
-    ),
+  await workspace.initialize();
+  final navigation = ResourceNavigation(
+    workspace: workspace,
+    port: GuardResourcePort(),
+    visuals: visuals ?? WorkspaceTestVisuals(),
+    onUse: (_) {},
+    packPort: pack,
+    packLicensePicker: () async => ['/LICENSE'],
+    packExportSink: exportSink,
+    packPicker: () async => '/chosen.aveluneassets',
   );
-  await tester.pumpAndSettle();
-  home.navigate('resources');
-  await tester.pumpAndSettle();
-  final navigation = tester
-      .widget<ResourceWorkspacePane>(find.byType(ResourceWorkspacePane))
-      .navigation;
-  expect(exit, isNotNull);
-  expect(home.allowSwitch, isNotNull);
+  addTearDown(() {
+    if (!navigation.isDisposed) navigation.dispose();
+    if (!workspace.isDisposed) workspace.dispose();
+  });
+  final workflow = WorkspaceWorkflow(
+    controller: workspace,
+    isActive: () => true,
+    changed: () {},
+    resources: () => navigation,
+    narrative: () => null,
+    confirmClose: () async => WorkspaceCloseChoice.cancel,
+    flushFocus: () {},
+    launchMap: (_, _) async {},
+  );
+  final publication = WorkspacePublicationWorkflow(
+    controller: workspace,
+    workflow: workflow,
+    isActive: () => true,
+    connectionBusy: () => false,
+    exporter: () => null,
+    resources: () => navigation,
+    pokemon: () => null,
+  );
+  Future<bool> allowExit() => publication.allowClose(
+    leavePokemon: () async => true,
+  );
   return (
     navigation: navigation,
-    home: home,
     workspace: workspace,
-    exit: exit!,
+    exit: allowExit,
+    switchProject: allowExit,
   );
 }
 

@@ -4,10 +4,10 @@ import '../../shared/widgets/buttons/studio_button.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:map_authoring/map_authoring_editing.dart';
 import 'package:map_core/map_core.dart' hide SpatialMapOperations;
 
 import '../../../features/map_workspace/application/editable_map_document.dart';
+import '../../../features/map_workspace/application/spatial_model_editing_commands.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import 'spatial_model_roles.dart';
@@ -63,49 +63,17 @@ class SpatialModelEntityControls extends StatelessWidget {
     final model = project.models3d
         .where((model) => model.id == instance.modelId)
         .firstOrNull;
-    final canConfigure =
-        obstacle != null ||
-        instance.blocksMovement &&
-            instance.animationIndex == null &&
-            instance.clip == null &&
-            model != null &&
-            model.inspection.animations.isEmpty &&
-            model.rampProfile == null &&
-            (instance.entityId == null || bound?.kind == MapEntityKind.custom);
+    final commands = SpatialModelEditingCommands(document, project);
+    final canConfigure = commands.canConfigureFieldObstacle(instance.id);
     void configure(MapEntityFieldObstacleData? value) {
-      final publish = document.configureSpatialFieldObstacle;
-      if (publish != null) {
-        unawaited(publish(instance.id, value).then((_) => onChanged()));
-        return;
-      }
-      try {
-        document.commit(
-          const SpatialMapActions().configureFieldObstacle(
-            document.current,
-            project: project,
-            instanceId: instance.id,
-            fieldObstacle: value,
-          ),
-        );
-        document.error = null;
-      } on Object {
-        document.error = 'Choisissez un décor statique bloquant sans autre rôle de jeu pour Coupe, Force ou Éclate-Roc.';
-      }
-      onChanged();
+      unawaited(
+        commands
+            .configureFieldObstacle(instance.id, value)
+            .then((_) => onChanged()),
+      );
     }
 
-    final occupied = {
-      for (final model in map.spatialScene!.instances)
-        if (model.id != instance.id && model.entityId != null) model.entityId!,
-    };
-    final entities = map.entities.where(
-      (entity) =>
-          entity.kind != MapEntityKind.npc &&
-          !occupied.contains(entity.id) &&
-          (entity.item == null ||
-              entity.item!.pickupMode == ItemPickupMode.once &&
-                  entity.item!.respawnPolicy == ItemRespawnPolicy.none),
-    );
+    final entities = commands.bindableEntities(instance.id);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -113,59 +81,59 @@ class SpatialModelEntityControls extends StatelessWidget {
         const SizedBox(height: 12),
         visibility,
         if (!manual) ...[
-        StudioSelect(
-          key: const ValueKey('spatial-model-field-obstacle'),
-          label: 'Obstacle CS',
-          value: obstacle?.kind.name ?? '',
-          options: const {
-            '': 'Aucun',
-            'cutTree': 'Coupe',
-            'strengthBoulder': 'Force · rocher à pousser',
-            'rockSmashRock': 'Éclate-Roc',
-          },
-          onChanged: document.saving || !canConfigure
-              ? null
-              : (value) => configure(
-                  value.isEmpty
-                      ? null
-                      : MapEntityFieldObstacleData(
-                          kind: FieldObstacleKind.values.byName(value),
-                          resetPolicy:
-                              obstacle?.resetPolicy ??
-                              FieldObstacleResetPolicy.mapInstance,
-                        ),
-                ),
-        ),
-        if (obstacle == null && !canConfigure)
-          if (spatialFieldObstacleRefusal(instance, model, bound)
-              case final refusal?)
-            StudioNotice(
-              refusal,
-              key: const ValueKey('spatial-model-field-obstacle-refusal'),
-            ),
-        if (obstacle != null) ...[
-          const SizedBox(height: 8),
           StudioSelect(
-            key: const ValueKey('spatial-model-field-obstacle-reset'),
-            label: 'Après utilisation',
-            value: obstacle.resetPolicy.name,
+            key: const ValueKey('spatial-model-field-obstacle'),
+            label: 'Obstacle CS',
+            value: obstacle?.kind.name ?? '',
             options: const {
-              'persistent': 'Conservé dans la sauvegarde',
-              'mapInstance': 'Réinitialisé à la nouvelle instance',
+              '': 'Aucun',
+              'cutTree': 'Coupe',
+              'strengthBoulder': 'Force · rocher à pousser',
+              'rockSmashRock': 'Éclate-Roc',
             },
-            onChanged: document.saving
+            onChanged: document.saving || !canConfigure
                 ? null
                 : (value) => configure(
-                    MapEntityFieldObstacleData(
-                      kind: obstacle.kind,
-                      resetPolicy: FieldObstacleResetPolicy.values.byName(
-                        value,
-                      ),
-                    ),
+                    value.isEmpty
+                        ? null
+                        : MapEntityFieldObstacleData(
+                            kind: FieldObstacleKind.values.byName(value),
+                            resetPolicy:
+                                obstacle?.resetPolicy ??
+                                FieldObstacleResetPolicy.mapInstance,
+                          ),
                   ),
           ),
-        ],
-        const SizedBox(height: 8),
+          if (obstacle == null && !canConfigure)
+            if (spatialFieldObstacleRefusal(instance, model, bound)
+                case final refusal?)
+              StudioNotice(
+                refusal,
+                key: const ValueKey('spatial-model-field-obstacle-refusal'),
+              ),
+          if (obstacle != null) ...[
+            const SizedBox(height: 8),
+            StudioSelect(
+              key: const ValueKey('spatial-model-field-obstacle-reset'),
+              label: 'Après utilisation',
+              value: obstacle.resetPolicy.name,
+              options: const {
+                'persistent': 'Conservé dans la sauvegarde',
+                'mapInstance': 'Réinitialisé à la nouvelle instance',
+              },
+              onChanged: document.saving
+                  ? null
+                  : (value) => configure(
+                      MapEntityFieldObstacleData(
+                        kind: obstacle.kind,
+                        resetPolicy: FieldObstacleResetPolicy.values.byName(
+                          value,
+                        ),
+                      ),
+                    ),
+            ),
+          ],
+          const SizedBox(height: 8),
         ],
         StudioSelect(
           key: const ValueKey('spatial-model-entity-binding'),
@@ -181,24 +149,7 @@ class SpatialModelEntityControls extends StatelessWidget {
           onChanged: document.saving || obstacle != null
               ? null
               : (id) {
-                  try {
-                    final next = instance.copyWith(
-                      entityId: id.isEmpty ? null : id,
-                      clearEntityBinding: id.isEmpty,
-                    );
-                    document.commit(
-                      const SpatialMapOperations().upsertInstance(
-                        map,
-                        next,
-                        model: project.models3d
-                            .where((model) => model.id == next.modelId)
-                            .firstOrNull,
-                      ),
-                    );
-                    document.error = null;
-                  } on FormatException {
-                    document.error = 'Choisissez un élément de cette carte qui n’est pas déjà lié à un autre décor.';
-                  }
+                  commands.bindEntity(instance.id, id);
                   onChanged();
                 },
         ),
@@ -233,7 +184,12 @@ class _SpatialModelVisibilityControls extends StatelessWidget {
       );
     }
     void apply(NarrativeEventConditionExpression? value) {
-      unawaited(publish(instance.id, value).then((_) => onChanged()));
+      unawaited(
+        SpatialModelEditingCommands(
+          document,
+          project,
+        ).configureVisibility(instance.id, value).then((_) => onChanged()),
+      );
     }
 
     return AbsorbPointer(

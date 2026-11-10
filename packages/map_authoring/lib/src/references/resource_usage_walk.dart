@@ -20,6 +20,7 @@ const _referenceFields = {
     'icon',
     'party',
     'overworld',
+    'overworldShiny',
     'portrait',
     'cry',
     'iconPath',

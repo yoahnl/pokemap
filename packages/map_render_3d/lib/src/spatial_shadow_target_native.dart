@@ -1,4 +1,5 @@
 import 'dart:developer' as developer;
+import 'dart:io' show Platform;
 
 import 'package:flame_3d/core.dart';
 import 'package:flame_3d/graphics.dart';
@@ -10,6 +11,7 @@ GpuTexture? multisampleSpatialShadowTarget(
   required int width,
   required int height,
 }) {
+  if (Platform.isIOS) return null;
   Object? handle;
   try {
     handle = (target as dynamic).raw;

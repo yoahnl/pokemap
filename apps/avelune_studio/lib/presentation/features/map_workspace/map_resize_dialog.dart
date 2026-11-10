@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/map_workspace/application/map_workspace_controller.dart';
-import '../../../features/map_workspace/domain/map_catalog_preparation.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_draft_field.dart';
@@ -20,43 +19,25 @@ Future<void> showResizeMapDialog(
   MapWorkspaceVisuals? visuals,
 }) async {
   final project = controller.project!;
-  MapData? source;
-  String? error;
-  try {
-    source =
-        controller.documents[entry.id]?.base.map ??
-        (await controller.port.loadMap(controller.session, entry)).map;
-  } on Object catch (failure) {
-    error = '$failure';
-  }
+  final resizing = WorkspaceMapResize(controller, entry);
+  await resizing.load();
   if (!context.mounted || controller.isDisposed) return;
-  var width = '${source?.size.width ?? ''}',
-      height = '${source?.size.height ?? ''}';
-  var analyzing = false, published = false;
-  MapCatalogPreparation? preparation;
-  WorkspaceMapPreparedMutation? operation;
-  int? positive(String value) {
-    final parsed = int.tryParse(value);
-    return parsed != null && parsed > 0 ? parsed : null;
-  }
-
   await showMapCatalogueForm(
     context,
     title: 'Redimensionner la carte',
     submitLabel: 'Appliquer le redimensionnement',
-    currentSubmitLabel: () =>
-        published ? 'Relire la carte' : 'Appliquer le redimensionnement',
-    additionalBusy: () => analyzing,
-    valid: () =>
-        published ||
-        (preparation?.canApply == true && preparation?.noChange == false),
+    currentSubmitLabel: () => resizing.published
+        ? 'Relire la carte'
+        : 'Appliquer le redimensionnement',
+    additionalBusy: () => resizing.analyzing,
+    valid: () => resizing.valid,
     fields: (refresh, busy) => Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(entry.name, style: Theme.of(context).textTheme.titleMedium),
-        if (source != null)
+        if (resizing.source != null)
           Text(
-            'Dimensions actuelles : ${source.size.width} × ${source.size.height} cases',
+            'Dimensions actuelles : ${resizing.source!.size.width} × ${resizing.source!.size.height} cases',
           ),
         Text(
           'Cases : ${project.settings.tileWidth} × ${project.settings.tileHeight} px · grille du projet',
@@ -64,30 +45,28 @@ Future<void> showResizeMapDialog(
         const SizedBox(height: 12),
         StudioDraftField(
           key: const ValueKey('resize-map-width'),
-          value: width,
+          value: resizing.width,
           label: 'Largeur (cases)',
-          enabled: !busy && !published,
-          errorText: positive(width) == null ? 'Entier positif requis' : null,
+          enabled: !busy && !resizing.published,
+          errorText: WorkspaceMapResize.positive(resizing.width) == null
+              ? 'Entier positif requis'
+              : null,
           onChanged: (value) {
-            width = value;
-            preparation = null;
-            operation = null;
-            error = null;
+            resizing.setWidth(value);
             refresh();
           },
         ),
         const SizedBox(height: 12),
         StudioDraftField(
           key: const ValueKey('resize-map-height'),
-          value: height,
+          value: resizing.height,
           label: 'Hauteur (cases)',
-          enabled: !busy && !published,
-          errorText: positive(height) == null ? 'Entier positif requis' : null,
+          enabled: !busy && !resizing.published,
+          errorText: WorkspaceMapResize.positive(resizing.height) == null
+              ? 'Entier positif requis'
+              : null,
           onChanged: (value) {
-            height = value;
-            preparation = null;
-            operation = null;
-            error = null;
+            resizing.setHeight(value);
             refresh();
           },
         ),
@@ -103,85 +82,54 @@ Future<void> showResizeMapDialog(
           label: 'Analyser les conséquences',
           secondary: true,
           icon: Icons.search,
-          loading: analyzing,
-          onPressed:
-              busy ||
-                  published ||
-                  source == null ||
-                  positive(width) == null ||
-                  positive(height) == null
+          loading: resizing.analyzing,
+          onPressed: busy || !resizing.canAnalyze
               ? null
               : () async {
-                  analyzing = true;
-                  preparation = null;
-                  error = null;
+                  final pending = resizing.analyze();
                   refresh();
-                  try {
-                    preparation = await controller.prepareCatalog(
-                      'map.resize_apply',
-                      {
-                        'mapId': entry.id,
-                        'width': positive(width)!,
-                        'height': positive(height)!,
-                      },
-                    );
-                    operation = WorkspaceMapPreparedMutation(
-                      controller,
-                      preparation!,
-                    );
-                  } on Object catch (failure) {
-                    error = '$failure';
-                  }
-                  analyzing = false;
+                  await pending;
                   refresh();
                 },
         ),
-        if (error != null)
+        if (resizing.error != null)
           Padding(
             padding: const EdgeInsets.only(top: 12),
-            child: StudioNotice(error!, isError: true),
+            child: StudioNotice(resizing.error!, isError: true),
           ),
-        if (preparation?.noChange == true)
+        if (resizing.preparation?.noChange == true)
           const Padding(
             padding: EdgeInsets.only(top: 12),
             child: StudioNotice(
               'Aucune modification : les dimensions sont identiques.',
             ),
           ),
-        if (preparation?.canApply == true && preparation?.noChange == false)
+        if (resizing.preparation?.canApply == true &&
+            resizing.preparation?.noChange == false)
           const Padding(
             padding: EdgeInsets.only(top: 12),
             child: StudioNotice(
               'Analyse terminée : aucun contenu ni référence ne déborde.',
             ),
           ),
-        if (preparation != null)
+        if (resizing.preparation != null)
           MapLifecycleIssues(
-            issues: preparation!.issues,
+            issues: resizing.preparation!.issues,
             controller: controller,
           ),
-        if (preparation != null && visuals != null)
+        if (resizing.preparation != null && visuals != null)
           Padding(
             padding: const EdgeInsets.only(top: 12),
             child: MapResizePreview(
-              map: preparation!.sourceMap,
+              map: resizing.preparation!.sourceMap,
               project: project,
               visuals: visuals,
-              proposedWidth: positive(width)!,
-              proposedHeight: positive(height)!,
+              proposedWidth: WorkspaceMapResize.positive(resizing.width)!,
+              proposedHeight: WorkspaceMapResize.positive(resizing.height)!,
             ),
           ),
       ],
     ),
-    submit: () async {
-      final result = await operation!.apply();
-      published = result.published;
-      return result.integrated
-          ? null
-          : published
-          ? 'Les dimensions sont enregistrées sur disque. ${result.error ?? ''} Relisez la carte.'
-          : result.error ??
-                'Le redimensionnement a été refusé. Relancez l’analyse.';
-    },
+    submit: resizing.submit,
   );
 }

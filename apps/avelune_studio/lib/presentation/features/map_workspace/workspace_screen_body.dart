@@ -286,7 +286,6 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                                   scenes: _scenes,
                                   sceneViews: _sceneViews,
                                   stories: _stories,
-                                  progressionViews: _progressionViews,
                                   sceneOrigin: _sceneOrigin,
                                   onSceneReturn: _sceneReturnAction(),
                                   sceneReturnLabel: _sceneReturnLabel(),
@@ -303,17 +302,10 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                                       _show(WorkspaceSpace.progression),
                                   onScenes: _openScenes,
                                   onWorld: _world == null ? null : _openWorld,
-                                  onProgressionBack: () =>
-                                      _show(_progressionOrigin.space),
                                   onReturnVerification: _verification == null
                                       ? null
                                       : () =>
                                             _show(WorkspaceSpace.verification),
-                                  progressionBackLabel:
-                                      _progressionOrigin.space ==
-                                          WorkspaceSpace.verification
-                                      ? 'Vérification'
-                                      : 'Histoire',
                                   onVerification: _verification == null
                                       ? null
                                       : _openVerification,
@@ -348,64 +340,14 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
     );
   }
 
-  Future<List<PokemonSpeciesSummary>> _loadSceneSpecies() async {
-    final owner = _pokemon;
-    if (owner == null) throw StateError('Catalogue indisponible.');
-    final index = await owner.port.loadIndex();
-    if (!mounted || !identical(owner, _pokemon)) {
-      throw StateError('Le projet a changé.');
-    }
-    if (!index.enabled) throw StateError('Catalogue Pokémon désactivé.');
-    return index.entries;
-  }
+  Future<List<PokemonSpeciesSummary>> _loadSceneSpecies() =>
+      _sessions.loadSceneSpecies();
 
-  Future<Map<String, String>> _loadSceneMoves() async {
-    final owner = _pokemon;
-    if (owner == null) throw StateError('Catalogue indisponible.');
-    await owner.load(refresh: true);
-    if (!mounted || !identical(owner, _pokemon)) {
-      throw StateError('Le projet a changé.');
-    }
-    final moves = owner.index?.moves;
-    if (owner.error != null ||
-        moves == null ||
-        !moves.available ||
-        moves.diagnostics.isNotEmpty) {
-      throw StateError(
-        'Le catalogue des capacités est indisponible ou ambigu.',
-      );
-    }
-    return {for (final move in moves.entries) move.id: move.name};
-  }
+  Future<Map<String, String>> _loadSceneMoves() => _sessions.loadSceneMoves();
 
   Future<Map<String, String>> _loadSceneCaptureItems() =>
-      _loadSceneItems(captureOnly: true);
+      _sessions.loadSceneCaptureItems();
 
-  Future<Map<String, String>> _loadSceneItems({
-    bool captureOnly = false,
-  }) async {
-    final owner = _pokemon;
-    if (owner == null) throw StateError('Catalogue indisponible.');
-    final index = await owner.port.loadIndex();
-    if (!mounted || !identical(owner, _pokemon)) {
-      throw StateError('Le projet a changé.');
-    }
-    if (!index.enabled) throw StateError('Catalogue Pokémon désactivé.');
-    final catalog = index.itemCatalog;
-    final itemIds = <String>{};
-    if (catalog == null ||
-        catalog.entries.any(
-          (item) =>
-              item.id.isEmpty ||
-              item.id.trim() != item.id ||
-              item.displayName.trim().isEmpty ||
-              !itemIds.add(item.id),
-        )) {
-      throw StateError('Le catalogue des objets est indisponible ou ambigu.');
-    }
-    return {
-      for (final item in catalog.entries)
-        if (!captureOnly || item.capture != null) item.id: item.displayName,
-    };
-  }
+  Future<Map<String, String>> _loadSceneItems({bool captureOnly = false}) =>
+      _sessions.loadSceneItems(captureOnly: captureOnly);
 }

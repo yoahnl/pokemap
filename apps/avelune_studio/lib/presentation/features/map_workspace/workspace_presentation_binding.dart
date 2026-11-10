@@ -24,34 +24,10 @@ extension _WorkspacePresentationBinding on _MapWorkspaceScreenState {
 
   Future<void> _createScenePresentation(
     ScenePresentationCreationRequest request,
-  ) async {
-    final navigation = await _prepareWorkshopRoute(
-      MapWorkspaceWorkshop.presentation,
-    );
-    if (!mounted || navigation == null) return;
-    final owner = _presentations;
-    if (owner == null) return;
-    final name = await askNarrativeName(context, 'Créer une présentation liée');
-    if (!mounted || name == null || navigation != _navigationRequest) return;
-    final current = _scenes?.sessions[request.scene.id]?.current;
-    if (current != request.scene) return;
-    final created = await owner.createLinked(
-      title: name,
-      link: PresentationSceneLink(
-        baseScene: request.baseScene,
-        scene: request.scene,
-        nodeId: owner.narrative.identity('presentation-node'),
-        targetNodeId: request.targetNodeId,
-      ),
-    );
-    if (created && mounted && navigation == _navigationRequest) {
-      _presentationOrigin = WorkspaceReturn(
-        WorkspaceSpace.scene,
-        documentId: request.scene.id,
-      );
-      _show(WorkspaceSpace.presentation);
-    }
-  }
+  ) => _navigation.createScenePresentation(
+    request,
+    askName: () => askNarrativeName(context, 'Créer une présentation liée'),
+  );
 
   Widget _presentationPage() {
     final owner = _presentations, factory = _visuals;
@@ -62,24 +38,10 @@ extension _WorkspacePresentationBinding on _MapWorkspaceScreenState {
         ),
       );
     }
-    final session = owner.active;
-    final key = (
-      owner.activeId,
-      session?.base?.revision,
-      session?.mediaCatalog,
-      session?.imports.map((m) => m.media.id).join(','),
+    final visuals = _sessions.synchronizePresentationVisuals(
+      factory as PresentationMediaWorkspaceVisuals,
     );
-    if (_presentationVisualKey != key) {
-      final previous = _presentationVisuals;
-      if (previous != null) unawaited(previous.close());
-      _presentationVisualKey = key;
-      _presentationVisuals = (factory as PresentationMediaWorkspaceVisuals)
-          .createPresentationVisuals(
-            revision: session?.base?.revision ?? 'draft',
-            catalog: session?.mediaCatalog ?? ProjectMediaCatalog(),
-            imports: session?.imports ?? [],
-          );
-    }
+    if (visuals == null) return const SizedBox.shrink();
     return PresentationWorkspacePage(
       controller: owner,
       views: _presentationViews,
@@ -90,7 +52,7 @@ extension _WorkspacePresentationBinding on _MapWorkspaceScreenState {
       onConsumer: (sceneId, nodeId) async {
         _navigation.openPresentationConsumer(sceneId, nodeId);
       },
-      visuals: _presentationVisuals!,
+      visuals: visuals,
       onBack: () => unawaited(_returnFromPresentation()),
       backLabel: _presentationOrigin.space == WorkspaceSpace.scene
           ? 'la scène'

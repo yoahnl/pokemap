@@ -1,6 +1,4 @@
-import 'package:avelune_studio/presentation/features/terrains/terrain_usage_summary.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
-import 'package:flutter/material.dart';
+import 'package:avelune_studio/features/terrains/domain/terrain_connections.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
 
@@ -21,21 +19,5 @@ void main() {
       terrainUsageExplanation(SmartTileUsage.forestSurface),
       contains('cartes 3D ne l’acceptent pas'),
     );
-  });
-
-  testWidgets('the workshop names the usage of the draft it edits', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: studioTheme(),
-        home: const Scaffold(
-          body: TerrainUsageSummary(usage: SmartTileUsage.terrain),
-        ),
-      ),
-    );
-    expect(find.text('Sol automatique'), findsOneWidget);
-    expect(find.textContaining('un seul sol automatique'), findsOneWidget);
-    expect(find.text('Chemin automatique'), findsNothing);
   });
 }

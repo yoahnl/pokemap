@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import '../../../features/map_workspace/application/map_healing_display_draft.dart';
+
 import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/map_workspace/application/editable_map_document.dart';
@@ -62,50 +65,30 @@ class _MapMarkerInspectorState extends State<MapMarkerInspector> {
     final sign = entity.sign;
     final blocked = _deletionProblem;
     final healingDisplay = entity.healingDisplay;
-    final canConfigureHealingDisplay =
-        entity.kind == MapEntityKind.custom &&
-        !entity.blocksMovement &&
-        entity.size.width == 1 &&
-        entity.size.height == 1 &&
-        entity.npc == null &&
-        entity.sign == null &&
-        entity.item == null &&
-        entity.spawn == null &&
-        entity.fieldObstacle == null &&
-        entity.editorVisual == null &&
-        !healingDisplayHasCollisionOverride(entity) &&
-        widget.document.current.spatialScene == null &&
-        widget.document.current.version != ProjectVersion.v9 &&
-        widget.project.settings.dimension == ProjectDimension.twoD;
-    final canConfigureFieldObstacle =
-        entity.kind == MapEntityKind.custom &&
-        entity.blocksMovement &&
-        entity.size.width == 1 &&
-        entity.size.height == 1 &&
-        entity.npc == null &&
-        entity.sign == null &&
-        entity.item == null &&
-        entity.spawn == null &&
-        widget.document.current.spatialScene == null &&
-        widget.document.current.version != ProjectVersion.v9 &&
-        widget.project.settings.dimension == ProjectDimension.twoD &&
-        entity.editorVisual != null &&
-        widget.project.elements
-                .where(
-                  (element) => element.id == entity.editorVisual!.elementId,
-                )
-                .length ==
-            1;
+    final roleChoices = MapHealingDisplayDraft(
+      widget.document.current,
+      widget.project,
+      entity,
+    );
+    final canConfigureHealingDisplay = roleChoices.canConfigure;
+    final canConfigureFieldObstacle = _commands.canConfigureFieldObstacle(
+      entity,
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        EntityPresentationControls(entity: entity, project: widget.project,
+        EntityPresentationControls(
+          entity: entity,
+          project: widget.project,
           map: widget.document.current,
-          onChanged: (value) => _change(() => _commands.setPresentation(entity.id, value))),
+          onChanged: (value) =>
+              _change(() => _commands.setPresentation(entity.id, value)),
+        ),
         Text(
           spawn != null
               ? 'Point d’apparition'
-              : entity.interactiveEncounter?.trigger == InteractiveEncounterTrigger.headbutt
+              : entity.interactiveEncounter?.trigger ==
+                    InteractiveEncounterTrigger.headbutt
               ? 'Arbre à Coud’Boule'
               : entity.fieldObstacle != null
               ? switch (entity.fieldObstacle!.kind) {
@@ -240,6 +223,7 @@ class _MapMarkerInspectorState extends State<MapMarkerInspector> {
         if (canConfigureHealingDisplay) ...[
           const SizedBox(height: 12),
           HealingDisplayControls(
+            map: widget.document.current,
             key: ValueKey('healing-display-${entity.id}'),
             entity: entity,
             project: widget.project,
@@ -248,7 +232,9 @@ class _MapMarkerInspectorState extends State<MapMarkerInspector> {
                 _change(() => _commands.setHealingDisplay(entity.id, display)),
           ),
         ],
-        if (canConfigureFieldObstacle && entity.interactiveEncounter?.trigger != InteractiveEncounterTrigger.headbutt) ...[
+        if (canConfigureFieldObstacle &&
+            entity.interactiveEncounter?.trigger !=
+                InteractiveEncounterTrigger.headbutt) ...[
           const SizedBox(height: 12),
           for (final kind in FieldObstacleKind.values)
             StudioChoice(
@@ -269,29 +255,51 @@ class _MapMarkerInspectorState extends State<MapMarkerInspector> {
               subtitle: switch (kind) {
                 FieldObstacleKind.cutTree =>
                   'Requiert Coupe débloquée et un Pokémon apte à l’utiliser.',
-                FieldObstacleKind.strengthBoulder =>
-                  'Requiert Force débloquée et un Pokémon apte à l’utiliser. Sur une zone Glissade, le rocher continue jusqu’à un obstacle ou la sortie de la zone.',
+                FieldObstacleKind.strengthBoulder => 'Requiert Force débloquée et un Pokémon apte à l’utiliser. Sur une zone Glissade, le rocher continue jusqu’à un obstacle ou la sortie de la zone.',
                 FieldObstacleKind.rockSmashRock => 'Requiert Éclate-Roc débloquée et un Pokémon apte à l’utiliser.',
                 FieldObstacleKind.iceBlock => 'Se pousse au contact, sans capacité. Sur la glace, continue jusqu’à un obstacle ou un sol normal.',
               },
               selected: entity.fieldObstacle?.kind == kind,
-              onTap: entity.interactiveEncounter != null ? null : () => _change(
-                () => _commands.setFieldObstacle(
-                  entity.id,
-                  entity.fieldObstacle?.kind == kind
-                      ? null
-                      : MapEntityFieldObstacleData(kind: kind, resetPolicy: kind == FieldObstacleKind.cutTree || kind == FieldObstacleKind.rockSmashRock ? entity.fieldObstacle?.resetPolicy ?? FieldObstacleResetPolicy.mapInstance : FieldObstacleResetPolicy.mapInstance),
-                ),
-              ),
+              onTap: entity.interactiveEncounter != null
+                  ? null
+                  : () => _change(
+                      () => _commands.setFieldObstacle(
+                        entity.id,
+                        entity.fieldObstacle?.kind == kind
+                            ? null
+                            : MapEntityFieldObstacleData(
+                                kind: kind,
+                                resetPolicy:
+                                    kind == FieldObstacleKind.cutTree ||
+                                        kind == FieldObstacleKind.rockSmashRock
+                                    ? entity.fieldObstacle?.resetPolicy ??
+                                          FieldObstacleResetPolicy.mapInstance
+                                    : FieldObstacleResetPolicy.mapInstance,
+                              ),
+                      ),
+                    ),
             ),
-          if (entity.fieldObstacle?.kind == FieldObstacleKind.cutTree || entity.fieldObstacle?.kind == FieldObstacleKind.rockSmashRock) ...[
+          if (entity.fieldObstacle?.kind == FieldObstacleKind.cutTree ||
+              entity.fieldObstacle?.kind ==
+                  FieldObstacleKind.rockSmashRock) ...[
             const SizedBox(height: 8),
             StudioSelect(
               key: const ValueKey('field-obstacle-reset'),
-              label: 'Après utilisation', value: entity.fieldObstacle!.resetPolicy.name,
-              options: const {'persistent': 'Conservé dans la sauvegarde', 'mapInstance': 'Réapparaît à la nouvelle instance'},
-              onChanged: (value) => _change(() => _commands.setFieldObstacle(entity.id,
-                MapEntityFieldObstacleData(kind: entity.fieldObstacle!.kind, resetPolicy: FieldObstacleResetPolicy.values.byName(value)))),
+              label: 'Après utilisation',
+              value: entity.fieldObstacle!.resetPolicy.name,
+              options: const {
+                'persistent': 'Conservé dans la sauvegarde',
+                'mapInstance': 'Réapparaît à la nouvelle instance',
+              },
+              onChanged: (value) => _change(
+                () => _commands.setFieldObstacle(
+                  entity.id,
+                  MapEntityFieldObstacleData(
+                    kind: entity.fieldObstacle!.kind,
+                    resetPolicy: FieldObstacleResetPolicy.values.byName(value),
+                  ),
+                ),
+              ),
             ),
           ],
           if (entity.fieldObstacle != null) ...[
@@ -299,13 +307,25 @@ class _MapMarkerInspectorState extends State<MapMarkerInspector> {
             Text(
               entity.fieldObstacle?.kind == FieldObstacleKind.strengthBoulder
                   ? 'Position et activation de Force : réinitialisées avec la carte.'
-                  : entity.fieldObstacle!.resetPolicy == FieldObstacleResetPolicy.persistent ? 'L’obstacle utilisé reste retiré dans la sauvegarde.' : 'Réapparition : à la réinitialisation de la carte.',
+                  : entity.fieldObstacle!.resetPolicy ==
+                        FieldObstacleResetPolicy.persistent
+                  ? 'L’obstacle utilisé reste retiré dans la sauvegarde.'
+                  : 'Réapparition : à la réinitialisation de la carte.',
             ),
           ],
         ],
-        if (canConfigureFieldObstacle && (entity.fieldObstacle == null || entity.fieldObstacle?.kind == FieldObstacleKind.rockSmashRock)) ...[
+        if (canConfigureFieldObstacle &&
+            (entity.fieldObstacle == null ||
+                entity.fieldObstacle?.kind ==
+                    FieldObstacleKind.rockSmashRock)) ...[
           const SizedBox(height: 12),
-          InteractiveEncounterControls(entity: entity, project: widget.project, onChanged: (payload) => _change(() => _commands.setInteractiveEncounter(entity.id, payload))),
+          InteractiveEncounterControls(
+            entity: entity,
+            project: widget.project,
+            onChanged: (payload) => _change(
+              () => _commands.setInteractiveEncounter(entity.id, payload),
+            ),
+          ),
         ],
         const SizedBox(height: 16),
         if (blocked != null) ...[
@@ -321,7 +341,8 @@ class _MapMarkerInspectorState extends State<MapMarkerInspector> {
               ? 'Suppression bloquée par l’histoire'
               : spawn != null
               ? 'Supprimer ce départ'
-              : entity.interactiveEncounter?.trigger == InteractiveEncounterTrigger.headbutt
+              : entity.interactiveEncounter?.trigger ==
+                    InteractiveEncounterTrigger.headbutt
               ? 'Supprimer cet arbre'
               : entity.fieldObstacle != null
               ? entity.fieldObstacle!.kind == FieldObstacleKind.iceBlock

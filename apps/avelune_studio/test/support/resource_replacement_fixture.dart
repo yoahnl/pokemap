@@ -23,6 +23,7 @@ class ResourceReplacementFixture {
   static Future<ResourceReplacementFixture> create({
     Future<void> Function()? beforeReconciliation,
     bool withMap = true,
+    Future<void> Function(ResourceFixture)? configure,
   }) async {
     final parent = Directory(
       '/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109',
@@ -34,6 +35,7 @@ class ResourceReplacementFixture {
     );
     addTearDown(fixture.dispose);
     await fixture.import();
+    await configure?.call(fixture);
     final adapter = LocalResourceAdapter(
       session: fixture.session,
       mapAdapter: fixture.maps,
@@ -51,7 +53,9 @@ class ResourceReplacementFixture {
       visuals: visuals,
       onUse: (_) {},
     );
-    addTearDown(navigation.dispose);
+    addTearDown(() {
+      if (!navigation.isDisposed) navigation.dispose();
+    });
     return ResourceReplacementFixture(fixture, workspace, navigation);
   }
 

@@ -131,7 +131,7 @@ Map<String, Set<(int, int)>> resolveSpatialBorderGroundMaskCellsByLayer({
   bool Function(String layerId)? includeLayer,
 }) => resolveSpatialBorderGroundMaskCellsByLayerInContext(
   manifest: manifest,
-  context: SpatialBorderResolutionContext.fromMap(map),
+  context: SpatialBorderResolutionContext.fromMap(map, manifest: manifest),
   includeLayer: includeLayer,
 );
 
@@ -250,7 +250,7 @@ resolveSpatialBorderGroundReplacementsByLayer({
   bool Function(String layerId)? includeLayer,
 }) => resolveSpatialBorderGroundReplacementsByLayerInContext(
   manifest: manifest,
-  context: SpatialBorderResolutionContext.fromMap(map),
+  context: SpatialBorderResolutionContext.fromMap(map, manifest: manifest),
   includeLayer: includeLayer,
 );
 
@@ -399,7 +399,7 @@ List<SpatialBorderGroundSurface> resolveSpatialBorderGroundSurfaces({
   bool Function(String layerId)? includeLayer,
 }) => resolveSpatialBorderGroundSurfacesInContext(
   manifest: manifest,
-  context: SpatialBorderResolutionContext.fromMap(map),
+  context: SpatialBorderResolutionContext.fromMap(map, manifest: manifest),
   includeLayer: includeLayer,
 );
 
@@ -618,6 +618,7 @@ bool _matchesLegacyStairSupportedBorder({
       worldHeightAt: scene.worldHeightAt,
       fingerprintContext: context.fingerprintContext,
       groundModeledAt: context.groundModeledAt,
+      groundVisualHeightAt: context.groundVisualHeightAt,
       paintsFirstLayerInFront: context.paintsFirstLayerInFront,
     ),
     layerId: layerId,
@@ -876,7 +877,7 @@ SpatialBorderResolutionResult resolveSpatialBorderFeature({
   int resolverVersion = borderResolverVersion,
 }) => resolveSpatialBorderFeatureInContext(
   manifest: manifest,
-  context: SpatialBorderResolutionContext.fromMap(map),
+  context: SpatialBorderResolutionContext.fromMap(map, manifest: manifest),
   layerId: layerId,
   featureId: featureId,
   resolverVersion: resolverVersion,
@@ -1759,17 +1760,21 @@ List<BorderDiagnostic> _spatialBorderFaceGroundDiagnostics({
     final crown =
         probe.instance.position.y + (probe.anchor.y - model.pivot.y) * scale;
     final base = crown - faceHeight;
+    final dx = (probe.outsideCell.x - probe.landCell.x).sign * .0001;
+    final dz = (probe.outsideCell.y - probe.landCell.y).sign * .0001;
     final land = context.worldHeightAt(
-      probe.landCell.x + .5,
-      probe.landCell.y + .5,
+      probe.landCell.x + .5 - dx,
+      probe.landCell.y + .5 - dz,
     );
     final outside = context.worldHeightAt(
-      probe.outsideCell.x + .5,
-      probe.outsideCell.y + .5,
+      probe.outsideCell.x + .5 + dx,
+      probe.outsideCell.y + .5 + dz,
     );
     final landIsUpper = land >= outside;
     final upper = landIsUpper ? land : outside;
-    final lower = landIsUpper ? outside : land;
+    final visibleLand = context.groundVisualHeightAt?.call(probe.landCell.x + .5 - dx, probe.landCell.y + .5 - dz);
+    final visibleOutside = context.groundVisualHeightAt?.call(probe.outsideCell.x + .5 + dx, probe.outsideCell.y + .5 + dz);
+    final lower = math.min(visibleLand ?? land, visibleOutside ?? outside);
     final upperCell = landIsUpper ? probe.landCell : probe.outsideCell;
     final lowerCell = landIsUpper ? probe.outsideCell : probe.landCell;
     final tolerance = faceHeight * .25;

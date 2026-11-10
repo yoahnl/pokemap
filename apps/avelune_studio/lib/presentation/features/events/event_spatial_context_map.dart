@@ -6,9 +6,12 @@ import 'package:map_render_3d/map_render_3d.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/layout/studio_graph_card.dart';
+
 import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
+
 import '../map_workspace/studio_spatial_map_preview.dart';
 import 'event_labels.dart';
+import '../../../features/events/application/event_source_targets.dart';
 
 class EventSpatialContextMap extends StatefulWidget {
   const EventSpatialContextMap({
@@ -36,23 +39,21 @@ class EventSpatialContextMap extends StatefulWidget {
 
 class _EventSpatialContextMapState extends State<EventSpatialContextMap> {
   final _camera = SpatialSceneController()..setView(SpatialEditorView.game);
-  bool selectable(NarrativeEventSourceRef source) =>
-      widget.selectableSources?.contains(source) ?? true;
+  EventSourcePicking get picking => EventSourcePicking(
+    map: widget.map,
+    project: widget.project,
+    source: widget.source,
+    chooseKind: widget.chooseKind,
+    selectableSources: widget.selectableSources,
+  );
+  bool selectable(NarrativeEventSourceRef source) => picking.selectable(source);
 
   void accept(NarrativeEventSourceRef source) {
-    if (widget.chooseKind == source.kind && selectable(source)) {
-      widget.onChoose?.call(source);
-    }
+    final selected = picking.accept(source);
+    if (selected != null) widget.onChoose?.call(selected);
   }
 
-  Map<String, String> get models => {
-    for (final instance in widget.map.spatialScene!.instances)
-      if (selectable(
-        NarrativeEventSourceRef.modelInteract(widget.map.id, instance.id),
-      ))
-        instance.id:
-            '${widget.project.models3d.where((model) => model.id == instance.modelId).firstOrNull?.name ?? 'Ressource absente'} · (${instance.position.x.toStringAsFixed(1)}, ${instance.position.z.toStringAsFixed(1)})',
-  };
+  Map<String, String> get models => picking.modelChoices;
 
   @override
   void dispose() {
@@ -138,50 +139,11 @@ class _EventSpatialContextMapState extends State<EventSpatialContextMap> {
                           }
                         },
                         onCell: (x, z) {
-                          if (widget.chooseKind ==
-                              NarrativeEventSourceKind.mapEnter) {
-                            accept(
-                              NarrativeEventSourceRef.mapEnter(widget.map.id),
-                            );
-                          }
-                          if (widget.chooseKind ==
-                              NarrativeEventSourceKind.entityInteract) {
-                            for (final entity in widget.map.entities) {
-                              if (x >= entity.pos.x &&
-                                  z >= entity.pos.y &&
-                                  x < entity.pos.x + entity.size.width &&
-                                  z < entity.pos.y + entity.size.height) {
-                                accept(
-                                  NarrativeEventSourceRef.entityInteract(
-                                    widget.map.id,
-                                    entity.id,
-                                  ),
-                                );
-                                break;
-                              }
-                            }
-                          }
-                          if (widget.chooseKind ==
-                              NarrativeEventSourceKind.triggerEnter) {
-                            for (final trigger in widget.map.triggers) {
-                              if (x >= trigger.area.pos.x &&
-                                  z >= trigger.area.pos.y &&
-                                  x <
-                                      trigger.area.pos.x +
-                                          trigger.area.size.width &&
-                                  z <
-                                      trigger.area.pos.y +
-                                          trigger.area.size.height) {
-                                accept(
-                                  NarrativeEventSourceRef.triggerEnter(
-                                    widget.map.id,
-                                    trigger.id,
-                                  ),
-                                );
-                                break;
-                              }
-                            }
-                          }
+                          final source = picking.spatialCell(
+                            x.toDouble(),
+                            z.toDouble(),
+                          );
+                          if (source != null) widget.onChoose?.call(source);
                         },
                         overlays: [
                           if (widget.chooseKind ==

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/features/narrative/application/narrative_workspace_controller.dart';
@@ -31,6 +32,7 @@ class StoryBackendFixture {
     List<StorylineAsset> stories = const [],
     List<NarrativeFactDefinition> facts = const [],
     List<ScenarioAsset> scenarios = const [],
+    List<SceneAsset> scenes = const [],
   }) async {
     final temporary = await Directory.systemTemp.createTemp('ui07_backend_');
     final directory = Directory(await temporary.resolveSymbolicLinks());
@@ -41,10 +43,10 @@ class StoryBackendFixture {
       storylines: stories,
       facts: facts,
       scenarios: scenarios,
+      scenes: scenes,
     );
-    await File(
-      '${directory.path}/project.json',
-    ).writeAsString(jsonEncode(project.toJson()));
+    await File('${directory.path}/project.json')
+        .writeAsString(jsonEncode(project.toJson()));
     final session = ProjectSession(
       sessionId: directory.path,
       name: project.name,

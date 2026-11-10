@@ -1,3 +1,6 @@
+import '../../../features/resources/coordination/model_resource_workflow.dart'
+    as workflow;
+
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -14,8 +17,10 @@ import '../../shared/widgets/inputs/studio_commit_field.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import '../../shared/widgets/layout/studio_section.dart';
 import 'resource_management_bindings.dart';
+
 import 'package:avelune_studio/features/resources/coordination/resource_navigation.dart';
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
+
 import 'model_animation_controls.dart';
 import 'model_collision_controls.dart';
 import 'model_ramp_controls.dart';
@@ -46,71 +51,18 @@ String modelDiagnosticLabel(String code) => switch (code) {
 Future<void> importStudioModel(
   ResourceNavigation navigation, {
   PickModelSource picker = pickNativeModel,
-}) async {
-  if (navigation.busy || navigation.port is! ModelResourcePort) return;
-  navigation.setImportBusy(true);
-  try {
-    final source = await picker();
-    if (source == null || navigation.isDisposed) return;
-    final receipt = await (navigation.port as ModelResourcePort).importModel(
-      sourcePath: source.path,
-      name: source.name,
-    );
-    await navigation.accept(receipt);
-  } on ResourceFailure catch (failure) {
-    navigation.pendingReceipt = failure.partialReceipt;
-    if (!navigation.isDisposed) navigation.setImportError(failure.message);
-  } on Object catch (failure) {
-    if (!navigation.isDisposed) navigation.setImportError('$failure');
-  } finally {
-    if (!navigation.isDisposed) navigation.setImportBusy(false);
-  }
-}
+}) => workflow.importStudioModel(navigation, picker: picker);
 
 Future<ResourceMutationReceipt?> replaceStudioModelSource(
   ResourceNavigation navigation,
   String modelId, {
   PickModelSource picker = pickNativeModel,
-}) async {
-  if (navigation.busy || navigation.port is! ModelResourcePort) return null;
-  if (navigation.pendingReceipt != null) {
-    navigation.setImportError(
-      'Actualisez la publication précédente avant de remplacer un modèle.',
-    );
-    return null;
-  }
-  navigation.error = null;
-  navigation.setImportBusy(true);
-  try {
-    final source = await picker();
-    if (source == null || navigation.isDisposed) return null;
-    final receipt = await (navigation.port as ModelResourcePort)
-        .replaceModelSource(modelId: modelId, sourcePath: source.path);
-    await navigation.accept(receipt);
-    return receipt;
-  } on ResourceFailure catch (failure) {
-    navigation.pendingReceipt = failure.partialReceipt;
-    if (!navigation.isDisposed) navigation.setImportError(failure.message);
-  } on Object catch (failure) {
-    if (!navigation.isDisposed) navigation.setImportError('$failure');
-  } finally {
-    if (!navigation.isDisposed) navigation.setImportBusy(false);
-  }
-  return null;
-}
+}) => workflow.replaceStudioModelSource(navigation, modelId, picker: picker);
 
 Map<String, int> openModelOccurrences(
   ResourceNavigation navigation,
   String modelId,
-) => {
-  for (final document in navigation.workspace.documents.values)
-    if ((document.current.spatialScene?.instances
-                .where((instance) => instance.modelId == modelId)
-                .length ??
-            0)
-        case final count when count > 0)
-      document.current.name: count,
-};
+) => workflow.openModelOccurrences(navigation, modelId);
 
 class ModelResourceLibrary extends StatefulWidget {
   const ModelResourceLibrary({
@@ -133,12 +85,15 @@ class _ModelResourceLibraryState extends State<ModelResourceLibrary> {
   String? selectedId;
   Future<Uint8List>? source;
   String? error;
-  final acknowledgedScopes = <String>{};
+  late final _workflow = workflow.ModelDefinitionWorkflow(
+    navigation: widget.navigation,
+    isActive: () => mounted,
+  );
 
-  Future<void> confirmSharedEdit(ProjectModel3dEntry model) async {
-    if (acknowledgedScopes.contains(model.id)) return;
-    final occurrences = openModelOccurrences(widget.navigation, model.id);
-    if (occurrences.isEmpty) return;
+  Future<bool> confirmSharedEdit(
+    ProjectModel3dEntry model,
+    Map<String, int> occurrences,
+  ) async {
     final total = occurrences.values.fold(0, (sum, count) => sum + count);
     final confirmed = await showDialog<bool>(
       context: context,
@@ -167,12 +122,7 @@ class _ModelResourceLibraryState extends State<ModelResourceLibrary> {
         ],
       ),
     );
-    if (confirmed != true) {
-      throw const ResourceFailure(
-        'Modification annulée : la définition partagée n’a pas changé.',
-      );
-    }
-    acknowledgedScopes.add(model.id);
+    return confirmed == true;
   }
 
   Widget sharedScope(ProjectModel3dEntry model) {
@@ -221,11 +171,11 @@ class _ModelResourceLibraryState extends State<ModelResourceLibrary> {
     ProjectModel3dEntry model,
     Map<String, Object?> fields,
   ) async {
-    await confirmSharedEdit(model);
-    await widget.navigation.mutate('model3d.configure', {
-      'modelId': model.id,
-      ...fields,
-    });
+    await _workflow.configure(
+      model,
+      fields,
+      confirmShared: (occurrences) => confirmSharedEdit(model, occurrences),
+    );
   }
 
   @override
@@ -255,58 +205,40 @@ class _ModelResourceLibraryState extends State<ModelResourceLibrary> {
   }
 
   Future<void> remove(ProjectModel3dEntry model) async {
-    final problem = widget.navigation.modelRemovalProblem(model.id);
-    if (problem != null) {
-      setState(() => error = problem);
-      return;
-    }
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Retirer « ${model.name} » ?'),
-        content: const Text(
-          'Le modèle et sa source seront retirés de la bibliothèque. Un modèle utilisé sur une carte ne peut pas être retiré.',
+    Future<bool> confirm() async {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('Retirer « ${model.name} » ?'),
+          content: const Text(
+            'Le modèle et sa source seront retirés de la bibliothèque. Un modèle utilisé sur une carte ne peut pas être retiré.',
+          ),
+          actions: [
+            StudioButton(
+              label: 'Annuler',
+              secondary: true,
+              onPressed: () => Navigator.pop(context, false),
+            ),
+            StudioButton(
+              label: 'Retirer',
+              onPressed: () => Navigator.pop(context, true),
+            ),
+          ],
         ),
-        actions: [
-          StudioButton(
-            label: 'Annuler',
-            secondary: true,
-            onPressed: () => Navigator.pop(context, false),
-          ),
-          StudioButton(
-            label: 'Retirer',
-            onPressed: () => Navigator.pop(context, true),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || !mounted) return;
-    final navigation = widget.navigation;
-    final currentProblem = navigation.modelRemovalProblem(model.id);
-    if (currentProblem != null || navigation.busy) {
-      setState(
-        () => error = currentProblem ?? 'Une opération est déjà en cours.',
       );
-      return;
+      return confirmed == true;
     }
-    navigation.setImportBusy(true);
+
     try {
-      await navigation.accept(
-        await (navigation.port as ModelResourcePort).deleteModel(model.id),
-      );
-      if (mounted) {
+      final removed = await _workflow.remove(model, confirm: confirm);
+      if (mounted && removed) {
         setState(() {
           selectedId = null;
           source = null;
         });
       }
-    } on ResourceFailure catch (failure) {
-      navigation.pendingReceipt = failure.partialReceipt;
-      if (mounted) setState(() => error = failure.message);
     } on Object catch (failure) {
       if (mounted) setState(() => error = '$failure');
-    } finally {
-      if (!navigation.isDisposed) navigation.setImportBusy(false);
     }
   }
 

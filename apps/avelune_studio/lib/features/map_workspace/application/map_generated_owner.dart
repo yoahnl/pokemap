@@ -32,3 +32,23 @@ MapGeneratedOwner? mapGeneratedOwner(
   }
   return null;
 }
+
+String mapEnvironmentAreaSummary(
+  EnvironmentArea area,
+  ProjectManifest project,
+) {
+  final preset = project.environmentPresets
+      .where((preset) => preset.id == area.presetId)
+      .firstOrNull;
+  if (preset == null) {
+    return 'Ressource introuvable : la zone est conservée telle quelle.';
+  }
+  final params = area.paramsOverride ?? preset.defaultParams;
+  final resources = preset.palette.length;
+  final generated = area.generatedPlacementIds.length;
+  final manual = area.manualPlacementIds.length;
+  return 'Ressource : ${preset.name} · $resources ${resources > 1 ? 'décors' : 'décor'} en répartition · '
+      'densité ${(params.density * 100).round()} % · espacement ${params.minSpacingCells} ${params.minSpacingCells > 1 ? 'cases' : 'case'} · '
+      '$generated ${generated > 1 ? 'décors générés appartiennent' : 'décor généré appartient'} à cette zone'
+      '${manual == 0 ? '' : ' · $manual posé${manual > 1 ? 's' : ''} à la main conservé${manual > 1 ? 's' : ''}'}.';
+}

@@ -1,9 +1,7 @@
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_entity_editing_commands.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_interactive_encounter_draft.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_marker_inspector.dart';
-import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_choice.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
@@ -11,9 +9,7 @@ import '../support/map_workspace_fixture.dart';
 
 void main() {
   for (final trigger in InteractiveEncounterTrigger.values) {
-    testWidgets('Studio guides ${trigger.name} table and reuse with undo', (
-      tester,
-    ) async {
+    test('${trigger.name} table and reuse remain canonical with undo', () {
       final entity = MapEntity(
         id: 'tree',
         kind: MapEntityKind.custom,
@@ -26,9 +22,6 @@ void main() {
             : null,
       );
       final map = workspaceMap('a').copyWith(entities: [entity]);
-      final document = EditableMapDocument(
-        MapWorkspaceDocument(map: map, revision: 'base', mapId: 'a'),
-      );
       final project = workspaceProject.copyWith(
         encounterTables: [
           ProjectEncounterTable(
@@ -47,60 +40,80 @@ void main() {
           ),
         ],
       );
-      VoidCallback redraw = () {};
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: studioTheme(),
-          home: Scaffold(
-            body: StatefulBuilder(
-              builder: (context, setState) {
-                redraw = () => setState(() {});
-                return SingleChildScrollView(
-                  child: SizedBox(
-                    width: 350,
-                    child: MapMarkerInspector(
-                      document: document,
-                      project: project,
-                      entity: document.current.entities.single,
-                      onChanged: redraw,
-                      onDeleted: () {},
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ),
+      final document = EditableMapDocument(
+        MapWorkspaceDocument(map: map, revision: 'base', mapId: 'a'),
       );
-      final toggle = find.byKey(const ValueKey('interactive-encounter-enable'));
-      await tester.ensureVisible(toggle);
-      await tester.tap(toggle);
-      await tester.pumpAndSettle();
+      final commands = MapEntityEditingCommands(document, project);
+      MapInteractiveEncounterDraft draft() => MapInteractiveEncounterDraft(
+        document.current.entities.single,
+        project,
+      );
+      expect(commands.canConfigureFieldObstacle(entity), isTrue);
+      expect(draft().tables.single.id, 'objects');
+      commands.setInteractiveEncounter(entity.id, draft().change());
       expect(
-        document.current.entities.single.interactiveEncounter?.trigger,
+        document.current.entities.single.interactiveEncounter!.trigger,
         trigger,
       );
-      final once = find.byKey(const ValueKey('interactive-encounter-once'));
-      await tester.ensureVisible(once);
-      await tester.tap(once);
-      await tester.pumpAndSettle();
       expect(
-        document.current.entities.single.interactiveEncounter?.reusePolicy,
+        document.current.entities.single.interactiveEncounter!.encounterTableId,
+        'objects',
+      );
+      commands.setInteractiveEncounter(
+        entity.id,
+        draft().change(
+          reuse: InteractiveEncounterReusePolicy.oncePerMapInstance,
+        ),
+      );
+      expect(
+        document.current.entities.single.interactiveEncounter!.reusePolicy,
         InteractiveEncounterReusePolicy.oncePerMapInstance,
       );
-      expect(tester.widget<StudioChoice>(once).selected, isTrue);
-      document.restore(redo: false);
-      redraw();
-      await tester.pumpAndSettle();
       expect(
-        document.current.entities.single.interactiveEncounter?.reusePolicy,
+        MapData.fromJson(document.current.toJson())
+            .entities
+            .single
+            .interactiveEncounter,
+        document.current.entities.single.interactiveEncounter,
+      );
+      document.restore(redo: false);
+      expect(
+        document.current.entities.single.interactiveEncounter!.reusePolicy,
         InteractiveEncounterReusePolicy.repeatable,
       );
       document.restore(redo: false);
-      redraw();
-      await tester.pumpAndSettle();
       expect(document.current, map);
-      expect(tester.takeException(), isNull);
     });
   }
+
+  test(
+    'table changes preserve existing conditions and presentation settings',
+    () {
+      final condition = ScriptConditionFactory.factEquals(
+        'enabled',
+        const NarrativeValue.boolean(true),
+      );
+      final payload = MapEntityInteractiveEncounterData(
+        trigger: InteractiveEncounterTrigger.headbutt,
+        encounterTableId: 'old',
+        conditions: [condition],
+      );
+      final entity = MapEntity(
+        id: 'tree',
+        kind: MapEntityKind.custom,
+        pos: const GridPos(x: 2, y: 2),
+        interactiveEncounter: payload,
+      );
+      final changed = MapInteractiveEncounterDraft(
+        entity,
+        workspaceProject,
+      ).change(tableId: 'new');
+      expect(changed.conditions, payload.conditions);
+      expect(changed.reusePolicy, payload.reusePolicy);
+      expect(
+        changed.presentation,
+        payload.presentation.copyWith(encounterTableId: 'new'),
+      );
+    },
+  );
 }

@@ -1,6 +1,40 @@
 part of 'cinematic_workspace_controller.dart';
 
 extension CinematicWorkspaceSpatial on CinematicWorkspaceController {
+  Future<bool> moveStagePointTo(
+    String pointId,
+    double x,
+    double y, {
+    required CinematicMapModel model,
+    required Future<bool> Function(List<String> uses) confirmShared,
+    bool Function()? isActive,
+  }) async {
+    final owner = _active;
+    if (_closed || owner == null) return false;
+    if (x < 0 ||
+        y < 0 ||
+        x >= model.map.size.width ||
+        y >= model.map.size.height) {
+      return _fail('Le repère doit rester dans la carte.');
+    }
+    final revision = owner.revision;
+    final uses = cinematicPointUses(owner.asset, pointId);
+    if (uses.length > 1 && !await confirmShared(uses)) return false;
+    if (_closed ||
+        !(isActive?.call() ?? true) ||
+        !identical(_active, owner) ||
+        owner.revision != revision)
+      return false;
+    try {
+      final source = owner.asset.stageContext!.stagePoints.firstWhere(
+        (point) => point.id == pointId,
+      );
+      return setStagePoint(model.pointAt(source, x, y));
+    } catch (failure) {
+      return _fail(failure);
+    }
+  }
+
   CinematicAsset _keepPaths(CinematicAsset old, CinematicAsset next) {
     final context = next.stageContext,
         paths = old.stageContext?.manualPaths ?? [];

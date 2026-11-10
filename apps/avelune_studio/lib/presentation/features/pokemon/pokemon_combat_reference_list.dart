@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../features/pokemon/domain/pokemon_combat_port.dart';
-import 'pokemon_combat_references.dart';
+import '../../../features/pokemon/application/pokemon_combat_references.dart';
 
 class PokemonCombatReferenceList extends StatelessWidget {
   const PokemonCombatReferenceList({

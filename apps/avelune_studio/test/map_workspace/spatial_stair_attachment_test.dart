@@ -1,13 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/spatial_model_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/features/map_workspace/application/spatial_ramp_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/spatial_terrain_stroke.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/spatial_ramp_editor.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
 
 void main() {
   test('the slope eraser cannot detach an automatic stair ramp', () {
@@ -28,43 +25,20 @@ void main() {
     expect(document.current, before);
   });
 
-  testWidgets(
-    'automatic ramps direct the user to the stair rather than editable slope fields',
-    (tester) async {
-      final (document, commands, model) = fixture();
-      commands.place(model, const GridPos(x: 3, y: 5));
-      final view = MapWorkspaceViewState();
-      addTearDown(view.dispose);
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: SingleChildScrollView(
-              child: SizedBox(
-                width: 350,
-                child: SpatialRampEditor(
-                  document: document,
-                  project: commands.project,
-                  view: view,
-                  onChanged: () {},
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-      expect(find.text('Pente liée à un escalier'), findsOneWidget);
-      expect(find.byKey(const ValueKey('spatial-ramp-preview')), findsNothing);
-      final ramp = document.current.spatialScene!.navigation.ramps.single;
-      expect(
-        () => SpatialRampEditingCommands(
-          document,
-          project: commands.project,
-        ).preview(ramp.copyWith(highLevel: 8)),
-        throwsFormatException,
-      );
-      expect(tester.takeException(), isNull);
-    },
-  );
+  test('an automatic stair ramp refuses independent slope editing', () {
+    final (document, commands, model) = fixture();
+    commands.place(model, const GridPos(x: 3, y: 5));
+    final ramp = document.current.spatialScene!.navigation.ramps.single;
+    final before = document.current;
+    expect(
+      () => SpatialRampEditingCommands(
+        document,
+        project: commands.project,
+      ).preview(ramp.copyWith(highLevel: 8)),
+      throwsFormatException,
+    );
+    expect(document.current, same(before));
+  });
 
   test(
     'duplicating onto a higher plateau anchors both the model and its ramp',

@@ -1,8 +1,11 @@
+import '../../../features/pokemon/application/pokemon_reference_labels.dart';
+export '../../../features/pokemon/application/pokemon_reference_labels.dart'
+    show pokemonMoveCategoryLabel;
+
 import 'package:flutter/material.dart';
 
 import '../../../features/pokemon/domain/pokemon_workspace_models.dart';
 import '../../theme/studio_tokens.dart';
-import 'pokemon_ui_parts.dart';
 
 class PokemonMoveEmblem extends StatelessWidget {
   const PokemonMoveEmblem({super.key, required this.move, this.size = 42});
@@ -93,15 +96,6 @@ class PokemonMoveEmblem extends StatelessWidget {
     );
   }
 }
-
-String pokemonMoveCategoryLabel(String? category) =>
-    switch (category?.toLowerCase()) {
-      'physical' => 'Physique',
-      'special' => 'Spéciale',
-      'status' => 'Statut',
-      null => 'Catégorie inconnue',
-      final String other => other,
-    };
 
 IconData pokemonMoveCategoryIcon(String? category) =>
     switch (category?.toLowerCase()) {

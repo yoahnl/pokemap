@@ -16,7 +16,7 @@ import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_choice.dart';
 import 'cinematic_action_palette.dart';
 import 'cinematic_labels.dart';
-import 'cinematic_map_model.dart';
+import 'package:avelune_studio/features/cinematics/application/cinematic_map_model.dart';
 import 'cinematic_view_state.dart';
 import '../../../features/cinematics/application/cinematic_actor_labels.dart';
 

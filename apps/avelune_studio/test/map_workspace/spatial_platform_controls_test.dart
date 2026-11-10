@@ -1,3 +1,6 @@
+import 'package:avelune_studio/features/map_workspace/application/spatial_platform_editing_session.dart';
+import 'package:flutter/foundation.dart';
+
 import 'dart:convert';
 import 'dart:io';
 
@@ -5,10 +8,6 @@ import 'package:avelune_studio/features/map_workspace/application/editable_map_d
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/spatial_platform_controls.dart';
-import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_draft_field.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
@@ -18,11 +17,15 @@ import '../support/spatial_environment_fixture.dart';
 void main() {
   for (final foreign in [0, 90]) {
     testWidgets(
-      'guided route platform UI persistence stays targeted with $foreign foreign maps',
+      'route platform session persistence stays targeted with $foreign foreign maps',
       (tester) async {
-        final root = Directory(
-          '/Users/karim/Library/Caches/AveluneQA/ecorcia-chapitre7/platforms/studio',
-        );
+        final root = (await tester.runAsync(() async {
+          final parent = Directory(
+            '/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/t01-map-retirement',
+          );
+          await parent.create(recursive: true);
+          return parent.createTemp('platform-studio-');
+        }))!;
         addTearDown(() async {
           if (await root.exists()) await root.delete(recursive: true);
         });
@@ -86,29 +89,9 @@ void main() {
           expect(controller.error, isNull);
           document = controller.active!;
         });
-        await tester.pumpWidget(
-          MaterialApp(
-            theme: studioTheme(),
-            home: Scaffold(
-              body: SingleChildScrollView(
-                child: SpatialPlatformControls(
-                  document: document,
-                  project: project,
-                  instance: deck,
-                  onChanged: () {},
-                ),
-              ),
-            ),
-          ),
-        );
-        Future<void> press(String label) async {
-          final button = find.text(label);
-          await tester.ensureVisible(button);
-          await tester.tap(button);
-          await tester.pump();
-        }
-
-        await press('Créer le trajet');
+        final editing = SpatialPlatformEditingSession(document, deck);
+        addTearDown(editing.dispose);
+        expect(editing.apply(), isTrue);
         expect(
           document
               .current
@@ -125,17 +108,8 @@ void main() {
         final counts = <int>[];
         for (var repeat = 0; repeat < 2; repeat++) {
           if (repeat == 1) {
-            final field = find.byWidgetPredicate(
-              (widget) =>
-                  widget is StudioDraftField &&
-                  widget.label == 'Durée du trajet (ms)',
-            );
-            await tester.ensureVisible(field);
-            await tester.enterText(
-              find.descendant(of: field, matching: find.byType(TextField)),
-              '2000',
-            );
-            await press('Appliquer le trajet');
+            editing.values['duration'] = '2000';
+            expect(editing.apply(), isTrue);
           }
           await tester.runAsync(() async {
             reader.paths.clear();
@@ -167,18 +141,9 @@ void main() {
           document.current.spatialScene!.instances,
           first.spatialScene!.instances,
         );
-        final field = find.byWidgetPredicate(
-          (widget) =>
-              widget is StudioDraftField &&
-              widget.label == 'Durée du trajet (ms)',
-        );
-        await tester.ensureVisible(field);
-        await tester.enterText(
-          find.descendant(of: field, matching: find.byType(TextField)),
-          '-1',
-        );
+        editing.values['duration'] = '-1';
         final before = document.current;
-        await press('Appliquer le trajet');
+        expect(editing.apply(), isFalse);
         expect(document.current, same(before));
         await tester.runAsync(() async {
           final reopened = MapWorkspaceController(

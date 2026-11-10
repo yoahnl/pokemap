@@ -64,3 +64,16 @@ class SceneLinkedDocumentReader {
     () => const YarnDialogueCompiler().compile(source),
   );
 }
+
+({String start, RuntimeDialogueNode? node}) selectLinkedDialogueStart(
+  NarrativeDialogueSource source,
+  RuntimeDialogueDocument document,
+  String? requested,
+) {
+  final start =
+      requested ?? source.entry.defaultStartNode ?? document.nodes.first.title;
+  return (
+    start: start,
+    node: document.nodes.where((node) => node.title == start).firstOrNull,
+  );
+}

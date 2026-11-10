@@ -1,9 +1,6 @@
 import 'package:avelune_studio/platform/rendering/studio_resource_index.dart';
-import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 import 'package:avelune_studio/platform/rendering/contracts/workspace_resource_diagnostic.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/workspace_resource_diagnostics.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
-import 'package:flutter/material.dart';
+import 'package:avelune_studio/features/map_workspace/application/workspace_resource_diagnostic_projection.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
@@ -72,141 +69,39 @@ void main() {
     },
   );
 
-  testWidgets(
-    'incidents are grouped by owner, name their cause status and open the right resource',
-    (tester) async {
-      await tester.binding.setSurfaceSize(const Size(1280, 900));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
-      final index = StudioResourceIndex(_project());
-      final visuals = _Visuals([
-        _diagnostic(
-          index,
-          'hgss-compagnon-ekans',
-          WorkspaceResourceCause.unsupported,
-        ),
-        _diagnostic(
-          index,
-          'character-animation:asset-hgss-compagnon-ekans',
-          WorkspaceResourceCause.unsupported,
-        ),
-        _diagnostic(index, 'mystery', WorkspaceResourceCause.readFailure),
-      ]);
-      final opened = <(String, String)>[];
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: studioTheme(),
-          home: Scaffold(
-            body: Column(
-              children: [
-                const Expanded(child: SizedBox.expand()),
-                WorkspaceResourceDiagnostics(
-                  visuals: visuals,
-                  onOpenOwner: (kind, id) async {
-                    opened.add((kind, id));
-                    return true;
-                  },
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-      expect(
-        find.text('2 ressources en incident · ressources demandées'),
-        findsOneWidget,
-      );
-      await tester.tap(find.byKey(const ValueKey('resource-details')));
-      await tester.pumpAndSettle();
-      expect(
-        find.text('2 ressources concernées · 3 références'),
-        findsOneWidget,
-      );
-      final owner = find.byKey(const ValueKey('resource-row-character:ekans'));
-      expect(owner, findsOneWidget);
-      expect(
-        find.descendant(
-          of: owner,
-          matching: find.text('Abo — compagnon d’équipe'),
-        ),
-        findsOneWidget,
-      );
-      expect(
-        find.descendant(
-          of: owner,
-          matching: find.textContaining('Planche du personnage · Animations'),
-        ),
-        findsOneWidget,
-      );
-      expect(
-        find.descendant(of: owner, matching: find.text('Cause vérifiée')),
-        findsOneWidget,
-      );
-      final unknown = find.byKey(const ValueKey('resource-row-mystery'));
-      expect(
-        find.descendant(of: unknown, matching: find.text('Cause non vérifiée')),
-        findsOneWidget,
-      );
-      expect(
-        find.descendant(
-          of: unknown,
-          matching: find.byKey(const ValueKey('resource-open-owner')),
-        ),
-        findsNothing,
-      );
+  test('owner projection retains identity, roles, causes and complete references', () {
+    final index = StudioResourceIndex(_project());
+    final projection = WorkspaceResourceDiagnosticProjection([
+      _diagnostic(index, 'hgss-compagnon-ekans', WorkspaceResourceCause.unsupported),
+      _diagnostic(index, 'character-animation:asset-hgss-compagnon-ekans', WorkspaceResourceCause.unsupported),
+      _diagnostic(index, 'mystery', WorkspaceResourceCause.readFailure),
+    ], const {});
+    expect(projection.ownerCount, 2);
+    expect(projection.groups, hasLength(2));
+    expect(projection.diagnostics, hasLength(3));
+    final owner = projection.groups.singleWhere((group) => group.key == 'character:ekans');
+    expect(owner.title, 'Abo — compagnon d’équipe');
+    expect(owner.roles, ['Planche du personnage', 'Animations']);
+    expect(owner.verified, isTrue);
+    expect(owner.owner, ('character', 'ekans'));
+    expect(owner.retryableIds, ['hgss-compagnon-ekans', 'character-animation:asset-hgss-compagnon-ekans']);
+    final details = owner.items.map(workspaceResourceDiagnosticDetail).join('\n');
+    expect(details, contains('hgss-compagnon-ekans'));
+    expect(details, contains('character-animation:asset-hgss-compagnon-ekans'));
+    final unknown = projection.groups.singleWhere((group) => group.key == 'mystery');
+    expect(unknown.verified, isFalse);
+    expect(unknown.owner, isNull);
+    expect(unknown.items.single.explanation, contains('sans cause identifiée'));
+  });
 
-      await tester.tap(
-        find.descendant(
-          of: owner,
-          matching: find.byKey(const ValueKey('Voir le diagnostic complet')),
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(find.textContaining('hgss-compagnon-ekans'), findsWidgets);
-      expect(
-        find.textContaining('character-animation:asset-hgss-compagnon-ekans'),
-        findsOneWidget,
-      );
-      await tester.tap(
-        find.byKey(const ValueKey('Fermer le diagnostic complet')),
-      );
-      await tester.pumpAndSettle();
-
-      await tester.tap(
-        find.descendant(
-          of: owner,
-          matching: find.byKey(const ValueKey('resource-open-owner')),
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(opened, [('character', 'ekans')]);
-      expect(
-        find.byKey(const ValueKey('resource-diagnostics-panel')),
-        findsNothing,
-      );
-      await tester.pumpWidget(const SizedBox());
-      await visuals.dispose();
-    },
-  );
-}
-
-class _Visuals implements MapWorkspaceVisuals {
-  _Visuals(this.diagnostics);
-  final _changes = ChangeNotifier();
-  @override
-  List<WorkspaceResourceDiagnostic> diagnostics;
-  @override
-  Set<String> get activeResourceIds => {};
-  @override
-  List<String> get warnings => [];
-  @override
-  void addListener(VoidCallback listener) => _changes.addListener(listener);
-  @override
-  void removeListener(VoidCallback listener) =>
-      _changes.removeListener(listener);
-  @override
-  Future<void> retryResources(Iterable<String> resourceIds) async {}
-  @override
-  Future<void> dispose() async => _changes.dispose();
-  @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+  test('an incomplete owner identity never yields an actionable resource', () {
+    final projection = WorkspaceResourceDiagnosticProjection([
+      const WorkspaceResourceDiagnostic(
+        resourceId: 'partial', name: 'Référence partielle',
+        cause: WorkspaceResourceCause.missing, ownerKind: 'character',
+      ),
+    ], const {});
+    expect(projection.groups.single.owner, isNull);
+    expect(projection.groups.single.key, 'partial');
+  });
 }

@@ -3,6 +3,7 @@ import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/map_workspace/application/editable_map_document.dart';
 import '../../../features/map_workspace/application/warp_editing_commands.dart';
+import '../../../features/map_workspace/application/map_warp_target_session.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/inputs/studio_commit_field.dart';
@@ -38,82 +39,44 @@ class MapWarpInspector extends StatefulWidget {
 }
 
 class _MapWarpInspectorState extends State<MapWarpInspector> {
-  MapWarpTriggerMode? _pendingActiveMode;
-  String? _pendingDestination;
-  int? _pendingX;
-  int? _pendingY;
+  late MapWarpTargetSession form;
 
   WarpEditingCommands get _commands =>
       WarpEditingCommands(widget.document, widget.project);
 
-  void _clearPending() {
-    _pendingActiveMode = null;
-    _pendingDestination = null;
-    _pendingX = null;
-    _pendingY = null;
+  @override
+  void initState() {
+    super.initState();
+    form = MapWarpTargetSession(widget.document, widget.project, widget.warp);
   }
 
   @override
   void didUpdateWidget(MapWarpInspector oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (!identical(oldWidget.document, widget.document) ||
-        oldWidget.warp.id != widget.warp.id ||
-        oldWidget.warp.triggerMode != widget.warp.triggerMode) {
-      _clearPending();
+    if (!identical(oldWidget.document, widget.document)) {
+      form.dispose();
+      form = MapWarpTargetSession(widget.document, widget.project, widget.warp);
+    } else {
+      form.update(widget.project, widget.warp);
     }
+  }
+
+  @override
+  void dispose() {
+    form.dispose();
+    super.dispose();
   }
 
   void _selectMode(String raw) {
-    final mode = MapWarpTriggerMode.values.byName(raw);
-    if (widget.warp.triggerMode == MapWarpTriggerMode.sceneOnly &&
-        mode != MapWarpTriggerMode.sceneOnly) {
-      setState(() => _pendingActiveMode = mode);
-      return;
-    }
-    setState(_clearPending);
-    if (mode != widget.warp.triggerMode) {
-      _change(() => _commands.retarget(widget.warp.id, triggerMode: mode));
-    }
+    setState(() => form.selectMode(raw));
+    widget.onChanged();
   }
 
   bool _commitTarget(String raw, {required bool horizontal}) {
-    final parsed = int.tryParse(raw.trim());
-    if (parsed == null || parsed < 0) {
-      if (_pendingActiveMode != null) {
-        setState(() {
-          if (horizontal) {
-            _pendingX = null;
-          } else {
-            _pendingY = null;
-          }
-        });
-      }
-      widget.document.error =
-          'La case d’arrivée doit être exprimée en nombres positifs.';
-      widget.onChanged();
-      return false;
-    }
-    if (_pendingActiveMode != null) {
-      setState(() {
-        if (horizontal) {
-          _pendingX = parsed;
-        } else {
-          _pendingY = parsed;
-        }
-      });
-      return true;
-    }
-    final current = widget.warp.targetPos;
-    if (horizontal ? parsed == current.x : parsed == current.y) return true;
-    _change(
-      () => _commands.retarget(
-        widget.warp.id,
-        targetPos: horizontal
-            ? GridPos(x: parsed, y: current.y)
-            : GridPos(x: current.x, y: parsed),
-      ),
-    );
-    return true;
+    final result = form.commitTarget(raw, horizontal: horizontal);
+    setState(() {});
+    widget.onChanged();
+    return result;
   }
 
   Future<MapData?> _destination(String mapId) async {
@@ -129,25 +92,18 @@ class _MapWarpInspectorState extends State<MapWarpInspector> {
 
   Future<void> _pickArrival(String mapId) async {
     final entry = widget.project.maps.firstWhere((map) => map.id == mapId);
-    final pending = _pendingActiveMode != null;
-    final pos = await showMapArrivalPicker(
-      context,
-      destinationName: entry.name,
-      fromMapId: widget.document.current.id,
-      current: pending
-          ? GridPos(x: _pendingX ?? 0, y: _pendingY ?? 0)
-          : widget.warp.targetPos,
-      destination: _destination(mapId),
+    await form.pickArrival(
+      (current) => showMapArrivalPicker(
+        context,
+        destinationName: entry.name,
+        fromMapId: widget.document.current.id,
+        current: current,
+        destination: _destination(mapId),
+      ),
     );
-    if (pos == null || !mounted) return;
-    if (pending) {
-      setState(() {
-        _pendingX = pos.x;
-        _pendingY = pos.y;
-      });
-      return;
-    }
-    _change(() => _commands.retarget(widget.warp.id, targetPos: pos));
+    if (!mounted) return;
+    setState(() {});
+    widget.onChanged();
   }
 
   void _change(VoidCallback action) {
@@ -162,25 +118,15 @@ class _MapWarpInspectorState extends State<MapWarpInspector> {
   @override
   Widget build(BuildContext context) {
     final warp = widget.warp;
-    final pending = _pendingActiveMode != null;
-    final mode = _pendingActiveMode ?? warp.triggerMode;
+    final pending = form.pendingActiveMode != null;
+    final mode = form.pendingActiveMode ?? warp.triggerMode;
     final passive = mode == MapWarpTriggerMode.sceneOnly;
     final owner = '${widget.document.current.id}/${warp.id}';
-    final destinations = _commands
-        .destinations()
-        .where(
-          (entry) =>
-              !pending ||
-              widget.project.maps
-                      .where((candidate) => candidate.id == entry.id)
-                      .length ==
-                  1,
-        )
-        .toList();
-    final targetMapId = pending ? _pendingDestination : warp.targetMapId;
+    final destinations = form.destinations;
+    final targetMapId = form.targetMapId;
     final problem = pending ? null : _commands.destinationProblem(warp);
-    final known = destinations.any((entry) => entry.id == targetMapId);
-    final canApply = pending && known && _pendingX != null && _pendingY != null;
+    final known = form.known;
+    final canApply = form.canApply;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -205,15 +151,8 @@ class _MapWarpInspectorState extends State<MapWarpInspector> {
             ],
             onChanged: (id) {
               if (id == null) return;
-              if (pending) {
-                setState(() {
-                  _pendingDestination = id;
-                  _pendingX = null;
-                  _pendingY = null;
-                });
-              } else {
-                _change(() => _commands.retarget(warp.id, targetMapId: id));
-              }
+              setState(() => form.selectDestination(id));
+              widget.onChanged();
             },
           ),
           const SizedBox(height: 6),
@@ -232,15 +171,8 @@ class _MapWarpInspectorState extends State<MapWarpInspector> {
                   selectedId: targetMapId,
                 );
                 if (id == null || !mounted) return;
-                if (pending) {
-                  setState(() {
-                    _pendingDestination = id;
-                    _pendingX = null;
-                    _pendingY = null;
-                  });
-                } else {
-                  _change(() => _commands.retarget(warp.id, targetMapId: id));
-                }
+                setState(() => form.selectDestination(id));
+                widget.onChanged();
               },
             ),
           ),
@@ -259,7 +191,9 @@ class _MapWarpInspectorState extends State<MapWarpInspector> {
                 child: StudioCommitField(
                   key: ValueKey('warp-target-x-$owner-$pending-$targetMapId'),
                   label: 'Case X',
-                  value: pending ? '${_pendingX ?? ''}' : '${warp.targetPos.x}',
+                  value: pending
+                      ? '${form.pendingX ?? ''}'
+                      : '${warp.targetPos.x}',
                   tryCommit: (raw) => _commitTarget(raw, horizontal: true),
                 ),
               ),
@@ -268,7 +202,9 @@ class _MapWarpInspectorState extends State<MapWarpInspector> {
                 child: StudioCommitField(
                   key: ValueKey('warp-target-y-$owner-$pending-$targetMapId'),
                   label: 'Case Y',
-                  value: pending ? '${_pendingY ?? ''}' : '${warp.targetPos.y}',
+                  value: pending
+                      ? '${form.pendingY ?? ''}'
+                      : '${warp.targetPos.y}',
                   tryCommit: (raw) => _commitTarget(raw, horizontal: false),
                 ),
               ),
@@ -318,14 +254,8 @@ class _MapWarpInspectorState extends State<MapWarpInspector> {
             label: 'Appliquer le passage',
             onPressed: canApply
                 ? () {
-                    _change(
-                      () => _commands.retarget(
-                        warp.id,
-                        triggerMode: _pendingActiveMode,
-                        targetMapId: _pendingDestination,
-                        targetPos: GridPos(x: _pendingX!, y: _pendingY!),
-                      ),
-                    );
+                    form.apply();
+                    widget.onChanged();
                   }
                 : null,
           ),
@@ -342,8 +272,9 @@ class _MapWarpInspectorState extends State<MapWarpInspector> {
           MapWarpTransitionEditor(
             key: ValueKey('warp-transition-$owner'),
             warp: warp,
-            onApply: (transition) =>
-                _change(() => _commands.configureTransition(warp.id, transition)),
+            onApply: (transition) => _change(
+              () => _commands.configureTransition(warp.id, transition),
+            ),
           ),
         ],
         if (!passive &&

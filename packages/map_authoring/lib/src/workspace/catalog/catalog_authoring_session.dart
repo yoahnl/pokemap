@@ -729,7 +729,7 @@ final class CatalogAuthoringSession {
     final artifacts = artifactStore;
     const roles = {
       'frontStatic', 'backStatic', 'frontShinyStatic', 'backShinyStatic',
-      'icon', 'party', 'portrait', 'overworld',
+      'icon', 'party', 'portrait', 'overworld', 'overworldShiny',
     };
     if (artifacts == null || raw is! Map || raw.isEmpty ||
         raw.length > roles.length ||

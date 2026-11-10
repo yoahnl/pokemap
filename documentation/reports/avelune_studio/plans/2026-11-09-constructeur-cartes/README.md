@@ -1865,7 +1865,7 @@ Le vérificateur contrôle empreintes, dépendances, scores, mesures et complét
 - Conteneurs Ressources : véritables publications, refus et relecture : 4 tests, sortie 0.
 - Terrain : 11 cas de viewport/parser/scratch puis publication canonique isolée corrigée : 12 tests, sortie 0.
 
-**Limites :** G0 non accepté : widgets historiques, tests et consommateurs en cours de retrait/migration.; Aucun lot accepté ; prérequis T00 non acceptés.; Build Release isolé et hôte neutre observé avec moteur QA corrigé ; ne prouve pas les derniers viewports ni des parcours natifs complets 2D/3D.; MCP natif non connecté dans le bundle isolé (distribution.manifest_unavailable) ; tests lifecycle MCP distincts réussis.; Aucune écriture Git, publication ni modification de mécanique runtime réalisée par T01.; Capture durable de l’hôte vide et du suivi documentaire uniquement ; captures/mesures par état et par profil de lot encore à produire, aucun score inventé..
+**Limites :** G0 non accepté : widgets historiques, tests et consommateurs en cours de retrait/migration.; Aucun lot accepté ; prérequis T00 non acceptés.; Build Release isolé et hôte neutre observé avec moteur QA corrigé ; ne prouve pas les derniers viewports ni des parcours natifs complets 2D/3D.; MCP natif non connecté dans le bundle isolé (distribution.manifest_unavailable) ; tests lifecycle MCP distincts réussis.; Aucune écriture Git, publication ni modification de mécanique runtime réalisée par T01.; Hôte vide et suivi documentaire capturés ; douze captures documentent deux candidates de maquette locale sans valider les cibles. Captures et mesures natives par état/profil restent à produire, sans score inventé..
 
 - [after-extraction-before-workflow.log](proofs/t01-execution/after-extraction-before-workflow.log)
 - [artefact-t01-progress.jpg](proofs/t01-execution/artefact-t01-progress.jpg)
@@ -1926,6 +1926,34 @@ Le vérificateur contrôle empreintes, dépendances, scores, mesures et complét
 - [dependency-rui004-fingerprint-fix-receipt.json](proofs/t00-preparation/dependency-rui004-fingerprint-fix-receipt.json)
 - [current-witness-authoring-checkpoint.json](proofs/t00-preparation/current-witness-authoring-checkpoint.json)
 - [Contrôle ciblé avant commit T01 — statut partiel](proofs/t01-execution/precommit-check-20261110.json)
+- [Validation consolidée T00/T01 — G0 et parité complète en attente](proofs/t01-execution/retirement-contract-validation.json)
+- [Index des preuves ciblées et des limites de la reprise](proofs/t01-execution/resume-20261110/index.json)
+- [Candidate locale : règles de carte 2D et donjon](proofs/t00-candidates/470897188139069440/twoD-rules-dungeon.png)
+- [Candidate locale : règles de carte profil 3D et donjon](proofs/t00-candidates/470897188139069440/threeD-rules-dungeon.png)
+- [Candidate locale : mouvements avancés 2D](proofs/t00-candidates/470897188139069440/twoD-advanced-movement.png)
+- [Candidate locale : mouvements avancés profil 3D](proofs/t00-candidates/470897188139069440/threeD-advanced-movement.png)
+- [Candidate session RUI-019 : manifeste et provenance des huit captures](proofs/t00-candidates/470908170030706688/manifest.json)
+- [Candidate session 2D : lecture seule](proofs/t00-candidates/470908170030706688/twoD-readonly.png)
+- [Candidate session 2D : récupération](proofs/t00-candidates/470908170030706688/twoD-recovery.png)
+- [Candidate session 2D : conflit](proofs/t00-candidates/470908170030706688/twoD-conflict.png)
+- [Candidate session 2D : fermeture avec brouillon](proofs/t00-candidates/470908170030706688/twoD-draft.png)
+- [Candidate session 3D : lecture seule](proofs/t00-candidates/470908170030706688/threeD-readonly.png)
+- [Candidate session 3D : récupération](proofs/t00-candidates/470908170030706688/threeD-recovery.png)
+- [Candidate session 3D : conflit](proofs/t00-candidates/470908170030706688/threeD-conflict.png)
+- [Candidate session 3D : fermeture avec brouillon](proofs/t00-candidates/470908170030706688/threeD-draft.png)
+- [Témoins actuels : rendus 2D et 3D debug, limites Release](proofs/t00-preparation/current-native-renders/observation.json)
+- [Témoin courant : rendu logiciel 2D de Clairière](proofs/t00-preparation/current-native-renders/twoD-clairiere.png)
+- [Témoin courant : rendu natif 3D debug de la maison](proofs/t00-preparation/current-native-renders/threeD-maison-etage-debug.png)
+- [Profils et exports locaux des témoins QA 2D/3D](proofs/t00-preparation/current-native-renders/profile-export-receipt.json)
+- [Candidate MagicPath RUI-075 — manifeste des 24 captures, non approuvée](proofs/t00-candidates/470932885365477376/manifest.json)
+- [Candidate RUI-075 — résultats interactifs du prototype](proofs/t00-candidates/470932885365477376/interaction-results.json)
+- [Candidate RUI-075 — livraison MagicPath](proofs/t00-candidates/470932885365477376/candidate-receipt.json)
+- [Témoins Player 2D/3D : installation, sauvegarde et reprise headless](proofs/t00-preparation/current-native-renders/player-runtime/runtime-proof-receipt.json)
+- [Empreintes de la copie source isolée des sondes Player](proofs/t00-preparation/current-native-renders/player-runtime/source-hashes.json)
+- [Écriture et sauvegarde Player 2D : relance ciblée](proofs/t00-preparation/current-native-renders/player-runtime/write-isolated4.log)
+- [Reprise Player 2D : nouveau processus](proofs/t00-preparation/current-native-renders/player-runtime/read-isolated5.log)
+- [Écriture Player 3D : test individuel dans une suite partiellement échouée](proofs/t00-preparation/current-native-renders/player-runtime/write-isolated2.log)
+- [Reprise Player 3D : test individuel dans une suite partiellement échouée](proofs/t00-preparation/current-native-renders/player-runtime/read-isolated4.log)
 
 ### T00 — Périmètre, références et contrat de contrôle
 
@@ -1944,7 +1972,7 @@ Le vérificateur contrôle empreintes, dépendances, scores, mesures et complét
 
 [Ouvrir le lot complet : fichiers, étapes, tests, références, états et critères](index.html#plan-RUI-001). 5 étapes ; 2 états requis par profil. Le JSON canonique conserve tous les détails ; cet index évite de dupliquer le plan intégral dans un Markdown surdimensionné.
 
-**Avancement :** Rattrapage : les 992 empreintes historiques ont été retrouvées et comparées. Proposition de classement enrichie en revue ; consommateurs externes à conserver explicitement. G0 actuel reste rouge, aucun retrait supplémentaire autorisé pendant le rattrapage.
+**Avancement :** 993 entrées classées au niveau préparation, dont les 992 empreintes historiques vérifiées. Le classement ne prouve pas encore toutes les responsabilités ; destinations et consommateurs à clôturer par les ledgers de retrait.
 
 <a id="rui-002"></a>
 #### RUI-002 — Caractériser et protéger le fonctionnel existant
@@ -1959,7 +1987,7 @@ Le vérificateur contrôle empreintes, dépendances, scores, mesures et complét
 
 [Ouvrir le lot complet : fichiers, étapes, tests, références, états et critères](index.html#plan-RUI-002). 5 étapes ; 2 états requis par profil. Le JSON canonique conserve tous les détails ; cet index évite de dupliquer le plan intégral dans un Markdown surdimensionné.
 
-**Avancement :** Deux témoins actuels 2D/3D préparés : deux tests réussis, lecteur canonique et ressources vérifiés, originaux inchangés. Authoring3D attempt2 arrêté exit1 après trois imports GLB et publication du blueprint ; carte inchangée, aucun Border/pente nouveau. Mauvais choix de lecteur dans le harness à corriger. Native/export/Player/reprise non exécutés ; aucune reconstitution AVANT.
+**Avancement :** Témoins QA : rendu 2D logiciel et 3D debug intérieur ; profils et exports localTest 2D/3D vérifiés. Les deux exports ont été installés, lancés, sauvegardés puis repris après redémarrage du processus Player headless. Les captures ne prouvent pas les écrans Player ni le rendu GPU ; le build 3D Release échoue encore dans l’AOT Flutter.
 
 <a id="rui-003"></a>
 #### RUI-003 — Compléter et approuver les cibles visuelles 2D et 3D
@@ -1974,7 +2002,7 @@ Le vérificateur contrôle empreintes, dépendances, scores, mesures et complét
 
 [Ouvrir le lot complet : fichiers, étapes, tests, références, états et critères](index.html#plan-RUI-003). 6 étapes ; 2 états requis par profil. Le JSON canonique conserve tous les détails ; cet index évite de dupliquer le plan intégral dans un Markdown surdimensionné.
 
-**Avancement :** 611 sources recensées : 542 références existantes, 54 guides, 15 défauts. Les 782 couples lot/état/profil non documentaires restent sans liaison approuvée. Les variantes 2D et les modules encore réduits à des guides doivent être complétés avant reconstruction.
+**Avancement :** 611 sources historiques recensées et aucune liaison approuvée parmi les 782 couples non documentaires du registre. Les candidates Carte et Session restent non approuvées. Une candidate Espèces RUI-075 ajoute 24 captures locales et 91 assertions interactives ; données fictives, 3D schématique, sans intégration native. Les références état/profil restent à compléter et approuver avant reconstruction.
 
 <a id="rui-004"></a>
 #### RUI-004 — Activer le registre des lots et des preuves
@@ -1998,7 +2026,7 @@ Le vérificateur contrôle empreintes, dépendances, scores, mesures et complét
 <a id="rui-005"></a>
 #### RUI-005 — Extraire les responsabilités non visuelles des fichiers mixtes
 
-**Statut :** blocked. **Dépendances :** RUI-004.
+**Statut :** in_progress. **Dépendances :** RUI-004.
 
 **Objectif :** Préserver la logique aujourd’hui hébergée près des widgets avant leur suppression.
 
@@ -2008,7 +2036,7 @@ Le vérificateur contrôle empreintes, dépendances, scores, mesures et complét
 
 [Ouvrir le lot complet : fichiers, étapes, tests, références, états et critères](index.html#plan-RUI-005). 5 étapes ; 2 états requis par profil. Le JSON canonique conserve tous les détails ; cet index évite de dupliquer le plan intégral dans un Markdown surdimensionné.
 
-**Avancement :** Contrats, sessions, workflows et viewports extraits. Accueil/Création/Monde/Vérification vérifiés ; Événements guidés/simulation/playtest séparés, Personnages vérifiés et Pokémon en extraction. Autres ateliers encore à migrer.
+**Avancement :** Extractions ciblées vérifiées pour Histoire, imports Pokémon, Ambiance et graphe Dialogues. Un défaut du catalogue événement partiel reste en correction : le premier correctif passe 16 cas mais doit préserver les incompatibilités 2D/3D et être rejoué. Intégration globale et G0 restent ouverts ; travail en pause à la demande de Yoahn.
 
 <a id="rui-006"></a>
 #### RUI-006 — Détacher toutes les routes de l’ancien Studio
@@ -2053,7 +2081,7 @@ Le vérificateur contrôle empreintes, dépendances, scores, mesures et complét
 
 [Ouvrir le lot complet : fichiers, étapes, tests, références, états et critères](index.html#plan-RUI-008). 5 étapes ; 2 états requis par profil. Le JSON canonique conserve tous les détails ; cet index évite de dupliquer le plan intégral dans un Markdown surdimensionné.
 
-**Avancement :** Accueil7, Création/Session10, Monde8 et Vérification6 retirés. Trois UI Événements retirées après34 cas de comportement et publisher réel ; Ressources/Personnages en retrait coordonné. Aucun atelier reconstruit.
+**Avancement :** Retraits ciblés Histoire, imports Pokémon, Ambiance et graphe Dialogues accompagnés de tests et revues. Le lot médias Pokémon est retiré mais ses tests centraux restent à exécuter. De nombreuses compositions restent à traiter ; aucun atelier reconstruit.
 
 <a id="rui-009"></a>
 #### RUI-009 — Retirer les primitives et ponts UI historiques de Studio
@@ -2083,7 +2111,7 @@ Le vérificateur contrôle empreintes, dépendances, scores, mesures et complét
 
 [Ouvrir le lot complet : fichiers, étapes, tests, références, états et critères](index.html#plan-RUI-010). 5 étapes ; 3 états requis par profil. Le JSON canonique conserve tous les détails ; cet index évite de dupliquer le plan intégral dans un Markdown surdimensionné.
 
-**Avancement :** G0 toujours non accepté. Outillage28cas vérifiés avant correction package:/file: révélée par probes compiler ; inventaire/ledgers/preuves mis à jour, aucun score visuel ou lot accepté.
+**Avancement :** G0 non accepté : inventaire et preuves partiels, nombreuses compositions encore présentes. Les deux échecs de la suite JSONL globale ont été reproduits et diagnostiqués statiquement comme préexistants, sans rerun de HEAD. Aucun lot ni score visuel accepté.
 
 ### T02 — Nouveau design system et nouveau shell
 
@@ -3153,7 +3181,7 @@ Le vérificateur contrôle empreintes, dépendances, scores, mesures et complét
 
 ### 27.7 Préparation et limites
 
-Départ sur main, HEAD 06fd484d3fbe762f33380e05a21629cb6dee23fc, arbre modifié et travail concurrent préservé. T00 en rattrapage. Les extractions et retraits T01 déjà réalisés sont conservés ; tout nouveau retrait T01 et toute reconstruction sont figés. Aucun lot accepté, G0 non accepté. L’inventaire de 992 fichiers est à classer et compléter par graphe ; ce n’est pas un ordre aveugle de supprimer des dossiers.
+Départ sur main, HEAD 06fd484d3fbe762f33380e05a21629cb6dee23fc, arbre modifié et travail concurrent préservé. T01 repris explicitement par l’utilisateur après le checkpoint861ad496d. Extractions restantes en cours avec classification/protections ; aucune reconstruction T02. Aucun lot accepté et G0 non accepté. L’inventaire de 992 fichiers est à classer et compléter par graphe ; ce n’est pas un ordre aveugle de supprimer des dossiers.
 
 **Vérifications de préparation :** Historique de préparation initiale : 88 lots détaillés dans 15 thématiques ; 88 lots planifiés, zéro lot natif accepté.; Historique de préparation initiale : 611 références locales présentes et empreintes vérifiées ; aucune référence de lot inconnue.; Historique de préparation initiale : Inventaire initial de 992 fichiers, à classer avant retrait ; aucun fichier applicatif supprimé.; Historique de préparation initiale : 16 contrôles du vérificateur réussis : refus de preuve manquante, score 94, auto-revue, écart critique, métrique excessive, code périmé, commande en échec.; Historique de préparation initiale : record émet un patch sans modifier le canonique ; invalidation en cascade vérifiée sur fixture sans résultat natif revendiqué.; Historique de préparation initiale : 17 contrôles d’interactions DOM et 3 contrôles de lien direct réussis ; aucune erreur JavaScript.; Historique de préparation initiale : Rendus Markdown/HTML déterministes et synchronisés au JSON canonique ; contrôle de taille du Markdown réussi.; Historique de préparation initiale : Markdown hygiene : un nouveau Markdown canonique, contrôle réussi avec POKEMAP_MARKDOWN_MAX_NEW=1 ; index sous la limite de 262144 octets..
 
@@ -3161,4 +3189,4 @@ Départ sur main, HEAD 06fd484d3fbe762f33380e05a21629cb6dee23fc, arbre modifié 
 
 **Adaptation de writing-plans :** fichiers, séquence, cas et contrats de preuve sont détaillés ; le plan ne préécrit pas des milliers de lignes de patches futurs sur des interfaces à retirer. Le code et ses tests sont ajoutés au lot concerné. Aucun commit/worktree n’est imposé par le skill.
 
-**Prochaine action :** Terminer le classement revu, qualifier les témoins actuels 2D/3D, compléter et approuver les références, puis revoir le registre. Reprendre T01 seulement après résolution des prérequis.
+**Prochaine action :** Terminer les responsabilités mixtes et leurs contrats, retirer les compositions historiques, qualifier les témoins actuels et faire revoir G0. Les cibles manquantes continuent de bloquer la reconstruction concernée.

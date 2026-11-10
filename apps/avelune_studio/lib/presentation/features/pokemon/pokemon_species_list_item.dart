@@ -1,26 +1,20 @@
 import 'package:flutter/material.dart';
 
 import '../../../features/pokemon/domain/pokemon_workspace_models.dart';
-import '../../../features/pokemon/domain/pokemon_workspace_port.dart';
 import '../../theme/studio_tokens.dart';
-import 'pokemon_species_thumbnail.dart';
 import 'pokemon_ui_parts.dart';
 
 class PokemonSpeciesListItem extends StatelessWidget {
   const PokemonSpeciesListItem({
     super.key,
     required this.entry,
-    required this.port,
     required this.selected,
     required this.onTap,
-    this.mediaRevision = 0,
   });
 
   final PokemonSpeciesSummary entry;
-  final PokemonWorkspacePort port;
   final bool selected;
   final VoidCallback onTap;
-  final int mediaRevision;
 
   @override
   Widget build(BuildContext context) {
@@ -45,14 +39,6 @@ class PokemonSpeciesListItem extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
             child: Row(
               children: [
-                PokemonSpeciesThumbnail(
-                  key: ValueKey('thumbnail-${entry.id}'),
-                  entry: entry,
-                  port: port,
-                  mediaRevision: mediaRevision,
-                  size: 46,
-                ),
-                const SizedBox(width: 9),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

@@ -1,3 +1,5 @@
+import '../../../features/resources/application/model_light_draft.dart';
+
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_render_3d/map_render_3d.dart';
@@ -29,18 +31,44 @@ class ModelLightControls extends StatefulWidget {
 }
 
 class _ModelLightControlsState extends State<ModelLightControls> {
-  late bool enabled, nightOnly, cycle, flame;
-  late int color;
-  late List<String> values;
-  late List<int> colors;
-  late double period, enter, exit, fade;
-  late double flameHeight, flameFlicker;
-  late double flameEmbers;
-  late double flameCrackleVolume;
-  late ModelLightFlameStyle flameStyle;
-  String proximity = 'always';
-  bool saving = false;
-  String? error;
+  late ModelLightDraft _draft;
+  bool get saving => _draft.saving;
+  bool get enabled => _draft.enabled;
+  set enabled(bool value) => _draft.enabled = value;
+  bool get nightOnly => _draft.nightOnly;
+  set nightOnly(bool value) => _draft.nightOnly = value;
+  bool get cycle => _draft.cycle;
+  set cycle(bool value) => _draft.cycle = value;
+  bool get flame => _draft.flame;
+  set flame(bool value) => _draft.flame = value;
+  int get color => _draft.color;
+  set color(int value) => _draft.color = value;
+  List<String> get values => _draft.values;
+  set values(List<String> value) => _draft.values = value;
+  List<int> get colors => _draft.colors;
+  set colors(List<int> value) => _draft.colors = value;
+  double get period => _draft.period;
+  set period(double value) => _draft.period = value;
+  double get enter => _draft.enter;
+  set enter(double value) => _draft.enter = value;
+  double get exit => _draft.exit;
+  set exit(double value) => _draft.exit = value;
+  double get fade => _draft.fade;
+  set fade(double value) => _draft.fade = value;
+  double get flameHeight => _draft.flameHeight;
+  set flameHeight(double value) => _draft.flameHeight = value;
+  double get flameFlicker => _draft.flameFlicker;
+  set flameFlicker(double value) => _draft.flameFlicker = value;
+  double get flameEmbers => _draft.flameEmbers;
+  set flameEmbers(double value) => _draft.flameEmbers = value;
+  double get flameCrackleVolume => _draft.flameCrackleVolume;
+  set flameCrackleVolume(double value) => _draft.flameCrackleVolume = value;
+  ModelLightFlameStyle get flameStyle => _draft.flameStyle;
+  set flameStyle(ModelLightFlameStyle value) => _draft.flameStyle = value;
+  String get proximity => _draft.proximity;
+  set proximity(String value) => _draft.proximity = value;
+  String? get error => _draft.error;
+  set error(String? value) => _draft.error = value;
   ModelPreviewController? preview;
   @override
   void initState() {
@@ -65,6 +93,7 @@ class _ModelLightControlsState extends State<ModelLightControls> {
     super.didUpdateWidget(old);
     if (old.model.id != widget.model.id ||
         old.model.light != widget.model.light) {
+      _draft.dispose();
       reset();
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) preview?.setLight(buildLight());
@@ -74,73 +103,16 @@ class _ModelLightControlsState extends State<ModelLightControls> {
 
   @override
   void dispose() {
+    _draft.dispose();
     preview?.removeListener(moved);
     super.dispose();
   }
 
   void reset() {
-    final light = widget.model.light, bounds = widget.model.inspection.bounds;
-    enabled = light != null;
-    nightOnly = light?.nightOnly ?? true;
-    color = light?.colorRgb ?? 0xffd59a;
-    values = [
-      light?.localPosition.x ?? (bounds.min.x + bounds.max.x) / 2,
-      light?.localPosition.y ?? bounds.min.y + bounds.size.y * .9,
-      light?.localPosition.z ?? (bounds.min.z + bounds.max.z) / 2,
-      light?.radius ?? 4,
-      light?.intensity ?? 1,
-    ].map((v) => '$v').toList();
-    cycle = light?.colorCycle != null;
-    colors =
-        light?.colorCycle?.colors.toList() ??
-        [
-          color,
-          color == SpatialFireflyColor.blue.rgb
-              ? SpatialFireflyColor.pink.rgb
-              : SpatialFireflyColor.blue.rgb,
-        ];
-    period = light?.colorCycle?.periodSeconds ?? 10;
-    proximity = light?.proximity?.mode.name ?? 'always';
-    enter = light?.proximity?.enterDistance ?? 3;
-    exit = light?.proximity?.exitDistance ?? 4;
-    fade = light?.proximity?.fadeSeconds ?? .35;
-    flame = light?.flame != null;
-    flameHeight = light?.flame?.height ?? .35;
-    flameFlicker = light?.flame?.flicker ?? .12;
-    flameEmbers = light?.flame?.embers ?? 0;
-    flameCrackleVolume = light?.flame?.crackleVolume ?? 0;
-    flameStyle = light?.flame?.style ?? ModelLightFlameStyle.candle;
-    error = null;
+    _draft = ModelLightDraft(widget.model);
   }
 
-  Model3dPointLight? buildLight() {
-    if (!enabled) return null;
-    final n = values
-        .map((v) => double.tryParse(v.replaceAll(',', '.')))
-        .toList();
-    if (n.any((v) => v == null || !v.isFinite)) {
-      throw const FormatException('Saisissez des nombres valides.');
-    }
-    return Model3dPointLight(
-      localPosition: Model3dVector3(x: n[0]!, y: n[1]!, z: n[2]!),
-      radius: n[3]!,
-      intensity: n[4]!,
-      colorRgb: color,
-      nightOnly: nightOnly,
-      flame: flame ? ModelLightFlame(height: flameHeight, flicker: flameFlicker, style: flameStyle, embers: flameEmbers, crackleVolume: flameCrackleVolume) : null,
-      colorCycle: cycle
-          ? ModelLightColorCycle(colors: colors, periodSeconds: period)
-          : null,
-      proximity: proximity == 'always'
-          ? null
-          : ModelLightProximity(
-              mode: ModelLightProximityMode.values.byName(proximity),
-              enterDistance: enter,
-              exitDistance: exit,
-              fadeSeconds: fade,
-            ),
-    );
-  }
+  Model3dPointLight? buildLight() => _draft.build();
 
   void change(VoidCallback edit) {
     setState(edit);
@@ -155,35 +127,18 @@ class _ModelLightControlsState extends State<ModelLightControls> {
   void moved() {
     final p = preview?.light?.localPosition;
     if (p == null || !mounted) return;
-    final next = [p.x, p.y, p.z].map((v) => v.toStringAsFixed(4)).toList();
-    if (List.generate(
-      3,
-      (i) => double.tryParse(values[i]) == [p.x, p.y, p.z][i],
-    ).every((v) => v)) {
-      return;
-    }
-    setState(() {
-      for (var i = 0; i < 3; i++) {
-        values[i] = next[i];
-      }
-    });
+    if (_draft.move(p)) setState(() {});
   }
 
   Future<void> save() async {
-    if (saving || widget.busy) return;
-    setState(() {
-      saving = true;
-      error = null;
-    });
-    try {
-      await widget.onSave(buildLight());
-    } on Object catch (failure) {
-      if (mounted) {
-        setState(() => error = 'Éclairage non enregistré : $failure');
-      }
-    } finally {
-      if (mounted) setState(() => saving = false);
-    }
+    final owner = _draft;
+    final saving = owner.save(
+      widget.onSave,
+      canSave: () => mounted && !widget.busy,
+    );
+    setState(() {});
+    await saving;
+    if (mounted && identical(_draft, owner)) setState(() {});
   }
 
   Widget slider(
@@ -302,18 +257,55 @@ class _ModelLightControlsState extends State<ModelLightControls> {
           label: 'Flamme animée',
           description: 'Une bougie ou un brasier à la position de l’ampoule. Le feu et ses braises suivent les conditions d’allumage.',
           value: flame,
-          onChanged: saving || widget.busy ? null : (v) => change(() => flame = v),
+          onChanged: saving || widget.busy
+              ? null
+              : (v) => change(() => flame = v),
         ),
         if (flame) ...[
-          StudioSelect(key: const ValueKey('model-light-flame-style'), label: 'Style du feu',
-            value: flameStyle.name, options: const {'candle':'Bougie', 'brazier':'Brasier'},
-            onChanged: saving || widget.busy ? null : (value) => change(() => flameStyle = ModelLightFlameStyle.values.byName(value))),
-          slider('model-light-flame-height', 'Hauteur de la flamme', flameHeight,
-            .03, 8, (v) => flameHeight = v),
-          slider('model-light-flame-flicker', 'Vacillement de la flamme', flameFlicker,
-            0, .4, (v) => flameFlicker = v),
-          slider('model-light-flame-embers', 'Braises et étincelles', flameEmbers, 0, 1, (v) => flameEmbers = v),
-          slider('model-light-flame-crackle', 'Volume du crépitement', flameCrackleVolume, 0, 1, (v) => flameCrackleVolume = v),
+          StudioSelect(
+            key: const ValueKey('model-light-flame-style'),
+            label: 'Style du feu',
+            value: flameStyle.name,
+            options: const {'candle': 'Bougie', 'brazier': 'Brasier'},
+            onChanged: saving || widget.busy
+                ? null
+                : (value) => change(
+                    () =>
+                        flameStyle = ModelLightFlameStyle.values.byName(value),
+                  ),
+          ),
+          slider(
+            'model-light-flame-height',
+            'Hauteur de la flamme',
+            flameHeight,
+            .03,
+            8,
+            (v) => flameHeight = v,
+          ),
+          slider(
+            'model-light-flame-flicker',
+            'Vacillement de la flamme',
+            flameFlicker,
+            0,
+            .4,
+            (v) => flameFlicker = v,
+          ),
+          slider(
+            'model-light-flame-embers',
+            'Braises et étincelles',
+            flameEmbers,
+            0,
+            1,
+            (v) => flameEmbers = v,
+          ),
+          slider(
+            'model-light-flame-crackle',
+            'Volume du crépitement',
+            flameCrackleVolume,
+            0,
+            1,
+            (v) => flameCrackleVolume = v,
+          ),
         ],
         if (cycle) ...[
           slider(

@@ -8,6 +8,7 @@ import '../../dialogues/application/dialogue_workspace_controller.dart';
 import '../../narrative/application/narrative_workspace_controller.dart';
 import '../../cinematics/application/cinematic_workspace_controller.dart';
 import '../../resources/coordination/resource_navigation.dart';
+import '../../resources/domain/resource_port.dart';
 
 class WorkspaceResourceOwnerBindings {
   WorkspaceResourceOwnerBindings({
@@ -29,6 +30,40 @@ class WorkspaceResourceOwnerBindings {
   final CinematicWorkspaceController? Function() cinematics;
   final Future<void> Function(EnvironmentPreset) drawEnvironment;
   final void Function() retainBrush;
+
+  Future<bool> replaceCatalogModelSource(
+    ResourceNavigation? resources,
+    String modelId, {
+    required Future<ResourceMutationReceipt?> Function(
+      ResourceNavigation,
+      String,
+    )
+    replace,
+  }) async {
+    if (resources == null || resources.busy) {
+      throw const ResourceFailure(
+        'Le remplacement est indisponible pour le moment.',
+      );
+    }
+    final pending = resources.pendingReceipt;
+    if (pending != null) {
+      if (!pending.changedModels.containsKey(modelId) &&
+          !_receiptReplacesModelSource(pending, modelId)) {
+        throw const ResourceFailure(
+          'Terminez l’actualisation de la ressource précédente.',
+        );
+      }
+      if (await resources.retryReconciliation()) return true;
+    } else {
+      final receipt = await replace(resources, modelId);
+      if (receipt != null) return true;
+      if (resources.error == null) return false;
+    }
+    throw ResourceFailure(
+      resources.error ?? 'Le modèle ne peut pas être actualisé.',
+      partialReceipt: resources.pendingReceipt,
+    );
+  }
 
   void bind(ResourceNavigation? resources) {
     resources?.drawEnvironment = drawEnvironment;
@@ -161,4 +196,27 @@ class WorkspaceResourceOwnerBindings {
     }
     if (changed) retainBrush();
   }
+}
+
+bool _receiptReplacesModelSource(
+  ResourceMutationReceipt receipt,
+  String modelId,
+) {
+  if (receipt.actionId != 'model3d.source.replace') return false;
+  final before = receipt.before.models3d
+      .where((model) => model.id == modelId)
+      .firstOrNull;
+  final after = receipt.manifest.models3d
+      .where((model) => model.id == modelId)
+      .firstOrNull;
+  if (before == null ||
+      after == null ||
+      before.sourceAssetId != after.sourceAssetId ||
+      before.relativePath != after.relativePath) {
+    return false;
+  }
+  return before != after ||
+      (receipt.changedPaths.contains(after.relativePath) &&
+          receipt.pathRevisions[after.relativePath] != null &&
+          receipt.resourceRevisions['asset:${after.sourceAssetId}'] != null);
 }

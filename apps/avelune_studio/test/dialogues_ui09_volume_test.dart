@@ -1,13 +1,13 @@
 import 'package:avelune_studio/features/dialogues/application/dialogue_workspace_controller.dart';
 import 'package:avelune_studio/features/dialogues/domain/dialogue_port.dart';
-import 'package:avelune_studio/presentation/features/dialogues/dialogue_graph_canvas.dart';
+import 'package:avelune_studio/features/dialogues/application/dialogue_structure_projection.dart';
 import 'package:avelune_studio/presentation/features/dialogues/dialogue_view_state.dart';
 import 'package:avelune_studio/presentation/features/dialogues/dialogue_workspace_page.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring_dialogue.dart'
-    show DialogueLineTextEdit;
+    show DialogueLineTextEdit, DeLineStep;
 import 'package:map_core/map_core_domain.dart';
 
 import 'support/ui09_dialogue_harness.dart';
@@ -54,7 +54,7 @@ class _VolumePort implements DialoguePort {
 
 void main() {
   testWidgets(
-    'UI09 40 suites 200 lines 50 links navigation does not reread or compile',
+    'UI09 40 suites 200 lines 50 links application selection does not reread or compile',
     (tester) async {
       tester.view.physicalSize = const Size(1536, 1024);
       tester.view.devicePixelRatio = 1;
@@ -105,16 +105,22 @@ void main() {
       );
       await tester.pumpAndSettle();
       final state = views.forDialogue(ui09DialogueId);
-      final before = state.viewport.pan;
+      final projection = DialogueStructureProjection(
+        controller.active!.document,
+      );
+      expect(projection.rows, hasLength(40));
+      expect(
+        projection.rows.values
+            .expand((rows) => rows)
+            .where((row) => row.branch == null && row.step is DeLineStep),
+        hasLength(200),
+      );
+      expect(projection.wires, hasLength(50));
       for (var i = 0; i < 8; i++) {
-        state.viewport.translate(const Offset(20, 10));
-        state.viewport.zoomAt(i.isEven ? .8 : .9, const Offset(250, 200));
         state.select(snapshot!.document.nodes[i].id);
         notifier.notifyListeners();
         await tester.pump();
       }
-      expect(find.byType(DialogueGraphCanvas), findsOneWidget);
-      expect(state.viewport.pan, isNot(before));
       expect(controller.active, same(snapshot));
       expect(controller.active!.dirty, isFalse);
       expect(port.reads, 1);
@@ -122,7 +128,7 @@ void main() {
       expect(builds, 9);
       expect(tester.takeException(), isNull);
       debugPrint(
-        'UI09 volume: 40 suites, 200 lines, 50 links; 8 gestures; 1 source read; '
+        'UI09 volume: 40 suites, 200 lines, 50 links; 8 application selections; 1 source read; '
         '0 additional compilations; 9 page builds (initial + 8 selection updates).',
       );
     },

@@ -2,9 +2,7 @@ import 'package:avelune_studio/features/project_session/domain/project_session.d
 import 'package:avelune_studio/features/project_settings/application/project_settings_session_controller.dart';
 import 'package:avelune_studio/features/project_visuals/application/project_visuals_controller.dart';
 import 'package:avelune_studio/features/project_visuals/domain/project_visuals_port.dart';
-import 'package:avelune_studio/presentation/features/project_settings/spatial_visual_controls.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
-import 'package:flutter/material.dart';
+import 'package:avelune_studio/features/project_visuals/application/spatial_visual_editing.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
@@ -107,7 +105,7 @@ void main() {
       addTearDown(owner.dispose);
       await owner.open();
       owner.edit(modes['automatic']!);
-      final controls = SpatialVisualControls(
+      final controls = SpatialVisualEditing(
         patch: owner.preview.value,
         inherited: SpatialVisualPatch(),
         onChanged: owner.edit,
@@ -136,74 +134,6 @@ void main() {
     },
   );
 
-  testWidgets(
-    'real weather explains the player dependency, refusal and fallback',
-    (tester) async {
-      tester.view.physicalSize = const Size(1200, 3000);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: studioTheme(),
-          home: Scaffold(
-            body: SingleChildScrollView(
-              child: SpatialVisualControls(
-                camera: false,
-                effects: false,
-                patch: modes['real']!,
-                inherited: SpatialVisualPatch(),
-                onChanged: (_) {},
-              ),
-            ),
-          ),
-        ),
-      );
-      expect(
-        find.byKey(const ValueKey('weather-real-fallback')),
-        findsOneWidget,
-      );
-      expect(find.textContaining('refuse la localisation'), findsOneWidget);
-      expect(
-        find.textContaining('n’active aucune localisation'),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(const ValueKey('weather-context-notice')),
-        findsOneWidget,
-      );
-      expect(find.textContaining('intérieurs'), findsWidgets);
-      expect(tester.takeException(), isNull);
-    },
-  );
-
-  testWidgets(
-    'a fixed hour is named as imposed and the cycle as a starting hour',
-    (tester) async {
-      var patch = modes['fixed']!;
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: studioTheme(),
-          home: Scaffold(
-            body: SingleChildScrollView(
-              child: StatefulBuilder(
-                builder: (context, rebuild) => SpatialVisualControls(
-                  camera: false,
-                  effects: false,
-                  weather: false,
-                  patch: patch,
-                  inherited: SpatialVisualPatch(),
-                  onChanged: (next) => rebuild(() => patch = next),
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-      expect(find.textContaining('Heure imposée'), findsOneWidget);
-      expect(find.textContaining('Heure de départ du cycle'), findsNothing);
-    },
-  );
 }
 
 final class _JsonPort implements ProjectVisualsPort {

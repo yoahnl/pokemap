@@ -1,158 +1,223 @@
+import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:avelune_studio/features/pokemon/application/pokemon_media_editing_session.dart';
 import 'package:avelune_studio/features/pokemon/application/pokemon_workspace_controller.dart';
 import 'package:avelune_studio/features/pokemon/domain/pokemon_workspace_models.dart';
 import 'package:avelune_studio/features/pokemon/domain/pokemon_workspace_port.dart';
-import 'package:avelune_studio/presentation/features/pokemon/pokemon_species_media.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+Future<(PokemonWorkspaceController, _MediaPort)> _open() async {
+  final port = _MediaPort();
+  final controller = PokemonWorkspaceController(port, changed: () {});
+  addTearDown(controller.dispose);
+  await controller.load();
+  expect(await controller.selectSpecies('bulbasaur'), isTrue);
+  return (controller, port);
+}
+
+PokemonMediaEditingSession _session(
+  PokemonWorkspaceController? Function() current,
+) {
+  final session = PokemonMediaEditingSession(current: current);
+  addTearDown(session.dispose);
+  return session;
+}
+
 void main() {
-  Future<(PokemonWorkspaceController, _MediaPort)> open(
-    WidgetTester tester,
-  ) async {
-    final port = _MediaPort();
-    final tick = ValueNotifier(0);
-    final controller = PokemonWorkspaceController(
-      port,
-      changed: () => tick.value++,
-    );
-    await tester.runAsync(controller.load);
-    await tester.runAsync(() => controller.selectSpecies('bulbasaur'));
-    tester.view.physicalSize = const Size(1600, 2400);
-    addTearDown(tester.view.reset);
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: studioTheme(),
-        home: Scaffold(
-          body: SingleChildScrollView(
-            child: ValueListenableBuilder<int>(
-              valueListenable: tick,
-              builder: (_, _, _) => PokemonSpeciesMediaEditor(
-                controller: controller,
-                pickPng: () async => '/tmp/picked.png',
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-    await tester.pump();
-    await tester.pump();
-    return (controller, port);
-  }
+  test(
+    'media roles preserve checked file states without inventing association',
+    () async {
+      final (controller, port) = await _open();
+      final session = _session(() => controller);
+      for (final role in PokemonMediaEditingSession.roles) {
+        final probe = session.probeRole(role);
+        if (role == 'icon' || role == 'frontStatic') {
+          expect(await probe, PokemonMediaFileStatus.present);
+        } else if (role == 'party') {
+          expect(await probe, PokemonMediaFileStatus.missing);
+        } else {
+          expect(probe, isNull);
+        }
+      }
+      expect(PokemonMediaEditingSession.roles, contains('overworldShiny'));
+      expect(
+        pokemonMediaRoleLabel('overworldShiny'),
+        'Monde extérieur chromatique',
+      );
+      expect(port.probed, {'a/icon.png', 'a/party.png', 'a/front.png'});
+    },
+  );
 
-  Finder roleCard(String role) => find.byKey(ValueKey('media-role-$role'));
-
-  testWidgets('role cards report the checked file state, not a promise', (
-    tester,
-  ) async {
-    final (controller, port) = await open(tester);
+  test('an associated role cannot start a replacement picker', () async {
+    final (controller, _) = await _open();
+    final session = _session(() => controller);
+    expect(session.path, 'a/icon.png');
+    expect(session.canImportPng, isFalse);
+    var picks = 0;
     expect(
-      find.descendant(
-        of: roleCard('icon'),
-        matching: find.text('Fichier présent'),
-      ),
-      findsOneWidget,
+      await session.choosePng(() async {
+        picks++;
+        return '/source/icon.png';
+      }),
+      isFalse,
     );
-    expect(
-      find.descendant(
-        of: roleCard('party'),
-        matching: find.text('Fichier introuvable'),
-      ),
-      findsOneWidget,
-    );
-    expect(
-      find.descendant(
-        of: roleCard('portrait'),
-        matching: find.text('Non associé'),
-      ),
-      findsOneWidget,
-    );
-    expect(find.text('Référence associée'), findsNothing);
-    expect(port.probed, {'a/icon.png', 'a/party.png', 'a/front.png'});
-    controller.dispose();
+    expect(picks, 0);
+    expect(session.path, 'a/icon.png');
+    expect(controller.hasPendingChanges, isFalse);
   });
 
-  testWidgets('an associated role never offers a replacement it cannot do', (
-    tester,
-  ) async {
-    final (controller, _) = await open(tester);
-    expect(find.textContaining('Importer PNG'), findsNothing);
-    expect(find.textContaining('Ajouter un PNG ·'), findsNothing);
-    expect(find.text('Remplacer'), findsNothing);
-    expect(
-      find.textContaining('Remplacer n’est pas disponible'),
-      findsOneWidget,
-    );
-    controller.dispose();
-  });
+  test(
+    'a missing file retains its association and cannot be overwritten',
+    () async {
+      final (controller, _) = await _open();
+      final session = _session(() => controller);
+      expect(session.selectRole('party'), isTrue);
+      expect(session.path, 'a/party.png');
+      expect(await session.probeRole('party'), PokemonMediaFileStatus.missing);
+      expect(session.associated, isTrue);
+      expect(session.canImportPng, isFalse);
+      expect(pokemonMediaRoleLabel(session.role), 'Image d’équipe');
+    },
+  );
 
-  testWidgets('a referenced but missing file is named as such', (tester) async {
-    final (controller, _) = await open(tester);
-    await tester.tap(roleCard('party'));
-    await tester.pump();
-    await tester.pump();
-    expect(find.text('Image d’équipe'), findsWidgets);
-    expect(
-      find.textContaining('aucun fichier n’existe à cet emplacement'),
-      findsOneWidget,
-    );
-    controller.dispose();
-  });
+  test(
+    'an empty supported role remains importable with its localized label',
+    () async {
+      final (controller, _) = await _open();
+      final session = _session(() => controller);
+      expect(session.selectRole('portrait'), isTrue);
+      expect(session.associated, isFalse);
+      expect(session.canImportPng, isTrue);
+      expect(pokemonMediaRoleLabel(session.role), 'Portrait');
+      expect(session.selectRole('frontStatic'), isTrue);
+      expect(session.canImportPng, isFalse);
+    },
+  );
 
-  testWidgets('an empty role is added with a localized label', (tester) async {
-    final (controller, _) = await open(tester);
-    await tester.tap(roleCard('portrait'));
-    await tester.pump();
-    expect(find.text('Ajouter un PNG · Portrait'), findsOneWidget);
-    expect(find.textContaining('· icon'), findsNothing);
-    expect(find.textContaining('· party'), findsNothing);
-    controller.dispose();
-  });
-
-  testWidgets('typing a first path keeps the same field focused', (
-    tester,
-  ) async {
-    final (controller, _) = await open(tester);
-    await tester.tap(roleCard('portrait'));
-    await tester.pump();
-    await tester.enterText(
-      find.byKey(const ValueKey('media-variants.base.portrait')),
-      'a',
-    );
-    await tester.pump();
-    await tester.pump();
-    tester.testTextInput.updateEditingValue(
-      const TextEditingValue(
-        text: 'ab',
-        selection: TextSelection.collapsed(offset: 2),
-      ),
-    );
-    await tester.pump();
-    await tester.pump();
-    final variants =
-        controller.selectedDraft!.document(
-              PokemonDocumentFamily.media,
-            )!['variants']
-            as Map;
-    expect((variants['base'] as Map)['portrait'], 'ab');
-    expect(find.textContaining('Ajouter un PNG ·'), findsNothing);
-    controller.dispose();
-  });
+  test(
+    'successive path edits remain in the same selected role and support undo',
+    () async {
+      final (controller, _) = await _open();
+      final session = _session(() => controller);
+      session.selectRole('portrait');
+      session.setPath('a');
+      expect(session.role, 'portrait');
+      expect(session.path, 'a');
+      session.setPath('ab');
+      expect(session.path, 'ab');
+      expect(session.canImportPng, isFalse);
+      controller.undo();
+      expect(session.path, 'a');
+      controller.redo();
+      expect(session.path, 'ab');
+    },
+  );
 
   test('role labels are localized for every supported role', () {
-    for (final role in ['icon', 'party', 'portrait']) {
+    for (final role in PokemonMediaEditingSession.roles) {
       expect(pokemonMediaRoleLabel(role), isNot(role));
     }
     expect(pokemonMediaRoleLabel('icon'), 'Icône');
     expect(pokemonMediaRoleLabel('party'), 'Image d’équipe');
   });
+
+  test(
+    'forms combine species and media keys with a deterministic fallback',
+    () async {
+      final (controller, _) = await _open();
+      controller.edit(PokemonDocumentFamily.media, (json) {
+        (json['variants'] as Map)['alternate'] = <String, dynamic>{};
+      });
+      final session = _session(() => controller);
+      expect(session.formIds, ['base', 'alternate']);
+      expect(session.formId, 'base');
+      session.setDefaultForm('alternate');
+      expect(session.formId, 'alternate');
+      expect(session.selectForm('base'), isTrue);
+      expect(session.formId, 'base');
+      expect(session.selectForm('unknown'), isFalse);
+      expect(session.formId, 'base');
+      expect(session.selectRole('unknown'), isFalse);
+      expect(session.role, 'icon');
+      expect(() => session.formIds.add('another'), throwsUnsupportedError);
+    },
+  );
+
+  test(
+    'probes are cached per owner and lookup failures stay explicit',
+    () async {
+      final (controller, port) = await _open();
+      final (nextController, nextPort) = await _open();
+      var current = controller;
+      final session = _session(() => current);
+      final first = session.probeRole('icon');
+      expect(session.probeRole('icon'), same(first));
+      expect(await first, PokemonMediaFileStatus.present);
+      session.selectRole('portrait');
+      current = nextController;
+      nextPort.failProbe = true;
+      expect(session.role, 'icon');
+      final next = session.probeRole('icon');
+      expect(next, isNot(same(first)));
+      expect(await next, PokemonMediaFileStatus.inaccessible);
+      expect(port.probed, {'a/icon.png'});
+      expect(nextPort.probed, {'a/icon.png'});
+    },
+  );
+
+  test('a picker cannot publish after its selected role changes or the session closes', () async {
+    final (controller, _) = await _open();
+    final session = _session(() => controller);
+    session.selectRole('portrait');
+    final picker = Completer<String?>();
+    final choosing = session.choosePng(() => picker.future);
+    expect(session.busy, isTrue);
+    session.selectRole('icon');
+    picker.complete('/source/portrait.png');
+    expect(await choosing, isFalse);
+    expect(session.path, 'a/icon.png');
+    session.selectRole('portrait');
+    final latePicker = Completer<String?>();
+    final lateChoosing = session.choosePng(() => latePicker.future);
+    session.dispose();
+    latePicker.complete('/source/portrait.png');
+    expect(await lateChoosing, isFalse);
+    expect(session.probeRole('portrait'), isNull);
+    expect(session.canImportPng, isFalse);
+    expect(controller.hasPendingChanges, isFalse);
+  });
+
+  test(
+    'image and thumbnail reads reuse a slot until their dependency changes',
+    () async {
+      final (controller, port) = await _open();
+      final (_, nextPort) = await _open();
+      final slot = PokemonMediaReadSlot();
+      final image = slot.image(port, 'a/icon.png');
+      expect(slot.image(port, 'a/icon.png'), same(image));
+      await image;
+      await slot.image(port, 'a/portrait.png');
+      await slot.image(nextPort, 'a/portrait.png');
+      expect(port.images, ['a/icon.png', 'a/portrait.png']);
+      expect(nextPort.images, ['a/portrait.png']);
+      final entry = controller.index!.entries.single;
+      final thumbnail = slot.thumbnail(port: port, entry: entry);
+      expect(slot.thumbnail(port: port, entry: entry), same(thumbnail));
+      await thumbnail;
+      await slot.thumbnail(port: port, entry: entry, mediaRevision: 1);
+      await slot.thumbnail(port: nextPort, entry: entry, mediaRevision: 1);
+      expect(port.thumbnails, ['bulbasaur', 'bulbasaur']);
+      expect(nextPort.thumbnails, ['bulbasaur']);
+    },
+  );
 }
 
 final class _MediaPort implements PokemonWorkspacePort {
   final probed = <String>{};
+  final images = <String>[];
+  final thumbnails = <String>[];
+  bool failProbe = false;
 
   @override
   Future<PokemonWorkspaceIndex> loadIndex() async => PokemonWorkspaceIndex(
@@ -211,13 +276,23 @@ final class _MediaPort implements PokemonWorkspacePort {
   @override
   Future<PokemonMediaFileStatus> probeMedia(String relativePath) async {
     probed.add(relativePath);
+    if (failProbe) throw StateError('inaccessible');
     return relativePath == 'a/party.png'
         ? PokemonMediaFileStatus.missing
         : PokemonMediaFileStatus.present;
   }
 
   @override
-  Future<Uint8List?> loadImage(String relativePath) async => null;
+  Future<Uint8List?> loadImage(String relativePath) async {
+    images.add(relativePath);
+    return Uint8List.fromList([images.length]);
+  }
+
+  @override
+  Future<Uint8List?> loadThumbnail(PokemonSpeciesSummary entry) async {
+    thumbnails.add(entry.id);
+    return Uint8List.fromList([thumbnails.length]);
+  }
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);

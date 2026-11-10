@@ -1,3 +1,5 @@
+import '../../../features/resources/application/resource_creation_sources.dart';
+
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
@@ -11,10 +13,14 @@ import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/inputs/studio_slider.dart';
 import '../../shared/widgets/layout/studio_page_header.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
+
 import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
+
 import '../map_workspace/workspace_compact_panel.dart';
+
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 import 'package:avelune_studio/features/resources/application/resource_family_tree.dart';
+
 import 'resource_family_tree_view.dart';
 import 'resource_filter_button.dart';
 import 'resource_preview.dart';

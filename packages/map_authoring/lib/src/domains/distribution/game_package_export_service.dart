@@ -141,10 +141,14 @@ final class CanonicalGamePackageExportService {
       final itemPath = projection.project.pokemon.catalogFiles['items'];
       final itemBytes = itemPath == null ? null : projection.payloadFiles['project/$itemPath'];
       var allMovesPpRestore = false;
+      var friendshipItems = false;
+      var heldBerries = false;
       if (itemBytes != null) {
         final catalog = decodeProjectItemCatalog(Map<String, dynamic>.from(
             jsonDecode(utf8.decode(itemBytes)) as Map));
         allMovesPpRestore = ItemPpRestoreCapabilities.requiresAllMoves(catalog);
+        friendshipItems = ItemFriendshipCapabilities.requiresCapability(catalog);
+        heldBerries = ItemHeldBerryCapabilities.requiresCapability(catalog);
         if (!contextualCapture && catalog.entries.any((item) => item.capture?.contextualPolicy != null)) {
           throw const GamePackageExportException(
             code: 'pokemon.capture.contextual_ruleset_required',
@@ -357,6 +361,8 @@ final class CanonicalGamePackageExportService {
         if (OverworldItemCapabilities.requiresContextualUse(fieldObstacleMaps)) OverworldItemCapabilities.contextualUseCapabilityId,
         if (OverworldItemCapabilities.requiresSpatialEscapeRope(fieldObstacleMaps)) OverworldItemCapabilities.spatialEscapeRopeCapabilityId,
         if (allMovesPpRestore) ItemPpRestoreCapabilities.allMovesCapabilityId,
+        if (friendshipItems) ItemFriendshipCapabilities.capabilityId,
+        if (heldBerries) ItemHeldBerryCapabilities.capabilityId,
         ...battleCapabilities,
         if (contextualCapture) PokemonRulesetProfile.contextualCaptureCapabilityId,
         if (exteriorDecoration) MapExteriorDecoration.capabilityId,

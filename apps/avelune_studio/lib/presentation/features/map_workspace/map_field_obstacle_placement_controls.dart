@@ -28,11 +28,7 @@ class MapFieldObstaclePlacementControls extends StatelessWidget {
         'iceBlock': 'Glace · poussée au contact',
       },
       onChanged: (value) {
-        view.fieldObstacleKind = FieldObstacleKind.values.byName(value);
-        if (view.fieldObstacleKind == FieldObstacleKind.strengthBoulder ||
-            view.fieldObstacleKind == FieldObstacleKind.iceBlock) {
-          view.fieldObstacleResetPolicy = FieldObstacleResetPolicy.mapInstance;
-        }
+        view.selectFieldObstacleKind(FieldObstacleKind.values.byName(value));
         onChanged();
       },
     );

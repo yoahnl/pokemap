@@ -5,6 +5,102 @@ import 'package:map_authoring/map_authoring.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('stages ASCII and UTF-8 WebVTT with the native caption MIME', () async {
+    final store = MemoryArtifactStore(maximumArtifactBytes: 1024);
+    for (final content in [
+      'WEBVTT',
+      'WEBVTT header\n\n00:00.000 --> 00:01.000\nBonjour\n',
+      'WEBVTT\theader\r\n\r\n00:00.000 --> 00:01.000\r\nBonjour\r\n',
+      'WEBVTT\n\n00:00.000 --> 00:01.000\nBonjour\n',
+      'WEBVTT\n\n00:00.000 --> 00:01.000\nÉté — こんにちは\n',
+      'WEBVTT\r\n\r\n00:00.000 --> 00:01.000\r\nBonjour\r\n',
+    ]) {
+      final bytes = utf8.encode(content);
+      expect(sniffArtifactMediaType(bytes), 'text/vtt');
+      final inferred = await store.put(bytes);
+      expect(inferred.reference.mediaType, 'text/vtt');
+      expect(inferred.deduplicated, isFalse);
+      final legacy =
+          ContentArtifactRef.fromBytes(bytes, mediaType: 'text/plain');
+      expect(inferred.reference.digest, legacy.digest);
+      expect(inferred.reference.handle, legacy.handle);
+      final declared = await store.put(bytes, declaredMediaType: 'text/vtt');
+      expect(declared.reference.mediaType, 'text/vtt');
+      expect(declared.reference.handle, inferred.reference.handle);
+      expect(declared.deduplicated, isTrue);
+      expect(await store.read(declared.reference.handle), bytes);
+      await expectLater(
+        store.put(bytes, declaredMediaType: 'text/plain'),
+        throwsA(isA<ArtifactStoreException>().having(
+          (error) => error.code,
+          'code',
+          'artifact.mime_mismatch',
+        )),
+      );
+    }
+  });
+
+  test('caption-like text and NUL keep their original generic classifications',
+      () async {
+    final store = MemoryArtifactStore(maximumArtifactBytes: 1024);
+    for (final content in ['WEBVTTfoo', 'WEBVTTfoo\nordinary text']) {
+      final bytes = utf8.encode(content);
+      expect(sniffArtifactMediaType(bytes), 'text/plain');
+      expect((await store.put(bytes)).reference.mediaType, 'text/plain');
+    }
+    for (final bytes in [
+      utf8.encode('WEBVTT\u0000'),
+      utf8.encode('WEBVTT\n\u0000'),
+      utf8.encode('\ufeffWEBVTT\n\n'),
+    ]) {
+      expect(sniffArtifactMediaType(bytes), 'application/octet-stream');
+      expect((await store.put(bytes)).reference.mediaType,
+          'application/octet-stream');
+      final declared = await MemoryArtifactStore(maximumArtifactBytes: 1024).put(
+        bytes,
+        declaredMediaType: 'application/x-custom',
+      );
+      expect(declared.reference.mediaType, 'application/x-custom');
+    }
+  });
+
+  test('ordinary text keeps its MIME and refuses a caption declaration',
+      () async {
+    final store = MemoryArtifactStore(maximumArtifactBytes: 1024);
+    final bytes = utf8.encode('ordinary text');
+    expect(sniffArtifactMediaType(bytes), 'text/plain');
+    expect((await store.put(bytes)).reference.mediaType, 'text/plain');
+    await expectLater(
+      store.put(bytes, declaredMediaType: 'text/vtt'),
+      throwsA(isA<ArtifactStoreException>().having(
+        (error) => error.code,
+        'code',
+        'artifact.mime_mismatch',
+      )),
+    );
+  });
+
+  test(
+      'invalid UTF-8 is not classified as captions and image bytes reject a caption MIME',
+      () async {
+    expect(
+      sniffArtifactMediaType([...utf8.encode('WEBVTT\n'), 0xff]),
+      'application/octet-stream',
+    );
+    final store = MemoryArtifactStore(maximumArtifactBytes: 1024);
+    await expectLater(
+      store.put(
+        [137, 80, 78, 71, 13, 10, 26, 10],
+        declaredMediaType: 'text/vtt',
+      ),
+      throwsA(isA<ArtifactStoreException>().having(
+        (error) => error.code,
+        'code',
+        'artifact.mime_mismatch',
+      )),
+    );
+  });
+
   test(
       'recognizes valid UTF-8 JSON objects and arrays without accepting malformed text',
       () {

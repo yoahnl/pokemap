@@ -1,40 +1,14 @@
+import 'support/event_legacy_fixture.dart';
+
 import 'dart:convert';
-import 'package:avelune_studio/presentation/features/events/event_legacy_catalog.dart';
+
 import 'package:avelune_studio/presentation/features/events/event_library.dart';
 import 'package:avelune_studio/presentation/features/events/event_view_state.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:map_core/map_core_domain.dart';
 
 void main() {
-  test(
-    'canonical historical projections preserve pages, scenario and registry',
-    () {
-      final before = jsonEncode([_project.toJson(), _map.toJson()]);
-      final catalog = EventLegacyCatalog(_project, [_map]);
-      expect(catalog.matches(_project, [_map]), isTrue);
-      expect(catalog.entries, hasLength(2));
-      final mapDetail = catalog.entries.first.detail();
-      expect(mapDetail.lines, contains('Bienvenue dans la gare historique.'));
-      expect(mapDetail.lines, contains('2 pages conservées'));
-      expect(
-        mapDetail.source,
-        NarrativeEventSourceRef.entityInteract('old_station', 'chief'),
-      );
-      final scenarioDetail = catalog.entries.last.detail();
-      expect(
-        scenarioDetail.source,
-        NarrativeEventSourceRef.mapEnter('old_station'),
-      );
-      expect(scenarioDetail.diagnostics, isNotEmpty);
-      expect(jsonEncode([_project.toJson(), _map.toJson()]), before);
-      expect(_project.eventRegistry, isNull);
-      final changed = _map.copyWith(name: 'Gare modifiée');
-      expect(catalog.matches(_project, [changed]), isFalse);
-    },
-  );
-
   testWidgets(
     'historical library opens read-only detail without modern selection',
     (tester) async {
@@ -42,7 +16,10 @@ void main() {
       addTearDown(() => tester.binding.setSurfaceSize(null));
       final view = EventViewState();
       addTearDown(view.dispose);
-      final before = jsonEncode([_project.toJson(), _map.toJson()]);
+      final before = jsonEncode([
+        historicalProject.toJson(),
+        historicalMap.toJson(),
+      ]);
       var opened = 0;
       var created = 0;
       await tester.pumpWidget(
@@ -53,12 +30,12 @@ void main() {
               width: 370,
               height: 720,
               child: EventLibrary(
-                project: _project,
+                project: historicalProject,
                 records: [],
                 activeId: null,
                 dirtyIds: {},
                 view: view,
-                maps: [_map],
+                maps: [historicalMap],
                 mapsComplete: true,
                 onChanged: () {},
                 onOpen: (_) => opened++,
@@ -83,7 +60,10 @@ void main() {
       await tester.pumpAndSettle();
       expect(opened, 0);
       expect(created, 0);
-      expect(jsonEncode([_project.toJson(), _map.toJson()]), before);
+      expect(
+        jsonEncode([historicalProject.toJson(), historicalMap.toJson()]),
+        before,
+      );
       expect(tester.takeException(), isNull);
     },
   );
@@ -103,7 +83,7 @@ void main() {
               width: 400,
               height: 560,
               child: EventLibrary(
-                project: _project,
+                project: historicalProject,
                 records: [],
                 activeId: null,
                 dirtyIds: {},
@@ -139,61 +119,3 @@ void main() {
     },
   );
 }
-
-const _project = ProjectManifest(
-  name: 'Historique intact',
-  maps: [
-    ProjectMapEntry(
-      id: 'old_station',
-      name: 'Ancienne gare',
-      relativePath: 'maps/station.json',
-    ),
-  ],
-  tilesets: [],
-  scenarios: [
-    ScenarioAsset(
-      id: 'old_arrival',
-      name: 'Arrivée ancienne',
-      entryNodeId: 'entry',
-      nodes: [
-        ScenarioNode(
-          id: 'entry',
-          type: ScenarioNodeType.reference,
-          title: 'Entrée en gare',
-          binding: ScenarioNodeBinding(mapId: 'old_station'),
-          payload: ScenarioNodePayload(actionKind: 'sourceMapEnter'),
-        ),
-      ],
-    ),
-  ],
-);
-
-const _map = MapData(
-  id: 'old_station',
-  name: 'Ancienne gare',
-  size: GridSize(width: 10, height: 10),
-  layers: [MapLayer.object(id: 'events', name: 'Événements')],
-  entities: [
-    MapEntity(
-      id: 'chief',
-      name: 'Chef',
-      kind: MapEntityKind.npc,
-      pos: GridPos(x: 2, y: 3),
-    ),
-  ],
-  events: [
-    MapEventDefinition(
-      id: 'old_greeting',
-      title: 'Ancien accueil',
-      position: EventPosition(layerId: 'events', x: 2, y: 3),
-      metadata: {LegacyMapEventCompatibilityMetadataKeys.entityId: 'chief'},
-      pages: [
-        MapEventPage(
-          pageNumber: 0,
-          message: 'Bienvenue dans la gare historique.',
-        ),
-        MapEventPage(pageNumber: 1, message: 'Le train est arrivé.'),
-      ],
-    ),
-  ],
-);

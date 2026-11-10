@@ -1,3 +1,4 @@
+import 'package:avelune_studio/features/map_workspace/application/map_library_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_library_tree.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
@@ -46,5 +47,45 @@ void main() {
     final tree = MapLibraryTree(groups: const [], maps: maps);
     expect(tree.rows.first.label, 'Sans dossier');
     expect(tree.countFor(null), 2);
+  });
+  test('parent choices exclude the folder and all descendants in arbitrary catalogue order', () {
+    const project = ProjectManifest(
+      name: 'Folders',
+      maps: [],
+      tilesets: [],
+      groups: [
+        ProjectMapGroup(
+          id: 'grandchild',
+          type: MapGroupType.special,
+          name: 'Petit',
+          parentGroupId: 'child',
+        ),
+        ProjectMapGroup(
+          id: 'child',
+          name: 'Enfant',
+          type: MapGroupType.special,
+          parentGroupId: 'root',
+        ),
+        ProjectMapGroup(id: 'other', name: 'Autre', type: MapGroupType.special),
+        ProjectMapGroup(id: 'root', name: 'Racine', type: MapGroupType.special),
+      ],
+    );
+    final commands = WorkspaceMapLibraryCommands(
+      project: () => project,
+      submit: ({groups, required assignments}) async => null,
+    );
+    expect(commands.parentCandidates('root').map((group) => group.id), [
+      'other',
+    ]);
+    expect(commands.parentCandidates('child').map((group) => group.id), [
+      'other',
+      'root',
+    ]);
+    expect(commands.parentCandidates('missing').map((group) => group.id), [
+      'grandchild',
+      'child',
+      'other',
+      'root',
+    ]);
   });
 }

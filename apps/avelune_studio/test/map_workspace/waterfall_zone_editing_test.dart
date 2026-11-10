@@ -4,7 +4,7 @@ import 'dart:ui' as ui;
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/gameplay_zone_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_zone_inspector.dart';
+import 'package:avelune_studio/features/map_workspace/application/gameplay_zone_choices.dart';
 import 'package:avelune_studio/platform/rendering/viewports/map_editing_overlay.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -111,9 +111,9 @@ void main() {
       });
     },
   );
-  testWidgets(
-    'native inspector exposes field action, route and Surf controls',
-    (tester) async {
+  test(
+    'traversal choices expose valid entry and exit indices for its direction',
+    () {
       final document = EditableMapDocument(
         MapWorkspaceDocument(
           map: workspaceMap('a'),
@@ -133,30 +133,25 @@ void main() {
         zone.id,
         direction: MapConnectionDirection.north,
       );
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: SizedBox(
-              width: 500,
-              height: 1000,
-              child: SingleChildScrollView(
-                child: MapZoneInspector(
-                  zone: document.current.gameplayZones.single,
-                  document: document,
-                  project: workspaceProject,
-                  onChanged: () {},
-                  onDeleted: () {},
-                ),
-              ),
-            ),
-          ),
-        ),
+      var choices = MapFieldTraversalChoices(commands.selected(zone.id)!);
+      expect(choices.vertical, isTrue);
+      expect(choices.forward, isFalse);
+      expect(choices.start, 3);
+      expect(choices.end, 0);
+      expect(choices.entryIndices, [2, 3]);
+      expect(choices.exitIndices, [0, 1]);
+      commands.configureWaterfall(
+        zone.id,
+        direction: MapConnectionDirection.south,
       );
-      expect(find.text('Cascade · 2D'), findsOneWidget);
-      expect(find.text('Sens de traversée'), findsOneWidget);
-      expect(find.text('Surf requis'), findsOneWidget);
-      expect(find.textContaining('Entrée'), findsWidgets);
-      expect(find.textContaining('Sortie'), findsWidgets);
+      choices = MapFieldTraversalChoices(commands.selected(zone.id)!);
+      expect(choices.forward, isTrue);
+      expect(choices.entryIndices, [0, 1]);
+      expect(choices.exitIndices, [2, 3]);
+      expect(
+        commands.selected(zone.id)!.fieldAction!.waterfall!.requiresSurf,
+        isTrue,
+      );
     },
   );
 }

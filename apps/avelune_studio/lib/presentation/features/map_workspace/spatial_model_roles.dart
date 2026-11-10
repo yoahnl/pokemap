@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../shared/widgets/layout/studio_panel.dart';
-import 'traversal_labels.dart';
+import 'package:avelune_studio/features/map_workspace/application/traversal_labels.dart';
 
 typedef SpatialModelRoles = ({
   String interaction,

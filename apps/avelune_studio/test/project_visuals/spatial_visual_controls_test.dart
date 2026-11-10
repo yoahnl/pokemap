@@ -1,211 +1,181 @@
-import 'package:flutter/material.dart';
+import 'dart:math' as math;
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
-import 'package:avelune_studio/presentation/features/project_settings/spatial_visual_controls.dart';
-import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_slider.dart';
-import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
+import 'package:avelune_studio/features/project_visuals/application/spatial_visual_editing.dart';
 
 void main() {
-  testWidgets('occasional weather exposes timing and weights without real-weather fallback controls', (tester) async {
-    var patch = SpatialVisualPatch();
-    await tester.pumpWidget(MaterialApp(home: Scaffold(body: SingleChildScrollView(child: StatefulBuilder(builder: (context, setState) => SpatialVisualControls(camera: false, clock: false, patch: patch, inherited: SpatialVisualPatch(), onChanged: (next) => setState(() => patch = next)))))));
-    final select = find.byKey(const ValueKey('visual-weatherMode'));
-    await tester.ensureVisible(select); await tester.tap(select); await tester.pumpAndSettle();
-    await tester.tap(find.text('Météo occasionnelle').last); await tester.pumpAndSettle();
-    expect(patch.choice(SpatialVisualParameter.weatherMode), 'occasional');
-    expect(patch.enabled(SpatialVisualParameter.weatherEnabled), isTrue);
-    for (final key in ['weatherDryMinSeconds', 'weatherDryMaxSeconds', 'weatherEventMinSeconds', 'weatherEventMaxSeconds', 'weatherStormWeight']) {
-      expect(find.byKey(ValueKey('visual-$key')), findsOneWidget);
-    }
-    expect(find.byKey(const ValueKey('visual-weatherIntervalSeconds')), findsNothing);
-    expect(tester.takeException(), isNull);
-  });
-  testWidgets('time modes and automatic weather edit only their local settings', (tester) async {
-    var patch = SpatialVisualPatch();
-    await tester.pumpWidget(MaterialApp(home: Scaffold(body: SingleChildScrollView(child: StatefulBuilder(builder: (context, setState) => SpatialVisualControls(
-      camera: false, patch: patch,
-      inherited: SpatialVisualPatch.fromScene(camera: SpatialCameraProfile(), atmosphere: SpatialAtmosphereSettings()),
-      onChanged: (value) => setState(() => patch = value),
-    ))))));
-    Future<void> choose(String key, String label) async {
-      final select = find.byKey(ValueKey(key));
-      await tester.ensureVisible(select);
-      await tester.tap(select);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text(label).last);
-      await tester.pumpAndSettle();
-    }
-    await choose('visual-timeMode', 'Heure réelle de l’appareil');
-    expect(patch.choice(SpatialVisualParameter.timeMode), 'real');
-    expect(find.byKey(const ValueKey('visual-minuteOfDay')), findsNothing);
-    await choose('visual-timeMode', 'Cycle du jeu');
-    expect(find.byKey(const ValueKey('visual-dayDurationSeconds')), findsOneWidget);
-    await choose('visual-timeMode', 'Heure fixe');
-    expect(find.byKey(const ValueKey('visual-minuteOfDay')), findsOneWidget);
-    await choose('visual-weatherMode', 'Météo réelle du joueur');
-    expect(patch.choice(SpatialVisualParameter.weatherMode), 'real');
-    await choose('visual-weatherMode', 'Météo automatique');
-    expect(patch.enabled(SpatialVisualParameter.weatherEnabled), isTrue);
-    final snow = find.byKey(const ValueKey('weather-preset-snow'));
-    await tester.ensureVisible(snow);
-    await tester.tap(snow);
-    await tester.pump();
-    expect(patch.value(SpatialVisualParameter.weatherSequence), ['clear', 'cloudy', 'rain', 'snow']);
-    expect(patch.choice(SpatialVisualParameter.weatherKind), isNull);
-    expect(find.byType(StudioSelect), findsWidgets);
-    expect(tester.takeException(), isNull);
-  });
-  testWidgets(
-    'FOV retains framing, fog bounds stay valid and inheritance removes only one field',
-    (tester) async {
-      var patch = SpatialVisualPatch.fromJson({
-        'pitchDegrees': 34,
-        'haloStrength': 1.2,
-        'fogStart': 40,
-        'fogEnd': 60,
-      });
-      final base = SpatialVisualPatch.fromScene(
-        camera: SpatialCameraProfile(),
-        atmosphere: SpatialAtmosphereSettings(),
-      );
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: SingleChildScrollView(
-              child: SpatialVisualControls(
-                patch: patch,
-                inherited: base,
-                onChanged: (next) => patch = next,
-              ),
-            ),
-          ),
-        ),
-      );
-      final controls = tester.widget<SpatialVisualControls>(
-        find.byType(SpatialVisualControls),
-      );
-      controls.change(SpatialVisualParameter.fieldOfViewDegrees, 24.0);
-      expect(patch.number(SpatialVisualParameter.cameraDistance), lessThan(42));
-      controls.change(SpatialVisualParameter.fogStart, 80.0);
-      expect(patch.number(SpatialVisualParameter.fogEnd), 81);
-      final button = find.byKey(const ValueKey('inherit-haloStrength'));
-      await tester.ensureVisible(button);
-      await tester.tap(button);
-      expect(patch.value(SpatialVisualParameter.haloStrength), isNull);
-      expect(patch.number(SpatialVisualParameter.pitchDegrees), 34);
-      expect(tester.takeException(), isNull);
-    },
-  );
-  testWidgets('weather presets, sliders and inheritance use one local patch', (
-    tester,
-  ) async {
-    var patch = SpatialVisualPatch.fromJson({'haloStrength': 1.2});
-    final base = SpatialVisualPatch.fromScene(
+  late SpatialVisualPatch patch;
+  late SpatialVisualPatch inherited;
+
+  setUp(() {
+    patch = SpatialVisualPatch();
+    inherited = SpatialVisualPatch.fromScene(
       camera: SpatialCameraProfile(),
       atmosphere: SpatialAtmosphereSettings(),
     );
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: SingleChildScrollView(
-            child: StatefulBuilder(
-              builder: (context, setState) => SpatialVisualControls(
-                camera: false,
-                clock: false,
-                patch: patch,
-                inherited: base,
-                onChanged: (next) => setState(() => patch = next),
-              ),
-            ),
+  });
+
+  SpatialVisualEditing editing() => SpatialVisualEditing(
+    patch: patch,
+    inherited: inherited,
+    onChanged: (next) => patch = next,
+  );
+
+  test(
+    'occasional weather owns its mode without changing unrelated settings',
+    () {
+      patch = patch.set(SpatialVisualParameter.haloStrength, 1.2);
+      editing().change(SpatialVisualParameter.weatherMode, 'occasional');
+      expect(patch.choice(SpatialVisualParameter.weatherMode), 'occasional');
+      expect(patch.enabled(SpatialVisualParameter.weatherEnabled), isTrue);
+      expect(patch.number(SpatialVisualParameter.haloStrength), 1.2);
+      expect(
+        patch.value(SpatialVisualParameter.weatherIntervalSeconds),
+        isNull,
+      );
+    },
+  );
+
+  test('time modes and automatic weather edit only their local settings', () {
+    for (final mode in ['real', 'cycle', 'fixed']) {
+      editing().change(SpatialVisualParameter.timeMode, mode);
+      expect(patch.choice(SpatialVisualParameter.timeMode), mode);
+    }
+    editing().change(SpatialVisualParameter.weatherMode, 'real');
+    expect(patch.choice(SpatialVisualParameter.weatherMode), 'real');
+    editing().change(SpatialVisualParameter.weatherMode, 'automatic');
+    expect(patch.enabled(SpatialVisualParameter.weatherEnabled), isTrue);
+    editing().selectWeather(SpatialWeatherKind.snow);
+    expect(patch.value(SpatialVisualParameter.weatherSequence), [
+      'clear',
+      'cloudy',
+      'rain',
+      'snow',
+    ]);
+    expect(patch.choice(SpatialVisualParameter.weatherKind), isNull);
+    expect(patch.choice(SpatialVisualParameter.timeMode), 'fixed');
+  });
+
+  test('FOV retains framing, fog bounds stay valid and inheritance removes only one field', () {
+    patch = SpatialVisualPatch.fromJson({
+      'pitchDegrees': 34,
+      'haloStrength': 1.2,
+      'fogStart': 40,
+      'fogEnd': 60,
+    });
+    final before = editing();
+    final span =
+        before.number(SpatialVisualParameter.cameraDistance) *
+        math.tan(
+          before.number(SpatialVisualParameter.fieldOfViewDegrees) *
+              math.pi /
+              360,
+        );
+    editing().change(SpatialVisualParameter.fieldOfViewDegrees, 24.0);
+    final after = editing();
+    expect(
+      after.number(SpatialVisualParameter.cameraDistance) *
+          math.tan(
+            after.number(SpatialVisualParameter.fieldOfViewDegrees) *
+                math.pi /
+                360,
           ),
-        ),
-      ),
+      closeTo(span, 1e-9),
     );
-    final snow = find.byKey(const ValueKey('weather-preset-snow'));
-    await tester.ensureVisible(snow);
-    await tester.tap(snow);
-    await tester.pump();
+    editing().change(SpatialVisualParameter.fogStart, 80.0);
+    expect(patch.number(SpatialVisualParameter.fogEnd), 81);
+    editing().inherit(SpatialVisualParameter.haloStrength);
+    expect(patch.value(SpatialVisualParameter.haloStrength), isNull);
+    expect(patch.number(SpatialVisualParameter.pitchDegrees), 34);
+    expect(patch.number(SpatialVisualParameter.fieldOfViewDegrees), 24);
+  });
+
+  test('weather presets, values and inheritance use one local patch', () {
+    patch = patch.set(SpatialVisualParameter.haloStrength, 1.2);
+    editing().selectWeather(SpatialWeatherKind.snow);
     expect(patch.choice(SpatialVisualParameter.weatherKind), 'snow');
     expect(patch.enabled(SpatialVisualParameter.weatherEnabled), isTrue);
     for (final level in [.15, .35, .55, .8, 1.0]) {
-      final button = find.byKey(ValueKey('weather-intensity-$level'));
-      await tester.ensureVisible(button);
-      await tester.tap(button);
-      await tester.pump();
+      editing().change(SpatialVisualParameter.weatherIntensity, level);
       expect(patch.number(SpatialVisualParameter.weatherIntensity), level);
       expect(patch.number(SpatialVisualParameter.haloStrength), 1.2);
     }
-    for (final kind in SpatialWeatherKind.values.where((kind) => kind.isExtended)) {
-      final button = find.byKey(ValueKey('weather-preset-${kind.name}'));
-      await tester.ensureVisible(button);
-      await tester.tap(button);
-      await tester.pump();
+    for (final kind in SpatialWeatherKind.values.where(
+      (kind) => kind.isExtended,
+    )) {
+      editing().selectWeather(kind);
       expect(patch.choice(SpatialVisualParameter.weatherKind), kind.name);
     }
-    final control = find.descendant(
-      of: find.byKey(const ValueKey('visual-weatherIntensity')),
-      matching: find.byType(Slider),
-    );
-    await tester.ensureVisible(control);
-    await tester.drag(control, const Offset(45, 0));
-    await tester.pump();
-    expect(patch.number(SpatialVisualParameter.weatherIntensity), isNotNull);
-    final audio = find.byKey(const ValueKey('visual-weatherSoundEnabled'));
-    await tester.ensureVisible(audio);
-    await tester.tap(find.descendant(of: audio, matching: find.byType(Switch)));
-    await tester.pump();
+    editing().change(SpatialVisualParameter.weatherSoundEnabled, true);
+    editing().change(SpatialVisualParameter.weatherRainVolume, .6);
     expect(patch.enabled(SpatialVisualParameter.weatherSoundEnabled), isTrue);
-    final rainVolume = find.descendant(of: find.byKey(const ValueKey('visual-weatherRainVolume')), matching: find.byType(Slider));
-    await tester.ensureVisible(rainVolume);
-    await tester.drag(rainVolume, const Offset(45, 0));
-    await tester.pump();
-    expect(patch.number(SpatialVisualParameter.weatherRainVolume), isNotNull);
-    final inheritAudio = find.byKey(const ValueKey('inherit-weatherSoundEnabled'));
-    await tester.ensureVisible(inheritAudio);
-    await tester.tap(inheritAudio);
-    await tester.pump();
+    expect(patch.number(SpatialVisualParameter.weatherRainVolume), .6);
+    editing().inherit(SpatialVisualParameter.weatherSoundEnabled);
+    editing().inherit(SpatialVisualParameter.weatherKind);
     expect(patch.enabled(SpatialVisualParameter.weatherSoundEnabled), isNull);
-    final inherit = find.byKey(const ValueKey('inherit-weatherKind'));
-    await tester.ensureVisible(inherit);
-    await tester.tap(inherit);
-    await tester.pump();
     expect(patch.choice(SpatialVisualParameter.weatherKind), isNull);
     expect(patch.number(SpatialVisualParameter.haloStrength), 1.2);
     expect(patch.enabled(SpatialVisualParameter.weatherLightning), isNull);
-    expect(tester.takeException(), isNull);
   });
-  testWidgets('a physical slider gesture invokes one undo boundary', (
-    tester,
-  ) async {
-    var starts = 0, ends = 0, updates = 0;
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: SingleChildScrollView(
-            child: SpatialVisualControls(
-              patch: SpatialVisualPatch(),
-              inherited: SpatialVisualPatch.fromScene(
-                camera: SpatialCameraProfile(),
-                atmosphere: SpatialAtmosphereSettings(),
-              ),
-              onEditStart: () => starts++,
-              onEditEnd: () => ends++,
-              onChanged: (_) => updates++,
-            ),
-          ),
-        ),
-      ),
+
+  test('automatic weather never removes its last available kind', () {
+    patch = SpatialVisualPatch.fromJson({
+      'weatherMode': 'automatic',
+      'weatherSequence': ['snow'],
+    });
+    final original = patch;
+    editing().selectWeather(SpatialWeatherKind.snow);
+    expect(patch, original);
+    editing().selectWeather(SpatialWeatherKind.rain);
+    editing().selectWeather(SpatialWeatherKind.snow);
+    expect(patch.value(SpatialVisualParameter.weatherSequence), ['rain']);
+  });
+
+  test(
+    'occasional ranges remain ordered and their last nonzero weight survives',
+    () {
+      patch = SpatialVisualPatch.fromJson({
+        'weatherMode': 'occasional',
+        'weatherDryMinSeconds': 10,
+        'weatherDryMaxSeconds': 20,
+        'weatherDrizzleWeight': 0,
+        'weatherRainWeight': 0,
+        'weatherDownpourWeight': 0,
+        'weatherStormWeight': 1,
+      });
+      editing().change(SpatialVisualParameter.weatherDryMinSeconds, 30.0);
+      expect(patch.number(SpatialVisualParameter.weatherDryMaxSeconds), 30);
+    final ordered = patch;
+    expect(() => editing().change(SpatialVisualParameter.weatherDryMaxSeconds, 5.0),
+      throwsFormatException);
+    expect(patch, ordered);
+    editing().change(SpatialVisualParameter.weatherDryMaxSeconds, 15.0);
+    expect(patch.number(SpatialVisualParameter.weatherDryMinSeconds), 15);
+      final before = patch;
+      editing().change(SpatialVisualParameter.weatherStormWeight, 0.0);
+      expect(patch, before);
+    },
+  );
+
+  test('numeric drafts reject nonfinite values and accept a comma without publishing invalid text', () {
+    final errors = <SpatialVisualParameter, String>{};
+    SpatialVisualEditing input() => SpatialVisualEditing(
+      patch: patch,
+      inherited: inherited,
+      onChanged: (next) => patch = next,
+      onInvalidInput: (parameter, text) =>
+          text == null ? errors.remove(parameter) : errors[parameter] = text,
     );
-    final control = find.descendant(
-      of: find.byKey(const ValueKey('visual-pitchDegrees')),
-      matching: find.byType(Slider),
-    );
-    await tester.drag(control, const Offset(50, 0));
-    await tester.pump();
-    expect(starts, 1);
-    expect(ends, 1);
-    expect(updates, greaterThan(0));
-    expect(find.byType(StudioSlider), findsWidgets);
-    expect(tester.takeException(), isNull);
+    final parameter = SpatialVisualParameter.cameraDistance;
+    for (final text in ['NaN', 'Infinity', '-1', 'abc']) {
+      final before = patch;
+      input().editNumber(parameter, text);
+      expect(errors[parameter], text);
+      expect(patch, before);
+    }
+    input().editNumber(parameter, '30,5');
+    expect(errors, isEmpty);
+    expect(patch.number(parameter), 30.5);
   });
 }

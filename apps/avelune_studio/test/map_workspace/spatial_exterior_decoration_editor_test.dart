@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 
+import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
+
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/environment_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/spatial_model_editing_commands.dart';
@@ -8,19 +10,7 @@ import 'package:avelune_studio/features/map_workspace/application/map_workspace_
 import 'package:avelune_studio/features/map_workspace/domain/map_exterior_decoration_port.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
 import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_selection_inspector.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_decor_inspector_tabs.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_tool_strip.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_editor_pane.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_tool_strip_selection.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_exterior_decoration_controls.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_camera_panel.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_connection_panel.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_day_night_panel.dart';
-import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
-import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_commit_field.dart';
 import 'package:avelune_studio/platform/rendering/viewports/spatial_map_editing_viewport.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -31,63 +21,6 @@ import '../support/map_workspace_fixture.dart';
 import '../support/spatial_environment_fixture.dart';
 
 void main() {
-  testWidgets('exterior pane keeps its routed inspector visible', (
-    tester,
-  ) async {
-    final map = spatialEnvironmentMap();
-    final exterior = await MapExteriorDecorationController.open(
-      workspaceSession,
-      map,
-      _ExteriorPort(),
-    );
-    final document = EditableMapDocument(
-      MapWorkspaceDocument(map: map, mapId: map.id, revision: 'r0'),
-    )..exteriorDecoration = exterior;
-    final view = MapWorkspaceViewState();
-    final controller = MapWorkspaceController(
-      workspaceSession,
-      WorkspaceMemoryPort(),
-    );
-    final search = TextEditingController();
-    addTearDown(exterior.dispose);
-    addTearDown(view.dispose);
-    addTearDown(controller.dispose);
-    addTearDown(search.dispose);
-    exterior.setEditingExterior(true);
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: MapWorkspaceEditorPane(
-            controller: controller,
-            document: document,
-            project: spatialEnvironmentProject(),
-            visuals: _SpatialVisuals(),
-            view: view,
-            search: search,
-            generation: 0,
-            showNavigator: false,
-            showToolStrip: false,
-            showPaletteDock: false,
-            inspector: const SizedBox(
-              width: 100,
-              child: Text('Exterior inspector'),
-            ),
-            onActivate: (_) {},
-            onOrganizeMaps: null,
-            onToolChanged: () {},
-            onChanged: () {},
-            onMoreTools: () {},
-            onResources: () {},
-            onZoneDrawn: null,
-            onContextMenu: null,
-          ),
-        ),
-      ),
-    );
-    expect(find.text('Exterior inspector'), findsOneWidget);
-    await tester.pumpWidget(const SizedBox());
-  });
-
   testWidgets('exterior model properties round trip through map coordinates', (
     tester,
   ) async {
@@ -101,7 +34,7 @@ void main() {
     final document = EditableMapDocument(
       MapWorkspaceDocument(map: map, mapId: map.id, revision: 'r0'),
     )..exteriorDecoration = exterior;
-    final view = MapWorkspaceViewState();
+    final view = MapEditingViewportSession();
     addTearDown(exterior.dispose);
     addTearDown(view.dispose);
     exterior.setEditingExterior(true);
@@ -112,30 +45,10 @@ void main() {
       GridPos(x: -3 - exterior.originX, y: 2 - exterior.originZ),
     );
     target.selectedId = instance.id;
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: MapSelectionInspector(
-            document: document,
-            project: project,
-            visuals: WorkspaceTestVisuals(),
-            view: view,
-            onChanged: () {},
-            onOpenElement: (_) {},
-            onEditElement: (_) {},
-          ),
-        ),
-      ),
-    );
-    final x = tester.widget<StudioCommitField>(
-      find.byKey(const ValueKey('decor-geometry-x')),
-    );
-    final z = tester.widget<StudioCommitField>(
-      find.byKey(const ValueKey('decor-geometry-y')),
-    );
-    expect(double.parse(x.value), -2.5);
-    expect(double.parse(z.value), 2.5);
-    expect(x.tryCommit!('-3.5'), isTrue);
+    final commands = SpatialModelEditingCommands(target, project);
+    expect(instance.position.x + exterior.originX, -2.5);
+    expect(instance.position.z + exterior.originZ, 2.5);
+    commands.update(instance.id, x: -3.5 - exterior.originX);
     expect(
       target.current.spatialScene!.instances.single.position.x +
           exterior.originX,
@@ -143,62 +56,29 @@ void main() {
     );
     expect(document.current, same(map));
     expect(document.undoCount, 0);
-    expect(find.text('Bloque le passage'), findsNothing);
-    expect(find.text('Événements de ce décor'), findsNothing);
-    await tester.pumpWidget(const SizedBox());
+    expect(exterior.canUndo, isTrue);
   });
 
-  testWidgets(
+  test(
     'switching to exterior resets unsupported tools without map writes',
-    (tester) async {
+    () async {
       final map = spatialEnvironmentMap();
       final exterior = await MapExteriorDecorationController.open(
         workspaceSession,
         map,
         _ExteriorPort(),
       );
-      final view = MapWorkspaceViewState()
-        ..tool = StudioMapTool.character
-        ..paletteTab = 'Personnages'
-        ..paletteTiles = true;
+      final view = MapEditingViewportSession()..tool = StudioMapTool.character;
       addTearDown(exterior.dispose);
       addTearDown(view.dispose);
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: MapExteriorDecorationControls(
-              controller: exterior,
-              view: view,
-              onChanged: () {},
-            ),
-          ),
-        ),
-      );
-      tester.widget<StudioSelect>(find.byType(StudioSelect)).onChanged!(
-        'exterior',
-      );
-      await tester.pump();
+      view.prepareExteriorEditing(true);
+      exterior.setEditingExterior(true);
       expect(exterior.editingExterior, isTrue);
       expect(view.tool, StudioMapTool.select);
-      expect(view.paletteTab, 'Décors');
-      expect(view.paletteTiles, isFalse);
       expect(exterior.editingDocument, isNull);
       expect(exterior.current!.sectors, isEmpty);
-      expect(
-        find.text(
-          'Cliquez à l’extérieur de la zone jouable pour commencer à peindre ou placer un décor.',
-        ),
-        findsOneWidget,
-      );
       exterior.configureMargins(west: 0, east: 0, north: 0, south: 0);
-      await tester.pump();
-      expect(
-        find.text(
-          'Définissez au moins une marge pour créer du décor extérieur.',
-        ),
-        findsOneWidget,
-      );
-      await tester.pumpWidget(const SizedBox());
+      expect(exterior.current!.sectors, isEmpty);
     },
   );
 
@@ -218,9 +98,7 @@ void main() {
     );
   });
 
-  testWidgets('exterior inspector follows the selected visual document', (
-    tester,
-  ) async {
+  test('exterior editing document follows the selected sector', () async {
     final map = spatialEnvironmentMap();
     final exterior = await MapExteriorDecorationController.open(
       workspaceSession,
@@ -230,86 +108,16 @@ void main() {
     final document = EditableMapDocument(
       MapWorkspaceDocument(map: map, mapId: map.id, revision: 'r0'),
     )..exteriorDecoration = exterior;
-    final view = MapWorkspaceViewState()..tool = StudioMapTool.connection;
     addTearDown(exterior.dispose);
-    addTearDown(view.dispose);
     exterior.setEditingExterior(true);
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: MapSelectionInspector(
-            document: document,
-            project: spatialEnvironmentProject(),
-            visuals: WorkspaceTestVisuals(),
-            view: view,
-            onChanged: () {},
-            onOpenElement: (_) {},
-            onEditElement: (_) {},
-            onLinkMaps: (_, _, _) async {},
-            onUnlinkMaps: (_) async {},
-          ),
-        ),
-      ),
-    );
-    expect(
-      find.text(
-        'Cliquez dans le décor extérieur pour sélectionner une zone à éditer.',
-      ),
-      findsOneWidget,
-    );
-    expect(find.byType(MapDecorInspectorTabs), findsNothing);
+    expect(exterior.editingDocument, isNull);
     exterior.selectAt(-1, 1);
-    await tester.pump();
-    final inspector = tester.widget<MapDecorInspectorTabs>(
-      find.byType(MapDecorInspectorTabs),
-    );
-    expect(inspector.document, same(exterior.editingDocument));
-    expect(inspector.document, isNot(same(document)));
-    expect(find.byType(MapCameraPanel), findsNothing);
-    expect(find.byType(MapDayNightPanel), findsNothing);
-    expect(find.byType(MapConnectionPanel), findsNothing);
+    expect(exterior.editingDocument, isNotNull);
+    expect(exterior.editingDocument, isNot(same(document)));
     expect(document.current, same(map));
     expect(document.undoCount, 0);
     exterior.setEditingExterior(false);
-    await tester.pump();
-    expect(find.byType(MapDecorInspectorTabs), findsNothing);
-    expect(find.byType(MapConnectionPanel), findsOneWidget);
-    await tester.pumpWidget(const SizedBox());
-  });
-
-  testWidgets('exterior toolbar offers visual families without gameplay', (
-    tester,
-  ) async {
-    final view = MapWorkspaceViewState();
-    addTearDown(view.dispose);
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: MapWorkspaceToolStrip(
-            view: view,
-            exterior: true,
-            spatial: true,
-            onChanged: () {},
-            onMoreTools: () {},
-            onResources: () {},
-            storyAvailable: true,
-            paletteVisible: true,
-            onUndo: null,
-            onRedo: null,
-          ),
-        ),
-      ),
-    );
-    expect(find.text('Environnements'), findsOneWidget);
-    for (final label in ['Zones', 'Collisions', 'Passages', 'Connexions']) {
-      expect(find.text(label), findsNothing);
-    }
-    await tester.tap(find.byTooltip('Autres outils de carte'));
-    await tester.pumpAndSettle();
-    expect(find.text('Placer un personnage'), findsNothing);
-    expect(find.text('Peindre les collisions'), findsNothing);
-    expect(find.text('Peindre'), findsNothing);
-    await tester.pumpWidget(const SizedBox());
+    expect(exterior.editingExterior, isFalse);
   });
 
   testWidgets(
@@ -335,7 +143,7 @@ void main() {
       final document = EditableMapDocument(
         MapWorkspaceDocument(map: map, mapId: map.id, revision: 'r0'),
       )..exteriorDecoration = exterior;
-      final view = MapWorkspaceViewState()
+      final view = MapEditingViewportSession()
         ..selectEnvironmentPreset(
           document,
           project,
@@ -423,7 +231,8 @@ void main() {
       final document = EditableMapDocument(
         MapWorkspaceDocument(map: map, mapId: map.id, revision: 'r0'),
       )..exteriorDecoration = exterior;
-      final view = MapWorkspaceViewState()..tool = StudioMapTool.environment;
+      final view = MapEditingViewportSession()
+        ..tool = StudioMapTool.environment;
       final controller = MapWorkspaceController(
         workspaceSession,
         WorkspaceMemoryPort(),

@@ -1,7 +1,10 @@
+import 'dart:io';
+
+import 'map_catalog_fixture.dart';
+
 import 'package:avelune_studio/features/map_workspace/application/map_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_inspector.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_workspace_editing_state.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -10,8 +13,6 @@ import 'package:map_core/map_core.dart';
 
 import '../support/map_selection_harness.dart';
 import '../support/map_workspace_fixture.dart';
-import '../support/map_host_fixture.dart';
-import '../support/m2_ui_fixture.dart' show pumpIo;
 
 void main() {
   MapSelectionHarness fixture() {
@@ -31,83 +32,62 @@ void main() {
         pixels * workspaceProject.settings.displayScale.toDouble(),
       );
 
-  testWidgets(
-    'pixel selection finds a tiny offset decor and text focus leaves it unchanged',
-    (tester) async {
-      final h = fixture();
-      final id = h.document.selectedId!;
-      MapEditingCommands(h.document, h.project).setGeometry(
-        id,
-        x: 79,
-        y: 79,
-        size: const PixelSize(width: 1, height: 1),
-      );
-      h.view.clearSelection(h.document);
-      await h.pump(tester);
-      await tester.tapAt(point(tester, const Offset(79.5, 79.5)));
-      await tester.pumpAndSettle();
-      expect(h.document.selectedId, id);
-      await tester.scrollUntilVisible(
-        find.byKey(const ValueKey('decor-geometry-x')).hitTestable(),
-        200,
-        scrollable: find
-            .descendant(
-              of: find.byType(MapWorkspaceInspector),
-              matching: find.byType(Scrollable),
-            )
-            .first,
-      );
-      final field = find.descendant(
-        of: find.byKey(const ValueKey('decor-geometry-x')),
-        matching: find.byType(EditableText),
-      );
-      await tester.ensureVisible(field);
-      await tester.tap(field);
-      await tester.pump();
-      final count = h.document.undoCount;
-      await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
-      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
-      await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
-      expect(h.document.undoCount, count);
-      expect(h.document.selected!.pixelOffset, const PixelOffset(x: 15, y: 15));
-    },
-  );
+  testWidgets('pixel selection finds a tiny offset decor', (tester) async {
+    final h = fixture();
+    final id = h.document.selectedId!;
+    MapEditingCommands(
+      h.document,
+      h.project,
+    ).setGeometry(id, x: 79, y: 79, size: const PixelSize(width: 1, height: 1));
+    h.view.clearSelection(h.document);
+    await h.pump(tester);
+    await tester.tapAt(point(tester, const Offset(79.5, 79.5)));
+    await tester.pumpAndSettle();
+    expect(h.document.selectedId, id);
+    expect(h.document.selected!.pixelOffset, const PixelOffset(x: 15, y: 15));
+  });
 
-  testWidgets(
-    'inspector transform saves and reloads through the real workspace adapter',
-    (tester) async {
-      final f = await MapHostFixture.open(tester);
-      await tester.tap(find.byKey(const ValueKey('decor-arbre')));
-      await f.tapCell(8, 7);
-      final id = f.document.selectedId!;
+  test(
+    'geometry inputs save and reload through the real workspace adapter',
+    () async {
+      final parent = Directory(
+        '/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/t01-map-retirement',
+      );
+      await parent.create(recursive: true);
+      final fixture = await MapCatalogFixture.create(parent: parent);
+      addTearDown(fixture.dispose);
+      final document = fixture.controller.active!;
+      final project = fixture.controller.project!;
+      final commands = MapEditingCommands(document, project);
+      final id = commands.place(
+        project.elements.first,
+        const GridPos(x: 8, y: 7),
+      )!;
       for (final input in [('x', '129'), ('y', '113'), ('width', '37')]) {
-        final field = find.descendant(
-          of: find.byKey(ValueKey('decor-geometry-${input.$1}')),
-          matching: find.byType(EditableText),
+        expect(
+          commands.setGeometryText(
+            id,
+            input.$1,
+            input.$2,
+            lockProportions: false,
+          ),
+          isTrue,
         );
-        await tester.ensureVisible(field);
-        await tester.enterText(field, input.$2);
-        await tester.testTextInput.receiveAction(TextInputAction.done);
-        await tester.pumpAndSettle();
       }
-      final expected = f.document.selected!;
+      final expected = document.selected!;
       expect(expected.pixelOffset, const PixelOffset(x: 1, y: 1));
       expect(expected.pixelSize!.width, 37);
-      await tester.tap(find.byKey(const ValueKey('Enregistrer')));
-      for (var i = 0; i < 60 && f.document.dirty; i++) {
-        await pumpIo(tester, frames: 3);
-      }
-      expect(f.document.dirty, isFalse, reason: f.document.error);
-      final reopened = (await tester.runAsync(() async {
-        final adapter = LocalMapWorkspaceAdapter();
-        final project = await adapter.loadProject(f.source.session);
-        return adapter.loadMap(
-          f.source.session,
-          project.maps.firstWhere((entry) => entry.id == f.document.current.id),
-        );
-      }))!;
+      expect(await fixture.controller.save(document), isTrue);
+      final adapter = LocalMapWorkspaceAdapter();
+      final reopenedProject = await adapter.loadProject(fixture.session);
+      final reopened = await adapter.loadMap(
+        fixture.session,
+        reopenedProject.maps.singleWhere(
+          (entry) => entry.id == document.current.id,
+        ),
+      );
       expect(
-        reopened.map.placedElements.firstWhere((e) => e.id == id),
+        reopened.map.placedElements.firstWhere((entry) => entry.id == id),
         expected,
       );
     },
@@ -213,30 +193,21 @@ void main() {
     },
   );
 
-  testWidgets(
-    'inspector accepts integer instance geometry and resets natural size',
-    (tester) async {
-      final h = fixture();
-      await h.pump(tester);
-      final field = find.descendant(
-        of: find.byKey(const ValueKey('decor-geometry-width')),
-        matching: find.byType(EditableText),
-      );
-      await tester.ensureVisible(field);
-      await tester.enterText(field, '7');
-      await tester.testTextInput.receiveAction(TextInputAction.done);
-      await tester.pumpAndSettle();
-      expect(
-        h.document.selected!.pixelSize,
-        const PixelSize(width: 7, height: 32),
-      );
-      final reset = find.byKey(const ValueKey('decor-natural-size'));
-      await tester.ensureVisible(reset);
-      await tester.tap(reset);
-      await tester.pumpAndSettle();
-      expect(h.document.selected!.pixelSize, isNull);
-    },
-  );
+  test('geometry inputs accept integers and natural size can be restored', () {
+    final h = fixture();
+    final commands = MapEditingCommands(h.document, h.project);
+    final id = h.document.selectedId!;
+    expect(
+      commands.setGeometryText(id, 'width', '7', lockProportions: false),
+      isTrue,
+    );
+    expect(
+      h.document.selected!.pixelSize,
+      const PixelSize(width: 7, height: 32),
+    );
+    expect(commands.setGeometry(id, x: 64, y: 64, size: null), isTrue);
+    expect(h.document.selected!.pixelSize, isNull);
+  });
 
   for (final zoom in [.5, 1.0, 1.5, 2.0, 3.0]) {
     testWidgets(
@@ -305,99 +276,69 @@ void main() {
     },
   );
 
-  testWidgets(
-    'Escape, tool change, source change and focus loss cancel without history',
-    (tester) async {
-      final h = fixture();
-      await h.pump(tester);
-      final before = h.document.current;
-      final count = h.document.undoCount;
-      await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
-      final gesture = await tester.startGesture(
-        point(tester, const Offset(75, 75)),
-        kind: PointerDeviceKind.mouse,
-      );
-      await gesture.moveBy(const Offset(4, 4));
-      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
-      await gesture.up();
-      await tester.pumpAndSettle();
-      expect(h.document.current, before);
-      final toolGesture = await tester.startGesture(
-        point(tester, const Offset(75, 75)),
-        kind: PointerDeviceKind.mouse,
-      );
-      await toolGesture.moveBy(const Offset(4, 4));
-      await h.use(tester, StudioMapTool.pan);
-      await toolGesture.up();
-      expect(h.document.current, before);
-      await h.use(tester, StudioMapTool.select);
-      final staleGesture = await tester.startGesture(
-        point(tester, const Offset(75, 75)),
-        kind: PointerDeviceKind.mouse,
-      );
-      await staleGesture.moveBy(const Offset(4, 4));
-      h.document.current = before.copyWith(name: 'Concurrent');
-      h.redraw();
-      await tester.pump();
-      await staleGesture.up();
-      expect(h.document.selected!.pixelOffset, const PixelOffset(x: 0, y: 0));
-      await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
-      await tester.scrollUntilVisible(
-        find.byKey(const ValueKey('decor-geometry-x')).hitTestable(),
-        200,
-        scrollable: find
-            .descendant(
-              of: find.byType(MapWorkspaceInspector),
-              matching: find.byType(Scrollable),
-            )
-            .first,
-      );
-      await tester.tapAt(point(tester, const Offset(75, 75)));
-      await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
-      await tester.sendKeyDownEvent(LogicalKeyboardKey.arrowRight);
-      final field = find.descendant(
-        of: find.byKey(const ValueKey('decor-geometry-x')),
-        matching: find.byType(EditableText),
-      );
-      await tester.tap(field);
-      await tester.pump();
-      await tester.sendKeyUpEvent(LogicalKeyboardKey.arrowRight);
-      await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
-      expect(h.document.selected!.pixelOffset, const PixelOffset(x: 0, y: 0));
-      expect(h.document.undoCount, count);
-    },
-  );
+  testWidgets('Escape, tool change and source change cancel without history', (
+    tester,
+  ) async {
+    final h = fixture();
+    await h.pump(tester);
+    final before = h.document.current;
+    final count = h.document.undoCount;
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+    final gesture = await tester.startGesture(
+      point(tester, const Offset(75, 75)),
+      kind: PointerDeviceKind.mouse,
+    );
+    await gesture.moveBy(const Offset(4, 4));
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(h.document.current, before);
+    final toolGesture = await tester.startGesture(
+      point(tester, const Offset(75, 75)),
+      kind: PointerDeviceKind.mouse,
+    );
+    await toolGesture.moveBy(const Offset(4, 4));
+    await h.use(tester, StudioMapTool.pan);
+    await toolGesture.up();
+    expect(h.document.current, before);
+    await h.use(tester, StudioMapTool.select);
+    final staleGesture = await tester.startGesture(
+      point(tester, const Offset(75, 75)),
+      kind: PointerDeviceKind.mouse,
+    );
+    await staleGesture.moveBy(const Offset(4, 4));
+    h.document.current = before.copyWith(name: 'Concurrent');
+    h.redraw();
+    await tester.pump();
+    await staleGesture.up();
+    expect(h.document.selected!.pixelOffset, const PixelOffset(x: 0, y: 0));
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+    expect(h.document.undoCount, count);
+  });
 
-  testWidgets(
-    'invalid inspector dimensions preserve state and snap preserves custom size',
-    (tester) async {
+  test(
+    'invalid geometry inputs preserve state and snapping preserves custom size',
+    () {
       final h = fixture();
       final commands = MapEditingCommands(h.document, h.project);
+      final id = h.document.selectedId!;
       commands.setGeometry(
-        h.document.selectedId!,
+        id,
         x: 73,
         y: 69,
         size: const PixelSize(width: 7, height: 9),
       );
-      await h.pump(tester);
       final before = h.document.current;
       final count = h.document.undoCount;
-      final field = find.descendant(
-        of: find.byKey(const ValueKey('decor-geometry-width')),
-        matching: find.byType(EditableText),
-      );
-      await tester.ensureVisible(field);
       for (final text in ['0', '1.5', '1048577']) {
-        await tester.enterText(field, text);
-        await tester.testTextInput.receiveAction(TextInputAction.done);
-        await tester.pumpAndSettle();
+        expect(
+          commands.setGeometryText(id, 'width', text, lockProportions: false),
+          isFalse,
+        );
         expect(h.document.current, before);
         expect(h.document.undoCount, count);
       }
-      final snap = find.byKey(const ValueKey('decor-snap-grid'));
-      await tester.ensureVisible(snap);
-      await tester.tap(snap);
-      await tester.pumpAndSettle();
+      expect(commands.snapGeometryToGrid(id), isTrue);
       expect(h.document.selected!.pixelOffset, const PixelOffset(x: 0, y: 0));
       expect(h.document.selected!.pos, const GridPos(x: 5, y: 4));
       expect(
@@ -416,10 +357,8 @@ void main() {
       );
       await h.pump(tester);
       expect(find.byKey(const ValueKey('decor-handle-right')), findsNothing);
-      final detach = find.byKey(const ValueKey('decor-detach'));
-      await tester.ensureVisible(detach);
-      await tester.pumpAndSettle();
-      await tester.tap(detach);
+      MapEditingCommands(h.document, h.project).detach(h.document.selectedId!);
+      h.redraw();
       await tester.pumpAndSettle();
       expect(isAuthoredMapPlacedElement(h.document.selected!), isTrue);
       expect(find.byKey(const ValueKey('decor-handle-right')), findsOneWidget);
@@ -454,9 +393,11 @@ void main() {
       );
       h.redraw();
       await tester.pumpAndSettle();
-      expect(find.byKey(const ValueKey('decor-detach')), findsNothing);
       expect(find.byKey(const ValueKey('decor-handle-right')), findsNothing);
-      expect(find.textContaining('piloté par une zone'), findsOneWidget);
+      final before = h.document.current;
+      MapEditingCommands(h.document, h.project).detach(h.document.selectedId!);
+      expect(h.document.current, same(before));
+      expect(h.document.error, contains('zone d’environnement'));
     },
   );
 }

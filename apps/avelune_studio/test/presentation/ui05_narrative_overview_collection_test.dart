@@ -2,7 +2,6 @@ import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_a
 import 'package:avelune_studio/presentation/features/events/event_workspace_page.dart';
 import 'package:avelune_studio/presentation/features/narrative/narrative_story_pane.dart';
 import 'package:avelune_studio/presentation/features/scenes/scene_builder_page.dart';
-import 'package:avelune_studio/presentation/features/stories/story_progression_page.dart';
 import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_action_card.dart';
 import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
 import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_resource_card.dart';
@@ -49,10 +48,10 @@ void main() {
         find.byKey(const ValueKey('overview-result-Histoire-collection-999')),
         findsNothing,
       );
-      final scroll = tester
-          .widget<NarrativeStoryPane>(find.byType(NarrativeStoryPane))
-          .viewState
-          .resultsScroll;
+      final overview = tester.widget<NarrativeStoryPane>(
+        find.byType(NarrativeStoryPane),
+      );
+      final scroll = overview.viewState.resultsScroll;
       expect(find.byType(StudioActionCard).evaluate().length, lessThan(20));
       scroll.jumpTo(scroll.position.maxScrollExtent);
       await tester.pumpAndSettle();
@@ -66,14 +65,13 @@ void main() {
         find.byKey(const ValueKey('overview-result-Histoire-collection-999')),
       );
       await tester.pumpAndSettle();
-      expect(
-        tester
-            .widget<StoryProgressionPage>(find.byType(StoryProgressionPage))
-            .controller
-            .activeId,
-        'collection-999',
+      expect(overview.storyOwner!.activeId, 'collection-999');
+      await tester.tap(
+        find.descendant(
+          of: find.byType(StudioPrimaryNavigation),
+          matching: find.byTooltip('Histoire'),
+        ),
       );
-      await tester.tap(find.widgetWithText(StudioButton, 'Histoire').last);
       await tester.pumpAndSettle();
       expect(scroll.offset, offset);
       expect(find.text('Résultats · 1000'), findsOneWidget);

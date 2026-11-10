@@ -1,6 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:avelune_studio/features/pokemon/application/pokemon_media_editing_session.dart';
+import 'package:avelune_studio/features/pokemon/application/pokemon_workspace_controller.dart';
+import 'package:avelune_studio/features/pokemon/domain/pokemon_workspace_models.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:avelune_studio/presentation/features/pokemon/pokemon_workspace_page.dart';
@@ -14,6 +17,7 @@ import '../support/load_desktop_capture_fonts.dart';
 import '../support/m2_ui_fixture.dart' show pumpIo;
 import '../support/m3_story_fixture.dart';
 import '../support/pokemon_moves_source_fixture.dart';
+import '../support/pokemon_authoring_fixture.dart';
 
 void main() {
   testWidgets('Pokémon is a real workspace destination', (tester) async {
@@ -23,6 +27,8 @@ void main() {
 
     expect(find.text('Pokédex'), findsWidgets);
     expect(find.text('Attaques'), findsWidgets);
+    expect(find.text('Importer un JSON'), findsNothing);
+    expect(find.text('Importer depuis une source'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
@@ -43,6 +49,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('species-bulbasaur')));
     await pumpIo(tester);
     await captureM3Widget(tester, captureKey, 'pokemon-fiche');
+    expect(find.text('Médias'), findsNothing);
     final pokemon = tester
         .widget<PokemonWorkspacePage>(find.byType(PokemonWorkspacePage))
         .controller!;
@@ -79,20 +86,16 @@ void main() {
     await tester.tap(find.text('Enregistrer').first);
     await pumpIo(tester);
     final (species, learnset) = (await tester.runAsync(() async {
-      final species =
-          jsonDecode(
-                await File(
-                  '${host.source.directory.path}/data/pokemon/species/0001-bulbasaur.json',
-                ).readAsString(),
-              )
-              as Map<String, dynamic>;
-      final learnset =
-          jsonDecode(
-                await File(
-                  '${host.source.directory.path}/data/pokemon/learnsets/bulbasaur.json',
-                ).readAsString(),
-              )
-              as Map<String, dynamic>;
+      final species = jsonDecode(
+        await File(
+          '${host.source.directory.path}/data/pokemon/species/0001-bulbasaur.json',
+        ).readAsString(),
+      ) as Map<String, dynamic>;
+      final learnset = jsonDecode(
+        await File(
+          '${host.source.directory.path}/data/pokemon/learnsets/bulbasaur.json',
+        ).readAsString(),
+      ) as Map<String, dynamic>;
       return (species, learnset);
     }))!;
     expect((species['names'] as Map)['fr'], 'Bulbizarre du Train');
@@ -124,147 +127,142 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets(
-    'JSON preview does not write and apply reopens imported identity',
-    (tester) async {
-      final importRoot = (await tester.runAsync(() async {
-        final directory = await Directory.systemTemp.createTemp(
-          'avelune_pokemon_source_',
-        );
-        await _seedImportSource(directory);
-        return directory;
-      }))!;
-      addTearDown(() async {
-        if (await importRoot.exists()) await importRoot.delete(recursive: true);
-      });
-      final sourceFile = File('${importRoot.path}/species/0001-bulbasaur.json');
-      final host = await MapHostFixture.open(
-        tester,
-        pokemonJsonPicker: () async => sourceFile.path,
-      );
-      final destination = File(
-        '${host.source.directory.path}/data/pokemon/species/0001-bulbasaur.json',
-      );
-      await host.go('Pokémon');
-      await tester.tap(find.text('Importer un JSON'));
-      await pumpIo(tester);
-      expect(find.textContaining('Aperçu de l’import'), findsOneWidget);
-      expect((await tester.runAsync(destination.exists))!, isFalse);
-      await tester.tap(find.text('Importer bulbasaur'));
-      await pumpIo(tester);
-      expect((await tester.runAsync(destination.exists))!, isTrue);
-      expect(find.text('Bulbizarre'), findsWidgets);
-      expect(tester.takeException(), isNull);
-    },
-  );
+  test('JSON preview does not write and apply reopens imported identity', () async {
+    final host = await PokemonAuthoringFixture.create();
+    addTearDown(host.dispose);
+    final importRoot = Directory('${host.source.directory.path}/incoming');
+    await _seedImportSource(importRoot);
+    final sourceFile = File('${importRoot.path}/species/0001-bulbasaur.json');
+    final destination = File(
+      '${host.source.directory.path}/data/pokemon/species/0001-bulbasaur.json',
+    );
+    final project = File('${host.source.directory.path}/project.json');
+    final projectBefore = await project.readAsBytes();
+    expect(await host.workflow.pickJson(() async => sourceFile.path), isTrue);
+    expect(host.pokemon.importPreview!.speciesId, 'bulbasaur');
+    expect(await destination.exists(), isFalse);
+    expect(await project.readAsBytes(), projectBefore);
+    expect(
+      await host.workflow.applyJsonImport(() async {
+        throw StateError('New content needs no overwrite decision.');
+      }),
+      isTrue,
+    );
+    expect(await destination.exists(), isTrue);
+    expect(host.pokemon.selectedId, 'bulbasaur');
+    expect(host.pokemon.selectedDraft!.id, 'bulbasaur');
+    expect(host.pokemon.importPreview, isNull);
+    final owner = LocalPokemonWorkspaceAdapter(
+      session: host.source.session,
+      mapAdapter: host.source.maps,
+    );
+    addTearDown(owner.close);
+    final reopened = await owner.loadSpecies(
+      (await owner.loadIndex()).entries.single,
+    );
+    expect(reopened.species.document!['id'], 'bulbasaur');
+    expect(reopened.learnset!.document!['speciesId'], 'bulbasaur');
+  });
 
-  testWidgets('menu PNG uses canonical import and preserves an existing role', (
-    tester,
-  ) async {
+  test('menu PNG uses canonical import and preserves an existing role', () async {
     const sourcePng =
         '../../examples/playable_runtime_host/golden_item_system/assets/pokemon/sprites/sproutle/front.png';
-    final host = await MapHostFixture.open(
-      tester,
+    final host = await PokemonAuthoringFixture.create(
       prepareSource: (source) async {
         await _seedSpecies(source);
         final media = File(
           '${source.directory.path}/data/pokemon/media/bulbasaur.json',
         );
-        final data =
-            jsonDecode(await media.readAsString()) as Map<String, dynamic>;
+        final data = jsonDecode(await media.readAsString()) as Map;
         ((data['variants'] as Map)['base'] as Map).remove('icon');
         await media.writeAsString(jsonEncode(data));
       },
-      pokemonPngPicker: () async => sourcePng,
     );
-    await host.go('Pokémon');
-    await pumpIo(tester);
-    await tester.tap(find.byKey(const ValueKey('species-bulbasaur')));
-    await pumpIo(tester);
-    await tester.tap(find.text('Médias').last);
-    await pumpIo(tester);
-    final importIcon = find.text('Ajouter un PNG · Icône');
-    await tester.ensureVisible(importIcon);
-    await tester.tap(importIcon);
-    await pumpIo(tester);
-    expect(find.textContaining('PNG associé'), findsOneWidget);
-    final mediaPath =
-        '${host.source.directory.path}/data/pokemon/media/bulbasaur.json';
-    final icon = (await tester.runAsync(() async {
-      final data = jsonDecode(await File(mediaPath).readAsString()) as Map;
-      return ((data['variants'] as Map)['base'] as Map)['icon'] as String;
-    }))!;
-    expect(icon, startsWith('assets/pokemon/menu/bulbasaur/base/'));
-    final thumbnail = (await tester.runAsync(() async {
-      final adapter = LocalPokemonWorkspaceAdapter(
-        session: host.source.session,
-        mapAdapter: host.source.maps,
-      );
-      return adapter.loadThumbnail((await adapter.loadIndex()).entries.single);
-    }))!;
-    expect(thumbnail, isNotNull);
-    expect(importIcon, findsNothing);
+    addTearDown(host.dispose);
+    expect(await host.workflow.requestSpecies('bulbasaur'), isTrue);
+    final session = PokemonMediaEditingSession(current: () => host.pokemon);
+    addTearDown(session.dispose);
+    expect(session.canImportPng, isTrue);
     expect(
-      find.textContaining('Remplacer n’est pas disponible'),
-      findsOneWidget,
+      await session.choosePng(() async => File(sourcePng).absolute.path),
+      isTrue,
     );
-    final after = (await tester.runAsync(() async {
-      final data = jsonDecode(await File(mediaPath).readAsString()) as Map;
-      return ((data['variants'] as Map)['base'] as Map)['icon'] as String;
-    }))!;
-    expect(after, icon);
-    expect(tester.takeException(), isNull);
+    expect(host.pokemon.notice, contains('PNG associé'));
+    final media = File(
+      '${host.source.directory.path}/data/pokemon/media/bulbasaur.json',
+    );
+    final saved = jsonDecode(await media.readAsString()) as Map;
+    final icon = ((saved['variants'] as Map)['base'] as Map)['icon'] as String;
+    expect(icon, startsWith('assets/pokemon/menu/bulbasaur/base/'));
+    expect(session.path, icon);
+    expect(await session.probeRole('icon'), PokemonMediaFileStatus.present);
+    final adapter = LocalPokemonWorkspaceAdapter(
+      session: host.source.session,
+      mapAdapter: host.source.maps,
+    );
+    addTearDown(adapter.close);
+    final entry = (await adapter.loadIndex()).entries.single;
+    expect(await adapter.loadThumbnail(entry), isNotNull);
+    final reopened = await adapter.loadSpecies(entry);
+    expect(reopened.media!.document!['variants']['base']['icon'], icon);
+    final before = await media.readAsBytes();
+    var replacementPicks = 0;
+    expect(session.canImportPng, isFalse);
+    expect(
+      await session.choosePng(() async {
+        replacementPicks++;
+        return File(sourcePng).absolute.path;
+      }),
+      isFalse,
+    );
+    expect(replacementPicks, 0);
+    expect(await media.readAsBytes(), before);
+    expect(session.path, icon);
   });
 
-  testWidgets('a missing role file is flagged and clearing it frees the role', (
-    tester,
-  ) async {
+  test('clearing a missing role and saving allows a canonical PNG import', () async {
     const sourcePng =
         '../../examples/playable_runtime_host/golden_item_system/assets/pokemon/sprites/sproutle/front.png';
-    final host = await MapHostFixture.open(
-      tester,
+    final host = await PokemonAuthoringFixture.create(
       prepareSource: _seedSpecies,
-      pokemonPngPicker: () async => sourcePng,
     );
-    await host.go('Pokémon');
-    await pumpIo(tester);
-    await tester.tap(find.byKey(const ValueKey('species-bulbasaur')));
-    await pumpIo(tester);
-    await tester.tap(find.text('Médias').last);
-    await pumpIo(tester);
-    final iconCard = find.byKey(const ValueKey('media-role-icon'));
+    addTearDown(host.dispose);
+    expect(await host.workflow.requestSpecies('bulbasaur'), isTrue);
+    final session = PokemonMediaEditingSession(current: () => host.pokemon);
+    addTearDown(session.dispose);
+    final missing = session.path;
+    expect(missing, isNotEmpty);
+    expect(await session.probeRole('icon'), PokemonMediaFileStatus.missing);
+    expect(session.canImportPng, isFalse);
+    session.setPath('');
+    expect(host.pokemon.hasPendingChanges, isTrue);
+    var picksBeforeSave = 0;
     expect(
-      find.descendant(of: iconCard, matching: find.text('Fichier introuvable')),
-      findsOneWidget,
+      await session.choosePng(() async {
+        picksBeforeSave++;
+        return File(sourcePng).absolute.path;
+      }),
+      isFalse,
     );
-    final add = find.text('Ajouter un PNG · Icône');
-    expect(add, findsNothing);
-    final path = find.byKey(const ValueKey('media-variants.base.icon'));
-    await tester.ensureVisible(path);
-    await tester.enterText(path, '');
-    await pumpIo(tester);
-    await tester.tap(find.text('Enregistrer').first);
-    await pumpIo(tester);
-    await tester.ensureVisible(add);
-    await tester.tap(add);
-    await pumpIo(tester);
+    expect(picksBeforeSave, 0);
+    expect(await host.pokemon.saveActiveOwner(), isTrue);
+    expect(session.canImportPng, isTrue);
     expect(
-      find.textContaining('PNG associé à la forme base pour le rôle Icône'),
-      findsOneWidget,
+      await session.choosePng(() async => File(sourcePng).absolute.path),
+      isTrue,
     );
-    final mediaPath =
-        '${host.source.directory.path}/data/pokemon/media/bulbasaur.json';
-    final icon = (await tester.runAsync(() async {
-      final data = jsonDecode(await File(mediaPath).readAsString()) as Map;
-      return ((data['variants'] as Map)['base'] as Map)['icon'] as String;
-    }))!;
+    expect(
+      host.pokemon.notice,
+      contains('PNG associé à la forme base pour le rôle Icône'),
+    );
+    final media = File(
+      '${host.source.directory.path}/data/pokemon/media/bulbasaur.json',
+    );
+    final saved = jsonDecode(await media.readAsString()) as Map;
+    final icon = ((saved['variants'] as Map)['base'] as Map)['icon'] as String;
     expect(icon, startsWith('assets/pokemon/menu/bulbasaur/base/'));
-    await pumpIo(tester);
-    expect(
-      find.descendant(of: iconCard, matching: find.text('Fichier présent')),
-      findsOneWidget,
-    );
-    expect(tester.takeException(), isNull);
+    expect(icon, isNot(missing));
+    expect(await session.probeRole('icon'), PokemonMediaFileStatus.present);
   });
 
   testWidgets('moves preview is read only and apply writes merged catalog', (
@@ -337,9 +335,9 @@ Future<void> _copySpeciesDocuments(Directory root, String prefix) async {
   ]) {
     final target = File('${root.path}/$prefix$folder/$file');
     await target.parent.create(recursive: true);
-    final data =
-        jsonDecode(await File('$sourcePath/$folder/$file').readAsString())
-            as Map<String, dynamic>;
+    final data = jsonDecode(
+      await File('$sourcePath/$folder/$file').readAsString(),
+    ) as Map<String, dynamic>;
     data['schemaVersion'] = 1;
     await target.writeAsString(jsonEncode(data));
   }

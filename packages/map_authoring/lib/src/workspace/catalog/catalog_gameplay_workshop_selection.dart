@@ -12,6 +12,7 @@ const _gameplayActions = {
   'party_companion.configure',
   'item.create',
   'item.update', 'item.set_capture_effect',
+  'item.set_overworld_effect', 'item.set_battle_effect', 'item.set_held_effect',
 };
 
 Future<CatalogWorkshopSelection> _readGameplayWorkshop({
@@ -66,7 +67,7 @@ Future<CatalogWorkshopSelection> _readGameplayWorkshop({
     if (actionId == 'contact_device.configure') writable.add('contactDevice');
     if (actionId == 'party_companion.configure') writable.add('partyCompanion');
     if (actionId == 'campaign.battle_savings.update') writable.add('battleSavings');
-    if ((actionId == 'item.update' || actionId == 'item.set_capture_effect') && parameters['itemId'] is String) {
+    if ((actionId == 'item.update' || actionId.startsWith('item.set_')) && parameters['itemId'] is String) {
       add(
           'trainers',
           await CatalogMetadataDocuments.readTrainerIds(

@@ -2,19 +2,14 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:avelune_studio/features/pokemon/data/local_pokemon_workspace_adapter.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import '../support/m2_ui_fixture.dart' show pumpIo;
-import '../support/map_host_fixture.dart';
+import '../support/pokemon_authoring_fixture.dart';
 import '../support/synthetic_pokemon_media.dart';
 
 void main() {
-  testWidgets('a form reads shared media without copying or changing it', (
-    tester,
-  ) async {
-    final host = await MapHostFixture.open(
-      tester,
+  test('a form reads shared media without copying or changing it', () async {
+    final host = await PokemonAuthoringFixture.create(
       prepareSource: (source) async {
         const sample =
             '../../packages/map_editor/test/fixtures/manual_pokemon_import_pack_10';
@@ -60,31 +55,31 @@ void main() {
         await icon.writeAsBytes(syntheticPokemonMediaPng());
       },
     );
+    addTearDown(host.dispose);
     final media = File(
       '${host.source.directory.path}/data/pokemon/media/bulbasaur.json',
     );
-    final before = (await tester.runAsync(media.readAsBytes))!;
-    await host.go('Pokémon');
-    await pumpIo(tester);
-    await tester.tap(find.byKey(const ValueKey('species-bulbasaur-mega')));
-    await pumpIo(tester);
+    final before = await media.readAsBytes();
+    expect(await host.workflow.requestSpecies('bulbasaur-mega'), isTrue);
     final adapter = LocalPokemonWorkspaceAdapter(
       session: host.source.session,
       mapAdapter: host.source.maps,
     );
-    final (species, thumbnail) = (await tester.runAsync(() async {
-      final entry = (await adapter.loadIndex()).entries.singleWhere(
-        (value) => value.id == 'bulbasaur-mega',
-      );
-      return (
-        await adapter.loadSpecies(entry),
-        await adapter.loadThumbnail(entry),
-      );
-    }))!;
+    addTearDown(adapter.close);
+    final entry = (await adapter.loadIndex()).entries.singleWhere(
+      (value) => value.id == 'bulbasaur-mega',
+    );
+    final species = await adapter.loadSpecies(entry);
+    final thumbnail = await adapter.loadThumbnail(entry);
     expect(species.media?.relativePath, 'data/pokemon/media/bulbasaur.json');
     expect(species.media?.document?['speciesId'], 'bulbasaur');
     expect(thumbnail, isNotNull);
-    expect((await tester.runAsync(media.readAsBytes))!, before);
-    expect(tester.takeException(), isNull);
+    expect(await media.readAsBytes(), before);
+    expect(
+      await File(
+        '${host.source.directory.path}/data/pokemon/media/bulbasaur-mega.json',
+      ).exists(),
+      isFalse,
+    );
   });
 }

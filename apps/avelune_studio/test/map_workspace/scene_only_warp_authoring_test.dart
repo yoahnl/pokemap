@@ -1,17 +1,14 @@
+import 'dart:async';
 import 'dart:ui' as ui;
 
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/warp_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_warp_inspector.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_warp_target_session.dart';
 import 'package:avelune_studio/platform/rendering/viewports/map_editing_viewport_2d.dart';
 import 'package:avelune_studio/platform/rendering/viewports/map_editing_overlay.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_panels.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
-import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
-import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
-import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_commit_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -21,7 +18,7 @@ import '../support/map_workspace_fixture.dart';
 void main() {
   late EditableMapDocument document;
   late ProjectManifest project;
-  late MapWorkspaceViewState view;
+  late MapEditingViewportSession view;
 
   setUp(() {
     document = EditableMapDocument(
@@ -32,7 +29,9 @@ void main() {
       ),
     );
     project = workspaceProject.copyWith(maps: [workspaceEntries.first]);
-    view = MapWorkspaceViewState()..paletteTab = 'Passages';
+    view = MapEditingViewportSession();
+    view.warpPlacementMode = MapWarpTriggerMode.sceneOnly;
+    view.prepareWarpPlacement();
   });
   tearDown(() => view.dispose());
 
@@ -41,8 +40,6 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    final search = TextEditingController();
-    addTearDown(search.dispose);
     late StateSetter redraw;
     await tester.pumpWidget(
       MaterialApp(
@@ -53,17 +50,6 @@ void main() {
               redraw = setState;
               return Row(
                 children: [
-                  SizedBox(
-                    width: 260,
-                    child: MapWorkspacePalette(
-                      project: project,
-                      document: document,
-                      visuals: WorkspaceTestVisuals(),
-                      view: view,
-                      search: search,
-                      onChanged: () => setState(() {}),
-                    ),
-                  ),
                   Expanded(
                     child: MapEditingViewport2D(
                       document: document,
@@ -93,9 +79,8 @@ void main() {
     tester,
   ) async {
     await host(tester);
-    expect(find.text('Point d’arrivée'), findsOneWidget);
-    await tester.tap(find.text('Point d’arrivée'));
-    await tester.pump();
+    expect(view.warpPlacementMode, MapWarpTriggerMode.sceneOnly);
+    expect(view.tool, StudioMapTool.warp);
     await tester.tapAt(cell(tester, 2, 3));
     await tester.pump();
     final point = document.current.warps.single;
@@ -113,9 +98,8 @@ void main() {
     'a passive point keeps identity and local coordinates through move and undo redo',
     (tester) async {
       final redraw = await host(tester);
-      expect(find.text('Point d’arrivée'), findsOneWidget);
-      await tester.tap(find.text('Point d’arrivée'));
-      await tester.pump();
+      expect(view.warpPlacementMode, MapWarpTriggerMode.sceneOnly);
+      expect(view.tool, StudioMapTool.warp);
       await tester.tapAt(cell(tester, 2, 3));
       await tester.pump();
       final id = document.current.warps.single.id;
@@ -144,144 +128,80 @@ void main() {
     },
   );
 
-  testWidgets(
-    'the inspector guides passive mode without outgoing or activation controls',
-    (tester) async {
+  test('passive mode retains identity and canonical local target without outgoing data', () {
+    project = workspaceProject;
+    final commands = WarpEditingCommands(document, project);
+    final warp = commands.place(
+      workspaceEntries.last,
+      const GridPos(x: 2, y: 3),
+    );
+    final form = MapWarpTargetSession(document, project, warp);
+    addTearDown(form.dispose);
+    expect(form.selectMode('sceneOnly'), isTrue);
+    final passive = commands.selected(warp.id)!;
+    expect(passive.triggerMode, MapWarpTriggerMode.sceneOnly);
+    expect(passive.targetMapId, 'a');
+    expect(passive.targetPos, passive.pos);
+    expect(passive.id, warp.id);
+  });
+
+  test('passive activation requires explicit destination and both valid coordinates', () {
+    project = workspaceProject;
+    final commands = WarpEditingCommands(document, project);
+    final point = commands.placeArrival(const GridPos(x: 2, y: 3));
+    final before = document.current;
+    final history = document.undoCount;
+    final form = MapWarpTargetSession(document, project, point);
+    addTearDown(form.dispose);
+    expect(form.selectMode('onEnter'), isTrue);
+    expect(document.current, same(before));
+    expect(form.canApply, isFalse);
+    expect(form.selectDestination('b'), isTrue);
+    expect(form.canApply, isFalse);
+    expect(form.commitTarget('5', horizontal: true), isTrue);
+    expect(form.canApply, isFalse);
+    expect(form.commitTarget('7', horizontal: false), isTrue);
+    expect(form.canApply, isTrue);
+    expect(form.commitTarget('-1', horizontal: true), isFalse);
+    expect(form.canApply, isFalse);
+    expect(form.apply(), isFalse);
+    expect(document.current, same(before));
+    expect(form.commitTarget('5', horizontal: true), isTrue);
+    expect(form.apply(), isTrue);
+    final active = commands.selected(point.id)!;
+    expect(active.triggerMode, MapWarpTriggerMode.onEnter);
+    expect(active.targetMapId, 'b');
+    expect(active.targetPos, const GridPos(x: 5, y: 7));
+    expect(active.pos, point.pos);
+    expect(document.undoCount, history + 1);
+    document.restore(redo: false);
+    expect(document.current, before);
+  });
+
+  test(
+    'late arrival choice cannot retarget another selection or disposed form',
+    () async {
       project = workspaceProject;
       final commands = WarpEditingCommands(document, project);
-      final warp = commands.place(
-        workspaceEntries.last,
-        const GridPos(x: 2, y: 3),
-      );
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: studioTheme(),
-          home: Scaffold(
-            body: SizedBox(
-              width: 420,
-              child: StatefulBuilder(
-                builder: (context, setState) => MapWarpInspector(
-                  document: document,
-                  project: project,
-                  warp: commands.selected(warp.id)!,
-                  onChanged: () => setState(() {}),
-                  onDeleted: () {},
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-      await tester.pump();
-      await tester.tap(find.text('À l’entrée'));
-      await tester.pumpAndSettle();
-      expect(find.text('Point d’arrivée'), findsWidgets);
-      await tester.tap(find.text('Point d’arrivée').last);
-      await tester.pumpAndSettle();
-      final passive = commands.selected(warp.id)!;
-      expect(passive.triggerMode, MapWarpTriggerMode.sceneOnly);
-      expect(passive.targetMapId, 'a');
-      expect(passive.targetPos, passive.pos);
-      expect(find.text('Utilisé par une scène'), findsOneWidget);
-      expect(find.text('Carte d’arrivée'), findsNothing);
-      expect(find.text('Case X'), findsNothing);
-      expect(find.text('Case Y'), findsNothing);
-      expect(
-        find.byKey(const ValueKey('warp-destination-problem')),
-        findsNothing,
-      );
-      expect(tester.takeException(), isNull);
+      final first = commands.placeArrival(const GridPos(x: 2, y: 3));
+      final second = commands.placeArrival(const GridPos(x: 4, y: 3));
+      final form = MapWarpTargetSession(document, project, first);
+      final before = document.current;
+      final choice = Completer<GridPos?>();
+      final pending = form.pickArrival((_) => choice.future);
+      form.update(project, second);
+      choice.complete(const GridPos(x: 5, y: 6));
+      expect(await pending, isFalse);
+      expect(document.current, same(before));
+      final disposedChoice = Completer<GridPos?>();
+      final afterDispose = form.pickArrival((_) => disposedChoice.future);
+      form.dispose();
+      disposedChoice.complete(const GridPos(x: 7, y: 8));
+      expect(await afterDispose, isFalse);
+      expect(document.current, same(before));
     },
   );
 
-  testWidgets(
-    'turning a passive point into a passage requires explicit map and both coordinates',
-    (tester) async {
-      project = workspaceProject;
-      final point = MapWarp(
-        id: 'arrival',
-        pos: const GridPos(x: 2, y: 3),
-        targetMapId: 'a',
-        targetPos: const GridPos(x: 2, y: 3),
-        triggerMode: MapWarpTriggerMode.sceneOnly,
-      );
-      document.commit(addWarpToMap(document.current, warp: point));
-      final commands = WarpEditingCommands(document, project);
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: studioTheme(),
-          home: Scaffold(
-            body: SizedBox(
-              width: 420,
-              child: StatefulBuilder(
-                builder: (context, setState) => MapWarpInspector(
-                  document: document,
-                  project: project,
-                  warp: commands.selected(point.id)!,
-                  onChanged: () => setState(() {}),
-                  onDeleted: () {},
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-      await tester.pump();
-      await tester.tap(
-        find
-            .descendant(
-              of: find.byType(StudioSelect),
-              matching: find.text('Point d’arrivée'),
-            )
-            .first,
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('À l’entrée').last);
-      await tester.pumpAndSettle();
-      expect(commands.selected(point.id), point);
-      expect(find.text('Carte d’arrivée'), findsOneWidget);
-      StudioButton apply() => tester.widget<StudioButton>(
-        find.byWidgetPredicate(
-          (w) => w is StudioButton && w.label == 'Appliquer le passage',
-        ),
-      );
-      expect(apply().onPressed, isNull);
-      await tester.tap(find.byType(DropdownButtonFormField<String>).first);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Jardin').last);
-      await tester.pumpAndSettle();
-      expect(apply().onPressed, isNull);
-      Future<void> enter(String label, String value) async {
-        final field = find.descendant(
-          of: find.byWidgetPredicate(
-            (w) => w is StudioCommitField && w.label == label,
-          ),
-          matching: find.byType(TextField),
-        );
-        await tester.enterText(field, value);
-        await tester.testTextInput.receiveAction(TextInputAction.done);
-        await tester.pump();
-      }
-
-      await enter('Case X', '5');
-      expect(apply().onPressed, isNull);
-      await enter('Case Y', '7');
-      expect(apply().onPressed, isNotNull);
-      await enter('Case X', '-1');
-      expect(apply().onPressed, isNull);
-      expect(commands.selected(point.id), point);
-      await enter('Case X', '5');
-      expect(apply().onPressed, isNotNull);
-      await tester.tap(find.text('Appliquer le passage'));
-      await tester.pump();
-      final active = commands.selected(point.id)!;
-      expect(active.triggerMode, MapWarpTriggerMode.onEnter);
-      expect(active.targetMapId, 'b');
-      expect(active.targetPos, const GridPos(x: 5, y: 7));
-      expect(active.pos, point.pos);
-      expect(tester.takeException(), isNull);
-    },
-  );
   testWidgets(
     'the passive marker never displays an outgoing destination label',
     (tester) async {

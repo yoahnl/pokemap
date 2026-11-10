@@ -5,29 +5,9 @@ import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/inputs/studio_choice.dart';
 import '../../shared/widgets/inputs/studio_search_field.dart';
 import '../../theme/studio_tokens.dart';
-import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
-import 'package:avelune_studio/features/map_workspace/application/map_border_review.dart';
 
-List<ResourceItem> mapDecorReplacementChoices(
-  ProjectManifest project, {
-  required String mapId,
-  required bool spatial,
-  String query = '',
-}) {
-  final kind = spatial ? 'model3d' : 'element';
-  final borderPieces = mapBorderPieceIdentities(project);
-  return filterResourceCatalog(
-    project,
-    resourceCatalog(project).where(
-      (item) =>
-          item.canonicalKind == kind &&
-          !borderPieces.contains('$kind:${item.id}'),
-    ),
-    ResourceCatalogFilterState(query: query),
-    activeMapId: mapId,
-    forMapPicker: true,
-  );
-}
+
+import '../../../features/map_workspace/application/map_decor_replacement_choices.dart';
 
 Future<String?> showMapDecorReplacementPicker(
   BuildContext context,

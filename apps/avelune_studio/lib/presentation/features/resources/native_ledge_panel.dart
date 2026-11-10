@@ -1,13 +1,18 @@
+import '../../../features/resources/application/resource_creation_sources.dart';
+
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
+
 import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
+
 import 'resource_preview.dart';
-import '../map_workspace/traversal_labels.dart';
+
+import 'package:avelune_studio/features/map_workspace/application/traversal_labels.dart';
 
 class NativeLedgePanel extends StatelessWidget {
   const NativeLedgePanel({
@@ -29,42 +34,13 @@ class NativeLedgePanel extends StatelessWidget {
     BorderBlueprintRecord record,
     ProjectManifest project,
     MapWorkspaceVisuals visuals,
-  ) {
-    final primitives = record.draft.definition.primitives;
-    if (primitives.isEmpty) return false;
-    for (final primitive in primitives) {
-      if (primitive.isSpatial ||
-          primitive.role != BorderPrimitiveRole.structureLarge) {
-        return false;
-      }
-      final element = project.elements
-          .where((element) => element.id == primitive.sourceElementId)
-          .firstOrNull;
-      if (element == null || element.frames.isEmpty) return false;
-      final resourceIds = <String>{element.id};
-      for (final frame in element.frames) {
-        final id = frame.tilesetId.isEmpty
-            ? element.tilesetId
-            : frame.tilesetId;
-        final tileset = project.tilesets
-            .where((tile) => tile.id == id)
-            .firstOrNull;
-        if (tileset == null) return false;
-        resourceIds.add(id);
-        if (tileset.source case ProjectImageCollectionTilesetSource(
-          :final pages,
-        )) {
-          resourceIds.addAll(pages.map((page) => page.assetId));
-        }
-      }
-      if (visuals.diagnostics.any(
-        (diagnostic) => resourceIds.contains(diagnostic.resourceId),
-      )) {
-        return false;
-      }
-    }
-    return true;
-  }
+  ) => nativeLedgeSourcesAvailable(
+    record,
+    project,
+    unavailableResourceIds: visuals.diagnostics.map(
+      (diagnostic) => diagnostic.resourceId,
+    ),
+  );
 
   @override
   Widget build(BuildContext context) => StudioPanel(
@@ -93,12 +69,10 @@ class NativeLedgePanel extends StatelessWidget {
           ledgeJumpSummary(record.draft.definition.jumpBehavior!),
           key: const ValueKey('native-ledge-jump-summary'),
         ),
-        if (project.settings.dimension == ProjectDimension.threeD) ...[
+        if (nativeLedgeJumpDimensionNotice(project.settings.dimension)
+            case final notice?) ...[
           const SizedBox(height: 8),
-          const StudioNotice(
-            'Ce saut s’applique aux cartes 2D : sur une carte 3D, le jeu ne fait pas sauter un rebord. Ajoutez-y un « Talus à sens unique » depuis les outils de la carte.',
-            key: ValueKey('native-ledge-jump-2d-only'),
-          ),
+          StudioNotice(notice, key: ValueKey('native-ledge-jump-2d-only')),
         ],
       ],
       const SizedBox(height: 16),

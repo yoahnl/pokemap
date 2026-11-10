@@ -40,6 +40,7 @@ class PokemonCommerceImportWorkflow {
       final preview = commerce.importPreview;
       if (preview == null) return false;
       final accept = await confirm(preview);
+      if (!identical(commerce.importPreview, preview)) return false;
       if (_disposed || !isActive() || !accept) {
         commerce.cancelImport();
         return false;

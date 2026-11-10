@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:map_core/map_core.dart';
 
 import '../../../features/map_workspace/application/editable_map_document.dart';
-import '../../../features/map_workspace/application/spatial_terrain_surface_editing_commands.dart';
+import '../../../features/map_workspace/application/spatial_terrain_surface_editing_session.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_draft_field.dart';
@@ -27,166 +26,60 @@ class SpatialTerrainSurfaceEditor extends StatefulWidget {
 
 class _SpatialTerrainSurfaceEditorState
     extends State<SpatialTerrainSurfaceEditor> {
-  MapData? _source;
-  SpatialTerrainSurface? _surface;
-  SpatialTerrainSurfaceEditingPreview? _ownPreview;
-  final _values = <String, String>{};
-  String? _error;
-  String? _notice;
+  late SpatialTerrainSurfaceEditingSession _editing;
 
   @override
   void initState() {
     super.initState();
-    _load();
+    _editing = SpatialTerrainSurfaceEditingSession(
+      widget.document,
+      widget.view,
+    );
   }
 
   @override
   void didUpdateWidget(SpatialTerrainSurfaceEditor oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (!identical(_source, widget.document.current) ||
-        !identical(oldWidget.view, widget.view) ||
-        _surface?.id != widget.view.spatialSurfaceId) {
-      _clearPreview(oldWidget.view);
-      _load();
+    if (!identical(oldWidget.document, widget.document) ||
+        !identical(oldWidget.view, widget.view)) {
+      if (_editing.source?.id != widget.document.current.id) {
+        widget.view.spatialSurfaceId = null;
+      }
+      _editing.dispose();
+      _editing = SpatialTerrainSurfaceEditingSession(
+        widget.document,
+        widget.view,
+      );
+    } else if (!identical(_editing.source, widget.document.current) ||
+        _editing.surface?.id != widget.view.spatialSurfaceId) {
+      _editing.clearPreview(widget.view);
+      _editing.load();
     }
   }
 
   @override
   void dispose() {
-    _clearPreview(widget.view);
+    _editing.dispose();
     super.dispose();
   }
 
-  void _clearPreview(MapWorkspaceViewState view) {
-    if (identical(view.terrainSurfacePreview, _ownPreview)) {
-      view.terrainSurfacePreview = null;
-    }
-    _ownPreview = null;
-  }
-
-  void _load() {
-    final map = widget.document.current;
-    final scene = map.spatialScene!;
-    final sameMap = _source == null || _source!.id == map.id;
-    final id = sameMap ? widget.view.spatialSurfaceId : null;
-    _source = map;
-    _surface = scene.terrainSurfaces.surfaces
-        .where((surface) => surface.id == id)
-        .firstOrNull;
-    widget.view.spatialSurfaceId = _surface?.id;
-    _error = null;
-    _notice = null;
-    final surface = _surface;
-    if (surface == null) {
-      _values.clear();
-      return;
-    }
-    _values.addAll({
-      'x': '${surface.x}',
-      'z': '${surface.z}',
-      'height': '${surface.height / scene.levelHeight}',
-      'width': '${surface.bounds.right - surface.bounds.left}',
-      'depth': '${surface.bounds.bottom - surface.bounds.top}',
-      'rise-x': '${surface.gradientX / scene.levelHeight}',
-      'rise-z': '${surface.gradientZ / scene.levelHeight}',
-    });
-  }
-
   void _edit(VoidCallback change) {
-    setState(() {
-      _clearPreview(widget.view);
-      _error = null;
-      _notice = null;
-      change();
-    });
+    setState(() => _editing.edit(change));
     widget.onChanged();
   }
 
   void _preview() {
-    _clearPreview(widget.view);
-    try {
-      if (!identical(_source, widget.document.current)) {
-        throw StateError('La carte a changé. Choisissez à nouveau la surface.');
-      }
-      final surface = _surface!;
-      final width = terrainSurfaceNumber(_values['width']!, 'La largeur');
-      final depth = terrainSurfaceNumber(_values['depth']!, 'La profondeur');
-      if (width <= 0 || depth <= 0) {
-        throw StateError('Les dimensions doivent être strictement positives.');
-      }
-      final scaleX = width / (surface.bounds.right - surface.bounds.left);
-      final scaleZ = depth / (surface.bounds.bottom - surface.bounds.top);
-      final step = widget.document.current.spatialScene!.levelHeight;
-      final changed = surface.copyWith(
-        x: terrainSurfaceNumber(_values['x']!, 'X'),
-        z: terrainSurfaceNumber(_values['z']!, 'Y'),
-        height: terrainSurfaceNumber(_values['height']!, 'La hauteur') * step,
-        gradientX:
-            terrainSurfaceNumber(
-              _values['rise-x']!,
-              'La montée vers la droite',
-            ) *
-            step,
-        gradientZ:
-            terrainSurfaceNumber(_values['rise-z']!, 'La montée vers le bas') *
-            step,
-        footprints: scaleX == 1 && scaleZ == 1
-            ? surface.footprints
-            : [
-                for (final footprint in surface.footprints)
-                  BorderGroundFootprint(
-                    points: [
-                      for (final point in footprint.points)
-                        BorderGroundPoint(
-                          x: point.x * scaleX,
-                          z: point.z * scaleZ,
-                        ),
-                    ],
-                  ),
-              ],
-      );
-      _ownPreview = SpatialTerrainSurfaceEditingCommands(widget.document)
-          .preview(
-            changed,
-            reanchorInstances: widget.view.spatialSurfaceReanchorInstances,
-          );
-      widget.view.terrainSurfacePreview = _ownPreview;
-      _error = null;
-    } on Object catch (failure) {
-      _error = terrainSurfaceFailureMessage(failure);
-    }
-    setState(() {});
+    setState(_editing.preview);
     widget.onChanged();
   }
 
   void _apply() {
-    final preview = widget.view.terrainSurfacePreview;
-    if (preview == null) return;
-    try {
-      SpatialTerrainSurfaceEditingCommands(widget.document).apply(preview);
-      _clearPreview(widget.view);
-      _load();
-      _notice = 'Surface appliquée. Une seule annulation restaure la carte.';
-    } on Object catch (failure) {
-      _error = terrainSurfaceFailureMessage(failure);
-    }
-    setState(() {});
+    setState(_editing.apply);
     widget.onChanged();
   }
 
   void _delete() {
-    try {
-      SpatialTerrainSurfaceEditingCommands(widget.document).delete(
-        _surface!.id,
-        reanchorInstances: widget.view.spatialSurfaceReanchorInstances,
-      );
-      _clearPreview(widget.view);
-      _load();
-      _notice = 'Surface supprimée. Annuler permet de la retrouver.';
-    } on Object catch (failure) {
-      _error = terrainSurfaceFailureMessage(failure);
-    }
-    setState(() {});
+    setState(_editing.delete);
     widget.onChanged();
   }
 
@@ -194,7 +87,7 @@ class _SpatialTerrainSurfaceEditorState
   Widget build(BuildContext context) {
     final surfaces =
         widget.document.current.spatialScene!.terrainSurfaces.surfaces;
-    final enabled = !widget.document.saving && _surface != null;
+    final enabled = !widget.document.saving && _editing.surface != null;
     final preview = widget.view.terrainSurfacePreview;
     final valid = preview?.validFor(widget.document.current) == true;
     return StudioPanel(
@@ -230,7 +123,7 @@ class _SpatialTerrainSurfaceEditorState
           StudioSelect(
             key: const ValueKey('terrain-surface-picker'),
             label: 'Surface de la carte',
-            value: _surface?.id ?? '',
+            value: _editing.surface?.id ?? '',
             options: {
               '': 'Choisissez une surface',
               for (var i = 0; i < surfaces.length; i++)
@@ -242,11 +135,11 @@ class _SpatialTerrainSurfaceEditorState
                 : (id) => _edit(() {
                     widget.view.spatialSurfaceId = id.isEmpty ? null : id;
                     widget.view.spatialSurfaceSelect = true;
-                    _load();
+                    _editing.load();
                   }),
           ),
           const SizedBox(height: 12),
-          if (_surface == null)
+          if (_editing.surface == null)
             const StudioNotice(
               'Choisissez une surface dans la liste ou cliquez sur la carte avec Sélectionner.',
             )
@@ -263,13 +156,13 @@ class _SpatialTerrainSurfaceEditorState
               StudioDraftField(
                 key: ValueKey('terrain-surface-$id'),
                 label: label,
-                value: _values[id]!,
+                value: _editing.values[id]!,
                 enabled: enabled,
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                   signed: true,
                 ),
-                onChanged: (value) => _edit(() => _values[id] = value),
+                onChanged: (value) => _edit(() => _editing.values[id] = value),
               ),
               const SizedBox(height: 12),
             ],
@@ -318,13 +211,13 @@ class _SpatialTerrainSurfaceEditorState
                 : 'La surface correspond déjà à ces valeurs.',
           ),
         ],
-        if (_error != null) ...[
+        if (_editing.error != null) ...[
           const SizedBox(height: 12),
-          StudioNotice(_error!, isError: true),
+          StudioNotice(_editing.error!, isError: true),
         ],
-        if (_notice != null) ...[
+        if (_editing.notice != null) ...[
           const SizedBox(height: 12),
-          StudioNotice(_notice!),
+          StudioNotice(_editing.notice!),
         ],
       ],
     );

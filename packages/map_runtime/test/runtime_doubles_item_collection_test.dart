@@ -11,6 +11,12 @@ final _catalog = ItemCatalogSnapshot.fromCatalog(
   const ProjectItemCatalog(
     schemaVersion: 1,
     entries: [
+      ProjectItemDefinition(id: 'powder', displayName: 'Powder', pocketId: 'medicine', uses: [
+        ProjectItemUseDefinition(contexts: {ProjectItemUseContext.battle}, target: ProjectItemTargetKind.partyMember,
+          consumption: ProjectItemConsumptionPolicy.onApplied,
+          friendshipLoss: ProjectItemFriendshipLoss(low: 5, medium: 5, high: 10),
+          effect: ProjectItemEffectDefinition.healHp(mode: ProjectItemAmountMode.flat, amount: 50)),
+      ]),
       ProjectItemDefinition(id: 'elixir', displayName: 'Élixir', pocketId: 'medicine', uses: [
         ProjectItemUseDefinition(contexts: {ProjectItemUseContext.battle}, target: ProjectItemTargetKind.partyMember,
           consumption: ProjectItemConsumptionPolicy.onApplied,
@@ -54,6 +60,34 @@ final _catalog = ItemCatalogSnapshot.fromCatalog(
 );
 
 void main() {
+  test('bitter double items charge friendship only after resolution and only once per applied item', () {
+    final fixture = _fixture(2, itemId: 'powder', initialHp: 50);
+    final initial = fixture.state.copyWith(party: fixture.state.party.copyWith(members: [
+      for (final member in fixture.state.party.members) member.copyWith(friendship: 200),
+    ]));
+    final first = _apply(fixture.session, initial, 0, itemId: 'powder')!;
+    expect(first.updatedGameState, initial);
+    final second = _apply(fixture.session, first.updatedGameState, 0, itemId: 'powder')!;
+    expect(second.updatedGameState.party.members.map((p) => p.friendship), [190, 200]);
+    expect(second.updatedGameState.bag.entries.single.quantity, 1);
+    final replay = commitRuntimeResolvedBattleItems(session: fixture.session, gameState: second.updatedGameState, itemCatalog: _catalog, context: _context);
+    expect(replay.state, second.updatedGameState);
+    expect(replay.receipts, isEmpty);
+  });
+  test('bitter medicine follows individual identity after party reordering', () {
+    final fixture = _fixture(2, itemId: 'powder', initialHp: 50);
+    final initial = fixture.state.copyWith(party: fixture.state.party.copyWith(members: [
+      for (final member in fixture.state.party.members.reversed) member.copyWith(friendship: 200),
+    ]));
+    final context = RuntimeActiveBattleContext.withLineupMapping(request: _context.request, playerPartyIndex: 0, playerIndividualId: 'l32-item-0',
+      playerPartySlotIndicesByLineupIndex: [0, 1], playerIndividualIdsByLineupIndex: ['l32-item-0', 'l32-item-1']);
+    final first = _apply(fixture.session, initial, 0, itemId: 'powder', context: context)!;
+    expect(first.updatedGameState, initial);
+    final second = _apply(fixture.session, first.updatedGameState, 0, itemId: 'powder', context: context)!;
+    expect(second.updatedGameState.party.members.map((p) => p.friendship), [200, 190]);
+    expect(second.updatedGameState.party.members.map((p) => p.currentHp), [50, 100]);
+    expect(second.updatedGameState.bag.entries.single.quantity, 1);
+  });
   test('all-PP double item releases the second reservation when the first fills every move', () {
     final fixture = _fixture(2, itemId: 'elixir', initialPp: 0);
     final first = _apply(fixture.session, fixture.state, 0, itemId: 'elixir')!;
@@ -226,11 +260,12 @@ RuntimePsdkBattleItemApplyResult? _apply(
   int target, {
   String itemId = 'potion',
   BattleEngineDecisionRequest? request,
+  RuntimeActiveBattleContext? context,
 }) => tryApplyRuntimePsdkBattleItemUse(
   psdkSession: session,
   displaySession: session.createLegacyDisplaySession(isTrainerBattle: true),
   gameState: state,
-  context: _context,
+  context: context ?? _context,
   itemId: itemId,
   targetLineupIndex: target,
   targetMoveIndex: itemId == 'ether' ? 0 : null,

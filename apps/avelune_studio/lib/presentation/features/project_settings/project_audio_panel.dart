@@ -4,13 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/project_audio/application/project_audio_controller.dart';
+import '../../../features/project_audio/application/project_audio_editing_session.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_choice.dart';
 import '../../shared/widgets/inputs/studio_draft_field.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
-import '../presentations/presentation_media_picker.dart';
+import 'package:avelune_studio/features/presentations/domain/presentation_media_picker.dart';
 
 class ProjectAudioPanel extends StatefulWidget {
   const ProjectAudioPanel({
@@ -29,65 +30,58 @@ class ProjectAudioPanel extends StatefulWidget {
 class _ProjectAudioPanelState extends State<ProjectAudioPanel>
     with WidgetsBindingObserver {
   String query = '', legacyQuery = '';
-  ProjectSoundCue selected = ProjectSoundCue.uiConfirm;
+  late ProjectAudioEditingSession _editing;
+  ProjectSoundCue get selected => _editing.selected;
   @override
   void initState() {
     super.initState();
+    _editing = _createEditing();
     WidgetsBinding.instance.addObserver(this);
     unawaited(open());
   }
 
-  Future<void> open() async {
-    await widget.owner.open();
-    if (!mounted) return;
-    await Future.wait([
-      if (widget.owner.library.isEmpty) widget.owner.loadLibrary(),
-      if (widget.owner.legacyLibrary.isEmpty) widget.owner.loadLegacyLibrary(),
-    ]);
+  ProjectAudioEditingSession _createEditing({
+    ProjectSoundCue selected = ProjectSoundCue.uiConfirm,
+  }) => ProjectAudioEditingSession(
+    owner: widget.owner,
+    selected: selected,
+    pickMedia: (kind) => widget.pickMedia?.call(kind) ?? Future.value(),
+  );
+
+  @override
+  void didUpdateWidget(covariant ProjectAudioPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.owner, widget.owner)) {
+      final cue = selected;
+      unawaited(_editing.close());
+      _editing = _createEditing(selected: cue);
+      unawaited(open());
+    }
   }
+
+  Future<void> open() => _editing.open();
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state != AppLifecycleState.resumed) unawaited(widget.owner.stop());
+    if (state != AppLifecycleState.resumed) unawaited(_editing.suspend());
   }
 
-  Future<void> import() async {
-    final pick = widget.pickMedia;
-    if (pick == null) return;
-    final file = await pick(ProjectMediaKind.audio);
-    if (file != null && mounted) {
-      await widget.owner.import(file.path, file.label);
-    }
-  }
+  Future<void> import() => _editing.importSound();
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    unawaited(widget.owner.stop());
+    unawaited(_editing.close());
     super.dispose();
   }
 
   void _select(ProjectSoundCue cue) {
     if (cue == selected) return;
-    unawaited(widget.owner.stop());
-    setState(() => selected = cue);
+    unawaited(_editing.select(cue));
+    setState(() {});
   }
 
-  String _intention(ProjectSoundCue cue) {
-    final owner = widget.owner;
-    final pending = owner.pendingSources[cue];
-    final binding = owner.preview.value.cues[cue];
-    if (pending == 'custom') return 'Son de la bibliothèque à choisir';
-    if (binding == null) return 'Réglage par défaut';
-    return switch (binding.source) {
-      ProjectSoundSource.builtin =>
-        'Son intégré · ${(binding.gain * 100).round()} %',
-      ProjectSoundSource.silent => 'Aucun son',
-      ProjectSoundSource.custom =>
-        '${owner.library[binding.mediaId]?.label ?? 'Son enregistré'} · '
-            '${(binding.gain * 100).round()} %',
-    };
-  }
+  String _intention(ProjectSoundCue cue) => _editing.intention(cue);
 
   Widget _cueList() {
     final owner = widget.owner;
@@ -136,13 +130,10 @@ class _ProjectAudioPanelState extends State<ProjectAudioPanel>
     animation: widget.owner,
     builder: (context, _) {
       final owner = widget.owner;
-      final binding = owner.preview.value.bindingFor(selected);
-      final source =
-          owner.pendingSources[selected] ??
-          owner.preview.value.cues[selected]?.source.name ??
-          'inherit';
+      final binding = _editing.binding;
+      final source = _editing.source;
       final descriptor = ProjectSoundCueCatalog.forCue(selected);
-      final available = !owner.busy && owner.saved != null;
+      final available = _editing.available;
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -182,12 +173,7 @@ class _ProjectAudioPanelState extends State<ProjectAudioPanel>
                 key: ValueKey('project-audio-source-${selected.wireName}'),
                 label: 'Son associé',
                 value: source,
-                options: const {
-                  'inherit': 'Réglage par défaut (hérité)',
-                  'builtin': 'Son intégré de cette action',
-                  'silent': 'Aucun son',
-                  'custom': 'Son personnalisé de la bibliothèque',
-                },
+                options: projectAudioSourceOptions,
                 onChanged: available
                     ? (value) => owner.source(selected, value)
                     : null,
@@ -263,26 +249,16 @@ class _ProjectAudioPanelState extends State<ProjectAudioPanel>
                         : 'Écouter l’association',
                     icon: Icons.play_arrow,
                     secondary: true,
-                    onPressed:
-                        source == 'custom' &&
-                            binding.mediaId != null &&
-                            !owner.fieldErrors.containsKey(selected) &&
-                            available
-                        ? () => owner.listen(binding.mediaId!)
-                        : null,
+                    onPressed: _editing.canListenAssociation
+                        ? _editing.listenAssociation : null,
                   ),
                   StudioButton(
                     key: const ValueKey('project-audio-save-cue'),
                     label: 'Enregistrer cette association',
                     icon: Icons.save_outlined,
                     secondary: true,
-                    onPressed:
-                        available &&
-                            owner.dirtyCues.contains(selected) &&
-                            !owner.fieldErrors.containsKey(selected) &&
-                            !owner.pendingSources.containsKey(selected)
-                        ? () => owner.saveCue(selected)
-                        : null,
+                    onPressed: _editing.canSaveAssociation
+                        ? () => owner.saveCue(selected) : null,
                   ),
                 ],
               ),

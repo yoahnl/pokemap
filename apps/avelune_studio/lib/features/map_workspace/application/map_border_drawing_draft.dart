@@ -1,4 +1,5 @@
 import 'package:map_core/map_core_domain.dart';
+import 'package:map_core/map_core.dart' show Model3dVector3;
 
 final class MapBorderEraseDraft {
   MapBorderEraseDraft({
@@ -267,5 +268,26 @@ void _requireInside(
 ) {
   if (!_inside(point, size, alignment)) {
     throw const ValidationException('La bordure sort de la carte.');
+  }
+}
+
+class MapBorderOffsetDraft {
+  MapBorderOffsetDraft(Model3dVector3? offset)
+    : inputs = {
+        'x': (offset?.x ?? 0).toString(),
+        'y': (offset?.y ?? 0).toString(),
+        'z': (offset?.z ?? 0).toString(),
+      };
+  final Map<String, String> inputs;
+  double? number(String axis) {
+    final value = double.tryParse(inputs[axis]!.trim().replaceAll(',', '.'));
+    return value?.isFinite == true ? value : null;
+  }
+
+  Model3dVector3? get value {
+    final x = number('x'), y = number('y'), z = number('z');
+    return x == null || y == null || z == null
+        ? null
+        : Model3dVector3(x: x, y: y, z: z);
   }
 }

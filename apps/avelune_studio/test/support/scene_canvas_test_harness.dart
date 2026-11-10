@@ -1,3 +1,5 @@
+import 'scene_graph_project_fixture.dart';
+
 import 'package:avelune_studio/presentation/features/scenes/scene_graph_canvas.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import 'package:flutter/material.dart';
@@ -5,33 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
 class SceneCanvasTestHarness {
-  SceneAsset scene = SceneAsset(
-    id: 'scene',
-    name: 'Recette',
-    graph: SceneGraph(
-      startNodeId: 'start',
-      nodes: [
-        SceneNode(id: 'start', kind: SceneNodeKind.start),
-        SceneNode(
-          id: 'action',
-          kind: SceneNodeKind.action,
-          title: 'Autoriser le départ',
-          payload: SceneActionPayload.consequence(
-            SceneSetFactConsequence(factId: 'departure', value: true),
-          ),
-        ),
-        SceneNode(id: 'end', kind: SceneNodeKind.end),
-      ],
-      edges: [],
-    ),
-    layout: SceneGraphLayout(
-      nodeLayouts: [
-        SceneNodeLayout(nodeId: 'start', x: 60, y: 100),
-        SceneNodeLayout(nodeId: 'action', x: 320, y: 80),
-        SceneNodeLayout(nodeId: 'end', x: 640, y: 110),
-      ],
-    ),
-  );
+  SceneAsset scene = sceneCanvasFixture();
   final view = SceneGraphViewport();
   late StateSetter refresh;
   final history = <SceneAsset>[];

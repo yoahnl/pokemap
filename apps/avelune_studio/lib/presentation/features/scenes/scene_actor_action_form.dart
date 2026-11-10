@@ -1,3 +1,5 @@
+import '../../../features/scenes/application/scene_actor_action_draft.dart';
+
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
@@ -30,368 +32,60 @@ class SceneActorActionForm extends StatefulWidget {
 }
 
 class _SceneActorActionFormState extends State<SceneActorActionForm> {
-  String? _mapId, _entityId;
-  SceneActorTargetKind _targetKind = SceneActorTargetKind.player;
-  ActorRouteTransientScope _transientScope = ActorRouteTransientScope.route;
-  bool _skippable = false, _visible = true, _loading = false;
-  MapData? _map;
-  String? _mapError;
-  int _request = 0, _nextStepId = 0;
-  final _steps = <_ActorStepDraft>[];
-
-  bool get _route => widget.commandId == NarrativeCommandIds.actorRoute;
-
+  late final SceneActorActionDraft draft;
   @override
   void initState() {
     super.initState();
-    _readCurrent();
+    draft = SceneActorActionDraft(
+      project: widget.project,
+      commandId: widget.commandId,
+      current: widget.current,
+      loadMap: widget.loadMap,
+      changed: () {
+        if (mounted) setState(() {});
+      },
+    );
   }
 
   @override
   void didUpdateWidget(SceneActorActionForm oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.current != widget.current ||
-        oldWidget.commandId != widget.commandId) {
-      _readCurrent();
-    } else if (oldWidget.project != widget.project ||
-        oldWidget.loadMap != widget.loadMap) {
-      _loadMap();
-    }
-  }
-
-  void _readCurrent() {
-    _mapId = null;
-    _entityId = null;
-    _targetKind = SceneActorTargetKind.player;
-    _skippable = false;
-    _transientScope = ActorRouteTransientScope.route;
-    _visible = true;
-    _steps.clear();
-    _nextStepId = 0;
-    final command = widget.current?.interactiveCommand;
-    final target = switch (command) {
-      SceneActorRouteInteractiveCommand() when _route => command.target,
-      SceneActorVisibilityInteractiveCommand() when !_route => command.target,
-      _ => null,
-    };
-    if (target != null) {
-      _mapId = target.mapId;
-      _entityId = target.entityId;
-      _targetKind = target.kind;
-    }
-    if (command is SceneActorRouteInteractiveCommand && _route) {
-      _skippable = command.skippable;
-      _transientScope = command.transientScope;
-      for (final step in command.steps) {
-        _steps.add(
-          _ActorStepDraft.fromStep(_nextStepId++, step, mapId: target!.mapId),
-        );
-      }
-    } else if (command is SceneActorVisibilityInteractiveCommand && !_route) {
-      _visible = command.visible;
-    }
-    _loadMap();
-  }
-
-  Map<String, String> get _maps {
-    if (widget.project.settings.dimension != ProjectDimension.twoD) {
-      return const {};
-    }
-    final counts = <String, int>{};
-    for (final map in widget.project.maps) {
-      counts[map.id] = (counts[map.id] ?? 0) + 1;
-    }
-    return {
-      for (final map in widget.project.maps)
-        if (counts[map.id] == 1 && map.id.isNotEmpty && map.id.trim() == map.id)
-          map.id: map.name,
-    };
-  }
-
-  Map<String, String> get _actors {
-    final map = _map;
-    if (map == null) return const {};
-    final counts = <String, int>{};
-    for (final entity in map.entities) {
-      counts[entity.id] = (counts[entity.id] ?? 0) + 1;
-    }
-    return {
-      for (final entity in map.entities)
-        if (counts[entity.id] == 1 &&
-            entity.id.isNotEmpty &&
-            entity.id.trim() == entity.id &&
-            isSceneActorEntityReferenceAvailable(widget.project, entity))
-          entity.id: entity.name.trim().isNotEmpty
-              ? entity.name
-              : 'PNJ (${entity.id})',
-    };
-  }
-
-  Map<String, String> get _initialCollisionOwners {
-    final map = _map;
-    if (map == null) return const {};
-    final actors = _actors;
-    return {
-      for (final entity in map.entities)
-        if (actors.containsKey(entity.id) &&
-            isSceneActorInitialCollisionOwnerReferenceAvailable(
-              widget.project,
-              entity,
-            ))
-          entity.id: actors[entity.id]!,
-    };
-  }
-
-  bool _throughBefore(int index) {
-    var through = false;
-    for (final step in _steps.take(index)) {
-      if (step.kind == SceneActorRouteStepKind.through) {
-        through = step.enabled;
-      }
-    }
-    return through;
-  }
-
-  bool _canSelectInitialOwner(_ActorStepDraft step, int index) =>
-      step.kind == SceneActorRouteStepKind.move &&
-      _targetKind == SceneActorTargetKind.player &&
-      !_throughBefore(index);
-
-  String? _initialOwnerError(_ActorStepDraft step, int index) {
-    if (step.initialCollisionOwnerEntityId == null) return null;
-    if (step.kind != SceneActorRouteStepKind.move) {
-      return 'Ce personnage est réservé à un déplacement. Choisir Aucun pour retirer la sélection.';
-    }
-    if (_targetKind != SceneActorTargetKind.player) {
-      return 'Seul le joueur peut quitter la case d’un personnage. Choisir Aucun pour retirer la sélection.';
-    }
-    if (_throughBefore(index)) {
-      return 'Désactiver la traversée avant ce déplacement ou choisir Aucun.';
-    }
-    if (step.initialCollisionOwnerMapId != _mapId) {
-      return 'La carte a changé. Choisir à nouveau le personnage dans cette carte ou choisir Aucun.';
-    }
-    if (!_initialCollisionOwners.containsKey(
-      step.initialCollisionOwnerEntityId,
-    )) {
-      return 'Choisir un PNJ unique avec un personnage connu et un contact d’une case à la position du PNJ, ou choisir Aucun.';
-    }
-    return null;
-  }
-
-  Map<String, String> _initialOwnerOptions(_ActorStepDraft step, int index) => {
-    '': 'Aucun',
-    if (_initialOwnerError(step, index) != null)
-      'unavailable': 'Sélection conservée — à vérifier',
-    if (_canSelectInitialOwner(step, index))
-      for (final entry in _initialCollisionOwners.entries)
-        _initialOwnerOptionKey(entry.key): entry.value,
-  };
-
-  String _initialOwnerValue(_ActorStepDraft step, int index) =>
-      step.initialCollisionOwnerEntityId == null
-      ? ''
-      : _initialOwnerError(step, index) != null
-      ? 'unavailable'
-      : _initialOwnerOptionKey(step.initialCollisionOwnerEntityId!);
-
-  String _initialOwnerOptionKey(String entityId) =>
-      'entity:${_mapId!.length}:$_mapId:$entityId';
-
-  void _selectInitialOwner(_ActorStepDraft step, String value) {
-    if (value.isEmpty) {
-      step.initialCollisionOwnerEntityId = null;
-      step.initialCollisionOwnerMapId = null;
-    } else {
-      for (final entityId in _initialCollisionOwners.keys) {
-        if (_initialOwnerOptionKey(entityId) != value) continue;
-        step.initialCollisionOwnerEntityId = entityId;
-        step.initialCollisionOwnerMapId = _mapId;
-        return;
-      }
-    }
-  }
-
-  bool get _routeStepsValid {
-    for (var index = 0; index < _steps.length; index++) {
-      if (!_stepValid(_steps[index]) ||
-          _initialOwnerError(_steps[index], index) != null) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  Widget _initialOwnerField(_ActorStepDraft step, int index) => Column(
-    key: ValueKey('actor-step-${step.id}-owner'),
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      StudioSelect(
-        label: 'Personnage à quitter',
-        value: _initialOwnerValue(step, index),
-        options: _initialOwnerOptions(step, index),
-        onChanged: (value) => setState(() => _selectInitialOwner(step, value)),
-      ),
-      const StudioNotice(
-        'Pour quitter la case occupée par ce personnage. Les autres obstacles restent bloquants.',
-      ),
-      if (_initialOwnerError(step, index) case final String error)
-        StudioNotice(error, isError: true),
-    ],
-  );
-
-  Map<String, String> get _characters => {
-    for (final character in widget.project.characters)
-      if (isSceneActorAppearanceReferenceAvailable(widget.project, character.id))
-        character.id: character.name,
-  };
-
-  Map<String, String> get _sounds {
-    final counts = <String, int>{};
-    for (final media in widget.project.cinematicMediaAssets) {
-      counts[media.id] = (counts[media.id] ?? 0) + 1;
-    }
-    return {
-      for (final media in widget.project.cinematicMediaAssets)
-        if (counts[media.id] == 1 &&
-            media.id.isNotEmpty &&
-            media.id.trim() == media.id &&
-            media.kind == CinematicMediaAssetKind.sound &&
-            !media.loopByDefault)
-          media.id: media.label,
-    };
-  }
-
-  void _loadMap() {
-    final request = ++_request;
-    _map = null;
-    _mapError = null;
-    _loading = false;
-    final mapId = _mapId, load = widget.loadMap;
-    if (mapId == null) return;
-    if (!_maps.containsKey(mapId)) {
-      _mapError =
-          'Cette carte est absente, ambiguë ou incompatible avec le Player 2D.';
-      return;
-    }
-    if (load == null) {
-      _mapError = 'La carte doit être chargée pour vérifier l’acteur.';
-      return;
-    }
-    _loading = true;
-    Future<MapData>.sync(() => load(mapId)).then(
-      (map) {
-        if (!mounted || request != _request) return;
-        setState(() {
-          _loading = false;
-          if (map.id != mapId || map.spatialScene != null) {
-            _mapError =
-                'La carte chargée ne correspond pas à une carte 2D valide.';
-          } else {
-            _map = map;
-          }
-        });
-      },
-      onError: (Object error) {
-        if (!mounted || request != _request) return;
-        setState(() {
-          _loading = false;
-          _mapError = 'Impossible de lire la carte de l’acteur.';
-        });
-      },
-    );
-  }
-
-  SceneActorTarget get _target => _targetKind == SceneActorTargetKind.player
-      ? SceneActorTarget.player(mapId: _mapId!)
-      : SceneActorTarget.entity(mapId: _mapId!, entityId: _entityId!);
-
-  SceneActorRouteStep _typedStep(_ActorStepDraft step) => switch (step.kind) {
-    SceneActorRouteStepKind.appearance => SceneActorRouteStep.appearance(characterId: step.characterId!),
-    SceneActorRouteStepKind.face => SceneActorRouteStep.face(
-      direction: step.direction,
-      durationMs: step.duration!,
-      yieldAfter: step.yieldAfter,
-    ),
-    SceneActorRouteStepKind.move => SceneActorRouteStep.move(
-      direction: step.direction,
-      durationMs: step.duration!,
-      initialCollisionOwnerEntityId: step.initialCollisionOwnerEntityId,
-    ),
-    SceneActorRouteStepKind.moveDiagonal => SceneActorRouteStep.moveDiagonal(
-      horizontal: step.horizontal,
-      vertical: step.vertical,
-      durationMs: step.duration!,
-    ),
-    SceneActorRouteStepKind.wait => SceneActorRouteStep.wait(
-      durationMs: step.duration!,
-    ),
-    SceneActorRouteStepKind.through => SceneActorRouteStep.through(
-      enabled: step.enabled,
-    ),
-    SceneActorRouteStepKind.renderAboveMap => SceneActorRouteStep.renderAboveMap(
-      enabled: step.enabled,
-    ),
-    SceneActorRouteStepKind.visibility => SceneActorRouteStep.visibility(
-      visible: step.enabled,
-    ),
-    SceneActorRouteStepKind.sound => SceneActorRouteStep.sound(
-      mediaAssetId: step.soundId!,
-      gain: double.parse(step.gainText.trim()),
-    ),
-  };
-
-  bool _stepValid(_ActorStepDraft step) {
-    if (step.kind == SceneActorRouteStepKind.appearance && !_characters.containsKey(step.characterId)) return false;
-    if (step.kind == SceneActorRouteStepKind.sound &&
-        !_sounds.containsKey(step.soundId)) {
-      return false;
-    }
-    try {
-      _typedStep(step);
-      return true;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  bool get _valid =>
-      !_loading &&
-      _mapError == null &&
-      _map != null &&
-      _maps.containsKey(_mapId) &&
-      (_targetKind == SceneActorTargetKind.player ||
-          _actors.containsKey(_entityId)) &&
-      (!_route || _routeStepsValid);
-
-  void _submit() {
-    if (!_valid) return;
-    final command = _route
-        ? SceneInteractiveCommand.actorRoute(
-            target: _target,
-            steps: [for (final step in _steps) _typedStep(step)],
-            skippable: _skippable,
-            transientScope: _transientScope,
-          )
-        : SceneInteractiveCommand.actorVisibility(
-            target: _target,
-            visible: _visible,
-          );
-    final current = widget.current;
-    widget.onApply(
-      SceneActionPayload.interactive(
-        command,
-        actionKind: current?.actionKind,
-        parameters: current?.parameters ?? const {},
-      ),
+    draft.configure(
+      project: widget.project,
+      commandId: widget.commandId,
+      current: widget.current,
+      loadMap: widget.loadMap,
     );
   }
 
   @override
   void dispose() {
-    _request++;
+    draft.dispose();
     super.dispose();
   }
+
+  void _submit() {
+    if (draft.payload case final payload?) widget.onApply(payload);
+  }
+
+  Widget _initialOwnerField(SceneActorStepDraft step, int index) => Column(
+    key: ValueKey('actor-step-${step.id}-owner'),
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      StudioSelect(
+        label: 'Personnage à quitter',
+        value: draft.initialOwnerValue(step, index),
+        options: draft.initialOwnerOptions(step, index),
+        onChanged: (value) =>
+            setState(() => draft.selectInitialOwner(step, value)),
+      ),
+      const StudioNotice(
+        'Pour quitter la case occupée par ce personnage. Les autres obstacles restent bloquants.',
+      ),
+      if (draft.initialOwnerError(step, index) case final String error)
+        StudioNotice(error, isError: true),
+    ],
+  );
 
   @override
   Widget build(BuildContext context) => Column(
@@ -400,75 +94,80 @@ class _SceneActorActionFormState extends State<SceneActorActionForm> {
       const SizedBox(height: 12),
       StudioSelect(
         label: 'Carte de l’acteur',
-        value: _mapId,
-        options: _maps,
+        value: draft.selectedMapId,
+        options: draft.mapOptions,
         onChanged: (value) => setState(() {
-          _mapId = value;
-          _entityId = null;
-          _loadMap();
+          draft.selectedMapId = value;
+          draft.selectedEntityId = null;
+          draft.reloadMap();
         }),
       ),
       const SizedBox(height: 12),
       StudioSelect(
         label: 'Acteur',
-        value: _targetKind.name,
+        value: draft.targetKind.name,
         options: const {'player': 'Joueur', 'entity': 'PNJ de la carte'},
         onChanged: (value) => setState(() {
-          _targetKind = SceneActorTargetKind.values.byName(value);
-          _entityId = null;
+          draft.targetKind = SceneActorTargetKind.values.byName(value);
+          draft.selectedEntityId = null;
         }),
       ),
-      if (_loading) const StudioNotice('Chargement des acteurs de la carte…'),
-      if (_mapError != null) ...[
-        StudioNotice(_mapError!, isError: true),
+      if (draft.loading)
+        const StudioNotice('Chargement des acteurs de la carte…'),
+      if (draft.mapError != null) ...[
+        StudioNotice(draft.mapError!, isError: true),
         StudioButton(
           label: 'Recharger la carte',
           secondary: true,
-          onPressed: () => setState(_loadMap),
+          onPressed: () => setState(draft.reloadMap),
         ),
       ],
-      if (_targetKind == SceneActorTargetKind.entity) ...[
+      if (draft.targetKind == SceneActorTargetKind.entity) ...[
         const SizedBox(height: 12),
         StudioSelect(
           label: 'PNJ',
-          value: _entityId,
-          options: _actors,
-          onChanged: _actors.isEmpty
+          value: draft.selectedEntityId,
+          options: draft.actorOptions,
+          onChanged: draft.actorOptions.isEmpty
               ? null
-              : (value) => setState(() => _entityId = value),
+              : (value) => setState(() => draft.selectedEntityId = value),
         ),
-        if (!_loading && _map != null && !_actors.containsKey(_entityId))
+        if (!draft.loading &&
+            draft.stageMap != null &&
+            !draft.actorOptions.containsKey(draft.selectedEntityId))
           const StudioNotice(
             'Choisir un PNJ unique avec un personnage connu dans cette carte.',
             isError: true,
           ),
       ],
-      if (_route) ...[
+      if (draft.isRoute) ...[
         StudioSelect(
           label: 'Restauration des effets temporaires',
-          value: _transientScope.name,
+          value: draft.transientScope.name,
           options: const {
             'route': 'À la fin du trajet',
             'scene': 'À la fin de la scène',
           },
           onChanged: (value) => setState(
-            () => _transientScope = ActorRouteTransientScope.values.byName(value),
+            () => draft.transientScope = ActorRouteTransientScope.values.byName(
+              value,
+            ),
           ),
         ),
         StudioNotice(
-          _transientScope == ActorRouteTransientScope.scene
+          draft.transientScope == ActorRouteTransientScope.scene
               ? 'La traversée, le premier plan, la visibilité et le graphisme sont conservés entre les trajets, puis rétablis à la fin de la scène. Le joueur conserve ces effets entre les cartes ; un PNJ reste lié à son instance de carte.'
               : 'La traversée, le premier plan, la visibilité et le graphisme sont rétablis à la fin de ce trajet.',
         ),
         StudioToggleRow(
           label: 'Continuer si un déplacement est bloqué',
-          value: _skippable,
+          value: draft.skippable,
           description: 'Les déplacements bloqués sont ignorés ; les autres étapes restent exécutées.',
-          onChanged: (value) => setState(() => _skippable = value),
+          onChanged: (value) => setState(() => draft.skippable = value),
         ),
-        for (var index = 0; index < _steps.length; index++)
-          _step(_steps[index], index),
-        if (_steps.isEmpty)
+        for (var index = 0; index < draft.steps.length; index++)
+          _step(draft.steps[index], index),
+        if (draft.steps.isEmpty)
           const StudioNotice(
             'Aucune étape : la route se termine immédiatement.',
           ),
@@ -476,27 +175,26 @@ class _SceneActorActionFormState extends State<SceneActorActionForm> {
           key: const ValueKey('actor-add-step'),
           label: 'Ajouter une étape',
           secondary: true,
-          onPressed: () =>
-              setState(() => _steps.add(_ActorStepDraft(_nextStepId++))),
+          onPressed: () => setState(() => draft.addStep()),
         ),
       ] else
         StudioToggleRow(
           label: 'Acteur visible',
-          value: _visible,
+          value: draft.visible,
           description: 'Modifie uniquement son affichage ; ses collisions restent inchangées.',
-          onChanged: (value) => setState(() => _visible = value),
+          onChanged: (value) => setState(() => draft.visible = value),
         ),
       const SizedBox(height: 12),
       StudioButton(
         label: widget.current == null
             ? 'Ajouter l’action'
             : 'Appliquer l’action',
-        onPressed: _valid ? _submit : null,
+        onPressed: draft.valid ? _submit : null,
       ),
     ],
   );
 
-  Widget _step(_ActorStepDraft step, int index) => Padding(
+  Widget _step(SceneActorStepDraft step, int index) => Padding(
     key: ValueKey('actor-step-${step.id}'),
     padding: const EdgeInsets.only(bottom: 16),
     child: StudioPanel(
@@ -517,26 +215,24 @@ class _SceneActorActionFormState extends State<SceneActorActionForm> {
               onPressed: index == 0
                   ? null
                   : () => setState(() {
-                      _steps.removeAt(index);
-                      _steps.insert(index - 1, step);
+                      draft.moveStep(step, -1);
                     }),
             ),
             StudioTool(
               key: ValueKey('actor-step-${step.id}-down'),
               label: 'Descendre l’étape ${index + 1}',
               icon: Icons.arrow_downward,
-              onPressed: index == _steps.length - 1
+              onPressed: index == draft.steps.length - 1
                   ? null
                   : () => setState(() {
-                      _steps.removeAt(index);
-                      _steps.insert(index + 1, step);
+                      draft.moveStep(step, 1);
                     }),
             ),
             StudioTool(
               key: ValueKey('actor-step-${step.id}-delete'),
               label: 'Supprimer l’étape ${index + 1}',
               icon: Icons.delete_outline,
-              onPressed: () => setState(() => _steps.removeAt(index)),
+              onPressed: () => setState(() => draft.removeStep(step)),
             ),
           ],
         ),
@@ -621,7 +317,7 @@ class _SceneActorActionFormState extends State<SceneActorActionForm> {
             value: step.yieldAfter,
             onChanged: (value) => setState(() => step.yieldAfter = value),
           ),
-        if (_canSelectInitialOwner(step, index) ||
+        if (draft.canSelectInitialOwner(step, index) ||
             step.initialCollisionOwnerEntityId != null) ...[
           const SizedBox(height: 8),
           _initialOwnerField(step, index),
@@ -648,20 +344,22 @@ class _SceneActorActionFormState extends State<SceneActorActionForm> {
           StudioSelect(
             label: 'Graphisme de l’étape ${index + 1}',
             value: step.characterId,
-            options: _characters,
-            onChanged: _characters.isEmpty ? null : (value) => setState(() => step.characterId = value),
+            options: draft.characterOptions,
+            onChanged: draft.characterOptions.isEmpty
+                ? null
+                : (value) => setState(() => step.characterId = value),
           ),
         if (step.kind == SceneActorRouteStepKind.sound) ...[
           const SizedBox(height: 8),
           StudioSelect(
             label: 'Son de l’étape ${index + 1}',
             value: step.soundId,
-            options: _sounds,
-            onChanged: _sounds.isEmpty
+            options: draft.soundOptions,
+            onChanged: draft.soundOptions.isEmpty
                 ? null
                 : (value) => setState(() => step.soundId = value),
           ),
-          if (!_sounds.containsKey(step.soundId))
+          if (!draft.soundOptions.containsKey(step.soundId))
             const StudioNotice(
               'Choisir un son unique sans lecture en boucle.',
               isError: true,
@@ -681,85 +379,4 @@ class _SceneActorActionFormState extends State<SceneActorActionForm> {
       ],
     ),
   );
-}
-
-class _ActorStepDraft {
-  _ActorStepDraft(this.id);
-  final int id;
-  SceneActorRouteStepKind kind = SceneActorRouteStepKind.face;
-  EntityFacing direction = EntityFacing.south;
-  EntityFacing horizontal = EntityFacing.west, vertical = EntityFacing.north;
-  String durationText = '0', gainText = '1';
-  String? soundId, characterId;
-  String? initialCollisionOwnerEntityId, initialCollisionOwnerMapId;
-  bool enabled = false, yieldAfter = false;
-
-  factory _ActorStepDraft.fromStep(
-    int id,
-    SceneActorRouteStep step, {
-    required String mapId,
-  }) {
-    final draft = _ActorStepDraft(id)..kind = step.kind;
-    switch (step) {
-      case SceneActorFaceStep():
-        draft.yieldAfter = step.yieldAfter;
-        draft.direction = step.direction;
-        draft.durationText = '${step.durationMs}';
-      case SceneActorMoveStep():
-        draft.direction = step.direction;
-        draft.durationText = '${step.durationMs}';
-        draft.initialCollisionOwnerEntityId =
-            step.initialCollisionOwnerEntityId;
-        if (step.initialCollisionOwnerEntityId != null) {
-          draft.initialCollisionOwnerMapId = mapId;
-        }
-      case SceneActorDiagonalMoveStep():
-        draft.horizontal = step.horizontal;
-        draft.vertical = step.vertical;
-        draft.durationText = '${step.durationMs}';
-      case SceneActorWaitStep():
-        draft.durationText = '${step.durationMs}';
-      case SceneActorThroughStep():
-        draft.enabled = step.enabled;
-      case SceneActorRenderAboveMapStep():
-        draft.enabled = step.enabled;
-      case SceneActorAppearanceStep():
-        draft.characterId = step.characterId;
-      case SceneActorVisibilityStep():
-        draft.enabled = step.visible;
-      case SceneActorSoundStep():
-        draft.soundId = step.mediaAssetId;
-        draft.gainText = '${step.gain}';
-    }
-    return draft;
-  }
-
-  bool get isMovement =>
-      kind == SceneActorRouteStepKind.move ||
-      kind == SceneActorRouteStepKind.moveDiagonal;
-  bool get hasDuration =>
-      kind == SceneActorRouteStepKind.face ||
-      isMovement ||
-      kind == SceneActorRouteStepKind.wait;
-  int? get duration => RegExp(r'^\d+$').hasMatch(durationText.trim())
-      ? int.tryParse(durationText.trim())
-      : null;
-  bool get durationValid =>
-      duration != null &&
-      duration! >= (isMovement ? 1 : 0) &&
-      duration! <= 0x7fffffff;
-  bool get gainValid {
-    final value = double.tryParse(gainText.trim());
-    return value != null && value.isFinite && value >= 0 && value <= 1;
-  }
-
-  void changeKind(SceneActorRouteStepKind next) {
-    if (next == kind) return;
-    kind = next;
-    durationText = isMovement ? '200' : '0';
-    gainText = '1';
-    soundId = null;
-    enabled = false;
-    yieldAfter = false;
-  }
 }

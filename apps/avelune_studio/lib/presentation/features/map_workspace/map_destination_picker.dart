@@ -1,41 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
-import 'package:avelune_studio/features/resources/domain/studio_search_text.dart';
+import '../../../features/map_workspace/application/map_destination_choices.dart';
+
+export '../../../features/map_workspace/application/map_destination_choices.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/inputs/studio_choice.dart';
 import '../../shared/widgets/inputs/studio_search_field.dart';
 import '../../theme/studio_tokens.dart';
-import 'package:avelune_studio/features/map_workspace/application/map_library_tree.dart';
-
-final class MapDestinationChoice {
-  const MapDestinationChoice(this.map, this.folderPath);
-  final ProjectMapEntry map;
-  final String folderPath;
-}
-
-List<MapDestinationChoice> mapDestinationChoices(
-  ProjectManifest project, {
-  String? excludeMapId,
-  String query = '',
-}) {
-  final folders = mapLibraryFolderLabels(project.groups);
-  final groupIds = project.groups.map((group) => group.id).toSet();
-  return [
-    for (final map in project.maps)
-      if (map.id != excludeMapId)
-        MapDestinationChoice(
-          map,
-          folders[groupIds.contains(map.groupId) ? map.groupId : ''] ??
-              folders['']!,
-        ),
-  ].where((choice) {
-    return studioSearchMatches(
-      '${choice.folderPath} ${choice.map.name} ${choice.map.id}',
-      query,
-    );
-  }).toList();
-}
 
 Future<String?> showMapDestinationPicker(
   BuildContext context,

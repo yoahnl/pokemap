@@ -1,3 +1,5 @@
+import '../../../features/resources/application/model_definition_drafts.dart';
+
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
@@ -28,11 +30,17 @@ class ModelCollisionControls extends StatefulWidget {
 }
 
 class _ModelCollisionControlsState extends State<ModelCollisionControls> {
-  late bool custom;
-  late bool blocksMovementByDefault;
-  late List<String> values;
-  bool saving = false;
-  String? error;
+  late ModelCollisionDraft _draft;
+  bool get saving => _draft.saving;
+  bool get custom => _draft.custom;
+  set custom(bool value) => _draft.custom = value;
+  bool get blocksMovementByDefault => _draft.blocksMovementByDefault;
+  set blocksMovementByDefault(bool value) =>
+      _draft.blocksMovementByDefault = value;
+  List<String> get values => _draft.values;
+  set values(List<String> value) => _draft.values = value;
+  String? get error => _draft.error;
+  set error(String? value) => _draft.error = value;
 
   @override
   void initState() {
@@ -47,61 +55,30 @@ class _ModelCollisionControlsState extends State<ModelCollisionControls> {
         old.model.collisionBounds != widget.model.collisionBounds ||
         old.model.blocksMovementByDefault !=
             widget.model.blocksMovementByDefault) {
+      _draft.dispose();
       reset();
     }
   }
 
   void reset() {
-    custom = widget.model.collisionBounds != null;
-    blocksMovementByDefault = widget.model.blocksMovementByDefault;
-    final bounds =
-        widget.model.collisionBounds ?? widget.model.inspection.bounds;
-    values = [
-      bounds.min.x,
-      bounds.min.y,
-      bounds.min.z,
-      bounds.max.x,
-      bounds.max.y,
-      bounds.max.z,
-    ].map((value) => '$value').toList();
-    error = null;
+    _draft = ModelCollisionDraft(widget.model);
   }
 
   Future<void> save() async {
-    if (saving || widget.busy) return;
-    Model3dBounds? bounds;
-    if (custom) {
-      final parsed = values
-          .map((value) => double.tryParse(value.replaceAll(',', '.')))
-          .toList();
-      if (parsed.any((value) => value == null || !value.isFinite)) {
-        setState(() => error = 'Saisissez six nombres valides pour le volume.');
-        return;
-      }
-      final numbers = parsed.cast<double>();
-      if ([0, 1, 2].any((axis) => numbers[axis] >= numbers[axis + 3])) {
-        setState(
-          () => error =
-              'Chaque maximum doit être supérieur au minimum correspondant.',
-        );
-        return;
-      }
-      bounds = Model3dBounds(
-        min: Model3dVector3(x: numbers[0], y: numbers[1], z: numbers[2]),
-        max: Model3dVector3(x: numbers[3], y: numbers[4], z: numbers[5]),
-      );
-    }
-    setState(() {
-      saving = true;
-      error = null;
-    });
-    try {
-      await widget.onSave(bounds, blocksMovementByDefault);
-    } on Object catch (failure) {
-      if (mounted) setState(() => error = '$failure');
-    } finally {
-      if (mounted) setState(() => saving = false);
-    }
+    final owner = _draft;
+    final saving = owner.save(
+      widget.onSave,
+      canSave: () => mounted && !widget.busy,
+    );
+    setState(() {});
+    await saving;
+    if (mounted && identical(_draft, owner)) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _draft.dispose();
+    super.dispose();
   }
 
   @override

@@ -1,10 +1,14 @@
+import '../../../features/map_workspace/application/map_palette_queries.dart';
+
 import 'package:flutter/material.dart';
 
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
 import '../../shared/widgets/inputs/studio_search_field.dart';
+
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 import 'package:avelune_studio/features/resources/application/resource_family_tree.dart';
+
 import '../resources/resource_family_tree_view.dart';
 import '../resources/resource_filter_button.dart';
 
@@ -66,26 +70,10 @@ class _MapWorkspacePaletteDockFiltersState
 
   @override
   Widget build(BuildContext context) {
-    final nodes = widget.tree.nodes;
-    final parentIds = nodes.map((node) => node.parentId).toSet();
-    final quick =
-        nodes
-            .where((node) => node.count > 0 && !parentIds.contains(node.id))
-            .toList()
-          ..sort((left, right) {
-            final nested = right.depth.compareTo(left.depth);
-            if (nested != 0) return nested;
-            final count = right.count.compareTo(left.count);
-            return count == 0 ? left.name.compareTo(right.name) : count;
-          });
-    final choices = quick.take(6).toList();
-    final selected = nodes
-        .where((node) => node.id == widget.filters.familyId)
-        .firstOrNull;
-    if (selected != null) {
-      choices.removeWhere((node) => node.id == selected.id);
-      choices.insert(0, selected);
-    }
+    final choices = mapPaletteQuickFamilies(
+      widget.tree,
+      widget.filters.familyId,
+    );
     final searchTool = StudioTool(
       label: _searchOpen ? 'Masquer la recherche' : 'Rechercher une ressource',
       icon: _searchOpen ? Icons.close : Icons.search,

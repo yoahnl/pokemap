@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -9,12 +8,11 @@ import 'package:avelune_studio/features/resources/data/local_resource_adapter.da
 import 'package:avelune_studio/features/resources/data/local_resource_pack_adapter.dart';
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import 'package:avelune_studio/features/terrains/domain/terrain_draft_compatibility.dart';
-import 'package:avelune_studio/presentation/features/resources/resource_border_lifecycle.dart';
+import 'package:avelune_studio/features/resources/application/border_creation_draft.dart';
+import 'package:avelune_studio/features/resources/coordination/border_creation_workflow.dart';
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 import 'package:avelune_studio/features/resources/coordination/resource_navigation.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import 'package:crypto/crypto.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
@@ -22,7 +20,6 @@ import 'package:map_core/map_core.dart';
 import '../resource_io/resource_pack_export_host_test.dart'
     show FileExportTestSink;
 import '../support/map_workspace_fixture.dart' show WorkspaceTestVisuals;
-import '../support/m2_ui_fixture.dart' show pumpIo;
 import '../support/ui04_terrain_atlas.dart' show ui04TerrainAtlas;
 
 String digest(List<int> bytes) => sha256.convert(bytes).toString();
@@ -266,9 +263,11 @@ Future<void> canonicalPublish(
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   test('Studio terrain survives official roundtrip, no-op republication and a real connection edit', () async {
-    final root = await Directory.systemTemp.createTemp(
-      'p11-terrain-reedition-',
+    final parent = Directory(
+      '/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109',
     );
+    await parent.create(recursive: true);
+    final root = await parent.createTemp('p11-terrain-reedition-');
     addTearDown(() => root.delete(recursive: true));
     final archive = File('${root.path}/terrain.aveluneassets');
     final a = await Host.create(Directory('${root.path}/A'), archive);
@@ -379,264 +378,265 @@ void main() {
     );
   });
 
-  testWidgets(
-    'imported animated custom Border retains definition, pixels and anchors through no-op save and publish',
-    (tester) async {
-      tester.view.physicalSize = const Size(1536, 1024);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-      final hosts = <Host>[];
-      late Host b;
-      late Directory root;
-      await tester.runAsync(() async {
-        root = await Directory.systemTemp.createTemp('p11-border-reedition-');
-        final archive = File('${root.path}/border.aveluneassets');
-        final a = await Host.create(Directory('${root.path}/A'), archive);
-        hosts.add(a);
-        await a.initialize();
-        final atlasId = await addAtlas(a);
-        await a.navigation.accept(
-          await a.resources.saveElement(
-            ProjectElementEntry(
-              id: 'original-piece',
-              name: 'Original piece',
-              tilesetId: atlasId,
-              categoryId: '',
-              frames: [
-                TilesetVisualFrame(
-                  source: TilesetSourceRect(x: 0, y: 0),
-                  durationMs: 100,
-                ),
-                TilesetVisualFrame(
-                  source: TilesetSourceRect(x: 1, y: 0),
-                  durationMs: 150,
-                ),
-              ],
-            ),
-          ),
-        );
-        await a.navigation.accept(
-          await a.resources.createBorder(
-            BorderCreationRequest(
-              blueprintId: 'original-custom-border',
-              name: 'Original custom border',
-              capElementId: 'original-piece',
-              straightElementId: 'original-piece',
-              cornerElementId: 'original-piece',
-              publish: false,
-            ),
-          ),
-        );
-        final tile = a.workspace.project!.tilesets.single;
-        final bytes = await File('${a.root.path}/${tile.relativePath}')
-            .readAsBytes();
-        BorderPrimitiveDraft piece(
-          String id,
-          BorderPrimitiveRole role,
-          int weight,
-          int x,
-          int y,
-        ) {
-          final anchor = BorderPixelPos(x: x, y: y);
-          final prepared = const CanonicalBorderSnapshotCompiler().prepare(
-            sourceElementId: 'original-piece',
-            anchorPx: anchor,
-            frames: [
-              for (final frame in [(0, 100), (24, 150)])
-                CanonicalBorderSourceFrame(
-                  sourceProjectRelativePath: tile.relativePath,
-                  encodedImageBytes: bytes,
-                  sourceRectPx: BorderPixelRect(
-                    x: frame.$1,
-                    y: 0,
-                    width: 24,
-                    height: 24,
-                  ),
-                  durationMs: frame.$2,
-                ),
-            ],
-          );
-          return BorderPrimitiveDraft(
-            id: id,
-            sourceElementId: 'original-piece',
-            role: role,
-            authoredOrientation: BorderPrimitiveOrientation.east,
-            weight: weight,
-            anchorPx: anchor,
-            currentMetrics: prepared.metrics,
-            transforms: BorderTransformPolicy(
-              allowFlipX: true,
-              allowedQuarterTurns: [0, 1, 2, 3],
-            ),
-          );
-        }
-
-        final custom = BorderBlueprintRecord(
-          id: 'original-custom-border',
-          draft: BorderBlueprintDraft(
-            baseRevision: 0,
-            definition: BorderBlueprintDraftDefinition(
-              name: 'Original custom border',
-              previewSeed: BorderSignedInt64.zero,
-              template: BorderBlueprintTemplate.connectedLine,
-              primitives: [
-                piece('custom-cap', BorderPrimitiveRole.lineCap, 250, 11, 12),
-                piece(
-                  'custom-straight-a',
-                  BorderPrimitiveRole.lineStraight,
-                  300,
-                  11,
-                  12,
-                ),
-                piece(
-                  'custom-straight-b',
-                  BorderPrimitiveRole.lineStraight,
-                  700,
-                  12,
-                  11,
-                ),
-                piece(
-                  'custom-corner',
-                  BorderPrimitiveRole.lineCorner,
-                  500,
-                  11,
-                  12,
-                ),
-              ],
-              defaults: BorderGenerationParams(
-                irregularityPermille: 0,
-                detailDensityPermille: 0,
-                variationPermille: 0,
-                maxOverlapPx: 12,
-                gapTolerancePx: 4,
-                depthRows: 1,
-              ),
-              sortOrder: 0,
-            ),
-          ),
-        );
-        await canonicalPublish(a, custom, tile.relativePath);
-        await officialExport(a, 'borderBlueprint');
-        b = await importAndReopen(Directory('${root.path}/B'), archive);
-        hosts.add(b);
-      });
+  test('imported animated custom Border retains definition, pixels and anchors through no-op save and publish', () async {
+    final hosts = <Host>[];
+    late Host b;
+    late Directory root;
+    {
+      final parent = Directory(
+        '/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109',
+      );
+      await parent.create(recursive: true);
+      root = await parent.createTemp('p11-border-reedition-');
       addTearDown(() async {
         for (final host in hosts.reversed) {
           await host.close();
         }
         await root.delete(recursive: true);
       });
-      final before = b.workspace.project!.borderCatalog.records.single;
-      Future<Map<String, String>> pixels() async => {
-        for (final snapshot in (await b.load()).borderCatalog.visualSnapshots)
-          for (final frame in snapshot.frames)
-            frame.relativeAssetPath: digest(
-              await File('${b.root.path}/${frame.relativeAssetPath}')
-                  .readAsBytes(),
-            ),
-      };
-      final framesBefore = (await tester.runAsync(pixels))!;
-      Future<void> mount(BorderBlueprintRecord record) async {
-        await tester.pumpWidget(
-          MaterialApp(
-            theme: studioTheme(),
-            home: Builder(
-              builder: (context) => Scaffold(
-                body: TextButton(
-                  onPressed: () => unawaited(
-                    openBorderPreparation(context, b.navigation, record),
-                  ),
-                  child: const Text('Open imported border'),
-                ),
+      final archive = File('${root.path}/border.aveluneassets');
+      final a = await Host.create(Directory('${root.path}/A'), archive);
+      hosts.add(a);
+      await a.initialize();
+      final atlasId = await addAtlas(a);
+      await a.navigation.accept(
+        await a.resources.saveElement(
+          ProjectElementEntry(
+            id: 'original-piece',
+            name: 'Original piece',
+            tilesetId: atlasId,
+            categoryId: '',
+            frames: [
+              TilesetVisualFrame(
+                source: TilesetSourceRect(x: 0, y: 0),
+                durationMs: 100,
               ),
-            ),
+              TilesetVisualFrame(
+                source: TilesetSourceRect(x: 1, y: 0),
+                durationMs: 150,
+              ),
+            ],
+          ),
+        ),
+      );
+      await a.navigation.accept(
+        await a.resources.createBorder(
+          BorderCreationRequest(
+            blueprintId: 'original-custom-border',
+            name: 'Original custom border',
+            capElementId: 'original-piece',
+            straightElementId: 'original-piece',
+            cornerElementId: 'original-piece',
+            publish: false,
+          ),
+        ),
+      );
+      final tile = a.workspace.project!.tilesets.single;
+      final bytes = await File('${a.root.path}/${tile.relativePath}')
+          .readAsBytes();
+      BorderPrimitiveDraft piece(
+        String id,
+        BorderPrimitiveRole role,
+        int weight,
+        int x,
+        int y,
+      ) {
+        final anchor = BorderPixelPos(x: x, y: y);
+        final prepared = const CanonicalBorderSnapshotCompiler().prepare(
+          sourceElementId: 'original-piece',
+          anchorPx: anchor,
+          frames: [
+            for (final frame in [(0, 100), (24, 150)])
+              CanonicalBorderSourceFrame(
+                sourceProjectRelativePath: tile.relativePath,
+                encodedImageBytes: bytes,
+                sourceRectPx: BorderPixelRect(
+                  x: frame.$1,
+                  y: 0,
+                  width: 24,
+                  height: 24,
+                ),
+                durationMs: frame.$2,
+              ),
+          ],
+        );
+        return BorderPrimitiveDraft(
+          id: id,
+          sourceElementId: 'original-piece',
+          role: role,
+          authoredOrientation: BorderPrimitiveOrientation.east,
+          weight: weight,
+          anchorPx: anchor,
+          currentMetrics: prepared.metrics,
+          transforms: BorderTransformPolicy(
+            allowFlipX: true,
+            allowedQuarterTurns: [0, 1, 2, 3],
           ),
         );
-        await tester.tap(find.text('Open imported border'));
-        await tester.pumpAndSettle();
       }
 
-      await mount(before);
-      expect(
-        b.navigation.packBorderDraftOwners[before.id]!().request.expectedRecord,
-        before,
-      );
-      await tester.runAsync(
-        () => tester.tap(find.text('Enregistrer le brouillon')),
-      );
-      await pumpIo(tester);
-      final saved = (await tester.runAsync(b.load))!
-          .borderCatalog
-          .records
-          .single;
-      expect(saved.draft.definition, before.draft.definition);
-      expect(saved.latestPublished, before.latestPublished);
-      await mount(saved);
-      await tester.runAsync(
-        () => tester.tap(find.byKey(const ValueKey('border-publish'))),
-      );
-      await pumpIo(tester);
-      final published = (await tester.runAsync(b.load))!
-          .borderCatalog
-          .records
-          .single;
-      expect(
-        published.latestPublished!.definition,
-        before.latestPublished!.definition,
-      );
-      expect((await tester.runAsync(pixels))!, framesBefore);
-      expect(published.draft.definition.primitives.map((p) => p.weight), [
-        250,
-        300,
-        700,
-        500,
-      ]);
-      for (final snapshot in (await tester.runAsync(
-        b.load,
-      ))!.borderCatalog.visualSnapshots) {
-        expect(snapshot.frames.map((f) => f.durationMs), [100, 150]);
-      }
-      await tester.pumpWidget(const SizedBox());
-      await tester.runAsync(() async {
-        final manifest = await b.load();
-        final element = manifest.elements.single;
-        await b.navigation.accept(
-          await b.resources.saveElement(
-            element.copyWith(id: 'replacement-piece', name: 'Replacement'),
-          ),
-        );
-        final edited = await b.resources.createBorder(
-          BorderCreationRequest(
-            blueprintId: published.id,
-            expectedRecord: published,
-            name: published.draft.definition.name,
-            capElementId: element.id,
-            straightElementId: 'replacement-piece',
-            cornerElementId: element.id,
-          ),
-        );
-        final draft =
-            edited.manifest.borderCatalog.records.single.draft.definition;
-        expect(
-          draft.primitives
-              .where((p) => p.role == BorderPrimitiveRole.lineStraight)
-              .single
-              .sourceElementId,
-          'replacement-piece',
-        );
-        for (final role in [
-          BorderPrimitiveRole.lineCap,
-          BorderPrimitiveRole.lineCorner,
-        ]) {
-          expect(
-            draft.primitives.singleWhere((p) => p.role == role),
-            published.draft.definition.primitives.singleWhere(
-              (p) => p.role == role,
+      final custom = BorderBlueprintRecord(
+        id: 'original-custom-border',
+        draft: BorderBlueprintDraft(
+          baseRevision: 0,
+          definition: BorderBlueprintDraftDefinition(
+            name: 'Original custom border',
+            previewSeed: BorderSignedInt64.zero,
+            template: BorderBlueprintTemplate.connectedLine,
+            primitives: [
+              piece('custom-cap', BorderPrimitiveRole.lineCap, 250, 11, 12),
+              piece(
+                'custom-straight-a',
+                BorderPrimitiveRole.lineStraight,
+                300,
+                11,
+                12,
+              ),
+              piece(
+                'custom-straight-b',
+                BorderPrimitiveRole.lineStraight,
+                700,
+                12,
+                11,
+              ),
+              piece(
+                'custom-corner',
+                BorderPrimitiveRole.lineCorner,
+                500,
+                11,
+                12,
+              ),
+            ],
+            defaults: BorderGenerationParams(
+              irregularityPermille: 0,
+              detailDensityPermille: 0,
+              variationPermille: 0,
+              maxOverlapPx: 12,
+              gapTolerancePx: 4,
+              depthRows: 1,
             ),
-          );
-        }
-      });
-    },
-  );
+            sortOrder: 0,
+          ),
+        ),
+      );
+      await canonicalPublish(a, custom, tile.relativePath);
+      await officialExport(a, 'borderBlueprint');
+      b = await importAndReopen(Directory('${root.path}/B'), archive);
+      hosts.add(b);
+    }
+    final before = b.workspace.project!.borderCatalog.records.single;
+    Future<Map<String, String>> pixels() async => {
+      for (final snapshot in (await b.load()).borderCatalog.visualSnapshots)
+        for (final frame in snapshot.frames)
+          frame.relativeAssetPath: digest(
+            await File('${b.root.path}/${frame.relativeAssetPath}')
+                .readAsBytes(),
+          ),
+    };
+    final framesBefore = await pixels();
+    BorderCreationWorkflow open(BorderBlueprintRecord record) {
+      final draft = BorderCreationDraft(
+        project: b.workspace.project!,
+        initialRecord: record,
+        unavailableResourceIds: () => const {},
+      );
+      final workflow = BorderCreationWorkflow(
+        navigation: b.navigation,
+        draft: draft,
+        isActive: () => true,
+        confirmDiscard: () async => false,
+        confirmRepublication: (_) async => true,
+      );
+      addTearDown(workflow.dispose);
+      return workflow;
+    }
+
+    final saving = open(before);
+    expect(
+      b.navigation.packBorderDraftOwners[before.id]!().request.expectedRecord,
+      before,
+    );
+    expect(
+      await saving.save(publish: false),
+      isTrue,
+      reason: saving.draft.error,
+    );
+    saving.dispose();
+    final saved = (await b.load()).borderCatalog.records.single;
+    expect(saved.draft.definition, before.draft.definition);
+    expect(saved.latestPublished, before.latestPublished);
+    final publishing = open(saved);
+    expect(await publishing.save(publish: true), isFalse);
+    expect(publishing.draft.warningCodes, isNotEmpty);
+    expect(publishing.draft.error, contains('Vérifiez les raccords'));
+    expect(
+      (await b.load()).borderCatalog.records.single.latestPublished,
+      saved.latestPublished,
+    );
+    expect(await pixels(), framesBefore);
+    expect(
+      await publishing.save(publish: true),
+      isTrue,
+      reason: publishing.draft.error,
+    );
+    publishing.dispose();
+    final published = (await b.load()).borderCatalog.records.single;
+    expect(
+      published.latestPublished!.revision,
+      saved.latestPublished!.revision + 1,
+    );
+    expect(
+      published.latestPublished!.definition,
+      before.latestPublished!.definition,
+    );
+    expect(await pixels(), framesBefore);
+    expect(published.draft.definition.primitives.map((p) => p.weight), [
+      250,
+      300,
+      700,
+      500,
+    ]);
+    for (final snapshot in (await b.load()).borderCatalog.visualSnapshots) {
+      expect(snapshot.frames.map((f) => f.durationMs), [100, 150]);
+    }
+    {
+      final manifest = await b.load();
+      final element = manifest.elements.single;
+      await b.navigation.accept(
+        await b.resources.saveElement(
+          element.copyWith(id: 'replacement-piece', name: 'Replacement'),
+        ),
+      );
+      final edited = await b.resources.createBorder(
+        BorderCreationRequest(
+          blueprintId: published.id,
+          expectedRecord: published,
+          name: published.draft.definition.name,
+          capElementId: element.id,
+          straightElementId: 'replacement-piece',
+          cornerElementId: element.id,
+        ),
+      );
+      final draft =
+          edited.manifest.borderCatalog.records.single.draft.definition;
+      expect(
+        draft.primitives
+            .where((p) => p.role == BorderPrimitiveRole.lineStraight)
+            .single
+            .sourceElementId,
+        'replacement-piece',
+      );
+      for (final role in [
+        BorderPrimitiveRole.lineCap,
+        BorderPrimitiveRole.lineCorner,
+      ]) {
+        expect(
+          draft.primitives.singleWhere((p) => p.role == role),
+          published.draft.definition.primitives.singleWhere(
+            (p) => p.role == role,
+          ),
+        );
+      }
+    }
+  });
 }

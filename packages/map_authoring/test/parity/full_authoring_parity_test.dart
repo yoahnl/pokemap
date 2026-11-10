@@ -7,6 +7,19 @@ import 'package:test/test.dart';
 
 void main() {
   group('PMCP-085 full authoring parity', () {
+    test('scene dialogue policy evidence does not claim an uncalled editor action', () {
+      final catalog = AuthoringFullParityCatalog.canonical();
+      for (final action in [
+        'scene.dialogue.lineFeedback.update',
+        'scene.dialogue.choicePolicy.update',
+      ]) {
+        final evidence = catalog.requireMutationAction(action);
+        expect(evidence.endToEndEvidence.containsKey(AuthoringTransport.editor), isFalse);
+        expect(evidence.endToEndEvidence.containsKey(AuthoringTransport.directApi), isTrue);
+        expect(evidence.endToEndEvidence.containsKey(AuthoringTransport.cli), isTrue);
+        expect(evidence.endToEndEvidence.containsKey(AuthoringTransport.mcp), isTrue);
+      }
+    });
     test('native vertical platform cites its four executed transport proofs', () {
       for(final action in ['map3d.lift.upsert_batch','map3d.lift.delete_batch']) {
         final evidence=AuthoringFullParityCatalog.canonical().requireMutationAction(action);

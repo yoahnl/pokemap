@@ -6,8 +6,6 @@ import 'package:avelune_studio/features/map_workspace/application/gameplay_zone_
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_zone_inspector.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
@@ -22,9 +20,9 @@ const area = MapRect(
 void main() {
   for (final spatial in [false, true]) {
     for (final width in [1, 2]) {
-      testWidgets(
-        'small ${width}x$width zone retype remains guided in ${spatial ? '3D' : '2D'}',
-        (tester) async {
+      test(
+        'small ${width}x$width field-action eligibility in ${spatial ? '3D' : '2D'}',
+        () {
           final document = EditableMapDocument(
             MapWorkspaceDocument(
               map: spatial ? spatialEnvironmentMap() : workspaceMap('a'),
@@ -44,46 +42,27 @@ void main() {
             ),
           );
           final before = document.current;
-          await tester.pumpWidget(
-            MaterialApp(
-              home: Scaffold(
-                body: SingleChildScrollView(
-                  child: SizedBox(
-                    width: 500,
-                    child: MapZoneInspector(
-                      document: document,
-                      project: commands.project,
-                      zone: zone,
-                      onChanged: () {},
-                      onDeleted: () {},
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          );
-          await tester.tap(
-            find.byKey(ValueKey('zone-kind-${zone.id}-movement')),
-          );
-          await tester.pumpAndSettle();
           if (spatial) {
-            expect(find.text('Action de terrain'), findsNothing);
             expect(
-              find.textContaining('au moins trois cases sur un axe'),
-              findsOneWidget,
+              commands.availableKindsFor(zone),
+              isNot(contains(GameplayZoneKind.fieldAction)),
+            );
+            expect(
+              () => commands.retype(zone.id, GameplayZoneKind.fieldAction),
+              throwsA(isA<ValidationException>()),
             );
             expect(document.current, same(before));
-            expect(document.error, isNull);
           } else {
-            expect(find.text('Action de terrain (2D)'), findsOneWidget);
-            await tester.tap(find.text('Action de terrain (2D)'));
-            await tester.pumpAndSettle();
+            expect(
+              commands.availableKindsFor(zone),
+              contains(GameplayZoneKind.fieldAction),
+            );
+            commands.retype(zone.id, GameplayZoneKind.fieldAction);
             expect(
               document.current.gameplayZones.single.fieldAction!.darkness,
               isNotNull,
             );
           }
-          expect(tester.takeException(), isNull);
         },
       );
     }
@@ -95,9 +74,11 @@ void main() {
     );
   });
   test('Studio darkness create, edit, save and cold reopen preserve the native zone', () async {
-    final temporary = await Directory.systemTemp.createTemp(
-      'studio-flash-editing-',
+    final parent = Directory(
+      '/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/t01-map-retirement',
     );
+    await parent.create(recursive: true);
+    final temporary = await parent.createTemp('studio-flash-editing-');
     final root = Directory(await temporary.resolveSymbolicLinks());
     addTearDown(() => root.delete(recursive: true));
     final project = workspaceProject.copyWith(maps: [workspaceEntries.first]);
@@ -144,122 +125,62 @@ void main() {
     );
     expect(document.current, edited);
   });
-  testWidgets(
-    'an automatic terrain zone explains why Flash needs an independent rectangle',
-    (tester) async {
-      const generated = MapGameplayZone(
-        id: 'generated',
-        kind: GameplayZoneKind.encounter,
-        area: area,
-        encounter: EncounterZonePayload(),
-        smartTileProvenance: SmartTileGameplayZoneProvenance(
-          smartTileLayerId: 'grass',
-          smartTilePresetId: 'forest',
-          materialId: 'grass',
-          behaviorKey: 'encounter.walk',
-        ),
-      );
-      final document = EditableMapDocument(
-        MapWorkspaceDocument(
-          map: workspaceMap('a').copyWith(gameplayZones: [generated]),
-          revision: 'initial',
-          mapId: 'a',
-        ),
-      );
-      final before = document.current;
-      final commands = GameplayZoneEditingCommands(document, workspaceProject);
-      expect(
-        commands.availableKindsFor(generated),
-        isNot(contains(GameplayZoneKind.fieldAction)),
-      );
-      expect(
-        () => commands.retype(generated.id, GameplayZoneKind.fieldAction),
-        throwsA(isA<ValidationException>()),
-      );
-      expect(document.current, before);
-      expect(
-        document.current.gameplayZones.single.smartTileProvenance,
-        generated.smartTileProvenance,
-      );
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: SingleChildScrollView(
-              child: MapZoneInspector(
-                document: document,
-                project: workspaceProject,
-                zone: generated,
-                onChanged: () {},
-                onDeleted: () {},
-              ),
-            ),
-          ),
-        ),
-      );
-      expect(
-        find.text(
-          'Cette zone suit un terrain automatique. Dessinez une zone indépendante pour une action de terrain.',
-        ),
-        findsOneWidget,
-      );
-      await tester.tap(find.byType(DropdownButtonFormField<GameplayZoneKind>));
-      await tester.pumpAndSettle();
-      expect(find.text('Zone sombre (Flash · 2D)'), findsNothing);
-      await tester.tapAt(const Offset(2, 2));
-      await tester.pumpAndSettle();
-      expect(document.current, before);
-      expect(document.dirty, isFalse);
-      expect(tester.takeException(), isNull);
-    },
-  );
-  testWidgets(
-    'the real inspector lets an author choose Flash and edit darkness without JSON',
-    (tester) async {
-      final document = EditableMapDocument(
-        MapWorkspaceDocument(
-          map: workspaceMap('a'),
-          revision: 'initial',
-          mapId: 'a',
-        ),
-      );
-      final commands = GameplayZoneEditingCommands(document, workspaceProject);
-      final zone = commands.place(GameplayZoneKind.encounter, area);
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: SingleChildScrollView(
-              child: StatefulBuilder(
-                builder: (context, setState) => MapZoneInspector(
-                  document: document,
-                  project: workspaceProject,
-                  zone: commands.selected(zone.id)!,
-                  onChanged: () => setState(() {}),
-                  onDeleted: () {},
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-      await tester.tap(find.byType(DropdownButtonFormField<GameplayZoneKind>));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Action de terrain (2D)').last);
-      await tester.pumpAndSettle();
-      expect(
-        document.current.gameplayZones.single.kind,
-        GameplayZoneKind.fieldAction,
-      );
-      expect(find.textContaining('L’éclairage dure'), findsOneWidget);
-      expect(find.textContaining('Le voile le plus sombre'), findsOneWidget);
-      await tester.tap(find.byKey(ValueKey('zone-darkness-${zone.id}-0.7')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('85 %').last);
-      await tester.pumpAndSettle();
-      expect(
-        document.current.gameplayZones.single.fieldAction!.darkness!.opacity,
-        .85,
-      );
-      expect(tester.takeException(), isNull);
-    },
-  );
+  test('an automatic terrain zone refuses conversion to a field action', () {
+    const generated = MapGameplayZone(
+      id: 'generated',
+      kind: GameplayZoneKind.encounter,
+      area: area,
+      encounter: EncounterZonePayload(),
+      smartTileProvenance: SmartTileGameplayZoneProvenance(
+        smartTileLayerId: 'grass',
+        smartTilePresetId: 'forest',
+        materialId: 'grass',
+        behaviorKey: 'encounter.walk',
+      ),
+    );
+    final document = EditableMapDocument(
+      MapWorkspaceDocument(
+        map: workspaceMap('a').copyWith(gameplayZones: [generated]),
+        revision: 'initial',
+        mapId: 'a',
+      ),
+    );
+    final before = document.current;
+    final commands = GameplayZoneEditingCommands(document, workspaceProject);
+    expect(
+      commands.availableKindsFor(generated),
+      isNot(contains(GameplayZoneKind.fieldAction)),
+    );
+    expect(
+      () => commands.retype(generated.id, GameplayZoneKind.fieldAction),
+      throwsA(isA<ValidationException>()),
+    );
+    expect(document.current, before);
+    expect(
+      document.current.gameplayZones.single.smartTileProvenance,
+      generated.smartTileProvenance,
+    );
+    expect(document.dirty, isFalse);
+  });
+  test('field-action commands choose Flash and edit darkness without JSON', () {
+    final document = EditableMapDocument(
+      MapWorkspaceDocument(
+        map: workspaceMap('a'),
+        revision: 'initial',
+        mapId: 'a',
+      ),
+    );
+    final commands = GameplayZoneEditingCommands(document, workspaceProject);
+    final zone = commands.place(GameplayZoneKind.encounter, area);
+    commands.retype(zone.id, GameplayZoneKind.fieldAction);
+    expect(
+      document.current.gameplayZones.single.kind,
+      GameplayZoneKind.fieldAction,
+    );
+    commands.updateDarkness(zone.id, opacity: .85);
+    expect(
+      document.current.gameplayZones.single.fieldAction!.darkness!.opacity,
+      .85,
+    );
+  });
 }

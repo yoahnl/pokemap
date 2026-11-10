@@ -219,7 +219,7 @@ void _validateUse(
   );
   _requireAllowedFields(
     use,
-    const {'contexts', 'target', 'consumption', 'effect'},
+    const {'contexts', 'target', 'consumption', 'effect', 'friendshipLoss'},
     path: path,
     entryIndex: entryIndex,
     itemId: itemId,
@@ -248,7 +248,7 @@ void _validateUse(
     'battle_preparation' => const {'kind', 'effect', 'turns'},
     'heal_hp' => const {'kind', 'mode', 'amount'},
     'restore_pp' => const {'kind', 'mode', 'amount', 'scope'},
-    'cure_status' => const {'kind', 'mode', 'statusIds'},
+    'cure_status' => const {'kind', 'mode', 'statusIds', 'curesConfusion'},
     'revive' => const {'kind', 'rateNumerator', 'rateDenominator'},
     'repel' => const {'kind', 'steps'},
     'fishing' => const {'kind', 'rodKind'},

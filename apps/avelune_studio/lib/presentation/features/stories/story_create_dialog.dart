@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
-import 'story_labels.dart';
+import '../../../features/stories/application/story_labels.dart';
 
 Future<(String, StorylineType)?> askStoryCreation(
   BuildContext context, {

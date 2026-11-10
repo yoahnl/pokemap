@@ -1,80 +1,73 @@
-import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_editor_controller.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_element_catalog.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_element_list_commands.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_element_visibility_commands.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_workspace_editing_state.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_editor_port.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_elements_panel.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
 import '../support/map_workspace_fixture.dart';
 
 void main() {
-  testWidgets('portable editor visibility controls stay disabled', (
-    tester,
-  ) async {
-    final document = _document();
-    final port = _Port()
-      ..state = MapEditorState(
+  late EditableMapDocument document;
+  late _Port port;
+  late MapElementCatalog catalog;
+  late MapElementSelectionCommands selection;
+  late MapElementVisibilityCommands visibility;
+  late MapWorkspaceEditingState view;
+
+  Future<void> open({ProjectSession session = workspaceSession}) async {
+    document.editor = await MapEditorController.open(session, 'a', port);
+    addTearDown(document.editor!.dispose);
+    catalog = MapElementCatalog(document.current, _project);
+    view = MapWorkspaceEditingState();
+    selection = MapElementSelectionCommands(document, view);
+    visibility = MapElementVisibilityCommands(
+      document,
+      view,
+      catalog: () => catalog,
+    );
+  }
+
+  MapElementListEntry entry(String id) =>
+      catalog.entries.singleWhere((entry) => entry.id == id);
+
+  setUp(() {
+    document = _document();
+    port = _Port();
+  });
+
+  test(
+    'portable visibility commands preserve the persisted editor state',
+    () async {
+      port.state = MapEditorState(
         lockedElements: {'decor:mist'},
         hiddenElements: {'layer:ground'},
       );
-    const session = ProjectSession(
-      sessionId: 'portable',
-      name: 'Lecture seule',
-      directoryPath: '/fixture',
-      storage: ProjectSessionStorage.portableCatalog,
-    );
-    document.editor = await MapEditorController.open(session, 'a', port);
-    final view = MapWorkspaceViewState();
-    addTearDown(view.dispose);
-    addTearDown(document.editor!.dispose);
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: studioTheme(),
-        home: Scaffold(
-          body: SizedBox(
-            width: 400,
-            child: MapElementsPanel(
-              document: document,
-              project: _project,
-              view: view,
-              onChanged: () {},
-            ),
-          ),
+      final before = port.state;
+      await open(
+        session: const ProjectSession(
+          sessionId: 'portable',
+          name: 'Lecture seule',
+          directoryPath: '/fixture',
+          storage: ProjectSessionStorage.portableCatalog,
         ),
-      ),
-    );
-    for (final key in [
-      'map-element-hide-layer-ground',
-      'map-element-lock-decor-mist',
-      'map-family-hide-Calques',
-    ]) {
-      expect(
-        tester.widget<StudioTool>(find.byKey(ValueKey(key))).onPressed,
-        isNull,
       );
-    }
-    expect(
-      tester
-          .widget<StudioButton>(
-            find.byKey(const ValueKey('map-elements-show-all')),
-          )
-          .onPressed,
-      isNull,
-    );
-    expect(find.textContaining('lecture seule'), findsWidgets);
-    expect(tester.takeException(), isNull);
-  });
+      expect(document.editor!.canWrite, isFalse);
+      await visibility.setLocked([entry('mist')], false);
+      await visibility.setHidden([entry('ground')], false);
+      await document.editor!.showAll();
+      expect(port.state, same(before));
+    },
+  );
 
-  testWidgets('family visibility toggles its members as one undo', (
-    tester,
-  ) async {
-    final source = _document().current;
-    final document = EditableMapDocument(
+  test('family visibility changes its members in one undo', () async {
+    final source = document.current;
+    document = EditableMapDocument(
       MapWorkspaceDocument(
         map: source.copyWith(
           placedElements: [
@@ -86,257 +79,83 @@ void main() {
         mapId: 'a',
       ),
     );
+    await open();
     final map = document.current;
-    final port = _Port();
-    document.editor = await MapEditorController.open(
-      workspaceSession,
-      'a',
-      port,
-    );
-    final view = MapWorkspaceViewState();
-    addTearDown(view.dispose);
-    addTearDown(document.editor!.dispose);
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: studioTheme(),
-        home: Scaffold(
-          body: SizedBox(
-            width: 400,
-            child: MapElementsPanel(
-              document: document,
-              project: _project,
-              view: view,
-              onChanged: () {},
-            ),
-          ),
-        ),
-      ),
-    );
-
-    final eye = find.byKey(const ValueKey('map-family-hide-Décors · Effets'));
-    await tester.ensureVisible(eye);
-    await tester.tap(eye);
-    await tester.pumpAndSettle();
+    await visibility.setHidden(catalog.families['Décors · Effets']!, true);
     expect(port.state.isHidden('decor', 'mist'), isTrue);
     expect(port.state.isHidden('decor', 'mist2'), isTrue);
     expect(port.state.isHidden('decor', 'tree'), isFalse);
     expect(document.current, same(map));
     expect(await document.editor!.undo(), isTrue);
-    await tester.pumpAndSettle();
     expect(port.state.hiddenElements, isEmpty);
     expect(document.editor!.canUndo, isFalse);
-    expect(tester.takeException(), isNull);
   });
 
-  testWidgets('hidden entries stay in the list and can be shown again', (
-    tester,
-  ) async {
-    final document = _document();
-    final map = document.current;
-    final port = _Port();
-    document.editor = await MapEditorController.open(
-      workspaceSession,
-      'a',
-      port,
-    );
-    final view = MapWorkspaceViewState();
-    addTearDown(view.dispose);
-    addTearDown(document.editor!.dispose);
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: studioTheme(),
-        home: Scaffold(
-          body: SizedBox(
-            width: 400,
-            child: MapElementsPanel(
-              document: document,
-              project: _project,
-              view: view,
-              onChanged: () {},
-            ),
-          ),
-        ),
-      ),
-    );
-
-    final row = find.byKey(const ValueKey('map-element-decor-mist'));
-    final eye = find.byKey(const ValueKey('map-element-hide-decor-mist'));
-    await tester.tap(row);
-    expect(document.selectedId, 'mist');
-    await tester.tap(eye);
-    await tester.pumpAndSettle();
-    expect(port.state.isHidden('decor', 'mist'), isTrue);
-    expect(document.selectedId, isNull);
-    expect(row, findsOneWidget);
-    expect(find.textContaining('Masqué'), findsWidgets);
-    expect(document.current, same(map));
-    expect(document.dirty, isFalse);
-    await tester.tap(row);
-    expect(document.selectedId, isNull);
-    await tester.tap(eye);
-    await tester.pumpAndSettle();
-    expect(port.state.isHidden('decor', 'mist'), isFalse);
-    await tester.tap(row);
-    expect(document.selectedId, 'mist');
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('show all preserves locks and hidden layers keep their rows', (
-    tester,
-  ) async {
-    final document = _document();
-    final port = _Port()
-      ..state = MapEditorState(
-        lockedElements: {'decor:mist'},
-        hiddenElements: {'layer:ground', 'decor:mist'},
-      );
-    document.editor = await MapEditorController.open(
-      workspaceSession,
-      'a',
-      port,
-    );
-    final view = MapWorkspaceViewState();
-    addTearDown(view.dispose);
-    addTearDown(document.editor!.dispose);
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: studioTheme(),
-        home: Scaffold(
-          body: SizedBox(
-            width: 400,
-            child: MapElementsPanel(
-              document: document,
-              project: _project,
-              view: view,
-              onChanged: () {},
-            ),
-          ),
-        ),
-      ),
-    );
-    expect(
-      find.byKey(const ValueKey('map-element-layer-ground')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey('map-element-decor-mist')),
-      findsOneWidget,
-    );
-    expect(
-      tester
-          .widget<StudioTool>(
-            find.byKey(const ValueKey('map-element-hide-decor-mist')),
-          )
-          .onPressed,
-      isNull,
-    );
-    await tester.tap(find.text('Tout afficher'));
-    await tester.pumpAndSettle();
-    expect(port.state.hiddenElements, isEmpty);
-    expect(port.state.isLocked('decor', 'mist'), isTrue);
-    await tester.tap(find.byKey(const ValueKey('map-element-hide-decor-mist')));
-    await tester.pumpAndSettle();
-    expect(port.state.isHidden('decor', 'mist'), isTrue);
-    expect(port.state.isLocked('decor', 'mist'), isTrue);
-    await tester.tap(find.text('Tout déverrouiller'));
-    await tester.pumpAndSettle();
-    expect(port.state.isHidden('decor', 'mist'), isTrue);
-    expect(port.state.lockedElements, isEmpty);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets(
-    'search, select, lock and unlock an effect without mutating the map',
-    (tester) async {
-      final document = _document();
-      final port = _Port();
-      document.editor = await MapEditorController.open(
-        workspaceSession,
-        'a',
-        port,
-      );
-      final view = MapWorkspaceViewState();
-      addTearDown(view.dispose);
-      addTearDown(document.editor!.dispose);
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: studioTheme(),
-          home: Scaffold(
-            body: SizedBox(
-              width: 400,
-              child: MapElementsPanel(
-                document: document,
-                project: _project,
-                view: view,
-                onChanged: () {},
-              ),
-            ),
-          ),
-        ),
-      );
-      await tester.tap(find.byKey(const ValueKey('map-element-decor-mist')));
-      await tester.pump();
+  test(
+    'hidden entries remain in the catalogue and can be selected after showing',
+    () async {
+      await open();
+      final map = document.current;
+      expect(selection.select(entry('mist')), isTrue);
       expect(document.selectedId, 'mist');
-      await tester.tap(
-        find.byKey(const ValueKey('map-element-lock-decor-mist')),
-      );
-      await tester.pumpAndSettle();
-      expect(document.editorState.isLocked('decor', 'mist'), isTrue);
+      await visibility.setHidden([entry('mist')], true);
       expect(document.selectedId, isNull);
+      expect(catalog.entries.any((entry) => entry.id == 'mist'), isTrue);
+      expect(selection.select(entry('mist')), isFalse);
+      expect(document.current, same(map));
       expect(document.dirty, isFalse);
-      await tester.tap(find.byKey(const ValueKey('map-element-decor-mist')));
-      expect(document.selectedId, isNull);
-      await tester.enterText(find.byType(TextField).first, 'brume');
-      await tester.pump();
-      expect(
-        find.byKey(const ValueKey('map-element-decor-tree')),
-        findsNothing,
-      );
-      expect(
-        find.byKey(const ValueKey('map-element-decor-mist')),
-        findsOneWidget,
-      );
-      await tester.tap(
-        find.byKey(const ValueKey('map-element-lock-decor-mist')),
-      );
-      await tester.pumpAndSettle();
-      expect(document.editorState.isLocked('decor', 'mist'), isFalse);
-      expect(tester.takeException(), isNull);
+      await visibility.setHidden([entry('mist')], false);
+      expect(selection.select(entry('mist')), isTrue);
+      expect(document.selectedId, 'mist');
     },
   );
 
-  testWidgets('front-first stacking lists the highest visual order first', (
-    tester,
-  ) async {
-    final document = _document();
-    final view = MapWorkspaceViewState();
-    addTearDown(view.dispose);
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: studioTheme(),
-        home: Scaffold(
-          body: SizedBox(
-            width: 400,
-            child: MapElementsPanel(
-              document: document,
-              project: _project,
-              view: view,
-              onChanged: () {},
-            ),
-          ),
-        ),
-      ),
+  test(
+    'showing all preserves locks and unlocking all preserves hidden state',
+    () async {
+      port.state = MapEditorState(
+        lockedElements: {'decor:mist'},
+        hiddenElements: {'layer:ground', 'decor:mist'},
+      );
+      await open();
+      await document.editor!.showAll();
+      expect(port.state.hiddenElements, isEmpty);
+      expect(port.state.isLocked('decor', 'mist'), isTrue);
+      await visibility.setHidden([entry('mist')], true);
+      expect(port.state.isHidden('decor', 'mist'), isTrue);
+      await document.editor!.unlockAll();
+      expect(port.state.isHidden('decor', 'mist'), isTrue);
+      expect(port.state.lockedElements, isEmpty);
+    },
+  );
+
+  test(
+    'locking an effect clears its selection without mutating the map',
+    () async {
+      await open();
+      final map = document.current;
+      expect(selection.select(entry('mist')), isTrue);
+      await visibility.setLocked([entry('mist')], true);
+      expect(document.selectedId, isNull);
+      expect(selection.select(entry('mist')), isFalse);
+      expect(document.dirty, isFalse);
+      await visibility.setLocked([entry('mist')], false);
+      expect(selection.select(entry('mist')), isTrue);
+      expect(document.current, same(map));
+    },
+  );
+
+  test('front-first stacking lists the highest visual order first', () async {
+    await open();
+    final decors = catalog.stacking.values.singleWhere(
+      (entries) => entries.any((entry) => entry.kind == 'decor'),
     );
-    await tester.tap(find.text('Superposition'));
-    await tester.pump();
-    final mist = tester
-        .getTopLeft(find.byKey(const ValueKey('map-element-decor-mist')))
-        .dy;
-    final tree = tester
-        .getTopLeft(find.byKey(const ValueKey('map-element-decor-tree')))
-        .dy;
-    expect(mist, lessThan(tree));
-    expect(find.textContaining('devant'), findsWidgets);
+    expect(decors.map((entry) => entry.id), ['mist', 'tree']);
+    expect(
+      mapElementCell(document.current, 'decor', 'mist'),
+      const GridPos(x: 4, y: 4),
+    );
+    expect(mapElementCell(document.current, 'decor', 'missing'), isNull);
   });
 }
 

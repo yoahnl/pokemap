@@ -41,6 +41,22 @@ class WorkspaceMapLibraryCommands {
               : order;
         });
 
+  List<ProjectMapGroup> parentCandidates(String groupId) {
+    final excluded = <String>{groupId};
+    bool changed;
+    do {
+      changed = false;
+      for (final item in project().groups) {
+        if (excluded.contains(item.parentGroupId) && excluded.add(item.id)) {
+          changed = true;
+        }
+      }
+    } while (changed);
+    return project().groups
+        .where((item) => !excluded.contains(item.id))
+        .toList();
+  }
+
   Future<String?> createFolder(String name, {String? parentId}) async {
     final groups = project().groups;
     if (groups.any(

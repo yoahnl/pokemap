@@ -4,6 +4,8 @@ import 'dart:ui' as ui;
 
 import 'package:avelune_studio/features/resources/domain/resource_mutation_preparation.dart';
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
+import 'package:avelune_studio/features/resources/application/resource_removal_controller.dart';
+import 'package:avelune_studio/features/resources/application/resource_lifecycle_publication.dart';
 import 'package:avelune_studio/presentation/features/resources/resource_removal_dialog.dart';
 import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
@@ -41,9 +43,8 @@ final class RemovalDialogHarness {
         child: MaterialApp(
           theme: studioTheme(),
           builder: (context, child) => MediaQuery(
-            data: MediaQuery.of(
-              context,
-            ).copyWith(textScaler: TextScaler.linear(scale)),
+            data: MediaQuery.of(context)
+                .copyWith(textScaler: TextScaler.linear(scale)),
             child: child!,
           ),
           home: Builder(
@@ -54,29 +55,34 @@ final class RemovalDialogHarness {
                   context: context,
                   barrierDismissible: false,
                   builder: (_) => ResourceRemovalDialog(
-                    item: const ResourceItem(
-                      id: 'sheet',
-                      name: 'Planche témoin',
-                      kind: ResourceKind.images,
-                      tileset: ProjectTilesetEntry(
+                    controller: ResourceRemovalController(
+                      item: const ResourceItem(
                         id: 'sheet',
                         name: 'Planche témoin',
-                        relativePath: 'assets/planche.png',
+                        kind: ResourceKind.images,
+                        tileset: ProjectTilesetEntry(
+                          id: 'sheet',
+                          name: 'Planche témoin',
+                          relativePath: 'assets/planche.png',
+                        ),
                       ),
+                      prepareOperation: (choice) {
+                        final analysis = RemovalAnalysis(choice);
+                        analyses.add(analysis);
+                        return analysis.result.future;
+                      },
+                      publish: (preparation) async {
+                        applied.add(preparation);
+                        return const ResourceLifecyclePublicationResult(
+                          error: null,
+                          publicationCommitted: true,
+                        );
+                      },
+                      dirtyOwners: () => [],
+                      canPublish: () => true,
                     ),
                     preview: const Center(child: Text('Aperçu témoin')),
-                    prepare: (choice) {
-                      final analysis = RemovalAnalysis(choice);
-                      analyses.add(analysis);
-                      return analysis.result.future;
-                    },
-                    apply: (preparation) async {
-                      applied.add(preparation);
-                      return null;
-                    },
                     openUsages: () {},
-                    dirtyOwners: () => [],
-                    canApply: () => true,
                   ),
                 ),
               ),

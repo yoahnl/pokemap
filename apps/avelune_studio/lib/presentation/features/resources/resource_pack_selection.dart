@@ -1,3 +1,7 @@
+import '../../../features/resources/application/resource_pack_review_projection.dart';
+export '../../../features/resources/application/resource_pack_review_projection.dart'
+    show resourcePackKindLabel, resourcePackContextLabels;
+
 import 'package:flutter/material.dart';
 
 import '../../../features/resources/application/resource_pack_transfer_controller.dart';
@@ -161,36 +165,3 @@ class _ResourcePackSelectionState extends State<ResourcePackSelection> {
     );
   }
 }
-
-String resourcePackKindLabel(Object? kind) => switch (kind) {
-  'tileset' => 'Image',
-  'element' => 'Décor',
-  'model3d' => 'Modèle 3D',
-  'character' => 'Personnage',
-  'environmentPreset' => 'Environnement',
-  'smartTilePreset' => 'Terrain',
-  'smartTilePattern' => 'Motif de terrain',
-  'borderBlueprint' => 'Bordure',
-  'resourceFamily' => 'Famille de ressources',
-  'elementCategory' => 'Catégorie de décors',
-  'tilesetFolder' => 'Dossier d’images',
-  'tilesetElementGroup' => 'Groupe de planche',
-  'smartTileMaterial' => 'Matériau de terrain',
-  'smartTileAtlas' => 'Planche de terrain',
-  'smartTileAnimation' => 'Animation de terrain',
-  'smartTileCategory' => 'Catégorie de terrain',
-  'smartTileConnectionGroup' => 'Groupe de raccordement',
-  'characterPortraitState' => 'État de portrait',
-  'characterAnimationDefinition' => 'Animation de personnage',
-  'borderSnapshot' => 'Publication de bordure',
-  'file' => 'Source graphique',
-  _ => 'Ressource',
-};
-
-const resourcePackContextLabels = {
-  'all': 'Tous',
-  'interior': 'Intérieur',
-  'exterior': 'Extérieur',
-  'both': 'Les deux',
-  'unspecified': 'Non renseigné',
-};

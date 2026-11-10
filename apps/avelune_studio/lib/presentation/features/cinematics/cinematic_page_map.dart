@@ -1,65 +1,19 @@
 part of 'cinematic_workspace_page.dart';
 
 extension _CinematicPageMap on _CinematicWorkspacePageState {
-  void prepareMap(CinematicAsset asset) {
-    if (loadingMapId != asset.mapId) {
-      loadingMapId = asset.mapId;
-      loadedMap = null;
-      model = null;
-      mapError = null;
-      final generation = ++loadGeneration, id = asset.mapId;
-      if (id != null) {
-        unawaited(
-          widget.loader
-              .load(id)
-              .then((map) {
-                if (!mounted ||
-                    generation != loadGeneration ||
-                    loadingMapId != id) {
-                  return;
-                }
-                loadedMap = map;
-                refresh();
-              })
-              .catchError((Object failure) {
-                if (!mounted || generation != loadGeneration) return;
-                mapError = failure.toString();
-                refresh();
-              }),
-        );
-      }
-    }
-    final open = widget.loader.workspace.documents[asset.mapId]?.current;
-    if (open != null) loadedMap = open;
-    final map = loadedMap;
-    if (map != null &&
-        (model?.asset != asset ||
-            model?.project != controller.project ||
-            model?.map != map)) {
-      model = CinematicMapModel(asset, controller.project, map);
-      preparePlan();
-    }
-    if (map == null) preparePlan();
+  CinematicMediaPlaybackPort Function(ProjectManifest)? get mediaFactory {
+    final source = widget.visuals;
+    return source is CinematicMediaWorkspaceVisuals
+        ? (source as CinematicMediaWorkspaceVisuals).createCinematicMedia
+        : null;
   }
 
-  void preparePlan() {
-    final current = model;
-    final source = widget.visuals;
-    final identity = (controller.activeId, controller.project);
-    if (mediaIdentity != identity && source is CinematicMediaWorkspaceVisuals) {
-      mediaIdentity = identity;
-      controller.transport.configureMedia(
-        (source as CinematicMediaWorkspaceVisuals).createCinematicMedia(
-          controller.project,
-        ),
-      );
-    }
-    controller.preparePreview(
-      actorDisplay: current?.actors,
-      resolvedTargets: current?.targets ?? const {},
-      stageBounds: current?.bounds,
-    );
-  }
+  void prepareMap(CinematicAsset asset) => controller.prepareMapPreview(
+    load: widget.loader.load,
+    media: mediaFactory,
+  );
+
+  void preparePlan() => controller.prepareMapPlan(media: mediaFactory);
 
   Widget mapContent() {
     final current = model;
@@ -87,7 +41,7 @@ extension _CinematicPageMap on _CinematicWorkspacePageState {
                   StudioButton(
                     label: 'Réessayer la carte',
                     onPressed: () {
-                      loadingMapId = null;
+                      controller.retryMapPreview();
                       refresh();
                     },
                   ),
@@ -104,51 +58,21 @@ extension _CinematicPageMap on _CinematicWorkspacePageState {
 
   Future<void> movePoint(CinematicStagePoint point, Offset destination) async {
     if (!flush() || model == null) return;
-    if (destination.dx < 0 ||
-        destination.dy < 0 ||
-        destination.dx >= model!.map.size.width ||
-        destination.dy >= model!.map.size.height) {
-      view!.spatialError = 'Le repère doit rester dans la carte.';
-      refresh();
-      return;
-    }
-    view!.spatialError = null;
-    final owner = controller.active!;
-    final uses = cinematicPointUses(owner.asset, point.id);
-    if (uses.length > 1 &&
-        !await confirm(
-          'Déplacer ce repère partagé ?',
-          'Ce déplacement affecte ${uses.join(', ')}.',
-        )) {
-      return;
-    }
-    if (!mounted ||
-        controller.activeId != owner.asset.id ||
-        controller.active?.revision != owner.revision) {
-      return;
-    }
-    final source = owner.asset.stageContext!.stagePoints.firstWhere(
-      (entry) => entry.id == point.id,
-    );
-    final origin = source.relativeToActorId == null
-        ? null
-        : model!.actorOrigins[source.relativeToActorId];
-    if (source.relativeToActorId != null && origin == null) {
-      view!.spatialError =
-          'L’acteur d’origine doit être présent pour déplacer ce repère.';
-      refresh();
-      return;
-    }
-    controller.setStagePoint(
-      CinematicStagePoint(
-        id: point.id,
-        label: point.label,
-        x: destination.dx - (origin?.x ?? 0),
-        y: destination.dy - (origin?.y ?? 0),
-        relativeToActorId: source.relativeToActorId,
-        description: point.description,
+    await controller.moveStagePointTo(
+      point.id,
+      destination.dx,
+      destination.dy,
+      model: model!,
+      confirmShared: (uses) => confirm(
+        'Déplacer ce repère partagé ?',
+        'Ce déplacement affecte ${uses.join(', ')}.',
       ),
+      isActive: () => mounted,
     );
+    if (mounted) {
+      view!.spatialError = controller.error;
+      refresh();
+    }
   }
 
   void point(Offset point) {

@@ -1,3 +1,5 @@
+import '../../../features/resources/coordination/working_catalog_workflow.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -9,7 +11,6 @@ import 'model_light_preview_scope.dart';
 import '../../../features/project_session/domain/project_session.dart';
 import '../../../features/resources/application/working_catalog_controller.dart';
 import '../../../features/resources/domain/working_catalog_port.dart';
-import '../../../features/resources/domain/resource_port.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/dialogs/studio_review_dialog.dart';
 import '../../shared/widgets/feedback/studio_empty_state.dart';
@@ -64,27 +65,51 @@ class WorkingCatalogWorkspace extends StatefulWidget {
 
 class _WorkingCatalogWorkspaceState extends State<WorkingCatalogWorkspace> {
   WorkingCatalogController get catalog => widget.controller;
-  bool synchronizing = false;
-  bool synchronizationPending = false;
-  bool sourceReplacementActive = false;
-  bool sourceReconciliationPending = false;
-  bool sourceReloadPending = false;
-  String? saved;
-  String? navigationNotice;
+  late final WorkingCatalogWorkflow _workflow = WorkingCatalogWorkflow(
+    catalog: widget.controller,
+    readOnly: widget.session.storage == ProjectSessionStorage.portableCatalog,
+    onModelLightSaved: (model, before, after) async {
+      await widget.onModelLightSaved?.call(model, before, after);
+    },
+    isActive: () => mounted && identical(widget.controller, _workflow.catalog),
+    confirmExit: _confirmExit,
+    changed: () {
+      if (mounted) setState(() {});
+    },
+    onSaved: () async {
+      await widget.onSaved?.call();
+    },
+    onRecovered: widget.onRecovered == null
+        ? null
+        : () async {
+            await widget.onRecovered?.call();
+          },
+    onReplaceModelSource: widget.onReplaceModelSource == null
+        ? null
+        : (id) => widget.onReplaceModelSource!(id),
+  );
+  bool get synchronizing => _workflow.synchronizing;
+  bool get synchronizationPending => _workflow.synchronizationPending;
+  bool get sourceReplacementActive => _workflow.sourceReplacementActive;
+  bool get sourceReconciliationPending => _workflow.sourceReconciliationPending;
+  bool get sourceReloadPending => _workflow.sourceReloadPending;
+  String? get saved => _workflow.saved;
+  set saved(String? value) => _workflow.saved = value;
+  String? get navigationNotice => _workflow.navigationNotice;
+  int get sourcePreviewRevision => _workflow.sourcePreviewRevision;
   String? tagsIdentity;
   String tagsText = '';
   WorkingCatalogDetail? previewDetail;
   Widget? preview;
-  int sourcePreviewRevision = 0;
-  bool get sourceReplacementPending =>
-      sourceReplacementActive ||
-      sourceReconciliationPending ||
-      sourceReloadPending;
+  int _previewRevision = -1;
+  bool get sourceReplacementPending => _workflow.sourceReplacementPending;
 
   Widget resourcePreview(WorkingCatalogDetail detail) {
     if (preview == null ||
+        _previewRevision != sourcePreviewRevision ||
         previewDetail?.entry.identity != detail.entry.identity ||
         !identical(previewDetail?.visualIdentity, detail.visualIdentity)) {
+      _previewRevision = sourcePreviewRevision;
       previewDetail = detail;
       preview = KeyedSubtree(
         key: ValueKey((detail.entry.identity, sourcePreviewRevision)),
@@ -133,19 +158,9 @@ class _WorkingCatalogWorkspaceState extends State<WorkingCatalogWorkspace> {
     }
   }
 
-  Future<bool> allowExit() => allowCatalogExit(closing: true);
+  Future<bool> allowExit() => _workflow.allowExit(closing: true);
 
-  Future<bool> allowCatalogExit({bool closing = false}) async {
-    if (catalog.saving ||
-        catalog.recovering ||
-        synchronizing ||
-        sourceReplacementActive ||
-        (!closing && (sourceReconciliationPending || sourceReloadPending))) {
-      return false;
-    }
-    if (synchronizationPending && !await synchronize()) return false;
-    if (!mounted) return false;
-    if (!catalog.dirty) return true;
+  Future<WorkingCatalogExitDecision> _confirmExit() async {
     final choice = await showDialog<String>(
       context: context,
       builder: (context) => StudioReviewDialog(
@@ -160,132 +175,23 @@ class _WorkingCatalogWorkspaceState extends State<WorkingCatalogWorkspace> {
         onCancelled: () => Navigator.pop(context, 'cancel'),
       ),
     );
-    if (!mounted) return false;
-    if (choice == 'save') return save();
-    if (choice == 'discard') {
-      catalog.discard();
-      return true;
-    }
-    return false;
+    return switch (choice) {
+      'save' => WorkingCatalogExitDecision.save,
+      'discard' => WorkingCatalogExitDecision.discard,
+      _ => WorkingCatalogExitDecision.stay,
+    };
   }
 
-  Future<void> showLibrary([String destination = 'resources']) async {
-    if (!await allowCatalogExit() || !mounted) return;
-    setState(() {
-      navigationNotice =
-          const {
-            'resources',
-            'resourceLibrary',
-            'library',
-          }.contains(destination)
-          ? null
-          : 'Cet atelier est accessible depuis la navigation de Studio.';
-    });
-    final selected = catalog.selected;
-    await catalog.search(catalog.query);
-    if (mounted &&
-        selected != null &&
-        catalog.selected?.identity == selected.identity &&
-        !catalog.dirty) {
-      await catalog.select(selected);
-    }
-  }
-
-  Future<void> recover() async {
-    await catalog.recover(refresh: widget.onRecovered == null);
-    if (!mounted ||
-        catalog.error != null ||
-        catalog.recoveryOperationIds.isNotEmpty) {
-      return;
-    }
-    try {
-      await widget.onRecovered?.call();
-    } catch (failure) {
-      if (mounted) {
-        setState(
-          () => navigationNotice =
-              'Rouvrez le projet après la reprise : $failure',
-        );
-      }
-    }
-  }
-
-  Future<bool> synchronize() async {
-    synchronizing = true;
-    try {
-      await widget.onSaved?.call();
-      synchronizationPending = false;
-      return true;
-    } catch (failure) {
-      if (mounted) {
-        setState(
-          () => navigationNotice =
-              'La ressource est enregistrée, mais la carte ne peut pas être actualisée : $failure',
-        );
-      }
-      return false;
-    } finally {
-      synchronizing = false;
-    }
-  }
-
-  Future<bool> save() async {
-    if (synchronizing) return false;
-    saved = null;
-    if (!await catalog.save()) return false;
-    synchronizationPending = true;
-    if (!mounted || !await synchronize() || !mounted) return false;
-    setState(() => saved = catalog.dirty ? null : 'Ressource enregistrée.');
-    return !catalog.dirty;
-  }
-
-  Future<void> replaceModelSource() async {
-    final selected = catalog.selected;
-    final replace = widget.onReplaceModelSource;
-    if (selected == null ||
-        selected.kind != 'model3d' ||
-        replace == null ||
-        catalog.dirty ||
-        catalog.saving ||
-        catalog.opening ||
-        synchronizing ||
-        synchronizationPending ||
-        sourceReplacementActive) {
-      return;
-    }
-    setState(() {
-      sourceReplacementActive = true;
-      saved = null;
-      navigationNotice = null;
-    });
-    try {
-      if (!sourceReloadPending && !await replace(selected.id)) return;
-      sourceReconciliationPending = false;
-      sourceReloadPending = true;
-      if (!mounted) return;
-      preview = null;
-      previewDetail = null;
-      sourcePreviewRevision++;
-      await catalog.select(selected);
-      if (!mounted) return;
-      if (catalog.error != null) {
-        navigationNotice = 'Le modèle est enregistré. Actualisez son aperçu avant de continuer.';
-        return;
-      }
-      sourceReloadPending = false;
-      saved = 'Modèle remplacé.';
-    } on ResourceFailure catch (failure) {
-      sourceReconciliationPending = failure.partialReceipt != null;
-      navigationNotice = failure.message;
-    } catch (failure) {
-      navigationNotice = 'Le modèle ne peut pas être remplacé : $failure';
-    } finally {
-      if (mounted) setState(() => sourceReplacementActive = false);
-    }
-  }
+  Future<void> showLibrary([String destination = 'resources']) =>
+      _workflow.showLibrary(destination);
+  Future<void> recover() => _workflow.recover();
+  Future<bool> synchronize() => _workflow.synchronize();
+  Future<bool> save() => _workflow.save();
+  Future<void> replaceModelSource() => _workflow.replaceModelSource();
 
   @override
   void dispose() {
+    _workflow.dispose();
     catalog.removeListener(refresh);
     widget.registerExitGuard(null);
     super.dispose();
@@ -622,18 +528,7 @@ class _WorkingCatalogWorkspaceState extends State<WorkingCatalogWorkspace> {
                     key: ValueKey('working-model-light-${model.id}'),
                     model: model,
                     busy: !editable,
-                    onSave: (light) async {
-                      await catalog.configureLight(light);
-                      final updated = catalog.detail!.definitions.models3d
-                          .singleWhere((m) => m.id == model.id);
-                      await widget.onModelLightSaved?.call(
-                        updated,
-                        catalog.detail!.previousDocumentRevision ??
-                            selected.revision,
-                        catalog.detail!.documentRevision ??
-                            catalog.detail!.revision,
-                      );
-                    },
+                    onSave: _workflow.configureLight,
                   ),
                   const SizedBox(height: 16),
                 ],
@@ -642,7 +537,7 @@ class _WorkingCatalogWorkspaceState extends State<WorkingCatalogWorkspace> {
                   label: 'Nom',
                   value: draft.name,
                   enabled: editable,
-                  onChanged: (value) => catalog.edit(name: value),
+                  onChanged: (value) => _workflow.edit(name: value),
                   errorText: draft.name.trim().isEmpty
                       ? 'Donnez un nom à cette ressource.'
                       : null,
@@ -654,7 +549,7 @@ class _WorkingCatalogWorkspaceState extends State<WorkingCatalogWorkspace> {
                   lines: 3,
                   value: draft.description,
                   enabled: editable,
-                  onChanged: (value) => catalog.edit(description: value),
+                  onChanged: (value) => _workflow.edit(description: value),
                   errorText: draft.description.length > 2000
                       ? 'La description ne doit pas dépasser 2000 caractères.'
                       : null,
@@ -669,13 +564,7 @@ class _WorkingCatalogWorkspaceState extends State<WorkingCatalogWorkspace> {
                     enabled: editable,
                     onChanged: (value) {
                       tagsText = value;
-                      catalog.edit(
-                        tags: value
-                            .split(',')
-                            .map((tag) => tag.trim())
-                            .where((tag) => tag.isNotEmpty)
-                            .toSet(),
-                      );
+                      _workflow.editTags(value);
                     },
                   ),
                 const SizedBox(height: 12),
@@ -689,7 +578,7 @@ class _WorkingCatalogWorkspaceState extends State<WorkingCatalogWorkspace> {
                     'both': 'Intérieur et extérieur',
                   },
                   onChanged: editable
-                      ? (value) => catalog.edit(placementContext: value)
+                      ? (value) => _workflow.edit(placementContext: value)
                       : null,
                 ),
                 const SizedBox(height: 16),

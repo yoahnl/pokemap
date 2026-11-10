@@ -17,7 +17,7 @@ import '../assets/asset_actions.dart';
 import '../assets/asset_store.dart';
 import 'package:map_distribution/map_distribution.dart';
 
-enum PokemonMediaImportRole { icon, party, portrait }
+enum PokemonMediaImportRole { icon, party, portrait, overworld, overworldShiny }
 
 final class PokemonMediaImportEntry {
   const PokemonMediaImportEntry({
@@ -77,7 +77,7 @@ final class PokemonMediaImportActions {
       id: 'pokemon.media.import',
       version: 1,
       summary:
-          'Import inspected PNG menu media by exact species, form and role, preserving existing choices',
+          'Import inspected Pokemon PNG media by exact species, form and role, preserving existing choices',
       inputSchemaId: 'pokemap.authoring/pokemon.media.import.input.v1',
       outputSchemaId: 'pokemap.authoring/pokemon.media.import.output.v1',
       riskLevel: AuthoringRiskLevel.medium,
@@ -87,6 +87,16 @@ final class PokemonMediaImportActions {
         AuthoringPermission.projectWrite,
         AuthoringPermission.importRun
       ],
+      extensions: const {
+        'roles': ['icon', 'party', 'portrait', 'overworld', 'overworldShiny'],
+        'overworldAtlas': {
+          'columns': 4,
+          'rows': 4,
+          'directions': ['down', 'left', 'right', 'up'],
+          'idleColumn': 0,
+          'walkColumns': [0, 1, 2, 3],
+        },
+      },
       guarantees: const [
         AuthoringGuarantee.dryRun,
         AuthoringGuarantee.idempotent,
@@ -227,14 +237,26 @@ final class PokemonMediaImportActions {
             dimensions.width * dimensions.height > 16777216 ||
             image.decodePng(Uint8List.fromList(bytes)) == null) {
           throw const FormatException(
-              'Pokemon menu media must be a decodable PNG within 16 megapixels.');
+              'Pokemon media must be a decodable PNG within 16 megapixels.');
         }
         staged = (artifact, bytes);
         inspected[entry.artifactHandle] = staged;
       }
       final (artifact, bytes) = staged;
+      final overworld = entry.role == PokemonMediaImportRole.overworld ||
+          entry.role == PokemonMediaImportRole.overworldShiny;
+      if (overworld) {
+        final dimensions = decodeRasterImageDimensions(bytes, mediaType: 'image/png');
+        if (dimensions == null || dimensions.width < 4 || dimensions.height < 4 ||
+            dimensions.width % 4 != 0 || dimensions.height % 4 != 0 ||
+            validatedStaticPngDecoder(Uint8List.fromList(bytes),
+                maxDimension: 16384, maxPixels: 16777216).decodeFrame(0) == null) {
+          throw const FormatException('Pokemon overworld media must be a static 4x4 atlas.');
+        }
+      }
+      final category = overworld ? 'overworld' : 'menu';
       final logicalPath =
-          'assets/pokemon/menu/${entry.speciesId}/${entry.formId}/${artifact.hexDigest}.png';
+          'assets/pokemon/$category/${entry.speciesId}/${entry.formId}/${artifact.hexDigest}.png';
       final preview = <String, Object?>{
         'speciesId': entry.speciesId,
         'formId': entry.formId,
@@ -252,7 +274,7 @@ final class PokemonMediaImportActions {
         continue;
       }
       final assetId =
-          'pokemon-menu-${entry.speciesId}-${entry.formId}-${artifact.hexDigest}';
+          'pokemon-$category-${entry.speciesId}-${entry.formId}-${artifact.hexDigest}';
       final existingAsset =
           catalog.find(assetId) ?? catalog.findByLogicalPath(logicalPath);
       if (existingAsset != null &&
@@ -280,7 +302,7 @@ final class PokemonMediaImportActions {
                 artifact.digest) {
           throw AssetActionException(
             'pokemon.media.logical_asset_changed',
-            'The Pokemon menu image differs from its catalog; resolve the authored change before importing new associations.',
+            'The Pokemon image differs from its catalog; resolve the authored change before importing new associations.',
             details: {'assetId': existingAsset.id, 'logicalPath': logicalPath},
           );
         }
@@ -307,7 +329,7 @@ final class PokemonMediaImportActions {
             id: assetId,
             logicalPath: logicalPath,
             artifact: artifact,
-            tags: const ['pokemon', 'menu']);
+            tags: ['pokemon', category]);
         final projection =
             const AssetImportProjector().project(catalog, record: record);
         catalog = projection.catalog;

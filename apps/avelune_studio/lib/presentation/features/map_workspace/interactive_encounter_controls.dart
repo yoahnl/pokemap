@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import '../../../features/map_workspace/application/map_interactive_encounter_draft.dart';
+
 import 'package:map_core/map_core_domain.dart';
 
 import '../../shared/widgets/inputs/studio_choice.dart';
@@ -16,36 +19,17 @@ class InteractiveEncounterControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final payload = entity.interactiveEncounter;
-    final trigger =
-        entity.fieldObstacle?.kind == FieldObstacleKind.rockSmashRock
-        ? InteractiveEncounterTrigger.afterRockSmash
-        : InteractiveEncounterTrigger.headbutt;
-    final kind = trigger == InteractiveEncounterTrigger.headbutt
-        ? EncounterKind.headbutt
-        : EncounterKind.special;
-    final tables = project.encounterTables
-        .where((table) => table.encounterKind == kind)
-        .toList();
+    final draft = MapInteractiveEncounterDraft(entity, project);
+    final payload = draft.payload;
+    final trigger = draft.trigger;
+    final tables = draft.tables;
     void change({
       String? tableId,
       InteractiveEncounterReusePolicy? reuse,
       List<ScriptCondition>? conditions,
-    }) {
-      final id = tableId ?? payload?.encounterTableId ?? tables.first.id;
-      onChanged(
-        MapEntityInteractiveEncounterData(
-          trigger: trigger,
-          encounterTableId: id,
-          reusePolicy:
-              reuse ??
-              payload?.reusePolicy ??
-              InteractiveEncounterReusePolicy.repeatable,
-          conditions: conditions ?? payload?.conditions ?? const [],
-          presentation: payload?.presentation.copyWith(encounterTableId: id),
-        ),
-      );
-    }
+    }) => onChanged(
+      draft.change(tableId: tableId, reuse: reuse, conditions: conditions),
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

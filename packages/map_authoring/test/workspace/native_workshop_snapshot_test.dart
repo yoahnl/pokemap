@@ -9,6 +9,44 @@ import 'package:test/test.dart';
 
 void main() {
   for (final unrelated in [0, 900]) {
+    for (final trainerOwner in [false, true]) {
+      test('native contact scope closes its actor dependency trainer=$trainerOwner unrelated=$unrelated', () async {
+        final f = _Fixture(unrelated: unrelated);
+        final actor = const ProjectCharacterEntry(id: 'actor', name: 'Actor', tilesetId: 'atlas');
+        f.raw['characters'] = [actor.toJson(), ...(f.raw['characters'] as List)];
+        f.raw['tilesets'] = [const ProjectTilesetEntry(id: 'atlas', name: 'Atlas', relativePath: 'assets/actor.png').toJson(), ...(f.raw['tilesets'] as List)];
+        f.raw['trainers'] = [const ProjectTrainerEntry(id: 'trainer', name: 'Trainer', trainerClass: 'Trainer', characterId: 'actor', team: []).toJson(), ...(f.raw['trainers'] as List)];
+        final map = MapData(id: 'owner', name: 'Owner', size: const GridSize(width: 3, height: 3), entities: [MapEntity(id: 'npc', kind: MapEntityKind.npc, pos: const GridPos(x: 1, y: 1), npc: MapEntityNpcData(characterId: trainerOwner ? null : 'actor', trainerId: trainerOwner ? 'trainer' : null))]);
+        f.resources['maps/owner.json'] = utf8.encode(jsonEncode(map.toJson()));
+        f.updateProject();
+        for (var attempt = 0; attempt < 2; attempt++) {
+          f.reads.clear();
+          final snapshot = await f.loader.loadWorkshop(f.handle, actionId: 'event_v2.record_upsert', parameters: {'record': _contactRecord()});
+          expect(snapshot.manifest.characters, [actor]);
+          expect(snapshot.manifest.tilesets.map((entry) => entry.id), ['atlas']);
+          expect(snapshot.manifest.trainers.map((entry) => entry.id), trainerOwner ? ['trainer'] : isEmpty);
+          expect(isNarrativeEntityBumpSourceAvailable(project: snapshot.manifest, map: snapshot.maps.single, entityId: 'npc'), isTrue);
+          expect(f.reads, ['project.json', 'maps/owner.json', 'project.json', 'maps/owner.json']);
+        }
+        final cold = await ProjectSnapshotLoader(handles: f.handles).loadWorkshop(f.handle, actionId: 'event_v2.record_upsert_batch', parameters: {'records': [_contactRecord()]});
+        expect(cold.manifest.characters, [actor]);
+      });
+    }
+  }
+  test('contact scope retains missing and ambiguous owners as unavailable', () async {
+    for (final duplicate in [false, true]) {
+      final f = _Fixture(unrelated: 900);
+      final npc = MapEntity(id: 'npc', kind: MapEntityKind.npc, pos: const GridPos(x: 1, y: 1), npc: const MapEntityNpcData(characterId: 'missing'));
+      final map = MapData(id: 'owner', name: 'Owner', size: const GridSize(width: 3, height: 3), entities: [npc, if (duplicate) npc]);
+      f.resources['maps/owner.json'] = utf8.encode(jsonEncode(map.toJson()));
+      f.updateProject();
+      final snapshot = await f.loader.loadWorkshop(f.handle, actionId: 'event_v2.record_upsert', parameters: {'record': _contactRecord()});
+      expect(snapshot.manifest.characters, isEmpty);
+      expect(isNarrativeEntityBumpSourceAvailable(project: snapshot.manifest, map: snapshot.maps.single, entityId: 'npc'), isFalse);
+      expect(f.reads, ['project.json', 'maps/owner.json', 'project.json', 'maps/owner.json']);
+    }
+  });
+  for (final unrelated in [0, 900]) {
     test('native field routes load their map without unrelated definitions $unrelated', () async {
       final f = _Fixture(unrelated: unrelated);
       final map = MapData(id: 'owner', name: 'Owner', version: ProjectVersion.v9,
@@ -459,3 +497,13 @@ class _Fixture {
     resources['project.json'] = utf8.encode(jsonEncode(raw));
   }
 }
+
+Map<String, Object?> _contactRecord() => {
+  'state': 'draft',
+  'draft': {
+    'id': 'evt_019abcde-0029-7000-8000-000000000001',
+    'name': 'Contact',
+    'source': {'kind': 'entityBump', 'mapId': 'owner', 'entityId': 'npc'},
+    'conditions': [], 'priority': 0, 'order': 0,
+  },
+};

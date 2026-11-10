@@ -1,3 +1,7 @@
+import '../../../features/resources/application/resource_pack_review_projection.dart';
+
+import '../../../features/resources/coordination/resource_pack_route_workflow.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -16,75 +20,54 @@ class _PackBudgetReports extends StatelessWidget {
   const _PackBudgetReports(this.reports);
   final List<Map<String, Object?>> reports;
 
-  String contextLabel(Object? scope) {
-    final value = '$scope';
-    for (final entry in const {
-      'elementCategories': 'Catégories de décors',
-      'tilesetFolders': 'Dossiers des atlas',
-      'dialogueFolders': 'Dossiers des dialogues',
-      'terrainCategories': 'Catégories des sols',
-      'pathCategories': 'Catégories des chemins',
-      'groups': 'Groupes',
-      'resourceLibraryCatalog.families': 'Familles de ressources',
-    }.entries) {
-      if (value.endsWith('.${entry.key}')) return entry.value;
-    }
-    if (value.contains('/')) return 'Fichier ${value.split('/').last}';
-    return value == 'nativeSelectionDefinitions'
-        ? 'Définitions avant publication' : 'Sous-ensemble du catalogue';
-  }
-
-  String unknownLabel(Object? dimension) => switch (dimension) {
-    'publicationMetadata' => 'informations finales de publication',
-    'archiveBytes' => 'taille de l’archive',
-    'manifestBytes' => 'manifeste de l’archive',
-    'publishedCatalogBytes' => 'taille du catalogue publié',
-    'imagePixels' || 'rgba8BytesEstimate' => 'dimensions des images',
-    'licenses' => 'documents de licence',
-    'mediaIntegrity' => 'intégrité des médias',
-    'fileInventory' || 'files' || 'fileBytes' => 'inventaire des fichiers',
-    'payloadEntries' || 'payloadBytes' => 'contenu complet du package',
-    'runtimeProjection' => 'données conservées dans le jeu exporté',
-    'publishedFiles' => 'fichiers finaux à installer',
-    _ => '$dimension'.endsWith('.imageDimensions')
-        ? 'dimensions d’une image du pack' : 'données complémentaires',
-  };
-
   @override
   Widget build(BuildContext context) => StudioPanel(
     compact: true,
     title: 'Volumes et limites',
     children: [
-      const Text('Les limites de publication du jeu sont distinctes de l’installation de la bibliothèque.'),
+      const Text(
+        'Les limites de publication du jeu sont distinctes de l’installation de la bibliothèque.',
+      ),
       for (final report in reports) ...[
         const SizedBox(height: 8),
         Text(switch (report['scope']) {
           'nativeSelection' => 'Sélection à exporter',
           'sourceProjectDistribution' => 'Projet actuel — publication du jeu',
-          'mergedProjectDistribution' => 'Projet après import — publication du jeu',
+          'mergedProjectDistribution' =>
+            'Projet après import — publication du jeu',
           'inspectedArchive' => 'Pack inspecté complet',
           'preparedExport' => 'Pack préparé',
           _ => 'Mesures du catalogue',
         }),
-        Text(report['accepted'] == true
-            ? 'Aucun dépassement parmi les mesures disponibles.'
-            : 'Une ou plusieurs limites sont dépassées.'),
-        for (final metric in (report['metrics'] as List? ?? const []).whereType<Map>())
+        Text(
+          report['accepted'] == true
+              ? 'Aucun dépassement parmi les mesures disponibles.'
+              : 'Une ou plusieurs limites sont dépassées.',
+        ),
+        for (final metric
+            in (report['metrics'] as List? ?? const []).whereType<Map>())
           if (metric['allowed'] != null)
-            Text('${metric['scope'] != report['scope'] ? '${contextLabel(metric['scope'])} — ' : ''}${metric['label']} : ${metric['observed']} ${metric['unit']} / limite ${metric['allowed']}.'),
-        for (final violation in (report['violations'] as List? ?? const []).whereType<Map>())
-          if (violation['remedy'] case final String remedy)
-            Text(remedy),
+            Text(
+              '${metric['scope'] != report['scope'] ? '${resourcePackBudgetContextLabel(metric['scope'])} — ' : ''}${metric['label']} : ${metric['observed']} ${metric['unit']} / limite ${metric['allowed']}.',
+            ),
+        for (final violation
+            in (report['violations'] as List? ?? const []).whereType<Map>())
+          if (violation['remedy'] case final String remedy) Text(remedy),
         if (report['measurementComplete'] != true)
-          const Text('Mesures complémentaires nécessaires avant la publication finale.'),
+          const Text(
+            'Mesures complémentaires nécessaires avant la publication finale.',
+          ),
         if ((report['unknownDimensions'] as List? ?? const []).isNotEmpty)
-          Text('À mesurer : ${(report['unknownDimensions'] as List).map(unknownLabel).toSet().take(6).join(', ')}.'),
+          Text(
+            'À mesurer : ${(report['unknownDimensions'] as List).map(resourcePackUnknownDimensionLabel).toSet().take(6).join(', ')}.',
+          ),
         if (report['truncated'] == true)
-          Text('Résumé borné : ${report['metricCount']} mesures, ${report['violationCount']} dépassements.'),
+          Text(
+            'Résumé borné : ${report['metricCount']} mesures, ${report['violationCount']} dépassements.',
+          ),
       ],
     ],
   );
-
 }
 
 class _PackIdentity extends StatelessWidget {
@@ -228,22 +211,16 @@ Future<void> showResourcePackExport(
   ResourcePackTransferController controller, {
   String projectName = '',
   List<({String kind, String id})> selection = const [],
-}) async {
-  if (controller.routeActive || !controller.exportAvailable) return;
-  controller.routeActive = true;
-  try {
-    unawaited(
-      controller.beginExport(projectName: projectName, selection: selection),
-    );
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => ResourcePackTransferDialog(controller: controller),
-    );
-  } finally {
-    controller.routeActive = false;
-  }
-}
+}) => runResourcePackExport(
+  controller: controller,
+  projectName: projectName,
+  selection: selection,
+  present: () => showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => ResourcePackTransferDialog(controller: controller),
+  ),
+);
 
 class _PackExportMetadata extends StatelessWidget {
   const _PackExportMetadata(this.controller);
@@ -369,52 +346,21 @@ class _PackExportReview extends StatelessWidget {
   }
 }
 
-String _exportRowLabel(Map<String, Object?> row) {
-  final label = row['label'] ?? 'Ressource associée';
-  return switch (row['kind']) {
-    'promotion' => '$label · ressource privée rendue commune',
-    'organization' => '$label · ${row['effectLabel']}',
-    'publication' =>
-      '$label · ${switch (row['draftComparison']) {
-        'equivalent' => 'brouillon enregistré équivalent',
-        'divergent' => 'brouillon enregistré différent',
-        'notComparable' => 'brouillon non comparable',
-        _ => 'publication actuelle',
-      }}. ${row['notice']}',
-    'source' =>
-      '$label · ${row['attributionScope'] == 'globalCredits' ? 'crédits de cette édition' : 'origine conservée'} · ${row['licenseCount']} licences${row['sourceUrl'] == null ? '' : ' · ${row['sourceUrl']}'}',
-    'sourceResource' => '$label · ressource couverte par une origine conservée',
-    'sourceFile' =>
-      'Fichier associé à une origine conservée · ${row['logicalPath']}',
-    'sourceLicense' => 'Document de licence d’une origine conservée',
-    'fileLicense' => 'Document de licence d’un fichier associé',
-    'license' => 'Document de licence UTF-8 · ${row['byteLength']} octets',
-    _ =>
-      '$label · ${resourcePackKindLabel(row['resourceKind'])}${row['selected'] == true ? ' · Ressource choisie' : ' · Dépendance incluse'}',
-  };
-}
-
 Future<void> showResourcePackImport(
   BuildContext context,
   ResourcePackTransferController controller, {
   VoidCallback? onShowImported,
-}) async {
-  if (controller.routeActive) return;
-  controller.routeActive = true;
-  try {
-    unawaited(controller.beginImport());
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => ResourcePackTransferDialog(
-        controller: controller,
-        onShowImported: onShowImported,
-      ),
-    );
-  } finally {
-    controller.routeActive = false;
-  }
-}
+}) => runResourcePackImport(
+  controller: controller,
+  present: () => showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => ResourcePackTransferDialog(
+      controller: controller,
+      onShowImported: onShowImported,
+    ),
+  ),
+);
 
 class ResourcePackTransferDialog extends StatefulWidget {
   const ResourcePackTransferDialog({
@@ -548,8 +494,11 @@ class _ResourcePackTransferDialogState
                 if (c.notice != null) StudioNotice(c.notice!),
                 if (c.error != null) StudioNotice(c.error!, isError: true),
                 if (selection)
-                  StudioButton(label: 'Vérifier les volumes', secondary: true,
-                      onPressed: c.canDiagnose ? c.diagnose : null),
+                  StudioButton(
+                    label: 'Vérifier les volumes',
+                    secondary: true,
+                    onPressed: c.canDiagnose ? c.diagnose : null,
+                  ),
                 if (c.budgetReports.isNotEmpty)
                   _PackBudgetReports(c.budgetReports),
                 if (c.inspection.isNotEmpty) _PackIdentity(controller: c),
@@ -604,12 +553,8 @@ class _ResourcePackTransferDialogState
                               padding: const EdgeInsets.symmetric(vertical: 8),
                               child: Text(
                                 c.exporting
-                                    ? _exportRowLabel(row)
-                                    : row['kind'] == 'authoringDraftNotice'
-                                    ? '${row['label']} : ${row['message']}'
-                                    : row['conflict'] != null
-                                    ? '${row['label']} : ${row['message']}'
-                                    : '${row['label'] ?? resourcePackKindLabel(row['kind'])}${row['labelComplete'] == false ? '… (nom abrégé)' : ''} · ${resourcePackKindLabel(row['kind'])}\n${row['selected'] == true ? 'Ressource choisie' : 'Nécessaire pour « ${row['requiredByLabel']} » (exemple de ressource choisie)'}',
+                                    ? resourcePackExportRowLabel(row)
+                                    : resourcePackImportRowLabel(row),
                               ),
                             );
                           },

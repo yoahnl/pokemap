@@ -11,8 +11,11 @@ import 'terrain_scratch_view.dart';
 import 'terrain_source_panel.dart';
 import 'terrain_trial_panel.dart';
 import 'terrain_usage_summary.dart';
+import '../../../features/terrains/domain/terrain_connections.dart';
+
 import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
+
 import '../resources/resource_preview.dart';
 
 class TerrainEditorScreen extends StatefulWidget {
@@ -72,25 +75,19 @@ class _TerrainEditorScreenState extends State<TerrainEditorScreen> {
     if (!mounted) return;
     setState(() {});
     if (success && publish) {
-      final preset = model.manifest.smartTileCatalog.presets
-          .where((preset) => preset.id == model.draft.targetPresetId)
-          .firstOrNull;
+      final preset = model.publishedPreset;
       if (preset != null) widget.onUse(preset);
     }
   }
 
   void _assign(TilesetSourceRect rect) {
     _selectedSource = rect;
-    final wasMissing = model.frameFor(model.selectedRule) == null;
-    model.assign(rect.x, rect.y);
-    if (_advance && wasMissing) model.selectNextMissing();
+    model.assignSelectedFrame(rect, advanceMissing: _advance);
     setState(() {});
   }
 
   void _assignModel(ProjectModel3dEntry source) {
-    final wasMissing = model.partFor(model.selectedRule) == null;
-    model.assignModel(source);
-    if (_advance && wasMissing) model.selectNextMissing();
+    model.assignSelectedModel(source, advanceMissing: _advance);
     setState(() {});
   }
 

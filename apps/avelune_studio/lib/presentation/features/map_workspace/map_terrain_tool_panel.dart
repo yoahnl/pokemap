@@ -3,13 +3,16 @@ import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/map_workspace/application/editable_map_document.dart';
 import '../../../features/map_workspace/application/spatial_terrain_stroke.dart';
-import '../../../features/terrains/application/terrain_brush.dart';
+import '../../../features/map_workspace/application/map_terrain_settings_commands.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/feedback/studio_badge.dart';
+
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
+
 import '../resources/resource_preview.dart';
 import 'map_workspace_view_state.dart';
+
 import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_terrain_patterns.dart';
 
@@ -28,26 +31,12 @@ class MapTerrainToolPanel extends StatelessWidget {
   final MapWorkspaceViewState view;
   final VoidCallback onChanged;
 
-  void _changePathLayer(
-    ProjectSmartTilePreset preset,
-    MapData Function(MapData map, SmartTileLayer layer) change,
-  ) {
+  MapTerrainSettingsCommands get _settings =>
+      MapTerrainSettingsCommands(document, project);
+
+  void _change(VoidCallback change) {
     if (document.saving) return;
-    try {
-      final prepared = prepareTerrainStrokeLayer(
-        map: document.current,
-        manifest: project,
-        preset: preset,
-      );
-      if (prepared == null) return;
-      final next = change(prepared.map, prepared.layer);
-      MapValidator.validate(next, projectDialogueContext: project);
-      document.commit(next);
-    } on ValidationException catch (error) {
-      document.error = error.message;
-    } on StateError catch (error) {
-      document.error = error.message;
-    }
+    change();
     onChanged();
   }
 
@@ -310,14 +299,7 @@ class MapTerrainToolPanel extends StatelessWidget {
                                 SmartTileAnimationActivation.always)) {
                           return;
                         }
-                        _changePathLayer(
-                          preset!,
-                          (map, target) => setSmartTileLayerAnimationActivation(
-                            map,
-                            layerId: target.id,
-                            activation: activation,
-                          ),
-                        );
+                        _change(() => _settings.animation(preset!, activation));
                       },
               ),
             ),
@@ -343,49 +325,13 @@ class MapTerrainToolPanel extends StatelessWidget {
                                 '')) {
                           return;
                         }
-                        _changePathLayer(preset!, (map, target) {
-                          if (value.isEmpty) {
-                            return setSmartTileLayerEncounterBehavior(
-                              map,
-                              manifest: project,
-                              layerId: target.id,
-                              behavior: null,
-                            );
-                          }
-                          if (!encounterTables.any(
-                            (table) => table.id == value,
-                          )) {
-                            throw StateError(
-                              'Cette table de rencontres n’est plus disponible.',
-                            );
-                          }
-                          final previous = target.encounterBehavior;
-                          final behavior = previous == null
-                              ? SmartTileEncounterBehavior(
-                                  materialId:
-                                      preset.allowedMaterialIds.contains(
-                                        view.terrainMaterialId,
-                                      )
-                                      ? view.terrainMaterialId!
-                                      : preset.defaultMaterialId,
-                                  encounter: EncounterZonePayload(
-                                    encounterTableId: value,
-                                    encounterKind: EncounterKind.walk,
-                                  ),
-                                )
-                              : previous.copyWith(
-                                  encounter: previous.encounter.copyWith(
-                                    encounterTableId: value,
-                                    encounterKind: EncounterKind.walk,
-                                  ),
-                                );
-                          return setSmartTileLayerEncounterBehavior(
-                            map,
-                            manifest: project,
-                            layerId: target.id,
-                            behavior: behavior,
-                          );
-                        });
+                        _change(
+                          () => _settings.encounter(
+                            preset!,
+                            value,
+                            materialId: view.terrainMaterialId,
+                          ),
+                        );
                       },
               ),
             ),

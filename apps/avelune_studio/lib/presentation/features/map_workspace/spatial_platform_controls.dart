@@ -1,3 +1,5 @@
+import '../../../features/map_workspace/application/spatial_platform_editing_session.dart';
+
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
@@ -7,7 +9,7 @@ import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_draft_field.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
-import 'traversal_labels.dart';
+import 'package:avelune_studio/features/map_workspace/application/traversal_labels.dart';
 
 class SpatialPlatformControls extends StatefulWidget {
   const SpatialPlatformControls({
@@ -27,108 +29,43 @@ class SpatialPlatformControls extends StatefulWidget {
 }
 
 class _SpatialPlatformControlsState extends State<SpatialPlatformControls> {
-  MapData? source;
-  SpatialPlatformDefinition? platform;
-  final values = <String, String>{};
-  final routes = <_RouteDraft>[];
-  String? error;
-  bool get enabled =>
-      !widget.document.saving &&
-      !widget.document.isElementLocked('model', widget.instance.id);
+  late SpatialPlatformEditingSession editing;
+  MapData? get source => editing.source;
+  SpatialPlatformDefinition? get platform => editing.platform;
+  Map<String, String> get values => editing.values;
+  String? get error => editing.error;
+  List<SpatialPlatformRouteDraft> get routes => editing.routes;
+  bool get enabled => editing.enabled;
+
   @override
   void initState() {
     super.initState();
-    load();
+    editing = SpatialPlatformEditingSession(widget.document, widget.instance);
   }
 
   @override
   void didUpdateWidget(SpatialPlatformControls old) {
     super.didUpdateWidget(old);
-    if (!identical(source, widget.document.current) ||
+    if (!identical(old.document, widget.document) ||
         old.instance.id != widget.instance.id) {
-      load();
+      editing.dispose();
+      editing = SpatialPlatformEditingSession(widget.document, widget.instance);
+    } else {
+      editing.instance = widget.instance;
+      if (!identical(source, widget.document.current)) editing.load();
     }
   }
 
-  void load() {
-    source = widget.document.current;
-    platform = source!.spatialScene!.platforms
-        .where((value) => value.instanceId == widget.instance.id)
-        .firstOrNull;
-    final position = widget.instance.position;
-    values.addAll({
-      'name': platform?.name ?? 'Plateforme',
-      'x': '${platform?.x ?? position.x.floor()}',
-      'z': '${platform?.z ?? position.z.floor()}',
-      'width': '${platform?.width ?? 1}',
-      'depth': '${platform?.depth ?? 1}',
-      'height':
-          '${platform?.height ?? source!.spatialScene!.worldHeightAt(position.x, position.z)}',
-      'duration': '${platform?.durationMs ?? 1500}',
-    });
-    routes.clear();
-    routes.addAll(
-      platform?.routes.map(_RouteDraft.fromRoute) ?? [_RouteDraft('route-1')],
-    );
-    error = null;
+  @override
+  void dispose() {
+    editing.dispose();
+    super.dispose();
   }
 
-  double number(String value) => double.parse(value.replaceAll(',', '.'));
   void apply() {
-    try {
-      if (!enabled || !identical(source, widget.document.current)) {
-        throw StateError('La carte a changé ou cet élément est verrouillé.');
-      }
-      var serial = 1;
-      while (source!.spatialScene!.platforms.any(
-            (value) => value.id == 'route-platform-$serial',
-          ) ||
-          source!.spatialScene!.lifts.any(
-            (value) => value.id == 'route-platform-$serial',
-          )) {
-        serial++;
-      }
-      final value = SpatialPlatformDefinition(
-        id: platform?.id ?? 'route-platform-$serial',
-        name: values['name']!.trim(),
-        instanceId: widget.instance.id,
-        x: number(values['x']!),
-        z: number(values['z']!),
-        width: number(values['width']!),
-        depth: number(values['depth']!),
-        height: number(values['height']!),
-        durationMs: int.parse(values['duration']!),
-        routes: [
-          for (final route in routes)
-            SpatialPlatformRoute(
-              id: route.id,
-              waypoints: [
-                for (final point in route.points)
-                  SpatialPlatformStop(x: number(point[0]), z: number(point[1])),
-              ],
-              conditions: [
-                for (final condition in route.conditions)
-                  SpatialPlatformCondition(
-                    factId: condition.$1,
-                    value: condition.$2,
-                  ),
-              ],
-            ),
-        ],
-      );
-      widget.document.commit(
-        const SpatialMapOperations().upsertPlatform(
-          widget.document.current,
-          value,
-        ),
-      );
-      setState(load);
-      widget.onChanged();
-    } catch (exception) {
-      setState(
-        () => error = exception is StateError ? exception.message.toString() : 'Vérifiez la zone, les quais, les conditions et la durée (100 à 30000 ms). Gardez exactement un trajet sans condition.',
-      );
-    }
+    final applied = editing.apply();
+    setState(() {});
+    if (applied) widget.onChanged();
   }
 
   Widget field(String label, String value, ValueChanged<String> changed) =>
@@ -270,15 +207,7 @@ class _SpatialPlatformControlsState extends State<SpatialPlatformControls> {
       if (routes.length < 16)
         StudioButton(
           label: 'Ajouter un trajet',
-          onPressed: enabled
-              ? () => setState(() {
-                  var serial = 1;
-                  while (routes.any((value) => value.id == 'route-$serial')) {
-                    serial++;
-                  }
-                  routes.add(_RouteDraft('route-$serial'));
-                })
-              : null,
+          onPressed: enabled ? () => setState(editing.addRoute) : null,
         ),
       if (widget.instance.blocksMovement)
         const StudioNotice(
@@ -292,25 +221,4 @@ class _SpatialPlatformControlsState extends State<SpatialPlatformControls> {
       ),
     ],
   );
-}
-
-final class _RouteDraft {
-  _RouteDraft(this.id)
-    : points = [
-        ['0', '0'],
-        ['1', '0'],
-      ],
-      conditions = [];
-  _RouteDraft.fromRoute(SpatialPlatformRoute route)
-    : id = route.id,
-      points = [
-        for (final point in route.waypoints) ['${point.x}', '${point.z}'],
-      ],
-      conditions = [
-        for (final condition in route.conditions)
-          (condition.factId, condition.value),
-      ];
-  final String id;
-  final List<List<String>> points;
-  final List<(String, bool)> conditions;
 }

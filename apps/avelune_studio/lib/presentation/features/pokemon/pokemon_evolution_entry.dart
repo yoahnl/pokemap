@@ -1,3 +1,5 @@
+import '../../../features/pokemon/application/pokemon_document_editing.dart';
+
 import 'package:flutter/material.dart';
 
 import '../../../features/pokemon/application/pokemon_workspace_controller.dart';
@@ -6,7 +8,7 @@ import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_draft_field.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/layout/studio_section.dart';
-import 'pokemon_evolution_rule.dart';
+import '../../../features/pokemon/application/pokemon_evolution_rule.dart';
 import 'pokemon_ui_parts.dart';
 
 class PokemonEvolutionEntry extends StatelessWidget {
@@ -25,23 +27,20 @@ class PokemonEvolutionEntry extends StatelessWidget {
   final Map<String, String> speciesOptions;
   final VoidCallback onRemove;
 
-  void _edit(String key, Object? change) {
-    controller.edit(PokemonDocumentFamily.evolution, (json) {
-      final entries = List<dynamic>.from(json['evolutions'] as List? ?? []);
-      final current = Map<String, dynamic>.from(entries[index] as Map);
-      current[key] = change;
-      entries[index] = current;
-      json['evolutions'] = entries;
-    });
-  }
+  void _edit(String key, Object? change) => controller.edit(
+    PokemonDocumentFamily.evolution,
+    (json) => PokemonDocumentEditing.editEvolution(json, index, key, change),
+  );
 
-  void _condition(String language, String text) {
-    final conditions = Map<String, dynamic>.from(
-      value['conditionText'] as Map? ?? {},
-    );
-    conditions[language] = text;
-    _edit('conditionText', conditions);
-  }
+  void _condition(String language, String text) => controller.edit(
+    PokemonDocumentFamily.evolution,
+    (json) => PokemonDocumentEditing.editEvolutionCondition(
+      json,
+      index,
+      language,
+      text,
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -60,8 +59,6 @@ class PokemonEvolutionEntry extends StatelessWidget {
       itemName: (id) => items[id] ?? id,
       moveName: (id) => moves[id] ?? id,
     );
-    bool shows(PokemonEvolutionRuleKind owner, String key) =>
-        kind == owner || (value[key] != null && '${value[key]}'.isNotEmpty);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -89,12 +86,8 @@ class PokemonEvolutionEntry extends StatelessWidget {
         StudioSelect(
           label: 'Déclenchement en jeu',
           value: method,
-          options: {
-            ...pokemonGuidedEvolutionMethods,
-            if (!pokemonGuidedEvolutionMethods.containsKey(method))
-              method: pokemonEvolutionMethodLabel(method),
-          },
-          onChanged: kind == PokemonEvolutionRuleKind.trade
+          options: pokemonEvolutionMethodOptions(value),
+          onChanged: pokemonEvolutionGuidedMethodLocked(value)
               ? null
               : (selected) => _edit('method', selected),
         ),
@@ -108,8 +101,7 @@ class PokemonEvolutionEntry extends StatelessWidget {
             isError: kind != PokemonEvolutionRuleKind.unsupported,
           ),
         const SizedBox(height: 11),
-        if (kind != PokemonEvolutionRuleKind.trade ||
-            value['minLevel'] != null) ...[
+        if (pokemonEvolutionShowsField(value, 'minLevel')) ...[
           StudioDraftField(
             key: ValueKey('evolution-$index-minLevel'),
             label: 'Niveau minimum',
@@ -121,7 +113,7 @@ class PokemonEvolutionEntry extends StatelessWidget {
           ),
           const SizedBox(height: 11),
         ],
-        if (shows(PokemonEvolutionRuleKind.friendship, 'minFriendship')) ...[
+        if (pokemonEvolutionShowsField(value, 'minFriendship')) ...[
           StudioDraftField(
             key: ValueKey('evolution-$index-minFriendship'),
             label: 'Amitié minimum',
@@ -133,7 +125,7 @@ class PokemonEvolutionEntry extends StatelessWidget {
           ),
           const SizedBox(height: 11),
         ],
-        if (shows(PokemonEvolutionRuleKind.item, 'itemId')) ...[
+        if (pokemonEvolutionShowsField(value, 'itemId')) ...[
           StudioSelect(
             label: 'Objet requis',
             value: value['itemId'] as String? ?? '',
@@ -143,7 +135,7 @@ class PokemonEvolutionEntry extends StatelessWidget {
           ),
           const SizedBox(height: 11),
         ],
-        if (shows(PokemonEvolutionRuleKind.knownMove, 'requiredMoveId')) ...[
+        if (pokemonEvolutionShowsField(value, 'requiredMoveId')) ...[
           StudioSelect(
             label: 'Attaque requise',
             value: value['requiredMoveId'] as String? ?? '',

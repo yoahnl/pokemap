@@ -607,6 +607,7 @@ AuthoringActionDescriptor _descriptor(String id, {required bool delete}) =>
                 'roles': [
                   'frontStatic', 'backStatic', 'frontShinyStatic',
                   'backShinyStatic', 'icon', 'party', 'portrait', 'overworld',
+                  'overworldShiny',
                 ],
                 'path': 'assets/pokemon/images/<sha256>.png',
                 'projectStorage': 'working-catalog-only',
@@ -644,6 +645,7 @@ void _validatePokemonMediaAssetChanges(
     'party',
     'portrait',
     'overworld',
+    'overworldShiny',
   };
   if (artifacts.isEmpty || artifacts.keys.any((key) => !roles.contains(key))) {
     throw const FormatException('Invalid Pokemon media selection.');

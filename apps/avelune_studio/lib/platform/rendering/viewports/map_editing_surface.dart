@@ -68,9 +68,9 @@ class MapEditingSurface extends StatelessWidget {
               return KeyEventResult.handled;
             },
             child: ExcludeFocus(
-              excluding: input.contextOpen,
+              excluding: busy || input.contextOpen,
               child: IgnorePointer(
-                ignoring: input.contextOpen,
+                ignoring: busy || input.contextOpen,
                 child: document.current.spatialScene == null
                     ? MapEditingViewport2D(
                         key: ValueKey(document.base.mapId),

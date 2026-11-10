@@ -1,3 +1,6 @@
+import '../../../features/pokemon/application/pokemon_item_effects_controller.dart';
+import '../../../features/pokemon/application/pokemon_item_effect_editing.dart';
+
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
@@ -15,107 +18,14 @@ class PokemonItemEffects extends StatelessWidget {
   final PokemonCommerceController commerce;
   final Future<String?> Function()? pickPng;
 
-  ProjectItemUseDefinition? _use(ProjectItemUseContext context) {
-    for (final value in commerce.item!.uses) {
-      if (value.contexts.contains(context)) return value;
-    }
-    return null;
-  }
-
+  PokemonItemEffectsController get _effects =>
+      PokemonItemEffectsController(commerce);
+  ProjectItemUseDefinition? _use(ProjectItemUseContext context) =>
+      _effects.useFor(context);
   void _set(
     ProjectItemUseContext context,
     ProjectItemUseDefinition? replacement,
-  ) {
-    commerce.setFieldError(
-      'item-effect-${commerce.item!.id}-${context.name}',
-      null,
-    );
-    commerce.editItem(
-      (item) => item.copyWith(
-        tags: replacement?.effect is ProjectItemBicycleEffectDefinition ||
-            replacement?.effect is ProjectItemFishingEffectDefinition
-            ? {...item.tags, 'key-item'} : item.tags,
-        uses: [
-          for (final value in item.uses)
-            if (!value.contexts.contains(context))
-              value
-            else if (value.contexts.length > 1)
-              value.copyWith(contexts: {...value.contexts}..remove(context)),
-          if (replacement != null) replacement.copyWith(contexts: {context}),
-        ],
-      ),
-    );
-  }
-
-  ProjectItemUseDefinition _defaultUse(ProjectItemUseContext context) =>
-      ProjectItemUseDefinition(
-        contexts: {context},
-        target: ProjectItemTargetKind.partyMember,
-        consumption: ProjectItemConsumptionPolicy.onApplied,
-        effect: const ProjectItemEffectDefinition.healHp(
-          mode: ProjectItemAmountMode.flat,
-          amount: 20,
-        ),
-      );
-
-  ProjectItemEffectDefinition _effect(String kind) => switch (kind) {
-    'vitamin' => const ProjectItemEffectDefinition.vitamin(
-      stat: ProjectItemVitaminStat.hp,
-      amount: 10,
-      maximumPerStat: 100,
-      friendshipGainLow: 5,
-      friendshipGainMedium: 3,
-      friendshipGainHigh: 2,
-    ),
-    'battle_boost' => const ProjectItemEffectDefinition.battleBoost(
-      stat: ProjectItemBattleStat.attack,
-      stages: 1,
-    ),
-    'focus_energy' => const ProjectItemEffectDefinition.battlePreparation(
-      effect: ProjectItemBattlePreparationKind.focusEnergy,
-    ),
-    'mist' => const ProjectItemEffectDefinition.battlePreparation(
-      effect: ProjectItemBattlePreparationKind.mist,
-      turns: 5,
-    ),
-    'full_restore' => const ProjectItemEffectDefinition.fullRestore(),
-    'repel' => const ProjectItemEffectDefinition.repel(steps: 100),
-    'escape_rope' => const ProjectItemEffectDefinition.escapeRope(),
-    'bicycle' => const ProjectItemEffectDefinition.bicycle(),
-    'fishing' => const ProjectItemEffectDefinition.fishing(rodKind: ProjectFishingRodKind.oldRod),
-    'cure' => const ProjectItemEffectDefinition.cureStatus(
-      mode: ProjectItemStatusCureMode.all,
-    ),
-    'revive' => const ProjectItemEffectDefinition.revive(
-      rateNumerator: 1,
-      rateDenominator: 2,
-    ),
-    'pp' => const ProjectItemEffectDefinition.restorePp(
-      mode: ProjectItemAmountMode.flat,
-      amount: 10,
-    ),
-    _ => const ProjectItemEffectDefinition.healHp(
-      mode: ProjectItemAmountMode.flat,
-      amount: 20,
-    ),
-  };
-
-  String _kind(ProjectItemEffectDefinition effect) => switch (effect) {
-    ProjectItemVitaminEffectDefinition() => 'vitamin',
-    ProjectItemBattleBoostEffectDefinition() => 'battle_boost',
-    ProjectItemBattlePreparationEffectDefinition(:final effect) =>
-      effect == ProjectItemBattlePreparationKind.mist ? 'mist' : 'focus_energy',
-    ProjectItemFullRestoreEffectDefinition() => 'full_restore',
-    ProjectItemHealHpEffectDefinition() => 'heal',
-    ProjectItemCureStatusEffectDefinition() => 'cure',
-    ProjectItemReviveEffectDefinition() => 'revive',
-    ProjectItemRestorePpEffectDefinition() => 'pp',
-    ProjectItemRepelEffectDefinition() => 'repel',
-    ProjectItemEscapeRopeEffectDefinition() => 'escape_rope',
-    ProjectItemBicycleEffectDefinition() => 'bicycle',
-    ProjectItemFishingEffectDefinition() => 'fishing',
-    _ => 'imported',
-  };
+  ) => _effects.setUse(context, replacement);
 
   @override
   Widget build(BuildContext context) => Column(
@@ -123,8 +33,7 @@ class PokemonItemEffects extends StatelessWidget {
     children: [
       const PokemonSectionHeading(
         title: 'Effets structurés',
-        description:
-            'Les actions ci-dessous utilisent les capacités reconnues par le runtime.',
+        description: 'Les actions ci-dessous utilisent les capacités reconnues par le runtime.',
       ),
       _card(ProjectItemUseContext.overworld, 'Hors combat'),
       const SizedBox(height: 12),
@@ -163,11 +72,15 @@ class PokemonItemEffects extends StatelessWidget {
 
   Widget _card(ProjectItemUseContext context, String title) {
     final use = _use(context);
-    final kind = use == null ? null : _kind(use.effect);
+    final kind = use == null ? null : PokemonItemEffectEditing.kind(use.effect);
     final supported =
         kind != 'imported' &&
         (context != ProjectItemUseContext.battle ||
-            (kind != 'pp' && kind != 'repel' && kind != 'escape_rope' && kind != 'bicycle' && kind != 'fishing'));
+            (kind != 'pp' &&
+                kind != 'repel' &&
+                kind != 'escape_rope' &&
+                kind != 'bicycle' &&
+                kind != 'fishing'));
     return PokemonSurface(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -181,7 +94,10 @@ class PokemonItemEffects extends StatelessWidget {
                 ? StudioButton(
                     label: 'Ajouter un effet',
                     icon: Icons.add,
-                    onPressed: () => _set(context, _defaultUse(context)),
+                    onPressed: () => _set(
+                      context,
+                      PokemonItemEffectEditing.defaultUse(context),
+                    ),
                   )
                 : StudioButton(
                     label: 'Retirer',
@@ -224,22 +140,62 @@ class PokemonItemEffects extends StatelessWidget {
                 },
                 onChanged: (value) => _set(
                   context,
-                  use.copyWith(
-                    effect: _effect(value),
-                    consumption: value == 'bicycle' || value == 'fishing'
-                        ? ProjectItemConsumptionPolicy.never
-                        : value == 'escape_rope' || value == 'full_restore'
-                        ? ProjectItemConsumptionPolicy.onApplied
-                        : use.consumption,
-                    target: value == 'repel' || value == 'escape_rope' || value == 'bicycle' || value == 'fishing'
-                        ? ProjectItemTargetKind.world
-                        : value == 'pp'
-                        ? ProjectItemTargetKind.partyMove
-                        : ProjectItemTargetKind.partyMember,
-                  ),
+                  PokemonItemEffectEditing.changeKind(use, value),
                 ),
               ),
               const SizedBox(height: 10),
+              if (use.target == ProjectItemTargetKind.partyMember ||
+                  use.target == ProjectItemTargetKind.partyMove) ...[
+                StudioToggleRow(
+                  label: 'Réduire l’amitié après utilisation',
+                  value: use.friendshipLoss != null,
+                  onChanged: (enabled) => _set(
+                    context,
+                    PokemonItemEffectEditing.toggleFriendshipLoss(use, enabled),
+                  ),
+                ),
+                if (use.friendshipLoss
+                    case final ProjectItemFriendshipLoss loss)
+                  for (final tier in ['low', 'medium', 'high'])
+                    PokemonCommerceIntegerField(
+                      key: ValueKey(
+                        'item-friendship-${commerce.item!.id}-${context.name}-$tier',
+                      ),
+                      commerce: commerce,
+                      fieldId:
+                          'item-friendship-${commerce.item!.id}-${context.name}-$tier',
+                      label:
+                          'Amitié retirée (${tier == 'low'
+                              ? '0–99'
+                              : tier == 'medium'
+                              ? '100–199'
+                              : '200–255'})',
+                      value: loss.toJson()[tier] as int,
+                      minimum: 0,
+                      maximum: 255,
+                      optional: false,
+                      onChanged: (value) => _set(
+                        context,
+                        PokemonItemEffectEditing.editFriendshipLoss(
+                          use,
+                          tier,
+                          value,
+                        ),
+                      ),
+                    ),
+              ],
+              if (use.effect
+                  case final ProjectItemCureStatusEffectDefinition cure)
+                StudioToggleRow(
+                  label: 'Soigner aussi la confusion en combat',
+                  value: cure.curesConfusion,
+                  onChanged: (enabled) => _set(
+                    context,
+                    use.copyWith(
+                      effect: cure.copyWith(curesConfusion: enabled),
+                    ),
+                  ),
+                ),
               if (use.effect
                   case final ProjectItemVitaminEffectDefinition vitamin) ...[
                 StudioSelect(
@@ -326,20 +282,10 @@ class PokemonItemEffects extends StatelessWidget {
                   value: mode == ProjectItemAmountMode.full,
                   onChanged: (value) => _set(
                     context,
-                    use.copyWith(
-                      effect: kind == 'pp'
-                          ? ProjectItemEffectDefinition.restorePp(
-                              mode: value
-                                  ? ProjectItemAmountMode.full
-                                  : ProjectItemAmountMode.flat,
-                              amount: value ? null : 10,
-                            )
-                          : ProjectItemEffectDefinition.healHp(
-                              mode: value
-                                  ? ProjectItemAmountMode.full
-                                  : ProjectItemAmountMode.flat,
-                              amount: value ? null : 20,
-                            ),
+                    PokemonItemEffectEditing.restoreMode(
+                      use,
+                      pp: kind == 'pp',
+                      full: value,
                     ),
                   ),
                 ),
@@ -357,33 +303,41 @@ class PokemonItemEffects extends StatelessWidget {
                     onChanged: (value) {
                       _set(
                         context,
-                        use.copyWith(
-                          effect: kind == 'pp'
-                              ? ProjectItemEffectDefinition.restorePp(
-                                  mode: ProjectItemAmountMode.flat,
-                                  amount: value!,
-                                )
-                              : ProjectItemEffectDefinition.healHp(
-                                  mode: ProjectItemAmountMode.flat,
-                                  amount: value!,
-                                ),
+                        PokemonItemEffectEditing.setAmount(
+                          use,
+                          pp: kind == 'pp',
+                          amount: value!,
                         ),
                       );
                     },
                   ),
               ],
-              if (use.effect case ProjectItemFishingEffectDefinition(:final rodKind)) ...[
+              if (use.effect case ProjectItemFishingEffectDefinition(
+                :final rodKind,
+              )) ...[
                 StudioSelect(
                   label: 'Canne de pêche',
                   value: rodKind.name,
-                  options: const {'oldRod': 'Canne', 'goodRod': 'Super Canne', 'superRod': 'Méga Canne'},
-                  onChanged: (value) => _set(context, use.copyWith(
-                    effect: ProjectItemEffectDefinition.fishing(
-                      rodKind: ProjectFishingRodKind.values.singleWhere((kind) => kind.name == value)),
-                  )),
+                  options: const {
+                    'oldRod': 'Canne',
+                    'goodRod': 'Super Canne',
+                    'superRod': 'Méga Canne',
+                  },
+                  onChanged: (value) => _set(
+                    context,
+                    use.copyWith(
+                      effect: ProjectItemEffectDefinition.fishing(
+                        rodKind: ProjectFishingRodKind.values.singleWhere(
+                          (kind) => kind.name == value,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 8),
-                const Text('La canne reste dans le sac. Peignez sa table sur une zone d’eau : la pêche vise la case devant le joueur.'),
+                const Text(
+                  'La canne reste dans le sac. Peignez sa table sur une zone d’eau : la pêche vise la case devant le joueur.',
+                ),
               ],
               if (use.effect case ProjectItemRepelEffectDefinition(
                 :final steps,
@@ -409,7 +363,11 @@ class PokemonItemEffects extends StatelessWidget {
                 label: 'Consommer après application',
                 value:
                     use.consumption == ProjectItemConsumptionPolicy.onApplied,
-                onChanged: kind == 'escape_rope' || kind == 'bicycle' || kind == 'fishing'
+                onChanged:
+                    use.friendshipLoss != null ||
+                        kind == 'escape_rope' ||
+                        kind == 'bicycle' ||
+                        kind == 'fishing'
                     ? null
                     : (value) => _set(
                         context,
@@ -450,15 +408,8 @@ class PokemonItemEffects extends StatelessWidget {
         ? 252
         : 255,
     optional: false,
-    onChanged: (next) => _set(
-      context,
-      use.copyWith(
-        effect: ProjectItemEffectDefinition.fromJson({
-          ...use.effect.toJson(),
-          field: next,
-        }).normalized(),
-      ),
-    ),
+    onChanged: (next) =>
+        _set(context, PokemonItemEffectEditing.setInteger(use, field, next)),
   );
 
   String _statLabel(String stat) => switch (stat) {

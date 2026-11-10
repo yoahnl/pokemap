@@ -34,11 +34,7 @@ class MapMultiSelectionInspector extends StatelessWidget {
     String raw, {
     required bool horizontal,
   }) {
-    final value = num.tryParse(raw.trim().replaceAll(',', '.'));
-    if (value == null) return false;
-    final moved = horizontal
-        ? editing.move(ids, x: value)
-        : editing.move(ids, y: value);
+    final moved = editing.moveText(ids, raw, horizontal: horizontal);
     onChanged();
     return moved;
   }

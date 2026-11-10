@@ -109,6 +109,8 @@ final class ImportPokemonMenuSpritesUseCase {
               PokemonMediaImportRole.icon => variant?.icon,
               PokemonMediaImportRole.party => variant?.party,
               PokemonMediaImportRole.portrait => variant?.portrait,
+              PokemonMediaImportRole.overworld => variant?.overworld,
+              PokemonMediaImportRole.overworldShiny => variant?.overworldShiny,
             };
             if (existing != null && existing.isNotEmpty) {
               preserved++;

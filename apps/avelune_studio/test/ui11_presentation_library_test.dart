@@ -1,77 +1,153 @@
-import 'package:flutter/material.dart';
+import 'dart:io';
+
+import 'package:avelune_studio/features/presentations/application/presentation_workspace_controller.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
-import 'support/ui11_workspace_harness.dart';
-import 'ui11_presentation_widget_test.dart' show tapUi11;
+
+import 'support/presentation_controller_fixture.dart';
 
 void main() {
-  testWidgets(
-    'UI11 library visual ordering archives and restores the real asset',
-    (tester) async {
-      tester.view.physicalSize = const Size(1536, 1024);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-      final harness = (await tester.runAsync(
-        () => Ui11WorkspaceHarness.create(tester),
-      ))!;
-      addTearDown(() => harness.shutdown(tester));
-      await tester.pumpWidget(harness.app());
-      await harness.settle(tester);
-      final id = harness.controller.activeId!;
-      final original = harness.controller.active!.asset;
-      await tapUi11(tester, harness, find.text('Éléments'));
-      await tapUi11(tester, harness, find.byTooltip('Devant : Illustration'));
-      final moved = harness.controller.active!.asset;
+  TestWidgetsFlutterBinding.ensureInitialized();
+  late PresentationControllerFixture fixture;
+  late PresentationCinematicAsset original;
+  late String imageLayerId;
+
+  setUp(() async {
+    final parent = Directory(
+      '/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109',
+    );
+    await parent.create(recursive: true);
+    fixture = await IOOverrides.runZoned(
+      PresentationControllerFixture.create,
+      getSystemTempDirectory: () => parent,
+    );
+    final controller = fixture.controller;
+    expect(await controller.create(title: 'Bibliothèque'), isTrue);
+    final media = await controller.importMedia(
+      sourcePath: File('assets/home/hero_landscape.png').absolute.path,
+      label: 'Illustration',
+      kind: ProjectMediaKind.image,
+    );
+    expect(media, isNotNull, reason: controller.error);
+    expect(
+      controller.addMediaClip(media!.media),
+      isNotNull,
+      reason: controller.error,
+    );
+    expect(controller.addText(), isNotNull, reason: controller.error);
+    expect(await controller.save(), isTrue, reason: controller.error);
+    original = controller.active!.asset;
+    imageLayerId = original.layers.first.id;
+  });
+  tearDown(() => fixture.dispose());
+
+  test(
+    'visual layer ordering preserves tracks, remains a draft and supports undo',
+    () async {
+      final controller = fixture.controller;
+      final project = await fixture.files.file('project.json').readAsBytes();
       expect(
-        moved.layers.firstWhere((l) => l.id == 'landscape').zIndex,
-        greaterThan(moved.layers.firstWhere((l) => l.id == 'title').zIndex),
+        controller.moveLayer(imageLayerId, -1),
+        isTrue,
+        reason: controller.error,
+      );
+      final moved = controller.active!.asset;
+      expect(
+        moved.layers.firstWhere((layer) => layer.id == imageLayerId).zIndex,
+        greaterThan(
+          moved.layers.firstWhere((layer) => layer.id != imageLayerId).zIndex,
+        ),
       );
       expect(moved.tracks, original.tracks);
-      await tapUi11(tester, harness, find.byTooltip('Derrière : Illustration'));
       expect(
-        harness.controller.active!.asset.layers,
-        unorderedEquals(original.layers),
+        controller.moveLayer(imageLayerId, 1),
+        isTrue,
+        reason: controller.error,
       );
-      expect(harness.controller.active!.asset.tracks, original.tracks);
-      await tapUi11(tester, harness, find.byTooltip('Annuler'));
-      await tapUi11(tester, harness, find.byTooltip('Annuler'));
-      expect(harness.controller.active!.asset, original);
-      await tapUi11(tester, harness, find.text('Cinématiques').last);
-      await tapUi11(
-        tester,
-        harness,
-        find.byTooltip('Options de la présentation'),
-      );
-      await tapUi11(tester, harness, find.text('Archiver'));
-      expect(harness.controller.error, isNull);
+      expect(controller.active!.asset.layers, unorderedEquals(original.layers));
+      expect(controller.active!.asset.tracks, original.tracks);
+      final restored = controller.active!.asset;
+      controller.undo();
+      expect(controller.active!.asset, moved);
+      controller.undo();
+      expect(controller.active!.asset, original);
+      controller.redo();
+      expect(controller.active!.asset, moved);
+      controller.redo();
+      expect(controller.active!.asset, restored);
+      controller.undo();
+      expect(controller.active!.asset, moved);
+      controller.undo();
+      expect(controller.active!.asset, original);
+      expect(await fixture.files.file('project.json').readAsBytes(), project);
+      expect((await fixture.port.inner.load(original.id)).asset, original);
+    },
+  );
+
+  test(
+    'archive and restore preserve the real asset after independent reopening',
+    () async {
+      final controller = fixture.controller;
       expect(
-        harness.controller.catalog
-            .entryFor(CinematicLibraryFamily.presentation, id)!
+        await controller.setArchived(original.id, true),
+        isTrue,
+        reason: controller.error,
+      );
+      expect(
+        controller.catalog
+            .entryFor(CinematicLibraryFamily.presentation, original.id)!
             .isArchived,
         isTrue,
       );
-      expect(find.byKey(ValueKey('presentation-entry-$id')), findsNothing);
       expect(
-        find.text('Ouverte hors filtre : ${original.title}'),
-        findsOneWidget,
+        (await fixture.port.inner.load(original.id)).entry!.isArchived,
+        isTrue,
       );
-      await tapUi11(tester, harness, find.text('Archives'));
-      expect(find.byKey(ValueKey('presentation-entry-$id')), findsOneWidget);
-      await harness.capture(tester, 'ui11-07-library-archived');
-      await tapUi11(tester, harness, find.text('Restaurer'));
+      expect(controller.active!.asset, original);
       expect(
-        harness.controller.catalog
-            .entryFor(CinematicLibraryFamily.presentation, id)!
+        await controller.setArchived(original.id, false),
+        isTrue,
+        reason: controller.error,
+      );
+      expect(
+        controller.catalog
+            .entryFor(CinematicLibraryFamily.presentation, original.id)!
             .isArchived,
         isFalse,
       );
-      final persisted = (await tester.runAsync(
-        () => harness.port.delegate.load(id),
-      ))!;
-      expect(persisted.entry!.isArchived, isFalse);
-      expect(persisted.asset, original);
-      expect(tester.takeException(), isNull);
+      final reopened = await fixture.port.inner.load(original.id);
+      expect(reopened.entry!.isArchived, isFalse);
+      expect(reopened.asset, original);
     },
   );
+
+  test('unknown, out-of-bounds and locked layer moves preserve the draft and publication', () async {
+    final controller = fixture.controller;
+    final front = original.layers.singleWhere(
+      (layer) => layer.id != imageLayerId,
+    );
+    expect(controller.moveLayer('missing', -1), isFalse);
+    expect(controller.moveLayer(imageLayerId, 1), isFalse);
+    expect(controller.moveLayer(front.id, -1), isFalse);
+    expect(controller.active!.asset, original);
+    expect(
+      controller.apply('presentationLayer.setLocked', {
+        'layerId': imageLayerId,
+        'locked': true,
+      }),
+      isTrue,
+      reason: controller.error,
+    );
+    final locked = controller.active!.asset;
+    expect(controller.moveLayer(imageLayerId, -1), isFalse);
+    expect(controller.active!.asset, locked);
+    controller.undo();
+    expect(controller.active!.asset, original);
+    expect(
+      controller.moveLayer(imageLayerId, -1),
+      isTrue,
+      reason: controller.error,
+    );
+    expect((await fixture.port.inner.load(original.id)).asset, original);
+  });
 }

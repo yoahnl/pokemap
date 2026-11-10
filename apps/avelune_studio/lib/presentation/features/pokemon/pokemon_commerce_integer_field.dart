@@ -55,21 +55,15 @@ class _PokemonCommerceIntegerFieldState
   }
 
   void _change(String value) {
-    final number = int.tryParse(value);
-    final valid = value.isEmpty
-        ? widget.optional
-        : number != null &&
-              number >= widget.minimum &&
-              (widget.maximum == null || number <= widget.maximum!);
-    setState(
-      () => error = valid
-          ? null
-          : widget.maximum == null
-          ? 'Valeur entière ≥ ${widget.minimum} requise'
-          : 'Valeur entière entre ${widget.minimum} et ${widget.maximum} requise',
+    final problem = widget.commerce.setIntegerInput(
+      fieldId: widget.fieldId,
+      value: value,
+      minimum: widget.minimum,
+      maximum: widget.maximum,
+      optional: widget.optional,
+      onChanged: widget.onChanged,
     );
-    widget.commerce.setFieldError(widget.fieldId, error);
-    if (valid) widget.onChanged(value.isEmpty ? null : number);
+    setState(() => error = problem);
   }
 
   @override

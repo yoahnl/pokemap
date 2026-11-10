@@ -8,10 +8,41 @@ import '../models/items/project_item_catalog.dart';
 abstract final class ItemPpRestoreCapabilities {
   static const allMovesCapabilityId = 'items.restore-all-pp@1';
 
-  static bool requiresAllMoves(ProjectItemCatalog catalog) => catalog.entries.any(
-    (item) => item.uses.any((use) => use.effect is ProjectItemRestorePpEffectDefinition &&
-      (use.effect as ProjectItemRestorePpEffectDefinition).scope == ProjectItemPpScope.allMoves),
-  );
+  static bool requiresAllMoves(ProjectItemCatalog catalog) =>
+      catalog.entries.any(
+        (item) => item.uses.any(
+          (use) =>
+              use.effect is ProjectItemRestorePpEffectDefinition &&
+              (use.effect as ProjectItemRestorePpEffectDefinition).scope ==
+                  ProjectItemPpScope.allMoves,
+        ),
+      );
+}
+
+abstract final class ItemFriendshipCapabilities {
+  static const capabilityId = 'items.friendship-loss@1';
+
+  static bool requiresCapability(ProjectItemCatalog catalog) =>
+      catalog.entries.any(
+        (item) => item.uses.any(
+          (use) =>
+              use.friendshipLoss != null ||
+              use.effect is ProjectItemCureStatusEffectDefinition &&
+                  (use.effect as ProjectItemCureStatusEffectDefinition)
+                      .curesConfusion,
+        ),
+      );
+}
+
+abstract final class ItemHeldBerryCapabilities {
+  static const capabilityId = 'items.held-oran-pecha@1';
+
+  static bool requiresCapability(ProjectItemCatalog catalog) =>
+      catalog.entries.any(
+        (item) => const {'oran_berry', 'pecha_berry'}.contains(
+          item.heldEffectId?.trim().toLowerCase().replaceAll('-', '_'),
+        ),
+      );
 }
 
 enum ProjectItemEffectCapability {
@@ -57,7 +88,9 @@ final class ItemCapabilityTruth {
     Set<String> supportedContextualCapturePolicyIds = const {},
     this.supportsMoveMachines = false,
     String presentationPocketFallback = 'items',
-  }) : supportedContextualCapturePolicyIds = Set.unmodifiable(supportedContextualCapturePolicyIds),
+  }) : supportedContextualCapturePolicyIds = Set.unmodifiable(
+         supportedContextualCapturePolicyIds,
+       ),
        supportedUses = Set<ItemUseCapability>.unmodifiable(supportedUses),
        supportedSemanticActionIds = Set<String>.unmodifiable(
          supportedSemanticActionIds
@@ -105,9 +138,18 @@ final class ItemCapabilityTruth {
 
 final ItemCapabilityTruth itemSystemV1CapabilityTruth = ItemCapabilityTruth(
   supportedUses: <ItemUseCapability>{
-    ItemUseCapability(context: ProjectItemUseContext.overworld, effect: ProjectItemEffectCapability.vitamin),
-    ItemUseCapability(context: ProjectItemUseContext.battle, effect: ProjectItemEffectCapability.battleBoost),
-    ItemUseCapability(context: ProjectItemUseContext.battle, effect: ProjectItemEffectCapability.battlePreparation),
+    ItemUseCapability(
+      context: ProjectItemUseContext.overworld,
+      effect: ProjectItemEffectCapability.vitamin,
+    ),
+    ItemUseCapability(
+      context: ProjectItemUseContext.battle,
+      effect: ProjectItemEffectCapability.battleBoost,
+    ),
+    ItemUseCapability(
+      context: ProjectItemUseContext.battle,
+      effect: ProjectItemEffectCapability.battlePreparation,
+    ),
     ItemUseCapability(
       context: ProjectItemUseContext.overworld,
       effect: ProjectItemEffectCapability.healHp,
@@ -171,6 +213,8 @@ final ItemCapabilityTruth itemSystemV1CapabilityTruth = ItemCapabilityTruth(
     'king_s_rock',
     'leftovers',
     'lum_berry',
+    'oran_berry',
+    'pecha_berry',
     'persim_berry',
     'poison_barb',
     'metal_coat',
@@ -184,16 +228,21 @@ final ItemCapabilityTruth itemSystemV1CapabilityTruth = ItemCapabilityTruth(
   supportsMoveMachines: true,
 );
 
-ItemCapabilityTruth itemCapabilityTruthForRuleset(PokemonRulesetProfile ruleset) {
+ItemCapabilityTruth itemCapabilityTruthForRuleset(
+  PokemonRulesetProfile ruleset,
+) {
   ruleset.requireSupported();
   final base = itemSystemV1CapabilityTruth;
-  if (ruleset.profileId != PokemonRulesetProfile.contextualProfileId) return base;
+  if (ruleset.profileId != PokemonRulesetProfile.contextualProfileId)
+    return base;
   return ItemCapabilityTruth(
     supportedUses: base.supportedUses,
     supportedSemanticActionIds: base.supportedSemanticActionIds,
     supportedHeldEffectIds: base.supportedHeldEffectIds,
     supportsCapture: base.supportsCapture,
-    supportedContextualCapturePolicyIds: {ProjectContextualCapturePolicy.algorithmId},
+    supportedContextualCapturePolicyIds: {
+      ProjectContextualCapturePolicy.algorithmId,
+    },
     supportsMoveMachines: base.supportsMoveMachines,
     presentationPocketFallback: base.presentationPocketFallback,
   );
@@ -216,8 +265,10 @@ ProjectItemEffectCapability projectItemEffectCapabilityOf(
 ) {
   return switch (effect) {
     ProjectItemVitaminEffectDefinition() => ProjectItemEffectCapability.vitamin,
-    ProjectItemBattleBoostEffectDefinition() => ProjectItemEffectCapability.battleBoost,
-    ProjectItemBattlePreparationEffectDefinition() => ProjectItemEffectCapability.battlePreparation,
+    ProjectItemBattleBoostEffectDefinition() =>
+      ProjectItemEffectCapability.battleBoost,
+    ProjectItemBattlePreparationEffectDefinition() =>
+      ProjectItemEffectCapability.battlePreparation,
     ProjectItemHealHpEffectDefinition() => ProjectItemEffectCapability.healHp,
     ProjectItemFullRestoreEffectDefinition() =>
       ProjectItemEffectCapability.fullRestore,

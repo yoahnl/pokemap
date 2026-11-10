@@ -1,288 +1,158 @@
-import 'dart:io';
-
-import 'package:avelune_studio/features/resources/domain/resource_port.dart';
-import 'package:avelune_studio/presentation/features/resources/resource_workspace_pane.dart';
-import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
-import 'package:avelune_studio/presentation/features/resources/border_pattern_panel.dart';
-import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_border_drawing_draft.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_border_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:avelune_studio/features/resources/application/border_creation_draft.dart';
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
+import 'package:avelune_studio/features/resources/coordination/border_creation_workflow.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
 
-import '../support/m2_ui_fixture.dart';
-import '../support/ui04_terrain_atlas.dart';
-import '../support/resource_family_gestures.dart';
+import '../support/resource_replacement_fixture.dart';
 
 void main() {
-  testWidgets('Studio publishes a border and offers it to the map tool', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(1536, 1024);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    final fixture = (await tester.runAsync(() => M2UiFixture.create(tester)))!;
-    addTearDown(fixture.dispose);
-    await tester.pumpWidget(fixture.app(tester));
-    await pumpIo(tester);
-    await tester.tap(find.text('Bordures'));
-    await pumpIo(tester);
-    await tester.tap(find.text('Créer un modèle'));
-    await pumpIo(tester);
-    final navigation = tester
-        .widget<ResourceWorkspacePane>(find.byType(ResourceWorkspacePane))
-        .navigation;
-    expect(navigation.library.family, ResourceLibraryFamily.borders);
-    expect(find.text('Créer une bordure'), findsOneWidget);
-    await tester.runAsync(() async {
-      final source = File('${fixture.directory.path}/border-source.png');
-      await source.writeAsBytes(ui04TerrainAtlas());
-      final imported = await fixture.resources.importImage(
-        ResourceImageImport(
-          sourcePath: source.path,
-          name: 'Pièces de clôture',
-          tileWidth: 24,
-          tileHeight: 24,
-        ),
-      );
-      await navigation.accept(imported);
-      final tilesetId = imported.createdTilesetId!;
-      for (final (id, x) in [('Embout', 0), ('Segment', 1), ('Angle', 2)]) {
-        await navigation.accept(
-          await fixture.resources.saveElement(
-            ProjectElementEntry(
-              id: id.toLowerCase(),
-              name: id,
-              tilesetId: tilesetId,
-              categoryId: '',
-              frames: [
-                TilesetVisualFrame(source: TilesetSourceRect(x: x, y: 0)),
-              ],
-            ),
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  test(
+    'Studio publishes a border and offers it to the native map tool',
+    () async {
+      final host = await ResourceReplacementFixture.create();
+      for (final (id, x) in [('cap', 0), ('straight', 1), ('corner', 2)]) {
+        await host.navigation.accept(
+          await host.fixture.resources.saveElement(
+            host.fixture
+                .element(host.item.id, id: id)
+                .copyWith(
+                  frames: [
+                    TilesetVisualFrame(source: TilesetSourceRect(x: x, y: 0)),
+                  ],
+                ),
           ),
         );
       }
-    });
-    await pumpIo(tester);
-    await selectResourceFamily(tester, ResourceLibraryFamily.borders);
-    await tester.tap(find.text('Créer une bordure'));
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.byKey(const ValueKey('border-name')),
-      'Clôture du jardin',
-    );
-    final corner = find.byKey(
-      const ValueKey('border-pattern-Angle haut gauche'),
-    );
-    final angle = find.byKey(const ValueKey('border-library-angle'));
-    await tester.ensureVisible(angle);
-    await tester.drag(
-      angle,
-      tester.getCenter(corner) - tester.getCenter(angle),
-    );
-    await tester.pumpAndSettle();
-    expect(find.text('1 / 3 familles de pièces associées'), findsOneWidget);
-    expect(
-      find.text('Pièces manquantes avant publication : bords, extrémités.'),
-      findsOneWidget,
-    );
-    expect(
-      tester
-          .widget<StudioButton>(find.byKey(const ValueKey('border-publish')))
-          .onPressed,
-      isNull,
-    );
-    final sourceList = tester.state<ScrollableState>(
-      find
-          .ancestor(
-            of: find.byKey(const ValueKey('border-library-angle')),
-            matching: find.byType(Scrollable),
-          )
-          .first,
-    );
-    for (final (id, slot) in [
-      ('embout', 'Extrémité haute'),
-      ('segment', 'Bord haut'),
-    ]) {
-      final source = find.byKey(ValueKey('border-library-$id'));
-      final position = sourceList.position;
-      position.jumpTo(0);
-      await tester.pump();
-      while (source.evaluate().isEmpty &&
-          position.pixels < position.maxScrollExtent) {
-        position.jumpTo(position.pixels + 60);
-        await tester.pump();
+      BorderCreationDraft draftFor([BorderBlueprintRecord? record]) =>
+          BorderCreationDraft(
+            project: host.workspace.project!,
+            initialRecord: record,
+            unavailableResourceIds: () => const {},
+          );
+      BorderCreationWorkflow workflowFor(
+        BorderCreationDraft draft, {
+        bool discard = false,
+      }) {
+        final workflow = BorderCreationWorkflow(
+          navigation: host.navigation,
+          draft: draft,
+          isActive: () => true,
+          confirmDiscard: () async => discard,
+          confirmRepublication: (_) async => true,
+        );
+        addTearDown(workflow.dispose);
+        return workflow;
       }
-      await tester.ensureVisible(source);
-      await tester.pumpAndSettle();
-      await tester.tap(source);
-      final target = find.byKey(ValueKey('border-pattern-$slot'));
-      await tester.ensureVisible(target);
-      await tester.pumpAndSettle();
-      await tester.tap(target);
-      await tester.pumpAndSettle();
-    }
-    expect(
-      tester
-          .widget<BorderPatternPanel>(find.byType(BorderPatternPanel))
-          .chosen
-          .keys,
-      containsAll(['lineCap', 'lineStraight', 'lineCorner']),
-    );
-    expect(
-      find.text(
-        'Associations complètes. Les raccords restent à valider avant publication.',
-      ),
-      findsOneWidget,
-    );
-    await fixture.capture(tester, 'bordure-choix-des-pieces');
-    tester.view.physicalSize = const Size(1024, 640);
-    await tester.pumpWidget(fixture.app(tester, textScale: 1.5));
-    await tester.pumpAndSettle();
-    expect(tester.takeException(), isNull);
-    expect(find.byKey(const ValueKey('border-publish')), findsOneWidget);
-    await tester.ensureVisible(
-      find.byKey(const ValueKey('border-pattern-Extérieur bas droit')),
-    );
-    await tester.pumpAndSettle();
-    expect(
-      find.byKey(const ValueKey('border-pattern-Extérieur bas droit')),
-      findsOneWidget,
-    );
-    await fixture.capture(tester, 'bordure-compact-150');
-    tester.view.physicalSize = const Size(1536, 1024);
-    await tester.pumpWidget(fixture.app(tester));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('border-publish')));
-    await pumpIo(tester);
-    expect(
-      fixture.controller.project!.borderCatalog.records,
-      hasLength(1),
-      reason: navigation.error,
-    );
-    expect(
-      fixture.controller.project!.borderCatalog.records.single.latestPublished,
-      isNotNull,
-    );
-    final borderId =
-        fixture.controller.project!.borderCatalog.records.single.id;
-    await tester.tap(find.textContaining('Modifier « Clôture du jardin »'));
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.byKey(const ValueKey('border-name')),
-      'Clôture du jardin ajustée',
-    );
-    final beforeExportRead = fixture.controller.project!.toJson();
-    final owner = navigation.packBorderDraftOwners[borderId]!;
-    final draft = owner();
-    expect(draft.dirty, isTrue);
-    expect(draft.saving, isFalse);
-    expect(draft.request.name, 'Clôture du jardin ajustée');
-    expect(draft.request.publish, isFalse);
-    expect(
-      () => draft.request.primitiveModelIds.clear(),
-      throwsUnsupportedError,
-    );
-    expect(
-      () => draft.request.acceptedWarningCodes.clear(),
-      throwsUnsupportedError,
-    );
-    expect(owner().signature, draft.signature);
-    expect(fixture.controller.project!.toJson(), beforeExportRead);
-    await tester.tap(find.text('Fermer'));
-    await tester.pumpAndSettle();
-    expect(
-      find.text('Abandonner les modifications de la bordure ?'),
-      findsOneWidget,
-    );
-    await tester.tap(find.text('Conserver'));
-    await tester.pumpAndSettle();
-    expect(find.text('Clôture du jardin ajustée'), findsOneWidget);
-    await tester.tap(find.text('Enregistrer le brouillon'));
-    await pumpIo(tester);
-    final pending = (await tester.runAsync(
-      () => LocalMapWorkspaceAdapter().loadProject(fixture.session),
-    ))!;
-    expect(
-      pending.borderCatalog.recordById(borderId)!.latestPublished!.revision,
-      1,
-    );
-    expect(
-      pending.borderCatalog.recordById(borderId)!.draft.definition.name,
-      'Clôture du jardin ajustée',
-    );
-    await tester.tap(
-      find.textContaining('Modifier « Clôture du jardin ajustée »'),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('border-publish')));
-    await pumpIo(tester);
-    expect(
-      fixture.controller.project!.borderCatalog
-          .recordById(borderId)!
-          .latestPublished!
-          .revision,
-      2,
-    );
-    await tester.tap(
-      find.textContaining('Modifier « Clôture du jardin ajustée »'),
-    );
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.byKey(const ValueKey('border-name')),
-      'Nom abandonné',
-    );
-    await tester.tap(find.text('Fermer'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Abandonner'));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('border-name')), findsNothing);
-    expect(
-      fixture.controller.project!.borderCatalog
-          .recordById(borderId)!
-          .draft
-          .definition
-          .name,
-      'Clôture du jardin ajustée',
-    );
-    await tester.tap(find.textContaining('Carte :').first);
-    await pumpIo(tester);
-    await tester.ensureVisible(find.text('Bordures'));
-    await tester.tap(find.text('Bordures'));
-    await pumpIo(tester);
-    await tester.tap(find.byKey(const ValueKey('border-model-picker')));
-    await pumpIo(tester);
-    await tester.tap(find.text('Clôture du jardin ajustée').last);
-    await pumpIo(tester);
-    expect(find.text('Clôture du jardin ajustée'), findsWidgets);
-    await fixture.capture(tester, 'bordure-modele-publie');
-    final document = fixture.controller.active!;
-    final canvas = tester.getTopLeft(find.byKey(const ValueKey('map-canvas')));
-    final cell =
-        fixture.controller.project!.settings.tileWidth *
-        fixture.controller.project!.settings.displayScale;
-    Offset at(int x, int y) =>
-        canvas + Offset((x + .5) * cell, (y + .5) * cell);
-    await tester.tapAt(at(4, 4));
-    await tester.tapAt(at(7, 4));
-    await tester.tapAt(at(7, 7));
-    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-    await pumpIo(tester);
-    expect(
-      document.current.layers.whereType<BorderLayer>(),
-      isNotEmpty,
-      reason: document.error,
-    );
-    await tester.tap(find.byKey(const ValueKey('Enregistrer')));
-    await pumpIo(tester);
-    final reopened = (await tester.runAsync(() async {
-      final adapter = LocalMapWorkspaceAdapter();
-      final project = await adapter.loadProject(fixture.session);
-      return adapter.loadMap(fixture.session, project.maps.first);
-    }))!;
-    expect(reopened.map.layers.whereType<BorderLayer>(), isNotEmpty);
-    await fixture.capture(tester, 'bordure-tracee');
-  });
+
+      final draft = draftFor()..name = 'Clôture du jardin';
+      final workflow = workflowFor(draft);
+      void assign(String role, String id) => draft.assignRole(
+        role,
+        resourceCatalog(host.workspace.project!)
+            .firstWhere((item) => item.element?.id == id),
+      );
+      assign('lineCorner', 'corner');
+      expect(draft.complete, isFalse);
+      expect(await workflow.save(publish: true), isFalse);
+      expect(
+        (await LocalMapWorkspaceAdapter().loadProject(host.fixture.session))
+            .borderCatalog
+            .records,
+        isEmpty,
+      );
+      assign('lineCap', 'cap');
+      assign('lineStraight', 'straight');
+      expect(draft.complete, isTrue);
+      expect(await workflow.save(publish: true), isTrue, reason: draft.error);
+      final record = host.workspace.project!.borderCatalog.records.single;
+      final borderId = record.id;
+      expect(record.latestPublished, isNotNull);
+      expect(
+        MapBorderEditingCommands.publishedLines(host.workspace.project!)
+            .map((entry) => entry.id),
+        contains(borderId),
+      );
+      workflow.dispose();
+
+      final edited = draftFor(record)..name = 'Clôture du jardin ajustée';
+      final editing = workflowFor(edited);
+      final beforeExportRead = host.workspace.project!.toJson();
+      final owner = host.navigation.packBorderDraftOwners[borderId]!;
+      final export = owner();
+      expect(export.dirty, isTrue);
+      expect(export.saving, isFalse);
+      expect(export.request.name, 'Clôture du jardin ajustée');
+      expect(export.request.publish, isFalse);
+      expect(
+        () => export.request.primitiveModelIds.clear(),
+        throwsUnsupportedError,
+      );
+      expect(
+        () => export.request.acceptedWarningCodes.clear(),
+        throwsUnsupportedError,
+      );
+      expect(owner().signature, export.signature);
+      expect(host.workspace.project!.toJson(), beforeExportRead);
+      expect(await editing.requestClose(), isFalse);
+      expect(edited.name, 'Clôture du jardin ajustée');
+      expect(await editing.save(publish: false), isTrue, reason: edited.error);
+      final pending = (await LocalMapWorkspaceAdapter().loadProject(
+        host.fixture.session,
+      )).borderCatalog.recordById(borderId)!;
+      expect(pending.latestPublished!.revision, 1);
+      expect(pending.draft.definition.name, 'Clôture du jardin ajustée');
+      editing.dispose();
+
+      final republishing = workflowFor(draftFor(pending));
+      expect(await republishing.save(publish: true), isTrue);
+      expect(
+        host.workspace.project!.borderCatalog
+            .recordById(borderId)!
+            .latestPublished!
+            .revision,
+        2,
+      );
+      republishing.dispose();
+      final beforeDiscard = await host.fixture.manifestFile.readAsBytes();
+      final abandoned = draftFor(
+        host.workspace.project!.borderCatalog.recordById(borderId),
+      )..name = 'Nom abandonné';
+      final abandoning = workflowFor(abandoned, discard: true);
+      expect(await abandoning.requestClose(), isTrue);
+      abandoning.dispose();
+      expect(await host.fixture.manifestFile.readAsBytes(), beforeDiscard);
+
+      final document = host.workspace.active!;
+      final tracing = MapBorderDrawingDraft.start(
+        mapId: document.current.id,
+        mapSize: document.current.size,
+        blueprintId: borderId,
+        origin: const GridPos(x: 1, y: 1),
+        sourceMap: document.current,
+        sourceProject: host.workspace.project!,
+      ).addAngle(const GridPos(x: 3, y: 1)).addAngle(const GridPos(x: 3, y: 3));
+      MapBorderEditingCommands(
+        document,
+        host.workspace.project!,
+      ).finish(tracing);
+      expect(document.current.layers.whereType<BorderLayer>(), isNotEmpty);
+      expect(
+        await host.workspace.save(document),
+        isTrue,
+        reason: document.error,
+      );
+      final reopened = await host.fixture.loadMap();
+      final features = reopened.map.layers.whereType<BorderLayer>().expand(
+        (layer) => layer.content.features,
+      );
+      expect(features.single.blueprintId, borderId);
+      expect(features.single.name, 'Clôture du jardin ajustée');
+    },
+  );
 }

@@ -123,6 +123,14 @@ final class GamePackageProjectValidator {
             !packageManifest.compatibility.requiredCapabilities.contains(ItemPpRestoreCapabilities.allMovesCapabilityId)) {
           _fail('All-move PP restoration requires ${ItemPpRestoreCapabilities.allMovesCapabilityId}.');
         }
+        if (ItemFriendshipCapabilities.requiresCapability(catalog) &&
+            !packageManifest.compatibility.requiredCapabilities.contains(ItemFriendshipCapabilities.capabilityId)) {
+          _fail('Bitter medicines require ${ItemFriendshipCapabilities.capabilityId}.');
+        }
+        if (ItemHeldBerryCapabilities.requiresCapability(catalog) &&
+            !packageManifest.compatibility.requiredCapabilities.contains(ItemHeldBerryCapabilities.capabilityId)) {
+          _fail('Held Oran and Pecha berries require ${ItemHeldBerryCapabilities.capabilityId}.');
+        }
         if (!contextualCapture && catalog.entries.any((item) => item.capture?.contextualPolicy != null)) {
           _fail('Contextual item policies require the explicit contextual ruleset.');
         }

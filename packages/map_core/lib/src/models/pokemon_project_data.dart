@@ -686,6 +686,7 @@ class PokemonMediaVariant {
     this.icon,
     this.party,
     this.overworld,
+    this.overworldShiny,
     this.portrait,
     this.cry,
     this.animations = const <String, PokemonMediaAnimationRef>{},
@@ -707,6 +708,7 @@ class PokemonMediaVariant {
   final String? icon;
   final String? party;
   final String? overworld;
+  final String? overworldShiny;
   final String? portrait;
   final String? cry;
   final Map<String, PokemonMediaAnimationRef> animations;
@@ -751,6 +753,7 @@ class PokemonMediaVariant {
       icon: _readOptionalTrimmedString(json['icon']),
       party: _readOptionalTrimmedString(json['party']),
       overworld: _readOptionalTrimmedString(json['overworld']),
+      overworldShiny: _readOptionalTrimmedString(json['overworldShiny']),
       portrait: _readOptionalTrimmedString(json['portrait']),
       cry: _readOptionalTrimmedString(json['cry']),
       animations: rawAnimations.map(
@@ -802,6 +805,7 @@ class PokemonMediaVariant {
     'icon': icon,
     'party': party,
     'overworld': overworld,
+    if (overworldShiny != null) 'overworldShiny': overworldShiny,
     'portrait': portrait,
     'cry': cry,
     'animations': animations.map((key, value) => MapEntry(key, value.toJson())),
@@ -880,6 +884,7 @@ const _pokemonMediaVariantFields = {
   'icon',
   'party',
   'overworld',
+  'overworldShiny',
   'portrait',
   'cry',
   'animations',

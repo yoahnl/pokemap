@@ -269,6 +269,16 @@ class ResourceLibraryState {
     filters.usage = ResourceCatalogUsage.all;
   }
 
+  bool includesFamily(ResourceItem item) => switch (family) {
+    ResourceLibraryFamily.decors =>
+      item.element != null || item.model3d != null,
+    ResourceLibraryFamily.terrains => item.terrain != null,
+    ResourceLibraryFamily.images => item.tileset != null,
+    ResourceLibraryFamily.borders => item.border != null,
+    ResourceLibraryFamily.environments => item.environment != null,
+    ResourceLibraryFamily.models3d => item.model3d != null,
+  };
+
   String get query => filters.query;
   set query(String value) => filters.query = value;
   String category = '';

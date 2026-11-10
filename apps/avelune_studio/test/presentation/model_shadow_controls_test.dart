@@ -1,224 +1,128 @@
 import 'dart:async';
 
-import 'package:avelune_studio/presentation/features/resources/model_shadow_controls.dart';
-import 'package:avelune_studio/presentation/features/resources/resource_detail_panel.dart';
-import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
-import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_toggle_row.dart';
-import 'package:flutter/material.dart';
+import 'package:avelune_studio/features/resources/application/model_definition_drafts.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
 import '../support/spatial_environment_fixture.dart';
 
 void main() {
-  testWidgets(
-    'requested shadows paint before persistence and roll back on failure',
-    (tester) async {
+  test(
+    'requested shadows update before persistence and roll back on failure',
+    () async {
       final pending = Completer<void>();
-      var calls = 0;
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: ModelShadowControls(
-              model: spatialEnvironmentProject().models3d.single,
-              onChanged: (_) {
-                calls++;
-                return pending.future;
-              },
-            ),
-          ),
-        ),
+      final draft = ModelShadowDraft(
+        spatialEnvironmentProject().models3d.single,
       );
-      await tester.tap(find.byType(SwitchListTile));
-      await tester.pump();
-      var toggle = tester.widget<StudioToggleRow>(find.byType(StudioToggleRow));
-      expect(toggle.value, isTrue);
-      expect(toggle.onChanged, isNull);
-      await tester.tap(find.byType(SwitchListTile));
+      var calls = 0;
+      Future<void> publish(bool _) {
+        calls++;
+        return pending.future;
+      }
+
+      final saving = draft.save(true, publish, canSave: () => true);
+      expect(draft.value, isTrue);
+      expect(draft.saving, isTrue);
+      expect(await draft.save(false, publish, canSave: () => true), isFalse);
       expect(calls, 1);
       pending.completeError(StateError('Disque indisponible'));
-      await tester.pump();
-      toggle = tester.widget<StudioToggleRow>(find.byType(StudioToggleRow));
-      expect(toggle.value, isFalse);
-      expect(toggle.onChanged, isNotNull);
-      expect(find.textContaining('Disque indisponible'), findsOneWidget);
+      expect(await saving, isFalse);
+      expect(draft.value, isFalse);
+      expect(draft.saving, isFalse);
+      expect(draft.error, contains('Disque indisponible'));
     },
   );
 
   for (final fails in [false, true]) {
-    testWidgets(
+    test(
       'obsolete shadow ${fails ? 'failure' : 'success'} cannot update another model',
-      (tester) async {
+      () async {
         final pending = Completer<void>();
         final original = spatialEnvironmentProject().models3d.single;
-        Widget panel(ProjectModel3dEntry model) => MaterialApp(
-          home: Scaffold(
-            body: ModelShadowControls(
-              model: model,
-              onChanged: (_) => pending.future,
-            ),
-          ),
+        final draft = ModelShadowDraft(original);
+        final saving = draft.save(
+          true,
+          (_) => pending.future,
+          canSave: () => true,
         );
-        await tester.pumpWidget(panel(original));
-        await tester.tap(find.byType(SwitchListTile));
-        await tester.pumpWidget(
-          panel(
-            ProjectModel3dEntry.fromJson({
-              ...original.toJson(),
-              'id': 'other',
-              'relativePath': 'assets/models3d/other.glb',
-            }),
-          ),
+        draft.update(
+          ProjectModel3dEntry.fromJson({
+            ...original.toJson(),
+            'id': 'other',
+            'relativePath': 'assets/models3d/other.glb',
+          }),
         );
         if (fails) {
           pending.completeError(StateError('Ancienne écriture'));
         } else {
           pending.complete();
         }
-        await tester.pump();
-        final toggle = tester.widget<StudioToggleRow>(
-          find.byType(StudioToggleRow),
-        );
-        expect(toggle.value, isFalse);
-        expect(toggle.onChanged, isNotNull);
-        expect(find.textContaining('Ancienne écriture'), findsNothing);
+        expect(await saving, isFalse);
+        expect(draft.value, isFalse);
+        expect(draft.saving, isFalse);
+        expect(draft.error, isNull);
       },
     );
   }
 
-  testWidgets('resource sheet exposes shadows for 3D models', (tester) async {
-    final project = spatialEnvironmentProject();
-    final model = project.models3d.single;
+  test('model shadow publication receives the selected default without changing the original resource', () async {
+    final model = spatialEnvironmentProject().models3d.single;
+    final draft = ModelShadowDraft(model);
     bool? saved;
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: ResourceDetailPanel(
-            item: ResourceItem(
-              id: model.id,
-              name: model.name,
-              kind: ResourceKind.decors,
-              model3d: model,
-            ),
-            project: project,
-            preview: const SizedBox(),
-            onUse: (_) {},
-            onEdit: (_) {},
-            onTerrain: (_) {},
-            onModelShadowsChanged: (entry, value) async {
-              expect(entry.id, model.id);
-              saved = value;
-            },
-          ),
-        ),
-      ),
+    expect(
+      await draft.save(true, (value) => saved = value, canSave: () => true),
+      isTrue,
     );
-    final control = find.byKey(const ValueKey('model-casts-shadows-default'));
-    await tester.ensureVisible(control);
-    await tester.tap(control);
-    await tester.pump();
     expect(saved, isTrue);
-    expect(tester.takeException(), isNull);
+    expect(model.castsShadowsByDefault, isFalse);
   });
 
-  testWidgets(
-    'failed resource save retains the old value and explains failure',
-    (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: ModelShadowControls(
-              model: spatialEnvironmentProject().models3d.single,
-              onChanged: (_) async => throw StateError('Enregistrement refusé'),
-            ),
-          ),
-        ),
+  test(
+    'failed shadow save retains the old value and explains failure',
+    () async {
+      final draft = ModelShadowDraft(
+        spatialEnvironmentProject().models3d.single,
       );
-      await tester.tap(find.byType(SwitchListTile));
-      await tester.pump();
       expect(
-        tester.widget<StudioToggleRow>(find.byType(StudioToggleRow)).value,
+        await draft.save(
+          true,
+          (_) async => throw StateError('Enregistrement refusé'),
+          canSave: () => true,
+        ),
         isFalse,
       );
-      expect(find.textContaining('Enregistrement refusé'), findsOneWidget);
+      expect(draft.value, isFalse);
+      expect(draft.error, contains('Enregistrement refusé'));
     },
   );
 
-  testWidgets('resource shadows start disabled and save the selected default', (
-    tester,
-  ) async {
+  test('resource shadows start disabled and save the selected default while respecting busy state', () async {
     var model = spatialEnvironmentProject().models3d.single;
-    bool? saved;
-    Widget panel({bool busy = false}) => MaterialApp(
-      home: Scaffold(
-        body: ModelShadowControls(
-          model: model,
-          busy: busy,
-          onChanged: (value) => saved = value,
-        ),
-      ),
-    );
-    await tester.pumpWidget(panel());
-    expect(
-      tester.widget<StudioToggleRow>(find.byType(StudioToggleRow)).value,
-      isFalse,
-    );
-    await tester.tap(find.byType(SwitchListTile));
-    await tester.pump();
-    expect(saved, isTrue);
+    final draft = ModelShadowDraft(model);
+    expect(draft.value, isFalse);
+    final saved = <bool>[];
+    expect(await draft.save(true, saved.add, canSave: () => true), isTrue);
     model = model.copyWith(castsShadowsByDefault: true);
-    await tester.pumpWidget(panel(busy: true));
-    final toggle = tester.widget<StudioToggleRow>(find.byType(StudioToggleRow));
-    expect(toggle.value, isTrue);
-    expect(toggle.onChanged, isNull);
+    draft.update(model);
+    expect(draft.value, isTrue);
+    expect(await draft.save(false, saved.add, canSave: () => false), isFalse);
+    expect(saved, [true]);
   });
 
-  testWidgets(
-    'placed decor follows its resource until overridden and can reset',
-    (tester) async {
-      var model = spatialEnvironmentProject().models3d.single;
-      var instance = SpatialModelInstance(
-        id: 'house',
-        modelId: model.id,
-        position: Model3dVector3.zero,
-      );
-      Widget panel({bool missing = false}) => MaterialApp(
-        home: Scaffold(
-          body: ModelInstanceShadowControls(
-            model: missing ? null : model,
-            instance: instance,
-            onChanged: (value) => instance = instance.copyWith(
-              castsShadows: value,
-              clearCastsShadows: value == null,
-            ),
-          ),
-        ),
-      );
-      bool enabled() =>
-          tester.widget<StudioToggleRow>(find.byType(StudioToggleRow)).value;
-      await tester.pumpWidget(panel());
-      expect(enabled(), isFalse);
-      expect(find.text('Suit la ressource · désactivées'), findsOneWidget);
-      model = model.copyWith(castsShadowsByDefault: true);
-      await tester.pumpWidget(panel());
-      expect(enabled(), isTrue);
-      await tester.tap(find.byType(SwitchListTile));
-      await tester.pumpWidget(panel());
-      expect(instance.castsShadows, isFalse);
-      expect(enabled(), isFalse);
-      expect(find.text('Réglage propre à ce décor.'), findsOneWidget);
-      await tester.tap(
-        find.byKey(const ValueKey('instance-casts-shadows-inherit')),
-      );
-      await tester.pumpWidget(panel());
-      expect(instance.castsShadows, isNull);
-      expect(enabled(), isTrue);
-      await tester.pumpWidget(panel(missing: true));
-      expect(
-        tester.widget<StudioToggleRow>(find.byType(StudioToggleRow)).onChanged,
-        isNull,
-      );
-      expect(enabled(), isFalse);
-    },
-  );
+  test('placed decor follows its resource until overridden and can reset', () {
+    var model = spatialEnvironmentProject().models3d.single;
+    var instance = SpatialModelInstance(
+      id: 'house',
+      modelId: model.id,
+      position: Model3dVector3.zero,
+    );
+    expect(instance.effectiveCastsShadows(model), isFalse);
+    model = model.copyWith(castsShadowsByDefault: true);
+    expect(instance.effectiveCastsShadows(model), isTrue);
+    instance = instance.copyWith(castsShadows: false);
+    expect(instance.effectiveCastsShadows(model), isFalse);
+    instance = instance.copyWith(clearCastsShadows: true);
+    expect(instance.castsShadows, isNull);
+    expect(instance.effectiveCastsShadows(model), isTrue);
+  });
 }

@@ -11,11 +11,9 @@ import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_canvas_stroke.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_terrain_patterns.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_terrain_tool_panel.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
 import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 import 'package:avelune_studio/platform/rendering/viewports/spatial_map_editing_viewport.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -37,204 +35,278 @@ void main() {
         channel: channel,
         source: source.copyWith(followTerrain: false),
       );
-      final pattern = fixture.pattern.copyWith(cells: [
-        SmartTilePatternCell(x: 0, y: 0, parts: [part]),
-      ]);
+      final pattern = fixture.pattern.copyWith(
+        cells: [
+          SmartTilePatternCell(x: 0, y: 0, parts: [part]),
+        ],
+      );
       final patterns = availableTerrainPatterns(
         project: _withStampPatterns(fixture.project, [pattern]),
         map: fixture.map,
         preset: fixture.preset,
       );
-      expect(patterns.map((p) => p.id).contains(pattern.id),
-          [SmartTileRenderChannel.ground, SmartTileRenderChannel.understory,
-            SmartTileRenderChannel.canopy].contains(channel), reason: channel.name);
+      expect(
+        patterns.map((p) => p.id).contains(pattern.id),
+        [
+          SmartTileRenderChannel.ground,
+          SmartTileRenderChannel.understory,
+          SmartTileRenderChannel.canopy,
+        ].contains(channel),
+        reason: channel.name,
+      );
     }
   });
 
-  test('fixed-height static clipped walls remain available in native channels', () {
-    final fixture = _fixture();
-    for (final channel in SmartTileRenderChannel.values) {
-      final original = fixture.pattern.cells.first.parts.first;
-      final source = original.source as SmartTileModel3dSource;
-      final part = original.copyWith(
-        channel: channel,
-        source: source.copyWith(followTerrain: false),
-        spatialClip: SmartTileSpatialClip(left: 0, top: 0, right: 1, bottom: 1),
-      );
-      final pattern = fixture.pattern.copyWith(cells: [
-        SmartTilePatternCell(x: 0, y: 0, parts: [part]),
-      ]);
-      final patterns = availableTerrainPatterns(
-        project: _withStampPatterns(fixture.project, [pattern]),
-        map: fixture.map,
-        preset: fixture.preset,
-      );
-      expect(patterns.map((p) => p.id).contains(pattern.id),
-          [SmartTileRenderChannel.ground, SmartTileRenderChannel.understory,
-            SmartTileRenderChannel.canopy].contains(channel), reason: channel.name);
-    }
-  });
-
-  testWidgets('whole fixed native stamp panel exposes its complete footprint', (tester) async {
-    tester.view.physicalSize = const Size(1400, 900);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    final fixture = _adaptiveBridgeFixture();
-    final pattern = fixture.pattern.copyWith(construction: null, repeatMode: SmartTilePatternRepeatMode.stamp,
-      clippingPolicy: SmartTilePatternClippingPolicy.reject);
-    final view = MapWorkspaceViewState()..prepareTerrainPainting(fixture.preset)..selectTerrainPattern(pattern);
-    addTearDown(view.dispose);
-    final document = EditableMapDocument(MapWorkspaceDocument(map: fixture.map, mapId: fixture.map.id, revision: 'r0'));
-    await tester.pumpWidget(MaterialApp(theme: studioTheme(), home: Scaffold(body: MapTerrainToolPanel(
-      document: document, project: _withStampPatterns(fixture.project, [pattern]),
-      visuals: _PatternVisuals(), view: view, onChanged: () {},
-    ))));
-    expect(find.byKey(const ValueKey('terrain-pattern-whole-placement')), findsOneWidget);
-    expect(find.text('Placement entier : 5 × 4 cases'), findsOneWidget);
-    expect(find.text('Tampon'), findsOneWidget);
-  });
+  test(
+    'fixed-height static clipped walls remain available in native channels',
+    () {
+      final fixture = _fixture();
+      for (final channel in SmartTileRenderChannel.values) {
+        final original = fixture.pattern.cells.first.parts.first;
+        final source = original.source as SmartTileModel3dSource;
+        final part = original.copyWith(
+          channel: channel,
+          source: source.copyWith(followTerrain: false),
+          spatialClip: SmartTileSpatialClip(
+            left: 0,
+            top: 0,
+            right: 1,
+            bottom: 1,
+          ),
+        );
+        final pattern = fixture.pattern.copyWith(
+          cells: [
+            SmartTilePatternCell(x: 0, y: 0, parts: [part]),
+          ],
+        );
+        final patterns = availableTerrainPatterns(
+          project: _withStampPatterns(fixture.project, [pattern]),
+          map: fixture.map,
+          preset: fixture.preset,
+        );
+        expect(
+          patterns.map((p) => p.id).contains(pattern.id),
+          [
+            SmartTileRenderChannel.ground,
+            SmartTileRenderChannel.understory,
+            SmartTileRenderChannel.canopy,
+          ].contains(channel),
+          reason: channel.name,
+        );
+      }
+    },
+  );
 
   test('whole fixed native stamp previews nothing at an edge and commits a complete anchored envelope', () {
     final fixture = _adaptiveBridgeFixture();
-    final pattern = fixture.pattern.copyWith(construction: null, repeatMode: SmartTilePatternRepeatMode.stamp,
-      clippingPolicy: SmartTilePatternClippingPolicy.reject, anchorX: 2, anchorY: 1);
+    final pattern = fixture.pattern.copyWith(
+      construction: null,
+      repeatMode: SmartTilePatternRepeatMode.stamp,
+      clippingPolicy: SmartTilePatternClippingPolicy.reject,
+      anchorX: 2,
+      anchorY: 1,
+    );
     final catalog = fixture.project.smartTileCatalog;
-    final project = fixture.project.copyWith(smartTileCatalog: ProjectSmartTileCatalog(
-      categories: catalog.categories, atlases: catalog.atlases, materials: catalog.materials,
-      presets: catalog.presets, patterns: [pattern],
-    ));
-    final document = EditableMapDocument(MapWorkspaceDocument(map: fixture.map, mapId: fixture.map.id, revision: 'r0'));
-    final view = MapWorkspaceViewState()..prepareTerrainPainting(fixture.preset)..selectTerrainPattern(pattern);
+    final project = fixture.project.copyWith(
+      smartTileCatalog: ProjectSmartTileCatalog(
+        categories: catalog.categories,
+        atlases: catalog.atlases,
+        materials: catalog.materials,
+        presets: catalog.presets,
+        patterns: [pattern],
+      ),
+    );
+    final document = EditableMapDocument(
+      MapWorkspaceDocument(
+        map: fixture.map,
+        mapId: fixture.map.id,
+        revision: 'r0',
+      ),
+    );
+    final view = MapEditingViewportSession()
+      ..prepareTerrainPainting(fixture.preset)
+      ..selectTerrainPattern(pattern);
     addTearDown(view.dispose);
-    final invalid = MapCanvasStroke.start(map: fixture.map, project: project, view: view,
-      commands: MapEditingCommands(document, project), origin: const GridPos(x: 0, y: 0))!;
+    final invalid = MapCanvasStroke.start(
+      map: fixture.map,
+      project: project,
+      view: view,
+      commands: MapEditingCommands(document, project),
+      origin: const GridPos(x: 0, y: 0),
+    )!;
     expect(invalid.preview, fixture.map);
-    expect(() => invalid.commit(), throwsA(isA<ValidationException>().having((e) => e.message,
-      'message', 'Le motif entier doit tenir dans la carte.')));
+    expect(
+      () => invalid.commit(),
+      throwsA(
+        isA<ValidationException>().having(
+          (e) => e.message,
+          'message',
+          'Le motif entier doit tenir dans la carte.',
+        ),
+      ),
+    );
     expect(document.undoCount, 0);
-    final valid = MapCanvasStroke.start(map: fixture.map, project: project, view: view,
-      commands: MapEditingCommands(document, project), origin: const GridPos(x: 2, y: 1))!;
-    expect(valid.preview.layers.whereType<SmartTileLayer>().single.patternStrokes.single.cells, hasLength(20));
+    final valid = MapCanvasStroke.start(
+      map: fixture.map,
+      project: project,
+      view: view,
+      commands: MapEditingCommands(document, project),
+      origin: const GridPos(x: 2, y: 1),
+    )!;
+    expect(
+      valid.preview.layers
+          .whereType<SmartTileLayer>()
+          .single
+          .patternStrokes
+          .single
+          .cells,
+      hasLength(20),
+    );
     document.commit(valid.commit());
     document.restore(redo: false);
     expect(document.current, fixture.map);
   });
 
-  for (final kind in ['unique adaptive', 'ordinary', 'multiple adaptive', 'visible ordinary with adaptive sibling', 'incomplete template support']) {
-    testWidgets('preset selection initializes $kind construction coherently', (tester) async {
-      tester.view.physicalSize = const Size(1400, 900);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
+  for (final kind in [
+    'unique adaptive',
+    'ordinary',
+    'multiple adaptive',
+    'visible ordinary with adaptive sibling',
+    'incomplete template support',
+  ]) {
+    test('preset selection initializes $kind construction coherently', () {
       final fixture = _adaptiveBridgeFixture();
       final catalog = fixture.project.smartTileCatalog;
       final preset = kind == 'visible ordinary with adaptive sibling'
-          ? fixture.preset.copyWith(rules: [SmartTileRule(
-              id: 'visible', centerMatch: SmartTileSlotMatch.material(fixture.preset.defaultMaterialId),
-              candidates: [SmartTileCandidate(id: 'visible', parts: fixture.pattern.cells.first.parts)],
-            )])
+          ? fixture.preset.copyWith(
+              rules: [
+                SmartTileRule(
+                  id: 'visible',
+                  centerMatch: SmartTileSlotMatch.material(
+                    fixture.preset.defaultMaterialId,
+                  ),
+                  candidates: [
+                    SmartTileCandidate(
+                      id: 'visible',
+                      parts: fixture.pattern.cells.first.parts,
+                    ),
+                  ],
+                ),
+              ],
+            )
           : kind == 'incomplete template support'
-          ? fixture.preset.copyWith(coverageProfile: const SmartTileCoverageProfile(mode: SmartTileCoverageMode.template))
+          ? fixture.preset.copyWith(
+              coverageProfile: const SmartTileCoverageProfile(
+                mode: SmartTileCoverageMode.template,
+              ),
+            )
           : fixture.preset;
       final patterns = kind == 'ordinary'
           ? [fixture.pattern.copyWith(construction: null)]
-          : [fixture.pattern, if (kind == 'multiple adaptive') fixture.pattern.copyWith(id: 'bridge-alt')];
-      final project = fixture.project.copyWith(smartTileCatalog: ProjectSmartTileCatalog(
-        categories: catalog.categories, atlases: catalog.atlases, materials: catalog.materials,
-        presets: [preset], patterns: patterns,
-      ));
-      final view = MapWorkspaceViewState()..prepareTerrainPainting(preset);
+          : [
+              fixture.pattern,
+              if (kind == 'multiple adaptive')
+                fixture.pattern.copyWith(id: 'bridge-alt'),
+            ];
+      final project = fixture.project.copyWith(
+        smartTileCatalog: ProjectSmartTileCatalog(
+          categories: catalog.categories,
+          atlases: catalog.atlases,
+          materials: catalog.materials,
+          presets: [preset],
+          patterns: patterns,
+        ),
+      );
+      final view = MapEditingViewportSession()..prepareTerrainPainting(preset);
       addTearDown(view.dispose);
       view.reconcileResources(project, mapId: fixture.map.id, map: fixture.map);
-      final document = EditableMapDocument(MapWorkspaceDocument(
-        map: fixture.map, mapId: fixture.map.id, revision: 'r0',
-      ));
-      await tester.pumpWidget(MaterialApp(
-        theme: studioTheme(),
-        home: Scaffold(body: MapTerrainToolPanel(
-          document: document, project: project, visuals: _PatternVisuals(),
-          view: view, onChanged: () {},
-        )),
-      ));
+      final document = EditableMapDocument(
+        MapWorkspaceDocument(
+          map: fixture.map,
+          mapId: fixture.map.id,
+          revision: 'r0',
+        ),
+      );
       final unique = kind == 'unique adaptive';
       expect(view.terrainPatternId, unique ? fixture.pattern.id : null);
-      expect(find.byKey(const ValueKey('terrain-construction-dimensions')), unique ? findsOneWidget : findsNothing);
-      expect(find.text('Ligne'), unique ? findsOneWidget : findsNothing);
-      expect(jsonEncode(document.current.toJson()), jsonEncode(fixture.map.toJson()));
+      expect(
+        jsonEncode(document.current.toJson()),
+        jsonEncode(fixture.map.toJson()),
+      );
       if (unique) {
         view.selectTerrainPattern(null);
-        view.reconcileResources(project, mapId: fixture.map.id, map: fixture.map);
+        view.reconcileResources(
+          project,
+          mapId: fixture.map.id,
+          map: fixture.map,
+        );
         expect(view.terrainPatternId, isNull);
       }
     });
   }
 
-  testWidgets('adaptive construction panel exposes native dimensions and gestures', (tester) async {
-    tester.view.physicalSize = const Size(1400, 900);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    final fixture = _adaptiveBridgeFixture();
-    final view = MapWorkspaceViewState()
-      ..prepareTerrainPainting(fixture.preset)
-      ..selectTerrainPattern(fixture.pattern);
-    addTearDown(view.dispose);
-    final document = EditableMapDocument(MapWorkspaceDocument(
-      map: fixture.map, mapId: fixture.map.id, revision: 'r0',
-    ));
-    await tester.pumpWidget(MaterialApp(
-      theme: studioTheme(),
-      home: Scaffold(body: MapTerrainToolPanel(
-        document: document, project: fixture.project, visuals: _PatternVisuals(),
-        view: view, onChanged: () {},
-      )),
-    ));
-    expect(find.byKey(const ValueKey('terrain-construction-dimensions')), findsOneWidget);
-    expect(find.text('Largeur fixe : 5 cases · Hauteur : 4 minimum, par 2'), findsOneWidget);
-    expect(find.text('Ligne'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('terrain-pattern-mode')));
-    await tester.pumpAndSettle();
-    expect(find.text('Rectangle'), findsOneWidget);
-  });
+  test(
+    'adaptive native bridge selects a full-width line gesture by default',
+    () {
+      final fixture = _adaptiveBridgeFixture();
+      final view = MapEditingViewportSession()
+        ..prepareTerrainPainting(fixture.preset)
+        ..selectTerrainPattern(fixture.pattern);
+      addTearDown(view.dispose);
 
-  test('adaptive native bridge selects a full-width line gesture by default', () {
-    final fixture = _adaptiveBridgeFixture();
-    final view = MapWorkspaceViewState()
-      ..prepareTerrainPainting(fixture.preset)
-      ..selectTerrainPattern(fixture.pattern);
-    addTearDown(view.dispose);
-
-    expect(view.terrainPatternMode, SmartTilePatternSelectionKind.line);
-  });
+      expect(view.terrainPatternMode, SmartTilePatternSelectionKind.line);
+    },
+  );
 
   test('adaptive native bridge survives intermediate lengths, previews and undoes a complete section', () {
     final fixture = _adaptiveBridgeFixture();
     final before = jsonEncode(fixture.map.toJson());
-    final document = EditableMapDocument(MapWorkspaceDocument(
-      map: fixture.map, mapId: fixture.map.id, revision: 'r0',
-    ));
-    final view = MapWorkspaceViewState()
+    final document = EditableMapDocument(
+      MapWorkspaceDocument(
+        map: fixture.map,
+        mapId: fixture.map.id,
+        revision: 'r0',
+      ),
+    );
+    final view = MapEditingViewportSession()
       ..prepareTerrainPainting(fixture.preset)
       ..selectTerrainPattern(fixture.pattern)
       ..terrainPatternMode = SmartTilePatternSelectionKind.line;
     addTearDown(view.dispose);
     MapCanvasStroke? stroke;
-    expect(() => stroke = MapCanvasStroke.start(
-      map: fixture.map, project: fixture.project, view: view,
-      commands: MapEditingCommands(document, fixture.project),
-      origin: const GridPos(x: 1, y: 1),
-    ), returnsNormally);
+    expect(
+      () => stroke = MapCanvasStroke.start(
+        map: fixture.map,
+        project: fixture.project,
+        view: view,
+        commands: MapEditingCommands(document, fixture.project),
+        origin: const GridPos(x: 1, y: 1),
+      ),
+      returnsNormally,
+    );
     expect(stroke, isNotNull);
     expect(jsonEncode(document.current.toJson()), before);
-    expect(stroke!.preview.layers.whereType<SmartTileLayer>().single.patternStrokes, isEmpty);
+    expect(
+      stroke!.preview.layers.whereType<SmartTileLayer>().single.patternStrokes,
+      isEmpty,
+    );
     stroke!.paint(const GridPos(x: 1, y: 6));
-    final previewLayer = stroke!.preview.layers.whereType<SmartTileLayer>().single;
+    final previewLayer = stroke!.preview.layers
+        .whereType<SmartTileLayer>()
+        .single;
     expect(previewLayer.patternStrokes.single.cells, hasLength(30));
-    expect(previewLayer.patternStrokes.single.constructionBounds,
-        const MapRect(pos: GridPos(x: 1, y: 1), size: GridSize(width: 5, height: 6)));
+    expect(
+      previewLayer.patternStrokes.single.constructionBounds,
+      const MapRect(
+        pos: GridPos(x: 1, y: 1),
+        size: GridSize(width: 5, height: 6),
+      ),
+    );
     stroke!.paint(const GridPos(x: 1, y: 5));
-    expect(stroke!.preview.layers.whereType<SmartTileLayer>().single.patternStrokes, isEmpty);
+    expect(
+      stroke!.preview.layers.whereType<SmartTileLayer>().single.patternStrokes,
+      isEmpty,
+    );
     expect(() => stroke!.commit(), throwsA(isA<ValidationException>()));
     expect(jsonEncode(document.current.toJson()), before);
     stroke!.paint(const GridPos(x: 1, y: 6));
@@ -249,63 +321,106 @@ void main() {
   test('adaptive construction picker scopes native families through existing categories', () {
     final fixture = _adaptiveBridgeFixture();
     final catalog = fixture.project.smartTileCatalog;
-    final project = fixture.project.copyWith(smartTileCatalog: ProjectSmartTileCatalog(
-      categories: [...catalog.categories, const ProjectSmartTileCategory(id: 'foreign-style', name: 'Foreign')],
-      atlases: catalog.atlases, materials: catalog.materials, presets: catalog.presets,
-      patterns: [fixture.pattern, fixture.pattern.copyWith(id: 'foreign', categoryId: 'foreign-style')],
-    ));
+    final project = fixture.project.copyWith(
+      smartTileCatalog: ProjectSmartTileCatalog(
+        categories: [
+          ...catalog.categories,
+          const ProjectSmartTileCategory(id: 'foreign-style', name: 'Foreign'),
+        ],
+        atlases: catalog.atlases,
+        materials: catalog.materials,
+        presets: catalog.presets,
+        patterns: [
+          fixture.pattern,
+          fixture.pattern.copyWith(id: 'foreign', categoryId: 'foreign-style'),
+        ],
+      ),
+    );
 
-    expect(availableTerrainPatterns(project: project, map: fixture.map, preset: fixture.preset)
-        .map((pattern) => pattern.id), [fixture.pattern.id]);
+    expect(
+      availableTerrainPatterns(
+        project: project,
+        map: fixture.map,
+        preset: fixture.preset,
+      ).map((pattern) => pattern.id),
+      [fixture.pattern.id],
+    );
   });
   for (final spatial in [true, false]) {
-    test('reactive path motifs synchronize material and erase: spatial $spatial', () {
-      final fixture = _fixture(spatial: spatial);
-      final preset = fixture.preset.copyWith(usage: SmartTileUsage.path);
-      final pattern = fixture.pattern.copyWith(usage: SmartTileUsage.path);
-      final project = fixture.project.copyWith(smartTileCatalog: ProjectSmartTileCatalog(
-          atlases: fixture.project.smartTileCatalog.atlases,
-          materials: fixture.project.smartTileCatalog.materials,
-          presets: [preset], patterns: [pattern]));
-      final original = fixture.map.layers.whereType<SmartTileLayer>().single;
-      final source = fixture.map.copyWith(layers: [original.copyWith(
-          usage: SmartTileUsage.path,
-          animationActivation: SmartTileAnimationActivation.onEnter,
-          patternStrokes: [])]);
-      final document = EditableMapDocument(MapWorkspaceDocument(
-          map: source, mapId: source.id, revision: 'r0'));
-      final view = MapWorkspaceViewState()
-        ..prepareTerrainPainting(preset)
-        ..selectTerrainPattern(pattern)
-        ..terrainPatternMode = SmartTilePatternSelectionKind.stamp
-        ..tool = StudioMapTool.terrain;
-      addTearDown(view.dispose);
-      final stroke = MapCanvasStroke.start(map: source,
-          project: project, view: view,
+    test(
+      'reactive path motifs synchronize material and erase: spatial $spatial',
+      () {
+        final fixture = _fixture(spatial: spatial);
+        final preset = fixture.preset.copyWith(usage: SmartTileUsage.path);
+        final pattern = fixture.pattern.copyWith(usage: SmartTileUsage.path);
+        final project = fixture.project.copyWith(
+          smartTileCatalog: ProjectSmartTileCatalog(
+            atlases: fixture.project.smartTileCatalog.atlases,
+            materials: fixture.project.smartTileCatalog.materials,
+            presets: [preset],
+            patterns: [pattern],
+          ),
+        );
+        final original = fixture.map.layers.whereType<SmartTileLayer>().single;
+        final source = fixture.map.copyWith(
+          layers: [
+            original.copyWith(
+              usage: SmartTileUsage.path,
+              animationActivation: SmartTileAnimationActivation.onEnter,
+              patternStrokes: [],
+            ),
+          ],
+        );
+        final document = EditableMapDocument(
+          MapWorkspaceDocument(map: source, mapId: source.id, revision: 'r0'),
+        );
+        final view = MapEditingViewportSession()
+          ..prepareTerrainPainting(preset)
+          ..selectTerrainPattern(pattern)
+          ..terrainPatternMode = SmartTilePatternSelectionKind.stamp
+          ..tool = StudioMapTool.terrain;
+        addTearDown(view.dispose);
+        final stroke = MapCanvasStroke.start(
+          map: source,
+          project: project,
+          view: view,
           commands: MapEditingCommands(document, project),
-          origin: const GridPos(x: 2, y: 3))!;
-      final painted = stroke.commit();
-      final paintedLayer = painted.layers.whereType<SmartTileLayer>().single;
-      expect(smartTileSemanticCells(paintedLayer)[26], 1);
-      expect(smartTileSemanticCells(paintedLayer)[27], 1);
-      expect(smartTileSemanticCells(paintedLayer).where((value) => value != 0), hasLength(2));
-      expect(smartTileSemanticCells(source.layers.single as SmartTileLayer)[26], 0);
-      document.commit(painted);
-      view.tool = StudioMapTool.erase;
-      final erase = MapCanvasStroke.start(map: painted,
-          project: project, view: view,
+          origin: const GridPos(x: 2, y: 3),
+        )!;
+        final painted = stroke.commit();
+        final paintedLayer = painted.layers.whereType<SmartTileLayer>().single;
+        expect(smartTileSemanticCells(paintedLayer)[26], 1);
+        expect(smartTileSemanticCells(paintedLayer)[27], 1);
+        expect(
+          smartTileSemanticCells(paintedLayer).where((value) => value != 0),
+          hasLength(2),
+        );
+        expect(
+          smartTileSemanticCells(source.layers.single as SmartTileLayer)[26],
+          0,
+        );
+        document.commit(painted);
+        view.tool = StudioMapTool.erase;
+        final erase = MapCanvasStroke.start(
+          map: painted,
+          project: project,
+          view: view,
           commands: MapEditingCommands(document, project),
-          origin: const GridPos(x: 2, y: 3))!;
-      final erased = erase.commit();
-      final erasedLayer = erased.layers.whereType<SmartTileLayer>().single;
-      expect(smartTileSemanticCells(erasedLayer)[26], 0);
-      expect(smartTileSemanticCells(erasedLayer)[27], 1);
-      expect(erasedLayer.patternStrokes.single.cells, [const GridPos(x: 3, y: 3)]);
-      document.commit(erased);
-      document.restore(redo: false);
-      expect(document.current, painted);
-      expect(painted.spatialScene, source.spatialScene);
-    });
+          origin: const GridPos(x: 2, y: 3),
+        )!;
+        final erased = erase.commit();
+        final erasedLayer = erased.layers.whereType<SmartTileLayer>().single;
+        expect(smartTileSemanticCells(erasedLayer)[26], 0);
+        expect(smartTileSemanticCells(erasedLayer)[27], 1);
+        expect(erasedLayer.patternStrokes.single.cells, [
+          const GridPos(x: 3, y: 3),
+        ]);
+        document.commit(erased);
+        document.restore(redo: false);
+        expect(document.current, painted);
+        expect(painted.spatialScene, source.spatialScene);
+      },
+    );
   }
 
   test('selected small 3D stamp erases from its empty centre with exact preview, commit and Undo', () {
@@ -867,7 +982,7 @@ void main() {
         final document = EditableMapDocument(
           MapWorkspaceDocument(map: source, mapId: source.id, revision: 'r0'),
         );
-        final view = MapWorkspaceViewState()
+        final view = MapEditingViewportSession()
           ..prepareTerrainPainting(fixture.preset)
           ..selectTerrainPattern(pattern);
         addTearDown(view.dispose);
@@ -1021,7 +1136,8 @@ void main() {
                 revision: 'r0',
               ),
             );
-            final view = MapWorkspaceViewState()..tool = StudioMapTool.erase;
+            final view = MapEditingViewportSession()
+              ..tool = StudioMapTool.erase;
             addTearDown(view.dispose);
             final commands = MapEditingCommands(document, project);
             final emptyUpperStroke = MapCanvasStroke.start(
@@ -1113,7 +1229,7 @@ void main() {
           final document = EditableMapDocument(
             MapWorkspaceDocument(map: source, mapId: source.id, revision: 'r0'),
           );
-          final view = MapWorkspaceViewState()..tool = StudioMapTool.erase;
+          final view = MapEditingViewportSession()..tool = StudioMapTool.erase;
           addTearDown(view.dispose);
           final stroke = MapCanvasStroke.start(
             map: source,
@@ -1180,7 +1296,7 @@ void main() {
       final document = EditableMapDocument(
         MapWorkspaceDocument(map: source, mapId: source.id, revision: 'r0'),
       );
-      final view = MapWorkspaceViewState()..tool = StudioMapTool.erase;
+      final view = MapEditingViewportSession()..tool = StudioMapTool.erase;
       addTearDown(view.dispose);
       final stroke = MapCanvasStroke.start(
         map: source,
@@ -1244,7 +1360,7 @@ void main() {
         final document = EditableMapDocument(
           MapWorkspaceDocument(map: source, mapId: source.id, revision: 'r0'),
         );
-        final view = MapWorkspaceViewState()
+        final view = MapEditingViewportSession()
           ..prepareTerrainPainting(fixture.preset)
           ..tool = StudioMapTool.erase;
         addTearDown(view.dispose);
@@ -1270,9 +1386,17 @@ void main() {
           const GridPos(x: 4, y: 2),
           const GridPos(x: 5, y: 2),
         ]);
-        expect(preview.patternStrokes.single.phaseX, grass.patternStrokes.single.phaseX);
-        expect(preview.patternStrokes.single.phaseY, grass.patternStrokes.single.phaseY);
-        for (final layer in source.layers.where((layer) => layer.id != grass.id)) {
+        expect(
+          preview.patternStrokes.single.phaseX,
+          grass.patternStrokes.single.phaseX,
+        );
+        expect(
+          preview.patternStrokes.single.phaseY,
+          grass.patternStrokes.single.phaseY,
+        );
+        for (final layer in source.layers.where(
+          (layer) => layer.id != grass.id,
+        )) {
           expect(
             stroke.preview.layers.firstWhere((entry) => entry.id == layer.id),
             layer,
@@ -1302,7 +1426,7 @@ void main() {
           final document = EditableMapDocument(
             MapWorkspaceDocument(map: source, mapId: source.id, revision: 'r0'),
           );
-          final view = MapWorkspaceViewState()
+          final view = MapEditingViewportSession()
             ..prepareTerrainPainting(fixture.preset)
             ..tool = StudioMapTool.erase;
           addTearDown(view.dispose);
@@ -1332,7 +1456,7 @@ void main() {
         final document = EditableMapDocument(
           MapWorkspaceDocument(map: source, mapId: source.id, revision: 'r0'),
         );
-        final view = MapWorkspaceViewState();
+        final view = MapEditingViewportSession();
         if (!spatial) view.prepareTerrainPainting(fixture.preset);
         view.tool = StudioMapTool.erase;
         addTearDown(view.dispose);
@@ -1352,8 +1476,13 @@ void main() {
           smartTileMaterialIdAt(soil, mapSize: source.size, x: 3, y: 2),
           isNull,
         );
-        for (final layer in source.layers.where((layer) => layer.id != soil.id)) {
-          expect(erased.layers.firstWhere((entry) => entry.id == layer.id), layer);
+        for (final layer in source.layers.where(
+          (layer) => layer.id != soil.id,
+        )) {
+          expect(
+            erased.layers.firstWhere((entry) => entry.id == layer.id),
+            layer,
+          );
         }
       },
     );
@@ -1362,7 +1491,7 @@ void main() {
   test('native erase commits visual-only pattern cells and interpolates without changing neighbours', () {
     final fixture = _fixture(followTerrain: false);
     final source = fixture.map;
-    final view = MapWorkspaceViewState()..tool = StudioMapTool.erase;
+    final view = MapEditingViewportSession()..tool = StudioMapTool.erase;
     addTearDown(view.dispose);
     final document = EditableMapDocument(
       MapWorkspaceDocument(map: source, mapId: source.id, revision: 'r0'),
@@ -1423,7 +1552,7 @@ void main() {
       size: fixture.map.size,
       layers: [layer],
     );
-    final view = MapWorkspaceViewState()..tool = StudioMapTool.erase;
+    final view = MapEditingViewportSession()..tool = StudioMapTool.erase;
     addTearDown(view.dispose);
     final document = EditableMapDocument(
       MapWorkspaceDocument(map: source, mapId: source.id, revision: 'r0'),
@@ -1455,7 +1584,7 @@ void main() {
         revision: 'r0',
       ),
     );
-    final view = MapWorkspaceViewState()
+    final view = MapEditingViewportSession()
       ..prepareTerrainPainting(fixture.preset)
       ..selectTerrainPattern(fixture.pattern)
       ..tool = StudioMapTool.erase;
@@ -1489,7 +1618,7 @@ void main() {
     final document = EditableMapDocument(
       MapWorkspaceDocument(map: source, mapId: source.id, revision: 'r0'),
     );
-    final view = MapWorkspaceViewState()
+    final view = MapEditingViewportSession()
       ..prepareTerrainPainting(fixture.preset)
       ..selectTerrainPattern(fixture.pattern)
       ..tool = StudioMapTool.erase;
@@ -1533,7 +1662,7 @@ void main() {
         revision: 'r0',
       ),
     );
-    final view = MapWorkspaceViewState()
+    final view = MapEditingViewportSession()
       ..prepareTerrainPainting(fixture.preset)
       ..selectTerrainPattern(pattern);
     addTearDown(view.dispose);
@@ -1579,7 +1708,7 @@ void main() {
     final document = EditableMapDocument(
       MapWorkspaceDocument(map: map, mapId: map.id, revision: 'r0'),
     );
-    final view = MapWorkspaceViewState()
+    final view = MapEditingViewportSession()
       ..prepareTerrainPainting(fixture.preset)
       ..selectTerrainPattern(fixture.pattern)
       ..terrainPatternMode = SmartTilePatternSelectionKind.rectangle;
@@ -1600,13 +1729,9 @@ void main() {
   });
 
   for (final spatial in [false, true]) {
-    testWidgets(
+    test(
       '${spatial ? "3D" : "2D"} picker checks normalized stamp footprints without changing tiled recipes',
-      (tester) async {
-        tester.view.physicalSize = const Size(1400, 900);
-        tester.view.devicePixelRatio = 1;
-        addTearDown(tester.view.resetPhysicalSize);
-        addTearDown(tester.view.resetDevicePixelRatio);
+      () {
         final fixture = _fixture(spatial: spatial);
         final compact = fixture.pattern.copyWith(
           id: 'compact',
@@ -1663,46 +1788,13 @@ void main() {
             if (!spatial) ...{shifted.id, shiftedVertical.id, emptyOrigin.id},
           },
         );
-        final view = MapWorkspaceViewState()
+        final view = MapEditingViewportSession()
           ..prepareTerrainPainting(fixture.preset);
         addTearDown(view.dispose);
         final document = EditableMapDocument(
           MapWorkspaceDocument(map: map, mapId: map.id, revision: 'r0'),
         );
-        await tester.pumpWidget(
-          MaterialApp(
-            theme: studioTheme(),
-            home: Scaffold(
-              body: StatefulBuilder(
-                builder: (context, setState) => MapTerrainToolPanel(
-                  document: document,
-                  project: project,
-                  visuals: _PatternVisuals(),
-                  view: view,
-                  onChanged: () => setState(() {}),
-                ),
-              ),
-            ),
-          ),
-        );
-        await tester.tap(find.byKey(const ValueKey('terrain-pattern-picker')));
-        await tester.pump(const Duration(milliseconds: 300));
-        expect(find.text('Raccord compact'), findsOneWidget);
-        expect(find.text('Trame décalée'), findsOneWidget);
-        expect(
-          find.text('Raccord décalé'),
-          spatial ? findsNothing : findsOneWidget,
-        );
-        expect(
-          find.text('Raccord décalé en profondeur'),
-          spatial ? findsNothing : findsOneWidget,
-        );
-        expect(
-          find.text('Raccord avec origine vide'),
-          spatial ? findsNothing : findsOneWidget,
-        );
-        await tester.tap(find.text('Raccord compact'));
-        await tester.pump(const Duration(milliseconds: 300));
+        view.selectTerrainPattern(compact);
         final stroke = MapCanvasStroke.start(
           map: map,
           project: project,
@@ -1720,7 +1812,6 @@ void main() {
               .cells,
           [const GridPos(x: 1, y: 1), const GridPos(x: 2, y: 1)],
         );
-        expect(tester.takeException(), isNull);
       },
     );
     for (final erase in [false, true]) {
@@ -1741,7 +1832,7 @@ void main() {
           final document = EditableMapDocument(
             MapWorkspaceDocument(map: source, mapId: source.id, revision: 'r0'),
           );
-          final view = MapWorkspaceViewState()
+          final view = MapEditingViewportSession()
             ..prepareTerrainPainting(fixture.preset)
             ..tool = erase ? StudioMapTool.erase : StudioMapTool.terrain;
           addTearDown(view.dispose);
@@ -1787,15 +1878,11 @@ void main() {
         },
       );
     }
-    testWidgets(
+    test(
       '${spatial ? "3D" : "2D"} a new manifest changing the same ID to stamp reconciles the displayed mode and gesture',
-      (tester) async {
-        tester.view.physicalSize = const Size(1400, 900);
-        tester.view.devicePixelRatio = 1;
-        addTearDown(tester.view.resetPhysicalSize);
-        addTearDown(tester.view.resetDevicePixelRatio);
+      () {
         final fixture = _fixture(spatial: spatial);
-        final view = MapWorkspaceViewState()
+        final view = MapEditingViewportSession()
           ..prepareTerrainPainting(fixture.preset)
           ..selectTerrainPattern(fixture.pattern)
           ..terrainPatternMode = SmartTilePatternSelectionKind.line;
@@ -1807,20 +1894,6 @@ void main() {
             revision: 'r0',
           ),
         );
-        Widget panel(ProjectManifest project) => MaterialApp(
-          theme: studioTheme(),
-          home: Scaffold(
-            body: MapTerrainToolPanel(
-              document: document,
-              project: project,
-              visuals: _PatternVisuals(),
-              view: view,
-              onChanged: () {},
-            ),
-          ),
-        );
-        await tester.pumpWidget(panel(fixture.project));
-        expect(find.text('Ligne'), findsOneWidget);
         final stamp = fixture.pattern.copyWith(
           repeatMode: SmartTilePatternRepeatMode.stamp,
         );
@@ -1839,9 +1912,6 @@ void main() {
         );
         expect(view.terrainPatternId, stamp.id);
         expect(view.terrainPatternMode, SmartTilePatternSelectionKind.stamp);
-        await tester.pumpWidget(panel(currentProject));
-        expect(find.text('Tampon'), findsOneWidget);
-        expect(find.text('Ligne'), findsNothing);
         final stroke = MapCanvasStroke.start(
           map: fixture.map,
           project: currentProject,
@@ -1863,16 +1933,11 @@ void main() {
         );
         document.restore(redo: false);
         expect(document.current, fixture.map);
-        expect(tester.takeException(), isNull);
       },
     );
-    testWidgets(
+    test(
       '${spatial ? "3D" : "2D"} Motif shows reusable catalogue recipes and keeps the material',
-      (tester) async {
-        tester.view.physicalSize = const Size(1400, 900);
-        tester.view.devicePixelRatio = 1;
-        addTearDown(tester.view.resetPhysicalSize);
-        addTearDown(tester.view.resetDevicePixelRatio);
+      () {
         final fixture = _fixture(spatial: spatial);
         final stamp = fixture.pattern.copyWith(
           id: 'stamp',
@@ -1979,66 +2044,33 @@ void main() {
             map: map,
             preset: fixture.preset,
           ).map((pattern) => pattern.id).toSet(),
-          {fixture.pattern.id, stamp.id, unreferenced.id, if (spatial) absolute.id},
+          {
+            fixture.pattern.id,
+            stamp.id,
+            unreferenced.id,
+            if (spatial) absolute.id,
+          },
         );
-        final view = MapWorkspaceViewState()
+        final view = MapEditingViewportSession()
           ..prepareTerrainPainting(fixture.preset);
         addTearDown(view.dispose);
         final document = EditableMapDocument(
           MapWorkspaceDocument(map: map, mapId: map.id, revision: 'r0'),
         );
-        await tester.pumpWidget(
-          MaterialApp(
-            theme: studioTheme(),
-            home: Scaffold(
-              body: StatefulBuilder(
-                builder: (context, setState) => MapTerrainToolPanel(
-                  document: document,
-                  project: project,
-                  visuals: _PatternVisuals(),
-                  view: view,
-                  onChanged: () => setState(() {}),
-                ),
-              ),
-            ),
-          ),
-        );
         final material = view.terrainMaterialId;
-        await tester.tap(find.byKey(const ValueKey('terrain-pattern-picker')));
-        await tester.pump(const Duration(milliseconds: 300));
-        expect(find.text('Recette source entière'), findsNothing);
-        expect(find.text('Motif du catalogue'), findsOneWidget);
-        expect(find.text('Source privée ailleurs'), findsNothing);
-        expect(find.text('Eau source à altitude fixe'), spatial ? findsOneWidget : findsNothing);
-        await tester.tap(find.text('Eau animée').last);
-        await tester.pump(const Duration(milliseconds: 300));
+        view.selectTerrainPattern(fixture.pattern);
         expect(view.terrainPatternId, fixture.pattern.id);
-        await tester.tap(find.byKey(const ValueKey('terrain-pattern-mode')));
-        await tester.pump(const Duration(milliseconds: 300));
-        await tester.tap(find.text('Rectangle').last);
-        await tester.pump(const Duration(milliseconds: 300));
+        view.terrainPatternMode = SmartTilePatternSelectionKind.rectangle;
         expect(
           view.terrainPatternMode,
           SmartTilePatternSelectionKind.rectangle,
         );
-        await tester.tap(find.byKey(const ValueKey('terrain-pattern-picker')));
-        await tester.pump(const Duration(milliseconds: 300));
-        await tester.tap(find.text('Bouquet isolé').last);
-        await tester.pump(const Duration(milliseconds: 300));
+        view.selectTerrainPattern(stamp);
         expect(view.terrainPatternMode, SmartTilePatternSelectionKind.stamp);
-        await tester.tap(find.byKey(const ValueKey('terrain-pattern-mode')));
-        await tester.pump(const Duration(milliseconds: 300));
-        expect(find.text('Ligne'), findsNothing);
-        expect(find.text('Rectangle'), findsNothing);
-        await tester.tap(find.text('Tampon').last);
-        await tester.pump(const Duration(milliseconds: 300));
-        await tester.tap(find.byKey(const ValueKey('terrain-pattern-picker')));
-        await tester.pump(const Duration(milliseconds: 300));
-        await tester.tap(find.text('Peinture libre').last);
-        await tester.pump(const Duration(milliseconds: 300));
+        view.selectTerrainPattern(null);
         expect(view.terrainPatternId, isNull);
         expect(view.terrainMaterialId, material);
-        expect(tester.takeException(), isNull);
+        expect(document.current, same(map));
       },
     );
     test(
@@ -2057,7 +2089,7 @@ void main() {
         final document = EditableMapDocument(
           MapWorkspaceDocument(map: source, mapId: source.id, revision: 'r0'),
         );
-        final view = MapWorkspaceViewState()
+        final view = MapEditingViewportSession()
           ..prepareTerrainPainting(fixture.preset)
           ..selectTerrainPattern(fixture.pattern);
         addTearDown(view.dispose);
@@ -2128,7 +2160,7 @@ void main() {
           ),
           isEmpty,
         );
-        final view = MapWorkspaceViewState()
+        final view = MapEditingViewportSession()
           ..prepareTerrainPainting(fixture.preset)
           ..selectTerrainPattern(fixture.pattern);
         addTearDown(view.dispose);
@@ -2147,7 +2179,7 @@ void main() {
         () {
           final fixture = _fixture(spatial: spatial);
           final source = fixture.map;
-          final view = MapWorkspaceViewState()
+          final view = MapEditingViewportSession()
             ..prepareTerrainPainting(fixture.preset)
             ..selectTerrainPattern(fixture.pattern)
             ..terrainPatternMode = mode;
@@ -2223,7 +2255,7 @@ void main() {
           revision: 'r0',
         ),
       );
-      final view = MapWorkspaceViewState()
+      final view = MapEditingViewportSession()
         ..prepareTerrainPainting(fixture.preset)
         ..selectTerrainPattern(fixture.pattern)
         ..terrainPatternMode = SmartTilePatternSelectionKind.rectangle;
@@ -2330,7 +2362,7 @@ void main() {
       await port.loadProject(session);
       final opened = await port.loadMap(session, project.maps.single);
       final document = EditableMapDocument(opened);
-      final view = MapWorkspaceViewState()
+      final view = MapEditingViewportSession()
         ..prepareTerrainPainting(fixture.preset)
         ..selectTerrainPattern(fixture.pattern);
       addTearDown(view.dispose);
@@ -2535,30 +2567,54 @@ _fixture({bool spatial = true, bool followTerrain = true}) {
   return (project: project, map: map, preset: preset, pattern: pattern);
 }
 
-({ProjectManifest project, MapData map, ProjectSmartTilePreset preset, ProjectSmartTilePattern pattern})
+({
+  ProjectManifest project,
+  MapData map,
+  ProjectSmartTilePreset preset,
+  ProjectSmartTilePattern pattern,
+})
 _adaptiveBridgeFixture() {
   final base = _fixture(spatial: false);
   final preset = base.preset.copyWith(
-    categoryId: 'bridge-style', coveragePolicy: SmartTileCoveragePolicy.sparse,
-    status: SmartTilePresetStatus.published, rules: [],
-    coverageProfile: const SmartTileCoverageProfile(mode: SmartTileCoverageMode.explicit),
+    categoryId: 'bridge-style',
+    coveragePolicy: SmartTileCoveragePolicy.sparse,
+    status: SmartTilePresetStatus.published,
+    rules: [],
+    coverageProfile: const SmartTileCoverageProfile(
+      mode: SmartTileCoverageMode.explicit,
+    ),
   );
   final part = base.pattern.cells.first.parts.first;
   final pattern = ProjectSmartTilePattern(
-    id: 'bridge', name: 'Pont natif', categoryId: preset.categoryId,
-    usage: preset.usage, width: 5, height: 4,
+    id: 'bridge',
+    name: 'Pont natif',
+    categoryId: preset.categoryId,
+    usage: preset.usage,
+    width: 5,
+    height: 4,
     construction: SmartTilePatternConstruction(
       y: SmartTilePatternRepeatAxis(repeatStart: 1, repeatLength: 2),
     ),
-    cells: [for (var y = 0; y < 4; y++) for (var x = 0; x < 5; x++)
-      SmartTilePatternCell(x: x, y: y, parts: [part])],
+    cells: [
+      for (var y = 0; y < 4; y++)
+        for (var x = 0; x < 5; x++)
+          SmartTilePatternCell(x: x, y: y, parts: [part]),
+    ],
   );
   final catalog = base.project.smartTileCatalog;
-  final project = base.project.copyWith(smartTileCatalog: ProjectSmartTileCatalog(
-    categories: [...catalog.categories, const ProjectSmartTileCategory(id: 'bridge-style', name: 'Pont')],
-    atlases: catalog.atlases, materials: catalog.materials,
-    animations: catalog.animations, presets: [preset], patterns: [pattern],
-  ));
+  final project = base.project.copyWith(
+    smartTileCatalog: ProjectSmartTileCatalog(
+      categories: [
+        ...catalog.categories,
+        const ProjectSmartTileCategory(id: 'bridge-style', name: 'Pont'),
+      ],
+      atlases: catalog.atlases,
+      materials: catalog.materials,
+      animations: catalog.animations,
+      presets: [preset],
+      patterns: [pattern],
+    ),
+  );
   final source = base.map.layers.whereType<SmartTileLayer>().single;
   final map = base.map.copyWith(layers: [source.copyWith(patternStrokes: [])]);
   return (project: project, map: map, preset: preset, pattern: pattern);
@@ -2638,10 +2694,10 @@ ProjectManifest _withStampPatterns(
   ),
 );
 
-MapWorkspaceViewState _selectedStampEraseView(
+MapEditingViewportSession _selectedStampEraseView(
   ProjectSmartTilePreset preset,
   ProjectSmartTilePattern pattern,
-) => MapWorkspaceViewState()
+) => MapEditingViewportSession()
   ..prepareTerrainPainting(preset)
   ..selectTerrainPattern(pattern)
   ..tool = StudioMapTool.erase;

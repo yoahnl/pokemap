@@ -1,3 +1,5 @@
+import '../../../features/pokemon/application/pokemon_workspace_workflow.dart';
+
 import 'package:flutter/material.dart';
 
 import '../../../features/pokemon/application/pokemon_workspace_controller.dart';
@@ -178,10 +180,6 @@ class _PokemonSpeciesLibraryState extends State<PokemonSpeciesLibrary> {
                             final entry = entries[index];
                             return PokemonSpeciesListItem(
                               entry: entry,
-                              port: controller.port,
-                              mediaRevision: controller.mediaRevision(
-                                entry.mediaRelativePath,
-                              ),
                               selected: entry.id == controller.selectedId,
                               onTap: () => _select(entry.id),
                             );
@@ -197,36 +195,45 @@ class _PokemonSpeciesLibraryState extends State<PokemonSpeciesLibrary> {
   }
 
   Future<void> _select(String id) async {
-    final controller = widget.controller;
-    if (controller.selectedId != id && controller.hasPendingChanges) {
-      final choice = await showDialog<String>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: const Text('Changer de fiche Pokémon ?'),
-          content: const Text('La fiche en cours contient un brouillon.'),
-          actions: [
-            StudioButton(
-              label: 'Rester',
-              secondary: true,
-              onPressed: () => Navigator.pop(dialogContext, 'stay'),
-            ),
-            StudioButton(
-              label: 'Annuler les modifications',
-              secondary: true,
-              onPressed: () => Navigator.pop(dialogContext, 'discard'),
-            ),
-            StudioButton(
-              label: 'Enregistrer',
-              onPressed: () => Navigator.pop(dialogContext, 'save'),
-            ),
-          ],
-        ),
-      );
-      if (!mounted || choice == null || choice == 'stay') return;
-      if (choice == 'save' && !await controller.saveActiveOwner()) return;
-      if (choice == 'discard') controller.discardSelectedSpecies();
+    final owner = widget.controller;
+    final workflow = PokemonWorkspaceWorkflow(
+      current: () => widget.controller,
+      isActive: () => mounted && identical(widget.controller, owner),
+      confirmDraft: () async {
+        final choice = await showDialog<String>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Changer de fiche Pokémon ?'),
+            content: const Text('La fiche en cours contient un brouillon.'),
+            actions: [
+              StudioButton(
+                label: 'Rester',
+                secondary: true,
+                onPressed: () => Navigator.pop(dialogContext, 'stay'),
+              ),
+              StudioButton(
+                label: 'Annuler les modifications',
+                secondary: true,
+                onPressed: () => Navigator.pop(dialogContext, 'discard'),
+              ),
+              StudioButton(
+                label: 'Enregistrer',
+                onPressed: () => Navigator.pop(dialogContext, 'save'),
+              ),
+            ],
+          ),
+        );
+        return switch (choice) {
+          'save' => PokemonDraftDecision.save,
+          'discard' => PokemonDraftDecision.discard,
+          _ => PokemonDraftDecision.stay,
+        };
+      },
+    );
+    try {
+      if (await workflow.requestSpecies(id) && mounted) widget.onSelected();
+    } finally {
+      workflow.dispose();
     }
-    final selected = await controller.selectSpecies(id);
-    if (selected && mounted) widget.onSelected();
   }
 }

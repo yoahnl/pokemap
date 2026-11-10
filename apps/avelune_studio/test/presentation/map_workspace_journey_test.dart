@@ -1,24 +1,25 @@
 import 'dart:async';
 
+import 'package:avelune_studio/features/map_workspace/application/map_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_screen.dart';
-import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_choice.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
-import 'package:flutter/material.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/workspace_workflow.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
 import '../support/map_workspace_fixture.dart';
-import '../support/map_tool_menu.dart';
+import '../support/neutral_map_host_fixture.dart';
 
 void main() {
   late WorkspaceMemoryPort port;
   late MapWorkspaceController controller;
   late WorkspaceTestVisuals visuals;
-  late Future<bool> Function()? exitGuard;
-  var closed = false;
+  late NeutralMapHostFixture host;
+  late WorkspaceWorkflow actions;
   var runtimeStarts = 0;
+  var choice = WorkspaceCloseChoice.cancel;
+  Completer<void>? runtimeEntered, runtimeReturn;
 
   Future<void> open(WidgetTester tester) async {
     tester.view.physicalSize = const Size(1500, 1000);
@@ -27,274 +28,201 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     port = WorkspaceMemoryPort();
     controller = MapWorkspaceController(workspaceSession, port);
+    addTearDown(controller.dispose);
+    await controller.initialize();
     visuals = WorkspaceTestVisuals();
-    closed = false;
     runtimeStarts = 0;
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: studioTheme(),
-        home: MapWorkspaceScreen(
-          controller: controller,
-          loadVisuals: (_, _) async => visuals,
-          runtimeBuilder: (entry, revision, close) {
-            runtimeStarts++;
-            return Scaffold(
-              body: TextButton(
-                onPressed: close,
-                child: Text('Retour $revision'),
-              ),
-            );
-          },
-          onClose: () async {
-            closed = true;
-          },
-          registerExitGuard: (guard) => exitGuard = guard,
-        ),
-      ),
+    choice = WorkspaceCloseChoice.cancel;
+    runtimeEntered = null;
+    runtimeReturn = null;
+    actions = WorkspaceWorkflow(
+      controller: controller,
+      isActive: () => !controller.isDisposed,
+      changed: controller.notify,
+      resources: () => null,
+      narrative: () => null,
+      confirmClose: () async => choice,
+      flushFocus: () {},
+      launchMap: (_, _) async {
+        runtimeStarts++;
+        runtimeEntered?.complete();
+        await runtimeReturn?.future;
+      },
     );
-    await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Masquer les cartes'));
-    await tester.pumpAndSettle();
+    host = await NeutralMapHostFixture.fromController(
+      tester, controller, visuals: visuals, isBusy: () => actions.busy,
+    );
   }
 
-  Offset cell(WidgetTester tester, int x, int y) =>
-      tester.getTopLeft(find.byKey(const ValueKey('map-canvas'))) +
-      Offset(x * 32 + 8, y * 32 + 8);
-  Future<void> place(WidgetTester tester, int x, int y) async {
-    final brush = find.byKey(const ValueKey('decor-tree'));
-    expect(brush.hitTestable(), findsOneWidget);
-    await tester.tap(brush);
-    await tester.pumpAndSettle();
-    await tester.tapAt(cell(tester, x, y));
-    await tester.pumpAndSettle();
+  Future<void> place(int x, int y) async {
+    host.nativeView.tool = StudioMapTool.place;
+    host.nativeView.brush = controller.project!.elements.first;
+    visuals.setBrush(host.nativeView.brush, null);
+    controller.notify();
+    await host.pump();
+    await host.tapCell(x, y);
   }
 
-  testWidgets(
-    'preparing runtime blocks input and refuses a changed active document',
-    (tester) async {
-      await open(tester);
-      await place(tester, 2, 2);
-      port.saveGate = Completer<void>();
-      await tester.tap(find.byKey(const ValueKey('Enregistrer et tester')));
+  testWidgets('preparing runtime refuses a changed active document', (tester) async {
+    await open(tester);
+    await place(2, 2);
+    port.saveGate = Completer<void>();
+    final running = actions.test();
+    await tester.pump();
+    expect(actions.testing, isTrue);
+    await controller.activate(workspaceEntries.last);
+    port.saveGate!.complete();
+    await running;
+    expect(runtimeStarts, 0);
+    expect(controller.active!.base.mapId, 'b');
+    expect(port.saved['a']!.placedElements, hasLength(1));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('an active playtest blocks viewport placement until it returns', (tester) async {
+    await open(tester);
+    host.nativeView.tool = StudioMapTool.place;
+    host.nativeView.brush = controller.project!.elements.first;
+    runtimeEntered = Completer<void>();
+    runtimeReturn = Completer<void>();
+    late Future<void> running;
+    await tester.runAsync(() async {
+      running = actions.test();
+    });
+    await host.pump();
+    expect(runtimeEntered!.isCompleted, isTrue);
+    final before = controller.active!.current;
+    try {
+      expect(actions.testing, isTrue);
+      await host.tapCell(2, 2);
+      expect(controller.active!.current, same(before));
+    } finally {
+      runtimeReturn!.complete();
       await tester.pump();
-      expect(
-        tester
-            .widget<AbsorbPointer>(
-              find.byKey(const ValueKey('workspace-preparing')),
-            )
-            .absorbing,
-        true,
-      );
-      await controller.activate(workspaceEntries.last);
-      port.saveGate!.complete();
-      await tester.pumpAndSettle();
-      expect(runtimeStarts, 0);
-      expect(controller.active!.base.mapId, 'b');
-      expect(port.saved['a']!.placedElements.length, 1);
-      expect(tester.takeException(), null);
-      await tester.pumpWidget(const SizedBox());
-    },
-  );
+      await tester.runAsync(() => running);
+    }
+    await host.pump();
+    await host.tapCell(2, 2);
+    expect(controller.active!.current.placedElements, hasLength(1));
+  });
 
-  testWidgets(
-    'place move stack undo redo save and runtime return preserve document',
-    (tester) async {
-      await open(tester);
-      await place(tester, 3, 3);
-      await tester.tapAt(cell(tester, 3, 3));
-      await tester.pumpAndSettle();
-      final document = controller.active!;
-      expect(document.current.placedElements.length, 2);
-      expect(document.undoCount, 2);
-      final first = document.current.placedElements.first.id;
-      final second = document.current.placedElements.last.id;
-      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
-      await tester.tapAt(cell(tester, 3, 3));
-      await tester.pumpAndSettle();
-      expect(document.selectedId, second);
-      await tester.tap(find.text('Ordre'));
-      await tester.pumpAndSettle();
-      final stackChoices = find.widgetWithText(StudioChoice, 'Arbre');
-      await tester.tap(stackChoices.last);
-      await tester.pumpAndSettle();
-      expect(document.selectedId, first);
-      await tester.tap(find.text('Propriétés'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('Passer devant')));
-      await tester.pumpAndSettle();
-      expect(
-        document.current.placedElements.first.visualOrder,
-        greaterThan(document.current.placedElements.last.visualOrder),
-      );
-      final start = cell(tester, 3, 3);
-      final gesture = await tester.startGesture(start);
-      await gesture.moveTo(start + const Offset(64, 32));
-      await tester.pump();
-      expect(document.current.placedElements.first.pos.x, 3);
-      await gesture.up();
-      await tester.pumpAndSettle();
-      expect(document.current.placedElements.first.pos.x, 5);
-      expect(document.undoCount, 4);
-      await tester.tap(find.byKey(const ValueKey('Annuler')));
-      await tester.pumpAndSettle();
-      expect(document.current.placedElements.first.pos.x, 3);
-      await tester.tap(find.byKey(const ValueKey('Rétablir')));
-      await tester.pumpAndSettle();
-      expect(document.current.placedElements.first.pos.x, 5);
-      await tester.tap(find.byKey(const ValueKey('Enregistrer')));
-      await tester.pumpAndSettle();
-      expect(document.dirty, false);
-      expect(port.saved['a'], document.current);
-      await tester.tap(find.byKey(const ValueKey('Enregistrer et tester')));
-      await tester.pumpAndSettle();
-      expect(runtimeStarts, 1);
-      await tester.tap(find.text('Retour r1'));
-      await tester.pumpAndSettle();
-      expect(identical(controller.active, document), true);
-      expect(port.catalogs, 1);
-      expect(port.reads, 1);
-      expect(tester.takeException(), null);
-      await tester.pumpWidget(const SizedBox());
-      expect(visuals.disposed, true);
-    },
-  );
+  testWidgets('place move stack undo redo save and runtime return preserve document', (tester) async {
+    await open(tester);
+    await place(3, 3);
+    await host.tapCell(3, 3);
+    final document = controller.active!;
+    expect(document.current.placedElements, hasLength(2));
+    expect(document.undoCount, 2);
+    final first = document.current.placedElements.first.id;
+    final second = document.current.placedElements.last.id;
+    await host.key(LogicalKeyboardKey.escape);
+    await host.tapCell(3, 3);
+    expect(document.selectedId, second);
+    host.nativeView.select(document, MapSelectionFamily.decor, first);
+    document.stackPosition = const GridPos(x: 3, y: 3);
+    MapEditingCommands(document, controller.project!).reorder(forward: true);
+    expect(document.current.placedElements.first.visualOrder,
+      greaterThan(document.current.placedElements.last.visualOrder));
+    controller.notify();
+    await host.pump();
+    await host.drag(3, 3, 5, 4);
+    expect(document.current.placedElements.first.pos.x, 5);
+    expect(document.undoCount, 4);
+    document.restore(redo: false);
+    expect(document.current.placedElements.first.pos.x, 3);
+    document.restore(redo: true);
+    expect(document.current.placedElements.first.pos.x, 5);
+    expect(await controller.save(document), isTrue);
+    expect(document.dirty, isFalse);
+    expect(port.saved['a'], document.current);
+    await actions.test();
+    expect(runtimeStarts, 1);
+    expect(controller.active, same(document));
+    expect(port.catalogs, 1);
+    expect(port.reads, 1);
+    await host.dispose();
+    expect(visuals.disposed, isTrue);
+  });
 
-  testWidgets(
-    'dirty close offers cancel discard save and save conflict prevents runtime',
-    (tester) async {
-      await open(tester);
-      await place(tester, 2, 2);
-      await tester.tap(find.byKey(const ValueKey('Fermer le projet')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Annuler').last);
-      await tester.pumpAndSettle();
-      expect(closed, false);
-      expect(controller.dirty, true);
-      port.failSave = true;
-      await tester.tap(find.byKey(const ValueKey('Enregistrer et tester')));
-      await tester.pumpAndSettle();
-      expect(runtimeStarts, 0);
-      expect(find.text('Conflit détecté'), findsOneWidget);
-      expect(controller.dirty, true);
-      final exiting = exitGuard!();
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Abandonner'));
-      await tester.pumpAndSettle();
-      expect(await exiting, true);
-      expect(port.writes, 0);
-      await tester.pumpWidget(const SizedBox());
-    },
-  );
+  testWidgets('dirty close supports cancel discard save and a conflict prevents runtime', (tester) async {
+    await open(tester);
+    await place(2, 2);
+    expect(await actions.allowClose(), isFalse);
+    expect(controller.dirty, isTrue);
+    port.failSave = true;
+    await actions.test();
+    expect(runtimeStarts, 0);
+    expect(controller.active!.error, isNotNull);
+    expect(controller.dirty, isTrue);
+    choice = WorkspaceCloseChoice.discard;
+    expect(await actions.allowClose(), isTrue);
+    expect(port.writes, 0);
+    expect(controller.active!.current.placedElements, hasLength(1));
+    port.failSave = false;
+    choice = WorkspaceCloseChoice.save;
+    expect(await actions.allowClose(), isTrue);
+    expect(controller.dirty, isFalse);
+    expect(port.writes, 1);
+  });
 
-  testWidgets(
-    'paint gesture is one history step and text input does not delete selection',
-    (tester) async {
-      await open(tester);
-      await place(tester, 2, 2);
-      final document = controller.active!;
-      await tester.tap(find.byTooltip('Changer la palette'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Tuiles'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Tuile 1'));
-      await tester.pumpAndSettle();
-      final gesture = await tester.startGesture(cell(tester, 6, 6));
-      await gesture.moveTo(cell(tester, 9, 6));
-      await gesture.up();
-      await tester.pumpAndSettle();
-      expect(document.undoCount, 2);
-      await tester.tap(find.byKey(const ValueKey('Annuler')));
-      await tester.pumpAndSettle();
-      expect(document.undoCount, 1);
-      await tester.tap(find.byTooltip('Afficher les cartes'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip('Rechercher une carte'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byType(TextField).first);
-      await tester.enterText(find.byType(TextField).first, 'arbres');
-      await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
-      await tester.pumpAndSettle();
-      expect(document.current.placedElements.length, 1);
-      expect(tester.takeException(), null);
-      await tester.pumpWidget(const SizedBox());
-    },
-  );
+  testWidgets('a tile paint gesture is one history step', (tester) async {
+    await open(tester);
+    await place(2, 2);
+    final document = controller.active!;
+    host.nativeView.tool = StudioMapTool.paint;
+    host.nativeView.tile = const TileLayerPaletteEntry(tilesetId: 'atlas', localTileId: 0);
+    host.nativeView.brush = null;
+    controller.notify();
+    await host.pump();
+    await host.drag(6, 6, 9, 6);
+    expect(document.undoCount, 2);
+    document.restore(redo: false);
+    expect(document.undoCount, 1);
+    expect(document.current.placedElements, hasLength(1));
+  });
 
-  testWidgets(
-    'failed navigation keeps visible and saved target; warm navigation preserves zoom',
-    (tester) async {
-      await open(tester);
-      await tester.tap(find.byKey(const ValueKey('Zoom avant')));
-      await tester.pumpAndSettle();
-      final zoom = tester
-          .widget<InteractiveViewer>(find.byType(InteractiveViewer))
-          .transformationController!
-          .value
-          .clone();
-      expect(controller.dirty, false);
-      port.failedMap = 'b';
-      await tester.tap(find.byType(DropdownButton<String>));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Jardin').last);
-      await tester.pumpAndSettle();
-      expect(
-        tester
-            .widget<DropdownButton<String>>(find.byType(DropdownButton<String>))
-            .value,
-        'a',
-      );
-      expect(find.text('Carte indisponible'), findsOneWidget);
-      port.failedMap = null;
-      await controller.activate(workspaceEntries.last);
-      await tester.pumpAndSettle();
-      await controller.activate(workspaceEntries.first);
-      await tester.pumpAndSettle();
-      expect(
-        tester
-            .widget<InteractiveViewer>(find.byType(InteractiveViewer))
-            .transformationController!
-            .value,
-        zoom,
-      );
-      expect(port.catalogs, 1);
-      expect(port.reads, 3);
-      expect(tester.takeException(), null);
-      await tester.pumpWidget(const SizedBox());
-    },
-  );
+  testWidgets('failed navigation preserves its target and warm navigation preserves zoom', (tester) async {
+    await open(tester);
+    final view = host.nativeView;
+    view.transform.value = Matrix4.identity()..scaleByDouble(1.5, 1.5, 1, 1);
+    final zoom = view.transform.value.clone();
+    expect(controller.dirty, isFalse);
+    port.failedMap = 'b';
+    await controller.activate(workspaceEntries.last);
+    await host.pump();
+    expect(controller.active!.base.mapId, 'a');
+    expect(controller.error, contains('Carte indisponible'));
+    expect(host.nativeView, same(view));
+    port.failedMap = null;
+    await controller.activate(workspaceEntries.last);
+    await host.pump();
+    await controller.activate(workspaceEntries.first);
+    await host.pump();
+    expect(host.nativeView, same(view));
+    expect(view.transform.value, zoom);
+    expect(port.catalogs, 1);
+    expect(port.reads, 3);
+  });
+
   testWidgets('eraser reaches ground beneath empty decor', (tester) async {
     await open(tester);
     final document = controller.active!;
     final ground = (document.current.layers.single as TileLayer).copyWith(
       cells: List.filled(320, 1),
     );
-    document.commit(
-      document.current.copyWith(
-        layers: [
-          MapLayer.tile(
-            id: 'decor',
-            name: 'Décors',
-            cells: List.filled(320, 0),
-          ),
-          ground,
-        ],
-      ),
-    );
+    document.commit(document.current.copyWith(layers: [
+      MapLayer.tile(id: 'decor', name: 'Décors', cells: List.filled(320, 0)),
+      ground,
+    ]));
+    host.nativeView.tool = StudioMapTool.erase;
     controller.notify();
-    await tester.pumpAndSettle();
+    await host.pump();
     final history = document.undoCount;
-    await chooseMapExtraTool(tester, 'Gomme de tuiles');
-    await tester.tapAt(cell(tester, 4, 4));
-    await tester.pumpAndSettle();
-    final erased = document.current.layers.whereType<TileLayer>().firstWhere(
-      (l) => l.id == 'ground',
-    );
-    expect(resolveTileLayerCell(erased, 4 * 20 + 4), null);
+    await host.tapCell(4, 4);
+    final erased = document.current.layers.whereType<TileLayer>().firstWhere((layer) => layer.id == 'ground');
+    expect(resolveTileLayerCell(erased, 4 * 20 + 4), isNull);
     expect(document.undoCount, history + 1);
-    await tester.tap(find.byKey(const ValueKey('Annuler')));
-    await tester.pumpAndSettle();
+    document.restore(redo: false);
     expect(document.current.layers.last, ground);
-    expect(tester.takeException(), null);
-    await tester.pumpWidget(const SizedBox());
   });
 }

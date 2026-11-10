@@ -24,7 +24,6 @@ class PokemonDetailTabs extends StatelessWidget {
               (PokemonDetailSection.forms, 'Formes'),
               (PokemonDetailSection.learnset, 'Apprentissages'),
               (PokemonDetailSection.evolution, 'Évolutions'),
-              (PokemonDetailSection.media, 'Médias'),
             ])
               DecoratedBox(
                 decoration: BoxDecoration(

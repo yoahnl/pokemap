@@ -1,13 +1,10 @@
+import 'package:avelune_studio/features/map_workspace/application/spatial_terrain_surface_editing_session.dart';
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/application/spatial_terrain_stroke.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
 import 'package:avelune_studio/platform/rendering/viewports/spatial_map_editing_viewport.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/spatial_terrain_controls.dart';
-import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
-import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -33,7 +30,7 @@ void main() {
       final document = EditableMapDocument(
         MapWorkspaceDocument(map: map, mapId: 'a', revision: 'r'),
       );
-      final view = MapWorkspaceViewState()
+      final view = MapEditingViewportSession()
         ..tool = StudioMapTool.terrain
         ..spatialTerrainMode = SpatialTerrainMode.relief;
       final controller = MapWorkspaceController(
@@ -49,52 +46,33 @@ void main() {
           spatialCamera: SpatialCameraProfile(),
         ),
       );
+      late VoidCallback refresh;
       await tester.pumpWidget(
         MaterialApp(
-          theme: studioTheme(),
           home: Scaffold(
             body: StatefulBuilder(
-              builder: (context, refresh) => Row(
-                children: [
-                  Expanded(
-                    child: SpatialMapEditingViewport(
-                      document: document,
-                      controller: controller,
-                      project: project,
-                      visuals: ReliefVisuals(),
-                      view: view,
-                      onChanged: () => refresh(() {}),
-                    ),
-                  ),
-                  SizedBox(
-                    width: 330,
-                    child: SingleChildScrollView(
-                      child: SpatialTerrainControls(
-                        document: document,
-                        project: project,
-                        view: view,
-                        visuals: ReliefVisuals(),
-                        onChanged: () => refresh(() {}),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              builder: (context, update) {
+                refresh = () => update(() {});
+                return SpatialMapEditingViewport(
+                  document: document,
+                  controller: controller,
+                  project: project,
+                  visuals: ReliefVisuals(),
+                  view: view,
+                  onChanged: refresh,
+                );
+              },
             ),
           ),
         ),
       );
-      final picker = find.byKey(const ValueKey('spatial-relief-shape'));
-      expect(picker, findsOneWidget);
-      tester.widget<StudioSelect>(picker).onChanged!('surface');
-      await tester.pump();
-      final modelHeights = find.byKey(
-        const ValueKey('spatial-surface-model-heights'),
-      );
-      expect(modelHeights, findsOneWidget);
-      tester.widget<StudioSelect>(modelHeights).onChanged!('keep');
+      view.spatialContinuousTerrain = true;
+      view.spatialSurfaceReanchorInstances = false;
+      refresh();
       await tester.pump();
       expect(view.spatialSurfaceReanchorInstances, isFalse);
+      final editing = SpatialTerrainSurfaceEditingSession(document, view);
+      addTearDown(editing.dispose);
       SpatialSceneView canvas() => tester.widget(find.byType(SpatialSceneView));
       expect(canvas().onDragStart!(1, 1, null), isTrue);
       canvas().onDragUpdate!((3, 2));
@@ -118,25 +96,17 @@ void main() {
       );
       final surface =
           document.current.spatialScene!.terrainSurfaces.surfaces.single;
-      final editPicker = find.byKey(const ValueKey('terrain-surface-picker'));
-      expect(editPicker, findsOneWidget);
-      expect(tester.widget<StudioSelect>(editPicker).value, surface.id);
+      editing.load();
+      expect(editing.surface!.id, surface.id);
       expect(
         canvas().cellOverlays.any(
           (overlay) => overlay.id.startsWith('terrain-surface-selection:'),
         ),
         isTrue,
       );
-      final xInput = find.descendant(
-        of: find.byKey(const ValueKey('terrain-surface-x')),
-        matching: find.byType(TextField),
-      );
-      await tester.enterText(xInput, '4');
-      tester
-          .widget<StudioButton>(
-            find.byKey(const ValueKey('terrain-surface-preview')),
-          )
-          .onPressed!();
+      editing.values['x'] = '4';
+      editing.preview();
+      refresh();
       await tester.pump();
       expect(
         document.current.spatialScene!.terrainSurfaces.surfaces.single,
@@ -154,31 +124,22 @@ void main() {
         document.current.spatialScene!.terrainSurfaces.surfaces.single,
         surface,
       );
-      tester.widget<StudioSelect>(editPicker).onChanged!(surface.id);
+      view.spatialSurfaceId = surface.id;
+      editing.load();
+      editing.values['x'] = '4';
+      editing.preview();
+      refresh();
       await tester.pump();
-      await tester.enterText(xInput, '4');
-      tester
-          .widget<StudioButton>(
-            find.byKey(const ValueKey('terrain-surface-preview')),
-          )
-          .onPressed!();
-      await tester.pump();
-      tester
-          .widget<StudioButton>(
-            find.byKey(const ValueKey('terrain-surface-apply')),
-          )
-          .onPressed!();
+      editing.apply();
+      refresh();
       await tester.pump();
       expect(
         document.current.spatialScene!.terrainSurfaces.surfaces.single.x,
         4,
       );
       expect(document.undoCount, 2);
-      tester
-          .widget<StudioButton>(
-            find.widgetWithText(StudioButton, 'Sélectionner'),
-          )
-          .onPressed!();
+      editing.edit(() => view.spatialSurfaceSelect = true);
+      refresh();
       await tester.pump();
       expect(canvas().onDragStart!(0, 0, null), isFalse);
       await tester.pump();
@@ -186,11 +147,9 @@ void main() {
       expect(canvas().onDragStart!(4, 1, null), isFalse);
       await tester.pump();
       expect(view.spatialSurfaceId, surface.id);
-      tester
-          .widget<StudioButton>(
-            find.byKey(const ValueKey('terrain-surface-delete')),
-          )
-          .onPressed!();
+      editing.load();
+      editing.delete();
+      refresh();
       await tester.pump();
       expect(document.current.spatialScene!.terrainSurfaces.surfaces, isEmpty);
       expect(document.undoCount, 3);
@@ -209,14 +168,15 @@ void main() {
       document.restore(redo: false);
       await tester.pump();
       expect(document.current, map);
-      tester
-          .widget<StudioButton>(find.widgetWithText(StudioButton, 'Dessiner'))
-          .onPressed!();
+      editing.edit(() => view.spatialSurfaceSelect = false);
+      refresh();
       await tester.pump();
       expect(canvas().onDragStart!(1, 1, null), isTrue);
       canvas().onDragUpdate!((3, 2));
       await tester.pump();
-      tester.widget<StudioSelect>(picker).onChanged!('blocks');
+      view.spatialContinuousTerrain = false;
+      view.terrainSurfacePreview = null;
+      refresh();
       await tester.pump();
       canvas().onDragEnd!();
       await tester.pump();

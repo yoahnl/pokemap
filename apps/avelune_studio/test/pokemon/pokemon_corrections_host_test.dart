@@ -1,15 +1,16 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:avelune_studio/features/pokemon/application/pokemon_workspace_controller.dart';
 import 'package:avelune_studio/features/pokemon/data/local_pokemon_workspace_adapter.dart';
+import 'package:avelune_studio/features/pokemon/domain/pokemon_external_import_models.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/map_host_fixture.dart';
-import '../support/capture_m3_widget.dart';
-import '../support/load_desktop_capture_fonts.dart';
 import '../support/m2_ui_fixture.dart' show pumpIo;
 import '../support/pokemon_external_source_fixture.dart';
+import '../support/pokemon_authoring_fixture.dart';
 
 void main() {
   testWidgets('ambiguous legacy companion leaves the species readable', (
@@ -51,15 +52,11 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets(
+  test(
     'legacy companion is replaced at its existing identity and path',
-    (tester) async {
-      await tester.runAsync(loadDesktopCaptureFonts);
-      final captureKey = GlobalKey();
-      final host = await MapHostFixture.open(
-        tester,
-        captureKey: captureKey,
-        pokemonExternalSource: const PokemonExternalSourceFixture(),
+    () async {
+      final host = await PokemonAuthoringFixture.create(
+        externalSource: const PokemonExternalSourceFixture(),
         prepareSource: (fixture) async {
           final species =
               jsonDecode(await File(speciesPath).readAsString()) as Map;
@@ -81,31 +78,26 @@ void main() {
           await companion.writeAsString(jsonEncode(learnset));
         },
       );
-      await host.go('Pokémon');
-      await pumpIo(tester);
-      await tester.tap(find.byKey(const ValueKey('species-bulbasaur')));
-      await pumpIo(tester);
-      expect(find.text('Apprentissages'), findsOneWidget);
-      await _prepareExternal(tester);
-      expect(find.textContaining('Aperçu ·'), findsOneWidget);
-      await captureM3Widget(tester, captureKey, 'correction-06-import-legacy');
-      await tester.tap(find.text('Refuser les conflits'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Remplacer après confirmation').last);
-      await tester.pump();
-      await tester.tap(find.text('Appliquer l’import'));
-      await tester.pump();
-      await tester.tap(find.text('Remplacer').last);
-      await pumpIo(tester);
+      addTearDown(host.dispose);
+      expect(await host.workflow.requestSpecies('bulbasaur'), isTrue);
+      await _prepareExternal(host);
       final root = host.source.directory.path;
-      final onDisk = (await tester.runAsync(() async {
-        return jsonDecode(
-              await File(
-                '$root/data/pokemon/learnsets/custom-learn.json',
-              ).readAsString(),
-            )
-            as Map;
-      }))!;
+      final companion = File('$root/data/pokemon/learnsets/custom-learn.json');
+      final before = await companion.readAsBytes();
+      var confirmations = 0;
+      expect(
+        await host.workflow.applyExternal(
+          PokemonExternalConflictPolicy.overwriteExisting,
+          () async {
+            confirmations++;
+            expect(await companion.readAsBytes(), before);
+            return true;
+          },
+        ),
+        isTrue,
+      );
+      expect(confirmations, 1);
+      final onDisk = jsonDecode(await companion.readAsString()) as Map;
       expect(onDisk['speciesId'], 'custom-learn');
       expect(onDisk['startingMoves'], contains('tackle'));
       expect(onDisk['startingMoves'], isNot(['growl']));
@@ -113,10 +105,10 @@ void main() {
         session: host.source.session,
         mapAdapter: host.source.maps,
       );
-      final entry = (await tester.runAsync(adapter.loadIndex))!.entries.single;
-      final reopened = (await tester.runAsync(
-        () => adapter.loadSpecies(entry),
-      ))!;
+      addTearDown(adapter.close);
+      final reopened = await adapter.loadSpecies(
+        (await adapter.loadIndex()).entries.single,
+      );
       expect(reopened.species.document!['refs']['learnset'], 'custom-learn');
       expect(reopened.learnset!.document!['speciesId'], 'custom-learn');
       expect(
@@ -128,24 +120,17 @@ void main() {
         'data/pokemon/learnsets/custom-learn.json',
       );
       expect(
-        (await tester.runAsync(
-          () => File('$root/data/pokemon/learnsets/bulbasaur.json').exists(),
-        ))!,
+        await File('$root/data/pokemon/learnsets/bulbasaur.json').exists(),
         isFalse,
       );
-      expect(tester.takeException(), isNull);
     },
   );
 
-  testWidgets(
+  test(
     'keeping a species with empty ref excludes unattached companion',
-    (tester) async {
-      await tester.runAsync(loadDesktopCaptureFonts);
-      final captureKey = GlobalKey();
-      final host = await MapHostFixture.open(
-        tester,
-        captureKey: captureKey,
-        pokemonExternalSource: const PokemonExternalSourceFixture(),
+    () async {
+      final host = await PokemonAuthoringFixture.create(
+        externalSource: const PokemonExternalSourceFixture(),
         prepareSource: (fixture) async {
           final species =
               jsonDecode(await File(speciesPath).readAsString()) as Map;
@@ -159,91 +144,80 @@ void main() {
           await file.writeAsString(jsonEncode(species));
         },
       );
+      addTearDown(host.dispose);
       final root = host.source.directory.path;
       final speciesFile = File('$root/data/pokemon/species/bulbasaur.json');
-      final before = (await tester.runAsync(speciesFile.readAsBytes))!;
-      await host.go('Pokémon');
-      await pumpIo(tester);
-      await _prepareExternal(tester);
-      await tester.tap(find.text('Refuser les conflits'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Garder les fichiers existants').last);
-      await tester.pumpAndSettle();
-      expect(find.textContaining('exclu(s)'), findsWidgets);
-      await captureM3Widget(tester, captureKey, 'correction-07-exclusion');
-      await tester.tap(find.text('Terminer sans importer'));
-      await pumpIo(tester);
-      expect((await tester.runAsync(speciesFile.readAsBytes))!, before);
+      final before = await speciesFile.readAsBytes();
+      await _prepareExternal(host);
+      final plan = host.pokemon.externalPreview!.plan(
+        PokemonExternalConflictPolicy.skipExisting,
+      );
+      expect(plan.selected, isEmpty);
+      expect(plan.excluded, isNotEmpty);
       expect(
-        (await tester.runAsync(
-          () => File('$root/data/pokemon/learnsets/bulbasaur.json').exists(),
-        ))!,
+        await host.workflow.applyExternal(
+          PokemonExternalConflictPolicy.skipExisting,
+          () async =>
+              throw StateError('Keeping files needs no overwrite decision.'),
+        ),
+        isTrue,
+      );
+      expect(await speciesFile.readAsBytes(), before);
+      expect(
+        await File('$root/data/pokemon/learnsets/bulbasaur.json').exists(),
         isFalse,
       );
-      expect(find.textContaining('exclu(s) sans rattachement'), findsWidgets);
-      expect(tester.takeException(), isNull);
+      expect(host.pokemon.externalResult!.noChange, isTrue);
+      expect(host.pokemon.externalResult!.excluded, plan.excluded.length);
     },
   );
-  testWidgets('a changed retained reference invalidates an external preview', (
-    tester,
-  ) async {
-    final host = await MapHostFixture.open(
-      tester,
-      pokemonExternalSource: const PokemonExternalSourceFixture(),
-      prepareSource: (fixture) async {
-        final species =
-            jsonDecode(await File(speciesPath).readAsString()) as Map;
-        species['schemaVersion'] = 1;
-        (species['refs'] as Map)['learnset'] = 'custom-learn';
-        final file = File(
-          '${fixture.directory.path}/data/pokemon/species/bulbasaur.json',
-        );
-        await file.parent.create(recursive: true);
-        await file.writeAsString(jsonEncode(species));
-      },
-    );
-    await host.go('Pokémon');
-    await pumpIo(tester);
-    await _prepareExternal(tester);
-    final root = host.source.directory.path;
-    final speciesFile = File('$root/data/pokemon/species/bulbasaur.json');
-    await tester.runAsync(() async {
+
+  test(
+    'a changed retained reference invalidates an external preview',
+    () async {
+      final host = await PokemonAuthoringFixture.create(
+        externalSource: const PokemonExternalSourceFixture(),
+        prepareSource: (fixture) async {
+          final species =
+              jsonDecode(await File(speciesPath).readAsString()) as Map;
+          species['schemaVersion'] = 1;
+          (species['refs'] as Map)['learnset'] = 'custom-learn';
+          final file = File(
+            '${fixture.directory.path}/data/pokemon/species/bulbasaur.json',
+          );
+          await file.parent.create(recursive: true);
+          await file.writeAsString(jsonEncode(species));
+        },
+      );
+      addTearDown(host.dispose);
+      await _prepareExternal(host);
+      final root = host.source.directory.path;
+      final speciesFile = File('$root/data/pokemon/species/bulbasaur.json');
       final species = jsonDecode(await speciesFile.readAsString()) as Map;
       (species['refs'] as Map)['learnset'] = 'changed-learn';
       await speciesFile.writeAsString(jsonEncode(species));
-    });
-    await tester.tap(find.text('Refuser les conflits'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Garder les fichiers existants').last);
-    await tester.pump();
-    await tester.tap(find.text('Appliquer l’import'));
-    await pumpIo(tester);
-    expect(find.textContaining('Reprévisualisez'), findsWidgets);
-    expect(
-      (await tester.runAsync(
-        () => File('$root/data/pokemon/learnsets/custom-learn.json').exists(),
-      ))!,
-      isFalse,
-    );
-    expect(tester.takeException(), isNull);
-  });
+      final changed = await speciesFile.readAsBytes();
+      expect(
+        await host.workflow.applyExternal(
+          PokemonExternalConflictPolicy.skipExisting,
+          () async =>
+              throw StateError('Keeping files needs no overwrite decision.'),
+        ),
+        isFalse,
+      );
+      expect(host.pokemon.error, contains('Reprévisualisez'));
+      expect(await speciesFile.readAsBytes(), changed);
+      expect(
+        await File('$root/data/pokemon/learnsets/custom-learn.json').exists(),
+        isFalse,
+      );
+    },
+  );
 }
 
-Future<void> _prepareExternal(WidgetTester tester) async {
-  await tester.tap(find.text('Importer depuis une source'));
-  await pumpIo(tester);
-  await tester.enterText(
-    find.descendant(
-      of: find.byKey(const ValueKey('pokemon-external-query')),
-      matching: find.byType(TextField),
-    ),
-    'bulbasaur',
-  );
-  await tester.pump();
-  await tester.tap(find.text('Rechercher'));
-  await pumpIo(tester);
-  await tester.tap(find.textContaining('Bulbasaur · #1'));
-  await pumpIo(tester);
+Future<void> _prepareExternal(PokemonAuthoringFixture host) async {
+  expect(await host.pokemon.searchExternal('bulbasaur'), isTrue);
+  expect(await host.pokemon.previewExternal('bulbasaur'), isTrue);
 }
 
 const speciesPath =

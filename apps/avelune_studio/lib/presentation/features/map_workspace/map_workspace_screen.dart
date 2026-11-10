@@ -1,5 +1,7 @@
 import 'package:avelune_studio/features/map_workspace/application/map_library_commands.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/workspace_navigation_session.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/workspace_destination_workflow.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/workspace_publication_workflow.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/workspace_map_catalog_bindings.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/map_resource_placement.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/workspace_session_controllers.dart';
@@ -26,9 +28,8 @@ import 'dart:async';
 
 import '../../../features/map_workspace/application/map_layout_preferences.dart';
 import '../../shared/widgets/dialogs/studio_command_palette.dart';
-import 'map_ambiance_panel.dart';
 import 'map_tool_command_runner.dart';
-import 'map_workspace_commands.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_workspace_commands.dart';
 import '../../../features/project_surf/application/project_surf_controller.dart';
 import '../project_settings/project_settings_page.dart';
 import '../../../features/project_visuals/domain/project_visuals_port.dart';
@@ -40,19 +41,21 @@ import '../../../features/regional_map/application/regional_map_controller.dart'
 import '../../../features/regional_map/domain/regional_map_port.dart';
 import '../regional_map/regional_map_page.dart';
 import '../../../features/pokemon/application/pokemon_workspace_controller.dart';
+import '../../../features/pokemon/application/pokemon_workspace_workflow.dart';
 import '../../../features/pokemon/domain/pokemon_workspace_port.dart';
 import '../../../features/pokemon/domain/pokemon_commerce_port.dart';
 import '../../../features/pokemon/domain/pokemon_combat_port.dart';
 import '../pokemon/pokemon_workspace_page.dart';
 import '../pokemon/pokemon_draft_dialog.dart';
 import '../../../features/game_export/domain/studio_game_export_port.dart';
+import '../../../features/game_export/application/studio_game_export_mode.dart';
 import '../game_export/studio_game_export_page.dart';
 import '../../../features/presentations/application/presentation_workspace_controller.dart';
 import '../../../features/scenes/domain/scene_presentation_creation_request.dart';
 import '../presentations/presentation_view_state.dart';
 import '../presentations/presentation_workspace_page.dart';
-import '../presentations/presentation_workspace_visuals.dart';
-import '../presentations/presentation_media_picker.dart';
+import 'package:avelune_studio/platform/rendering/contracts/presentation_workspace_visuals.dart';
+import 'package:avelune_studio/features/presentations/domain/presentation_media_picker.dart';
 import '../../../features/cinematics/domain/cinematic_port.dart';
 import '../../../features/cinematics/application/cinematic_workspace_controller.dart';
 import '../cinematics/cinematic_view_state.dart';
@@ -70,7 +73,6 @@ import '../narrative/narrative_name_dialog.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../../features/stories/domain/story_port.dart';
 import '../../../features/stories/application/story_workspace_controller.dart';
-import '../stories/story_progression_view_store.dart';
 import '../../../features/scenes/domain/scene_port.dart';
 import '../../../features/scenes/application/scene_workspace_controller.dart';
 import '../../../presentation/features/scenes/scene_builder_page.dart';
@@ -87,7 +89,6 @@ import 'package:avelune_studio/features/map_workspace/coordination/workspace_ses
 
 import '../../../features/verification/application/verification_workspace_controller.dart';
 import '../../../features/world/application/world_workspace_controller.dart';
-import '../stories/story_view_state.dart';
 import '../../../features/world/application/world_draft_inputs.dart';
 
 import 'package:avelune_studio/features/narrative/application/narrative_navigation.dart';
@@ -97,6 +98,7 @@ import '../narrative/narrative_overview_view_state.dart';
 import 'package:flutter/services.dart';
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_context_command_runner.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_context_interaction_session.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_context_menu_actions.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_context_menu_model.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_draft_reference_guard.dart';
@@ -265,16 +267,16 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
     nextNavigationRequest: () => ++_navigationRequest,
     mapView: () => _view,
     toolChanged: _toolChanged,
+    resources: () => _resources,
+    resourceUsageBusy: () => _actions.busy,
+    flushResourceFocus: () {
+      FocusManager.instance.primaryFocus?.unfocus();
+      FocusManager.instance.applyFocusChangesIfNeeded();
+    },
     afterViewportLayout: (action) => WidgetsBinding.instance.addPostFrameCallback((_) => action()),
     onShow: _show,
     focusScene: (scene, id) => focusSceneNode(_sceneViews, scene, id),
     nodeSelected: (sceneId, id) => _sceneViews.forScene(sceneId).nodeId = id,
-    selectProgressionNode: (id, node) {
-      final owner = _stories;
-      if (owner != null) {
-        _progressionViews.forStory(owner.project, id).selection = StoryGraphSelection.node(node);
-      }
-    },
   );
   late final _mapCatalogBindings = WorkspaceMapCatalogBindings(
     controller: _controller,
@@ -288,6 +290,7 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   );
   late final _sessions = WorkspaceSessionControllers(
     controller: _controller,
+    isActive: () => mounted,
     changed: _changed,
     visualCatalogChanged: (project) => _visualCatalog = project,
     flushEditors: () => _actions.flushEditors(),
@@ -306,6 +309,32 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
     audioPreview: widget.audioPreview,
     gameExport: widget.gameExport,
   );
+  late final _destinations = WorkspaceDestinationWorkflow(
+    controller: _controller,
+    navigation: _navigation,
+    sessions: _sessions,
+    workshops: _workshops,
+    isActive: () => mounted,
+    changed: _changed,
+    leavePokemon: _allowLeavePokemon,
+    exporter: () => _gameExport,
+    libraryExitGuard: () => _libraryExitGuard,
+    libraryReleased: () => _resourceLibrary = null,
+    customResourceLibrary: () => widget.resourceLibraryBuilder != null,
+    flushFocus: () {
+      FocusManager.instance.primaryFocus?.unfocus();
+      FocusManager.instance.applyFocusChangesIfNeeded();
+    },
+    closeContext: _closeContextMenu,
+    clearNotice: () {
+      _interactionNotice?.close();
+      _interactionNotice = null;
+    },
+    returnFromProgression: (storyId) {
+      _storyViewState.storyId = storyId;
+      _storyViewState.stepId = null;
+    },
+  );
   late final _layout = widget.layoutPreferences ?? MapLayoutPreferences();
   final _search = TextEditingController(),
       _homeSearch = TextEditingController();
@@ -319,7 +348,6 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   bool get _connectionBusy => _connections.busy;
   String? get _connectionError => _connections.error;
   WorkspaceSpace get _space => _navigation.space;
-  set _space(WorkspaceSpace value) => _navigation.space = value;
   ProjectSettingsSection _settingsSection = ProjectSettingsSection.general;
   WorkspaceSpace get _interactionOrigin => _navigation.interactionOrigin;
   set _interactionOrigin(WorkspaceSpace value) => _navigation.interactionOrigin = value;
@@ -338,6 +366,11 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   Future<bool> Function()? _libraryExitGuard;
   Widget? _resourceLibrary;
   PokemonWorkspaceController? get _pokemon => _sessions.pokemon;
+  late final _pokemonExitWorkflow = PokemonWorkspaceWorkflow(
+    current: () => _pokemon,
+    isActive: () => mounted,
+    confirmDraft: () => showPokemonDraftDialog(context),
+  );
   NarrativeWorkspaceController? get _narrative => _sessions.narrative;
   RegionalMapController? get _regionalMap => _sessions.regionalMap;
   SceneWorkspaceController? get _scenes => _sessions.scenes;
@@ -347,32 +380,30 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   PresentationWorkspaceController? get _presentations =>
       _sessions.presentations;
   late final _presentationViews = PresentationViewStore(editingSessions: _sessions.presentationEditing);
-  PresentationWorkspaceVisuals? get _presentationVisuals =>
-      _sessions.presentationVisuals;
-  set _presentationVisuals(PresentationWorkspaceVisuals? value) =>
-      _sessions.presentationVisuals = value;
-  Object? _presentationVisualKey;
   WorkspaceReturn get _presentationOrigin => _navigation.presentationOrigin;
   set _presentationOrigin(WorkspaceReturn value) => _navigation.presentationOrigin = value;
   CinematicWorkspaceController? get _cinematics => _sessions.cinematics;
   final _cinematicViews = CinematicViewStore();
   WorkspaceSpace get _cinematicOrigin => _navigation.cinematicOrigin;
   set _cinematicOrigin(WorkspaceSpace value) => _navigation.cinematicOrigin = value;
-  bool _cinematicMapReturn = false;
+  bool get _cinematicMapReturn => _destinations.cinematicMapReturn;
+  set _cinematicMapReturn(bool value) => _destinations.cinematicMapReturn = value;
   final _dialogueViews = DialogueViewStore();
   WorkspaceSpace get _dialogueOrigin => _navigation.dialogueOrigin;
   set _dialogueOrigin(WorkspaceSpace value) => _navigation.dialogueOrigin = value;
   final _eventView = EventViewState();
   late final _eventMaps = EventMapLoader(_controller);
   MapDraftReferenceIndex get _draftReferences => _sessions.draftReferences;
-  GridPos? _contextCell;
-  MapContextTarget? _contextTarget;
-  MapContextMenuRequest? _contextRequest;
-  String? _contextMapId;
+  late final _contextInteraction = MapContextInteractionSession(
+    contextAt: _contextAt,
+    view: () => _view,
+    navigation: _contextNavigation,
+    changed: _changed,
+  );
+  MapContextMenuRequest? get _contextRequest => _contextInteraction.request;
   WorkspaceSpace get _eventOrigin => _navigation.eventOrigin;
   bool get _eventMapReturn => _navigation.eventMapReturn;
   set _eventMapReturn(bool value) => _navigation.eventMapReturn = value;
-  final _progressionViews = StoryProgressionViewStore();
   WorkspaceReturn get _sceneOrigin => _navigation.sceneOrigin;
   set _sceneOrigin(WorkspaceReturn value) => _navigation.sceneOrigin = value;
   WorldWorkspaceController? get _world => _sessions.world;
@@ -380,17 +411,18 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   set _worldOrigin(WorkspaceReturn value) => _navigation.worldOrigin = value;
   bool get _verificationMapReturn => _navigation.verificationMapReturn;
   set _verificationMapReturn(bool value) => _navigation.verificationMapReturn = value;
-  bool _pokemonMapReturn = false;
+  bool get _pokemonMapReturn => _destinations.pokemonMapReturn;
+  set _pokemonMapReturn(bool value) => _destinations.pokemonMapReturn = value;
   bool Function()? _pokemonReferenceUnchanged;
-  WorkspaceReturn get _progressionOrigin => _navigation.progressionOrigin;
-  set _progressionOrigin(WorkspaceReturn value) => _navigation.progressionOrigin = value;
   VerificationWorkspaceController? get _verification => _sessions.verification;
   set _verificationOrigin(WorkspaceReturn value) => _navigation.verificationOrigin = value;
   final _sceneViews = SceneBuilderViewStore();
   bool? _inspector;
-  MapData? _preparedMap;
+  MapData? get _preparedMap => _visualProjection.preparedMap;
+  set _preparedMap(MapData? value) => _visualProjection.preparedMap = value;
   MapWorkspaceVisuals? _visuals;
-  ProjectManifest? _visualCatalog;
+  set _visualCatalog(ProjectManifest? value) =>
+      _visualProjection.acknowledgeDefinitions(value);
   late final _visualProjection = WorkspaceVisualProjectionQueue(
     currentVisuals: () => _visuals,
     activeMap: () => _controller.active?.current,
@@ -410,13 +442,21 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
     changed: _changed,
   );
   bool get _openingWorkshop => _workshops.loading;
-  set _openingWorkshop(bool value) => _workshops.loading = value;
   String? _resourceError;
   ScaffoldFeatureController<SnackBar, SnackBarClosedReason>? _interactionNotice;
   int _gestureGeneration = 0;
   int get _navigationRequest => _workshops.request;
   set _navigationRequest(int value) => _workshops.request = value;
   late final WorkspaceActions _actions;
+  late final _publication = WorkspacePublicationWorkflow(
+    controller: _controller,
+    workflow: _actions,
+    isActive: () => mounted,
+    connectionBusy: () => _connectionBusy,
+    exporter: () => _gameExport,
+    resources: () => _resources,
+    pokemon: () => _pokemon,
+  );
   ProjectSurfController? get _projectSurf => _sessions.projectSurf;
   ProjectCsController? get _projectCs => _sessions.projectCs;
   ProjectAudioController? get _projectAudio => _sessions.projectAudio;
@@ -471,22 +511,10 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   void _changed() {
     _reconcileCatalogueView();
     _releaseStaleMapState();
-    final project = _controller.visualProject;
-    if (!_openingWorkshop &&
-        project != null &&
-        _visuals != null &&
-        !identical(project, _visualCatalog)) {
-      _visualCatalog = project;
-      unawaited(_refreshScopedVisuals(project));
-    }
-    final map = _controller.active?.current;
-    if (!_projectionVisualsLoading &&
-        map != null &&
-        _visuals != null &&
-        !identical(map, _preparedMap)) {
-      _preparedMap = map;
-      _visuals!.setActiveMap(map);
-    }
+    _visualProjection.synchronize(
+      _controller.visualProject,
+      suspended: _openingWorkshop,
+    );
     if (mounted) {
       setState(() {});
       _publishHome();
@@ -495,6 +523,9 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
 
   @override
   void dispose() {
+    _contextInteraction.dispose();
+    _destinations.dispose();
+    _pokemonExitWorkflow.dispose();
     disposeWorkspace();
     super.dispose();
   }

@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:developer' as developer;
 
 import 'package:avelune_studio/features/map_workspace/application/map_atmosphere_controller.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_atmosphere_settings_panel.dart';
 import 'package:avelune_studio/platform/rendering/viewports/spatial_map_editing_viewport.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/gestures.dart';
@@ -29,10 +28,9 @@ readState() {
   final renderGames = <Map<String, Object?>>[];
   void visit(Element element) {
     switch (element.widget) {
-      case MapAtmosphereSettingsPanel(:final controller):
-        settings = controller;
-      case SpatialMapEditingViewport():
+      case SpatialMapEditingViewport(:final document):
         editor = element.widget as SpatialMapEditingViewport;
+        settings = document.atmosphere;
       case SpatialSceneView(:final controller):
         renderer = controller;
       case GameWidget(:final game):

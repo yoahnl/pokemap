@@ -5,10 +5,7 @@ import 'package:avelune_studio/features/project_settings/application/project_ide
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/project_settings/application/project_settings_session_controller.dart';
 import 'package:avelune_studio/features/project_visuals/application/project_visuals_controller.dart';
-import 'package:avelune_studio/presentation/features/game_export/studio_game_export_page.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/workspace_actions.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
-import 'package:flutter/material.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/workspace_workflow.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring.dart';
 
@@ -136,48 +133,6 @@ void main() {
     },
   );
 
-  testWidgets('the export page shows the identity owned by General', (
-    tester,
-  ) async {
-    await tester.runAsync(() async {
-      expect(await identity.save(), isTrue);
-      identity.edit(title: 'Titre partagé');
-      expect(await identity.save(), isTrue);
-    });
-    var opened = 0;
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: studioTheme(),
-        home: Scaffold(
-          body: StudioGameExportPage(
-            controller: export,
-            identity: identity,
-            onEditIdentity: () => opened++,
-            prepare: () async => true,
-            hasPendingChanges: () => false,
-            isCurrentProject: () => true,
-            pickFile: (_) async => null,
-          ),
-        ),
-      ),
-    );
-    for (
-      var i = 0;
-      i < 80 && find.text('Titre partagé').evaluate().isEmpty;
-      i++
-    ) {
-      await tester.runAsync(
-        () => Future<void>.delayed(const Duration(milliseconds: 25)),
-      );
-      await tester.pump(const Duration(milliseconds: 16));
-    }
-    expect(find.text('Titre partagé'), findsWidgets);
-    expect(find.text('Titre du jeu'), findsNothing);
-    await tester.tap(find.byKey(const ValueKey('export-edit-identity')));
-    expect(opened, 1);
-    await tester.pumpWidget(const SizedBox());
-  });
-
   test('General saves through the identity draft and guards closing', () async {
     final visuals = ProjectVisualsController(
       session: source.session,
@@ -196,15 +151,16 @@ void main() {
     expect(await session.save(ProjectSettingsSection.general), isTrue);
     identity.edit(author: 'Studio Avelune');
     expect(session.isDirty(ProjectSettingsSection.general), isTrue);
-    final actions = WorkspaceActions(
+    final actions = WorkspaceWorkflow(
       controller: workspace,
-      context: () => throw UnimplementedError(),
-      mounted: () => true,
+      isActive: () => true,
       changed: () {},
       resources: () => null,
       narrative: () => null,
       projectIdentity: () => identity,
-      runtimeBuilder: (_, _, _) => throw UnimplementedError(),
+      confirmClose: () async => WorkspaceCloseChoice.cancel,
+      flushFocus: () {},
+      launchMap: (_, _) async => throw UnimplementedError(),
     );
     expect(actions.hasCatalogDependencyDraft, isTrue);
     expect(await session.save(ProjectSettingsSection.general), isTrue);

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
-import 'cinematic_map_model.dart';
+import 'package:avelune_studio/features/cinematics/application/cinematic_map_model.dart';
 
 class CinematicPathPainter extends CustomPainter {
   CinematicPathPainter(this.model, this.cell, this.color);

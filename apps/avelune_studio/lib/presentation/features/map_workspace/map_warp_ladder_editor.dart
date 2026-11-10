@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import '../../../features/map_workspace/application/map_warp_drafts.dart';
+
 import 'package:map_core/map_core_domain.dart';
 
 import '../../shared/widgets/buttons/studio_button.dart';
@@ -19,13 +22,12 @@ class MapWarpLadderEditor extends StatefulWidget {
 }
 
 class _MapWarpLadderEditorState extends State<MapWarpLadderEditor> {
-  late String _mode, _facing, _height, _duration;
-  bool _durationTouched = false;
+  late MapWarpLadderDraft draft;
 
   @override
   void initState() {
     super.initState();
-    _reset();
+    draft = MapWarpLadderDraft(widget.warp);
   }
 
   @override
@@ -33,87 +35,59 @@ class _MapWarpLadderEditorState extends State<MapWarpLadderEditor> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.warp.id != widget.warp.id ||
         oldWidget.warp.ladder != widget.warp.ladder) {
-      _reset();
-    }
-  }
-
-  void _reset() {
-    final ladder = widget.warp.ladder ?? MapWarpLadder();
-    _mode = widget.warp.ladder?.direction.name ?? 'none';
-    _facing = ladder.facing.name;
-    _height = ladder.heightCells.toString();
-    _duration = (ladder.durationSeconds * 1000).round().toString();
-    _durationTouched = false;
-  }
-
-  MapWarpLadder? get _draft {
-    if (_mode == 'none') return null;
-    final height = double.tryParse(_height),
-        duration = double.tryParse(_duration);
-    if (height == null || duration == null) return null;
-    try {
-      return MapWarpLadder(
-        direction: MapWarpLadderDirection.values.byName(_mode),
-        facing: EntityFacing.values.byName(_facing),
-        heightCells: height,
-        durationSeconds: _durationTouched
-            ? duration / 1000
-            : (widget.warp.ladder?.durationSeconds ?? 16 / 30),
-      );
-    } on FormatException {
-      return null;
+      draft.reset(widget.warp);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final draft = _draft, invalid = _mode != 'none' && _draft == null;
+    final value = draft.value, invalid = draft.invalid;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         StudioSelect(
           label: 'Passage par échelle',
-          value: _mode,
+          value: draft.mode,
           options: const {
             'none': 'Désactivé',
             'up': 'Monter',
             'down': 'Descendre',
           },
-          onChanged: (value) => setState(() => _mode = value),
+          onChanged: (value) => setState(() => draft.mode = value),
         ),
-        if (_mode != 'none') ...[
+        if (draft.mode != 'none') ...[
           const SizedBox(height: 8),
           StudioSelect(
             label: 'Orientation sur l’échelle',
-            value: _facing,
+            value: draft.facing,
             options: const {
               'north': 'Nord',
               'south': 'Sud',
               'east': 'Est',
               'west': 'Ouest',
             },
-            onChanged: (value) => setState(() => _facing = value),
+            onChanged: (value) => setState(() => draft.facing = value),
           ),
           const SizedBox(height: 8),
           StudioDraftField(
             key: const ValueKey('ladder-height'),
             label: 'Hauteur parcourue (cases)',
-            value: _height,
+            value: draft.height,
             keyboardType: TextInputType.number,
             errorText: invalid
                 ? 'Hauteur : plus de 0 à 16 cases ; durée : plus de 0 à 10 000 ms.'
                 : null,
-            onChanged: (value) => setState(() => _height = value),
+            onChanged: (value) => setState(() => draft.height = value),
           ),
           const SizedBox(height: 8),
           StudioDraftField(
             key: const ValueKey('ladder-duration'),
             label: 'Durée de montée ou descente (ms)',
-            value: _duration,
+            value: draft.duration,
             keyboardType: TextInputType.number,
             onChanged: (value) => setState(() {
-              _duration = value;
-              _durationTouched = true;
+              draft.duration = value;
+              draft.durationTouched = true;
             }),
           ),
         ],
@@ -121,8 +95,8 @@ class _MapWarpLadderEditorState extends State<MapWarpLadderEditor> {
         StudioButton(
           key: const ValueKey('apply-warp-ladder'),
           label: 'Appliquer le passage par échelle',
-          onPressed: !invalid && draft != widget.warp.ladder
-              ? () => widget.onApply(draft)
+          onPressed: !invalid && value != widget.warp.ladder
+              ? () => widget.onApply(value)
               : null,
         ),
       ],

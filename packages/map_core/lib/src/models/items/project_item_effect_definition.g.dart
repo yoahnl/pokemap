@@ -159,6 +159,7 @@ _$ProjectItemCureStatusEffectDefinitionFromJson(Map<String, dynamic> json) =>
               ?.map((e) => e as String)
               .toSet() ??
           const <String>{},
+      curesConfusion: json['curesConfusion'] as bool? ?? false,
       $type: json['kind'] as String?,
     );
 
@@ -167,6 +168,7 @@ Map<String, dynamic> _$ProjectItemCureStatusEffectDefinitionToJson(
 ) => <String, dynamic>{
   'mode': _$ProjectItemStatusCureModeEnumMap[instance.mode]!,
   'statusIds': instance.statusIds.toList(),
+  'curesConfusion': ?_itemCuresConfusionToJson(instance.curesConfusion),
   'kind': instance.$type,
 };
 

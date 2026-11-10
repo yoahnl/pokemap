@@ -1,3 +1,5 @@
+import '../../../features/map_workspace/application/map_border_drawing_draft.dart';
+
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
@@ -8,9 +10,13 @@ import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_draft_field.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
+
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
+
 import '../resources/resource_filter_button.dart';
+
 import 'package:avelune_studio/features/map_workspace/application/map_border_review.dart';
+
 import 'map_cliff_guide.dart';
 import 'map_workspace_view_state.dart';
 
@@ -107,12 +113,8 @@ class MapBorderToolPanel extends StatelessWidget {
       return _existingExteriorBorders();
     }
     final map = document.current;
-    final features = [
-      for (final layer in map.layers.whereType<BorderLayer>())
-        for (final feature in layer.content.features)
-          if (layer.isVisible && feature.geometry is BorderStrokeGeometry)
-            (layer: layer, feature: feature),
-    ];
+    final commands = MapBorderEditingCommands(document, project);
+    final features = commands.visibleFeatures;
     if (features.isEmpty) {
       return view.borderEditingMode == BorderStrokeEditingMode.erase
           ? const StudioNotice(
@@ -131,35 +133,13 @@ class MapBorderToolPanel extends StatelessWidget {
         view.borderEditingMode == BorderStrokeEditingMode.erase &&
         explicitSelection == null;
     final selected = explicitSelection ?? features.first;
-    var stale = false;
     final missing = selected.feature.materialization == null;
-    String? diagnostic;
-    try {
-      if (map.spatialScene != null) {
-        final report = diagnoseSpatialBorderFeature(
-          manifest: project,
-          map: map,
-          layerId: selected.layer.id,
-          featureId: selected.feature.id,
-        );
-        stale = report.diagnostics.any(
-          (issue) => issue.code == 'border.spatial.materialization_stale',
-        );
-        if (report.hasErrors) {
-          diagnostic = 'Cette bordure doit être corrigée avant régénération.';
-        }
-      } else {
-        final proposed = MapBorderEditingCommands(document, project)
-            .previewExisting(
-              layerId: selected.layer.id,
-              featureId: selected.feature.id,
-            );
-        stale = proposed != map;
-      }
-    } on Object {
-      diagnostic =
-          'La bordure ne peut pas être préparée. Vérifiez ses pièces sources.';
-    }
+    final status = commands.regenerationStatus(
+      layerId: selected.layer.id,
+      featureId: selected.feature.id,
+    );
+    final stale = status.stale;
+    final diagnostic = status.diagnostic;
     final preview = view.borderPreview;
     final ready =
         !selectionRequired &&
@@ -215,8 +195,7 @@ class MapBorderToolPanel extends StatelessWidget {
                   onChanged: view.borderDraft != null
                       ? null
                       : (id) {
-                          view.borderFeature = id;
-                          view.borderPreview = null;
+                          view.selectBorderFeature(id);
                           onChanged();
                         },
                 ),
@@ -231,13 +210,10 @@ class MapBorderToolPanel extends StatelessWidget {
               onPressed: view.borderDraft != null || selectionRequired
                   ? null
                   : () {
-                      view.borderEditingMode = BorderStrokeEditingMode.erase;
-                      view.borderFeature = (
+                      view.prepareBorderErase((
                         layerId: selected.layer.id,
                         featureId: selected.feature.id,
-                      );
-                      view.borderPreview = null;
-                      view.tool = StudioMapTool.border;
+                      ));
                       onChanged();
                     },
             ),
@@ -274,15 +250,7 @@ class MapBorderToolPanel extends StatelessWidget {
                       diagnostic != null
                   ? null
                   : () => action(() {
-                      final result = MapBorderEditingCommands(document, project)
-                          .previewExisting(
-                            layerId: selected.layer.id,
-                            featureId: selected.feature.id,
-                          );
-                      view.borderPreview = MapBorderRegenerationPreview(
-                        source: map,
-                        project: project,
-                        result: result,
+                      view.borderPreview = commands.prepareExisting(
                         layerId: selected.layer.id,
                         featureId: selected.feature.id,
                       );
@@ -294,11 +262,7 @@ class MapBorderToolPanel extends StatelessWidget {
                 label: 'Appliquer',
                 icon: Icons.check,
                 onPressed: () => action(() {
-                  MapBorderEditingCommands(document, project).applyExisting(
-                    preview.result,
-                    source: preview.source,
-                    sourceProject: preview.project,
-                  );
+                  commands.applyRegeneration(preview);
                   view.borderPreview = null;
                 }),
               ),
@@ -506,9 +470,7 @@ class MapBorderToolPanel extends StatelessWidget {
           icon: Icons.undo,
           secondary: true,
           onPressed: () {
-            if (spatial) view.clearBorderDraftFailure(document);
-            view.borderMovingAngle = null;
-            view.borderDraft = draft.removeLastAngle();
+            view.removeLastBorderAngle(document);
             onChanged();
           },
         ),
@@ -621,9 +583,9 @@ class MapBorderToolPanel extends StatelessWidget {
                                 'Aucun modèle de bordure publié n’est prêt pour cette carte. Préparez-en un dans l’atelier Bordures.',
                               )
                             else
-                            Text(
-                              'Aucun modèle de bordure linéaire n’est publié dans ce projet.${drafts.isEmpty ? ' Créez-en un dans l’atelier Bordures.' : ' ${drafts.length} ${drafts.length > 1 ? 'modèles en brouillon attendent' : 'modèle en brouillon attend'} d’être publié${drafts.length > 1 ? 's' : ''} dans l’atelier Bordures.'}',
-                            ),
+                              Text(
+                                'Aucun modèle de bordure linéaire n’est publié dans ce projet.${drafts.isEmpty ? ' Créez-en un dans l’atelier Bordures.' : ' ${drafts.length} ${drafts.length > 1 ? 'modèles en brouillon attendent' : 'modèle en brouillon attend'} d’être publié${drafts.length > 1 ? 's' : ''} dans l’atelier Bordures.'}',
+                              ),
                             StudioButton(
                               label: 'Créer un modèle',
                               icon: Icons.add,
@@ -808,20 +770,11 @@ class _BorderSpatialOffsetEditor extends StatefulWidget {
 
 class _BorderSpatialOffsetEditorState
     extends State<_BorderSpatialOffsetEditor> {
-  late final inputs = {
-    'x': (widget.feature.spatialOffsetWorld?.x ?? 0).toString(),
-    'y': (widget.feature.spatialOffsetWorld?.y ?? 0).toString(),
-    'z': (widget.feature.spatialOffsetWorld?.z ?? 0).toString(),
-  };
-
-  double? number(String axis) {
-    final value = double.tryParse(inputs[axis]!.trim().replaceAll(',', '.'));
-    return value?.isFinite == true ? value : null;
-  }
+  late final draft = MapBorderOffsetDraft(widget.feature.spatialOffsetWorld);
 
   @override
   Widget build(BuildContext context) {
-    final valid = inputs.keys.every((axis) => number(axis) != null);
+    final valid = draft.value != null;
     return StudioPanel(
       compact: true,
       children: [
@@ -844,15 +797,18 @@ class _BorderSpatialOffsetEditorState
                 width: 150,
                 child: StudioDraftField(
                   key: ValueKey('border-spatial-offset-$axis'),
-                  value: inputs[axis]!,
+                  value: draft.inputs[axis]!,
                   label: label,
                   enabled: widget.enabled,
-                  errorText: number(axis) == null ? 'Nombre fini requis' : null,
+                  errorText: draft.number(axis) == null
+                      ? 'Nombre fini requis'
+                      : null,
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                     signed: true,
                   ),
-                  onChanged: (value) => setState(() => inputs[axis] = value),
+                  onChanged: (value) =>
+                      setState(() => draft.inputs[axis] = value),
                 ),
               ),
             StudioButton(
@@ -860,13 +816,7 @@ class _BorderSpatialOffsetEditorState
               label: 'Enregistrer le décalage',
               icon: Icons.check,
               onPressed: widget.enabled && valid
-                  ? () => widget.onSave(
-                      Model3dVector3(
-                        x: number('x')!,
-                        y: number('y')!,
-                        z: number('z')!,
-                      ),
-                    )
+                  ? () => widget.onSave(draft.value)
                   : null,
             ),
             StudioButton(

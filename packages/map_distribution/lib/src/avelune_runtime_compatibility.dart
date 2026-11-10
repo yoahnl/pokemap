@@ -15,6 +15,8 @@ abstract final class AveluneRuntimeCompatibility {
           OverworldItemCapabilities.spatialEscapeRopeCapabilityId,
           GameCompletionPartyCapabilities.capabilityId,
           ItemPpRestoreCapabilities.allMovesCapabilityId,
+          ItemFriendshipCapabilities.capabilityId,
+          ItemHeldBerryCapabilities.capabilityId,
           PokemonRulesetProfile.contextualCaptureCapabilityId,
           'catalog.partitioned@2',
           'dialogue.choices@1',

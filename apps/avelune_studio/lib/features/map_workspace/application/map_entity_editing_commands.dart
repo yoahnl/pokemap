@@ -19,6 +19,24 @@ class MapEntityEditingCommands {
   final MapReferenceGuard? draftGuard;
   static int _sequence = 0;
 
+  bool canConfigureFieldObstacle(MapEntity entity) =>
+      entity.kind == MapEntityKind.custom &&
+      entity.blocksMovement &&
+      entity.size.width == 1 &&
+      entity.size.height == 1 &&
+      entity.npc == null &&
+      entity.sign == null &&
+      entity.item == null &&
+      entity.spawn == null &&
+      document.current.spatialScene == null &&
+      document.current.version != ProjectVersion.v9 &&
+      project.settings.dimension == ProjectDimension.twoD &&
+      entity.editorVisual != null &&
+      project.elements
+              .where((element) => element.id == entity.editorVisual!.elementId)
+              .length ==
+          1;
+
   String _id(MapEntityKind kind) {
     String id;
     do {
@@ -100,7 +118,10 @@ class MapEntityEditingCommands {
       placed,
       project: project,
       entityId: entity.id,
-      fieldObstacle: MapEntityFieldObstacleData(kind: kind, resetPolicy: resetPolicy),
+      fieldObstacle: MapEntityFieldObstacleData(
+        kind: kind,
+        resetPolicy: resetPolicy,
+      ),
     );
     document.commit(configured);
     return configured.entities.singleWhere((item) => item.id == entity.id);

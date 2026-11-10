@@ -1,113 +1,82 @@
-import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
+import 'package:avelune_studio/features/map_workspace/application/workspace_resource_diagnostic_projection.dart';
 import 'package:avelune_studio/platform/rendering/contracts/workspace_resource_diagnostic.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/workspace_resource_diagnostics.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:map_core/map_core_domain.dart';
+
+import '../support/map_workspace_fixture.dart';
 
 void main() {
   for (final count in [0, 1, 200]) {
-    testWidgets('$count diagnostics preserve canvas with large text', (
-      tester,
-    ) async {
-      await tester.binding.setSurfaceSize(const Size(1024, 640));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
-      final visuals = _Visuals(_diagnostics(count));
-      await tester.pumpWidget(_app(visuals, textScale: 1.75));
-      expect(tester.takeException(), isNull);
-      expect(
-        tester.getSize(find.byKey(const ValueKey('canvas'))).height,
-        greaterThan(500),
+    test('$count requested diagnostics retain every unique resource', () {
+      final projection = WorkspaceResourceDiagnosticProjection(
+        _diagnostics(count), const {},
       );
-      expect(
-        tester.getSize(find.byKey(const ValueKey('resource-summary'))).height,
-        lessThan(80),
-      );
-      if (count == 0) {
-        expect(find.byKey(const ValueKey('resource-details')), findsNothing);
-      } else {
-        await tester.tap(find.byKey(const ValueKey('resource-details')));
-        await tester.pumpAndSettle();
-        final panel = find.byKey(const ValueKey('resource-diagnostics-panel'));
-        expect(tester.getSize(panel).height, lessThanOrEqualTo(640 * .70));
-        expect(tester.getSize(panel).width, lessThanOrEqualTo(600));
-        expect(tester.takeException(), isNull);
-        if (count == 200) {
-          expect(
-            find.textContaining('Ressource très longue').evaluate().length,
-            lessThan(20),
-          );
-          await tester.scrollUntilVisible(
-            find.byKey(const ValueKey('resource-row-resource-199')),
-            800,
-            scrollable: find.descendant(
-              of: find.byKey(const ValueKey('resource-diagnostics-list')),
-              matching: find.byType(Scrollable),
-            ),
-            maxScrolls: 80,
-          );
-          expect(tester.takeException(), isNull);
-        }
-        await tester.tap(find.byKey(const ValueKey('Fermer les diagnostics')));
-        await tester.pumpAndSettle();
-        expect(panel, findsNothing);
-        expect(find.byKey(const ValueKey('canvas')), findsOneWidget);
-      }
-      await tester.pumpWidget(const SizedBox());
-      await visuals.dispose();
+      expect(projection.ownerCount, count);
+      expect(projection.diagnostics, hasLength(count));
+      expect(projection.groups, hasLength(count));
+      expect(projection.retryableIds, hasLength(count));
+      expect(projection.diagnostics.map((item) => item.resourceId),
+          unorderedEquals([for (var index = 0; index < count; index++) 'resource-$index']));
     });
   }
 
-  testWidgets('active filter retries failed resources only and updates live', (
-    tester,
-  ) async {
+  test('active filter retries failed resources only and projects live updates', () async {
     final visuals = _Visuals(_diagnostics(200, retryingFirst: true));
-    await tester.pumpWidget(_app(visuals));
-    await tester.tap(find.byKey(const ValueKey('resource-details')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Carte active'));
-    await tester.pumpAndSettle();
-    expect(find.text('2 ressources concernées'), findsOneWidget);
-    expect(find.textContaining('Réessai en cours'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('resource-retry-filter')));
-    await tester.pumpAndSettle();
-    expect(visuals.retried, [
-      <String>['resource-1'],
-    ]);
-    expect(find.text('1 ressources concernées'), findsOneWidget);
-    await tester.tap(find.text('Toutes demandées'));
-    await tester.pumpAndSettle();
-    expect(find.text('199 ressources concernées'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-    await tester.pumpWidget(const SizedBox());
-    await visuals.dispose();
+    addTearDown(visuals.dispose);
+    WorkspaceResourceDiagnosticProjection project({bool activeOnly = false}) =>
+        WorkspaceResourceDiagnosticProjection(
+          visuals.diagnostics, visuals.activeResourceIds, activeOnly: activeOnly,
+        );
+    final active = project(activeOnly: true);
+    expect(active.diagnostics, hasLength(2));
+    expect(active.diagnostics.first.status, WorkspaceResourceStatus.retrying);
+    expect(active.retryableIds, ['resource-1']);
+    await visuals.retryResources(active.retryableIds);
+    expect(visuals.retried, [['resource-1']]);
+    expect(project(activeOnly: true).diagnostics, hasLength(1));
+    expect(project().diagnostics, hasLength(199));
+    expect(project().retryableIds, isNot(contains('resource-0')));
   });
 
-  testWidgets('deduplicates identities and groups memory with full details', (
-    tester,
-  ) async {
-    final items = _diagnostics(
-      200,
-      cause: WorkspaceResourceCause.memoryPressure,
+  test('deduplicates identities and retains all memory pressure details', () {
+    final items = _diagnostics(200, cause: WorkspaceResourceCause.memoryPressure);
+    final projection = WorkspaceResourceDiagnosticProjection(
+      [...items, items.first], {'resource-0', 'resource-1'},
     );
-    final visuals = _Visuals([...items, items.first]);
-    await tester.pumpWidget(_app(visuals));
-    expect(
-      find.text('200 ressources en incident · ressources demandées'),
-      findsOneWidget,
+    expect(projection.ownerCount, 200);
+    expect(projection.diagnostics, hasLength(200));
+    final group = projection.groups.single;
+    expect(group.key, 'memory');
+    expect(group.title, '200 ressources · pression mémoire');
+    expect(group.items, hasLength(200));
+    expect(group.active, isTrue);
+    expect(group.owner, isNull);
+    expect(group.roles, isEmpty);
+    expect(group.verified, isTrue);
+    for (var index = 0; index < 200; index++) {
+      final item = group.items.firstWhere((item) => item.resourceId == 'resource-$index');
+      expect(workspaceResourceDiagnosticDetail(item),
+          contains('Détail technique ressource $index'));
+      expect(workspaceResourceDiagnosticDetail(item), contains(item.resourceId));
+    }
+  });
+
+  test('latest duplicate state wins and active groups sort before inactive groups', () {
+    final first = _diagnostics(3);
+    final replacement = WorkspaceResourceDiagnostic(
+      resourceId: first.first.resourceId, name: 'Nouvel état',
+      cause: WorkspaceResourceCause.accessDenied, retryable: false,
     );
-    await tester.tap(find.byKey(const ValueKey('resource-details')));
-    await tester.pumpAndSettle();
-    expect(find.text('200 ressources · pression mémoire'), findsOneWidget);
-    expect(find.byKey(const ValueKey('resource-row-memory')), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('Voir le diagnostic complet')));
-    await tester.pumpAndSettle();
-    expect(find.byType(SelectableText), findsWidgets);
-    expect(find.textContaining('Détail technique ressource 0'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-    await tester.pumpWidget(const SizedBox());
-    await visuals.dispose();
+    final projection = WorkspaceResourceDiagnosticProjection(
+      [...first, replacement], {'resource-2'},
+    );
+    expect(projection.ownerCount, 3);
+    expect(projection.groups.first.key, 'resource-2');
+    expect(projection.diagnostics.first.resourceId, 'resource-2');
+    final updated = projection.diagnostics.singleWhere((item) => item.resourceId == 'resource-0');
+    expect(updated, same(replacement));
+    expect(projection.retryableIds, isNot(contains('resource-0')));
+    expect(workspaceResourceDiagnosticDetail(updated),
+        endsWith('Aucun détail technique disponible.'));
   });
 }
 
@@ -119,8 +88,7 @@ List<WorkspaceResourceDiagnostic> _diagnostics(
   for (var index = 0; index < count; index++)
     WorkspaceResourceDiagnostic(
       resourceId: 'resource-$index',
-      name:
-          'Ressource très longue $index ${List.filled(20, 'atlas').join(' ')}',
+      name: 'Ressource très longue $index ${List.filled(20, 'atlas').join(' ')}',
       cause: cause,
       detail: 'Détail technique ressource $index',
       status: index == 0 && retryingFirst
@@ -129,71 +97,17 @@ List<WorkspaceResourceDiagnostic> _diagnostics(
     ),
 ];
 
-Widget _app(_Visuals visuals, {double textScale = 1}) => MaterialApp(
-  theme: studioTheme(),
-  builder: (context, child) => MediaQuery(
-    data: MediaQuery.of(
-      context,
-    ).copyWith(textScaler: TextScaler.linear(textScale)),
-    child: child!,
-  ),
-  home: Scaffold(
-    body: Padding(
-      padding: const EdgeInsets.all(8),
-      child: Column(
-        children: [
-          const Expanded(child: SizedBox.expand(key: ValueKey('canvas'))),
-          WorkspaceResourceDiagnostics(visuals: visuals),
-        ],
-      ),
-    ),
-  ),
-);
-
-class _Visuals implements MapWorkspaceVisuals {
+class _Visuals extends WorkspaceTestVisuals {
   _Visuals(this.diagnostics);
-  final _changes = ChangeNotifier();
-  final retried = <List<String>>[];
   @override
   List<WorkspaceResourceDiagnostic> diagnostics;
   @override
   Set<String> get activeResourceIds => {'resource-0', 'resource-1'};
-  @override
-  List<String> get warnings => [];
-  @override
-  void addListener(VoidCallback listener) => _changes.addListener(listener);
-  @override
-  void removeListener(VoidCallback listener) =>
-      _changes.removeListener(listener);
-  @override
-  Widget canvas(
-    MapData map, {
-    MapPlacedElement? placedElementPreview,
-    Color? collisionColor,
-  }) => const SizedBox.expand();
-  @override
-  void setActiveMap(MapData map) {}
-  @override
-  void setBrush(ProjectElementEntry? element, TileLayerPaletteEntry? tile) {}
-  @override
-  Widget thumbnail(ProjectElementEntry element, {double size = 48}) =>
-      SizedBox(width: size, height: size);
-  @override
-  Widget placementPreview(ProjectElementEntry element, Size size) =>
-      SizedBox.fromSize(size: size);
-  @override
-  Widget tileThumbnail(TileLayerPaletteEntry tile, {double size = 48}) =>
-      SizedBox(width: size, height: size);
+  final retried = <List<String>>[];
   @override
   Future<void> retryResources(Iterable<String> resourceIds) async {
     final ids = resourceIds.toList();
     retried.add(ids);
-    diagnostics = diagnostics
-        .where((item) => !ids.contains(item.resourceId))
-        .toList();
-    _changes.notifyListeners();
+    diagnostics = diagnostics.where((item) => !ids.contains(item.resourceId)).toList();
   }
-
-  @override
-  Future<void> dispose() async => _changes.dispose();
 }

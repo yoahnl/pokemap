@@ -1,3 +1,5 @@
+import '../../../features/pokemon/application/pokemon_capture_sprite_picker_controller.dart';
+
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -23,22 +25,25 @@ class PokemonCaptureSpritePicker extends StatefulWidget {
 
 class _PokemonCaptureSpritePickerState
     extends State<PokemonCaptureSpritePicker> {
-  bool choosing = false;
+  late final PokemonCaptureSpritePickerController _workflow =
+      PokemonCaptureSpritePickerController(
+        commerce: widget.commerce,
+        isActive: () =>
+            mounted && identical(widget.commerce, _workflow.commerce),
+      );
+  bool get choosing => _workflow.choosing;
 
   Future<void> _choose() async {
-    final item = widget.commerce.item;
-    setState(() => choosing = true);
-    try {
-      final source = await widget.pickPng!();
-      if (!mounted ||
-          source == null ||
-          !identical(item, widget.commerce.item)) {
-        return;
-      }
-      await widget.commerce.importCaptureSprite(sourcePath: source);
-    } finally {
-      if (mounted) setState(() => choosing = false);
-    }
+    final choosing = _workflow.choose(widget.pickPng!);
+    setState(() {});
+    await choosing;
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _workflow.dispose();
+    super.dispose();
   }
 
   @override
@@ -81,15 +86,7 @@ class _PokemonCaptureSpritePickerState
                 StudioButton(
                   label: 'Retirer l’animation',
                   secondary: true,
-                  onPressed: busy
-                      ? null
-                      : () => commerce.editItem(
-                          (item) => item.copyWith(
-                            capture: item.capture!.copyWith(
-                              animationSpritePath: null,
-                            ),
-                          ),
-                        ),
+                  onPressed: busy ? null : _workflow.remove,
                 ),
             ],
           ),

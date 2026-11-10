@@ -4,7 +4,7 @@ import '../../../features/pokemon/application/pokemon_combat_controller.dart';
 import '../../../features/pokemon/domain/pokemon_workspace_models.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
 import 'pokemon_combat_reference_list.dart';
-import 'pokemon_combat_references.dart';
+import '../../../features/pokemon/application/pokemon_combat_references.dart';
 
 class PokemonCombatContextPanel extends StatelessWidget {
   const PokemonCombatContextPanel({

@@ -29,6 +29,7 @@ void main() {
           id: 'pp-item',
           displayName: 'PP',
           pocketId: 'medicine',
+          heldEffectId: allMoves ? 'oran_berry' : null,
           uses: [
             ProjectItemUseDefinition(
               contexts: {
@@ -39,6 +40,7 @@ void main() {
                   ? ProjectItemTargetKind.partyMember
                   : ProjectItemTargetKind.partyMove,
               consumption: ProjectItemConsumptionPolicy.onApplied,
+              friendshipLoss: allMoves ? const ProjectItemFriendshipLoss(low: 5, medium: 5, high: 10) : null,
               effect: ProjectItemEffectDefinition.restorePp(
                   mode: ProjectItemAmountMode.flat,
                   amount: 10,
@@ -60,6 +62,8 @@ void main() {
           artifact.manifest.compatibility.requiredCapabilities
               .contains(ItemPpRestoreCapabilities.allMovesCapabilityId),
           allMoves);
+      expect(artifact.manifest.compatibility.requiredCapabilities.contains(ItemFriendshipCapabilities.capabilityId), allMoves);
+      expect(artifact.manifest.compatibility.requiredCapabilities.contains(ItemHeldBerryCapabilities.capabilityId), allMoves);
       final archive = ZipDecoder().decodeBytes(artifact.packageBytes);
       final exported = decodeProjectItemCatalog(jsonDecode(utf8.decode(archive
           .findFile('project/data/pokemon/catalogs/items.json')!

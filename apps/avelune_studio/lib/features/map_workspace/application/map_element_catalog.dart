@@ -252,3 +252,20 @@ Map<MapContentFilter, int> mapContentCounts(
         )
         .length,
 };
+
+GridPos? mapElementCell(MapData map, String kind, String id) => switch (kind) {
+  'decor' =>
+    map.placedElements.where((element) => element.id == id).firstOrNull?.pos,
+  'model' => switch (map.spatialScene?.instances
+      .where((instance) => instance.id == id)
+      .firstOrNull) {
+    final instance? => GridPos(
+      x: instance.position.x.floor(),
+      y: instance.position.z.floor(),
+    ),
+    null => null,
+  },
+  'entity' => map.entities.where((entity) => entity.id == id).firstOrNull?.pos,
+  'warp' => map.warps.where((warp) => warp.id == id).firstOrNull?.pos,
+  _ => null,
+};

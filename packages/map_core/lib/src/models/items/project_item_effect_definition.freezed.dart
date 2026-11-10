@@ -225,7 +225,7 @@ return semanticAction(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( ProjectItemAmountMode mode,  int? amount)?  healHp,TResult Function()?  fullRestore,TResult Function( ProjectItemVitaminStat stat, @JsonKey(fromJson: _itemEffectInteger)  int amount, @JsonKey(fromJson: _itemEffectInteger)  int maximumPerStat, @JsonKey(fromJson: _itemEffectInteger)  int maximumTotal, @JsonKey(fromJson: _itemEffectInteger)  int friendshipGainLow, @JsonKey(fromJson: _itemEffectInteger)  int friendshipGainMedium, @JsonKey(fromJson: _itemEffectInteger)  int friendshipGainHigh)?  vitamin,TResult Function( ProjectItemBattleStat stat, @JsonKey(fromJson: _itemEffectInteger)  int stages)?  battleBoost,TResult Function( ProjectItemBattlePreparationKind effect, @JsonKey(fromJson: _itemEffectNullableInteger)  int? turns)?  battlePreparation,TResult Function( ProjectItemStatusCureMode mode,  Set<String> statusIds)?  cureStatus,TResult Function( int rateNumerator,  int rateDenominator)?  revive,TResult Function( ProjectItemAmountMode mode,  int? amount, @JsonKey(includeIfNull: false, toJson: _itemPpScopeToJson)  ProjectItemPpScope scope)?  restorePp,TResult Function( int steps)?  repel,TResult Function( ProjectFishingRodKind rodKind)?  fishing,TResult Function()?  bicycle,TResult Function()?  escapeRope,TResult Function( String actionId)?  semanticAction,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( ProjectItemAmountMode mode,  int? amount)?  healHp,TResult Function()?  fullRestore,TResult Function( ProjectItemVitaminStat stat, @JsonKey(fromJson: _itemEffectInteger)  int amount, @JsonKey(fromJson: _itemEffectInteger)  int maximumPerStat, @JsonKey(fromJson: _itemEffectInteger)  int maximumTotal, @JsonKey(fromJson: _itemEffectInteger)  int friendshipGainLow, @JsonKey(fromJson: _itemEffectInteger)  int friendshipGainMedium, @JsonKey(fromJson: _itemEffectInteger)  int friendshipGainHigh)?  vitamin,TResult Function( ProjectItemBattleStat stat, @JsonKey(fromJson: _itemEffectInteger)  int stages)?  battleBoost,TResult Function( ProjectItemBattlePreparationKind effect, @JsonKey(fromJson: _itemEffectNullableInteger)  int? turns)?  battlePreparation,TResult Function( ProjectItemStatusCureMode mode,  Set<String> statusIds, @JsonKey(includeIfNull: false, toJson: _itemCuresConfusionToJson)  bool curesConfusion)?  cureStatus,TResult Function( int rateNumerator,  int rateDenominator)?  revive,TResult Function( ProjectItemAmountMode mode,  int? amount, @JsonKey(includeIfNull: false, toJson: _itemPpScopeToJson)  ProjectItemPpScope scope)?  restorePp,TResult Function( int steps)?  repel,TResult Function( ProjectFishingRodKind rodKind)?  fishing,TResult Function()?  bicycle,TResult Function()?  escapeRope,TResult Function( String actionId)?  semanticAction,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case ProjectItemHealHpEffectDefinition() when healHp != null:
 return healHp(_that.mode,_that.amount);case ProjectItemFullRestoreEffectDefinition() when fullRestore != null:
@@ -233,7 +233,7 @@ return fullRestore();case ProjectItemVitaminEffectDefinition() when vitamin != n
 return vitamin(_that.stat,_that.amount,_that.maximumPerStat,_that.maximumTotal,_that.friendshipGainLow,_that.friendshipGainMedium,_that.friendshipGainHigh);case ProjectItemBattleBoostEffectDefinition() when battleBoost != null:
 return battleBoost(_that.stat,_that.stages);case ProjectItemBattlePreparationEffectDefinition() when battlePreparation != null:
 return battlePreparation(_that.effect,_that.turns);case ProjectItemCureStatusEffectDefinition() when cureStatus != null:
-return cureStatus(_that.mode,_that.statusIds);case ProjectItemReviveEffectDefinition() when revive != null:
+return cureStatus(_that.mode,_that.statusIds,_that.curesConfusion);case ProjectItemReviveEffectDefinition() when revive != null:
 return revive(_that.rateNumerator,_that.rateDenominator);case ProjectItemRestorePpEffectDefinition() when restorePp != null:
 return restorePp(_that.mode,_that.amount,_that.scope);case ProjectItemRepelEffectDefinition() when repel != null:
 return repel(_that.steps);case ProjectItemFishingEffectDefinition() when fishing != null:
@@ -258,7 +258,7 @@ return semanticAction(_that.actionId);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( ProjectItemAmountMode mode,  int? amount)  healHp,required TResult Function()  fullRestore,required TResult Function( ProjectItemVitaminStat stat, @JsonKey(fromJson: _itemEffectInteger)  int amount, @JsonKey(fromJson: _itemEffectInteger)  int maximumPerStat, @JsonKey(fromJson: _itemEffectInteger)  int maximumTotal, @JsonKey(fromJson: _itemEffectInteger)  int friendshipGainLow, @JsonKey(fromJson: _itemEffectInteger)  int friendshipGainMedium, @JsonKey(fromJson: _itemEffectInteger)  int friendshipGainHigh)  vitamin,required TResult Function( ProjectItemBattleStat stat, @JsonKey(fromJson: _itemEffectInteger)  int stages)  battleBoost,required TResult Function( ProjectItemBattlePreparationKind effect, @JsonKey(fromJson: _itemEffectNullableInteger)  int? turns)  battlePreparation,required TResult Function( ProjectItemStatusCureMode mode,  Set<String> statusIds)  cureStatus,required TResult Function( int rateNumerator,  int rateDenominator)  revive,required TResult Function( ProjectItemAmountMode mode,  int? amount, @JsonKey(includeIfNull: false, toJson: _itemPpScopeToJson)  ProjectItemPpScope scope)  restorePp,required TResult Function( int steps)  repel,required TResult Function( ProjectFishingRodKind rodKind)  fishing,required TResult Function()  bicycle,required TResult Function()  escapeRope,required TResult Function( String actionId)  semanticAction,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( ProjectItemAmountMode mode,  int? amount)  healHp,required TResult Function()  fullRestore,required TResult Function( ProjectItemVitaminStat stat, @JsonKey(fromJson: _itemEffectInteger)  int amount, @JsonKey(fromJson: _itemEffectInteger)  int maximumPerStat, @JsonKey(fromJson: _itemEffectInteger)  int maximumTotal, @JsonKey(fromJson: _itemEffectInteger)  int friendshipGainLow, @JsonKey(fromJson: _itemEffectInteger)  int friendshipGainMedium, @JsonKey(fromJson: _itemEffectInteger)  int friendshipGainHigh)  vitamin,required TResult Function( ProjectItemBattleStat stat, @JsonKey(fromJson: _itemEffectInteger)  int stages)  battleBoost,required TResult Function( ProjectItemBattlePreparationKind effect, @JsonKey(fromJson: _itemEffectNullableInteger)  int? turns)  battlePreparation,required TResult Function( ProjectItemStatusCureMode mode,  Set<String> statusIds, @JsonKey(includeIfNull: false, toJson: _itemCuresConfusionToJson)  bool curesConfusion)  cureStatus,required TResult Function( int rateNumerator,  int rateDenominator)  revive,required TResult Function( ProjectItemAmountMode mode,  int? amount, @JsonKey(includeIfNull: false, toJson: _itemPpScopeToJson)  ProjectItemPpScope scope)  restorePp,required TResult Function( int steps)  repel,required TResult Function( ProjectFishingRodKind rodKind)  fishing,required TResult Function()  bicycle,required TResult Function()  escapeRope,required TResult Function( String actionId)  semanticAction,}) {final _that = this;
 switch (_that) {
 case ProjectItemHealHpEffectDefinition():
 return healHp(_that.mode,_that.amount);case ProjectItemFullRestoreEffectDefinition():
@@ -266,7 +266,7 @@ return fullRestore();case ProjectItemVitaminEffectDefinition():
 return vitamin(_that.stat,_that.amount,_that.maximumPerStat,_that.maximumTotal,_that.friendshipGainLow,_that.friendshipGainMedium,_that.friendshipGainHigh);case ProjectItemBattleBoostEffectDefinition():
 return battleBoost(_that.stat,_that.stages);case ProjectItemBattlePreparationEffectDefinition():
 return battlePreparation(_that.effect,_that.turns);case ProjectItemCureStatusEffectDefinition():
-return cureStatus(_that.mode,_that.statusIds);case ProjectItemReviveEffectDefinition():
+return cureStatus(_that.mode,_that.statusIds,_that.curesConfusion);case ProjectItemReviveEffectDefinition():
 return revive(_that.rateNumerator,_that.rateDenominator);case ProjectItemRestorePpEffectDefinition():
 return restorePp(_that.mode,_that.amount,_that.scope);case ProjectItemRepelEffectDefinition():
 return repel(_that.steps);case ProjectItemFishingEffectDefinition():
@@ -290,7 +290,7 @@ return semanticAction(_that.actionId);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( ProjectItemAmountMode mode,  int? amount)?  healHp,TResult? Function()?  fullRestore,TResult? Function( ProjectItemVitaminStat stat, @JsonKey(fromJson: _itemEffectInteger)  int amount, @JsonKey(fromJson: _itemEffectInteger)  int maximumPerStat, @JsonKey(fromJson: _itemEffectInteger)  int maximumTotal, @JsonKey(fromJson: _itemEffectInteger)  int friendshipGainLow, @JsonKey(fromJson: _itemEffectInteger)  int friendshipGainMedium, @JsonKey(fromJson: _itemEffectInteger)  int friendshipGainHigh)?  vitamin,TResult? Function( ProjectItemBattleStat stat, @JsonKey(fromJson: _itemEffectInteger)  int stages)?  battleBoost,TResult? Function( ProjectItemBattlePreparationKind effect, @JsonKey(fromJson: _itemEffectNullableInteger)  int? turns)?  battlePreparation,TResult? Function( ProjectItemStatusCureMode mode,  Set<String> statusIds)?  cureStatus,TResult? Function( int rateNumerator,  int rateDenominator)?  revive,TResult? Function( ProjectItemAmountMode mode,  int? amount, @JsonKey(includeIfNull: false, toJson: _itemPpScopeToJson)  ProjectItemPpScope scope)?  restorePp,TResult? Function( int steps)?  repel,TResult? Function( ProjectFishingRodKind rodKind)?  fishing,TResult? Function()?  bicycle,TResult? Function()?  escapeRope,TResult? Function( String actionId)?  semanticAction,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( ProjectItemAmountMode mode,  int? amount)?  healHp,TResult? Function()?  fullRestore,TResult? Function( ProjectItemVitaminStat stat, @JsonKey(fromJson: _itemEffectInteger)  int amount, @JsonKey(fromJson: _itemEffectInteger)  int maximumPerStat, @JsonKey(fromJson: _itemEffectInteger)  int maximumTotal, @JsonKey(fromJson: _itemEffectInteger)  int friendshipGainLow, @JsonKey(fromJson: _itemEffectInteger)  int friendshipGainMedium, @JsonKey(fromJson: _itemEffectInteger)  int friendshipGainHigh)?  vitamin,TResult? Function( ProjectItemBattleStat stat, @JsonKey(fromJson: _itemEffectInteger)  int stages)?  battleBoost,TResult? Function( ProjectItemBattlePreparationKind effect, @JsonKey(fromJson: _itemEffectNullableInteger)  int? turns)?  battlePreparation,TResult? Function( ProjectItemStatusCureMode mode,  Set<String> statusIds, @JsonKey(includeIfNull: false, toJson: _itemCuresConfusionToJson)  bool curesConfusion)?  cureStatus,TResult? Function( int rateNumerator,  int rateDenominator)?  revive,TResult? Function( ProjectItemAmountMode mode,  int? amount, @JsonKey(includeIfNull: false, toJson: _itemPpScopeToJson)  ProjectItemPpScope scope)?  restorePp,TResult? Function( int steps)?  repel,TResult? Function( ProjectFishingRodKind rodKind)?  fishing,TResult? Function()?  bicycle,TResult? Function()?  escapeRope,TResult? Function( String actionId)?  semanticAction,}) {final _that = this;
 switch (_that) {
 case ProjectItemHealHpEffectDefinition() when healHp != null:
 return healHp(_that.mode,_that.amount);case ProjectItemFullRestoreEffectDefinition() when fullRestore != null:
@@ -298,7 +298,7 @@ return fullRestore();case ProjectItemVitaminEffectDefinition() when vitamin != n
 return vitamin(_that.stat,_that.amount,_that.maximumPerStat,_that.maximumTotal,_that.friendshipGainLow,_that.friendshipGainMedium,_that.friendshipGainHigh);case ProjectItemBattleBoostEffectDefinition() when battleBoost != null:
 return battleBoost(_that.stat,_that.stages);case ProjectItemBattlePreparationEffectDefinition() when battlePreparation != null:
 return battlePreparation(_that.effect,_that.turns);case ProjectItemCureStatusEffectDefinition() when cureStatus != null:
-return cureStatus(_that.mode,_that.statusIds);case ProjectItemReviveEffectDefinition() when revive != null:
+return cureStatus(_that.mode,_that.statusIds,_that.curesConfusion);case ProjectItemReviveEffectDefinition() when revive != null:
 return revive(_that.rateNumerator,_that.rateDenominator);case ProjectItemRestorePpEffectDefinition() when restorePp != null:
 return restorePp(_that.mode,_that.amount,_that.scope);case ProjectItemRepelEffectDefinition() when repel != null:
 return repel(_that.steps);case ProjectItemFishingEffectDefinition() when fishing != null:
@@ -666,7 +666,7 @@ as int?,
 
 @JsonSerializable(explicitToJson: true)
 class ProjectItemCureStatusEffectDefinition extends ProjectItemEffectDefinition {
-  const ProjectItemCureStatusEffectDefinition({required this.mode, final  Set<String> statusIds = const <String>{}, final  String? $type}): _statusIds = statusIds,$type = $type ?? 'cure_status',super._();
+  const ProjectItemCureStatusEffectDefinition({required this.mode, final  Set<String> statusIds = const <String>{}, @JsonKey(includeIfNull: false, toJson: _itemCuresConfusionToJson) this.curesConfusion = false, final  String? $type}): _statusIds = statusIds,$type = $type ?? 'cure_status',super._();
   factory ProjectItemCureStatusEffectDefinition.fromJson(Map<String, dynamic> json) => _$ProjectItemCureStatusEffectDefinitionFromJson(json);
 
  final  ProjectItemStatusCureMode mode;
@@ -677,6 +677,7 @@ class ProjectItemCureStatusEffectDefinition extends ProjectItemEffectDefinition 
   return EqualUnmodifiableSetView(_statusIds);
 }
 
+@JsonKey(includeIfNull: false, toJson: _itemCuresConfusionToJson) final  bool curesConfusion;
 
 @JsonKey(name: 'kind')
 final String $type;
@@ -695,16 +696,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectItemCureStatusEffectDefinition&&(identical(other.mode, mode) || other.mode == mode)&&const DeepCollectionEquality().equals(other._statusIds, _statusIds));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectItemCureStatusEffectDefinition&&(identical(other.mode, mode) || other.mode == mode)&&const DeepCollectionEquality().equals(other._statusIds, _statusIds)&&(identical(other.curesConfusion, curesConfusion) || other.curesConfusion == curesConfusion));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,mode,const DeepCollectionEquality().hash(_statusIds));
+int get hashCode => Object.hash(runtimeType,mode,const DeepCollectionEquality().hash(_statusIds),curesConfusion);
 
 @override
 String toString() {
-  return 'ProjectItemEffectDefinition.cureStatus(mode: $mode, statusIds: $statusIds)';
+  return 'ProjectItemEffectDefinition.cureStatus(mode: $mode, statusIds: $statusIds, curesConfusion: $curesConfusion)';
 }
 
 
@@ -715,7 +716,7 @@ abstract mixin class $ProjectItemCureStatusEffectDefinitionCopyWith<$Res> implem
   factory $ProjectItemCureStatusEffectDefinitionCopyWith(ProjectItemCureStatusEffectDefinition value, $Res Function(ProjectItemCureStatusEffectDefinition) _then) = _$ProjectItemCureStatusEffectDefinitionCopyWithImpl;
 @useResult
 $Res call({
- ProjectItemStatusCureMode mode, Set<String> statusIds
+ ProjectItemStatusCureMode mode, Set<String> statusIds,@JsonKey(includeIfNull: false, toJson: _itemCuresConfusionToJson) bool curesConfusion
 });
 
 
@@ -732,11 +733,12 @@ class _$ProjectItemCureStatusEffectDefinitionCopyWithImpl<$Res>
 
 /// Create a copy of ProjectItemEffectDefinition
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? mode = null,Object? statusIds = null,}) {
+@pragma('vm:prefer-inline') $Res call({Object? mode = null,Object? statusIds = null,Object? curesConfusion = null,}) {
   return _then(ProjectItemCureStatusEffectDefinition(
 mode: null == mode ? _self.mode : mode // ignore: cast_nullable_to_non_nullable
 as ProjectItemStatusCureMode,statusIds: null == statusIds ? _self._statusIds : statusIds // ignore: cast_nullable_to_non_nullable
-as Set<String>,
+as Set<String>,curesConfusion: null == curesConfusion ? _self.curesConfusion : curesConfusion // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 

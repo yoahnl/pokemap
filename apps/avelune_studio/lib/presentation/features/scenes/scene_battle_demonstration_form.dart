@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
+import '../../../features/scenes/application/scene_battle_demonstration_draft.dart';
+
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_commit_field.dart';
@@ -51,17 +53,6 @@ class _SceneBattleDemonstrationFormState
     }
   }
 
-  void _patch(Map<String, dynamic> patch) => widget.onChanged(
-    SceneBattleDemonstration.fromJson({...widget.value!.toJson(), ...patch}),
-  );
-
-  void _choice(int index, SceneBattleDemonstrationChoice choice) => _patch({
-    'choices': [
-      for (var i = 0; i < widget.value!.choices.length; i++)
-        (i == index ? choice : widget.value!.choices[i]).toJson(),
-    ],
-  });
-
   @override
   Widget build(BuildContext context) =>
       FutureBuilder<
@@ -72,26 +63,26 @@ class _SceneBattleDemonstrationFormState
           final choices = snapshot.data?.items ?? const <String, String>{};
           final captures =
               snapshot.data?.captureItems ?? const <String, String>{};
-          final teams = {
-            for (final trainer in widget.project.trainers)
-              if (trainer.team.isNotEmpty &&
-                  trainer.team.length <= 6 &&
-                  trainer.battleFormat == BattleFormat.singles)
-                trainer.id: trainer.name,
-          };
-          final value = widget.value;
-          final available =
-              widget.project.settings.dimension == ProjectDimension.threeD &&
-              teams.isNotEmpty &&
-              captures.isNotEmpty;
-          final bag = {
-            for (final entry in value?.bagItems ?? const <BagEntry>[])
-              entry.itemId: choices[entry.itemId] ?? entry.itemId,
-          };
-          final captureBag = {
-            for (final entry in bag.entries)
-              if (captures.containsKey(entry.key)) entry.key: entry.value,
-          };
+          final draft = SceneBattleDemonstrationDraft(
+            project: widget.project,
+            value: widget.value,
+            items: choices,
+            captureItems: captures,
+          );
+          final teams = draft.teams;
+          final value = draft.value;
+          final available = draft.available;
+          final bag = draft.bag;
+          final captureBag = draft.captureBag;
+          void apply(void Function() edit) {
+            edit();
+            widget.onChanged(draft.value);
+          }
+
+          void patch(Map<String, dynamic> values) =>
+              apply(() => draft.patch(values));
+          void choice(int index, SceneBattleDemonstrationChoice value) =>
+              apply(() => draft.choice(index, value));
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -101,24 +92,7 @@ class _SceneBattleDemonstrationFormState
                 description: 'Équipe et sac temporaires. Le joueur retrouve exactement son état après le combat.',
                 onChanged: !available && value == null
                     ? null
-                    : (enabled) => widget.onChanged(
-                        enabled
-                            ? SceneBattleDemonstration(
-                                playerTrainerId: teams.keys.first,
-                                bagItems: [
-                                  BagEntry(
-                                    itemId: captures.keys.first,
-                                    quantity: 20,
-                                  ),
-                                ],
-                                choices: [
-                                  SceneBattleDemonstrationChoice.capture(
-                                    captures.keys.first,
-                                  ),
-                                ],
-                              )
-                            : null,
-                      ),
+                    : (enabled) => apply(() => draft.enable(enabled)),
               ),
               if (snapshot.hasError)
                 const StudioNotice(
@@ -134,7 +108,7 @@ class _SceneBattleDemonstrationFormState
                   label: 'Équipe temporaire',
                   value: value.playerTrainerId,
                   options: teams,
-                  onChanged: (id) => _patch({'playerTrainerId': id}),
+                  onChanged: (id) => patch({'playerTrainerId': id}),
                 ),
                 const SizedBox(height: 12),
                 const Text('Sac temporaire'),
@@ -142,54 +116,16 @@ class _SceneBattleDemonstrationFormState
                   StudioSelect(
                     label: 'Objet ${index + 1}',
                     value: value.bagItems[index].itemId,
-                    options: {
-                      for (final entry in choices.entries)
-                        if ((entry.key == value.bagItems[index].itemId ||
-                                !bag.containsKey(entry.key)) &&
-                            (!value.choices.any(
-                                  (action) =>
-                                      action.itemId ==
-                                      value.bagItems[index].itemId,
-                                ) ||
-                                captures.containsKey(entry.key)))
-                          entry.key: entry.value,
-                    },
-                    onChanged: (id) => _patch({
-                      'bagItems': [
-                        for (var i = 0; i < value.bagItems.length; i++)
-                          (i == index
-                                  ? value.bagItems[i].copyWith(itemId: id)
-                                  : value.bagItems[i])
-                              .toJson(),
-                      ],
-                      'choices': [
-                        for (final action in value.choices)
-                          (action.itemId == value.bagItems[index].itemId
-                                  ? SceneBattleDemonstrationChoice.capture(id)
-                                  : action)
-                              .toJson(),
-                      ],
-                    }),
+                    options: draft.replacementItems(index),
+                    onChanged: (id) =>
+                        apply(() => draft.replaceItem(index, id)),
                   ),
                   StudioCommitField(
                     label: 'Quantité ${index + 1}',
                     value: '${value.bagItems[index].quantity}',
                     tryCommit: (text) {
-                      final quantity = int.tryParse(text);
-                      if (quantity == null || quantity < 1 || quantity > 999) {
-                        return false;
-                      }
-                      _patch({
-                        'bagItems': [
-                          for (var i = 0; i < value.bagItems.length; i++)
-                            (i == index
-                                    ? value.bagItems[i].copyWith(
-                                        quantity: quantity,
-                                      )
-                                    : value.bagItems[i])
-                                .toJson(),
-                        ],
-                      });
+                      if (!draft.quantity(index, text)) return false;
+                      widget.onChanged(draft.value);
                       return true;
                     },
                   ),
@@ -201,29 +137,14 @@ class _SceneBattleDemonstrationFormState
                               action.itemId == value.bagItems[index].itemId,
                         )
                         ? null
-                        : () => _patch({
-                            'bagItems': [
-                              for (var i = 0; i < value.bagItems.length; i++)
-                                if (i != index) value.bagItems[i].toJson(),
-                            ],
-                          }),
+                        : () => apply(() => draft.removeItem(index)),
                   ),
                 ],
                 StudioButton(
                   label: 'Ajouter un objet',
                   onPressed: choices.keys.every(bag.containsKey)
                       ? null
-                      : () {
-                          final id = choices.keys.firstWhere(
-                            (id) => !bag.containsKey(id),
-                          );
-                          _patch({
-                            'bagItems': [
-                              ...value.bagItems.map((entry) => entry.toJson()),
-                              BagEntry(itemId: id, quantity: 1).toJson(),
-                            ],
-                          });
-                        },
+                      : () => apply(draft.addItem),
                 ),
                 const SizedBox(height: 12),
                 const Text('Actions, dans l’ordre'),
@@ -235,7 +156,7 @@ class _SceneBattleDemonstrationFormState
                       'fight': 'Utiliser une capacité',
                       if (captureBag.isNotEmpty) 'capture': 'Lancer une Ball',
                     },
-                    onChanged: (kind) => _choice(
+                    onChanged: (kind) => choice(
                       index,
                       kind == 'fight'
                           ? SceneBattleDemonstrationChoice.fight(0)
@@ -252,7 +173,7 @@ class _SceneBattleDemonstrationFormState
                         for (var i = 0; i < 4; i++)
                           '$i': 'Emplacement ${i + 1}',
                       },
-                      onChanged: (id) => _choice(
+                      onChanged: (id) => choice(
                         index,
                         SceneBattleDemonstrationChoice.fight(int.parse(id)),
                       ),
@@ -262,7 +183,7 @@ class _SceneBattleDemonstrationFormState
                       label: 'Ball ${index + 1}',
                       value: value.choices[index].itemId,
                       options: captureBag,
-                      onChanged: (id) => _choice(
+                      onChanged: (id) => choice(
                         index,
                         SceneBattleDemonstrationChoice.capture(id),
                       ),
@@ -273,28 +194,14 @@ class _SceneBattleDemonstrationFormState
                         label: 'Monter',
                         onPressed: index == 0
                             ? null
-                            : () {
-                                final actions = [...value.choices];
-                                final moved = actions.removeAt(index);
-                                actions.insert(index - 1, moved);
-                                _patch({
-                                  'choices': actions
-                                      .map((action) => action.toJson())
-                                      .toList(),
-                                });
-                              },
+                            : () => apply(() => draft.moveChoiceUp(index)),
                       ),
                       const SizedBox(width: 8),
                       StudioButton(
                         label: 'Retirer',
                         onPressed: value.choices.length == 1
                             ? null
-                            : () => _patch({
-                                'choices': [
-                                  for (var i = 0; i < value.choices.length; i++)
-                                    if (i != index) value.choices[i].toJson(),
-                                ],
-                              }),
+                            : () => apply(() => draft.removeChoice(index)),
                       ),
                     ],
                   ),
@@ -304,28 +211,20 @@ class _SceneBattleDemonstrationFormState
                   label: 'Ajouter une action',
                   onPressed: value.choices.length >= 100
                       ? null
-                      : () => _patch({
-                          'choices': [
-                            ...value.choices.map((choice) => choice.toJson()),
-                            SceneBattleDemonstrationChoice.fight(0).toJson(),
-                          ],
-                        }),
+                      : () => apply(draft.addChoice),
                 ),
                 StudioToggleRow(
                   label: 'Garantir la capture pendant la démonstration',
                   value: value.captureAlwaysSucceeds,
                   onChanged: (enabled) =>
-                      _patch({'captureAlwaysSucceeds': enabled}),
+                      patch({'captureAlwaysSucceeds': enabled}),
                 ),
                 StudioCommitField(
                   label: 'Temps de lecture entre les actions (ms)',
                   value: '${value.stepDelayMs}',
                   tryCommit: (text) {
-                    final delay = int.tryParse(text);
-                    if (delay == null || delay < 50 || delay > 10000) {
-                      return false;
-                    }
-                    _patch({'stepDelayMs': delay});
+                    if (!draft.delay(text)) return false;
+                    widget.onChanged(draft.value);
                     return true;
                   },
                 ),

@@ -75,6 +75,12 @@ final class MapDecorGroupEditing {
     );
   }
 
+  bool moveText(Iterable<String> ids, String raw, {required bool horizontal}) {
+    final value = num.tryParse(raw.trim().replaceAll(',', '.'));
+    if (value == null) return false;
+    return horizontal ? move(ids, x: value) : move(ids, y: value);
+  }
+
   bool move(Iterable<String> ids, {num? x, num? y}) {
     if (x == null && y == null) return false;
     final summary = summarize(ids);

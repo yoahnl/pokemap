@@ -4,8 +4,7 @@ import 'package:avelune_studio/features/narrative/application/narrative_workspac
 import 'package:avelune_studio/features/narrative/data/local_narrative_adapter.dart';
 import 'package:avelune_studio/features/stories/application/story_workspace_controller.dart';
 import 'package:avelune_studio/features/stories/data/local_story_adapter.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/workspace_actions.dart';
-import 'package:flutter/material.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/workspace_workflow.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import '../support/delayed_map_save_port.dart';
@@ -44,28 +43,18 @@ void main() {
         maps.active!.commit(
           maps.active!.current.copyWith(name: 'Carte modifiée'),
         );
-        late WorkspaceActions actions;
         var launches = 0;
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Builder(
-              builder: (context) {
-                actions = WorkspaceActions(
-                  controller: maps,
-                  context: () => context,
-                  mounted: () => true,
-                  changed: () {},
-                  resources: () => null,
-                  narrative: () => narrative,
-                  runtimeBuilder: (_, _, _) {
-                    launches++;
-                    return const SizedBox();
-                  },
-                );
-                return const Scaffold(body: Text('Éditeur'));
-              },
-            ),
-          ),
+        final actions = WorkspaceWorkflow(
+          controller: maps,
+          isActive: () => true,
+          changed: () {},
+          resources: () => null,
+          narrative: () => narrative,
+          confirmClose: () async => WorkspaceCloseChoice.cancel,
+          flushFocus: () {},
+          launchMap: (_, _) async {
+            launches++;
+          },
         );
         await tester.runAsync(() async {
           final running = actions.test();
@@ -112,7 +101,6 @@ void main() {
         ))!;
         expect(disk.storylines.single, story);
         expect(disk.facts, fixture.manifest.facts);
-        await tester.pumpWidget(const SizedBox());
       },
     );
   }

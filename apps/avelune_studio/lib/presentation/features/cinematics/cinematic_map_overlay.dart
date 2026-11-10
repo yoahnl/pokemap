@@ -10,9 +10,9 @@ import '../../shared/widgets/layout/studio_map_overlay_frame.dart';
 
 import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 
-import 'cinematic_map_model.dart';
+import 'package:avelune_studio/features/cinematics/application/cinematic_map_model.dart';
 import 'cinematic_view_state.dart';
-import 'cinematic_workspace_visuals.dart';
+import 'package:avelune_studio/platform/rendering/contracts/cinematic_workspace_visuals.dart';
 import 'cinematic_point_handle.dart';
 import '../../../platform/rendering/cinematic_actor_animation.dart';
 import 'cinematic_path_painter.dart';

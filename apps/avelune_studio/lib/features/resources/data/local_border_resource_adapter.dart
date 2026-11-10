@@ -143,25 +143,46 @@ Future<ResourceMutationReceipt> _createBorder(
       borderSources: sources,
       expectedBeforeRevision: draftReceipt.revision,
     );
-    return ResourceMutationReceipt(
-      before: baseline.manifest,
-      manifest: published.manifest,
-      beforeRevision: baseline.revision,
-      revision: published.revision,
-      changedPaths: <String>{
-        ...draftReceipt.changedPaths,
-        ...published.changedPaths,
-      }.toList(),
-    );
+    return _borderCreationReceipt(draftReceipt, published);
   } on ResourceFailure catch (error) {
     throw ResourceFailure(
       'Le brouillon de bordure est conservé. ${error.message}',
-      partialReceipt: draftReceipt,
+      partialReceipt: error.partialReceipt == null
+          ? draftReceipt
+          : _borderCreationReceipt(draftReceipt, error.partialReceipt!),
       borderId: id,
       warningCodes: error.warningCodes,
     );
   }
 }
+
+ResourceMutationReceipt _borderCreationReceipt(
+  ResourceMutationReceipt draft,
+  ResourceMutationReceipt publication,
+) => ResourceMutationReceipt(
+  before: draft.before,
+  manifest: publication.manifest,
+  beforeRevision: draft.beforeRevision,
+  revision: publication.revision,
+  changedPaths: {...draft.changedPaths, ...publication.changedPaths}.toList(),
+  createdTilesetId: publication.createdTilesetId ?? draft.createdTilesetId,
+  operationId: publication.operationId,
+  actionId: publication.actionId,
+  snapshotBeforeRevision:
+      draft.snapshotBeforeRevision ?? publication.snapshotBeforeRevision,
+  resourceRevisions: {
+    ...draft.resourceRevisions,
+    ...publication.resourceRevisions,
+  },
+  pathRevisions: {...draft.pathRevisions, ...publication.pathRevisions},
+  changedMaps: {...draft.changedMaps, ...publication.changedMaps},
+  mapRevisions: {...draft.mapRevisions, ...publication.mapRevisions},
+  changedModels: {...draft.changedModels, ...publication.changedModels},
+  modelSourceRevisions: {
+    ...draft.modelSourceRevisions,
+    ...publication.modelSourceRevisions,
+  },
+);
 
 ResourceFailure _resourceFailure(Object error) {
   if (error is AuthoringPlanException &&

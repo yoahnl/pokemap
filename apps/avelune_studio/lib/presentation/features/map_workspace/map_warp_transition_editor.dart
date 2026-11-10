@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import '../../../features/map_workspace/application/map_warp_drafts.dart';
+
 import 'package:map_core/map_core_domain.dart';
 import 'package:map_runtime/map_runtime.dart' show MapWarpTransitionPreview;
 
@@ -26,14 +29,12 @@ class MapWarpTransitionEditor extends StatefulWidget {
 }
 
 class _MapWarpTransitionEditorState extends State<MapWarpTransitionEditor> {
-  late MapWarpTransitionType _type;
-  late String _durationMs;
-  bool _durationTouched = false;
+  late MapWarpTransitionDraft draft;
 
   @override
   void initState() {
     super.initState();
-    _reset(widget.warp.transition);
+    draft = MapWarpTransitionDraft(widget.warp.transition);
   }
 
   @override
@@ -41,28 +42,8 @@ class _MapWarpTransitionEditorState extends State<MapWarpTransitionEditor> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.warp.id != widget.warp.id ||
         oldWidget.warp.transition != widget.warp.transition) {
-      _reset(widget.warp.transition);
+      draft.reset(widget.warp.transition);
     }
-  }
-
-  void _reset(MapWarpTransition transition) {
-    _type = transition.type;
-    _durationMs = (transition.durationSeconds * 1000).round().toString();
-    _durationTouched = false;
-  }
-
-  MapWarpTransition? get _draft {
-    final duration = _durationTouched ? int.tryParse(_durationMs.trim()) : null;
-    if (_durationTouched &&
-        (duration == null || duration < 1 || duration > 5000)) {
-      return null;
-    }
-    return MapWarpTransition(
-      type: _type,
-      durationSeconds: duration == null
-          ? widget.warp.transition.durationSeconds
-          : duration / 1000,
-    );
   }
 
   void _preview(MapWarpTransition transition) {
@@ -98,37 +79,37 @@ class _MapWarpTransitionEditorState extends State<MapWarpTransitionEditor> {
 
   @override
   Widget build(BuildContext context) {
-    final draft = _draft;
+    final value = draft.value;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         StudioSelect(
           label: 'Transition d’écran',
-          value: _type.name,
+          value: draft.type.name,
           options: const {
             'hgss': 'Obturateur (style HGSS)',
             'fade': 'Fondu noir',
             'none': 'Aucune',
           },
           onChanged: (type) => setState(() {
-            _type = MapWarpTransitionType.values.byName(type);
+            draft.type = MapWarpTransitionType.values.byName(type);
           }),
         ),
         const SizedBox(height: 8),
         StudioDraftField(
           key: const ValueKey('warp-transition-duration'),
           label: 'Durée (ms)',
-          value: _durationMs,
+          value: draft.durationMs,
           keyboardType: TextInputType.number,
-          helperText: _type == MapWarpTransitionType.none
+          helperText: draft.type == MapWarpTransitionType.none
               ? 'Aucun effet d’écran pour ce passage.'
               : 'Durée de chaque fermeture et ouverture, de 1 à 5 000 ms.',
-          errorText: draft == null
+          errorText: value == null
               ? 'Indiquez un nombre entier de 1 à 5 000 ms.'
               : null,
           onChanged: (value) => setState(() {
-            _durationTouched = true;
-            _durationMs = value;
+            draft.durationTouched = true;
+            draft.durationMs = value;
           }),
         ),
         const SizedBox(height: 8),
@@ -139,8 +120,8 @@ class _MapWarpTransitionEditorState extends State<MapWarpTransitionEditor> {
             StudioButton(
               key: const ValueKey('apply-warp-transition'),
               label: 'Appliquer la transition',
-              onPressed: draft != null && draft != widget.warp.transition
-                  ? () => widget.onApply(draft)
+              onPressed: value != null && value != widget.warp.transition
+                  ? () => widget.onApply(value)
                   : null,
             ),
             StudioButton(
@@ -148,14 +129,13 @@ class _MapWarpTransitionEditorState extends State<MapWarpTransitionEditor> {
               label: 'Aperçu',
               icon: Icons.play_arrow,
               secondary: true,
-              onPressed: draft == null ? null : () => _preview(draft),
+              onPressed: value == null ? null : () => _preview(value),
             ),
             StudioTool(
               label: 'Valeurs par défaut',
               icon: Icons.restart_alt,
               onPressed: () => setState(() {
-                _reset(const MapWarpTransition());
-                _durationTouched = true;
+                draft.defaults();
               }),
             ),
           ],

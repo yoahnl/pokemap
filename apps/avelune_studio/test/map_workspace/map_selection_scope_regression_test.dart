@@ -1,3 +1,7 @@
+import 'package:avelune_studio/features/map_workspace/application/map_workspace_editing_state.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_element_catalog.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_element_list_commands.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_decor_replacement_choices.dart';
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_decor_group_editing.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_editing_commands.dart';
@@ -6,12 +10,6 @@ import 'package:avelune_studio/features/map_workspace/application/map_workspace_
 import 'package:avelune_studio/features/map_workspace/domain/map_editor_port.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_elements_panel.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_multi_selection_inspector.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
@@ -47,7 +45,7 @@ GridPos _pos(EditableMapDocument document, String id) =>
 void main() {
   late EditableMapDocument document;
   late MapEditorController editor;
-  late MapWorkspaceViewState view;
+  late MapWorkspaceEditingState view;
 
   setUp(() async {
     document = EditableMapDocument(
@@ -64,11 +62,10 @@ void main() {
     );
     document.editor = editor;
     await editor.setLocked('decor', 'lamp', true);
-    view = MapWorkspaceViewState();
+    view = MapWorkspaceEditingState();
   });
   tearDown(() {
     editor.dispose();
-    view.dispose();
   });
 
   test('different X values make the field mixed, not arbitrary', () {
@@ -242,83 +239,29 @@ void main() {
     expect(view.selectedDecorIds('b'), {'tree-b'});
   });
 
-  testWidgets('shift-click builds a selection that the inspector edits', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(1280, 900);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: studioTheme(),
-        home: Scaffold(
-          body: StatefulBuilder(
-            builder: (context, setState) => Row(
-              children: [
-                SizedBox(
-                  width: 360,
-                  child: MapElementsPanel(
-                    document: document,
-                    project: workspaceProject,
-                    view: view,
-                    onChanged: () => setState(() {}),
-                  ),
-                ),
-                if (view.selectedDecorIds('a').length > 1)
-                  SizedBox(
-                    width: 320,
-                    child: MapMultiSelectionInspector(
-                      document: document,
-                      project: workspaceProject,
-                      view: view,
-                      onChanged: () => setState(() {}),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ),
+  test('additive content selection feeds one group geometry edit', () {
+    final selection = MapElementSelectionCommands(document, view);
+    final catalog = MapElementCatalog(document.current, workspaceProject);
+    MapElementListEntry entry(String id) => catalog.entries.singleWhere(
+      (entry) => entry.kind == 'decor' && entry.id == id,
     );
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('map-element-decor-bed')));
-    await tester.pumpAndSettle();
-    await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
-    await tester.tap(find.byKey(const ValueKey('map-element-decor-desk')));
-    await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
-    await tester.pumpAndSettle();
+    expect(selection.select(entry('bed')), isTrue);
+    expect(selection.select(entry('desk'), additive: true), isTrue);
     expect(view.selectedDecorIds('a'), {'bed', 'desk'});
-    expect(find.text('2 décors sélectionnés'), findsOneWidget);
-    final x = find.byKey(const ValueKey('map-multi-selection-x'));
+    final commands = MapDecorGroupEditing(document, workspaceProject);
+    final summary = commands.summarize(view.selectedDecorIds('a'));
+    expect(summary.mixedX, isTrue);
+    expect(summary.x, isNull);
     expect(
-      tester
-          .widget<TextField>(
-            find.descendant(of: x, matching: find.byType(TextField)),
-          )
-          .controller!
-          .text,
-      isEmpty,
+      commands.moveText(view.selectedDecorIds('a'), '7', horizontal: true),
+      isTrue,
     );
-    expect(find.text('Valeurs différentes'), findsWidgets);
-    await tester.enterText(
-      find.descendant(of: x, matching: find.byType(TextField)),
-      '7',
-    );
-    await tester.testTextInput.receiveAction(TextInputAction.done);
-    await tester.pumpAndSettle();
     expect(_pos(document, 'bed').x, 7);
     expect(_pos(document, 'desk').x, 7);
     expect(_pos(document, 'lamp').x, 8);
   });
 
-  testWidgets('the inspector replaces the selection from a ready resource', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(1280, 900);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
+  test('replacement choices filter a ready resource before replacing only the selection', () {
     const rock = ProjectElementEntry(
       id: 'rock',
       name: 'Rocher',
@@ -335,41 +278,20 @@ void main() {
     );
     view.select(document, MapSelectionFamily.decor, 'bed');
     view.toggleDecorInSelection(document, 'desk');
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: studioTheme(),
-        home: Scaffold(
-          body: StatefulBuilder(
-            builder: (context, setState) => SizedBox(
-              width: 320,
-              child: MapMultiSelectionInspector(
-                document: document,
-                project: project,
-                view: view,
-                onChanged: () => setState(() {}),
-              ),
-            ),
-          ),
-        ),
-      ),
+    final choices = mapDecorReplacementChoices(
+      project,
+      mapId: document.current.id,
+      spatial: false,
+      query: 'roch',
     );
-    await tester.tap(find.byKey(const ValueKey('map-multi-selection-replace')));
-    await tester.pumpAndSettle();
-    expect(find.text('Remplacer ces 2 décors ici'), findsOneWidget);
-    await tester.enterText(
-      find.descendant(
-        of: find.byKey(const ValueKey('map-decor-replacement-search')),
-        matching: find.byType(TextField),
-      ),
-      'roch',
-    );
-    await tester.pumpAndSettle();
+    expect(choices.map((choice) => choice.id), ['rock']);
     expect(
-      find.byKey(const ValueKey('map-decor-replacement-tree')),
-      findsNothing,
+      MapDecorGroupEditing(
+        document,
+        project,
+      ).replace(view.selectedDecorIds('a'), choices.single.id),
+      isTrue,
     );
-    await tester.tap(find.byKey(const ValueKey('map-decor-replacement-rock')));
-    await tester.pumpAndSettle();
     expect(document.current.placedElements.map((item) => item.elementId), [
       'rock',
       'rock',

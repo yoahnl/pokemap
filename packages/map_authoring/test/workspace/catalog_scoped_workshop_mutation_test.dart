@@ -12,6 +12,88 @@ import 'package:image/image.dart' as img;
 
 void main() {
   final captureWork = <Map<String, Object?>>[];
+  test('presentation media configuration is scoped, durable and revision checked', () async {
+    final fixture = await _Fixture.open(unrelatedRecords: 100);
+    addTearDown(fixture.close);
+    final mediaFile = File('${fixture.root.path}/assets/.pokemap-media.json');
+    final assetFile = File('${fixture.root.path}/assets/.pokemap-assets.json');
+    await mediaFile.parent.create(recursive: true);
+    final target = <String, Object?>{
+      'id': 'kabuto', 'label': 'Kabuto', 'kind': 'image',
+      'sourceAssetId': 'asset-kabuto',
+      'technicalMetadata': {'mediaType': 'image/png', 'container': 'png',
+        'codec': 'png', 'sizeBytes': 12, 'width': 2, 'height': 2},
+    };
+    final other = <String, Object?>{
+      'id': 'other', 'label': 'Other', 'kind': 'image', 'sourceAssetId': 'asset-other',
+    };
+    await mediaFile.writeAsString(jsonEncode({'schemaVersion': 1, 'entries': [target, other]}));
+    await assetFile.writeAsString('{"schemaVersion":1,"records":[]}');
+    final parameters = <String, Object?>{
+      'mediaId': 'kabuto',
+      'posterMediaId': null,
+      'fallbackMediaId': null,
+      'captions': <Object?>[],
+      'provenance': {'source': 'Original puzzle graphic'},
+      'license': {'identifier': 'NOASSERTION', 'name': 'Rights reserved'},
+    };
+    final scope = await fixture.api.readWorkshopSnapshot(
+      fixture.opened.projectHandle,
+      actionId: 'presentationMedia.configure',
+      parameters: parameters,
+    );
+    expect(scope.maps, isEmpty);
+    expect(scope.manifest.trainers, isEmpty);
+    expect(scope.resourceStorageKeys['projectMediaCatalog'], 'assets/.pokemap-media.json');
+    expect(scope.resourceStorageKeys, isNot(contains('assetCatalog')));
+    await assetFile.writeAsString('{"schemaVersion":1,"records":[],"unrelated":true}');
+    final plan = await fixture.api.planMutation(
+      fixture.opened.projectHandle,
+      AuthoringRequest(
+        requestId: 'configure-kabuto',
+        actionId: 'presentationMedia.configure',
+        actionVersion: 1,
+        workspaceHandle: fixture.opened.workspaceHandle.value,
+        expectedRevision: scope.revision,
+        idempotencyKey: 'configure-kabuto',
+        parameters: parameters,
+        extensions: const {'workshopScope': true},
+      ),
+    );
+    await fixture.api.applyMutation(fixture.opened.projectHandle,
+      planId: plan.planId, operationId: 'configure-kabuto');
+    final saved = jsonDecode(await mediaFile.readAsString()) as Map;
+    final entries = (saved['entries'] as List).cast<Map>();
+    expect(entries.singleWhere((entry) => entry['id'] == 'other'), other);
+    final configured = entries.singleWhere((entry) => entry['id'] == 'kabuto');
+    expect(configured['technicalMetadata'], target['technicalMetadata']);
+    expect(configured['provenance'], parameters['provenance']);
+    expect(configured['license'], parameters['license']);
+    expect(await assetFile.readAsString(), '{"schemaVersion":1,"records":[],"unrelated":true}');
+    expect(await File('${fixture.root.path}/project.json').readAsBytes(), fixture.descriptorBytes);
+    final unchanged = await mediaFile.readAsBytes();
+    await expectLater(
+      _applyScoped(fixture, 'presentationMedia.configure', {...parameters, 'mediaId': 'missing'}, 'missing-media'),
+      throwsA(isA<PresentationMediaConfigurationException>().having((error) => error.code, 'code', 'presentation_media.missing')),
+    );
+    expect(await mediaFile.readAsBytes(), unchanged);
+    final stale = await fixture.api.readWorkshopSnapshot(
+      fixture.opened.projectHandle,
+      actionId: 'presentationMedia.configure',
+      parameters: parameters,
+    );
+    final concurrent = {'schemaVersion': 1, 'entries': [configured, {...other, 'label': 'Other updated'}]};
+    await mediaFile.writeAsString(jsonEncode(concurrent));
+    await expectLater(
+      fixture.api.planMutation(fixture.opened.projectHandle, AuthoringRequest(
+        requestId: 'stale-kabuto', actionId: 'presentationMedia.configure', actionVersion: 1,
+        workspaceHandle: fixture.opened.workspaceHandle.value, expectedRevision: stale.revision,
+        idempotencyKey: 'stale-kabuto', parameters: parameters, extensions: const {'workshopScope': true},
+      )),
+      throwsA(isA<AuthoringPlanException>().having((error) => error.code, 'code', 'plan.stale')),
+    );
+    expect(jsonDecode(await mediaFile.readAsString()), concurrent);
+  });
   for (final unrelated in [0, 100]) {
   test('contextual profile and item edits ignore unrelated maps assets and history foreign=$unrelated', () async {
     final reader = _CaptureWorkReader();

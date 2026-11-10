@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import '../../../features/map_workspace/application/map_entity_presentation_draft.dart';
+
 import 'package:map_core/map_core_domain.dart';
 
 import '../events/event_conditions.dart';
@@ -36,66 +39,33 @@ class _EntityPresentationControlsState
   ValueChanged<MapEntityPresentation?> get onChanged => widget.onChanged;
   String? _error;
 
+  MapEntityPresentationDraft get draft =>
+      MapEntityPresentationDraft(widget.map, entity);
+
   void _replace(int index, Map<String, dynamic> changes) {
     try {
-      if (changes.containsKey('characterId') && changes['characterId'] == null) {
-        changes = {...changes, 'movement': const MapEntityNpcMovementConfig().toJson(), 'startsOnNpcContact': false};
-      }
-      if (changes['blocksMovement'] == false) {
-        changes = {...changes, 'startsOnNpcContact': false};
-      }
-      final variants = [...entity.presentation!.variants];
-      variants[index] = MapEntityPresentationVariant.fromJson({
-        ...variants[index].toJson(),
-        ...changes,
-      });
-      onChanged(MapEntityPresentation(variants: variants));
+      onChanged(draft.replace(index, changes));
       setState(() => _error = null);
-    } on Object {
-      setState(
-        () => _error =
-            'Cette variante contient une condition ou une valeur non valide.',
-      );
+    } on FormatException catch (error) {
+      setState(() => _error = error.message);
     }
   }
 
   bool _resize(int index, String value, {required bool width}) {
-    final size = entity.presentation!.variants[index].size;
-    final number = int.tryParse(value);
-    if (number == null ||
-        number < 1 ||
-        number > 64 ||
-        (width
-            ? entity.pos.x + number > widget.map.size.width
-            : entity.pos.y + number > widget.map.size.height)) {
-      setState(
-        () => _error =
-            'Choisissez une taille de 1 à 64 cases qui reste dans la carte.',
-      );
+    try {
+      onChanged(draft.resize(index, value, width: width));
+      setState(() => _error = null);
+      return true;
+    } on FormatException catch (error) {
+      setState(() => _error = error.message);
       return false;
     }
-    _replace(index, {
-      'size': {
-        'width': width ? number : size.width,
-        'height': width ? size.height : number,
-      },
-    });
-    return _error == null;
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!const [
-          MapEntityKind.custom,
-          MapEntityKind.npc,
-        ].contains(entity.kind) ||
-        entity.fieldObstacle != null ||
-        entity.healingDisplay != null ||
-        entity.interactiveEncounter != null) {
-      return const SizedBox.shrink();
-    }
-    final variants =
-        entity.presentation?.variants ?? const <MapEntityPresentationVariant>[];
+    if (!draft.canEdit) return const SizedBox.shrink();
+    final variants = draft.variants;
     return StudioPanel(
       title: 'Apparence selon les conditions',
       compact: true,
@@ -117,20 +87,14 @@ class _EntityPresentationControlsState
                   label: 'Monter la priorité',
                   icon: Icons.arrow_upward,
                   onPressed: () {
-                    final next = [...variants];
-                    final value = next.removeAt(entry.$1);
-                    next.insert(entry.$1 - 1, value);
-                    onChanged(MapEntityPresentation(variants: next));
+                    onChanged(draft.promote(entry.$1));
                   },
                 ),
               StudioTool(
                 label: 'Retirer la variante',
                 icon: Icons.close,
                 onPressed: () {
-                  final next = [...variants]..removeAt(entry.$1);
-                  onChanged(
-                    next.isEmpty ? null : MapEntityPresentation(variants: next),
-                  );
+                  onChanged(draft.remove(entry.$1));
                 },
               ),
             ],
@@ -166,11 +130,15 @@ class _EntityPresentationControlsState
                 }),
               ),
               if (entry.$2.characterId != null) ...[
-                if (project.settings.dimension == ProjectDimension.twoD && entry.$2.blocksMovement)
+                if (project.settings.dimension == ProjectDimension.twoD &&
+                    entry.$2.blocksMovement)
                   StudioChoice(
-                    label: 'Déclencher le contact quand le PNJ atteint le joueur',
+                    label:
+                        'Déclencher le contact quand le PNJ atteint le joueur',
                     selected: entry.$2.startsOnNpcContact,
-                    onTap: () => _replace(entry.$1, {'startsOnNpcContact': !entry.$2.startsOnNpcContact}),
+                    onTap: () => _replace(entry.$1, {
+                      'startsOnNpcContact': !entry.$2.startsOnNpcContact,
+                    }),
                   ),
               ],
               StudioSelect(
@@ -194,25 +162,25 @@ class _EntityPresentationControlsState
                 tryCommit: (value) => _resize(entry.$1, value, width: false),
               ),
               for (final side in EntityFacing.values)
-                  StudioChoice(
-                    label:
-                        'Interagir à travers un comptoir : ${switch (side) {
-                          EntityFacing.north => 'haut',
-                          EntityFacing.south => 'bas',
-                          EntityFacing.west => 'gauche',
-                          EntityFacing.east => 'droite',
-                        }}',
-                    selected: entry.$2.counterInteractionSides.contains(side),
-                    onTap: () {
-                      final sides = [...entry.$2.counterInteractionSides];
-                      if (!sides.remove(side)) sides.add(side);
-                      _replace(entry.$1, {
-                        'counterInteractionSides': sides
-                            .map((value) => value.name)
-                            .toList(),
-                      });
-                    },
-                  ),
+                StudioChoice(
+                  label:
+                      'Interagir à travers un comptoir : ${switch (side) {
+                        EntityFacing.north => 'haut',
+                        EntityFacing.south => 'bas',
+                        EntityFacing.west => 'gauche',
+                        EntityFacing.east => 'droite',
+                      }}',
+                  selected: entry.$2.counterInteractionSides.contains(side),
+                  onTap: () {
+                    final sides = [...entry.$2.counterInteractionSides];
+                    if (!sides.remove(side)) sides.add(side);
+                    _replace(entry.$1, {
+                      'counterInteractionSides': sides
+                          .map((value) => value.name)
+                          .toList(),
+                    });
+                  },
+                ),
               EventConditions(
                 expression: entry.$2.condition,
                 facts: project.facts,
@@ -231,37 +199,7 @@ class _EntityPresentationControlsState
           onPressed: variants.length >= 256
               ? null
               : () {
-                  var suffix = variants.length + 1;
-                  while (variants.any(
-                    (variant) => variant.id == 'variant_$suffix',
-                  )) {
-                    suffix++;
-                  }
-                  onChanged(
-                    MapEntityPresentation(
-                      variants: [
-                        ...variants,
-                        MapEntityPresentationVariant(
-                          id: 'variant_$suffix',
-                          condition: NarrativeEventConditionExpression.all(
-                            const [],
-                          ),
-                          characterId: entity.npc?.characterId,
-                          facing: entity.npc?.facing ?? EntityFacing.south,
-                          movement: entity.npc?.movement.mode == MapEntityNpcMovementMode.patrol
-                              ? const MapEntityNpcMovementConfig()
-                              : entity.npc?.movement ?? const MapEntityNpcMovementConfig(),
-                          blocksMovement: entity.blocksMovement,
-                          size: entity.size,
-                          interactionMode: entity.interactionMode,
-                          counterInteractionSides:
-                              entity.counterInteractionSides.isNotEmpty
-                              ? entity.counterInteractionSides
-                              : entity.npc?.counterInteractionSides ?? const [],
-                        ),
-                      ],
-                    ),
-                  );
+                  onChanged(draft.add());
                 },
         ),
       ],

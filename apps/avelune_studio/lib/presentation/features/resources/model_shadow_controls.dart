@@ -1,3 +1,5 @@
+import '../../../features/resources/application/model_definition_drafts.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -24,50 +26,32 @@ class ModelShadowControls extends StatefulWidget {
 }
 
 class _ModelShadowControlsState extends State<ModelShadowControls> {
-  late bool value = widget.model.castsShadowsByDefault;
-  bool saving = false;
-  String? error;
-  int request = 0;
+  late final _draft = ModelShadowDraft(widget.model);
+  bool get value => _draft.value;
+  bool get saving => _draft.saving;
+  String? get error => _draft.error;
 
   @override
   void didUpdateWidget(ModelShadowControls oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.model.id != widget.model.id) {
-      request++;
-      saving = false;
-      value = widget.model.castsShadowsByDefault;
-      error = null;
-    } else if (oldWidget.model.castsShadowsByDefault !=
-        widget.model.castsShadowsByDefault) {
-      request++;
-      saving = false;
-      value = widget.model.castsShadowsByDefault;
-      error = null;
-    }
+    _draft.update(widget.model);
   }
 
   Future<void> save(bool next) async {
-    if (saving || widget.busy) return;
-    final currentRequest = ++request;
-    final confirmed = value;
-    setState(() {
-      value = next;
-      saving = true;
-      error = null;
-    });
-    try {
-      await widget.onChanged(next);
-      if (mounted && currentRequest == request) setState(() => value = next);
-    } on Object catch (failure) {
-      if (mounted && currentRequest == request) {
-        setState(() {
-          value = confirmed;
-          error = '$failure';
-        });
-      }
-    } finally {
-      if (mounted && currentRequest == request) setState(() => saving = false);
-    }
+    final saving = _draft.save(
+      next,
+      widget.onChanged,
+      canSave: () => mounted && !widget.busy,
+    );
+    setState(() {});
+    await saving;
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _draft.dispose();
+    super.dispose();
   }
 
   @override

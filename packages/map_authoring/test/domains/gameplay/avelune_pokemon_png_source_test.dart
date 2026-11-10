@@ -85,6 +85,15 @@ final class _Transport implements PokemonBoundedExternalHttpTransport {
                 'tileHeight': 32
               },
             }),
+            entry('shiny-atlas', 'overworld', 'hgss-inspired', {
+              'variant': 'shiny',
+              'atlas': {
+                'rows': 4,
+                'columns': 4,
+                'tileWidth': 32,
+                'tileHeight': 32,
+              },
+            }),
             if (ambiguous)
               {
                 ...entry(
@@ -126,6 +135,7 @@ void main() {
     expect(result.media[PokemonPngRole.backStatic]!.id, 'back-default');
     expect(result.media[PokemonPngRole.icon]!.id, 'icon-gen5');
     expect(result.media[PokemonPngRole.overworld]!.bytes, transport.bytes);
+    expect(result.media.keys.map((role) => role.name), contains('overworldShiny'));
     expect(result.media.containsKey(PokemonPngRole.backShinyStatic), isFalse);
   });
 

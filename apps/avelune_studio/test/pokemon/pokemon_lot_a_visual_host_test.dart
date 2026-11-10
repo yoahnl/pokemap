@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:avelune_studio/presentation/features/pokemon/pokemon_media_preview.dart';
 import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -11,11 +10,9 @@ import '../support/load_desktop_capture_fonts.dart';
 import '../support/m2_ui_fixture.dart' show pumpIo;
 import '../support/m3_story_fixture.dart';
 import '../support/map_host_fixture.dart';
-import '../support/synthetic_pokemon_media.dart';
-import '../support/pokemon_external_source_fixture.dart';
 
 void main() {
-  testWidgets('Lot A surfaces use the real workspace and local media', (
+  testWidgets('Retained species and move surfaces use the real workspace', (
     tester,
   ) async {
     await tester.runAsync(loadDesktopCaptureFonts);
@@ -39,22 +36,13 @@ void main() {
       ('Formes', 'pokemon-03-formes'),
       ('Apprentissages', 'pokemon-04-apprentissages'),
       ('Évolutions', 'pokemon-05-evolutions'),
-      ('Médias', 'pokemon-06-medias'),
     ]) {
       await tester.tap(find.text(tab).last);
       await pumpIo(tester);
-      if (tab == 'Médias') {
-        expect(find.byType(PokemonMediaPreview), findsOneWidget);
-      }
       await captureM3Widget(tester, captureKey, screenshot);
       expect(tester.takeException(), isNull);
     }
-    await tester.ensureVisible(
-      find.byKey(const ValueKey('media-role-overworld')),
-    );
-    await tester.tap(find.byKey(const ValueKey('media-role-overworld')));
-    await pumpIo(tester);
-    await captureM3Widget(tester, captureKey, 'pokemon-06-media-absent');
+    expect(find.text('Médias'), findsNothing);
 
     await tester.tap(find.text('Attaques').first);
     await pumpIo(tester);
@@ -67,7 +55,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('compact Attack and import views keep essential actions', (
+  testWidgets('compact Attack and Pokedex views keep essential actions', (
     tester,
   ) async {
     await tester.runAsync(loadDesktopCaptureFonts);
@@ -77,7 +65,6 @@ void main() {
       size: const Size(1024, 640),
       textScale: 1.5,
       prepareSource: _seedVisualProject,
-      pokemonExternalSource: const PokemonExternalSourceFixture(),
       captureKey: captureKey,
     );
     await host.go('Pokémon');
@@ -88,10 +75,10 @@ void main() {
     await captureM3Widget(tester, captureKey, 'pokemon-compact-attaques-150');
     await tester.tap(find.text('Pokédex').first);
     await pumpIo(tester);
-    await tester.tap(find.text('Importer depuis une source'));
-    await pumpIo(tester);
-    expect(find.text('Rechercher'), findsOneWidget);
-    await captureM3Widget(tester, captureKey, 'pokemon-compact-import-150');
+    expect(find.text('Rechercher une espèce'), findsOneWidget);
+    expect(find.text('Importer depuis une source'), findsNothing);
+    expect(find.text('Importer un JSON'), findsNothing);
+    await captureM3Widget(tester, captureKey, 'pokemon-compact-pokedex-150');
     expect(tester.takeException(), isNull);
   });
 
@@ -148,19 +135,6 @@ Future<void> _seedVisualProject(M3StoryFixture fixture) async {
       final destination = File('$root/data/pokemon/$family/$file');
       await destination.parent.create(recursive: true);
       await destination.writeAsString(jsonEncode(data));
-    }
-    for (final destination in [
-      'sprites/$id/front.png',
-      'sprites/$id/back.png',
-      'sprites/$id/front_shiny.png',
-      'sprites/$id/back_shiny.png',
-      'sprites/$id/icon.png',
-      'sprites/$id/party.png',
-      'portraits/$id.png',
-    ]) {
-      final target = File('$root/assets/pokemon/$destination');
-      await target.parent.create(recursive: true);
-      await target.writeAsBytes(syntheticPokemonMediaPng(seed: id.length));
     }
   }
   final moves = File('$root/data/pokemon/catalogs/moves.json');

@@ -5,6 +5,29 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  for (final action in ['item.set_overworld_effect', 'item.set_battle_effect', 'item.set_held_effect']) {
+    test('$action uses a targeted catalog scope without reading foreign maps', () async {
+      final f = await _Fixture.open(80);
+      addTearDown(f.close);
+      final parameters = <String, Object?>{'itemId': 'rope',
+        if (action == 'item.set_held_effect') 'heldEffectId': 'oran_berry' else 'use': {
+          'contexts': [action == 'item.set_battle_effect' ? 'battle' : 'overworld'], 'target': 'party_member', 'consumption': 'on_applied',
+          'effect': {'kind': 'heal_hp', 'mode': 'flat', 'amount': 50}, 'friendshipLoss': {'low': 5, 'medium': 5, 'high': 10},
+        }};
+      f.reader.paths.clear();
+      final snapshot = await f.api.readWorkshopSnapshot(f.opened.projectHandle, actionId: action, parameters: parameters);
+      final plan = await f.api.planMutation(f.opened.projectHandle, AuthoringRequest(requestId: action, actionId: action, actionVersion: 1,
+        workspaceHandle: f.opened.workspaceHandle.value, expectedRevision: snapshot.revision, idempotencyKey: action, parameters: parameters));
+      await f.api.applyMutation(f.opened.projectHandle, planId: plan.planId, operationId: action);
+      final saved = decodeProjectItemCatalog(jsonDecode(await File('${f.root.path}/items.json').readAsString()));
+      if (action == 'item.set_held_effect') {
+        expect(saved.entries.single.heldEffectId, 'oran_berry');
+      } else {
+        expect(saved.entries.single.uses.single.friendshipLoss, const ProjectItemFriendshipLoss(low: 5, medium: 5, high: 10));
+      }
+      expect(f.reader.paths.where((path) => path.startsWith('maps/')), isEmpty);
+    });
+  }
   for (final foreign in [0, 80]) {
     test(
         'camera edit preserves an Escape Rope dungeon with $foreign foreign maps',

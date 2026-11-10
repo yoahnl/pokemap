@@ -20,8 +20,6 @@ import 'package:avelune_studio/presentation/features/scenes/scene_inspector.dart
 import 'package:avelune_studio/presentation/features/scenes/scene_preview_panel.dart';
 import 'package:avelune_studio/presentation/features/scenes/scene_payload_picker.dart';
 import 'package:avelune_studio/presentation/features/scenes/scene_linked_document.dart';
-import 'package:avelune_studio/presentation/features/scenes/scene_node_finder.dart';
-import 'package:avelune_studio/presentation/features/scenes/scene_readable_summary.dart';
 import 'package:avelune_studio/features/events/application/event_map_loader.dart';
 export 'package:avelune_studio/presentation/features/scenes/scene_builder_view_state.dart';
 
@@ -295,24 +293,6 @@ class _SceneBuilderPageState extends State<SceneBuilderPage> {
                                     ),
                                   ),
                                 ),
-                                if (state.summaryOpen) ...[
-                                  const SizedBox(height: 8),
-                                  SizedBox(
-                                    height: small ? 180 : 230,
-                                    child: SceneReadableSummaryPanel(
-                                      scene: session.current,
-                                      label: (node) => _summary(
-                                        node,
-                                        widget.controller.project,
-                                        session.current,
-                                      ),
-                                      onClose: () {
-                                        state.summaryOpen = false;
-                                        refresh();
-                                      },
-                                    ),
-                                  ),
-                                ],
                                 if (state.previewOpen) ...[
                                   const SizedBox(height: 8),
                                   SizedBox(

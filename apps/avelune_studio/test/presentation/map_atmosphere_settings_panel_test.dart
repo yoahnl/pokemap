@@ -2,109 +2,144 @@ import 'dart:io';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
-
-import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
-
 import 'dart:collection';
 
+import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_atmosphere_controller.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_atmosphere_editing.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_atmosphere_port.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_atmosphere_settings_panel.dart';
-import 'package:flutter/material.dart';
-import 'package:avelune_design_system/avelune_design_system.dart'
-    show StudioAccent, StudioToggleRow;
-import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_toolbar.dart';
-
-import '../support/map_workspace_fixture.dart';
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
-import 'package:map_render_3d/map_render_3d.dart';
 
 import '../support/spatial_environment_fixture.dart';
 
 void main() {
-  testWidgets(
-    'first and repeated depth of field UI saves use only the atmosphere sidecar',
-    (tester) async {
-      final root = await tester.runAsync(() async {
-        final temporary = await Directory.systemTemp.createTemp('studio_dof_');
-        final root = Directory(await temporary.resolveSymbolicLinks());
-        await Directory('${root.path}/maps').create();
-        final project = ProjectManifest(
-          name: 'DOF',
-          version: ProjectVersion.v9,
-          settings: const ProjectSettings(dimension: ProjectDimension.threeD),
-          maps: [
-            const ProjectMapEntry(
-              id: 'a',
-              name: 'A',
-              relativePath: 'maps/a.json',
-            ),
-          ],
-          tilesets: [],
+  for (final kind in ['water', 'window', 'halo', 'firefly']) {
+    test(
+      'removing a $kind source preserves other settings and supports undo',
+      () async {
+        final port = _Port();
+        final controller = await MapAtmosphereController.open(
+          _session,
+          'river',
+          port,
         );
-        await File('${root.path}/project.json')
-            .writeAsString(jsonEncode(project.toJson()));
-        await File('${root.path}/maps/a.json')
-            .writeAsString(jsonEncode(spatialEnvironmentMap().toJson()));
-        for (final relative in [
-          'maps/unrelated.json',
-          '.pokemap/authoring/history.jsonl',
-        ]) {
-          final file = File('${root.path}/$relative');
-          await file.parent.create(recursive: true);
-          await file.writeAsString('x' * 2000000);
+        addTearDown(controller.dispose);
+        final editing = MapAtmosphereEditing(
+          controller,
+          spatialEnvironmentMap(),
+          spatialEnvironmentProject(),
+        );
+        final before = controller.current;
+        final remove = switch (kind) {
+          'water' => editing.removeWater,
+          'window' => editing.removeWindow,
+          'halo' => editing.removeHalo,
+          _ => editing.removeFireflyZone,
+        };
+        for (final invalid in [-1, 1]) {
+          expect(remove(invalid), isFalse);
         }
-        return root;
+        expect(controller.current, same(before));
+        expect(controller.canUndo, isFalse);
+        expect(remove(0), isTrue);
+        final after = controller.current;
+        expect(
+          after.waterTargets,
+          kind == 'water' ? isEmpty : before.waterTargets,
+        );
+        expect(after.windows, kind == 'window' ? isEmpty : before.windows);
+        expect(after.halos, kind == 'halo' ? isEmpty : before.halos);
+        expect(
+          after.fireflyZones,
+          kind == 'firefly' ? isEmpty : before.fireflyZones,
+        );
+        expect(
+          after.copyWith(
+            waterTargets: before.waterTargets,
+            windows: before.windows,
+            halos: before.halos,
+            fireflyZones: before.fireflyZones,
+          ),
+          before,
+        );
+        expect(port.writes, 0);
+        controller.undo();
+        expect(controller.current, before);
+        controller.redo();
+        expect(controller.current, after);
+        expect(await controller.save(), isTrue);
+        expect(port.writes, 1);
+        expect(controller.dirty, isFalse);
+      },
+    );
+  }
+
+  test(
+    'first and repeated depth of field saves use only atmosphere sidecar',
+    () async {
+      final qa = Directory(
+        '/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/t01-map-retirement',
+      );
+      await qa.create(recursive: true);
+      final root = await qa.createTemp('atmosphere-');
+      addTearDown(() async {
+        if (await root.exists()) await root.delete(recursive: true);
       });
-      addTearDown(() => root!.delete(recursive: true));
+      await Directory('${root.path}/maps').create();
+      final project = ProjectManifest(
+        name: 'DOF',
+        version: ProjectVersion.v9,
+        settings: const ProjectSettings(dimension: ProjectDimension.threeD),
+        maps: [
+          const ProjectMapEntry(
+            id: 'a',
+            name: 'A',
+            relativePath: 'maps/a.json',
+          ),
+        ],
+        tilesets: [],
+      );
+      await File('${root.path}/project.json')
+          .writeAsString(jsonEncode(project.toJson()));
+      await File('${root.path}/maps/a.json')
+          .writeAsString(jsonEncode(spatialEnvironmentMap().toJson()));
+      for (final relative in [
+        'maps/unrelated.json',
+        '.pokemap/authoring/history.jsonl',
+      ]) {
+        final file = File('${root.path}/$relative');
+        await file.parent.create(recursive: true);
+        await file.writeAsString('x' * 2000000);
+      }
       final session = ProjectSession(
-        sessionId: root!.path,
+        sessionId: root.path,
         name: 'DOF',
         directoryPath: root.path,
       );
       final adapter = LocalMapWorkspaceAdapter();
-      final controller = await tester.runAsync(() async {
-        final project = await adapter.loadProject(session);
-        await adapter.loadMap(session, project.maps.single);
-        return MapAtmosphereController.open(session, 'a', adapter);
-      });
-      addTearDown(controller!.dispose);
-      await tester.binding.setSurfaceSize(const Size(900, 2400));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: SingleChildScrollView(
-              child: MapAtmosphereSettingsPanel(
-                controller: controller,
-                map: spatialEnvironmentMap(),
-              ),
-            ),
-          ),
-        ),
+      final loaded = await adapter.loadProject(session);
+      await adapter.loadMap(session, loaded.maps.single);
+      final controller = await MapAtmosphereController.open(
+        session,
+        'a',
+        adapter,
       );
+      addTearDown(controller.dispose);
       final outside = Zone.current;
       final denied = <String>[];
       await IOOverrides.runZoned(
         () async {
           for (final enabled in [true, false]) {
-            final toggle = find.byKey(const ValueKey('atmosphere-dof-enabled'));
-            await tester.ensureVisible(toggle);
-            await tester.tap(toggle);
-            await tester.pump(const Duration(milliseconds: 16));
-            expect(controller.current.depthOfFieldEnabled, enabled);
-            expect(controller.dirty, isTrue);
-            expect(await tester.runAsync(controller.save), isTrue);
-            await tester.pump();
-            expect(controller.dirty, isFalse);
-            final persisted = await tester.runAsync(
-              () => adapter.loadAtmosphere(session, 'a'),
+            controller.edit(
+              controller.current.copyWith(depthOfFieldEnabled: enabled),
             );
-            expect(persisted!.settings.depthOfFieldEnabled, enabled);
+            expect(controller.dirty, isTrue);
+            expect(await controller.save(), isTrue);
+            expect(controller.dirty, isFalse);
+            final persisted = await adapter.loadAtmosphere(session, 'a');
+            expect(persisted.settings.depthOfFieldEnabled, enabled);
             expect(persisted.settings.depthOfFieldStrength, .35);
             expect(persisted.settings.depthOfFieldFocusRange, 12);
           }
@@ -125,13 +160,12 @@ void main() {
         },
       );
       expect(denied, isEmpty);
-      await tester.pumpWidget(const SizedBox());
     },
   );
 
-  testWidgets(
-    'depth of field edits locally and saves the selected atmosphere once',
-    (tester) async {
+  test(
+    'number edits stay local and never traverse unrelated materials',
+    () async {
       final port = _Port();
       final controller = await MapAtmosphereController.open(
         _session,
@@ -139,211 +173,201 @@ void main() {
         port,
       );
       addTearDown(controller.dispose);
-      final preview = SpatialSceneController();
-      addTearDown(preview.dispose);
-      await tester.binding.setSurfaceSize(const Size(900, 2400));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
       final unrelated = _GuardList<ProjectTilesetEntry>(
         spatialEnvironmentProject().tilesets,
+      )..forbidden = true;
+      final editing = MapAtmosphereEditing(
+        controller,
+        spatialEnvironmentMap(),
+        spatialEnvironmentProject().copyWith(tilesets: unrelated),
       );
-      unrelated.forbidden = true;
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: SingleChildScrollView(
-              child: MapAtmosphereSettingsPanel(
-                controller: controller,
-                preview: preview,
-                map: spatialEnvironmentMap(),
-                project: spatialEnvironmentProject().copyWith(
-                  tilesets: unrelated,
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-      final toggle = find.byKey(const ValueKey('atmosphere-dof-enabled'));
-      expect(toggle, findsOneWidget);
       await IOOverrides.runZoned(
         () async {
-          await tester.ensureVisible(toggle);
-          await tester.tap(toggle);
-          await tester.pump(const Duration(milliseconds: 16));
-          expect(controller.current.toJson()['depthOfFieldEnabled'], isTrue);
-          for (final (id, text) in [
-            ('dof-strength', '65'),
-            ('dof-focus-range', '18'),
-          ]) {
-            final field = find.descendant(
-              of: find.byKey(ValueKey('atmosphere-$id')),
-              matching: find.byType(TextField),
-            );
-            await tester.ensureVisible(field);
-            await tester.enterText(field, text);
-            await tester.testTextInput.receiveAction(TextInputAction.done);
-            await tester.pump(const Duration(milliseconds: 16));
-          }
+          controller.edit(
+            controller.current.copyWith(depthOfFieldEnabled: true),
+          );
+          expect(
+            editing.number(
+              'dof-strength',
+              '65',
+              0,
+              100,
+              (value) => controller.current.copyWith(
+                depthOfFieldStrength: value / 100,
+              ),
+            ),
+            isTrue,
+          );
+          expect(
+            editing.number(
+              'dof-focus-range',
+              '18',
+              2,
+              40,
+              (value) =>
+                  controller.current.copyWith(depthOfFieldFocusRange: value),
+            ),
+            isTrue,
+          );
         },
         createFile: (path) => throw StateError('Unexpected disk: $path'),
         createDirectory: (path) => throw StateError('Unexpected disk: $path'),
       );
-      expect(preview.depthOfFieldEnabled, isTrue);
-      expect(preview.depthOfFieldProfile.strength, .65);
-      expect(preview.depthOfFieldProfile.focusRange, 18);
-      expect(controller.current.toJson()['depthOfFieldStrength'], .65);
-      expect(controller.current.toJson()['depthOfFieldFocusRange'], 18);
-      final focusField = find.descendant(
-        of: find.byKey(const ValueKey('atmosphere-dof-focus-range')),
-        matching: find.byType(TextField),
-      );
-      await tester.enterText(focusField, '1');
-      await tester.testTextInput.receiveAction(TextInputAction.done);
-      await tester.pump();
+      expect(controller.current.depthOfFieldEnabled, isTrue);
+      expect(controller.current.depthOfFieldStrength, .65);
       expect(controller.current.depthOfFieldFocusRange, 18);
-      expect(controller.error, contains('2.0 et 40.0'));
+      final before = controller.current;
+      for (final invalid in ['1', '41', 'NaN', 'Infinity', 'wrong']) {
+        expect(
+          editing.number(
+            'dof-focus-range',
+            invalid,
+            2,
+            40,
+            (value) =>
+                controller.current.copyWith(depthOfFieldFocusRange: value),
+          ),
+          isFalse,
+        );
+      }
+      expect(controller.current, same(before));
       expect(port.writes, 0);
       expect(unrelated.reads, 0);
-      await tester.ensureVisible(find.byKey(const ValueKey('atmosphere-save')));
-      await tester.tap(find.byKey(const ValueKey('atmosphere-save')));
-      await tester.pump();
+      expect(await controller.save(), isTrue);
       expect(port.writes, 1);
       expect(controller.dirty, isFalse);
       controller.undo();
-      expect(controller.current.toJson()['depthOfFieldFocusRange'], 12);
+      expect(controller.current.depthOfFieldFocusRange, 12);
       controller.redo();
-      expect(controller.current.toJson()['depthOfFieldFocusRange'], 18);
+      expect(controller.current.depthOfFieldFocusRange, 18);
     },
   );
 
-  testWidgets(
-    'toolbar updates only the atmosphere status without traversing map catalog',
-    (tester) async {
-      final atmosphere = await MapAtmosphereController.open(
-        _session,
-        'a',
-        _Port(),
-      );
-      final workspace = MapWorkspaceController(_session, WorkspaceMemoryPort());
-      addTearDown(workspace.dispose);
-      await workspace.initialize();
-      workspace.active!.atmosphere = atmosphere;
-      final entries = _GuardList<ProjectMapEntry>(workspace.project!.maps);
-      workspace.project = workspace.project!.copyWith(maps: entries);
-      await tester.binding.setSurfaceSize(const Size(1200, 400));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: MapWorkspaceToolbar(
-              controller: workspace,
-              view: null,
-              onChanged: () {},
-              onActivate: (_) {},
-              onSave: () {},
-              onTest: () {},
-              onClose: () {},
-              onPalette: () {},
-              onInspector: () {},
-              onNavigator: () {},
-              paletteVisible: true,
-              inspectorVisible: true,
-              navigatorVisible: true,
-            ),
-          ),
-        ),
-      );
-      expect(find.text('Enregistré'), findsOneWidget);
-      entries.forbidden = true;
-      atmosphere.edit(atmosphere.current.copyWith(waterAnimated: true));
-      await tester.pump();
-      expect(find.text('Non enregistré'), findsOneWidget);
-      await atmosphere.save();
-      await tester.pump();
-      expect(find.text('Enregistré'), findsOneWidget);
-    },
-  );
-
-  testWidgets(
-    'durable effects preview in one frame without IO then save once',
-    (tester) async {
-      final port = _Port();
+  test(
+    'zones enforce map bounds and ordering while preserving count and seed',
+    () async {
       final controller = await MapAtmosphereController.open(
         _session,
         'river',
-        port,
+        _Port(),
       );
-      final preview = SpatialSceneController();
       addTearDown(controller.dispose);
-      addTearDown(preview.dispose);
-      await tester.binding.setSurfaceSize(const Size(900, 2000));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
-      final unrelated = _GuardList<ProjectTilesetEntry>(
-        List.generate(
-          240,
-          (i) => ProjectTilesetEntry(
-            id: 'unrelated-$i',
-            name: 'Unrelated $i',
-            relativePath: '$i.png',
-          ),
+      final map = spatialEnvironmentMap();
+      final editing = MapAtmosphereEditing(controller, map, null);
+      final original = controller.current.fireflyZones.single;
+      expect(editing.zone(0, 'x', 'max', '3,5'), isTrue);
+      expect(controller.current.fireflyZones.single.bounds.max.x, 3.5);
+      expect(controller.current.fireflyZones.single.count, original.count);
+      expect(controller.current.fireflyZones.single.seed, original.seed);
+      final before = controller.current;
+      for (final invalid in ['-1', '1000', 'NaN', '0']) {
+        expect(editing.zone(0, 'x', 'max', invalid), isFalse);
+      }
+      expect(controller.current, same(before));
+      controller.edit(controller.current.copyWith(fireflyZones: []));
+      editing.addFireflyZone();
+      expect(
+        controller.current.fireflyZones.single.bounds.max,
+        Model3dVector3(
+          x: map.size.width.toDouble(),
+          y: 2.2,
+          z: map.size.height.toDouble(),
         ),
       );
-      final project = spatialEnvironmentProject().copyWith(tilesets: unrelated);
-      unrelated.forbidden = true;
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: SingleChildScrollView(
-              child: MapAtmosphereSettingsPanel(
-                controller: controller,
-                preview: preview,
-                map: spatialEnvironmentMap(),
-                project: project,
-              ),
+    },
+  );
+
+  test(
+    'halo coordinates preserve source shape and reject invalid positions',
+    () async {
+      final controller = await MapAtmosphereController.open(
+        _session,
+        'river',
+        _Port(),
+      );
+      addTearDown(controller.dispose);
+      final editing = MapAtmosphereEditing(
+        controller,
+        spatialEnvironmentMap(),
+        spatialEnvironmentProject(),
+      );
+      final original = controller.current.halos.single;
+      expect(editing.haloPosition(0, 'x', '-2,5'), isTrue);
+      expect(controller.current.halos.single.localPosition.x, -2.5);
+      editing.haloWindow(0, true);
+      final changed = controller.current.halos.single;
+      expect(changed.window, isTrue);
+      expect(changed.radiusX, original.radiusX);
+      expect(changed.radiusY, original.radiusY);
+      expect(changed.opacity, original.opacity);
+      expect(changed.colorRgb, original.colorRgb);
+      final before = controller.current;
+      for (final invalid in ['NaN', '100001', 'wrong']) {
+        expect(editing.haloPosition(0, 'z', invalid), isFalse);
+      }
+      expect(controller.current, same(before));
+      expect(editing.addHalo('missing'), isNull);
+      expect(controller.current, same(before));
+    },
+  );
+
+  test(
+    'material targets deduplicate without replacing existing window masks',
+    () async {
+      final controller = await MapAtmosphereController.open(
+        _session,
+        'river',
+        _Port(),
+      );
+      addTearDown(controller.dispose);
+      final sourceMap = spatialEnvironmentMap();
+      final map = sourceMap.copyWith(
+        spatialScene: sourceMap.spatialScene!.copyWith(
+          instances: [
+            SpatialModelInstance(
+              id: 'oak-instance',
+              modelId: 'oak',
+              position: Model3dVector3(x: 2.5, y: 0, z: 3.5),
+            ),
+          ],
+        ),
+      );
+      final editing = MapAtmosphereEditing(
+        controller,
+        map,
+        spatialEnvironmentProject(),
+      );
+      final before = controller.current;
+      editing.addWater(before.waterTargets.single);
+      editing.addWindow(before.windows.single.target);
+      expect(controller.current, same(before));
+      final target = SpatialAtmosphereMaterialTarget(
+        instanceId: 'new-window',
+        materialName: 'glass',
+      );
+      editing.addWindow(target);
+      expect(controller.current.windows.first, before.windows.first);
+      expect(
+        controller.current.windows.last.uvRects.single.toJson(),
+        SpatialAtmosphereUvRect(left: 0, top: 0, right: 1, bottom: 1).toJson(),
+      );
+      final source = editing.haloChoices.entries.first;
+      final index = editing.addHalo(source.key);
+      expect(index, before.halos.length);
+      expect(controller.current.halos.last.localPosition, source.value.$2);
+      controller.edit(
+        controller.current.copyWith(
+          halos: List.generate(
+            32,
+            (_) => SpatialAtmosphereHalo(
+              instanceId: source.key,
+              localPosition: source.value.$2,
             ),
           ),
         ),
       );
-      final accents = <StudioAccent>{};
-      for (final id in ['water', 'windows', 'fireflies', 'halos', 'fog']) {
-        final toggle = tester.widget<StudioToggleRow>(
-          find.byKey(ValueKey('atmosphere-$id-enabled')),
-        );
-        expect(toggle.icon, isNotNull);
-        accents.add(toggle.accent!);
-      }
-      expect(accents.length, 5);
-      expect(unrelated.reads, 0);
-      unrelated.forbidden = true;
-      await IOOverrides.runZoned(
-        () async {
-          for (final id in ['water', 'windows', 'fireflies', 'halos', 'fog']) {
-            await tester.ensureVisible(
-              find.byKey(ValueKey('atmosphere-$id-enabled')),
-            );
-            await tester.tap(find.byKey(ValueKey('atmosphere-$id-enabled')));
-            await tester.pump(const Duration(milliseconds: 16));
-          }
-        },
-        createFile: (path) => throw StateError('Unexpected disk: $path'),
-        createDirectory: (path) => throw StateError('Unexpected disk: $path'),
-      );
-      expect(preview.waterAnimated, isTrue);
-      expect(preview.windowsLit, isTrue);
-      expect(preview.fireflies, isTrue);
-      expect(preview.halosEnabled, isTrue);
-      expect(preview.depthFogEnabled, isTrue);
-      expect(controller.dirty, isTrue);
-      expect(port.writes, 0);
-      await tester.ensureVisible(find.byKey(const ValueKey('atmosphere-save')));
-      await tester.tap(find.byKey(const ValueKey('atmosphere-save')));
-      await tester.pump();
-      expect(port.writes, 1);
-      expect(controller.dirty, isFalse);
-      expect(find.text('Ambiance enregistrée'), findsOneWidget);
-      controller.undo();
-      await tester.pump();
-      expect(preview.depthFogEnabled, isFalse);
+      expect(editing.addHalo(source.key), isNull);
+      expect(controller.error, contains('32 halos'));
     },
   );
 }

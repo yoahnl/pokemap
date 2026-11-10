@@ -1,3 +1,6 @@
+import '../../../features/map_workspace/application/map_element_visibility_commands.dart';
+import '../../../features/map_workspace/application/map_element_list_commands.dart';
+
 import 'dart:async';
 
 import 'package:avelune_design_system/avelune_design_system.dart';
@@ -44,7 +47,7 @@ class _MapElementsPanelState extends State<MapElementsPanel> {
   late MapElementResourceIndex _resources;
   late MapElementCatalog _catalog;
   bool _stacking = false;
-  bool _ordering = false;
+  final _ordering = MapElementReorderSession();
   int? _dragStart;
 
   @override
@@ -53,145 +56,50 @@ class _MapElementsPanelState extends State<MapElementsPanel> {
     super.dispose();
   }
 
+  MapElementVisibilityCommands get _visibility => MapElementVisibilityCommands(
+    widget.document,
+    widget.view,
+    catalog: () => _catalog,
+    changed: () {
+      if (!mounted) return;
+      widget.onChanged();
+      setState(() {});
+    },
+  );
+
   void _changed() {
-    final view = widget.view;
-    final target = view.target;
-    if (target != null) {
-      final entry = _catalog.entries
-          .where(
-            (entry) =>
-                entry.id == target.id &&
-                switch (entry.kind) {
-                  'decor' ||
-                  'model' => target.family == MapSelectionFamily.decor,
-                  'entity' =>
-                    target.family ==
-                        (entry.isCharacter
-                            ? MapSelectionFamily.character
-                            : MapSelectionFamily.marker),
-                  'warp' => target.family == MapSelectionFamily.warp,
-                  'zone' => target.family == MapSelectionFamily.zone,
-                  'trigger' => target.family == MapSelectionFamily.trigger,
-                  _ => false,
-                },
-          )
-          .firstOrNull;
-      if (entry != null &&
-          (widget.document.isElementLocked(entry.kind, entry.id) ||
-              widget.document.isElementHidden(entry.kind, entry.id))) {
-        view.clearSelection(widget.document);
-      }
-    }
+    _visibility.reconcileSelection();
     widget.onChanged();
     if (mounted) setState(() {});
   }
 
   Future<void> _lock(Iterable<MapElementListEntry> entries, bool locked) async {
-    try {
-      final editor = widget.document.editor;
-      if (editor == null || !editor.canWrite) return;
-      if (!locked &&
-          entries.any(
-            (entry) =>
-                widget.document.isElementLocked(entry.kind, entry.id) &&
-                !editor.current.isLocked(entry.kind, entry.id),
-          )) {
-        widget.document.error = 'Des éléments sont verrouillés par leur calque. Déverrouillez ce calque dans Calques.';
-        _changed();
-        return;
-      }
-      final save = editor.setGroupLocked(
-        entries.map((entry) => (entry.kind, entry.id)),
-        locked,
-      );
-      _changed();
-      await save;
-      if (mounted) setState(() {});
-    } on Object catch (error) {
-      widget.document.error = '$error';
-      _changed();
-    }
+    await _visibility.setLocked(entries, locked);
+    if (mounted) setState(() {});
   }
 
   Future<void> _hide(Iterable<MapElementListEntry> entries, bool hidden) async {
-    try {
-      final editor = widget.document.editor;
-      if (editor == null || !editor.canWrite) return;
-      if (!hidden &&
-          entries.any(
-            (entry) =>
-                widget.document.isElementHiddenInherited(entry.kind, entry.id),
-          )) {
-        widget.document.error = 'Des éléments sont masqués par leur calque ou leur famille. Réaffichez le calque ou utilisez Tout afficher.';
-        _changed();
-        return;
-      }
-      final save = editor.setGroupHidden(
-        entries.map((entry) => (entry.kind, entry.id)),
-        hidden,
-      );
-      _changed();
-      await save;
-      if (mounted) setState(() {});
-    } on Object catch (error) {
-      widget.document.error = '$error';
-      _changed();
-    }
+    await _visibility.setHidden(entries, hidden);
+    if (mounted) setState(() {});
   }
+
+  MapElementSelectionCommands get _selection => MapElementSelectionCommands(
+    widget.document,
+    widget.view,
+    centerOn: widget.view.centerOn,
+  );
 
   void _select(MapElementListEntry entry) {
-    if (widget.document.isElementLocked(entry.kind, entry.id) ||
-        widget.document.isElementHidden(entry.kind, entry.id)) {
-      return;
-    }
-    final family = switch (entry.kind) {
-      'decor' || 'model' => MapSelectionFamily.decor,
-      'entity' =>
-        entry.isCharacter
-            ? MapSelectionFamily.character
-            : MapSelectionFamily.marker,
-      'warp' => MapSelectionFamily.warp,
-      'zone' => MapSelectionFamily.zone,
-      'trigger' => MapSelectionFamily.trigger,
-      _ => null,
-    };
-    if (family == null) return;
-    widget.view.tool = StudioMapTool.select;
     final keys = HardwareKeyboard.instance;
-    if (family == MapSelectionFamily.decor &&
-        (keys.isShiftPressed || keys.isMetaPressed)) {
-      widget.view.toggleDecorInSelection(widget.document, entry.id);
-    } else {
-      widget.view.select(widget.document, family, entry.id);
-      final cell = mapElementCell(widget.document.current, entry.kind, entry.id);
-      if (cell != null) widget.view.centerOn?.call(cell);
+    if (_selection.select(
+      entry,
+      additive: keys.isShiftPressed || keys.isMetaPressed,
+    )) {
+      _changed();
     }
-    _changed();
   }
 
-  bool _isSelected(MapElementListEntry entry) {
-    if ((entry.kind == 'decor' || entry.kind == 'model') &&
-        widget.view
-            .selectedDecorIds(widget.document.current.id)
-            .contains(entry.id)) {
-      return true;
-    }
-    final target = widget.view.target;
-    return target != null &&
-        target.id == entry.id &&
-        switch (entry.kind) {
-          'decor' || 'model' => target.family == MapSelectionFamily.decor,
-          'entity' =>
-            target.family ==
-                (entry.isCharacter
-                    ? MapSelectionFamily.character
-                    : MapSelectionFamily.marker),
-          'warp' => target.family == MapSelectionFamily.warp,
-          'zone' => target.family == MapSelectionFamily.zone,
-          'trigger' => target.family == MapSelectionFamily.trigger,
-          _ => false,
-        };
-  }
+  bool _isSelected(MapElementListEntry entry) => _selection.isSelected(entry);
 
   String _filterLabel(MapContentFilter filter) => switch (filter) {
     MapContentFilter.all => 'Tous',
@@ -241,7 +149,7 @@ class _MapElementsPanelState extends State<MapElementsPanel> {
               index: index,
               enabled:
                   !locked &&
-                  !_ordering &&
+                  !_ordering.busy &&
                   widget.document.editor?.canWrite == true,
               child: const Tooltip(
                 message: 'Glisser vers le haut pour passer devant',
@@ -361,28 +269,21 @@ class _MapElementsPanelState extends State<MapElementsPanel> {
     int from,
     int to,
   ) async {
-    if (widget.onReorder == null ||
-        widget.document.editor?.canWrite != true ||
-        _ordering ||
-        _filter != MapContentFilter.all ||
-        _search.text.isNotEmpty) {
-      return;
-    }
-    final source = entries[from];
-    if (widget.document.isElementLocked(source.kind, source.id)) return;
-    if (to == from) return;
-    final reordered = entries.toList();
-    reordered.insert(to, reordered.removeAt(from));
-    setState(() => _ordering = true);
+    final pending = _ordering.reorder(
+      document: widget.document,
+      entries: entries,
+      from: from,
+      to: to,
+      apply: widget.onReorder,
+      filter: _filter,
+      query: _search.text,
+    );
+    setState(() {});
     try {
-      await widget.onReorder!(
-        source.kind == 'layer' ? 'layers' : 'decor',
-        reordered.map((entry) => entry.id).toList(),
-        source.layerId,
-      );
-      _changed();
+      await pending;
+      if (mounted) _changed();
     } finally {
-      if (mounted) setState(() => _ordering = false);
+      if (mounted) setState(() {});
     }
   }
 
@@ -596,7 +497,7 @@ class _MapElementsPanelState extends State<MapElementsPanel> {
                           widget.onReorder != null &&
                           editor?.canWrite == true &&
                           !widget.document.dirty &&
-                          !_ordering)
+                          !_ordering.busy)
                         SliverReorderableList(
                           itemCount: group.value.length,
                           onReorderStart: (index) => _dragStart = index,
@@ -651,22 +552,3 @@ class _MapElementsPanelState extends State<MapElementsPanel> {
           );
   }
 }
-
-GridPos? mapElementCell(MapData map, String kind, String id) => switch (kind) {
-  'decor' => map.placedElements
-      .where((element) => element.id == id)
-      .firstOrNull
-      ?.pos,
-  'model' => switch (map.spatialScene?.instances
-      .where((instance) => instance.id == id)
-      .firstOrNull) {
-    final instance? => GridPos(
-      x: instance.position.x.floor(),
-      y: instance.position.z.floor(),
-    ),
-    null => null,
-  },
-  'entity' => map.entities.where((entity) => entity.id == id).firstOrNull?.pos,
-  'warp' => map.warps.where((warp) => warp.id == id).firstOrNull?.pos,
-  _ => null,
-};

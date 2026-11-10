@@ -1,30 +1,39 @@
 import 'package:avelune_studio/features/resources/application/resource_pack_transfer_controller.dart';
-import 'package:avelune_studio/presentation/features/resources/resource_pack_transfer_dialog.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
-import 'package:flutter/material.dart';
+import 'package:avelune_studio/features/resources/application/resource_pack_review_projection.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../application/resource_pack_budget_controller_test.dart';
-import '../application/resource_pack_transfer_controller_test.dart' show ExportTestSink;
+import '../application/resource_pack_transfer_controller_test.dart'
+    show ExportTestSink;
 
 void main() {
-  testWidgets('budget controls expose observed and allowed values', (tester) async {
-    final c = ResourcePackTransferController(port: BudgetTestPort(),
-      picker: () async => null, exportSink: ExportTestSink(), accept: (_) async {});
-    addTearDown(c.dispose);
-    await c.beginExport();
-    await c.selectFiltered();
-    await c.diagnose();
-    await tester.pumpWidget(MaterialApp(theme: studioTheme(),
-      home: Scaffold(body: ResourcePackTransferDialog(controller: c))));
-    await tester.pumpAndSettle();
-    expect(find.text('Vérifier les volumes'), findsOneWidget);
-    expect(find.text('Volumes et limites'), findsOneWidget);
-    expect(find.textContaining('10001'), findsWidgets);
-    expect(find.textContaining('10000'), findsWidgets);
-    expect(find.textContaining('Mesures complémentaires'), findsWidgets);
-    expect(find.textContaining('Catégories de décors — Entrées de la hiérarchie'), findsOneWidget);
-    expect(find.textContaining('inventaire des fichiers'), findsOneWidget);
-    expect(tester.takeException(), isNull);
+  test('budget review retains observed allowed hierarchy and missing-measurement facts', () async {
+    final controller = ResourcePackTransferController(
+      port: BudgetTestPort(),
+      picker: () async => null,
+      exportSink: ExportTestSink(),
+      accept: (_) async {},
+    );
+    addTearDown(controller.dispose);
+    await controller.beginExport();
+    await controller.selectFiltered();
+    await controller.diagnose();
+    final report = controller.budgetReports.single;
+    expect(report['measurementComplete'], isFalse);
+    final metrics = (report['metrics']! as List).cast<Map>();
+    expect(metrics.first['observed'], 10001);
+    expect(metrics.first['allowed'], 10000);
+    final hierarchy = metrics[1];
+    expect(
+      resourcePackBudgetContextLabel(hierarchy['scope']),
+      'Catégories de décors',
+    );
+    expect(hierarchy['label'], 'Entrées de la hiérarchie');
+    expect(
+      (report['unknownDimensions']! as List).map(
+        resourcePackUnknownDimensionLabel,
+      ),
+      contains('inventaire des fichiers'),
+    );
   });
 }

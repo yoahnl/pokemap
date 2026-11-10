@@ -16,6 +16,32 @@ final class StoryStepOutcomeChoice {
   bool get missing => source == null;
 }
 
+List<StoryStepOutcomeChoice> storyScenarioOutcomeChoices(
+  List<ScenarioAsset> scenarios,
+  StorylineSceneLink link,
+) {
+  final scenario = scenarios
+      .where((candidate) => candidate.id == link.sceneRef?.targetId)
+      .firstOrNull;
+  if (scenario == null) return const [];
+  final labels = {
+    for (final outcome in link.outcomeLinks)
+      if (outcome.label case final label? when label.trim().isNotEmpty)
+        outcome.outcomeId: label,
+  };
+  return [
+    for (final id in {...scenario.declaredOutcomes, ...link.expectedOutcomeIds})
+      StoryStepOutcomeChoice(
+        id: id,
+        label: labels[id] ?? id,
+        source: scenario.declaredOutcomes.contains(id)
+            ? 'Scénario « ${scenario.name} »'
+            : null,
+        expected: link.expectedOutcomeIds.contains(id),
+      ),
+  ];
+}
+
 List<StoryStepOutcomeChoice> storyStepOutcomeChoices(
   ProjectManifest project,
   StorylineAsset story,

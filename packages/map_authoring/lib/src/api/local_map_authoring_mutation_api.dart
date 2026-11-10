@@ -94,6 +94,7 @@ const _nativeLocalWorkshopActions = {
   'campaign.battle_savings.update',
   'pokemon.ruleset.set', 'campaign.encounter_table.upsert', 'campaign.trainer.upsert',
   'campaign.shop.upsert', 'bag.capacity.set', 'item.create', 'item.update', 'item.set_capture_effect',
+  'item.set_overworld_effect', 'item.set_battle_effect', 'item.set_held_effect',
   'event_v2.template.apply', 'narrative.publish_document',
 };
 

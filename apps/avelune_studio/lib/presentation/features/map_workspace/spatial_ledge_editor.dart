@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:map_authoring/map_authoring_editing.dart';
-import 'package:map_core/map_core.dart' hide SpatialMapOperations;
+
+import '../../../features/map_workspace/application/spatial_ledge_editing_commands.dart';
+
+import 'package:map_core/map_core.dart';
 
 import '../../../features/map_workspace/application/editable_map_document.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_commit_field.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
-import 'traversal_labels.dart';
+
+import 'package:avelune_studio/features/map_workspace/application/traversal_labels.dart';
 
 class SpatialLedgeEditor extends StatefulWidget {
   const SpatialLedgeEditor({
@@ -26,27 +29,14 @@ class SpatialLedgeEditor extends StatefulWidget {
 class _SpatialLedgeEditorState extends State<SpatialLedgeEditor> {
   String? _selectedId;
 
+  SpatialLedgeEditingCommands get _commands =>
+      SpatialLedgeEditingCommands(widget.document, widget.project);
+
   bool _commit(List<SpatialLedge> ledges) {
-    if (widget.document.saving) return false;
-    try {
-      final map = widget.document.current;
-      widget.document.commit(
-        const SpatialMapOperations().configureNavigation(
-          map,
-          map.spatialScene!.navigation.copyWith(ledges: ledges),
-          models: widget.project.models3d,
-        ),
-      );
-      widget.document.error = null;
-      widget.onChanged();
-      setState(() {});
-      return true;
-    } on FormatException {
-      widget.document.error = 'Le départ et l’arrivée doivent rester dans la carte. Un talus ne permet pas de monter. Vérifiez aussi la durée et la hauteur du saut.';
-      widget.onChanged();
-      setState(() {});
-      return false;
-    }
+    final committed = _commands.configure(ledges);
+    widget.onChanged();
+    setState(() {});
+    return committed;
   }
 
   @override
@@ -57,17 +47,10 @@ class _SpatialLedgeEditorState extends State<SpatialLedgeEditor> {
         ledges.where((ledge) => ledge.id == _selectedId).firstOrNull ??
         ledges.firstOrNull;
     bool edit(String key, Object value) {
-      try {
-        final next = SpatialLedge.fromJson({...selected!.toJson(), key: value});
-        return _commit([
-          for (final ledge in ledges)
-            if (ledge.id == next.id) next else ledge,
-        ]);
-      } on Object {
-        widget.document.error = 'Choisissez des coordonnées entières, une distance de 2 à 4 cases, une durée de 100 à 2000 ms et une hauteur de 0 à 4 cases.';
-        widget.onChanged();
-        return false;
-      }
+      final committed = _commands.edit(selected!, ledges, key, value);
+      widget.onChanged();
+      setState(() {});
+      return committed;
     }
 
     return Column(
@@ -88,21 +71,9 @@ class _SpatialLedgeEditorState extends State<SpatialLedgeEditor> {
           onPressed: widget.document.saving
               ? null
               : () {
-                  var number = 1;
-                  while (ledges.any((ledge) => ledge.id == 'ledge-$number')) {
-                    number++;
-                  }
-                  final id = 'ledge-$number';
-                  final x = scene.navigation.spawn.x.floor();
-                  final z = scene.navigation.spawn.z.floor();
-                  final direction = z + 2 < scene.depth
-                      ? SpatialRampDirection.south
-                      : SpatialRampDirection.north;
-                  if (_commit([
-                    ...ledges,
-                    SpatialLedge(id: id, x: x, z: z, direction: direction),
-                  ])) {
-                    _selectedId = id;
+                  final ledge = _commands.next();
+                  if (_commit([...ledges, ledge])) {
+                    _selectedId = ledge.id;
                   }
                 },
         ),
@@ -133,11 +104,15 @@ class _SpatialLedgeEditorState extends State<SpatialLedgeEditor> {
               label: field.$2,
               value: '${selected.toJson()[field.$1]}',
               tryCommit: (text) {
-                if (widget.document.saving) return false;
-                final value = field.$1 == 'height'
-                    ? double.tryParse(text.replaceAll(',', '.'))
-                    : int.tryParse(text);
-                return value != null && edit(field.$1, value);
+                final result = _commands.editText(
+                  selected,
+                  ledges,
+                  field.$1,
+                  text,
+                );
+                widget.onChanged();
+                setState(() {});
+                return result;
               },
             ),
           ],

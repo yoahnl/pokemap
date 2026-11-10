@@ -125,9 +125,28 @@ class MapWorkspaceEditingState {
     borderDraftFailure = null;
   }
 
+  void removeLastBorderAngle(EditableMapDocument document) {
+    if (document.current.spatialScene != null) {
+      clearBorderDraftFailure(document);
+    }
+    borderMovingAngle = null;
+    borderDraft = borderDraft?.removeLastAngle();
+  }
+
   BorderStrokeEditingMode borderEditingMode = BorderStrokeEditingMode.draw;
   ({String layerId, String featureId})? borderFeature;
   MapBorderRegenerationPreview? borderPreview;
+  void selectBorderFeature(({String layerId, String featureId})? value) {
+    borderFeature = value;
+    borderPreview = null;
+  }
+
+  void prepareBorderErase(({String layerId, String featureId}) value) {
+    borderEditingMode = BorderStrokeEditingMode.erase;
+    selectBorderFeature(value);
+    tool = StudioMapTool.border;
+  }
+
   void repairBorderSelection(MapData map) {
     final selected = borderFeature;
     if (selected == null) return;
@@ -340,6 +359,27 @@ class MapWorkspaceEditingState {
   String? _resourceMapId;
   String? paletteAtlasId;
   bool _selectInitialTerrainConstruction = false;
+
+  void selectTile(TileLayerPaletteEntry value) {
+    tile = value;
+    brush = null;
+    terrain = null;
+    character = null;
+    tool = StudioMapTool.paint;
+  }
+
+  void selectFieldObstacleKind(FieldObstacleKind value) {
+    fieldObstacleKind = value;
+    if (value == FieldObstacleKind.strengthBoulder ||
+        value == FieldObstacleKind.iceBlock) {
+      fieldObstacleResetPolicy = FieldObstacleResetPolicy.mapInstance;
+    }
+  }
+
+  void prepareExteriorEditing(bool enabled) {
+    pendingMove = null;
+    if (enabled && !isExteriorDecorationTool(tool)) tool = StudioMapTool.select;
+  }
 
   void prepareFieldObstaclePlacement(FieldObstacleKind kind) {
     fieldObstacleKind = kind;

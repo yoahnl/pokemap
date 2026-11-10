@@ -10,6 +10,33 @@ import 'package:map_runtime/src/presentation/flame/battle_bag_menu_model.dart';
 import 'package:map_runtime/src/presentation/flame/battle_medicine_target_menu_model.dart';
 
 void main() {
+  for (final powder in ['energy-powder', 'heal-powder']) {
+    test('$powder applies friendship loss in the resolved production battle turn', () {
+      final adapter = _adapter(hp: 50, confused: powder == 'heal-powder');
+      final initial = _state(50).copyWith(bag: Bag(entries: [BagEntry(itemId: powder, quantity: 2)]),
+        party: PlayerParty(members: [_state(50).party.members.single.copyWith(friendship: 200)]));
+      final catalog = ItemCatalogSnapshot.fromCatalog(ProjectItemCatalog(schemaVersion: 1, entries: [ProjectItemDefinition(
+        id: powder, displayName: powder, pocketId: 'medicine', uses: [ProjectItemUseDefinition(
+          contexts: {ProjectItemUseContext.battle}, target: ProjectItemTargetKind.partyMember,
+          consumption: ProjectItemConsumptionPolicy.onApplied,
+          friendshipLoss: const ProjectItemFriendshipLoss(low: 5, medium: 5, high: 10),
+          effect: powder == 'energy-powder' ? const ProjectItemEffectDefinition.healHp(mode: ProjectItemAmountMode.flat, amount: 50)
+            : const ProjectItemEffectDefinition.cureStatus(mode: ProjectItemStatusCureMode.all, curesConfusion: true),
+        )],
+      )]));
+      final menu = buildBattleMedicineTargetMenuModel(session: adapter.createLegacyDisplaySession(isTrainerBattle: true),
+        itemId: powder, displayName: powder, use: catalog.definitionFor(powder)!.uses.single,
+        isConfusedByLineupIndex: (_) => powder == 'heal-powder');
+      expect(menu.activeEntry.isSelectable, isTrue);
+      final result = tryApplyRuntimePsdkBattleItemUse(psdkSession: adapter, displaySession: adapter.createLegacyDisplaySession(isTrainerBattle: true),
+        gameState: initial, context: _context(), itemId: powder, targetLineupIndex: 0, isTrainerBattle: true, itemCatalog: catalog);
+      expect(result, isNotNull);
+      expect(result!.updatedGameState.party.members.single.friendship, 190);
+      expect(result.updatedGameState.bag.entries.single.quantity, 1);
+      expect(adapter.state.battlerAt(psdkPlayerSlot).effects.contains(PsdkBattleEffectIds.confusion), isFalse);
+      expect(GameState.fromJson(result.updatedGameState.toJson()), result.updatedGameState);
+    });
+  }
   test('Contrary refusal at the lower cap keeps inventory and turn intact', () {
     final adapter=_adapter(abilityId:'contrary');
     var state=_state(100).copyWith(bag:const Bag(entries:[BagEntry(itemId:'full-restore',quantity:8)]));

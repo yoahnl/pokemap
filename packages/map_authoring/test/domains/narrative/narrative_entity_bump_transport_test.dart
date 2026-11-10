@@ -52,6 +52,27 @@ void main() {
         () async {
       final f = await _Fixture.create();
       addTearDown(f.dispose);
+      final parameters = {'record': _record(_source('entityBump'))};
+      final Map<String, Object?> selected;
+      if (wire) {
+        final response = await f.command('workshop_snapshot', {
+          'projectHandle': f.project.value,
+          'actionId': 'event_v2.record_upsert',
+          'parameters': parameters,
+        });
+        expect(response.status, AuthoringResultStatus.success);
+        selected = response.data;
+      } else {
+        selected = await f.mutations.readWorkshopDocument(f.project,
+            actionId: 'event_v2.record_upsert', parameters: parameters);
+      }
+      final scopedProject = ProjectManifest.fromJson(
+          Map<String, dynamic>.from(selected['project']! as Map));
+      final scopedMap = MapData.fromJson(
+          Map<String, dynamic>.from((selected['maps']! as List).single as Map));
+      expect(scopedProject.characters.map((entry) => entry.id), ['actor']);
+      expect(isNarrativeEntityBumpSourceAvailable(
+          project: scopedProject, map: scopedMap, entityId: 'door'), isTrue);
       final request = await f.request(
           'event_v2.record_upsert', {'record': _record(_source('entityBump'))});
       final before = await f.manifest.readAsBytes();

@@ -19,13 +19,8 @@ class _EnvironmentDecorPicker extends StatefulWidget {
 class _EnvironmentDecorPickerState extends State<_EnvironmentDecorPicker> {
   final search = TextEditingController();
   final filters = ResourceCatalogFilterState(showComponents: true);
-  List<ResourceItem> get candidates => resourceCatalog(widget.project)
-      .where(
-        (item) =>
-            !widget.excluded.contains(item.identity) &&
-            (item.element != null || item.model3d != null),
-      )
-      .toList();
+  List<ResourceItem> get candidates =>
+      environmentPaletteCandidates(widget.project, excluded: widget.excluded);
   List<ResourceItem> visible(ResourceCatalogFilterState state) =>
       filterResourceCatalog(
         widget.project,

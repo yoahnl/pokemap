@@ -1,98 +1,33 @@
-import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
-import 'package:avelune_studio/platform/rendering/viewports/map_editing_viewport_2d.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_screen.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
-import 'package:flutter/material.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_workspace_editing_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
+import '../support/map_selection_harness.dart';
 import '../support/map_workspace_fixture.dart';
-import '../support/map_tool_menu.dart';
 
 void main() {
-  testWidgets('compact palette paints and erases the exact collision cell', (
+  testWidgets('native viewport paints and erases exactly one collision cell', (
     tester,
   ) async {
-    tester.view.physicalSize = const Size(1024, 640);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    final port = WorkspaceMemoryPort();
-    final controller = MapWorkspaceController(workspaceSession, port);
-    final visuals = WorkspaceTestVisuals();
-    addTearDown(controller.dispose);
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: studioTheme(),
-        home: MapWorkspaceScreen(
-          controller: controller,
-          loadVisuals: (_, _) async => visuals,
-          runtimeBuilder: (_, _, _) => const SizedBox(),
-          onClose: () async {},
-          registerExitGuard: (_) {},
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-    if (find.byTooltip('Masquer les cartes').evaluate().isNotEmpty) {
-      await tester.tap(find.byTooltip('Masquer les cartes'));
-      await tester.pumpAndSettle();
-    }
-    final ground = controller.active!.current.layers.single;
-
-    Future<void> choose(String label) async {
-      await chooseMapExtraTool(tester, label);
-    }
-
-    Future<void> paint() async {
-      final canvas = tester.widget<MapEditingViewport2D>(
-        find.byType(MapEditingViewport2D),
-      );
-      final surface = tester.renderObject<RenderBox>(
-        find.byKey(const ValueKey('map-canvas')),
-      );
-      final settings = canvas.project.settings;
-      final point = surface.localToGlobal(
-        Offset(
-          2.5 * settings.tileWidth * settings.displayScale,
-          2.5 * settings.tileHeight * settings.displayScale,
-        ),
-      );
-      await tester.tapAt(point);
-      await tester.pumpAndSettle();
-    }
-
-    await choose('Collisions');
-    expect(
-      tester
-          .widget<MapEditingViewport2D>(find.byType(MapEditingViewport2D))
-          .view
-          .tool,
-      StudioMapTool.collisionPaint,
-    );
-    await paint();
-    final document = controller.active!;
-    final index = 2 * document.current.size.width + 2;
-    final painted = document.current.layers.whereType<CollisionLayer>().single;
+    final h = MapSelectionHarness.of(workspaceProject);
+    addTearDown(h.dispose);
+    await h.pump(tester);
+    final ground = h.document.current.layers.single;
+    await h.use(tester, StudioMapTool.collisionPaint);
+    await h.tapCell(tester, 2, 2);
+    final index = 2 * h.document.current.size.width + 2;
+    final painted = h.document.current.layers
+        .whereType<CollisionLayer>()
+        .single;
     expect(painted.collisions[index], isTrue);
     expect(painted.collisions.where((cell) => cell), hasLength(1));
-    expect(document.current.layers.first, ground);
-    expect(document.dirty, isTrue);
-
-    await choose('Libérer les cases');
-    expect(
-      tester
-          .widget<MapEditingViewport2D>(find.byType(MapEditingViewport2D))
-          .view
-          .tool,
-      StudioMapTool.collisionErase,
-    );
-    await paint();
-    final erased = document.current.layers.whereType<CollisionLayer>().single;
+    expect(h.document.current.layers.first, ground);
+    expect(h.document.dirty, isTrue);
+    await h.use(tester, StudioMapTool.collisionErase);
+    await h.tapCell(tester, 2, 2);
+    final erased = h.document.current.layers.whereType<CollisionLayer>().single;
     expect(erased.collisions[index], isFalse);
     expect(erased.collisions.where((cell) => cell), isEmpty);
-    expect(document.current.layers.first, ground);
-    await tester.pumpWidget(const SizedBox());
+    expect(h.document.current.layers.first, ground);
   });
 }

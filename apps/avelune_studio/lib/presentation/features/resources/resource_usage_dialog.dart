@@ -1,18 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../../features/resources/domain/resource_usage_port.dart';
+import '../../../features/resources/application/resource_usage_controller.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
-import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
-import 'resource_usage_results.dart';
 
-enum ResourceUsagePhase {
-  notAnalyzed,
-  analyzing,
-  complete,
-  stale,
-  cancelled,
-  incomplete,
-}
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
+
+import 'resource_usage_results.dart';
 
 class ResourceUsageDialog extends StatefulWidget {
   const ResourceUsageDialog({
@@ -31,16 +25,7 @@ class ResourceUsageDialog extends StatefulWidget {
   final ResourceUsageTarget? target;
   final String? name;
   ResourceUsageTarget get resolvedTarget =>
-      target ??
-      ResourceUsageTarget(
-        family: switch (item!.canonicalKind) {
-          'model3d' => 'models3d',
-          'environmentPreset' => 'environments',
-          'borderBlueprint' => 'borders',
-          _ => item!.kind.name,
-        },
-        id: item!.id,
-      );
+      target ?? resourceUsageTargetFor(item!);
   final ResourceUsagePort port;
   final Listenable changes;
   final List<String> Function() dirtyOwners;
@@ -53,159 +38,51 @@ class ResourceUsageDialog extends StatefulWidget {
 }
 
 class _ResourceUsageDialogState extends State<ResourceUsageDialog> {
-  ResourceUsagePhase _phase = ResourceUsagePhase.notAnalyzed;
-  ResourceUsageReport? _report;
-  String? _error;
-  String? _notice;
-  bool _working = false;
-  bool _opening = false;
-  bool _cancelled = false;
-  int _sequence = 0;
+  late final ResourceUsageController controller;
 
   @override
   void initState() {
     super.initState();
-    widget.changes.addListener(_changed);
+    controller = ResourceUsageController(
+      target: widget.resolvedTarget,
+      port: widget.port,
+      dirtyOwners: () => widget.dirtyOwners(),
+      openOwner: (entry) => widget.onOpen(entry),
+      canOpenOwner: (entry) => widget.canOpen(entry),
+      replace: widget.replaceUsages,
+      changed: _changed,
+    );
+    widget.changes.addListener(controller.invalidate);
   }
 
   @override
   void dispose() {
-    _cancelled = true;
-    _sequence++;
-    widget.changes.removeListener(_changed);
+    widget.changes.removeListener(controller.invalidate);
+    controller.dispose();
     super.dispose();
   }
 
   void _changed() {
-    if (!mounted) return;
-    setState(() {
-      if (_report != null && !_working) _phase = ResourceUsagePhase.stale;
-    });
-  }
-
-  Future<bool> _verify() async {
-    final report = _report;
-    if (report == null || _working) return false;
-    final sequence = _sequence;
-    try {
-      final current = await widget.port.isCurrent(report);
-      if (!mounted || sequence != _sequence) return false;
-      if (!current) setState(() => _phase = ResourceUsagePhase.stale);
-      return current;
-    } on Object catch (failure) {
-      if (!mounted || sequence != _sequence) return false;
-      setState(() {
-        _phase = ResourceUsagePhase.incomplete;
-        _error = '$failure';
-      });
-      return false;
-    }
-  }
-
-  Future<void> _analyze() async {
-    if (_working) return;
-    final sequence = ++_sequence;
-    setState(() {
-      _working = true;
-      _cancelled = false;
-      _phase = ResourceUsagePhase.analyzing;
-      _error = null;
-      _report = null;
-    });
-    try {
-      final report = await widget.port.analyze(
-        widget.resolvedTarget,
-        cancelled: () => _cancelled || !mounted || sequence != _sequence,
-      );
-      if (!mounted || _cancelled || sequence != _sequence) return;
-      final current = await widget.port.isCurrent(report);
-      if (!mounted || _cancelled || sequence != _sequence) return;
-      setState(() {
-        _report = report;
-        _phase = !current
-            ? ResourceUsagePhase.stale
-            : report.complete && widget.dirtyOwners().isEmpty
-            ? ResourceUsagePhase.complete
-            : ResourceUsagePhase.incomplete;
-      });
-    } on ResourceUsageCancelled {
-      if (mounted) setState(() => _phase = ResourceUsagePhase.cancelled);
-    } on Object catch (failure) {
-      if (!mounted || _cancelled || sequence != _sequence) return;
-      setState(() {
-        _phase = ResourceUsagePhase.incomplete;
-        _error = '$failure';
-      });
-    } finally {
-      if (mounted) setState(() => _working = false);
-    }
-  }
-
-  void _cancel() {
-    setState(() {
-      _cancelled = true;
-      _phase = ResourceUsagePhase.cancelled;
-    });
-  }
-
-  bool get _replaceable =>
-      widget.replaceUsages != null &&
-      const {'decors', 'models3d'}.contains(widget.resolvedTarget.family);
-
-  Future<void> _replace() async {
-    final report = _report;
-    final replace = widget.replaceUsages;
-    if (report == null || replace == null || _opening || _working) return;
-    setState(() => _opening = true);
-    try {
-      if (!await _verify() || !mounted) return;
-      final summary = await replace(report);
-      if (mounted && summary != null) {
-        setState(() {
-          _notice = summary;
-          _phase = ResourceUsagePhase.stale;
-        });
-      }
-    } on Object catch (failure) {
-      if (mounted) setState(() => _error = '$failure');
-    } finally {
-      if (mounted) setState(() => _opening = false);
-    }
+    if (mounted) setState(() {});
   }
 
   Future<void> _open(ResourceUsageEntry entry) async {
-    if (_opening || _working) return;
-    setState(() => _opening = true);
-    try {
-      if (!await _verify() || !mounted) return;
-      if (await widget.onOpen(entry)) {
-        if (mounted) Navigator.pop(context);
-      } else if (mounted) {
-        setState(
-          () => _error =
-              'Ouverture indisponible. Localisation : ${entry.location}',
-        );
-      }
-    } on Object catch (failure) {
-      if (mounted) setState(() => _error = '$failure');
-    } finally {
-      if (mounted) setState(() => _opening = false);
-    }
+    if (await controller.open(entry) && mounted) Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
     final dirty = widget.dirtyOwners();
-    final phase = dirty.isNotEmpty && _phase == ResourceUsagePhase.complete
-        ? ResourceUsagePhase.incomplete
-        : _phase;
+    final phase = controller.phase;
     final status = switch (phase) {
       ResourceUsagePhase.notAnalyzed => 'Non analysé',
       ResourceUsagePhase.analyzing => 'Analyse en cours',
       ResourceUsagePhase.complete => 'Complet pour la révision identifiée',
       ResourceUsagePhase.stale => 'Résultat périmé · relancez l’analyse',
       ResourceUsagePhase.cancelled =>
-        _working ? 'Analyse annulée · nettoyage en cours' : 'Analyse annulée',
+        controller.working
+            ? 'Analyse annulée · nettoyage en cours'
+            : 'Analyse annulée',
       ResourceUsagePhase.incomplete => 'Analyse incomplète',
     };
     return Dialog(
@@ -228,26 +105,26 @@ class _ResourceUsageDialogState extends State<ResourceUsageDialog> {
               Text(widget.name ?? widget.item!.name),
               const SizedBox(height: 8),
               Text(status, key: const ValueKey('resource-usage-status')),
-              if (_error != null)
+              if (controller.error != null)
                 Text(
-                  _error!,
+                  controller.error!,
                   style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
-              if (_notice != null)
+              if (controller.notice != null)
                 Text(
-                  _notice!,
+                  controller.notice!,
                   key: const ValueKey('resource-usage-replacement-notice'),
                 ),
-              if (_working) const LinearProgressIndicator(),
+              if (controller.working) const LinearProgressIndicator(),
               const SizedBox(height: 12),
               Expanded(
                 child: ResourceUsageResults(
-                  report: _report,
+                  report: controller.report,
                   error: null,
                   dirtyOwners: dirty,
                   stale: phase == ResourceUsagePhase.stale,
                   onOpen: _open,
-                  canOpen: (entry) => !_opening && widget.canOpen(entry),
+                  canOpen: controller.canOpen,
                 ),
               ),
               const SizedBox(height: 12),
@@ -256,37 +133,35 @@ class _ResourceUsageDialogState extends State<ResourceUsageDialog> {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  if (_working)
+                  if (controller.working)
                     StudioButton(
                       label: 'Annuler l’analyse',
                       secondary: true,
-                      onPressed: _cancelled ? null : _cancel,
+                      onPressed: controller.cancelled
+                          ? null
+                          : controller.cancel,
                     ),
                   StudioButton(
                     label: 'Retour aux ressources',
                     secondary: true,
                     onPressed: () => Navigator.pop(context),
                   ),
-                  if (_replaceable)
+                  if (controller.replaceable)
                     StudioButton(
                       key: const ValueKey('resource-usage-replace'),
                       label: 'Remplacer ses usages…',
                       icon: Icons.swap_horiz,
                       secondary: true,
-                      onPressed:
-                          !_working &&
-                              !_opening &&
-                              phase == ResourceUsagePhase.complete &&
-                              (_report?.entries.isNotEmpty ?? false)
-                          ? _replace
+                      onPressed: controller.canReplace
+                          ? controller.replaceUsages
                           : null,
                     ),
                   StudioButton(
                     key: const ValueKey('resource-usage-analyze'),
-                    label: _report == null
+                    label: controller.report == null
                         ? 'Analyser les usages'
                         : 'Actualiser',
-                    onPressed: _working ? null : _analyze,
+                    onPressed: controller.working ? null : controller.analyze,
                   ),
                 ],
               ),

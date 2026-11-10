@@ -10,6 +10,7 @@ import 'pokemon_external_http_transport.dart';
 
 enum PokemonPngRole {
   frontStatic, backStatic, frontShinyStatic, backShinyStatic, icon, overworld,
+  overworldShiny,
 }
 
 final class PokemonPngFile {
@@ -74,9 +75,13 @@ final class AvelunePokemonPngSource {
         priority = menuStyles.indexOf(item.style);
         role = PokemonPngRole.icon;
       } else if (item.usage == 'overworld' && item.style == 'hgss-inspired' &&
-          item.metadata['variant'] == 'regular' && item.metadata['atlas'] is Map) {
+          item.metadata['atlas'] is Map) {
         priority = 0;
-        role = PokemonPngRole.overworld;
+        role = switch (item.metadata['variant']) {
+          'regular' => PokemonPngRole.overworld,
+          'shiny' => PokemonPngRole.overworldShiny,
+          _ => null,
+        };
       }
       if (role == null || priority < 0) continue;
       final previous = priorities[role];
@@ -109,7 +114,8 @@ final class AvelunePokemonPngSource {
           (metadata['height'] != null && metadata['height'] != dimensions.height)) {
         throw const FormatException('Pokemon PNG dimensions differ from metadata.');
       }
-      if (entry.key == PokemonPngRole.overworld) {
+      if (entry.key == PokemonPngRole.overworld ||
+          entry.key == PokemonPngRole.overworldShiny) {
         final atlas = metadata['atlas'] as Map;
         final rows = atlas['rows'];
         final columns = atlas['columns'];

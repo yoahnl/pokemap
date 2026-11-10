@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:map_core/map_core_domain.dart';
 
 import '../../../platform/rendering/contracts/map_workspace_visuals.dart';
@@ -19,8 +21,30 @@ class WorkspaceVisualProjectionQueue {
   final void Function(Object) failed;
   final void Function() changed;
   bool loading = false;
+  ProjectManifest? definitions;
+  MapData? preparedMap;
   int generation = 0;
   Future<void> queue = Future.value();
+
+  void acknowledgeDefinitions(ProjectManifest? value) {
+    definitions = value;
+  }
+
+  void synchronize(ProjectManifest? project, {bool suspended = false}) {
+    if (!isActive()) return;
+    final visuals = currentVisuals();
+    if (visuals == null) return;
+    if (!suspended && project != null && !identical(project, definitions)) {
+      definitions = project;
+      unawaited(refresh(project));
+    }
+    final map = activeMap();
+    if (!loading && map != null && !identical(map, preparedMap)) {
+      preparedMap = map;
+      prepared(map);
+      visuals.setActiveMap(map);
+    }
+  }
 
   Future<void> refresh(ProjectManifest definitions) async {
     final visuals = currentVisuals();
@@ -44,6 +68,7 @@ class WorkspaceVisualProjectionQueue {
         return;
       }
       final map = activeMap();
+      preparedMap = map;
       prepared(map);
       if (map != null) visuals.setActiveMap(map);
     } catch (failure) {

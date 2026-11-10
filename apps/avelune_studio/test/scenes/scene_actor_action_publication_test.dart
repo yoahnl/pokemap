@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -5,32 +6,9 @@ import 'dart:typed_data';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/features/scenes/data/local_scene_adapter.dart';
-import 'package:avelune_studio/presentation/features/scenes/scene_action_form.dart';
-import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
-import 'package:flutter/material.dart';
+import 'package:avelune_studio/features/scenes/application/scene_actor_action_draft.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
-
-List<NarrativeCommandDescriptor> _commands() => [
-  for (final command in NarrativeCommandCatalog.canonical().commands)
-    if ([
-      NarrativeCommandIds.actorRoute,
-      NarrativeCommandIds.actorVisibility,
-    ].contains(command.id))
-      NarrativeCommandDescriptor(
-        id: command.id,
-        label: command.label,
-        description: command.description,
-        backend: command.backend,
-        capabilities: const NarrativeCommandCapabilities.supported(),
-        fgLotId: command.fgLotId,
-        wireId: command.wireId,
-        parameters: command.parameters,
-        isPersistent: command.isPersistent,
-        isAwaitable: command.isAwaitable,
-      ),
-];
 
 SceneAsset _scene(SceneActionPayload payload) => SceneAsset(
   id: 'editable-actor',
@@ -181,77 +159,54 @@ class _Fixture {
 }
 
 Future<SceneActionPayload> _edit(
-  WidgetTester tester,
   ProjectManifest project,
   MapData map,
   SceneActionPayload payload, {
   required bool change,
 }) async {
-  SceneNodePayload? applied;
-  await tester.pumpWidget(
-    MaterialApp(
-      theme: studioTheme(),
-      home: Scaffold(
-        body: SingleChildScrollView(
-          child: SceneActionForm(
-            project: project,
-            current: payload,
-            commandCatalog: _commands(),
-            loadMap: (id) async => map,
-            onApply: (value) => applied = value,
-          ),
-        ),
-      ),
-    ),
+  final ready = Completer<void>();
+  late SceneActorActionDraft draft;
+  draft = SceneActorActionDraft(
+    project: project,
+    commandId: payload.interactiveCommand is SceneActorRouteInteractiveCommand
+        ? NarrativeCommandIds.actorRoute
+        : NarrativeCommandIds.actorVisibility,
+    current: payload,
+    loadMap: (_) async => map,
+    changed: () {
+      if (!draft.loading && !ready.isCompleted) ready.complete();
+    },
   );
-  await tester.pumpAndSettle();
-  if (change) {
-    if (payload.interactiveCommand is SceneActorRouteInteractiveCommand) {
-      final input = find.descendant(
-        of: find.byKey(const ValueKey('actor-step-0-duration')),
-        matching: find.byType(TextField),
-      );
-      await tester.ensureVisible(input);
-      await tester.enterText(input, '125');
-      await tester.pump();
-      final visibility = find.widgetWithText(
-        SwitchListTile,
-        'Personnage visible',
-      ).first;
-      expect(tester.widget<SwitchListTile>(visibility).value, isFalse);
-      await tester.ensureVisible(visibility);
-      await tester.tap(visibility);
-      await tester.pump();
-    } else {
-      final toggle = find.widgetWithText(SwitchListTile, 'Acteur visible');
-      await tester.ensureVisible(toggle);
-      await tester.tap(toggle);
-      await tester.pump();
+  try {
+    await ready.future;
+    if (change) {
+      if (draft.isRoute) {
+        draft.steps.first.durationText = '125';
+        final visibility = draft.steps.firstWhere(
+          (step) => step.kind == SceneActorRouteStepKind.visibility,
+        );
+        expect(visibility.enabled, isFalse);
+        visibility.enabled = true;
+      } else {
+        draft.visible = !draft.visible;
+      }
     }
+    expect(draft.valid, isTrue, reason: draft.mapError);
+    return draft.payload!;
+  } finally {
+    draft.dispose();
   }
-  final button = find.byWidgetPredicate(
-    (w) => w is StudioButton && w.label == 'Appliquer l’action',
-  );
-  expect(tester.widget<StudioButton>(button).onPressed, isNotNull);
-  await tester.ensureVisible(button);
-  await tester.tap(button);
-  await tester.pump();
-  return applied! as SceneActionPayload;
 }
 
 void main() {
   for (final mode in ['visibility', 'route', 'egress']) {
     final route = mode != 'visibility';
     final egress = mode == 'egress';
-    testWidgets(
-      'guided $mode publishes edits through scene.upsert then cold reopens',
-      (tester) async {
-        final f = (await tester.runAsync(_Fixture.create))!;
+    test(
+      'actor $mode draft publishes through scene.upsert then cold reopens',
+      () async {
+        final f = await _Fixture.create();
         addTearDown(() => f.root.delete(recursive: true));
-        tester.view.physicalSize = const Size(900, 1100);
-        tester.view.devicePixelRatio = 1;
-        addTearDown(tester.view.resetPhysicalSize);
-        addTearDown(tester.view.resetDevicePixelRatio);
         final target = egress
             ? SceneActorTarget.player(mapId: 'alpha')
             : SceneActorTarget.entity(mapId: 'alpha', entityId: 'actor');
@@ -287,20 +242,15 @@ void main() {
           actionKind: 'keep-action',
           parameters: const {'keep': 'parameter'},
         );
-        final edited = await _edit(
-          tester,
-          f.project,
-          f.map,
-          payload,
-          change: true,
-        );
+        final edited = await _edit(f.project, f.map, payload, change: true);
         expect(edited, isNot(payload));
         expect(edited.actionKind, payload.actionKind);
         expect(edited.parameters, payload.parameters);
         if (route) {
           expect(
             (edited.interactiveCommand as SceneActorRouteInteractiveCommand)
-                .steps.whereType<SceneActorVisibilityStep>()
+                .steps
+                .whereType<SceneActorVisibilityStep>()
                 .map((step) => step.visible),
             [true, true],
           );
@@ -317,31 +267,27 @@ void main() {
             'actor',
           );
         }
-        final mapBefore = (await tester.runAsync(f.mapFile.readAsBytes))!;
+        final mapBefore = await f.mapFile.readAsBytes();
         final scene = _scene(edited);
-        final receipt = (await tester.runAsync(
-          () => LocalSceneAdapter(
-            session: f.session,
-            mapAdapter: f.maps,
-          ).publishScene(base: null, current: scene),
-        ))!;
+        final receipt = await LocalSceneAdapter(
+          session: f.session,
+          mapAdapter: f.maps,
+        ).publishScene(base: null, current: scene);
         expect(receipt.catalog.changedPaths, ['project.json']);
         final reopenedMaps = LocalMapWorkspaceAdapter();
-        final reopened = (await tester.runAsync(
-          () => reopenedMaps.loadProject(f.session),
-        ))!;
+        final reopened = await reopenedMaps.loadProject(f.session);
         expect(reopened.scenes.single, scene);
-        expect(await tester.runAsync(f.mapFile.readAsBytes), mapBefore);
-        final loaded = (await tester.runAsync(
-          () => reopenedMaps.loadMap(f.session, reopened.maps.single),
-        ))!;
+        expect(await f.mapFile.readAsBytes(), mapBefore);
+        final loaded = await reopenedMaps.loadMap(
+          f.session,
+          reopened.maps.single,
+        );
         final stored =
             reopened.scenes.single.graph.nodes
                     .singleWhere((n) => n.id == 'action')
                     .payload
                 as SceneActionPayload;
         final reapplied = await _edit(
-          tester,
           reopened,
           loaded.map,
           stored,

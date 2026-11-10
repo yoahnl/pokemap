@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import '../../../features/map_workspace/application/workspace_resource_diagnostic_projection.dart';
 
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
 import '../../shared/widgets/feedback/studio_badge.dart';
 import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
-import 'package:avelune_studio/platform/rendering/contracts/workspace_resource_diagnostic.dart';
 import 'workspace_resource_diagnostic_detail.dart';
 
 typedef OpenDiagnosticOwner = Future<bool> Function(String kind, String id);
@@ -22,10 +22,9 @@ class WorkspaceResourceDiagnostics extends StatelessWidget {
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: visuals,
     builder: (context, _) {
-      final count = _unique(visuals.diagnostics)
-          .map((item) => item.ownerKey)
-          .toSet()
-          .length;
+      final count = WorkspaceResourceDiagnosticProjection(
+        visuals.diagnostics, visuals.activeResourceIds,
+      ).ownerCount;
       final message = count == 0
           ? 'Aucun incident sur les ressources demandées'
           : '$count ${count == 1 ? 'ressource' : 'ressources'} en incident · ressources demandées';
@@ -69,10 +68,6 @@ class WorkspaceResourceDiagnostics extends StatelessWidget {
   );
 }
 
-List<WorkspaceResourceDiagnostic> _unique(
-  Iterable<WorkspaceResourceDiagnostic> diagnostics,
-) => {for (final item in diagnostics) item.resourceId: item}.values.toList();
-
 class _DiagnosticPanel extends StatefulWidget {
   const _DiagnosticPanel({required this.visuals, this.onOpenOwner});
   final MapWorkspaceVisuals visuals;
@@ -90,32 +85,13 @@ class _DiagnosticPanelState extends State<_DiagnosticPanel> {
     listenable: widget.visuals,
     builder: (context, _) {
       final active = widget.visuals.activeResourceIds;
-      final diagnostics =
-          _unique(widget.visuals.diagnostics)
-              .where((item) => !activeOnly || active.contains(item.resourceId))
-              .toList()
-            ..sort(
-              (a, b) => (active.contains(b.resourceId) ? 1 : 0).compareTo(
-                active.contains(a.resourceId) ? 1 : 0,
-              ),
-            );
-      final memory = diagnostics
-          .where((item) => item.cause == WorkspaceResourceCause.memoryPressure)
-          .toList();
-      final owned = <String, List<WorkspaceResourceDiagnostic>>{};
-      for (final item in diagnostics) {
-        if (item.cause == WorkspaceResourceCause.memoryPressure) continue;
-        owned.putIfAbsent(item.ownerKey, () => []).add(item);
-      }
-      final groups = owned.length + (memory.isEmpty ? 0 : 1);
-      final rows = [...owned.values, if (memory.isNotEmpty) memory]
-        ..sort(
-          (a, b) => (b.any((item) => active.contains(item.resourceId)) ? 1 : 0)
-              .compareTo(
-                a.any((item) => active.contains(item.resourceId)) ? 1 : 0,
-              ),
-        );
-      final retryable = diagnostics.where((item) => item.canRetry).toList();
+      final projection = WorkspaceResourceDiagnosticProjection(
+        widget.visuals.diagnostics, active, activeOnly: activeOnly,
+      );
+      final diagnostics = projection.diagnostics;
+      final rows = projection.groups;
+      final groups = rows.length;
+      final retryable = projection.retryableIds;
       return Dialog(
         child: SizedBox(
           key: const ValueKey('resource-diagnostics-panel'),
@@ -177,9 +153,8 @@ class _DiagnosticPanelState extends State<_DiagnosticPanel> {
                           key: const ValueKey('resource-diagnostics-list'),
                           itemCount: rows.length,
                           itemBuilder: (context, index) => _DiagnosticRow(
-                            items: rows[index],
+                            group: rows[index],
                             visuals: widget.visuals,
-                            active: active,
                             onOpenOwner: widget.onOpenOwner,
                           ),
                         ),
@@ -195,7 +170,7 @@ class _DiagnosticPanelState extends State<_DiagnosticPanel> {
                     onPressed: retryable.isEmpty
                         ? null
                         : () => widget.visuals.retryResources(
-                            retryable.map((item) => item.resourceId),
+                            retryable,
                           ),
                   ),
                 ),
@@ -210,32 +185,27 @@ class _DiagnosticPanelState extends State<_DiagnosticPanel> {
 
 class _DiagnosticRow extends StatelessWidget {
   const _DiagnosticRow({
-    required this.items,
+    required this.group,
     required this.visuals,
-    required this.active,
     this.onOpenOwner,
   });
-  final List<WorkspaceResourceDiagnostic> items;
+  final WorkspaceResourceDiagnosticGroup group;
   final MapWorkspaceVisuals visuals;
-  final Set<String> active;
   final OpenDiagnosticOwner? onOpenOwner;
 
   @override
   Widget build(BuildContext context) {
+    final items = group.items;
     final item = items.first;
-    final grouped = item.cause == WorkspaceResourceCause.memoryPressure;
-    final title = grouped
-        ? '${items.length} ressources · pression mémoire'
-        : item.ownerName ?? item.name;
-    final roles = grouped
-        ? const <String>[]
-        : {for (final entry in items) ?entry.role}.toList();
-    final verified = items.every((entry) => entry.verified);
+    final title = group.title;
+    final roles = group.roles;
+    final verified = group.verified;
     final openOwner = onOpenOwner;
-    final retryable = items.where((item) => item.canRetry).toList();
-    final onMap = items.any((item) => active.contains(item.resourceId));
+    final owner = group.owner;
+    final retryable = group.retryableIds;
+    final onMap = group.active;
     return Padding(
-      key: ValueKey('resource-row-${grouped ? 'memory' : item.ownerKey}'),
+      key: ValueKey('resource-row-${group.key}'),
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -285,14 +255,14 @@ class _DiagnosticRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          if (!grouped && item.ownerKind != null && openOwner != null) ...[
+          if (owner != null && openOwner != null) ...[
             StudioTool(
               key: const ValueKey('resource-open-owner'),
               label: 'Ouvrir la ressource',
               icon: Icons.open_in_new,
               onPressed: () async {
                 final navigator = Navigator.of(context);
-                if (await openOwner(item.ownerKind!, item.ownerId!)) {
+                if (await openOwner(owner.$1, owner.$2)) {
                   navigator.pop();
                 }
               },
@@ -314,7 +284,7 @@ class _DiagnosticRow extends StatelessWidget {
             onPressed: retryable.isEmpty
                 ? null
                 : () => visuals.retryResources(
-                    retryable.map((item) => item.resourceId),
+                    retryable,
                   ),
           ),
         ],

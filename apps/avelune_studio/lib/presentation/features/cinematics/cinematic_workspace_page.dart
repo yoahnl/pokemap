@@ -12,21 +12,27 @@ import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
 import '../../shared/widgets/layout/studio_page_header.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
+
 import 'package:avelune_studio/features/events/application/event_map_loader.dart';
 import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
+
 import '../narrative/narrative_name_dialog.dart';
 import '../narrative/scene_reference_chooser.dart';
 import '../../../features/narrative/application/scene_node_references.dart';
 import 'cinematic_view_state.dart';
 import 'cinematic_library.dart';
-import 'cinematic_map_model.dart';
+
+import 'package:avelune_studio/features/cinematics/application/cinematic_map_model.dart';
+
 import 'cinematic_map_scene.dart';
 import 'cinematic_timeline_editor.dart';
 import 'cinematic_inspector.dart';
 import 'cinematic_action_palette.dart';
 import 'cinematic_document_toolbar.dart';
 import 'cinematic_preview_status.dart';
-import 'cinematic_workspace_visuals.dart';
+
+import 'package:avelune_studio/platform/rendering/contracts/cinematic_workspace_visuals.dart';
+
 import '../../theme/studio_dialogue_theme.dart';
 
 part 'cinematic_page_commands.dart';
@@ -72,12 +78,10 @@ class _CinematicWorkspacePageState extends State<CinematicWorkspacePage> {
   CinematicViewState? get view => controller.activeId == null
       ? null
       : widget.views.forAsset(controller.activeId!);
-  CinematicMapModel? model;
-  MapData? loadedMap;
-  String? loadingMapId, mapError;
-  int loadGeneration = 0;
+  CinematicMapModel? get model => controller.previewModel;
+  String? get loadingMapId => controller.previewMapId;
+  String? get mapError => controller.previewMapProblem;
   CinematicTimelineClipboard? clipboard;
-  Object? mediaIdentity;
   @override
   void initState() {
     super.initState();
@@ -97,8 +101,7 @@ class _CinematicWorkspacePageState extends State<CinematicWorkspacePage> {
   @override
   void dispose() {
     controller.flushEdits = null;
-    loadGeneration++;
-    controller.transport.pause();
+    controller.suspendMapPreview();
     super.dispose();
   }
 

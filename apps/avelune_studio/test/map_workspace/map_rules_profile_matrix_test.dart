@@ -1,14 +1,13 @@
+import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_warp_target_session.dart';
+import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/features/map_workspace/application/warp_editing_commands.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_arrival_picker.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_destination_picker.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_warp_inspector.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_commands.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
-import 'package:flutter/material.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_arrival_choices.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_destination_choices.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_workspace_commands.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
-import '../support/map_selection_harness.dart';
 import '../support/map_workspace_fixture.dart';
 
 ProjectManifest _catalogue() => workspaceProject.copyWith(
@@ -109,72 +108,45 @@ void main() {
     );
   });
 
-  testWidgets(
+  test(
     'a deleted destination keeps its reference until another map is chosen',
-    (tester) async {
-      final h = MapSelectionHarness.of(_catalogue());
-      addTearDown(h.dispose);
-      h.document.commit(
-        addWarpToMap(
-          h.document.current,
-          warp: const MapWarp(
-            id: 'door',
-            pos: GridPos(x: 1, y: 1),
-            targetMapId: 'ghost',
-            targetPos: GridPos(x: 4, y: 5),
-          ),
-        ),
-      );
-      final commands = WarpEditingCommands(h.document, h.project);
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: studioTheme(),
-          home: Scaffold(
-            body: StatefulBuilder(
-              builder: (context, setState) => SingleChildScrollView(
-                child: MapWarpInspector(
-                  document: h.document,
-                  project: h.project,
-                  warp: commands.selected('door')!,
-                  onChanged: () => setState(() {}),
-                  onDeleted: () {},
-                ),
-              ),
+    () {
+      final project = _catalogue();
+      final document = EditableMapDocument(
+        MapWorkspaceDocument(
+          map: addWarpToMap(
+            workspaceMap('a'),
+            warp: const MapWarp(
+              id: 'door',
+              pos: GridPos(x: 1, y: 1),
+              targetMapId: 'ghost',
+              targetPos: GridPos(x: 4, y: 5),
             ),
           ),
+          revision: 'base',
+          mapId: 'a',
         ),
       );
-      expect(
-        find.byKey(const ValueKey('warp-destination-problem')),
-        findsOneWidget,
+      final commands = WarpEditingCommands(document, project);
+      final session = MapWarpTargetSession(
+        document,
+        project,
+        commands.selected('door')!,
       );
-      expect(
-        find.textContaining('Référence conservée : ghost'),
-        findsOneWidget,
+      addTearDown(session.dispose);
+      expect(session.known, isFalse);
+      expect(session.targetMapId, 'ghost');
+      final choices = mapDestinationChoices(
+        project,
+        excludeMapId: 'a',
+        query: 'bourg geon',
       );
-      expect(commands.selected('door')!.targetMapId, 'ghost');
-
-      await tester.tap(find.byKey(const ValueKey('warp-destination-search')));
-      await tester.pumpAndSettle();
-      await tester.enterText(
-        find.byKey(const ValueKey('map-destination-search-field')),
-        'bourg geon',
-      );
-      await tester.pump();
-      expect(find.text('Johto / Bourg Géon'), findsOneWidget);
-      expect(find.text('Kanto'), findsNothing);
-      await tester.tap(
-        find.byKey(const ValueKey('map-destination-house-geon')),
-      );
-      await tester.pumpAndSettle();
-
+      expect(choices.single.folderPath, 'Johto / Bourg Géon');
+      expect(session.selectDestination(choices.single.map.id), isTrue);
       final door = commands.selected('door')!;
       expect(door.targetMapId, 'house-geon');
       expect(door.targetPos, const GridPos(x: 4, y: 5));
-      expect(
-        find.byKey(const ValueKey('warp-destination-problem')),
-        findsNothing,
-      );
+      expect(session.known, isTrue);
     },
   );
 
@@ -229,56 +201,56 @@ void main() {
     );
   });
 
-  testWidgets('the inspector picks an arrival point reading one map', (
-    tester,
-  ) async {
-    final h = MapSelectionHarness.of(_catalogue());
-    addTearDown(h.dispose);
-    h.document.commit(
-      addWarpToMap(
-        h.document.current,
-        warp: const MapWarp(
-          id: 'door',
-          pos: GridPos(x: 1, y: 1),
-          targetMapId: 'b',
-          targetPos: GridPos(x: 30, y: 2),
-        ),
-      ),
-    );
-    final commands = WarpEditingCommands(h.document, h.project);
-    final loads = <String>[];
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: studioTheme(),
-        home: Scaffold(
-          body: StatefulBuilder(
-            builder: (context, setState) => SingleChildScrollView(
-              child: MapWarpInspector(
-                document: h.document,
-                project: h.project,
-                warp: commands.selected('door')!,
-                onChanged: () => setState(() {}),
-                onDeleted: () {},
-                loadDestination: (id) async {
-                  loads.add(id);
-                  return garden();
-                },
-              ),
-            ),
+  test('arrival selection loads only its destination map', () async {
+    final project = _catalogue();
+    final document = EditableMapDocument(
+      MapWorkspaceDocument(
+        map: addWarpToMap(
+          workspaceMap('a'),
+          warp: const MapWarp(
+            id: 'door',
+            pos: GridPos(x: 1, y: 1),
+            targetMapId: 'b',
+            targetPos: GridPos(x: 30, y: 2),
           ),
         ),
+        revision: 'base',
+        mapId: 'a',
       ),
     );
-    expect(find.text('Arrivée : Jardin · case 30, 2'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('warp-arrival-picker')));
-    await tester.pumpAndSettle();
+    final commands = WarpEditingCommands(document, project);
+    final session = MapWarpTargetSession(
+      document,
+      project,
+      commands.selected('door')!,
+    );
+    addTearDown(session.dispose);
+    final loads = <String>[];
+    Future<MapData> load(String id) async {
+      loads.add(id);
+      return garden();
+    }
+
+    expect(
+      await session.pickArrival((position) async {
+        final map = await load(session.targetMapId!);
+        expect(
+          mapArrivalProblem(map, position),
+          contains('hors de « Jardin »'),
+        );
+        expect(
+          commands.selected('door')!.targetPos,
+          const GridPos(x: 30, y: 2),
+        );
+        return mapArrivalChoices(
+          map,
+          fromMapId: 'a',
+        ).singleWhere((choice) => choice.pos == const GridPos(x: 6, y: 7)).pos;
+      }),
+      isTrue,
+    );
     expect(loads, ['b']);
-    expect(find.textContaining('hors de « Jardin »'), findsOneWidget);
-    expect(commands.selected('door')!.targetPos, const GridPos(x: 30, y: 2));
-    await tester.tap(find.byKey(const ValueKey('map-arrival-6-7')));
-    await tester.pumpAndSettle();
     expect(commands.selected('door')!.targetPos, const GridPos(x: 6, y: 7));
     expect(commands.selected('door')!.targetMapId, 'b');
-    expect(find.text('Arrivée : Jardin · case 6, 7'), findsOneWidget);
   });
 }

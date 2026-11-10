@@ -1,4 +1,7 @@
+import '../../../features/resources/application/atlas_selection_controller.dart';
+
 import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
@@ -35,8 +38,10 @@ class AtlasSelectionView extends StatefulWidget {
 class _AtlasSelectionViewState extends State<AtlasSelectionView> {
   late final transform =
       widget.transformationController ?? TransformationController();
-  GridPos? start;
-  GridPos? lastCell;
+  late final _selection = AtlasSelectionController(
+    source: widget.source,
+    singleCell: widget.singleCell,
+  );
   bool pan = false;
   late bool fitted = widget.initiallyFitted;
   Size viewport = Size.zero;
@@ -75,6 +80,7 @@ class _AtlasSelectionViewState extends State<AtlasSelectionView> {
   @override
   void didUpdateWidget(AtlasSelectionView oldWidget) {
     super.didUpdateWidget(oldWidget);
+    _selection.update(source: widget.source, singleCell: widget.singleCell);
     if (oldWidget.source.assetId != widget.source.assetId ||
         oldWidget.source.pixelWidth != widget.source.pixelWidth ||
         oldWidget.source.pixelHeight != widget.source.pixelHeight) {
@@ -82,47 +88,9 @@ class _AtlasSelectionViewState extends State<AtlasSelectionView> {
     }
   }
 
-  GridPos? cell(Offset point) {
-    final s = widget.source;
-    if (s.tileWidth <= 0 ||
-        s.tileHeight <= 0 ||
-        s.spacingX < 0 ||
-        s.spacingY < 0) {
-      return null;
-    }
-    final x = point.dx - s.marginX;
-    final y = point.dy - s.marginY;
-    if (x < 0 || y < 0) return null;
-    final col = (x / (s.tileWidth + s.spacingX)).floor();
-    final row = (y / (s.tileHeight + s.spacingY)).floor();
-    if (col >= s.columns ||
-        row >= s.rows ||
-        x % (s.tileWidth + s.spacingX) >= s.tileWidth ||
-        y % (s.tileHeight + s.spacingY) >= s.tileHeight) {
-      return null;
-    }
-    return GridPos(x: col, y: row);
-  }
-
   void select(Offset point, {bool begin = false}) {
-    final current = cell(point);
-    if (begin) {
-      start = current;
-      lastCell = null;
-    }
-    if (current == null) return;
-    final origin = start;
-    if (origin == null) return;
-    if (widget.singleCell && current == lastCell) return;
-    lastCell = current;
-    widget.onSelected(
-      TilesetSourceRect(
-        x: widget.singleCell ? current.x : math.min(origin.x, current.x),
-        y: widget.singleCell ? current.y : math.min(origin.y, current.y),
-        width: widget.singleCell ? 1 : (origin.x - current.x).abs() + 1,
-        height: widget.singleCell ? 1 : (origin.y - current.y).abs() + 1,
-      ),
-    );
+    final selection = _selection.select(point.dx, point.dy, begin: begin);
+    if (selection != null) widget.onSelected(selection);
   }
 
   @override
@@ -200,8 +168,8 @@ class _AtlasSelectionViewState extends State<AtlasSelectionView> {
                         ? null
                         : (e) => select(e.localPosition, begin: true),
                     onPointerMove: pan ? null : (e) => select(e.localPosition),
-                    onPointerUp: (_) => start = null,
-                    onPointerCancel: (_) => start = null,
+                    onPointerUp: (_) => _selection.end(),
+                    onPointerCancel: (_) => _selection.end(),
                     child: SizedBox(
                       width: s.pixelWidth.toDouble(),
                       height: s.pixelHeight.toDouble(),

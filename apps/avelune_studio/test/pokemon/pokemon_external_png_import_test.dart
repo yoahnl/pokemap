@@ -7,10 +7,8 @@ import 'package:avelune_studio/features/pokemon/data/local_pokemon_workspace_ada
 import 'package:avelune_studio/features/pokemon/domain/pokemon_external_import_models.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/features/pokemon/domain/pokemon_workspace_models.dart';
-import 'package:avelune_studio/presentation/features/pokemon/pokemon_external_preview_pane.dart';
 import 'package:crypto/crypto.dart';
 import 'package:archive/archive.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as image;
 import 'package:map_authoring/map_authoring.dart';
@@ -18,6 +16,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart'
     show loadProjectManifestFromFile, RuntimePokemonMediaIdentity;
 import 'package:map_runtime/src/player/runtime_pokemon_summary_media_resolver.dart';
+import 'package:map_runtime/src/player/runtime_pokemon_overworld_resolver.dart';
 import 'package:map_runtime/src/presentation/flame/battle_pokemon_sprite_resolver.dart';
 
 import '../../../../packages/map_distribution/test/support/spatial_feature_capabilities_fixture.dart';
@@ -30,6 +29,11 @@ final class _PngTransport implements PokemonBoundedExternalHttpTransport {
   final iconBytes = Uint8List.fromList(
     image.encodePng(
       image.Image(width: 32, height: 32)..setPixelRgba(0, 0, 255, 0, 0, 255),
+    ),
+  );
+  final shinyBytes = Uint8List.fromList(
+    image.encodePng(
+      image.Image(width: 128, height: 128)..setPixelRgba(0, 0, 0, 0, 255, 255),
     ),
   );
   bool offline = false;
@@ -51,7 +55,7 @@ final class _PngTransport implements PokemonBoundedExternalHttpTransport {
       Map<String, Object?> extra,
     ) => {
       'id': id,
-      'sha256': sha256.convert(id == 'icon' ? iconBytes : bytes).toString(),
+      'sha256': sha256.convert(id == 'icon' ? iconBytes : id == 'shiny-atlas' ? shinyBytes : bytes).toString(),
       'contentType': 'image/png',
       'usage': usage,
       'representation': 'sprite2d',
@@ -74,6 +78,15 @@ final class _PngTransport implements PokemonBoundedExternalHttpTransport {
                     'tileHeight': 32,
                   },
                 }),
+                entry('shiny-atlas', 'overworld', 'hgss-inspired', {
+                  'variant': 'shiny',
+                  'atlas': {
+                    'rows': 4,
+                    'columns': 4,
+                    'tileWidth': 32,
+                    'tileHeight': 32,
+                  },
+                }),
               ]),
             ),
           )
@@ -81,6 +94,8 @@ final class _PngTransport implements PokemonBoundedExternalHttpTransport {
         ? Uint8List.fromList([1, 2, 3])
         : uri.path.endsWith('/icon')
         ? iconBytes
+        : uri.path.endsWith('/shiny-atlas')
+        ? shinyBytes
         : bytes;
     return PokemonExternalHttpResponse(
       statusCode: 200,
@@ -107,9 +122,7 @@ final class _NoGen5 implements PokemonBoundedExternalHttpTransport {
 }
 
 void main() {
-  testWidgets('preview offers available PNGs when existing files are kept', (
-    tester,
-  ) async {
+  test('preview retains available PNGs when existing files are kept', () async {
     final transport = _PngTransport();
     final selection = await AvelunePokemonPngSource(
       media: AvelunePokemonMediaSource(client: transport, release: 'test'),
@@ -131,23 +144,11 @@ void main() {
       ],
       pngSelection: selection,
     );
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: PokemonExternalPreviewPane(
-            preview: preview,
-            policy: PokemonExternalConflictPolicy.skipExisting,
-            busy: false,
-            onPolicyChanged: (_) {},
-            onBack: () {},
-            onApply: () {},
-          ),
-        ),
-      ),
-    );
-    expect(find.text('Appliquer l’import'), findsOneWidget);
-    expect(find.textContaining('images disponibles'), findsOneWidget);
-    expect(find.textContaining('images fixes, les icônes'), findsNothing);
+    final plan = preview.plan(PokemonExternalConflictPolicy.skipExisting);
+    expect(plan.selected, isEmpty);
+    expect(plan.kept, 1);
+    expect(preview.pngSelection!.media, hasLength(5));
+    expect(preview.pngSelection, same(selection));
   });
 
   for (final scenario in [
@@ -163,7 +164,7 @@ void main() {
   ]) {
     test('Studio imports PNGs safely: $scenario', () async {
       final parent = Directory(
-        Platform.environment['AVELUNE_QA_ROOT'] ?? Directory.systemTemp.path,
+        Platform.environment['AVELUNE_QA_ROOT'] ?? '/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109',
       );
       await parent.create(recursive: true);
       final root = await parent.createTemp('studio-png-');
@@ -282,9 +283,12 @@ void main() {
           'assets/pokemon/images/${sha256.convert(transport.bytes)}.png';
       final iconPath =
           'assets/pokemon/images/${sha256.convert(transport.iconBytes)}.png';
+      final shinyPath =
+          'assets/pokemon/images/${sha256.convert(transport.shinyBytes)}.png';
       expect(variant['frontStatic'], path);
       expect(variant['backStatic'], path);
       expect(variant['overworld'], path);
+      expect(variant['overworldShiny'], shinyPath);
       expect(
         variant['icon'],
         scenario == 'normal' ? iconPath : 'assets/custom.png',
@@ -300,6 +304,8 @@ void main() {
           transport.bytes,
           iconPath,
           transport.iconBytes,
+          shinyPath,
+          transport.shinyBytes,
         );
       }
     });
@@ -312,6 +318,8 @@ Future<void> _verifyOfflineExport(
   List<int> png,
   String iconPath,
   List<int> icon,
+  String shinyPath,
+  List<int> shiny,
 ) async {
   final species = File('${root.path}/data/pokemon/species/bulbasaur.json');
   final simplified =
@@ -357,6 +365,7 @@ Future<void> _verifyOfflineExport(
   final archive = ZipDecoder().decodeBytes(exported.packageBytes, verify: true);
   expect(archive.findFile('project/$path')?.content, png);
   expect(archive.findFile('project/$iconPath')?.content, icon);
+  expect(archive.findFile('project/$shinyPath')?.content, shiny);
   final runtimeRoot = Directory('${root.path}/offline-runtime');
   for (final entry in archive.files.where(
     (entry) => entry.isFile && entry.name.startsWith('project/'),
@@ -392,4 +401,19 @@ Future<void> _verifyOfflineExport(
   );
   expect(menu.thumbnail?.absoluteFilePath, '${runtimeRoot.path}/$iconPath');
   expect(await File(menu.thumbnail!.absoluteFilePath).readAsBytes(), icon);
+  final follower = RuntimePokemonOverworldResolver(
+    projectRootDirectory: runtimeRoot.path,
+    pokemonConfig: manifest.pokemon,
+  );
+  final shinyFollower = await HttpOverrides.runZoned(
+    () => follower.resolve(const PlayerPokemon(
+      speciesId: 'bulbasaur',
+      formId: 'base',
+      natureId: 'hardy',
+      abilityId: 'calm',
+      isShiny: true,
+    )),
+    createHttpClient: (_) => throw StateError('Network disabled'),
+  );
+  expect(shinyFollower, '${runtimeRoot.path}/$shinyPath');
 }

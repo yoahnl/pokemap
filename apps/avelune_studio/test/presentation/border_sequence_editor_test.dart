@@ -1,185 +1,67 @@
 import 'dart:convert';
 
-import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
-import 'package:avelune_studio/features/resources/domain/resource_port.dart';
-import 'package:avelune_studio/presentation/features/resources/border_creation_dialog.dart';
-import 'package:avelune_studio/features/resources/coordination/resource_navigation.dart';
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
-import 'package:avelune_studio/presentation/features/resources/border_pattern_panel.dart';
-import 'package:avelune_studio/presentation/features/resources/border_source_panel.dart';
-import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_toggle_row.dart';
-import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_commit_field.dart';
-import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
-import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:map_core/map_core.dart';
+import 'package:map_core/map_core_domain.dart';
 
-import '../support/map_workspace_fixture.dart';
+import '../support/border_creation_owner_fixture.dart';
 import '../support/spatial_border_fixture.dart';
 
 void main() {
   for (final straightOnly in [true, false]) {
-    testWidgets(
-      'a new border sends all six configured steps from the guided editor (straight: $straightOnly)',
-      (tester) async {
-        tester.view.physicalSize = const Size(1600, 1200);
-        tester.view.devicePixelRatio = 1;
-        addTearDown(tester.view.resetPhysicalSize);
-        addTearDown(tester.view.resetDevicePixelRatio);
+    test(
+      'a new border sends all six configured steps (straight: $straightOnly)',
+      () async {
         final project = spatialBorderVariantProject();
-        final workspace = MapWorkspaceController(
-          workspaceSession,
-          WorkspaceMemoryPort(),
-        )..project = project;
-        final port = _SequencePort();
-        final navigation = ResourceNavigation(
-          workspace: workspace,
-          port: port,
-          visuals: WorkspaceTestVisuals(),
-          onUse: (_) {},
-        );
-        addTearDown(navigation.dispose);
-        addTearDown(workspace.dispose);
-        await tester.pumpWidget(
-          MaterialApp(
-            theme: studioTheme(),
-            home: BorderCreationDialog(
-              navigation: navigation,
-              project: project,
-              visuals: WorkspaceTestVisuals(),
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
-        await tester.enterText(
-          find.byKey(const ValueKey('border-name')),
-          'Motif créé',
-        );
-        tester
-            .widget<StudioToggleRow>(
-              find.byKey(const ValueKey('border-straight-only')),
-            )
-            .onChanged!(straightOnly);
-        if (!straightOnly) {
-          tester
-              .widget<StudioToggleRow>(
-                find.byKey(const ValueKey('border-contour-direction')),
-              )
-              .onChanged!(true);
+        final host = BorderCreationOwnerFixture(project: project);
+        final draft = host.draft..name = 'Motif créé';
+        draft.setStraightOnly(straightOnly);
+        draft.followContourDirection = !straightOnly;
+        final catalog = resourceCatalog(project);
+        final model = catalog.firstWhere((item) => item.model3d?.id == 'oak');
+        for (final role in draft.roles) {
+          draft.assignRole(role, model);
         }
-        await tester.pumpAndSettle();
-        final model = resourceCatalog(project)
-            .firstWhere((item) => item.id == 'oak' && item.model3d != null);
-        tester
-            .widget<BorderPatternPanel>(find.byType(BorderPatternPanel))
-            .onAssign('lineStraight', model);
-        tester
-            .widget<BorderPatternPanel>(find.byType(BorderPatternPanel))
-            .onAssign('lineCap', model);
         if (!straightOnly) {
-          tester
-              .widget<BorderPatternPanel>(find.byType(BorderPatternPanel))
-              .onAssign('lineCorner', model);
-          tester
-              .widget<BorderPatternPanel>(find.byType(BorderPatternPanel))
-              .onAssign('lineCornerLeft', model);
+          expect(draft.setCornerJoin('lineCornerLeft', '1'), isTrue);
         }
-        await tester.pumpAndSettle();
+        expect(draft.setSequenceLength('6'), isTrue);
+        draft.setPrimitiveSource('lineStraight', 'replacement');
+        draft.setPrimitiveSource('lineStraight_step_5', 'replacement');
+        expect(await host.workflow.save(publish: true), isFalse);
+        final request = host.port.requests.single;
+        expect(request.sequenceLength, 6);
+        expect(request.straightModelId, 'oak');
+        expect(request.capModelId, 'oak');
+        expect(request.straightOnly, straightOnly);
         if (!straightOnly) {
-          tester
-              .widget<StudioSelect>(
-                find.byKey(const ValueKey('border-settings-piece')),
-              )
-              .onChanged!('lineCornerLeft');
-          await tester.pumpAndSettle();
+          expect(request.cornerModelId, 'oak');
+          expect(request.innerCornerModelId, 'oak');
           expect(
-            tester
-                .widget<StudioCommitField>(
-                  find.byKey(const ValueKey('border-settings-corner-join')),
-                )
-                .tryCommit!('1'),
-            isTrue,
-          );
-          await tester.pumpAndSettle();
-        }
-        expect(
-          tester
-              .widget<StudioCommitField>(
-                find.byKey(const ValueKey('border-sequence-length')),
-              )
-              .tryCommit!('6'),
-          isTrue,
-        );
-        await tester.pumpAndSettle();
-        tester
-            .widget<BorderSourcePanel>(find.byType(BorderSourcePanel))
-            .onActive(
-              resourceCatalog(project).firstWhere(
-                (item) => item.id == 'replacement' && item.model3d != null,
-              ),
-            );
-        await tester.pumpAndSettle();
-        tester
-            .widget<StudioButton>(
-              find.byKey(const ValueKey('border-sequence-model-lineStraight')),
-            )
-            .onPressed!();
-        await tester.pumpAndSettle();
-        tester
-            .widget<StudioButton>(
-              find.byKey(
-                const ValueKey('border-sequence-model-lineStraight_step_5'),
-              ),
-            )
-            .onPressed!();
-        await tester.pumpAndSettle();
-        await tester.tap(find.byKey(const ValueKey('border-publish')));
-        await tester.pumpAndSettle();
-        expect(port.request!.sequenceLength, 6);
-        expect(port.request!.straightModelId, 'oak');
-        expect(port.request!.capModelId, 'oak');
-        expect(port.request!.straightOnly, straightOnly);
-        if (!straightOnly) {
-          expect(port.request!.cornerModelId, 'oak');
-          expect(port.request!.innerCornerModelId, 'oak');
-          expect(
-            port
-                .request!
-                .primitiveModelSettings['lineCornerLeft']!
-                .cornerJoinCells,
+            request.primitiveModelSettings['lineCornerLeft']!.cornerJoinCells,
             1,
           );
           expect(
-            port
-                .request!
+            request
                 .primitiveModelSettings['lineCornerLeft_step_5']!
                 .cornerJoinCells,
             1,
           );
         }
-        expect(port.request!.primitiveModelIds['lineStraight'], 'replacement');
-        expect(
-          port.request!.primitiveModelIds['lineStraight_step_5'],
-          'replacement',
-        );
-        expect(port.request!.publish, isTrue);
-        expect(tester.takeException(), isNull);
+        expect(request.primitiveModelIds['lineStraight'], 'replacement');
+        expect(request.primitiveModelIds['lineStraight_step_5'], 'replacement');
+        expect(request.publish, isTrue);
+        expect(draft.error, contains('Requête reçue'));
       },
     );
   }
 
   for (final incomplete in [false, true]) {
-    testWidgets(
+    test(
       incomplete
-          ? 'an incomplete sequence explains why publication is disabled'
+          ? 'an incomplete sequence refuses publication before reaching its port'
           : 'six sequence steps remain editable and survive export draft capture',
-      (tester) async {
-        tester.view.physicalSize = const Size(1600, 1200);
-        tester.view.devicePixelRatio = 1;
-        addTearDown(tester.view.resetPhysicalSize);
-        addTearDown(tester.view.resetDevicePixelRatio);
+      () async {
         final base = spatialBorderVariantProject();
         final raw = encodeBorderBlueprintRecordJson(
           base.borderCatalog.records.single,
@@ -190,8 +72,12 @@ void main() {
         final primitives = (definition['primitives'] as List).cast<Map>();
         definition['primitives'] = [
           for (var step = 0; step < (incomplete ? 5 : 6); step++)
-            for (final p in primitives)
-              {...p, 'id': '${p['id']}-$step', 'sequenceIndex': step},
+            for (final primitive in primitives)
+              {
+                ...primitive,
+                'id': '${primitive['id']}-$step',
+                'sequenceIndex': step,
+              },
         ];
         final record = decodeBorderBlueprintRecordJson(
           raw,
@@ -203,99 +89,38 @@ void main() {
             records: [record],
           ),
         );
-        final workspace = MapWorkspaceController(
-          workspaceSession,
-          WorkspaceMemoryPort(),
-        )..project = project;
-        final navigation = ResourceNavigation(
-          workspace: workspace,
-          port: _SequencePort(),
-          visuals: WorkspaceTestVisuals(),
-          onUse: (_) {},
+        final host = BorderCreationOwnerFixture(
+          project: project,
+          initialRecord: record,
         );
-        addTearDown(navigation.dispose);
-        addTearDown(workspace.dispose);
-        await tester.pumpWidget(
-          MaterialApp(
-            theme: studioTheme(),
-            home: BorderCreationDialog(
-              navigation: navigation,
-              project: project,
-              visuals: WorkspaceTestVisuals(),
-              initialRecord: record,
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
-        expect(
-          find.byKey(const ValueKey('border-sequence-length')),
-          findsOneWidget,
-        );
-        expect(find.text('Étape 6 / 6'), findsOneWidget);
+        final draft = host.draft;
+        expect(draft.sequenceLength, 6);
         if (incomplete) {
           expect(
-            find.text(
-              'Chaque étape doit contenir un corps et des extrémités avant publication.',
-            ),
-            findsOneWidget,
+            draft.sequenceProblem,
+            'Chaque étape doit contenir un corps et des extrémités avant publication.',
           );
-          expect(
-            tester
-                .widget<StudioButton>(
-                  find.byKey(const ValueKey('border-publish')),
-                )
-                .onPressed,
-            isNull,
-          );
-          expect(tester.takeException(), isNull);
+          expect(await host.workflow.save(publish: true), isFalse);
+          expect(host.port.requests, isEmpty);
           return;
         }
-        tester
-            .widget<BorderSourcePanel>(find.byType(BorderSourcePanel))
-            .onActive(
-              resourceCatalog(project).firstWhere(
-                (item) => item.id == 'replacement' && item.model3d != null,
-              ),
-            );
-        await tester.pumpAndSettle();
-        final selector = tester.widget<StudioButton>(
-          find.byKey(const ValueKey('border-sequence-model-south-cap-5')),
-        );
-        selector.onPressed!();
-        await tester.pumpAndSettle();
-        final captured = navigation.packBorderDraftOwners['fence']!();
+        draft.setPrimitiveSource('south-cap-5', 'replacement');
+        final captured = host.navigation.packBorderDraftOwners['fence']!();
         expect(
           captured.request.primitiveModelIds['south-cap-5'],
           'replacement',
         );
         expect((jsonDecode(captured.signature) as Map)['sequenceLength'], 6);
-        final length = tester.widget<StudioCommitField>(
-          find.byKey(const ValueKey('border-sequence-length')),
-        );
-        expect(length.tryCommit!('0'), isFalse);
-        expect(length.tryCommit!('3'), isTrue);
-        await tester.pumpAndSettle();
+        expect(draft.setSequenceLength('0'), isFalse);
+        expect(draft.sequenceLength, 6);
+        expect(draft.setSequenceLength('3'), isTrue);
         expect(
-          (jsonDecode(navigation.packBorderDraftOwners['fence']!().signature)
-              as Map)['sequenceLength'],
+          (jsonDecode(
+            host.navigation.packBorderDraftOwners['fence']!().signature,
+          ) as Map)['sequenceLength'],
           3,
         );
-        expect(tester.takeException(), isNull);
       },
     );
   }
-}
-
-class _SequencePort implements ResourcePort {
-  BorderCreationRequest? request;
-  @override
-  Future<ResourceMutationReceipt> createBorder(
-    BorderCreationRequest value,
-  ) async {
-    request = value;
-    throw const ResourceFailure('Requête reçue par le port de test.');
-  }
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

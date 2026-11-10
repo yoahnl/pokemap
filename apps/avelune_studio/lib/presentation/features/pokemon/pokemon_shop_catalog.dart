@@ -1,3 +1,5 @@
+import '../../../features/pokemon/application/pokemon_shop_editing.dart';
+
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
@@ -14,57 +16,29 @@ class PokemonShopCatalog extends StatelessWidget {
   final PokemonCommerceController commerce;
 
   Future<void> _add(BuildContext context) async {
-    final candidates = commerce.snapshot?.catalog?.entries
-        .where(
-          (item) =>
-              !commerce.shop!.entries.any((entry) => entry.itemId == item.id),
-        )
-        .toList();
-    if (candidates == null) return;
+    final catalog = commerce.snapshot?.catalog;
+    if (catalog == null) return;
+    final candidates = PokemonShopEditing.candidates(
+      commerce.shop!,
+      catalog.entries,
+    );
     final selected = await showDialog<ProjectItemDefinition>(
       context: context,
       builder: (dialog) => _ItemPicker(items: candidates),
     );
     if (selected == null) return;
-    commerce.editShop(
-      (shop) => shop.copyWith(
-        entries: [
-          ...shop.entries,
-          ShopEntryDefinition(
-            itemId: selected.id,
-            price: selected.buyPrice != null && selected.buyPrice! > 0
-                ? selected.buyPrice!
-                : 1,
-          ),
-        ],
-      ),
-    );
+    commerce.editShop((shop) => PokemonShopEditing.add(shop, selected));
   }
 
   void _replace(int index, ShopEntryDefinition value) => commerce.editShop(
-    (shop) => shop.copyWith(
-      entries: [
-        for (var position = 0; position < shop.entries.length; position++)
-          if (position == index) value else shop.entries[position],
-      ],
-    ),
+    (shop) => PokemonShopEditing.replace(shop, index, value),
   );
 
-  void _remove(int index) => commerce.editShop(
-    (shop) => shop.copyWith(
-      entries: [
-        for (var position = 0; position < shop.entries.length; position++)
-          if (position != index) shop.entries[position],
-      ],
-    ),
-  );
+  void _remove(int index) =>
+      commerce.editShop((shop) => PokemonShopEditing.remove(shop, index));
 
-  void _move(int index, int delta) => commerce.editShop((shop) {
-    final entries = [...shop.entries];
-    final value = entries.removeAt(index);
-    entries.insert(index + delta, value);
-    return shop.copyWith(entries: entries);
-  });
+  void _move(int index, int delta) =>
+      commerce.editShop((shop) => PokemonShopEditing.move(shop, index, delta));
 
   @override
   Widget build(BuildContext context) {

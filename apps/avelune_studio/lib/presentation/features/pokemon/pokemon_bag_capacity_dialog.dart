@@ -1,3 +1,5 @@
+import '../../../features/pokemon/application/pokemon_bag_capacity_controller.dart';
+
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_design_system/avelune_design_system.dart';
@@ -25,57 +27,31 @@ class PokemonBagCapacityDialog extends StatefulWidget {
 }
 
 class _PokemonBagCapacityDialogState extends State<PokemonBagCapacityDialog> {
-  late final initial = widget.commerce.snapshot!.project.bagCapacity;
-  late final pockets = <String>{
-    for (final item
-        in widget.commerce.snapshot!.catalog?.entries ??
-            const <ProjectItemDefinition>[])
-      item.pocketId,
-    ...initial.pockets.keys,
-  }.toList()..sort();
-  late final drafts = {
-    for (final id in pockets) id: _PocketDraft(initial.pockets[id]),
-  };
+  late final _draft = PokemonBagCapacityController(widget.commerce);
+  ProjectBagCapacity get initial => _draft.initial;
+  List<String> get pockets => _draft.pockets;
+  Map<String, PokemonPocketCapacityDraft> get drafts => _draft.drafts;
   late String? selected = pockets.firstOrNull;
-  bool saving = false;
-  String? error;
-
-  ProjectBagCapacity? get capacity {
-    if (drafts.values.any((draft) => draft.invalid)) return null;
-    return ProjectBagCapacity(
-      pockets: {
-        for (final entry in drafts.entries)
-          entry.key: BagPocketCapacity(
-            maxDistinctItems: entry.value.distinctLimited
-                ? _positive(entry.value.distinct)
-                : null,
-            maxQuantityPerItem: entry.value.quantityLimited
-                ? _positive(entry.value.quantity)
-                : null,
-          ),
-      },
-    ).normalized();
-  }
+  bool get saving => _draft.saving;
+  String? get error => _draft.error;
+  ProjectBagCapacity? get capacity => _draft.capacity;
 
   Future<void> save() async {
-    final value = capacity;
-    if (saving || value == null || value == initial) return;
-    setState(() {
-      saving = true;
-      error = null;
-    });
-    final saved = await widget.commerce.saveBagCapacity(initial, value);
+    final saving = _draft.save();
+    setState(() {});
+    final saved = await saving;
     if (!mounted) return;
     if (saved) {
       Navigator.pop(context);
     } else {
-      setState(() {
-        saving = false;
-        error =
-            widget.commerce.error ??
-            'Le projet ne peut pas être modifié pendant une autre opération.';
-      });
+      setState(() {});
     }
+  }
+
+  @override
+  void dispose() {
+    _draft.dispose();
+    super.dispose();
   }
 
   @override
@@ -92,17 +68,7 @@ class _PokemonBagCapacityDialogState extends State<PokemonBagCapacityDialog> {
           if (!saving) Navigator.pop(context);
         },
         secondaryActionLabel: 'Tout rendre illimité',
-        onSecondaryAction: saving
-            ? null
-            : () => setState(() {
-                for (final draft in drafts.values) {
-                  draft.distinctLimited = false;
-                  draft.quantityLimited = false;
-                  draft.distinct = '';
-                  draft.quantity = '';
-                }
-                error = null;
-              }),
+        onSecondaryAction: saving ? null : () => setState(_draft.unlimitAll),
         content: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -147,7 +113,7 @@ class _PokemonBagCapacityDialogState extends State<PokemonBagCapacityDialog> {
     );
   }
 
-  Widget _limit(_PocketDraft draft, {required bool distinct}) {
+  Widget _limit(PokemonPocketCapacityDraft draft, {required bool distinct}) {
     final limited = distinct ? draft.distinctLimited : draft.quantityLimited;
     final raw = distinct ? draft.distinct : draft.quantity;
     final id = distinct ? 'distinct' : 'quantity';
@@ -185,7 +151,7 @@ class _PokemonBagCapacityDialogState extends State<PokemonBagCapacityDialog> {
             value: raw,
             enabled: !saving,
             keyboardType: TextInputType.number,
-            errorText: _positive(raw) == null
+            errorText: positiveBagCapacityInput(raw) == null
                 ? 'Saisis un entier entre 1 et $maximumBagEntryQuantity.'
                 : null,
             onChanged: (text) => setState(() {
@@ -200,27 +166,4 @@ class _PokemonBagCapacityDialogState extends State<PokemonBagCapacityDialog> {
       ],
     );
   }
-}
-
-class _PocketDraft {
-  _PocketDraft(BagPocketCapacity? capacity)
-    : distinctLimited = capacity?.maxDistinctItems != null,
-      quantityLimited = capacity?.maxQuantityPerItem != null,
-      distinct = capacity?.maxDistinctItems?.toString() ?? '',
-      quantity = capacity?.maxQuantityPerItem?.toString() ?? '';
-  bool distinctLimited;
-  bool quantityLimited;
-  String distinct;
-  String quantity;
-  bool get invalid =>
-      (distinctLimited && _positive(distinct) == null) ||
-      (quantityLimited && _positive(quantity) == null);
-}
-
-int? _positive(String raw) {
-  final text = raw.trim();
-  final value = RegExp(r'^[0-9]+$').hasMatch(text) ? int.tryParse(text) : null;
-  return value != null && value > 0 && value <= maximumBagEntryQuantity
-      ? value
-      : null;
 }

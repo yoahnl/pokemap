@@ -1,3 +1,5 @@
+import '../../../features/decors/application/decor_draft.dart';
+
 import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart';
@@ -11,26 +13,28 @@ import '../../shared/widgets/layout/studio_asset_preview.dart';
 part 'decor_collision_overlay.dart';
 
 class DecorCollisionMask extends StatefulWidget {
-  const DecorCollisionMask({
+  DecorCollisionMask({
     super.key,
-    required this.width,
-    required this.height,
-    required this.tileWidth,
-    required this.tileHeight,
-    required this.blocked,
+    required this.draft,
     required this.image,
-    required this.onPaint,
-    required this.onStrokeStart,
-    required this.onStrokeEnd,
-    required this.onStrokeCancel,
-    this.pixels,
-    this.maskWidth = 0,
-    this.revision = 0,
+    required this.onChanged,
     this.fine = false,
     this.erase = false,
     this.brushSize = 1,
     this.enabled = true,
-  });
+  }) : width = draft.selection.width,
+       height = draft.selection.height,
+       tileWidth = draft.tileWidth,
+       tileHeight = draft.tileHeight,
+       blocked = {...draft.blocked},
+       pixels = draft.collisionPixels,
+       maskWidth = draft.pixelWidth,
+       revision = draft.collisionRevision;
+
+  final DecorDraft draft;
+  final Widget image;
+  final VoidCallback onChanged;
+  final bool fine, erase, enabled;
   final int width,
       height,
       tileWidth,
@@ -40,10 +44,6 @@ class DecorCollisionMask extends StatefulWidget {
       brushSize;
   final Set<GridPos> blocked;
   final List<bool>? pixels;
-  final Widget image;
-  final ValueChanged<GridPos> onPaint;
-  final VoidCallback onStrokeStart, onStrokeEnd, onStrokeCancel;
-  final bool fine, erase, enabled;
 
   @override
   State<DecorCollisionMask> createState() => _DecorCollisionMaskState();
@@ -52,8 +52,14 @@ class DecorCollisionMask extends StatefulWidget {
 class _DecorCollisionMaskState extends State<DecorCollisionMask> {
   final transform = TransformationController();
   final focus = FocusNode();
-  bool pan = false, fitted = false, drawing = false;
-  GridPos? previous, cursor;
+  bool pan = false, fitted = false;
+  GridPos? get cursor => widget.draft.collisionCursor;
+  set cursor(GridPos? value) => widget.draft.collisionCursor = value;
+  void _change(VoidCallback action) {
+    setState(action);
+    widget.onChanged();
+  }
+
   Size viewport = Size.zero;
   Size get imageSize => Size(
     (widget.width * widget.tileWidth).toDouble(),
@@ -85,45 +91,10 @@ class _DecorCollisionMaskState extends State<DecorCollisionMask> {
       ..scaleByDouble(ratio, ratio, 1, 1);
   }
 
-  GridPos? point(Offset local) {
-    if (local.dx < 0 ||
-        local.dy < 0 ||
-        local.dx >= imageSize.width ||
-        local.dy >= imageSize.height) {
-      return null;
-    }
-    return GridPos(
-      x: (local.dx / (widget.fine ? 1 : widget.tileWidth)).floor(),
-      y: (local.dy / (widget.fine ? 1 : widget.tileHeight)).floor(),
-    );
-  }
-
-  void paint(Offset local) {
-    final next = point(local);
-    if (next == null || next == previous) return;
-    final before = previous ?? next;
-    final steps = math.max(
-      (next.x - before.x).abs(),
-      (next.y - before.y).abs(),
-    );
-    for (var step = 0; step <= steps; step++) {
-      final t = steps == 0 ? 1 : step / steps;
-      widget.onPaint(
-        GridPos(
-          x: (before.x + (next.x - before.x) * t).round(),
-          y: (before.y + (next.y - before.y) * t).round(),
-        ),
-      );
-    }
-    previous = next;
-    setState(() => cursor = next);
-  }
-
   KeyEventResult key(KeyEvent event) {
     if (event is! KeyDownEvent || !widget.enabled) {
       return KeyEventResult.ignored;
     }
-    final current = cursor ?? const GridPos(x: 0, y: 0);
     final offset = switch (event.logicalKey) {
       LogicalKeyboardKey.arrowLeft => const GridPos(x: -1, y: 0),
       LogicalKeyboardKey.arrowRight => const GridPos(x: 1, y: 0),
@@ -132,25 +103,20 @@ class _DecorCollisionMaskState extends State<DecorCollisionMask> {
       _ => null,
     };
     if (offset != null) {
-      setState(
-        () => cursor = GridPos(
-          x: (current.x + offset.x).clamp(
-            0,
-            (widget.fine ? imageSize.width.toInt() : widget.width) - 1,
-          ),
-          y: (current.y + offset.y).clamp(
-            0,
-            (widget.fine ? imageSize.height.toInt() : widget.height) - 1,
-          ),
-        ),
+      _change(
+        () => widget.draft.moveCollisionCursor(offset, fine: widget.fine),
       );
       return KeyEventResult.handled;
     }
     if (event.logicalKey == LogicalKeyboardKey.space ||
         event.logicalKey == LogicalKeyboardKey.enter) {
-      widget.onStrokeStart();
-      widget.onPaint(current);
-      widget.onStrokeEnd();
+      _change(
+        () => widget.draft.paintCollisionCursor(
+          fine: widget.fine,
+          solid: !widget.erase,
+          size: widget.brushSize,
+        ),
+      );
       return KeyEventResult.handled;
     }
     return KeyEventResult.ignored;
@@ -159,6 +125,9 @@ class _DecorCollisionMaskState extends State<DecorCollisionMask> {
   @override
   void didUpdateWidget(DecorCollisionMask oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.draft, widget.draft)) {
+      oldWidget.draft.cancelCollisionPointer();
+    }
     if (oldWidget.width != widget.width || oldWidget.height != widget.height) {
       fitted = false;
     }
@@ -167,6 +136,7 @@ class _DecorCollisionMaskState extends State<DecorCollisionMask> {
 
   @override
   void dispose() {
+    widget.draft.cancelCollisionPointer();
     focus.dispose();
     transform.dispose();
     super.dispose();
@@ -243,28 +213,47 @@ class _DecorCollisionMaskState extends State<DecorCollisionMask> {
                                     return;
                                   }
                                   focus.requestFocus();
-                                  drawing = true;
-                                  previous = null;
-                                  widget.onStrokeStart();
-                                  paint(event.localPosition);
+                                  _change(
+                                    () => widget.draft.beginCollisionPointer(
+                                      event.localPosition.dx,
+                                      event.localPosition.dy,
+                                      fine: widget.fine,
+                                      solid: !widget.erase,
+                                      size: widget.brushSize,
+                                    ),
+                                  );
                                 },
                           onPointerMove: pan || !widget.enabled
                               ? null
                               : (event) {
-                                  if (drawing) paint(event.localPosition);
+                                  if (widget.draft.collisionDrawing) {
+                                    _change(
+                                      () => widget.draft.moveCollisionPointer(
+                                        event.localPosition.dx,
+                                        event.localPosition.dy,
+                                        fine: widget.fine,
+                                        solid: !widget.erase,
+                                        size: widget.brushSize,
+                                      ),
+                                    );
+                                  }
                                 },
                           onPointerUp: (_) {
-                            if (drawing) widget.onStrokeEnd();
-                            drawing = false;
-                            previous = null;
+                            if (widget.draft.collisionDrawing) {
+                              _change(widget.draft.endCollisionPointer);
+                            }
                           },
                           onPointerCancel: (_) {
-                            if (drawing) widget.onStrokeCancel();
-                            drawing = false;
-                            previous = null;
+                            if (widget.draft.collisionDrawing) {
+                              _change(widget.draft.cancelCollisionPointer);
+                            }
                           },
                           onPointerHover: (event) => setState(
-                            () => cursor = point(event.localPosition),
+                            () => cursor = widget.draft.collisionPoint(
+                              event.localPosition.dx,
+                              event.localPosition.dy,
+                              fine: widget.fine,
+                            ),
                           ),
                           child: SizedBox.fromSize(
                             size: imageSize,

@@ -130,6 +130,24 @@ class TerrainDraftController {
     );
   }
 
+  void assignSelectedFrame(
+    TilesetSourceRect source, {
+    bool advanceMissing = false,
+  }) {
+    final wasMissing = frameFor(selectedRule) == null;
+    assign(source.x, source.y);
+    if (advanceMissing && wasMissing) selectNextMissing();
+  }
+
+  void assignSelectedModel(
+    ProjectModel3dEntry source, {
+    bool advanceMissing = false,
+  }) {
+    final wasMissing = partFor(selectedRule) == null;
+    assignModel(source);
+    if (advanceMissing && wasMissing) selectNextMissing();
+  }
+
   void assign(int column, int row) {
     atlas.sourceRectFor(column: column, row: row);
     final expanded = selectedRule >= 16 && draft.rules.length == 16;
@@ -157,6 +175,27 @@ class TerrainDraftController {
         guideId: expanded ? 'avelune-path20-v1' : draft.guideId,
       ),
     );
+  }
+
+  bool setSelectedModelAnimation(int? animationIndex) {
+    final part = partFor(selectedRule);
+    final source = part?.source;
+    if (source is! SmartTileModel3dSource || part == null) return false;
+    final model = manifest.models3d
+        .where((entry) => entry.id == source.modelId)
+        .firstOrNull;
+    if (model == null) return false;
+    assignModel(
+      model,
+      scale: source.scale,
+      offsetX: source.offsetX,
+      offsetY: source.offsetY,
+      offsetZ: source.offsetZ,
+      quarterTurns: part.transform.quarterTurns,
+      animationIndex: animationIndex,
+      changeAnimation: true,
+    );
+    return true;
   }
 
   void assignModel(

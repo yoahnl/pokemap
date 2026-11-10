@@ -16,6 +16,74 @@ import '../support/map_workspace_fixture.dart';
 import 'dialogue_draft_codec_test.dart' show dialogueFixture;
 
 void main() {
+  test('sequence projections keep native owners and revising retains unknown references', () {
+    const step = NarrativeSequenceStep(
+      kind: NarrativeSequenceKind.facing,
+      targetId: 'missing',
+      value: false,
+      facing: EntityFacing.east,
+      milliseconds: 725,
+    );
+    final changed = step.revise(facing: EntityFacing.west);
+    expect(changed.targetId, 'missing');
+    expect(changed.value, isFalse);
+    expect(changed.milliseconds, 725);
+    expect(step.facing, EntityFacing.east);
+    final project = ProjectManifest(
+      name: 'Cibles',
+      maps: [],
+      tilesets: [],
+      facts: [
+        NarrativeFactDefinition(id: 'ready', label: 'Prêt'),
+        NarrativeFactDefinition(
+          id: 'count',
+          label: 'Nombre',
+          initialValue: NarrativeValue.integer(1),
+        ),
+      ],
+    );
+    expect(
+      narrativeSequenceTargets(NarrativeSequenceKind.setFact, project: project),
+      {'ready': 'Prêt'},
+    );
+    final map = workspaceMap('a').copyWith(
+      entities: const [
+        MapEntity(
+          id: 'guide',
+          name: 'Guide',
+          kind: MapEntityKind.npc,
+          pos: GridPos(x: 0, y: 0),
+          npc: MapEntityNpcData(),
+        ),
+      ],
+    );
+    expect(
+      narrativeSequenceTargets(
+        NarrativeSequenceKind.facing,
+        project: project,
+        map: map,
+      ),
+      {'guide': 'Guide'},
+    );
+    final story = createStudioStoryline(
+      id: 'side',
+      title: 'Mission',
+      steps: {'finish': 'Fin'},
+    );
+    expect(
+      narrativeSequenceTargets(
+        NarrativeSequenceKind.completeStep,
+        project: project,
+        stories: [story],
+      ),
+      {'finish': 'Mission · Fin'},
+    );
+    expect(
+      narrativeSequenceTargets(NarrativeSequenceKind.wait, project: project),
+      isEmpty,
+    );
+    expect(project.storylines, isEmpty);
+  });
   late MapWorkspaceController maps;
   late NarrativeWorkspaceController narrative;
   late _Port port;
@@ -104,67 +172,55 @@ void main() {
     expect(edit.current.interaction.branches, isEmpty);
   });
 
-  test(
-    'line order and named destinations are undoable and referenced branch deletion blocked',
-    () {
-      final editor = DialogueEditingController(edit, () {});
-      editor.addLine();
-      editor.line(1, const DialogueLineDraft(text: 'Deuxième'));
-      editor.moveLine(1, -1);
-      expect(editor.branch.lines.first.text, 'Deuxième');
-      edit.restore(redo: false);
-      expect(editor.branch.lines.last.text, 'Deuxième');
-      edit.branchIndex = 1;
-      expect(editor.removeBranch(), false);
-    },
-  );
+  test('line order and named destinations are undoable and referenced branch deletion blocked', () {
+    final editor = DialogueEditingController(edit, () {});
+    editor.addLine();
+    editor.line(1, const DialogueLineDraft(text: 'Deuxième'));
+    editor.moveLine(1, -1);
+    expect(editor.branch.lines.first.text, 'Deuxième');
+    edit.restore(redo: false);
+    expect(editor.branch.lines.last.text, 'Deuxième');
+    edit.branchIndex = 1;
+    expect(editor.removeBranch(), false);
+  });
 
-  test(
-    'failed save prevents closure and keeps the complete draft and pending facts',
-    () async {
-      DialogueEditingController(
-        edit,
-        () {},
-      ).line(0, const DialogueLineDraft(text: 'Modifié'));
-      narrative.addFact('Aide acceptée');
-      port.fail = true;
-      expect(await narrative.saveAll(), false);
-      expect(edit.dirty, true);
-      expect(narrative.pendingFacts, hasLength(1));
-      expect(maps.active!.saving, false);
-      expect(narrative.error, contains('Conflit'));
-    },
-  );
+  test('failed save prevents closure and keeps the complete draft and pending facts', () async {
+    DialogueEditingController(
+      edit,
+      () {},
+    ).line(0, const DialogueLineDraft(text: 'Modifié'));
+    narrative.addFact('Aide acceptée');
+    port.fail = true;
+    expect(await narrative.saveAll(), false);
+    expect(edit.dirty, true);
+    expect(narrative.pendingFacts, hasLength(1));
+    expect(maps.active!.saving, false);
+    expect(narrative.error, contains('Conflit'));
+  });
 
-  test(
-    'save acknowledges snapshot only and undo never restores stale source revision',
-    () async {
-      final editor = DialogueEditingController(edit, () {});
-      editor.line(0, const DialogueLineDraft(text: 'Version A'));
-      port.gate = Completer<void>();
-      final saving = narrative.save();
-      editor.line(0, const DialogueLineDraft(text: 'Version B'));
-      maps.active!.commit(
-        maps.active!.current.copyWith(name: 'Geste concurrent'),
-      );
-      port.gate!.complete();
-      expect(await saving, true);
-      expect(edit.dirty, true);
-      expect(maps.active!.dirty, true);
-      expect(
-        edit.current.dialogue.branches.first.lines.first.text,
-        'Version B',
-      );
-      port.gate = null;
-      edit.restore(redo: false);
-      edit.change(
-        interaction: edit.current.interaction.revise(name: 'Titre après undo'),
-      );
-      expect(await narrative.save(), true);
-      expect(port.publications.last.dialogues.single.revision, 'source-1');
-      expect(edit.dirty, false);
-    },
-  );
+  test('save acknowledges snapshot only and undo never restores stale source revision', () async {
+    final editor = DialogueEditingController(edit, () {});
+    editor.line(0, const DialogueLineDraft(text: 'Version A'));
+    port.gate = Completer<void>();
+    final saving = narrative.save();
+    editor.line(0, const DialogueLineDraft(text: 'Version B'));
+    maps.active!.commit(
+      maps.active!.current.copyWith(name: 'Geste concurrent'),
+    );
+    port.gate!.complete();
+    expect(await saving, true);
+    expect(edit.dirty, true);
+    expect(maps.active!.dirty, true);
+    expect(edit.current.dialogue.branches.first.lines.first.text, 'Version B');
+    port.gate = null;
+    edit.restore(redo: false);
+    edit.change(
+      interaction: edit.current.interaction.revise(name: 'Titre après undo'),
+    );
+    expect(await narrative.save(), true);
+    expect(port.publications.last.dialogues.single.revision, 'source-1');
+    expect(edit.dirty, false);
+  });
 }
 
 class _Port implements NarrativePort {

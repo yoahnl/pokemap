@@ -1,3 +1,5 @@
+export '../../../features/scenes/application/scene_labels.dart';
+
 import 'package:avelune_studio/features/scenes/coordination/scene_graph_viewport.dart';
 export 'package:avelune_studio/features/scenes/coordination/scene_graph_viewport.dart';
 
@@ -92,33 +94,3 @@ class SceneCanvasGeometry {
     return null;
   }
 }
-
-String scenePortLabel(String id) => switch (id) {
-  'true' => 'Oui',
-  'false' => 'Non',
-  'completed' => 'Continuer',
-  'received' => 'Reçu',
-  'alreadyClaimed' => 'Déjà reçu aujourd’hui',
-  'bagFull' => 'Sac plein',
-  'blocked' => 'Indisponible',
-  'victory' => 'Victoire',
-  'defeat' => 'Défaite',
-  'default' => 'Sinon',
-  'error' => 'Erreur',
-  _ => id,
-};
-
-String sceneKindLabel(SceneNodeKind kind) => switch (kind) {
-  SceneNodeKind.start => 'Début',
-  SceneNodeKind.end => 'Fin',
-  SceneNodeKind.yarnDialogue => 'Dialogue',
-  SceneNodeKind.condition => 'Condition',
-  SceneNodeKind.action => 'Action',
-  SceneNodeKind.battle => 'Combat',
-  SceneNodeKind.cinematic => 'Cinématique',
-  SceneNodeKind.presentationCinematic => 'Présentation',
-  SceneNodeKind.branchByOutcome => 'Branchement',
-  SceneNodeKind.merge => 'Convergence',
-};
-
-String sceneBlockLabel(SceneNodeKind kind) => sceneKindLabel(kind);

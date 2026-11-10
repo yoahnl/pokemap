@@ -5,6 +5,7 @@ import 'package:avelune_studio/features/decors/application/decor_source_support.
 import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
 import 'package:avelune_studio/presentation/shared/widgets/feedback/studio_notice.dart';
+
 import 'atlas_selection_view.dart';
 import 'decor_collision_mask.dart';
 import '../../shared/widgets/layout/studio_page_header.dart';
@@ -34,10 +35,11 @@ enum _DecorSection { appearance, collisions, animation }
 
 class _DecorEditorScreenState extends State<DecorEditorScreen> {
   late final name = TextEditingController(text: widget.draft.name);
-  bool busy = false, fine = false, erase = false;
+  bool fine = false, erase = false;
+  bool get busy => draft.saving;
   int brushSize = 1;
   _DecorSection section = _DecorSection.appearance;
-  String? error;
+  String? get error => draft.error;
   DecorDraft get draft => widget.draft;
   void _change(VoidCallback edit) => setState(edit);
 
@@ -49,18 +51,11 @@ class _DecorEditorScreenState extends State<DecorEditorScreen> {
 
   Future<void> save() async {
     if (busy) return;
-    setState(() {
-      busy = true;
-      error = null;
-    });
-    try {
-      draft.name = name.text;
-      await widget.onSave(draft.build());
-    } catch (e) {
-      if (mounted) setState(() => error = e.toString());
-    } finally {
-      if (mounted) setState(() => busy = false);
-    }
+    draft.name = name.text;
+    final operation = draft.save(widget.onSave, isActive: () => mounted);
+    setState(() {});
+    await operation;
+    if (mounted) setState(() {});
   }
 
   @override
@@ -72,8 +67,7 @@ class _DecorEditorScreenState extends State<DecorEditorScreen> {
           title: draft.original == null
               ? 'Préparer un décor'
               : 'Modifier le décor',
-          description:
-              'Choisissez son apparence, puis peignez ce qui bloque le passage.',
+          description: 'Choisissez son apparence, puis peignez ce qui bloque le passage.',
           actions: [
             StudioButton(
               label: 'Retour aux ressources',
@@ -253,22 +247,7 @@ class _DecorEditorScreenState extends State<DecorEditorScreen> {
       image: (visuals as ResourceWorkspaceVisuals).atlasPreview(
         draft.tileset.id,
       ),
-      onSelected: (rect) => setState(() {
-        if (result.collisionProfile?.collisionMask != null &&
-            (rect.width != draft.selection.width ||
-                rect.height != draft.selection.height)) {
-          error =
-              'Conservez les dimensions de ce décor pour garder son masque fin. Effacez explicitement toutes les collisions avant de changer sa taille.';
-          return;
-        }
-        error = null;
-        draft.selection = rect;
-        if (!draft.hasFineCollision) {
-          draft.blocked.removeWhere(
-            (cell) => cell.x >= rect.width || cell.y >= rect.height,
-          );
-        }
-      }),
+      onSelected: (rect) => setState(() => draft.selectSource(rect)),
     );
   }
 

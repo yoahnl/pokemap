@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 
-import '../../../features/resources/domain/resource_mutation_preparation.dart';
+import '../../../features/resources/application/resource_usage_replacement_controller.dart';
+import '../../../features/resources/coordination/resource_replacement_workflow.dart';
 import '../../../features/resources/domain/resource_usage_port.dart';
 import '../../shared/widgets/inputs/studio_choice.dart';
 import '../../shared/widgets/inputs/studio_search_field.dart';
+
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
+
 import 'resource_management_dialog.dart';
+
 import 'package:avelune_studio/features/resources/coordination/resource_navigation.dart';
 
 Future<String?> replaceResourceUsages(
@@ -13,92 +17,34 @@ Future<String?> replaceResourceUsages(
   ResourceNavigation navigation, {
   required ResourceUsageTarget target,
   required String name,
-}) async {
-  final project = navigation.workspace.project;
-  if (project == null ||
-      navigation.isDisposed ||
-      navigation.busy ||
-      !const {'decors', 'models3d'}.contains(target.family)) {
-    return null;
-  }
-  final kind = target.family == 'models3d' ? 'model3d' : 'element';
-  final choices = [
-    for (final item in resourceCatalog(project))
-      if (item.canonicalKind == kind && item.id != target.id) item,
-  ]..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-  final maps = {for (final map in project.maps) map.id: map.name};
-  String? summary;
-  ResourceMutationPreparation? preparation;
-  try {
-    await showResourceManagementRoute(
-      context,
-      (_) => ResourceUsageReplacementDialog(
-        name: name,
-        spatial: target.family == 'models3d',
-        choices: choices,
-        mapName: (id) => maps[id] ?? id,
-        canApply: () =>
-            navigation.pendingReceipt == null &&
-            navigation.usageDraftOwners.isEmpty,
-        prepare: (replacementId) async {
-          final previous = preparation;
-          preparation = null;
-          if (previous != null) await navigation.releasePreparation(previous);
-          return preparation = await navigation.prepareOperation(
-            'resource.usages.replace',
-            {
-              'family': target.family,
-              'resourceId': target.id,
-              'replacementId': replacementId,
-            },
-          );
-        },
-        apply: (prepared, done) async {
-          try {
-            await navigation.applyPrepared(prepared, confirmDestructive: true);
-            summary = done;
-            return null;
-          } on Object catch (failure) {
-            return navigation.pendingReceipt == null
-                ? '$failure'
-                : 'Publication effectuée, mais l’interface doit être relue. '
-                      'Fermez ce dialogue puis utilisez « Relire le résultat ». '
-                      'Ne relancez pas la mutation.';
-          }
-        },
-      ),
-    );
-  } finally {
-    final retained = preparation;
-    if (retained != null) await navigation.releasePreparation(retained);
-  }
-  return summary;
-}
+}) => runResourceUsageReplacement(
+  navigation: navigation,
+  target: target,
+  name: name,
+  isActive: () => context.mounted,
+  present: (controller) => showResourceManagementRoute(
+    context,
+    (_) => ResourceUsageReplacementDialog(
+      controller: controller,
+      mapName: (id) =>
+          navigation.workspace.project?.maps
+              .where((map) => map.id == id)
+              .firstOrNull
+              ?.name ??
+          id,
+    ),
+  ),
+);
 
 class ResourceUsageReplacementDialog extends StatefulWidget {
   const ResourceUsageReplacementDialog({
     super.key,
-    required this.name,
-    required this.spatial,
-    required this.choices,
+    required this.controller,
     required this.mapName,
-    required this.canApply,
-    required this.prepare,
-    required this.apply,
   });
 
-  final String name;
-  final bool spatial;
-  final List<ResourceItem> choices;
+  final ResourceUsageReplacementController controller;
   final String Function(String mapId) mapName;
-  final bool Function() canApply;
-  final Future<ResourceMutationPreparation> Function(String replacementId)
-  prepare;
-  final Future<String?> Function(
-    ResourceMutationPreparation preparation,
-    String summary,
-  )
-  apply;
 
   @override
   State<ResourceUsageReplacementDialog> createState() =>
@@ -108,61 +54,24 @@ class ResourceUsageReplacementDialog extends StatefulWidget {
 class _ResourceUsageReplacementDialogState
     extends State<ResourceUsageReplacementDialog> {
   final _query = TextEditingController();
-  ResourceItem? _replacement;
-  ResourceMutationPreparation? _preparation;
-  String? _error;
-  bool _preparing = false;
-  bool _confirmed = false;
-  int _sequence = 0;
+  ResourceUsageReplacementController get controller => widget.controller;
 
   @override
   void dispose() {
-    _sequence++;
+    controller.dispose();
     _query.dispose();
     super.dispose();
   }
 
   Future<void> _choose(ResourceItem choice, VoidCallback refresh) async {
-    final sequence = ++_sequence;
-    setState(() {
-      _replacement = choice;
-      _preparation = null;
-      _confirmed = false;
-      _error = null;
-      _preparing = true;
-    });
+    final pending = controller.choose(choice);
+    setState(() {});
     refresh();
-    try {
-      final prepared = await widget.prepare(choice.id);
-      if (mounted && sequence == _sequence) {
-        setState(() => _preparation = prepared);
-      }
-    } on Object catch (failure) {
-      if (mounted && sequence == _sequence) {
-        setState(() => _error = '$failure');
-      }
-    } finally {
-      if (mounted && sequence == _sequence) {
-        setState(() => _preparing = false);
-        refresh();
-      }
+    await pending;
+    if (mounted) {
+      setState(() {});
+      refresh();
     }
-  }
-
-  List<({String mapId, int count})> get _scope => [
-    for (final entry in (_preparation?.impact['maps'] as List? ?? const []))
-      if (entry case {
-        'mapId': final String mapId,
-        'instanceIds': final List ids,
-      })
-        (mapId: mapId, count: ids.length),
-  ];
-
-  String get _summary {
-    final occurrences = _preparation?.impact['occurrenceCount'] ?? 0;
-    final maps = _preparation?.impact['mapCount'] ?? 0;
-    return '$occurrences ${occurrences == 1 ? 'occurrence' : 'occurrences'} '
-        'sur $maps ${maps == 1 ? 'carte' : 'cartes'}';
   }
 
   @override
@@ -170,30 +79,22 @@ class _ResourceUsageReplacementDialogState
     final theme = Theme.of(context);
     final query = _query.text.trim().toLowerCase();
     final choices = [
-      for (final choice in widget.choices)
+      for (final choice in controller.choices)
         if (query.isEmpty || choice.name.toLowerCase().contains(query)) choice,
     ];
-    final prepared = _preparation;
+    final prepared = controller.preparation;
     final empty = prepared != null && prepared.noChange;
     return ResourceManagementDialog(
       title: 'Remplacer ses usages',
       submitLabel: empty ? 'Aucun usage à remplacer' : 'Remplacer les usages',
       maxWidth: 640,
       dirty: () => false,
-      valid: () =>
-          !_preparing &&
-          prepared != null &&
-          !empty &&
-          _confirmed &&
-          widget.canApply(),
-      submit: () => widget.apply(
-        prepared!,
-        'Usages remplacés : $_summary vers « ${_replacement!.name} ».',
-      ),
+      valid: () => controller.canApply,
+      submit: controller.apply,
       fields: (refresh, busy) => Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(widget.name, style: theme.textTheme.titleMedium),
+          Text(controller.name, style: theme.textTheme.titleMedium),
           const SizedBox(height: 8),
           const Text(
             'Toutes les occurrences de cette ressource sur les cartes pointeront '
@@ -232,14 +133,14 @@ class _ResourceUsageReplacementDialogState
                         subtitle: choice.category.isEmpty
                             ? null
                             : choice.category,
-                        selected: _replacement?.id == choice.id,
+                        selected: controller.replacement?.id == choice.id,
                         leading: Icon(
-                          widget.spatial
+                          controller.spatial
                               ? Icons.view_in_ar_outlined
                               : Icons.image_outlined,
                           size: 18,
                         ),
-                        onTap: busy || _preparing
+                        onTap: busy || controller.preparing
                             ? null
                             : () => _choose(choice, refresh),
                       );
@@ -247,12 +148,12 @@ class _ResourceUsageReplacementDialogState
                   ),
           ),
           const SizedBox(height: 12),
-          if (_preparing) ...[
+          if (controller.preparing) ...[
             const Text('Calcul de la portée…'),
             const LinearProgressIndicator(),
-          ] else if (_error != null)
+          ] else if (controller.error != null)
             Text(
-              _error!,
+              controller.error!,
               key: const ValueKey('resource-usage-replacement-error'),
               style: TextStyle(color: theme.colorScheme.error),
             )
@@ -264,11 +165,11 @@ class _ResourceUsageReplacementDialogState
             )
           else ...[
             Text(
-              'Portée : $_summary',
+              'Portée : ${controller.summary}',
               key: const ValueKey('resource-usage-replacement-scope'),
               style: theme.textTheme.titleSmall,
             ),
-            for (final entry in _scope)
+            for (final entry in controller.scope)
               Text(
                 'Carte « ${widget.mapName(entry.mapId)} » · '
                 '${entry.count} ${entry.count == 1 ? 'occurrence' : 'occurrences'}',
@@ -281,14 +182,14 @@ class _ResourceUsageReplacementDialogState
               key: const ValueKey('resource-usage-replacement-confirm'),
               contentPadding: EdgeInsets.zero,
               title: Text(
-                'Je confirme : « ${widget.name} » devient '
-                '« ${_replacement!.name} » sur ces cartes.',
+                'Je confirme : « ${controller.name} » devient '
+                '« ${controller.replacement!.name} » sur ces cartes.',
               ),
-              value: _confirmed,
+              value: controller.confirmed,
               onChanged: busy
                   ? null
                   : (value) {
-                      setState(() => _confirmed = value == true);
+                      setState(() => controller.confirm(value == true));
                       refresh();
                     },
             ),

@@ -2,7 +2,7 @@ import 'package:avelune_studio/features/pokemon/application/pokemon_combat_contr
 import 'package:avelune_studio/features/pokemon/domain/pokemon_combat_port.dart';
 import 'package:avelune_studio/features/pokemon/domain/pokemon_workspace_models.dart';
 import 'package:avelune_studio/presentation/features/pokemon/pokemon_combat_context_panel.dart';
-import 'package:avelune_studio/presentation/features/pokemon/pokemon_combat_references.dart';
+import 'package:avelune_studio/features/pokemon/application/pokemon_combat_references.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';

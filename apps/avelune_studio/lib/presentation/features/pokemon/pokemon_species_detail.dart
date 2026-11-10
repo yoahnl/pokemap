@@ -7,7 +7,6 @@ import 'pokemon_species_evolution.dart';
 import 'pokemon_species_forms.dart';
 import 'pokemon_species_header.dart';
 import 'pokemon_species_learnset.dart';
-import 'pokemon_species_media.dart';
 import 'pokemon_species_overview.dart';
 import 'pokemon_ui_parts.dart';
 
@@ -16,12 +15,10 @@ class PokemonSpeciesDetail extends StatelessWidget {
     super.key,
     required this.controller,
     this.onBack,
-    this.pickPng,
   });
 
   final PokemonWorkspaceController controller;
   final VoidCallback? onBack;
-  final Future<String?> Function()? pickPng;
 
   @override
   Widget build(BuildContext context) {
@@ -29,8 +26,7 @@ class PokemonSpeciesDetail extends StatelessWidget {
     if (draft == null) {
       return const PokemonEmptyState(
         title: 'Ouvrez une fiche',
-        description:
-            'Sélectionnez une espèce dans le Pokédex pour voir ses données et ses médias.',
+        description: 'Sélectionnez une espèce dans le Pokédex pour consulter ses données.',
       );
     }
     final section = switch (controller.section) {
@@ -45,10 +41,6 @@ class PokemonSpeciesDetail extends StatelessWidget {
       ),
       PokemonDetailSection.evolution => PokemonSpeciesEvolutionEditor(
         controller: controller,
-      ),
-      PokemonDetailSection.media => PokemonSpeciesMediaEditor(
-        controller: controller,
-        pickPng: pickPng,
       ),
     };
     final tabs = PokemonDetailTabs(controller: controller);

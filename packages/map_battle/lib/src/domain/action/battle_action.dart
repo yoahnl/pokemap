@@ -182,15 +182,17 @@ final class PsdkBattlePpRestoreItemEffect extends PsdkBattleItemActionEffect {
 final class PsdkBattleStatusCureItemEffect extends PsdkBattleItemActionEffect {
   const PsdkBattleStatusCureItemEffect.only(
     Set<PsdkBattleMajorStatus> statuses,
+    {this.curesConfusion = false}
   )   : statuses = statuses,
         cureAny = false;
 
-  const PsdkBattleStatusCureItemEffect.any()
+  const PsdkBattleStatusCureItemEffect.any({this.curesConfusion = false})
       : statuses = const <PsdkBattleMajorStatus>{},
         cureAny = true;
 
   final Set<PsdkBattleMajorStatus> statuses;
   final bool cureAny;
+  final bool curesConfusion;
 
   bool cures(PsdkBattleMajorStatus status) {
     return cureAny || statuses.contains(status);

@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../../features/map_workspace/application/editable_map_document.dart';
+import '../../../features/map_workspace/application/map_spatial_settings_commands.dart';
 import '../../../features/map_workspace/application/spatial_terrain_stroke.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/inputs/studio_draft_field.dart';
 import 'map_workspace_view_state.dart';
+
 import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
+
 import 'spatial_ramp_editor.dart';
 import 'spatial_ledge_editor.dart';
 import 'spatial_fishing_editor.dart';
@@ -201,17 +204,10 @@ class SpatialTerrainControls extends StatelessWidget {
           onChanged: document.saving
               ? null
               : (value) {
-                  try {
-                    document.commit(
-                      const SpatialMapOperations().configureTerrainAppearance(
-                        document.current,
-                        cliffFrame: scene.cliffFrame,
-                        generateCliffs: value == 'generated',
-                      ),
-                    );
-                  } on Object catch (failure) {
-                    document.error = failure.toString();
-                  }
+                  MapSpatialSettingsCommands(document).terrainAppearance(
+                    cliffFrame: document.current.spatialScene!.cliffFrame,
+                    generateCliffs: value == 'generated',
+                  );
                   onChanged();
                 },
         ),
@@ -232,22 +228,11 @@ class SpatialTerrainControls extends StatelessWidget {
           onChanged: document.saving
               ? null
               : (value) {
-                  try {
-                    document.commit(
-                      const SpatialMapOperations().configureTerrainAppearance(
-                        document.current,
-                        cliffFrame: value == 'none'
-                            ? null
-                            : SmartTileFrameRef(
-                                atlasId: value,
-                                column: 0,
-                                row: 0,
-                              ),
-                      ),
-                    );
-                  } on Object catch (failure) {
-                    document.error = failure.toString();
-                  }
+                  MapSpatialSettingsCommands(document).terrainAppearance(
+                    cliffFrame: value == 'none'
+                        ? null
+                        : SmartTileFrameRef(atlasId: value, column: 0, row: 0),
+                  );
                   onChanged();
                 },
         ),

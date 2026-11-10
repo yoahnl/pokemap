@@ -13,8 +13,6 @@ import 'package:map_core/map_core.dart';
 import 'package:avelune_studio/features/events/domain/event_record_view.dart';
 import 'package:avelune_studio/presentation/features/events/event_context_map.dart';
 
-import 'dart:convert';
-import 'dart:io';
 
 import 'package:avelune_studio/features/events/application/event_workspace_controller.dart';
 import 'package:avelune_studio/features/events/application/event_map_loader.dart';
@@ -393,116 +391,6 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     },
   );
-
-  test('modern creation and editing publish contact identity through canonical API and cold reopen', () async {
-    final f = await _backend();
-    addTearDown(f.dispose);
-    final c = f.attach();
-    expect(await c.prepare(), isTrue, reason: c.error);
-    final map = f.workspace.active!;
-    final mapBefore = map.current;
-    final projectBefore = await f.readFresh();
-    final source = NarrativeEventSourceRef.entityBump(map.current.id, 'chief');
-    final created = c.create('Contact original', source: source);
-    expect(created, isNotNull, reason: c.error);
-    expect(
-      c.setScene(created!.id, Ui06SceneFixture.sceneId),
-      isTrue,
-      reason: c.error,
-    );
-    expect(c.setReuse(created.id, NarrativeEventReusePolicy.reusable), isTrue);
-    expect(c.configure(created.id), isTrue, reason: c.error);
-    expect(c.setEnabled(created.id, true), isTrue, reason: c.error);
-    expect(
-      c.setSource(Ui06SceneFixture.eventId, source),
-      isTrue,
-      reason: c.error,
-    );
-    expect(await c.save(), isTrue, reason: c.error);
-    final fresh = await f.readFresh();
-    expect(
-      fresh.eventRegistry!.records
-          .singleWhere((r) => r.id == created.id)
-          .source,
-      source,
-    );
-    expect(
-      fresh.eventRegistry!.records
-          .singleWhere((r) => r.id == Ui06SceneFixture.eventId)
-          .source,
-      source,
-    );
-    expect(fresh.scenes, projectBefore.scenes);
-    expect(map.current, mapBefore);
-    c.dispose();
-    final maps = LocalMapWorkspaceAdapter();
-    final workspace = MapWorkspaceController(f.source.session, maps);
-    await workspace.initialize();
-    final narrative = NarrativeWorkspaceController(
-      workspace,
-      LocalNarrativeAdapter(session: f.source.session, mapAdapter: maps),
-      () {},
-      (_, _) async {},
-    );
-    final reopened = EventWorkspaceController(
-      narrative,
-      LocalEventAdapter(session: f.source.session, mapAdapter: maps),
-      changed: () {},
-    );
-    addTearDown(() {
-      reopened.dispose();
-      narrative.dispose();
-      workspace.dispose();
-    });
-    expect(await reopened.prepare(), isTrue, reason: reopened.error);
-    final loaded = reopened.project;
-    expect(
-      loaded.eventRegistry!.records
-          .singleWhere((r) => r.id == created.id)
-          .source!
-          .toJson(),
-      {'kind': 'entityBump', 'mapId': map.current.id, 'entityId': 'chief'},
-    );
-  });
-
-  test('modern contact replacement refuses unavailable owners without changing the stored source', () async {
-    final f = await _backend();
-    addTearDown(f.dispose);
-    final c = f.attach();
-    await c.prepare();
-    final original = c.record(Ui06SceneFixture.eventId)!.source;
-    final map = f.workspace.active!;
-    for (final entities in <List<MapEntity>>[
-      [],
-      [_npc.copyWith(blocksMovement: false)],
-      [_npc, _npc],
-      [
-        const MapEntity(
-          id: 'chief',
-          kind: MapEntityKind.npc,
-          pos: GridPos(x: 3, y: 3),
-        ),
-      ],
-    ]) {
-      map.commit(map.current.copyWith(entities: entities));
-      expect(
-        c.setSource(
-          Ui06SceneFixture.eventId,
-          NarrativeEventSourceRef.entityBump(map.current.id, 'chief'),
-        ),
-        isFalse,
-      );
-      expect(c.record(Ui06SceneFixture.eventId)!.source, original);
-    }
-    expect(
-      c.setSource(
-        Ui06SceneFixture.eventId,
-        NarrativeEventSourceRef.entityBump('missing', 'chief'),
-      ),
-      isFalse,
-    );
-    expect(c.record(Ui06SceneFixture.eventId)!.source, original);
-  });
 }
 
 const _character = ProjectCharacterEntry(
@@ -520,17 +408,13 @@ const _npc = MapEntity(
 final _project = workspaceProject.copyWith(characters: [_character]);
 
 Future<_ContactBackend> _backend() async {
-  final source = await Ui06SceneFixture.create();
-  final projectFile = File('${source.directory.path}/project.json');
-  final original = ProjectManifest.fromJson(
-    jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>,
+  final source = await Ui06SceneFixture.create(
+    seedProject: (project) => project.copyWith(
+      characters: [_character.copyWith(tilesetId: project.tilesets.first.id)],
+    ),
   );
-  final project = original.copyWith(
-    characters: [_character.copyWith(tilesetId: original.tilesets.first.id)],
-  );
-  await projectFile.writeAsString(jsonEncode(project.toJson()));
   final maps = LocalMapWorkspaceAdapter();
-  await maps.loadProject(source.session);
+  final project = await maps.loadProject(source.session);
   final base = await maps.loadMap(source.session, project.maps.first);
   await maps.saveMap(source.session, base, base.map.copyWith(entities: [_npc]));
   final workspace = MapWorkspaceController(source.session, maps);

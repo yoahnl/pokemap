@@ -1,12 +1,7 @@
 import 'package:file_picker/file_picker.dart';
 
-class PickedModelSource {
-  const PickedModelSource(this.path, this.name);
-  final String path;
-  final String name;
-}
-
-typedef PickModelSource = Future<PickedModelSource?> Function();
+import '../../features/resources/domain/model_source_picker.dart';
+export '../../features/resources/domain/model_source_picker.dart';
 
 Future<PickedModelSource?> pickNativeModel() async {
   final result = await FilePicker.pickFiles(

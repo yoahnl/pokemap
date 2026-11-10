@@ -79,12 +79,14 @@ class NeutralMapHostFixture {
     bool withNarrative = false,
     MapWorkspaceVisuals? visuals,
     GlobalKey? captureKey,
+    bool Function()? isBusy,
   }) => NeutralMapHostFixture._(tester, maps)._mount(
     mapAdapter: mapAdapter,
     withNarrative: withNarrative,
     ownsMaps: false,
     providedVisuals: visuals,
     captureKey: captureKey,
+    isBusy: isBusy,
   );
 
   Future<NeutralMapHostFixture> _mount({
@@ -93,6 +95,7 @@ class NeutralMapHostFixture {
     required bool ownsMaps,
     MapWorkspaceVisuals? providedVisuals,
     GlobalKey? captureKey,
+    bool Function()? isBusy,
   }) async {
     final fixture = this;
     _ownsMaps = ownsMaps;
@@ -151,6 +154,7 @@ class NeutralMapHostFixture {
               fixture._render = update;
               if (maps.active == null) return const SizedBox();
               final surface = MapEditingSurface(
+                busy: isBusy?.call() ?? false,
                 controller: maps,
                 visuals: visuals,
                 view: fixture.nativeView,

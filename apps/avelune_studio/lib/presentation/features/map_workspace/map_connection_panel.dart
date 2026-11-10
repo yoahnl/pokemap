@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import '../../../features/map_workspace/application/map_workspace_connection_actions.dart';
+
 import 'package:map_core/map_core_domain.dart';
 
 import '../../shared/widgets/buttons/studio_button.dart';
@@ -31,19 +34,18 @@ class _MapConnectionPanelState extends State<MapConnectionPanel> {
 
   @override
   Widget build(BuildContext context) {
-    final destinations = widget.project.maps
-        .where((entry) => entry.id != widget.map.id)
-        .toList();
-    final target = destinations.any((entry) => entry.id == targetMapId)
-        ? targetMapId
-        : destinations.firstOrNull?.id;
+    final destinations = mapConnectionDestinations(
+      widget.project,
+      widget.map.id,
+    );
+    final target = mapConnectionTarget(destinations, targetMapId);
     final connection = widget.map.connections
         .where((entry) => entry.direction == direction)
         .firstOrNull;
     final destination = destinations
         .where((entry) => entry.id == connection?.targetMapId)
         .firstOrNull;
-    final shift = int.tryParse(offset.trim());
+    final shift = mapConnectionOffset(offset);
     return Padding(
       padding: const EdgeInsets.all(12),
       child: Column(

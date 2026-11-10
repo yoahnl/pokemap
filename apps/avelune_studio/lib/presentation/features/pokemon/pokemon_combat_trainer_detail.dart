@@ -11,7 +11,7 @@ import 'pokemon_ui_parts.dart';
 import 'pokemon_combat_detail_header.dart';
 import 'pokemon_combat_species_picker.dart';
 import 'pokemon_combat_trainer_stats.dart';
-import 'pokemon_combat_references.dart';
+import '../../../features/pokemon/application/pokemon_combat_references.dart';
 
 class PokemonCombatTrainerDetail extends StatelessWidget {
   const PokemonCombatTrainerDetail({
@@ -247,29 +247,12 @@ class PokemonCombatTrainerDetail extends StatelessWidget {
     int indexInTeam,
   ) {
     final pokemon = trainer.team[indexInTeam];
-    final itemCounts = <String, int>{};
-    for (final item
-        in index.itemCatalog?.entries ?? const <ProjectItemDefinition>[]) {
-      itemCounts[item.id] = (itemCounts[item.id] ?? 0) + 1;
-    }
-    final ballOptions = <String, String>{
-      '': 'Aucune Ball',
-      for (final item
-          in index.itemCatalog?.entries ?? const <ProjectItemDefinition>[])
-        if (item.capture != null && itemCounts[item.id] == 1)
-          item.id: item.displayName,
-    };
+    final ballOptions = trainerBallChoices(index.itemCatalog);
     final species = index.entries
         .where((value) => value.id == pokemon.speciesId)
         .firstOrNull;
-    void change(ProjectTrainerPokemonEntry value) => combat.editTrainer(
-      (current) => current.copyWith(
-        team: [
-          for (var i = 0; i < current.team.length; i++)
-            if (i == indexInTeam) value else current.team[i],
-        ],
-      ),
-    );
+    void change(ProjectTrainerPokemonEntry value) =>
+        combat.replaceTrainerMember(indexInTeam, value);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),

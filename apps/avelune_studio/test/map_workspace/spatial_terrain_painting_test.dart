@@ -1,10 +1,11 @@
+import 'package:avelune_studio/features/map_workspace/application/map_tool_command_runner.dart';
+
 import 'dart:typed_data';
 
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_tool_strip.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
 import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 import 'package:avelune_studio/platform/rendering/viewports/spatial_map_editing_viewport.dart';
 import 'package:flutter/material.dart';
@@ -52,30 +53,23 @@ void main() {
     ),
   );
 
-  testWidgets('the same terrain toolbar is enabled for spatial maps', (
-    tester,
-  ) async {
-    final view = MapWorkspaceViewState();
+  test('spatial terrain and environment commands select their intended resource family', () {
+    final view = MapEditingViewportSession();
     addTearDown(view.dispose);
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: MapWorkspaceToolStrip(
-            view: view,
-            onChanged: () {},
-            onMoreTools: () {},
-            onResources: () {},
-            storyAvailable: false,
-            paletteVisible: true,
-            spatial: true,
-            onUndo: () {},
-            onRedo: () {},
-          ),
-        ),
-      ),
+    var selected = '';
+    final runner = MapToolCommandRunner(
+      view: view,
+      paletteTab: () => selected,
+      selectPalette: (value) => selected = value,
+      spatial: true,
+      paletteVisible: true,
+      onChanged: () {},
+      onMoreTools: () {},
+      onResources: () {},
     );
-    await tester.tap(find.text('Terrains').first);
-    expect(view.paletteTab, 'Terrains');
+    runner.runFamily('Terrains');
+    expect(view.tool, StudioMapTool.terrain);
+    expect(selected, 'Terrains');
   });
 
   testWidgets(
@@ -91,7 +85,7 @@ void main() {
       final document = EditableMapDocument(
         MapWorkspaceDocument(map: map, mapId: map.id, revision: 'test'),
       );
-      final view = MapWorkspaceViewState()
+      final view = MapEditingViewportSession()
         ..terrain = preset
         ..tool = StudioMapTool.terrain;
       final controller = MapWorkspaceController(
@@ -242,7 +236,7 @@ void main() {
       final document = EditableMapDocument(
         MapWorkspaceDocument(map: map, mapId: map.id, revision: 'test'),
       );
-      final view = MapWorkspaceViewState()
+      final view = MapEditingViewportSession()
         ..terrain = preset
         ..tool = StudioMapTool.terrain;
       final controller = MapWorkspaceController(
@@ -373,7 +367,7 @@ void main() {
       final document = EditableMapDocument(
         MapWorkspaceDocument(map: map, mapId: map.id, revision: 'test'),
       );
-      final view = MapWorkspaceViewState()
+      final view = MapEditingViewportSession()
         ..terrain = floorPreset
         ..terrainMaterialId = 'sand'
         ..tool = StudioMapTool.terrain;

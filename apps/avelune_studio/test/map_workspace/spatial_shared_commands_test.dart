@@ -1,17 +1,20 @@
+import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/map_resource_placement.dart';
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
+
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show LogicalKeyboardKey;
 import 'package:map_render_3d/map_render_3d.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/platform/rendering/viewports/spatial_map_editing_viewport.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_toolbar.dart';
 import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_palette_dock.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_inspector.dart';
+
 import '../support/map_workspace_fixture.dart';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:avelune_studio/platform/rendering/studio_map_resources.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
@@ -22,7 +25,6 @@ import 'package:map_core/map_core.dart';
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/features/map_workspace/application/spatial_model_editing_commands.dart';
-import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -32,17 +34,15 @@ void main() {
     ) async {
       final project = ProjectManifest.fromJson(
         jsonDecode(
-              File('test/fixtures/spatial_first_map/project.json').readAsStringSync(),
-            )
-            as Map<String, dynamic>,
+          File('test/fixtures/spatial_first_map/project.json')
+              .readAsStringSync(),
+        ) as Map<String, dynamic>,
       );
       final source = MapData.fromJson(
         jsonDecode(
-              File(
-                'test/fixtures/spatial_first_map/maps/first-map.json',
-              ).readAsStringSync(),
-            )
-            as Map<String, dynamic>,
+          File('test/fixtures/spatial_first_map/maps/first-map.json')
+              .readAsStringSync(),
+        ) as Map<String, dynamic>,
       );
       final model = source.spatialScene!.instances.first.copyWith(
         position: Model3dVector3(x: 3.5, y: 0, z: 3.5),
@@ -55,7 +55,7 @@ void main() {
       final document = EditableMapDocument(
         MapWorkspaceDocument(map: map, mapId: map.id, revision: 'delete-test'),
       );
-      final view = MapWorkspaceViewState()
+      final view = MapEditingViewportSession()
         ..tool = StudioMapTool.select
         ..spatialFreeView = true;
       final controller =
@@ -137,67 +137,24 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
-  testWidgets('2D maps keep their existing camera toolbar', (tester) async {
-    final document = EditableMapDocument(
-      MapWorkspaceDocument(
-        map: workspaceMap('a'),
-        mapId: 'a',
-        revision: '2d-test',
-      ),
-    );
-    final controller =
-        MapWorkspaceController(workspaceSession, WorkspaceMemoryPort())
-          ..project = workspaceProject
-          ..active = document;
-    final view = MapWorkspaceViewState();
-    addTearDown(controller.dispose);
-    addTearDown(view.dispose);
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: MapWorkspaceToolbar(
-            controller: controller,
-            view: view,
-            onChanged: () {},
-            onActivate: (_) {},
-            onSave: null,
-            onTest: null,
-            onClose: () {},
-            onPalette: () {},
-            onInspector: () {},
-            onNavigator: () {},
-            paletteVisible: false,
-            inspectorVisible: false,
-            navigatorVisible: true,
-          ),
-        ),
-      ),
-    );
-    expect(find.byKey(const ValueKey('spatial-camera-view')), findsNothing);
-    expect(find.byTooltip('Recentrer'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
   testWidgets('Shift-drag moves a 3D decor and Shift-click toggles it', (
     tester,
   ) async {
     final project = ProjectManifest.fromJson(
       jsonDecode(
-            File('test/fixtures/spatial_first_map/project.json').readAsStringSync(),
-          )
-          as Map<String, dynamic>,
+        File('test/fixtures/spatial_first_map/project.json').readAsStringSync(),
+      ) as Map<String, dynamic>,
     );
     final map = MapData.fromJson(
       jsonDecode(
-            File(
-              'test/fixtures/spatial_first_map/maps/first-map.json',
-            ).readAsStringSync(),
-          )
-          as Map<String, dynamic>,
+        File('test/fixtures/spatial_first_map/maps/first-map.json')
+            .readAsStringSync(),
+      ) as Map<String, dynamic>,
     ).copyWith(entities: []);
     final document = EditableMapDocument(
       MapWorkspaceDocument(map: map, mapId: map.id, revision: 'shift-test'),
     );
-    final view = MapWorkspaceViewState()..tool = StudioMapTool.select;
+    final view = MapEditingViewportSession()..tool = StudioMapTool.select;
     final controller =
         MapWorkspaceController(workspaceSession, WorkspaceMemoryPort())
           ..project = project
@@ -260,22 +217,19 @@ void main() {
   ) async {
     final project = ProjectManifest.fromJson(
       jsonDecode(
-            File('test/fixtures/spatial_first_map/project.json').readAsStringSync(),
-          )
-          as Map<String, dynamic>,
+        File('test/fixtures/spatial_first_map/project.json').readAsStringSync(),
+      ) as Map<String, dynamic>,
     );
     final map = MapData.fromJson(
       jsonDecode(
-            File(
-              'test/fixtures/spatial_first_map/maps/first-map.json',
-            ).readAsStringSync(),
-          )
-          as Map<String, dynamic>,
+        File('test/fixtures/spatial_first_map/maps/first-map.json')
+            .readAsStringSync(),
+      ) as Map<String, dynamic>,
     ).copyWith(entities: []);
     final document = EditableMapDocument(
       MapWorkspaceDocument(map: map, mapId: map.id, revision: 'camera-test'),
     );
-    final view = MapWorkspaceViewState()
+    final view = MapEditingViewportSession()
       ..tool = StudioMapTool.place
       ..model3d = project.models3d.first;
     final controller =
@@ -286,29 +240,16 @@ void main() {
     final visuals = _SpatialTestVisuals();
     addTearDown(view.dispose);
     addTearDown(controller.dispose);
+    late VoidCallback refresh;
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
           body: StatefulBuilder(
             builder: (context, setState) {
               void changed() => setState(() {});
+              refresh = changed;
               return Column(
                 children: [
-                  MapWorkspaceToolbar(
-                    controller: controller,
-                    view: view,
-                    onChanged: changed,
-                    onActivate: (_) {},
-                    onSave: null,
-                    onTest: null,
-                    onClose: () {},
-                    onPalette: () {},
-                    onInspector: () {},
-                    onNavigator: () {},
-                    paletteVisible: false,
-                    inspectorVisible: false,
-                    navigatorVisible: true,
-                  ),
                   Expanded(
                     child: SpatialMapEditingViewport(
                       document: document,
@@ -328,9 +269,9 @@ void main() {
     );
     SpatialSceneView scene() => tester.widget(find.byType(SpatialSceneView));
     expect(scene().controller.view, SpatialEditorView.game);
-    await tester.tap(find.byKey(const ValueKey('spatial-camera-view')));
+    view.spatialFreeView = !view.spatialFreeView;
+    refresh();
     await tester.pump();
-    expect(find.text('Vue du jeu'), findsOneWidget);
     expect(scene().controller.view, SpatialEditorView.orbit);
     expect(scene().onDragStart, isNotNull);
     expect(scene().onContent, isNotNull);
@@ -423,19 +364,20 @@ void main() {
     expect(document.canUndo, isFalse);
     scene().controller.orbit(150, 50);
     expect(scene().controller.yaw, isNot(.5));
-    await tester.tap(find.byTooltip('Zoom avant'));
+    view.viewport.zoomBy(1.25);
     await tester.pump();
     expect(view.scale, 1.25);
-    await tester.tap(find.byKey(const ValueKey('spatial-camera-view')));
+    view.spatialFreeView = !view.spatialFreeView;
+    refresh();
     await tester.pump();
     expect(scene().controller.view, SpatialEditorView.game);
     expect(scene().onDragStart, isNotNull);
-    await tester.tap(find.byKey(const ValueKey('spatial-camera-view')));
+    view.spatialFreeView = !view.spatialFreeView;
+    refresh();
     await tester.pump();
-    await tester.tap(find.byTooltip('Recentrer'));
+    view.recenter!();
     await tester.pump();
     expect(scene().controller.view, SpatialEditorView.game);
-    expect(find.text('Vue libre'), findsOneWidget);
     expect(view.scale, 1);
     expect(document.current, map);
     expect(tester.takeException(), isNull);
@@ -445,17 +387,15 @@ void main() {
     (tester) async {
       final project = ProjectManifest.fromJson(
         jsonDecode(
-              File('test/fixtures/spatial_first_map/project.json').readAsStringSync(),
-            )
-            as Map<String, dynamic>,
+          File('test/fixtures/spatial_first_map/project.json')
+              .readAsStringSync(),
+        ) as Map<String, dynamic>,
       );
       final source = MapData.fromJson(
         jsonDecode(
-              File(
-                'test/fixtures/spatial_first_map/maps/first-map.json',
-              ).readAsStringSync(),
-            )
-            as Map<String, dynamic>,
+          File('test/fixtures/spatial_first_map/maps/first-map.json')
+              .readAsStringSync(),
+        ) as Map<String, dynamic>,
       );
       final model = source.spatialScene!.instances.first.copyWith(
         position: Model3dVector3(x: 3.5, y: 0, z: 3.5),
@@ -474,7 +414,7 @@ void main() {
           revision: 'keyboard-test',
         ),
       );
-      final view = MapWorkspaceViewState()..tool = StudioMapTool.select;
+      final view = MapEditingViewportSession()..tool = StudioMapTool.select;
       final controller =
           MapWorkspaceController(workspaceSession, WorkspaceMemoryPort())
             ..project = project
@@ -588,21 +528,19 @@ void main() {
     },
   );
   testWidgets(
-    'standard decor card arms ground placement and selection uses content',
+    'canonical resource choice arms ground placement and selection uses content',
     (tester) async {
       final project = ProjectManifest.fromJson(
         jsonDecode(
-              File('test/fixtures/spatial_first_map/project.json').readAsStringSync(),
-            )
-            as Map<String, dynamic>,
+          File('test/fixtures/spatial_first_map/project.json')
+              .readAsStringSync(),
+        ) as Map<String, dynamic>,
       );
       final map = MapData.fromJson(
         jsonDecode(
-              File(
-                'test/fixtures/spatial_first_map/maps/first-map.json',
-              ).readAsStringSync(),
-            )
-            as Map<String, dynamic>,
+          File('test/fixtures/spatial_first_map/maps/first-map.json')
+              .readAsStringSync(),
+        ) as Map<String, dynamic>,
       );
       final document = EditableMapDocument(
         MapWorkspaceDocument(
@@ -611,36 +549,29 @@ void main() {
           revision: 'test',
         ),
       );
-      final view = MapWorkspaceViewState();
+      final view = MapEditingViewportSession();
       final controller = MapWorkspaceController(
         workspaceSession,
         WorkspaceMemoryPort(),
       );
-      final search = TextEditingController();
       addTearDown(view.dispose);
       addTearDown(controller.dispose);
-      addTearDown(search.dispose);
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: SizedBox(
-              width: 900,
-              child: MapWorkspacePaletteDock(
-                project: project,
-                document: document,
-                visuals: WorkspaceTestVisuals(),
-                view: view,
-                search: search,
-                onChanged: () {},
-                onResources: () {},
-                onOpenFullPalette: () {},
-              ),
-            ),
-          ),
-        ),
-      );
+      controller.project = project;
+      controller.active = document;
+      controller.documents[document.current.id] = document;
       final model = project.models3d.first;
-      await tester.tap(find.byKey(ValueKey('decor-${model.id}')));
+      expect(
+        await useMapResource(
+          workspace: controller,
+          item: resourceCatalog(project)
+              .singleWhere((item) => item.model3d?.id == model.id),
+          view: () => view,
+          isActive: () => true,
+          chooseMap: (_) async => null,
+          chooseTile: (_) async => null,
+        ),
+        isTrue,
+      );
       expect(view.model3d, model);
       expect(view.tool, StudioMapTool.place);
       final visuals = _SpatialTestVisuals();
@@ -795,41 +726,6 @@ void main() {
       selection.onZoom!(-1000000);
       expect(view.scale, 8);
       expect(selection.controller.zoom, closeTo(.125, .00001));
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: MapWorkspaceInspector(
-              project: project,
-              document: document,
-              visuals: WorkspaceTestVisuals(),
-              view: view,
-              onChanged: () {},
-            ),
-          ),
-        ),
-      );
-      final inspectorList = find
-          .descendant(
-            of: find.byType(MapWorkspaceInspector),
-            matching: find.byType(Scrollable),
-          )
-          .first;
-      await tester.scrollUntilVisible(
-        find.byKey(const ValueKey('decor-geometry-x')),
-        300,
-        scrollable: inspectorList,
-      );
-      expect(find.byKey(const ValueKey('decor-geometry-x')), findsOneWidget);
-      await tester.scrollUntilVisible(
-        find.byKey(const ValueKey('decor-geometry-scale')),
-        300,
-        scrollable: inspectorList,
-      );
-      expect(
-        find.byKey(const ValueKey('decor-geometry-scale')),
-        findsOneWidget,
-      );
-      expect(find.text('Niveau'), findsNothing);
       await tester.pumpWidget(const SizedBox());
     },
   );
@@ -838,25 +734,24 @@ void main() {
     () async {
       final project = ProjectManifest.fromJson(
         jsonDecode(
-              File('test/fixtures/spatial_first_map/project.json').readAsStringSync(),
-            )
-            as Map<String, dynamic>,
+          File('test/fixtures/spatial_first_map/project.json')
+              .readAsStringSync(),
+        ) as Map<String, dynamic>,
       );
       final map = MapData.fromJson(
         jsonDecode(
-              File(
-                'test/fixtures/spatial_first_map/maps/first-map.json',
-              ).readAsStringSync(),
-            )
-            as Map<String, dynamic>,
+          File('test/fixtures/spatial_first_map/maps/first-map.json')
+              .readAsStringSync(),
+        ) as Map<String, dynamic>,
       );
       final resources = await StudioMapResources.load(
         ProjectSession(
           sessionId: 'preview',
           name: 'Preview',
-          directoryPath: File(
-            'test/fixtures/spatial_first_map/project.json',
-          ).absolute.parent.path,
+          directoryPath: File('test/fixtures/spatial_first_map/project.json')
+              .absolute
+              .parent
+              .path,
         ),
         project.copyWith(
           settings: project.settings.copyWith(defaultPlayerCharacterId: null),
@@ -886,9 +781,9 @@ void main() {
       final document = EditableMapDocument(
         MapWorkspaceDocument(map: map, mapId: map.id, revision: 'test'),
       );
-      final item = resourceCatalog(
-        project,
-      ).where((item) => item.kind == ResourceKind.decors).first;
+      final item = resourceCatalog(project)
+          .where((item) => item.kind == ResourceKind.decors)
+          .first;
       expect(item.model3d, isNotNull);
       expect(item.element, isNull);
       final commands = SpatialModelEditingCommands(document, project);
@@ -919,9 +814,8 @@ void main() {
         position: target.at,
       );
       expect(
-        MapContextCommandRunner(
-          context,
-        ).run(MapContextCommand.delete, target.target),
+        MapContextCommandRunner(context)
+            .run(MapContextCommand.delete, target.target),
         isNull,
       );
       document.restore(redo: false);

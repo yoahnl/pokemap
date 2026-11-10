@@ -489,6 +489,7 @@ AuthoringActionDescriptor _descriptor(String id, String summary) {
             'editorReadiness': 'partial', 'maximumConditionDepth': 8}
         : id == 'item.set_overworld_effect'
         ? {
+            'friendshipLoss': _friendshipLossContract,
             'effectKinds': [
               'heal_hp',
               'full_restore',
@@ -542,6 +543,7 @@ AuthoringActionDescriptor _descriptor(String id, String summary) {
           }
         : id == 'item.set_battle_effect'
             ? {
+                'friendshipLoss': _friendshipLossContract,
                 'effectKinds': [
                   'heal_hp',
                   'full_restore',
@@ -579,6 +581,10 @@ AuthoringActionDescriptor _descriptor(String id, String summary) {
               }
             : id == 'item.set_held_effect'
                 ? {
+                    'additionalRuntimeCapabilities': {
+                      'oran_berry': ItemHeldBerryCapabilities.capabilityId,
+                      'pecha_berry': ItemHeldBerryCapabilities.capabilityId,
+                    },
                     'heldEffectIds': itemSystemV1CapabilityTruth
                         .supportedHeldEffectIds
                         .toList()
@@ -616,6 +622,16 @@ const _restorePpContract = {
   'faintedTarget': 'allowed_without_revive',
   'fullPp': 'refused_without_consumption_or_turn',
   'requiredAllMovesCapability': ItemPpRestoreCapabilities.allMovesCapabilityId,
+};
+
+const _friendshipLossContract = {
+  'field': 'use.friendshipLoss',
+  'tiers': {'low': '0..99', 'medium': '100..199', 'high': '200..255'},
+  'amounts': {'minimum': 0, 'maximum': 255, 'type': 'integer'},
+  'application': 'after_success_only_once',
+  'minimumFriendship': 0,
+  'curesConfusion': 'cure_status_optional_battle_only',
+  'requiredCapability': ItemFriendshipCapabilities.capabilityId,
 };
 
 const _fullRestoreContract = {

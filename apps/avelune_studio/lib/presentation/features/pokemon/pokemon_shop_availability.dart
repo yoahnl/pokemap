@@ -1,10 +1,12 @@
+import '../../../features/pokemon/application/pokemon_shop_editing.dart';
+
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/pokemon/application/pokemon_commerce_controller.dart';
 import '../../shared/widgets/inputs/studio_draft_field.dart';
 import '../../shared/widgets/inputs/studio_toggle_row.dart';
-import '../stories/story_metadata_fields.dart';
+import '../../../features/stories/application/story_document_commands.dart';
 import 'pokemon_ui_parts.dart';
 
 class PokemonShopAvailability extends StatelessWidget {
@@ -27,8 +29,7 @@ class PokemonShopAvailability extends StatelessWidget {
             children: [
               const PokemonSectionHeading(
                 title: 'Disponibilité conditionnelle',
-                description:
-                    'Le runtime choisit un état selon sa condition et sa priorité.',
+                description: 'Le runtime choisit un état selon sa condition et sa priorité.',
               ),
               if (shop.states.isEmpty)
                 const Text(
@@ -121,15 +122,7 @@ class PokemonShopAvailability extends StatelessWidget {
     ShopStateDefinition Function(ShopStateDefinition) update,
   ) {
     commerce.editShop(
-      (shop) => shop.copyWith(
-        states: [
-          for (var position = 0; position < shop.states.length; position++)
-            if (position == index)
-              update(shop.states[position])
-            else
-              shop.states[position],
-        ],
-      ),
+      (shop) => PokemonShopEditing.editState(shop, index, update),
     );
   }
 }

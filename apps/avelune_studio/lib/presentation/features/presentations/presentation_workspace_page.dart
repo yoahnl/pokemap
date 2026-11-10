@@ -17,14 +17,16 @@ import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../theme/studio_dialogue_theme.dart';
 import '../narrative/narrative_name_dialog.dart';
 import 'presentation_view_state.dart';
-import 'presentation_workspace_visuals.dart';
+
+import 'package:avelune_studio/platform/rendering/contracts/presentation_workspace_visuals.dart';
+
 import 'presentation_canvas.dart';
 import 'presentation_timeline.dart';
 import 'presentation_inspector.dart';
-import 'presentation_library.dart';
 import 'presentation_clip_labels.dart';
 import 'presentation_transport_listenable.dart';
-import 'presentation_media_picker.dart';
+
+import 'package:avelune_studio/features/presentations/domain/presentation_media_picker.dart';
 
 part 'presentation_page_commands.dart';
 part 'presentation_page_shortcuts.dart';
@@ -62,21 +64,24 @@ class PresentationWorkspacePage extends StatefulWidget {
 }
 
 class _PresentationWorkspacePageState extends State<PresentationWorkspacePage> {
-  final transport = PresentationPreviewTransport();
+  PresentationPreviewTransport get transport =>
+      widget.views.editingSessions.transport;
   PresentationWorkspaceController get controller => widget.controller;
   PresentationViewState? get view => controller.active == null
       ? null
       : widget.views.forAsset(controller.active!.asset);
-  PresentationCinematicAsset? installed;
+  Object _previewLease = Object();
+  late final bool Function() _flushOwner;
+  late final void Function() _suspendOwner;
   @override
   void initState() {
     super.initState();
-    controller.flushEdits = flush;
-    controller.suspendPreview = () {
-      transport.pause();
-      unawaited(widget.visuals.release());
-    };
-    widget.visuals.bindTransport(transport);
+    _flushOwner = flush;
+    _suspendOwner = () =>
+        unawaited(widget.views.editingSessions.suspendPreview(_previewLease));
+    controller.flushEdits = _flushOwner;
+    controller.suspendPreview = _suspendOwner;
+    bindPreview();
     HardwareKeyboard.instance.addHandler(handleShortcut);
   }
 
@@ -90,33 +95,55 @@ class _PresentationWorkspacePageState extends State<PresentationWorkspacePage> {
     if (mounted) setState(() {});
   }
 
+  void bindPreview() => widget.views.editingSessions.bindPreview(
+    _previewLease,
+    bind: widget.visuals.bindTransport,
+    prepare: widget.visuals.prepare,
+    release: widget.visuals.release,
+  );
+
   void sync() {
     final asset = controller.active?.asset;
-    if (asset == null || identical(installed, asset)) return;
-    final same = installed?.id == asset.id;
-    installed = asset;
-    transport.install(asset, preserveTime: same);
-    view!.reconcile(asset);
-    unawaited(widget.visuals.prepare(asset, portrait: view!.portrait));
+    if (asset != null) {
+      widget.views.editingSessions.installPreview(
+        _previewLease,
+        asset,
+        portrait: view!.portrait,
+      );
+    }
   }
 
   @override
   void didUpdateWidget(covariant PresentationWorkspacePage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.visuals != widget.visuals) {
-      unawaited(oldWidget.visuals.release());
-      widget.visuals.bindTransport(transport);
-      installed = null;
+    if (oldWidget.controller != widget.controller) {
+      if (identical(oldWidget.controller.flushEdits, _flushOwner)) {
+        oldWidget.controller.flushEdits = null;
+      }
+      if (identical(oldWidget.controller.suspendPreview, _suspendOwner)) {
+        oldWidget.controller.suspendPreview = null;
+      }
+      controller.flushEdits = _flushOwner;
+      controller.suspendPreview = _suspendOwner;
+    }
+    if (oldWidget.visuals != widget.visuals ||
+        oldWidget.views.editingSessions != widget.views.editingSessions) {
+      unawaited(oldWidget.views.editingSessions.releasePreview(_previewLease));
+      _previewLease = Object();
+      bindPreview();
     }
   }
 
   @override
   void dispose() {
     HardwareKeyboard.instance.removeHandler(handleShortcut);
-    controller.flushEdits = null;
-    controller.suspendPreview = null;
-    transport.dispose();
-    unawaited(widget.visuals.release());
+    if (identical(controller.flushEdits, _flushOwner)) {
+      controller.flushEdits = null;
+    }
+    if (identical(controller.suspendPreview, _suspendOwner)) {
+      controller.suspendPreview = null;
+    }
+    unawaited(widget.views.editingSessions.releasePreview(_previewLease));
     super.dispose();
   }
 

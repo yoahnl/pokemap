@@ -1,7 +1,24 @@
 import 'package:map_battle/map_battle.dart';
+import 'package:map_battle/src/domain/action/battle_item_action_handler.dart';
 import 'package:test/test.dart';
 
 void main() {
+  for (final status in [PsdkBattleMajorStatus.sleep, PsdkBattleMajorStatus.toxic]) {
+    test('confusion-only medicine preserves uncured $status counters', () {
+      final setup = _setup(player: _combatant(id: 'player', speciesId: 'eevee', hp: 100, majorStatus: status)).psdkSetup;
+      final initial = PsdkBattleState.fromSetup(setup).updateBattler(psdkPlayerSlot, (target) => target.copyWith(
+        sleepTurns: 3, toxicCounter: 4, effects: target.effects.addEffect(const ConfusionEffect(scope: BattlerBattleEffectScope(psdkPlayerSlot)))));
+      final result = const BattleItemActionHandler().useItem(context: BattleHandlerContext(state: initial,
+        rng: BattleRngStreams.fromPsdkSeeds(setup.rngSeeds), turn: 1, user: psdkPlayerSlot),
+        action: const PsdkBattleItemAction(user: psdkPlayerSlot, itemId: 'confusion-cure', target: psdkPlayerSlot,
+          effect: PsdkBattleStatusCureItemEffect.only({PsdkBattleMajorStatus.burn}, curesConfusion: true)));
+      final target = result.state.battlerAt(psdkPlayerSlot);
+      expect(target.majorStatus, status);
+      expect(target.sleepTurns, 3);
+      expect(target.toxicCounter, 4);
+      expect(target.effects.contains(PsdkBattleEffectIds.confusion), isFalse);
+    });
+  }
   group('PSDK battle item actions', () {
     test('high priority HP item heals before the opposing regular move', () {
       final engine = BattleEngine(

@@ -51,6 +51,13 @@ NarrativeEventProjectCatalog buildNarrativeEventProjectCatalog({
     mapInventoryComplete: mapInventoryComplete,
   );
   final mapsById = {for (final map in maps) map.id: map};
+  final unloadedMapIds = mapInventoryComplete
+      ? const <String>{}
+      : {
+          for (final entry in _groupBy(project.maps, (entry) => entry.id).entries)
+            if (entry.value.length == 1 && !mapsById.containsKey(entry.key))
+              entry.key,
+        };
   final sceneDiagnostics = SceneProjectDiagnosticsContext(
     project,
     mapsById: mapsById,
@@ -182,6 +189,11 @@ NarrativeEventProjectCatalog buildNarrativeEventProjectCatalog({
         message: 'La source de cet Event ne résout pas une option utilisable.',
         eventId: record.id,
         suffix: 'source',
+        severity: !input.proposed &&
+                sourceStatus != NarrativeEventProjectResolutionStatus.ambiguous &&
+                unloadedMapIds.contains(_sourceMapId(definition.source))
+            ? NarrativeEventProjectDiagnosticSeverity.warning
+            : NarrativeEventProjectDiagnosticSeverity.error,
       );
     }
     final sceneMatches = scenesById[definition.sceneId] ?? const [];
@@ -440,6 +452,17 @@ void _appendSourceCatalogDiagnostics({
   }
 }
 
+String? _sourceMapId(NarrativeEventSourceRef source) => source.when(
+      entityInteract: (mapId, _) => mapId,
+      entityBump: (mapId, _) => mapId,
+      entityAutorun: (mapId, _) => mapId,
+      modelInteract: (mapId, _) => mapId,
+      triggerBump: (mapId, _) => mapId,
+      triggerEnter: (mapId, _) => mapId,
+      mapEnter: (mapId) => mapId,
+      outcomeReceived: (_) => null,
+    );
+
 NarrativeEventProjectResolutionStatus _resolveSource(
   NarrativeEventSourceRef source, {
   required NarrativeSpatialEventSourceCatalog spatialSources,
@@ -500,11 +523,13 @@ void _recordEventIssue({
   required String message,
   required String eventId,
   String? suffix,
+  NarrativeEventProjectDiagnosticSeverity severity =
+      NarrativeEventProjectDiagnosticSeverity.error,
 }) {
   diagnostics.add(
     NarrativeEventProjectDiagnostic(
       code: code,
-      severity: NarrativeEventProjectDiagnosticSeverity.error,
+      severity: severity,
       message: message,
       path: suffix == null
           ? 'eventRegistry.records.$eventId'

@@ -18,7 +18,6 @@ import 'map_workspace_editor_pane.dart';
 import 'workspace_map_footer.dart';
 import 'map_selection_inspector.dart';
 import 'map_settings_inspector.dart';
-import 'map_ambiance_panel.dart';
 import 'map_elements_panel.dart';
 import 'workspace_compact_panel.dart';
 import 'map_catalogue_empty_view.dart';
@@ -286,16 +285,6 @@ class MapWorkspaceLayout extends StatelessWidget {
               onPalette: compactPalette && ready ? openPalette : onPalette,
               onInspector: openInspector,
               onCommands: ready ? onCommands : null,
-              onAmbiance: !ready || controller.loading || doc.current.spatialScene == null
-                  ? null
-                  : () => showMapAmbiancePanel(
-                      context,
-                      workspace: controller,
-                      document: doc,
-                      project: project,
-                      preview: view!.spatialSceneController,
-                      onChanged: onToolChanged,
-                    ),
               onActivate: onActivate,
               onSave: onSave,
               onTest: onTest,

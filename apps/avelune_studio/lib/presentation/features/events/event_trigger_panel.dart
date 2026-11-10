@@ -2,14 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/events/application/event_workspace_controller.dart';
+import '../../../features/events/application/event_source_selection_session.dart';
+
 import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
+
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/inputs/studio_choice.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
 import 'event_context_map.dart';
+
 import 'package:avelune_studio/features/events/application/event_map_loader.dart';
+
 import 'event_view_state.dart';
 import 'event_labels.dart';
 import 'event_outcome_picker.dart';
@@ -39,76 +44,53 @@ class EventTriggerPanel extends StatefulWidget {
 }
 
 class _EventTriggerPanelState extends State<EventTriggerPanel> {
-  String? _mapId;
-  NarrativeEventSourceKind? _choosing;
-  Future<MapData>? _map;
+  late final EventSourceSelectionSession _selection;
   String? _notice;
-  int _request = 0;
+
   @override
   void initState() {
     super.initState();
-    _load(eventMapId(eventSource(widget.record)));
+    _selection = EventSourceSelectionSession(
+      controller: widget.controller,
+      loader: widget.loader,
+      record: widget.record,
+      changed: () {
+        if (mounted) setState(() => _notice = null);
+      },
+    );
   }
 
   @override
   void didUpdateWidget(EventTriggerPanel old) {
     super.didUpdateWidget(old);
-    final id = eventMapId(eventSource(widget.record));
-    if (id != eventMapId(eventSource(old.record))) _load(id);
+    _selection.configure(
+      controller: widget.controller,
+      loader: widget.loader,
+      record: widget.record,
+    );
   }
 
-  void _load(String? id) {
-    _mapId = id;
-    _map = id == null
-        ? null
-        : widget.loader.load(id).then((map) {
-            widget.controller.acceptMap(map);
-            return map;
-          });
+  @override
+  void dispose() {
+    _selection.dispose();
+    super.dispose();
   }
 
   Future<void> _choose(NarrativeEventSourceKind kind) async {
-    final request = ++_request;
-    if (!await widget.controller.prepare(mapIds: [?_mapId]) ||
-        !mounted ||
-        request != _request) {
-      return;
-    }
-    if (kind == NarrativeEventSourceKind.outcomeReceived) {
-      final result = await chooseEventOutcome(
-        context,
-        widget.controller.catalog.outcomeSources,
-      );
-      if (!mounted || request != _request || result == null) return;
-      widget.controller.setSource(
-        widget.record.id,
-        NarrativeEventSourceRef.outcomeReceived(result),
-      );
-    } else {
-      setState(() {
-        _choosing = kind;
-        _notice = null;
-      });
-    }
+    await _selection.choose(
+      kind,
+      chooseOutcome: () =>
+          chooseEventOutcome(context, widget.controller.catalog.outcomeSources),
+    );
   }
 
-  void _accept(NarrativeEventSourceRef source) {
-    if (_choosing != source.kind || _mapId != eventMapId(source)) {
-      return;
-    }
-    if (widget.controller.setSource(widget.record.id, source)) {
-      setState(() {
-        _choosing = null;
-        _notice = null;
-      });
-    }
-  }
+  void _accept(NarrativeEventSourceRef source) => _selection.accept(source);
 
   @override
   Widget build(BuildContext context) {
     final record = widget.record;
     final source = eventSource(record);
-    final kind = _choosing ?? source?.kind;
+    final kind = _selection.choosing ?? source?.kind;
     return LayoutBuilder(
       builder: (context, constraints) {
         final narrow = constraints.maxWidth < 640;
@@ -158,15 +140,15 @@ class _EventTriggerPanelState extends State<EventTriggerPanel> {
               const SizedBox(height: 14),
               if (kind != NarrativeEventSourceKind.outcomeReceived) ...[
                 StudioSelect(
-                  label: _choosing == null
+                  label: _selection.choosing == null
                       ? 'Consulter une carte'
                       : 'Carte de la source',
-                  value: _mapId,
+                  value: _selection.mapId,
                   options: {
                     for (final e in widget.controller.project.maps)
                       e.id: '${e.name} · ${e.id}',
                   },
-                  onChanged: (id) => setState(() => _load(id)),
+                  onChanged: _selection.selectMap,
                 ),
                 const SizedBox(height: 10),
                 if (eventMapId(source) != null)
@@ -189,7 +171,7 @@ class _EventTriggerPanelState extends State<EventTriggerPanel> {
                   ),
                 ],
               ],
-              if (_choosing != null) ...[
+              if (_selection.choosing != null) ...[
                 const SizedBox(height: 10),
                 const StudioNotice(
                   'Choisissez une cible surlignée. Déplacez l’aperçu avec la main. Échap annule.',
@@ -197,11 +179,7 @@ class _EventTriggerPanelState extends State<EventTriggerPanel> {
                 StudioButton(
                   label: 'Annuler le choix',
                   secondary: true,
-                  onPressed: () => setState(() {
-                    _request++;
-                    _choosing = null;
-                    _load(eventMapId(source));
-                  }),
+                  onPressed: _selection.cancel,
                 ),
               ],
               if (source != null) ...[
@@ -222,13 +200,13 @@ class _EventTriggerPanelState extends State<EventTriggerPanel> {
         );
         final preview =
             kind == NarrativeEventSourceKind.outcomeReceived &&
-                _choosing == null
+                _selection.choosing == null
             ? EventOutcomeSummary(
                 source: source,
                 controller: widget.controller,
                 onOpenProducer: widget.onProducer,
               )
-            : _map == null
+            : _selection.pendingMap == null
             ? const StudioPanel(
                 title: 'Contexte',
                 children: [
@@ -238,10 +216,11 @@ class _EventTriggerPanelState extends State<EventTriggerPanel> {
                 ],
               )
             : FutureBuilder<MapData>(
-                future: _map,
+                future: _selection.pendingMap,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState != ConnectionState.done ||
-                      snapshot.data?.id != _mapId && !snapshot.hasError) {
+                      snapshot.data?.id != _selection.mapId &&
+                          !snapshot.hasError) {
                     return const Center(child: Text('Chargement de la carte…'));
                   }
                   if (snapshot.hasError) {
@@ -256,7 +235,7 @@ class _EventTriggerPanelState extends State<EventTriggerPanel> {
                   }
                   final targetId = eventTargetId(source);
                   final missing =
-                      _choosing == null &&
+                      _selection.choosing == null &&
                       source != null &&
                       eventMapId(source) == map.id &&
                       targetId != null &&
@@ -264,7 +243,7 @@ class _EventTriggerPanelState extends State<EventTriggerPanel> {
                       !map.triggers.any((t) => t.id == targetId);
                   final missingModel =
                       source?.kind == NarrativeEventSourceKind.modelInteract &&
-                      _choosing == null &&
+                      _selection.choosing == null &&
                       eventMapId(source) == map.id &&
                       !(map.spatialScene?.instances.any(
                             (instance) => instance.id == targetId,
@@ -296,8 +275,8 @@ class _EventTriggerPanelState extends State<EventTriggerPanel> {
                             '${record.id}:${map.id}',
                           ),
                           source: source,
-                          chooseKind: _choosing,
-                          selectableSources: _choosing == null
+                          chooseKind: _selection.choosing,
+                          selectableSources: _selection.choosing == null
                               ? null
                               : widget.controller.catalog.spatialSources.options
                                     .where(
@@ -306,16 +285,12 @@ class _EventTriggerPanelState extends State<EventTriggerPanel> {
                                     .map((o) => o.source!)
                                     .toSet(),
                           onChoose: _accept,
-                          onCancel: () => setState(() {
-                            _request++;
-                            _choosing = null;
-                            _load(eventMapId(source));
-                          }),
+                          onCancel: _selection.cancel,
                         ),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        _choosing == null
+                        _selection.choosing == null
                             ? 'Aperçu en lecture seule · glisser pour déplacer, molette pour zoomer'
                             : 'Choix de source · aucun placement ni écriture de carte',
                         style: Theme.of(context).textTheme.bodySmall,

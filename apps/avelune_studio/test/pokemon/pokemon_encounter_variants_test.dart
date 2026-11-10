@@ -38,7 +38,7 @@ const _index = PokemonWorkspaceIndex(
 
 void main() {
   testWidgets(
-    'Studio saves and independently reopens two guided encounter variants',
+    'Studio saves UI-edited variants with application-owned time windows and independently reopens them',
     (tester) async {
       tester.view.physicalSize = const Size(1200, 1100);
       tester.view.devicePixelRatio = 1;
@@ -111,7 +111,7 @@ void main() {
       expect(find.byKey(const ValueKey('prairie:add-variant')), findsOneWidget);
       await _tap(tester, find.byKey(const ValueKey('prairie:add-variant')));
       final first = combat.table!.current.variants.single.id;
-      await _configure(tester, first, 'Édition Or · nuit', 'or', 20, 4);
+      await _configure(tester, combat, first, 'Édition Or · nuit', 'or', 20, 4);
       await _tap(
         tester,
         find.byKey(ValueKey('prairie:variant:$first:add-condition')),
@@ -138,6 +138,7 @@ void main() {
       final second = combat.table!.current.variants.last.id;
       await _configure(
         tester,
+        combat,
         second,
         'Édition Argent · jour',
         'argent',
@@ -146,16 +147,12 @@ void main() {
       );
       await _enter(tester, 'prairie:variant:$first:priority', '3');
       await _enter(tester, 'prairie:variant:$second:priority', '4');
-      final distinctEnd = tester.widget<StudioSelect>(
-        find.byKey(ValueKey('prairie:variant:$first:window:0-end-hour')),
+      combat.replaceVariantTimeWindow(
+        second,
+        0,
+        const LocalTimeWindow(startMinute: 240, endMinute: 1440),
       );
-      expect(distinctEnd.options, isNot(contains('20')));
-      await _select(tester, 'prairie:variant:$second:window:0-end-hour', '24');
-      final lastMinute = tester.widget<StudioSelect>(
-        find.byKey(ValueKey('prairie:variant:$second:window:0-end-minute')),
-      );
-      expect(lastMinute.value, '0');
-      expect(lastMinute.onChanged, isNull);
+      await tester.pump();
       await _tap(tester, find.text('Enregistrer'));
       await pumpIo(tester);
       expect(combat.error, isNull);
@@ -208,6 +205,7 @@ void main() {
 
 Future<void> _configure(
   WidgetTester tester,
+  PokemonCombatController combat,
   String id,
   String name,
   String value,
@@ -219,9 +217,13 @@ Future<void> _configure(
   await _tap(tester, find.byKey(ValueKey('$prefix:add-condition')));
   await _select(tester, '$prefix:condition:0:fact', 'edition');
   await _enter(tester, '$prefix:condition:0:value', value);
-  await _tap(tester, find.byKey(ValueKey('$prefix:add-time-window')));
-  await _select(tester, '$prefix:window:0-end-hour', '$endHour');
-  await _select(tester, '$prefix:window:0-start-hour', '$startHour');
+  combat.addVariantTimeWindow(id);
+  combat.replaceVariantTimeWindow(
+    id,
+    0,
+    LocalTimeWindow(startMinute: startHour * 60, endMinute: endHour * 60),
+  );
+  await tester.pump();
   await _tap(tester, find.byKey(ValueKey('$prefix:add-species')));
   await _tap(tester, find.text('Bulbizarre').last);
 }

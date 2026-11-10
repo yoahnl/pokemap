@@ -2,21 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/map_workspace/application/gameplay_zone_editing_commands.dart';
+import '../../../features/map_workspace/application/gameplay_zone_choices.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import 'map_dive_zone_panel.dart';
-
-String zoneKindLabel(GameplayZoneKind kind, {bool spatial = false}) =>
-    switch (kind) {
-      GameplayZoneKind.encounter => 'Rencontres',
-      GameplayZoneKind.movement => 'Déplacement requis',
-      GameplayZoneKind.movementEffect => 'Effet de surface',
-      GameplayZoneKind.fieldAction =>
-        spatial ? 'Action de terrain' : 'Action de terrain (2D)',
-      GameplayZoneKind.hazard => 'Danger',
-      GameplayZoneKind.special => 'Spéciale',
-      GameplayZoneKind.custom => 'Héritée',
-    };
 
 List<Widget> zonePayloadFields({
   required BuildContext context,
@@ -73,18 +62,12 @@ List<Widget> zonePayloadFields({
   if (waterfall != null || whirlpool != null) {
     final direction = waterfall?.direction ?? whirlpool!.direction;
     final entry = waterfall?.entry ?? whirlpool!.entry;
-    final exit = waterfall?.exit ?? whirlpool!.exit;
     final path = waterfall?.path ?? whirlpool!.path;
     final actionName = whirlpool != null ? 'Tourbillon' : 'Cascade';
-    final vertical =
-        direction == MapConnectionDirection.north ||
-        direction == MapConnectionDirection.south;
-    final forward =
-        direction == MapConnectionDirection.south ||
-        direction == MapConnectionDirection.east;
-    final start = vertical ? entry.y : entry.x;
-    final end = vertical ? exit.y : exit.x;
-    final length = vertical ? zone.area.size.height : zone.area.size.width;
+    final choices = MapFieldTraversalChoices(zone);
+    final vertical = choices.vertical;
+    final start = choices.start;
+    final end = choices.end;
     void configure({
       MapConnectionDirection? direction,
       int? line,
@@ -157,15 +140,11 @@ List<Widget> zonePayloadFields({
       ),
       const SizedBox(height: 8),
       select('Entrée (case du rectangle)', '$start', {
-        for (var i = 0; i < length; i++)
-          if ((end - i) * (forward ? 1 : -1) >= 2 && (end - i).abs() <= 257)
-            '$i': '${i + 1}',
+        for (final i in choices.entryIndices) '$i': '${i + 1}',
       }, (next) => configure(entryIndex: int.parse(next))),
       const SizedBox(height: 8),
       select('Sortie (case du rectangle)', '$end', {
-        for (var i = 0; i < length; i++)
-          if ((i - start) * (forward ? 1 : -1) >= 2 && (i - start).abs() <= 257)
-            '$i': '${i + 1}',
+        for (final i in choices.exitIndices) '$i': '${i + 1}',
       }, (next) => configure(exitIndex: int.parse(next))),
       const SizedBox(height: 8),
       if (waterfall != null)
@@ -399,14 +378,3 @@ List<Widget> zonePayloadFields({
     ),
   ];
 }
-
-String movementModeLabel(MovementMode mode) => switch (mode) {
-  MovementMode.walk => 'À pied',
-  MovementMode.surf => 'En surf',
-  MovementMode.dive => 'Sous l’eau (Plongée)',
-  MovementMode.fly => 'En vol',
-  MovementMode.cut => 'Après avoir coupé',
-  MovementMode.bicycle => 'À vélo',
-  MovementMode.strength => 'Avec la force',
-  MovementMode.rockSmash => 'Après avoir brisé',
-};

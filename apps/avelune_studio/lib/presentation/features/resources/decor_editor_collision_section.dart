@@ -88,14 +88,8 @@ extension _DecorEditorCollisionSection on _DecorEditorScreenState {
         ] else
           Expanded(
             child: DecorCollisionMask(
-              width: draft.selection.width,
-              height: draft.selection.height,
-              tileWidth: draft.tileWidth,
-              tileHeight: draft.tileHeight,
-              blocked: {...draft.blocked},
-              pixels: draft.collisionPixels,
-              maskWidth: draft.pixelWidth,
-              revision: draft.collisionRevision,
+              draft: draft,
+              onChanged: () => _change(() {}),
               fine: fine,
               erase: erase,
               brushSize: brushSize,
@@ -106,20 +100,6 @@ extension _DecorEditorCollisionSection on _DecorEditorScreenState {
                   (draft.selection.height * draft.tileHeight).toDouble(),
                 ),
               ),
-              onStrokeStart: draft.beginCollisionStroke,
-              onStrokeEnd: () => _change(draft.endCollisionStroke),
-              onStrokeCancel: () => _change(draft.cancelCollisionStroke),
-              onPaint: (point) => _change(() {
-                if (fine) {
-                  draft.paintCollisionPixel(
-                    point,
-                    solid: !erase,
-                    size: brushSize,
-                  );
-                } else {
-                  draft.paintCollisionCell(point, solid: !erase);
-                }
-              }),
             ),
           ),
       ],

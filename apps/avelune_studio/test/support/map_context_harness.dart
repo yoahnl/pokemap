@@ -1,35 +1,37 @@
+import 'package:avelune_studio/features/map_workspace/application/map_context_interaction_session.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_context_command_runner.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_context_menu_actions.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_context_menu_model.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_context_menu.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_selection_inspector.dart';
 import 'package:avelune_studio/platform/rendering/viewports/map_editing_viewport_2d.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
 import 'map_workspace_fixture.dart';
 
-/// Canvas, inspector and context menu sharing one document and one selection,
-/// wired the way the workspace wires them.
 class MapContextHarness {
   MapContextHarness(this.document, this.project);
   final EditableMapDocument document;
   ProjectManifest project;
-  final view = MapWorkspaceViewState();
-  GridPos? _cell;
-  MapContextTarget? _target;
-  MapContextMenuRequest? _request;
+  final view = MapEditingViewportSession();
+  late final session = MapContextInteractionSession(
+    contextAt: (cell) => MapContextActionContext(
+      document: document,
+      project: project,
+      position: cell,
+    ),
+    view: () => view,
+    navigation: (_) => _navigation,
+    changed: () => _redraw(() {}),
+  );
+  MapContextMenuRequest? get request => session.request;
   MapContextNavigation? navigation;
 
-  /// The same arming the screen performs, so the harness exercises the real
-  /// move path instead of a stub.
   MapContextNavigation get _navigation =>
       navigation ??
       MapContextNavigation(
@@ -73,75 +75,13 @@ class MapContextHarness {
   String? selected(MapSelectionFamily family) =>
       view.selectedFor(document.current.id, family);
 
-  MapContextActionContext get _context => MapContextActionContext(
-    document: document,
-    project: project,
-    position: _cell ?? const GridPos(x: 0, y: 0),
-  );
+  void _open(GridPos cell, Offset anchor) => session.open(cell, anchor);
 
-  void _open(GridPos cell, Offset anchor) {
-    _cell = cell;
-    final targets = mapContextTargetsAt(document, project, cell);
-    _target = targets.firstOrNull;
-    _request = MapContextMenuRequest(
-      position: anchor,
-      targets: targets,
-      selected: _target,
-      actions: mapContextActionsFor(_target, _context),
-    );
-    _applySelection();
-    _redraw(() {});
-  }
+  void close() => session.close();
 
-  void _applySelection() {
-    final target = _target;
-    if (target == null) {
-      view.clearSelection(document);
-      return;
-    }
-    view.select(document, _selectionFamily(target.family), target.id);
-  }
+  void run(MapContextCommand command) => session.run(command);
 
-  void close() {
-    _cell = null;
-    _target = null;
-    _request = null;
-    _redraw(() {});
-  }
-
-  void run(MapContextCommand command) {
-    if (_cell == null) return;
-    final context = _context;
-    final target = _target;
-    close();
-    final refusal = MapContextCommandRunner(
-      context,
-      navigation: _navigation,
-    ).run(command, target);
-    if (refusal != null) document.error = refusal;
-    _redraw(() {});
-  }
-
-  Widget? _menu() {
-    final request = _request;
-    if (request == null) return null;
-    return MapContextMenu(
-      request: request,
-      onTarget: (target) {
-        _target = target;
-        _request = MapContextMenuRequest(
-          position: request.position,
-          targets: request.targets,
-          selected: target,
-          actions: mapContextActionsFor(target, _context),
-        );
-        _applySelection();
-        _redraw(() {});
-      },
-      onCommand: run,
-      onDismiss: close,
-    );
-  }
+  void select(MapContextTarget target) => session.select(target);
 
   Future<void> pump(
     WidgetTester tester, {
@@ -174,18 +114,8 @@ class MapContextHarness {
                           onContextMenu: _open,
                         ),
                       ),
-                      MapSelectionInspector(
-                        document: document,
-                        project: project,
-                        visuals: WorkspaceTestVisuals(),
-                        view: view,
-                        onChanged: () => setState(() {}),
-                        onOpenElement: (_) {},
-                        onEditElement: (_) {},
-                      ),
                     ],
                   ),
-                  ?_menu(),
                 ],
               );
               return wrap == null ? content : wrap(content);
@@ -222,9 +152,12 @@ class MapContextHarness {
   }
 
   Future<void> escape(WidgetTester tester) async {
-    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    close();
     await tester.pumpAndSettle();
   }
 
-  void dispose() => view.dispose();
+  void dispose() {
+    session.dispose();
+    view.dispose();
+  }
 }

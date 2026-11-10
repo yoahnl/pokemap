@@ -1,36 +1,95 @@
 part of 'dialogue_workspace_controller.dart';
 
 extension DialogueWorkspaceLinks on DialogueWorkspaceController {
-  bool connect(
-    String branchId,
-    String targetNodeId, {
-    bool replace = false,
-  }) => _edit((v) {
-    final branch = _branch(v.document, branchId);
-    final target = v.document.nodeById(targetNodeId);
-    if (target == null) throw StateError('Destination absente.');
-    final jumps = branch.steps.whereType<DeJumpStep>().toList();
-    if (jumps.length > 1 ||
-        (jumps.isNotEmpty && branch.steps.last != jumps.single)) {
-      throw StateError(
-        'Réorganisez cette branche avant de modifier son saut : du contenu suit la destination.',
-      );
+  Future<bool> connectSelection(
+    String id,
+    String target, {
+    required Future<bool> Function() confirmReplacement,
+    bool Function()? isActive,
+  }) async {
+    final owner = _active;
+    if (_closed || owner == null) return false;
+    final document = owner.current.document;
+    final node = document.nodes
+        .where(
+          (node) =>
+              node.id == id ||
+              node.steps.whereType<DeJumpStep>().any((step) => step.id == id),
+        )
+        .firstOrNull;
+    final branch = document.nodes
+        .expand(dialogueBranches)
+        .where((branch) => branch.id == id)
+        .firstOrNull;
+    final jumps =
+        node?.steps.whereType<DeJumpStep>() ??
+        branch?.steps.whereType<DeJumpStep>() ??
+        [];
+    final destination = document.nodeById(target);
+    final replacing = jumps.any(
+      (jump) => jump.targetTitle != destination?.title,
+    );
+    final revision = owner.revision;
+    if (replacing && !await confirmReplacement()) return false;
+    if (_closed ||
+        !(isActive?.call() ?? true) ||
+        !identical(_active, owner) ||
+        owner.revision != revision) {
+      return false;
     }
-    if (jumps.isNotEmpty &&
-        jumps.single.targetTitle != target.title &&
-        !replace) {
-      throw StateError(
-        'Cette réponse possède déjà une destination. Confirmez son remplacement.',
-      );
+    return node != null
+        ? connectNode(node.id, target, replace: replacing)
+        : connect(id, target, replace: replacing);
+  }
+
+  bool deleteSelection({
+    String? wireId,
+    String? branchId,
+    String? stepId,
+    String? nodeId,
+  }) {
+    final document = _active?.current.document;
+    if (_closed || document == null) return false;
+    if (wireId != null) {
+      final step = document.nodes
+          .expand((node) => dialogueSteps(node.steps))
+          .where((step) => step.id == wireId)
+          .firstOrNull;
+      return step is DeJumpStep ? disconnectJump(wireId) : disconnect(wireId);
     }
-    if (jumps.isEmpty) {
-      branch.steps.add(
-        DeJumpStep(id: newDialogueEditorId(), targetTitle: target.title),
-      );
-    } else {
-      jumps.single.targetTitle = target.title;
-    }
-  });
+    if (branchId != null) return removeResponse(branchId);
+    if (stepId != null) return removeStep(stepId);
+    if (nodeId != null) return deleteNode(nodeId);
+    return false;
+  }
+
+  bool connect(String branchId, String targetNodeId, {bool replace = false}) =>
+      _edit((v) {
+        final branch = _branch(v.document, branchId);
+        final target = v.document.nodeById(targetNodeId);
+        if (target == null) throw StateError('Destination absente.');
+        final jumps = branch.steps.whereType<DeJumpStep>().toList();
+        if (jumps.length > 1 ||
+            (jumps.isNotEmpty && branch.steps.last != jumps.single)) {
+          throw StateError(
+            'Réorganisez cette branche avant de modifier son saut : du contenu suit la destination.',
+          );
+        }
+        if (jumps.isNotEmpty &&
+            jumps.single.targetTitle != target.title &&
+            !replace) {
+          throw StateError(
+            'Cette réponse possède déjà une destination. Confirmez son remplacement.',
+          );
+        }
+        if (jumps.isEmpty) {
+          branch.steps.add(
+            DeJumpStep(id: newDialogueEditorId(), targetTitle: target.title),
+          );
+        } else {
+          jumps.single.targetTitle = target.title;
+        }
+      });
   bool disconnect(String branchId) => _edit((v) {
     _branch(v.document, branchId).steps.removeWhere((s) => s is DeJumpStep);
   });

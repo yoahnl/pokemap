@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
+import '../../../features/events/application/event_scene_selection.dart';
+
 import '../../shared/widgets/layout/studio_panel.dart';
 import '../../shared/widgets/inputs/studio_choice.dart';
 import '../../shared/widgets/inputs/studio_search_field.dart';
@@ -40,20 +42,17 @@ class _EventScenePanelState extends State<EventScenePanel> {
 
   @override
   Widget build(BuildContext context) {
-    final selectedId = widget.selectedId;
-    final linked = widget.scenes
-        .where((scene) => scene.id == selectedId)
-        .firstOrNull;
-    final contexts = _sceneContexts();
+    final choices = eventSceneChoices(
+      scenes: widget.scenes,
+      storylines: widget.storylines,
+      selectedId: widget.selectedId,
+      query: _query,
+    );
+    final selectedId = choices.selectedId;
+    final linked = choices.linked;
+    final contexts = choices.contexts;
+    final visible = choices.visible;
     final needle = _query.trim().toLowerCase();
-    final visible = [
-      if (linked != null && _matches(linked, contexts[linked.id], needle))
-        linked,
-      for (final scene in widget.scenes)
-        if (scene.id != selectedId &&
-            _matches(scene, contexts[scene.id], needle))
-          scene,
-    ];
     final total = widget.scenes.length;
     final textTheme = Theme.of(context).textTheme;
     return StudioPanel(
@@ -135,33 +134,4 @@ class _EventScenePanelState extends State<EventScenePanel> {
       ],
     );
   }
-
-  Map<String, String> _sceneContexts() {
-    final storylines = {
-      for (final storyline in widget.storylines) storyline.id: storyline,
-    };
-    return {
-      for (final scene in widget.scenes)
-        scene.id: [
-          if (storylines[scene.storylineId] case final storyline?) ...[
-            storyline.title,
-            if (storyline.chapters
-                    .where((chapter) => chapter.id == scene.chapterId)
-                    .firstOrNull
-                case final chapter?)
-              chapter.title,
-          ],
-          if (scene.description?.trim() case final description?
-              when description.isNotEmpty)
-            description,
-          ...scene.tags,
-        ].join(' · '),
-    };
-  }
-
-  bool _matches(SceneAsset scene, String? context, String needle) =>
-      needle.isEmpty ||
-      scene.name.toLowerCase().contains(needle) ||
-      scene.id.toLowerCase().contains(needle) ||
-      (context?.toLowerCase().contains(needle) ?? false);
 }

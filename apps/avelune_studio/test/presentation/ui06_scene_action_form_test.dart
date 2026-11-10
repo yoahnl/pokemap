@@ -185,7 +185,20 @@ void main() {
       tester.widget<StudioButton>(find.byType(StudioButton)).onPressed,
       isNull,
     );
+    final commands = tester.widget<StudioSelect>(
+      find.byWidgetPredicate(
+        (widget) => widget is StudioSelect && widget.label == 'Commande',
+      ),
+    );
+    expect(commands.options[NarrativeCommandIds.giveMoney], 'Donner de l’argent');
     await tester.tap(find.byType(DropdownButtonFormField<String>).first);
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Donner de l’argent'),
+      48,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.ensureVisible(find.text('Donner de l’argent').last);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Donner de l’argent').last);
     await tester.pumpAndSettle();

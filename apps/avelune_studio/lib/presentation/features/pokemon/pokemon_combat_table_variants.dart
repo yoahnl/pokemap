@@ -29,22 +29,7 @@ Widget _buildCombatTableVariants(
         label: 'Ajouter une variante',
         secondary: true,
         icon: Icons.add,
-        onPressed: () => combat.editTable((current) {
-          final used = current.variants.map((value) => value.id).toSet();
-          var suffix = 1;
-          while (used.contains('variant_$suffix')) {
-            suffix++;
-          }
-          return current.copyWith(
-            variants: [
-              ...current.variants,
-              ProjectEncounterVariant(
-                id: 'variant_$suffix',
-                name: 'Variante $suffix',
-              ),
-            ],
-          );
-        }),
+        onPressed: combat.addEncounterVariant,
       ),
     ),
   ],
@@ -54,14 +39,7 @@ void _changeCombatVariant(
   PokemonCombatController combat,
   String id,
   ProjectEncounterVariant Function(ProjectEncounterVariant) change,
-) => combat.editTable(
-  (table) => table.copyWith(
-    variants: [
-      for (final variant in table.variants)
-        if (variant.id == id) change(variant) else variant,
-    ],
-  ),
-);
+) => combat.editEncounterVariant(id, change);
 
 Widget _buildCombatTableVariant(
   BuildContext context,
@@ -102,8 +80,6 @@ Widget _buildCombatTableVariant(
       const SizedBox(height: 18),
       _buildCombatVariantConditions(combat, variant, prefix),
       const SizedBox(height: 18),
-      _buildCombatVariantTimeWindows(combat, variant, prefix),
-      const SizedBox(height: 18),
       Text(
         'Espèces et poids relatifs',
         style: Theme.of(context).textTheme.titleSmall,
@@ -135,18 +111,7 @@ Widget _buildCombatTableVariant(
                 : () async {
                     final chosen = await chooseCombatSpecies(context, index);
                     if (chosen == null) return;
-                    _changeCombatTableEntries(
-                      combat,
-                      variant.id,
-                      (entries) => [
-                        ...entries,
-                        ProjectEncounterEntry(
-                          speciesId: chosen,
-                          minLevel: 5,
-                          maxLevel: 5,
-                        ),
-                      ],
-                    );
+                    combat.addEncounterSpecies(chosen, variantId: variant.id);
                   },
           ),
           StudioButton(
@@ -154,21 +119,7 @@ Widget _buildCombatTableVariant(
             label: 'Retirer la variante',
             secondary: true,
             icon: Icons.delete_outline,
-            onPressed: () {
-              for (final values in [combat.numericInputs, combat.fieldErrors]) {
-                values.removeWhere(
-                  (key, _) => key.startsWith('variant:${variant.id}:'),
-                );
-              }
-              combat.editTable(
-                (current) => current.copyWith(
-                  variants: [
-                    for (final value in current.variants)
-                      if (value.id != variant.id) value,
-                  ],
-                ),
-              );
-            },
+            onPressed: () => combat.removeEncounterVariant(variant.id),
           ),
         ],
       ),
@@ -180,21 +131,4 @@ void _remapCombatVariantInputs(
   PokemonCombatController combat,
   String prefix,
   int removedIndex,
-) {
-  final pattern = RegExp('^${RegExp.escape(prefix)}([0-9]+):');
-  for (final values in [combat.numericInputs, combat.fieldErrors]) {
-    final remapped = <String, String>{};
-    for (final entry in values.entries) {
-      final match = pattern.firstMatch(entry.key);
-      final owner = match == null ? null : int.parse(match.group(1)!);
-      if (owner == removedIndex) continue;
-      final key = owner != null && owner > removedIndex
-          ? '$prefix${owner - 1}:${entry.key.substring(match!.end)}'
-          : entry.key;
-      remapped[key] = entry.value;
-    }
-    values
-      ..clear()
-      ..addAll(remapped);
-  }
-}
+) => combat.remapVariantInputs(prefix, removedIndex);

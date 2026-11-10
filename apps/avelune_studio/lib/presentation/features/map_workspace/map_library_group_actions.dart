@@ -55,16 +55,6 @@ extension _MapLibraryGroupActions on _MapLibraryNavigatorState {
       return;
     }
     var name = group.name, parent = group.parentGroupId ?? '';
-    final excluded = <String>{group.id};
-    bool changed;
-    do {
-      changed = false;
-      for (final item in widget.project.groups) {
-        if (excluded.contains(item.parentGroupId) && excluded.add(item.id)) {
-          changed = true;
-        }
-      }
-    } while (changed);
     final rename = action == MapLibraryAction.rename;
     await showMapCatalogueForm(
       context,
@@ -85,9 +75,7 @@ extension _MapLibraryGroupActions on _MapLibraryNavigatorState {
               label: 'Dossier parent',
               value: parent,
               options: mapLibraryFolderLabels(
-                widget.project.groups
-                    .where((item) => !excluded.contains(item.id))
-                    .toList(),
+                _libraryCommands.parentCandidates(group.id),
               ),
               onChanged: busy
                   ? null

@@ -59,27 +59,13 @@ extension _WorkspaceStoryBinding on _MapWorkspaceScreenState {
   }
 
   Future<void> _openNarrativeMapAsync(String mapId) async {
-    final project = _controller.project;
-    final entry = project?.maps.where((item) => item.id == mapId).firstOrNull;
-    if (entry == null) return;
-    final request = ++_navigationRequest;
-    bool current() =>
-        mounted &&
-        request == _navigationRequest &&
-        identical(_controller.project, project) &&
-        _space == WorkspaceSpace.story;
-    await _controller.activate(entry, isCurrent: current);
-    if (!current()) return;
-    if (_controller.active?.base.mapId != mapId) {
-      _storyViewState.notice = _controller.error ?? 'Carte indisponible.';
-      _changed();
-      return;
-    }
-    _gestureGeneration++;
-    _view?.pendingMove = null;
-    _view?.tool = StudioMapTool.select;
-    _show(WorkspaceSpace.map);
-    _toolChanged();
+    final problem = await _navigation.openNarrativeMap(
+      mapId,
+      cancelGestures: () => _gestureGeneration++,
+    );
+    if (!mounted || problem == null) return;
+    _storyViewState.notice = problem;
+    _changed();
   }
 
   Future<void> _editInteraction(MapEntity entity) async {

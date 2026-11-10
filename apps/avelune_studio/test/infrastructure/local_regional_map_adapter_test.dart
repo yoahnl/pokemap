@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:flutter/material.dart';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring.dart';
@@ -13,7 +12,7 @@ import 'package:avelune_studio/features/regional_map/application/regional_map_co
 import 'package:avelune_studio/features/regional_map/data/local_regional_map_adapter.dart';
 import 'package:avelune_studio/features/regional_map/domain/regional_map_port.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/workspace_actions.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/workspace_workflow.dart';
 
 void main() {
   test(
@@ -121,25 +120,16 @@ void main() {
           final projectFile = File('${fixture.root.path}/project.json');
           final projectBytes = await projectFile.readAsBytes();
           expect(await owner.saveAll(), isTrue);
-          late WorkspaceActions actions;
-          await tester.pumpWidget(
-            MaterialApp(
-              home: Builder(
-                builder: (context) {
-                  actions = WorkspaceActions(
+          final actions = WorkspaceWorkflow(
                     controller: maps,
-                    context: () => context,
-                    mounted: () => true,
+                    isActive: () => true,
                     changed: () {},
                     resources: () => null,
                     narrative: () => null,
                     regionalMap: () => owner,
-                    runtimeBuilder: (_, _, _) => const SizedBox(),
-                  );
-                  return const Scaffold();
-                },
-              ),
-            ),
+                    confirmClose: () async => WorkspaceCloseChoice.save,
+            flushFocus: () {},
+            launchMap: (_, _) async {},
           );
           expect(actions.hasPendingChanges, isFalse);
           expect(await actions.flushEditors(), isTrue);

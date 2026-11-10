@@ -1,54 +1,24 @@
 import 'dart:typed_data';
 
-import 'package:avelune_studio/presentation/features/resources/resource_image_import.dart';
-import 'package:flutter/material.dart';
+import 'package:avelune_studio/features/resources/application/resource_image_import_draft.dart';
+import 'package:avelune_studio/features/resources/domain/resource_image_picker.dart';
+import 'package:avelune_studio/platform/rendering/resource_image_content_verifier.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets(
-    'unreadable PNG preview reports a recoverable error and cancels',
-    (tester) async {
-      var completed = false;
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Builder(
-            builder: (context) => Scaffold(
-              body: TextButton(
-                onPressed: () async {
-                  final result = await confirmImageImport(
-                    context,
-                    PickedResourceImage(
-                      '/unused.png',
-                      'Image',
-                      Uint8List(24),
-                      16,
-                      24,
-                    ),
-                    16,
-                    24,
-                  );
-                  expect(result, isNull);
-                  completed = true;
-                },
-                child: const Text('Préparer'),
-              ),
-            ),
-          ),
-        ),
-      );
-      await tester.tap(find.text('Préparer'));
-      await tester.pumpAndSettle();
-      expect(
-        find.text('Cette image PNG ne peut pas être prévisualisée.'),
-        findsOneWidget,
-      );
-      expect(tester.takeException(), isNull);
-      await tester.ensureVisible(find.text('Annuler'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Annuler'));
-      await tester.pumpAndSettle();
-      expect(completed, isTrue);
-      expect(tester.takeException(), isNull);
-    },
-  );
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('unreadable PNG preflight reports a recoverable refusal and closing keeps no import request', () async {
+    final draft = ResourceImageImportDraft(
+      image: PickedResourceImage('/unused.png', 'Image', Uint8List(24), 16, 24),
+      tileWidth: 16,
+      tileHeight: 24,
+    );
+    await draft.verify(verifyResourceImageContent);
+    expect(draft.decoded, isFalse);
+    expect(draft.valid, isFalse);
+    expect(draft.build(), isNull);
+    draft.dispose();
+    expect(draft.build(), isNull);
+  });
 }

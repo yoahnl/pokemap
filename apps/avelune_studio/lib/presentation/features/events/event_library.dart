@@ -8,7 +8,7 @@ import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import 'event_labels.dart';
 import 'event_view_state.dart';
-import 'event_legacy_catalog.dart';
+import 'package:avelune_studio/features/events/application/event_legacy_catalog.dart';
 import 'event_legacy_detail.dart';
 import '../../shared/widgets/feedback/studio_icon_tile.dart';
 

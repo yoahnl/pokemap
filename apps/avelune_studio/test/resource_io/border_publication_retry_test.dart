@@ -1,12 +1,87 @@
+import 'dart:convert';
+
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
+import 'package:avelune_studio/features/resources/data/local_resource_adapter.dart';
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as image;
 import 'package:map_core/map_core.dart';
 
 import 'resource_fixture.dart';
+import '../support/resource_replacement_fixture.dart';
 
 void main() {
+  test(
+    'published receipt survives a reconciliation failure after publication',
+    () async {
+      final host = await ResourceReplacementFixture.create();
+      for (final (id, x) in [('cap', 0), ('straight', 1), ('corner', 2)]) {
+        await host.fixture.resources.saveElement(
+          host.fixture
+              .element(host.item.id, id: id)
+              .copyWith(
+                frames: [
+                  TilesetVisualFrame(source: TilesetSourceRect(x: x, y: 0)),
+                ],
+              ),
+        );
+      }
+      final original = await host.fixture.resources.createBorder(
+        const BorderCreationRequest(
+          blueprintId: 'fence',
+          name: 'Clôture',
+          capElementId: 'cap',
+          straightElementId: 'straight',
+          cornerElementId: 'corner',
+        ),
+      );
+      var reconciliations = 0;
+      final adapter = LocalResourceAdapter(
+        session: host.fixture.session,
+        mapAdapter: host.fixture.maps,
+        beforeReconciliation: () async {
+          if (++reconciliations == 2) {
+            throw StateError('reconciliation unavailable');
+          }
+        },
+      );
+      addTearDown(adapter.dispose);
+      ResourceFailure? failure;
+      try {
+        await adapter.createBorder(
+          BorderCreationRequest(
+            blueprintId: 'fence',
+            expectedRecord: original.manifest.borderCatalog.recordById('fence'),
+            name: 'Clôture révisée',
+            capElementId: 'cap',
+            straightElementId: 'straight',
+            cornerElementId: 'corner',
+          ),
+        );
+      } on ResourceFailure catch (error) {
+        failure = error;
+      }
+      final disk = ProjectManifest.fromJson(
+        jsonDecode(await host.fixture.manifestFile.readAsString())
+            as Map<String, dynamic>,
+      );
+      final published = disk.borderCatalog
+          .recordById('fence')!
+          .latestPublished!;
+      expect(reconciliations, 2);
+      expect(published.revision, 2);
+      expect(published.definition.name, 'Clôture révisée');
+      expect(failure, isNotNull);
+      expect(failure!.partialReceipt!.before, original.manifest);
+      expect(
+        failure.partialReceipt!.manifest.borderCatalog
+            .recordById('fence')!
+            .latestPublished,
+        published,
+      );
+    },
+  );
+
   test('empty border pattern is saved as draft without publication', () async {
     final fixture = await ResourceFixture.create();
     addTearDown(fixture.dispose);

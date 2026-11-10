@@ -7,6 +7,54 @@ const _crown = 'border.spatial.face_crown_mismatch';
 const _base = 'border.spatial.face_base_mismatch';
 
 void main() {
+  test('visual fixed-height floors are checked independently from collision supports', () {
+    final fixture = spatialCliffFixture(geometry: _plateauRegion(), levels: List.filled(36, 1));
+    final source = surfaceFixture().project.smartTileCatalog;
+    final preset = source.presets.single;
+    final project = fixture.project.copyWith(smartTileCatalog: ProjectSmartTileCatalog(atlases: source.atlases, materials: source.materials, presets: [
+      for (final high in [false, true]) preset.copyWith(id: high ? 'high' : 'low', rules: [
+        for (final rule in preset.rules) rule.copyWith(candidates: [
+          for (final candidate in rule.candidates) candidate.copyWith(parts: [
+            for (final part in candidate.parts) part.copyWith(spatialFollowTerrain: false, spatialHeightOffset: high ? 1 : 0,
+              spatialClip: SmartTileSpatialClip(left: .1, top: .1, right: .9, bottom: .9)),
+          ]),
+        ]),
+      ]),
+    ]));
+    final map = fixture.map.copyWith(layers: [...fixture.map.layers,
+      for (final high in [false, true]) MapLayer.smartTile(id: high ? 'high' : 'low', name: 'Floor', presetId: high ? 'high' : 'low',
+        usage: SmartTileUsage.terrain, materialPalette: ['', 'grass'], field: SmartTileField.cell(semanticCells: [
+          for (var z = 0; z < 6; z++) for (var x = 0; x < 6; x++)
+            ((x >= 1 && x <= 4 && z >= 1 && z <= 4) == high) ? 1 : 0,
+        ])),
+    ]);
+    expect(_faceDiagnostics(_resolve((project: project, map: map))), isEmpty);
+    final hidden = map.copyWith(layers: [for (final layer in map.layers) layer.id == 'low' ? layer.copyWith(isVisible: false) : layer]);
+    expect(_faceDiagnostics(_resolve((project: project, map: hidden))), isNotEmpty);
+    ProjectManifest replacingParts(SmartTileVisualPart Function(SmartTileVisualPart) replace) => project.copyWith(
+      smartTileCatalog: ProjectSmartTileCatalog(atlases: source.atlases, materials: source.materials, presets: [
+        for (final current in project.smartTileCatalog.presets) current.copyWith(rules: [
+          for (final rule in current.rules) rule.copyWith(candidates: [
+            for (final candidate in rule.candidates) candidate.copyWith(parts: [for (final part in candidate.parts) replace(part)]),
+          ]),
+        ]),
+      ]));
+    for (final ambiguous in [
+      replacingParts((part) => part.copyWith(transform: const SmartTileSpriteTransform(quarterTurns: 1))),
+      replacingParts((part) => part.copyWith(source: const SmartTileVisualSource.model3d(modelId: 'unit', replacesGround: true))),
+    ]) {
+      final context = SpatialBorderResolutionContext.fromMap(map, manifest: ambiguous);
+      expect(context.groundVisualHeightAt!(.5, .5), isNull);
+      expect(_faceDiagnostics(_resolve((project: ambiguous, map: map))), isNotEmpty);
+    }
+    final shifted = replacingParts((part) => part.copyWith(offsetX: 8)).copyWith(settings: project.settings.copyWith(tileWidth: 16, tileHeight: 16));
+    expect(SpatialBorderResolutionContext.fromMap(map, manifest: shifted).groundVisualHeightAt!(.375, .5), isNull);
+  });
+  test('inclusive crown boundaries sample the interior of each adjacent side', () {
+    final fixture = spatialCliffFixture(geometry: _plateauRegion(), levels: List.filled(36, 0),
+      surfaces: SpatialTerrainSurfaceSet(surfaces: [spatialTestSurface('crown', height: 1, left: .5, top: .5, size: 5)]));
+    expect(_faceDiagnostics(_resolve(fixture)), isEmpty);
+  });
   test('crown-anchored faces that bridge their step stay silent', () {
     final fixture = spatialCliffFixture(geometry: _plateauRegion());
     final resolved = _resolve(fixture);

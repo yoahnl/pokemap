@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
-import 'event_legacy_catalog.dart';
+import 'package:avelune_studio/features/events/application/event_legacy_catalog.dart';
 import 'event_labels.dart';
 
 Future<void> showLegacyEventDetail(

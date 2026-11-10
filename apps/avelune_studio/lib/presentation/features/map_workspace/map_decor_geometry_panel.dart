@@ -1,8 +1,8 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_editing_commands.dart';
+
 import '../../shared/widgets/inputs/studio_commit_field.dart';
 import '../../shared/widgets/inputs/studio_toggle_row.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
@@ -29,9 +29,8 @@ class MapDecorGeometryPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final commands = MapEditingCommands(document, project);
     final owned =
-        environmentOwnedMapPlacedElementIds(
-          document.current,
-        ).contains(instance.id) ||
+        environmentOwnedMapPlacedElementIds(document.current)
+            .contains(instance.id) ||
         instance.properties[pokemapPlacementOriginProperty]?.trim() ==
             pokemapPlacementOriginEnvironment;
     if (owned) {
@@ -81,38 +80,14 @@ class MapDecorGeometryPanel extends StatelessWidget {
         label: label,
         value: '$value',
         tryCommit: (text) {
-          final number = int.tryParse(text.trim());
-          if (number == null) {
-            document.error = 'Saisissez un nombre entier de pixels.';
-            onChanged();
-            return false;
-          }
-          var width = rect.widthPx, height = rect.heightPx;
-          if (id == 'width') {
-            width = number;
-            if (view.lockDecorProportions) {
-              height = math.max(
-                1,
-                (width * rect.heightPx / rect.widthPx).round(),
-              );
-            }
-          }
-          if (id == 'height') {
-            height = number;
-            if (view.lockDecorProportions) {
-              width = math.max(
-                1,
-                (height * rect.widthPx / rect.heightPx).round(),
-              );
-            }
-          }
-          return save(
-            id == 'x' ? number : rect.leftPx,
-            id == 'y' ? number : rect.topPx,
-            id == 'x' || id == 'y'
-                ? instance.pixelSize
-                : PixelSize(width: width, height: height),
+          final result = commands.setGeometryText(
+            instance.id,
+            id,
+            text,
+            lockProportions: view.lockDecorProportions,
           );
+          onChanged();
+          return result;
         },
       ),
     );
@@ -156,11 +131,10 @@ class MapDecorGeometryPanel extends StatelessWidget {
           key: const ValueKey('decor-snap-grid'),
           label: 'Recaler sur la grille',
           secondary: true,
-          onPressed: () => save(
-            (rect.leftPx / tile.width).round() * tile.width,
-            (rect.topPx / tile.height).round() * tile.height,
-            instance.pixelSize,
-          ),
+          onPressed: () {
+            commands.snapGeometryToGrid(instance.id);
+            onChanged();
+          },
         ),
         StudioToggleRow(
           key: const ValueKey('decor-show-collision'),

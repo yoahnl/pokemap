@@ -1,128 +1,116 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:avelune_studio/presentation/features/pokemon/pokemon_workspace_page.dart';
-import 'package:flutter/material.dart';
+import 'package:avelune_studio/features/pokemon/application/pokemon_workspace_controller.dart';
+import 'package:avelune_studio/features/pokemon/domain/pokemon_external_import_models.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring_local.dart';
 
-import '../support/map_host_fixture.dart';
-import '../support/m2_ui_fixture.dart' show pumpIo;
+import '../support/pokemon_authoring_fixture.dart';
 import '../support/pokemon_external_source_fixture.dart';
 
 void main() {
-  testWidgets('kept species changing during import prevents orphan companion', (
-    tester,
-  ) async {
-    final reader = _RaceReader(changeReference: true);
-    final host = await _openHost(tester, reader);
-    final root = host.source.directory.path;
-    await _previewKeptImport(tester, host);
-    reader.projectRoot = root;
-    reader.armed = true;
+  test(
+    'kept species changing during import prevents orphan companion',
+    () async {
+      final reader = _RaceReader(changeReference: true);
+      final host = await _openHost(reader);
+      addTearDown(host.dispose);
+      final root = host.source.directory.path;
+      await _previewKeptImport(host);
+      reader.projectRoot = root;
+      reader.armed = true;
+      expect(
+        await host.workflow.applyExternal(
+          PokemonExternalConflictPolicy.skipExisting,
+          () async =>
+              throw StateError('Keeping files needs no overwrite decision.'),
+        ),
+        isFalse,
+      );
+      final species = jsonDecode(
+        await File('$root/data/pokemon/species/bulbasaur.json').readAsString(),
+      ) as Map;
+      expect(reader.triggered, isTrue);
+      expect((species['refs'] as Map)['learnset'], 'other-learn');
+      expect(
+        await File('$root/data/pokemon/learnsets/bulbasaur.json').exists(),
+        isFalse,
+      );
+      expect(host.pokemon.error, contains('Reprévisualisez'));
+    },
+  );
 
-    await tester.tap(find.text('Appliquer l’import'));
-    await pumpIo(tester);
-
-    final species =
-        jsonDecode(
-              (await tester.runAsync(
-                () => File(
-                  '$root/data/pokemon/species/bulbasaur.json',
-                ).readAsString(),
-              ))!,
-            )
-            as Map;
-    expect(reader.triggered, isTrue);
-    expect((species['refs'] as Map)['learnset'], 'other-learn');
-    expect(
-      (await tester.runAsync(
-        () => File('$root/data/pokemon/learnsets/bulbasaur.json').exists(),
-      ))!,
-      isFalse,
-    );
-    final controller = tester
-        .widget<PokemonWorkspacePage>(find.byType(PokemonWorkspacePage))
-        .controller!;
-    expect(controller.error, contains('Reprévisualisez'));
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('unchanged kept species can receive its missing companion', (
-    tester,
-  ) async {
+  test('unchanged kept species can receive its missing companion', () async {
     final reader = _RaceReader(changeReference: false);
-    final host = await _openHost(tester, reader);
+    final host = await _openHost(reader);
+    addTearDown(host.dispose);
     final root = host.source.directory.path;
-    await _previewKeptImport(tester, host);
+    await _previewKeptImport(host);
     reader.projectRoot = root;
     reader.armed = true;
-
-    await tester.tap(find.text('Appliquer l’import'));
-    await pumpIo(tester);
-
+    expect(
+      await host.workflow.applyExternal(
+        PokemonExternalConflictPolicy.skipExisting,
+        () async =>
+            throw StateError('Keeping files needs no overwrite decision.'),
+      ),
+      isTrue,
+    );
     expect(reader.triggered, isTrue);
     expect(reader.speciesProbes, 2);
     expect(reader.referenceAtPrecondition, 'bulbasaur');
     expect(
-      (await tester.runAsync(
-        () => File('$root/data/pokemon/learnsets/bulbasaur.json').exists(),
-      ))!,
+      await File('$root/data/pokemon/learnsets/bulbasaur.json').exists(),
       isTrue,
     );
-    final controller = tester
-        .widget<PokemonWorkspacePage>(find.byType(PokemonWorkspacePage))
-        .controller!;
-    expect(controller.error, isNull);
-    expect(controller.externalResult, isNotNull);
-    expect(tester.takeException(), isNull);
+    expect(host.pokemon.error, isNull);
+    expect(host.pokemon.externalResult, isNotNull);
   });
 
-  testWidgets(
+  test(
     'transaction precondition rejects a kept species edited after snapshot',
-    (tester) async {
+    () async {
       final reader = _RaceReader(
         changeReference: false,
         changeAtPrecondition: true,
       );
-      final host = await _openHost(tester, reader);
+      final host = await _openHost(reader);
+      addTearDown(host.dispose);
       final root = host.source.directory.path;
-      await _previewKeptImport(tester, host);
+      await _previewKeptImport(host);
       reader.projectRoot = root;
       reader.armed = true;
-
-      await tester.tap(find.text('Appliquer l’import'));
-      await pumpIo(tester);
-
+      expect(
+        await host.workflow.applyExternal(
+          PokemonExternalConflictPolicy.skipExisting,
+          () async =>
+              throw StateError('Keeping files needs no overwrite decision.'),
+        ),
+        isFalse,
+      );
       expect(reader.speciesProbes, 2);
       expect(reader.referenceAtFirstProbe, 'bulbasaur');
       expect(reader.referenceAtPrecondition, 'bulbasaur');
       expect(reader.changedAtPrecondition, isTrue);
-      final file = File('$root/data/pokemon/species/bulbasaur.json');
-      final species = jsonDecode(file.readAsStringSync()) as Map;
+      final species = jsonDecode(
+        await File('$root/data/pokemon/species/bulbasaur.json').readAsString(),
+      ) as Map;
       expect((species['refs'] as Map)['learnset'], 'other-learn');
       expect(
-        (await tester.runAsync(
-          () => File('$root/data/pokemon/learnsets/bulbasaur.json').exists(),
-        ))!,
+        await File('$root/data/pokemon/learnsets/bulbasaur.json').exists(),
         isFalse,
       );
-      final controller = tester
-          .widget<PokemonWorkspacePage>(find.byType(PokemonWorkspacePage))
-          .controller!;
-      expect(controller.error, contains('Reprévisualisez'));
-      expect(controller.externalResult, isNull);
-      expect(find.textContaining('Import bulbasaur :'), findsNothing);
-      expect(tester.takeException(), isNull);
+      expect(host.pokemon.error, contains('Reprévisualisez'));
+      expect(host.pokemon.externalResult, isNull);
     },
   );
 }
 
-Future<MapHostFixture> _openHost(WidgetTester tester, _RaceReader reader) =>
-    MapHostFixture.open(
-      tester,
-      pokemonExternalSource: const PokemonExternalSourceFixture(),
-      pokemonReader: reader,
+Future<PokemonAuthoringFixture> _openHost(_RaceReader reader) =>
+    PokemonAuthoringFixture.create(
+      externalSource: const PokemonExternalSourceFixture(),
+      reader: reader,
       prepareSource: (fixture) async {
         final file = File(
           '${fixture.directory.path}/data/pokemon/species/bulbasaur.json',
@@ -137,30 +125,10 @@ Future<MapHostFixture> _openHost(WidgetTester tester, _RaceReader reader) =>
       },
     );
 
-Future<void> _previewKeptImport(
-  WidgetTester tester,
-  MapHostFixture host,
-) async {
-  await host.go('Pokémon');
-  await pumpIo(tester);
-  await tester.tap(find.text('Importer depuis une source'));
-  await pumpIo(tester);
-  await tester.enterText(
-    find.descendant(
-      of: find.byKey(const ValueKey('pokemon-external-query')),
-      matching: find.byType(TextField),
-    ),
-    'bulbasaur',
-  );
-  await tester.pump();
-  await tester.tap(find.text('Rechercher'));
-  await pumpIo(tester);
-  await tester.tap(find.textContaining('Bulbasaur · #1'));
-  await pumpIo(tester);
-  await tester.tap(find.text('Refuser les conflits'));
-  await tester.pumpAndSettle();
-  await tester.tap(find.text('Garder les fichiers existants').last);
-  await tester.pump();
+Future<void> _previewKeptImport(PokemonAuthoringFixture host) async {
+  expect(await host.pokemon.searchExternal('bulbasaur'), isTrue);
+  expect(await host.pokemon.previewExternal('bulbasaur'), isTrue);
+  expect(host.pokemon.externalPreview!.hasConflicts, isTrue);
 }
 
 final class _RaceReader

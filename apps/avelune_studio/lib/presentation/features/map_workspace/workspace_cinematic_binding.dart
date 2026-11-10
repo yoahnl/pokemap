@@ -6,48 +6,21 @@ extension _WorkspaceCinematicBinding on _MapWorkspaceScreenState {
     _show(WorkspaceSpace.cinematic);
   }
 
-  Future<void> _openSceneCinematic(SceneCinematicPayload payload) async {
-    final request = await _prepareWorkshopRoute(MapWorkspaceWorkshop.cinematic);
-    if (request == null) return;
-    final owner = _cinematics;
-    if (owner == null) return;
-    FocusManager.instance.primaryFocus?.unfocus();
-    FocusManager.instance.applyFocusChangesIfNeeded();
-    if (!await owner.open(payload.cinematicId) ||
-        !mounted ||
-        request != _navigationRequest) {
-      return;
-    }
-    final backToTriggeredCinematic =
-        _sceneOrigin.space == WorkspaceSpace.cinematic &&
-        _sceneOrigin.documentId == payload.cinematicId;
-    if (!backToTriggeredCinematic) _cinematicOrigin = WorkspaceSpace.scene;
-    _show(WorkspaceSpace.cinematic);
-  }
+  Future<void> _openSceneCinematic(SceneCinematicPayload payload) =>
+      _navigation.openSceneCinematic(
+        payload,
+        flushFocus: () {
+          FocusManager.instance.primaryFocus?.unfocus();
+          FocusManager.instance.applyFocusChangesIfNeeded();
+        },
+      );
 
   Future<void> _openCinematicDialogue(String id) async {
     await _openDialogueRoute(id, WorkspaceSpace.cinematic);
   }
 
-  Future<String?> _locateCinematic(String id) async {
-    final entries =
-        _controller.project?.maps.where((m) => m.id == id).toList() ?? [];
-    if (entries.length != 1) return 'Cette carte est absente ou ambiguë.';
-    final request = ++_navigationRequest;
-    bool current() =>
-        mounted &&
-        request == _navigationRequest &&
-        _space == WorkspaceSpace.cinematic;
-    await _controller.activate(entries.single, isCurrent: current);
-    if (!current()) return null;
-    if (_controller.active?.current.id != id) {
-      return _controller.error ?? 'Carte indisponible.';
-    }
-    _view?.tool = StudioMapTool.select;
-    _controller.active?.selectedId = null;
-    _cinematicMapReturn = true;
-    _show(WorkspaceSpace.map);
-    _toolChanged();
-    return null;
-  }
+  Future<String?> _locateCinematic(String id) => _navigation.locateCinematic(
+    id,
+    mapReturn: () => _cinematicMapReturn = true,
+  );
 }

@@ -7,9 +7,8 @@ import 'package:avelune_studio/features/map_workspace/application/gameplay_zone_
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_zone_inspector.dart';
 import 'package:avelune_studio/platform/rendering/viewports/spatial_map_editing_viewport.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
 import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 import 'package:map_render_3d/map_render_3d.dart';
 import 'package:flutter/material.dart';
@@ -31,11 +30,12 @@ void main() {
         2000,
     ]) {
       testWidgets(
-        'spatial route UI first repeat durable undo reopen $foreign ${storage.name}',
+        'spatial route native creation and command repeat durable undo reopen $foreign ${storage.name}',
         (tester) async {
-          final root = Directory(
-            '/Users/karim/Library/Caches/AveluneQA/field-actions-3d/studio-route',
-          );
+          final parent = Directory(
+            '/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/t01-map-retirement',
+          )..createSync(recursive: true);
+          final root = parent.createTempSync('spatial-route-');
           addTearDown(() async {
             if (await root.exists()) await root.delete(recursive: true);
           });
@@ -108,7 +108,7 @@ void main() {
           late Future<bool> pending;
           final publish = document.configureFieldTraversal!;
           document.configureFieldTraversal = (next) => pending = publish(next);
-          final view = MapWorkspaceViewState()
+          final view = MapEditingViewportSession()
             ..tool = StudioMapTool.gameplayZone
             ..zoneKind = GameplayZoneKind.fieldAction;
           addTearDown(view.dispose);
@@ -154,36 +154,10 @@ void main() {
               'studio-route storage=${storage.name} foreign=$foreign first feedbackUs=$feedback durableUs=${timer.elapsedMicroseconds} reads=${reader.paths.length}',
             );
           });
-          await tester.pumpWidget(
-            MaterialApp(
-              home: Scaffold(
-                body: SingleChildScrollView(
-                  child: SizedBox(
-                    width: 500,
-                    child: MapZoneInspector(
-                      document: document,
-                      project: controller.project!,
-                      zone: document.current.gameplayZones.single,
-                      onChanged: () {},
-                      onDeleted: () {},
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          );
-          expect(find.text('Cascade · 3D'), findsOneWidget);
-          expect(find.text('Sens de traversée'), findsOneWidget);
-          final surf = tester.widget<DropdownButtonFormField<String>>(
-            find.descendant(
-              of: find.byKey(ValueKey('waterfall-${zone.id}-Surf requis-true')),
-              matching: find.byType(DropdownButtonFormField<String>),
-            ),
-          );
           await tester.runAsync(() async {
             reader.paths.clear();
             final timer = Stopwatch()..start();
-            surf.onChanged!('false');
+            commands.configureWaterfall(zone.id, requiresSurf: false);
             final feedback = timer.elapsedMicroseconds;
             expect(
               document

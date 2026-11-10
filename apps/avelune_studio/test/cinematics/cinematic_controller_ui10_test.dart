@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/features/cinematics/application/cinematic_workspace_controller.dart';
@@ -6,7 +7,9 @@ import 'package:avelune_studio/features/cinematics/domain/cinematic_port.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/narrative/application/narrative_workspace_controller.dart';
 import 'package:avelune_studio/features/narrative/data/local_narrative_adapter.dart';
+
 import '../support/cinematic_adapter_fixture.dart';
+import '../support/map_workspace_fixture.dart';
 
 void main() {
   late CinematicAdapterFixture f;
@@ -43,6 +46,92 @@ void main() {
     maps.dispose();
     await f.dispose();
   });
+  test(
+    'guided defaults insert after the current step and undo natively',
+    () async {
+      await c.open('a');
+      final original = c.active!.asset;
+      final id = await c.addAction(
+        CinematicTimelineStepKind.wait,
+        afterStepId: 'a.wait',
+        choose: (_, _) async => null,
+      );
+      expect(id, isNotNull, reason: c.error);
+      expect(c.active!.asset.timeline.steps.last.id, id);
+      expect(c.active!.asset.timeline.steps.last.durationMs, 1000);
+      c.undo();
+      expect(c.active!.asset, original);
+      final rejected = await c.addAction(
+        CinematicTimelineStepKind.actorFace,
+        choose: (_, _) async => null,
+      );
+      expect(rejected, isNull);
+      expect(c.active!.asset, original);
+      expect(c.error, contains('acteur'));
+      final actor = c.addActor('Guide')!;
+      final target = c.addTarget('Arrivée')!;
+      final beforeMove = c.active!.asset;
+      final move = await c.addAction(
+        CinematicTimelineStepKind.actorMove,
+        actorId: actor,
+        choose: (_, _) async => null,
+      );
+      expect(move, isNotNull, reason: c.error);
+      expect(c.active!.asset.movementTargets.single.targetId, target);
+      c.undo();
+      expect(c.active!.asset, beforeMove);
+    },
+  );
+
+  test(
+    'late resource choice cannot add an action to another document',
+    () async {
+      await c.open('a');
+      final choice = Completer<String?>();
+      final pending = c.addAction(
+        CinematicTimelineStepKind.dialogueLine,
+        choose: (_, _) => choice.future,
+      );
+      await c.open('b');
+      final before = c.active!.asset;
+      choice.complete('dialogue');
+      expect(await pending, isNull);
+      expect(c.active!.asset, before);
+    },
+  );
+
+  test(
+    'map preview discards superseded and suspended asynchronous loads',
+    () async {
+      await c.open('a');
+      c.edit((asset) => asset.copyWith(mapId: 'first'));
+      final first = Completer<MapData>();
+      final second = Completer<MapData>();
+      Future<MapData> load(String id) =>
+          id == 'first' ? first.future : second.future;
+      c.prepareMapPreview(load: load);
+      c.edit((asset) => asset.copyWith(mapId: 'second'));
+      c.prepareMapPreview(load: load);
+      first.completeError(StateError('Erreur tardive'));
+      await Future<void>.delayed(Duration.zero);
+      expect(c.previewMapProblem, isNull);
+      second.complete(workspaceMap('second'));
+      await Future<void>.delayed(Duration.zero);
+      c.prepareMapPreview(load: load);
+      expect(c.previewModel!.map.id, 'second');
+      expect(c.transport.plan, isNotNull);
+      c.suspendMapPreview();
+      expect(c.previewModel, isNull);
+      expect(c.transport.playing, isFalse);
+      final late = Completer<MapData>();
+      c.prepareMapPreview(load: (_) => late.future);
+      c.suspendMapPreview();
+      late.completeError(StateError('Projet fermé'));
+      await Future<void>.delayed(Duration.zero);
+      expect(c.previewMapProblem, isNull);
+      expect(c.previewModel, isNull);
+    },
+  );
   test(
     'lazy library, draft create, canonical steps, undo save independent reread',
     () async {
@@ -91,144 +180,135 @@ void main() {
     expect(c.activeId, 'b');
     expect(c.active!.asset.id, 'b');
   });
-  test(
-    'editing during awaited publication keeps later draft and source conflicts preserve it',
-    () async {
-      await c.open('a');
-      c.rename('Snapshot envoyé');
-      port.publishGate = Completer<void>();
-      final saving = c.save();
-      await Future<void>.delayed(Duration.zero);
-      c.rename('Texte suivant');
-      port.publishGate!.complete();
-      expect(await saving, true, reason: c.error);
-      expect(c.active!.dirty, true);
-      expect(c.active!.asset.title, 'Texte suivant');
-      expect((await f.adapter().load('a')).asset.title, 'Snapshot envoyé');
-      final base = await f.adapter().load('a');
-      await f.adapter().publish(
-        id: 'a',
-        base: base,
-        asset: base.asset.copyWith(title: 'Autre auteur'),
-      );
-      expect(await c.save(), false);
-      expect(c.active!.asset.title, 'Texte suivant');
-      expect(await c.reload(), true);
-      expect(c.active!.asset.title, 'Autre auteur');
-    },
-  );
-  test(
-    'preview transport evaluates canonical frames without semantic edits or workspace rebuilds',
-    () async {
-      await c.open('a');
-      c.preparePreview();
-      final builds = c.planBuilds, before = c.active!.asset;
-      final notifications = rebuilds;
-      c.preparePreview(resolvedTargets: {});
-      expect(c.planBuilds, builds);
-      c.transport.seek(700);
-      expect(c.transport.frame!.timeMs, 700);
-      c.transport.play();
-      c.transport.pause();
-      final paused = c.transport.timeMs;
-      await Future<void>.delayed(const Duration(milliseconds: 25));
-      expect(c.transport.timeMs, paused);
-      c.transport.seek(200);
-      c.transport.advance(300);
-      expect(c.transport.frame, c.transport.plan!.frameAt(500));
-      final plan = c.transport.plan;
-      expect(await c.open('a'), true);
-      expect(c.transport.plan, same(plan));
-      expect(c.transport.timeMs, 500);
-      final openedNotifications = rebuilds;
-      c.transport.stop();
-      expect(c.transport.timeMs, 0);
-      expect(c.active!.asset, same(before));
-      expect(c.active!.dirty, false);
-      expect(openedNotifications, notifications + 1);
-      expect(rebuilds, openedNotifications);
-      expect(await f.file('project.json').readAsString(), contains('Départ'));
-    },
-  );
-  test(
-    'spatial destination is one history edit; paths survive binding and duplication',
-    () async {
-      await c.create('Mise en scène');
-      final actor = c.addActor('Rôle')!, target = c.addTarget('Arrivée')!;
-      final move = c.addMove(actor, target)!;
-      final before = c.active!.asset;
-      expect(c.setDestination(move, 3, 4, width: 10, height: 10), true);
-      final placed = c.active!.asset;
-      expect(placed.stageContext!.stagePoints.single.x, 3);
-      c.undo();
-      expect(c.active!.asset, before);
-      c.redo();
-      expect(c.active!.asset, placed);
-      expect(c.setDestination(move, 10, 2, width: 10, height: 10), false);
-      expect(c.active!.asset, placed);
-      c.setStagePoint(
-        CinematicStagePoint(id: 'middle', label: 'Milieu', x: 1, y: 2),
-      );
-      c.setManualPath(move, ['middle']);
-      final path = c.active!.asset.stageContext!.manualPaths.single;
-      expect(
-        c.bindActor(
-          CinematicActorBinding(
-            actorId: actor,
-            kind: CinematicActorBindingKind.player,
-          ),
+  test('editing during awaited publication keeps later draft and source conflicts preserve it', () async {
+    await c.open('a');
+    c.rename('Snapshot envoyé');
+    port.publishGate = Completer<void>();
+    final saving = c.save();
+    await Future<void>.delayed(Duration.zero);
+    c.rename('Texte suivant');
+    port.publishGate!.complete();
+    expect(await saving, true, reason: c.error);
+    expect(c.active!.dirty, true);
+    expect(c.active!.asset.title, 'Texte suivant');
+    expect((await f.adapter().load('a')).asset.title, 'Snapshot envoyé');
+    final base = await f.adapter().load('a');
+    await f.adapter().publish(
+      id: 'a',
+      base: base,
+      asset: base.asset.copyWith(title: 'Autre auteur'),
+    );
+    expect(await c.save(), false);
+    expect(c.active!.asset.title, 'Texte suivant');
+    expect(await c.reload(), true);
+    expect(c.active!.asset.title, 'Autre auteur');
+  });
+  test('preview transport evaluates canonical frames without semantic edits or workspace rebuilds', () async {
+    await c.open('a');
+    c.preparePreview();
+    final builds = c.planBuilds, before = c.active!.asset;
+    final notifications = rebuilds;
+    c.preparePreview(resolvedTargets: {});
+    expect(c.planBuilds, builds);
+    c.transport.seek(700);
+    expect(c.transport.frame!.timeMs, 700);
+    c.transport.play();
+    c.transport.pause();
+    final paused = c.transport.timeMs;
+    await Future<void>.delayed(const Duration(milliseconds: 25));
+    expect(c.transport.timeMs, paused);
+    c.transport.seek(200);
+    c.transport.advance(300);
+    expect(c.transport.frame, c.transport.plan!.frameAt(500));
+    final plan = c.transport.plan;
+    expect(await c.open('a'), true);
+    expect(c.transport.plan, same(plan));
+    expect(c.transport.timeMs, 500);
+    final openedNotifications = rebuilds;
+    c.transport.stop();
+    expect(c.transport.timeMs, 0);
+    expect(c.active!.asset, same(before));
+    expect(c.active!.dirty, false);
+    expect(openedNotifications, notifications + 1);
+    expect(rebuilds, openedNotifications);
+    expect(await f.file('project.json').readAsString(), contains('Départ'));
+  });
+  test('spatial destination is one history edit; paths survive binding and duplication', () async {
+    await c.create('Mise en scène');
+    final actor = c.addActor('Rôle')!, target = c.addTarget('Arrivée')!;
+    final move = c.addMove(actor, target)!;
+    final before = c.active!.asset;
+    expect(c.setDestination(move, 3, 4, width: 10, height: 10), true);
+    final placed = c.active!.asset;
+    expect(placed.stageContext!.stagePoints.single.x, 3);
+    c.undo();
+    expect(c.active!.asset, before);
+    c.redo();
+    expect(c.active!.asset, placed);
+    expect(c.setDestination(move, 10, 2, width: 10, height: 10), false);
+    expect(c.active!.asset, placed);
+    c.setStagePoint(
+      CinematicStagePoint(id: 'middle', label: 'Milieu', x: 1, y: 2),
+    );
+    c.setManualPath(move, ['middle']);
+    final path = c.active!.asset.stageContext!.manualPaths.single;
+    expect(
+      c.bindActor(
+        CinematicActorBinding(
+          actorId: actor,
+          kind: CinematicActorBindingKind.player,
         ),
-        true,
-      );
-      expect(c.active!.asset.stageContext!.manualPaths.single, path);
-      final beforePlacement = c.active!.asset;
-      expect(c.placeActorAt(actor, 2, 3, width: 10, height: 10), true);
-      expect(c.active!.asset.stageContext!.manualPaths.single, path);
-      c.undo();
-      expect(c.active!.asset, beforePlacement);
-      expect(c.appendWaypoint(move, 4, 5, width: 10, height: 10), true);
-      expect(
-        c
-            .active!
-            .asset
-            .stageContext!
-            .manualPaths
-            .single
-            .waypointStagePointIds
-            .length,
-        2,
-      );
-      c.undo();
-      expect(c.active!.asset, beforePlacement);
-      expect(c.appendWaypoint(move, -1, 4, width: 10, height: 10), false);
-      expect(c.active!.asset, beforePlacement);
-      expect(c.duplicateSteps({move}), true);
-      expect(c.active!.asset.stageContext!.manualPaths.length, 2);
-      final clipboard = c.copySteps({move})!;
-      expect(
-        c.pasteSteps(clipboard, c.active!.asset.timeline.steps.length),
-        true,
-      );
-      expect(c.active!.asset.stageContext!.manualPaths.length, 3);
-      final original = c.active!.asset;
-      expect(await c.duplicate(original.id), true);
-      final copy = c.active!.asset;
-      expect(copy.id, isNot(original.id));
-      expect(
-        copy.timeline.steps
-            .map((s) => s.id)
-            .toSet()
-            .intersection(original.timeline.steps.map((s) => s.id).toSet()),
-        isEmpty,
-      );
-      expect(
-        copy.stageContext!.manualPaths.every(
-          (p) => copy.timeline.steps.any((s) => s.id == p.ownerActorMoveStepId),
-        ),
-        true,
-      );
-    },
-  );
+      ),
+      true,
+    );
+    expect(c.active!.asset.stageContext!.manualPaths.single, path);
+    final beforePlacement = c.active!.asset;
+    expect(c.placeActorAt(actor, 2, 3, width: 10, height: 10), true);
+    expect(c.active!.asset.stageContext!.manualPaths.single, path);
+    c.undo();
+    expect(c.active!.asset, beforePlacement);
+    expect(c.appendWaypoint(move, 4, 5, width: 10, height: 10), true);
+    expect(
+      c
+          .active!
+          .asset
+          .stageContext!
+          .manualPaths
+          .single
+          .waypointStagePointIds
+          .length,
+      2,
+    );
+    c.undo();
+    expect(c.active!.asset, beforePlacement);
+    expect(c.appendWaypoint(move, -1, 4, width: 10, height: 10), false);
+    expect(c.active!.asset, beforePlacement);
+    expect(c.duplicateSteps({move}), true);
+    expect(c.active!.asset.stageContext!.manualPaths.length, 2);
+    final clipboard = c.copySteps({move})!;
+    expect(
+      c.pasteSteps(clipboard, c.active!.asset.timeline.steps.length),
+      true,
+    );
+    expect(c.active!.asset.stageContext!.manualPaths.length, 3);
+    final original = c.active!.asset;
+    expect(await c.duplicate(original.id), true);
+    final copy = c.active!.asset;
+    expect(copy.id, isNot(original.id));
+    expect(
+      copy.timeline.steps
+          .map((s) => s.id)
+          .toSet()
+          .intersection(original.timeline.steps.map((s) => s.id).toSet()),
+      isEmpty,
+    );
+    expect(
+      copy.stageContext!.manualPaths.every(
+        (p) => copy.timeline.steps.any((s) => s.id == p.ownerActorMoveStepId),
+      ),
+      true,
+    );
+  });
   test(
     'invalid durations and unrelated clipboard bindings do not mutate history',
     () async {

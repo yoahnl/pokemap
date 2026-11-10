@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:map_core/map_core_domain.dart';
 
+import '../../../features/pokemon/application/pokemon_trainer_species_reader.dart';
 import '../../../features/pokemon/application/pokemon_workspace_controller.dart';
+import '../../../features/pokemon/application/pokemon_workspace_workflow.dart';
 import '../../../features/pokemon/domain/pokemon_workspace_models.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/layout/studio_page_header.dart';
-import 'pokemon_external_import_panel.dart';
-import 'pokemon_import_preview.dart';
 import 'pokemon_moves_library.dart';
 import 'pokemon_species_detail.dart';
 import 'pokemon_species_library.dart';
@@ -37,52 +36,19 @@ class PokemonWorkspacePage extends StatefulWidget {
 
 class _PokemonWorkspacePageState extends State<PokemonWorkspacePage> {
   bool showCompactDetail = false;
-  bool showExternalImport = false;
-  bool _changingView = false;
+  late final _workflow = PokemonWorkspaceWorkflow(
+    current: () => widget.controller,
+    isActive: () => mounted,
+    confirmDraft: () => showPokemonDraftDialog(context),
+  );
 
-  Future<bool> _requestViewChange(PokemonWorkspaceView next) async {
-    final controller = widget.controller;
-    if (controller == null || _changingView || controller.operationActive) {
-      return false;
-    }
-    if (controller.view == next) return true;
-    _changingView = true;
-    try {
-      if (controller.hasPendingChanges) {
-        final decision = await showPokemonDraftDialog(context);
-        if (!mounted || !identical(widget.controller, controller)) return false;
-        if (decision == PokemonDraftDecision.save &&
-            !await controller.saveActiveOwner()) {
-          return false;
-        }
-        if (decision == PokemonDraftDecision.discard &&
-            !controller.discardActiveOwner()) {
-          return false;
-        }
-        if (decision == null || decision == PokemonDraftDecision.stay) {
-          return false;
-        }
-      }
-      if (!mounted || !identical(widget.controller, controller)) return false;
-      return controller.setView(next);
-    } finally {
-      _changingView = false;
-    }
-  }
+  Future<bool> _requestViewChange(PokemonWorkspaceView next) =>
+      _workflow.requestView(next);
 
-  Future<void> _pickImport() async {
-    final controller = widget.controller!;
-    if (controller.hasPendingChanges) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Enregistrez ou annulez la fiche avant l’import.'),
-        ),
-      );
-      return;
-    }
-    final path = await widget.pickJson?.call();
-    if (!mounted || path == null) return;
-    await controller.prepareJsonImport(path);
+  @override
+  void dispose() {
+    _workflow.dispose();
+    super.dispose();
   }
 
   @override
@@ -100,34 +66,12 @@ class _PokemonWorkspacePageState extends State<PokemonWorkspacePage> {
             constraints.maxWidth < 930 ||
             MediaQuery.textScalerOf(context).scale(14) > 20;
         final index = controller.index;
-        final showPokedexActions =
-            controller.view == PokemonWorkspaceView.pokedex &&
-            controller.importPreview == null &&
-            !showExternalImport;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             StudioPageHeader(
               title: 'Pokémon',
               description: 'Espèces, attaques, objets, boutiques et combats du projet courant.',
-              actions: [
-                if (showPokedexActions && widget.pickJson != null)
-                  StudioButton(
-                    label: 'Importer un JSON',
-                    secondary: true,
-                    icon: Icons.file_upload_outlined,
-                    onPressed: controller.operationActive ? null : _pickImport,
-                  ),
-                if (showPokedexActions)
-                  StudioButton(
-                    label: 'Importer depuis une source',
-                    secondary: true,
-                    icon: Icons.cloud_download_outlined,
-                    onPressed: controller.operationActive
-                        ? null
-                        : () => setState(() => showExternalImport = true),
-                  ),
-              ],
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
@@ -140,16 +84,6 @@ class _PokemonWorkspacePageState extends State<PokemonWorkspacePage> {
               _message(context, controller.error!, error: true),
             if (controller.notice != null)
               _message(context, controller.notice!),
-            if (controller.externalResult case final result?)
-              _message(
-                context,
-                '${result.noChange ? 'Aucun document importé' : 'Import ${result.speciesId}'} : '
-                '${result.created} créé(s), '
-                '${result.overwritten} remplacé(s), '
-                '${result.skipped} conservé(s), '
-                '${result.excluded} exclu(s) sans rattachement. '
-                '${result.warnings.join(' ')}',
-              ),
             if (controller.loading && index == null)
               const Expanded(child: Center(child: CircularProgressIndicator()))
             else if (index == null)
@@ -199,21 +133,11 @@ class _PokemonWorkspacePageState extends State<PokemonWorkspacePage> {
                         description: 'Ce projet ne fournit pas la préparation des combats.',
                       )
                     : PokemonCombatPage(
-                        loadTrainerSpecies: (id) async {
-                          final summary = index.entries
-                              .where((entry) => entry.id == id)
-                              .firstOrNull;
-                          if (summary == null) return null;
-                          final bundle = await controller.port.loadSpecies(
-                            summary,
-                          );
-                          final document = bundle.species.document;
-                          if (document == null ||
-                              bundle.species.problem != null) {
-                            return null;
-                          }
-                          return PokemonSpeciesFile.fromJson(document);
-                        },
+                        loadTrainerSpecies: (id) => loadPokemonTrainerSpecies(
+                          port: controller.port,
+                          index: index,
+                          id: id,
+                        ),
                         combat: controller.combat!,
                         index: index,
                         onOpenReference: widget.onOpenReference,
@@ -221,16 +145,6 @@ class _PokemonWorkspacePageState extends State<PokemonWorkspacePage> {
               )
             else if (controller.view == PokemonWorkspaceView.moves)
               Expanded(child: PokemonMovesLibrary(controller: controller))
-            else if (controller.importPreview != null)
-              Expanded(child: PokemonImportPreviewPanel(controller: controller))
-            else if (showExternalImport)
-              Expanded(
-                child: PokemonExternalImportPanel(
-                  controller: controller,
-                  onBack: () => setState(() => showExternalImport = false),
-                  onImported: () => setState(() => showExternalImport = false),
-                ),
-              )
             else
               Expanded(
                 child:
@@ -239,7 +153,6 @@ class _PokemonWorkspacePageState extends State<PokemonWorkspacePage> {
                         controller.selectedDraft != null
                     ? PokemonSpeciesDetail(
                         controller: controller,
-                        pickPng: widget.pickPng,
                         onBack: () => setState(() => showCompactDetail = false),
                       )
                     : Row(
@@ -262,7 +175,6 @@ class _PokemonWorkspacePageState extends State<PokemonWorkspacePage> {
                             Expanded(
                               child: PokemonSpeciesDetail(
                                 controller: controller,
-                                pickPng: widget.pickPng,
                               ),
                             ),
                           ],

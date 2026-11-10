@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core_domain.dart';
 
+import '../../../features/narrative/application/periodic_reward_selection.dart';
+
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
@@ -51,16 +53,8 @@ class PeriodicRewardPicker extends StatefulWidget {
 }
 
 class _PeriodicRewardPickerState extends State<PeriodicRewardPicker> {
-  final _scenes = <PeriodicRewardSceneChoice>[];
-  final _nodes = <PeriodicRewardNodeChoice>[];
+  late PeriodicRewardSelection draft;
   PeriodicRewardChoiceScope? _scope;
-  String? _sceneId;
-  PeriodicRewardReference? _reference;
-  String? _cursor;
-  String? _error;
-  bool _loading = false;
-  bool _expected = true;
-  int _generation = 0;
   bool _initialized = false;
 
   @override
@@ -85,147 +79,30 @@ class _PeriodicRewardPickerState extends State<PeriodicRewardPicker> {
   }
 
   void _reset() {
+    if (_initialized) draft.dispose();
     _initialized = true;
-    _generation++;
-    _scenes.clear();
-    _nodes.clear();
-    _cursor = null;
-    _error = null;
-    _sceneId = widget.initial?.sceneId;
-    _reference = widget.initial;
-    _expected = widget.expectedValue;
-    _loadScenes();
+    draft = PeriodicRewardSelection(
+      initial: widget.initial,
+      initialExpectedValue: widget.expectedValue,
+      read: _scope?.read,
+      changed: () {
+        if (mounted) setState(() {});
+      },
+    );
+    draft.loadScenes();
   }
 
-  Future<void> _loadScenes({bool more = false}) async {
-    final scope = _scope;
-    if (scope == null) {
-      _error = 'Les récompenses publiées sont indisponibles dans cet atelier. La condition existante est conservée.';
-      return;
-    }
-    final generation = ++_generation;
-    setState(() {
-      _loading = true;
-      _error = null;
-      if (!more) _nodes.clear();
-    });
-    try {
-      final page = await scope.read(
-        AuthoringQueryRequest(
-          resourceKind: 'periodicRewardScene',
-          operation: AuthoringQueryOperation.list,
-          view: AuthoringQueryView.summary,
-          pageSize: 30,
-          cursor: more ? _cursor : null,
-        ),
-      );
-      if (!mounted || generation != _generation) return;
-      setState(() {
-        if (!more) _scenes.clear();
-        _scenes.addAll(
-          page.items.map(
-            (value) => PeriodicRewardSceneChoice.fromJson(
-              Map<String, dynamic>.from(value),
-            ),
-          ),
-        );
-        _cursor = page.nextCursor;
-      });
-      final initial = widget.initial;
-      if (!more &&
-          initial != null &&
-          !_scenes.any((scene) => scene.sceneId == initial.sceneId)) {
-        final selected = await scope.read(
-          AuthoringQueryRequest(
-            resourceKind: 'periodicRewardScene',
-            operation: AuthoringQueryOperation.get,
-            view: AuthoringQueryView.summary,
-            ids: [initial.sceneId],
-          ),
-        );
-        if (!mounted || generation != _generation) return;
-        setState(
-          () => _scenes.addAll(
-            selected.items.map(
-              (value) => PeriodicRewardSceneChoice.fromJson(
-                Map<String, dynamic>.from(value),
-              ),
-            ),
-          ),
-        );
-      }
-      if (!more && _sceneId != null) await _loadNodes(_sceneId!);
-    } catch (error) {
-      if (mounted && generation == _generation) {
-        setState(
-          () => _error = 'Source publiée indisponible ou modifiée. Actualisez les choix. La condition existante est conservée.',
-        );
-      }
-    } finally {
-      if (mounted && generation == _generation) {
-        setState(() => _loading = false);
-      }
-    }
-  }
-
-  Future<void> _loadNodes(String sceneId) async {
-    final source = _scenes
-        .where((value) => value.sceneId == sceneId)
-        .firstOrNull;
-    final scope = _scope;
-    final generation = ++_generation;
-    setState(() {
-      _loading = source != null && scope != null;
-      _error = null;
-      _nodes.clear();
-    });
-    if (source == null || scope == null) return;
-    try {
-      String? cursor;
-      do {
-        final page = await scope.read(
-          AuthoringQueryRequest(
-            resourceKind: 'periodicRewardNode',
-            operation: AuthoringQueryOperation.list,
-            view: AuthoringQueryView.summary,
-            filters: {'sceneId': sceneId},
-            extensions: {'sourceRevision': source.revision},
-            pageSize: 100,
-            cursor: cursor,
-          ),
-        );
-        if (!mounted || generation != _generation) return;
-        setState(
-          () => _nodes.addAll(
-            page.items.map(
-              (value) => PeriodicRewardNodeChoice.fromJson(
-                Map<String, dynamic>.from(value),
-              ),
-            ),
-          ),
-        );
-        cursor = page.nextCursor;
-      } while (cursor != null);
-    } catch (error) {
-      if (mounted && generation == _generation) {
-        setState(
-          () => _error = 'Cette scène publiée a changé ou reste indisponible. Choisissez sa version enregistrée ; les modifications en brouillon ne sont pas des sources publiées.',
-        );
-      }
-    } finally {
-      if (mounted && generation == _generation) {
-        setState(() => _loading = false);
-      }
-    }
+  @override
+  void dispose() {
+    draft.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final selected = _nodes
-        .where((node) => node.reference == _reference)
-        .firstOrNull;
-    final reference = selected?.reference;
-    final unresolved = widget.initial != null && reference == null && !_loading;
+    final selected = draft.selected;
+    final reference = draft.applicable;
+    final unresolved = draft.unresolved;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -234,49 +111,43 @@ class _PeriodicRewardPickerState extends State<PeriodicRewardPicker> {
         ),
         StudioSelect(
           label: 'Scène de la récompense',
-          value: _scenes.any((scene) => scene.sceneId == _sceneId)
-              ? _sceneId
+          value: draft.scenes.any((scene) => scene.sceneId == draft.sceneId)
+              ? draft.sceneId
               : null,
-          options: {for (final scene in _scenes) scene.sceneId: scene.label},
-          onChanged: (value) {
-            setState(() {
-              _sceneId = value;
-              _reference = null;
-            });
-            _loadNodes(value);
+          options: {
+            for (final scene in draft.scenes) scene.sceneId: scene.label,
           },
+          onChanged: draft.selectScene,
         ),
-        if (_cursor != null)
+        if (draft.cursor != null)
           StudioButton(
             label: 'Afficher d’autres scènes',
             secondary: true,
-            onPressed: _loading ? null : () => _loadScenes(more: true),
+            onPressed: draft.loading
+                ? null
+                : () => draft.loadScenes(more: true),
           ),
         StudioSelect(
           label: 'Action de récompense',
           value: selected?.nodeId,
           options: {
-            for (final node in _nodes)
+            for (final node in draft.nodes)
               node.nodeId: '${node.label} × ${node.quantity}',
           },
-          onChanged: (value) => setState(
-            () => _reference = _nodes
-                .where((node) => node.nodeId == value)
-                .firstOrNull
-                ?.reference,
-          ),
+          onChanged: draft.selectNode,
         ),
         StudioSelect(
           label: 'Disponibilité attendue',
-          value: '$_expected',
+          value: '$draft.expected',
           options: const {
             'true': 'Disponible aujourd’hui',
             'false': 'Déjà récupérée aujourd’hui',
           },
-          onChanged: (value) => setState(() => _expected = value == 'true'),
+          onChanged: (value) => draft.expected = value == 'true',
         ),
-        if (_loading) const StudioNotice('Chargement des sources publiées…'),
-        if (_error != null) StudioNotice(_error!),
+        if (draft.loading)
+          const StudioNotice('Chargement des sources publiées…'),
+        if (draft.error != null) StudioNotice(draft.error!),
         if (unresolved)
           const StudioNotice(
             'La référence existante reste conservée, mais son action ne peut pas être confirmée. Sélectionnez une action publiée pour la remplacer.',
@@ -284,13 +155,13 @@ class _PeriodicRewardPickerState extends State<PeriodicRewardPicker> {
         StudioButton(
           label: 'Actualiser les sources',
           secondary: true,
-          onPressed: _loading ? null : () => _loadScenes(),
+          onPressed: draft.loading ? null : () => draft.loadScenes(),
         ),
         StudioButton(
           label: 'Appliquer la condition quotidienne',
-          onPressed: _loading || _error != null || reference == null
+          onPressed: draft.loading || draft.error != null || reference == null
               ? null
-              : () => widget.onApply(reference, _expected),
+              : () => widget.onApply(reference, draft.expected),
         ),
       ],
     );

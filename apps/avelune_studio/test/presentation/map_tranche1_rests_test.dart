@@ -1,10 +1,8 @@
 import 'package:avelune_studio/features/map_workspace/application/map_editing_commands.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_elements_panel.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_element_catalog.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_element_list_commands.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_workspace_editing_state.dart';
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_left_column.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -14,25 +12,13 @@ import 'package:avelune_studio/features/map_workspace/application/map_decor_grou
 import 'package:avelune_studio/features/map_workspace/application/spatial_model_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 
-import 'package:avelune_studio/presentation/features/map_workspace/map_library_navigator.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_inspector.dart';
-
-import '../support/m2_ui_fixture.dart';
 import '../support/map_selection_harness.dart';
 import '../support/spatial_border_fixture.dart';
 import '../support/spatial_environment_fixture.dart';
 import '../support/map_workspace_fixture.dart';
 
 void main() {
-  test('the left column widens when the workspace has room', () {
-    expect(mapLeftColumnWidth(900), 252);
-    expect(mapLeftColumnWidth(1200), 288);
-    expect(mapLeftColumnWidth(1500), 320);
-  });
-
-  testWidgets('choosing an element in map content centers the view on it', (
-    tester,
-  ) async {
+  test('choosing an element in map content centers the view on it', () {
     final h = MapSelectionHarness.of(workspaceProject);
     addTearDown(h.dispose);
     final id = MapEditingCommands(
@@ -41,34 +27,16 @@ void main() {
     ).place(workspaceElement, const GridPos(x: 5, y: 3))!;
     h.document.selectedId = null;
     final centered = <GridPos>[];
-    h.view.centerOn = centered.add;
-    expect(
-      mapElementCell(h.document.current, 'decor', id),
-      const GridPos(x: 5, y: 3),
+    final selection = MapElementSelectionCommands(
+      h.document,
+      h.view,
+      centerOn: centered.add,
     );
-    tester.view.physicalSize = const Size(900, 900);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: studioTheme(),
-        home: Scaffold(
-          body: StatefulBuilder(
-            builder: (context, setState) => MapElementsPanel(
-              document: h.document,
-              project: h.project,
-              view: h.view,
-              onChanged: () => setState(() {}),
-            ),
-          ),
-        ),
-      ),
-    );
-    await tester.pump();
-    final row = find.byKey(ValueKey('map-element-decor-$id'));
-    await tester.ensureVisible(row);
-    await tester.tap(row);
-    await tester.pump();
+    final entry = MapElementCatalog(
+      h.document.current,
+      h.project,
+    ).entries.singleWhere((entry) => entry.kind == 'decor' && entry.id == id);
+    expect(selection.select(entry), isTrue);
     expect(centered, [const GridPos(x: 5, y: 3)]);
   });
 
@@ -155,34 +123,6 @@ void main() {
     );
   });
 
-  testWidgets(
-    'map-only mode folds every panel and restores the previous choice',
-    (tester) async {
-      tester.view.physicalSize = const Size(1536, 1024);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.reset);
-      final fixture = (await tester.runAsync(
-        () => M2UiFixture.create(tester),
-      ))!;
-      addTearDown(fixture.dispose);
-      await tester.pumpWidget(fixture.app(tester));
-      await pumpIo(tester);
-      expect(find.byType(MapLibraryNavigator), findsOneWidget);
-      expect(find.byType(MapWorkspaceInspector), findsOneWidget);
-
-      await tester.tap(find.byKey(const ValueKey('map-only-toggle')));
-      await pumpIo(tester, frames: 6);
-      expect(find.byType(MapLibraryNavigator), findsNothing);
-      expect(find.byType(MapWorkspaceInspector), findsNothing);
-
-      await tester.tap(find.byKey(const ValueKey('map-only-toggle')));
-      await pumpIo(tester, frames: 6);
-      expect(find.byType(MapLibraryNavigator), findsOneWidget);
-      expect(find.byType(MapWorkspaceInspector), findsOneWidget);
-      expect(tester.takeException(), isNull);
-    },
-  );
-
   test('border pieces stay in the library but leave the decor palette', () {
     final base = spatialBorderProject();
     final project = base.copyWith(
@@ -197,9 +137,8 @@ void main() {
         ),
       ],
     );
-    final view = MapWorkspaceViewState()..paletteTab = 'Décors';
-    final palette = view
-        .paletteResources(project, spatialBorderMap().id)
+    final palette = MapWorkspaceEditingState()
+        .paletteResourcesFor(project, spatialBorderMap().id, 'Décors')
         .map((item) => item.id)
         .toSet();
     expect(palette, contains('lamp'));

@@ -23,7 +23,6 @@ class MapWorkspaceToolbar extends StatelessWidget {
     required this.inspectorVisible,
     required this.navigatorVisible,
     this.showUndoRedo = true,
-    this.onAmbiance,
     this.onElements,
     this.onCommands,
   });
@@ -31,7 +30,7 @@ class MapWorkspaceToolbar extends StatelessWidget {
   final MapWorkspaceViewState? view;
   final VoidCallback onChanged, onClose, onPalette, onInspector, onNavigator;
   final ValueChanged<ProjectMapEntry> onActivate;
-  final VoidCallback? onSave, onTest, onAmbiance, onElements, onCommands;
+  final VoidCallback? onSave, onTest, onElements, onCommands;
   final bool paletteVisible, inspectorVisible, navigatorVisible;
   final bool showUndoRedo;
 
@@ -99,14 +98,6 @@ class MapWorkspaceToolbar extends StatelessWidget {
       runSpacing: 4,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        if (document?.current.spatialScene != null && onAmbiance != null)
-          StudioButton(
-            key: const ValueKey('map-open-ambiance'),
-            label: 'Ambiance',
-            icon: Icons.wb_twilight_outlined,
-            secondary: true,
-            onPressed: onAmbiance,
-          ),
         StudioTool(
           label: 'Zoom arrière',
           icon: Icons.remove,

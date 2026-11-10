@@ -4,14 +4,10 @@ extension _WorkspaceContextMenuBinding on _MapWorkspaceScreenState {
   void _releaseStaleMapState() {
     final document = _controller.active;
     releaseStaleMapMoves(_views, document);
-    if (_contextMapId != null &&
-        (_contextMapId != document?.current.id ||
-            document?.exteriorDecoration?.editingExterior == true)) {
-      _contextRequest = null;
-      _contextCell = null;
-      _contextTarget = null;
-      _contextMapId = null;
-    }
+    _contextInteraction.releaseIfStale(
+      document?.current.id,
+      exterior: document?.exteriorDecoration?.editingExterior == true,
+    );
   }
 
   MapContextActionContext? _contextAt(GridPos cell) {
@@ -60,92 +56,24 @@ extension _WorkspaceContextMenuBinding on _MapWorkspaceScreenState {
     Offset globalPosition, {
     MapContextTarget? target,
   }) {
-    final context = _contextAt(cell);
-    if (context == null) return;
-    final targets = mapContextTargetsAt(
-      context.document,
-      context.project,
-      cell,
-    );
-    final selected = target == null
-        ? targets.firstOrNull
-        : targets.where(target.sameAs).firstOrNull;
-    _contextCell = cell;
-    _contextMapId = context.document.current.id;
-    _contextTarget = selected;
-    // Frozen at opening: what the author reads is what the command re-checks.
-    _contextRequest = MapContextMenuRequest(
-      position: globalPosition,
-      targets: targets,
-      selected: selected,
-      actions: mapContextActionsFor(selected, context),
-    );
-    _applyContextSelection();
-    _changed();
+    _contextInteraction.open(cell, globalPosition, target: target);
   }
 
-  void _applyContextSelection() {
-    final target = _contextTarget;
-    final document = _controller.active;
-    if (document == null) return;
-    if (target == null) {
-      _view?.clearSelection(document);
-      return;
-    }
-    _view?.select(document, selectionFamilyOf(target.family), target.id);
-  }
-
-  void _closeContextMenu() {
-    if (_contextRequest == null) return;
-    _contextRequest = null;
-    _contextCell = null;
-    _contextTarget = null;
-    _contextMapId = null;
-    _changed();
-  }
+  void _closeContextMenu() => _contextInteraction.close();
 
   Widget? _contextMenuOverlay() {
-    final request = _contextRequest;
-    final document = _controller.active;
-    if (request == null || document == null) return null;
-    if (_contextMapId != document.current.id) return null;
+    final request = _contextInteraction.request;
+    if (request == null || _controller.active == null) return null;
     return MapContextMenu(
       request: request,
-      onTarget: (target) {
-        final context = _contextAt(_contextCell!);
-        if (context == null) return;
-        _contextTarget = target;
-        _contextRequest = MapContextMenuRequest(
-          position: request.position,
-          targets: request.targets,
-          selected: target,
-          actions: mapContextActionsFor(target, context),
-        );
-        _applyContextSelection();
-        _changed();
-      },
+      onTarget: _contextInteraction.select,
       onCommand: _runContextCommand,
       onDismiss: _closeContextMenu,
     );
   }
 
-  void _runContextCommand(MapContextCommand command) {
-    final cell = _contextCell;
-    final target = _contextTarget;
-    final context = cell == null ? null : _contextAt(cell);
-    if (context == null || _contextMapId != context.document.current.id) {
-      _closeContextMenu();
-      return;
-    }
-    final document = context.document;
-    _closeContextMenu();
-    final refusal = MapContextCommandRunner(
-      context,
-      navigation: _contextNavigation(context),
-    ).run(command, target);
-    if (refusal != null) document.error = refusal;
-    _changed();
-  }
+  void _runContextCommand(MapContextCommand command) =>
+      _contextInteraction.run(command);
 
   MapContextNavigation _contextNavigation(MapContextActionContext context) =>
       MapContextNavigation(
@@ -184,7 +112,11 @@ extension _WorkspaceContextMenuBinding on _MapWorkspaceScreenState {
   Future<void> _openExistingStoryZone(
     EditableMapDocument document,
     MapTrigger trigger,
-  ) => _navigation.openExistingStoryZone(document, trigger, choose: _chooseInteraction);
+  ) => _navigation.openExistingStoryZone(
+    document,
+    trigger,
+    choose: _chooseInteraction,
+  );
 
   Future<String?> _chooseInteraction(Map<String, String> found) =>
       showDialog<String>(

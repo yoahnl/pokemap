@@ -1,249 +1,142 @@
 import 'dart:io';
 
-import 'package:avelune_studio/presentation/features/game_export/studio_game_export_page.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:avelune_studio/features/game_export/application/studio_game_export_workflow.dart';
+import 'package:avelune_studio/features/game_export/data/studio_game_export_controller.dart';
+import 'package:avelune_studio/features/game_export/domain/studio_game_export_port.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/workspace_publication_workflow.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/workspace_workflow.dart';
+import 'package:avelune_studio/features/narrative/application/narrative_interaction.dart';
+import 'package:avelune_studio/features/narrative/application/narrative_workspace_controller.dart';
+import 'package:avelune_studio/features/narrative/data/local_narrative_adapter.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring.dart';
+import 'package:map_core/map_core_domain.dart';
 
 import '../support/game_export_fixture.dart';
-import '../support/capture_m3_widget.dart';
-import '../support/load_desktop_capture_fonts.dart';
 import '../support/m3_story_fixture.dart';
-import '../support/map_host_fixture.dart';
-import '../support/map_tool_menu.dart';
-import '../support/m2_ui_fixture.dart' show pumpIo;
 
 void main() {
-  testWidgets(
-    'home navigation opens export as a workspace page and returns to Carte',
-    (tester) async {
-      final f = await MapHostFixture.open(
-        tester,
-        prepareSource: prepareGameExportFixture,
-        gameExportPicker: (_) async => null,
-      );
-      final document = f.document;
-      await f.openExport();
-      expect(find.byType(StudioGameExportPage), findsOneWidget);
-      expect(
-        tester
-            .widget<StudioGameExportPage>(find.byType(StudioGameExportPage))
-            .controller,
-        same(f.gameExport),
-      );
-      await f.go('Carte');
-      expect(find.byType(StudioGameExportPage), findsNothing);
-      expect(f.document, same(document));
-      expect(tester.takeException(), isNull);
-    },
-  );
-
-  testWidgets('small desktop page keeps fields and actions reachable', (
-    tester,
-  ) async {
-    final f = await MapHostFixture.open(
-      tester,
-      prepareSource: prepareGameExportFixture,
-      gameExportPicker: (_) async => null,
-      size: const Size(1024, 640),
-      textScale: 1.5,
+  test('a rejected native interaction save preserves the draft and blocks package publication', () async {
+    final fixture = await M3StoryFixture.create();
+    final output = await Directory.systemTemp.createTemp('as-exp-invalid-save-');
+    addTearDown(() async {
+      await fixture.directory.delete(recursive: true);
+      await output.delete(recursive: true);
+    });
+    await prepareGameExportFixture(fixture);
+    final target = File('${output.path}/blocked.avelunegame');
+    final maps = MapWorkspaceController(fixture.session, fixture.maps);
+    addTearDown(maps.dispose);
+    await maps.initialize();
+    final narrative = NarrativeWorkspaceController(
+      maps,
+      LocalNarrativeAdapter(session: fixture.session, mapAdapter: fixture.maps),
+      () {},
+      (_, _) async {},
     );
-    await f.openExport();
-    final page = find.byType(StudioGameExportPage);
-    expect(page, findsOneWidget);
-    expect(find.byKey(const ValueKey('export-page-scroll')), findsOneWidget);
-    await tester.ensureVisible(
-      find.widgetWithText(TextField, 'Langues disponibles'),
+    addTearDown(narrative.dispose);
+    final document = maps.active!;
+    await narrative.openSource(
+      document,
+      NarrativeEventSourceRef.entityInteract(document.current.id, 'missing-source'),
+      'Brouillon invalide',
     );
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Options avancées'));
-    await tester.tap(find.text('Options avancées'));
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(
-      find.widgetWithText(TextField, 'Identifiant stable du jeu'),
+    final edit = narrative.active!;
+    final before = edit.current.interaction;
+    edit.change(interaction: NarrativeInteractionDraft(
+      id: before.id,
+      name: 'Brouillon à conserver',
+      mapId: before.mapId,
+      source: before.source,
+      dialogueId: before.dialogueId,
+      steps: before.steps,
+    ));
+    final sourceFiles = [
+      File('${fixture.directory.path}/project.json'),
+      File('${fixture.directory.path}/${maps.project!.maps.firstWhere((entry) => entry.id == document.base.mapId).relativePath}'),
+    ];
+    final bytes = [for (final file in sourceFiles) await file.readAsBytes()];
+    final exporter = StudioGameExportController(
+      projectRoot: fixture.directory,
+      projectName: fixture.session.name,
     );
-    await tester.pumpAndSettle();
-    final frame = tester.getRect(page);
-    final action = tester.getRect(
-      find.byKey(const ValueKey('start-game-export')),
+    addTearDown(exporter.dispose);
+    await exporter.load();
+    final workflow = WorkspaceWorkflow(
+      controller: maps,
+      isActive: () => true,
+      changed: () {},
+      resources: () => null,
+      narrative: () => narrative,
+      confirmClose: () async => WorkspaceCloseChoice.cancel,
+      flushFocus: () {},
+      launchMap: (_, _) async {},
     );
-    expect(action.bottom, lessThanOrEqualTo(frame.bottom));
-    expect(tester.takeException(), isNull);
-    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
-    await pumpIo(tester, frames: 16);
-    expect(page, findsOneWidget);
-    await tester.tapAt(const Offset(500, 300));
-    await pumpIo(tester, frames: 16);
-    expect(page, findsOneWidget);
-    expect(f.gameExport.operationActive, isFalse);
-    await tester.tap(find.text('Retour à l’accueil'));
-    await pumpIo(tester, frames: 8);
-    expect(page, findsNothing);
+    final publication = WorkspacePublicationWorkflow(
+      controller: maps,
+      workflow: workflow,
+      isActive: () => true,
+      connectionBusy: () => false,
+      exporter: () => exporter,
+      resources: () => null,
+      pokemon: () => null,
+    );
+    final export = StudioGameExportWorkflow(
+      controller: exporter,
+      pickFile: (_) async => StudioGameExportDestination(target.path, exists: false),
+      prepare: () => publication.prepareExport(
+        confirmPokemonSave: () async => true,
+        confirmSave: () async => true,
+      ),
+      preparationFailure: () => workflow.exportPreparationFailure,
+      hasPendingChanges: () => workflow.hasPendingChanges,
+      isCurrentProject: () => true,
+      isActive: () => true,
+    );
+    addTearDown(export.dispose);
+    expect(await export.run(
+      metadata: const StudioGameExportMetadata(
+        gameId: 'games.avelune.invalid-interaction',
+        title: 'Export bloqué',
+        version: '1.0.0',
+        author: 'Avelune',
+        locale: 'fr',
+        locales: 'fr',
+      ),
+      confirmOverwrite: (_) async => true,
+    ), isFalse);
+    expect(exporter.error, contains('Enregistrement préalable refusé'));
+    expect(narrative.publicationError, isNotNull);
+    expect(edit.dirty, isTrue);
+    expect(edit.current.interaction.name, 'Brouillon à conserver');
+    expect(await target.exists(), isFalse);
+    for (var i = 0; i < sourceFiles.length; i++) {
+      expect(await sourceFiles[i].readAsBytes(), bytes[i]);
+    }
   });
 
-  testWidgets('native destination failure is shown without losing the page', (
-    tester,
-  ) async {
-    final f = await MapHostFixture.open(
-      tester,
-      prepareSource: prepareGameExportFixture,
-      gameExportPicker: (_) async => throw const FileSystemException('Denied'),
+  test('the two-map story fixture exports with the canonical service', () async {
+    final fixture = await M3StoryFixture.create();
+    final output = await Directory.systemTemp.createTemp('as-exp-output-');
+    addTearDown(() async {
+      await fixture.directory.delete(recursive: true);
+      await output.delete(recursive: true);
+    });
+    await prepareGameExportFixture(fixture);
+    final artifact = await const CanonicalGamePackageExportService().exportToFile(
+      projectRoot: fixture.directory,
+      profile: GamePackageExportProfile(
+        gameId: 'games.avelune.export-demo',
+        gameVersion: '0.1.0',
+        title: 'Départ Avelune',
+        authorName: 'Avelune',
+        defaultLocale: 'fr',
+        supportedLocales: const ['fr'],
+      ),
+      outputFile: File('${output.path}/demo.avelunegame'),
+      mode: GamePackageExportMode.publication,
     );
-    await f.openExport();
-    await tester.tap(find.byKey(const ValueKey('start-game-export')));
-    await pumpIo(tester, frames: 4);
-    expect(
-      find.textContaining('Sélection du fichier impossible'),
-      findsOneWidget,
-    );
-    expect(find.byType(StudioGameExportPage), findsOneWidget);
+    expect(artifact.certification.isExportable, isTrue);
   });
-
-  testWidgets(
-    'a rejected owner save keeps the interaction draft and blocks export',
-    (tester) async {
-      final output = (await tester.runAsync(
-        () => Directory.systemTemp.createTemp('as-exp-invalid-save-'),
-      ))!;
-      addTearDown(() => output.delete(recursive: true));
-      final target = File('${output.path}/blocked.avelunegame');
-      final f = await MapHostFixture.open(
-        tester,
-        prepareSource: prepareGameExportFixture,
-        gameExportPicker: (_) async => target,
-      );
-      await chooseMapExtraTool(tester, 'Dessiner une zone d’histoire');
-      await pumpIo(tester, frames: 4);
-      await f.drag(3, 11, 5, 13);
-      await pumpIo(tester, frames: 10);
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Nom de l’interaction'),
-        'Brouillon invalide',
-      );
-      await f.openExport();
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Auteur'),
-        'Avelune',
-      );
-      await tester.tap(find.byKey(const ValueKey('start-game-export')));
-      await pumpIo(tester, frames: 8);
-      expect(find.text('Enregistrer avant l’export ?'), findsOneWidget);
-      await tester.tap(find.text('Enregistrer puis exporter').last);
-      await pumpIo(tester, frames: 20);
-      expect(
-        find.textContaining('Enregistrement préalable refusé'),
-        findsOneWidget,
-      );
-      expect(await tester.runAsync(target.exists), isFalse);
-      await tester.tap(find.text('Retour à l’accueil'));
-      await pumpIo(tester, frames: 16);
-      await f.go('Carte');
-      final narrative = await f.narrativeOwner();
-      expect(narrative.dirty, isTrue);
-    },
-    timeout: const Timeout(Duration(minutes: 3)),
-  );
-
-  testWidgets(
-    'declining replacement preserves an existing package',
-    (tester) async {
-      final output = (await tester.runAsync(
-        () => Directory.systemTemp.createTemp('as-exp-existing-'),
-      ))!;
-      addTearDown(() => output.delete(recursive: true));
-      final target = File('${output.path}/existing.avelunegame');
-      await tester.runAsync(() => target.writeAsString('existing package'));
-      final f = await MapHostFixture.open(
-        tester,
-        prepareSource: prepareGameExportFixture,
-        gameExportPicker: (_) async => target,
-      );
-      await f.openExport();
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Auteur'),
-        'Avelune',
-      );
-      await tester.tap(find.byKey(const ValueKey('start-game-export')));
-      await pumpIo(tester, frames: 5);
-      expect(find.text('Remplacer ce paquet ?'), findsOneWidget);
-      await tester.tap(find.text('Conserver'));
-      await pumpIo(tester, frames: 5);
-      expect(await tester.runAsync(target.readAsString), 'existing package');
-    },
-    timeout: const Timeout(Duration(minutes: 3)),
-  );
-
-  testWidgets(
-    'Studio exports the saved two-map story through its own page',
-    (tester) async {
-      await tester.runAsync(loadDesktopCaptureFonts);
-      final output = (await tester.runAsync(
-        () => Directory.systemTemp.createTemp('as-exp-ui-output-'),
-      ))!;
-      addTearDown(() => output.delete(recursive: true));
-      final target = File('${output.path}/depart.avelunegame');
-      final captureKey = GlobalKey();
-      final f = await MapHostFixture.open(
-        tester,
-        prepareSource: prepareGameExportFixture,
-        gameExportPicker: (_) async => target,
-        captureKey: captureKey,
-      );
-      final authorBefore = await f.disk();
-      await f.openExport();
-      expect(find.byType(StudioGameExportPage), findsOneWidget);
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Auteur'),
-        'Avelune',
-      );
-      await tester.tap(find.byKey(const ValueKey('start-game-export')));
-      final exportWait = Stopwatch()..start();
-      while (find.text('Paquet produit').evaluate().isEmpty &&
-          f.gameExport.error == null &&
-          exportWait.elapsed < const Duration(seconds: 60)) {
-        await pumpIo(tester, frames: 10);
-      }
-      final page = tester.widget<StudioGameExportPage>(
-        find.byType(StudioGameExportPage),
-      );
-      expect(
-        find.text('Paquet produit'),
-        findsOneWidget,
-        reason: 'stage=${page.controller.stage} error=${page.controller.error}',
-      );
-      await captureM3Widget(tester, captureKey, 'export-ready');
-      expect(await tester.runAsync(target.exists), isTrue);
-      expect(await f.disk(), authorBefore);
-    },
-    timeout: const Timeout(Duration(minutes: 3)),
-  );
-
-  test(
-    'the two-map story fixture exports with the canonical service',
-    () async {
-      final fixture = await M3StoryFixture.create();
-      final output = await Directory.systemTemp.createTemp('as-exp-output-');
-      addTearDown(() async {
-        await fixture.directory.delete(recursive: true);
-        await output.delete(recursive: true);
-      });
-      await prepareGameExportFixture(fixture);
-      final artifact = await const CanonicalGamePackageExportService()
-          .exportToFile(
-            projectRoot: fixture.directory,
-            profile: GamePackageExportProfile(
-              gameId: 'games.avelune.export-demo',
-              gameVersion: '0.1.0',
-              title: 'Départ Avelune',
-              authorName: 'Avelune',
-              defaultLocale: 'fr',
-              supportedLocales: const ['fr'],
-            ),
-            outputFile: File('${output.path}/demo.avelunegame'),
-            mode: GamePackageExportMode.publication,
-          );
-      expect(artifact.certification.isExportable, isTrue);
-    },
-  );
 }

@@ -2,91 +2,37 @@ part of 'narrative_overview_landing.dart';
 
 extension NarrativeOverviewLandingSearch on NarrativeOverviewLanding {
   Widget _searchResults(BuildContext context, String query) {
-    final results =
-        <
-          ({
-            String id,
-            String kind,
-            String title,
-            String subtitle,
-            VoidCallback? open,
-          })
-        >[
-          for (final story in overview.stories)
-            if ('${story.title} ${story.description ?? ''}'
-                .toLowerCase()
-                .contains(query))
-              (
-                id: story.id,
-                kind: 'Histoire',
-                title: story.title,
-                subtitle: _storyType(story.type),
-                open: () => onOpenStory(story.id),
-              ),
-          for (final story in overview.stories)
-            for (final chapter in _ordered(
-              story.chapters,
-              (item) => item.order,
-            ))
-              for (final step in _ordered(chapter.steps, (item) => item.order))
-                if ('${step.title} ${chapter.title} ${story.title}'
-                    .toLowerCase()
-                    .contains(query))
-                  (
-                    id: '${story.id}/${step.id}',
-                    kind: 'Étape',
-                    title: step.title,
-                    subtitle: story.title,
-                    open: () => onOpenStep(story.id, step.id),
-                  ),
-          for (final scene in scenes)
-            if (scene.name.toLowerCase().contains(query))
-              (
-                id: scene.id,
-                kind: 'Scène',
-                title: scene.name,
-                subtitle: 'Éditeur de scène',
-                open: onOpenScene == null ? null : () => onOpenScene!(scene.id),
-              ),
-          for (final dialogue in dialogues)
-            if (dialogue.name.toLowerCase().contains(query))
-              (
-                id: dialogue.id,
-                kind: 'Dialogue',
-                title: dialogue.name,
-                subtitle: 'Éditeur de dialogue',
-                open: onOpenDialogue == null
-                    ? null
-                    : () => onOpenDialogue!(dialogue.id),
-              ),
-          for (final event in events)
-            if (_eventName(event).toLowerCase().contains(query))
-              (
-                id: event.id,
-                kind: 'Événement',
-                title: _eventName(event),
-                subtitle: 'Déclencheur',
-                open: onOpenEvent == null ? null : () => onOpenEvent!(event.id),
-              ),
-          for (final item in overview.interactions)
-            if (item.searchText.contains(query))
-              (
-                id: item.id,
-                kind: 'Interaction',
-                title: item.name,
-                subtitle: item.mapLabel,
-                open: () => onOpenInteraction(item.id),
-              ),
-          for (final map in project.maps)
-            if (map.name.toLowerCase().contains(query))
-              (
-                id: map.id,
-                kind: 'Carte',
-                title: map.name,
-                subtitle: 'Carte du projet',
-                open: onOpenMap == null ? null : () => onOpenMap!(map.id),
-              ),
-        ];
+    final matches = searchNarrativeOverview(
+      overview: overview,
+      project: project,
+      scenes: scenes,
+      dialogues: dialogues,
+      events: events,
+      query: query,
+    );
+    VoidCallback? opener(NarrativeOverviewSearchMatch item) =>
+        switch (item.kind) {
+          'Histoire' => () => onOpenStory(item.id),
+          'Étape' => () => onOpenStep(item.storyId!, item.stepId!),
+          'Scène' => onOpenScene == null ? null : () => onOpenScene!(item.id),
+          'Dialogue' =>
+            onOpenDialogue == null ? null : () => onOpenDialogue!(item.id),
+          'Événement' =>
+            onOpenEvent == null ? null : () => onOpenEvent!(item.id),
+          'Interaction' => () => onOpenInteraction(item.id),
+          'Carte' => onOpenMap == null ? null : () => onOpenMap!(item.id),
+          _ => null,
+        };
+    final results = [
+      for (final item in matches)
+        (
+          id: item.id,
+          kind: item.kind,
+          title: item.title,
+          subtitle: item.subtitle,
+          open: opener(item),
+        ),
+    ];
     return StudioPanel(
       title: 'Résultats · ${results.length}',
       children: [
@@ -174,25 +120,11 @@ extension NarrativeOverviewLandingSearch on NarrativeOverviewLanding {
     ),
   );
 
-  String _storyType(StorylineType type) => switch (type) {
-    StorylineType.main => 'Principale',
-    StorylineType.sideQuest => 'Secondaire',
-    StorylineType.tutorial => 'Tutoriel',
-    StorylineType.epilogue => 'Épilogue',
-    StorylineType.episode => 'Épisode',
-    StorylineType.postGame => 'Après-jeu',
-    StorylineType.hiddenEvent => 'Événement caché',
-  };
+  String _storyType(StorylineType type) => narrativeOverviewStoryType(type);
 
   String _eventName(NarrativeEventRecord record) =>
-      record.definitionOrNull?.name ?? record.draftOrNull?.name ?? record.id;
+      narrativeOverviewEventName(record);
 
-  Iterable<T> _ordered<T>(List<T> values, int Function(T) order) {
-    final indexed = values.indexed.toList()
-      ..sort((a, b) {
-        final compared = order(a.$2).compareTo(order(b.$2));
-        return compared == 0 ? a.$1.compareTo(b.$1) : compared;
-      });
-    return indexed.map((entry) => entry.$2);
-  }
+  Iterable<T> _ordered<T>(List<T> values, int Function(T) order) =>
+      orderedNarrativeOverview(values, order);
 }

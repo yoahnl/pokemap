@@ -1,190 +1,271 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:avelune_studio/features/resources/domain/resource_port.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
-import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_workspace_editing_state.dart';
+import 'package:avelune_studio/features/resources/application/resource_image_import_draft.dart';
+import 'package:avelune_studio/features/resources/coordination/resource_navigation.dart';
+import 'package:avelune_studio/features/resources/coordination/resource_workspace_import_workflow.dart';
 import 'package:avelune_studio/features/resources/domain/resource_image_picker.dart';
-import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
-import 'package:flutter/material.dart';
+import 'package:avelune_studio/features/resources/domain/resource_port.dart';
+import 'package:avelune_studio/platform/rendering/resource_image_content_verifier.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core_domain.dart';
 
-import '../../tool/example_project_assets.dart';
-import '../support/m2_ui_fixture.dart';
-import '../support/resource_administration_host.dart';
-import '../support/uwu_resource_host.dart';
+import '../support/resource_replacement_fixture.dart';
 
-VoidCallback? _importAction(WidgetTester tester) => tester
-    .widget<StudioButton>(find.widgetWithText(StudioButton, 'Importer').last)
-    .onPressed;
-
-Future<String> _projectJson(UwUResourceHost host) async =>
-    (await host.tester.runAsync(
-      () => File('${host.fixture.directory.path}/project.json').readAsString(),
-    ))!;
+Future<ResourceImageImport?> _confirm(
+  PickedResourceImage image,
+  ProjectManifest project,
+) async {
+  final draft = ResourceImageImportDraft(
+    image: image,
+    tileWidth: project.settings.tileWidth,
+    tileHeight: project.settings.tileHeight,
+    existingNames: {for (final entry in project.tilesets) entry.name},
+  );
+  await draft.verify(verifyResourceImageContent);
+  return draft.build();
+}
 
 void main() {
-  testWidgets(
-    'an imported image stays a source with explicit next steps and is not offered as a decor',
-    (tester) async {
-      final host = await UwUResourceHost.open(tester);
-      await host.family(ResourceKind.images);
-      await tapResourceAdministrationText(tester, 'Importer une image');
-      expect(find.byKey(const ValueKey('resource-import-preflight')), findsOne);
-      expect(
-        find.byKey(const ValueKey('resource-import-decoded')),
-        findsOneWidget,
-      );
-      await tapResourceAdministrationText(tester, 'Importer');
+  TestWidgetsFlutterBinding.ensureInitialized();
 
-      final project = host.fixture.controller.project!;
-      final imported = project.tilesets.singleWhere(
-        (item) => item.name == 'Planche M2',
-      );
-      expect(host.navigation.decor, isNull);
-      expect(host.navigation.library.selectedIdentity, 'tileset:${imported.id}');
-      expect(find.byKey(const ValueKey('resource-import-result')), findsOne);
-      expect(
-        find.textContaining('n’est placée sur aucune carte'),
-        findsOneWidget,
-      );
-      expect(project.elements.where((e) => e.tilesetId == imported.id), isEmpty);
-      final palette = MapWorkspaceViewState();
-      addTearDown(palette.dispose);
-      expect(
-        palette
-            .paletteResources(project, project.maps.first.id)
-            .map((item) => item.identity),
-        isNot(contains('tileset:${imported.id}')),
-      );
-
-      await host.tap('resource-import-create-decor');
-      expect(host.navigation.decor?.tileset.id, imported.id);
-    },
-  );
-
-  testWidgets('an import started from decor creation opens the decor workshop', (
-    tester,
-  ) async {
-    final host = await UwUResourceHost.open(tester);
-    await host.family(ResourceKind.decors);
-    await host.tap('resource-create');
-    await tapResourceAdministrationText(tester, 'Importer une image');
-    await tapResourceAdministrationText(tester, 'Importer');
-    final imported = host.fixture.controller.project!.tilesets.singleWhere(
+  test('an imported image stays a source with explicit next steps and is not offered as decor', () async {
+    final host = await ResourceReplacementFixture.create();
+    final picked = await host.candidate(name: 'Planche M2');
+    final workflow = ResourceWorkspaceImportWorkflow(
+      navigation: host.navigation,
+      isActive: () => true,
+    );
+    expect(
+      await workflow.importImage(picker: () async => picked, confirm: _confirm),
+      isTrue,
+    );
+    final project = host.workspace.project!;
+    final imported = project.tilesets.singleWhere(
       (item) => item.name == 'Planche M2',
     );
-    expect(host.navigation.decor?.tileset.id, imported.id);
-    expect(find.byKey(const ValueKey('resource-import-result')), findsNothing);
-  });
-
-  testWidgets('cancelling the preflight publishes nothing', (tester) async {
-    final host = await UwUResourceHost.open(tester);
-    final before = await _projectJson(host);
-    await host.family(ResourceKind.images);
-    await tapResourceAdministrationText(tester, 'Importer une image');
-    await tapResourceAdministrationText(tester, 'Annuler');
-    expect(await _projectJson(host), before);
-    expect(host.navigation.error, isNull);
-    expect(find.byKey(const ValueKey('resource-import-result')), findsNothing);
-  });
-
-  testWidgets('an invalid file is refused before any project change', (
-    tester,
-  ) async {
-    final host = await UwUResourceHost.open(
-      tester,
-      imagePicker: () async =>
-          throw const ResourceFailure('Choisissez une image PNG valide.'),
+    expect(host.navigation.decor, isNull);
+    expect(host.navigation.library.selectedIdentity, 'tileset:${imported.id}');
+    expect(host.navigation.importedSource!.id, imported.id);
+    expect(
+      project.elements.where((element) => element.tilesetId == imported.id),
+      isEmpty,
     );
-    final before = await _projectJson(host);
-    await host.family(ResourceKind.images);
-    await tapResourceAdministrationText(tester, 'Importer une image');
-    expect(await _projectJson(host), before);
-    expect(find.text('Choisissez une image PNG valide.'), findsOneWidget);
-    expect(find.byKey(const ValueKey('resource-import-preflight')), findsNothing);
+    final state = MapWorkspaceEditingState();
+    expect(
+      state
+          .paletteResourcesFor(project, project.maps.first.id, 'Décors')
+          .map((item) => item.identity),
+      isNot(contains('tileset:${imported.id}')),
+    );
+    host.navigation.edit(host.navigation.importedSource!);
+    expect(host.navigation.decor?.tileset.id, imported.id);
   });
 
-  testWidgets(
-    'the preflight warns about a name already used and an uneven grid',
-    (tester) async {
-      final host = await UwUResourceHost.open(tester);
-      final existing = host.fixture.controller.project!.tilesets.single.name;
-      await host.family(ResourceKind.images);
-      await tapResourceAdministrationText(tester, 'Importer une image');
-      await tester.enterText(
-        find.byKey(const ValueKey('resource-import-name')),
-        existing,
-      );
-      await tester.enterText(
-        find.byKey(const ValueKey('resource-import-cell-width')),
-        '48',
-      );
-      await tester.pump();
-      expect(
-        find.byKey(const ValueKey('resource-import-name-taken')),
-        findsOneWidget,
+  test(
+    'an import started from decor creation opens its native decor owner',
+    () async {
+      final host = await ResourceReplacementFixture.create();
+      final picked = await host.candidate(name: 'Planche décor');
+      final workflow = ResourceWorkspaceImportWorkflow(
+        navigation: host.navigation,
+        isActive: () => true,
       );
       expect(
-        find.byKey(const ValueKey('resource-import-uneven-width')),
-        findsOneWidget,
+        await workflow.importImage(
+          picker: () async => picked,
+          confirm: _confirm,
+          intent: ResourceImportIntent.decor,
+        ),
+        isTrue,
       );
-      expect(_importAction(tester), isNull);
-      await tester.enterText(
-        find.byKey(const ValueKey('resource-import-cell-width')),
-        '32',
+      final imported = host.workspace.project!.tilesets.singleWhere(
+        (item) => item.name == 'Planche décor',
       );
-      await tester.pump();
-      expect(
-        find.byKey(const ValueKey('resource-import-uneven-width')),
-        findsNothing,
-      );
-      expect(_importAction(tester), isNotNull);
-      await tapResourceAdministrationText(tester, 'Annuler');
-      await pumpIo(tester);
+      expect(host.navigation.decor?.tileset.id, imported.id);
+      expect(host.navigation.importedSource, isNull);
     },
   );
 
-  testWidgets(
-    'a PNG whose content does not decode cannot be imported and nothing is published',
-    (tester) async {
-      final valid = Uint8List.fromList(exampleAtlasPng());
-      final corrupt = Uint8List.fromList([
-        ...valid.sublist(0, 60),
-        ...List.filled(40, 7),
-        ...valid.sublist(100),
-      ]);
-      late File picked;
-      final host = await UwUResourceHost.open(
-        tester,
-        imagePicker: () async {
-          picked = File(
-            '${Directory.systemTemp.path}/avelune-corrupt-${DateTime.now().microsecondsSinceEpoch}.png',
-          );
-          await picked.writeAsBytes(corrupt);
-          addTearDown(() => picked.deleteSync());
-          return PickedResourceImage(picked.path, 'Corrompue', corrupt, 160, 64);
+  test('cancelling the image preflight publishes nothing', () async {
+    final host = await ResourceReplacementFixture.create();
+    final picked = await host.candidate();
+    final before = await host.fixture.manifestFile.readAsBytes();
+    final workflow = ResourceWorkspaceImportWorkflow(
+      navigation: host.navigation,
+      isActive: () => true,
+    );
+    expect(
+      await workflow.importImage(
+        picker: () async => picked,
+        confirm: (_, _) async => null,
+      ),
+      isFalse,
+    );
+    expect(await host.fixture.manifestFile.readAsBytes(), before);
+    expect(host.navigation.error, isNull);
+    expect(host.navigation.importedSource, isNull);
+    expect(host.navigation.managementDialogActive, isFalse);
+  });
+
+  test(
+    'an invalid selected file is refused before any project change',
+    () async {
+      final host = await ResourceReplacementFixture.create();
+      final before = await host.fixture.manifestFile.readAsBytes();
+      final workflow = ResourceWorkspaceImportWorkflow(
+        navigation: host.navigation,
+        isActive: () => true,
+      );
+      var confirmations = 0;
+      final imported = await workflow.importImage(
+        picker: () async =>
+            throw const ResourceFailure('Choisissez une image PNG valide.'),
+        confirm: (_, _) async {
+          confirmations++;
+          return null;
         },
       );
-      final before = await _projectJson(host);
-      await host.family(ResourceKind.images);
-      await tapResourceAdministrationText(tester, 'Importer une image');
-      expect(
-        find.byKey(const ValueKey('resource-import-unreadable')),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(const ValueKey('resource-import-decoded')),
-        findsNothing,
-      );
-      expect(_importAction(tester), isNull);
-      await tapResourceAdministrationText(tester, 'Annuler');
-      expect(await _projectJson(host), before);
-      expect(await tester.runAsync(picked.readAsBytes), corrupt);
-      expect(
-        host.fixture.controller.project!.tilesets.map((item) => item.name),
-        isNot(contains('Corrompue')),
-      );
+      expect(imported, isFalse);
+      expect(await host.fixture.manifestFile.readAsBytes(), before);
+      expect(host.navigation.error, 'Choisissez une image PNG valide.');
+      expect(confirmations, 0);
     },
   );
+
+  test('preflight warns about an existing name and refuses an uneven grid while preserving input', () async {
+    final host = await ResourceReplacementFixture.create();
+    final picked = await host.candidate(width: 160, height: 64);
+    final before = await host.fixture.manifestFile.readAsBytes();
+    ResourceImageImportDraft? retained;
+    final workflow = ResourceWorkspaceImportWorkflow(
+      navigation: host.navigation,
+      isActive: () => true,
+    );
+    await workflow.importImage(
+      picker: () async => picked,
+      confirm: (image, project) async {
+        final draft = ResourceImageImportDraft(
+          image: image,
+          tileWidth: 48,
+          tileHeight: 32,
+          existingNames: {for (final entry in project.tilesets) entry.name},
+        )..name = project.tilesets.single.name;
+        retained = draft;
+        await draft.verify(verifyResourceImageContent);
+        return null;
+      },
+    );
+    final draft = retained!;
+    expect(draft.nameTaken, isTrue);
+    expect(draft.restWidth, 16);
+    expect(draft.build(), isNull);
+    draft.width = '32';
+    expect(draft.restWidth, 0);
+    expect(draft.build(), isNotNull);
+    expect(await host.fixture.manifestFile.readAsBytes(), before);
+  });
+
+  test('a PNG whose content does not decode cannot be imported and its source remains intact', () async {
+    final host = await ResourceReplacementFixture.create();
+    final picked = await host.candidate();
+    final corrupted = Uint8List.fromList([
+      ...picked.bytes.sublist(0, 60),
+      ...List.filled(40, 7),
+      ...picked.bytes.sublist(100),
+    ]);
+    final file = File(picked.path);
+    await file.writeAsBytes(corrupted);
+    final candidate = PickedResourceImage(
+      picked.path,
+      picked.name,
+      corrupted,
+      picked.width,
+      picked.height,
+    );
+    final before = await host.fixture.manifestFile.readAsBytes();
+    final workflow = ResourceWorkspaceImportWorkflow(
+      navigation: host.navigation,
+      isActive: () => true,
+    );
+    expect(
+      await workflow.importImage(
+        picker: () async => candidate,
+        confirm: _confirm,
+      ),
+      isFalse,
+    );
+    expect(await host.fixture.manifestFile.readAsBytes(), before);
+    expect(await file.readAsBytes(), corrupted);
+    expect(host.navigation.importedSource, isNull);
+  });
+
+  test('one image management owner blocks a concurrent picker and a late closed result', () async {
+    final host = await ResourceReplacementFixture.create();
+    final picked = await host.candidate();
+    var active = true, duplicatePicks = 0;
+    final gate = Completer<PickedResourceImage?>();
+    final workflow = ResourceWorkspaceImportWorkflow(
+      navigation: host.navigation,
+      isActive: () => active,
+    );
+    final importing = workflow.importImage(
+      picker: () => gate.future,
+      confirm: _confirm,
+    );
+    final other = ResourceWorkspaceImportWorkflow(
+      navigation: host.navigation,
+      isActive: () => true,
+    );
+    expect(
+      await other.importImage(
+        picker: () async {
+          duplicatePicks++;
+          return picked;
+        },
+        confirm: _confirm,
+      ),
+      isFalse,
+    );
+    active = false;
+    gate.complete(picked);
+    expect(await importing, isFalse);
+    expect(duplicatePicks, 0);
+    expect(host.navigation.managementDialogActive, isFalse);
+    expect(host.workspace.project!.tilesets, hasLength(1));
+  });
+
+  test('a retained resource receipt blocks image picking before publication can repeat', () async {
+    final host = await ResourceReplacementFixture.create();
+    final before = await host.fixture.manifestFile.readAsBytes();
+    final project = host.workspace.project!;
+    final receipt = ResourceMutationReceipt(
+      before: project,
+      manifest: project,
+      beforeRevision: 'a',
+      revision: 'b',
+      changedPaths: const ['project.json'],
+    );
+    host.navigation.pendingReceipt = receipt;
+    var picks = 0;
+    final workflow = ResourceWorkspaceImportWorkflow(
+      navigation: host.navigation,
+      isActive: () => true,
+    );
+    expect(
+      await workflow.importImage(
+        picker: () async {
+          picks++;
+          return null;
+        },
+        confirm: _confirm,
+      ),
+      isFalse,
+    );
+    expect(picks, 0);
+    expect(host.navigation.pendingReceipt, same(receipt));
+    expect(await host.fixture.manifestFile.readAsBytes(), before);
+  });
 }

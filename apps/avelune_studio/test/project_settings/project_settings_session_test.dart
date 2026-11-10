@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:avelune_studio/features/project_settings/application/project_settings_preview_controller.dart';
+
 import 'package:avelune_studio/features/project_audio/application/project_audio_controller.dart';
 import 'package:avelune_studio/features/project_audio/domain/project_audio_port.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
@@ -8,11 +10,6 @@ import 'package:avelune_studio/features/project_visuals/application/project_visu
 import 'package:avelune_studio/features/project_visuals/domain/project_visuals_port.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
-import 'package:avelune_studio/presentation/features/project_settings/project_settings_page.dart';
-import 'package:avelune_studio/presentation/features/project_settings/spatial_visual_controls.dart';
-import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
@@ -246,24 +243,41 @@ void main() {
   );
 }
 
-Future<void> _pumpPage(
-  WidgetTester tester,
-  MapWorkspaceController workspace,
-  ProjectVisualsController owner,
-) async {
-  tester.view.physicalSize = const Size(1536, 1024);
-  tester.view.devicePixelRatio = 1;
-  addTearDown(tester.view.resetPhysicalSize);
-  addTearDown(tester.view.resetDevicePixelRatio);
-  await tester.pumpWidget(
-    MaterialApp(
-      theme: studioTheme(),
-      home: Scaffold(
-        body: ProjectSettingsPage(workspace: workspace, owner: owner),
-      ),
-    ),
+Future<
+  ({
+    MapWorkspaceController workspace,
+    ProjectVisualsController owner,
+    ProjectSettingsSessionController settings,
+    ProjectSettingsPreviewController preview,
+  })
+>
+_openPreview(_Maps maps) async {
+  final workspace = MapWorkspaceController(workspaceSession, maps);
+  addTearDown(workspace.dispose);
+  await workspace.initialize();
+  final owner = ProjectVisualsController(session: workspaceSession, port: maps);
+  addTearDown(owner.dispose);
+  await owner.open();
+  final settings = ProjectSettingsSessionController(
+    projectVisuals: owner,
+    mapVisuals: (id) => workspace.documents[id] == null
+        ? null
+        : workspace.weatherDraftFor(workspace.documents[id]!),
   );
-  await tester.pumpAndSettle();
+  addTearDown(settings.dispose);
+  final preview = ProjectSettingsPreviewController(
+    workspace: workspace,
+    owner: owner,
+    session: settings,
+  );
+  addTearDown(preview.dispose);
+  await preview.start();
+  return (
+    workspace: workspace,
+    owner: owner,
+    settings: settings,
+    preview: preview,
+  );
 }
 
 void pageTests() {
@@ -272,100 +286,51 @@ void pageTests() {
     true,
   );
 
-  testWidgets(
+  test(
     'every section opens without a 3D map and the preview map writes nothing',
-    (tester) async {
+    () async {
       final maps = _Maps(spatial: false);
-      final workspace = MapWorkspaceController(workspaceSession, maps);
-      await workspace.initialize();
-      final owner = ProjectVisualsController(
-        session: workspaceSession,
-        port: maps,
-      );
-      await _pumpPage(tester, workspace, owner);
+      final f = await _openPreview(maps);
       for (final section in ProjectSettingsSection.values) {
-        expect(
-          find.byKey(ValueKey('settings-section-${section.name}')),
-          findsOneWidget,
-        );
+        f.settings.select(section);
+        expect(f.settings.section, section);
       }
-      await tester.tap(find.byKey(const ValueKey('settings-section-image')));
-      await tester.pumpAndSettle();
-      final controls = tester.widget<SpatialVisualControls>(
-        find.byType(SpatialVisualControls),
-      );
-      expect(controls.onChanged, isNotNull);
-      controls.onChanged!(image);
-      await tester.pumpAndSettle();
-      tester
-          .widget<StudioSelect>(
-            find.byKey(const ValueKey('settings-preview-map')),
-          )
-          .onChanged!(workspaceEntries.last.id);
-      await tester.pumpAndSettle();
+      f.settings.select(ProjectSettingsSection.image);
+      f.settings.scopedVisuals!.edit(image);
+      await f.preview.choosePreview(workspaceEntries.last.id);
       expect(maps.visualWrites, 0);
-      expect(owner.preview.value, image);
-      await tester.tap(
-        find.byKey(const ValueKey('settings-section-timeWeather')),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('settings-section-image')));
-      await tester.pumpAndSettle();
-      expect(owner.preview.value, image);
-      expect(find.text('Brouillon non enregistré'), findsOneWidget);
-      expect(maps.visualWrites, 0);
-      await tester.tap(find.byKey(const ValueKey('settings-section-save')));
-      await tester.pumpAndSettle();
+      expect(f.owner.preview.value, image);
+      f.settings.select(ProjectSettingsSection.timeWeather);
+      f.settings.select(ProjectSettingsSection.image);
+      expect(f.owner.preview.value, image);
+      expect(f.settings.isDirty(ProjectSettingsSection.image), isTrue);
+      expect(await f.settings.save(ProjectSettingsSection.image), isTrue);
       expect(maps.visualWrites, 1);
       expect(maps.lastVisualMap, isNull);
-      expect(find.text('Rubrique enregistrée'), findsOneWidget);
-      expect(tester.takeException(), isNull);
-      await tester.pumpWidget(const SizedBox());
-      owner.dispose();
-      workspace.dispose();
+      expect(f.settings.isConfirmed(ProjectSettingsSection.image), isTrue);
     },
   );
 
-  testWidgets('the map scope edits the map draft shared with the map space', (
-    tester,
-  ) async {
+  test('the map scope edits the map draft shared with the map space', () async {
     final maps = _Maps(spatial: true);
-    final workspace = MapWorkspaceController(workspaceSession, maps);
-    await workspace.initialize();
-    final owner = ProjectVisualsController(
-      session: workspaceSession,
-      port: maps,
-    );
-    await _pumpPage(tester, workspace, owner);
-    await tester.tap(find.byKey(const ValueKey('settings-section-image')));
-    await tester.pumpAndSettle();
-    tester
-        .widget<StudioSelect>(find.byKey(const ValueKey('settings-scope')))
-        .onChanged!('map');
-    await tester.pumpAndSettle();
+    final f = await _openPreview(maps);
+    f.settings.select(ProjectSettingsSection.image);
+    f.preview.chooseScope('map');
+    await Future<void>.delayed(Duration.zero);
     final local =
-        workspace.documents[workspaceEntries.first.id]!.weatherVisuals!;
-    tester
-        .widget<SpatialVisualControls>(find.byType(SpatialVisualControls))
-        .onChanged!(
+        f.workspace.documents[workspaceEntries.first.id]!.weatherVisuals!;
+    expect(f.settings.scopedVisuals, same(local));
+    f.settings.scopedVisuals!.edit(
       SpatialVisualPatch().set(SpatialVisualParameter.cameraDistance, 10),
     );
-    await tester.pumpAndSettle();
     expect(
       local.preview.value.number(SpatialVisualParameter.cameraDistance),
       10,
     );
-    expect(owner.dirty, isFalse);
-    tester
-        .widget<StudioSelect>(find.byKey(const ValueKey('settings-scope')))
-        .onChanged!('project');
-    await tester.pumpAndSettle();
+    expect(f.owner.dirty, isFalse);
+    f.preview.chooseScope('project');
     expect(local.dirty, isTrue);
     expect(maps.visualWrites, 0);
-    expect(tester.takeException(), isNull);
-    await tester.pumpWidget(const SizedBox());
-    owner.dispose();
-    workspace.dispose();
   });
 }
 

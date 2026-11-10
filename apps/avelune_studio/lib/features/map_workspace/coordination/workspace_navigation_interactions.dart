@@ -1,6 +1,108 @@
 part of 'workspace_navigation_session.dart';
 
 extension WorkspaceInteractionNavigation on WorkspaceNavigationSession {
+  Future<String?> openNarrativeMap(
+    String mapId, {
+    void Function()? cancelGestures,
+  }) async {
+    final project = controller.project;
+    final entry = project?.maps.where((item) => item.id == mapId).firstOrNull;
+    if (entry == null) return null;
+    final ticket = nextNavigationRequest?.call() ?? ++_request;
+    bool current() =>
+        isActive() &&
+        ticket == request &&
+        identical(controller.project, project) &&
+        space == WorkspaceSpace.story;
+    await controller.activate(entry, isCurrent: current);
+    if (!current()) return null;
+    if (controller.active?.base.mapId != mapId) {
+      return controller.error ?? 'Carte indisponible.';
+    }
+    cancelGestures?.call();
+    final view = mapView?.call();
+    view?.pendingMove = null;
+    view?.tool = StudioMapTool.select;
+    show(WorkspaceSpace.map);
+    toolChanged?.call();
+    return null;
+  }
+
+  Future<String?> openInteractionScene(
+    MapEntity entity, {
+    required Future<SceneAsset?> Function(
+      List<(NarrativeEventRecord, SceneAsset)>,
+    )
+    choose,
+  }) async {
+    final document = controller.active;
+    if (document == null) return null;
+    final mapId = document.current.id;
+    final ticket = await _prepare(MapWorkspaceWorkshop.events);
+    if (!isActive() || ticket == null) return null;
+    final owner = events?.call();
+    if (owner == null) return null;
+    final source = NarrativeEventSourceRef.entityInteract(mapId, entity.id);
+    final available =
+        scenes?.call()?.scenes ??
+        narrative?.call()?.project.scenes ??
+        const <SceneAsset>[];
+    final played = <(NarrativeEventRecord, SceneAsset)>[
+      for (final record in owner.records)
+        if (eventSource(record) == source)
+          if (eventSceneId(record) case final sceneId?)
+            if (available.where((scene) => scene.id == sceneId).firstOrNull
+                case final scene?)
+              (record, scene),
+    ];
+    if (played.isEmpty)
+      return 'Aucune interaction de ce personnage ne joue encore de scène. « Écrire son interaction » en crée une.';
+    final chosen = played.length == 1 ? played.single.$2 : await choose(played);
+    if (!isActive() || ticket != request || chosen == null) return null;
+    return openScene(
+      chosen.id,
+      nodeId: chosen.graph.startNodeId,
+      origin: WorkspaceReturn(
+        WorkspaceSpace.map,
+        documentId: mapId,
+        elementId: entity.id,
+      ),
+    );
+  }
+
+  bool openProgression({String? preferredStoryId}) {
+    final owner = stories?.call();
+    if (!isActive() || owner == null) return false;
+    progressionOrigin = WorkspaceReturn.story;
+    final id =
+        preferredStoryId != null &&
+            owner.stories.any((story) => story.id == preferredStoryId)
+        ? preferredStoryId
+        : owner.activeId ?? owner.stories.firstOrNull?.id;
+    if (id != null) owner.open(id);
+    show(WorkspaceSpace.progression);
+    return true;
+  }
+
+  bool openProgressionStep(String storyId, String stepId) {
+    final owner = stories?.call();
+    if (!isActive() || owner == null || !owner.open(storyId)) return false;
+    final projection = buildStorylineProgressionProjection(
+      project: owner.project,
+      storylineId: storyId,
+    );
+    final node = projection.nodes
+        .where((node) => node.stepId == stepId)
+        .firstOrNull;
+    if (node != null) {
+      progressionNodes[storyId] = node;
+      selectProgressionNode?.call(storyId, node);
+    }
+    progressionOrigin = WorkspaceReturn.story;
+    show(WorkspaceSpace.progression);
+    return true;
+  }
+
   Future<void> openEvents(String? id, {bool filterSource = false}) async {
     final ticket = await _prepare(MapWorkspaceWorkshop.events);
     if (ticket == null) return;

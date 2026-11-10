@@ -1,207 +1,220 @@
 import 'dart:typed_data';
 
+import 'package:avelune_studio/features/pokemon/application/pokemon_document_editing.dart';
 import 'package:avelune_studio/features/pokemon/application/pokemon_workspace_controller.dart';
 import 'package:avelune_studio/features/pokemon/domain/pokemon_workspace_models.dart';
 import 'package:avelune_studio/features/pokemon/domain/pokemon_workspace_port.dart';
-import 'package:avelune_studio/presentation/features/pokemon/pokemon_species_forms.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+Future<PokemonWorkspaceController> _open() async {
+  final controller = PokemonWorkspaceController(_FormsPort(), changed: () {});
+  addTearDown(controller.dispose);
+  await controller.load();
+  expect(await controller.selectSpecies('raichu'), isTrue);
+  return controller;
+}
+
+Map<String, dynamic> _forms(PokemonWorkspaceController controller) =>
+    (controller.selectedDraft!.document(PokemonDocumentFamily.species)!['forms']
+            as Map)
+        .cast<String, dynamic>();
+List<String> _links(PokemonWorkspaceController controller) =>
+    List<String>.from(_forms(controller)['otherForms'] as List);
+void _write(PokemonWorkspaceController controller, List<String> forms) =>
+    controller.edit(
+      PokemonDocumentFamily.species,
+      (json) => PokemonDocumentEditing.setForms(json, forms),
+    );
+List<PokemonSpeciesSummary> _candidates(
+  PokemonWorkspaceController controller,
+  String query,
+) => PokemonDocumentEditing.formCandidates(
+  entries: controller.index!.entries,
+  forms: _forms(controller),
+  ownerId: controller.selectedId,
+  query: query,
+);
+
 void main() {
-  Future<PokemonWorkspaceController> open(
-    WidgetTester tester, {
-    ValueNotifier<bool>? visible,
-  }) async {
-    final tick = ValueNotifier(0);
-    final shown = visible ?? ValueNotifier(true);
-    final controller = PokemonWorkspaceController(
-      _FormsPort(),
-      changed: () => tick.value++,
-    );
-    await tester.runAsync(controller.load);
-    await tester.runAsync(() => controller.selectSpecies('raichu'));
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: studioTheme(),
-        home: Scaffold(
-          body: ValueListenableBuilder<bool>(
-            valueListenable: shown,
-            builder: (_, show, child) => show ? child! : const SizedBox(),
-            child: SingleChildScrollView(
-              key: const PageStorageKey('pokemon-detail-test'),
-              child: ValueListenableBuilder<bool>(
-                valueListenable: shown,
-                builder: (_, show, _) => show
-                    ? ValueListenableBuilder<int>(
-                        valueListenable: tick,
-                        builder: (_, _, _) =>
-                            PokemonSpeciesFormsEditor(controller: controller),
-                      )
-                    : const SizedBox(height: 10),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-    await tester.pump();
-    return controller;
-  }
-
-  List<String> otherForms(PokemonWorkspaceController controller) =>
-      List<String>.from(
-        (controller.selectedDraft!.document(
-                  PokemonDocumentFamily.species,
-                )!['forms']
-                as Map)['otherForms']
-            as List,
+  test(
+    'linked form names resolve without dropping unresolved references',
+    () async {
+      final controller = await _open();
+      final links = PokemonDocumentEditing.formLinks(
+        entries: controller.index!.entries,
+        forms: _forms(controller),
+        ownerId: controller.selectedId,
       );
+      expect(links.map((link) => link.formId), ['alola', 'gmax-inconnue']);
+      expect(links.first.resolved!.name, 'Raichu d’Alola');
+      expect(links.first.matches.single.id, 'raichu-alola');
+      expect(links.last.matches, isEmpty);
+      expect(links.last.resolved, isNull);
+      expect(_links(controller), ['alola', 'gmax-inconnue']);
+    },
+  );
 
-  testWidgets('linked forms are named, previewed and unresolved ones stay', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(1600, 1400);
-    addTearDown(tester.view.reset);
-    final controller = await open(tester);
-    expect(
-      find.text('Identifiants liés · séparés par une virgule'),
-      findsNothing,
+  test('form link projection preserves ambiguity order and raw duplicates without modifying its source', () {
+    final sourceLinks = ['alola', 'unknown', 'mega', 'alola'];
+    final forms = <String, dynamic>{
+      'formId': 'base',
+      'isBaseForm': true,
+      'baseFormId': 'raichu',
+      'otherForms': sourceLinks,
+      'formName': 'Original',
+    };
+    final links = PokemonDocumentEditing.formLinks(
+      entries: [
+        _summary('raichu', 'Raichu', formId: 'base'),
+        _summary(
+          'raichu-alola-a',
+          'Homonyme',
+          formId: 'alola',
+          baseFormId: 'raichu',
+        ),
+        _summary(
+          'raichu-alola-b',
+          'Homonyme',
+          formId: 'alola',
+          baseFormId: 'raichu',
+        ),
+        _summary(
+          'pikachu-alola',
+          'Homonyme',
+          formId: 'alola',
+          baseFormId: 'pikachu',
+        ),
+        _summary(
+          'raichu-mega',
+          'Méga-Raichu',
+          formId: 'mega',
+          baseFormId: 'raichu',
+        ),
+      ],
+      forms: forms,
+      ownerId: 'raichu',
     );
-    expect(find.text('Raichu d’Alola'), findsOneWidget);
-    expect(find.text('Forme introuvable · gmax-inconnue'), findsOneWidget);
-    expect(find.text('Référence conservée telle quelle.'), findsOneWidget);
-    expect(find.text('Non résolue'), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey('species-form-link-preview:raichu-alola')),
-      findsOneWidget,
-    );
-    expect(otherForms(controller), ['alola', 'gmax-inconnue']);
-    controller.dispose();
+    expect(links.map((link) => link.formId), sourceLinks);
+    expect(links.first.matches.map((entry) => entry.id), [
+      'raichu-alola-a',
+      'raichu-alola-b',
+    ]);
+    expect(links.first.resolved, isNull);
+    expect(links[1].matches, isEmpty);
+    expect(links[1].resolved, isNull);
+    expect(links[2].resolved!.id, 'raichu-mega');
+    expect(links.last.matches.map((entry) => entry.id), [
+      'raichu-alola-a',
+      'raichu-alola-b',
+    ]);
+    expect(links.last.resolved, isNull);
+    expect(forms['otherForms'], same(sourceLinks));
+    expect(sourceLinks, ['alola', 'unknown', 'mega', 'alola']);
+    expect(forms['formName'], 'Original');
+    expect(() => links.clear(), throwsUnsupportedError);
+    expect(() => links.first.matches.clear(), throwsUnsupportedError);
   });
 
-  testWidgets('search offers only forms of the same base species', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(1600, 1400);
-    addTearDown(tester.view.reset);
-    final controller = await open(tester);
-    final search = find.byKey(const ValueKey('species-form-link-search'));
-    expect(
-      find.byKey(const ValueKey('species-form-candidate:raichu-mega')),
-      findsOneWidget,
+  test(
+    'form links remain unresolved when their owning group is unavailable',
+    () {
+      final links = PokemonDocumentEditing.formLinks(
+        entries: [
+          _summary(
+            'raichu-alola',
+            'Raichu d’Alola',
+            formId: 'alola',
+            baseFormId: 'raichu',
+          ),
+        ],
+        forms: {
+          'otherForms': ['alola'],
+        },
+        ownerId: null,
+      );
+      expect(links.single.formId, 'alola');
+      expect(links.single.matches, isEmpty);
+      expect(links.single.resolved, isNull);
+      expect(
+        PokemonDocumentEditing.formLinks(
+          entries: const [],
+          forms: const {},
+          ownerId: null,
+        ),
+        isEmpty,
+      );
+    },
+  );
+
+  test(
+    'search offers only unlinked forms from the same base species',
+    () async {
+      final controller = await _open();
+      expect(_candidates(controller, '').map((entry) => entry.id), [
+        'raichu-mega',
+      ]);
+      expect(_candidates(controller, 'pika'), isEmpty);
+      final candidate = _candidates(controller, 'MÉGA').single;
+      _write(
+        controller,
+        PokemonDocumentEditing.addForm(_forms(controller), candidate.formId),
+      );
+      expect(_links(controller), ['alola', 'gmax-inconnue', 'mega']);
+      expect(_candidates(controller, ''), isEmpty);
+    },
+  );
+
+  test(
+    'removing a form link keeps all other references and supports undo',
+    () async {
+      final controller = await _open();
+      _write(
+        controller,
+        PokemonDocumentEditing.removeForm(_forms(controller), 0),
+      );
+      expect(_links(controller), ['gmax-inconnue']);
+      expect(
+        _candidates(controller, '').map((entry) => entry.id),
+        contains('raichu-alola'),
+      );
+      controller.undo();
+      expect(_links(controller), ['alola', 'gmax-inconnue']);
+    },
+  );
+
+  test('advanced raw identifiers remain intact and ignore empty comma-separated values', () async {
+    final controller = await _open();
+    _write(
+      controller,
+      PokemonDocumentEditing.parseFormLinks(' alola, , unresolved , alola '),
     );
-    expect(
-      find.byKey(const ValueKey('species-form-candidate:raichu-alola')),
-      findsNothing,
-    );
-    expect(
-      find.byKey(const ValueKey('species-form-candidate:pikachu')),
-      findsNothing,
-    );
-    await tester.enterText(search, 'pika');
-    await tester.pump();
-    expect(
-      find.byKey(const ValueKey('species-form-candidate:raichu-mega')),
-      findsNothing,
-    );
-    expect(find.text('Aucune forme ne correspond à « pika ».'), findsOneWidget);
-    await tester.enterText(search, 'MÉGA');
-    await tester.pump();
-    final candidate = find.byKey(
-      const ValueKey('species-form-candidate:raichu-mega'),
-    );
-    await tester.ensureVisible(candidate);
-    await tester.tap(candidate);
-    await tester.pump();
-    expect(otherForms(controller), ['alola', 'gmax-inconnue', 'mega']);
-    expect(find.text('Méga-Raichu'), findsOneWidget);
-    controller.dispose();
+    expect(_links(controller), ['alola', 'unresolved', 'alola']);
+    expect(_forms(controller)['baseFormId'], 'raichu');
+    expect(_forms(controller)['isBaseForm'], isTrue);
   });
 
-  testWidgets('removing a link is explicit and keeps the others untouched', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(1600, 1400);
-    addTearDown(tester.view.reset);
-    final controller = await open(tester);
-    await tester.tap(find.byTooltip('Retirer le lien vers Raichu d’Alola'));
-    await tester.pump();
-    expect(otherForms(controller), ['gmax-inconnue']);
-    expect(
-      find.byKey(const ValueKey('species-form-candidate:raichu-alola')),
-      findsOneWidget,
-    );
-    controller.dispose();
+  test('repeated raw edits retain the latest value and preserve the previous snapshot', () async {
+    final controller = await _open();
+    _write(controller, PokemonDocumentEditing.parseFormLinks('alola'));
+    final before = controller.selectedDraft!.document(
+      PokemonDocumentFamily.species,
+    )!;
+    _write(controller, PokemonDocumentEditing.parseFormLinks('alola, mega'));
+    expect(_links(controller), ['alola', 'mega']);
+    expect((before['forms'] as Map)['otherForms'], ['alola']);
+    controller.undo();
+    expect(_links(controller), ['alola']);
   });
 
-  testWidgets('raw identifiers remain available as an advanced option', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(1600, 1400);
-    addTearDown(tester.view.reset);
-    final controller = await open(tester);
-    final advanced = find.text('Identifiants avancés');
-    await tester.ensureVisible(advanced);
-    await tester.tap(advanced);
-    await tester.pumpAndSettle();
-    final field = find.byKey(const ValueKey('species-forms.otherForms'));
-    expect(
-      find.descendant(of: field, matching: find.text('alola, gmax-inconnue')),
-      findsOneWidget,
-    );
-    controller.dispose();
-  });
-
-  testWidgets('typing raw identifiers keeps the advanced field focused', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(1600, 1400);
-    addTearDown(tester.view.reset);
-    final controller = await open(tester);
-    final advanced = find.text('Identifiants avancés');
-    await tester.ensureVisible(advanced);
-    await tester.tap(advanced);
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.byKey(const ValueKey('species-forms.otherForms')),
-      'alola',
-    );
-    await tester.pump();
-    tester.testTextInput.updateEditingValue(
-      const TextEditingValue(
-        text: 'alola, mega',
-        selection: TextSelection.collapsed(offset: 11),
-      ),
-    );
-    await tester.pump();
-    expect(otherForms(controller), ['alola', 'mega']);
-    expect(find.text('Méga-Raichu'), findsOneWidget);
-    controller.dispose();
-  });
-
-  testWidgets('an expanded advanced section survives leaving the tab', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(1600, 1400);
-    addTearDown(tester.view.reset);
-    final visible = ValueNotifier(true);
-    final controller = await open(tester, visible: visible);
-    final advanced = find.text('Identifiants avancés');
-    await tester.ensureVisible(advanced);
-    await tester.tap(advanced);
-    await tester.pumpAndSettle();
-    visible.value = false;
-    await tester.pumpAndSettle();
-    visible.value = true;
-    await tester.pumpAndSettle();
-    expect(tester.takeException(), isNull);
-    expect(find.text('Autres formes associées'), findsOneWidget);
-    expect(
-      find.byKey(const ValueKey('species-forms.otherForms')),
-      findsOneWidget,
-    );
-    controller.dispose();
+  test('form drafts survive moving between detail sections and discard restores the source', () async {
+    final controller = await _open();
+    _write(controller, PokemonDocumentEditing.parseFormLinks('alola, mega'));
+    controller.setSection(PokemonDetailSection.overview);
+    controller.setSection(PokemonDetailSection.forms);
+    expect(_links(controller), ['alola', 'mega']);
+    expect(controller.selectedDraft!.dirty, isTrue);
+    controller.discardSelectedSpecies();
+    expect(_links(controller), ['alola', 'gmax-inconnue']);
   });
 }
 

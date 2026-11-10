@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, readFile, realpath, rm, unlink } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, realpath, rm, unlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import test from "node:test";
@@ -60,6 +60,27 @@ test("MCP authors an export profile with CAS and exports its persisted metadata"
     assert.equal(initial.profile, null);
     assert.equal(initial.profileRevision, "absent");
     assert.match(String(initial.contextScope), /project.json/);
+    const rejected = await client.callTool({ name: "pokemap_game_export", arguments: {
+      projectHandle, outputPath: join(output, "missing-profile.avelunegame"), mode: "localTest",
+    } }, { timeout: 125000 });
+    assert.equal(rejected.isError, true);
+    const refusal = record(rejected.structuredContent);
+    assert.equal(refusal.ok, false);
+    const failure = record(refusal.error);
+    assert.equal(failure.code, "validation_failed");
+    assert.equal(record(failure.details).domainCode, "missingExportProfile");
+    assert.equal(failure.retryable, false);
+    const serialized = JSON.stringify(rejected);
+    for (const path of [root, project, output, process.cwd()]) {
+      assert.equal(serialized.includes(path), false);
+    }
+    assert.doesNotMatch(serialized, /(?:\/(?:Users|home|private|tmp|var|opt|Volumes)\/|[A-Za-z]:\\\\)/);
+    assert.deepEqual(await readFile(join(project, "project.json")), source);
+    await assert.rejects(readFile(sidecar), { code: "ENOENT" });
+    assert.deepEqual(await readdir(output), []);
+    const continued = await call("pokemap_game_export_profile_read", { projectHandle });
+    assert.equal(continued.profile, null);
+    assert.equal(continued.profileRevision, "absent");
     const checked = await call("pokemap_game_export_profile_validate", { projectHandle, profile });
     const revisions = { expectedProfileRevision: checked.profileRevision, expectedContextRevision: checked.contextRevision };
     await call("pokemap_game_export_profile_save", { projectHandle, profile, ...revisions });

@@ -27,6 +27,7 @@ const _nativeWorkshopActions = {
   'bag.capacity.set',
   'item.create',
   'item.update', 'item.set_capture_effect',
+  'item.set_overworld_effect', 'item.set_battle_effect', 'item.set_held_effect',
   'event_v2.template.apply',
   'narrative.publish_document',
 };
@@ -382,7 +383,7 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
       }
     }
   }
-  if ((actionId == 'item.update' || actionId == 'item.set_capture_effect') && parameters['itemId'] is String) {
+  if ((actionId == 'item.update' || actionId.startsWith('item.set_')) && parameters['itemId'] is String) {
     for (final rows in index('trainers').values) {
       for (final trainer in rows) {
         if (_nativeReferenceIds(trainer['team'], const {'ballItemId'})
@@ -766,6 +767,44 @@ Future<ProjectSnapshot> _loadNativeWorkshop(
         throw const ProjectSnapshotException('project.map_invalid', 'A dependency map identity differs from its declaration.');
       }
       maps[map.id] = map;
+    }
+  }
+  if (conditionEvent) {
+    final records = <Map>[
+      if (parameters['record'] case final Map record) record,
+      if (parameters['records'] case final List records)
+        ...records.whereType<Map>(),
+    ];
+    final owners = <Object?>[];
+    for (final record in records) {
+      final body = record['definition'] ?? record['draft'];
+      final source = body is Map ? body['source'] : null;
+      if (source is! Map) continue;
+      final mapId = source['mapId'];
+      final entityId = source['entityId'];
+      if (mapId is! String || entityId is! String) continue;
+      for (final entity in maps[mapId]?.entities ?? const <MapEntity>[]) {
+        if (entity.id == entityId) owners.add(entity.toJson());
+      }
+    }
+    const visualFields = {'characters', 'trainers', 'tilesets', 'elements', 'models3d'};
+    var previous = -1;
+    int visualCount() => visualFields.fold<int>(
+        0, (total, field) => total + (ids[field]?.length ?? 0));
+    while (previous != visualCount()) {
+      previous = visualCount();
+      final dependencies = <Object?>[
+        ...owners,
+        for (final field in visualFields)
+          ...?selected[field]?.values,
+      ];
+      for (final field in visualFields) {
+        add(field, _nativeReferenceIds(dependencies, _nativeWorkshopReferences[field]!));
+      }
+      collect();
+    }
+    for (final entry in selected.entries) {
+      projected[entry.key] = entry.value.values.toList();
     }
   }
   final rewardSceneIds = <String>{};

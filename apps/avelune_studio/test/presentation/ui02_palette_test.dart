@@ -1,175 +1,142 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:map_core/map_core_domain.dart';
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_tile_choices.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_workspace_editing_state.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/map_resource_placement.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_panels.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
-import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
-import 'package:avelune_studio/presentation/features/resources/atlas_selection_view.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
+
 import '../support/map_workspace_fixture.dart';
 
 void main() {
-  testWidgets('lazy decor grid retains scroll and activates actual brush', (
-    tester,
-  ) async {
-    final view = MapWorkspaceViewState();
-    final search = TextEditingController();
-    final visuals = _PaletteVisuals();
-    final project = workspaceProject.copyWith(
-      elements: [
-        for (var i = 0; i < 500; i++)
-          workspaceElement.copyWith(id: 'tree-$i', name: 'Arbre $i'),
-      ],
-    );
-    final document = EditableMapDocument(
-      MapWorkspaceDocument(map: workspaceMap('a'), revision: 'r', mapId: 'a'),
-    );
-    addTearDown(view.dispose);
-    addTearDown(search.dispose);
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: studioTheme(),
-        home: Scaffold(
-          body: SizedBox(
-            width: 240,
-            height: 580,
-            child: StatefulBuilder(
-              builder: (context, setState) => MapWorkspacePalette(
-                project: project,
-                document: document,
-                visuals: visuals,
-                view: view,
-                search: search,
-                onChanged: () => setState(() {}),
-              ),
-            ),
-          ),
+  test(
+    'catalogue search selects the actual decor brush without editing the map',
+    () async {
+      final project = workspaceProject.copyWith(
+        elements: [
+          for (var i = 0; i < 500; i++)
+            workspaceElement.copyWith(id: 'tree-$i', name: 'Arbre $i'),
+        ],
+      );
+      final document = EditableMapDocument(
+        MapWorkspaceDocument(map: workspaceMap('a'), revision: 'r', mapId: 'a'),
+      );
+      final workspace =
+          MapWorkspaceController(workspaceSession, WorkspaceMemoryPort())
+            ..project = project
+            ..active = document;
+      addTearDown(workspace.dispose);
+      final view = MapWorkspaceEditingState();
+      view.resourceFilters.query = 'Arbre 499';
+      final visible = view.paletteResourcesFor(project, 'a', 'Décors');
+      expect(visible.map((item) => item.id), ['tree-499']);
+      final before = document.current;
+      expect(
+        await useMapResource(
+          workspace: workspace,
+          item: visible.single,
+          view: () => view,
+          isActive: () => true,
+          chooseMap: (_) async => null,
+          chooseTile: (_) async => null,
         ),
-      ),
-    );
-    expect(visuals.requested.length, lessThan(20));
-    await tester.tap(find.byKey(const ValueKey('decor-tree-0')));
-    await tester.pump();
-    expect(view.brush!.id, 'tree-0');
-    expect(view.tool, StudioMapTool.place);
-    expect(document.dirty, isFalse);
-    await tester.drag(
-      find.byKey(const ValueKey('decor-palette')),
-      const Offset(0, -260),
-    );
-    await tester.pumpAndSettle();
-    final offset = view.paletteScrollOffsets['Décors']!;
-    expect(offset, greaterThan(100));
-    await tester.tap(find.text('Terrains'));
-    await tester.pump();
-    await tester.tap(find.text('Décors'));
-    await tester.pumpAndSettle();
-    final scrollable = find.descendant(
-      of: find.byKey(const ValueKey('decor-palette')),
-      matching: find.byType(Scrollable),
-    );
-    expect(
-      tester.state<ScrollableState>(scrollable).position.pixels,
-      closeTo(offset, .1),
-    );
-    await tester.enterText(find.byType(TextField), 'Arbre 499');
-    await tester.pumpAndSettle();
-    expect(find.text('1 décors'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('decor-tree-499')));
-    await tester.pump();
-    expect(view.brush!.id, 'tree-499');
-    expect(tester.takeException(), isNull);
-  });
+        isTrue,
+      );
+      expect(view.brush!.id, 'tree-499');
+      expect(view.tool, StudioMapTool.place);
+      expect(document.current, same(before));
+      expect(document.dirty, isFalse);
+    },
+  );
 
-  testWidgets('inline atlas selects real tile and preserves zoom across tabs', (
-    tester,
-  ) async {
-    final view = MapWorkspaceViewState()..paletteTab = 'Tuiles';
-    final search = TextEditingController();
+  test('atlas priorities and coordinates select the real local tile without editing the map', () async {
+    const source = ProjectRegularAtlasTilesetSource(
+      assetId: 'atlas',
+      pixelWidth: 128,
+      pixelHeight: 128,
+      tileWidth: 32,
+      tileHeight: 32,
+    );
     final project = workspaceProject.copyWith(
       tilesets: [
         const ProjectTilesetEntry(
           id: 'atlas',
           name: 'Atlas test',
           relativePath: 'atlas.png',
-          source: ProjectRegularAtlasTilesetSource(
-            assetId: 'atlas',
-            pixelWidth: 128,
-            pixelHeight: 128,
-            tileWidth: 32,
-            tileHeight: 32,
-          ),
+          source: source,
+        ),
+        const ProjectTilesetEntry(
+          id: 'other',
+          name: 'Other',
+          relativePath: 'other.png',
+          source: source,
         ),
       ],
+    );
+    final known = [
+      const TileLayerPaletteEntry(tilesetId: 'other', localTileId: 8),
+      const TileLayerPaletteEntry(tilesetId: 'other', localTileId: 8),
+    ];
+    expect(mapPaletteAtlas(project.tilesets, knownTiles: known)!.id, 'other');
+    expect(
+      mapPaletteAtlas(
+        project.tilesets,
+        selected: const TileLayerPaletteEntry(
+          tilesetId: 'atlas',
+          localTileId: 0,
+        ),
+        knownTiles: known,
+      )!.id,
+      'atlas',
+    );
+    expect(
+      mapPaletteAtlas(
+        project.tilesets,
+        atlasId: 'other',
+        selected: const TileLayerPaletteEntry(
+          tilesetId: 'atlas',
+          localTileId: 0,
+        ),
+      )!.id,
+      'other',
+    );
+    expect(mapPaletteAtlasTileIds(project.tilesets.last, known), [8]);
+    final tile = mapPaletteAtlasSelection(
+      'atlas',
+      source,
+      const TilesetSourceRect(x: 2, y: 1),
+    );
+    expect(
+      tile,
+      const TileLayerPaletteEntry(tilesetId: 'atlas', localTileId: 6),
     );
     final document = EditableMapDocument(
       MapWorkspaceDocument(map: workspaceMap('a'), revision: 'r', mapId: 'a'),
     );
-    addTearDown(view.dispose);
-    addTearDown(search.dispose);
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: studioTheme(),
-        home: Scaffold(
-          body: SizedBox(
-            width: 240,
-            height: 640,
-            child: StatefulBuilder(
-              builder: (context, setState) => MapWorkspacePalette(
-                project: project,
-                document: document,
-                visuals: _PaletteVisuals(),
-                view: view,
-                search: search,
-                onChanged: () => setState(() {}),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-    final selection = tester.widget<AtlasSelectionView>(
-      find.byType(AtlasSelectionView),
-    );
-    selection.onSelected(const TilesetSourceRect(x: 2, y: 1));
-    await tester.pump();
+    final workspace =
+        MapWorkspaceController(workspaceSession, WorkspaceMemoryPort())
+          ..project = project
+          ..active = document;
+    addTearDown(workspace.dispose);
+    final view = MapWorkspaceEditingState();
+    final item = view
+        .paletteResourcesFor(project, 'a', 'Tuiles')
+        .singleWhere((item) => item.id == 'atlas');
+    final before = document.current;
     expect(
-      view.tile,
-      const TileLayerPaletteEntry(tilesetId: 'atlas', localTileId: 6),
+      await useMapResource(
+        workspace: workspace,
+        item: item,
+        view: () => view,
+        isActive: () => true,
+        chooseMap: (_) async => null,
+        chooseTile: (_) async => tile,
+      ),
+      isTrue,
     );
+    expect(view.tile, tile);
     expect(view.tool, StudioMapTool.paint);
-    expect(find.byType(Dialog), findsNothing);
-    await tester.tap(find.byTooltip('Zoom avant'));
-    await tester.pumpAndSettle();
-    final transform = view.paletteAtlasTransforms['atlas']!.value.clone();
-    await tester.tap(find.text('Décors'));
-    await tester.pump();
-    await tester.tap(find.text('Tuiles'));
-    await tester.pumpAndSettle();
-    expect(view.paletteAtlasTransforms['atlas']!.value, transform);
-    expect(tester.takeException(), isNull);
+    expect(document.current, same(before));
   });
-}
-
-class _PaletteVisuals extends WorkspaceTestVisuals
-    implements ResourceWorkspaceVisuals {
-  final requested = <String>{};
-  @override
-  Widget thumbnail(ProjectElementEntry element, {double size = 48}) {
-    requested.add(element.id);
-    return SizedBox.square(dimension: size);
-  }
-
-  @override
-  Widget atlasPreview(String tilesetId) => const SizedBox.expand();
-  @override
-  void setTerrainBrush(ProjectSmartTilePreset? preset) {}
-  @override
-  Future<void> updateCatalog(
-    ProjectManifest manifest, {
-    Set<String> changedRelativePaths = const {},
-  }) async {}
 }

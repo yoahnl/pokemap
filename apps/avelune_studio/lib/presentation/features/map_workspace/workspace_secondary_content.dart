@@ -22,8 +22,6 @@ import '../events/event_view_state.dart';
 import 'package:avelune_studio/features/events/application/event_map_loader.dart';
 import '../../../features/stories/application/story_workspace_controller.dart';
 import '../../../features/verification/application/verification_workspace_controller.dart';
-import '../stories/story_progression_page.dart';
-import '../stories/story_progression_view_store.dart';
 import '../../../features/scenes/application/scene_workspace_controller.dart';
 import '../../../presentation/features/scenes/scene_builder_page.dart';
 import '../../../features/narrative/application/narrative_workspace_controller.dart';
@@ -73,7 +71,6 @@ Widget? workspaceSecondaryContent({
   Future<List<PokemonSpeciesSummary>> Function()? loadSceneSpecies,
   required SceneBuilderViewStore sceneViews,
   required StoryWorkspaceController? stories,
-  required StoryProgressionViewStore progressionViews,
   required WorkspaceReturn sceneOrigin,
   VoidCallback? onSceneReturn,
   String? sceneReturnLabel,
@@ -85,9 +82,7 @@ Widget? workspaceSecondaryContent({
   required VoidCallback onScenes,
   VoidCallback? onWorld,
   VoidCallback? onVerification,
-  VoidCallback? onProgressionBack,
   VoidCallback? onReturnVerification,
-  String progressionBackLabel = 'Histoire',
   required Future<String?> Function(String) onOpenScene,
   void Function(String storyId, String stepId)? onOpenStep,
   ValueChanged<String>? onOpenDialogue,
@@ -159,15 +154,6 @@ Widget? workspaceSecondaryContent({
       onDialogue: dialogues == null ? null : onEventDialogue,
       onLocate: onEventLocate,
       onTest: onEventTest,
-    );
-  }
-  if (space == WorkspaceSpace.progression && stories != null) {
-    return StoryProgressionPage(
-      controller: stories,
-      views: progressionViews,
-      onBack: onProgressionBack ?? onStory,
-      onBackLabel: progressionBackLabel,
-      onOpenScene: onOpenScene,
     );
   }
   if (space == WorkspaceSpace.scene && scenes != null) {

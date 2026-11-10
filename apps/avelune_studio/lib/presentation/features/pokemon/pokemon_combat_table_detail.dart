@@ -6,7 +6,6 @@ import '../../../features/pokemon/domain/pokemon_workspace_models.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/inputs/studio_draft_field.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
-import '../../shared/widgets/inputs/studio_time_window.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import 'pokemon_ui_parts.dart';
 import 'pokemon_combat_detail_header.dart';
@@ -15,7 +14,6 @@ import 'pokemon_combat_species_picker.dart';
 part 'pokemon_combat_table_entry.dart';
 part 'pokemon_combat_table_variants.dart';
 part 'pokemon_combat_variant_conditions.dart';
-part 'pokemon_combat_variant_time_windows.dart';
 
 class PokemonCombatTableDetail extends StatelessWidget {
   const PokemonCombatTableDetail({
@@ -189,18 +187,7 @@ class PokemonCombatTableDetail extends StatelessWidget {
                               index,
                             );
                             if (chosen == null) return;
-                            combat.editTable(
-                              (current) => current.copyWith(
-                                entries: [
-                                  ...current.entries,
-                                  ProjectEncounterEntry(
-                                    speciesId: chosen,
-                                    minLevel: 5,
-                                    maxLevel: 5,
-                                  ),
-                                ],
-                              ),
-                            );
+                            combat.addEncounterSpecies(chosen);
                           },
                   ),
                 ),

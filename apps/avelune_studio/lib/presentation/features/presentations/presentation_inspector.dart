@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
+
 import '../../shared/widgets/inputs/studio_commit_field.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/inputs/studio_tabs.dart';
@@ -12,7 +13,6 @@ import 'presentation_clip_labels.dart';
 part 'presentation_inspector_text.dart';
 part 'presentation_inspector_transform.dart';
 part 'presentation_inspector_animation.dart';
-part 'presentation_inspector_media.dart';
 
 class PresentationInspector extends StatelessWidget {
   const PresentationInspector({
@@ -22,7 +22,6 @@ class PresentationInspector extends StatelessWidget {
     required this.onPatch,
     required this.changed,
     required this.onDelete,
-    this.mediaCatalog,
     this.consumers,
     this.beforeSelection,
   });
@@ -30,7 +29,6 @@ class PresentationInspector extends StatelessWidget {
   final PresentationViewState view;
   final bool Function(Map<String, Object?>) onPatch;
   final VoidCallback changed, onDelete;
-  final ProjectMediaCatalog? mediaCatalog;
   final Widget? consumers;
   final bool Function()? beforeSelection;
   PresentationClip? get clip => view.selected;
@@ -115,10 +113,7 @@ class PresentationInspector extends StatelessWidget {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 12),
-                if (!editable)
-                  const StudioNotice(
-                    'Élément verrouillé. Déverrouillez-le dans Éléments.',
-                  ),
+                if (!editable) const StudioNotice('Élément verrouillé.'),
                 IgnorePointer(
                   ignoring: !editable,
                   child: Column(
@@ -144,11 +139,6 @@ class PresentationInspector extends StatelessWidget {
                       if (selected is PresentationTextClip &&
                           view.inspectorTab == 'properties')
                         ...textFields(selected),
-                      if (view.inspectorTab == 'properties' &&
-                          (selected is PresentationVisualClip ||
-                              selected is PresentationAudioClip ||
-                              selected is PresentationCaptionClip))
-                        ...mediaFields(selected),
                       if (selected is PresentationTextClip ||
                           selected is PresentationVisualClip) ...[
                         if (view.inspectorTab == 'properties')

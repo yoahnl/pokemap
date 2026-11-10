@@ -38,7 +38,14 @@ extension _PresentationCanvasGestures on _PresentationCanvasState {
     final clip = dragging, size = geometry.canvasSize;
     if (start == null || clip == null || size == null) return;
     delta = point - start!;
-    final pose = presentationPose(clip, presentationPoseKey(widget.view));
+    final pose = presentationPose(
+      clip,
+      presentationPoseKey(
+        pose: widget.view.pose,
+        orientationOverride: widget.view.orientationOverride,
+        portrait: widget.view.portrait,
+      ),
+    );
     final changes = <String, double>{};
     if (gesture == 'rotate' && initialBounds != null) {
       final center = initialBounds!.center;
@@ -58,34 +65,14 @@ extension _PresentationCanvasGestures on _PresentationCanvasState {
       changes['translateX'] = pose.translateX + delta.dx / size.width;
       changes['translateY'] = pose.translateY + delta.dy / size.height;
     }
-    final patch = presentationPosePatch(clip, widget.view, changes);
-    if (!widget.view.orientationOverride &&
-        widget.view.pose == PresentationPose.trajectory) {
-      final last = presentationPose(clip, 'to');
-      final lastValues = {
-        'translateX': last.translateX,
-        'translateY': last.translateY,
-        'rotationTurns': last.rotationTurns,
-        'scaleX': last.scaleX,
-        'scaleY': last.scaleY,
-      };
-      final firstValues = {
-        'translateX': pose.translateX,
-        'translateY': pose.translateY,
-        'rotationTurns': pose.rotationTurns,
-        'scaleX': pose.scaleX,
-        'scaleY': pose.scaleY,
-      };
-      patch['to'] = {
-        ...Map<String, Object?>.from(
-          encodePresentationClip(clip)['to'] as Map? ?? {},
-        ),
-        for (final entry in changes.entries)
-          entry.key: entry.key.startsWith('scale')
-              ? lastValues[entry.key]! * entry.value / firstValues[entry.key]!
-              : lastValues[entry.key]! + entry.value - firstValues[entry.key]!,
-      };
-    }
+    final patch = presentationPosePatch(
+      clip,
+      changes,
+      pose: widget.view.pose,
+      orientationOverride: widget.view.orientationOverride,
+      portrait: widget.view.portrait,
+      preserveTrajectoryDelta: true,
+    );
     try {
       projection = projectPresentationGesture(widget.asset, clip, patch);
       pendingPatch = patch;

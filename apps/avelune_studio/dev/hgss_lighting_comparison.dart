@@ -11,7 +11,7 @@ import 'package:map_render_3d/map_render_3d.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:marionette_flutter/marionette_flutter.dart';
 
-import 'package:avelune_studio/presentation/features/map_workspace/map_atmosphere_preview_controls.dart';
+import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_toggle_row.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 
 import 'atmosphere_comparison_support.dart';
@@ -925,6 +925,47 @@ class ComparisonSurface extends StatelessWidget {
   const ComparisonSurface({super.key, required this.comparison});
   final LightingComparison comparison;
 
+  Widget _atmosphereControls(SpatialSceneController controller) =>
+      ListenableBuilder(
+        listenable: controller,
+        builder: (context, _) {
+          final available = controller.atmosphereAvailability;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Ambiance · aperçu'),
+              const Text(
+                'Ces réglages concernent uniquement cet essai comparatif.',
+              ),
+              StudioToggleRow(
+                key: const ValueKey('atmosphere-preview-water'),
+                label: 'Eau animée',
+                value: controller.waterAnimated,
+                onChanged: available.water
+                    ? (value) => controller.waterAnimated = value
+                    : null,
+              ),
+              StudioToggleRow(
+                key: const ValueKey('atmosphere-preview-windows'),
+                label: 'Fenêtres éclairées',
+                value: controller.windowsLit,
+                onChanged: available.windows
+                    ? (value) => controller.windowsLit = value
+                    : null,
+              ),
+              StudioToggleRow(
+                key: const ValueKey('atmosphere-preview-fireflies'),
+                label: 'Lucioles le soir',
+                value: controller.fireflies,
+                onChanged: available.fireflies
+                    ? (value) => controller.fireflies = value
+                    : null,
+              ),
+            ],
+          );
+        },
+      );
+
   @override
   Widget build(BuildContext context) {
     final capture = comparison;
@@ -939,7 +980,7 @@ class ComparisonSurface extends StatelessWidget {
           if (capture.atmosphereTest)
             SizedBox(
               width: 960,
-              child: MapAtmospherePreviewControls(controller: capture.camera),
+              child: _atmosphereControls(capture.camera),
             ),
           Expanded(
             child: Center(

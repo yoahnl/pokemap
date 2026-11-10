@@ -1,3 +1,5 @@
+import '../application/resource_usage_replacement_controller.dart';
+import '../domain/resource_usage_port.dart';
 import '../application/resource_lifecycle_publication.dart';
 import '../application/resource_catalog.dart';
 import '../domain/resource_image_picker.dart';
@@ -149,5 +151,72 @@ Future<ResourceLifecyclePublicationResult> applyResourceLifecyclePublication(
           : '$failure',
       publicationCommitted: published,
     );
+  }
+}
+
+Future<String?> runResourceUsageReplacement({
+  required ResourceNavigation navigation,
+  required ResourceUsageTarget target,
+  required String name,
+  required bool Function() isActive,
+  required Future<void> Function(ResourceUsageReplacementController) present,
+}) async {
+  final project = navigation.workspace.project;
+  if (project == null ||
+      navigation.isDisposed ||
+      navigation.busy ||
+      navigation.managementDialogActive ||
+      !const {'decors', 'models3d'}.contains(target.family)) {
+    return null;
+  }
+  navigation.beginManagementDialog();
+  ResourceMutationPreparation? preparation;
+  ResourceUsageReplacementController? controller;
+  try {
+    final kind = target.family == 'models3d' ? 'model3d' : 'element';
+    final choices = [
+      for (final item in resourceCatalog(project))
+        if (item.canonicalKind == kind && item.id != target.id) item,
+    ]..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    controller = ResourceUsageReplacementController(
+      name: name,
+      spatial: target.family == 'models3d',
+      choices: choices,
+      canPublish: () =>
+          isActive() &&
+          !navigation.isDisposed &&
+          navigation.pendingReceipt == null &&
+          navigation.usageDraftOwners.isEmpty,
+      prepareOperation: (replacementId) async {
+        final previous = preparation;
+        preparation = null;
+        if (previous != null) await navigation.releasePreparation(previous);
+        return preparation = await navigation.prepareOperation(
+          'resource.usages.replace',
+          {
+            'family': target.family,
+            'resourceId': target.id,
+            'replacementId': replacementId,
+          },
+        );
+      },
+      publish: (prepared) =>
+          applyResourceLifecyclePublication(navigation, prepared),
+    );
+    await present(controller);
+    return controller.notice;
+  } finally {
+    controller?.dispose();
+    try {
+      await controller?.settle();
+    } finally {
+      try {
+        if (preparation != null) {
+          await navigation.releasePreparation(preparation!);
+        }
+      } finally {
+        navigation.endManagementDialog();
+      }
+    }
   }
 }

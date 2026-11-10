@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -6,8 +7,8 @@ import 'package:avelune_studio/features/map_workspace/application/map_workspace_
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/spatial_model_entity_controls.dart';
-import 'package:flutter/material.dart';
+import 'package:avelune_studio/features/map_workspace/application/spatial_model_editing_commands.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
@@ -27,11 +28,12 @@ void main() {
         2000,
     ]) {
       testWidgets(
-        '3D obstacle UI persists first repeat and reopens with $unrelated foreign maps ${storage.name}',
+        '3D obstacle commands persist first repeat and reopens with $unrelated foreign maps ${storage.name}',
         (tester) async {
-          final root = Directory(
-            '/Users/karim/Library/Caches/AveluneQA/field-actions-3d/studio-obstacle',
-          );
+          final parent = Directory(
+            '/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/t01-map-retirement',
+          )..createSync(recursive: true);
+          final root = parent.createTempSync('spatial-obstacle-');
           addTearDown(() async {
             if (await root.exists()) await root.delete(recursive: true);
           });
@@ -112,35 +114,27 @@ void main() {
           final publish = document.configureSpatialFieldObstacle!;
           document.configureSpatialFieldObstacle = (id, value) =>
               publication = publish(id, value);
-          await tester.pumpWidget(
-            MaterialApp(
-              home: Scaffold(
-                body: SingleChildScrollView(
-                  child: StatefulBuilder(
-                    builder: (context, refresh) => SpatialModelEntityControls(
-                      document: document,
-                      project: selectedProject,
-                      instance: document.current.spatialScene!.instances.single,
-                      onChanged: () => refresh(() {}),
-                    ),
-                  ),
-                ),
-              ),
-            ),
+          final commands = SpatialModelEditingCommands(
+            document,
+            selectedProject,
           );
+          expect(commands.canConfigureFieldObstacle('oak-1'), isTrue);
           final counts = <int>[];
           for (var repeat = 0; repeat < 2; repeat++) {
             reader.paths.clear();
-            final select = tester.widget<DropdownButtonFormField<String>>(
-              find.descendant(
-                of: find.byKey(const ValueKey('spatial-model-field-obstacle')),
-                matching: find.byType(DropdownButtonFormField<String>),
-              ),
-            );
             await tester.runAsync(() async {
               final persistence = Stopwatch()..start();
               final feedback = Stopwatch()..start();
-              select.onChanged!(repeat == 0 ? 'strengthBoulder' : 'rockSmashRock');
+              unawaited(
+                commands.configureFieldObstacle(
+                  'oak-1',
+                  MapEntityFieldObstacleData(
+                    kind: repeat == 0
+                        ? FieldObstacleKind.strengthBoulder
+                        : FieldObstacleKind.rockSmashRock,
+                  ),
+                ),
+              );
               feedbackUs = feedback.elapsedMicroseconds;
               expect(document.undoCount, repeat + 1);
               expect(
@@ -205,7 +199,10 @@ void main() {
               await Future<void>.delayed(const Duration(milliseconds: 5));
             }
             expect(document.error, isNull);
-            expect(document.saved.entities.single.fieldObstacle!.kind, FieldObstacleKind.strengthBoulder);
+            expect(
+              document.saved.entities.single.fieldObstacle!.kind,
+              FieldObstacleKind.strengthBoulder,
+            );
             controller.restore(redo: true);
             while (document.saving) {
               await Future<void>.delayed(const Duration(milliseconds: 5));

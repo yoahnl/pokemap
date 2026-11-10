@@ -419,6 +419,18 @@ String sniffArtifactMediaType(List<int> bytes) {
       String.fromCharCodes(bytes.sublist(8, 12)) == 'WEBP') {
     return 'image/webp';
   }
+  if (_startsWith(bytes, const [0x57, 0x45, 0x42, 0x56, 0x54, 0x54]) &&
+      (bytes.length == 6 ||
+          const {0x09, 0x0a, 0x0d, 0x20}.contains(bytes[6])) &&
+      !bytes.contains(0)) {
+    try {
+      return const PresentationMediaHeaderProbe()
+          .inspect(bytes, declaredMediaType: 'text/vtt')
+          .mediaType;
+    } on PresentationMediaProbeException {
+      return 'application/octet-stream';
+    }
+  }
   if (bytes.length >= 8 &&
       String.fromCharCodes(bytes.sublist(4, 8)) == 'ftyp') {
     try {

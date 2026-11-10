@@ -2,22 +2,20 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:avelune_studio/features/pokemon/data/local_pokemon_workspace_adapter.dart';
-import 'package:avelune_studio/presentation/features/pokemon/pokemon_species_thumbnail.dart';
-import 'package:flutter/material.dart';
+import 'package:avelune_studio/features/pokemon/application/pokemon_document_editing.dart';
+import 'package:avelune_studio/features/pokemon/application/pokemon_media_editing_session.dart';
+import 'package:avelune_studio/features/pokemon/application/pokemon_workspace_controller.dart';
+import 'package:avelune_studio/features/pokemon/domain/pokemon_workspace_models.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring.dart';
 
-import '../support/map_host_fixture.dart';
-import '../support/m2_ui_fixture.dart' show pumpIo;
+import '../support/pokemon_authoring_fixture.dart';
 
 void main() {
-  testWidgets('animation references and custom local PNG reopen from disk', (
-    tester,
-  ) async {
+  test('animation references and custom local PNG reopen from disk', () async {
     final reader = _CountingReader();
-    final host = await MapHostFixture.open(
-      tester,
-      pokemonReader: reader,
+    final host = await PokemonAuthoringFixture.create(
+      reader: reader,
       prepareSource: (fixture) async {
         for (final (folder, file) in [
           ('species', '0001-bulbasaur.json'),
@@ -37,6 +35,9 @@ void main() {
             variant['futureVariant'] = {'preserve': true};
             ((variant['animations'] as Map)['idle'] as Map)['sheet'] =
                 'assets/custom/battle.png';
+            (json['variants'] as Map)['alternate'] = jsonDecode(
+              jsonEncode(variant),
+            );
           }
           await destination.parent.create(recursive: true);
           await destination.writeAsString(jsonEncode(json));
@@ -59,55 +60,41 @@ void main() {
         await File(sourcePng).copy(image.path);
       },
     );
-    await host.go('Pokémon');
-    await pumpIo(tester);
-    await tester.tap(find.byKey(const ValueKey('species-bulbasaur')));
-    await pumpIo(tester);
-    await tester.tap(find.text('Médias').last);
-    await pumpIo(tester);
-    final animation = find.text('Animation idle');
-    await tester.ensureVisible(animation);
-    expect(animation, findsOneWidget);
-    final animationId = find.byKey(
-      const ValueKey('media-variants.base.animations.idle.animationId'),
-    );
-    await tester.ensureVisible(animationId);
-    await tester.enterText(animationId, 'idle-train');
-    await tester.pump();
-    expect(
-      tester
-          .widgetList<PokemonSpeciesThumbnail>(
-            find.byType(PokemonSpeciesThumbnail),
-          )
-          .where((thumbnail) => thumbnail.entry.id == 'bulbasaur')
-          .every((thumbnail) => thumbnail.mediaRevision == 0),
-      isTrue,
-    );
+    addTearDown(host.dispose);
+    expect(await host.workflow.requestSpecies('bulbasaur'), isTrue);
+    final controller = host.pokemon;
+    final session = PokemonMediaEditingSession(current: () => controller);
+    addTearDown(session.dispose);
+    session.setDefaultForm('alternate');
+    final mediaPath = controller.selectedDraft!.base.media!.relativePath;
+    controller.edit(PokemonDocumentFamily.media, (json) {
+      PokemonDocumentEditing.write(json, [
+        'variants',
+        'base',
+        'animations',
+        'idle',
+        'animationId',
+      ], 'idle-train');
+    });
+    expect(controller.mediaRevision(mediaPath), 0);
     reader.paths.clear();
-    await tester.tap(find.text('Enregistrer').first);
-    await pumpIo(tester);
-    expect(
-      tester
-          .widgetList<PokemonSpeciesThumbnail>(
-            find.byType(PokemonSpeciesThumbnail),
-          )
-          .where((thumbnail) => thumbnail.entry.id == 'bulbasaur')
-          .any((thumbnail) => thumbnail.mediaRevision == 1),
-      isTrue,
-    );
+    expect(await controller.saveActiveOwner(), isTrue);
+    expect(controller.mediaRevision(mediaPath), 1);
     expect(reader.paths.where((path) => path.contains('unrelated-')), isEmpty);
-    final bundle = (await tester.runAsync(() async {
-      final adapter = LocalPokemonWorkspaceAdapter(
-        session: host.source.session,
-        mapAdapter: host.source.maps,
-      );
-      final entry = (await adapter.loadIndex()).entries.singleWhere(
-        (entry) => entry.id == 'bulbasaur',
-      );
-      final image = await adapter.loadImage('assets/custom/battle.png');
-      return (await adapter.loadSpecies(entry), image);
-    }))!;
+    final adapter = LocalPokemonWorkspaceAdapter(
+      session: host.source.session,
+      mapAdapter: host.source.maps,
+    );
+    addTearDown(adapter.close);
+    final entry = (await adapter.loadIndex()).entries.singleWhere(
+      (entry) => entry.id == 'bulbasaur',
+    );
+    final bundle = (
+      await adapter.loadSpecies(entry),
+      await adapter.loadImage('assets/custom/battle.png'),
+    );
     final media = bundle.$1.media!.document!;
+    expect(media['defaultFormId'], 'alternate');
     final variant = (media['variants'] as Map)['base'] as Map;
     final idle = (variant['animations'] as Map)['idle'] as Map;
     expect(idle['sheet'], 'assets/custom/battle.png');
@@ -115,7 +102,6 @@ void main() {
     expect(variant['frontAnimated'], 'assets/custom/front.gif');
     expect(variant['futureVariant'], {'preserve': true});
     expect(bundle.$2, isNotNull);
-    expect(tester.takeException(), isNull);
   });
 }
 

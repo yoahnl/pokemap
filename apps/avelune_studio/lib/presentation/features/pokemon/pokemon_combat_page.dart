@@ -9,7 +9,7 @@ import '../../shared/widgets/inputs/studio_select.dart';
 import 'pokemon_combat_list.dart';
 import 'pokemon_combat_table_detail.dart';
 import 'pokemon_combat_trainer_detail.dart';
-import 'pokemon_combat_references.dart';
+import '../../../features/pokemon/application/pokemon_combat_references.dart';
 import 'pokemon_combat_context_panel.dart';
 import 'pokemon_ui_parts.dart';
 

@@ -4,6 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/project_cs/application/project_cs_controller.dart';
+import '../../../features/project_settings/application/project_settings_drafts.dart';
+import '../../../features/project_cs/application/field_ability_support.dart';
+
+export '../../../features/project_cs/application/field_ability_support.dart';
 import '../../../features/project_surf/application/project_surf_controller.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/inputs/studio_choice.dart';
@@ -28,15 +32,6 @@ class ProjectCsPanel extends StatefulWidget {
   @override
   State<ProjectCsPanel> createState() => _ProjectCsPanelState();
 }
-
-String fieldAbilitySupport(
-  ProjectFieldAbilityEntry ability,
-  ProjectDimension dimension,
-) => ability.activationOnly
-    ? 'Activation seule'
-    : dimension == ProjectDimension.twoD || ability.id == 'surf'
-    ? 'Mécanique disponible'
-    : 'Non certifiée en 3D';
 
 class _ProjectCsPanelState extends State<ProjectCsPanel> {
   String _examined = 'surf';
@@ -85,7 +80,7 @@ class _ProjectCsPanelState extends State<ProjectCsPanel> {
   }
 
   Future<void> save() async {
-    if (await widget.surf.save()) await widget.owner.save();
+    await FieldAbilitySettingsDraft(widget.owner, widget.surf).save();
   }
 
   @override
@@ -149,46 +144,47 @@ class _ProjectCsPanelState extends State<ProjectCsPanel> {
                       : null,
                 ),
               const SizedBox(height: 12),
-              if (widget.showActions) Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  StudioButton(
-                    key: const ValueKey('save-project-cs'),
-                    label: 'Enregistrer les CS',
-                    icon: Icons.save_outlined,
-                    onPressed:
-                        enabled &&
-                            surf.inputError == null &&
-                            surf.speedInputError == null &&
-                            (owner.dirty || surf.dirty)
-                        ? save
-                        : null,
-                  ),
-                  StudioButton(
-                    label: 'Annuler les modifications des CS',
-                    secondary: true,
-                    onPressed: enabled && (owner.dirty || surf.dirty)
-                        ? () {
-                            owner.discard();
-                            surf.discard();
-                          }
-                        : null,
-                  ),
-                  StudioButton(
-                    label: 'Annuler une activation',
-                    icon: Icons.undo,
-                    secondary: true,
-                    onPressed: enabled && owner.canUndo ? owner.undo : null,
-                  ),
-                  StudioButton(
-                    label: 'Rétablir une activation',
-                    icon: Icons.redo,
-                    secondary: true,
-                    onPressed: enabled && owner.canRedo ? owner.redo : null,
-                  ),
-                ],
-              ),
+              if (widget.showActions)
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    StudioButton(
+                      key: const ValueKey('save-project-cs'),
+                      label: 'Enregistrer les CS',
+                      icon: Icons.save_outlined,
+                      onPressed:
+                          enabled &&
+                              surf.inputError == null &&
+                              surf.speedInputError == null &&
+                              (owner.dirty || surf.dirty)
+                          ? save
+                          : null,
+                    ),
+                    StudioButton(
+                      label: 'Annuler les modifications des CS',
+                      secondary: true,
+                      onPressed: enabled && (owner.dirty || surf.dirty)
+                          ? () {
+                              owner.discard();
+                              surf.discard();
+                            }
+                          : null,
+                    ),
+                    StudioButton(
+                      label: 'Annuler une activation',
+                      icon: Icons.undo,
+                      secondary: true,
+                      onPressed: enabled && owner.canUndo ? owner.undo : null,
+                    ),
+                    StudioButton(
+                      label: 'Rétablir une activation',
+                      icon: Icons.redo,
+                      secondary: true,
+                      onPressed: enabled && owner.canRedo ? owner.redo : null,
+                    ),
+                  ],
+                ),
               if (owner.error case final error?)
                 Text(
                   error,

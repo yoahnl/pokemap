@@ -6,7 +6,7 @@ import '../../shared/widgets/buttons/studio_tool.dart';
 import 'map_encounter_mode_picker.dart';
 import 'map_field_obstacle_placement_controls.dart';
 import 'map_tool_command_runner.dart';
-import 'map_workspace_commands.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_workspace_commands.dart';
 import 'map_workspace_tool_strip_selection.dart';
 import 'map_workspace_view_state.dart';
 part 'map_workspace_tool_strip_actions.dart';

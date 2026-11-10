@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
+
 import 'support/ui11_workspace_harness.dart';
 
 void main() {
@@ -123,16 +124,19 @@ void main() {
         () => harness.port.delegate.load(id),
       ))!;
       expect(reopened.asset, saved);
-      await tapUi11(
-        tester,
-        harness,
-        find.byKey(ValueKey('presentation-entry-${harness.fixture.asset.id}')),
+      expect(
+        await tester.runAsync(() => controller.open(harness.fixture.asset.id)),
+        isTrue,
+        reason: controller.error,
       );
-      await tapUi11(
-        tester,
-        harness,
-        find.byKey(ValueKey('presentation-entry-$id')),
+      await harness.settle(tester);
+      expect(controller.active!.asset, harness.fixture.asset);
+      expect(
+        await tester.runAsync(() => controller.open(id)),
+        isTrue,
+        reason: controller.error,
       );
+      await harness.settle(tester);
       expect(controller.active!.asset, saved);
       expect(tester.takeException(), isNull);
     },

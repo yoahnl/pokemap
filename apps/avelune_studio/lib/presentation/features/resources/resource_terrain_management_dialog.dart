@@ -1,20 +1,18 @@
+import '../../../features/resources/application/resource_terrain_lifecycle_controller.dart';
+
 import 'package:flutter/material.dart';
+
 import 'resource_management_dialog.dart';
 
 class ResourceTerrainManagementDialog extends StatefulWidget {
   const ResourceTerrainManagementDialog({
     super.key,
     required this.title,
-    required this.name,
+    required this.controller,
     required this.description,
-    required this.submit,
-    required this.canApply,
-    this.duplicate = false,
   });
-  final String title, name, description;
-  final bool duplicate;
-  final Future<String?> Function(String name) submit;
-  final bool Function() canApply;
+  final String title, description;
+  final ResourceTerrainLifecycleController controller;
   @override
   State<ResourceTerrainManagementDialog> createState() =>
       _ResourceTerrainManagementDialogState();
@@ -22,7 +20,7 @@ class ResourceTerrainManagementDialog extends StatefulWidget {
 
 class _ResourceTerrainManagementDialogState
     extends State<ResourceTerrainManagementDialog> {
-  late final _name = TextEditingController(text: widget.name);
+  late final _name = TextEditingController(text: widget.controller.name);
   @override
   void dispose() {
     _name.dispose();
@@ -32,10 +30,12 @@ class _ResourceTerrainManagementDialogState
   @override
   Widget build(BuildContext context) => ResourceManagementDialog(
     title: widget.title,
-    submitLabel: widget.duplicate ? 'Créer la préparation' : 'Enregistrer',
-    dirty: () => _name.text != widget.name,
-    valid: () => _name.text.trim().isNotEmpty && widget.canApply(),
-    submit: () => widget.submit(_name.text),
+    submitLabel: widget.controller.duplicate
+        ? 'Créer la préparation'
+        : 'Enregistrer',
+    dirty: () => widget.controller.dirty,
+    valid: () => widget.controller.canApply,
+    submit: widget.controller.apply,
     fields: (refresh, busy) => Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -48,7 +48,10 @@ class _ResourceTerrainManagementDialogState
           ),
           controller: _name,
           enabled: !busy,
-          onChanged: (_) => refresh(),
+          onChanged: (value) {
+            widget.controller.name = value;
+            refresh();
+          },
         ),
       ],
     ),

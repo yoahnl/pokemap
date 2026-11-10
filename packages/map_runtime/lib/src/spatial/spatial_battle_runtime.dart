@@ -679,6 +679,7 @@ final class SpatialBattleRuntime extends ChangeNotifier {
     if (_engine!.isDoubles) {
       _working = commitRuntimeResolvedBattleItems(
         session: _engine!, gameState: _working!, itemCatalog: _items!,
+        context: context,
       ).state;
     }
     displaySession = _display();

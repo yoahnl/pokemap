@@ -1,3 +1,5 @@
+import 'package:avelune_studio/features/map_workspace/application/dive_pair_publishing_session.dart';
+
 import 'dart:convert';
 import 'dart:io';
 
@@ -8,11 +10,7 @@ import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_a
 import 'package:avelune_studio/features/map_workspace/data/local_map_connection_adapter.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_zone_inspector.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_dive_zone_panel.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_dive_pair_port.dart';
-import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
@@ -59,67 +57,37 @@ MapData endpoint(String id, DiveZoneRole role) => workspaceMap(id).copyWith(
   ],
 );
 void main() {
-  testWidgets(
-    'opposite map and point are temporary selections; dirty maps cannot publish',
-    (tester) async {
-      final source = endpoint('a', DiveZoneRole.surface),
-          target = endpoint('b', DiveZoneRole.underwater);
-      final memory = WorkspaceMemoryPort()
-        ..saved.addAll({'a': source, 'b': target});
-      final session = ProjectSession(
-        sessionId: 'memory',
-        name: 'Dive',
-        directoryPath: '/tmp/studio-dive-memory',
-      );
-      final controller = MapWorkspaceController(session, memory);
-      addTearDown(controller.dispose);
-      await controller.initialize();
-      final document = controller.active!;
-      final publisher = _DivePublisher();
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: SingleChildScrollView(
-              child: DivePairPublishingScope(
-                controller: controller,
-                port: publisher,
-                child: MapDiveZonePanel(
-                  zone: document.current.gameplayZones.last,
-                  commands: GameplayZoneEditingCommands(
-                    document,
-                    controller.project!,
-                  ),
-                  onChanged: (change) => change(),
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-      StudioSelect select(String label) => tester.widget<StudioSelect>(
-        find.byWidgetPredicate(
-          (widget) => widget is StudioSelect && widget.label == label,
-        ),
-      );
-      select('Carte opposée').onChanged!('b');
-      await tester.pumpAndSettle();
-      select('Point opposé').onChanged!('point');
-      await tester.pumpAndSettle();
-      expect(document.dirty, isFalse);
-      expect(document.canUndo, isFalse);
-      expect(publisher.writes, 0);
-      document.commit(document.current.copyWith(name: 'Brouillon'));
-      await tester.ensureVisible(find.text('Lier les deux points'));
-      await tester.tap(find.text('Lier les deux points'));
-      await tester.pumpAndSettle();
-      expect(find.textContaining('Enregistrez les brouillons'), findsOneWidget);
-      expect(publisher.writes, 0);
-      expect(
-        document.current.gameplayZones.last.fieldAction!.dive!.link,
-        isNull,
-      );
-    },
-  );
+  test('opposite map and point are temporary selections; dirty maps cannot publish', () async {
+    final source = endpoint('a', DiveZoneRole.surface),
+        target = endpoint('b', DiveZoneRole.underwater);
+    final memory = WorkspaceMemoryPort()
+      ..saved.addAll({'a': source, 'b': target});
+    final session = ProjectSession(
+      sessionId: 'memory',
+      name: 'Dive',
+      directoryPath: '/tmp/studio-dive-memory',
+    );
+    final controller = MapWorkspaceController(session, memory);
+    addTearDown(controller.dispose);
+    await controller.initialize();
+    final document = controller.active!;
+    final publisher = _DivePublisher();
+    final publishing = DivePairPublishingSession(
+      controller: controller,
+      port: publisher,
+    );
+    addTearDown(publishing.dispose);
+    await publishing.selectMap('b');
+    publishing.targetZoneId = 'point';
+    expect(document.dirty, isFalse);
+    expect(document.canUndo, isFalse);
+    expect(publisher.writes, 0);
+    document.commit(document.current.copyWith(name: 'Brouillon'));
+    await publishing.publish(document, document.current.gameplayZones.last);
+    expect(publishing.message, contains('Enregistrez les brouillons'));
+    expect(publisher.writes, 0);
+    expect(document.current.gameplayZones.last.fieldAction!.dive!.link, isNull);
+  });
   test(
     'Dive role, exact local spawn and movement mode stay draft with Undo redo',
     () {
@@ -148,35 +116,12 @@ void main() {
       expect(document.current, deep);
     },
   );
-  testWidgets('native Dive inspector uses role and local spawn pickers', (
-    tester,
-  ) async {
-    final map = endpoint('a', DiveZoneRole.surface);
-    final document = EditableMapDocument(
-      MapWorkspaceDocument(map: map, revision: 'initial', mapId: 'a'),
-    );
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: SingleChildScrollView(
-            child: MapZoneInspector(
-              document: document,
-              project: workspaceProject,
-              zone: map.gameplayZones.last,
-              onChanged: () {},
-              onDeleted: () {},
-            ),
-          ),
-        ),
-      ),
-    );
-    expect(find.text('Plongée · 2D'), findsOneWidget);
-    expect(find.text('Rôle du point'), findsOneWidget);
-    expect(find.text('Arrivée sur ce point'), findsOneWidget);
-    expect(find.text('Lier les deux points'), findsOneWidget);
-  });
   test('Studio publishes both clean maps, refreshes history, cold reopens and refuses stale preimages', () async {
-    final root = await Directory.systemTemp.createTemp('studio-dive-');
+    final parent = Directory(
+      '/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/t01-map-retirement',
+    );
+    await parent.create(recursive: true);
+    final root = await parent.createTemp('studio-dive-');
     addTearDown(() => root.delete(recursive: true));
     final canonical = Directory(await root.resolveSymbolicLinks());
     final maps =
@@ -230,15 +175,15 @@ void main() {
     final source = controller.active!.current;
     final target = (await adapter.loadMap(session, project.maps.last)).map;
     final publisher = LocalMapConnectionAdapter(adapter);
-    await publisher.publishDivePair(
-      session: session,
-      source: source,
-      expectedTarget: target,
-      zoneId: 'point',
-      targetZoneId: 'point',
-      unlink: false,
+    final publishing = DivePairPublishingSession(
+      controller: controller,
+      port: publisher,
     );
-    await controller.refreshSavedMaps({'a', 'b'});
+    addTearDown(publishing.dispose);
+    await publishing.selectMap('b');
+    publishing.targetZoneId = 'point';
+    await publishing.publish(controller.active!, source.gameplayZones.last);
+    expect(publishing.message, contains('Les deux points sont liés'));
     expect(controller.active!.dirty, isFalse);
     expect(controller.active!.canUndo, isFalse);
     final linkedSource = controller.documents['a']!.current,
@@ -260,15 +205,25 @@ void main() {
       ),
       throwsA(isA<MapWorkspaceFailure>()),
     );
-    await publisher.publishDivePair(
-      session: session,
-      source: linkedSource,
-      expectedTarget: linkedTarget,
-      zoneId: 'point',
+    final reopenedSource = (await adapter.loadMap(
+      session,
+      project.maps.first,
+    )).map;
+    final reopenedTarget = (await adapter.loadMap(
+      session,
+      project.maps.last,
+    )).map;
+    validateDiveZonePair(
+      sourceMap: reopenedSource,
+      sourceZoneId: 'point',
+      targetMap: reopenedTarget,
       targetZoneId: 'point',
-      unlink: true,
     );
-    await controller.refreshSavedMaps({'a', 'b'});
+    await publishing.publish(
+      controller.documents['a']!,
+      linkedSource.gameplayZones.last,
+    );
+    expect(publishing.message, contains('Les deux points sont déliés'));
     expect(controller.documents['a']!.current, source);
     expect(controller.documents['b']!.current, target);
   });

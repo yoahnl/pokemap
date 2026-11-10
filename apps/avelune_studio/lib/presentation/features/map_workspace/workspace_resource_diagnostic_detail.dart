@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../features/map_workspace/application/workspace_resource_diagnostic_projection.dart';
 
 import '../../shared/widgets/buttons/studio_tool.dart';
 import 'package:avelune_studio/platform/rendering/contracts/workspace_resource_diagnostic.dart';
@@ -41,8 +42,7 @@ class WorkspaceResourceDiagnosticDetail extends StatelessWidget {
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     child: SelectableText(
-                      '${item.name}\n${item.resourceId}\n'
-                      '${item.message}\n${item.detail ?? 'Aucun détail technique disponible.'}',
+                      workspaceResourceDiagnosticDetail(item),
                     ),
                   );
                 },

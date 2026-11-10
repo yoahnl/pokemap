@@ -23,7 +23,6 @@ extension _WorkspaceLifecycle on _MapWorkspaceScreenState {
     _cinematicViews.dispose();
     _dialogueViews.dispose();
     _eventView.dispose();
-    _progressionViews.dispose();
     _sceneViews.dispose();
     _storyViewState.dispose();
     _search.dispose();

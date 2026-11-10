@@ -73,24 +73,11 @@ extension _MapLibraryActions on _MapLibraryNavigatorState {
     required List<Map<String, Object?>> assignments,
     VoidCallback? onSuccess,
   }) async {
-    final action = widget.onOrganize;
-    if (_busy || action == null) return 'L’organisation est indisponible.';
-    _update(() {
-      _busy = true;
-      _error = null;
-    });
-    String? error;
-    try {
-      error = await action(groups: groups, assignments: assignments);
-    } on Object catch (failure) {
-      error = 'Organisation impossible : $failure';
-    }
-    if (!mounted) return error ?? 'Le navigateur a été fermé.';
-    _update(() {
-      _busy = false;
-      _error = error;
-      if (error == null) onSuccess?.call();
-    });
+    final error = await _organization.submit(
+      groups: groups,
+      assignments: assignments,
+    );
+    if (mounted && error == null) _update(() => onSuccess?.call());
     return error;
   }
 

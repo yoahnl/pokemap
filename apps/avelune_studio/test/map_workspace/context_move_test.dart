@@ -2,7 +2,7 @@ import 'package:avelune_studio/features/characters/application/character_editing
 import 'package:avelune_studio/features/map_workspace/application/gameplay_zone_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/trigger_editing_commands.dart';
-import 'package:flutter/material.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_context_menu_model.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
@@ -13,11 +13,6 @@ import '../support/map_workspace_fixture.dart';
 const area = MapRect(
   pos: GridPos(x: 3, y: 3),
   size: GridSize(width: 4, height: 3),
-);
-
-Finder inMenu(String label) => find.descendant(
-  of: find.byKey(const ValueKey('map-context-menu')),
-  matching: find.text(label),
 );
 
 void main() {
@@ -51,7 +46,7 @@ void main() {
     final steps = h.document.undoCount;
 
     await h.rightClick(tester, 4, 4);
-    await tester.tap(inMenu('Déplacer'));
+    h.run(MapContextCommand.move);
     await tester.pumpAndSettle();
     expect(h.view.pendingMove?.id, zone.id);
 
@@ -84,7 +79,7 @@ void main() {
     await h.pump(tester);
 
     await h.rightClick(tester, 4, 4);
-    await tester.tap(inMenu('Déplacer'));
+    h.run(MapContextCommand.move);
     await tester.pumpAndSettle();
     await dragTo(tester, 4, 4, 6, 5);
 
@@ -111,14 +106,13 @@ void main() {
     await h.pump(tester);
 
     await h.rightClick(tester, 4, 4);
-    await tester.tap(
-      find.descendant(
-        of: find.byKey(const ValueKey('map-context-menu')),
-        matching: find.textContaining('· Zone de jeu'),
+    h.select(
+      h.request!.targets.singleWhere(
+        (target) => target.family == MapContextFamily.zone,
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(inMenu('Déplacer'));
+    h.run(MapContextCommand.move);
     await tester.pumpAndSettle();
 
     final npcBefore = CharacterEditingCommands(

@@ -1,12 +1,12 @@
+import '../../../features/pokemon/application/pokemon_document_editing.dart';
+
 import 'package:flutter/material.dart';
 
 import '../../../features/pokemon/application/pokemon_workspace_controller.dart';
 import '../../../features/pokemon/domain/pokemon_workspace_models.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
-import 'pokemon_base_stats.dart';
 import 'pokemon_draft_controls.dart';
-import 'pokemon_species_provenance.dart';
 import 'pokemon_ui_parts.dart';
 
 class PokemonSpeciesOverview extends StatefulWidget {
@@ -138,8 +138,6 @@ class _PokemonSpeciesOverviewState extends State<PokemonSpeciesOverview> {
           ],
         ),
         const SizedBox(height: 12),
-        PokemonSpeciesProvenance(controller: controller),
-        const SizedBox(height: 12),
         StudioPanel(
           title: 'Détails techniques',
           children: [
@@ -192,10 +190,6 @@ class _PokemonSpeciesOverviewState extends State<PokemonSpeciesOverview> {
         controller.index?.abilityNames ?? const <String, String>{};
     final right = Column(
       children: [
-        PokemonBaseStats(
-          stats: (json['baseStats'] as Map?)?.cast<String, dynamic>() ?? {},
-        ),
-        const SizedBox(height: 12),
         StudioPanel(
           title: 'Talents référencés',
           children: [
@@ -277,24 +271,9 @@ class _PokemonSpeciesOverviewState extends State<PokemonSpeciesOverview> {
   };
 
   void _setType(int position, String value) {
-    widget.controller.edit(PokemonDocumentFamily.species, (json) {
-      final typing = Map<String, dynamic>.from(json['typing'] as Map? ?? {});
-      final types = List<String>.from(typing['types'] as List? ?? []);
-      if (position == 0) {
-        if (types.isEmpty) {
-          types.add(value);
-        } else {
-          types[0] = value;
-        }
-      } else if (value.isEmpty) {
-        if (types.length > 1) types.removeAt(1);
-      } else if (types.length > 1) {
-        types[1] = value;
-      } else {
-        types.add(value);
-      }
-      typing['types'] = types.where((type) => type.isNotEmpty).toSet().toList();
-      json['typing'] = typing;
-    });
+    widget.controller.edit(
+      PokemonDocumentFamily.species,
+      (json) => PokemonDocumentEditing.setType(json, position, value),
+    );
   }
 }

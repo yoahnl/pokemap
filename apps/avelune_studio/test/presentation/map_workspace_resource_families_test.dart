@@ -1,14 +1,6 @@
-import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
-import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_palette_dock.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_palette_dock_filters.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_panels.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_tile_palette.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_workspace_editing_state.dart';
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
-import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
-import 'package:flutter/material.dart';
+import 'package:avelune_studio/features/resources/application/resource_family_tree.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
@@ -17,446 +9,237 @@ import '../support/border_catalog_fixture.dart';
 import '../support/spatial_narrative_fixture.dart';
 
 void main() {
-  for (final dock in [false, true]) {
-    testWidgets(
-      '${dock ? 'dock' : 'full palette'} context controls filter cards and retain a masked brush',
-      (tester) async {
-        await tester.binding.setSurfaceSize(const Size(1200, 900));
-        addTearDown(() => tester.binding.setSurfaceSize(null));
-        final base = _project();
-        final project = base.copyWith(
-          resourceLibraryCatalog: ResourceLibraryCatalog(
-            families: base.resourceLibraryCatalog.families,
-            entries: [
-              for (final entry in base.resourceLibraryCatalog.entries)
-                ResourceLibraryEntry(
-                  resourceKind: entry.resourceKind,
-                  resourceId: entry.resourceId,
-                  familyId: entry.familyId,
-                  mapId: entry.mapId,
-                  placementContext: entry.resourceId == 'house'
-                      ? ResourcePlacementContext.exterior
-                      : ResourcePlacementContext.interior,
-                ),
-            ],
-          ),
-        );
-        final view = MapWorkspaceViewState()
-          ..brush = project.elements.firstWhere((item) => item.id == 'a-tree')
-          ..tool = StudioMapTool.place;
-        final search = TextEditingController();
-        addTearDown(view.dispose);
-        addTearDown(search.dispose);
-        await tester.pumpWidget(
-          _palette(dock, project, _document(workspaceMap('a')), view, search),
-        );
-        await tester.tap(find.byKey(const ValueKey('resource-filter-button')));
-        await tester.pumpAndSettle();
-        tester
-            .widget<StudioSelect>(
-              find.byKey(const ValueKey('resource-filter-context')),
-            )
-            .onChanged!('exterior');
-        await tester.pump();
-        expect(
-          tester
-              .widget<Text>(
-                find.byKey(const ValueKey('resource-filter-result-count')),
-              )
-              .data,
-          '1 résultat',
-        );
-        await tester.tap(find.byKey(const ValueKey('resource-filter-apply')));
-        await tester.pumpAndSettle();
-        expect(find.byKey(const ValueKey('decor-a-tree')), findsNothing);
-        expect(find.byKey(const ValueKey('decor-house')), findsOneWidget);
-        expect(view.brush?.id, 'a-tree');
-        expect(view.tool, StudioMapTool.place);
-        expect(
-          find.byKey(const ValueKey('resource-filter-tag-context')),
-          findsOneWidget,
-        );
-        await tester.tap(
-          find.byKey(const ValueKey('Retirer le filtre Contexte : Extérieur')),
-        );
-        await tester.pumpAndSettle();
-        expect(view.resourceFilters.context, ResourceCatalogContext.all);
-        expect(find.byKey(const ValueKey('decor-a-tree')), findsOneWidget);
-        expect(view.brush?.id, 'a-tree');
-        expect(tester.takeException(), isNull);
-      },
-    );
-
-    testWidgets(
-      '${dock ? 'dock' : 'full palette'} exposes family and scope filters',
-      (tester) async {
-        final view = MapWorkspaceViewState();
-        final search = TextEditingController();
-        final document = EditableMapDocument(
-          MapWorkspaceDocument(
-            map: workspaceMap('a'),
-            revision: 'r0',
-            mapId: 'a',
-          ),
-        );
-        addTearDown(view.dispose);
-        addTearDown(search.dispose);
-        await tester.pumpWidget(
-          MaterialApp(
-            theme: studioTheme(),
-            home: Scaffold(
-              body: SizedBox(
-                width: dock ? 1000 : 300,
-                height: dock ? 300 : 700,
-                child: dock
-                    ? MapWorkspacePaletteDock(
-                        project: workspaceProject,
-                        document: document,
-                        visuals: WorkspaceTestVisuals(),
-                        view: view,
-                        search: search,
-                        onChanged: () {},
-                        onResources: () {},
-                        onOpenFullPalette: () {},
-                      )
-                    : MapWorkspacePalette(
-                        project: workspaceProject,
-                        document: document,
-                        visuals: WorkspaceTestVisuals(),
-                        view: view,
-                        search: search,
-                        onChanged: () {},
-                      ),
+  test(
+    'context filtering masks a resource without releasing an armed brush',
+    () {
+      final base = _project();
+      final project = base.copyWith(
+        resourceLibraryCatalog: ResourceLibraryCatalog(
+          families: base.resourceLibraryCatalog.families,
+          entries: [
+            for (final entry in base.resourceLibraryCatalog.entries)
+              ResourceLibraryEntry(
+                resourceKind: entry.resourceKind,
+                resourceId: entry.resourceId,
+                familyId: entry.familyId,
+                mapId: entry.mapId,
+                placementContext: entry.resourceId == 'house'
+                    ? ResourcePlacementContext.exterior
+                    : ResourcePlacementContext.interior,
               ),
-            ),
-          ),
-        );
-        expect(find.text('Familles'), findsOneWidget);
-        expect(find.text('Filtres'), findsOneWidget);
-        expect(tester.takeException(), isNull);
-      },
-    );
-    testWidgets(
-      '${dock ? 'dock' : 'full palette'} applies descendants and map scope through controls',
-      (tester) async {
-        await tester.binding.setSurfaceSize(const Size(1200, 900));
-        addTearDown(() => tester.binding.setSurfaceSize(null));
-        final project = _project();
-        final view = MapWorkspaceViewState();
-        final search = TextEditingController();
-        final document = _document(workspaceMap('a'));
-        var changes = 0;
-        addTearDown(view.dispose);
-        addTearDown(search.dispose);
-        await tester.pumpWidget(
-          _palette(
-            dock,
-            project,
-            document,
-            view,
-            search,
-            onChanged: () => changes++,
-          ),
-        );
-        expect(find.byKey(const ValueKey('decor-shared-tree')), findsOneWidget);
-        expect(find.byKey(const ValueKey('decor-a-tree')), findsOneWidget);
-        expect(find.byKey(const ValueKey('decor-b-tree')), findsNothing);
-        expect(find.byKey(const ValueKey('decor-door')), findsNothing);
-        await tester.tap(find.text('Familles'));
-        await tester.pumpAndSettle();
-        await tester.ensureVisible(
-          find.byKey(const ValueKey('resource-nature-family-trees')),
-        );
-        await tester.tap(
-          find.byKey(const ValueKey('resource-nature-family-trees')),
-        );
-        await tester.pumpAndSettle();
-        expect(view.resourceFilters.familyId, 'trees');
-        expect(find.byKey(const ValueKey('decor-a-tree')), findsOneWidget);
-        expect(find.byKey(const ValueKey('decor-house')), findsNothing);
-        await tester.tap(find.byKey(const ValueKey('resource-filter-button')));
-        await tester.pumpAndSettle();
-        expect(
-          find.byKey(const ValueKey('resource-filter-usage')),
-          findsNothing,
-        );
-        String draftCount() => tester
-            .widget<Text>(
-              find.byKey(const ValueKey('resource-filter-result-count')),
-            )
-            .data!;
-        expect(draftCount(), '2 résultats');
-        tester
-            .widget<StudioSelect>(
-              find.byKey(const ValueKey('resource-filter-scope')),
-            )
-            .onChanged!('map');
-        await tester.pump();
-        expect(draftCount(), '1 résultat');
-        expect(view.resourceFilters.scope, ResourceCatalogScope.all);
-        expect(find.byKey(const ValueKey('decor-shared-tree')), findsOneWidget);
-        await tester.tap(find.byKey(const ValueKey('resource-filter-cancel')));
-        await tester.pumpAndSettle();
-        expect(view.resourceFilters.scope, ResourceCatalogScope.all);
-        expect(find.byKey(const ValueKey('decor-shared-tree')), findsOneWidget);
-        await tester.tap(find.byKey(const ValueKey('resource-filter-button')));
-        await tester.pumpAndSettle();
-        expect(draftCount(), '2 résultats');
-        tester
-            .widget<StudioSelect>(
-              find.byKey(const ValueKey('resource-filter-scope')),
-            )
-            .onChanged!('map');
-        await tester.pump();
-        expect(draftCount(), '1 résultat');
-        await tester.tap(find.byKey(const ValueKey('resource-filter-apply')));
-        await tester.pumpAndSettle();
-        expect(view.resourceFilters.scope, ResourceCatalogScope.map);
-        expect(
-          tester
-              .widget<MapWorkspacePaletteDockFilters>(
-                find.byType(MapWorkspacePaletteDockFilters).first,
-              )
-              .tree
-              .total,
-          1,
-        );
-        if (!dock) expect(changes, 0);
-        expect(find.byKey(const ValueKey('decor-shared-tree')), findsNothing);
-        expect(find.byKey(const ValueKey('decor-a-tree')), findsOneWidget);
-        await tester.tap(find.byKey(const ValueKey('decor-a-tree')));
-        await tester.pump();
-        expect(view.brush?.id, 'a-tree');
-        if (!dock) expect(changes, 1);
-        expect(tester.takeException(), isNull);
-      },
-    );
-    testWidgets(
-      '${dock ? 'dock' : 'full palette'} draft count retains search and displays zero matches',
-      (tester) async {
-        await tester.binding.setSurfaceSize(const Size(1200, 900));
-        addTearDown(() => tester.binding.setSurfaceSize(null));
-        final project = _project();
-        final view = MapWorkspaceViewState()
-          ..resourceFilters.familyId = 'trees';
-        final search = TextEditingController(text: 'a-tree');
-        final document = _document(workspaceMap('a'));
-        addTearDown(view.dispose);
-        addTearDown(search.dispose);
-        await tester.pumpWidget(
-          _palette(dock, project, document, view, search),
-        );
-        expect(find.byKey(const ValueKey('decor-a-tree')), findsOneWidget);
-        expect(find.byKey(const ValueKey('decor-shared-tree')), findsNothing);
-        await tester.tap(find.byKey(const ValueKey('resource-filter-button')));
-        await tester.pumpAndSettle();
-        String draftCount() => tester
-            .widget<Text>(
-              find.byKey(const ValueKey('resource-filter-result-count')),
-            )
-            .data!;
-        expect(draftCount(), '1 résultat');
-        tester
-            .widget<StudioSelect>(
-              find.byKey(const ValueKey('resource-filter-scope')),
-            )
-            .onChanged!('project');
-        await tester.pump();
-        expect(draftCount(), '0 résultats');
-        expect(view.resourceFilters.scope, ResourceCatalogScope.all);
-        await tester.tap(find.byKey(const ValueKey('resource-filter-apply')));
-        await tester.pumpAndSettle();
-        expect(view.resourceFilters.scope, ResourceCatalogScope.project);
-        expect(view.resourceFilters.familyId, 'trees');
-        expect(view.resourceFilters.query, 'a-tree');
-        expect(find.byKey(const ValueKey('decor-a-tree')), findsNothing);
-        expect(tester.takeException(), isNull);
-      },
-    );
-    testWidgets(
-      '${dock ? 'dock' : 'full palette'} draft count includes the character search',
-      (tester) async {
-        await tester.binding.setSurfaceSize(const Size(1200, 900));
-        addTearDown(() => tester.binding.setSurfaceSize(null));
-        final view = MapWorkspaceViewState()
-          ..paletteTab = 'Personnages'
-          ..characterQuery = 'inexistant';
-        final search = TextEditingController();
-        addTearDown(view.dispose);
-        addTearDown(search.dispose);
-        await tester.pumpWidget(
-          _palette(
-            dock,
-            _project(),
-            _document(workspaceMap('a')),
-            view,
-            search,
-          ),
-        );
-        expect(find.byKey(const ValueKey('character-guide')), findsNothing);
-        expect(
-          tester
-              .widget<MapWorkspacePaletteDockFilters>(
-                find.byType(MapWorkspacePaletteDockFilters).first,
-              )
-              .tree
-              .total,
-          0,
-        );
-        await tester.tap(find.byKey(const ValueKey('resource-filter-button')));
-        await tester.pumpAndSettle();
-        expect(
-          tester
-              .widget<Text>(
-                find.byKey(const ValueKey('resource-filter-result-count')),
-              )
-              .data,
-          '0 résultats',
-        );
-        await tester.tap(find.byKey(const ValueKey('resource-filter-cancel')));
-        await tester.pumpAndSettle();
-        expect(view.characterQuery, 'inexistant');
-        expect(view.resourceFilters.scope, ResourceCatalogScope.all);
-        expect(tester.takeException(), isNull);
-      },
-    );
-    testWidgets(
-      '${dock ? 'dock' : 'full palette'} filters borders environments characters and tile sources',
-      (tester) async {
-        await tester.binding.setSurfaceSize(const Size(1200, 900));
-        addTearDown(() => tester.binding.setSurfaceSize(null));
-        final project = _project();
-        final view = MapWorkspaceViewState();
-        final search = TextEditingController();
-        final document = _document(workspaceMap('a'));
-        final picked = <String>[];
-        addTearDown(view.dispose);
-        addTearDown(search.dispose);
-        for (final entry in {
-          'Bordures': 'border-muret',
-          'Environnements': 'environment-garden',
-          'Personnages': 'character-guide',
-        }.entries) {
-          view.paletteTab = entry.key;
-          await tester.pumpWidget(
-            _palette(
-              dock,
-              project,
-              document,
-              view,
-              search,
-              onPick: (item) => picked.add(item.identity),
-            ),
-          );
-          await tester.pumpAndSettle();
-          expect(find.byKey(ValueKey(entry.value)), findsOneWidget);
-          expect(find.byKey(ValueKey('${entry.value}-other')), findsNothing);
-          await tester.tap(find.byKey(ValueKey(entry.value)));
-          await tester.pump();
-        }
-        expect(picked, [
-          'borderBlueprint:muret',
-          'environmentPreset:garden',
-          'character:guide',
-        ]);
-        view.paletteTab = 'Tuiles';
-        await tester.pumpWidget(
-          _palette(false, project, document, view, search),
-        );
-        expect(
-          tester
-              .widget<MapTilePalette>(find.byType(MapTilePalette))
-              .sources
-              .map((source) => source.id),
-          ['atlas'],
-        );
-        expect(tester.takeException(), isNull);
-      },
-    );
-    testWidgets(
-      '${dock ? 'dock' : 'full palette'} preserves spatial smart tiles and characters eligibility',
-      (tester) async {
-        await tester.binding.setSurfaceSize(const Size(1200, 900));
-        addTearDown(() => tester.binding.setSurfaceSize(null));
-        final project = _project().copyWith(
-          settings: const ProjectSettings(dimension: ProjectDimension.threeD),
-          environmentPresets: [
-            ..._project().environmentPresets,
-            EnvironmentPreset(
-              id: 'spatial-grove',
-              name: 'Bosquet spatial',
-              templateId: 'manual',
-              sortOrder: 0,
-              palette: [EnvironmentPaletteItem(modelId: 'door', weight: 1)],
-              defaultParams: EnvironmentGenerationParams.standard(),
-            ),
           ],
-        );
-        final view = MapWorkspaceViewState()..paletteTab = 'Terrains';
-        final search = TextEditingController();
-        final document = _document(spatialNarrativeMap());
-        addTearDown(view.dispose);
-        addTearDown(search.dispose);
-        await tester.pumpWidget(
-          _palette(dock, project, document, view, search),
-        );
-        expect(find.byKey(const ValueKey('terrain-path')), findsOneWidget);
-        await tester.tap(find.byKey(const ValueKey('terrain-path')));
-        await tester.pump();
-        expect(view.terrain?.id, 'path');
-        view.paletteTab = 'Décors';
-        await tester.pumpWidget(
-          _palette(dock, project, document, view, search),
-        );
-        await tester.pumpAndSettle();
-        expect(find.byKey(const ValueKey('decor-door')), findsOneWidget);
-        expect(find.byKey(const ValueKey('decor-shared-tree')), findsNothing);
-        view.paletteTab = 'Personnages';
-        await tester.pumpWidget(
-          _palette(dock, project, document, view, search),
-        );
-        await tester.pumpAndSettle();
-        expect(find.byKey(const ValueKey('character-guide')), findsOneWidget);
-        if (dock) {
-          await tester.tap(find.byTooltip('Changer la palette'));
-          await tester.pumpAndSettle();
-        }
-        expect(find.text('Bordures'), findsOneWidget);
-        expect(find.text('Environnements'), findsOneWidget);
-        expect(find.text('Tuiles'), findsNothing);
-        if (dock) {
-          await tester.tap(find.text('Environnements'));
-          await tester.pumpAndSettle();
-        } else {
-          view.paletteTab = 'Environnements';
-          await tester.pumpWidget(
-            _palette(dock, project, document, view, search),
-          );
-          await tester.pumpAndSettle();
-        }
-        expect(
-          find.byKey(const ValueKey('environment-spatial-grove')),
-          findsOneWidget,
-        );
-        expect(find.byKey(const ValueKey('environment-garden')), findsNothing);
-        expect(
-          find.byKey(const ValueKey('environment-garden-other')),
-          findsNothing,
-        );
-        expect(tester.takeException(), isNull);
-      },
+        ),
+      );
+      final view = MapWorkspaceEditingState()
+        ..brush = project.elements.firstWhere((item) => item.id == 'a-tree')
+        ..tool = StudioMapTool.place;
+      view.resourceFilters.context = ResourceCatalogContext.exterior;
+      expect(
+        view.paletteResourcesFor(project, 'a', 'Décors').map((item) => item.id),
+        ['house'],
+      );
+      expect(view.brush!.id, 'a-tree');
+      expect(view.tool, StudioMapTool.place);
+      view.resourceFilters.context = ResourceCatalogContext.all;
+      expect(
+        view.paletteResourcesFor(project, 'a', 'Décors').map((item) => item.id),
+        contains('a-tree'),
+      );
+      expect(view.brush!.id, 'a-tree');
+    },
+  );
+
+  test('descendant families and staged map-scope filters preserve committed choices until applied', () {
+    final project = _project();
+    final view = MapWorkspaceEditingState();
+    view.resourceFilters.familyId = 'trees';
+    final all = view.paletteResourcesFor(
+      project,
+      'a',
+      'Décors',
+      applyFilters: false,
     );
-  }
+    List<ResourceItem> visible(ResourceCatalogFilterState filters) =>
+        filterResourceCatalog(
+          project,
+          all,
+          filters,
+          activeMapId: 'a',
+          forMapPicker: true,
+        );
+    expect(
+      visible(view.resourceFilters).map((item) => item.id),
+      containsAll(['shared-tree', 'a-tree']),
+    );
+    expect(visible(view.resourceFilters), hasLength(2));
+    final draft = view.resourceFilters.copy()..scope = ResourceCatalogScope.map;
+    expect(visible(draft).map((item) => item.id), ['a-tree']);
+    expect(view.resourceFilters.scope, ResourceCatalogScope.all);
+    expect(visible(view.resourceFilters), hasLength(2));
+    view.resourceFilters.copyFrom(draft);
+    expect(
+      view.paletteResourcesFor(project, 'a', 'Décors').map((item) => item.id),
+      ['a-tree'],
+    );
+    expect(
+      ResourceFamilyTree(
+        project,
+        all,
+        activeMapId: 'a',
+        forMapPicker: true,
+        filters: view.resourceFilters,
+      ).total,
+      1,
+    );
+  });
+
+  test('draft counts retain a resource search and can report zero results', () {
+    final project = _project();
+    final view = MapWorkspaceEditingState();
+    view.resourceFilters
+      ..familyId = 'trees'
+      ..query = 'a-tree';
+    final all = view.paletteResourcesFor(
+      project,
+      'a',
+      'Décors',
+      applyFilters: false,
+    );
+    final draft = view.resourceFilters.copy()
+      ..scope = ResourceCatalogScope.project;
+    expect(
+      filterResourceCatalog(
+        project,
+        all,
+        view.resourceFilters,
+        activeMapId: 'a',
+        forMapPicker: true,
+      ),
+      hasLength(1),
+    );
+    expect(
+      filterResourceCatalog(
+        project,
+        all,
+        draft,
+        activeMapId: 'a',
+        forMapPicker: true,
+      ),
+      isEmpty,
+    );
+    expect(view.resourceFilters.scope, ResourceCatalogScope.all);
+    view.resourceFilters.copyFrom(draft);
+    expect(view.resourceFilters.familyId, 'trees');
+    expect(view.resourceFilters.query, 'a-tree');
+    expect(view.paletteResourcesFor(project, 'a', 'Décors'), isEmpty);
+  });
+
+  test(
+    'character counts retain their query independently of filter drafts',
+    () {
+      final project = _project();
+      final view = MapWorkspaceEditingState();
+      final items = view.paletteResourcesFor(
+        project,
+        'a',
+        'Personnages',
+        applyFilters: false,
+      );
+      final filters = view.resourceFilters.copy()..query = 'inexistant';
+      expect(
+        ResourceFamilyTree(
+          project,
+          items,
+          activeMapId: 'a',
+          forMapPicker: true,
+          filters: filters,
+        ).total,
+        0,
+      );
+      expect(
+        filterResourceCatalog(
+          project,
+          items,
+          filters,
+          activeMapId: 'a',
+          forMapPicker: true,
+        ),
+        isEmpty,
+      );
+      expect(view.resourceFilters.scope, ResourceCatalogScope.all);
+    },
+  );
+
+  test('resource kinds retain map scope for borders environments characters and tile sources', () {
+    final project = _project();
+    final view = MapWorkspaceEditingState();
+    for (final entry in {
+      'Bordures': 'muret',
+      'Environnements': 'garden',
+      'Personnages': 'guide',
+      'Tuiles': 'atlas',
+    }.entries) {
+      expect(
+        view
+            .paletteResourcesFor(project, 'a', entry.key)
+            .map((item) => item.id),
+        [entry.value],
+      );
+    }
+  });
+
+  test('spatial resources retain compatible terrains models characters and environments', () {
+    final project = _project().copyWith(
+      settings: const ProjectSettings(dimension: ProjectDimension.threeD),
+      environmentPresets: [
+        ..._project().environmentPresets,
+        EnvironmentPreset(
+          id: 'spatial-grove',
+          name: 'Bosquet spatial',
+          templateId: 'manual',
+          sortOrder: 0,
+          palette: [EnvironmentPaletteItem(modelId: 'door', weight: 1)],
+          defaultParams: EnvironmentGenerationParams.standard(),
+        ),
+      ],
+    );
+    final view = MapWorkspaceEditingState();
+    expect(
+      view.paletteResourcesFor(project, 'a', 'Terrains').map((item) => item.id),
+      ['path'],
+    );
+    view.prepareTerrainPainting(project.smartTileCatalog.presets.single);
+    expect(view.terrain!.id, 'path');
+    expect(
+      view.paletteResourcesFor(project, 'a', 'Décors').map((item) => item.id),
+      ['door'],
+    );
+    expect(
+      view
+          .paletteResourcesFor(project, 'a', 'Personnages')
+          .map((item) => item.id),
+      ['guide'],
+    );
+    expect(
+      view
+          .paletteResourcesFor(project, 'a', 'Environnements')
+          .map((item) => item.id),
+      ['spatial-grove'],
+    );
+    expect(view.paletteResourcesFor(project, 'a', 'Tuiles'), isEmpty);
+  });
+
   test(
     'map changes clear unavailable brushes without resetting family filters',
     () {
       final project = _project();
-      final view = MapWorkspaceViewState();
-      addTearDown(view.dispose);
+      final view = MapWorkspaceEditingState();
       view.resourceFilters.familyId = 'trees';
       view.resourceFilters.usage = ResourceCatalogUsage.trace;
       expect(
-        view.paletteResources(project, 'a').any((item) => item.id == 'a-tree'),
+        view
+            .paletteResourcesFor(project, 'a', 'Décors')
+            .any((item) => item.id == 'a-tree'),
         isTrue,
       );
       view.reconcileResources(project, mapId: 'a', map: workspaceMap('a'));
@@ -516,8 +299,7 @@ void main() {
             ),
           );
         }
-        final view = MapWorkspaceViewState();
-        addTearDown(view.dispose);
+        final view = MapWorkspaceEditingState();
         view.reconcileResources(project, mapId: 'b');
         switch (kind) {
           case 'character':
@@ -551,52 +333,6 @@ void main() {
     },
   );
 }
-
-EditableMapDocument _document(MapData map) => EditableMapDocument(
-  MapWorkspaceDocument(map: map, revision: 'r0', mapId: map.id),
-);
-
-Widget _palette(
-  bool dock,
-  ProjectManifest project,
-  EditableMapDocument document,
-  MapWorkspaceViewState view,
-  TextEditingController search, {
-  ValueChanged<ResourceItem>? onPick,
-  VoidCallback? onChanged,
-}) => MaterialApp(
-  theme: studioTheme(),
-  home: Scaffold(
-    body: Align(
-      alignment: Alignment.topLeft,
-      child: SizedBox(
-        width: dock ? 1100 : 300,
-        height: dock ? 330 : 850,
-        child: dock
-            ? MapWorkspacePaletteDock(
-                project: project,
-                document: document,
-                visuals: WorkspaceTestVisuals(),
-                view: view,
-                search: search,
-                onChanged: onChanged ?? () {},
-                onResources: () {},
-                onOpenFullPalette: () {},
-                onPickResource: onPick,
-              )
-            : MapWorkspacePalette(
-                project: project,
-                document: document,
-                visuals: WorkspaceTestVisuals(),
-                view: view,
-                search: search,
-                onChanged: onChanged ?? () {},
-                onPickResource: onPick,
-              ),
-      ),
-    ),
-  ),
-);
 
 ProjectManifest _project() {
   final character = spatialNarrativeProject().characters.single;

@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:map_core/map_core_domain.dart';
 
 part 'decor_draft_collision_pixels.dart';
+part 'decor_draft_collision_input.dart';
 
 class DecorDraft {
   DecorDraft({required this.tileset, ProjectElementEntry? original})
@@ -27,11 +28,49 @@ class DecorDraft {
   int _maskWidth = 0;
   int _maskHeight = 0;
   int collisionRevision = 0;
+  bool saving = false;
+  String? error;
+  bool collisionDrawing = false;
+  GridPos? collisionCursor, _previousCollisionInput;
   final _undo = <_CollisionState>[];
   final _redo = <_CollisionState>[];
   _CollisionState? _stroke;
   ElementCollisionPixelMask? _checkedMask;
   String? _maskProblem;
+
+  bool selectSource(TilesetSourceRect rect) {
+    if (hasFineCollision &&
+        (rect.width != selection.width || rect.height != selection.height)) {
+      error = 'Conservez les dimensions de ce décor pour garder son masque fin. Effacez explicitement toutes les collisions avant de changer sa taille.';
+      return false;
+    }
+    error = null;
+    selection = rect;
+    if (!hasFineCollision) {
+      blocked.removeWhere(
+        (cell) => cell.x >= rect.width || cell.y >= rect.height,
+      );
+    }
+    return true;
+  }
+
+  Future<bool> save(
+    Future<void> Function(ProjectElementEntry) publish, {
+    bool Function()? isActive,
+  }) async {
+    if (saving) return false;
+    saving = true;
+    error = null;
+    try {
+      await publish(build());
+      return isActive?.call() ?? true;
+    } on Object catch (failure) {
+      if (isActive?.call() ?? true) error = '$failure';
+      return false;
+    } finally {
+      saving = false;
+    }
+  }
 
   void rebase(ProjectElementEntry saved) {
     _original = saved;
@@ -79,8 +118,7 @@ class DecorDraft {
           dataBase64: mask.dataBase64,
         );
       } on FormatException {
-        _maskProblem =
-            'Le masque existant est illisible. Il est conservé ; corrigez sa source avant de le peindre.';
+        _maskProblem = 'Le masque existant est illisible. Il est conservé ; corrigez sa source avant de le peindre.';
       }
     }
     return collisionChanged ? null : _maskProblem;

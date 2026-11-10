@@ -158,8 +158,8 @@
       "at": "2026-11-10",
       "status": "in_progress",
       "reason": "Prérequis T00 non clôturés au démarrage de T01 ; omission reconnue après le signalement utilisateur.",
-      "executionNote": "T00 en rattrapage. Les extractions et retraits T01 déjà réalisés sont conservés ; tout nouveau retrait T01 et toute reconstruction sont figés. Aucun lot accepté, G0 non accepté.",
-      "nextAction": "Terminer le classement revu, qualifier les témoins actuels 2D/3D, compléter et approuver les références, puis revoir le registre. Reprendre T01 seulement après résolution des prérequis.",
+      "executionNote": "T01 repris explicitement par l’utilisateur après le checkpoint861ad496d. Extractions restantes en cours avec classification/protections ; aucune reconstruction T02. Aucun lot accepté et G0 non accepté.",
+      "nextAction": "Terminer les responsabilités mixtes et leurs contrats, retirer les compositions historiques, qualifier les témoins actuels et faire revoir G0. Les cibles manquantes continuent de bloquer la reconstruction concernée.",
       "evidencePolicy": "Les 62 caractérisations historiques sont sourcées au journal réel ; les témoins créés après extraction restent des preuves actuelles. Aucune capture ou empreinte AVANT manquante ne sera fabriquée.",
       "referenceCoverage": {
         "sourceImages": 611,
@@ -171,12 +171,28 @@
         "requiredStateProfilePairs": 782,
         "bindings": 0,
         "approvedBindings": 0,
+        "lotLevelReferenceAudit": {
+          "pairsWithoutExistingReferenceAtLotLevel": 142,
+          "retirementPairs": 26,
+          "otherPairs": 116,
+          "lotsOutsideRetirement": ["RUI-019", "RUI-024", "RUI-066", "RUI-072", "RUI-073", "RUI-075", "RUI-076", "RUI-077", "RUI-079", "RUI-083", "RUI-085", "RUI-086", "RUI-088"],
+          "interpretation": "142 is a lower bound of missing lot-level references, not an exhaustive count of missing state/profile targets. An existing image attached to a lot does not prove that it depicts each required state. Retirement, performance, compatibility and final-gate states require native or documentary evidence, not fabricated mockup screenshots."
+        },
         "limitations": [
           "Le catalogue MagicPath Carte inspecté à la révision figée définit explicitement un projet 3D ; aucune série 2D complète prouvée.",
           "La navigation Pokémon et carte régionale du Studio figé ouvre des guides, pas des écrans complets.",
+          "La candidate Carte révisée propose des variantes de profil mais son profil 3D conserve une image de carte 2D ; ce n’est pas une cible de viewport 3D validée.",
+          "Les cibles de session, progression, cinématique, Pokémon, import et Player restent notamment à concevoir ou qualifier ; les 640 autres couples avec au moins une image au niveau du lot ne sont pas démontrés état par état.",
+          "Le contrôleur RUI-003 exige aussi des liaisons visuelles pour des états purement techniques de retrait, de mesure et de clôture. Cette exigence ne peut pas être satisfaite honnêtement par une capture de maquette arbitraire ; le contrat de preuve doit être clarifié sans réduire les contrôles visuels des écrans reconstruits.",
           "Les fiches guide_only et known_issue ne sont pas des cibles de reconstruction."
         ]
       }
+    },
+    "t01Resumption": {
+      "at": "2026-11-10",
+      "authority": "Demande utilisateur de terminer le thème01 avant le thème02, en conservant sous-agents, vérifications, commits par lot et audit final.",
+      "scope": "Rattrapage de classification et protections T00 utiles au retrait, extraction des responsabilités mixtes restantes, puis retrait physique par familles après preuve. Aucune nouvelle composition T02.",
+      "acceptance": "Aucun prérequis, score visuel ou succès G0 inventé. Le rattrapage T00 reste explicite ; G0 doit être démontré par contrôle et revue finale."
     }
   },
   "references": [
@@ -7861,7 +7877,7 @@
         "attempts": [],
         "blockReason": null,
         "lastUpdated": "2026-11-10",
-        "progressNote": "Rattrapage : les 992 empreintes historiques ont été retrouvées et comparées. Proposition de classement enrichie en revue ; consommateurs externes à conserver explicitement. G0 actuel reste rouge, aucun retrait supplémentaire autorisé pendant le rattrapage."
+        "progressNote": "993 entrées classées au niveau préparation, dont les 992 empreintes historiques vérifiées. Le classement ne prouve pas encore toutes les responsabilités ; destinations et consommateurs à clôturer par les ledgers de retrait."
       },
       "states": [
         "inventaire classé et graphe d’imports",
@@ -7995,7 +8011,7 @@
         "attempts": [],
         "blockReason": null,
         "lastUpdated": "2026-11-10",
-        "progressNote": "Deux témoins actuels 2D/3D préparés : deux tests réussis, lecteur canonique et ressources vérifiés, originaux inchangés. Authoring3D attempt2 arrêté exit1 après trois imports GLB et publication du blueprint ; carte inchangée, aucun Border/pente nouveau. Mauvais choix de lecteur dans le harness à corriger. Native/export/Player/reprise non exécutés ; aucune reconstitution AVANT."
+        "progressNote": "Témoins QA : rendu 2D logiciel et 3D debug intérieur ; profils et exports localTest 2D/3D vérifiés. Les deux exports ont été installés, lancés, sauvegardés puis repris après redémarrage du processus Player headless. Les captures ne prouvent pas les écrans Player ni le rendu GPU ; le build 3D Release échoue encore dans l’AOT Flutter."
       },
       "states": [
         "reçus de caractérisation 2D et 3D",
@@ -8140,7 +8156,7 @@
         "attempts": [],
         "blockReason": null,
         "lastUpdated": "2026-11-10",
-        "progressNote": "611 sources recensées : 542 références existantes, 54 guides, 15 défauts. Les 782 couples lot/état/profil non documentaires restent sans liaison approuvée. Les variantes 2D et les modules encore réduits à des guides doivent être complétés avant reconstruction."
+        "progressNote": "611 sources historiques recensées et aucune liaison approuvée parmi les 782 couples non documentaires du registre. Les candidates Carte et Session restent non approuvées. Une candidate Espèces RUI-075 ajoute 24 captures locales et 91 assertions interactives ; données fictives, 3D schématique, sans intégration native. Les références état/profil restent à compléter et approuver avant reconstruction."
       },
       "gaps": [
         "Pas de série 2D complète dans les captures du 9 novembre.",
@@ -8412,7 +8428,7 @@
       ],
       "mcpParity": "N/A si composition seule ; obligatoire si une commande canonique, un contrat ou une sémantique de mutation change",
       "execution": {
-        "status": "blocked",
+        "status": "in_progress",
         "implementer": "Tom + t01_map_boundary + t01_global_boundary + t01_dependency_review",
         "attempts": [
           {
@@ -8429,9 +8445,9 @@
             }
           }
         ],
-        "blockReason": "Checkpoint conservé ; nouveaux retraits et développements T01 figés pendant le rattrapage T00. Aucune acceptation.",
+        "blockReason": null,
         "lastUpdated": "2026-11-10",
-        "progressNote": "Contrats, sessions, workflows et viewports extraits. Accueil/Création/Monde/Vérification vérifiés ; Événements guidés/simulation/playtest séparés, Personnages vérifiés et Pokémon en extraction. Autres ateliers encore à migrer."
+        "progressNote": "Extractions ciblées vérifiées pour Histoire, imports Pokémon, Ambiance et graphe Dialogues. Un défaut du catalogue événement partiel reste en correction : le premier correctif passe 16 cas mais doit préserver les incompatibilités 2D/3D et être rejoué. Intégration globale et G0 restent ouverts ; travail en pause à la demande de Yoahn."
       },
       "states": [
         "ports et adaptateurs sans ancienne page",
@@ -8576,7 +8592,7 @@
         "status": "blocked",
         "implementer": "Tom + t01_map_boundary + t01_global_boundary + t01_dependency_review",
         "attempts": [],
-        "blockReason": "Checkpoint conservé ; nouveaux retraits et développements T01 figés pendant le rattrapage T00. Aucune acceptation.",
+        "blockReason": "Dépendances de retrait et preuves globales encore incomplètes ; reprise T01 autorisée par utilisateur. Aucun gel T00 implicite et aucune acceptation anticipée.",
         "lastUpdated": "2026-11-10",
         "progressNote": "Entrée principale neutre compilée et observée en Release QA isolé. Accueil et Création/Session retirés physiquement ; consommateurs Hub/Unys et profils natifs complets encore à fermer."
       },
@@ -8719,7 +8735,7 @@
         "status": "blocked",
         "implementer": null,
         "attempts": [],
-        "blockReason": "Checkpoint conservé ; nouveaux retraits et développements T01 figés pendant le rattrapage T00. Aucune acceptation.",
+        "blockReason": "Dépendances de retrait et preuves globales encore incomplètes ; reprise T01 autorisée par utilisateur. Aucun gel T00 implicite et aucune acceptation anticipée.",
         "lastUpdated": "2026-11-10",
         "progressNote": "Sessions et surfaces techniques 2D/3D, régression26 verte et navigation sources6 verte. Catalogue16 interrompu honnêtement pour diagnostic ; compositions Carte et consommateurs mixtes encore à retirer."
       },
@@ -8878,9 +8894,9 @@
         "status": "blocked",
         "implementer": null,
         "attempts": [],
-        "blockReason": "Checkpoint conservé ; nouveaux retraits et développements T01 figés pendant le rattrapage T00. Aucune acceptation.",
+        "blockReason": "Dépendances de retrait et preuves globales encore incomplètes ; reprise T01 autorisée par utilisateur. Aucun gel T00 implicite et aucune acceptation anticipée.",
         "lastUpdated": "2026-11-10",
-        "progressNote": "Accueil7, Création/Session10, Monde8 et Vérification6 retirés. Trois UI Événements retirées après34 cas de comportement et publisher réel ; Ressources/Personnages en retrait coordonné. Aucun atelier reconstruit."
+        "progressNote": "Retraits ciblés Histoire, imports Pokémon, Ambiance et graphe Dialogues accompagnés de tests et revues. Le lot médias Pokémon est retiré mais ses tests centraux restent à exécuter. De nombreuses compositions restent à traiter ; aucun atelier reconstruit."
       },
       "states": [
         "registre global retiré",
@@ -9029,7 +9045,7 @@
         "status": "blocked",
         "implementer": null,
         "attempts": [],
-        "blockReason": "Checkpoint conservé ; nouveaux retraits et développements T01 figés pendant le rattrapage T00. Aucune acceptation.",
+        "blockReason": "Dépendances de retrait et preuves globales encore incomplètes ; reprise T01 autorisée par utilisateur. Aucun gel T00 implicite et aucune acceptation anticipée.",
         "lastUpdated": "2026-11-10",
         "progressNote": "Chrome Player retiré ; douze exceptions techniques exactes et revues, dont nouvelle surface terrain. Primitives/exports historiques encore présents ; bibliothèques externes protégées."
       },
@@ -9168,9 +9184,9 @@
         "status": "blocked",
         "implementer": "Tom + t01_map_boundary + t01_global_boundary + t01_dependency_review",
         "attempts": [],
-        "blockReason": "Checkpoint conservé ; nouveaux retraits et développements T01 figés pendant le rattrapage T00. Aucune acceptation.",
+        "blockReason": "Dépendances de retrait et preuves globales encore incomplètes ; reprise T01 autorisée par utilisateur. Aucun gel T00 implicite et aucune acceptation anticipée.",
         "lastUpdated": "2026-11-10",
-        "progressNote": "G0 toujours non accepté. Outillage28cas vérifiés avant correction package:/file: révélée par probes compiler ; inventaire/ledgers/preuves mis à jour, aucun score visuel ou lot accepté."
+        "progressNote": "G0 non accepté : inventaire et preuves partiels, nombreuses compositions encore présentes. Les deux échecs de la suite JSONL globale ont été reproduits et diagnostiqués statiquement comme préexistants, sans rerun de HEAD. Aucun lot ni score visuel accepté."
       },
       "states": [
         "hôte technique neutre",
@@ -23403,7 +23419,7 @@
         "Build Release isolé et hôte neutre observé avec moteur QA corrigé ; ne prouve pas les derniers viewports ni des parcours natifs complets 2D/3D.",
         "MCP natif non connecté dans le bundle isolé (distribution.manifest_unavailable) ; tests lifecycle MCP distincts réussis.",
         "Aucune écriture Git, publication ni modification de mécanique runtime réalisée par T01.",
-        "Capture durable de l’hôte vide et du suivi documentaire uniquement ; captures/mesures par état et par profil de lot encore à produire, aucun score inventé."
+        "Hôte vide et suivi documentaire capturés ; douze captures documentent deux candidates de maquette locale sans valider les cibles. Captures et mesures natives par état/profil restent à produire, sans score inventé."
       ],
       "evidenceFiles": [
         {
@@ -23700,12 +23716,152 @@
           "path": "proofs/t01-execution/precommit-check-20261110.json",
           "sha256": "c4d514cc0ffb1429f20e393d88648801d72e6a465880216a6471f89792c2c1fc",
           "title": "Contrôle ciblé avant commit T01 — statut partiel"
+        },
+        {
+          "path": "proofs/t01-execution/retirement-contract-validation.json",
+          "sha256": "92ddba4c6701aac457bc63ef2017301b24df9cfc1239e91ff6f6843c5660d214",
+          "title": "Validation consolidée T00/T01 — G0 et parité complète en attente"
+        },
+        {
+          "path": "proofs/t01-execution/resume-20261110/index.json",
+          "sha256": "0a92a068b0a07c8216a86fea94987f199a0ef9b6d1a56d2459baff170c9a8647",
+          "title": "Index des preuves ciblées et des limites de la reprise"
+        },
+        {
+          "path": "proofs/t00-candidates/470897188139069440/twoD-rules-dungeon.png",
+          "sha256": "107306837e58713012688769c7d453cb53ac0ba06474c426bb92fd143def5741",
+          "title": "Candidate locale : règles de carte 2D et donjon"
+        },
+        {
+          "path": "proofs/t00-candidates/470897188139069440/threeD-rules-dungeon.png",
+          "sha256": "0dc269f2f0e076beb2c1bcc270d6475c119959f08e1073be5c5f69a82942e01f",
+          "title": "Candidate locale : règles de carte profil 3D et donjon"
+        },
+        {
+          "path": "proofs/t00-candidates/470897188139069440/twoD-advanced-movement.png",
+          "sha256": "91aeb999f7ce70cbf4d4839ee9fc50585f3a5c55fec3e4a4fe218d9d9bbf5f78",
+          "title": "Candidate locale : mouvements avancés 2D"
+        },
+        {
+          "path": "proofs/t00-candidates/470897188139069440/threeD-advanced-movement.png",
+          "sha256": "8107f3101ab0e0d40cf5b20dde60f8d2f44367b13667b26207c941229a756e90",
+          "title": "Candidate locale : mouvements avancés profil 3D"
+        },
+        {
+          "path": "proofs/t00-candidates/470908170030706688/manifest.json",
+          "sha256": "b354ca1ac5c31df9d91db3b9966016d2cc2cd61a682b0ec0a6c399b0109169b3",
+          "title": "Candidate session RUI-019 : manifeste et provenance des huit captures"
+        },
+        {
+          "path": "proofs/t00-candidates/470908170030706688/twoD-readonly.png",
+          "sha256": "20f70c33a828a0423a45fefa08ea75af5f0a37a870402b047b19ed0be31ef3c8",
+          "title": "Candidate session 2D : lecture seule"
+        },
+        {
+          "path": "proofs/t00-candidates/470908170030706688/twoD-recovery.png",
+          "sha256": "13ed2b7a1b5ecb2954533fff4d9a1fbe07f4558b84b63eb779b0ce31b57c9cfa",
+          "title": "Candidate session 2D : récupération"
+        },
+        {
+          "path": "proofs/t00-candidates/470908170030706688/twoD-conflict.png",
+          "sha256": "0a3a0df2069535dd9923482a88b4725de99b6ac7961904185ecaac6d7b09fc44",
+          "title": "Candidate session 2D : conflit"
+        },
+        {
+          "path": "proofs/t00-candidates/470908170030706688/twoD-draft.png",
+          "sha256": "b593248597917146d6983ab893062128ee8bc33d17f03b27682895aae7185aab",
+          "title": "Candidate session 2D : fermeture avec brouillon"
+        },
+        {
+          "path": "proofs/t00-candidates/470908170030706688/threeD-readonly.png",
+          "sha256": "356436b1f96de26dd4d97a063ab30a3640c3e5551ccc1aa9a9f9eac57b4ab82f",
+          "title": "Candidate session 3D : lecture seule"
+        },
+        {
+          "path": "proofs/t00-candidates/470908170030706688/threeD-recovery.png",
+          "sha256": "5c1d247a7e1960b7d46ed91f240445e1992e55e86e5b62c5019ee65b2b7b094e",
+          "title": "Candidate session 3D : récupération"
+        },
+        {
+          "path": "proofs/t00-candidates/470908170030706688/threeD-conflict.png",
+          "sha256": "9741a2154b01d550362024351f32693fca989d4d430987f40e4ed8269d1cdc23",
+          "title": "Candidate session 3D : conflit"
+        },
+        {
+          "path": "proofs/t00-candidates/470908170030706688/threeD-draft.png",
+          "sha256": "4c986b1dc2b1765dd1f2e80f3e3f6c91826b5cfa4ee5079f11f7ae63e0325e07",
+          "title": "Candidate session 3D : fermeture avec brouillon"
+        },
+        {
+          "path": "proofs/t00-preparation/current-native-renders/observation.json",
+          "sha256": "25eed3f01a54b2302c49a9ff3e9c45f704e90907ca13a793356c3b2abd40ed94",
+          "title": "Témoins actuels : rendus 2D et 3D debug, limites Release"
+        },
+        {
+          "path": "proofs/t00-preparation/current-native-renders/twoD-clairiere.png",
+          "sha256": "e8beb6d8cf59d8dca0cf956658f74327ea45b6df0dcf7a9023af47928973d1f7",
+          "title": "Témoin courant : rendu logiciel 2D de Clairière"
+        },
+        {
+          "path": "proofs/t00-preparation/current-native-renders/threeD-maison-etage-debug.png",
+          "sha256": "518251a91953e65c1962fc9b40e86745807995a96b9f003721bb34294c2992ee",
+          "title": "Témoin courant : rendu natif 3D debug de la maison"
+        },
+        {
+          "path": "proofs/t00-preparation/current-native-renders/profile-export-receipt.json",
+          "sha256": "446bfefdc96afe823a2558bb3552978283e47e974c5ae2d1951f0d9179a2fa51",
+          "title": "Profils et exports locaux des témoins QA 2D/3D"
+        },
+        {
+          "path": "proofs/t00-candidates/470932885365477376/manifest.json",
+          "sha256": "8abcbeee2a4d9d007aff528b9a18f99fb50c617776bf443b9fe11c9f740ec6ae",
+          "title": "Candidate MagicPath RUI-075 — manifeste des 24 captures, non approuvée"
+        },
+        {
+          "path": "proofs/t00-candidates/470932885365477376/interaction-results.json",
+          "sha256": "afb8b8f3b3606c583c708055ec84d90c51018ad3e85f80a508d204d59c5845c7",
+          "title": "Candidate RUI-075 — résultats interactifs du prototype"
+        },
+        {
+          "path": "proofs/t00-candidates/470932885365477376/candidate-receipt.json",
+          "sha256": "9afae0573dbde5576c3348d6af2664143d0b24206e5bd5fcc6b5edea74126413",
+          "title": "Candidate RUI-075 — livraison MagicPath"
+        },
+        {
+          "path": "proofs/t00-preparation/current-native-renders/player-runtime/runtime-proof-receipt.json",
+          "sha256": "aab4307b2c484f7f93f031efafaa2e15debc808f5f98a7ce1c2ad04f9a03de54",
+          "title": "Témoins Player 2D/3D : installation, sauvegarde et reprise headless"
+        },
+        {
+          "path": "proofs/t00-preparation/current-native-renders/player-runtime/source-hashes.json",
+          "sha256": "6645fd4f4c8a846440a528bed91e225534e12e50f762ed7624c4d8d37d782a0d",
+          "title": "Empreintes de la copie source isolée des sondes Player"
+        },
+        {
+          "path": "proofs/t00-preparation/current-native-renders/player-runtime/write-isolated4.log",
+          "sha256": "e1bdbf4d7285b76fc2d1825213281b5eaba37311c037e99a14146d643e1323fa",
+          "title": "Écriture et sauvegarde Player 2D : relance ciblée"
+        },
+        {
+          "path": "proofs/t00-preparation/current-native-renders/player-runtime/read-isolated5.log",
+          "sha256": "3d59a6f69fa92dd7479949d27e1440d4dec6339b72eaf2ec44af36fe840dab13",
+          "title": "Reprise Player 2D : nouveau processus"
+        },
+        {
+          "path": "proofs/t00-preparation/current-native-renders/player-runtime/write-isolated2.log",
+          "sha256": "43cc4b1e5fae01d54dddecffd8cfecb77f2e8c0b10f7a3f64c59e5c5df503e09",
+          "title": "Écriture Player 3D : test individuel dans une suite partiellement échouée"
+        },
+        {
+          "path": "proofs/t00-preparation/current-native-renders/player-runtime/read-isolated4.log",
+          "sha256": "66b82b04b0516b6d00ff0f17c8de64955b87b201e62957949c6595fbe8dfdc92",
+          "title": "Reprise Player 3D : test individuel dans une suite partiellement échouée"
         }
       ],
       "nativeObservation": "proofs/t01-execution/native-neutral-host-observation.json",
       "initialHead": "c69ffb95ac86bde48816955e9b663e93f996485d",
       "status": "in_progress",
-      "removedInventorySources": 109
+      "removedInventorySources": 162
     },
     "t00RecoveryCheckpoint": {
       "at": "2026-11-10T01:06:39.376565+00:00",
@@ -23734,6 +23890,288 @@
       "evidence": "proofs/t01-execution/precommit-check-20261110.json",
       "acceptedLots": 0,
       "summary": "136 contrats verts ; 13 cas Ressources/Terrain verts ; 2 parcours Hub verts puis création/export/Player1 rejoué vert après correction du témoin de verrou. Analyse Studio : zéro erreur,4warnings/5infos ; Hub analyse0. G0 rouge2352 : pas de clôture T01."
+    },
+    "t01ResumptionCheckpoint": {
+      "at": "2026-11-10",
+      "status": "extraction_in_progress",
+      "acceptedLots": 0,
+      "G0": "not_accepted",
+      "currentBatches": [
+        "Carte batch1 :16tests verts, vrais owners arrivées/destinations/Plongée ; aucun retrait.",
+        "Carte batch2 :50tests verts, locks/hidden et commandes/projections ; aucun retrait.",
+        "Narratif batch1 :29tests verts, helpers purs et commandes scène atomiques ; aucun retrait.",
+        "Narratif batch2 :35tests verts, références/payloads scène ; aucun retrait.",
+        "Ressources batch1 :15contrats +19nonrégressions,7contrats durcis relancés verts ; aucun retrait."
+      ],
+      "limits": [
+        "Ne pas additionner les groupes qui se recouvrent.",
+        "Les testslegacytransitoires sont conservés jusqu’à migration de leurs garanties.",
+        "Les fichiers combat concurrents ne relèvent pas de ce chantier."
+      ]
+    },
+    "t01LiveResumption": {
+      "date": "2026-11-10",
+      "g0Accepted": false,
+      "t02Started": false,
+      "groupResults": [
+        {
+          "scope": "Map obstacle intent",
+          "passed": 17,
+          "failed": 0,
+          "status": "green_after_red"
+        },
+        {
+          "scope": "Resource usage and invalidation races",
+          "passed": 23,
+          "failed": 0,
+          "status": "green_after_two_expected_reds"
+        },
+        {
+          "scope": "Narrative actions conditions policies",
+          "passed": 148,
+          "failed": 1,
+          "status": "one_old_ui_harness_failure_corrected_then_passed_in_root_group"
+        },
+        {
+          "scope": "Root preview export regional plus narrative and witness",
+          "passed": 95,
+          "failed": 7,
+          "status": "not_validated_as_a_group",
+          "failures": [
+            "Five historical export-page tests expect editable identity fields or a picker error before page readiness; diagnosis open.",
+            "One historical export cleanup test remained in preparing; diagnosis open.",
+            "QA Border stroke skipped intermediate grid edges; rejected before apply."
+          ]
+        },
+        {
+          "scope": "Pokémon provenance and base stats retirement",
+          "passed": 14,
+          "failed": 0,
+          "status": "focused_green_qa_copy"
+        },
+        {
+          "scope": "Pokémon form links retirement",
+          "passed": 20,
+          "failed": 0,
+          "status": "focused_green_qa_copy"
+        },
+        {
+          "scope": "JSONL worker after export safety fix",
+          "passed": 27,
+          "failed": 2,
+          "status": "failed_group_reproduced_in_isolated_file"
+        },
+        {
+          "scope": "MCP export profile and WebVTT staging",
+          "passed": 2,
+          "failed": 0,
+          "status": "focused_green_qa_copy"
+        },
+        {
+          "scope": "Pokémon variant time windows retirement",
+          "passed": 10,
+          "failed": 0,
+          "status": "focused_green_qa_copy"
+        },
+        {
+          "scope": "Encounter variant model and gameplay regressions",
+          "passed": 34,
+          "failed": 0,
+          "status": "focused_green_qa_copy"
+        },
+        {
+          "scope": "Pokémon import surfaces retirement",
+          "passed": 49,
+          "failed": 0,
+          "status": "focused_green_qa_copy"
+        },
+        {
+          "scope": "Pokémon import additional regression after fixture fix",
+          "passed": 19,
+          "failed": 0,
+          "status": "focused_green_qa_copy"
+        },
+        {
+          "scope": "Story progression contracts",
+          "passed": 14,
+          "failed": 0,
+          "status": "focused_green_qa_copy"
+        },
+        {
+          "scope": "Story domain directory including overlapping cases",
+          "passed": 42,
+          "failed": 0,
+          "status": "focused_green_qa_copy"
+        },
+        {
+          "scope": "Story mixed workspace regression",
+          "passed": null,
+          "failed": 1,
+          "status": "observed_failure_then_interrupted"
+        },
+        {
+          "scope": "Map ambiance retirement",
+          "passed": 52,
+          "failed": 0,
+          "status": "focused_green_qa_copy"
+        },
+        {
+          "scope": "Dialogue graph retirement",
+          "passed": 24,
+          "failed": 0,
+          "status": "focused_green_qa_copy"
+        },
+        {
+          "scope": "Partial event catalog initial correction",
+          "passed": 16,
+          "failed": 0,
+          "status": "provisional_green_known_dimension_gaps"
+        }
+      ],
+      "additionalPureForwardersRemoved": 8,
+      "visualAcceptance": false,
+      "nextAction": "PAUSE demandée par Yoahn. À la reprise : sécuriser les cas 2D/3D du catalogue événement, rejouer UI05 et les tests médias Pokémon, puis poursuivre T00/T01. T02 reste bloqué.",
+      "currentValidationReceipt": "proofs/t01-execution/retirement-contract-validation.json",
+      "latestContractRuns": [
+        {
+          "id": "t01-epoch2-red-races",
+          "passed": 23,
+          "failed": 8,
+          "status": "red_expected_six_races_plus_two_diagnostics",
+          "exitCode": 1
+        },
+        {
+          "id": "t01-canonical-design-system-regression",
+          "passed": 9,
+          "failed": 0,
+          "status": "green",
+          "exitCode": 0
+        },
+        {
+          "id": "t01-epoch2-story-owner-delta",
+          "passed": 71,
+          "failed": 0,
+          "status": "green",
+          "exitCode": 0
+        },
+        {
+          "id": "t01-epoch3-race-fixes-and-catalog-red",
+          "passed": 52,
+          "failed": 2,
+          "status": "green_initial_race_fixes_two_additional_reds",
+          "exitCode": 1
+        },
+        {
+          "id": "t01-epoch4-global-workflow-retirement",
+          "passed": 53,
+          "failed": 0,
+          "status": "green",
+          "exitCode": 0
+        },
+        {
+          "id": "t01-epoch4-map-resource-story-owner-delta",
+          "passed": 92,
+          "failed": 4,
+          "status": "not_green_four_failures_under_diagnosis",
+          "exitCode": 1
+        }
+      ],
+      "referenceCandidate": {
+        "projectId": "470322374529675264",
+        "componentId": "470825139026681856",
+        "revisionId": "470897188139069440",
+        "buildStatus": "completed",
+        "nativePreviewInspected": false,
+        "magicPathPreviewInspected": true,
+        "prototypeOnly": true,
+        "nativeStudioIntegration": false,
+        "dataSource": "Demonstration data in the interactive MagicPath prototype; no real Avelune project is opened or modified.",
+        "checkedInteractions": [
+          "2D top-down preview uses unique SVG pattern IDs.",
+          "A dirty 2D prototype blocks a profile change until cancel or explicit discard.",
+          "Cancel preserves the 2D prototype; discard switches to the 3D prototype.",
+          "2D relief and slope controls are unavailable with an explanation; surface painting remains available.",
+          "In a local browser preview of the submitted source, the 2D and 3D profile labels update in the advanced movement and local-rule panels.",
+          "In each profile, the escape-rope checkbox becomes available when the demonstration project enables the capability and a dungeon is associated."
+        ],
+        "status": "candidate_only_not_approved",
+        "captureProvenance": "Local browser preview of the submitted source; viewport 1280 x 720 logical pixels, DPR 1. These are candidate screenshots, not captures of native Studio or approved reference bindings.",
+        "candidateCaptures": [
+          {
+            "profile": "twoD",
+            "state": "local rules with dungeon associated",
+            "path": "proofs/t00-candidates/470897188139069440/twoD-rules-dungeon.png",
+            "sha256": "107306837e58713012688769c7d453cb53ac0ba06474c426bb92fd143def5741"
+          },
+          {
+            "profile": "threeD",
+            "state": "local rules with dungeon associated",
+            "path": "proofs/t00-candidates/470897188139069440/threeD-rules-dungeon.png",
+            "sha256": "0dc269f2f0e076beb2c1bcc270d6475c119959f08e1073be5c5f69a82942e01f"
+          },
+          {
+            "profile": "twoD",
+            "state": "advanced movement reference expanded",
+            "path": "proofs/t00-candidates/470897188139069440/twoD-advanced-movement.png",
+            "sha256": "91aeb999f7ce70cbf4d4839ee9fc50585f3a5c55fec3e4a4fe218d9d9bbf5f78"
+          },
+          {
+            "profile": "threeD",
+            "state": "advanced movement reference expanded",
+            "path": "proofs/t00-candidates/470897188139069440/threeD-advanced-movement.png",
+            "sha256": "8107f3101ab0e0d40cf5b20dde60f8d2f44367b13667b26207c941229a756e90"
+          }
+        ],
+        "knownGaps": [
+          "Full non-map modules and state-profile bindings remain incomplete.",
+          "Only the listed narrow prototype interactions were checked; complete 2D/3D behavior and native fidelity are not accepted.",
+          "The selected 3D profile still shows a 2D map image, so these screenshots are not a valid 3D viewport reference.",
+          "The 2D camera panel still offers 3D-oriented camera controls and requires a capability review before it can be a target.",
+          "Original frozen revision and earlier captures preserved."
+        ]
+      },
+      "sessionReferenceCandidate": {
+        "projectId": "470322374529675264",
+        "componentId": "470904123445886976",
+        "revisionId": "470908170030706688",
+        "lotId": "RUI-019",
+        "buildStatus": "completed",
+        "status": "candidate_only_not_approved",
+        "manifest": "proofs/t00-candidates/470908170030706688/manifest.json",
+        "manifestSha256": "b354ca1ac5c31df9d91db3b9966016d2cc2cd61a682b0ec0a6c399b0109169b3",
+        "nativeStudioIntegration": false,
+        "coverage": "Four initial session states in each profile; interactive prototype only, with 14 model tests.",
+        "limits": "No approved bindings; the 3D preview is schematic and no native session or project write is proven."
+      },
+      "pokemonReferenceCandidate": {
+        "projectId": "470322374529675264",
+        "componentId": "470932885365477376",
+        "revisionId": "470932885365477377",
+        "lotId": "RUI-075",
+        "buildStatus": "completed",
+        "status": "candidate_only_not_approved",
+        "manifest": "proofs/t00-candidates/470932885365477376/manifest.json",
+        "manifestSha256": "8abcbeee2a4d9d007aff528b9a18f99fb50c617776bf443b9fe11c9f740ec6ae",
+        "nativeStudioIntegration": false,
+        "coverage": "24 local captures, five principal states in each profile and 91 interactive assertions.",
+        "limits": "Fictitious data and in-memory saves; 3D is schematic; no approved reference bindings or native integration."
+      },
+      "playerWitness": {
+        "receipt": "proofs/t00-preparation/current-native-renders/player-runtime/runtime-proof-receipt.json",
+        "receiptSha256": "aab4307b2c484f7f93f031efafaa2e15debc808f5f98a7ce1c2ad04f9a03de54",
+        "status": "two_profiles_headless_save_resume_verified_not_visual_acceptance",
+        "limits": "No native UI or GPU. 3D tests passed within groups whose 2D tests failed; 2D reruns passed separately. Party and bag were mostly empty."
+      }
+    },
+    "t01PauseCheckpoint": {
+      "at": "2026-11-10",
+      "status": "paused_by_user",
+      "acceptedLots": 0,
+      "g0Accepted": false,
+      "t02Started": false,
+      "receipt": "proofs/t01-execution/retirement-contract-validation.json",
+      "receiptSha256": "92ddba4c6701aac457bc63ef2017301b24df9cfc1239e91ff6f6843c5660d214",
+      "summary": "Reprise sur T00/T01 uniquement. Les sources, tests et preuves partielles sont conservés ; aucune acceptation globale ni comparaison native avec la maquette."
     }
   },
   "receiptContract": {

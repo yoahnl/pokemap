@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:map_authoring/map_authoring_editing.dart';
 import 'package:map_core/map_core.dart' hide SpatialMapOperations;
 
 import '../../../features/map_workspace/application/editable_map_document.dart';
+import '../../../features/map_workspace/application/map_spatial_settings_commands.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_commit_field.dart';
 
@@ -30,27 +30,10 @@ class SpatialFishingEditor extends StatelessWidget {
         value:
             '${document.current.spatialScene!.navigation.maximumFishingDropWorld}',
         tryCommit: (text) {
-          if (document.saving) return false;
-          final value = double.tryParse(text.replaceAll(',', '.'));
-          if (value == null || !value.isFinite || value < 0 || value > 4) {
-            document.error =
-                'Choisissez une hauteur de lancer comprise entre 0 et 4 cases.';
-            onChanged();
-            return false;
-          }
-          final map = document.current;
-          document.commit(
-            const SpatialMapOperations().configureNavigation(
-              map,
-              map.spatialScene!.navigation.copyWith(
-                maximumFishingDropWorld: value,
-              ),
-              models: project.models3d,
-            ),
-          );
-          document.error = null;
+          final result = MapSpatialSettingsCommands(document)
+              .fishingDrop(text, project);
           onChanged();
-          return true;
+          return result;
         },
       ),
       const SizedBox(height: 8),

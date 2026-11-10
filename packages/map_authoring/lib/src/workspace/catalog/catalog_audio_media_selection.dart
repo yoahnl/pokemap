@@ -9,7 +9,9 @@ Future<CatalogWorkshopSelection> _readAudioMediaWorkshop({
 }) async {
   final configuring = actionId == 'project.battle_audio.update';
   final adopting = actionId == 'project.audio.media.adopt_asset';
-  final presentation = actionId == 'presentationMedia.import' || adopting;
+  final configuringPresentation = actionId == 'presentationMedia.configure';
+  final presentation = actionId == 'presentationMedia.import' ||
+      configuringPresentation || adopting;
   final importingBytes =
       actionId == 'asset.import' || actionId == 'asset.import_batch';
   final sections = importingBytes || presentation
@@ -58,7 +60,9 @@ Future<CatalogWorkshopSelection> _readAudioMediaWorkshop({
       }
     }
 
-    await readFile(assetCatalogResourceIdentity, assetCatalogStorageKey);
+    if (!configuringPresentation) {
+      await readFile(assetCatalogResourceIdentity, assetCatalogStorageKey);
+    }
     if (presentation) {
       await readFile(
           projectMediaCatalogResourceIdentity, projectMediaCatalogStorageKey);

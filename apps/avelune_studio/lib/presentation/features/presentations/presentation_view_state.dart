@@ -1,23 +1,28 @@
+import '../../../features/presentations/application/presentation_pose_projection.dart';
+
 import 'package:avelune_studio/features/presentations/coordination/presentation_editing_sessions.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 import 'package:map_authoring/map_authoring_presentation_editing.dart';
 
-enum PresentationPose { start, end, trajectory }
+export '../../../features/presentations/application/presentation_pose_projection.dart'
+    show PresentationPose;
 
 class PresentationViewState {
   PresentationViewState(
     PresentationCinematicAsset asset, {
     PresentationTimelineEditingController? editing,
-  }) : editing = editing ?? PresentationTimelineEditingController(asset: asset),
+    Set<String>? invalidFields,
+  }) : invalidFields = invalidFields ?? <String>{},
+       editing = editing ?? PresentationTimelineEditingController(asset: asset),
        _ownsEditing = editing == null;
   final bool _ownsEditing;
   final PresentationTimelineEditingController editing;
   final canvasTransform = TransformationController();
   final timelineScroll = ScrollController();
-  final invalidFields = <String>{};
-  bool libraryOpen = true, inspectorOpen = true;
-  bool elements = false, portrait = false, compare = false, pan = false;
+  final Set<String> invalidFields;
+  bool inspectorOpen = true;
+  bool portrait = false, compare = false, pan = false;
   bool reduceMotion = false, reduceFlashes = false, captions = true;
   String inspectorTab = 'properties';
   PresentationPose pose = PresentationPose.trajectory;
@@ -42,20 +47,17 @@ class PresentationViewStore {
       _ownsEditing = editingSessions == null;
   final PresentationEditingSessions editingSessions;
   final bool _ownsEditing;
-  final search = TextEditingController();
   final _states = <String, PresentationViewState>{};
-  String folderId = '';
-  bool archived = false;
   PresentationViewState forAsset(PresentationCinematicAsset asset) =>
       _states.putIfAbsent(
         asset.id,
         () => PresentationViewState(
           asset,
           editing: editingSessions.forAsset(asset),
+          invalidFields: editingSessions.invalidFieldsFor(asset.id),
         ),
       );
   void dispose() {
-    search.dispose();
     for (final state in _states.values) {
       state.dispose();
     }

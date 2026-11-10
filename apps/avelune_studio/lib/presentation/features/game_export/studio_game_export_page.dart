@@ -1,7 +1,10 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../features/game_export/domain/studio_game_export_port.dart';
+import '../../../features/game_export/application/studio_game_export_workflow.dart';
+import '../../../features/game_export/application/studio_game_export_mode.dart';
 import '../../../features/project_settings/application/project_identity_controller.dart';
 import '../../../features/verification/application/studio_failure_diagnosis.dart';
 import '../../shared/widgets/buttons/studio_action_card.dart';
@@ -59,17 +62,37 @@ class _StudioGameExportPageState extends State<StudioGameExportPage> {
   String _author = '';
   String _locale = 'fr';
   String _locales = 'fr';
-  bool _publication = true;
-  String? _destination;
-  StudioGameExportDestination? _selectedDestination;
-  bool _selectingDestination = false;
-  String? _inputError;
+  late final StudioGameExportModeSelection _mode;
+  bool get _publication => _mode.publication;
+  set _publication(bool value) => _mode.selectPublication(
+    value,
+    operationActive: widget.controller.operationActive,
+  );
+  late final StudioGameExportWorkflow _workflow;
+  String? get _destination => _workflow.destination?.path;
+  bool get _selectingDestination => _workflow.selectingDestination;
+  String? get _inputError => _workflow.inputError;
   StreamSubscription<void>? _subscription;
 
   @override
   void initState() {
     super.initState();
-    _publication = widget.publicationAvailable;
+    _mode = StudioGameExportModeSelection(
+      publicationAvailable: widget.publicationAvailable,
+    );
+    _workflow = StudioGameExportWorkflow(
+      controller: widget.controller,
+      pickFile: (name) => widget.pickFile(name),
+      prepare: () => widget.prepare(),
+      preparationFailure: () => widget.preparationFailure?.call(),
+      hasPendingChanges: () => widget.hasPendingChanges(),
+      isCurrentProject: () => widget.isCurrentProject(),
+      isActive: () => mounted,
+      onPublished: () async {
+        await widget.identity?.open();
+      },
+    );
+    _workflow.addListener(_changed);
     _subscription = widget.controller.changes.listen((_) => _changed());
     widget.identity?.addListener(_identityChanged);
     _load();
@@ -128,96 +151,53 @@ class _StudioGameExportPageState extends State<StudioGameExportPage> {
 
   @override
   void dispose() {
+    _workflow.removeListener(_changed);
+    _workflow.dispose();
     widget.identity?.removeListener(_identityChanged);
     _subscription?.cancel();
     super.dispose();
   }
 
+  StudioGameExportMetadata get _metadata => StudioGameExportMetadata(
+    gameId: _gameId,
+    title: _title,
+    version: _version,
+    author: _author,
+    locale: _locale,
+    locales: _locales,
+  );
+
   Future<void> _export() async {
-    if (!widget.controller.canStart || _selectingDestination) return;
-    final metadata = StudioGameExportMetadata(
-      gameId: _gameId,
-      title: _title,
-      version: _version,
-      author: _author,
-      locale: _locale,
-      locales: _locales,
-    );
-    setState(() => _inputError = null);
-    final destination = _selectedDestination ?? await _chooseDestination();
-    if (destination == null || !mounted) return;
-    if (destination.exists) {
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: const Text('Remplacer ce paquet ?'),
-          content: Text(
-            'Le fichier ${destination.path} existe déjà. Confirmer son remplacement ?',
-          ),
-          actions: [
-            StudioButton(
-              label: 'Conserver',
-              secondary: true,
-              onPressed: () => Navigator.pop(dialogContext, false),
-            ),
-            StudioButton(
-              label: 'Remplacer',
-              onPressed: () => Navigator.pop(dialogContext, true),
-            ),
-          ],
-        ),
-      );
-      if (confirmed != true || !mounted) return;
-    }
-    await widget.controller.export(
-      metadata: metadata,
-      outputPath: destination.path,
-      overwriteConfirmed: destination.exists,
+    await _workflow.run(
+      metadata: _metadata,
       publication: _publication,
-      prepare: widget.prepare,
-      preparationFailure: widget.preparationFailure,
-      hasPendingChanges: widget.hasPendingChanges,
-      isCurrentProject: widget.isCurrentProject,
+      confirmOverwrite: (destination) async =>
+          await showDialog<bool>(
+            context: context,
+            builder: (dialogContext) => AlertDialog(
+              title: const Text('Remplacer ce paquet ?'),
+              content: Text(
+                'Le fichier ${destination.path} existe déjà. Confirmer son remplacement ?',
+              ),
+              actions: [
+                StudioButton(
+                  label: 'Conserver',
+                  secondary: true,
+                  onPressed: () => Navigator.pop(dialogContext, false),
+                ),
+                StudioButton(
+                  label: 'Remplacer',
+                  onPressed: () => Navigator.pop(dialogContext, true),
+                ),
+              ],
+            ),
+          ) ==
+          true,
     );
-    if (widget.controller.outputPath == destination.path) {
-      await widget.identity?.open();
-    }
-    if (mounted && widget.controller.outputPath == destination.path) {
-      setState(() {
-        _selectedDestination = StudioGameExportDestination(
-          destination.path,
-          exists: true,
-        );
-      });
-    }
   }
 
-  Future<StudioGameExportDestination?> _chooseDestination() async {
-    if (_selectingDestination || widget.controller.operationActive) return null;
-    setState(() {
-      _selectingDestination = true;
-      _inputError = null;
-    });
-    final suggested = '${gameExportSlug(_title)}-$_version.avelunegame';
-    try {
-      final destination = await widget.pickFile(suggested);
-      if (!mounted) return null;
-      setState(() {
-        _selectedDestination = destination;
-        _destination = destination?.path;
-      });
-      return destination;
-    } on Object catch (failure) {
-      if (mounted) {
-        setState(
-          () => _inputError = 'Sélection du fichier impossible : $failure',
-        );
-      }
-      return null;
-    } finally {
-      if (mounted) setState(() => _selectingDestination = false);
-    }
-  }
+  Future<StudioGameExportDestination?> _chooseDestination() =>
+      _workflow.chooseDestination(_metadata);
 
   @override
   Widget build(BuildContext context) =>

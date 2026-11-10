@@ -1,34 +1,34 @@
+import 'dart:io';
+
+import 'package:avelune_studio/features/map_workspace/application/map_workspace_editing_state.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_tool_command_runner.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/map_resource_placement.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/workspace_session_loader.dart';
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/features/terrains/application/terrain_draft_controller.dart';
 import 'package:avelune_studio/platform/rendering/studio_map_resources.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_palette_dock.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_panels.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_screen.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../support/resource_stress_fixture.dart';
-import '../support/map_tool_menu.dart';
 
 void main() {
   testWidgets(
-    'tool integration retains one brush with hidden palette and small budget',
+    'retained resource and tool owners retain one brush under a small real cache budget',
     (tester) async {
-      tester.view.physicalSize = const Size(1280, 800);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
       late ResourceStressFixture fixture;
       late MapWorkspaceController controller;
       late StudioMapResources resources;
       await tester.runAsync(() async {
-        fixture = await ResourceStressFixture.create(
-          atlasCount: 4,
-          errorCount: 0,
+        final qa = Directory(
+          '/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109',
+        );
+        await qa.create(recursive: true);
+        fixture = await IOOverrides.runZoned(
+          () => ResourceStressFixture.create(atlasCount: 4, errorCount: 0),
+          getSystemTempDirectory: () => qa,
         );
         controller = MapWorkspaceController(
           fixture.session,
@@ -36,11 +36,13 @@ void main() {
         );
         await controller.initialize();
       });
-      addTearDown(() async {
-        controller.dispose();
-        await resources.dispose();
-        await fixture.dispose();
-      });
+      addTearDown(
+        () => tester.runAsync(() async {
+          controller.dispose();
+          await resources.dispose();
+          await fixture.dispose();
+        }),
+      );
       final decor = fixture.manifest.elements.first.copyWith(
         id: 'brush-only',
         name: 'Décor du pinceau',
@@ -88,133 +90,91 @@ void main() {
           maximumBytes: fixture.decodedAtlasBytes * 2,
         );
       });
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: studioTheme(),
-          home: MapWorkspaceScreen(
-            controller: controller,
-            loadVisuals: (_, _) async => resources,
-            runtimeBuilder: (_, _, _) => const SizedBox(),
-            onClose: () async {},
-            registerExitGuard: (_) {},
-          ),
-        ),
-      );
-      Future<void> settle() async {
-        for (var i = 0; i < 30; i++) {
-          await tester.runAsync(
-            () => Future<void>.delayed(const Duration(milliseconds: 10)),
+      await tester.runAsync(() async {
+        final view = MapWorkspaceEditingState();
+        var palette = 'Décors';
+        void retain() => retainWorkspaceBrush(resources, view);
+        final tools = MapToolCommandRunner(
+          view: view,
+          paletteTab: () => palette,
+          selectPalette: (value) => palette = value,
+          spatial: false,
+          paletteVisible: false,
+          onChanged: retain,
+          onMoreTools: () {},
+          onResources: () {},
+        );
+        Future<void> settle() async {
+          await resources.settled;
+          expect(tester.takeException(), isNull);
+        }
+
+        Future<void> choose(String identity) async {
+          final item = resourceCatalog(controller.project!)
+              .firstWhere((item) => item.identity == identity);
+          expect(
+            await useMapResource(
+              workspace: controller,
+              item: item,
+              view: () => view,
+              isActive: () => true,
+              chooseMap: (_) async => null,
+              chooseTile: (source) async =>
+                  TileLayerPaletteEntry(tilesetId: source.id, localTileId: 0),
+            ),
+            isTrue,
           );
-          await tester.pump(const Duration(milliseconds: 20));
+          retain();
+          await settle();
         }
-        expect(tester.takeException(), isNull);
-      }
 
-      Future<void> openPalette() async {
-        if (find.byType(MapWorkspacePaletteDock).evaluate().isEmpty) {
-          await tester.tap(find.byTooltip('Palette'));
-          await tester.pumpAndSettle();
-        }
-      }
-
-      Future<void> closePalette() async {
-        if (find.byType(MapWorkspacePaletteDock).evaluate().isNotEmpty) {
-          await tester.tap(find.byTooltip('Palette'));
-          await tester.pumpAndSettle();
-        }
-        expect(find.byType(MapWorkspacePaletteDock), findsNothing);
-      }
-
-      Future<void> chooseTool(String label) async {
-        await openPalette();
-        await chooseMapExtraTool(tester, label);
-        await closePalette();
-      }
-
-      Future<void> choosePalette(String label) async {
-        await openPalette();
-        await tester.tap(find.byTooltip('Changer la palette'));
-        await tester.pumpAndSettle();
-        await tester.tap(find.widgetWithText(PopupMenuItem<String>, label));
-        await tester.pump();
-      }
-
-      await settle();
-      await openPalette();
-      final decorPicker = find.byKey(ValueKey('decor-${decor.id}'));
-      expect(decorPicker.hitTestable(), findsOneWidget);
-      await tester.tap(decorPicker);
-      await settle();
-      expect(resources.store.priority, contains(stressAtlasId(1)));
-      await chooseTool('Déplacer la vue');
-      await openPalette();
-      resources.store.request(stressAtlasId(0));
-      await settle();
-      expect(resources.images.containsKey(stressAtlasId(1)), isTrue);
-      await closePalette();
-      await chooseTool('Peindre');
-      expect(resources.store.priority, contains(stressAtlasId(1)));
-      await openPalette();
-      final palette = tester.widget<MapWorkspacePaletteDock>(
-        find.byType(MapWorkspacePaletteDock),
-      );
-      palette.view
-        ..brush = null
-        ..terrain = null
-        ..tile = TileLayerPaletteEntry(
-          tilesetId: stressAtlasId(2),
-          localTileId: 0,
-        )
-        ..tool = StudioMapTool.paint;
-      palette.onChanged();
-      await settle();
-      expect(resources.store.priority, contains(stressAtlasId(2)));
-      expect(resources.store.priority, isNot(contains(stressAtlasId(1))));
-      await choosePalette('Terrains');
-      final terrainPicker = find.byKey(
-        ValueKey('terrain-${terrain.previewPreset.id}'),
-      );
-      expect(terrainPicker.hitTestable(), findsOneWidget);
-      await tester.tap(terrainPicker);
-      await settle();
-      await chooseTool('Déplacer la vue');
-      await openPalette();
-      await closePalette();
-      expect(find.byType(MapWorkspacePalette), findsNothing);
-      expect(find.byType(MapWorkspacePaletteDock), findsNothing);
-      expect(resources.store.priority, contains(stressAtlasId(2)));
-      await openPalette();
-      await closePalette();
-      await chooseTool('Peindre');
-      await settle();
-      expect(resources.store.priority, contains(stressAtlasId(2)));
-      expect(
-        resources.decodedBytes,
-        lessThanOrEqualTo(fixture.decodedAtlasBytes * 2),
-      );
-      await choosePalette('Personnages');
-      final characterPicker = find.byKey(ValueKey('character-${character.id}'));
-      expect(characterPicker.hitTestable(), findsOneWidget);
-      await tester.tap(characterPicker);
-      await settle();
-      expect(resources.store.priority, contains(stressAtlasId(1)));
-      expect(resources.store.priority, isNot(contains(stressAtlasId(2))));
-      await chooseTool('Déplacer la vue');
-      await openPalette();
-      resources.store.request(stressAtlasId(0));
-      await settle();
-      await closePalette();
-      await chooseTool('Placer un personnage');
-      await settle();
-      expect(resources.images.containsKey(stressAtlasId(1)), isTrue);
-      expect(resources.store.priority, contains(stressAtlasId(1)));
-      expect(
-        resources.decodedBytes,
-        lessThanOrEqualTo(fixture.decodedAtlasBytes * 2),
-      );
-      await tester.pumpWidget(const SizedBox());
-      await resources.dispose();
-      expect(resources.images, isEmpty);
+        resources.setActiveMap(controller.active!.current);
+        await settle();
+        await choose('element:${decor.id}');
+        expect(resources.store.priority, contains(stressAtlasId(1)));
+        tools.runExtra('Déplacer la vue');
+        expect(view.tool, StudioMapTool.pan);
+        resources.store.request(stressAtlasId(0));
+        await settle();
+        expect(resources.images.containsKey(stressAtlasId(1)), isTrue);
+        tools.runExtra('Peindre');
+        expect(view.tool, StudioMapTool.place);
+        expect(resources.store.priority, contains(stressAtlasId(1)));
+        await choose('tileset:${stressAtlasId(2)}');
+        expect(view.tool, StudioMapTool.paint);
+        expect(resources.store.priority, contains(stressAtlasId(2)));
+        expect(resources.store.priority, isNot(contains(stressAtlasId(1))));
+        palette = 'Terrains';
+        await choose('smartTilePreset:${terrain.previewPreset.id}');
+        tools.runExtra('Déplacer la vue');
+        expect(view.tool, StudioMapTool.pan);
+        expect(resources.store.priority, contains(stressAtlasId(2)));
+        tools.runExtra('Peindre');
+        expect(view.tool, StudioMapTool.terrain);
+        await settle();
+        expect(resources.store.priority, contains(stressAtlasId(2)));
+        expect(
+          resources.decodedBytes,
+          lessThanOrEqualTo(fixture.decodedAtlasBytes * 2),
+        );
+        await choose('character:${character.id}');
+        expect(resources.store.priority, contains(stressAtlasId(1)));
+        expect(resources.store.priority, isNot(contains(stressAtlasId(2))));
+        tools.runExtra('Déplacer la vue');
+        resources.store.request(stressAtlasId(0));
+        await settle();
+        tools.runExtra('Placer un personnage');
+        await settle();
+        expect(view.tool, StudioMapTool.character);
+        expect(resources.images.containsKey(stressAtlasId(1)), isTrue);
+        expect(resources.store.priority, contains(stressAtlasId(1)));
+        expect(
+          resources.decodedBytes,
+          lessThanOrEqualTo(fixture.decodedAtlasBytes * 2),
+        );
+        await resources.dispose();
+        expect(resources.images, isEmpty);
+      });
     },
   );
 }

@@ -1,13 +1,18 @@
+import '../../../features/resources/application/resource_border_lifecycle_controller.dart';
+
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../../shared/widgets/buttons/studio_button.dart';
+
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
+
 import '../../shared/widgets/buttons/studio_tool.dart';
 import '../../shared/widgets/inputs/studio_tabs.dart';
 import '../map_workspace/workspace_compact_panel.dart';
 
-enum BorderResourceAction { usages, deleteDraft, deprecate, reactivate }
+export '../../../features/resources/application/resource_border_lifecycle_controller.dart'
+    show BorderResourceAction;
 
 enum _BorderView { drafts, published, deprecated }
 

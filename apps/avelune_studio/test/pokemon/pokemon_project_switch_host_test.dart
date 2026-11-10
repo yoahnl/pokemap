@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:avelune_studio/features/pokemon/application/pokemon_workspace_controller.dart';
 import 'package:avelune_studio/presentation/features/pokemon/pokemon_workspace_page.dart';
 import 'package:avelune_studio/presentation/shell/studio_home_navigation.dart';
 import 'package:flutter/material.dart';
@@ -28,26 +29,18 @@ void main() {
     );
     await first.go('Pokémon');
     await pumpIo(tester);
-    await tester.tap(find.text('Importer depuis une source'));
-    await pumpIo(tester);
-    await tester.enterText(
-      find.descendant(
-        of: find.byKey(const ValueKey('pokemon-external-query')),
-        matching: find.byType(TextField),
-      ),
-      'bulbasaur',
-    );
-    await tester.pump();
-    await tester.tap(find.text('Rechercher'));
-    await tester.pump();
     final controller = tester
         .widget<PokemonWorkspacePage>(find.byType(PokemonWorkspacePage))
         .controller!;
+    final searching = controller.searchExternal('bulbasaur');
+    await tester.pump();
     expect(controller.externalBusy, isTrue);
     expect(await home.allowSwitch!(), isTrue);
     await tester.pumpWidget(const SizedBox());
     source.gate.complete();
     await pumpIo(tester);
+    expect(await searching, isFalse);
+    expect(controller.externalSearch, isNull);
     final second = await MapHostFixture.open(
       tester,
       prepareSource: (fixture) =>
@@ -57,7 +50,13 @@ void main() {
     await pumpIo(tester);
     expect(find.text('Espèce du projet B'), findsWidgets);
     expect(find.text('Espèce du projet A'), findsNothing);
-    expect(find.textContaining('Bulbasaur · #1'), findsNothing);
+    final next = tester
+        .widget<PokemonWorkspacePage>(find.byType(PokemonWorkspacePage))
+        .controller!;
+    expect(next, isNot(same(controller)));
+    expect(next.externalSearch, isNull);
+    expect(next.externalPreview, isNull);
+    expect(next.index!.entries.single.name, 'Espèce du projet B');
     expect(tester.takeException(), isNull);
   });
 }

@@ -13,9 +13,278 @@ part of 'project_item_capabilities.dart';
 T _$identity<T>(T value) => value;
 
 /// @nodoc
+mixin _$ProjectItemFriendshipLoss {
+
+@JsonKey(fromJson: _friendshipLossInteger) int get low;@JsonKey(fromJson: _friendshipLossInteger) int get medium;@JsonKey(fromJson: _friendshipLossInteger) int get high;
+/// Create a copy of ProjectItemFriendshipLoss
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ProjectItemFriendshipLossCopyWith<ProjectItemFriendshipLoss> get copyWith => _$ProjectItemFriendshipLossCopyWithImpl<ProjectItemFriendshipLoss>(this as ProjectItemFriendshipLoss, _$identity);
+
+  /// Serializes this ProjectItemFriendshipLoss to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectItemFriendshipLoss&&(identical(other.low, low) || other.low == low)&&(identical(other.medium, medium) || other.medium == medium)&&(identical(other.high, high) || other.high == high));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,low,medium,high);
+
+@override
+String toString() {
+  return 'ProjectItemFriendshipLoss(low: $low, medium: $medium, high: $high)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $ProjectItemFriendshipLossCopyWith<$Res>  {
+  factory $ProjectItemFriendshipLossCopyWith(ProjectItemFriendshipLoss value, $Res Function(ProjectItemFriendshipLoss) _then) = _$ProjectItemFriendshipLossCopyWithImpl;
+@useResult
+$Res call({
+@JsonKey(fromJson: _friendshipLossInteger) int low,@JsonKey(fromJson: _friendshipLossInteger) int medium,@JsonKey(fromJson: _friendshipLossInteger) int high
+});
+
+
+
+
+}
+/// @nodoc
+class _$ProjectItemFriendshipLossCopyWithImpl<$Res>
+    implements $ProjectItemFriendshipLossCopyWith<$Res> {
+  _$ProjectItemFriendshipLossCopyWithImpl(this._self, this._then);
+
+  final ProjectItemFriendshipLoss _self;
+  final $Res Function(ProjectItemFriendshipLoss) _then;
+
+/// Create a copy of ProjectItemFriendshipLoss
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? low = null,Object? medium = null,Object? high = null,}) {
+  return _then(_self.copyWith(
+low: null == low ? _self.low : low // ignore: cast_nullable_to_non_nullable
+as int,medium: null == medium ? _self.medium : medium // ignore: cast_nullable_to_non_nullable
+as int,high: null == high ? _self.high : high // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [ProjectItemFriendshipLoss].
+extension ProjectItemFriendshipLossPatterns on ProjectItemFriendshipLoss {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _ProjectItemFriendshipLoss value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _ProjectItemFriendshipLoss() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _ProjectItemFriendshipLoss value)  $default,){
+final _that = this;
+switch (_that) {
+case _ProjectItemFriendshipLoss():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _ProjectItemFriendshipLoss value)?  $default,){
+final _that = this;
+switch (_that) {
+case _ProjectItemFriendshipLoss() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(fromJson: _friendshipLossInteger)  int low, @JsonKey(fromJson: _friendshipLossInteger)  int medium, @JsonKey(fromJson: _friendshipLossInteger)  int high)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _ProjectItemFriendshipLoss() when $default != null:
+return $default(_that.low,_that.medium,_that.high);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(fromJson: _friendshipLossInteger)  int low, @JsonKey(fromJson: _friendshipLossInteger)  int medium, @JsonKey(fromJson: _friendshipLossInteger)  int high)  $default,) {final _that = this;
+switch (_that) {
+case _ProjectItemFriendshipLoss():
+return $default(_that.low,_that.medium,_that.high);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(fromJson: _friendshipLossInteger)  int low, @JsonKey(fromJson: _friendshipLossInteger)  int medium, @JsonKey(fromJson: _friendshipLossInteger)  int high)?  $default,) {final _that = this;
+switch (_that) {
+case _ProjectItemFriendshipLoss() when $default != null:
+return $default(_that.low,_that.medium,_that.high);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+@JsonSerializable(disallowUnrecognizedKeys: true)
+class _ProjectItemFriendshipLoss extends ProjectItemFriendshipLoss {
+  const _ProjectItemFriendshipLoss({@JsonKey(fromJson: _friendshipLossInteger) required this.low, @JsonKey(fromJson: _friendshipLossInteger) required this.medium, @JsonKey(fromJson: _friendshipLossInteger) required this.high}): super._();
+  factory _ProjectItemFriendshipLoss.fromJson(Map<String, dynamic> json) => _$ProjectItemFriendshipLossFromJson(json);
+
+@override@JsonKey(fromJson: _friendshipLossInteger) final  int low;
+@override@JsonKey(fromJson: _friendshipLossInteger) final  int medium;
+@override@JsonKey(fromJson: _friendshipLossInteger) final  int high;
+
+/// Create a copy of ProjectItemFriendshipLoss
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$ProjectItemFriendshipLossCopyWith<_ProjectItemFriendshipLoss> get copyWith => __$ProjectItemFriendshipLossCopyWithImpl<_ProjectItemFriendshipLoss>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$ProjectItemFriendshipLossToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectItemFriendshipLoss&&(identical(other.low, low) || other.low == low)&&(identical(other.medium, medium) || other.medium == medium)&&(identical(other.high, high) || other.high == high));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,low,medium,high);
+
+@override
+String toString() {
+  return 'ProjectItemFriendshipLoss(low: $low, medium: $medium, high: $high)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$ProjectItemFriendshipLossCopyWith<$Res> implements $ProjectItemFriendshipLossCopyWith<$Res> {
+  factory _$ProjectItemFriendshipLossCopyWith(_ProjectItemFriendshipLoss value, $Res Function(_ProjectItemFriendshipLoss) _then) = __$ProjectItemFriendshipLossCopyWithImpl;
+@override @useResult
+$Res call({
+@JsonKey(fromJson: _friendshipLossInteger) int low,@JsonKey(fromJson: _friendshipLossInteger) int medium,@JsonKey(fromJson: _friendshipLossInteger) int high
+});
+
+
+
+
+}
+/// @nodoc
+class __$ProjectItemFriendshipLossCopyWithImpl<$Res>
+    implements _$ProjectItemFriendshipLossCopyWith<$Res> {
+  __$ProjectItemFriendshipLossCopyWithImpl(this._self, this._then);
+
+  final _ProjectItemFriendshipLoss _self;
+  final $Res Function(_ProjectItemFriendshipLoss) _then;
+
+/// Create a copy of ProjectItemFriendshipLoss
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? low = null,Object? medium = null,Object? high = null,}) {
+  return _then(_ProjectItemFriendshipLoss(
+low: null == low ? _self.low : low // ignore: cast_nullable_to_non_nullable
+as int,medium: null == medium ? _self.medium : medium // ignore: cast_nullable_to_non_nullable
+as int,high: null == high ? _self.high : high // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
 mixin _$ProjectItemUseDefinition {
 
- Set<ProjectItemUseContext> get contexts; ProjectItemTargetKind get target; ProjectItemConsumptionPolicy get consumption; ProjectItemEffectDefinition get effect;
+ Set<ProjectItemUseContext> get contexts; ProjectItemTargetKind get target; ProjectItemConsumptionPolicy get consumption; ProjectItemEffectDefinition get effect;@JsonKey(includeIfNull: false) ProjectItemFriendshipLoss? get friendshipLoss;
 /// Create a copy of ProjectItemUseDefinition
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +297,16 @@ $ProjectItemUseDefinitionCopyWith<ProjectItemUseDefinition> get copyWith => _$Pr
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectItemUseDefinition&&const DeepCollectionEquality().equals(other.contexts, contexts)&&(identical(other.target, target) || other.target == target)&&(identical(other.consumption, consumption) || other.consumption == consumption)&&(identical(other.effect, effect) || other.effect == effect));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectItemUseDefinition&&const DeepCollectionEquality().equals(other.contexts, contexts)&&(identical(other.target, target) || other.target == target)&&(identical(other.consumption, consumption) || other.consumption == consumption)&&(identical(other.effect, effect) || other.effect == effect)&&(identical(other.friendshipLoss, friendshipLoss) || other.friendshipLoss == friendshipLoss));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(contexts),target,consumption,effect);
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(contexts),target,consumption,effect,friendshipLoss);
 
 @override
 String toString() {
-  return 'ProjectItemUseDefinition(contexts: $contexts, target: $target, consumption: $consumption, effect: $effect)';
+  return 'ProjectItemUseDefinition(contexts: $contexts, target: $target, consumption: $consumption, effect: $effect, friendshipLoss: $friendshipLoss)';
 }
 
 
@@ -48,11 +317,11 @@ abstract mixin class $ProjectItemUseDefinitionCopyWith<$Res>  {
   factory $ProjectItemUseDefinitionCopyWith(ProjectItemUseDefinition value, $Res Function(ProjectItemUseDefinition) _then) = _$ProjectItemUseDefinitionCopyWithImpl;
 @useResult
 $Res call({
- Set<ProjectItemUseContext> contexts, ProjectItemTargetKind target, ProjectItemConsumptionPolicy consumption, ProjectItemEffectDefinition effect
+ Set<ProjectItemUseContext> contexts, ProjectItemTargetKind target, ProjectItemConsumptionPolicy consumption, ProjectItemEffectDefinition effect,@JsonKey(includeIfNull: false) ProjectItemFriendshipLoss? friendshipLoss
 });
 
 
-$ProjectItemEffectDefinitionCopyWith<$Res> get effect;
+$ProjectItemEffectDefinitionCopyWith<$Res> get effect;$ProjectItemFriendshipLossCopyWith<$Res>? get friendshipLoss;
 
 }
 /// @nodoc
@@ -65,13 +334,14 @@ class _$ProjectItemUseDefinitionCopyWithImpl<$Res>
 
 /// Create a copy of ProjectItemUseDefinition
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? contexts = null,Object? target = null,Object? consumption = null,Object? effect = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? contexts = null,Object? target = null,Object? consumption = null,Object? effect = null,Object? friendshipLoss = freezed,}) {
   return _then(_self.copyWith(
 contexts: null == contexts ? _self.contexts : contexts // ignore: cast_nullable_to_non_nullable
 as Set<ProjectItemUseContext>,target: null == target ? _self.target : target // ignore: cast_nullable_to_non_nullable
 as ProjectItemTargetKind,consumption: null == consumption ? _self.consumption : consumption // ignore: cast_nullable_to_non_nullable
 as ProjectItemConsumptionPolicy,effect: null == effect ? _self.effect : effect // ignore: cast_nullable_to_non_nullable
-as ProjectItemEffectDefinition,
+as ProjectItemEffectDefinition,friendshipLoss: freezed == friendshipLoss ? _self.friendshipLoss : friendshipLoss // ignore: cast_nullable_to_non_nullable
+as ProjectItemFriendshipLoss?,
   ));
 }
 /// Create a copy of ProjectItemUseDefinition
@@ -82,6 +352,18 @@ $ProjectItemEffectDefinitionCopyWith<$Res> get effect {
   
   return $ProjectItemEffectDefinitionCopyWith<$Res>(_self.effect, (value) {
     return _then(_self.copyWith(effect: value));
+  });
+}/// Create a copy of ProjectItemUseDefinition
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$ProjectItemFriendshipLossCopyWith<$Res>? get friendshipLoss {
+    if (_self.friendshipLoss == null) {
+    return null;
+  }
+
+  return $ProjectItemFriendshipLossCopyWith<$Res>(_self.friendshipLoss!, (value) {
+    return _then(_self.copyWith(friendshipLoss: value));
   });
 }
 }
@@ -165,10 +447,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( Set<ProjectItemUseContext> contexts,  ProjectItemTargetKind target,  ProjectItemConsumptionPolicy consumption,  ProjectItemEffectDefinition effect)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( Set<ProjectItemUseContext> contexts,  ProjectItemTargetKind target,  ProjectItemConsumptionPolicy consumption,  ProjectItemEffectDefinition effect, @JsonKey(includeIfNull: false)  ProjectItemFriendshipLoss? friendshipLoss)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ProjectItemUseDefinition() when $default != null:
-return $default(_that.contexts,_that.target,_that.consumption,_that.effect);case _:
+return $default(_that.contexts,_that.target,_that.consumption,_that.effect,_that.friendshipLoss);case _:
   return orElse();
 
 }
@@ -186,10 +468,10 @@ return $default(_that.contexts,_that.target,_that.consumption,_that.effect);case
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( Set<ProjectItemUseContext> contexts,  ProjectItemTargetKind target,  ProjectItemConsumptionPolicy consumption,  ProjectItemEffectDefinition effect)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( Set<ProjectItemUseContext> contexts,  ProjectItemTargetKind target,  ProjectItemConsumptionPolicy consumption,  ProjectItemEffectDefinition effect, @JsonKey(includeIfNull: false)  ProjectItemFriendshipLoss? friendshipLoss)  $default,) {final _that = this;
 switch (_that) {
 case _ProjectItemUseDefinition():
-return $default(_that.contexts,_that.target,_that.consumption,_that.effect);case _:
+return $default(_that.contexts,_that.target,_that.consumption,_that.effect,_that.friendshipLoss);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -206,10 +488,10 @@ return $default(_that.contexts,_that.target,_that.consumption,_that.effect);case
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( Set<ProjectItemUseContext> contexts,  ProjectItemTargetKind target,  ProjectItemConsumptionPolicy consumption,  ProjectItemEffectDefinition effect)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( Set<ProjectItemUseContext> contexts,  ProjectItemTargetKind target,  ProjectItemConsumptionPolicy consumption,  ProjectItemEffectDefinition effect, @JsonKey(includeIfNull: false)  ProjectItemFriendshipLoss? friendshipLoss)?  $default,) {final _that = this;
 switch (_that) {
 case _ProjectItemUseDefinition() when $default != null:
-return $default(_that.contexts,_that.target,_that.consumption,_that.effect);case _:
+return $default(_that.contexts,_that.target,_that.consumption,_that.effect,_that.friendshipLoss);case _:
   return null;
 
 }
@@ -221,7 +503,7 @@ return $default(_that.contexts,_that.target,_that.consumption,_that.effect);case
 
 @JsonSerializable(explicitToJson: true)
 class _ProjectItemUseDefinition extends ProjectItemUseDefinition {
-  const _ProjectItemUseDefinition({required final  Set<ProjectItemUseContext> contexts, required this.target, required this.consumption, required this.effect}): _contexts = contexts,super._();
+  const _ProjectItemUseDefinition({required final  Set<ProjectItemUseContext> contexts, required this.target, required this.consumption, required this.effect, @JsonKey(includeIfNull: false) this.friendshipLoss}): _contexts = contexts,super._();
   factory _ProjectItemUseDefinition.fromJson(Map<String, dynamic> json) => _$ProjectItemUseDefinitionFromJson(json);
 
  final  Set<ProjectItemUseContext> _contexts;
@@ -234,6 +516,7 @@ class _ProjectItemUseDefinition extends ProjectItemUseDefinition {
 @override final  ProjectItemTargetKind target;
 @override final  ProjectItemConsumptionPolicy consumption;
 @override final  ProjectItemEffectDefinition effect;
+@override@JsonKey(includeIfNull: false) final  ProjectItemFriendshipLoss? friendshipLoss;
 
 /// Create a copy of ProjectItemUseDefinition
 /// with the given fields replaced by the non-null parameter values.
@@ -248,16 +531,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectItemUseDefinition&&const DeepCollectionEquality().equals(other._contexts, _contexts)&&(identical(other.target, target) || other.target == target)&&(identical(other.consumption, consumption) || other.consumption == consumption)&&(identical(other.effect, effect) || other.effect == effect));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectItemUseDefinition&&const DeepCollectionEquality().equals(other._contexts, _contexts)&&(identical(other.target, target) || other.target == target)&&(identical(other.consumption, consumption) || other.consumption == consumption)&&(identical(other.effect, effect) || other.effect == effect)&&(identical(other.friendshipLoss, friendshipLoss) || other.friendshipLoss == friendshipLoss));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_contexts),target,consumption,effect);
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_contexts),target,consumption,effect,friendshipLoss);
 
 @override
 String toString() {
-  return 'ProjectItemUseDefinition(contexts: $contexts, target: $target, consumption: $consumption, effect: $effect)';
+  return 'ProjectItemUseDefinition(contexts: $contexts, target: $target, consumption: $consumption, effect: $effect, friendshipLoss: $friendshipLoss)';
 }
 
 
@@ -268,11 +551,11 @@ abstract mixin class _$ProjectItemUseDefinitionCopyWith<$Res> implements $Projec
   factory _$ProjectItemUseDefinitionCopyWith(_ProjectItemUseDefinition value, $Res Function(_ProjectItemUseDefinition) _then) = __$ProjectItemUseDefinitionCopyWithImpl;
 @override @useResult
 $Res call({
- Set<ProjectItemUseContext> contexts, ProjectItemTargetKind target, ProjectItemConsumptionPolicy consumption, ProjectItemEffectDefinition effect
+ Set<ProjectItemUseContext> contexts, ProjectItemTargetKind target, ProjectItemConsumptionPolicy consumption, ProjectItemEffectDefinition effect,@JsonKey(includeIfNull: false) ProjectItemFriendshipLoss? friendshipLoss
 });
 
 
-@override $ProjectItemEffectDefinitionCopyWith<$Res> get effect;
+@override $ProjectItemEffectDefinitionCopyWith<$Res> get effect;@override $ProjectItemFriendshipLossCopyWith<$Res>? get friendshipLoss;
 
 }
 /// @nodoc
@@ -285,13 +568,14 @@ class __$ProjectItemUseDefinitionCopyWithImpl<$Res>
 
 /// Create a copy of ProjectItemUseDefinition
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? contexts = null,Object? target = null,Object? consumption = null,Object? effect = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? contexts = null,Object? target = null,Object? consumption = null,Object? effect = null,Object? friendshipLoss = freezed,}) {
   return _then(_ProjectItemUseDefinition(
 contexts: null == contexts ? _self._contexts : contexts // ignore: cast_nullable_to_non_nullable
 as Set<ProjectItemUseContext>,target: null == target ? _self.target : target // ignore: cast_nullable_to_non_nullable
 as ProjectItemTargetKind,consumption: null == consumption ? _self.consumption : consumption // ignore: cast_nullable_to_non_nullable
 as ProjectItemConsumptionPolicy,effect: null == effect ? _self.effect : effect // ignore: cast_nullable_to_non_nullable
-as ProjectItemEffectDefinition,
+as ProjectItemEffectDefinition,friendshipLoss: freezed == friendshipLoss ? _self.friendshipLoss : friendshipLoss // ignore: cast_nullable_to_non_nullable
+as ProjectItemFriendshipLoss?,
   ));
 }
 
@@ -303,6 +587,18 @@ $ProjectItemEffectDefinitionCopyWith<$Res> get effect {
   
   return $ProjectItemEffectDefinitionCopyWith<$Res>(_self.effect, (value) {
     return _then(_self.copyWith(effect: value));
+  });
+}/// Create a copy of ProjectItemUseDefinition
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$ProjectItemFriendshipLossCopyWith<$Res>? get friendshipLoss {
+    if (_self.friendshipLoss == null) {
+    return null;
+  }
+
+  return $ProjectItemFriendshipLossCopyWith<$Res>(_self.friendshipLoss!, (value) {
+    return _then(_self.copyWith(friendshipLoss: value));
   });
 }
 }

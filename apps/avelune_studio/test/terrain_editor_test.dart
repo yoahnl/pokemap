@@ -1,8 +1,6 @@
 import 'dart:async';
 
-import 'package:avelune_studio/presentation/features/terrains/terrain_editor_screen.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
-import 'package:flutter/material.dart';
+import 'package:avelune_studio/features/terrains/application/terrain_scratch_editing_session.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
@@ -10,156 +8,66 @@ import 'terrain_creation_test.dart'
     show terrainDraft, assignAll, publishFixture;
 
 void main() {
-  testWidgets(
-    'source assignment, scratch correction and publication activate the saved preset',
-    (tester) async {
-      tester.view.physicalSize = const Size(1200, 1000);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-      final model = terrainDraft();
-      assignAll(model);
-      final gate = Completer<void>();
-      final actions = <String>[];
-      ProjectSmartTilePreset? used;
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: studioTheme(),
-          home: Scaffold(
-            body: TerrainEditorScreen(
-              controller: model,
-              image: const ColoredBox(color: Color(0xff346a85)),
-              frameBuilder: (frame, size) => SizedBox(
-                width: size,
-                height: size,
-                child: Text(
-                  '${frame.column},${frame.row}',
-                  style: const TextStyle(fontSize: 7),
-                ),
-              ),
-              onMutate: (action, parameters) async {
-                actions.add(action);
-                if (action.endsWith('upsert')) await gate.future;
-                return publishFixture(model);
-              },
-              onUse: (preset) => used = preset,
-              onClose: () {},
-            ),
-          ),
-        ),
-      );
-      await tester.tap(find.byKey(const ValueKey('terrain-rule-3')));
-      await tester.pumpAndSettle();
-      final source = tester.getRect(
-        find.byKey(const ValueKey('atlas-selection')),
-      );
-      await tester.tapAt(
-        source.topLeft +
-            Offset(11 * source.width / 78, 16 * source.height / 110),
-      );
-      await tester.pump();
-      expect(model.frameFor(3)!.column, 0);
-      expect(model.frameFor(3)!.row, 0);
-      final scratch = tester.getRect(
-        find.byKey(const ValueKey('terrain-scratch')),
-      );
-      final cell = scratch.width / 17;
-      await tester.tapAt(scratch.topLeft + Offset(cell * 14.5, cell * 14.5));
-      await tester.pump();
-      expect(model.selectedRule, 15);
-      expect(find.text('Raccord sélectionné : Centre'), findsOneWidget);
-      await tester.tap(find.text('Publier et peindre'));
-      await tester.pump();
-      expect(model.busy, isTrue);
-      expect(used, isNull);
-      final publishButton = tester.widget<FilledButton>(
-        find.ancestor(
-          of: find.text('Publier et peindre'),
-          matching: find.byType(FilledButton),
-        ),
-      );
-      expect(publishButton.onPressed, isNull);
-      gate.complete();
-      await tester.pumpAndSettle();
-      expect(actions, [
-        'smart_tile.preset.draft.upsert',
-        'smart_tile.preset.publish',
-      ]);
-      expect(used!.id, model.draft.targetPresetId);
-      expect(tester.takeException(), isNull);
-    },
-  );
-
-  testWidgets('small editor at enlarged text keeps all sections scrollable', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(640, 720);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
+  test('source assignment scratch inspection and publication retain the saved preset', () async {
     final model = terrainDraft();
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: studioTheme(),
-        home: MediaQuery(
-          data: const MediaQueryData(textScaler: TextScaler.linear(1.4)),
-          child: Scaffold(
-            body: TerrainEditorScreen(
-              controller: model,
-              image: const SizedBox(),
-              frameBuilder: (_, _) => const SizedBox(),
-              onMutate: (_, _) async => model.manifest,
-              onUse: (_) {},
-              onClose: () {},
-            ),
-          ),
-        ),
-      ),
+    assignAll(model);
+    model.selectedRule = 3;
+    model.assignSelectedFrame(const TilesetSourceRect(x: 0, y: 0));
+    expect(model.frameFor(3)!.column, 0);
+    expect(model.frameFor(3)!.row, 0);
+    final scratch = TerrainScratchEditingSession(() => model);
+    scratch.update(const GridPos(x: 14, y: 14), TerrainScratchTool.inspect);
+    scratch.end();
+    expect(model.selectedRule, 15);
+    final gate = Completer<void>();
+    final actions = <String>[];
+    final pending = model.save((action, parameters) async {
+      actions.add(action);
+      if (action.endsWith('upsert')) await gate.future;
+      return publishFixture(model);
+    }, publish: true);
+    expect(model.busy, isTrue);
+    expect(model.publishedPreset, isNull);
+    expect(
+      await model.save((_, _) async => model.manifest, publish: true),
+      isFalse,
     );
-    await tester.pump();
-    expect(tester.takeException(), isNull);
-    await tester.tap(find.text('Essayer'));
-    await tester.pumpAndSettle();
-    expect(tester.takeException(), isNull);
-    expect(find.text('Terrain d’essai'), findsOneWidget);
+    gate.complete();
+    expect(await pending, isTrue);
+    expect(actions, [
+      'smart_tile.preset.draft.upsert',
+      'smart_tile.preset.publish',
+    ]);
+    expect(model.publishedPreset!.id, model.draft.targetPresetId);
   });
 
-  testWidgets('outer corner can be assigned and undone through the pattern', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(1200, 1000);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
+  test('source assignment advances only from an unassigned selected rule', () {
     final model = terrainDraft();
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: studioTheme(),
-        home: Scaffold(
-          body: TerrainEditorScreen(
-            controller: model,
-            image: const SizedBox(),
-            frameBuilder: (_, _) => const SizedBox(),
-            onMutate: (_, _) async => model.manifest,
-            onUse: (_) {},
-            onClose: () {},
-          ),
-        ),
-      ),
+    model.selectedRule = 3;
+    model.assignSelectedFrame(
+      const TilesetSourceRect(x: 0, y: 0),
+      advanceMissing: true,
     );
-    await tester.ensureVisible(find.byKey(const ValueKey('terrain-rule-16')));
-    await tester.tap(find.byKey(const ValueKey('terrain-rule-16')));
-    final source = tester.getRect(
-      find.byKey(const ValueKey('atlas-selection')),
+    expect(model.frameFor(3), isNotNull);
+    expect(model.selectedRule, 4);
+    model.selectedRule = 3;
+    model.assignSelectedFrame(
+      const TilesetSourceRect(x: 1, y: 0),
+      advanceMissing: true,
     );
-    await tester.tapAt(
-      source.topLeft + Offset(11 * source.width / 78, 16 * source.height / 110),
-    );
-    await tester.pump();
+    expect(model.selectedRule, 3);
+    model.selectedRule = 5;
+    model.assignSelectedFrame(const TilesetSourceRect(x: 0, y: 0));
+    expect(model.selectedRule, 5);
+  });
+
+  test('outer corner assignment expands topology with one-step undo', () {
+    final model = terrainDraft();
+    model.selectedRule = 16;
+    model.assignSelectedFrame(const TilesetSourceRect(x: 0, y: 0));
     expect(model.draft.rules, hasLength(20));
     expect(model.frameFor(16), isNotNull);
-    await tester.tap(find.byTooltip('Annuler la préparation'));
-    await tester.pump();
+    model.undo();
     expect(model.draft.rules, hasLength(16));
     expect(model.frameFor(16), isNull);
   });

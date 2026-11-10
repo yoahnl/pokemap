@@ -4,7 +4,6 @@ import '../../../features/pokemon/application/pokemon_workspace_controller.dart'
 import '../../../features/pokemon/domain/pokemon_workspace_models.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import 'pokemon_draft_controls.dart';
-import 'pokemon_species_form_links.dart';
 import 'pokemon_ui_parts.dart';
 
 class PokemonSpeciesFormsEditor extends StatelessWidget {
@@ -20,8 +19,8 @@ class PokemonSpeciesFormsEditor extends StatelessWidget {
     );
     final forms = (fields.data['forms'] as Map?)?.cast<String, dynamic>() ?? {};
     final currentId = '${forms['formId'] ?? ''}';
-    final links = StudioPanel(
-      title: 'Forme courante et liens',
+    final currentForm = StudioPanel(
+      title: 'Forme courante',
       children: [
         PokemonSurface(
           emphasized: true,
@@ -42,12 +41,6 @@ class PokemonSpeciesFormsEditor extends StatelessWidget {
               ),
             ],
           ),
-        ),
-        const SizedBox(height: 16),
-        PokemonSpeciesFormLinks(
-          key: ValueKey('species-form-links:${controller.selectedDraft?.id}'),
-          controller: controller,
-          forms: forms,
         ),
       ],
     );
@@ -76,12 +69,14 @@ class PokemonSpeciesFormsEditor extends StatelessWidget {
       builder: (context, bounds) {
         if (bounds.maxWidth < 760 ||
             MediaQuery.textScalerOf(context).scale(14) > 18) {
-          return Column(children: [links, const SizedBox(height: 12), editor]);
+          return Column(
+            children: [currentForm, const SizedBox(height: 12), editor],
+          );
         }
         return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(child: links),
+            Expanded(child: currentForm),
             const SizedBox(width: 12),
             Expanded(child: editor),
           ],

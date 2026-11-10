@@ -4,6 +4,21 @@ import '../application/map_workspace_controller.dart';
 import '../application/editable_map_document.dart';
 import '../domain/map_catalog_port.dart';
 
+final _catalogOperations = Expando<bool>();
+
+Future<void> runWorkspaceMapCatalogOperation(
+  MapWorkspaceController controller,
+  Future<void> Function() operation,
+) async {
+  if (_catalogOperations[controller] == true) return;
+  _catalogOperations[controller] = true;
+  try {
+    await operation();
+  } finally {
+    _catalogOperations[controller] = false;
+  }
+}
+
 final _lifecycleOperations = Expando<bool>();
 
 Future<bool> saveMapLifecycleTarget({
@@ -211,4 +226,104 @@ Future<String?> saveWorkspaceMapMetadata({
   return result.integrated
       ? null
       : result.error ?? 'Les paramètres n’ont pas pu être enregistrés.';
+}
+
+class WorkspaceMapResize {
+  WorkspaceMapResize(this.controller, this.entry);
+  final MapWorkspaceController controller;
+  final ProjectMapEntry entry;
+  MapData? source;
+  String? error;
+  String width = '', height = '';
+  bool analyzing = false, published = false;
+  MapCatalogPreparation? preparation;
+  WorkspaceMapPreparedMutation? operation;
+  int _generation = 0;
+  bool _submitting = false;
+
+  static int? positive(String value) {
+    final parsed = int.tryParse(value);
+    return parsed != null && parsed > 0 ? parsed : null;
+  }
+
+  bool get valid =>
+      published ||
+      (preparation?.canApply == true && preparation?.noChange == false);
+  bool get canAnalyze =>
+      !analyzing &&
+      !_submitting &&
+      !published &&
+      source != null &&
+      positive(width) != null &&
+      positive(height) != null;
+
+  Future<void> load() async {
+    try {
+      source =
+          controller.documents[entry.id]?.base.map ??
+          (await controller.port.loadMap(controller.session, entry)).map;
+    } on Object catch (failure) {
+      error = '$failure';
+    }
+    width = '${source?.size.width ?? ''}';
+    height = '${source?.size.height ?? ''}';
+  }
+
+  void setWidth(String value) {
+    if (published || _submitting) return;
+    width = value;
+    _invalidate();
+  }
+
+  void setHeight(String value) {
+    if (published || _submitting) return;
+    height = value;
+    _invalidate();
+  }
+
+  void _invalidate() {
+    _generation++;
+    preparation = null;
+    operation = null;
+    error = null;
+  }
+
+  Future<void> analyze() async {
+    if (!canAnalyze) return;
+    analyzing = true;
+    final generation = _generation;
+    preparation = null;
+    error = null;
+    try {
+      final prepared = await controller.prepareCatalog('map.resize_apply', {
+        'mapId': entry.id,
+        'width': positive(width)!,
+        'height': positive(height)!,
+      });
+      if (generation != _generation) return;
+      preparation = prepared;
+      operation = WorkspaceMapPreparedMutation(controller, prepared);
+    } on Object catch (failure) {
+      if (generation == _generation) error = '$failure';
+    } finally {
+      analyzing = false;
+    }
+  }
+
+  Future<String?> submit() async {
+    if (_submitting) return 'Le redimensionnement est déjà en cours.';
+    _submitting = true;
+    try {
+      final result = await operation!.apply();
+      published = result.published;
+      return result.integrated
+          ? null
+          : published
+          ? 'Les dimensions sont enregistrées sur disque. ${result.error ?? ''} Relisez la carte.'
+          : result.error ??
+                'Le redimensionnement a été refusé. Relancez l’analyse.';
+    } finally {
+      _submitting = false;
+    }
+  }
 }

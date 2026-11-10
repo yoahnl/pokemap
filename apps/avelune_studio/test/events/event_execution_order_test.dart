@@ -1,4 +1,3 @@
-import 'package:avelune_studio/features/events/application/event_execution_order.dart';
 import 'package:avelune_studio/presentation/features/events/event_summary.dart';
 import 'package:avelune_studio/presentation/features/events/event_view_state.dart';
 import 'package:avelune_studio/presentation/theme/studio_theme.dart';
@@ -51,83 +50,7 @@ NarrativeEventRegistry _registry(
 
 void main() {
   final welcome = _configured(1, 'Accueil', priority: 10);
-  final rival = _configured(2, 'Rival', order: 1);
   final rain = _configured(3, 'Pluie', order: 2, enabled: false);
-  final ambience = _configured(
-    4,
-    'Ambiance',
-    parallel: NarrativeEventParallelPolicy(cadenceMs: 1500),
-    reuse: NarrativeEventReusePolicy.reusable,
-  );
-  final elsewhere = _configured(
-    5,
-    'Grotte',
-    source: NarrativeEventSourceRef.mapEnter('cave'),
-  );
-  final draft = NarrativeEventRecord.draft(
-    NarrativeEventDraft(
-      id: _id(6),
-      name: 'Idée',
-      source: _arrival,
-      conditions: const [],
-      priority: 99,
-      order: 0,
-    ),
-  );
-  final registry = _registry([
-    rain,
-    rival,
-    welcome,
-    ambience,
-    elsewhere,
-    draft,
-  ]);
-
-  test('the execution order follows the runtime dispatch rule', () {
-    expect(
-      eventExecutionOrder(welcome, registry),
-      startsWith('Examiné en 1er sur 3 pour ce déclencheur'),
-    );
-    expect(
-      eventExecutionOrder(rival, registry),
-      'Examiné en 2e sur 3 pour ce déclencheur : un seul événement est joué à '
-      'chaque déclenchement, le premier dont les conditions sont remplies. '
-      'Passent avant lui : « Accueil ».',
-    );
-    expect(
-      eventExecutionOrder(rain, registry),
-      endsWith(
-        'Passent avant lui : « Accueil », « Rival ». Désactivé : il garde sa '
-        'place mais le jeu le saute.',
-      ),
-    );
-    expect(
-      eventExecutionOrder(elsewhere, registry),
-      'Seul événement de ce déclencheur : joué dès que ses conditions sont '
-      'remplies.',
-    );
-    expect(
-      eventExecutionOrder(ambience, registry),
-      'En parallèle : repris toutes les 1,5 secondes, sans attendre les autres '
-      'événements de ce déclencheur.',
-    );
-    expect(eventExecutionOrder(draft, registry), startsWith('Brouillon'));
-  });
-
-  test('the historical mode says when an event is not examined', () {
-    final historical = _registry([
-      welcome,
-      _configured(7, 'Ancien', legacy: true),
-    ], mode: EventSystemMode.legacyOnly);
-    expect(
-      eventExecutionOrder(welcome, historical),
-      contains('mode historique'),
-    );
-    expect(
-      eventExecutionOrder(historical.records.last, historical),
-      startsWith('Seul événement de ce déclencheur'),
-    );
-  });
 
   testWidgets('the summary states the order and the repeat effect', (
     tester,

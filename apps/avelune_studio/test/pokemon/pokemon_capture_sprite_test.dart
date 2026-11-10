@@ -8,9 +8,7 @@ import 'package:avelune_studio/features/pokemon/application/pokemon_commerce_con
 import 'package:avelune_studio/features/pokemon/data/local_pokemon_commerce_adapter.dart';
 import 'package:avelune_studio/features/pokemon/domain/pokemon_commerce_port.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
-import 'package:avelune_studio/presentation/features/pokemon/pokemon_item_effects.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
-import 'package:flutter/material.dart';
+import 'package:avelune_studio/features/pokemon/application/pokemon_capture_sprite_picker_controller.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 import 'package:map_authoring/map_authoring.dart';
@@ -74,94 +72,77 @@ void main() {
     expect(port.saved, isNull);
   });
 
-  testWidgets('picker updates the draft and can remove its animation', (
-    tester,
-  ) async {
-    final port = _CommercePort();
-    VoidCallback redraw = () {};
-    final commerce = PokemonCommerceController(port, changed: () => redraw());
-    await commerce.load();
-    commerce.selectItem(_ball);
-    addTearDown(commerce.dispose);
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: studioTheme(),
-        home: Scaffold(
-          body: StatefulBuilder(
-            builder: (context, setState) {
-              redraw = () => setState(() {});
-              return SingleChildScrollView(
-                child: PokemonItemEffects(
-                  commerce: commerce,
-                  pickPng: () async => '/picked.png',
-                ),
-              );
-            },
-          ),
-        ),
-      ),
-    );
-    expect(find.text('Aucune animation choisie.'), findsOneWidget);
-    await tester.ensureVisible(find.text('Choisir une planche PNG'));
-    await tester.tap(find.text('Choisir une planche PNG'));
-    await tester.pumpAndSettle();
-    expect(port.imports, 1);
-    expect(port.saved, isNull);
-    expect(commerce.item!.capture!.animationSpritePath, _path);
-    expect(commerce.item!.capture!.rateNumerator, 1);
-    expect(commerce.item!.capture!.allowedEncounterKinds, {EncounterKind.walk});
-    expect(find.byType(Image), findsOneWidget);
-    await tester.ensureVisible(find.text('Retirer l’animation'));
-    await tester.tap(find.text('Retirer l’animation'));
-    await tester.pumpAndSettle();
-    expect(commerce.item!.capture!.animationSpritePath, isNull);
-    expect(find.text('Aucune animation choisie.'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('cancelled PNG selection leaves the item untouched', (
-    tester,
-  ) async {
+  test('picker updates the draft and can remove its animation', () async {
     final port = _CommercePort();
     final commerce = PokemonCommerceController(port, changed: () {});
     await commerce.load();
     commerce.selectItem(_ball);
     addTearDown(commerce.dispose);
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: studioTheme(),
-        home: Scaffold(
-          body: SingleChildScrollView(
-            child: PokemonItemEffects(
-              commerce: commerce,
-              pickPng: () async => null,
-            ),
-          ),
-        ),
-      ),
+    final workflow = PokemonCaptureSpritePickerController(
+      commerce: commerce,
+      isActive: () => true,
     );
-    await tester.ensureVisible(find.text('Choisir une planche PNG'));
-    await tester.tap(find.text('Choisir une planche PNG'));
-    await tester.pumpAndSettle();
-    expect(port.imports, 0);
+    addTearDown(workflow.dispose);
+    expect(await workflow.choose(() async => '/picked.png'), isTrue);
+    expect(commerce.item!.capture!.animationSpritePath, _path);
+    expect(port.imports, 1);
+    expect(port.saved, isNull);
+    workflow.remove();
+    expect(commerce.item!.capture!.animationSpritePath, isNull);
     expect(commerce.item, _ball);
     expect(commerce.dirty, isFalse);
-    commerce.selectItem(_ball.copyWith(capture: null));
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: SingleChildScrollView(
-            child: PokemonItemEffects(
-              commerce: commerce,
-              pickPng: () async => '/picked.png',
-            ),
-          ),
-        ),
-      ),
-    );
-    expect(find.text('Animation de capture'), findsNothing);
-    expect(tester.takeException(), isNull);
+    expect(port.imports, 1);
+    expect(port.saved, isNull);
   });
+
+  test('cancelled PNG selection leaves the item untouched', () async {
+    final port = _CommercePort();
+    final commerce = PokemonCommerceController(port, changed: () {});
+    await commerce.load();
+    commerce.selectItem(_ball);
+    addTearDown(commerce.dispose);
+    final workflow = PokemonCaptureSpritePickerController(
+      commerce: commerce,
+      isActive: () => true,
+    );
+    addTearDown(workflow.dispose);
+    expect(await workflow.choose(() async => null), isFalse);
+    expect(commerce.item, same(_ball));
+    expect(commerce.dirty, isFalse);
+    expect(port.imports, 0);
+  });
+
+  for (final closed in [false, true]) {
+    test(
+      'late PNG selection preserves a ${closed ? 'closed' : 'changed'} item owner',
+      () async {
+        final port = _CommercePort();
+        final commerce = PokemonCommerceController(port, changed: () {});
+        await commerce.load();
+        commerce.selectItem(_ball);
+        addTearDown(commerce.dispose);
+        final workflow = PokemonCaptureSpritePickerController(
+          commerce: commerce,
+          isActive: () => true,
+        );
+        final picker = Completer<String?>();
+        final choosing = workflow.choose(() => picker.future);
+        expect(await workflow.choose(() async => '/other.png'), isFalse);
+        if (closed) {
+          workflow.dispose();
+        } else {
+          commerce.editItem(
+            (item) => item.copyWith(displayName: 'Brouillon conservé'),
+          );
+        }
+        final before = commerce.item;
+        picker.complete('/picked.png');
+        expect(await choosing, isFalse);
+        expect(port.imports, 0);
+        expect(commerce.item, same(before));
+      },
+    );
+  }
 
   test(
     'canonical adapter imports exact PNG bytes before item update',
@@ -185,11 +166,9 @@ void main() {
       expect(await fixture.catalogFile.readAsBytes(), before);
       final assets = AssetCatalog.fromJson(
         jsonDecode(
-              await File(
-                '${fixture.directory.path}/$assetCatalogStorageKey',
-              ).readAsString(),
-            )
-            as Map<String, dynamic>,
+          await File('${fixture.directory.path}/$assetCatalogStorageKey')
+              .readAsString(),
+        ) as Map<String, dynamic>,
       );
       expect(assets.records.single.logicalPath, path);
       expect(assets.records.single.usages, contains('item:${_ball.id}'));
@@ -231,9 +210,8 @@ void main() {
         );
         expect(await fixture.catalogFile.readAsBytes(), before);
         expect(
-          await File(
-            '${fixture.directory.path}/$assetCatalogStorageKey',
-          ).exists(),
+          await File('${fixture.directory.path}/$assetCatalogStorageKey')
+              .exists(),
           isFalse,
         );
         expect(

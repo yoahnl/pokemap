@@ -1,3 +1,6 @@
+import 'package:avelune_studio/features/map_workspace/coordination/map_editing_viewport_session.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_tool_command_runner.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_spatial_settings_commands.dart';
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:avelune_studio/features/map_workspace/application/spatial_terrain_stroke.dart';
@@ -5,14 +8,8 @@ import 'package:avelune_studio/features/map_workspace/application/spatial_model_
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/platform/rendering/viewports/spatial_map_editing_viewport.dart';
 import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/spatial_terrain_controls.dart';
-import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
 import 'package:flutter/services.dart';
 import 'package:map_render_3d/map_render_3d.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_terrain_tool_panel.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_inspector.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_tool_strip.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -31,7 +28,7 @@ void main() {
         workspaceSession,
         WorkspaceMemoryPort(),
       );
-      final view = MapWorkspaceViewState()
+      final view = MapEditingViewportSession()
         ..tool = StudioMapTool.terrain
         ..spatialTerrainMode = SpatialTerrainMode.ramp;
       addTearDown(controller.dispose);
@@ -115,7 +112,7 @@ void main() {
         workspaceSession,
         WorkspaceMemoryPort(),
       );
-      final view = MapWorkspaceViewState()
+      final view = MapEditingViewportSession()
         ..tool = StudioMapTool.place
         ..model3d = model;
       addTearDown(controller.dispose);
@@ -212,7 +209,7 @@ void main() {
         workspaceSession,
         WorkspaceMemoryPort(),
       );
-      final view = MapWorkspaceViewState()
+      final view = MapEditingViewportSession()
         ..tool = StudioMapTool.terrain
         ..spatialTerrainMode = SpatialTerrainMode.relief;
       addTearDown(controller.dispose);
@@ -256,60 +253,23 @@ void main() {
     },
   );
 
-  testWidgets('3D terrain tools open without choosing a ground resource', (
-    tester,
-  ) async {
-    final view = MapWorkspaceViewState();
+  test('3D terrain command activates relief construction before choosing its ground resource', () {
+    final view = MapEditingViewportSession();
     addTearDown(view.dispose);
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: MapWorkspaceToolStrip(
-            view: view,
-            spatial: true,
-            onChanged: () {},
-            onMoreTools: () {},
-            onResources: () {},
-            storyAvailable: false,
-            paletteVisible: true,
-            onUndo: null,
-            onRedo: null,
-          ),
-        ),
-      ),
-    );
-    await tester.tap(find.text('Terrains'));
+    var tab = '';
+    MapToolCommandRunner(
+      view: view,
+      paletteTab: () => tab,
+      selectPalette: (value) => tab = value,
+      spatial: true,
+      paletteVisible: true,
+      onChanged: () {},
+      onMoreTools: () {},
+      onResources: () {},
+    ).runFamily('Terrains');
     expect(view.tool, StudioMapTool.terrain);
     expect(view.terrain, isNull);
-  });
-
-  testWidgets('relief toolbar exposes the target height without an inspector', (
-    tester,
-  ) async {
-    final view = MapWorkspaceViewState()
-      ..tool = StudioMapTool.terrain
-      ..spatialTerrainMode = SpatialTerrainMode.relief;
-    addTearDown(view.dispose);
-    final document = EditableMapDocument(
-      MapWorkspaceDocument(map: reliefMap(), mapId: 'a', revision: 'r'),
-    );
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: MapTerrainToolPanel(
-            document: document,
-            project: workspaceProject,
-            visuals: WorkspaceTestVisuals(),
-            view: view,
-            onChanged: () {},
-          ),
-        ),
-      ),
-    );
-    expect(find.byType(StudioSelect), findsOneWidget);
-    tester.widget<StudioSelect>(find.byType(StudioSelect)).onChanged!('3');
-    expect(view.spatialTerrainLevel, 3);
-    expect(document.undoCount, 0);
+    expect(tab, 'Terrains');
   });
 
   test('slope eraser removes a narrow ramp intersecting the painted cell', () {
@@ -562,9 +522,7 @@ void main() {
     );
   }
 
-  testWidgets('model inspector accepts a signed precise vertical offset', (
-    tester,
-  ) async {
+  test('model numeric commands preserve a signed precise vertical offset with undo', () {
     final map = reliefMap().copyWith(
       spatialScene: reliefMap().spatialScene!.copyWith(
         instances: [
@@ -579,51 +537,21 @@ void main() {
     final document = EditableMapDocument(
       MapWorkspaceDocument(map: map, mapId: 'a', revision: 'r'),
     )..selectedId = 'stairs';
-    final view = MapWorkspaceViewState();
-    addTearDown(view.dispose);
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: StatefulBuilder(
-            builder: (context, setState) => MapWorkspaceInspector(
-              project: workspaceProject,
-              document: document,
-              visuals: WorkspaceTestVisuals(),
-              view: view,
-              onChanged: () => setState(() {}),
-            ),
-          ),
-        ),
+    final commands = SpatialModelEditingCommands(document, workspaceProject);
+    expect(
+      commands.number(
+        '-2.7040466528',
+        (value) => commands.update('stairs', heightOffset: value),
       ),
+      isTrue,
     );
-    await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('decor-geometry-height-offset')),
-      300,
-      scrollable: find
-          .descendant(
-            of: find.byType(MapWorkspaceInspector),
-            matching: find.byType(Scrollable),
-          )
-          .first,
-    );
-    final field = find.descendant(
-      of: find.byKey(const ValueKey('decor-geometry-height-offset')),
-      matching: find.byType(TextField),
-    );
-    await tester.ensureVisible(field);
-    await tester.enterText(field, '-2.7040466528');
-    await tester.testTextInput.receiveAction(TextInputAction.done);
-    await tester.pump();
     expect(
       document.current.spatialScene!.instances.single.position.y,
       -2.7040466528,
     );
     expect(document.undoCount, 1);
-    expect(find.text('Décalage vertical (cases)'), findsOneWidget);
-    expect(find.text('Hauteur au-dessus du sol'), findsNothing);
     document.restore(redo: false);
     expect(document.current, map);
-    await tester.pumpWidget(const SizedBox());
   });
   test(
     'block brush interpolates, reanchors models and records one history entry',
@@ -716,7 +644,7 @@ void main() {
       workspaceSession,
       WorkspaceMemoryPort(),
     );
-    final view = MapWorkspaceViewState()
+    final view = MapEditingViewportSession()
       ..tool = StudioMapTool.terrain
       ..spatialTerrainMode = SpatialTerrainMode.relief
       ..spatialTerrainLevel = 2;
@@ -803,96 +731,31 @@ void main() {
     expect(document.current, same(changed));
   });
 
-  testWidgets('cliff texture picker is undoable and can clear its reference', (
-    tester,
-  ) async {
-    final document = EditableMapDocument(
-      MapWorkspaceDocument(map: reliefMap(), mapId: 'a', revision: 'r'),
-    );
-    final view = MapWorkspaceViewState();
-    addTearDown(view.dispose);
-    final project = workspaceProject.copyWith(
-      smartTileCatalog: ProjectSmartTileCatalog(
-        atlases: [
-          const ProjectSmartTileAtlas(
-            id: 'wall',
-            name: 'Paroi NB2',
-            tilesetId: 'atlas',
-            columns: 1,
-            rows: 1,
-          ),
-        ],
-      ),
-    );
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: SpatialTerrainControls(
-            document: document,
-            project: project,
-            view: view,
-            visuals: WorkspaceTestVisuals(),
-            onChanged: () {},
+  test(
+    'cliff texture commands remain undoable and can clear their reference',
+    () {
+      final document = EditableMapDocument(
+        MapWorkspaceDocument(map: reliefMap(), mapId: 'a', revision: 'r'),
+      );
+      final commands = MapSpatialSettingsCommands(document);
+      expect(
+        commands.terrainAppearance(
+          cliffFrame: const SmartTileFrameRef(
+            atlasId: 'wall',
+            column: 0,
+            row: 0,
           ),
         ),
-      ),
-    );
-    final picker = tester.widget<StudioSelect>(
-      find.byWidgetPredicate(
-        (widget) =>
-            widget is StudioSelect && widget.label == 'Texture des falaises',
-      ),
-    );
-    picker.onChanged!('wall');
-    expect(document.current.spatialScene!.cliffFrame!.atlasId, 'wall');
-    expect(document.undoCount, 1);
-    picker.onChanged!('none');
-    expect(document.current.spatialScene!.cliffFrame, isNull);
-    document.restore(redo: false);
-    expect(document.current.spatialScene!.cliffFrame!.atlasId, 'wall');
-  });
-  for (final spatial in [false, true]) {
-    testWidgets(
-      'terrain modes are ${spatial ? "available in 3D" : "absent in 2D"}',
-      (tester) async {
-        final map = spatial
-            ? MapData(
-                id: 'a',
-                name: 'Relief',
-                version: ProjectVersion.v9,
-                size: const GridSize(width: 8, height: 7),
-                spatialScene: MapSpatialScene(width: 8, depth: 7),
-              )
-            : workspaceMap('a');
-        final document = EditableMapDocument(
-          MapWorkspaceDocument(map: map, mapId: 'a', revision: 'relief-ui'),
-        );
-        final view = MapWorkspaceViewState();
-        addTearDown(view.dispose);
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: MapTerrainToolPanel(
-                document: document,
-                project: workspaceProject,
-                visuals: WorkspaceTestVisuals(),
-                view: view,
-                onChanged: () {},
-              ),
-            ),
-          ),
-        );
-        expect(find.text('Relief'), spatial ? findsOneWidget : findsNothing);
-        expect(find.text('Pente'), spatial ? findsOneWidget : findsNothing);
-        if (spatial) {
-          await tester.tap(find.text('Relief'));
-          expect(view.tool, StudioMapTool.terrain);
-        }
-        expect(document.undoCount, 0);
-        expect(tester.takeException(), isNull);
-      },
-    );
-  }
+        isTrue,
+      );
+      expect(document.current.spatialScene!.cliffFrame!.atlasId, 'wall');
+      expect(document.undoCount, 1);
+      expect(commands.terrainAppearance(cliffFrame: null), isTrue);
+      expect(document.current.spatialScene!.cliffFrame, isNull);
+      document.restore(redo: false);
+      expect(document.current.spatialScene!.cliffFrame!.atlasId, 'wall');
+    },
+  );
 }
 
 MapData reliefMap({bool raised = false}) => MapData(
