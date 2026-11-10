@@ -5,6 +5,162 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  for (final foreign in [0, 80]) {
+    test(
+        'camera edit preserves an Escape Rope dungeon with $foreign foreign maps',
+        () async {
+      final f = await _Fixture.open(foreign, spatial: true);
+      addTearDown(f.close);
+      final file = File('${f.root.path}/maps/source.json');
+      final original = MapData.fromJson(
+              jsonDecode(await file.readAsString()) as Map<String, dynamic>)
+          .copyWith(
+              version: ProjectVersion.v9,
+              mapMetadata: const MapMetadata(escapeRopeDungeonId: 'cave'),
+              spatialScene: MapSpatialScene(width: 8, depth: 8));
+      await file.writeAsString(jsonEncode(original.toJson()));
+      for (final pitch in [45.0, 50.0]) {
+        f.reader.paths.clear();
+        final parameters = <String, Object?>{
+          'mapId': 'source',
+          'camera': original.spatialScene!.camera
+              .copyWith(pitchDegrees: pitch)
+              .toJson()
+        };
+        final snapshot = await f.api.readWorkshopSnapshot(
+            f.opened.projectHandle,
+            actionId: 'map3d.camera.configure',
+            parameters: parameters);
+        expect(snapshot.manifest.groups.map((group) => group.id), ['cave']);
+        final plan = await f.api.planMutation(
+            f.opened.projectHandle,
+            AuthoringRequest(
+                requestId: 'camera-$pitch',
+                actionId: 'map3d.camera.configure',
+                actionVersion: 1,
+                workspaceHandle: f.opened.workspaceHandle.value,
+                expectedRevision: snapshot.revision,
+                idempotencyKey: 'camera-$pitch',
+                parameters: parameters));
+        await f.api.applyMutation(f.opened.projectHandle,
+            planId: plan.planId, operationId: 'camera-$pitch');
+        expect(
+            f.reader.paths.where((path) =>
+                path.startsWith('maps/') && path != 'maps/source.json'),
+            isEmpty);
+        expect(f.reader.paths.where((path) => path.endsWith('history.jsonl')),
+            isEmpty);
+        await f.reopen();
+        final saved = MapData.fromJson(
+            jsonDecode(await file.readAsString()) as Map<String, dynamic>);
+        expect(saved.mapMetadata, original.mapMetadata);
+        expect(saved.spatialScene!.camera.pitchDegrees, pitch);
+        expect(
+            saved.copyWith(
+                spatialScene: saved.spatialScene!
+                    .copyWith(camera: original.spatialScene!.camera)),
+            original);
+      }
+    });
+  }
+  test('camera edit with a dungeon uses the canonical JSONL transport',
+      () async {
+    final f = await _Fixture.open(0, spatial: true);
+    addTearDown(f.close);
+    final file = File('${f.root.path}/maps/source.json');
+    final original = MapData.fromJson(
+            jsonDecode(await file.readAsString()) as Map<String, dynamic>)
+        .copyWith(
+            version: ProjectVersion.v9,
+            mapMetadata: const MapMetadata(escapeRopeDungeonId: 'cave'),
+            spatialScene: MapSpatialScene(width: 8, depth: 8));
+    await file.writeAsString(jsonEncode(original.toJson()));
+    final policy = await WorkspacePolicy.create(
+        allowedRootPaths: [f.root.path], fileReader: f.reader);
+    final worker = JsonlWorker(
+        api: AuthoringReadApi(
+            openService: ProjectOpenService(
+                policy: policy,
+                fileReader: f.reader,
+                handles: f.handles,
+                catalogMetadataFields: {}),
+            snapshotLoader: ProjectSnapshotLoader(handles: f.handles)),
+        mutations: f.api);
+    Future<AuthoringResult> command(
+            String name, Map<String, Object?> parameters) async =>
+        AuthoringResult.fromJson(jsonDecode(await worker.processLine(
+            jsonEncode({'id': name, 'command': name, 'args': parameters}))));
+    final parameters = <String, Object?>{
+      'mapId': 'source',
+      'camera':
+          original.spatialScene!.camera.copyWith(pitchDegrees: 47).toJson()
+    };
+    final selected = await command('workshop_snapshot', {
+      'projectHandle': f.opened.projectHandle.value,
+      'actionId': 'map3d.camera.configure',
+      'parameters': parameters
+    });
+    expect(selected.status, AuthoringResultStatus.success);
+    final planned = await command('plan', {
+      'projectHandle': f.opened.projectHandle.value,
+      'request': AuthoringRequest(
+              requestId: 'jsonl-camera',
+              actionId: 'map3d.camera.configure',
+              actionVersion: 1,
+              workspaceHandle: f.opened.workspaceHandle.value,
+              expectedRevision: selected.data['snapshotRevision'] as String,
+              idempotencyKey: 'jsonl-camera',
+              parameters: parameters)
+          .toJson()
+    });
+    expect(planned.status, AuthoringResultStatus.success,
+        reason: planned.toJson().toString());
+    final applied = await command('apply', {
+      'projectHandle': f.opened.projectHandle.value,
+      'planId': planned.data['planId'],
+      'operationId': 'jsonl-camera'
+    });
+    expect(applied.status, AuthoringResultStatus.success,
+        reason: applied.toJson().toString());
+    final saved = MapData.fromJson(
+        jsonDecode(await file.readAsString()) as Map<String, dynamic>);
+    expect(saved.mapMetadata, original.mapMetadata);
+    expect(saved.spatialScene!.camera.pitchDegrees, 47);
+  });
+
+  test('camera edit rejects an undeclared dungeon without writing', () async {
+    final f = await _Fixture.open(0, spatial: true);
+    addTearDown(f.close);
+    final file = File('${f.root.path}/maps/source.json');
+    final original = MapData.fromJson(
+            jsonDecode(await file.readAsString()) as Map<String, dynamic>)
+        .copyWith(
+            version: ProjectVersion.v9,
+            mapMetadata: const MapMetadata(escapeRopeDungeonId: 'missing'),
+            spatialScene: MapSpatialScene(width: 8, depth: 8));
+    await file.writeAsString(jsonEncode(original.toJson()));
+    final before = await file.readAsBytes();
+    final parameters = <String, Object?>{
+      'mapId': 'source',
+      'camera':
+          original.spatialScene!.camera.copyWith(pitchDegrees: 47).toJson()
+    };
+    final selected = await f.api.readWorkshopSnapshot(f.opened.projectHandle,
+        actionId: 'map3d.camera.configure', parameters: parameters);
+    await expectLater(
+        () => f.api.planMutation(
+            f.opened.projectHandle,
+            AuthoringRequest(
+                requestId: 'invalid-camera',
+                actionId: 'map3d.camera.configure',
+                actionVersion: 1,
+                workspaceHandle: f.opened.workspaceHandle.value,
+                expectedRevision: selected.revision,
+                idempotencyKey: 'invalid-camera',
+                parameters: parameters)),
+        throwsA(isA<ValidationException>()));
+    expect(await file.readAsBytes(), before);
+  });
   test(
       'explicit group addition scope never materializes maps and refuses removals',
       () async {
@@ -146,7 +302,8 @@ final class _Fixture {
   LocalMapAuthoringMutationApi api;
   OpenedProject opened;
 
-  static Future<_Fixture> open(int foreign, {bool scopedAvatar = false}) async {
+  static Future<_Fixture> open(int foreign,
+      {bool scopedAvatar = false, bool spatial = false}) async {
     final root = await Directory.systemTemp.createTemp('context-catalog-');
     final scene = SceneAsset(
         id: 'secret',
@@ -177,6 +334,10 @@ final class _Fixture {
         ]));
     final project = ProjectManifest(
         name: 'Context',
+        version: spatial ? ProjectVersion.v9 : ProjectVersion.v8,
+        settings: ProjectSettings(
+            dimension:
+                spatial ? ProjectDimension.threeD : ProjectDimension.twoD),
         maps: [
           for (final id in [
             'source',
@@ -188,8 +349,15 @@ final class _Fixture {
         tilesets: [],
         scenes: [scene],
         facts: [NarrativeFactDefinition(id: 'ready', label: 'Ready')],
-        groups: const [
-          ProjectMapGroup(id: 'cave', name: 'Cave', type: MapGroupType.dungeon)
+        groups: [
+          const ProjectMapGroup(
+              id: 'cave', name: 'Cave', type: MapGroupType.dungeon),
+          if (spatial)
+            for (var index = 0; index < foreign; index++)
+              ProjectMapGroup(
+                  id: 'foreign-group-$index',
+                  name: 'Foreign $index',
+                  type: MapGroupType.dungeon),
         ],
         pokemon: const ProjectPokemonConfig(
             ruleset: PokemonRulesetProfile.pokeMapBetaV1,
@@ -207,8 +375,22 @@ final class _Fixture {
                 mapId: 'other')
         ]));
     final store = await CatalogStorageStore.open(projectRoot: root.path);
-    await WorkingProjectCatalog.create(
+    final working = await WorkingProjectCatalog.create(
         store: store, projectId: 'contextual', project: project);
+    try {
+      if (spatial) {
+        for (var index = 0; index < foreign; index++) {
+          final entry = (await working.catalog.snapshot.indexEntry(
+              CatalogDefinitionKey(CatalogDefinitionKind.catalogMetadata,
+                  jsonEncode(['projectDefinition', 'groups', index + 1]))))!;
+          await File(
+                  '${root.path}/catalog/objects/${entry.reference.sha256}.json')
+              .writeAsString('unrelated group must not be decoded');
+        }
+      }
+    } finally {
+      await working.close();
+    }
     await Directory('${root.path}/maps').create();
     await File('${root.path}/maps/source.json').writeAsString(jsonEncode(
         const MapData(

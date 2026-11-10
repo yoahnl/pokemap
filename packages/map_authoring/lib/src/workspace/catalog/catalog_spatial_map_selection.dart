@@ -250,6 +250,13 @@ final class CatalogSpatialMapSelection {
         if (!const {'map3d.instance.visibility.set', 'entity.set_presentation'}
             .contains(actionId)) MapValidator.validate(map);
         var definitions = documents.project;
+        if (map.mapMetadata.escapeRopeDungeonId case final dungeonId?) {
+          definitions = (await CatalogMetadataDocuments.readDocuments(
+            snapshot: catalog.snapshot,
+            project: definitions,
+            ids: {'groups': {dungeonId}},
+          )).project;
+        }
         if (actionId == 'map3d.instance.configure_field_obstacle') {
           final instance = map.spatialScene?.instances.where((item) => item.id == parameters['instanceId']).firstOrNull;
           if (instance != null) {
