@@ -369,7 +369,7 @@ void main() {
     };
     for (final parameters in <Map<String, Object?>>[
       {'entries': []},
-      {'entries': List.filled(101, valid)},
+      {'entries': List.filled(1001, valid)},
       {
         'entries': [valid, valid]
       },

@@ -13,6 +13,84 @@ import '../domains/maps/border_spatial_actions_test.dart'
 
 void main() {
   for (final unrelated in [0, 80]) {
+    test('classifying a preset preserves a classified source with $unrelated foreign units', () async {
+      final fixture = await _Fixture.open(unrelated,
+          rootPath: '/Users/karim/Library/Caches/AveluneQA/hgss-library-cleanup/classification-$unrelated');
+      addTearDown(fixture.close);
+      final png = await fixture.api.artifacts.put(
+          img.encodePng(img.Image(width: 16, height: 16)),
+          declaredMediaType: 'image/png');
+      Future<AuthoringMutationResult> apply(String action, Map<String, Object?> parameters, String id) async {
+        final plan = await fixture.plan(action, parameters, id);
+        return fixture.api.applyMutation(fixture.opened.projectHandle,
+            planId: plan.planId, operationId: id);
+      }
+      await apply('tileset.import_image', {
+        'tilesetId': 'ground', 'name': 'Ground', 'artifactHandle': png.reference.handle,
+        'tileWidth': 16, 'tileHeight': 16
+      }, 'import-ground');
+      await apply('resource.classify_batch', {
+        'entries': [
+          {'resourceKind': 'tileset', 'resourceId': 'ground', 'familyId': 'ground',
+            'role': 'component', 'placementContext': 'exterior'}
+        ]
+      }, 'classify-source');
+      await apply('smart_tile.atlas.upsert', {
+        'atlas': {'id': 'ground-atlas', 'name': 'Ground', 'tilesetId': 'ground',
+          'cellWidth': 16, 'cellHeight': 16, 'columns': 1, 'rows': 1}
+      }, 'create-atlas');
+      await apply('smart_tile.material.upsert_batch', {
+        'materials': [{'id': 'grass', 'name': 'Grass', 'connectionGroupId': 'grass'}]
+      }, 'create-material');
+      await apply('smart_tile.preset.publish', {
+        'preset': {
+          'id': 'grass-path', 'name': 'Grass path', 'usage': 'path',
+          'topology': 'uniform', 'status': 'published', 'templateHint': 'simple',
+          'coveragePolicy': 'sparse', 'coverageProfile': {'mode': 'template'},
+          'transformPolicy': {}, 'defaultMaterialId': 'grass', 'allowedMaterialIds': ['grass'],
+          'rules': [{
+            'id': 'grass', 'centerMatch': {'kind': 'material', 'materialId': 'grass'},
+            'candidates': [{'id': 'native', 'parts': [
+              {'source': {'kind': 'frame', 'frame': {'atlasId': 'ground-atlas', 'column': 0, 'row': 0}}}
+            ]}]
+          }]
+        }
+      }, 'create-preset');
+      await fixture.reopen();
+      final before = (await fixture.store.openRoot((await fixture.store.readHead())!)).snapshot;
+      final sourceKey = CatalogDefinitionKey(CatalogDefinitionKind.resourceLibraryEntry, 'tileset:ground');
+      final sourceBefore = (await before.lookup(sourceKey))!.toJson();
+      final parameters = <String, Object?>{
+        'entries': [{'resourceKind': 'smartTilePreset', 'resourceId': 'grass-path', 'familyId': 'vegetation'}]
+      };
+      fixture.reader.paths.clear();
+      final result = await apply('resource.classify_batch', parameters, 'classify-preset');
+      expect(fixture.reader.paths.where(fixture.unrelatedPaths.contains), isEmpty);
+      expect(fixture.reader.paths.length, lessThan(220));
+      await fixture.reopen();
+      Future<CatalogSnapshot> current() async =>
+          (await fixture.store.openRoot((await fixture.store.readHead())!)).snapshot;
+      final after = await current();
+      expect((await after.lookup(sourceKey))!.toJson(), sourceBefore);
+      final presetKey = CatalogDefinitionKey(CatalogDefinitionKind.resourceLibraryEntry, 'smartTilePreset:grass-path');
+      expect((await after.lookup(presetKey))!.payload['value'], containsPair('familyId', 'vegetation'));
+      final head = await fixture.store.readHead();
+      await expectLater(fixture.plan('resource.classify_batch', {
+        'entries': [{'resourceKind': 'smartTilePreset', 'resourceId': 'missing', 'familyId': 'vegetation'}]
+      }, 'unknown-preset'), throwsA(anything));
+      expect(await fixture.store.readHead(), head);
+      await fixture.api.undoMutation(fixture.opened.projectHandle,
+          entryId: result.receipt.receiptId, idempotencyKey: 'undo-classify-preset');
+      expect(await (await current()).lookup(presetKey), isNull);
+      await fixture.api.redoMutation(fixture.opened.projectHandle,
+          entryId: result.receipt.receiptId, idempotencyKey: 'redo-classify-preset');
+      await fixture.reopen();
+      expect((await (await current()).lookup(sourceKey))!.toJson(), sourceBefore);
+      expect((await (await current()).lookup(presetKey))!.payload['value'], containsPair('familyId', 'vegetation'));
+    });
+  }
+
+  for (final unrelated in [0, 80]) {
     test('published Border deprecation stays local with $unrelated foreign units',
         () async {
       final fixture = await _Fixture.open(unrelated,
@@ -113,6 +191,41 @@ void main() {
           planId: published.planId, operationId: 'publish-draft');
       await expectLater(fixture.plan('border.blueprint.draft.upsert',
           {'record': border}, 'published-edit'), throwsA(anything));
+      border['draft']['baseRevision'] = 1;
+      border['draft']['definition']['name'] = 'Contact 2';
+      fixture.reader.paths.clear();
+      fixture.reader.probes.clear();
+      final revised = await fixture.plan('border.blueprint.draft.upsert',
+          {'record': border}, 'revised-draft');
+      await fixture.api.applyMutation(fixture.opened.projectHandle,
+          planId: revised.planId, operationId: 'revised-draft');
+      await fixture.reopen();
+      final revisedSnapshot = (await fixture.store.openRoot(
+          (await fixture.store.readHead())!)).snapshot;
+      final revisedRecord = decodeBorderBlueprintRecordJson(
+          (await revisedSnapshot.lookup(CatalogDefinitionKey(
+              CatalogDefinitionKind.borderRecord, border['id'] as String)))!
+              .payload['value'],
+          formatVersion: ProjectBorderCatalog.latestSupportedFormatVersion);
+      expect(revisedRecord.draft.definition.name, 'Contact 2');
+      expect(revisedRecord.latestPublished!.revision, 1);
+      expect(revisedRecord.latestPublished!.definition.name, 'Contact 1');
+      final republished = await fixture.plan('border.blueprint.publish',
+          {'blueprintId': border['id']}, 'republish-draft');
+      await fixture.api.applyMutation(fixture.opened.projectHandle,
+          planId: republished.planId, operationId: 'republish-draft');
+      expect(fixture.reader.paths.where(fixture.unrelatedPaths.contains), isEmpty);
+      expect(fixture.reader.paths.where((path) => path.endsWith('history.jsonl')), isEmpty);
+      await fixture.reopen();
+      final finalSnapshot = (await fixture.store.openRoot(
+          (await fixture.store.readHead())!)).snapshot;
+      final finalRecord = decodeBorderBlueprintRecordJson(
+          (await finalSnapshot.lookup(CatalogDefinitionKey(
+              CatalogDefinitionKind.borderRecord, border['id'] as String)))!
+              .payload['value'],
+          formatVersion: ProjectBorderCatalog.latestSupportedFormatVersion);
+      expect(finalRecord.latestPublished!.revision, 2);
+      expect(finalRecord.latestPublished!.definition.name, 'Contact 2');
       expect(await File('${fixture.root.path}/project.json').readAsBytes(), fixture.descriptor);
     });
   }

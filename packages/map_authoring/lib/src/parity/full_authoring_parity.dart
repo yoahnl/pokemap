@@ -997,6 +997,16 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           '../../tools/pokemap_mcp/test/resource_library_stdio.test.ts',
     };
   }
+  if (actionId == 'model3d.prune_unused') {
+    return const {
+      AuthoringTransport.directApi:
+          'test/workspace/catalog_model_delete_test.dart',
+      AuthoringTransport.cli:
+          'test/tooling/jsonl_model_prune_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/model3d_prune_stdio.test.ts',
+    };
+  }
   if (actionId == 'model3d.configure_batch') {
     return const {
       AuthoringTransport.directApi:
@@ -2241,6 +2251,10 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
   _ContractEvidenceRule(
     ['model3d.import_batch', 'model3d.source.replace_batch'],
     'test/domains/assets/model3d_import_batch_test.dart',
+  ),
+  _ContractEvidenceRule(
+    ['model3d.prune_unused'],
+    'test/workspace/catalog_model_delete_test.dart',
   ),
   _ContractEvidenceRule(
     ['model3d.configure_batch'],

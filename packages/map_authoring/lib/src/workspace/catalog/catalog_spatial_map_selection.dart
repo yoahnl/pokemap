@@ -191,6 +191,7 @@ final class CatalogSpatialMapSelection {
       'smart_tile.cell.erase',
       'smart_tile.pattern.paint',
       'smart_tile.pattern.paint_batch',
+      'smart_tile.pattern.erase',
     }.contains(action);
   }
 

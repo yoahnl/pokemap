@@ -50,7 +50,7 @@ test("resource families and map scope persist through real MCP transactions", as
     const batchSchema = record(record(actions.get("resource.classify_batch")!.extensions).inputSchema);
     const entriesSchema = record(record(batchSchema.properties).entries);
     assert.equal(entriesSchema.minItems, 1);
-    assert.equal(entriesSchema.maxItems, 100);
+    assert.equal(entriesSchema.maxItems, 1000);
     assert.equal(record(entriesSchema.items).additionalProperties, false);
     assert.deepEqual(record(record(record(entriesSchema.items).properties).role).enum, ["standard", "component"]);
     for (const schema of [record(record(actions.get("resource.classify")!.extensions).inputSchema), record(entriesSchema.items)]) {

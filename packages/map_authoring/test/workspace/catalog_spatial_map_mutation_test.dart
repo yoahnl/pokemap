@@ -858,6 +858,63 @@ void main() {
     }
   });
 
+  final patternEraseIo = <SmartTileUsage, Map<int, Map<String, int>>>{};
+  for (final usage in [SmartTileUsage.path, SmartTileUsage.terrain]) {
+    for (final unrelated in [0, 90]) {
+      test('targeted pattern erase preserves other strokes and material for ${usage.name} with $unrelated foreign maps', () async {
+        final fixture = await _Fixture.open(unrelated,
+            content: _patternContent(usage), unreadPatternIds: {'foreign-pattern'});
+        addTearDown(fixture.close);
+        await fixture.apply('smart_tile.cell.paint', {
+          'mapId': 'map', 'layerId': 'ground-layer', 'materialId': 'grass',
+          'cells': [{'x': 1, 'y': 1}]
+        }, 'paint-grass');
+        for (final id in ['remove', 'keep']) {
+          await fixture.apply('smart_tile.pattern.paint',
+              _patternParameters('smart_tile.pattern.paint', 'patch', id, 1), 'paint-$id');
+        }
+        final beforeBytes = await fixture.mapFile.readAsBytes();
+        final before = MapData.fromJson(jsonDecode(utf8.decode(beforeBytes)));
+        final beforeLayer = before.layers.whereType<SmartTileLayer>().single;
+        final parameters = <String, Object?>{
+          'mapId': 'map', 'layerId': 'ground-layer',
+          'cells': [{'x': 1, 'y': 1}], 'strokeIds': ['remove'],
+          'clearMaterial': false,
+        };
+        fixture.reader.paths.clear();
+        fixture.counters.attributeCatalogIo = true;
+        fixture.counters.reset();
+        final applied = await fixture.apply('smart_tile.pattern.erase', parameters, 'erase-one');
+        final io = fixture.counters.ownerIo();
+        patternEraseIo.putIfAbsent(usage, () => {})[unrelated] = io;
+        if (unrelated == 90) expect(io, patternEraseIo[usage]![0]);
+        expect(fixture.reader.paths.where(fixture.unrelatedObjects.contains), isEmpty);
+        expect(fixture.reader.paths.where((path) => path.startsWith('maps/') && path != 'maps/map.json'), isEmpty);
+        expect(fixture.reader.paths.length, lessThan(200));
+        final after = MapData.fromJson(jsonDecode(await fixture.mapFile.readAsString()));
+        final afterLayer = after.layers.whereType<SmartTileLayer>().single;
+        expect(afterLayer.patternStrokes.map((stroke) => stroke.id), ['keep']);
+        expect(afterLayer.field, beforeLayer.field);
+        expect(afterLayer.encounterBehavior, beforeLayer.encounterBehavior);
+        expect(after.copyWith(layers: [beforeLayer]), before);
+        final afterBytes = await fixture.mapFile.readAsBytes();
+        await expectLater(
+          fixture.apply('smart_tile.pattern.erase', {...parameters, 'strokeIds': ['missing']}, 'erase-missing'),
+          throwsA(isA<MapAuthoringException>()),
+        );
+        expect(await fixture.mapFile.readAsBytes(), afterBytes);
+        await fixture.reopen();
+        await fixture.api.undoMutation(fixture.opened.projectHandle,
+            entryId: applied.receipt.receiptId, idempotencyKey: 'undo-erase');
+        expect(await fixture.mapFile.readAsBytes(), beforeBytes);
+        await fixture.api.redoMutation(fixture.opened.projectHandle,
+            entryId: applied.receipt.receiptId, idempotencyKey: 'redo-erase');
+        await fixture.reopen();
+        expect(await fixture.mapFile.readAsBytes(), afterBytes);
+      });
+    }
+  }
+
   for (final unrelated in [0, 90]) {
     test('native preset changes preserve geometry and undo with $unrelated foreign maps', () async {
       final base = spatialEnvironmentFixture();

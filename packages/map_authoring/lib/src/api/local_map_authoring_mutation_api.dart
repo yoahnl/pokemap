@@ -580,6 +580,9 @@ final class LocalMapAuthoringMutationApi
       Map<String, String> readDependencies = const {}}) {
     final session = _catalogSession(handle);
     if (session == null) {
+      if (actionId == 'model3d.prune_unused') {
+        throw const FormatException('Library maintenance requires a working catalog project.');
+      }
       if (actionId == 'pokemon.move_recipe.import') {
         throw const FormatException('Battle recipe import requires a working catalog project.');
       }
@@ -1072,6 +1075,9 @@ final class LocalMapAuthoringMutationApi
   ) async {
     final catalog = _catalogSession(projectHandle);
     if (catalog != null) return catalog.plan(request);
+    if (request.actionId == 'model3d.prune_unused') {
+      throw const FormatException('Library maintenance requires a working catalog project.');
+    }
     if (request.actionId == 'pokemon.move_recipe.import') {
       throw const FormatException('Battle recipe import requires a working catalog project.');
     }

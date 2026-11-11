@@ -17,6 +17,7 @@ import '../../transactions/local_authoring_payload.dart';
 import '../../workspace/project_snapshot.dart';
 import '../maps/map_lifecycle_adapter.dart';
 import 'asset_store.dart';
+import '../../references/resource_usage_documents.dart';
 import 'project_media_store.dart';
 
 final class AssetActionException implements Exception {
@@ -522,6 +523,64 @@ final class AssetActions {
   }) =>
       const AssetImportProjector().project(catalog, record: record);
 
+  Future<AuthoringMutationDraft> composeDeletionBatch(
+      ProjectSnapshot snapshot, List<String> assetIds) async {
+    if (assetIds.isEmpty) {
+      return AuthoringMutationDraft(changeSet: AuthoringChangeSet.noChanges());
+    }
+    if (snapshot.availableProjectSections != null) {
+      throw AssetActionException('asset.inventory_unavailable',
+          'Batch source deletion requires complete project reference documents.');
+    }
+    if (assetIds.toSet().length != assetIds.length) {
+      throw const FormatException('asset.duplicate_delete_identity');
+    }
+    final state = _catalogState(snapshot);
+    final sources = [for (final id in assetIds) state.catalog.require(id)];
+    final issues = <String>[];
+    final documents = resourceUsageDocuments(snapshot, issues);
+    if (issues.isNotEmpty) {
+      throw AssetActionException('asset.inventory_unavailable',
+          'Complete reference documents are required for batch source deletion.',
+          details: {'issues': issues});
+    }
+    final usages = deriveAssetBatchDocumentUsages(assets: sources, documents: {
+      for (final document in documents) document.identity: document.value,
+      for (final identity in snapshot.resourceFingerprints.keys)
+        if (identity.startsWith('exteriorReference:'))
+          identity: jsonDecode(utf8.decode(snapshot.resourceBytes(identity))),
+    });
+    if (usages.values.any((value) => value.isNotEmpty)) {
+      throw AssetActionException('asset.references_blocking',
+          'A selected source is still referenced.', details: {'usages': usages});
+    }
+    var catalog = state.catalog;
+    final changes = <AuthoringResourceChange>[];
+    final diffs = <AuthoringDiffEntry>[];
+    for (final source in sources) {
+      final deletesBlob = !catalog.records.any((record) =>
+          record.id != source.id && record.artifact.digest == source.artifact.digest);
+      final result = delete(catalog, assetId: source.id,
+          blobPayload: deletesBlob ? await snapshot.captureResourcePayload(
+              assetBlobResourceIdentity(source.artifact.digest)) : null);
+      catalog = result.catalog;
+      final draft = await _draft(snapshot, state, result, includeCatalogChange: false);
+      changes.addAll(draft.changeSet.changes);
+      diffs.add(AuthoringDiffEntry(operation: AuthoringDiffOperation.remove,
+          resource: AuthoringResourceRef(kind: 'assetCatalog', id: 'project',
+              revision: snapshot.resourceFingerprints[assetCatalogResourceIdentity]),
+          path: '/records/${source.id}', before: source.toJson()));
+      diffs.addAll(draft.changeSet.diff.entries);
+    }
+    return AuthoringMutationDraft(changeSet: AuthoringChangeSet(changes: [
+      AuthoringResourceChange(resource: AuthoringResourceRef(kind: 'assetCatalog',
+          id: 'project', revision: snapshot.resourceFingerprints[assetCatalogResourceIdentity]),
+          storageKey: assetCatalogStorageKey, beforeBytes: state.bytes,
+          afterBytes: _encodeCatalog(catalog)),
+      ...changes,
+    ], diff: AuthoringDiff(diffs)));
+  }
+
   Future<AuthoringMutationDraft> composeReplacements(
     ProjectSnapshot snapshot,
     List<({String assetId, ContentArtifactRef artifact, List<int> bytes})>
@@ -984,6 +1043,7 @@ Future<AuthoringMutationDraft> _draft(
   ContentArtifactRef? addedArtifact,
   List<int>? addedBytes,
   RetainedAssetBlobReader? retainedBlobReader,
+  bool includeCatalogChange = true,
 }) async {
   final changes = <AuthoringResourceChange>[];
   final diff = <AuthoringDiffEntry>[];
@@ -993,7 +1053,8 @@ Future<AuthoringMutationDraft> _draft(
     id: 'project',
     revision: snapshot.resourceFingerprints[assetCatalogResourceIdentity],
   );
-  changes.add(
+  if (includeCatalogChange) {
+    changes.add(
     AuthoringResourceChange(
       resource: catalogRef,
       storageKey: assetCatalogStorageKey,
@@ -1001,7 +1062,7 @@ Future<AuthoringMutationDraft> _draft(
       afterBytes: _encodeCatalog(result.catalog),
     ),
   );
-  diff.add(
+    diff.add(
     AuthoringDiffEntry(
       operation: switch (result.operation) {
         'import' => AuthoringDiffOperation.add,
@@ -1015,6 +1076,7 @@ Future<AuthoringMutationDraft> _draft(
       after: result.after?.toJson(),
     ),
   );
+  }
   final beforeRecord = result.before;
   final afterRecord = result.after;
   final beforeIdentity = beforeRecord == null

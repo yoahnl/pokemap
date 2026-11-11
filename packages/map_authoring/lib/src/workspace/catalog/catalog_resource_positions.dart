@@ -8,7 +8,8 @@ abstract final class CatalogResourcePositions {
     CatalogDefinitionKind.model3d: 'models3d',
     CatalogDefinitionKind.tileset: 'tilesets',
     CatalogDefinitionKind.character: 'characters',
-    CatalogDefinitionKind.resourceLibraryEntry: 'resourceLibraryCatalog.entries',
+    CatalogDefinitionKind.resourceLibraryEntry:
+        'resourceLibraryCatalog.entries',
     CatalogDefinitionKind.smartTileAtlas: 'smartTileCatalog.atlases',
     CatalogDefinitionKind.smartTileAnimation: 'smartTileCatalog.animations',
     CatalogDefinitionKind.smartTileMaterial: 'smartTileCatalog.materials',
@@ -83,22 +84,29 @@ abstract final class CatalogResourcePositions {
   static Future<List<CatalogDefinitionUnit>> prepare(CatalogSnapshot snapshot,
       {required Set<CatalogDefinitionKind> kinds}) async {
     final result = <CatalogDefinitionUnit>[
-      if (kinds.any(slotKinds.contains)) ...await prepareSlots(snapshot),
+      if (kinds.any(defaultSlotKinds.contains)) ...await prepareSlots(snapshot),
     ];
     for (final kind in kinds) {
-      if (slotKinds.contains(kind)) continue;
+      if (defaultSlotKinds.contains(kind)) continue;
       final state = await snapshot.lookup(key(kind));
       if (state?.payload['valid'] == true &&
           state?.payload['schemaVersion'] == 1) {
         continue;
       }
-      result.add(_state(
-          kind, _validatePositions(await readUnits(snapshot, kind))));
+      result.add(
+          _state(kind, _validatePositions(await readUnits(snapshot, kind))));
     }
     return result;
   }
 
-  static const slotKinds = {CatalogDefinitionKind.resourceLibraryEntry, CatalogDefinitionKind.resourceFamily};
+  static const defaultSlotKinds = {
+    CatalogDefinitionKind.resourceLibraryEntry,
+    CatalogDefinitionKind.resourceFamily,
+  };
+  static const slotKinds = {
+    ...defaultSlotKinds,
+    CatalogDefinitionKind.model3d,
+  };
   static const slotChunkSize = 256;
 
   static CatalogDefinitionKey slotHeaderKey(CatalogDefinitionKind kind) =>
@@ -114,7 +122,8 @@ abstract final class CatalogResourcePositions {
       key.kind == CatalogDefinitionKind.workspaceState &&
       key.id.startsWith('["resourceSlots",');
 
-  static CatalogDefinitionUnit _slotHeader(CatalogDefinitionKind kind, int count,
+  static CatalogDefinitionUnit _slotHeader(
+          CatalogDefinitionKind kind, int count,
           {bool valid = true}) =>
       CatalogDefinitionUnit(key: slotHeaderKey(kind), payload: {
         'schemaVersion': 1,
@@ -122,8 +131,8 @@ abstract final class CatalogResourcePositions {
         'valid': valid,
       });
 
-  static bool _slotsReady(CatalogDefinitionUnit? state,
-          CatalogDefinitionUnit? header) =>
+  static bool _slotsReady(
+          CatalogDefinitionUnit? state, CatalogDefinitionUnit? header) =>
       state?.payload['schemaVersion'] == 1 &&
       state?.payload['valid'] == true &&
       header?.payload['schemaVersion'] == 1 &&
@@ -173,16 +182,25 @@ abstract final class CatalogResourcePositions {
   }
 
   static List<CatalogDefinitionUnit> initializeSlots(
-          Iterable<CatalogDefinitionUnit> units) =>
-      [
-        for (final kind in slotKinds)
-          ..._slotUnits(kind, units.where((unit) => unit.key.kind == kind)),
-      ];
+      Iterable<CatalogDefinitionUnit> units,
+      {Set<CatalogDefinitionKind> kinds = defaultSlotKinds}) {
+    if (!slotKinds.containsAll(kinds)) {
+      throw const FormatException('catalog.resource_positions.invalid_kind');
+    }
+    return [
+      for (final kind in kinds)
+        ..._slotUnits(kind, units.where((unit) => unit.key.kind == kind)),
+    ];
+  }
 
   static Future<List<CatalogDefinitionUnit>> prepareSlots(
-      CatalogSnapshot snapshot) async {
+      CatalogSnapshot snapshot,
+      {Set<CatalogDefinitionKind> kinds = defaultSlotKinds}) async {
+    if (!slotKinds.containsAll(kinds)) {
+      throw const FormatException('catalog.resource_positions.invalid_kind');
+    }
     final result = <CatalogDefinitionUnit>[];
-    for (final kind in slotKinds) {
+    for (final kind in kinds) {
       final state = await snapshot.lookup(key(kind));
       if (_slotsReady(state, await snapshot.lookup(slotHeaderKey(kind)))) {
         continue;
@@ -260,7 +278,8 @@ abstract final class CatalogResourcePositions {
       CatalogDefinitionUnit state,
       List<CatalogDefinitionUnit> rows,
       List<CatalogDefinitionKey> deleted,
-      Future<CatalogDefinitionUnit?> Function(CatalogDefinitionKey) lookup) async {
+      Future<CatalogDefinitionUnit?> Function(CatalogDefinitionKey)
+          lookup) async {
     final count = _count(state);
     final header = await lookup(slotHeaderKey(kind));
     final vacated = <int, String>{};
@@ -333,10 +352,11 @@ abstract final class CatalogResourcePositions {
       if (chunks.containsKey(index)) return chunks[index];
       final unit = await lookup(slotChunkKey(kind, index));
       final ids = unit?.payload['ids'];
-      final length =
-          (count - index * slotChunkSize).clamp(0, slotChunkSize);
+      final length = (count - index * slotChunkSize).clamp(0, slotChunkSize);
       if (length > 0 &&
-          (ids is! List || ids.length < length || ids.any((id) => id is! String))) {
+          (ids is! List ||
+              ids.length < length ||
+              ids.any((id) => id is! String))) {
         return null;
       }
       return chunks[index] = [

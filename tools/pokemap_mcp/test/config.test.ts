@@ -54,7 +54,8 @@ test("parses artifact roots separately from project roots", () => {
 test("accepts a bounded authoring deadline for large project mutations", () => {
   const roots = ["--root", resolve(process.cwd(), "../..")];
   assert.equal(parseConfig([...roots, "--authoring-timeout-ms", "60000"]).authoringTimeoutMs, 60000);
-  for (const value of ["0", "-1", "1.5", "NaN", "120001"]) {
+  assert.equal(parseConfig([...roots, "--authoring-timeout-ms", "900000"]).authoringTimeoutMs, 900000);
+  for (const value of ["0", "-1", "1.5", "NaN", "900001"]) {
     assert.throws(() => parseConfig([...roots, "--authoring-timeout-ms", value]));
   }
 });
@@ -75,7 +76,7 @@ test("accepts a separate bounded export deadline without widening ordinary reque
     assert.throws(() => parseConfig([...roots, "--export-timeout-ms", value]));
   }
   assert.throws(() => parseConfig([...roots, "--export-timeout-ms"]));
-  assert.throws(() => parseConfig([...roots, "--authoring-timeout-ms", "120001"]));
+  assert.throws(() => parseConfig([...roots, "--authoring-timeout-ms", "900001"]));
   const both = parseConfig([...roots, "--export-timeout-ms", "600000", "--authoring-timeout-ms", "120000"]);
   assert.equal(both.exportTimeoutMs, 600000);
   assert.equal(both.authoringTimeoutMs, 120000);

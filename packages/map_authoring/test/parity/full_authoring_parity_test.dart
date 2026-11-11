@@ -7,6 +7,15 @@ import 'package:test/test.dart';
 
 void main() {
   group('PMCP-085 full authoring parity', () {
+    test('library maintenance cites API JSONL and MCP without claiming a Studio control', () {
+      final evidence = AuthoringFullParityCatalog.canonical()
+          .requireMutationAction('model3d.prune_unused');
+      expect(evidence.endToEndEvidence, {
+        AuthoringTransport.directApi: 'test/workspace/catalog_model_delete_test.dart',
+        AuthoringTransport.cli: 'test/tooling/jsonl_model_prune_test.dart',
+        AuthoringTransport.mcp: '../../tools/pokemap_mcp/test/model3d_prune_stdio.test.ts',
+      });
+    });
     test('scene dialogue policy evidence does not claim an uncalled editor action', () {
       final catalog = AuthoringFullParityCatalog.canonical();
       for (final action in [

@@ -422,7 +422,7 @@ final class CatalogEditingSession {
         additionalChanges: const [], workspaceFingerprint: null,
         publicBaseRevision: project.revision, publicDiff: null, publicPlan: null,
         currentProjectRevision: currentRevision, idempotencyKey: _token('resource_indexes_prepare_'),
-        request: null, prepareMetadataDocuments: true);
+        request: null, prepareMetadataDocuments: true, objectWriteConcurrency: 16);
     await _apply(plan);
   });
 
@@ -551,6 +551,7 @@ final class CatalogEditingSession {
     required String idempotencyKey,
     required AuthoringRequest? request,
     bool prepareMetadataDocuments = false,
+    int objectWriteConcurrency = 1,
   }) async {
     _requireOpen();
     final base = snapshot;
@@ -655,7 +656,8 @@ final class CatalogEditingSession {
             patch: patch);
         prepared._exteriorRemovals = deleted;
         await _checkRetentionCosts(prepared, projected: next);
-        await store.publishObjectsUnderLock(patch.objects);
+        await store.publishObjectsUnderLock(patch.objects,
+            maxConcurrentWrites: objectWriteConcurrency);
         await store.publishIndexAdmissionUnderLock(next);
         await store.publishMetadataContextTransitionUnderLock(
             before: base, after: next,

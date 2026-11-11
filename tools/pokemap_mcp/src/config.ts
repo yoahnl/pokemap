@@ -94,8 +94,8 @@ export function parseConfig(args: readonly string[]): PokeMapMcpConfig {
         break;
       case "--authoring-timeout-ms":
         authoringTimeoutMs = Number(value);
-        if (!Number.isInteger(authoringTimeoutMs) || authoringTimeoutMs < 1 || authoringTimeoutMs > 120_000) {
-          throw new PokeMapMcpConfigError("Authoring timeout must be an integer between 1 and 120000 milliseconds.");
+        if (!Number.isInteger(authoringTimeoutMs) || authoringTimeoutMs < 1 || authoringTimeoutMs > 900_000) {
+          throw new PokeMapMcpConfigError("Authoring timeout must be an integer between 1 and 900000 milliseconds.");
         }
         break;
       case "--export-timeout-ms":

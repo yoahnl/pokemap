@@ -22,6 +22,8 @@ import 'catalog_metadata_documents.dart';
 import 'catalog_narrative_event_documents.dart';
 import 'catalog_resource_positions.dart';
 import 'catalog_resource_usage_index.dart';
+import 'catalog_resource_index_snapshot.dart';
+import '../../domains/assets/model3d_actions.dart';
 import '../../domains/assets/tileset_actions.dart';
 import '../../domains/maps/model_visibility_dependencies.dart';
 import '../../catalog_storage/catalog_storage_store.dart';
@@ -43,12 +45,14 @@ part 'catalog_native_resource_selection.dart';
 part 'catalog_presentation_reset_selection.dart';
 part 'catalog_scene_workshop_selection.dart';
 part 'catalog_dialogue_creation_selection.dart';
+part 'catalog_model_prune_selection.dart';
 
 final class CatalogWorkshopSelection {
   CatalogWorkshopSelection._(
       this.reader, this.snapshot, this.writableSections, this.resourceRevisions,
       {this.metadataDocuments, this.resourceCounts = const {}, this.resourceReplacements = const {},
-      this.resourceRemovals = const {}, this.resourceMoves = const {}});
+      this.resourceRemovals = const {}, this.resourceMoves = const {},
+      this.maintenanceRevision});
 
   final CatalogProjectReader reader;
   final ProjectSnapshot snapshot;
@@ -59,6 +63,7 @@ final class CatalogWorkshopSelection {
   final Set<CatalogDefinitionKey> resourceReplacements;
   final Set<CatalogDefinitionKey> resourceRemovals;
   final Map<CatalogDefinitionKey, int> resourceMoves;
+  final Future<String> Function()? maintenanceRevision;
 
   static const _narrativeFields = {
     'maps',
@@ -87,6 +92,7 @@ final class CatalogWorkshopSelection {
   };
 
   static bool supports(String action, {Map<String, Object?>? parameters}) =>
+      action == 'model3d.prune_unused' ||
       const {'resource.classify', 'resource.classify_batch', 'resource.family.create',
         'resource.family.update', 'resource.family.delete'}.contains(action) ||
       (action == 'model3d.configure' &&
@@ -165,8 +171,11 @@ final class CatalogWorkshopSelection {
         code: 'catalog.mutation_scope_required',
         message:
             'The action $action requires ${reason ?? 'a proven targeted dependency scope'} before it can edit this catalog.',
-        remediation: const [
-          'Preserve the draft. Use an explicitly prepared dependency index for reference-sensitive changes.'
+        remediation: [
+          if (action == 'model3d.delete')
+            'Use the explicit model3d.prune_unused library maintenance action to audit all reference documents for a selected batch.'
+          else
+            'Preserve the draft. Use an explicitly prepared dependency index for reference-sensitive changes.'
         ],
       );
 
@@ -181,6 +190,11 @@ final class CatalogWorkshopSelection {
         !const {'model3d.import', 'model3d.import_batch', 'tileset.import_image'}.contains(actionId) &&
         !supports(actionId, parameters: parameters)) {
       unsupported(actionId);
+    }
+    if (actionId == 'model3d.prune_unused') {
+      if (readDependencies.isNotEmpty) unsupported(actionId);
+      return _readModelPruneWorkshop(reader: reader,
+          projectHandle: projectHandle, parameters: parameters);
     }
     if (const {'surf.configure', 'field_ability.configure', 'project.audio.cue.configure'}.contains(actionId)) {
       if (readDependencies.isNotEmpty) unsupported(actionId);
@@ -732,6 +746,7 @@ final class CatalogWorkshopSelection {
     } finally {
       await descriptor.release();
     }
+    if (maintenanceRevision != null) return maintenanceRevision!();
     final catalogRevision = reader.readOnly
         ? reader.revision
         : 'sha256:${(await reader.store.readHead())!.sha256}';

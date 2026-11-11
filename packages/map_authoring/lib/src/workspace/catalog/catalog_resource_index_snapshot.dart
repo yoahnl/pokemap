@@ -4,6 +4,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../catalog_storage/catalog_storage_store.dart';
 import '../../domains/assets/project_media_store.dart';
+import '../../documents/map_exterior_decoration_authoring.dart';
 import '../../ports/project_file_reader.dart';
 import '../../ports/transaction_file_gateway.dart';
 import '../../support/authoring_fingerprint.dart';
@@ -19,11 +20,14 @@ abstract final class CatalogResourceIndexSnapshot {
     required CatalogSnapshot catalog,
     required CatalogStorageStore store,
     required ProjectHandle projectHandle,
+    ProjectManifest? completeProject,
+    Map<String, String> additionalResources = const {},
+    bool includeExteriorDecoration = false,
   }) async {
     const fields = {'settings', 'maps', 'dialogues', 'pokemon'};
     final portable = await PortableProjectCatalog.fromSnapshot(catalog,
         metadataFields: fields);
-    final project = portable.projectMetadata;
+    final project = completeProject ?? portable.projectMetadata;
     final maps = <MapData>[];
     final revisions = <String, String>{};
     final observed = <String, String?>{};
@@ -58,6 +62,10 @@ abstract final class CatalogResourceIndexSnapshot {
       }
     }
 
+    final exteriorReader = _CapturedReferenceReader(
+        read: (path) async => (await read('exteriorReference:$path', path))!,
+        missing: (path) => observed[path] = null);
+
     for (final entry in project.maps) {
       final bytes = (await read('map:${entry.id}', entry.relativePath))!;
       final value = decodeNarrativeEventJsonStrict(utf8.decode(bytes));
@@ -69,6 +77,16 @@ abstract final class CatalogResourceIndexSnapshot {
         throw const FormatException('catalog.resource_usage.map_identity');
       }
       maps.add(map);
+      if (includeExteriorDecoration) {
+        await loadMapExteriorDecoration(
+            projectRoot: store.projectRoot,
+            map: map,
+            mapRelativePath: entry.relativePath,
+            reader: exteriorReader);
+      }
+    }
+    for (final entry in additionalResources.entries) {
+      await read(entry.key, entry.value);
     }
     for (final entry in project.dialogues) {
       await read('dialogueSource:${entry.id}', entry.relativePath);
@@ -171,7 +189,7 @@ abstract final class CatalogResourceIndexSnapshot {
         maps: maps,
         pokemonInventoryComplete: true,
         materializedCatalogProject: true,
-        availableProjectSections: fields,
+        availableProjectSections: completeProject == null ? fields : null,
         scopedStorageRevisions: observed,
         resourceFingerprints: {
           'project': computeAuthoringBytesFingerprint(bytes,
@@ -187,5 +205,34 @@ abstract final class CatalogResourceIndexSnapshot {
           ...paths
         });
     return (snapshot: snapshot, currentRevision: currentRevision);
+  }
+}
+
+final class _CapturedReferenceReader
+    implements ProjectFileReader, ProjectResourceProbeReader {
+  const _CapturedReferenceReader({required this.read, required this.missing});
+
+  final Future<List<int>> Function(String) read;
+  final void Function(String) missing;
+  final LocalProjectFileReader delegate = const LocalProjectFileReader();
+
+  @override
+  Future<String> canonicalizeDirectory(String path) =>
+      delegate.canonicalizeDirectory(path);
+
+  @override
+  Future<List<int>> readBytes(
+          {required String projectRoot, required String relativePath}) =>
+      read(relativePath);
+
+  @override
+  Future<ProjectResourceProbe> probeResource(
+      {required String projectRoot, required String relativePath}) async {
+    final result = await delegate.probeResource(
+        projectRoot: projectRoot, relativePath: relativePath);
+    if (result.status == ProjectResourceProbeStatus.missing) {
+      missing(relativePath);
+    }
+    return result;
   }
 }

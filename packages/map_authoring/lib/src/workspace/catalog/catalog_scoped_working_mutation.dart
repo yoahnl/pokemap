@@ -110,9 +110,14 @@ final class CatalogScopedWorkingMutation {
       }
     }
     if (selection.resourceCounts.isNotEmpty) {
-      final built = PortableCatalogPublication.encodeProject(projected);
-      final generated = PortableCatalogPublication.readSync(built.descriptor,
-          readObject: (reference) => built.storage.objects[reference.sha256]!);
+      final pruning = publicPlan.request.actionId == 'model3d.prune_unused';
+      final built = pruning
+          ? null
+          : PortableCatalogPublication.encodeProject(projected);
+      final generated = built == null
+          ? null
+          : PortableCatalogPublication.readSync(built.descriptor,
+              readObject: (reference) => built.storage.objects[reference.sha256]!);
       for (final entry in selection.resourceCounts.entries) {
         final sectionPath = CatalogResourcePositions.sectionOf(entry.key)!;
         final path = sectionPath.split('.');
@@ -151,15 +156,29 @@ final class CatalogScopedWorkingMutation {
           throw const FormatException('catalog.resource_creation: undeclared catalog changes');
         }
         var position = entry.value;
-        final created = generated.units.where((unit) =>
+        if (pruning) {
+          for (final row in afterRows.cast<Map>()) {
+            final previous = beforeById[identity(row)];
+            if (previous == null ||
+                canonicalAuthoringJson(previous) != canonicalAuthoringJson(row)) {
+              throw const FormatException(
+                  'catalog.model_prune: retained definitions must be unchanged');
+            }
+          }
+        }
+        final created = (generated?.units ?? const <CatalogDefinitionUnit>[]).where((unit) =>
             unit.key.kind == entry.key && unit.payload['section'] == sectionPath).toList()
           ..sort((a, b) => (a.payload['position'] as int).compareTo(b.payload['position'] as int));
         final moved = <CatalogDefinitionKey>{};
         for (final unit in created) {
           final previous = beforeById[unit.key.id];
-          final original = await catalog.lookup(unit.key);
           if (previous != null) {
-            if (_same(previous, unit.payload['value'])) continue;
+            if (_same(previous, unit.payload['value']) ||
+                canonicalAuthoringJson(previous) ==
+                    canonicalAuthoringJson(unit.payload['value'])) {
+              continue;
+            }
+            final original = await catalog.lookup(unit.key);
             if (original == null || !selection.resourceReplacements.contains(unit.key)) {
               throw const FormatException('catalog.resource_creation: existing definition changed');
             }
@@ -171,6 +190,7 @@ final class CatalogScopedWorkingMutation {
                     if (target != null) 'position': target},
                 references: unit.references));
           } else {
+            final original = await catalog.lookup(unit.key);
             if (original != null) throw const FormatException('catalog.resource_creation: identity already in use');
             upserts.add(CatalogDefinitionUnit(key: unit.key,
                 payload: {...unit.payload, 'position': position++}, references: unit.references));
@@ -187,7 +207,7 @@ final class CatalogScopedWorkingMutation {
               references: original.references));
         }
         if (path.length > 1 && oldShell[field] == null) {
-          final generatedShell = generated.units.singleWhere((unit) => unit.key == shellKey);
+          final generatedShell = generated!.units.singleWhere((unit) => unit.key == shellKey);
           nextShell[field] = (generatedShell.payload['value'] as Map)[field];
         }
         changedFields.remove(field);

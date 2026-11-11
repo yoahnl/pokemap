@@ -9,7 +9,7 @@ import 'tileset_actions.dart';
 final class ResourceLibraryActions {
   const ResourceLibraryActions();
 
-  static const maximumClassificationsPerBatch = 100;
+  static const maximumClassificationsPerBatch = 1000;
   static const maximumFamiliesPerBatch = 50;
 
   static final _classificationSchema = {
@@ -116,7 +116,7 @@ final class ResourceLibraryActions {
         resourceKinds: const ['project', 'resourceLibraryEntry'],
         inputSchema: _classificationSchema),
     visualLibraryDescriptor('resource.classify_batch',
-        'Atomically classify up to 100 typed resources and configure their project or map scope',
+        'Atomically classify up to 1000 typed resources and configure their project or map scope',
         resourceKinds: const [
           'project',
           'resourceLibraryEntry'
@@ -209,10 +209,12 @@ final class ResourceLibraryActions {
             entries.isEmpty ||
             entries.length > maximumClassificationsPerBatch) {
           throw VisualLibraryException('resource_library.batch_invalid',
-              'A classification batch needs between 1 and 100 entries.');
+              'A classification batch needs between 1 and 1000 entries.');
         }
         final identities = <String>{};
-        var current = catalog;
+        final classified = {
+          for (final entry in catalog.entries) entry.identity: entry
+        };
         for (final value in entries) {
           if (value is! Map || value.keys.any((key) => key is! String)) {
             throw VisualLibraryException('resource_library.batch_invalid',
@@ -227,9 +229,15 @@ final class ResourceLibraryActions {
                 'Each typed resource can occur only once in a classification batch.',
                 details: {'identity': identity});
           }
-          current = _classify(project, current, entry);
+          final updated = _classificationEntry(project, classified[identity], entry);
+          if (_hasClassification(updated)) {
+            classified[identity] = updated;
+          } else {
+            classified.remove(identity);
+          }
         }
-        next = current;
+        next = ResourceLibraryCatalog(
+            families: catalog.families, entries: classified.values);
       } else {
         parameters.allow(action == 'resource.family.delete'
             ? const {'familyId'}
@@ -297,6 +305,18 @@ final class ResourceLibraryActions {
 
 ResourceLibraryCatalog _classify(ProjectManifest project,
     ResourceLibraryCatalog catalog, Map<String, Object?> values) {
+  final kind = VisualLibraryParameters(values).string('resourceKind');
+  final id = VisualLibraryParameters(values).string('resourceId');
+  final entry = _classificationEntry(project, catalog.entryFor(kind, id), values);
+  return ResourceLibraryCatalog(families: catalog.families, entries: [
+    for (final existing in catalog.entries)
+      if (existing.identity != entry.identity) existing,
+    if (_hasClassification(entry)) entry,
+  ]);
+}
+
+ResourceLibraryEntry _classificationEntry(ProjectManifest project,
+    ResourceLibraryEntry? previous, Map<String, Object?> values) {
   final parameters = VisualLibraryParameters(values);
   parameters.allow(const {
     'resourceKind',
@@ -313,8 +333,7 @@ ResourceLibraryCatalog _classify(ProjectManifest project,
     throw VisualLibraryException('resource_library.resource_unknown',
         'The typed resource does not exist.');
   }
-  final previous = catalog.entryFor(kind, id);
-  final entry = ResourceLibraryEntry(
+  return ResourceLibraryEntry(
     resourceKind: kind,
     resourceId: id,
     description: values.containsKey('description')
@@ -338,17 +357,14 @@ ResourceLibraryCatalog _classify(ProjectManifest project,
                 .byName(parameters.string('placementContext'))
         : previous?.placementContext,
   );
-  return ResourceLibraryCatalog(families: catalog.families, entries: [
-    for (final existing in catalog.entries)
-      if (existing.identity != entry.identity) existing,
-    if (entry.familyId != null ||
-        entry.mapId != null ||
-        entry.role != ResourceLibraryRole.standard ||
-        entry.placementContext != null ||
-        entry.description != null)
-      entry,
-  ]);
 }
+
+bool _hasClassification(ResourceLibraryEntry entry) =>
+    entry.familyId != null ||
+    entry.mapId != null ||
+    entry.role != ResourceLibraryRole.standard ||
+    entry.placementContext != null ||
+    entry.description != null;
 
 String? _nullableIdentifier(Object? value) {
   if (value == null) return null;

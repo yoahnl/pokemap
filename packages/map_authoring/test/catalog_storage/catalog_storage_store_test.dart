@@ -47,6 +47,119 @@ void main() {
     expect(CatalogStorageStore.encodeHead(next.root).length, lessThan(4096));
   });
 
+  test('bulk object publication overlaps bounded writes and preserves the head',
+      () async {
+    final old = await store.publish(_build('old'), expectedRootRevision: null);
+    final next = CatalogStorageBuilder().build([
+      for (var i = 0; i < 64; i++)
+        CatalogDefinitionUnit(key: _key('bulk-$i'), payload: {'value': i}),
+    ]);
+    var active = 0;
+    var peak = 0;
+    final gateway = _FaultGateway(
+      await LocalTransactionFileGateway.open(projectRoot: project.path),
+      failAfterPromotion: -1,
+      beforeReadRevision: (path) async {
+        if (!path.startsWith('catalog/objects/')) return;
+        active++;
+        if (active > peak) peak = active;
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+        active--;
+      },
+    );
+    final bulk = CatalogStorageStore(
+        projectRoot: project.path,
+        reader: const LocalProjectFileReader(),
+        gateway: gateway);
+    await gateway.withExclusiveWriteLock(() async {
+      await bulk.publishObjectsUnderLock(next.objects, maxConcurrentWrites: 8);
+    });
+    expect(peak, inInclusiveRange(2, 8));
+    expect(active, 0);
+    expect(await store.readHead(), old.snapshot.root);
+    final pinned = await store.openRoot(next.root);
+    await pinned.snapshot.validate();
+    expect((await pinned.snapshot.lookup(_key('bulk-37')))!.payload['value'], 37);
+    expect(await _stagingDirectories(project), isEmpty);
+  });
+
+  test('failed bulk publication drains writes and leaves the head intact',
+      () async {
+    final old = await store.publish(_build('old'), expectedRootRevision: null);
+    final next = CatalogStorageBuilder().build([
+      for (var i = 0; i < 32; i++)
+        CatalogDefinitionUnit(key: _key('failure-$i'), payload: {'value': i}),
+    ]);
+    final failingPath = 'catalog/objects/${next.objects.keys.elementAt(1)}.json';
+    var active = 0;
+    final gateway = _FaultGateway(
+      await LocalTransactionFileGateway.open(projectRoot: project.path),
+      failAfterPromotion: -1,
+      beforeReadRevision: (path) async {
+        if (!path.startsWith('catalog/objects/')) return;
+        active++;
+        try {
+          await Future<void>.delayed(Duration(milliseconds: path == failingPath ? 2 : 20));
+          if (path == failingPath) throw StateError('injected object failure');
+        } finally {
+          active--;
+        }
+      },
+    );
+    final bulk = CatalogStorageStore(
+        projectRoot: project.path,
+        reader: const LocalProjectFileReader(),
+        gateway: gateway);
+    await expectLater(
+      gateway.withExclusiveWriteLock(() =>
+          bulk.publishObjectsUnderLock(next.objects, maxConcurrentWrites: 8)),
+      throwsA(isA<StateError>().having(
+          (error) => error.message, 'message', 'injected object failure')),
+    );
+    expect(active, 0);
+    expect(await store.readHead(), old.snapshot.root);
+    expect(await _stagingDirectories(project), isEmpty);
+  });
+
+  test('bulk publication rejects corrupt input before writing any objects',
+      () async {
+    final old = await store.publish(_build('old'), expectedRootRevision: null);
+    final next = _build('new');
+    final objects = Map<String, List<int>>.of(next.objects);
+    objects[objects.keys.last] = utf8.encode('corrupt');
+    final before = await _files(project);
+    await expectLater(
+      store.gateway.withExclusiveWriteLock(() =>
+          store.publishObjectsUnderLock(objects, maxConcurrentWrites: 8)),
+      throwsA(isA<CatalogStorageException>().having(
+          (error) => error.code, 'code', 'catalog.build_corrupt')),
+    );
+    expect(await _files(project), before);
+    expect(await store.readHead(), old.snapshot.root);
+    expect(await _stagingDirectories(project), isEmpty);
+  });
+
+  test('bulk publication rejects an existing corrupt immutable object',
+      () async {
+    final old = await store.publish(_build('old'), expectedRootRevision: null);
+    final next = CatalogStorageBuilder().build([
+      for (var i = 0; i < 32; i++)
+        CatalogDefinitionUnit(key: _key('corrupt-$i'), payload: {'value': i}),
+    ]);
+    final entry = next.objects.entries.first;
+    final file = File('${project.path}/catalog/objects/${entry.key}.json');
+    await file.writeAsBytes(List<int>.filled(entry.value.length, 0));
+    await expectLater(
+      store.gateway.withExclusiveWriteLock(() =>
+          store.publishObjectsUnderLock(next.objects, maxConcurrentWrites: 8)),
+      throwsA(isA<CatalogStorageException>().having(
+          (error) => error.code, 'code', 'catalog.object_corrupt')),
+    );
+    expect(await store.readHead(), old.snapshot.root);
+    expect(await file.readAsBytes(), List<int>.filled(entry.value.length, 0));
+    expect(await _stagingDirectories(project), isEmpty);
+  });
+
   test('an old snapshot never observes the new head', () async {
     final old = await store.publish(_build('old'), expectedRootRevision: null);
     final next = await store.publish(_build('new'),

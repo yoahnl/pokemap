@@ -10,11 +10,13 @@ import {
   type ArtifactReader,
   type ReadArtifact,
 } from "../artifacts.js";
+import { ModelDuplicateJobs } from "../model_duplicate_jobs.js";
 import {
   authoringResult,
   failureEnvelope,
   readOnlyAnnotations,
   successEnvelope,
+  toolResult,
   toolEnvelopeSchema,
 } from "./result.js";
 
@@ -27,6 +29,7 @@ export function registerReadOnlyTools(
   compact = false,
 ): void {
   registerArtifactTool(server, artifacts);
+  const duplicateJobs = new ModelDuplicateJobs(authoring);
 
   server.registerTool(
     "pokemap_describe",
@@ -118,6 +121,34 @@ export function registerReadOnlyTools(
       (request.resourceKind.startsWith("resourcePack") ? resourcePackResult : authoringResult)(() =>
         authoring.request("query", { projectHandle, request }),
       ),
+  );
+
+  server.registerTool(
+    "pokemap_model_duplicates",
+    {
+      title: "Audit recorded duplicate 3D models",
+      description: "Starts, checks, cancels or releases a session-local audit grouping models by registered digest, byte length and media type. Each model's settingsFingerprint identifies matching recorded settings within a group. Poll status for progress and paginate completed results using nextOffset or nextMemberOffset and expectedAuditRevision. Reads no model bytes and does not check references or establish that deletion is safe.",
+      inputSchema: z.discriminatedUnion("operation", [
+        z.object({ operation: z.literal("start"), projectHandle: z.string().min(1) }).strict(),
+        z.object({ operation: z.literal("status"), projectHandle: z.string().min(1),
+          jobId: z.string().uuid(), offset: z.number().int().nonnegative().default(0),
+          pageSize: z.number().int().min(1).max(50).default(25),
+          memberOffset: z.number().int().nonnegative().default(0),
+          expectedAuditRevision: z.string().regex(/^sha256:[a-f0-9]{64}$/).optional() }).strict(),
+        z.object({ operation: z.literal("cancel"), projectHandle: z.string().min(1), jobId: z.string().uuid() }).strict(),
+        z.object({ operation: z.literal("release"), projectHandle: z.string().min(1), jobId: z.string().uuid() }).strict(),
+      ]),
+      outputSchema: toolEnvelopeSchema,
+      annotations: readOnlyAnnotations,
+    },
+    async input => toolResult(async () => ({ data: input.operation === "start"
+      ? duplicateJobs.start(input.projectHandle)
+      : input.operation === "status"
+        ? await duplicateJobs.status(input.projectHandle, input.jobId, input.offset,
+          input.pageSize, input.expectedAuditRevision, input.memberOffset)
+        : input.operation === "cancel"
+          ? duplicateJobs.cancel(input.projectHandle, input.jobId)
+          : duplicateJobs.release(input.projectHandle, input.jobId) })),
   );
 
   if (!compact) server.registerTool(

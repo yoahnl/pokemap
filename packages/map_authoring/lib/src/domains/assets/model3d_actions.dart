@@ -17,16 +17,28 @@ import '../../transactions/plan_store.dart';
 import '../../workspace/project_snapshot.dart';
 import 'asset_actions.dart';
 import 'asset_store.dart';
+import '../../references/resource_usage_walk.dart';
+import '../../references/resource_usage_documents.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'tileset_actions.dart';
+
+part 'model3d_prune_actions.dart';
 
 final class Model3dActions {
   const Model3dActions({this.artifactStore, this.retainedBlobReader});
   final ArtifactStore? artifactStore;
   final RetainedAssetBlobReader? retainedBlobReader;
   static const maximumModelCount = 50;
+  static const maximumPruneModelCount = 500;
   static const maximumTotalByteLength = 64 * 1024 * 1024;
   static const maximumInlineModelDiffByteLength = 8 * 1024;
+
+  static Set<String> pruneModelIds(Map<String, Object?> parameters) =>
+      _pruneModelIds(parameters);
+
+  static ModelPruneInspection inspectPrune(ProjectSnapshot snapshot,
+          Set<String> ids) =>
+      _inspectModelPrune(snapshot, ids);
 
   static void requireLocalSourceContract(Model3dInspection before, Model3dInspection after) {
     if ((before.animations.isEmpty && after.animations.isNotEmpty) ||
@@ -62,7 +74,8 @@ final class Model3dActions {
       'source.replace_batch',
       'configure',
       'configure_batch',
-      'delete'
+      'delete',
+      'prune_unused'
     ])
       AuthoringActionDescriptor(
         id: 'model3d.$action',
@@ -79,11 +92,13 @@ final class Model3dActions {
             'Configure a model name, scale, pivot, collision volume, default movement blocking, shadow casting and attached stair profile',
           'configure_batch' =>
             'Configure 1 to 50 models in one recoverable publication with aggregated attached stair updates',
+          'prune_unused' =>
+            'Explicit library maintenance: audit all reference documents and prune 1 to 500 unused models in one recoverable publication',
           _ => 'Delete an unused model and its owned source'
         },
         inputSchemaId: 'pokemap.authoring.model3d.$action.input.v1',
         outputSchemaId: 'pokemap.authoring.model3d.$action.output.v1',
-        riskLevel: action == 'delete'
+        riskLevel: action == 'delete' || action == 'prune_unused'
             ? AuthoringRiskLevel.high
             : AuthoringRiskLevel.medium,
         resourceKinds: [
@@ -105,6 +120,7 @@ final class Model3dActions {
           AuthoringGuarantee.dryRun,
           AuthoringGuarantee.idempotent,
           if (action != 'import_batch' &&
+              action != 'prune_unused' &&
               action != 'configure' &&
               action != 'configure_batch' &&
               !action.startsWith('source.replace'))
@@ -113,6 +129,14 @@ final class Model3dActions {
           AuthoringGuarantee.undoable
         ],
         extensions: {
+          if (action == 'delete') 'catalogMaintenanceAction': 'model3d.prune_unused',
+          if (action == 'prune_unused') ...{
+            'executionScope': 'explicit_library_maintenance',
+            'referenceAudit': 'complete_project_maps_media_and_exterior_documents',
+            'publicationSemantics': 'recoverable_cross_file',
+            'maximumModelCount': maximumPruneModelCount,
+            'maximumUsageExamplesPerSource': 8,
+          },
           if (action.startsWith('source.replace'))
             'sourceCollisionContract': 'preserve_effective_bounds_require_explicit_for_changed_degenerate_source',
           if (action.startsWith('source.replace'))
@@ -127,7 +151,8 @@ final class Model3dActions {
               action == 'configure' ||
               action == 'configure_batch')
             'publicationSemantics': 'recoverable_cross_file',
-          if (action == 'configure_batch') ...{
+          if (action == 'prune_unused') 'inputSchema': _modelPruneInputSchema
+          else if (action == 'configure_batch') ...{
             'maximumModelCount': maximumModelCount,
             'diffProjection': 'batch_model_configurations',
             'maximumInlineModelDiffByteLength':
@@ -221,6 +246,9 @@ final class Model3dActions {
   ];
 
   Future<AuthoringMutationDraft> build(AuthoringPlanningContext context) async {
+    if (context.request.actionId == 'model3d.prune_unused') {
+      return _pruneUnused(context);
+    }
     if (context.request.actionId.startsWith('model3d.source.replace') &&
         context.request.extensions.containsKey('sourceReplacementScope') &&
         !const {'local', 'project'}.contains(context.request.extensions['sourceReplacementScope'])) {

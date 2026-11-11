@@ -97,6 +97,43 @@ List<String> deriveAssetDocumentUsages({
   return List.unmodifiable(usages.toList()..sort());
 }
 
+Map<String, List<String>> deriveAssetBatchDocumentUsages({
+  required Iterable<AssetRecord> assets,
+  required Map<String, Object?> documents,
+}) {
+  final targets = <String, Set<String>>{};
+  final usages = <String, Set<String>>{};
+  for (final asset in assets) {
+    if (usages.containsKey(asset.id)) {
+      throw const FormatException('asset.duplicate_usage_identity');
+    }
+    usages[asset.id] = {};
+    for (final needle in {
+      asset.id,
+      asset.logicalPath,
+      asset.artifact.handle,
+      asset.artifact.digest,
+      asset.artifact.hexDigest
+    }) {
+      targets.putIfAbsent(needle, () => {}).add(asset.id);
+    }
+  }
+  if (targets.isNotEmpty) {
+    for (final document in documents.entries) {
+      _walkAssetStrings(document.value, owner: document.key, path: r'$',
+          visit: (value, location) {
+        for (final id in targets[value] ?? const <String>{}) {
+          usages[id]!.add(location);
+        }
+      });
+    }
+  }
+  return Map.unmodifiable({
+    for (final entry in usages.entries)
+      entry.key: List<String>.unmodifiable(entry.value.toList()..sort())
+  });
+}
+
 final class AssetRecord {
   AssetRecord({
     required String id,
@@ -305,18 +342,28 @@ void _collectAssetUsages(
   required Set<String> needles,
   required Set<String> output,
 }) {
+  _walkAssetStrings(value, owner: owner, path: path, visit: (value, location) {
+    if (needles.contains(value)) output.add(location);
+  });
+}
+
+void _walkAssetStrings(
+  Object? value, {
+  required String owner,
+  required String path,
+  required void Function(String, String) visit,
+}) {
   if (value is String) {
-    if (needles.contains(value)) output.add('$owner:$path');
+    visit(value, '$owner:$path');
     return;
   }
   if (value is List) {
     for (var index = 0; index < value.length; index++) {
-      _collectAssetUsages(
+      _walkAssetStrings(
         value[index],
         owner: owner,
         path: '$path[$index]',
-        needles: needles,
-        output: output,
+        visit: visit,
       );
     }
     return;
@@ -324,12 +371,11 @@ void _collectAssetUsages(
   if (value is Map) {
     final keys = value.keys.map((key) => key.toString()).toList()..sort();
     for (final key in keys) {
-      _collectAssetUsages(
+      _walkAssetStrings(
         value[key],
         owner: owner,
         path: '$path.$key',
-        needles: needles,
-        output: output,
+        visit: visit,
       );
     }
   }

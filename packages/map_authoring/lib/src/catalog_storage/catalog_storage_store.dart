@@ -320,7 +320,11 @@ final class CatalogStorageStore {
     return cache;
   }
 
-  Future<void> publishObjectsUnderLock(Map<String, List<int>> objects) async {
+  Future<void> publishObjectsUnderLock(Map<String, List<int>> objects,
+      {int maxConcurrentWrites = 1}) async {
+    if (maxConcurrentWrites < 1 || maxConcurrentWrites > 32) {
+      throw RangeError.range(maxConcurrentWrites, 1, 32, 'maxConcurrentWrites');
+    }
     for (final entry in objects.entries) {
       _requireDigest(entry.key);
       if (_sha256(entry.value) != entry.key) {
@@ -329,29 +333,39 @@ final class CatalogStorageStore {
       }
     }
     final operationId = _operationId();
-    try {
-      for (final entry in objects.entries) {
-        final path = _objectPath(entry.key);
-        final existing = await _gateway.readResourceRevision(path);
-        if (existing == null) {
-          await _gateway.stagePayload(
-              operationId: operationId,
-              storageKey: path,
-              kind: TransactionPayloadKind.after,
-              bytes: entry.value);
-          await _gateway.promoteStaged(
-              operationId: operationId,
-              storageKey: path,
-              kind: TransactionPayloadKind.after,
-              expectedCurrentRevision: null);
-        }
-        final bytes = await _readBounded(path, entry.value.length);
-        if (_sha256(bytes) != entry.key) {
-          throw const CatalogStorageException('catalog.object_corrupt',
-              'A published catalog object failed verification.');
-        }
-        await _gateway.deleteTransaction(operationId);
+    Future<void> publishObject(MapEntry<String, List<int>> entry) async {
+      final path = _objectPath(entry.key);
+      final existing = await _gateway.readResourceRevision(path);
+      if (existing == null) {
+        await _gateway.stagePayload(
+            operationId: operationId,
+            storageKey: path,
+            kind: TransactionPayloadKind.after,
+            bytes: entry.value);
+        await _gateway.promoteStaged(
+            operationId: operationId,
+            storageKey: path,
+            kind: TransactionPayloadKind.after,
+            expectedCurrentRevision: null);
       }
+      final bytes = await _readBounded(path, entry.value.length);
+      if (_sha256(bytes) != entry.key) {
+        throw const CatalogStorageException('catalog.object_corrupt',
+            'A published catalog object failed verification.');
+      }
+    }
+
+    try {
+      final pending = <Future<void>>[];
+      for (final entry in objects.entries) {
+        pending.add(publishObject(entry));
+        if (pending.length == maxConcurrentWrites) {
+          await Future.wait(pending, eagerError: false);
+          pending.clear();
+          await _gateway.deleteTransaction(operationId);
+        }
+      }
+      await Future.wait(pending, eagerError: false);
     } finally {
       await _gateway.deleteTransaction(operationId);
     }

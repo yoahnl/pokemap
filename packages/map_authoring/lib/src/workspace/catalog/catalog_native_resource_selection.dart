@@ -214,10 +214,20 @@ Future<CatalogWorkshopSelection> _readNativeResourceWorkshop({
         final record = decodeBorderBlueprintRecordJson(
             existing.payload['value'],
             formatVersion: ProjectBorderCatalog.latestSupportedFormatVersion);
-        if (publishingBorder && (record.latestPublished != null ||
-            !record.draft.definition.isSpatial)) {
+        if (publishingBorder && !record.draft.definition.isSpatial) {
           CatalogWorkshopSelection.unsupported(
-              actionId, 'first publication of a spatial Border draft');
+              actionId, 'a spatial Border draft');
+        }
+        if (publishingBorder && record.latestPublished != null) {
+          final encoded = encodeBorderBlueprintRecordJson(record,
+              formatVersion: ProjectBorderCatalog.latestSupportedFormatVersion);
+          if (canonicalAuthoringJson((encoded['draft'] as Map)['definition']) ==
+              canonicalAuthoringJson(
+                  (encoded['latestPublished'] as Map)['definition'])) {
+            throw AuthoringPlanException(
+                code: 'border.blueprint.no_change',
+                message: 'The draft already matches the published spatial Border.');
+          }
         }
         drafts.add(record);
         candidates.add(existing.payload['value']);
@@ -247,9 +257,9 @@ Future<CatalogWorkshopSelection> _readNativeResourceWorkshop({
         final before = decodeBorderBlueprintRecordJson(
             existing.payload['value'],
             formatVersion: ProjectBorderCatalog.latestSupportedFormatVersion);
-        if (before.latestPublished != null || !before.draft.definition.isSpatial) {
+        if (!before.draft.definition.isSpatial) {
           CatalogWorkshopSelection.unsupported(
-              actionId, 'an unpublished spatial Border draft');
+              actionId, 'a spatial Border draft');
         }
         drafts.add(before);
         replacements.add(key);

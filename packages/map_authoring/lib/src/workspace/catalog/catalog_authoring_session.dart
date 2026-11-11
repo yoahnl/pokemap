@@ -1,5 +1,6 @@
 import '../../contracts/map_edit_operation.dart';
 import '../../domains/maps/trigger_zone_actions.dart';
+import '../../domains/assets/model3d_actions.dart';
 import '../../domains/gameplay/pokemon_media_storage_path.dart';
 import '../../ports/transaction_file_gateway.dart';
 import '../../references/exterior_decoration_references.dart';
@@ -121,6 +122,8 @@ final class CatalogAuthoringSession {
   Future<CatalogEditingSession>? _editingFuture;
   ({String requestKey, String revision, CatalogModelSourceSelection selection})?
       _modelSourceSelection;
+  ({String requestKey, CatalogWorkshopSelection selection})?
+      _modelPruneSelection;
   final Map<String, CatalogEditingPlan> _plans = {};
   final Map<String, String> _operations = {};
   final Map<String, Map<String, String>> _battleGifs = {};
@@ -397,6 +400,7 @@ final class CatalogAuthoringSession {
       Map<String, String> readDependencies = const {}}) async {
     requireRead();
     _modelSourceSelection = null;
+    _modelPruneSelection = null;
     if (actionId == 'map3d.edit_batch' &&
         !CatalogSpatialMapSelection.supports(actionId,parameters:parameters)) {
       throw AuthoringPlanException(code:'map3d.edit_batch.scope_unsupported',
@@ -426,9 +430,16 @@ final class CatalogAuthoringSession {
         if (error.code != 'project.field_traversal_scope_required') rethrow;
       }
     }
-    return (await CatalogWorkshopSelection.read(reader: current,
+    final selection = await CatalogWorkshopSelection.read(reader: current,
         projectHandle: projectHandle, actionId: actionId,
-        parameters: parameters, readDependencies: readDependencies)).snapshot;
+        parameters: parameters, readDependencies: readDependencies);
+    if (actionId == 'model3d.prune_unused') {
+      _modelPruneSelection = (
+        requestKey: _modelSourceRequestKey(actionId, parameters),
+        selection: selection,
+      );
+    }
+    return selection.snapshot;
   }
 
   Future<void> prepareWorkshopCatalog({String? scope}) async {
@@ -540,6 +551,8 @@ final class CatalogAuthoringSession {
   }
 
   Future<AuthoringMutationPlanResult> _planWorkshop(AuthoringRequest request) async {
+    final previousPrune = _modelPruneSelection;
+    _modelPruneSelection = null;
     final mediaArtifacts = {
       ...await _prepareBattleGifs(request),
       ...await _prepareBattleCry(request),
@@ -547,10 +560,25 @@ final class CatalogAuthoringSession {
     };
     final current = (await CatalogProjectReader.open(store: reader.store,
         descriptor: reader.descriptor, metadataFields: {}))!;
-    final selection = await CatalogWorkshopSelection.read(reader: current,
-        projectHandle: projectHandle, actionId: request.actionId,
-        parameters: request.parameters, readDependencies: Map<String, String>.from(
-            request.extensions['workshopReadDependencies'] as Map? ?? const {}));
+    final CatalogWorkshopSelection selection;
+    if (request.actionId == 'model3d.prune_unused' &&
+        previousPrune != null &&
+        previousPrune.requestKey ==
+            _modelSourceRequestKey(request.actionId, request.parameters) &&
+        previousPrune.selection.snapshot.revision == request.expectedRevision) {
+      selection = previousPrune.selection;
+      if (current.catalog.snapshot.root !=
+          selection.reader.catalog.snapshot.root) {
+        throw AuthoringPlanException(
+            code: 'plan.stale', message: 'The library changed after its audit.');
+      }
+      await selection.requireCurrent();
+    } else {
+      selection = await CatalogWorkshopSelection.read(reader: current,
+          projectHandle: projectHandle, actionId: request.actionId,
+          parameters: request.parameters, readDependencies: Map<String, String>.from(
+              request.extensions['workshopReadDependencies'] as Map? ?? const {}));
+    }
     selection.requireSafeParameters(request);
     var scopedRequest = request;
     if (request.expectedRevision != selection.snapshot.revision &&
@@ -1473,6 +1501,31 @@ final class CatalogAuthoringSession {
         });
     _authorize(AuthoringSecurityOperation.plan, request: request);
     final CatalogEditingPlan prepared;
+    Future<String> Function()? maintenanceRedoRevision;
+    if (operation == 'redo' && entry?.receipt.actionId == 'model3d.prune_unused') {
+      final modelDiff = entry!.receipt.diff.entries.singleWhere((diff) => diff.path == '/models3d');
+      final ids = Model3dActions.pruneModelIds(Map<String, Object?>.from(modelDiff.before as Map));
+      final current = (await CatalogProjectReader.open(store: reader.store,
+          descriptor: reader.descriptor, metadataFields: {}))!;
+      final audit = await CatalogWorkshopSelection.read(reader: current,
+          projectHandle: projectHandle, actionId: 'model3d.prune_unused',
+          parameters: {'modelIds': ids.toList()});
+      final inspected = Model3dActions.inspectPrune(audit.snapshot, ids);
+      final removedSources = entry.changes.where((change) =>
+          change.resource.kind == 'asset' && change.afterRevision == null)
+          .map((change) => change.resource.id).toSet();
+      if (inspected.retainedSources.keys.any(removedSources.contains)) {
+        throw AuthoringPlanException(code: 'model3d.prune_source_in_use',
+            message: 'A source removed by the original maintenance is now referenced.');
+      }
+      maintenanceRedoRevision = () async {
+        if (await audit.currentRevision() != audit.snapshot.revision) {
+          throw const AuthoringHistoryException('history.project_stale',
+              'A library reference document changed before maintenance redo.');
+        }
+        return expectedRevision;
+      };
+    }
     if (operation == 'revert') {
       if (expectedHeadEntryId == null) {
         throw const AuthoringHistoryException('history.head_required',
@@ -1515,10 +1568,10 @@ final class CatalogAuthoringSession {
           operationId: operationId,
           request: request,
           publicBaseRevision: expectedRevision,
-          currentProjectRevision: catalogOnly
+          currentProjectRevision: maintenanceRedoRevision ?? (catalogOnly
               ? () => _catalogRevisionForReceipt(entry!.receipt,
                   historyEntry: entry)
-              : () async => (await loadProject()).revision);
+              : () async => (await loadProject()).revision));
     }
     if (operation == 'redo' && entry != null) {
       final gifs = _battleGifRevisions(entry.receipt);
@@ -1806,6 +1859,7 @@ final class CatalogAuthoringSession {
     final opening = _editingFuture;
     _editingFuture = null;
     _modelSourceSelection = null;
+    _modelPruneSelection = null;
     _plans.clear();
     _operations.clear();
     _battleGifs.clear();
