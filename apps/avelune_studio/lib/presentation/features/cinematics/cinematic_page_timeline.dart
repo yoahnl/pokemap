@@ -36,10 +36,7 @@ extension _CinematicPageTimeline on _CinematicWorkspacePageState {
           beforeSelection: flush,
           onSelect: (id) {
             if (!flush()) return;
-            state.selection
-              ..clear()
-              ..add(id);
-            seekCinematicStep(controller.transport, id);
+            selectOnlyCinematicStep(state.selection, controller.transport, id);
             refresh();
           },
           onMove: (index) {

@@ -1,5 +1,12 @@
 import 'package:map_core/map_core_domain.dart';
 
+bool pokemonItemMatchesSearch(ProjectItemDefinition item, String rawQuery) {
+  final query = rawQuery.trim().toLowerCase();
+  return query.isEmpty ||
+      item.id.toLowerCase().contains(query) ||
+      item.displayName.toLowerCase().contains(query);
+}
+
 class PokemonShopEditing {
   static const priceBounds = (minimum: 1, optional: false);
   static const sellPriceBounds = (minimum: 1, optional: true);

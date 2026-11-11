@@ -7,6 +7,7 @@ import '../map_workspace/map_workspace_view_state.dart';
 
 import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
+import 'package:avelune_studio/features/resources/application/resource_palette_reveal.dart';
 
 import 'tile_selection_dialog.dart';
 
@@ -39,13 +40,8 @@ Future<bool> useResourceOnMap({
   );
   if (!used) return false;
   final state = view()!;
-  if (item.terrain != null) {
-    state.revealPalette = true;
-  } else if (item.border != null) {
-    state.paletteTab = 'Bordures';
-    state.revealPalette = true;
-  } else if (item.tileset == null && item.character == null) {
-    state.paletteTab = 'Décors';
+  if (resourcePaletteReveal(item) case final reveal?) {
+    if (reveal.tab != null) state.paletteTab = reveal.tab!;
     state.revealPalette = true;
   }
   return true;

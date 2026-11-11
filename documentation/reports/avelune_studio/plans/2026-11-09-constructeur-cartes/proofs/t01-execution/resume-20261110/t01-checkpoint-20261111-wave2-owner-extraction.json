@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "at": "2026-11-11",
+  "base": "e3afc152d",
+  "lots": ["RUI-002", "RUI-005", "RUI-007", "RUI-008", "RUI-009"],
+  "status": "partial_not_accepted",
+  "scope": "Vague 2 du retrait T01 : décisions de Yoahn appliquées, logique restante sortie de l'ancienne UI, e2e Hub et harnais dev détachés de l'ancienne UI, sans aucune suppression.",
+  "evidence": "proofs/t01-execution/retirement-qualification-20261111 (ledger_w2_*.json, studio-full-suite-*-after-wave2.txt, map-core-red-after-start-rule.txt).",
+  "decisionsApplied": [
+    "Start : addSceneEdgeDraft (packages/map_core) refuse toute liaison entrante vers le nœud Start ; les insertions MCP de map_authoring refusaient déjà la cible Start ; aucun lecteur de projet ne rejoue addSceneEdgeDraft.",
+    "Timeline : clamp hors bornes confirmé par test propriétaire Studio.",
+    "4 attaques : validation Studio et replaceTrainerMember refusent au-delà de 4 (un dresseur existant au-delà reste réductible).",
+    "Bordures : MapWorkspaceEditingState retire du pinceau une bordure non utilisable (ResourceItem.usableIn) et garde le brouillon de bordure par carte (focusBorderDraftOn, utilisé par les viewports 2D et 3D) ; ResourceDetailPanel délègue à usableIn."
+  ],
+  "ledgers": {
+    "A_map_cases": "3 extracted, 3 replaced, 1 not_replaced (comptage pixel UWU6)",
+    "A_dev": "4 harnais réécrits sans ancienne UI ; presentation_comparison_controls et model_source_replacement_native à supprimer en vague 3",
+    "B_pokemon": "12 extracted, 1 reported",
+    "C1_cinematics": "24 extracted, 1 replaced (garde de réentrance _create), 2 ui_only, 1 reported",
+    "C2_narrative": "18 extracted, 4 replaced, 2 ui_only",
+    "D_resources": "13 extracted, 1 replaced",
+    "Hub": "uwu4/5/6 et uwu6_resource_host pilotent les propriétaires Studio ; 0 fichier Hub ne joint l'ancienne UI ; e2e encore rouges (voir pendingForYoahn)"
+  },
+  "commands": [
+    {"command": "flutter test --no-pub -r failures-only", "cwd": "apps/avelune_studio", "result": "+4481 ~13 -33 ; aucun nouveau rouge hors workshop_entry_reads (vert seul) et ui06 owner refusal (préexistant)"},
+    {"command": "dart test test/scene_authoring_operations_test.dart", "cwd": "packages/map_core", "result": "+59"},
+    {"command": "dart test -r failures-only", "cwd": "packages/map_core", "result": "37 rouges, aucun ne porte le message de la règle Start ; liste dans map-core-red-after-start-rule.txt"},
+    {"command": "flutter test --no-pub test/map_workspace/border_brush_rules_owner_test.dart", "cwd": "apps/avelune_studio", "result": "+6 ; 3 mutations détectées (usableIn, parking, garde Start)"},
+    {"command": "flutter analyze --no-pub <fichiers touchés>", "result": "aucune erreur ni warning"},
+    {"command": "check_clean.py <fichiers non presentation touchés>", "result": "tous CLEAN"}
+  ],
+  "investigations": [
+    "Blocage loadProject puis deleteDraft : non reproduit (13/13 avec réouverture préalable, chemin catalogue de travail 3/3) ; échecs observés = délais dépassés sous charge ; aucun bug produit."
+  ],
+  "pendingForYoahn": [
+    "Plafond de 4 attaques absent de map_core (project_trainer.dart, validators.dart, beta_playability_validator.dart), de map_authoring (campaign_content_actions.dart) et du schéma MCP : parité à décider (avertissement ou erreur).",
+    "Timeline : map_authoring presentation_timeline_editing_controller.dart ignore une piste incompatible mais applique quand même le décalage temporel.",
+    "Hub e2e : jeu de capacités Player codé en dur périmé (catalog.partitioned@2, format de sauvegarde 2) ; suppression de personnage avec remplacement en échec dans map_authoring (authoring_payload.dart:219).",
+    "Croisement des personnages éditable en 2D côté propriétaire mais affiché en 3D seulement ; virgule décimale refusée dans les cinématiques, acceptée dans les présentations."
+  ],
+  "wave3": [
+    "Supprimer physiquement les sources Studio inventoriées, les 2 harnais dev signalés et les tests/supports qui joignent l'ancienne UI, avec registre retiredUiChecks.",
+    "Mettre à jour l'empreinte de l'exception studio_playtest_view.dart dans t01-technical-exceptions.json après revue.",
+    "Canoniser les entrées retired_ui_after_extraction, marquer les sources absentes, G0 jusqu'à zéro, suite complète, revue indépendante."
+  ],
+  "mcpParity": "Règle Start : les actions MCP refusaient déjà une insertion avant Start ; addSceneEdgeDraft n'est pas exposé tel quel au MCP. Plafond de 4 attaques : parité MCP non faite, en attente de décision."
+}

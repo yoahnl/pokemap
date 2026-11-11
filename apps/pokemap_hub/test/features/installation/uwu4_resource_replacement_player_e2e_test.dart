@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:avelune_studio/features/map_workspace/application/map_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
@@ -7,14 +8,14 @@ import 'package:avelune_studio/features/resources/data/local_resource_adapter.da
 import 'package:avelune_studio/features/resources/domain/resource_lifecycle_port.dart';
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as image;
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
-import '../../../../avelune_studio/test/support/map_host_fixture.dart';
-import '../../../../avelune_studio/test/support/m2_ui_fixture.dart' show pumpIo;
+import '../../../../avelune_studio/test/support/m2_ui_owner_fixture.dart'
+    show pumpIo;
+import '../../../../avelune_studio/test/support/map_host_owner_fixture.dart';
 import 'uwu4_resource_replacement_player_support.dart';
 
 void main() {
@@ -37,11 +38,9 @@ void main() {
       );
       final candidate = File(p.join(temporary.path, 'candidate.png'));
       await tester.runAsync(() => candidate.writeAsBytes(oldPixels));
-      final host = await MapHostFixture.open(
+      final host = await MapHostOwnerFixture.open(
         tester,
         prepareSource: prepareUwu4ExportFixture,
-        gameExportPicker: (_) async => package,
-        assetBundle: Uwu4StudioAssets(),
       );
       final port = LocalResourceAdapter(
         session: host.source.session,
@@ -115,8 +114,7 @@ void main() {
       expect(placedId, isNotNull);
       host.maps.notify();
       await tester.pump();
-      await tester.runAsync(() => tester.tap(find.text('Enregistrer').first));
-      await pumpIo(tester, frames: 20);
+      expect(await host.save(), isTrue, reason: host.document.error);
       expect(host.document.dirty, isFalse, reason: host.document.error);
       await tester.runAsync(() async {
         final independent = LocalProjectSessionAdapter();
@@ -214,17 +212,11 @@ void main() {
             .elementId,
         original.id,
       );
-      await host.openExport();
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Auteur'),
-        'Recette UwU IV',
+      expect(
+        await host.exportGame(package, author: 'Recette UwU IV'),
+        isTrue,
+        reason: host.gameExport.error,
       );
-      await tester.tap(find.text('Test local').first);
-      await tester.tap(find.byKey(const ValueKey('start-game-export')));
-      for (var i = 0; i < 200 && host.gameExport.outputPath == null; i++) {
-        await pumpIo(tester, frames: 2);
-        if (host.gameExport.error != null) break;
-      }
       expect(
         host.gameExport.outputPath,
         package.path,
@@ -258,18 +250,4 @@ void main() {
     },
     timeout: const Timeout(Duration(minutes: 5)),
   );
-}
-
-class Uwu4StudioAssets extends CachingAssetBundle {
-  @override
-  Future<ByteData> load(String key) async {
-    if (key.startsWith('assets/home/')) {
-      return ByteData.sublistView(
-        await File(
-          p.join(Directory.current.path, '../avelune_studio', key),
-        ).readAsBytes(),
-      );
-    }
-    return rootBundle.load(key);
-  }
 }

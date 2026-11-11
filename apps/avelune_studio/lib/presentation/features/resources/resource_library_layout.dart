@@ -97,31 +97,25 @@ extension _ResourceLibraryLayout on _ResourceLibraryScreenState {
       return state.sort == ResourceSort.nameAscending ? names : -names;
     });
     final selected = state.reconcileSelection(filtered);
-    final regular =
-        !state.atelierVisible ||
-        (state.family != ResourceLibraryFamily.borders &&
-            state.family != ResourceLibraryFamily.models3d &&
-            state.family != ResourceLibraryFamily.environments);
+    final regular = resourceLibraryRegular(
+      atelierVisible: state.atelierVisible,
+      family: state.family,
+    );
     final treeFilters = state.filters.copy()..familyId = '';
     final tree = ResourceFamilyTree(
       widget.project,
       filterResourceCatalog(widget.project, items, treeFilters),
       showComponents: state.filters.showComponents,
     );
-    final familyName = state.filters.familyId == unclassifiedResourceFamily
-        ? 'Sans famille'
-        : widget.project.resourceLibraryCatalog.effectiveFamilies
-              .where((family) => family.id == state.filters.familyId)
-              .firstOrNull
-              ?.name;
-    final categoryName = !state.atelierVisible || state.category.isEmpty
-        ? null
-        : state.category == uncategorizedResourceCategory
-        ? 'Sans catégorie'
-        : categoriesTree.nodes
-              .where((node) => node.id == state.category)
-              .firstOrNull
-              ?.name;
+    final familyName = resourceLibraryFamilyName(
+      widget.project,
+      state.filters.familyId,
+    );
+    final categoryName = resourceLibraryCategoryName(
+      atelierVisible: state.atelierVisible,
+      category: state.category,
+      tree: categoriesTree,
+    );
     return LayoutBuilder(
       builder: (context, bounds) {
         final inlineDetail =

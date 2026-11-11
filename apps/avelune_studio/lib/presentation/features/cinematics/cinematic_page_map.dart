@@ -78,50 +78,18 @@ extension _CinematicPageMap on _CinematicWorkspacePageState {
   void point(Offset point) {
     if (!flush()) return;
     final state = view!, current = model!;
-    if (state.mode == CinematicMapMode.select ||
-        state.mode == CinematicMapMode.pan) {
-      return;
-    }
-    if (point.dx < 0 ||
-        point.dy < 0 ||
-        point.dx >= current.map.size.width ||
-        point.dy >= current.map.size.height) {
-      state.spatialError = 'Choisissez une case dans la carte.';
-      refresh();
-      return;
-    }
-    state.spatialError = null;
-    if (state.mode == CinematicMapMode.destination && state.stepId != null) {
-      if (controller.setDestination(
-        state.stepId!,
-        point.dx,
-        point.dy,
-        width: current.map.size.width,
-        height: current.map.size.height,
-      )) {
-        state.mode = CinematicMapMode.select;
-      }
-    } else if (state.mode == CinematicMapMode.placement &&
-        state.actorId != null) {
-      if (controller.placeActorAt(
-        state.actorId!,
-        point.dx,
-        point.dy,
-        width: current.map.size.width,
-        height: current.map.size.height,
-      )) {
-        state.mode = CinematicMapMode.select;
-      }
-    } else if (state.mode == CinematicMapMode.path && state.stepId != null) {
-      controller.appendWaypoint(
-        state.stepId!,
-        point.dx,
-        point.dy,
-        width: current.map.size.width,
-        height: current.map.size.height,
-      );
-    }
-
+    final outcome = controller.applyMapPoint(
+      mode: state.mode,
+      stepId: state.stepId,
+      actorId: state.actorId,
+      x: point.dx,
+      y: point.dy,
+      width: current.map.size.width,
+      height: current.map.size.height,
+    );
+    if (outcome == null) return;
+    state.spatialError = outcome.error;
+    state.mode = outcome.mode;
     refresh();
   }
 }

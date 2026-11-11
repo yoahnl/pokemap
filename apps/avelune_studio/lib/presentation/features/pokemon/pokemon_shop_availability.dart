@@ -17,9 +17,7 @@ class PokemonShopAvailability extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final shop = commerce.shop!;
-    final diagnostics = commerce.snapshot!.shopDiagnostics
-        .where((value) => value.shopId == shop.id)
-        .toList();
+    final diagnostics = commerce.selectedShopDiagnostics;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

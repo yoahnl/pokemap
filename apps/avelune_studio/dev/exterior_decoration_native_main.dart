@@ -12,16 +12,15 @@ import 'package:map_authoring/map_authoring_local.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_exterior_decoration_controller.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_workspace_editing_state.dart'
+    show StudioMapTool;
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/platform/rendering/studio_map_resources.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_screen.dart';
 import 'package:avelune_studio/platform/rendering/viewports/spatial_map_editing_viewport.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 
+import 'neutral_map_editing_host.dart';
 import 'save_disk_trace.dart';
 import 'exterior_decoration_scene_probe.dart';
-
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_view_state.dart';
 
 const qaRoot = '/Users/karim/Library/Caches/AveluneQA/exterior-decoration';
 const projectRoot = '$qaRoot/jeu';
@@ -65,6 +64,10 @@ Future<void> main() async {
   if (workspace.active?.current.id != 'route-30' || workspace.error != null) {
     throw StateError('QA map failed: ${workspace.error}');
   }
+  final visuals = await StudioMapResources.load(
+    session,
+    workspace.project!,
+  );
   final previous = FlutterError.onError;
   FlutterError.onError = (details) {
     errors.add(details.exceptionAsString());
@@ -72,19 +75,15 @@ Future<void> main() async {
   };
   runApp(
     MaterialApp(
-      theme: studioTheme(),
-      home: RepaintBoundary(
+            home: RepaintBoundary(
         key: boundaryKey,
         child: ValueListenableBuilder<Widget?>(
           valueListenable: presentation,
           child: KeyedSubtree(
             key: sceneProbe.sourceKey,
-            child: MapWorkspaceScreen(
+            child: NeutralMapEditingHost(
               controller: workspace,
-              loadVisuals: StudioMapResources.load,
-              runtimeBuilder: (_, _, _) => const SizedBox(),
-              onClose: () async {},
-              registerExitGuard: (_) {},
+              visuals: visuals,
             ),
           ),
           builder: (_, overlay, child) => Stack(

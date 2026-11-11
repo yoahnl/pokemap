@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import '../../../features/dialogues/application/dialogue_workspace_authoring.dart';
 import '../../../features/dialogues/domain/dialogue_port.dart';
 import '../../shared/widgets/feedback/studio_icon_tile.dart';
 import '../../shared/widgets/feedback/studio_badge.dart';
@@ -22,16 +23,11 @@ class DialoguePortraitImage extends StatefulWidget {
 class _DialoguePortraitImageState extends State<DialoguePortraitImage> {
   Future<Uint8List?>? image;
   void load() {
-    final port = widget.port;
-    image =
-        port is DialoguePortraitPort &&
-            widget.characterId != null &&
-            widget.stateId != null
-        ? (port as DialoguePortraitPort).readPortrait(
-            widget.characterId!,
-            widget.stateId!,
-          )
-        : null;
+    image = readDialoguePortrait(
+      widget.port,
+      widget.characterId,
+      widget.stateId,
+    );
   }
 
   @override

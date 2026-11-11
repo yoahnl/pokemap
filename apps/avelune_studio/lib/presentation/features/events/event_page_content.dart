@@ -57,10 +57,8 @@ class EventPageContent extends StatelessWidget {
       expression: eventExpression(record),
       facts: controller.project.facts,
       records: controller.records,
-      mapId: eventOwnerId(eventSource(record)) == null
-          ? null
-          : eventMapId(eventSource(record)),
-      entityId: eventOwnerId(eventSource(record)),
+      mapId: eventConditionOwner(eventSource(record)).mapId,
+      entityId: eventConditionOwner(eventSource(record)).entityId,
       onChanged: (value) =>
           mutate(() => controller.setExpression(record.id, value)),
     ),

@@ -1,0 +1,214 @@
+{
+ "zone": "A_map_cases",
+ "items": [
+  {
+   "item": "1a scoped_map_workspace_test « map rendering stays scoped without a global workshop banner »",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_screen.dart:_MapWorkspaceScreenState._changed (synchronize(_controller.visualProject, suspended: _openingWorkshop))",
+   "to": "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_visual_projection_queue.dart:WorkspaceVisualProjectionQueue.follow",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/scoped_map_rendering_owner_test.dart",
+     "test": "map rendering stays scoped without a global workshop banner"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Vrai loadWorkspaceSession + WorkspaceVisualProjectionQueue + WorkspaceWorkshopRoutes sur ScopedTestMapPort : loadVisuals reçoit l’atlas ['first'], activation second puis first avec mise à jour retardée finit sur ['first'], puis ['second'] ; atelier Pokémon sans lecture complète ni nouveaux visuels ; une activation pendant l’ouverture de l’atelier est suspendue puis rattrapée. Mutations M1 (suspended:false) et M1b (follow vide) détectées. Une première mutation (visualProject→project) survivait : équivalente en portée catalogue, test renforcé."
+  },
+  {
+   "item": "1b scoped_map_workspace_test « injected catalogue owner guard preserves drafts and Studio navigation without the retired screen »",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/map_workspace/workspace_export_binding.dart:_allowCloseWithExport (leaveLibrary: () async => await _libraryExitGuard?.call() ?? true)",
+   "to": "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_destination_workflow.dart:WorkspaceDestinationWorkflow.allowLibraryExit",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/catalogue_guard_navigation_owner_test.dart",
+     "test": "injected catalogue owner guard preserves drafts and Studio navigation without the retired screen"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "WorkspaceDestinationWorkflow (customResourceLibrary, libraryExitGuard, libraryReleased) + WorkingCatalogWorkflow réel + WorkspacePublicationWorkflow.allowClose : rester, échec d’enregistrement (brouillon + erreur conservés), enregistrement, réouverture, fermeture refusée, abandon ; brouillon de carte conservé, aucun atelier ni lecture complète. Mutation M2 (allowLibraryExit → true) détectée."
+  },
+  {
+   "item": "2a uwu6_first_border_host_test, partie non pixel",
+   "status": "replaced",
+   "from": "apps/avelune_studio/test/map_workspace/uwu6_first_border_host_test.dart (via openUwU5BorderHost → MapWorkspaceScreen)",
+   "to": "apps/avelune_studio/lib/features/map_workspace/application/map_border_editing_commands.dart:MapBorderEditingCommands.finish ; map_core buildMapVisualCompositionPlan ; apps/avelune_studio/lib/platform/rendering/studio_border_preview.dart:StudioBorderPreview",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/first_border_visibility_owner_test.dart",
+     "test": "canonically prepared border stays visible over opaque ground after canvas drawing and disk reopen"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Mêmes données disque (garden-fence publié + sol opaque + collision) via test/support/first_border_owner_fixture.dart et ResourceReplacementFixture. Prouve : révision de blueprint du reçu = dernière publiée, tuiles et collision inchangées, plan de composition canonique peint le sol avant la couche Bordures (pas en avant-plan), StudioBorderPreview prépare les assets sans issue, persistance après relecture disque. Mutations M5 (couche envoyée au fond) et M6 (assets non publiés) détectées. Le tracé est fait par MapBorderDrawingDraft, la conversion clic→case reste prouvée par border_drawing_host_owner_test."
+  },
+  {
+   "item": "2b uwu6_first_border_host_test, partie strictement pixel",
+   "status": "not_replaced",
+   "from": "apps/avelune_studio/test/map_workspace/uwu6_first_border_host_test.dart:_bluePixels",
+   "to": "",
+   "tests": [],
+   "mutationDetected": null,
+   "note": "Perdu au retrait : le comptage réel de pixels bleus (0 → 2048) de la bordure composée au-dessus du sol rouge dans le canevas et la capture uwu6-first-border-visible-1536. Pourquoi : exige StudioMapResources, le rendu Flame de map_runtime (paquet interdit) et une lecture RepaintBoundary ; c’est une vérification visuelle, pas une règle métier. Ses prérequis non pixel sont prouvés par 2a."
+  },
+  {
+   "item": "3 terrain_deleted_history_host_test « deleted terrain cannot return through map undo after saved removal »",
+   "status": "replaced",
+   "from": "apps/avelune_studio/test/resource_io/terrain_deleted_history_host_test.dart (via MapWorkspaceScreen/ResourceWorkspacePane)",
+   "to": "apps/avelune_studio/lib/features/map_workspace/application/map_workspace_history_destinations.dart:_historyResourceProblem via MapWorkspaceController.restore",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/terrain_deleted_history_owner_test.dart",
+     "test": "deleted terrain cannot return through map undo after saved removal"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Disque réel (openTerrainLifecycle(used: true)) : retrait de la couche SmartTile enregistré, suppression du terrain publié par runTerrainResourceManagement, relecture disque sans preset ni couche, undo refusé (« terrain supprimé », historique et dirty conservés), édition ordinaire annulable/rétablissable. Aucune extraction : le propriétaire existait déjà. Mutation M4 détectée."
+  },
+  {
+   "item": "4 map_collision_native_journey_test : import de StudioMapTool",
+   "status": "replaced",
+   "from": "apps/avelune_studio/integration_test/map_collision_native_journey_test.dart:import presentation/features/map_workspace/map_workspace_view_state.dart",
+   "to": "apps/avelune_studio/lib/features/map_workspace/application/map_workspace_editing_state.dart:StudioMapTool",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/integration_test/map_collision_native_journey_test.dart",
+     "test": "the real Studio paints, erases, and saves collision strokes"
+    }
+   ],
+   "mutationDetected": null,
+   "note": "StudioMapTool vit déjà dans features/map_workspace/application/map_workspace_editing_state.dart ; l’ancien fichier ne fait que le réexporter. Aucun déplacement, seul l’import repointé. check_clean CLEAN : StudioMapTool n’est pas un widgetClass inventorié. Le test d’intégration (-d macos, copie QA) est ROUGE à l’identique avant et après (Studio did not reach the expected state, ligne 36, attente de home-tool-map, avant tout usage de StudioMapTool) : rouge préexistant, pas dans studio-full-suite-red-after-wave1.txt car hors suite test/. Il dépend toujours de StudioBootstrap."
+  },
+  {
+   "item": "5 workspace_navigation_binding : scène refusée avant la garde Pokémon sale et routage associé",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/map_workspace/workspace_navigation_binding.dart:_openPokemonReference / _returnToPokemonReference ; map_workspace_screen.dart:_pokemonReferenceUnchanged",
+   "to": "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_pokemon_reference_route.dart:WorkspacePokemonReferenceRoute.open / takeUnchanged",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/map_workspace/pokemon_reference_route_owner_test.dart",
+     "test": "a real scene reference refuses before the dirty Pokemon exit guard while map references retain that guard"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Complète le cas partiel pokemon_retired_scene_reference_test : PokemonAuthoringFixture (disque réel) + vrai PokemonWorkspaceWorkflow. Scène refusée sans consulter la garde ni toucher au brouillon ; carte : rester conserve brouillon et carte, abandonner ouvre la carte cible et sélectionne l’entité (ordre garde → carte montrée → sélection → ouverture) ; takeUnchanged vrai une seule fois, faux après modification ; carte inconnue sans effet. Disque intact. Mutation M3 (garde avant le refus de scène) détectée."
+  }
+ ],
+ "uiOnly": [
+  {
+   "where": "apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_screen.dart:_pokemonReferences.sceneUnavailable",
+   "what": "Snackbar « L’éditeur de scènes est indisponible. »",
+   "forRebuild": "Afficher la notice quand WorkspacePokemonReferenceRoute appelle sceneUnavailable."
+  },
+  {
+   "where": "apps/avelune_studio/lib/presentation/features/map_workspace/workspace_story_binding.dart:_selectMapEntity",
+   "what": "Passage en outil Sélection et sélection de l’entité dans MapWorkspaceViewState",
+   "forRebuild": "Fournir selectEntity à WorkspacePokemonReferenceRoute avec la session de vue du nouveau canevas."
+  },
+  {
+   "where": "apps/avelune_studio/lib/presentation/features/map_workspace/workspace_screen_body.dart:bouton « Retour à Pokémon »",
+   "what": "Bouton visible si pokemonMapReturn en espace carte",
+   "forRebuild": "Afficher le retour et appeler show(pokemon, keepCombatAnalysis: route.takeUnchanged())."
+  },
+  {
+   "where": "apps/avelune_studio/lib/presentation/features/map_workspace/workspace_screen_body.dart:resourceLibraryBuilder / _resourceLibrary / _libraryExitGuard",
+   "what": "Montage et cache du widget de bibliothèque injecté, enregistrement de sa garde",
+   "forRebuild": "Le nouvel hôte enregistre la garde de la bibliothèque dans l’emplacement lu par WorkspaceDestinationWorkflow.libraryExitGuard et la libère sur libraryReleased."
+  },
+  {
+   "where": "apps/avelune_studio/test/presentation/scoped_map_workspace_test.dart (assertions d’écran)",
+   "what": "Texte « Carte second », absence de la bannière workspace-materialize-workshops et du dialogue « Charger tous les ateliers du projet ? », StudioApplicationFrame en haut, « Retour à la bibliothèque » absent",
+   "forRebuild": "Ne pas réintroduire de bannière globale d’ateliers ; le chrome Studio reste celui de l’app."
+  },
+  {
+   "where": "apps/avelune_studio/test/map_workspace/uwu6_first_border_host_test.dart:_bluePixels / fixture.capture",
+   "what": "Comptage pixel et capture visuelle",
+   "forRebuild": "Rebrancher une capture sur StudioMapVisual dans un MaterialApp simple si la vérification pixel doit survivre."
+  },
+  {
+   "where": "apps/avelune_studio/lib/features/map_workspace/coordination/map_editing_shortcuts.dart:SingleActivator(LogicalKeyboardKey.f10, shift: true)",
+   "what": "Raccourci Maj+F10 / touche Menu qui ouvre le menu contextuel",
+   "forRebuild": "Brancher onContextMenu du nouveau canevas."
+  },
+  {
+   "where": "apps/avelune_studio/lib/presentation/features/map_workspace/workspace_context_menu_binding.dart:_openContextMenuFromKeyboard",
+   "what": "Ancrage du menu clavier sur globalOfCell de la cible, repli Offset(120, 120)",
+   "forRebuild": "Ancrer le menu sur la case de keyboardContextTarget dans le nouveau canevas."
+  }
+ ],
+ "decisions": [],
+ "commands": [
+  {
+   "command": "flutter test --no-pub (9 anciens tests : scoped_map_workspace, pokemon_retired_scene_reference, workspace_session_lifecycle, workspace_workshop_navigation, uwu6_first_border_host, terrain_deleted_history_host, scoped_map_workspace_owner, pokemon_reference_guard_owner, workspace_publication_workflow) avant, dépôt réel",
+   "cwd": "apps/avelune_studio",
+   "exitCode": 1,
+   "result": "+28 -1 (scoped_map_workspace_test non compilé : erreur étrangère narrative_interaction_edits.dart d’une autre session en cours)"
+  },
+  {
+   "command": "même lot à HEAD dans la copie QA",
+   "cwd": "AveluneQA/t01-w2-A_map_cases/apps/avelune_studio",
+   "exitCode": 0,
+   "result": "+31 -0"
+  },
+  {
+   "command": "même lot après changements, dépôt réel",
+   "cwd": "apps/avelune_studio",
+   "exitCode": 0,
+   "result": "+31 -0"
+  },
+  {
+   "command": "flutter test --no-pub 5 nouveaux tests propriétaires, dépôt réel",
+   "cwd": "apps/avelune_studio",
+   "exitCode": 0,
+   "result": "+5 -0"
+  },
+  {
+   "command": "flutter analyze --no-pub 13 fichiers créés/modifiés",
+   "cwd": "apps/avelune_studio",
+   "exitCode": 0,
+   "result": "No issues found"
+  },
+  {
+   "command": "python3 check_clean.py 10 fichiers (5 tests, 1 support, 3 propriétaires, test d’intégration)",
+   "cwd": ".",
+   "exitCode": 0,
+   "result": "CLEAN x10"
+  },
+  {
+   "command": "python3 A2_mut.py (copie QA) M1b M1(suspended:false) M2 M3 M4 M5 M6",
+   "cwd": "AveluneQA/t01-w2-A_map_cases/apps/avelune_studio",
+   "exitCode": 0,
+   "result": "7/7 mutations détectées ; M1 initiale (visualProject→project) survivait, test renforcé"
+  },
+  {
+   "command": "flutter test --no-pub test/pokemon + encounter_trainer_authoring_journey + map_catalogue_host + map_lifecycle_host + uwu2_deleted_destination_history + workspace_workflow, dépôt réel",
+   "cwd": "apps/avelune_studio",
+   "exitCode": 1,
+   "result": "+441 ~2 -33 ; mêmes fichiers dans la copie QA : -1 (pokemon_combat_host_test, rouge préexistant listé) ; relancés seuls dans le dépôt réel : test/pokemon/pokemon_combat_host_test.dart => +0 -1: Some tests failed. | test/pokemon/pokemon_external_cry_import_test.dart => +9: All tests passed! | test/pokemon/pokemon_external_gif_import_test.dart => +11: All tests passed! | test/pokemon/pokemon_external_png_import_test.dart => +10: All tests passed! | test/pokemon/pokemon_media_targeted_save_test.dart => +14: All tests passed! | test/pokemon/pokemon_move_recipe_import_owner_test.dart => +4: All tests passed! | test/pokemon/pokemon_move_recipe_import_test.dart => +15 ~1: All other tests passed! | test/pokemon/pokemon_move_recipe_storage_owner_test.dart => +4: All tests passed! | test/pokemon/pokemon_move_recipe_studio_owner_test.dart => +2 ~1: All other tests passed! | "
+  },
+  {
+   "command": "flutter test --no-pub -d macos integration_test/map_collision_native_journey_test.dart (copie QA, après et à HEAD)",
+   "cwd": "AveluneQA/t01-w2-A_map_cases/apps/avelune_studio",
+   "exitCode": 1,
+   "result": "+0 -1 à l’identique avant/après : Studio did not reach the expected state (ligne 36)"
+  }
+ ],
+ "createdFiles": [
+  "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_pokemon_reference_route.dart",
+  "apps/avelune_studio/test/map_workspace/scoped_map_rendering_owner_test.dart",
+  "apps/avelune_studio/test/map_workspace/catalogue_guard_navigation_owner_test.dart",
+  "apps/avelune_studio/test/map_workspace/pokemon_reference_route_owner_test.dart",
+  "apps/avelune_studio/test/map_workspace/terrain_deleted_history_owner_test.dart",
+  "apps/avelune_studio/test/map_workspace/first_border_visibility_owner_test.dart",
+  "apps/avelune_studio/test/support/first_border_owner_fixture.dart"
+ ],
+ "modifiedFiles": [
+  "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_destination_workflow.dart",
+  "apps/avelune_studio/lib/features/map_workspace/coordination/workspace_visual_projection_queue.dart",
+  "apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_screen.dart",
+  "apps/avelune_studio/lib/presentation/features/map_workspace/workspace_navigation_binding.dart",
+  "apps/avelune_studio/lib/presentation/features/map_workspace/workspace_export_binding.dart",
+  "apps/avelune_studio/integration_test/map_collision_native_journey_test.dart"
+ ]
+}

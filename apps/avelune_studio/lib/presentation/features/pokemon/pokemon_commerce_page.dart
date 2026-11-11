@@ -243,11 +243,7 @@ class _PokemonCommercePageState extends State<PokemonCommercePage> {
             const SizedBox(height: 10),
             if (items && commerce.snapshot!.problem != null)
               PokemonSurface(child: Text(commerce.snapshot!.problem!)),
-            if (items &&
-                commerce.item != null &&
-                !commerce.visibleItems.any(
-                  (entry) => entry.id == commerce.item!.id,
-                ))
+            if (items && commerce.selectedItemHiddenByFilters)
               const PokemonSurface(
                 child: Text('La fiche ouverte est masquée par les filtres.'),
               ),

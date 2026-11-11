@@ -15,6 +15,16 @@ String regionalMapChoiceLabel(
       : '${map.name} · $folder';
 }
 
+typedef RegionalMapLink = ({String name, String mapId});
+
+RegionalMapLink? regionalMapLinkConfirmation({
+  required String name,
+  required String? mapId,
+  required bool asksName,
+}) => mapId == null || (asksName && name.trim().isEmpty)
+    ? null
+    : (name: name.trim(), mapId: mapId);
+
 String? regionalSuggestedMapId(ProjectManifest project, String? suggested) =>
     project.maps.any((map) => map.id == suggested) ? suggested : null;
 

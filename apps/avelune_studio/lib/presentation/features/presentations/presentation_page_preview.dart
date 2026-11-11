@@ -2,25 +2,7 @@ part of 'presentation_workspace_page.dart';
 
 extension _PresentationPagePreview on _PresentationWorkspacePageState {
   Widget consumers(PresentationCinematicAsset asset) {
-    final scenes = <String, SceneAsset>{
-      for (final scene in controller.project.scenes) scene.id: scene,
-      for (final scene in controller.sceneDrafts?.call() ?? <SceneAsset>[])
-        scene.id: scene,
-    };
-    final selected = view?.selected;
-    final links = <({SceneAsset scene, SceneNode node})>[
-      for (final scene in scenes.values)
-        for (final node in scene.graph.nodes)
-          if (node.payload case ScenePresentationCinematicPayload payload)
-            if (payload.presentationCinematicId == asset.id &&
-                (selected is! PresentationMarkerClip ||
-                    selected.markerKind !=
-                        PresentationMarkerKind.interactionCue ||
-                    payload.interactionCueBindings.any(
-                      (binding) => binding.markerId == selected.id,
-                    )))
-              (scene: scene, node: node),
-    ];
+    final links = controller.sceneUses(asset.id, selected: view?.selected);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -85,27 +67,14 @@ extension _PresentationPagePreview on _PresentationWorkspacePageState {
   Future<void> scenarioPreview() async {
     if (!flush() || controller.active == null) return;
     final asset = controller.active!.asset;
-    final scenes = controller.project.scenes
-        .where(
-          (scene) => scene.graph.nodes.any(
-            (node) =>
-                node.payload is ScenePresentationCinematicPayload &&
-                (node.payload as ScenePresentationCinematicPayload)
-                        .presentationCinematicId ==
-                    asset.id,
-          ),
-        )
-        .toList();
+    final scenes = controller.scenarioScenes(asset.id);
     if (scenes.isEmpty) {
-      view!.actionError =
-          'Liez cette présentation à une scène et enregistrez pour tester son parcours.';
+      view!.actionError = presentationScenarioUnlinkedError;
       refresh();
       return;
     }
-    var scene = scenes
-        .where((item) => item.id == widget.previewSceneId)
-        .firstOrNull;
-    if (scene == null && scenes.length > 1) {
+    var scene = presentationScenarioScene(scenes, widget.previewSceneId);
+    if (scene == null) {
       scene = await showDialog<SceneAsset>(
         context: context,
         builder: (context) => AlertDialog(
@@ -127,7 +96,6 @@ extension _PresentationPagePreview on _PresentationWorkspacePageState {
       );
       if (!mounted || scene == null) return;
     }
-    scene ??= scenes.first;
     final testedScene = scene;
     transport.pause();
     await widget.visuals.release();

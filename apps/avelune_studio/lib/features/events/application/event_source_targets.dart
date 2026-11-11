@@ -149,3 +149,38 @@ class EventSourcePicking {
     return null;
   }
 }
+
+bool eventSourceTargetMissing({
+  required NarrativeEventSourceRef? source,
+  required MapData map,
+  required bool choosing,
+}) {
+  if (choosing || source == null || eventMapId(source) != map.id) return false;
+  final targetId = eventTargetId(source);
+  if (source.kind == NarrativeEventSourceKind.modelInteract) {
+    return !(map.spatialScene?.instances.any(
+          (instance) => instance.id == targetId,
+        ) ??
+        false);
+  }
+  return targetId != null &&
+      !map.entities.any((entity) => entity.id == targetId) &&
+      !map.triggers.any((trigger) => trigger.id == targetId);
+}
+
+Set<NarrativeEventSourceRef> selectableEventSources(
+  NarrativeSpatialEventSourceCatalog catalog,
+) => {
+  for (final option in catalog.options)
+    if (option.selectable && option.source != null) option.source!,
+};
+
+String? eventSourceKindHint(NarrativeEventSourceKind? kind) => switch (kind) {
+  NarrativeEventSourceKind.triggerBump =>
+    'L’événement se déclenche quand une tentative de marche est bloquée contre cette zone.',
+  NarrativeEventSourceKind.entityBump =>
+    'L’événement se déclenche quand le joueur marche contre un personnage bloquant.',
+  NarrativeEventSourceKind.entityAutorun =>
+    'L’événement démarre automatiquement pour cet élément lorsque ses conditions sont réunies, sans action du joueur.',
+  _ => null,
+};

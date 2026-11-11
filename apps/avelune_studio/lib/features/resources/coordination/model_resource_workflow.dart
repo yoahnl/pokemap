@@ -1,5 +1,6 @@
 import 'package:map_core/map_core.dart' show ProjectModel3dEntry;
 
+import '../application/model_resource_rules.dart';
 import '../domain/model_resource_port.dart';
 import '../domain/model_source_picker.dart';
 import '../domain/resource_port.dart';
@@ -112,10 +113,10 @@ class ModelDefinitionWorkflow {
       }
     }
     if (!isActive() || navigation.isDisposed) return;
-    await navigation.mutate('model3d.configure', {
-      'modelId': model.id,
-      ...fields,
-    });
+    await navigation.mutate(
+      'model3d.configure',
+      modelConfigurePayload(model.id, fields),
+    );
   }
 
   Future<bool> remove(

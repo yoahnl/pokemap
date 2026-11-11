@@ -9,37 +9,12 @@ extension _WorkspaceNavigationBinding on _MapWorkspaceScreenState {
     String kind,
     String id, [
     String? detailId,
-  ]) async {
-    if (kind == 'scene') {
-      _navigationNotice('L’éditeur de scènes est indisponible.');
-      return;
-    }
-    if (!await _allowLeavePokemon() || !mounted) return;
-    if (kind == 'map') {
-      final entry = _controller.project?.maps
-          .where((value) => value.id == id)
-          .firstOrNull;
-      if (entry == null) return;
-      _show(WorkspaceSpace.map);
-      await _controller.activate(entry);
-      final document = _controller.active;
-      if (!mounted || document == null || document.current.id != id) return;
-      if (detailId != null) _selectMapEntity(document, detailId);
-      final opened = document.current;
-      _pokemonReferenceUnchanged = () =>
-          identical(_controller.active, document) &&
-          !document.dirty &&
-          identical(document.current, opened);
-      _pokemonMapReturn = true;
-      _changed();
-    }
-  }
+  ]) => _pokemonReferences.open(kind, id, detailId);
 
-  void _returnToPokemonReference() {
-    final keepAnalysis = _pokemonReferenceUnchanged?.call() ?? false;
-    _pokemonReferenceUnchanged = null;
-    _show(WorkspaceSpace.pokemon, keepCombatAnalysis: keepAnalysis);
-  }
+  void _returnToPokemonReference() => _show(
+    WorkspaceSpace.pokemon,
+    keepCombatAnalysis: _pokemonReferences.takeUnchanged(),
+  );
 
   void _toolChanged() {
     if (_view?.tool == StudioMapTool.connection && _controller.active != null) {

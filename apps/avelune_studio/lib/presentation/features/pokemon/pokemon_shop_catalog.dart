@@ -218,15 +218,10 @@ class _ItemPickerState extends State<_ItemPicker> {
 
   @override
   Widget build(BuildContext context) {
-    final query = search.text.trim().toLowerCase();
-    final entries = widget.items
-        .where(
-          (item) =>
-              query.isEmpty ||
-              item.id.toLowerCase().contains(query) ||
-              item.displayName.toLowerCase().contains(query),
-        )
-        .toList();
+    final entries = [
+      for (final item in widget.items)
+        if (pokemonItemMatchesSearch(item, search.text)) item,
+    ];
     return AlertDialog(
       title: const Text('Choisir un objet du projet'),
       content: SizedBox(

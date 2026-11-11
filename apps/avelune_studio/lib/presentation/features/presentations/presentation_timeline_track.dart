@@ -3,12 +3,10 @@ part of 'presentation_timeline.dart';
 extension _PresentationTrackControls on _PresentationTimelineState {
   void command(PresentationTimelineClipCommand Function() action) {
     if (widget.beforeSelection?.call() == false) return;
-    try {
-      widget.onCommand(action());
-      widget.view.actionError = null;
-    } catch (error) {
-      widget.view.actionError = 'Opération refusée : $error';
-    }
+    widget.view.actionError = runPresentationTimelineCommand(
+      action,
+      widget.onCommand,
+    );
     widget.changed();
   }
 
@@ -72,33 +70,21 @@ extension _PresentationTrackControls on _PresentationTimelineState {
     if (!mounted || result == null || !identical(owner, widget.asset)) return;
     if (result == 'update') {
       widget.onCommand(
-        PresentationTimelineClipCommand(
-          actionId: 'presentationTrack.update',
-          parameters: {
-            'cinematicId': owner.id,
-            'track': {
-              'id': track.id,
-              'label': label,
-              'kind': track.kind.name,
-              'holdPolicy': hold,
-              'clips': track.clips.map(encodePresentationClip).toList(),
-            },
-          },
+        presentationTrackUpdateCommand(
+          owner,
+          track,
+          label: label,
+          holdPolicy: hold,
         ),
       );
     } else {
-      final index = owner.tracks.indexOf(track) + (result == 'up' ? -1 : 1);
-      if (index < 0 || index >= owner.tracks.length) return;
-      widget.onCommand(
-        PresentationTimelineClipCommand(
-          actionId: 'presentationTrack.move',
-          parameters: {
-            'cinematicId': owner.id,
-            'trackId': track.id,
-            'insertionIndex': index,
-          },
-        ),
+      final move = presentationTrackMoveCommand(
+        owner,
+        track,
+        result == 'up' ? -1 : 1,
       );
+      if (move == null) return;
+      widget.onCommand(move);
     }
     widget.changed();
   }

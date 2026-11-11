@@ -5,6 +5,7 @@ import 'package:map_core/map_core_domain.dart';
 import 'package:map_authoring/map_authoring_presentation_editing.dart';
 import '../../../features/presentations/application/presentation_preview_transport.dart';
 import '../../../features/presentations/application/presentation_timeline_scrub.dart';
+import '../../../features/presentations/application/presentation_track_commands.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
 import '../../shared/widgets/buttons/studio_button.dart';

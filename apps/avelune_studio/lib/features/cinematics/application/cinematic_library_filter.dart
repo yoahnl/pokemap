@@ -35,3 +35,15 @@ List<CinematicAsset> cinematicLibraryEntries(
         (archived || entry?.isArchived != true);
   }).toList();
 }
+
+String? cinematicLibraryFolderOrRoot(String folderId) =>
+    folderId.isEmpty ? null : folderId;
+
+MapData? cinematicThumbnailMap({
+  required String? mapId,
+  required MapData? open,
+  required MapData? loaded,
+}) {
+  final candidate = open ?? loaded;
+  return mapId != null && candidate?.id == mapId ? candidate : null;
+}

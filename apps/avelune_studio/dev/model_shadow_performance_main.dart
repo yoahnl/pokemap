@@ -6,18 +6,65 @@ import 'package:avelune_rendering/avelune_rendering.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/project_session/domain/project_session.dart';
 import 'package:avelune_studio/platform/rendering/studio_map_resources.dart';
-import 'package:avelune_studio/presentation/features/resources/model_resource_library.dart';
-import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
-import 'package:avelune_studio/presentation/features/resources/resource_detail_panel.dart';
+import 'package:avelune_studio/features/resources/application/model_definition_drafts.dart';
 import 'package:avelune_studio/features/resources/coordination/resource_navigation.dart';
-import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_toggle_row.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:map_core/map_core.dart';
 
 import '../test/support/model_shadow_fixture.dart';
 
 final _host = ValueNotifier<Widget>(const SizedBox());
+
+class _ModelShadowSwitch extends StatefulWidget {
+  const _ModelShadowSwitch({
+    required this.model,
+    required this.busy,
+    required this.onChanged,
+  });
+
+  final ProjectModel3dEntry model;
+  final bool busy;
+  final Future<void> Function(bool) onChanged;
+
+  @override
+  State<_ModelShadowSwitch> createState() => _ModelShadowSwitchState();
+}
+
+class _ModelShadowSwitchState extends State<_ModelShadowSwitch> {
+  late final _draft = ModelShadowDraft(widget.model);
+
+  @override
+  void didUpdateWidget(_ModelShadowSwitch oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _draft.update(widget.model);
+  }
+
+  Future<void> _save(bool next) async {
+    final saving = _draft.save(
+      next,
+      widget.onChanged,
+      canSave: () => mounted && !widget.busy,
+    );
+    setState(() {});
+    await saving;
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _draft.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => SwitchListTile(
+    key: const ValueKey('model-casts-shadows-default'),
+    title: const Text('Activer les ombres'),
+    value: _draft.value,
+    onChanged: _draft.saving || widget.busy ? null : _save,
+  );
+}
 
 Iterable<Element> _elements(Element root) sync* {
   yield root;
@@ -42,7 +89,7 @@ Future<void> main() async {
   AveluneWidgetsFlutterBinding.ensureInitialized();
   runApp(
     MaterialApp(
-      theme: studioTheme(),
+      theme: ThemeData(useMaterial3: true),
       home: Scaffold(
         body: ValueListenableBuilder(
           valueListenable: _host,
@@ -94,33 +141,21 @@ Future<void> main() async {
               final model = current.models3d.firstWhere(
                 (entry) => entry.id == 'house',
               );
-              final item = ResourceItem(
-                id: model.id,
-                name: model.name,
-                kind: ResourceKind.decors,
-                model3d: model,
+              final control = _ModelShadowSwitch(
+                model: model,
+                busy: navigation.busy,
+                onChanged: (enabled) => navigation.mutate('model3d.configure', {
+                  'modelId': model.id,
+                  'castsShadowsByDefault': enabled,
+                }),
               );
-              if (library) {
-                return ModelResourceLibrary(
-                  navigation: navigation,
-                  items: [item],
-                  previewBuilder: (_, _) => const SizedBox(height: 80),
-                );
-              }
-              return SingleChildScrollView(
-                child: ResourceDetailPanel(
-                  item: item,
-                  project: current,
-                  preview: const SizedBox(height: 80),
-                  onUse: (_) {},
-                  onEdit: (_) {},
-                  onTerrain: (_) {},
-                  onModelShadowsChanged: (entry, enabled) => navigation.mutate(
-                    'model3d.configure',
-                    {'modelId': entry.id, 'castsShadowsByDefault': enabled},
-                  ),
-                ),
-              );
+              return library
+                  ? ListView(children: [const SizedBox(height: 80), control])
+                  : SingleChildScrollView(
+                      child: Column(
+                        children: [const SizedBox(height: 80), control],
+                      ),
+                    );
             }
 
             _host.value = ListenableBuilder(
@@ -141,7 +176,7 @@ Future<void> main() async {
               final point = box.localToGlobal(box.size.center(Offset.zero));
               void observe(Duration _) {
                 if (operation == null || painted != null) return;
-                final value = _toggle().widget as StudioToggleRow;
+                final value = _toggle().widget as SwitchListTile;
                 if (value.value == target) {
                   painted = operation.elapsedMicroseconds;
                 } else {

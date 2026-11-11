@@ -122,9 +122,6 @@ extension NarrativeOverviewLandingSearch on NarrativeOverviewLanding {
 
   String _storyType(StorylineType type) => narrativeOverviewStoryType(type);
 
-  String _eventName(NarrativeEventRecord record) =>
-      narrativeOverviewEventName(record);
-
   Iterable<T> _ordered<T>(List<T> values, int Function(T) order) =>
       orderedNarrativeOverview(values, order);
 }

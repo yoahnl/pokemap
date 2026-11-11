@@ -74,3 +74,13 @@ Map<String, Object?> presentationTransitionPatch(
               : presentationDefaultTransitionUs),
   },
 };
+
+Map<String, Object?> presentationFontFamilyPatch(
+  PresentationTextClip clip,
+  String choice,
+) => {
+  'style': {
+    ...Map<String, Object?>.from(encodePresentationClip(clip)['style']! as Map),
+    'fontFamily': choice.isEmpty ? null : choice,
+  },
+};

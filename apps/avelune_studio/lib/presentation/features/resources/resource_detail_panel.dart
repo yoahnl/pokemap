@@ -12,6 +12,7 @@ import '../../shared/widgets/layout/studio_asset_preview.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
+import 'package:avelune_studio/features/resources/application/resource_use_verdict.dart';
 
 import 'resource_item_actions.dart';
 import 'model_shadow_controls.dart';
@@ -83,20 +84,13 @@ class ResourceDetailPanel extends StatelessWidget {
     }
     final theme = Theme.of(context);
     final metadata = entry.metadata(project);
-    final mapAvailable =
-        activeMapId == null ||
-        metadata?.mapId == null ||
-        metadata?.mapId == activeMapId;
-    final compatible = entry.compatibleWith(project.settings.dimension);
-    final prepared =
-        entry.border == null ||
-        (entry.border!.latestPublished != null && !entry.border!.isDeprecated);
-    final usable =
-        canUse &&
-        project.maps.isNotEmpty &&
-        mapAvailable &&
-        compatible &&
-        prepared;
+    final verdict = resourceUseVerdict(
+      entry,
+      project,
+      canUse: canUse,
+      activeMapId: activeMapId,
+    );
+    final usable = verdict == ResourceUseVerdict.usable;
     final content = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -203,15 +197,7 @@ class ResourceDetailPanel extends StatelessWidget {
             children: [
               if (!usable) ...[
                 Text(
-                  project.maps.isEmpty
-                      ? 'Ce projet ne contient aucune carte. Les ressources restent consultables.'
-                      : !compatible
-                      ? 'Cette ressource ne se place pas dans un projet ${project.settings.dimension == ProjectDimension.threeD ? "3D" : "2D"}.'
-                      : !mapAvailable
-                      ? 'Cette ressource est réservée à « ${project.maps.where((map) => map.id == metadata?.mapId).firstOrNull?.name ?? "sa carte"} ».'
-                      : !prepared
-                      ? 'Cette bordure n’est pas disponible pour le tracé : elle n’est pas publiée ou elle est dépréciée.'
-                      : 'L’utilisation sur la carte est momentanément indisponible.',
+                  resourceUseRefusalMessage(verdict, entry, project)!,
                   style: theme.textTheme.bodySmall,
                 ),
                 const SizedBox(height: 8),

@@ -4,6 +4,7 @@ import 'package:map_core/map_core_domain.dart';
 
 import '../domain/pokemon_commerce_port.dart';
 import 'pokemon_pocket_label.dart';
+import 'pokemon_shop_editing.dart';
 
 part 'pokemon_commerce_import_commands.dart';
 
@@ -48,18 +49,26 @@ final class PokemonCommerceController {
       (shop != null &&
           jsonEncode(shop!.toJson()) != jsonEncode(_baseShop?.toJson()));
 
-  List<ProjectItemDefinition> get visibleItems {
-    final query = itemSearch.trim().toLowerCase();
-    return [
-      for (final value
-          in snapshot?.catalog?.entries ?? const <ProjectItemDefinition>[])
-        if ((query.isEmpty ||
-                value.id.toLowerCase().contains(query) ||
-                value.displayName.toLowerCase().contains(query)) &&
-            (pocketFilter == null || value.pocketId == pocketFilter))
-          value,
-    ];
-  }
+  bool get canAnalyzeReferences =>
+      !(loading || saving || importing || dirty) &&
+      port is PokemonCommerceReferencePort;
+
+  bool get selectedItemHiddenByFilters =>
+      item != null && !visibleItems.any((entry) => entry.id == item!.id);
+
+  List<ShopStateDiagnostic> get selectedShopDiagnostics => [
+    for (final value
+        in snapshot?.shopDiagnostics ?? const <ShopStateDiagnostic>[])
+      if (value.shopId == shop?.id) value,
+  ];
+
+  List<ProjectItemDefinition> get visibleItems => [
+    for (final value
+        in snapshot?.catalog?.entries ?? const <ProjectItemDefinition>[])
+      if (pokemonItemMatchesSearch(value, itemSearch) &&
+          (pocketFilter == null || value.pocketId == pocketFilter))
+        value,
+  ];
 
   List<ShopDefinition> get visibleShops {
     final query = shopSearch.trim().toLowerCase();

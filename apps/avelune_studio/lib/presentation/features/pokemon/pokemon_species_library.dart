@@ -39,8 +39,8 @@ class _PokemonSpeciesLibraryState extends State<PokemonSpeciesLibrary> {
     final controller = widget.controller;
     final entries = controller.visibleSpecies;
     final all = controller.index!.entries;
-    final types = <String>{for (final entry in all) ...entry.types};
-    final generations = <int>{for (final entry in all) entry.generation};
+    final types = controller.speciesFilterTypes;
+    final generations = controller.speciesFilterGenerations;
     final selectedHidden =
         controller.selectedId != null &&
         !entries.any((entry) => entry.id == controller.selectedId);
@@ -86,7 +86,7 @@ class _PokemonSpeciesLibraryState extends State<PokemonSpeciesLibrary> {
                                   value: controller.typeFilter ?? '',
                                   options: {
                                     '': 'Tous les types',
-                                    for (final type in types.toList()..sort())
+                                    for (final type in types)
                                       type: type,
                                   },
                                   onChanged: (value) => controller.setFilters(
@@ -105,8 +105,7 @@ class _PokemonSpeciesLibraryState extends State<PokemonSpeciesLibrary> {
                                       '',
                                   options: {
                                     '': 'Toutes',
-                                    for (final generation
-                                        in generations.toList()..sort())
+                                    for (final generation in generations)
                                       '$generation': 'Génération $generation',
                                   },
                                   onChanged: (value) => controller.setFilters(

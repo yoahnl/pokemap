@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/narrative/application/narrative_workspace_controller.dart';
+import '../../../features/narrative/application/narrative_navigation_requests.dart';
 import '../../../features/narrative/application/narrative_overview.dart';
 import '../../../features/narrative/domain/narrative_port.dart';
 import '../../../features/scenes/application/scene_workspace_controller.dart';
@@ -79,20 +80,14 @@ class NarrativeStoryPane extends StatefulWidget {
 }
 
 class _NarrativeStoryPaneState extends State<NarrativeStoryPane> {
-  var _navigationRequest = 0;
+  final _requests = NarrativeNavigationRequests();
   NarrativeOverviewViewState get state => widget.viewState;
   void refresh() => setState(() {});
 
   @override
   Widget build(BuildContext context) {
     final overview = state.cache.read(widget.controller);
-    if (!state.initialized) {
-      state.initialized = true;
-      state.storyId = overview.stories.firstOrNull?.id;
-      if (overview.stories.isEmpty) {
-        state.tab = NarrativeOverviewTab.interactions;
-      }
-    }
+    state.initialize(overview);
     state.reconcileSelection(overview);
     final stories = state.visibleStories(overview);
     final story = overview.stories
@@ -253,24 +248,19 @@ class _NarrativeStoryPaneState extends State<NarrativeStoryPane> {
     Future<String?> Function(String) action,
     String id,
   ) async {
-    final request = ++_navigationRequest;
-    final error = await action(id);
-    if (mounted &&
-        request == _navigationRequest &&
-        state.interactionId == id &&
-        error != null) {
-      setState(() => state.notice = error);
-    }
+    final error = await _requests.run(
+      action,
+      id,
+      relevant: () => state.interactionId == id,
+    );
+    if (mounted && error != null) setState(() => state.notice = error);
   }
 
   Future<void> _navigateDocument(
     Future<String?> Function(String) action,
     String id,
   ) async {
-    final request = ++_navigationRequest;
-    final error = await action(id);
-    if (mounted && request == _navigationRequest && error != null) {
-      setState(() => state.notice = error);
-    }
+    final error = await _requests.run(action, id);
+    if (mounted && error != null) setState(() => state.notice = error);
   }
 }

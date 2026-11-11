@@ -10,6 +10,7 @@ import '../../shared/widgets/layout/studio_map_overlay_frame.dart';
 
 import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 
+import 'package:avelune_studio/features/cinematics/application/cinematic_actor_overlay.dart';
 import 'package:avelune_studio/features/cinematics/application/cinematic_map_model.dart';
 import 'cinematic_view_state.dart';
 import 'package:avelune_studio/platform/rendering/contracts/cinematic_workspace_visuals.dart';
@@ -154,27 +155,20 @@ class CinematicMapOverlay extends StatelessWidget {
       actor.actorId,
       moving,
     );
-    final facing =
-        EntityFacing.values
-            .where((f) => f.name == direction.name)
-            .firstOrNull ??
-        EntityFacing.south;
+    final facing = cinematicActorFacing(direction);
     final width = cell.width * math.max(2, character?.frameWidth ?? 2);
     final height = cell.height * math.max(2, character?.frameHeight ?? 2);
     final animation = transport.frame?.activeCharacterAnimations
         .where((a) => a.command.actorId == actor.actorId)
         .firstOrNull;
-    final custom = character?.customAnimations
-        .where(
-          (a) =>
-              a.definitionId == animation?.command.definitionId &&
-              (a.direction == null ||
-                  a.direction == (animation?.command.direction ?? facing)),
-        )
-        .firstOrNull;
+    final custom = cinematicActorCustomClip(
+      character,
+      animation?.command,
+      facing,
+    );
     return Positioned(
       left: x * cell.width - width / 2,
-      top: (y - liftCells) * cell.height - height / 2,
+      top: cinematicActorLiftedRow(y, liftCells) * cell.height - height / 2,
       width: width,
       height: height,
       child: GestureDetector(

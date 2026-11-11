@@ -17,6 +17,7 @@ import 'resource_catalog_view.dart';
 import 'resource_category_filter.dart';
 
 import 'package:avelune_studio/features/resources/application/resource_category_tree.dart';
+import 'package:avelune_studio/features/resources/application/resource_library_rules.dart';
 
 import 'resource_detail_panel.dart';
 import 'resource_preview.dart';
@@ -197,7 +198,7 @@ class _ResourceLibraryScreenState extends State<ResourceLibraryScreen> {
         activeMapId: widget.activeMapId,
         onModelShadowsChanged: widget.onModelShadowsChanged,
         onModelLightChanged: widget.onModelLightChanged,
-        canUse: widget.canUse && widget.project.maps.isNotEmpty,
+        canUse: widget.canUse,
         onInformation: widget.onInformation == null
             ? null
             : (item) {

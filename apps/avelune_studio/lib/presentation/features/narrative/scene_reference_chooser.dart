@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 
+export '../../../features/narrative/application/scene_node_references.dart'
+    show sceneNodeReferenceLabel;
 import '../../../features/narrative/application/scene_node_references.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
-import '../../../features/scenes/application/scene_labels.dart';
 
-String sceneNodeReferenceLabel(SceneNodeReference reference) =>
-    '${reference.scene.name} · ${sceneNodeName(reference.scene.graph, reference.node.id)}';
 
 Future<SceneNodeReference?> chooseSceneNodeReference(
   BuildContext context, {
@@ -13,7 +12,7 @@ Future<SceneNodeReference?> chooseSceneNodeReference(
   required String empty,
   required List<SceneNodeReference> references,
 }) async {
-  if (references.length == 1) return references.single;
+  if (soleSceneNodeReference(references) case final sole?) return sole;
   return showDialog<SceneNodeReference>(
     context: context,
     builder: (context) => AlertDialog(

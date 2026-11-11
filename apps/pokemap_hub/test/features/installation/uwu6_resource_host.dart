@@ -1,37 +1,39 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:avelune_studio/features/game_export/data/studio_game_export_controller.dart';
-import 'package:avelune_studio/features/game_export/domain/studio_game_export_port.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/features/project_session/data/local_project_session_adapter.dart';
+import 'package:avelune_studio/features/resources/coordination/resource_navigation.dart';
 import 'package:avelune_studio/features/resources/data/local_resource_adapter.dart';
+import 'package:avelune_studio/features/resources/domain/resource_image_picker.dart';
 import 'package:avelune_studio/platform/rendering/studio_map_resources.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_screen.dart';
-import 'package:avelune_studio/presentation/features/resources/resource_image_import.dart';
-import 'package:avelune_studio/presentation/shell/studio_home_navigation.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as image;
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
-import '../../../../avelune_studio/test/support/m2_ui_fixture.dart';
+import '../../../../avelune_studio/test/support/m2_ui_owner_fixture.dart';
 import '../../../../avelune_studio/test/support/m3_story_fixture.dart';
-import '../../../../avelune_studio/test/support/uwu_resource_host.dart';
-import '../../../../avelune_studio/test/support/widget_resource_journey_map_port.dart';
-import '../../../../avelune_studio/test/support/widget_resource_management_port.dart';
+import '../../../../avelune_studio/test/support/real_test_io.dart';
 import 'uwu5_specialized_resources_fixture.dart';
-import 'uwu5_specialized_resources_player_e2e_test.dart' show Uwu5StudioAssets;
 
-class Uwu6ResourceHost extends UwUResourceHost {
-  Uwu6ResourceHost(super.tester, super.fixture, this.temporary, this.package);
+class Uwu6ResourceHost {
+  Uwu6ResourceHost._(
+    this.tester,
+    this.fixture,
+    this.navigation,
+    this.sessions,
+    this.temporary,
+    this.package,
+  );
+  final WidgetTester tester;
+  final M2UiOwnerFixture fixture;
+  final ResourceNavigation navigation;
+  final LocalProjectSessionAdapter sessions;
   final Directory temporary;
   final File package;
-  final navigationHome = StudioHomeNavigation();
-  late final StudioGameExportController exporter;
-  late final LocalProjectSessionAdapter sessions;
   final oldPixels = image.encodePng(
     image.Image(width: 32, height: 32)
       ..clear(image.ColorRgba8(230, 44, 31, 255)),
@@ -49,11 +51,12 @@ class Uwu6ResourceHost extends UwUResourceHost {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     final temporary =
-        (await tester.runAsync(
+        (await RealTestIo.run(
+          tester,
           () => Directory.systemTemp.createTemp('uwu6-resources-player-'),
         ))!;
     final source =
-        (await tester.runAsync(() async {
+        (await RealTestIo.run(tester, () async {
           final source = await M3StoryFixture.create();
           await prepareUwu5ExportFixture(source, discriminatingTerrain: true);
           final resources = LocalResourceAdapter(
@@ -89,12 +92,13 @@ class Uwu6ResourceHost extends UwUResourceHost {
         }))!;
     final host = await openExisting(tester, source.directory, temporary);
     addTearDown(() async {
-      await tester.pumpWidget(const SizedBox());
       await host.close();
-      if (await source.directory.exists()) {
-        await source.directory.delete(recursive: true);
-      }
-      if (await temporary.exists()) await temporary.delete(recursive: true);
+      await RealTestIo.run(tester, () async {
+        if (await source.directory.exists()) {
+          await source.directory.delete(recursive: true);
+        }
+        if (await temporary.exists()) await temporary.delete(recursive: true);
+      });
     });
     return host;
   }
@@ -107,11 +111,10 @@ class Uwu6ResourceHost extends UwUResourceHost {
   }) async {
     final sessions = LocalProjectSessionAdapter();
     final fixture =
-        (await tester.runAsync(() async {
+        (await RealTestIo.run(tester, () async {
           final session = await sessions.open(directory.path);
           final maps = LocalMapWorkspaceAdapter();
-          final port = WidgetResourceJourneyMapPort(maps, tester);
-          final controller = WidgetMapController(session, port, tester);
+          final controller = MapWorkspaceController(session, maps);
           if (initialMapId == null) {
             await controller.initialize();
           } else {
@@ -122,63 +125,49 @@ class Uwu6ResourceHost extends UwUResourceHost {
               ),
             );
           }
-          port.active = true;
-          return M2UiFixture(
+          final fixture = M2UiOwnerFixture(
             directory,
             session,
             maps,
             controller,
             LocalResourceAdapter(session: session, mapAdapter: maps),
           );
+          fixture.visuals = await StudioMapResources.load(
+            session,
+            controller.project!,
+          );
+          return fixture;
         }))!;
-    final host = Uwu6ResourceHost(
+    final navigation = ResourceNavigation(
+      workspace: fixture.controller,
+      port: fixture.resources,
+      visuals: fixture.visuals!,
+      onUse: (_) {},
+    );
+    return Uwu6ResourceHost._(
       tester,
       fixture,
+      navigation,
+      sessions,
       temporary,
       File(p.join(temporary.path, 'uwu6-resources.avelunegame')),
     );
-    host.sessions = sessions;
-    host.exporter = StudioGameExportController(
-      projectRoot: directory,
-      projectName: 'Recette ressources UwU VI',
-    );
-    await tester.pumpWidget(
-      DefaultAssetBundle(
-        bundle: Uwu5StudioAssets(),
-        child: MaterialApp(
-          theme: studioTheme(),
-          home: RepaintBoundary(
-            key: fixture.captureKey,
-            child: MapWorkspaceScreen(
-              controller: fixture.controller,
-              resourcePort: WidgetResourceManagementPort(
-                fixture.resources,
-                tester,
-              ),
-              home: host.navigationHome,
-              gameExport: host.exporter,
-              gameExportPicker:
-                  (_) async => StudioGameExportDestination(
-                    host.package.path,
-                    exists: await host.package.exists(),
-                  ),
-              imagePicker: host.pickImage,
-              loadVisuals:
-                  (session, project) async =>
-                      fixture.visuals = await StudioMapResources.load(
-                        session,
-                        project,
-                      ),
-              runtimeBuilder: (_, _, _) => const SizedBox(),
-              onClose: () async {},
-              registerExitGuard: (_) {},
-            ),
-          ),
-        ),
-      ),
-    );
-    await pumpIo(tester);
-    return host;
+  }
+
+  Future<T> io<T>(Future<T> Function() action) async {
+    Object? failure;
+    StackTrace? trace;
+    final result = await RealTestIo.run<T?>(tester, () async {
+      try {
+        return await action();
+      } on Object catch (error, stack) {
+        failure = error;
+        trace = stack;
+        return null;
+      }
+    });
+    if (failure case final error?) Error.throwWithStackTrace(error, trace!);
+    return result as T;
   }
 
   Future<PickedResourceImage> pickImage() async {
@@ -186,7 +175,7 @@ class Uwu6ResourceHost extends UwUResourceHost {
     final file = File(
       p.join(temporary.path, replacement ? 'new.png' : 'old.png'),
     );
-    await WidgetResourcePort.serial(tester, () => file.writeAsBytes(bytes));
+    await file.writeAsBytes(bytes);
     return PickedResourceImage(
       file.path,
       'Planche témoin UwU VI',
@@ -196,70 +185,27 @@ class Uwu6ResourceHost extends UwUResourceHost {
     );
   }
 
-  Future<void> text(String label) async {
-    await tester.pump(const Duration(milliseconds: 350));
-    final target = find.text(label).last;
-    await tester.ensureVisible(target);
-    await tester.pump();
-    await tester.tap(target);
-    await pumpIo(tester, frames: 12);
-    await tester.pump(const Duration(milliseconds: 350));
-    await tester.pump();
-  }
-
-  Future<void> go(String label) async {
-    await tester.pump(const Duration(milliseconds: 350));
-    await tester.tap(find.byTooltip(label).first);
-    await pumpIo(tester, frames: 12);
-  }
-
-  @override
-  Future<void> tap(String key) async {
-    final target = find.byKey(ValueKey(key));
-    if (key == 'resource-manage-containers' && target.evaluate().isEmpty) {
-      await text('Actions');
+  Future<ProjectManifest> read() async {
+    final reader = LocalProjectSessionAdapter();
+    final session = await reader.open(fixture.directory.path);
+    try {
+      return await LocalMapWorkspaceAdapter().loadProject(session);
+    } finally {
+      await reader.close(session);
     }
-    await tester.ensureVisible(target);
-    await tester.pump();
-    await tester.tap(target);
-    await pumpIo(tester, frames: 12);
-    await tester.pump(const Duration(milliseconds: 300));
-    await tester.pump();
   }
 
-  Future<void> cell(int x, int y) async {
-    final canvas = find.byKey(const ValueKey('map-canvas'));
-    final rect = tester.getRect(canvas);
-    final size = fixture.controller.active!.current.size;
-    await tester.tapAt(
-      rect.topLeft +
-          Offset(
-            (x + .5) * rect.width / size.width,
-            (y + .5) * rect.height / size.height,
-          ),
-    );
-    await pumpIo(tester, frames: 4);
-  }
-
-  Future<void> saveMap() async {
-    await tap('Enregistrer');
-    expect(
-      fixture.controller.active!.dirty,
-      false,
-      reason: fixture.controller.active!.error,
-    );
-  }
+  Future<ProjectManifest> reopen() => io(read);
 
   Future<void> close() async {
     if (closed) return;
     closed = true;
+    navigation.dispose();
     fixture.controller.dispose();
-    exporter.dispose();
-    navigationHome.dispose();
-    await WidgetResourcePort.serial(tester, fixture.resources.dispose);
-    await WidgetResourcePort.serial(
-      tester,
-      () => sessions.close(fixture.session),
-    );
+    await io(() async {
+      await fixture.visuals?.dispose();
+      await fixture.resources.dispose();
+      await sessions.close(fixture.session);
+    });
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:map_authoring/map_authoring.dart';
 
+import '../../../features/pokemon/application/pokemon_move_recipe_batch_summary.dart';
 import '../../../features/pokemon/application/pokemon_workspace_controller.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
@@ -16,38 +17,15 @@ class PokemonMoveRecipeBatchPanel extends StatelessWidget {
     final total = controller.recipeBatchTotal;
     final active = controller.recipeBatchActive;
     final stopped = controller.recipeBatchStopped;
-    final imported = results
-        .where((entry) => entry.status == BattleMoveRecipeBatchStatus.imported)
-        .length;
-    final already = results
-        .where(
-          (entry) => entry.status == BattleMoveRecipeBatchStatus.alreadyPresent,
-        )
-        .length;
-    final preserved = results
-        .where(
-          (entry) =>
-              entry.status == BattleMoveRecipeBatchStatus.custom ||
-              entry.status == BattleMoveRecipeBatchStatus.preserved,
-        )
-        .length;
-    final missing = results
-        .where((entry) => entry.status == BattleMoveRecipeBatchStatus.missing)
-        .length;
-    final uncertain = results
-        .where(
-          (entry) =>
-              entry.status == BattleMoveRecipeBatchStatus.ambiguous ||
-              entry.status == BattleMoveRecipeBatchStatus.uncertain,
-        )
-        .length;
-    final pilots = results.where((entry) => entry.isPilotFallback).length;
-    final failed = results
-        .where((entry) => entry.status == BattleMoveRecipeBatchStatus.failed)
-        .length;
-    final details = results
-        .where((entry) => entry.status != BattleMoveRecipeBatchStatus.imported)
-        .toList();
+    final summary = PokemonMoveRecipeBatchSummary(results);
+    final imported = summary.imported;
+    final already = summary.alreadyPresent;
+    final preserved = summary.preserved;
+    final missing = summary.missing;
+    final uncertain = summary.uncertain;
+    final pilots = summary.pilots;
+    final failed = summary.failed;
+    final details = summary.details;
     String moveName(String? id) =>
         controller.index?.moves.entries
             .where((move) => move.id == id)

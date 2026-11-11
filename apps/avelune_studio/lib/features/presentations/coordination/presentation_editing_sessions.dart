@@ -57,6 +57,17 @@ class PresentationEditingSessions {
     return true;
   }
 
+  void revealAddedClip(
+    Object owner,
+    PresentationCinematicAsset asset,
+    String clipId, {
+    required bool portrait,
+  }) {
+    installPreview(owner, asset, portrait: portrait);
+    final editing = forAsset(asset)..selectClip(clipId);
+    transport.seek(editing.sourceClip(clipId).startUs);
+  }
+
   Future<void> suspendPreview(Object owner) async {
     if (_disposed || !identical(_previewOwner, owner)) return;
     transport.pause();

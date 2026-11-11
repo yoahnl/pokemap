@@ -14,6 +14,7 @@ import '../../shared/widgets/feedback/studio_icon_tile.dart';
 import 'event_status_badge.dart';
 import '../../../features/narrative/application/scene_node_references.dart';
 import '../../../features/events/application/event_execution_order.dart';
+import '../../../features/events/application/event_scene_selection.dart';
 
 class EventSummary extends StatelessWidget {
   const EventSummary({
@@ -137,7 +138,7 @@ class EventSummary extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(top: 6),
                 child: StudioButton(
-                  label: _dialogueLabel(dialogue),
+                  label: eventSceneDialogueLabel(project, dialogue),
                   icon: Icons.forum_outlined,
                   secondary: true,
                   onPressed: onDialogue == null
@@ -177,18 +178,5 @@ class EventSummary extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  String _dialogueLabel(SceneYarnDialoguePayload dialogue) {
-    final name =
-        project.dialogues
-            .where((item) => item.id == dialogue.dialogueId)
-            .firstOrNull
-            ?.name ??
-        'Dialogue introuvable : ${dialogue.dialogueId}';
-    final node = dialogue.yarnNodeName?.trim();
-    return node == null || node.isEmpty
-        ? 'Ouvrir le dialogue $name'
-        : 'Ouvrir le dialogue $name · $node';
   }
 }

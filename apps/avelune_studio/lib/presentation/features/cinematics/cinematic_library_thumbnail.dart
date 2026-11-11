@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 import '../../shared/widgets/layout/studio_asset_preview.dart';
+import 'package:avelune_studio/features/cinematics/application/cinematic_library_filter.dart';
 import 'package:avelune_studio/features/events/application/event_map_loader.dart';
 import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 
@@ -50,10 +51,11 @@ class _CinematicLibraryThumbnailState extends State<CinematicLibraryThumbnail> {
           final loaded = snapshot.connectionState == ConnectionState.done
               ? snapshot.data
               : null;
-          final candidate = open ?? loaded;
-          final map = widget.mapId != null && candidate?.id == widget.mapId
-              ? candidate
-              : null;
+          final map = cinematicThumbnailMap(
+            mapId: widget.mapId,
+            open: open,
+            loaded: loaded,
+          );
           final settings = widget.loader.workspace.project?.settings;
           if (map == null || settings == null) {
             return Tooltip(

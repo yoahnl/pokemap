@@ -3,6 +3,20 @@ import 'package:flutter/material.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
+import 'package:avelune_studio/features/resources/application/resource_item_action_matrix.dart';
+
+const _actionIcons = {
+  ResourceItemActionKind.terrainEdit: Icons.edit_outlined,
+  ResourceItemActionKind.terrainRename: Icons.drive_file_rename_outline,
+  ResourceItemActionKind.tilesetInformation: Icons.edit_outlined,
+  ResourceItemActionKind.move: Icons.drive_file_move_outlined,
+  ResourceItemActionKind.usages: Icons.account_tree_outlined,
+  ResourceItemActionKind.replaceSource: Icons.compare_outlined,
+  ResourceItemActionKind.duplicateTerrain: Icons.copy_outlined,
+  ResourceItemActionKind.removeTerrain: Icons.delete_outline,
+  ResourceItemActionKind.duplicateDefinition: Icons.copy_outlined,
+  ResourceItemActionKind.remove: Icons.delete_outline,
+};
 
 class ResourceItemActions extends StatelessWidget {
   const ResourceItemActions({
@@ -25,46 +39,33 @@ class ResourceItemActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final callbacks = {
+      ResourceItemActionKind.terrainEdit: onTerrainEdit,
+      ResourceItemActionKind.terrainRename: onInformation,
+      ResourceItemActionKind.tilesetInformation: onInformation,
+      ResourceItemActionKind.move: onMove,
+      ResourceItemActionKind.usages: onUsages,
+      ResourceItemActionKind.replaceSource: onReplace,
+      ResourceItemActionKind.duplicateTerrain: onDuplicate,
+      ResourceItemActionKind.removeTerrain: onRemove,
+      ResourceItemActionKind.duplicateDefinition: onDuplicate,
+      ResourceItemActionKind.remove: onRemove,
+    };
     final actions = <(String, IconData, ValueChanged<ResourceItem>)>[
-      if (item.terrain != null && onTerrainEdit != null)
-        ('Modifier les raccords', Icons.edit_outlined, onTerrainEdit!),
-      if (item.terrain != null && onInformation != null)
+      for (final entry in resourceItemActionMatrix(
+        item,
+        onInformation: onInformation != null,
+        onMove: onMove != null,
+        onUsages: onUsages != null,
+        onReplace: onReplace != null,
+        onRemove: onRemove != null,
+        onDuplicate: onDuplicate != null,
+        onTerrainEdit: onTerrainEdit != null,
+      ))
         (
-          'Renommer le terrain…',
-          Icons.drive_file_rename_outline,
-          onInformation!,
-        ),
-      if (item.tileset != null && onInformation != null)
-        ('Modifier les informations', Icons.edit_outlined, onInformation!),
-      if (onMove != null &&
-          (item.tileset != null ||
-              item.element != null ||
-              item.terrain != null))
-        ('Déplacer vers…', Icons.drive_file_move_outlined, onMove!),
-      if (onUsages != null &&
-          (item.tileset != null ||
-              item.element != null ||
-              item.terrain != null))
-        (
-          'Voir les usages dans le projet',
-          Icons.account_tree_outlined,
-          onUsages!,
-        ),
-      if (item.tileset != null && onReplace != null)
-        ('Remplacer l’image source…', Icons.compare_outlined, onReplace!),
-      if (item.terrain != null && onDuplicate != null)
-        ('Dupliquer le terrain…', Icons.copy_outlined, onDuplicate!),
-      if (item.terrain != null && onRemove != null)
-        ('Supprimer le terrain…', Icons.delete_outline, onRemove!),
-      if (item.element != null && onDuplicate != null)
-        ('Dupliquer la définition…', Icons.copy_outlined, onDuplicate!),
-      if (onRemove != null && (item.tileset != null || item.element != null))
-        (
-          item.element == null
-              ? 'Supprimer la planche…'
-              : 'Supprimer la définition…',
-          Icons.delete_outline,
-          onRemove!,
+          entry.label,
+          _actionIcons[entry.kind]!,
+          callbacks[entry.kind]!,
         ),
     ];
     if (actions.isEmpty) return const SizedBox();

@@ -139,6 +139,12 @@ extension PokemonCombatValidation on PokemonCombatController {
         if (pokemon.moves.isEmpty) {
           return 'Ajoutez au moins une attaque à chaque Pokémon du dresseur.';
         }
+        if (pokemon.moves.length > pokemonTrainerMoveLimit) {
+          return pokemonTrainerMoveLimitProblem(
+            pokemon.speciesId,
+            pokemon.moves.length,
+          );
+        }
         if (!index.entries.any(
           (species) => species.id == pokemon.speciesId && species.enabled,
         )) {

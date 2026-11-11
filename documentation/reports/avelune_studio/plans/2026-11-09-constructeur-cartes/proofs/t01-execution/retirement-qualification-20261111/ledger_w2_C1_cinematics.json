@@ -1,0 +1,607 @@
+{
+ "zone": "C1_cinematics",
+ "items": [
+  {
+   "item": "presentation_page_shortcuts: table de touches et garde du texte en edition",
+   "status": "ui_only",
+   "from": "apps/avelune_studio/lib/presentation/features/presentations/presentation_page_shortcuts.dart:_PresentationPageShortcuts.editingText/handleShortcut",
+   "to": "-",
+   "tests": [],
+   "mutationDetected": null,
+   "note": "Pur raccourci clavier + garde de focus (EditableText) + garde ModalRoute : liste dans uiOnly. Les actions appelees sont deja dans les proprietaires (controller.save/undo/redo, transport.*)."
+  },
+  {
+   "item": "cinematic_page_timeline: raccourcis",
+   "status": "ui_only",
+   "from": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_page_timeline.dart:timeline() bindings",
+   "to": "-",
+   "tests": [],
+   "mutationDetected": null,
+   "note": "Table de raccourcis (textAwareEditorShortcuts) : uiOnly. Le corps de onSelect (remplacement de selection + seek) est extrait : apps/avelune_studio/lib/features/cinematics/application/cinematic_selection_rules.dart:selectOnlyCinematicStep, teste par apps/avelune_studio/test/cinematics/cinematic_selection_owner_test.dart."
+  },
+  {
+   "item": "presentation_page_commands selectAddedClip (seek au debut du clip)",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/presentations/presentation_page_commands.dart:selectAddedClip",
+   "to": "apps/avelune_studio/lib/features/presentations/coordination/presentation_editing_sessions.dart:PresentationEditingSessions.revealAddedClip",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/presentations/presentation_page_actions_owner_test.dart",
+     "test": "an added clip becomes the only selection and the playhead jumps to its start"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "installPreview + selectClip + seek(startUs) dans le proprietaire de session (coordination, il porte le transport et les editeurs de timeline). Difference mineure : forAsset reconfigure l editeur meme si le bail apercu n est pas proprietaire (legacy utilisait view.editing deja configure)."
+  },
+  {
+   "item": "presentation_page_commands construction de la commande deleteSelection",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/presentations/presentation_page_commands.dart:deleteSelection",
+   "to": "apps/avelune_studio/lib/features/presentations/application/presentation_workspace_editing.dart:PresentationWorkspaceEditing.deleteClips",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/presentations/presentation_page_actions_owner_test.dart",
+     "test": "deleting the selected clips removes them in one undoable step"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Refuse une selection vide et une saisie invalide (flushEdits), sinon presentationClip.deleteBatch. Le legacy appelle encore flush() avant (double flush idempotent)."
+  },
+  {
+   "item": "presentation_page_preview consumers()",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/presentations/presentation_page_preview.dart:consumers",
+   "to": "apps/avelune_studio/lib/features/presentations/application/presentation_workspace_references.dart:PresentationWorkspaceReferences.sceneUses",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/presentations/presentation_scene_uses_owner_test.dart",
+     "test": "scene uses merge saved scenes with drafts and follow the selected interaction cue"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Fusion scenes du projet + brouillons (brouillon prioritaire par id), filtre par repere d interaction selectionne. Typedef PresentationSceneUse."
+  },
+  {
+   "item": "presentation_page_preview resolution de scene de scenario",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/presentations/presentation_page_preview.dart:scenarioPreview (liste + choix)",
+   "to": "apps/avelune_studio/lib/features/presentations/application/presentation_workspace_references.dart:scenarioScenes/presentationScenarioScene/presentationScenarioUnlinkedError",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/presentations/presentation_scene_uses_owner_test.dart",
+     "test": "the scenario preview only offers saved scenes and resolves the preferred one"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Scenes enregistrees seulement ; scene preferee, sinon unique, sinon null = la UI demande (dialogue, uiOnly)."
+  },
+  {
+   "item": "presentation_page_library_actions garde de dialogue perime",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/presentations/presentation_page_library_actions.dart:documentMenu (activeId/revision)",
+   "to": "apps/avelune_studio/lib/features/presentations/application/presentation_workspace_library.dart:documentTicket/holdsDocument (typedef PresentationDocumentTicket)",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/presentations/presentation_page_actions_owner_test.dart",
+     "test": "a document ticket goes stale after an edit or when another document opens"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Ticket (id, revision) pris avant le dialogue, verifie apres le choix et apres la confirmation de suppression."
+  },
+  {
+   "item": "presentation_timeline_track construction de la commande editTrack",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/presentations/presentation_timeline_track.dart:editTrack",
+   "to": "apps/avelune_studio/lib/features/presentations/application/presentation_track_commands.dart:presentationTrackUpdateCommand/presentationTrackMoveCommand",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/presentations/presentation_track_commands_owner_test.dart",
+     "test": "a track edit renames it and changes its hold policy on disk"
+    },
+    {
+     "file": "apps/avelune_studio/test/presentations/presentation_track_commands_owner_test.dart",
+     "test": "moving a track stays inside the track list"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Le dialogue (champs, boutons) reste UI."
+  },
+  {
+   "item": "presentation_timeline_track bandeau de refus",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/presentations/presentation_timeline_track.dart:command",
+   "to": "apps/avelune_studio/lib/features/presentations/application/presentation_track_commands.dart:runPresentationTimelineCommand",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/presentations/presentation_track_commands_owner_test.dart",
+     "test": "a refused timeline command reports a banner and sends nothing"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Retourne le message « Operation refusee : ... » ou null ; la UI le pose dans view.actionError."
+  },
+  {
+   "item": "presentation_inspector_text fontFamily \"\" -> null",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/presentations/presentation_inspector_text.dart:textFields Police onChanged",
+   "to": "apps/avelune_studio/lib/features/presentations/application/presentation_field_input.dart:presentationFontFamilyPatch",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/presentations/presentation_inspector_fields_owner_test.dart",
+     "test": "choosing the Player font clears the family and keeps the other style values"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "map_core normalise deja fontFamily \"\" en null au decodage : la 1re mutation survivait par le chemin disque, le test verifie donc aussi le patch du proprietaire."
+  },
+  {
+   "item": "presentation_inspector_transform number() (degres<->tours, trajectoire absolue « to »)",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/presentations/presentation_inspector_transform.dart:transformFields.number",
+   "to": "apps/avelune_studio/lib/features/presentations/application/presentation_pose_projection.dart:presentationPoseFieldValue/commitPresentationPoseField/presentationRotationDegreeFactor (+ presentationPoseKey, presentationPosePatch existants)",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/presentations/presentation_inspector_fields_owner_test.dart",
+     "test": "rotation is typed in degrees and stored in turns on the whole trajectory"
+    },
+    {
+     "file": "apps/avelune_studio/test/presentations/presentation_inspector_fields_owner_test.dart",
+     "test": "an invalid pose value is flagged and leaves the clip untouched"
+    },
+    {
+     "file": "apps/avelune_studio/test/presentations/presentation_inspector_fields_owner_test.dart",
+     "test": "an orientation override reads its own pose with the field fallback"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Le patch legacy etait identique a presentationPosePatch(preserveTrajectoryDelta:false) : reutilise, pas de duplication. La valeur affichee lit la pose encodee brute (override absent -> repli du champ), pas presentationPose()."
+  },
+  {
+   "item": "cinematic_page_map dispatch de mode de point()",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_page_map.dart:point",
+   "to": "apps/avelune_studio/lib/features/cinematics/application/cinematic_map_point.dart:CinematicWorkspaceMapPoint.applyMapPoint (+ enum CinematicMapMode deplace, re-exporte par cinematic_view_state.dart)",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_map_point_owner_test.dart",
+     "test": "select and pan ignore clicks and an outside click edits nothing"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_map_point_owner_test.dart",
+     "test": "a destination click gives the move its own stage point and returns to select"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_map_point_owner_test.dart",
+     "test": "a refused destination keeps the destination mode"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_map_point_owner_test.dart",
+     "test": "a placement click stages the actor and path clicks append waypoints in path mode"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Retourne null (select/pan), ou (mode suivant, erreur spatiale)."
+  },
+  {
+   "item": "cinematic_page_commands index de collage",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_page_commands.dart:paste",
+   "to": "apps/avelune_studio/lib/features/cinematics/application/cinematic_selection_rules.dart:cinematicPasteIndex",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_selection_owner_test.dart",
+     "test": "paste lands after the anchor step or at the end without one"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "item": "cinematic_page_commands id de dossier vide -> null",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_page_commands.dart:create",
+   "to": "apps/avelune_studio/lib/features/cinematics/application/cinematic_library_filter.dart:cinematicLibraryFolderOrRoot",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_selection_owner_test.dart",
+     "test": "the library root folder creates cinematics outside any folder"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "item": "cinematic_view_state reconcile",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_view_state.dart:CinematicViewState.reconcile",
+   "to": "apps/avelune_studio/lib/features/cinematics/application/cinematic_selection_rules.dart:reconcileCinematicSelection",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_selection_owner_test.dart",
+     "test": "reconcile drops deleted steps and falls back to the first actor"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "item": "cinematic_timeline_gestures multi-selection par modificateur",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_timeline_gestures.dart:select",
+   "to": "apps/avelune_studio/lib/features/cinematics/application/cinematic_timeline_rules.dart:toggleCinematicStepSelection",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_selection_owner_test.dart",
+     "test": "a modifier click toggles steps so several can be deleted together"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_selection_owner_test.dart",
+     "test": "a plain click replaces the selection and seeks to the step"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "La lecture des touches Shift/Meta/Control reste uiOnly. Place dans cinematic_timeline_rules (deja importe) pour ne pas allonger cinematic_timeline_editor.dart (329 lignes, rouge preexistant de la regle 300 lignes)."
+  },
+  {
+   "item": "cinematic_map_overlay selection de clip personnalise",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_map_overlay.dart:_actor (facing + custom)",
+   "to": "apps/avelune_studio/lib/features/cinematics/application/cinematic_actor_overlay.dart:cinematicActorFacing/cinematicActorCustomClip",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_actor_overlay_owner_test.dart",
+     "test": "preview directions map to map facings with south as the fallback"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_actor_overlay_owner_test.dart",
+     "test": "the active custom animation picks the clip of its direction or a generic one"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "item": "cinematic_map_overlay jump lift",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_map_overlay.dart:_actor top",
+   "to": "apps/avelune_studio/lib/features/cinematics/application/cinematic_actor_overlay.dart:cinematicActorLiftedRow",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_actor_overlay_owner_test.dart",
+     "test": "a jumping actor is drawn above its ground row by the lift of the frame"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Teste avec une vraie frame de plan (saut ajoute sur la cinematique UI10 et la carte jardin lue sur disque). La conversion cellule->pixel reste UI."
+  },
+  {
+   "item": "cinematic_library_thumbnail garde de carte perimee",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_library_thumbnail.dart:build",
+   "to": "apps/avelune_studio/lib/features/cinematics/application/cinematic_library_filter.dart:cinematicThumbnailMap",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_library_thumbnail_owner_test.dart",
+     "test": "the open document wins over the loaded copy of the same map"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_library_thumbnail_owner_test.dart",
+     "test": "a map loaded for a previous choice is never shown for the new one"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Les libelles d infobulle restent UI."
+  },
+  {
+   "item": "cinematic_inspector interrupteur de croisement 3D seulement",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_inspector.dart:_documentFields",
+   "to": "apps/avelune_studio/lib/features/cinematics/application/cinematic_inspector_rules.dart:cinematicCrossingEditable",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_inspector_rules_owner_test.dart",
+     "test": "the actor crossing option is only offered on 3D projects"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Regle d affichage seulement ; le proprietaire accepte toujours l edition en 2D (voir decisions)."
+  },
+  {
+   "item": "cinematic_inspector repli d onglet",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_inspector.dart:build selectedTab",
+   "to": "apps/avelune_studio/lib/features/cinematics/application/cinematic_inspector_rules.dart:cinematicInspectorTabIds/cinematicInspectorTab",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_inspector_rules_owner_test.dart",
+     "test": "an unknown inspector tab falls back to the properties tab"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Les libelles des onglets restent UI."
+  },
+  {
+   "item": "cinematic_inspector_commands filtre de type de media",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_inspector_commands.dart:_commandFields",
+   "to": "apps/avelune_studio/lib/features/cinematics/application/cinematic_inspector_rules.dart:cinematicCommandMediaKind/cinematicCommandMediaChoices",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_inspector_rules_owner_test.dart",
+     "test": "command steps only offer project media of their own kind"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "item": "cinematic_inspector_step dispatch d etape d acteur",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_inspector_step.dart:_stepFields Acteur onChanged + _updateMotion",
+   "to": "apps/avelune_studio/lib/features/cinematics/application/cinematic_inspector_rules.dart:CinematicInspectorDispatch.stepWithActor/stepWithMotion",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_step_dispatch_owner_test.dart",
+     "test": "changing the actor of each actor step uses the operation of its kind"
+    },
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_step_dispatch_owner_test.dart",
+     "test": "motion edits reach moves and jumps through their own operation"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "item": "cinematic_inspector_step regles de jointure parallele",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_inspector_step.dart:_parallelFields",
+   "to": "apps/avelune_studio/lib/features/cinematics/application/cinematic_inspector_rules.dart:cinematicParallelJoinAvailable/cinematicParallelEdit/cinematicParallelEditError",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_step_dispatch_owner_test.dart",
+     "test": "joining the previous step follows the parallel rules and explains refusals"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Le texte d aide « premiere etape » utilise encore l index dans la UI (affichage)."
+  },
+  {
+   "item": "cinematic_inspector_step parse du point relatif",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_inspector_step.dart:_relativePointFields tryCommit",
+   "to": "apps/avelune_studio/lib/features/cinematics/application/cinematic_inspector_rules.dart:cinematicStagePointWithAxis",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_inspector_rules_owner_test.dart",
+     "test": "a typed stage point coordinate replaces one axis and is saved"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Comportement conserve : la virgule decimale est refusee (voir decisions)."
+  },
+  {
+   "item": "cinematic_inspector_step reordonnancement des waypoints",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_inspector_step.dart:_waypoint",
+   "to": "apps/avelune_studio/lib/features/cinematics/application/cinematic_inspector_rules.dart:cinematicWaypointsMovedUp/cinematicWaypointsWithout",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/cinematics/cinematic_inspector_rules_owner_test.dart",
+     "test": "waypoints move up one place or leave the path without touching the source list"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "item": "Garde de reentrance PresentationWorkspaceController._create",
+   "status": "replaced",
+   "from": "apps/avelune_studio/lib/presentation/features/presentations/presentation_page_header.dart (bouton desactive pendant busy)",
+   "to": "apps/avelune_studio/lib/features/presentations/application/presentation_workspace_library.dart:_create (_creating, presentation_workspace_controller.dart:29)",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/presentations/presentation_creation_reentrancy_owner_test.dart",
+     "test": "a second creation started while one is pending is refused and only one presentation reaches disk"
+    },
+    {
+     "file": "apps/avelune_studio/test/presentations/presentation_creation_reentrancy_owner_test.dart",
+     "test": "a failed creation releases the guard for the next one"
+    },
+    {
+     "file": "apps/avelune_studio/test/presentations/presentation_creation_reentrancy_owner_test.dart",
+     "test": "sequential creations are still accepted"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "2e create pendant une creation : false, sans erreur ni changement d etat ; la garde est relachee dans finally (succes, echec, ticket perime). Avant : la 2e creation invalidait la 1re (_generation)."
+  },
+  {
+   "item": "DECISION timeline : clamp hors bornes et refus de piste incompatible",
+   "status": "reported",
+   "from": "packages/map_authoring/lib/src/domains/narrative/presentation_timeline_editing_controller.dart:_updateMove (lecture seule)",
+   "to": "apps/avelune_studio/lib/features/presentations/coordination/presentation_editing_sessions.dart:forAsset + application/presentation_workspace_editing.dart:apply (chemin Studio)",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/presentations/presentation_timeline_drag_owner_test.dart",
+     "test": "a move past the end is clamped to the document bounds on the Studio path"
+    },
+    {
+     "file": "apps/avelune_studio/test/presentations/presentation_timeline_drag_owner_test.dart",
+     "test": "a move onto an incompatible track keeps the clip on its track and leaves the document untouched"
+    },
+    {
+     "file": "apps/avelune_studio/test/presentations/presentation_timeline_drag_owner_test.dart",
+     "test": "an incompatible target with a time delta only applies the time change"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Clamp confirme sur le chemin Studio. Refus de piste incompatible : seulement partiel dans map_authoring (voir decisions) ; packages/map_authoring non modifie. Mutation faite dans la copie QA sur map_authoring (clamp retire)."
+  }
+ ],
+ "uiOnly": [
+  {
+   "where": "apps/avelune_studio/lib/presentation/features/presentations/presentation_page_shortcuts.dart:_PresentationPageShortcuts",
+   "what": "Cmd/Ctrl+S save ; Cmd/Ctrl+Z undo, +Shift redo (apres flush) ; Espace lecture/pause ; fleches pas avant/arriere ; Debut/Fin seek(0)/seek(duree) ; ignore si texte en edition (EditableText focalise) ou route modale non courante.",
+   "forRebuild": "Rebrancher sur controller.save/undo/redo apres flushEdits et sur transport.play/pause/stepForward/stepBackward/seek ; conserver la garde texte/modale."
+  },
+  {
+   "where": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_page_timeline.dart:timeline() bindings",
+   "what": "Suppr/Retour arriere -> deleteSteps(selection) ; Cmd/Ctrl+Z undo, +Shift redo ; Cmd/Ctrl+C copySteps ; Cmd/Ctrl+V pasteSteps(cinematicPasteIndex) ; Cmd/Ctrl+D duplicateSteps ; Espace play (prepareMapPlan puis transport.play / pause) ; via textAwareEditorShortcuts.",
+   "forRebuild": "Memes actions du CinematicWorkspaceController apres flush ; garder la neutralisation pendant la saisie de texte."
+  },
+  {
+   "where": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_timeline_gestures.dart:select",
+   "what": "Lecture de HardwareKeyboard (Shift/Meta/Control) pour choisir bascule (toggleCinematicStepSelection) ou selection simple (selectOnlyCinematicStep via onSelect).",
+   "forRebuild": "Lire les modificateurs dans le geste et appeler le proprietaire correspondant."
+  },
+  {
+   "where": "apps/avelune_studio/lib/presentation/features/presentations/presentation_page_preview.dart:scenarioPreview dialogue",
+   "what": "Choix de la scene a tester quand presentationScenarioScene retourne null (plusieurs scenes, pas de preferee).",
+   "forRebuild": "Afficher le choix parmi controller.scenarioScenes(id)."
+  },
+  {
+   "where": "apps/avelune_studio/lib/presentation/features/presentations/presentation_timeline.dart:update/finish",
+   "what": "Refus legacy des deplacements hors bornes / piste incompatible (bandeau « Deplacement refuse ») : contredit la decision de Yoahn (clamp) pour la partie hors bornes ; non extrait volontairement, disparait avec l ancienne UI.",
+   "forRebuild": "Utiliser PresentationTimelineEditingController (clamp) ; pour la piste incompatible voir decisions."
+  }
+ ],
+ "decisions": [
+  {
+   "topic": "Timeline Presentation : deplacement vers une piste incompatible (decision Yoahn du clamp)",
+   "legacyBehaviour": "Ancienne UI : refus total du glisser (invalid=true -> pas d updateDrag, bandeau, cancelDrag au relachement) : apps/avelune_studio/lib/presentation/features/presentations/presentation_timeline.dart:102-103,121-126,138-139.",
+   "ownerBehaviour": "Clamp hors bornes confirme sur le chemin Studio (test). Piste incompatible : _updateMove ignore silencieusement la piste cible incompatible (et toute piste cible si plusieurs clips) mais applique quand meme le delta temporel ; aucun signal de refus. Avec delta 0, finishDrag leve StateError (« produced no change ») et le document reste intact ; avec delta non nul, le document EST modifie (temps seulement). Une commande presentationClip.batch explicite vers une piste incompatible est refusee par map_core (apply=false, document inchange).",
+   "where": "packages/map_authoring/lib/src/domains/narrative/presentation_timeline_editing_controller.dart:321-331 (_updateMove : if (targetTrack != null && targetTrack.kind == sourceClip.trackKind) sans branche else) et :166-181 (updateDrag sans retour d etat) ; manque : un refus explicite (etat invalide expose ou absence de commande) pour « deplacement vers piste incompatible refuse sans modifier le document ». Non modifie (packages interdits)."
+  },
+  {
+   "topic": "Creation concurrente de presentation",
+   "legacyBehaviour": "Bouton « Nouvelle presentation » desactive pendant busy (presentation_page_header.dart).",
+   "ownerBehaviour": "Desormais refusee par le proprietaire (_creating) : la 2e creation retourne false sans erreur ni effet ; avant, elle invalidait la 1re via _generation. Ordre de Yoahn applique.",
+   "where": "apps/avelune_studio/lib/features/presentations/application/presentation_workspace_library.dart:88-118"
+  },
+  {
+   "topic": "Interrupteur de croisement des acteurs en 2D",
+   "legacyBehaviour": "Option affichee seulement si project.settings.dimension == threeD.",
+   "ownerBehaviour": "Regle d affichage extraite (cinematicCrossingEditable) ; editFromInspector accepte toujours allowMobileActorCrossing en 2D. Non tranche.",
+   "where": "apps/avelune_studio/lib/features/cinematics/application/cinematic_inspector_rules.dart:cinematicCrossingEditable vs apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_inspector.dart:editFromInspector"
+  },
+  {
+   "topic": "Virgule decimale dans les coordonnees de repere",
+   "legacyBehaviour": "Champ « Position/Decalage x|y (cases) » : double.tryParse sans remplacement, « 1,5 » refuse.",
+   "ownerBehaviour": "Conserve tel quel dans cinematicStagePointWithAxis ; les champs Presentation acceptent la virgule (parsePresentationFieldText). Incoherence non tranchee.",
+   "where": "apps/avelune_studio/lib/features/cinematics/application/cinematic_inspector_rules.dart:cinematicStagePointWithAxis vs apps/avelune_studio/lib/features/presentations/application/presentation_field_input.dart:parsePresentationFieldText"
+  }
+ ],
+ "commands": [
+  {
+   "command": "git status --short (debut et fin)",
+   "cwd": "/Users/karim/Project/pokemonProject",
+   "exitCode": 0,
+   "result": "aucune modification git d ecriture ; seuls mes fichiers listes dans createdFiles/modifiedFiles ; nombreux autres fichiers modifies par d autres sessions (non touches)"
+  },
+  {
+   "command": "flutter test --no-pub <17 nouveaux fichiers dont 12 tests _owner_test> (arbre reel, final)",
+   "cwd": "apps/avelune_studio",
+   "exitCode": 0,
+   "result": "+40 -0"
+  },
+  {
+   "command": "flutter test --no-pub <12 nouveaux tests> (copie QA HEAD + mes fichiers)",
+   "cwd": "/Users/karim/Library/Caches/AveluneQA/t01-w2-C1_cinematics/apps/avelune_studio",
+   "exitCode": 0,
+   "result": "+40 -0 (un 1er passage concurrent avec la suite legacy : +38 -2 WorkspaceAccessException file_unavailable sous charge ; relance : +40)"
+  },
+  {
+   "command": "flutter test --no-pub -r failures-only <56 anciens tests de la zone (w2c1_legacy_all.txt)>",
+   "cwd": "apps/avelune_studio",
+   "exitCode": 1,
+   "result": "+259 -2 : workspace_text_editing_shortcuts_test (macOS) rouge preexistant de studio-full-suite-red-after-wave1.txt ; presentation_working_catalog_scope_test timeout 30 s sous charge, relance seule +1 -0"
+  },
+  {
+   "command": "flutter test --no-pub test/presentations/presentation_working_catalog_scope_test.dart",
+   "cwd": "apps/avelune_studio",
+   "exitCode": 0,
+   "result": "+1 -0"
+  },
+  {
+   "command": "flutter test --no-pub test/architecture/architecture_boundaries_test.dart",
+   "cwd": "apps/avelune_studio",
+   "exitCode": 1,
+   "result": "+3 -4 : les 4 rouges preexistants de la liste ; aucun de mes fichiers dans les violations (regle 300 lignes : cinematic_timeline_editor.dart garde 329 lignes, cinematic_inspector_step.dart passe de 473 a 409)"
+  },
+  {
+   "command": "flutter analyze --no-pub <45 fichiers crees ou modifies>",
+   "cwd": "apps/avelune_studio",
+   "exitCode": 1,
+   "result": "0 erreur, 0 warning, 2 infos preexistantes (curly_braces) dans presentation_workspace_editing.dart:39 et presentation_page_commands.dart:53, lignes non touchees"
+  },
+  {
+   "command": "python3 check_clean.py <17 crees + 6 proprietaires modifies>",
+   "cwd": "/Users/karim/Project/pokemonProject",
+   "exitCode": 0,
+   "result": "CLEAN x23"
+  },
+  {
+   "command": "python3 w2c1_mutate.py (copie QA, 12 mutations, une par nouveau test)",
+   "cwd": "/Users/karim/Library/Caches/AveluneQA/t01-w2-C1_cinematics",
+   "exitCode": 0,
+   "result": "12 DETECTED (2 rejouees : scene_uses mutation initiale ne compilait pas ; inspector_fields survivait car map_core normalise deja fontFamily \"\" -> null, test renforce sur le patch du proprietaire)"
+  },
+  {
+   "command": "rm -rf /Users/karim/Library/Caches/AveluneQA/t01-w2-C1_cinematics",
+   "cwd": "/",
+   "exitCode": 0,
+   "result": "copie QA supprimee"
+  }
+ ],
+ "createdFiles": [
+  "apps/avelune_studio/lib/features/cinematics/application/cinematic_actor_overlay.dart",
+  "apps/avelune_studio/lib/features/cinematics/application/cinematic_inspector_rules.dart",
+  "apps/avelune_studio/lib/features/cinematics/application/cinematic_map_point.dart",
+  "apps/avelune_studio/lib/features/cinematics/application/cinematic_selection_rules.dart",
+  "apps/avelune_studio/lib/features/presentations/application/presentation_track_commands.dart",
+  "apps/avelune_studio/test/cinematics/cinematic_actor_overlay_owner_test.dart",
+  "apps/avelune_studio/test/cinematics/cinematic_inspector_rules_owner_test.dart",
+  "apps/avelune_studio/test/cinematics/cinematic_library_thumbnail_owner_test.dart",
+  "apps/avelune_studio/test/cinematics/cinematic_map_point_owner_test.dart",
+  "apps/avelune_studio/test/cinematics/cinematic_selection_owner_test.dart",
+  "apps/avelune_studio/test/cinematics/cinematic_step_dispatch_owner_test.dart",
+  "apps/avelune_studio/test/presentations/presentation_creation_reentrancy_owner_test.dart",
+  "apps/avelune_studio/test/presentations/presentation_inspector_fields_owner_test.dart",
+  "apps/avelune_studio/test/presentations/presentation_page_actions_owner_test.dart",
+  "apps/avelune_studio/test/presentations/presentation_scene_uses_owner_test.dart",
+  "apps/avelune_studio/test/presentations/presentation_timeline_drag_owner_test.dart",
+  "apps/avelune_studio/test/presentations/presentation_track_commands_owner_test.dart"
+ ],
+ "modifiedFiles": [
+  "apps/avelune_studio/lib/features/cinematics/application/cinematic_library_filter.dart",
+  "apps/avelune_studio/lib/features/cinematics/application/cinematic_timeline_rules.dart",
+  "apps/avelune_studio/lib/features/presentations/application/presentation_field_input.dart",
+  "apps/avelune_studio/lib/features/presentations/application/presentation_pose_projection.dart",
+  "apps/avelune_studio/lib/features/presentations/application/presentation_workspace_controller.dart",
+  "apps/avelune_studio/lib/features/presentations/application/presentation_workspace_editing.dart",
+  "apps/avelune_studio/lib/features/presentations/application/presentation_workspace_library.dart",
+  "apps/avelune_studio/lib/features/presentations/application/presentation_workspace_references.dart",
+  "apps/avelune_studio/lib/features/presentations/coordination/presentation_editing_sessions.dart",
+  "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_inspector.dart",
+  "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_inspector_commands.dart",
+  "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_inspector_step.dart",
+  "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_library_thumbnail.dart",
+  "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_map_overlay.dart",
+  "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_page_commands.dart",
+  "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_page_map.dart",
+  "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_page_timeline.dart",
+  "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_timeline_gestures.dart",
+  "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_view_state.dart",
+  "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_workspace_page.dart",
+  "apps/avelune_studio/lib/presentation/features/presentations/presentation_inspector.dart",
+  "apps/avelune_studio/lib/presentation/features/presentations/presentation_inspector_text.dart",
+  "apps/avelune_studio/lib/presentation/features/presentations/presentation_inspector_transform.dart",
+  "apps/avelune_studio/lib/presentation/features/presentations/presentation_page_commands.dart",
+  "apps/avelune_studio/lib/presentation/features/presentations/presentation_page_library_actions.dart",
+  "apps/avelune_studio/lib/presentation/features/presentations/presentation_page_preview.dart",
+  "apps/avelune_studio/lib/presentation/features/presentations/presentation_timeline.dart",
+  "apps/avelune_studio/lib/presentation/features/presentations/presentation_timeline_track.dart"
+ ]
+}

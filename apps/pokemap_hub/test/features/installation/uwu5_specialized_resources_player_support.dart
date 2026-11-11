@@ -14,7 +14,8 @@ import 'package:path/path.dart' as p;
 import 'package:pokemap_hub/pokemap_hub_player.dart';
 import 'package:pub_semver/pub_semver.dart';
 
-import '../../../../avelune_studio/test/support/m2_ui_fixture.dart' show pumpIo;
+import '../../../../avelune_studio/test/support/m2_ui_owner_fixture.dart'
+    show pumpIo;
 import 'uwu5_specialized_resources_player_movement.dart';
 
 Future<void> playUwu5InstalledPackage(

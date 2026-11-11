@@ -4,6 +4,7 @@ import 'package:map_core/map_core_domain.dart';
 
 import '../domain/pokemon_combat_port.dart';
 import '../domain/pokemon_workspace_models.dart';
+import 'pokemon_trainer_move_limit.dart';
 
 part 'pokemon_combat_validation.dart';
 part 'pokemon_combat_drafts.dart';

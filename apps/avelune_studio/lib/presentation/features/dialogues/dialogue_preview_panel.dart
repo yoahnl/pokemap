@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../features/dialogues/application/dialogue_workspace_authoring.dart';
 import '../../../features/dialogues/application/dialogue_workspace_controller.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
@@ -36,7 +37,7 @@ class DialoguePreviewPanel extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'Départ : ${session?.startNode ?? session?.entry.defaultStartNode ?? 'départ du document'}',
+                  'Départ : ${dialoguePreviewStartLabel(session)}',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
                 const SizedBox(height: 8),
@@ -64,9 +65,7 @@ class DialoguePreviewPanel extends StatelessWidget {
                       tone: StudioTone.feature,
                       onTap: () => controller.choosePreview(i),
                     ),
-                  if (preview.line != null &&
-                      preview.error == null &&
-                      !preview.ended)
+                  if (dialoguePreviewCanContinue(preview))
                     Align(
                       alignment: Alignment.centerRight,
                       child: StudioButton(

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/pokemon/application/pokemon_commerce_controller.dart';
-import '../../../features/pokemon/domain/pokemon_commerce_port.dart';
 import '../../../features/pokemon/application/pokemon_shop_editing.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import 'pokemon_ui_parts.dart';
@@ -36,14 +35,9 @@ class PokemonCommerceReferences extends StatelessWidget {
             StudioButton(
               label: 'Analyser les usages du projet',
               secondary: true,
-              onPressed:
-                  commerce.loading ||
-                      commerce.saving ||
-                      commerce.importing ||
-                      commerce.dirty ||
-                      commerce.port is! PokemonCommerceReferencePort
-                  ? null
-                  : commerce.analyzeReferences,
+              onPressed: commerce.canAnalyzeReferences
+                  ? commerce.analyzeReferences
+                  : null,
             ),
           ],
         ),

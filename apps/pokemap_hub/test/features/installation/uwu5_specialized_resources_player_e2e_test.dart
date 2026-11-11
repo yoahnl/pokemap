@@ -1,14 +1,16 @@
 import 'dart:io';
 
+import 'package:avelune_studio/features/map_workspace/application/map_border_drawing_draft.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_border_editing_commands.dart';
 import 'package:avelune_studio/features/resources/data/local_resource_adapter.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
-import '../../../../avelune_studio/test/support/map_host_fixture.dart';
-import '../../../../avelune_studio/test/support/m2_ui_fixture.dart' show pumpIo;
+import '../../../../avelune_studio/test/support/m2_ui_owner_fixture.dart'
+    show pumpIo;
+import '../../../../avelune_studio/test/support/map_host_owner_fixture.dart';
 import 'uwu5_specialized_resources_fixture.dart';
 import 'uwu5_specialized_resources_player_support.dart';
 
@@ -22,30 +24,39 @@ void main() {
           ))!;
       addTearDown(() => temporary.delete(recursive: true));
       final package = File(p.join(temporary.path, 'uwu5.avelunegame'));
-      final host = await MapHostFixture.open(
+      final host = await MapHostOwnerFixture.open(
         tester,
         prepareSource: (source) async {
           await prepareUwu5ExportFixture(source);
           await resolveUwu5Character(source);
         },
-        gameExportPicker: (_) async => package,
-        assetBundle: Uwu5StudioAssets(),
       );
       final port = LocalResourceAdapter(
         session: host.source.session,
         mapAdapter: host.source.maps,
       );
       addTearDown(() => tester.runAsync(port.dispose));
-      await tester.ensureVisible(find.text('Bordures'));
-      await tester.tap(find.text('Bordures'));
+      final blueprint = MapBorderEditingCommands.publishedLines(
+        host.maps.project!,
+      ).singleWhere(
+        (entry) => entry.latestPublished!.definition.name == 'Muret conservé',
+      );
+      final stroke = MapBorderDrawingDraft.start(
+        mapId: host.document.current.id,
+        mapSize: host.document.current.size,
+        blueprintId: blueprint.id,
+        alignment: borderTemplateStrokeAlignment(
+          blueprint.latestPublished!.definition.template,
+        ),
+        origin: const GridPos(x: 10, y: 8),
+      ).addAngle(const GridPos(x: 13, y: 8));
+      expect(stroke.canFinish, isTrue);
+      MapBorderEditingCommands(
+        host.document,
+        host.maps.project!,
+      ).finish(stroke);
+      host.maps.notify();
       await pumpIo(tester, frames: 4);
-      await tester.tap(find.byKey(const ValueKey('border-model-picker')));
-      await pumpIo(tester, frames: 2);
-      await tester.tap(find.text('Muret conservé').last);
-      await pumpIo(tester, frames: 2);
-      await host.tapCell(10, 8);
-      await host.tapCell(13, 8);
-      await host.key(LogicalKeyboardKey.enter);
       expect(
         host.document.current.layers.whereType<BorderLayer>(),
         hasLength(1),
@@ -55,10 +66,7 @@ void main() {
           host.document.current.layers.whereType<BorderLayer>().single;
       final materialized = painted.content.features.single.materialization;
       expect(materialized, isNotNull);
-      await tester.runAsync(
-        () => tester.tap(find.byKey(const ValueKey('Enregistrer'))),
-      );
-      await pumpIo(tester, frames: 20);
+      expect(await host.save(), true, reason: host.document.error);
       expect(host.document.dirty, false, reason: host.document.error);
       final receipt =
           (await tester.runAsync(() async {
@@ -100,17 +108,11 @@ void main() {
       expect(authored.settings.defaultPlayerCharacterId, 'uwu5-replacement');
       final authoredMap = host.document.current;
       final filesBeforeExport = await host.disk();
-      await host.openExport();
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Auteur'),
-        'Recette UwU V',
+      expect(
+        await host.exportGame(package, author: 'Recette UwU V'),
+        true,
+        reason: host.gameExport.error,
       );
-      await tester.tap(find.text('Test local').first);
-      await tester.tap(find.byKey(const ValueKey('start-game-export')));
-      for (var i = 0; i < 200 && host.gameExport.outputPath == null; i++) {
-        await pumpIo(tester, frames: 2);
-        if (host.gameExport.error != null) break;
-      }
       expect(
         host.gameExport.outputPath,
         package.path,
@@ -145,18 +147,4 @@ void main() {
     },
     timeout: const Timeout(Duration(minutes: 5)),
   );
-}
-
-class Uwu5StudioAssets extends CachingAssetBundle {
-  @override
-  Future<ByteData> load(String key) async {
-    if (key.startsWith('assets/home/')) {
-      return ByteData.sublistView(
-        await File(
-          p.join(Directory.current.path, '../avelune_studio', key),
-        ).readAsBytes(),
-      );
-    }
-    return rootBundle.load(key);
-  }
 }

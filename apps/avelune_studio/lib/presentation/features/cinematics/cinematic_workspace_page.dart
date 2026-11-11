@@ -6,7 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:map_core/map_core_domain.dart';
 
-import '../../../features/cinematics/application/cinematic_timeline_rules.dart';
+import '../../../features/cinematics/application/cinematic_library_filter.dart';
+import '../../../features/cinematics/application/cinematic_map_point.dart';
+import '../../../features/cinematics/application/cinematic_selection_rules.dart';
 import '../../../features/cinematics/application/cinematic_workspace_controller.dart';
 import '../../../features/dialogues/application/dialogue_workspace_controller.dart';
 import '../../shared/widgets/buttons/studio_button.dart';

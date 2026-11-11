@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
+import '../../../features/events/application/event_outcome_source_summary.dart';
 import '../../../features/events/application/event_workspace_controller.dart';
 import '../../shared/widgets/inputs/studio_choice.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
@@ -59,20 +60,11 @@ class EventOutcomeSummary extends StatelessWidget {
   final ValueChanged<String>? onOpenProducer;
   @override
   Widget build(BuildContext context) {
-    final outcome = source?.when<NarrativeOutcomeRef?>(
-      entityAutorun: (_, _) => null,
-      entityBump: (_, _) => null,
-      entityInteract: (_, _) => null,
-      modelInteract: (_, _) => null,
-      triggerBump: (_, _) => null,
-      triggerEnter: (_, _) => null,
-      mapEnter: (_) => null,
-      outcomeReceived: (o) => o,
+    final summary = summarizeEventOutcomeSource(
+      source: source,
+      catalog: controller.catalog.outcomeSources,
+      scenes: controller.project.scenes,
     );
-    final options = outcome == null
-        ? <NarrativeOutcomeEventSourceOption>[]
-        : controller.catalog.outcomeSources.optionsForOutcome(outcome);
-    final option = options.length == 1 ? options.single : null;
     return SingleChildScrollView(
       child: StudioPanel(
         title: 'Global / Résultats',
@@ -80,35 +72,22 @@ class EventOutcomeSummary extends StatelessWidget {
           const Icon(Icons.flag_outlined, size: 52),
           const SizedBox(height: 20),
           Text(
-            option?.producerLabel ??
-                outcome?.producerId ??
-                'Choisir un producteur',
+            summary.title,
             style: Theme.of(context).textTheme.headlineSmall,
           ),
           const SizedBox(height: 14),
-          Text('Résultat : ${outcome?.outcomeId ?? 'à choisir'}'),
-          Text('Producteur : ${outcome?.producerKind.name ?? 'à choisir'}'),
+          Text(summary.outcomeLabel),
+          Text(summary.producerKindLabel),
           const SizedBox(height: 12),
-          Text(
-            options.length > 1
-                ? 'Producteur ambigu'
-                : option?.unavailableReason ??
-                      (option?.selectable == true
-                          ? 'Résultat disponible'
-                          : 'Résultat absent du catalogue'),
-          ),
-          if (outcome?.producerKind == NarrativeOutcomeProducerKind.scene &&
-              controller.project.scenes
-                      .where((s) => s.id == outcome!.producerId)
-                      .length ==
-                  1) ...[
+          Text(summary.status),
+          if (summary.openableProducerId case final producerId?) ...[
             const SizedBox(height: 12),
             StudioButton(
               label: 'Ouvrir le producteur',
               icon: Icons.open_in_new,
               onPressed: onOpenProducer == null
                   ? null
-                  : () => onOpenProducer!(outcome!.producerId),
+                  : () => onOpenProducer!(producerId),
             ),
           ],
           const SizedBox(height: 20),

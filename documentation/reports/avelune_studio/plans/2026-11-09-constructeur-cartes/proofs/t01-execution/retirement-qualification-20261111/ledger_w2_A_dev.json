@@ -1,0 +1,123 @@
+{
+ "zone": "A_dev",
+ "items": [
+  {
+   "item": "apps/avelune_studio/dev/hgss_lighting_comparison.dart",
+   "status": "replaced",
+   "from": "apps/avelune_studio/dev/hgss_lighting_comparison.dart:copies des fonctions pures + StudioToggleRow/studioTheme/PresentationComparisonControls",
+   "to": "apps/avelune_studio/dev/hgss_lighting_comparison_owner.dart (+ export) ; Switch Material locaux",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/dev/hgss_lighting_comparison_test.dart",
+     "test": "inchangé, +36 verts avec le owner_test"
+    }
+   ],
+   "mutationDetected": null,
+   "note": "Les copies sont supprimées, le fichier réexporte le owner (le test existant l'importe encore). Couleurs de capture figées aux valeurs studioTheme (shadow 0xff000000, primaryContainer 0xff173e70, outlineVariant 0xff20364b) pour garder l'image identique."
+  },
+  {
+   "item": "apps/avelune_studio/dev/map_elements_latency.dart",
+   "status": "replaced",
+   "from": "MapWorkspaceScreen/MapElementsPanel (hôte via studio.main)",
+   "to": "apps/avelune_studio/dev/neutral_map_editing_host.dart + neutral_map_elements_panel.dart (MapEditingSurface, MapWorkspaceController, MapElementCatalog, commandes de visibilité/sélection/réordre)",
+   "tests": [],
+   "mutationDetected": null,
+   "note": "Constat : studio.main n'affiche déjà plus qu'un hôte technique, donc l'ancien harnais ne trouvait plus ses widgets. Un test jetable (supprimé) a monté hôte+panneau sur un vrai projet : clés map-canvas, layer:*, map-element-* présentes et le masquage via le panneau persiste (dirty=false). Perdu par rapport à l'ancien panneau : mise en page/libellés, menu de filtre (remplacé par des chips aux mêmes clés), Tout déverrouiller, annuler/rétablir. La valeur 'panelMounted' désigne désormais le panneau neutre. Non lancé en natif."
+  },
+  {
+   "item": "apps/avelune_studio/dev/model_shadow_performance_main.dart",
+   "status": "replaced",
+   "from": "ModelResourceLibrary/ResourceDetailPanel/StudioToggleRow/studioTheme",
+   "to": "SwitchListTile local sur ModelShadowDraft + ResourceNavigation.mutate('model3d.configure')",
+   "tests": [],
+   "mutationDetected": null,
+   "note": "Mêmes mesures (feedbackUs, durableUs, totalUs, phases). Les entrées 'library' et 'detail' passent désormais par le même chemin propriétaire (seul l'enrobage ListView/SingleChildScrollView diffère). Lancement natif tenté en copie jetable : build release OK, mais le harnais échoue dans ModelShadowFixture.create (PathAccessException sur AveluneQA/issue-16, sandbox macOS), avant tout code modifié ; limite préexistante du harnais."
+  },
+  {
+   "item": "apps/avelune_studio/dev/exterior_decoration_native_main.dart",
+   "status": "replaced",
+   "from": "MapWorkspaceScreen + studioTheme + MapWorkspaceViewState",
+   "to": "apps/avelune_studio/dev/neutral_map_editing_host.dart (MapEditingSurface) ; StudioMapTool depuis map_workspace_editing_state",
+   "tests": [],
+   "mutationDetected": null,
+   "note": "Mesures sur MapExteriorDecorationController et SpatialMapEditingViewport conservées ; visuals = StudioMapResources.load. Non lancé en natif (exige le projet QA exterior-decoration)."
+  },
+  {
+   "item": "apps/avelune_studio/dev/presentation_comparison_controls.dart",
+   "status": "reported",
+   "from": "apps/avelune_studio/dev/presentation_comparison_controls.dart",
+   "to": "aucun",
+   "tests": [],
+   "mutationDetected": null,
+   "note": "Toujours DIRTY (StudioToggleRow), à supprimer en vague 3. Plus aucun import dans dev/, test/ ni lib/."
+  },
+  {
+   "item": "apps/avelune_studio/dev/model_source_replacement_native.dart",
+   "status": "reported",
+   "from": "apps/avelune_studio/dev/model_source_replacement_native.dart",
+   "to": "aucun",
+   "tests": [],
+   "mutationDetected": null,
+   "note": "Toujours DIRTY (ModelResourceLibrary), à supprimer en vague 3 (_replace lève déjà UnsupportedError). Plus aucun import."
+  },
+  {
+   "item": "autres fichiers de dev/ qui joignent l'ancienne UI",
+   "status": "reported",
+   "from": "check_clean sur les 24 fichiers de dev/",
+   "to": "-",
+   "tests": [],
+   "mutationDetected": null,
+   "note": "Aucun autre : seuls les deux fichiers ci-dessus restent DIRTY."
+  }
+ ],
+ "uiOnly": [],
+ "decisions": [],
+ "commands": [
+  {
+   "command": "check_clean.py sur dev/**/*.dart (avant)",
+   "cwd": "repo",
+   "exitCode": 1,
+   "result": "6 DIRTY"
+  },
+  {
+   "command": "check_clean.py sur dev/**/*.dart (après)",
+   "cwd": "repo",
+   "exitCode": 1,
+   "result": "22 CLEAN, 2 DIRTY (les deux 'reported')"
+  },
+  {
+   "command": "flutter analyze --no-pub dev/",
+   "cwd": "apps/avelune_studio",
+   "exitCode": 0,
+   "result": "No issues found"
+  },
+  {
+   "command": "flutter test --no-pub test/dev/hgss_lighting_comparison_test.dart test/dev/hgss_lighting_comparison_owner_test.dart",
+   "cwd": "apps/avelune_studio",
+   "exitCode": 0,
+   "result": "+36 All tests passed"
+  },
+  {
+   "command": "test jetable hôte+panneau (supprimé)",
+   "cwd": "apps/avelune_studio",
+   "exitCode": 0,
+   "result": "+1 vert"
+  },
+  {
+   "command": "flutter run -d macos --release -t dev/model_shadow_performance_main.dart (copie jetable)",
+   "cwd": "AveluneQA/t01-w2-A_dev",
+   "exitCode": 1,
+   "result": "build OK ; PathAccessException sandbox dans ModelShadowFixture.create"
+  }
+ ],
+ "createdFiles": [
+  "apps/avelune_studio/dev/neutral_map_editing_host.dart",
+  "apps/avelune_studio/dev/neutral_map_elements_panel.dart"
+ ],
+ "modifiedFiles": [
+  "apps/avelune_studio/dev/hgss_lighting_comparison.dart",
+  "apps/avelune_studio/dev/map_elements_latency.dart",
+  "apps/avelune_studio/dev/model_shadow_performance_main.dart",
+  "apps/avelune_studio/dev/exterior_decoration_native_main.dart"
+ ]
+}

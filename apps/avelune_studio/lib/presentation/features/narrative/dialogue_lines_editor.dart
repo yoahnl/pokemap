@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 import '../../../features/narrative/application/dialogue_editing_controller.dart';
+import '../../../features/narrative/application/dialogue_portrait_selection.dart';
 import '../../../features/narrative/domain/dialogue_draft.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
@@ -140,30 +141,20 @@ class DialogueLinesEditor extends StatelessWidget {
                   ),
                 ),
             ],
-            onChanged: (id) {
-              final character = project.characters
-                  .where((c) => c.id == id)
-                  .firstOrNull;
-              editor.line(
-                entry.$1,
-                DialogueLineDraft(
-                  text: entry.$2.text,
-                  speakerId: character?.id,
-                  portraitStateId:
-                      character?.portraits.firstOrNull?.portraitStateId,
-                ),
-              );
-            },
+            onChanged: (id) => editor.line(
+              entry.$1,
+              DialoguePortraitSelection.chooseSpeaker(project, entry.$2, id),
+            ),
           ),
           DialoguePortraitChoice(
             project: project,
             line: entry.$2,
             onChanged: (line) => editor.line(entry.$1, line),
           ),
-          if (entry.$2.speakerId != null &&
-              project.characters.any(
-                (c) => c.id == entry.$2.speakerId && c.portraits.isEmpty,
-              ))
+          if (DialoguePortraitSelection.speakerLacksPortraits(
+            project,
+            entry.$2,
+          ))
             const StudioNotice(
               'Ce personnage n’a pas de portrait préparé ; le texte reste utilisable.',
             ),
@@ -175,11 +166,7 @@ class DialogueLinesEditor extends StatelessWidget {
             lines: 3,
             onChanged: (text) => editor.line(
               entry.$1,
-              DialogueLineDraft(
-                text: text,
-                speakerId: entry.$2.speakerId,
-                portraitStateId: entry.$2.portraitStateId,
-              ),
+              DialoguePortraitSelection.withText(entry.$2, text),
             ),
           ),
         ],

@@ -211,3 +211,22 @@ ResourceItem? terrainPreparationPublication(
     terrain: preset,
   );
 }
+
+Future<void> runTerrainPreparationAction({
+  required ResourceNavigation navigation,
+  required ProjectSmartTileAuthoringDraft draft,
+  required TerrainResourceAction action,
+  required void Function(ResourceItem publication) openUsages,
+  required Future<void> Function({
+    required String name,
+    required String draftId,
+  })
+  manage,
+}) async {
+  if (action == TerrainResourceAction.usages) {
+    final publication = terrainPreparationPublication(navigation, draft);
+    if (publication != null) openUsages(publication);
+    return;
+  }
+  await manage(name: draft.name, draftId: draft.id);
+}

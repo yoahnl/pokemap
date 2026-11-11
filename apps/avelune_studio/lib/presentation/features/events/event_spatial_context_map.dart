@@ -120,23 +120,16 @@ class _EventSpatialContextMapState extends State<EventSpatialContextMap> {
                             widget.chooseKind ==
                                 NarrativeEventSourceKind.entityInteract,
                         onContent: (hit) {
-                          if (hit.kind == SpatialSceneContentKind.model) {
-                            accept(
-                              NarrativeEventSourceRef.modelInteract(
-                                widget.map.id,
-                                hit.id,
-                              ),
-                            );
-                          }
-                          if (hit.kind == SpatialSceneContentKind.actor &&
-                              hit.id.startsWith('npc:')) {
-                            accept(
-                              NarrativeEventSourceRef.entityInteract(
-                                widget.map.id,
-                                hit.id.substring(4),
-                              ),
-                            );
-                          }
+                          final selected = switch (hit.kind) {
+                            SpatialSceneContentKind.model => picking.modelHit(
+                              hit.id,
+                            ),
+                            SpatialSceneContentKind.actor => picking.actorHit(
+                              hit.id,
+                            ),
+                            _ => null,
+                          };
+                          if (selected != null) widget.onChoose?.call(selected);
                         },
                         onCell: (x, z) {
                           final source = picking.spatialCell(

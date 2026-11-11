@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../features/dialogues/application/dialogue_workspace_authoring.dart';
 import '../../../features/dialogues/application/dialogue_workspace_controller.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 import '../../shared/widgets/inputs/studio_search_field.dart';
@@ -24,14 +25,10 @@ class DialogueLibrary extends StatelessWidget {
   final ValueChanged<String> onOpen;
   @override
   Widget build(BuildContext context) {
-    final query = views.search.text.trim().toLowerCase();
-    final entries = controller.entries
-        .where(
-          (e) =>
-              e.name.toLowerCase().contains(query) &&
-              (views.folderId.isEmpty || e.folderId == views.folderId),
-        )
-        .toList();
+    final entries = controller.filteredEntries(
+      query: views.search.text,
+      folderId: views.folderId,
+    );
     return StudioPanel(
       compact: true,
       title: 'Dialogues',
@@ -63,10 +60,6 @@ class DialogueLibrary extends StatelessWidget {
             itemCount: entries.length,
             itemBuilder: (context, index) {
               final entry = entries[index];
-              final session = controller.session(entry.id);
-              final folder = controller.project.dialogueFolders
-                  .where((f) => f.id == entry.folderId)
-                  .firstOrNull;
               return StudioChoice(
                 key: ValueKey('dialogue-library-${entry.id}'),
                 label: entry.name,
@@ -76,7 +69,7 @@ class DialogueLibrary extends StatelessWidget {
                   tone: StudioTone.feature,
                 ),
                 subtitle:
-                    '${folder?.name ?? 'Dialogues du projet'}\n${session == null ? 'Contenu à ouvrir' : '${session.document.nodes.length} suites${session.dirty ? ' · brouillon' : ''}'}',
+                    '${controller.libraryFolderName(entry)}\n${controller.libraryStatus(entry.id)}',
                 onTap: () => onOpen(entry.id),
               );
             },

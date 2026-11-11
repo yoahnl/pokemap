@@ -1,0 +1,1 @@
+flutter test --no-pub -r failures-only (apps/avelune_studio, after wave 2): +4481 ~13 -33; new vs wave 1: workshop_entry_reads_test (green alone, +2) and ui06_scene_runtime_owner_test refusal (same red as ui06_scene_runtime_test refusal, pre-existing)

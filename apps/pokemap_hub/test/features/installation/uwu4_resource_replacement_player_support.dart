@@ -18,7 +18,8 @@ import 'package:path/path.dart' as p;
 import 'package:pokemap_hub/pokemap_hub_player.dart';
 import 'package:pub_semver/pub_semver.dart';
 
-import '../../../../avelune_studio/test/support/m2_ui_fixture.dart' show pumpIo;
+import '../../../../avelune_studio/test/support/m2_ui_owner_fixture.dart'
+    show pumpIo;
 import '../../../../avelune_studio/test/support/game_export_fixture.dart';
 import '../../../../avelune_studio/test/support/m3_story_fixture.dart';
 

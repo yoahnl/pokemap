@@ -45,4 +45,33 @@ class DialoguePortraitSelection {
         speakerId: line.speakerId,
         portraitStateId: state == null || state.isEmpty ? null : state,
       );
+
+  static DialogueLineDraft chooseSpeaker(
+    ProjectManifest project,
+    DialogueLineDraft line,
+    String? characterId,
+  ) {
+    final character = project.characters
+        .where((entry) => entry.id == characterId)
+        .firstOrNull;
+    return DialogueLineDraft(
+      text: line.text,
+      speakerId: character?.id,
+      portraitStateId: character?.portraits.firstOrNull?.portraitStateId,
+    );
+  }
+
+  static DialogueLineDraft withText(DialogueLineDraft line, String text) =>
+      DialogueLineDraft(
+        text: text,
+        speakerId: line.speakerId,
+        portraitStateId: line.portraitStateId,
+      );
+
+  static bool speakerLacksPortraits(
+    ProjectManifest project,
+    DialogueLineDraft line,
+  ) => project.characters.any(
+    (entry) => entry.id == line.speakerId && entry.portraits.isEmpty,
+  );
 }

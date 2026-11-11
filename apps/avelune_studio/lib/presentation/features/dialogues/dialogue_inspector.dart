@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:map_authoring/map_authoring_dialogue.dart';
+import '../../../features/dialogues/application/dialogue_workspace_authoring.dart';
 import '../../../features/dialogues/application/dialogue_workspace_controller.dart'
     hide dialogueSteps;
 import '../../shared/widgets/layout/studio_panel.dart';
@@ -107,12 +108,7 @@ class DialogueInspector extends StatelessWidget {
                               if (step == null && branch == null) ...[
                                 StudioSelect(
                                   label: 'Suite suivante',
-                                  value:
-                                      node.steps
-                                          .whereType<DeJumpStep>()
-                                          .firstOrNull
-                                          ?.targetTitle ??
-                                      '',
+                                  value: dialogueJumpTargetTitle(node.steps),
                                   options: {
                                     '': 'Terminer après la suite',
                                     for (final n in session.document.nodes)
@@ -120,18 +116,11 @@ class DialogueInspector extends StatelessWidget {
                                   },
                                   onChanged: (title) {
                                     if (title.isEmpty) {
-                                      final jump = node.steps
-                                          .whereType<DeJumpStep>()
-                                          .firstOrNull;
-                                      if (jump != null) {
-                                        controller.disconnectJump(jump.id);
-                                      }
+                                      controller.disconnectNodeJump(node.id);
                                     } else {
                                       onConnect(
                                         node.id,
-                                        session.document.nodes
-                                            .firstWhere((n) => n.title == title)
-                                            .id,
+                                        controller.nodeIdForTitle(title)!,
                                       );
                                     }
                                   },
@@ -176,12 +165,7 @@ class DialogueInspector extends StatelessWidget {
                                 const SizedBox(height: 12),
                                 StudioSelect(
                                   label: 'Continuer vers',
-                                  value:
-                                      branch.steps
-                                          .whereType<DeJumpStep>()
-                                          .firstOrNull
-                                          ?.targetTitle ??
-                                      '',
+                                  value: dialogueJumpTargetTitle(branch.steps),
                                   options: {
                                     '': 'Aucune suite reliée',
                                     for (final n in session.document.nodes)
@@ -193,9 +177,7 @@ class DialogueInspector extends StatelessWidget {
                                     } else {
                                       onConnect(
                                         branch.id,
-                                        session.document.nodes
-                                            .firstWhere((n) => n.title == title)
-                                            .id,
+                                        controller.nodeIdForTitle(title)!,
                                       );
                                     }
                                   },
@@ -227,10 +209,8 @@ class DialogueInspector extends StatelessWidget {
                                 StudioButton(
                                   label: 'Ajouter une réponse',
                                   icon: Icons.add,
-                                  onPressed: () => controller.addResponse(
-                                    step.id,
-                                    'Nouvelle réponse',
-                                  ),
+                                  onPressed: () =>
+                                      controller.addDefaultResponse(step.id),
                                 ),
                               const SizedBox(height: 16),
                               Wrap(

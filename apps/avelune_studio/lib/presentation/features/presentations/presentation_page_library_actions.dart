@@ -39,7 +39,7 @@ extension _PresentationLibraryActions on _PresentationWorkspacePageState {
   );
   Future<void> documentMenu() async {
     if (!flush() || controller.active == null) return;
-    final owner = controller.activeId!, revision = controller.active!.revision;
+    final ticket = controller.documentTicket!, owner = ticket.id;
     final choice = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
@@ -72,10 +72,7 @@ extension _PresentationLibraryActions on _PresentationWorkspacePageState {
         ],
       ),
     );
-    if (!mounted ||
-        choice == null ||
-        controller.activeId != owner ||
-        controller.active?.revision != revision) {
+    if (!mounted || choice == null || !controller.holdsDocument(ticket)) {
       return;
     }
     if (choice == 'settings') {
@@ -107,10 +104,7 @@ extension _PresentationLibraryActions on _PresentationWorkspacePageState {
           ],
         ),
       );
-      if (mounted &&
-          confirmed == true &&
-          controller.activeId == owner &&
-          controller.active?.revision == revision) {
+      if (mounted && confirmed == true && controller.holdsDocument(ticket)) {
         await controller.delete(owner);
       }
     }

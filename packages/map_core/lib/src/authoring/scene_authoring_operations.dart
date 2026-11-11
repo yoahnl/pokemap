@@ -1689,7 +1689,7 @@ SceneEdgeDraftCreationResult addSceneEdgeDraft(
   String? label,
 }) {
   final fromNode = _findNodeOrThrow(scene, fromNodeId, 'fromNodeId');
-  _findNodeOrThrow(scene, toNodeId, 'toNodeId');
+  final targetNode = _findNodeOrThrow(scene, toNodeId, 'toNodeId');
 
   if (fromNodeId == toNodeId) {
     throw ArgumentError.value(
@@ -1712,6 +1712,13 @@ SceneEdgeDraftCreationResult addSceneEdgeDraft(
         'Edge Authoring V0 allows only one outgoing edge per source port.',
       );
     }
+  }
+  if (targetNode.kind == SceneNodeKind.start) {
+    throw ArgumentError.value(
+      toNodeId,
+      'toNodeId',
+      'The Scene start node cannot receive an incoming edge.',
+    );
   }
 
   final createdEdge = SceneEdge(

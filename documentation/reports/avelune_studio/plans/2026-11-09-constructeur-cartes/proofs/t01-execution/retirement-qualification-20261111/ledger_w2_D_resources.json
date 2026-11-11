@@ -1,0 +1,290 @@
+{
+ "zone": "D_resources",
+ "items": [
+  {
+   "item": "modelDiagnosticLabel",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/resources/model_resource_library.dart:modelDiagnosticLabel",
+   "to": "apps/avelune_studio/lib/features/resources/application/model_resource_rules.dart:modelDiagnosticLabel",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/resource_io/model_resource_rules_owner_test.dart",
+     "test": "(file)"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "item": "useResourceOnMap post-traitement",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/resources/resource_brush_selection.dart:useResourceOnMap",
+   "to": "apps/avelune_studio/lib/features/resources/application/resource_palette_reveal.dart:resourcePaletteReveal",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/resource_io/resource_library_rules_owner_test.dart",
+     "test": "(file)"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "item": "matrice d'actions",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/resources/resource_item_actions.dart:ResourceItemActions.build",
+   "to": "apps/avelune_studio/lib/features/resources/application/resource_item_action_matrix.dart:resourceItemActionMatrix",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/resource_io/resource_item_action_matrix_owner_test.dart",
+     "test": "(file)"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "item": "routage regular/atelier et libellés famille/catégorie",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/resources/resource_library_layout.dart:buildLibrary",
+   "to": "apps/avelune_studio/lib/features/resources/application/resource_library_rules.dart:resourceLibraryRegular/FamilyName/CategoryName",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/resource_io/resource_library_rules_owner_test.dart",
+     "test": "(file)"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "item": "detail(canUse) + usage ouvrir la carte",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/resources/resource_library_screen.dart:detail",
+   "to": "apps/avelune_studio/lib/features/resources/application/resource_use_verdict.dart:resourceUseVerdict ; resource_open_map_usage.dart:resourceOpenMapUsage (déjà extrait, test direct ajouté)",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/resource_io/resource_use_verdict_owner_test.dart",
+     "test": "(file)"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "L'écran ne passe plus canUse && maps.isNotEmpty : le verdict teste maps vides en premier. Usage ouvrir la carte testé dans resource_library_rules_owner_test."
+  },
+  {
+   "item": "règle de résultat vide, regroupement, libellés des usages",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/resources/resource_usage_results.dart",
+   "to": "apps/avelune_studio/lib/features/resources/application/resource_usage_presentation.dart",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/resource_io/resource_usage_presentation_owner_test.dart",
+     "test": "(file)"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "item": "choix de la source de resourcePreview",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/resources/resource_preview.dart:resourcePreview",
+   "to": "apps/avelune_studio/lib/features/resources/application/resource_preview_source.dart:resourcePreviewSource",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/resource_io/resource_preview_source_owner_test.dart",
+     "test": "(file)"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Branche terrain->modèle (SmartTileModel3dSource) non couverte par le test."
+  },
+  {
+   "item": "terrainPreparationPublication usages + descriptions",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/resources/resource_terrain_lifecycle.dart:manageTerrainPreparation/manageTerrainResource",
+   "to": "apps/avelune_studio/lib/features/resources/coordination/resource_terrain_lifecycle.dart:runTerrainPreparationAction ; apps/avelune_studio/lib/features/resources/application/resource_terrain_management_copy.dart",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/resource_io/terrain_preparation_presentation_owner_test.dart",
+     "test": "(file)"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "item": "routage de page terrain, canCreateDecor, canUse/canResume",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/resources/resource_workspace_pane.dart",
+   "to": "apps/avelune_studio/lib/features/resources/coordination/resource_workspace_routing.dart:resourceWorkspaceView/resourceImportCanCreateDecor/terrainDraftResumable",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/resource_io/resource_workspace_routing_owner_test.dart",
+     "test": "(file)"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "canUse=!n.busy reste dans le pane (trivial) ; le refus canUse=false est prouvé par resource_use_verdict_owner_test ; terrainDraftResumable prouvé par terrain_preparation_presentation_owner_test."
+  },
+  {
+   "item": "ligne de statut de la liste des brouillons de terrain",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/resources/resource_terrain_draft_list.dart",
+   "to": "apps/avelune_studio/lib/features/resources/application/resource_terrain_management_copy.dart:terrainDraftSubtitle",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/resource_io/terrain_preparation_presentation_owner_test.dart",
+     "test": "(file)"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "item": "payload model3d.configure",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/resources/model_resource_library.dart / resource_workspace_pane.dart",
+   "to": "apps/avelune_studio/lib/features/resources/application/model_resource_rules.dart:modelConfigurePayload/modelFootPivotFields/parseModelScale/modelShadowFields/modelLightFields",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/resource_io/model_resource_rules_owner_test.dart",
+     "test": "(file)"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "item": "mapping phase -> action ResourceWorkspacePane",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/resources/resource_workspace_pane.dart:packResolution",
+   "to": "apps/avelune_studio/lib/features/resources/coordination/resource_workspace_routing.dart:resourcePackResolution",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/resource_io/resource_workspace_routing_owner_test.dart",
+     "test": "(file)"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Contrôleur réel (PackTestPort), trois phases"
+  },
+  {
+   "item": "garde de confirmation askRegionalMapLink",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/regional_map/regional_map_link_dialog.dart:askRegionalMapLink",
+   "to": "apps/avelune_studio/lib/features/regional_map/application/regional_map_choices.dart:regionalMapLinkConfirmation",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/regional_map/regional_map_link_confirmation_owner_test.dart",
+     "test": "(file)"
+    }
+   ],
+   "mutationDetected": true,
+   "note": ""
+  },
+  {
+   "item": "DECISION alignement ResourceDetailPanel sur usableIn",
+   "status": "replaced",
+   "from": "apps/avelune_studio/lib/presentation/features/resources/resource_detail_panel.dart:~94",
+   "to": "apps/avelune_studio/lib/features/resources/application/resource_use_verdict.dart:resourceUseVerdict (délègue à ResourceItem.usableIn)",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/resource_io/resource_use_verdict_owner_test.dart",
+     "test": "(file)"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Composant refusé, bordure dépréciée/non publiée refusée, décor compatible accepté, aucune carte refusée, réservé autre carte, canUse=false. Un composant refusé affiche 'momentanément indisponible' (message générique)."
+  }
+ ],
+ "uiOnly": [
+  {
+   "where": "apps/avelune_studio/lib/presentation/features/resources/resource_workspace_pane.dart:canUse: !n.busy",
+   "what": "transmission de !busy",
+   "forRebuild": "passer canUse=!busy à resourceUseVerdict"
+  },
+  {
+   "where": "apps/avelune_studio/lib/presentation/features/resources/resource_library_layout.dart:matchingResources",
+   "what": "filtrage catégorie déjà porté par ResourceLibraryState.matchesCategory",
+   "forRebuild": "appeler matchesCategory"
+  }
+ ],
+ "decisions": [
+  {
+   "topic": "ResourceDetailPanel vs usableIn",
+   "legacyBehaviour": "panneau : canUse && maps && mapAvailable && compatible && bordure publiée, composant accepté",
+   "ownerBehaviour": "délégué à usableIn : composant refusé (décision de Yoahn appliquée)",
+   "where": "apps/avelune_studio/lib/presentation/features/resources/resource_detail_panel.dart ; apps/avelune_studio/lib/features/resources/application/resource_use_verdict.dart"
+  }
+ ],
+ "commands": [
+  {
+   "command": "flutter test --no-pub 10 nouveaux fichiers owner + tous les *_owner_test resource_io",
+   "cwd": "apps/avelune_studio",
+   "exitCode": 0,
+   "result": "+101 -0"
+  },
+  {
+   "command": "flutter test --no-pub -r failures-only (resource_io, regional_map, presentation resource*/regional*, application, project_visuals, characters, character_studio_portrait) copie QA",
+   "cwd": "QA copy",
+   "exitCode": 1,
+   "result": "+935 ~1 -19 ; 3 fichiers relancés seuls verts (+23) ; les autres rouges identiques avec les libs remises à HEAD (border_management_*, character_studio_portrait, local_model_source_replacement, scope_persistence, pack_import_host, contact_shadow, working_catalog_*) : préexistants/charge"
+  },
+  {
+   "command": "flutter analyze --no-pub (33 fichiers)",
+   "cwd": "apps/avelune_studio",
+   "exitCode": 0,
+   "result": "No issues found"
+  },
+  {
+   "command": "check_clean.py",
+   "cwd": "repo",
+   "exitCode": 0,
+   "result": "CLEAN"
+  },
+  {
+   "command": "mutations (12) copie QA",
+   "cwd": "QA copy",
+   "exitCode": 0,
+   "result": "12/12 détectées (palette reveal Bordures détecté après ajout d'un cas)"
+  }
+ ],
+ "createdFiles": [
+  "apps/avelune_studio/lib/features/resources/application/model_resource_rules.dart",
+  "apps/avelune_studio/lib/features/resources/application/resource_item_action_matrix.dart",
+  "apps/avelune_studio/lib/features/resources/application/resource_library_rules.dart",
+  "apps/avelune_studio/lib/features/resources/application/resource_palette_reveal.dart",
+  "apps/avelune_studio/lib/features/resources/application/resource_preview_source.dart",
+  "apps/avelune_studio/lib/features/resources/application/resource_terrain_management_copy.dart",
+  "apps/avelune_studio/lib/features/resources/application/resource_usage_presentation.dart",
+  "apps/avelune_studio/lib/features/resources/application/resource_use_verdict.dart",
+  "apps/avelune_studio/lib/features/resources/coordination/resource_workspace_routing.dart",
+  "apps/avelune_studio/test/resource_io/model_resource_rules_owner_test.dart",
+  "apps/avelune_studio/test/resource_io/resource_item_action_matrix_owner_test.dart",
+  "apps/avelune_studio/test/resource_io/resource_library_rules_owner_test.dart",
+  "apps/avelune_studio/test/resource_io/resource_preview_source_owner_test.dart",
+  "apps/avelune_studio/test/resource_io/resource_usage_presentation_owner_test.dart",
+  "apps/avelune_studio/test/resource_io/resource_use_verdict_owner_test.dart",
+  "apps/avelune_studio/test/resource_io/resource_workspace_routing_owner_test.dart",
+  "apps/avelune_studio/test/resource_io/terrain_preparation_presentation_owner_test.dart",
+  "apps/avelune_studio/test/regional_map/regional_map_link_confirmation_owner_test.dart"
+ ],
+ "modifiedFiles": [
+  "apps/avelune_studio/lib/presentation/features/resources/model_resource_library.dart",
+  "apps/avelune_studio/lib/presentation/features/resources/resource_brush_selection.dart",
+  "apps/avelune_studio/lib/presentation/features/resources/resource_detail_panel.dart",
+  "apps/avelune_studio/lib/presentation/features/resources/resource_item_actions.dart",
+  "apps/avelune_studio/lib/presentation/features/resources/resource_library_layout.dart",
+  "apps/avelune_studio/lib/presentation/features/resources/resource_library_screen.dart",
+  "apps/avelune_studio/lib/presentation/features/resources/resource_preview.dart",
+  "apps/avelune_studio/lib/presentation/features/resources/resource_terrain_draft_list.dart",
+  "apps/avelune_studio/lib/presentation/features/resources/resource_terrain_lifecycle.dart",
+  "apps/avelune_studio/lib/presentation/features/resources/resource_usage_results.dart",
+  "apps/avelune_studio/lib/presentation/features/resources/resource_workspace_pane.dart",
+  "apps/avelune_studio/lib/features/resources/coordination/model_resource_workflow.dart",
+  "apps/avelune_studio/lib/features/resources/coordination/resource_terrain_lifecycle.dart",
+  "apps/avelune_studio/lib/features/regional_map/application/regional_map_choices.dart",
+  "apps/avelune_studio/lib/presentation/features/regional_map/regional_map_link_dialog.dart"
+ ]
+}

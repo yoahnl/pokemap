@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:map_authoring/map_authoring_dialogue.dart';
+import '../../../features/dialogues/application/dialogue_workspace_authoring.dart';
 import '../../../features/dialogues/application/dialogue_workspace_controller.dart';
 import '../../shared/widgets/inputs/studio_commit_field.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
@@ -16,14 +17,7 @@ class DialoguePortraitFields extends StatelessWidget {
   final Widget Function(String?, String?, double)? portrait;
   @override
   Widget build(BuildContext context) {
-    final project = controller.project;
-    final character = project.characters
-        .where((c) => c.id == line.characterId)
-        .firstOrNull;
-    final states = {
-      for (final state in project.characterStudioCatalog.portraitStates)
-        state.id: state.displayName,
-    };
+    final expressions = controller.expressionChoices(line);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -38,32 +32,15 @@ class DialoguePortraitFields extends StatelessWidget {
         StudioSelect(
           label: 'Personnage et portrait',
           value: line.characterId ?? '',
-          options: {
-            '': 'Sans personnage',
-            for (final c in project.characters) c.id: c.name,
-          },
-          onChanged: (id) {
-            final c = project.characters.where((c) => c.id == id).firstOrNull;
-            controller.updateLine(
-              line.id,
-              characterId: id,
-              clearPortrait: id.isEmpty,
-              speaker: c?.name,
-              portraitStateId: c?.portraits.firstOrNull?.portraitStateId,
-            );
-          },
+          options: controller.lineCharacterChoices,
+          onChanged: (id) => controller.selectLineCharacter(line.id, id),
         ),
         const SizedBox(height: 8),
-        if (character != null && character.portraits.isNotEmpty)
+        if (expressions != null)
           StudioSelect(
             label: 'Expression',
             value: line.portraitStateId ?? '',
-            options: {
-              '': 'Sans portrait',
-              for (final p in character.portraits)
-                p.portraitStateId:
-                    states[p.portraitStateId] ?? p.portraitStateId,
-            },
+            options: expressions,
             onChanged: (id) =>
                 controller.updateLine(line.id, portraitStateId: id),
           ),
@@ -74,7 +51,7 @@ class DialoguePortraitFields extends StatelessWidget {
               child: portrait!(line.characterId, line.portraitStateId, 80),
             ),
           ),
-        if (character?.portraits.isEmpty ?? true)
+        if (controller.lineHasNoPreparedPortrait(line))
           const Text('Sans portrait préparé : le texte reste utilisable.'),
       ],
     );

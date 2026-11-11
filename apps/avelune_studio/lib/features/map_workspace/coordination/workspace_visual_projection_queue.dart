@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:map_core/map_core_domain.dart';
 
 import '../../../platform/rendering/contracts/map_workspace_visuals.dart';
+import '../application/map_workspace_controller.dart';
+import 'workspace_workshop_routes.dart';
 
 class WorkspaceVisualProjectionQueue {
   WorkspaceVisualProjectionQueue({
@@ -45,6 +47,11 @@ class WorkspaceVisualProjectionQueue {
       visuals.setActiveMap(map);
     }
   }
+
+  void follow(
+    MapWorkspaceController controller,
+    WorkspaceWorkshopRoutes workshops,
+  ) => synchronize(controller.visualProject, suspended: workshops.loading);
 
   Future<void> refresh(ProjectManifest definitions) async {
     final visuals = currentVisuals();

@@ -1,0 +1,182 @@
+{
+ "zone": "Hub",
+ "items": [
+  {
+   "item": "inventory: hub tests reaching the legacy Studio UI",
+   "status": "reported",
+   "from": "apps/pokemap_hub/test/**",
+   "to": "-",
+   "tests": [],
+   "mutationDetected": null,
+   "note": "check_clean before: 11 DIRTY, all in features/installation: uwu4_resource_replacement_player_e2e_test, uwu4_resource_replacement_player_support, uwu5_specialized_resources_fixture, uwu5_specialized_resources_player_e2e_test, uwu5_specialized_resources_player_support, uwu6_resource_crud_player_e2e_test, uwu6_resource_host, uwu6_resource_image_steps, uwu6_resource_specialized_steps, uwu6_resource_border_steps, uwu6_resource_export_steps (via map_workspace_screen, event_workspace_page, terrain_editor_screen, resource_usage_results). After: 150/150 CLEAN."
+  },
+  {
+   "item": "uwu4_resource_replacement_player_e2e_test.dart (ledger_D case 56)",
+   "status": "replaced",
+   "from": "apps/pokemap_hub/test/features/installation/uwu4_resource_replacement_player_e2e_test.dart:MapHostFixture.open + tap 'Enregistrer' + export screen (Auteur, Test local, start-game-export)",
+   "to": "apps/avelune_studio/test/support/map_host_owner_fixture.dart:MapHostOwnerFixture.save (MapWorkspaceController.save) / exportGame (ProjectIdentityController + WorkspaceWorkflow.saveForExport + StudioGameExportWorkflow.run, publication=false)",
+   "tests": [
+    {
+     "file": "apps/pokemap_hub/test/features/installation/uwu4_resource_replacement_player_e2e_test.dart",
+     "test": "replaced Studio source exports and renders from installed Player alone"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Same name, Player half unchanged (only its pumpIo import moved to m2_ui_owner_fixture). Baseline before: red (export screen 'Auteur' field missing). Now: Studio half + real export green; red at Player install: Player half (unchanged by rule) hard-codes host capabilities {dialogue.choices@1,map@1,overworld.menu@1,world.shop@1} and supportedSaveFormats {1}; the real export now requires catalog.partitioned@2 and saveFormat 2 -> GameInstallationException(capabilityUnsupported). QA diagnostic only (host set + catalog.partitioned@2, saveFormats {1,2}): +1 green, UWU4_RENDER_REPLACED_PIXELS=2893. Mutation M1 (replacement stages the original bytes) -> red at uwu4_resource_replacement_player_support.dart:143 (installed atlas != new pixels)."
+  },
+  {
+   "item": "uwu5_specialized_resources_player_e2e_test.dart (ledger_D case 57)",
+   "status": "replaced",
+   "from": "apps/pokemap_hub/test/features/installation/uwu5_specialized_resources_player_e2e_test.dart:MapHostFixture + UI border painting ('Bordures', border-model-picker, tapCell 10,8/13,8, Enter) + 'Enregistrer' + export screen",
+   "to": "MapBorderEditingCommands.publishedLines/finish + MapBorderDrawingDraft.start/addAngle; MapHostOwnerFixture.save/exportGame/disk",
+   "tests": [
+    {
+     "file": "apps/pokemap_hub/test/features/installation/uwu5_specialized_resources_player_e2e_test.dart",
+     "test": "specialized resources survive actual export and installed Player isolation"
+    }
+   ],
+   "mutationDetected": null,
+   "note": "Same name, Player half unchanged. Still red, before any rewritten line: seed resolveUwu5Character (uwu5_specialized_resources_fixture.dart:242, non-UI, unchanged) hits Product bug, HEAD and working tree: prepareOperation('characterStudio.character.delete', resolution replace) for 'guide' fails with 'Stored payload bytes require an explicit asynchronous read' (packages/map_authoring/lib/src/transactions/authoring_payload.dart:219, surfaced by apps/avelune_studio/lib/features/resources/data/local_resource_lifecycle_preparation.dart:217); probable sync pre-image read in packages/map_authoring/lib/src/domains/gameplay/character_studio/character_studio_action_support.dart:114/144 (not verified). Same failure in the legacy version at HEAD (QA) and in the real tree. Mutation M3 (finish no-op) not observable: the seed fails first. The Player half would also hit the compat gap."
+  },
+  {
+   "item": "uwu6_resource_crud_player_e2e_test.dart + helper uwu6_resource_host.dart (ledger_D case 58, ledger_E decision 10)",
+   "status": "replaced",
+   "from": "apps/pokemap_hub/test/features/installation/uwu6_resource_host.dart:UwUResourceHost/M2UiFixture/MapWorkspaceScreen/StudioHomeNavigation/studioTheme/WidgetResource*Port; steps through widget keys",
+   "to": "Uwu6ResourceHost on MapWorkspaceController + LocalResourceAdapter + ResourceNavigation + StudioMapResources; steps: ResourceWorkspaceImportWorkflow+ResourceImageImportDraft, ResourceNavigation.saveDecor, MapEditingCommands.place, runResourceDefinitionDuplicate, DecorDraft.setBlocked, publishResourceManagementChange (metadata, folder, move), runResourceImageReplacement, ResourceUsageController, runTerrainResourceManagement + TerrainDraftController.save/completeTerrainPublication, runCharacterRemoval + CharacterRemovalController, MapBorderEditingCommands.finish, MapCanvasStroke (collisionPaint), runBorderResourceManagement (deprecate/reactivate)",
+   "tests": [
+    {
+     "file": "apps/pokemap_hub/test/features/installation/uwu6_resource_crud_player_e2e_test.dart",
+     "test": "resource CRUD through actual Studio UI survives independent installation"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "Test file and name unchanged; export step (ProjectCreationWorkspaceFixture) unchanged. Baseline before: red (UI texts gone). Now green through images, metadata, replacement, terrain, free character removal; red at guide replacement: Product bug, HEAD and working tree: prepareOperation('characterStudio.character.delete', resolution replace) for 'guide' fails with 'Stored payload bytes require an explicit asynchronous read' (packages/map_authoring/lib/src/transactions/authoring_payload.dart:219, surfaced by apps/avelune_studio/lib/features/resources/data/local_resource_lifecycle_preparation.dart:217); probable sync pre-image read in packages/map_authoring/lib/src/domains/gameplay/character_studio/character_studio_action_support.dart:114/144 (not verified). Mutation M2 (ResourceReplacementSession.apply skips publish) -> red earlier at uwu6_resource_image_steps.dart:195 (source bytes). Player half also needs the compat gap resolved."
+  }
+ ],
+ "uiOnly": [
+  {
+   "where": "apps/pokemap_hub/test/features/installation/uwu6_resource_image_steps.dart (legacy) fixture.capture",
+   "what": "AVELUNE_CAPTURE_DIR widget captures (uwu6-widget-*)",
+   "forRebuild": "new UI evidence captures"
+  },
+  {
+   "where": "apps/pokemap_hub/test/features/installation/uwu6 legacy: 'Actuellement'/'Après remplacement' texts, Joueur dependency text",
+   "what": "visual labels",
+   "forRebuild": "now asserted on ResourceReplacementPreview bytes and characterRemovalOwnerLabel"
+  }
+ ],
+ "decisions": [
+  {
+   "topic": "Player-half host compatibility is stale",
+   "legacyBehaviour": "uwu4_resource_replacement_player_support.dart:237-249 and uwu5_specialized_resources_player_support.dart:288-300 declare capabilities {dialogue.choices@1,map@1,overworld.menu@1,world.shop@1}, saveFormats {1}",
+   "ownerBehaviour": "real export (game-manifest.json) requires catalog.partitioned@2 and saveFormat 2; the Hub's own host is AveluneRuntimeCompatibility.host() (packages/map_distribution/lib/src/avelune_runtime_compatibility.dart)",
+   "where": "Player half kept identical per brief; Yoahn decides: use AveluneRuntimeCompatibility.host() or extend the set"
+  },
+  {
+   "topic": "Character deletion with replacement fails in map_authoring",
+   "legacyBehaviour": "seed and UI both call characterStudio.character.delete with resolution replace",
+   "ownerBehaviour": "ResourceFailure 'Stored payload bytes require an explicit asynchronous read'",
+   "where": "packages/map_authoring/lib/src/transactions/authoring_payload.dart:219 via apps/avelune_studio/lib/features/resources/data/local_resource_lifecycle_preparation.dart:217; reproduced at HEAD (QA) and in the working tree; packages/** off-limits"
+  },
+  {
+   "topic": "Library selection identity",
+   "legacyBehaviour": "uwu6 legacy expected 'decors:<id>'",
+   "ownerBehaviour": "ResourceItem.identity is 'element:<id>' (resource_catalog.dart:204), as in resource_administration_journey_owner_test",
+   "where": "apps/pokemap_hub/test/features/installation/uwu6_resource_image_steps.dart"
+  },
+  {
+   "topic": "Decor collision clearing and folder id",
+   "legacyBehaviour": "'Effacer toutes les collisions' button and container dialog (both already removed from lib)",
+   "ownerBehaviour": "DecorDraft.setBlocked(false); folder id fixed 'uwu6-witnesses'",
+   "where": "apps/pokemap_hub/test/features/installation/uwu6_resource_image_steps.dart"
+  }
+ ],
+ "commands": [
+  {
+   "command": "flutter test --no-pub uwu4/uwu5/uwu6 *_e2e_test.dart (legacy, before)",
+   "cwd": "/Users/karim/Project/pokemonProject/apps/pokemap_hub",
+   "exitCode": 1,
+   "result": "+0 -1 each (uwu4: Auteur field; uwu5: seed character delete; uwu6: UI text missing)"
+  },
+  {
+   "command": "flutter test --no-pub uwu5 (legacy) at HEAD",
+   "cwd": "/Users/karim/Library/Caches/AveluneQA/t01-w2-Hub/apps/pokemap_hub",
+   "exitCode": 1,
+   "result": "+0 -1 same seed failure"
+  },
+  {
+   "command": "flutter test --no-pub apps/pokemap_hub/test/features/installation/uwu4_resource_replacement_player_e2e_test.dart",
+   "cwd": "/Users/karim/Project/pokemonProject/apps/pokemap_hub",
+   "exitCode": 1,
+   "result": "+0 -1 capabilityUnsupported at Player install"
+  },
+  {
+   "command": "flutter test --no-pub apps/pokemap_hub/test/features/installation/uwu5_specialized_resources_player_e2e_test.dart",
+   "cwd": "/Users/karim/Project/pokemonProject/apps/pokemap_hub",
+   "exitCode": 1,
+   "result": "+0 -1 seed character delete (Stored payload)"
+  },
+  {
+   "command": "flutter test --no-pub apps/pokemap_hub/test/features/installation/uwu6_resource_crud_player_e2e_test.dart",
+   "cwd": "/Users/karim/Project/pokemonProject/apps/pokemap_hub",
+   "exitCode": 1,
+   "result": "+0 -1 guide replacement (Stored payload)"
+  },
+  {
+   "command": "flutter test --no-pub uwu4 with QA-only compat patch",
+   "cwd": "/Users/karim/Library/Caches/AveluneQA/t01-w2-Hub/apps/pokemap_hub",
+   "exitCode": 0,
+   "result": "+1 -0 (diagnostic)"
+  },
+  {
+   "command": "flutter test --no-pub uwu6 with QA-only compat patch",
+   "cwd": "/Users/karim/Library/Caches/AveluneQA/t01-w2-Hub/apps/pokemap_hub",
+   "exitCode": 1,
+   "result": "+0 -1 at uwu6_resource_specialized_steps.dart:145"
+  },
+  {
+   "command": "mutation M1 + flutter test --no-pub uwu4",
+   "cwd": "/Users/karim/Library/Caches/AveluneQA/t01-w2-Hub/apps/pokemap_hub",
+   "exitCode": 1,
+   "result": "+0 -1 detected"
+  },
+  {
+   "command": "mutation M2 + flutter test --no-pub uwu6",
+   "cwd": "/Users/karim/Library/Caches/AveluneQA/t01-w2-Hub/apps/pokemap_hub",
+   "exitCode": 1,
+   "result": "+0 -1 detected at image step"
+  },
+  {
+   "command": "mutation M3 + flutter test --no-pub uwu5",
+   "cwd": "/Users/karim/Library/Caches/AveluneQA/t01-w2-Hub/apps/pokemap_hub",
+   "exitCode": 1,
+   "result": "+0 -1 seed failure, not observable"
+  },
+  {
+   "command": "flutter analyze --no-pub test/features/installation/ ../avelune_studio/test/support/{map_host_owner_fixture,m2_ui_owner_fixture}.dart",
+   "cwd": "/Users/karim/Project/pokemonProject/apps/pokemap_hub",
+   "exitCode": 0,
+   "result": "No issues found"
+  },
+  {
+   "command": "python3 check_clean.py <150 hub test files> ; <19 uwu + new fixtures>",
+   "cwd": "/Users/karim/Project/pokemonProject",
+   "exitCode": 0,
+   "result": "150 CLEAN; 19 CLEAN"
+  }
+ ],
+ "createdFiles": [
+  "apps/avelune_studio/test/support/map_host_owner_fixture.dart",
+  "apps/avelune_studio/test/support/m2_ui_owner_fixture.dart"
+ ],
+ "modifiedFiles": [
+  "apps/pokemap_hub/test/features/installation/uwu4_resource_replacement_player_e2e_test.dart",
+  "apps/pokemap_hub/test/features/installation/uwu4_resource_replacement_player_support.dart",
+  "apps/pokemap_hub/test/features/installation/uwu5_specialized_resources_player_e2e_test.dart",
+  "apps/pokemap_hub/test/features/installation/uwu5_specialized_resources_player_support.dart",
+  "apps/pokemap_hub/test/features/installation/uwu6_resource_host.dart",
+  "apps/pokemap_hub/test/features/installation/uwu6_resource_image_steps.dart",
+  "apps/pokemap_hub/test/features/installation/uwu6_resource_specialized_steps.dart",
+  "apps/pokemap_hub/test/features/installation/uwu6_resource_border_steps.dart"
+ ]
+}

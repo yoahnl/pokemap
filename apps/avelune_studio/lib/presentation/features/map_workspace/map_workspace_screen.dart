@@ -1,6 +1,7 @@
 import 'package:avelune_studio/features/map_workspace/application/map_library_commands.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/workspace_navigation_session.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/workspace_destination_workflow.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/workspace_pokemon_reference_route.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/workspace_failure_routing.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/workspace_publication_workflow.dart';
 import 'package:avelune_studio/features/map_workspace/coordination/workspace_map_catalog_bindings.dart';
@@ -403,7 +404,19 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
   set _verificationMapReturn(bool value) => _navigation.verificationMapReturn = value;
   bool get _pokemonMapReturn => _destinations.pokemonMapReturn;
   set _pokemonMapReturn(bool value) => _destinations.pokemonMapReturn = value;
-  bool Function()? _pokemonReferenceUnchanged;
+  late final _pokemonReferences = WorkspacePokemonReferenceRoute(
+    controller: _controller,
+    isActive: () => mounted,
+    leavePokemon: _allowLeavePokemon,
+    sceneUnavailable: () =>
+        _navigationNotice('L’éditeur de scènes est indisponible.'),
+    showMap: () => _show(WorkspaceSpace.map),
+    selectEntity: _selectMapEntity,
+    opened: () {
+      _pokemonMapReturn = true;
+      _changed();
+    },
+  );
   VerificationWorkspaceController? get _verification => _sessions.verification;
   set _verificationOrigin(WorkspaceReturn value) => _navigation.verificationOrigin = value;
   bool? _inspector;
@@ -499,10 +512,7 @@ class _MapWorkspaceScreenState extends State<MapWorkspaceScreen> {
     }
     _reconcileCatalogueView();
     _releaseStaleMapState();
-    _visualProjection.synchronize(
-      _controller.visualProject,
-      suspended: _openingWorkshop,
-    );
+    _visualProjection.follow(_controller, _workshops);
     if (mounted) {
       setState(() {});
       _publishHome();

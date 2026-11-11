@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../features/dialogues/application/dialogue_workspace_authoring.dart';
 import '../../../features/dialogues/application/dialogue_workspace_controller.dart';
 import '../../shared/widgets/inputs/studio_commit_field.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
@@ -10,10 +11,6 @@ class DialogueResultsPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final session = controller.active!;
-    final emitted = session.document
-        .documentOutcomes()
-        .map((o) => o.id)
-        .toSet();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -54,7 +51,7 @@ class DialogueResultsPanel extends StatelessWidget {
                       ),
                   ],
                 ),
-                if (!emitted.contains(outcome.id))
+                if (!dialogueOutcomeEmitted(session, outcome.id))
                   const Text('Déclaré, mais aucune réponse ne l’émet encore.'),
               ],
             ),

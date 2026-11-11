@@ -1,5 +1,6 @@
 import 'package:map_core/map_core_domain.dart';
 
+import 'event_condition_editing.dart';
 import 'event_labels.dart';
 import 'event_value_label.dart';
 
@@ -124,3 +125,21 @@ String eventSimulationReason(NarrativeEventSimulationReason reason) =>
       NarrativeEventSimulationReason.runtimeReferenceUnavailable =>
         'Référence indisponible pour le jeu',
     };
+
+String eventConditionNodeTitle(
+  NarrativeEventConditionExpression value,
+  List<NarrativeFactDefinition> facts,
+  List<NarrativeEventRecord> records,
+) => switch (value) {
+  NarrativeEventConditionLeaf(:final condition) => eventConditionLabel(
+    condition,
+    facts,
+    records,
+  ),
+  NarrativeEventConditionAll() =>
+    eventConditionGroupChildren(value).isEmpty
+        ? 'Sans condition'
+        : 'Toutes ces conditions',
+  NarrativeEventConditionAny() => 'Au moins une condition',
+  NarrativeEventConditionNot() => 'Inverser cette condition',
+};

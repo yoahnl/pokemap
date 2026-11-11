@@ -1,5 +1,7 @@
 import 'package:map_core/map_core_domain.dart';
 
+import 'presentation_field_input.dart';
+
 enum PresentationPose { start, end, trajectory }
 
 PresentationVisualComposition presentationPose(
@@ -90,3 +92,42 @@ Map<String, Object?> presentationPosePatch(
   }
   return patch;
 }
+
+const presentationRotationDegreeFactor = 1 / 360;
+
+double presentationPoseFieldValue(
+  PresentationClip clip,
+  String poseKey,
+  String key,
+  double fallback, {
+  double factor = 1,
+}) {
+  final pose = encodePresentationClip(clip)[poseKey] as Map? ?? const {};
+  return ((pose[key] as num?)?.toDouble() ?? fallback) / factor;
+}
+
+bool commitPresentationPoseField(
+  Set<String> invalidFields,
+  String fieldId,
+  PresentationClip clip,
+  String key,
+  String text, {
+  required PresentationPose pose,
+  required bool orientationOverride,
+  required bool portrait,
+  required bool Function(Map<String, Object?>) apply,
+  double factor = 1,
+}) => commitPresentationField(
+  invalidFields,
+  fieldId,
+  parsePresentationFieldText(text, key, numeric: true, factor: factor),
+  (value) => apply(
+    presentationPosePatch(
+      clip,
+      {key: value as double},
+      pose: pose,
+      orientationOverride: orientationOverride,
+      portrait: portrait,
+    ),
+  ),
+);

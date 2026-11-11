@@ -1,0 +1,731 @@
+{
+ "zone": "C2_narrative",
+ "items": [
+  {
+   "item": "dialogue_inspector",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/dialogues/dialogue_inspector.dart:DialogueInspector (libellé par défaut, titre vide -> disconnect, cible de saut, id de suite par titre)",
+   "to": "apps/avelune_studio/lib/features/dialogues/application/dialogue_workspace_authoring.dart:dialogueDefaultResponseLabel/addDefaultResponse/disconnectNodeJump/nodeIdForTitle/dialogueJumpTargetTitle",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_authoring_owner_test.dart",
+     "test": "a new response on an existing choice is named Nouvelle réponse"
+    },
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_authoring_owner_test.dart",
+     "test": "a suite jump is read, found by title and removed from the suite level"
+    },
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_authoring_owner_test.dart",
+     "test": "a response reads its destination title"
+    }
+   ],
+   "mutationDetected": null,
+   "note": "Le titre vide sur une réponse reste controller.disconnect (déjà propriétaire) ; seul le cas « suite » est extrait."
+  },
+  {
+   "item": "dialogue_library",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/dialogues/dialogue_library.dart:DialogueLibrary.build",
+   "to": "apps/avelune_studio/lib/features/dialogues/application/dialogue_workspace_authoring.dart:filteredEntries/libraryFolderName/libraryStatus",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_authoring_owner_test.dart",
+     "test": "the library filters by name and folder and states folder and draft status"
+    }
+   ],
+   "mutationDetected": null,
+   "note": "Filtre nom (insensible à la casse, trim) + dossier, nom de dossier par défaut « Dialogues du projet », statut « Contenu à ouvrir » / « N suites · brouillon »."
+  },
+  {
+   "item": "dialogue_page_commands",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/dialogues/dialogue_page_commands.dart:addLine/addChoice/addOutcome/deleteSelection",
+   "to": "apps/avelune_studio/lib/features/dialogues/application/dialogue_workspace_authoring.dart:addDefaultLine/addChoiceWithStarterResponses/addOutcomeAssigned ; dialogue_view_selection.dart:DialogueViewState.clearDeepestSelection",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_authoring_owner_test.dart",
+     "test": "default line and narration carry their starter texts"
+    },
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_authoring_owner_test.dart",
+     "test": "a default line on an absent suite is refused and reported"
+    },
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_authoring_owner_test.dart",
+     "test": "a new choice starts with the Oui and Non responses in that order"
+    },
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_authoring_owner_test.dart",
+     "test": "no starter response is added when the choice itself is refused"
+    },
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_authoring_owner_test.dart",
+     "test": "a created outcome is assigned to the selected response only when one is given"
+    },
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_view_selection_owner_test.dart",
+     "test": "deleting clears the deepest selection first: wire, then response, then step"
+    }
+   ],
+   "mutationDetected": null,
+   "note": "flush/confirm/askNarrativeName/refresh restent UI (voir uiOnly)."
+  },
+  {
+   "item": "dialogue_portrait_fields",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/dialogues/dialogue_portrait_fields.dart:DialoguePortraitFields.build",
+   "to": "apps/avelune_studio/lib/features/dialogues/application/dialogue_workspace_authoring.dart:selectLineCharacter/lineCharacterChoices/expressionChoices/lineHasNoPreparedPortrait",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_authoring_owner_test.dart",
+     "test": "choosing a character takes its name and first portrait and a change resets the old portrait"
+    },
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_authoring_owner_test.dart",
+     "test": "choosing no character clears the portrait and the character"
+    },
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_authoring_owner_test.dart",
+     "test": "character and expression options follow the project"
+    }
+   ],
+   "mutationDetected": null,
+   "note": "Vérifié : dialogue_portrait_selection.dart (vague 1) ne porte que DialogueLineDraft (éditeur simplifié du narratif, speakerId) ; l'éditeur de dialogue complet (DeLineStep, characterId) n'était extrait nulle part, d'où ce nouvel extrait. Effacer le personnage conserve le locuteur textuel (speaker non touché), comme l'ancienne UI."
+  },
+  {
+   "item": "dialogue_suite_actions",
+   "status": "ui_only",
+   "from": "apps/avelune_studio/lib/presentation/features/dialogues/dialogue_suite_actions.dart:DialogueSuiteActions",
+   "to": null,
+   "tests": [],
+   "mutationDetected": null,
+   "note": "Les trois boutons appellent selectEntry / startPreview(nodeTitle) / duplicateNode, déjà propriétaires et testés (dialogue_workspace_owner_test, dialogue_selection_commands_test). Reste le garde de flush : unfocus puis abandon si controller.error a changé (uiOnly)."
+  },
+  {
+   "item": "dialogue_view_state",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/dialogues/dialogue_view_state.dart:DialogueViewState",
+   "to": "apps/avelune_studio/lib/features/dialogues/application/dialogue_view_selection.dart:DialogueViewState (select/reconcile/clearDeepestSelection)",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_view_selection_owner_test.dart",
+     "test": "selecting a suite keeps the given step and response and drops the wire"
+    },
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_view_selection_owner_test.dart",
+     "test": "a still existing suite keeps the whole selection"
+    },
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_view_selection_owner_test.dart",
+     "test": "a vanished suite falls back to the first one and clears the rest"
+    },
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_view_selection_owner_test.dart",
+     "test": "an unselected view picks the first suite and a document without suite picks nothing"
+    }
+   ],
+   "mutationDetected": null,
+   "note": "La classe est déplacée telle quelle ; le fichier legacy la ré-exporte. DialogueViewStore (TextEditingController) reste UI."
+  },
+  {
+   "item": "dialogue_workspace_page",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/dialogues/dialogue_workspace_page.dart:editable (undo/redo désactivés en lecture seule)",
+   "to": "apps/avelune_studio/lib/features/dialogues/application/dialogue_edit_session.dart:DialogueEditSession.editable",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_authoring_owner_test.dart",
+     "test": "the editable flag follows the read only reason"
+    }
+   ],
+   "mutationDetected": null,
+   "note": "Le raccourci Cmd/Ctrl+S, les dispositions compact/small et le flush sont uiOnly. Note : controller.undo/redo ignorent déjà une session en lecture seule (_restore)."
+  },
+  {
+   "item": "event_conditions._node",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/events/event_conditions.dart:_node (inverser, grouper, feuille -> groupe, ajout, retrait, titres)",
+   "to": "apps/avelune_studio/lib/features/events/application/event_condition_editing.dart:canInvertEventCondition/invertedEventCondition/withAddedEventCondition/withAddedEventConditionGroup/groupedEventCondition/withEventConditionChild/eventConditionGroupChildren ; event_condition_labels.dart:eventConditionNodeTitle",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/events/event_condition_tree_owner_test.dart",
+     "test": "only a leaf or a non empty group can be inverted"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/event_condition_tree_owner_test.dart",
+     "test": "adding to a leaf replaces it while adding to a group appends and keeps its kind"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/event_condition_tree_owner_test.dart",
+     "test": "adding a group nests the new condition in an all group"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/event_condition_tree_owner_test.dart",
+     "test": "a leaf grouped with another condition becomes an all group of both"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/event_condition_tree_owner_test.dart",
+     "test": "replacing or removing a child keeps the group kind and the other children"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/event_condition_tree_owner_test.dart",
+     "test": "each node kind has its own title"
+    }
+   ],
+   "mutationDetected": null,
+   "note": "Retrait d'un enfant : réutilise removeEventConditionChild existant."
+  },
+  {
+   "item": "dialogue_lines_editor",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/narrative/dialogue_lines_editor.dart:locuteur -> portrait par défaut, texte, notice sans portrait",
+   "to": "apps/avelune_studio/lib/features/narrative/application/dialogue_portrait_selection.dart:DialoguePortraitSelection.chooseSpeaker/withText/speakerLacksPortraits",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/narrative/dialogue_speaker_selection_owner_test.dart",
+     "test": "choosing a speaker takes its first prepared portrait and keeps the text"
+    },
+    {
+     "file": "apps/avelune_studio/test/narrative/dialogue_speaker_selection_owner_test.dart",
+     "test": "choosing a speaker without portrait drops the previous portrait state"
+    },
+    {
+     "file": "apps/avelune_studio/test/narrative/dialogue_speaker_selection_owner_test.dart",
+     "test": "choosing the empty option or an unknown character clears speaker and portrait"
+    },
+    {
+     "file": "apps/avelune_studio/test/narrative/dialogue_speaker_selection_owner_test.dart",
+     "test": "only a known speaker without prepared portrait triggers the notice"
+    }
+   ],
+   "mutationDetected": null,
+   "note": "Étend le propriétaire de la vague 1 (DialoguePortraitSelection.of/choose, intact)."
+  },
+  {
+   "item": "narrative_interaction_pane",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/narrative/narrative_interaction_pane.dart:outcomes / branches / priorité / carte / origine",
+   "to": "apps/avelune_studio/lib/features/narrative/application/narrative_interaction_edits.dart:narrativeOutcomeSections/narrativeOutcomeSectionTitle/narrativeOutcomeSteps/withNarrativeOutcomeSteps/narrativePriorityFromInput/narrativeInteractionMapName/narrativeInteractionOriginLabel",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/narrative/narrative_interaction_sections_owner_test.dart",
+     "test": "one consequence section exists per outcome and the last choice text names it"
+    },
+    {
+     "file": "apps/avelune_studio/test/narrative/narrative_interaction_sections_owner_test.dart",
+     "test": "outcome steps default to empty and replacing one leaves the others"
+    },
+    {
+     "file": "apps/avelune_studio/test/narrative/narrative_interaction_sections_owner_test.dart",
+     "test": "priority only accepts an integer"
+    },
+    {
+     "file": "apps/avelune_studio/test/narrative/narrative_interaction_sections_owner_test.dart",
+     "test": "the map name falls back to the current map and the origin tells entity from zone"
+    }
+   ],
+   "mutationDetected": null,
+   "note": "Boutons enregistrer/abandonner (garde busy/editable/dirty) : appellent des méthodes propriétaires, dialogues de confirmation uiOnly."
+  },
+  {
+   "item": "narrative_overview_landing_side",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/narrative/narrative_overview_landing_side.dart:_side (documents à reprendre, 5 max)",
+   "to": "apps/avelune_studio/lib/features/narrative/application/narrative_overview_resume.dart:narrativeResumeItems/splitNarrativeResume/narrativeResumeVisibleLimit",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/narrative/narrative_resume_owner_test.dart",
+     "test": "nothing is resumable when no document is open or modified"
+    },
+    {
+     "file": "apps/avelune_studio/test/narrative/narrative_resume_owner_test.dart",
+     "test": "an open document and a modified one are both resumable with their own sentence"
+    },
+    {
+     "file": "apps/avelune_studio/test/narrative/narrative_resume_owner_test.dart",
+     "test": "a modified document that is also the active one reads as a draft"
+    },
+    {
+     "file": "apps/avelune_studio/test/narrative/narrative_resume_owner_test.dart",
+     "test": "a dirty interaction is resumable without being active and events use their name"
+    },
+    {
+     "file": "apps/avelune_studio/test/narrative/narrative_resume_owner_test.dart",
+     "test": "only five documents are shown and the rest is counted"
+    }
+   ],
+   "mutationDetected": null,
+   "note": "Icône, ton, ouverture (callbacks) restent UI. _eventName orphelin supprimé de narrative_overview_landing_search.dart."
+  },
+  {
+   "item": "narrative_story_chapters",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/narrative/narrative_story_chapters.dart:filtre d'étapes + tri + libellés",
+   "to": "apps/avelune_studio/lib/features/narrative/application/narrative_story_outline.dart:narrativeStoryOutline/narrativeStorySummary/narrativeStepLinkLabel",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/narrative/narrative_story_outline_owner_test.dart",
+     "test": "without a query chapters and steps follow their order and ties keep the authored order"
+    },
+    {
+     "file": "apps/avelune_studio/test/narrative/narrative_story_outline_owner_test.dart",
+     "test": "a step query keeps only the chapters that hold a matching step"
+    },
+    {
+     "file": "apps/avelune_studio/test/narrative/narrative_story_outline_owner_test.dart",
+     "test": "a chapter title match keeps every step of that chapter"
+    },
+    {
+     "file": "apps/avelune_studio/test/narrative/narrative_story_outline_owner_test.dart",
+     "test": "a story title match keeps every chapter with every step"
+    },
+    {
+     "file": "apps/avelune_studio/test/narrative/narrative_story_outline_owner_test.dart",
+     "test": "the summary counts chapters and steps and the link label tells none from some"
+    }
+   ],
+   "mutationDetected": null,
+   "note": "Le repli de chapitre (collapsedChapters) reste dans NarrativeOverviewSelection existant."
+  },
+  {
+   "item": "narrative_story_pane._navigate / vue initiale",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/narrative/narrative_story_pane.dart:_navigate/_navigateDocument/build (initialized)",
+   "to": "apps/avelune_studio/lib/features/narrative/application/narrative_navigation_requests.dart:NarrativeNavigationRequests.run ; narrative_overview_selection.dart:NarrativeOverviewSelection.initialize",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/narrative/narrative_navigation_requests_owner_test.dart",
+     "test": "the error of an older request is dropped once a newer one started"
+    },
+    {
+     "file": "apps/avelune_studio/test/narrative/narrative_navigation_requests_owner_test.dart",
+     "test": "the error is dropped when the selection moved away from the requested id"
+    },
+    {
+     "file": "apps/avelune_studio/test/narrative/narrative_navigation_requests_owner_test.dart",
+     "test": "the initial view opens the first story and only once"
+    },
+    {
+     "file": "apps/avelune_studio/test/narrative/narrative_navigation_requests_owner_test.dart",
+     "test": "a project without story starts on the interactions tab"
+    }
+   ],
+   "mutationDetected": null,
+   "note": "Le compteur de requêtes sort du State ; le garde mounted et setState restent UI. Le Escape/compact/layout sont uiOnly."
+  },
+  {
+   "item": "scene_reference_chooser",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/narrative/scene_reference_chooser.dart:chooseSceneNodeReference (référence unique) + sceneNodeReferenceLabel",
+   "to": "apps/avelune_studio/lib/features/narrative/application/scene_node_references.dart:soleSceneNodeReference/sceneNodeReferenceLabel",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/narrative/scene_node_references_owner_test.dart",
+     "test": "a single reference is chosen without asking"
+    },
+    {
+     "file": "apps/avelune_studio/test/narrative/scene_node_references_owner_test.dart",
+     "test": "no reference or several references still need a choice"
+    },
+    {
+     "file": "apps/avelune_studio/test/narrative/scene_node_references_owner_test.dart",
+     "test": "a reference reads as the scene name and the node name"
+    }
+   ],
+   "mutationDetected": null,
+   "note": "sceneNodeReferenceLabel est ré-exporté par le fichier legacy."
+  },
+  {
+   "item": "reste : narrative_overview_detail (lignes de détail)",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/narrative/narrative_overview_detail.dart:_story/_fact/_step/_interaction/_role/_relationship",
+   "to": "apps/avelune_studio/lib/features/narrative/application/narrative_overview_detail_lines.dart",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/narrative/narrative_overview_detail_lines_owner_test.dart",
+     "test": "a step shows the links that name it or that it lists"
+    },
+    {
+     "file": "apps/avelune_studio/test/narrative/narrative_overview_detail_lines_owner_test.dart",
+     "test": "a scene link states its role and flags a missing scene"
+    },
+    {
+     "file": "apps/avelune_studio/test/narrative/narrative_overview_detail_lines_owner_test.dart",
+     "test": "every role and relationship has a sentence"
+    },
+    {
+     "file": "apps/avelune_studio/test/narrative/narrative_overview_detail_lines_owner_test.dart",
+     "test": "story organisation counts chapters, steps and scene links"
+    },
+    {
+     "file": "apps/avelune_studio/test/narrative/narrative_overview_detail_lines_owner_test.dart",
+     "test": "a relation names its target or says that it is missing"
+    },
+    {
+     "file": "apps/avelune_studio/test/narrative/narrative_overview_detail_lines_owner_test.dart",
+     "test": "a fact states its type and its initial value"
+    },
+    {
+     "file": "apps/avelune_studio/test/narrative/narrative_overview_detail_lines_owner_test.dart",
+     "test": "an interaction without condition says whether analysis is unavailable"
+    },
+    {
+     "file": "apps/avelune_studio/test/narrative/narrative_overview_detail_lines_owner_test.dart",
+     "test": "the scene of an interaction comes from its record"
+    }
+   ],
+   "mutationDetected": null,
+   "note": ""
+  },
+  {
+   "item": "reste : event_trigger_panel / event_spatial_context_map (cible absente, sources sélectionnables, aide par type)",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/events/event_trigger_panel.dart:build (missing/missingModel, selectableSources, notices) ; event_spatial_context_map.dart:onContent",
+   "to": "apps/avelune_studio/lib/features/events/application/event_source_targets.dart:eventSourceTargetMissing/selectableEventSources/eventSourceKindHint (+ EventSourcePicking.modelHit/actorHit existants)",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/events/event_source_target_owner_test.dart",
+     "test": "a recorded entity or zone that the map no longer holds is reported as missing"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/event_source_target_owner_test.dart",
+     "test": "the missing target is not reported while choosing, for another map, or without a target"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/event_source_target_owner_test.dart",
+     "test": "a 3D model source is missing when the spatial scene lacks the instance"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/event_source_target_owner_test.dart",
+     "test": "only selectable spatial sources with an identity are offered while choosing"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/event_source_target_owner_test.dart",
+     "test": "only the kinds with a behaviour to explain carry a hint"
+    }
+   ],
+   "mutationDetected": null,
+   "note": "event_spatial_context_map délègue maintenant aux modelHit/actorHit déjà extraits en vague 1 au lieu de sa copie du préfixe npc:."
+  },
+  {
+   "item": "reste : event_outcome_picker (EventOutcomeSummary)",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/events/event_outcome_picker.dart:EventOutcomeSummary.build",
+   "to": "apps/avelune_studio/lib/features/events/application/event_outcome_source_summary.dart:summarizeEventOutcomeSource/eventSourceOutcome",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/events/event_outcome_source_summary_owner_test.dart",
+     "test": "a source that is not an outcome shows the empty choice and opens nothing"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/event_outcome_source_summary_owner_test.dart",
+     "test": "a selectable outcome names its producer and can open the scene that produces it"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/event_outcome_source_summary_owner_test.dart",
+     "test": "an unavailable outcome states its reason"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/event_outcome_source_summary_owner_test.dart",
+     "test": "an outcome absent from the catalog keeps its producer id and the absent status"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/event_outcome_source_summary_owner_test.dart",
+     "test": "the producer is not openable when its scene is missing or not a scene"
+    }
+   ],
+   "mutationDetected": null,
+   "note": ""
+  },
+  {
+   "item": "reste : event_scene_panel / event_summary (décomptes, libellés de dialogue)",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/events/event_scene_panel.dart:build ; event_summary.dart:_dialogueLabel",
+   "to": "apps/avelune_studio/lib/features/events/application/event_scene_selection.dart:eventSceneCountLabel/eventSceneEmptyLabel/eventSceneRowStatus/eventSceneDialogueLabel",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/events/event_scene_labels_owner_test.dart",
+     "test": "the scene count uses the singular only for one scene and shows the filtered share"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/event_scene_labels_owner_test.dart",
+     "test": "the empty message tells an empty project from an unmatched search"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/event_scene_labels_owner_test.dart",
+     "test": "a row states the block count, the save state and the link"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/event_scene_labels_owner_test.dart",
+     "test": "the dialogue button names the dialogue and the start node, or the missing dialogue"
+    }
+   ],
+   "mutationDetected": null,
+   "note": ""
+  },
+  {
+   "item": "reste : dialogue_preview_panel / dialogue_results_panel / dialogue_portrait_image",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/dialogues/dialogue_preview_panel.dart (départ, continuer) ; dialogue_results_panel.dart (résultat non émis) ; dialogue_portrait_image.dart (lecture du portrait)",
+   "to": "apps/avelune_studio/lib/features/dialogues/application/dialogue_workspace_authoring.dart:dialoguePreviewStartLabel/dialoguePreviewCanContinue/dialogueOutcomeEmitted/readDialoguePortrait",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_authoring_owner_test.dart",
+     "test": "the preview names its start and offers to continue only while a line is pending"
+    },
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_authoring_owner_test.dart",
+     "test": "a declared outcome is flagged until a response emits it"
+    },
+    {
+     "file": "apps/avelune_studio/test/dialogues/dialogue_authoring_owner_test.dart",
+     "test": "the portrait is read only for a port that serves portraits and a complete identity"
+    }
+   ],
+   "mutationDetected": null,
+   "note": ""
+  },
+  {
+   "item": "reste : event_page_content (_ownerVariants, portée de condition, saisie numérique)",
+   "status": "replaced",
+   "from": "apps/avelune_studio/lib/presentation/features/events/event_page_content.dart:EventPageContent",
+   "to": "apps/avelune_studio/lib/features/events/application/event_labels.dart:eventConditionOwner ; event_editing_session.dart:EventEditingSession.commitNumber/flush ; event_option_choices.dart:eventOwnerPages",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/events/event_editing_session_test.dart",
+     "test": "(existant : nombres invalides, flush, reload)"
+    }
+   ],
+   "mutationDetected": null,
+   "note": "La portée de condition appelle désormais eventConditionOwner (propriétaire de vague 1) au lieu de sa copie. La saisie numérique et le flush d'événement existent déjà dans EventEditingSession (non rebranchés dans l'ancienne page : doublon laissé à la suppression)."
+  },
+  {
+   "item": "reste : event_workspace_page / event_workspace_layout (flush, _mutate, _tab)",
+   "status": "replaced",
+   "from": "apps/avelune_studio/lib/presentation/features/events/event_workspace_page.dart:_flushEdits/_mutate/_restore/_tab",
+   "to": "apps/avelune_studio/lib/features/events/application/event_editing_session.dart:EventEditingSession",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/events/event_editing_session_test.dart",
+     "test": "(existant)"
+    },
+    {
+     "file": "apps/avelune_studio/test/events/event_flush_ui08_test.dart",
+     "test": "(existant)"
+    }
+   ],
+   "mutationDetected": null,
+   "note": "Le propriétaire existe déjà et est testé ; seul le flush de focus (FocusManager) est uiOnly."
+  },
+  {
+   "item": "reste : event_library, event_options_panel, event_context_map, event_source_identity, event_condition_dialog, event_trigger_panel (types par dimension), event_page_content (_ownerVariants)",
+   "status": "replaced",
+   "from": "apps/avelune_studio/lib/presentation/features/events/*",
+   "to": "apps/avelune_studio/lib/features/events/application/*",
+   "tests": [],
+   "mutationDetected": null,
+   "note": "Déjà extraits en vague 1 (extractions du registre ledger_C2_narrative.json) et couverts par les tests *_owner_test existants."
+  },
+  {
+   "item": "reste : narrative_conditions_editor, narrative_sequence_editor, dialogue_portrait_choice, dialogue_text_value_picker",
+   "status": "replaced",
+   "from": "apps/avelune_studio/lib/presentation/features/narrative|dialogues/*",
+   "to": "narrative_interaction_edits.dart / dialogue_portrait_selection.dart / dialogue_workspace_commands.dart",
+   "tests": [],
+   "mutationDetected": null,
+   "note": "Déjà extraits en vague 1. Les libellés de direction (Vers le haut, etc.) de narrative_sequence_editor restent du texte d'affichage (uiOnly)."
+  },
+  {
+   "item": "reste : narrative_overview_content/navigation/header/landing*/story_pane_overview/creation, narrative_name_dialog, narrative_artwork_image, narrative_overview_view_state",
+   "status": "ui_only",
+   "from": "apps/avelune_studio/lib/presentation/features/narrative/*",
+   "to": null,
+   "tests": [],
+   "mutationDetected": null,
+   "note": "Relus : mise en page, défilement, intitulés des cartes d'action, dialogues de nom, image d'illustration, intentions de la page d'accueil (callbacks). Le filtre (visibleStories/Interactions/Facts, reconcileSelection) est déjà dans NarrativeOverviewSelection (vague 1, narrative_story_filter_owner_test) ; NarrativeOverviewViewState n'ajoute que les TextEditingController/ScrollController."
+  }
+ ],
+ "uiOnly": [
+  {
+   "where": "apps/avelune_studio/lib/presentation/features/dialogues/dialogue_page_commands.dart:flush / dialogue_workspace_page.dart:flush + CallbackShortcuts Cmd|Ctrl+S ; dialogue_inspector.dart:StudioTabs.onChanged ; dialogue_suite_actions.dart:run",
+   "what": "Flush du champ focalisé (StudioCommitField) : unfocus + applyFocusChangesIfNeeded, puis abandon si controller.error a changé.",
+   "forRebuild": "La nouvelle UI doit garantir qu'un champ texte en cours d'édition est validé (tryCommit appelé, donc updateLine/updateResponse/renameNode/renameOutcome) AVANT : l'enregistrement (bouton et Cmd/Ctrl+S), undo/redo, le changement d'onglet de l'inspecteur (Propriétés/Aperçu/Yarn), les actions de suite (Commencer ici, Essayer, Dupliquer), la connexion, l'ouverture/création/renommage/duplication/suppression/rechargement de dialogue, le retour et le test. Si la validation échoue (controller.error change), l'action qui suit doit être abandonnée. Aucun propriétaire non visuel ne fait ce flush pour les dialogues (contrairement à EventEditingSession.flush pour les événements)."
+  },
+  {
+   "where": "apps/avelune_studio/lib/presentation/features/dialogues/dialogue_workspace_page.dart:build (compact < 1080 ou texte > 20, small < 650)",
+   "what": "Mise en page adaptative, ouverture bibliothèque/inspecteur exclusives, onglet preview forcé en mode compact.",
+   "forRebuild": "Reproduire les modes compact/petit si la nouvelle UI les garde ; l'état (libraryOpen, inspectorOpen, previewOpen, tab) vit dans DialogueViewStore/DialogueViewState."
+  },
+  {
+   "where": "apps/avelune_studio/lib/presentation/features/dialogues/dialogue_page_commands.dart:confirm/deleteDialogue/reload/create/rename",
+   "what": "Dialogues de confirmation et de nom (Remplacer la destination ?, Supprimer ce dialogue ?, Recharger depuis le projet ? si dirty).",
+   "forRebuild": "Redemander la confirmation avant connectSelection(replace), delete et reload d'un brouillon modifié ; le propriétaire ne confirme pas."
+  },
+  {
+   "where": "apps/avelune_studio/lib/presentation/features/dialogues/dialogue_suite_actions.dart:DialogueSuiteActions",
+   "what": "Trois boutons qui appellent selectEntry/startPreview(nodeTitle)/duplicateNode.",
+   "forRebuild": "Rebrancher ces trois commandes du DialogueWorkspaceController."
+  },
+  {
+   "where": "apps/avelune_studio/lib/presentation/features/events/event_spatial_context_map.dart:overlays trigger",
+   "what": "Énumération des cellules d'une zone pour la surbrillance (boucles x/z sur trigger.area).",
+   "forRebuild": "Surligner la zone du déclencheur choisi (ou chaque zone sélectionnable en mode choix) ; géométrie purement visuelle."
+  },
+  {
+   "where": "apps/avelune_studio/lib/presentation/features/events/event_workspace_layout.dart:textAwareEditorShortcuts",
+   "what": "Raccourcis Cmd/Ctrl+S, Cmd/Ctrl+Z, Maj+Z.",
+   "forRebuild": "Rebrancher save/restore(redo) d'EventEditingSession avec flush de focus préalable."
+  },
+  {
+   "where": "apps/avelune_studio/lib/presentation/features/narrative/narrative_story_pane.dart:Focus.onKeyEvent (Escape) + LayoutBuilder compact",
+   "what": "Fermeture du détail par Échap, mise en page compacte.",
+   "forRebuild": "Retirer detailVisible (NarrativeOverviewSelection) sur Échap."
+  },
+  {
+   "where": "apps/avelune_studio/lib/presentation/features/narrative/narrative_sequence_editor.dart:facing labels",
+   "what": "Libellés de direction (Vers le haut/bas/droite/gauche).",
+   "forRebuild": "Texte d'affichage de EntityFacing."
+  }
+ ],
+ "decisions": [
+  {
+   "topic": "Escape / flush dialogues : aucun propriétaire",
+   "legacyBehaviour": "Le flush du champ focalisé vit dans l'ancienne page (dialogue_workspace_page.dart:flush, dialogue_page_commands.dart:save/undo/redo/connect/open/create...).",
+   "ownerBehaviour": "DialogueWorkspaceController n'a pas d'équivalent de EventEditingSession.flush ; non inventé (voir uiOnly).",
+   "where": "apps/avelune_studio/lib/features/dialogues/application/dialogue_workspace_controller.dart"
+  },
+  {
+   "topic": "Effacer le personnage d'une réplique conserve le locuteur textuel",
+   "legacyBehaviour": "DialoguePortraitFields : onChanged('') appelle updateLine(characterId: '', clearPortrait: true, speaker: null, ...) ; speaker null n'écrase pas le locuteur.",
+   "ownerBehaviour": "selectLineCharacter reproduit exactement cet appel ; test « choosing no character clears the portrait and the character » n'affirme pas la valeur du speaker.",
+   "where": "apps/avelune_studio/lib/presentation/features/dialogues/dialogue_portrait_fields.dart ; apps/avelune_studio/lib/features/dialogues/application/dialogue_workspace_authoring.dart:selectLineCharacter"
+  },
+  {
+   "topic": "Deux copies de la saisie numérique/flush des événements",
+   "legacyBehaviour": "event_workspace_page.dart:_flushEdits/_mutate et event_page_content.dart:_number dupliquent EventEditingSession.",
+   "ownerBehaviour": "EventEditingSession (vague 1) est le propriétaire testé ; l'ancienne page n'y délègue pas.",
+   "where": "apps/avelune_studio/lib/presentation/features/events/event_workspace_page.dart ; apps/avelune_studio/lib/features/events/application/event_editing_session.dart"
+  }
+ ],
+ "commands": [
+  {
+   "command": "flutter test --no-pub <13 nouveaux tests *_owner_test.dart>",
+   "cwd": "apps/avelune_studio",
+   "exitCode": 0,
+   "result": "+82 -0"
+  },
+  {
+   "command": "flutter analyze --no-pub lib/features/{dialogues,events,narrative} lib/presentation/features/{dialogues,events,narrative} + 13 nouveaux tests",
+   "cwd": "apps/avelune_studio",
+   "exitCode": 0,
+   "result": "No issues found"
+  },
+  {
+   "command": "python3 check_clean.py <7 propriétaires créés + 13 tests> et 9 propriétaires modifiés",
+   "cwd": ".",
+   "exitCode": 0,
+   "result": "CLEAN pour chacun"
+  },
+  {
+   "command": "mutation x13 dans AveluneQA/t01-w2-C2_narrative (copie jetable, restaurée à chaque fois)",
+   "cwd": ".",
+   "exitCode": 0,
+   "result": "13/13 détectées (2 premières mutations non détectées : tests renforcés puis re-mutés et détectées)"
+  },
+  {
+   "command": "flutter test --no-pub -r failures-only test/events",
+   "cwd": "apps/avelune_studio",
+   "exitCode": 1,
+   "result": "+206 -2 : uniquement event_catalog_ui08_test et standard_event_template_publication_test, déjà rouges dans studio-full-suite-red-after-wave1.txt"
+  },
+  {
+   "command": "flutter test --no-pub -r failures-only test/narrative test/dialogues",
+   "cwd": "apps/avelune_studio",
+   "exitCode": 0,
+   "result": "+197 tous verts"
+  },
+  {
+   "command": "flutter test --no-pub test/presentation/ui05_narrative_overview_links_test.dart test/presentation/ui05_story_creation_test.dart test/presentation/ui08_event_journey_test.dart test/dialogues_ui09_visual_test.dart test/dialogues_ui09_volume_test.dart test/events_ui08_source_loading_test.dart test/m3_conditions_widgets_test.dart test/scene_canvas_addition_test.dart",
+   "cwd": "apps/avelune_studio",
+   "exitCode": 0,
+   "result": "+10 tous verts (volume de la machine élevé, délais longs)"
+  },
+  {
+   "command": "flutter test --no-pub test/dialogues_ui09_interaction_test.dart test/presentation/ui05_narrative_overview_collection_test.dart",
+   "cwd": "apps/avelune_studio",
+   "exitCode": 0,
+   "result": "+9 tous verts (relancés seuls : un premier lot avait des erreurs de chargement sous charge)"
+  },
+  {
+   "command": "flutter test --no-pub test/presentation/ui05_narrative_artwork_test.dart (dans un lot)",
+   "cwd": "apps/avelune_studio",
+   "exitCode": 1,
+   "result": "1 rouge « overview uses project artwork for hero, story, and scene » : déjà rouge à l'identique dans studio-full-suite-red-after-wave1.txt"
+  },
+  {
+   "command": "flutter test --no-pub test/architecture/architecture_boundaries_test.dart",
+   "cwd": "apps/avelune_studio",
+   "exitCode": 1,
+   "result": "4 tests rouges, les mêmes que studio-full-suite-red-after-wave1.txt ; aucun de mes fichiers créés ou modifiés n'apparaît dans les violations (grep sur la sortie)"
+  }
+ ],
+ "createdFiles": [
+  "apps/avelune_studio/lib/features/dialogues/application/dialogue_view_selection.dart",
+  "apps/avelune_studio/lib/features/dialogues/application/dialogue_workspace_authoring.dart",
+  "apps/avelune_studio/lib/features/events/application/event_outcome_source_summary.dart",
+  "apps/avelune_studio/lib/features/narrative/application/narrative_navigation_requests.dart",
+  "apps/avelune_studio/lib/features/narrative/application/narrative_overview_detail_lines.dart",
+  "apps/avelune_studio/lib/features/narrative/application/narrative_overview_resume.dart",
+  "apps/avelune_studio/lib/features/narrative/application/narrative_story_outline.dart",
+  "apps/avelune_studio/test/dialogues/dialogue_authoring_owner_test.dart",
+  "apps/avelune_studio/test/dialogues/dialogue_view_selection_owner_test.dart",
+  "apps/avelune_studio/test/events/event_condition_tree_owner_test.dart",
+  "apps/avelune_studio/test/events/event_outcome_source_summary_owner_test.dart",
+  "apps/avelune_studio/test/events/event_scene_labels_owner_test.dart",
+  "apps/avelune_studio/test/events/event_source_target_owner_test.dart",
+  "apps/avelune_studio/test/narrative/dialogue_speaker_selection_owner_test.dart",
+  "apps/avelune_studio/test/narrative/narrative_interaction_sections_owner_test.dart",
+  "apps/avelune_studio/test/narrative/narrative_navigation_requests_owner_test.dart",
+  "apps/avelune_studio/test/narrative/narrative_overview_detail_lines_owner_test.dart",
+  "apps/avelune_studio/test/narrative/narrative_resume_owner_test.dart",
+  "apps/avelune_studio/test/narrative/narrative_story_outline_owner_test.dart",
+  "apps/avelune_studio/test/narrative/scene_node_references_owner_test.dart"
+ ],
+ "modifiedFiles": [
+  "apps/avelune_studio/lib/features/dialogues/application/dialogue_edit_session.dart",
+  "apps/avelune_studio/lib/features/events/application/event_condition_editing.dart",
+  "apps/avelune_studio/lib/features/events/application/event_condition_labels.dart",
+  "apps/avelune_studio/lib/features/events/application/event_scene_selection.dart",
+  "apps/avelune_studio/lib/features/events/application/event_source_targets.dart",
+  "apps/avelune_studio/lib/features/narrative/application/dialogue_portrait_selection.dart",
+  "apps/avelune_studio/lib/features/narrative/application/narrative_interaction_edits.dart",
+  "apps/avelune_studio/lib/features/narrative/application/narrative_overview_selection.dart",
+  "apps/avelune_studio/lib/features/narrative/application/scene_node_references.dart",
+  "apps/avelune_studio/lib/presentation/features/dialogues/dialogue_inspector.dart",
+  "apps/avelune_studio/lib/presentation/features/dialogues/dialogue_library.dart",
+  "apps/avelune_studio/lib/presentation/features/dialogues/dialogue_page_commands.dart",
+  "apps/avelune_studio/lib/presentation/features/dialogues/dialogue_portrait_fields.dart",
+  "apps/avelune_studio/lib/presentation/features/dialogues/dialogue_portrait_image.dart",
+  "apps/avelune_studio/lib/presentation/features/dialogues/dialogue_preview_panel.dart",
+  "apps/avelune_studio/lib/presentation/features/dialogues/dialogue_results_panel.dart",
+  "apps/avelune_studio/lib/presentation/features/dialogues/dialogue_view_state.dart",
+  "apps/avelune_studio/lib/presentation/features/dialogues/dialogue_workspace_page.dart",
+  "apps/avelune_studio/lib/presentation/features/events/event_conditions.dart",
+  "apps/avelune_studio/lib/presentation/features/events/event_outcome_picker.dart",
+  "apps/avelune_studio/lib/presentation/features/events/event_page_content.dart",
+  "apps/avelune_studio/lib/presentation/features/events/event_scene_panel.dart",
+  "apps/avelune_studio/lib/presentation/features/events/event_spatial_context_map.dart",
+  "apps/avelune_studio/lib/presentation/features/events/event_summary.dart",
+  "apps/avelune_studio/lib/presentation/features/events/event_trigger_panel.dart",
+  "apps/avelune_studio/lib/presentation/features/narrative/dialogue_lines_editor.dart",
+  "apps/avelune_studio/lib/presentation/features/narrative/narrative_interaction_pane.dart",
+  "apps/avelune_studio/lib/presentation/features/narrative/narrative_overview_detail.dart",
+  "apps/avelune_studio/lib/presentation/features/narrative/narrative_overview_landing.dart",
+  "apps/avelune_studio/lib/presentation/features/narrative/narrative_overview_landing_search.dart",
+  "apps/avelune_studio/lib/presentation/features/narrative/narrative_overview_landing_side.dart",
+  "apps/avelune_studio/lib/presentation/features/narrative/narrative_story_chapters.dart",
+  "apps/avelune_studio/lib/presentation/features/narrative/narrative_story_pane.dart",
+  "apps/avelune_studio/lib/presentation/features/narrative/scene_reference_chooser.dart"
+ ]
+}

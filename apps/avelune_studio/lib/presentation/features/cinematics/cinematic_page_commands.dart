@@ -19,11 +19,9 @@ extension _CinematicPageCommands on _CinematicWorkspacePageState {
 
   void paste() {
     if (flush() && clipboard != null) {
-      final a = controller.active!.asset;
-      final index = a.timeline.steps.indexWhere((s) => s.id == view!.stepId);
       controller.pasteSteps(
         clipboard!,
-        index < 0 ? a.timeline.steps.length : index + 1,
+        cinematicPasteIndex(controller.active!.asset, view!.stepId),
       );
     }
   }
@@ -47,7 +45,7 @@ extension _CinematicPageCommands on _CinematicWorkspacePageState {
     if (name != null && mounted) {
       await controller.create(
         name,
-        folderId: widget.views.folderId.isEmpty ? null : widget.views.folderId,
+        folderId: cinematicLibraryFolderOrRoot(widget.views.folderId),
       );
     }
   }

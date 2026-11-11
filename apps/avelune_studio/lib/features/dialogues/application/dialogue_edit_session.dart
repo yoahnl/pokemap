@@ -24,6 +24,7 @@ class DialogueEditSession {
   final String source;
   final int revision;
   final bool dirty, canUndo, canRedo;
+  bool get editable => readOnlyReason == null;
   final String? readOnlyReason, error, sourceRevision, startNode;
 }
 

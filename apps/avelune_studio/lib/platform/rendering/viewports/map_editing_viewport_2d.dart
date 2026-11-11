@@ -130,10 +130,7 @@ class _MapEditingViewport2DState extends State<MapEditingViewport2D>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    if (widget.view.borderDraft?.mapId != null &&
-        widget.view.borderDraft!.mapId != widget.document.current.id) {
-      widget.view.borderDraft = null;
-    }
+    widget.view.focusBorderDraftOn(widget.document.current.id);
   }
 
   @override
@@ -162,10 +159,7 @@ class _MapEditingViewport2DState extends State<MapEditingViewport2D>
                 _decorDraft!.original.id != widget.document.selectedId))) {
       _cancel();
     }
-    if (widget.view.borderDraft?.mapId != null &&
-        widget.view.borderDraft!.mapId != widget.document.current.id) {
-      widget.view.borderDraft = null;
-    }
+    widget.view.focusBorderDraftOn(widget.document.current.id);
   }
 
   void _paint(GridPos cell) {

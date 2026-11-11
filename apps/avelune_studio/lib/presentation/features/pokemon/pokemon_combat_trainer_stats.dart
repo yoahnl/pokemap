@@ -5,23 +5,10 @@ import '../../../features/pokemon/application/pokemon_combat_controller.dart';
 import '../../shared/widgets/inputs/studio_draft_field.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
+import '../../../features/pokemon/application/pokemon_trainer_stat_labels.dart';
 import '../../../features/pokemon/coordination/pokemon_trainer_stats_preview.dart';
 
-const _statLabels = {
-  'hp': 'PV',
-  'attack': 'Attaque',
-  'defense': 'Défense',
-  'specialAttack': 'Attaque Spé.',
-  'specialDefense': 'Défense Spé.',
-  'speed': 'Vitesse',
-};
-
-String _natureLabel(String id) {
-  final effect = canonicalPokemonNatureEffect(id);
-  final name = '${id[0].toUpperCase()}${id.substring(1)}';
-  if (effect.increasedStat == null) return '$name — neutre';
-  return '$name — ${_statLabels[effect.increasedStat!.name]} +10%, ${_statLabels[effect.decreasedStat!.name]} −10%';
-}
+const _statLabels = pokemonStatLabels;
 
 class PokemonCombatTrainerStats extends StatefulWidget {
   const PokemonCombatTrainerStats({
@@ -101,7 +88,7 @@ class _PokemonCombatTrainerStatsState extends State<PokemonCombatTrainerStats> {
             label: 'Nature',
             value: member.natureId ?? standardTrainerPokemonNatureId,
             options: {
-              for (final id in canonicalPokemonNatureIds) id: _natureLabel(id),
+              for (final id in canonicalPokemonNatureIds) id: pokemonNatureLabel(id),
             },
             onChanged: combat.saving
                 ? null

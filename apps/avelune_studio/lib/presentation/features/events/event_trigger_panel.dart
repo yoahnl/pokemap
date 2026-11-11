@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
+import '../../../features/events/application/event_source_targets.dart';
 import '../../../features/events/application/event_workspace_controller.dart';
 import '../../../features/events/application/event_source_selection_session.dart';
 
@@ -113,23 +114,9 @@ class _EventTriggerPanelState extends State<EventTriggerPanel> {
                       ),
                       onTap: () => _choose(type),
                     ),
-              if (kind == NarrativeEventSourceKind.triggerBump) ...[
+              if (eventSourceKindHint(kind) case final hint?) ...[
                 const SizedBox(height: 8),
-                const StudioNotice(
-                  'L’événement se déclenche quand une tentative de marche est bloquée contre cette zone.',
-                ),
-              ],
-              if (kind == NarrativeEventSourceKind.entityBump) ...[
-                const SizedBox(height: 8),
-                const StudioNotice(
-                  'L’événement se déclenche quand le joueur marche contre un personnage bloquant.',
-                ),
-              ],
-              if (kind == NarrativeEventSourceKind.entityAutorun) ...[
-                const SizedBox(height: 8),
-                const StudioNotice(
-                  'L’événement démarre automatiquement pour cet élément lorsque ses conditions sont réunies, sans action du joueur.',
-                ),
+                StudioNotice(hint),
               ],
               const SizedBox(height: 14),
               if (kind != NarrativeEventSourceKind.outcomeReceived) ...[
@@ -227,22 +214,11 @@ class _EventTriggerPanelState extends State<EventTriggerPanel> {
                   if (map == null) {
                     return const Center(child: Text('Chargement de la carte…'));
                   }
-                  final targetId = eventTargetId(source);
-                  final missing =
-                      _selection.choosing == null &&
-                      source != null &&
-                      eventMapId(source) == map.id &&
-                      targetId != null &&
-                      !map.entities.any((e) => e.id == targetId) &&
-                      !map.triggers.any((t) => t.id == targetId);
-                  final missingModel =
-                      source?.kind == NarrativeEventSourceKind.modelInteract &&
-                      _selection.choosing == null &&
-                      eventMapId(source) == map.id &&
-                      !(map.spatialScene?.instances.any(
-                            (instance) => instance.id == targetId,
-                          ) ??
-                          false);
+                  final missing = eventSourceTargetMissing(
+                    source: source,
+                    map: map,
+                    choosing: _selection.choosing != null,
+                  );
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -253,9 +229,7 @@ class _EventTriggerPanelState extends State<EventTriggerPanel> {
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
                       ),
-                      if (source?.kind == NarrativeEventSourceKind.modelInteract
-                          ? missingModel
-                          : missing)
+                      if (missing)
                         const StudioNotice(
                           'La cible est absente. Sa référence est conservée pour réparation.',
                         ),
@@ -272,12 +246,9 @@ class _EventTriggerPanelState extends State<EventTriggerPanel> {
                           chooseKind: _selection.choosing,
                           selectableSources: _selection.choosing == null
                               ? null
-                              : widget.controller.catalog.spatialSources.options
-                                    .where(
-                                      (o) => o.selectable && o.source != null,
-                                    )
-                                    .map((o) => o.source!)
-                                    .toSet(),
+                              : selectableEventSources(
+                                  widget.controller.catalog.spatialSources,
+                                ),
                           onChoose: _accept,
                           onCancel: _selection.cancel,
                         ),

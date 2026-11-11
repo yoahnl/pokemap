@@ -61,7 +61,7 @@ extension _WorkspaceExportBinding on _MapWorkspaceScreenState {
 
   Future<bool> _allowCloseWithExport() => _publication.allowClose(
     leavePokemon: _allowLeavePokemon,
-    leaveLibrary: () async => await _libraryExitGuard?.call() ?? true,
+    leaveLibrary: _destinations.allowLibraryExit,
   );
 
   Future<bool> _prepareGameExport() => _publication.prepareExport(

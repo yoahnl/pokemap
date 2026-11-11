@@ -26,7 +26,7 @@ class PresentationWorkspaceController {
   final List<SceneAsset> Function()? sceneDrafts;
   final _sessions = <String, PresentationWorkingSession>{};
   final _publishing = <String>{}, _deleting = <String>{};
-  bool _disposed = false, _loading = false;
+  bool _disposed = false, _loading = false, _creating = false;
   int _generation = 0, sourceReads = 0;
   String? activeId, error;
   bool Function()? flushEdits;

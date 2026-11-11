@@ -10,7 +10,7 @@ import 'package:map_core/map_core.dart';
 import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 import 'package:avelune_studio/platform/rendering/contracts/character_workspace_visuals.dart';
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
-import 'package:avelune_studio/features/resources/application/resource_terrain_example.dart';
+import 'package:avelune_studio/features/resources/application/resource_preview_source.dart';
 import 'resource_terrain_preview.dart';
 import 'model_light_preview_scope.dart';
 import 'model_light_gizmo.dart';
@@ -22,118 +22,62 @@ Widget resourcePreview(
   double size = 80,
   bool terrainPattern = false,
 }) {
-  final model =
-      item.model3d ??
-      project.models3d
-          .where(
-            (model) =>
-                model.id ==
-                (item.environment?.palette.firstOrNull?.modelId ??
-                    item
-                        .border
-                        ?.draft
-                        .definition
-                        .primitives
-                        .firstOrNull
-                        ?.sourceModelId),
-          )
-          .firstOrNull;
-  if (model != null) {
-    return SizedBox.square(
+  return switch (resourcePreviewSource(
+    item,
+    project,
+    terrainPattern: terrainPattern,
+  )) {
+    ModelPreviewSource(:final model) => SizedBox.square(
       dimension: size,
       child: _ModelResourcePreview(model: model, visuals: visuals),
-    );
-  }
-  if (item.element != null) return visuals.thumbnail(item.element!, size: size);
-  final previewElementId =
-      item.border?.draft.definition.primitives.firstOrNull?.sourceElementId ??
-      item.environment?.palette.firstOrNull?.elementId;
-  if (previewElementId != null) {
-    final element = project.elements
-        .where((element) => element.id == previewElementId)
-        .firstOrNull;
-    if (element != null) return visuals.thumbnail(element, size: size);
-  }
-  if (item.character case final character?) {
-    return visuals is CharacterWorkspaceVisuals
-        ? (visuals as CharacterWorkspaceVisuals).characterThumbnail(
-            character,
-            size: size,
-          )
-        : SizedBox.square(
-            dimension: size,
-            child: const Icon(Icons.person_outline),
-          );
-  }
-  if (item.tileset != null) {
-    if (visuals is ResourceWorkspaceVisuals) {
-      return SizedBox(
-        width: size,
-        height: size,
-        child: (visuals as ResourceWorkspaceVisuals).atlasPreview(item.id),
-      );
-    }
-    return SizedBox.square(
-      dimension: size,
-      child: const Center(
-        child: Text('Vue d’ensemble indisponible', textAlign: TextAlign.center),
-      ),
-    );
-  }
-  final preset = item.terrain;
-  if (preset != null) {
-    if (terrainPattern) {
-      return SizedBox.square(
-        dimension: size,
-        child: ResourceTerrainPreview(
-          preset: preset,
-          project: project,
-          visuals: visuals,
-          size: size,
-        ),
-      );
-    }
-    for (final rule in preset.rules) {
-      for (final candidate in rule.candidates) {
-        for (final part in candidate.parts) {
-          if (part.source case SmartTileModel3dSource(:final modelId)) {
-            final model = project.models3d
-                .where((model) => model.id == modelId)
-                .firstOrNull;
-            if (model != null) {
-              return SizedBox.square(
-                dimension: size,
-                child: _ModelResourcePreview(model: model, visuals: visuals),
-              );
-            }
-          }
-          if (part.source case SmartTileFrameSource(:final frame)) {
-            final atlas = project.smartTileCatalog.atlases
-                .where((a) => a.id == frame.atlasId)
-                .firstOrNull;
-            final source = project.tilesets
-                .where((t) => t.id == atlas?.tilesetId)
-                .firstOrNull
-                ?.source;
-            if (atlas != null && source is ProjectRegularAtlasTilesetSource) {
-              return visuals.tileThumbnail(
-                TileLayerPaletteEntry(
-                  tilesetId: atlas.tilesetId,
-                  localTileId: regularAtlasLocalTileId(
-                    row: frame.row,
-                    column: frame.column,
-                    source: source,
-                  ),
+    ),
+    ElementPreviewSource(:final element) => visuals.thumbnail(
+      element,
+      size: size,
+    ),
+    CharacterPreviewSource(:final character) =>
+      visuals is CharacterWorkspaceVisuals
+          ? (visuals as CharacterWorkspaceVisuals).characterThumbnail(
+              character,
+              size: size,
+            )
+          : SizedBox.square(
+              dimension: size,
+              child: const Icon(Icons.person_outline),
+            ),
+    AtlasPreviewSource(:final tilesetId) =>
+      visuals is ResourceWorkspaceVisuals
+          ? SizedBox(
+              width: size,
+              height: size,
+              child: (visuals as ResourceWorkspaceVisuals).atlasPreview(
+                tilesetId,
+              ),
+            )
+          : SizedBox.square(
+              dimension: size,
+              child: const Center(
+                child: Text(
+                  'Vue d’ensemble indisponible',
+                  textAlign: TextAlign.center,
                 ),
-                size: size,
-              );
-            }
-          }
-        }
-      }
-    }
-  }
-  return Icon(Icons.terrain_outlined, size: size * .55);
+              ),
+            ),
+    TerrainPatternPreviewSource(:final preset) => SizedBox.square(
+      dimension: size,
+      child: ResourceTerrainPreview(
+        preset: preset,
+        project: project,
+        visuals: visuals,
+        size: size,
+      ),
+    ),
+    TileFramePreviewSource(:final entry) => visuals.tileThumbnail(
+      entry,
+      size: size,
+    ),
+    FallbackPreviewSource() => Icon(Icons.terrain_outlined, size: size * .55),
+  };
 }
 
 class _ModelResourcePreview extends StatefulWidget {

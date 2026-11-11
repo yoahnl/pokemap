@@ -1462,6 +1462,39 @@ void main() {
       );
     });
 
+    test('rejects an edge into the Scene start node without mutation', () {
+      final scene = _edgeAuthoringScene();
+      final before = scene.toJson();
+
+      expect(
+        () => addSceneEdgeDraft(
+          scene,
+          fromNodeId: 'node_merge',
+          fromPortId: 'completed',
+          toNodeId: 'node_start',
+        ),
+        throwsA(
+          isA<ArgumentError>()
+              .having((error) => error.name, 'name', 'toNodeId')
+              .having(
+                (error) => error.message,
+                'message',
+                'The Scene start node cannot receive an incoming edge.',
+              ),
+        ),
+      );
+      expect(scene.toJson(), before);
+      expect(
+        addSceneEdgeDraft(
+          scene,
+          fromNodeId: 'node_merge',
+          fromPortId: 'completed',
+          toNodeId: 'node_end',
+        ).createdEdge.toNodeId,
+        'node_end',
+      );
+    });
+
     test('rejects duplicate dialogue and battle source ports', () {
       final dialogueScene = _edgeAuthoringSceneWithYarnSource(
         edges: [

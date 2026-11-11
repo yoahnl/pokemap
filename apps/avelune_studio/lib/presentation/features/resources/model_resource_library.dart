@@ -20,31 +20,12 @@ import 'resource_management_bindings.dart';
 
 import 'package:avelune_studio/features/resources/coordination/resource_navigation.dart';
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
+import 'package:avelune_studio/features/resources/application/model_resource_rules.dart';
 
 import 'model_animation_controls.dart';
 import 'model_shadow_controls.dart';
 import 'model_light_controls.dart';
 import 'model_light_gizmo.dart';
-
-String modelDiagnosticLabel(String code) => switch (code) {
-  'renderer.missing_material_magenta' => 'Ce modèle n’a pas de matériau. Les surfaces concernées sont affichées en rose.',
-  'bounds.static_scene_only' => 'Les dimensions affichées correspondent à la pose de repos ; l’animation peut dépasser ce cadre.',
-  'bounds.bind_pose_only' =>
-    'Les dimensions correspondent à la pose initiale du squelette.',
-  'renderer.ignored_color_0' =>
-    'Les couleurs par sommet ne sont pas utilisées par cet aperçu.',
-  'renderer.ignored_normalTexture' =>
-    'La texture de relief fin n’est pas utilisée par cet aperçu.',
-  'renderer.ignored_occlusionTexture' =>
-    'La texture d’occlusion n’est pas utilisée par cet aperçu.',
-  'renderer.ignored_emissiveTexture' || 'renderer.ignored_emissiveFactor' =>
-    'L’effet lumineux du matériau n’est pas utilisé par cet aperçu.',
-  'renderer.ignored_metallicRoughnessTexture' ||
-  'renderer.ignored_metallicFactor' ||
-  'renderer.ignored_roughnessFactor' =>
-    'L’aspect métallique et la rugosité ne sont pas reproduits par cet aperçu.',
-  _ => 'Ce modèle contient une propriété visuelle que cet aperçu ne reproduit pas.',
-};
 
 Future<void> importStudioModel(
   ResourceNavigation navigation, {
@@ -384,14 +365,9 @@ class _ModelResourceLibraryState extends State<ModelResourceLibrary> {
                       label: 'Échelle · 1 unité = 1 case',
                       value: '${model.scale}',
                       tryCommit: (value) {
-                        final scale = double.tryParse(
-                          value.replaceAll(',', '.'),
-                        );
-                        if (scale == null || !scale.isFinite || scale <= 0) {
-                          setState(
-                            () => error =
-                                'L’échelle doit être un nombre positif.',
-                          );
+                        final scale = parseModelScale(value);
+                        if (scale == null) {
+                          setState(() => error = modelScaleRefusal);
                           return false;
                         }
                         configure(model, {'scale': scale});
@@ -410,19 +386,7 @@ class _ModelResourceLibraryState extends State<ModelResourceLibrary> {
                     secondary: true,
                     onPressed: n.busy
                         ? null
-                        : () => configure(model, {
-                            'pivot': {
-                              'x':
-                                  (model.inspection.bounds.min.x +
-                                      model.inspection.bounds.max.x) /
-                                  2,
-                              'y': model.inspection.bounds.min.y,
-                              'z':
-                                  (model.inspection.bounds.min.z +
-                                      model.inspection.bounds.max.z) /
-                                  2,
-                            },
-                          }),
+                        : () => configure(model, modelFootPivotFields(model)),
                   ),
                   Text(
                     'Origine : ${model.pivot.x.toStringAsFixed(2)}, ${model.pivot.y.toStringAsFixed(2)}, ${model.pivot.z.toStringAsFixed(2)}',
@@ -437,7 +401,7 @@ class _ModelResourceLibraryState extends State<ModelResourceLibrary> {
                     model: model,
                     busy: n.busy,
                     onChanged: (value) =>
-                        shared(model, {'castsShadowsByDefault': value}),
+                        shared(model, modelShadowFields(value)),
                   ),
                   const SizedBox(height: 12),
                   ModelLightControls(
@@ -446,7 +410,7 @@ class _ModelResourceLibraryState extends State<ModelResourceLibrary> {
                     model: model,
                     busy: n.busy,
                     onSave: (light) =>
-                        shared(model, {'light': light?.toJson()}),
+                        shared(model, modelLightFields(light)),
                   ),
                 ],
               ),

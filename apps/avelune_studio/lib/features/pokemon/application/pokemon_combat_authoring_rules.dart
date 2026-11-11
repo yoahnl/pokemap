@@ -1,13 +1,23 @@
 import 'package:map_core/map_core_domain.dart';
 
+import '../domain/pokemon_combat_port.dart';
+import '../domain/pokemon_workspace_models.dart';
 import 'pokemon_combat_controller.dart';
+import 'pokemon_combat_references.dart';
 
 export 'pokemon_document_editing.dart' show pokemonOptionalChoice;
+export 'pokemon_trainer_move_limit.dart';
 
-const pokemonTrainerMoveLimit = 4;
+bool pokemonEncounterIsUnique(ProjectEncounterTable table) =>
+    table.tags.contains('studio:unique');
 
-bool pokemonTrainerCanAddMove(ProjectTrainerPokemonEntry member) =>
-    member.moves.length < pokemonTrainerMoveLimit;
+bool pokemonEncounterOffersSpeciesAddition(ProjectEncounterTable table) =>
+    !pokemonEncounterIsUnique(table) || table.entries.isEmpty;
+
+Map<String, String> pokemonEnabledSpeciesNames(PokemonWorkspaceIndex index) => {
+  for (final entry in index.entries)
+    if (entry.enabled) entry.id: entry.name,
+};
 
 PokemonRulesetProfile pokemonRulesetProfile(String profileId) =>
     profileId == PokemonRulesetProfile.standardProfileId
@@ -25,6 +35,33 @@ ProjectEncounterEntry pokemonEncounterEntryWithMinLevel(
     entry.copyWith(minLevel: level, maxLevel: unique ? level : entry.maxLevel);
 
 extension PokemonCombatAuthoringCommands on PokemonCombatController {
+  bool get canAnalyzeReferences =>
+      !operationActive && !dirty && port is PokemonCombatReferencePort;
+
+  bool get canChangeRuleset => !operationActive && !dirty;
+
+  bool get canRequestDeletion =>
+      !dirty &&
+      snapshot?.referencesComplete == true &&
+      (table != null || trainer != null);
+
+  List<String> get selectedReferences {
+    final current = snapshot;
+    if (current == null) return const [];
+    final selectedTable = table;
+    if (selectedTable != null) {
+      return combatTableReferences(current, selectedTable.current);
+    }
+    final selectedTrainer = trainer;
+    return selectedTrainer == null
+        ? const []
+        : combatTrainerReferences(current, selectedTrainer.current);
+  }
+
+  bool createForView(String name) => view == PokemonCombatView.trainers
+      ? createTrainer(name)
+      : createTable(name, unique: view == PokemonCombatView.unique);
+
   void editEncounterChancePercent(String raw) => editNumber(
     'chance',
     raw,

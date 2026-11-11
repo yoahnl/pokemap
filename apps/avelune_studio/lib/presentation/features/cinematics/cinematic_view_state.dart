@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 import '../../../features/cinematics/application/cinematic_input_state.dart';
+import '../../../features/cinematics/application/cinematic_map_point.dart';
+import '../../../features/cinematics/application/cinematic_selection_rules.dart';
 
-enum CinematicMapMode { select, pan, destination, placement, path }
+export '../../../features/cinematics/application/cinematic_map_point.dart'
+    show CinematicMapMode;
 
 class CinematicViewState {
   final mapTransform = TransformationController();
@@ -26,13 +29,8 @@ class CinematicViewState {
   String? get inspectorError => inputs.inspectorError;
   set inspectorError(String? value) => inputs.inspectorError = value;
   String? get stepId => selection.firstOrNull;
-  void reconcile(CinematicAsset asset) {
-    final ids = asset.timeline.steps.map((step) => step.id).toSet();
-    selection.removeWhere((id) => !ids.contains(id));
-    if (!asset.requiredActors.any((actor) => actor.actorId == actorId)) {
-      actorId = asset.requiredActors.firstOrNull?.actorId;
-    }
-  }
+  void reconcile(CinematicAsset asset) =>
+      actorId = reconcileCinematicSelection(asset, selection, actorId);
 
   void dispose() {
     mapTransform.dispose();

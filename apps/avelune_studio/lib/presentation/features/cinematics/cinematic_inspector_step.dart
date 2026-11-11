@@ -64,36 +64,8 @@ extension CinematicInspectorStep on CinematicInspector {
               actor.actorId,
             ),
         },
-        onChanged: (id) => _edit(
-          asset,
-          (a) => isCinematicTimelineActorJumpStep(step)
-              ? updateCinematicTimelineActorJumpStep(
-                  _project(a),
-                  cinematicId: a.id,
-                  stepId: step.id,
-                  actorId: id,
-                ).cinematic
-              : isCinematicTimelineActorMoveStep(step)
-              ? updateCinematicTimelineActorMoveStep(
-                  _project(a),
-                  cinematicId: a.id,
-                  stepId: step.id,
-                  actorId: id,
-                ).cinematic
-              : isCinematicTimelineActorFacingStep(step)
-              ? updateCinematicTimelineActorFacingStep(
-                  _project(a),
-                  cinematicId: a.id,
-                  stepId: step.id,
-                  actorId: id,
-                ).cinematic
-              : updateCinematicTimelineActorEmoteStep(
-                  _project(a),
-                  cinematicId: a.id,
-                  stepId: step.id,
-                  actorId: id,
-                ).cinematic,
-        ),
+        onChanged: (id) =>
+            _edit(asset, (a) => controller.stepWithActor(a, step, id)),
       ),
     if (isCinematicTimelineActorFacingStep(step))
       StudioSelect(
@@ -176,18 +148,8 @@ extension CinematicInspectorStep on CinematicInspector {
     final index = asset.timeline.steps.indexWhere(
       (value) => value.id == step.id,
     );
-    final joined =
-        index > 0 &&
-        step.parallelGroupId != null &&
-        asset.timeline.steps[index - 1].parallelGroupId == step.parallelGroupId;
     bool edit(CinematicAsset Function(CinematicAsset) change) =>
-        _edit(asset, (current) {
-          try {
-            return change(current);
-          } on ArgumentError {
-            throw ArgumentError(_parallelEditError);
-          }
-        });
+        _edit(asset, cinematicParallelEdit(change));
     return [
       if (step.parallelGroupId != null)
         const StudioBadge('Ensemble', tone: StudioTone.info),
@@ -196,10 +158,7 @@ extension CinematicInspectorStep on CinematicInspector {
         label: 'En même temps que l’étape précédente',
         secondary: true,
         icon: Icons.link,
-        onPressed:
-            index <= 0 ||
-                joined ||
-                step.kind == CinematicTimelineStepKind.marker
+        onPressed: !cinematicParallelJoinAvailable(asset, step)
             ? null
             : () => edit(
                 (current) => joinCinematicParallelSteps(current, step.id),
@@ -332,21 +291,12 @@ extension CinematicInspectorStep on CinematicInspector {
     CinematicTimelineStep step, {
     String? targetId,
     CinematicTimelineActorFacingMode? facingMode,
-  }) => isCinematicTimelineActorJumpStep(step)
-      ? updateCinematicTimelineActorJumpStep(
-          _project(asset),
-          cinematicId: asset.id,
-          stepId: step.id,
-          targetId: targetId,
-          facingMode: facingMode,
-        ).cinematic
-      : updateCinematicTimelineActorMoveStep(
-          _project(asset),
-          cinematicId: asset.id,
-          stepId: step.id,
-          targetId: targetId,
-          facingMode: facingMode,
-        ).cinematic;
+  }) => controller.stepWithMotion(
+    asset,
+    step,
+    targetId: targetId,
+    facingMode: facingMode,
+  );
 
   List<Widget> _relativePointFields(
     CinematicAsset asset,
@@ -407,18 +357,9 @@ extension CinematicInspectorStep on CinematicInspector {
                   '${point.relativeToActorId == null ? 'Position' : 'Décalage'} $axis (cases)',
               value: '${axis == 'x' ? point.x : point.y}',
               tryCommit: (text) {
-                final value = double.tryParse(text);
-                if (value == null || !value.isFinite) return false;
-                final accepted = controller.setStagePoint(
-                  CinematicStagePoint(
-                    id: point.id,
-                    label: point.label,
-                    x: axis == 'x' ? value : point.x,
-                    y: axis == 'y' ? value : point.y,
-                    description: point.description,
-                    relativeToActorId: point.relativeToActorId,
-                  ),
-                );
+                final moved = cinematicStagePointWithAxis(point, axis, text);
+                if (moved == null) return false;
+                final accepted = controller.setStagePoint(moved);
                 changed();
                 return accepted;
               },
@@ -449,25 +390,20 @@ extension CinematicInspectorStep on CinematicInspector {
           icon: Icons.arrow_upward,
           onPressed: index == 0
               ? null
-              : () {
-                  final ids = List<String>.of(path.waypointStagePointIds);
-                  ids.insert(index - 1, ids.removeAt(index));
-                  controller.setManualPath(step.id, ids);
-                },
+              : () => controller.setManualPath(
+                  step.id,
+                  cinematicWaypointsMovedUp(path.waypointStagePointIds, index),
+                ),
         ),
         StudioTool(
           label: 'Retirer le point ${index + 1}',
           icon: Icons.close,
-          onPressed: () {
-            final ids = List<String>.of(path.waypointStagePointIds)
-              ..removeAt(index);
-            controller.setManualPath(step.id, ids);
-          },
+          onPressed: () => controller.setManualPath(
+            step.id,
+            cinematicWaypointsWithout(path.waypointStagePointIds, index),
+          ),
         ),
       ],
     );
   }
 }
-
-const _parallelEditError =
-    'Impossible de regrouper ces étapes : les déplacements et sauts doivent avoir des durées identiques. Vérifiez aussi les acteurs, la caméra et les canaux audio.';

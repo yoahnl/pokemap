@@ -135,11 +135,7 @@ extension _DialoguePageCommands on _DialogueWorkspacePageState {
     flush();
     final id = view?.nodeId;
     if (id == null) return;
-    final step = controller.addLine(
-      id,
-      text: narration ? 'Une nouvelle narration.' : 'Bonjour !',
-      narration: narration,
-    );
+    final step = controller.addDefaultLine(id, narration: narration);
     view!.select(id, step: step);
     widget.views.inspectorOpen = true;
     refresh();
@@ -149,10 +145,8 @@ extension _DialoguePageCommands on _DialogueWorkspacePageState {
     flush();
     final id = view?.nodeId;
     if (id == null) return;
-    final choice = controller.addChoice(id);
+    final choice = controller.addChoiceWithStarterResponses(id);
     if (choice == null) return;
-    controller.addResponse(choice, 'Oui');
-    controller.addResponse(choice, 'Non');
     view!.select(id, step: choice);
     widget.views.inspectorOpen = true;
     refresh();
@@ -163,8 +157,7 @@ extension _DialoguePageCommands on _DialogueWorkspacePageState {
     final owner = controller.activeId, branch = view?.branchId;
     final label = await askNarrativeName(context, 'Nouveau résultat public');
     if (!mounted || label == null || owner != controller.activeId) return;
-    final id = controller.addOutcome(label);
-    if (id != null && branch != null) controller.assignOutcome(branch, id);
+    controller.addOutcomeAssigned(label, branchId: branch);
   }
 
   void deleteSelection() {
@@ -177,13 +170,7 @@ extension _DialoguePageCommands on _DialogueWorkspacePageState {
       stepId: state.stepId,
       nodeId: state.nodeId,
     );
-    if (state.wireId != null) {
-      state.wireId = null;
-    } else if (state.branchId != null) {
-      state.branchId = null;
-    } else if (state.stepId != null) {
-      state.stepId = null;
-    }
+    state.clearDeepestSelection();
     refresh();
   }
 }

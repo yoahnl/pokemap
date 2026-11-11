@@ -89,6 +89,7 @@ class MapWorkspaceEditingState {
 
   String? borderBlueprintId;
   MapBorderDrawingDraft? borderDraft;
+  final Map<String, MapBorderDrawingDraft> _retainedBorderDrafts = {};
   int? borderMovingAngle;
   ({MapBorderDrawingDraft draft, String message})? borderDraftFailure;
   String? borderDraftErrorFor(MapData map, ProjectManifest project) {
@@ -123,6 +124,25 @@ class MapWorkspaceEditingState {
       document.error = null;
     }
     borderDraftFailure = null;
+  }
+
+  MapBorderDrawingDraft? retainedBorderDraftFor(String mapId) =>
+      _retainedBorderDrafts[mapId];
+
+  void focusBorderDraftOn(String mapId) {
+    final draft = borderDraft;
+    if (draft != null && draft.mapId != mapId) {
+      _retainedBorderDrafts[draft.mapId] = draft;
+      borderDraft = null;
+      borderMovingAngle = null;
+      borderDraftFailure = null;
+      borderPreview = null;
+    }
+    if (borderDraft != null) return;
+    final retained = _retainedBorderDrafts.remove(mapId);
+    if (retained == null) return;
+    borderDraft = retained;
+    borderBlueprintId = retained.blueprintId;
   }
 
   void removeLastBorderAngle(EditableMapDocument document) {
@@ -428,21 +448,30 @@ class MapWorkspaceEditingState {
   }) {
     resourceFilters.usage = ResourceCatalogUsage.all;
     final activeMapId = mapId ?? _resourceMapId;
+    final catalog = resourceCatalog(project);
     final available = filterResourceCatalog(
       project,
-      resourceCatalog(project),
+      catalog,
       ResourceCatalogFilterState(showComponents: true),
       activeMapId: activeMapId,
       forMapPicker: true,
     ).map((item) => item.identity).toSet();
     bool has(String kind, String id) => available.contains('$kind:$id');
+    bool usableBorder(String id) =>
+        has('borderBlueprint', id) &&
+        catalog.any(
+          (item) =>
+              item.identity == 'borderBlueprint:$id' &&
+              item.usableIn(project, activeMapId: activeMapId),
+        );
+    final mapIds = project.maps.map((entry) => entry.id).toSet();
+    _retainedBorderDrafts.removeWhere(
+      (id, draft) => !mapIds.contains(id) || !usableBorder(draft.blueprintId),
+    );
     if (mapId != null && _resourceMapId != null && _resourceMapId != mapId) {
       environment = null;
       exteriorEnvironmentPresetId = null;
-      borderDraft = null;
-      borderMovingAngle = null;
-      borderDraftFailure = null;
-      borderPreview = null;
+      focusBorderDraftOn(mapId);
       borderFeature = null;
       spatialSurfaceId = null;
       terrainSurfacePreview = null;
@@ -543,8 +572,7 @@ class MapWorkspaceEditingState {
     if (paletteAtlasId != null && !has('tileset', paletteAtlasId!)) {
       paletteAtlasId = null;
     }
-    if (borderBlueprintId != null &&
-        !has('borderBlueprint', borderBlueprintId!)) {
+    if (borderBlueprintId != null && !usableBorder(borderBlueprintId!)) {
       borderBlueprintId = null;
       borderDraft = null;
       borderDraftFailure = null;

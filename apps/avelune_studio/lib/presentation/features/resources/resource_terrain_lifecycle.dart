@@ -13,6 +13,7 @@ import 'resource_management_dialog.dart';
 
 import 'package:avelune_studio/features/resources/coordination/resource_navigation.dart';
 import 'package:avelune_studio/features/resources/application/resource_terrain_actions.dart';
+import 'package:avelune_studio/features/resources/application/resource_terrain_management_copy.dart';
 
 import 'resource_terrain_deletion_dialog.dart';
 
@@ -56,13 +57,13 @@ Future<void> manageTerrainResource(
             controller: controller,
           )
         : ResourceTerrainManagementDialog(
-            title: controller.duplicate
-                ? 'Dupliquer le terrain ou chemin'
-                : 'Renommer le terrain ou chemin',
+            title: terrainManagementTitle(duplicate: controller.duplicate),
             controller: controller,
-            description: controller.duplicate
-                ? '${draftId == null ? 'Version publiée' : 'Brouillon enregistré'} : $name. Une nouvelle préparation indépendante sera créée, sans publication. Les PNG restent partagés et les cartes gardent leur terrain actuel.'
-                : 'Seul le nom ${draftId == null ? 'de la publication et de ses préparations liées' : 'de ce brouillon'} change. Aucun raccord modifié n’est publié.',
+            description: terrainManagementDescription(
+              duplicate: controller.duplicate,
+              draft: draftId != null,
+              name: name,
+            ),
           ),
   ),
 );
@@ -107,18 +108,18 @@ void manageTerrainPreparation(
   ProjectSmartTileAuthoringDraft draft,
   TerrainResourceAction action,
 ) {
-  if (action == TerrainResourceAction.usages) {
-    final publication = terrainPreparationPublication(navigation, draft);
-    if (publication != null) {
-      openResourceUsages(context, navigation, publication);
-    }
-    return;
-  }
-  manageTerrainResource(
-    context,
-    navigation,
-    action,
-    name: draft.name,
-    draftId: draft.id,
+  runTerrainPreparationAction(
+    navigation: navigation,
+    draft: draft,
+    action: action,
+    openUsages: (publication) =>
+        openResourceUsages(context, navigation, publication),
+    manage: ({required name, required draftId}) => manageTerrainResource(
+      context,
+      navigation,
+      action,
+      name: name,
+      draftId: draftId,
+    ),
   );
 }

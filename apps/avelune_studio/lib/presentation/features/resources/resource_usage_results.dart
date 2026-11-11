@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../features/resources/application/resource_usage_presentation.dart';
 import '../../../features/resources/domain/resource_usage_port.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
@@ -23,10 +24,7 @@ class ResourceUsageResults extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final report = this.report;
-    final groups = <String, List<ResourceUsageEntry>>{};
-    for (final entry in report?.entries ?? <ResourceUsageEntry>[]) {
-      groups.putIfAbsent(entry.ownerKind, () => []).add(entry);
-    }
+    final groups = groupResourceUsageEntries(report);
     final rows = <Widget Function()>[
       () => const Text(
         'Lecture seule du projet enregistré. L’analyse ne sauvegarde rien '
@@ -46,21 +44,17 @@ class ResourceUsageResults extends StatelessWidget {
       if (report != null) ...[
         () => SelectableText('Révision : ${report.revision}'),
         for (final issue in report.coverageIssues) () => Text(issue),
-        () => Text(
-          [
-            for (final relation in ResourceUsageRelation.values)
-              '${_relation(relation)} : ${report.entries.where((entry) => entry.relation == relation).length}',
-          ].join(' · '),
-        ),
-        if (report.entries.isEmpty)
-          () => Text(
-            report.complete && dirtyOwners.isEmpty && !stale
-                ? 'Aucun usage trouvé dans le périmètre complet de cette révision.'
-                : 'Aucun résultat disponible. Cela ne signifie pas « inutilisé ».',
-          ),
+        () => Text(resourceUsageRelationSummary(report)),
+        if (resourceUsageEmptyMessage(
+              report,
+              dirtyOwners: dirtyOwners,
+              stale: stale,
+            )
+            case final message?)
+          () => Text(message),
         for (final group in groups.entries) ...[
           () => Text(
-            _owner(group.key),
+            resourceUsageOwnerLabel(group.key),
             style: Theme.of(context).textTheme.titleMedium,
           ),
           for (final entry in group.value)
@@ -72,7 +66,7 @@ class ResourceUsageResults extends StatelessWidget {
                   style: Theme.of(context).textTheme.titleSmall,
                 ),
                 const SizedBox(height: 6),
-                Text('${_relation(entry.relation)} · ${entry.ownerId}'),
+                Text('${resourceUsageRelationLabel(entry.relation)} · ${entry.ownerId}'),
                 const SizedBox(height: 6),
                 SelectableText(entry.location),
                 if (!stale && canOpen(entry)) ...[
@@ -101,25 +95,3 @@ class ResourceUsageResults extends StatelessWidget {
     );
   }
 }
-
-String _relation(ResourceUsageRelation relation) => switch (relation) {
-  ResourceUsageRelation.direct => 'Direct',
-  ResourceUsageRelation.indirect => 'Indirect',
-  ResourceUsageRelation.technical => 'Conservation technique',
-  ResourceUsageRelation.ambiguous => 'Identité ambiguë',
-};
-
-String _owner(String owner) => switch (owner) {
-  'map' => 'Cartes et instances',
-  'element' => 'Définitions de décors',
-  'preset' => 'Terrains automatiques',
-  'character' => 'Personnages et portraits',
-  'scene' => 'Scènes',
-  'presentationCinematic' => 'Présentations',
-  'media' => 'Médias de présentation',
-  'border' || 'borderSnapshot' => 'Bordures et snapshots',
-  'smartTileDraft' => 'Brouillons de terrains',
-  'dialogueSource' => 'Dialogues',
-  'pokemonMedia' => 'Médias Pokémon',
-  _ => owner,
-};

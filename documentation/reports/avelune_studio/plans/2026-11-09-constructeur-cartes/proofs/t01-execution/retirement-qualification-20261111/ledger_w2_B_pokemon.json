@@ -1,0 +1,309 @@
+{
+ "zone": "B_pokemon",
+ "items": [
+  {
+   "item": "combat page: activation de l'analyse",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_combat_page.dart:build",
+   "to": "apps/avelune_studio/lib/features/pokemon/application/pokemon_combat_authoring_rules.dart:PokemonCombatAuthoringCommands.canAnalyzeReferences",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_combat_activation_owner_test.dart",
+     "test": "analysis activation (4 tests)"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "mutation: retrait de !dirty"
+  },
+  {
+   "item": "combat page: creation selon la vue",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_combat_page.dart:_create",
+   "to": "apps/avelune_studio/lib/features/pokemon/application/pokemon_combat_authoring_rules.dart:createForView",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_combat_activation_owner_test.dart",
+     "test": "creation follows the view (4 tests)"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "couvert par le fichier mute une fois ; titre de dialogue par vue reste UI"
+  },
+  {
+   "item": "combat page: activation selecteur de regles et suppression (references, canRequestDeletion)",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_combat_page.dart:build/_delete",
+   "to": "apps/avelune_studio/lib/features/pokemon/application/pokemon_combat_authoring_rules.dart:canChangeRuleset, canRequestDeletion, selectedReferences",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_combat_activation_owner_test.dart",
+     "test": "deletion request (2 tests)"
+    },
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_combat_activation_owner_test.dart",
+     "test": "analysis activation"
+    }
+   ],
+   "mutationDetected": null,
+   "note": "extra"
+  },
+  {
+   "item": "commerce references: activation de l'analyse",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_commerce_references.dart:build",
+   "to": "apps/avelune_studio/lib/features/pokemon/application/pokemon_commerce_controller.dart:canAnalyzeReferences",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_commerce_activation_owner_test.dart",
+     "test": "analysis activation (2 tests)"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "mutation: retrait de importing"
+  },
+  {
+   "item": "combat table detail: especes activees seules proposees",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_combat_table_detail.dart:build",
+   "to": "apps/avelune_studio/lib/features/pokemon/application/pokemon_combat_authoring_rules.dart:pokemonEnabledSpeciesNames",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_combat_activation_owner_test.dart",
+     "test": "only enabled species are proposed"
+    }
+   ],
+   "mutationDetected": null,
+   "note": ""
+  },
+  {
+   "item": "combat table detail: Ajouter une espece masque pour rencontre unique renseignee",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_combat_table_detail.dart:build",
+   "to": "apps/avelune_studio/lib/features/pokemon/application/pokemon_combat_authoring_rules.dart:pokemonEncounterOffersSpeciesAddition / pokemonEncounterIsUnique",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_combat_activation_owner_test.dart",
+     "test": "encounter table rules (2 tests)"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "mutation: toujours true"
+  },
+  {
+   "item": "trainer stats: _natureLabel",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_combat_trainer_stats.dart:_natureLabel",
+   "to": "apps/avelune_studio/lib/features/pokemon/application/pokemon_trainer_stat_labels.dart:pokemonNatureLabel / pokemonStatLabels",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_combat_activation_owner_test.dart",
+     "test": "nature labels (3 tests)"
+    }
+   ],
+   "mutationDetected": null,
+   "note": "_statLabels de l'UI alias de pokemonStatLabels"
+  },
+  {
+   "item": "autres fichiers: recapitulatif des attaques du lot de recettes",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_move_recipe_batch_panel.dart:build",
+   "to": "apps/avelune_studio/lib/features/pokemon/application/pokemon_move_recipe_batch_summary.dart:PokemonMoveRecipeBatchSummary",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_move_recipe_batch_summary_owner_test.dart",
+     "test": "4 tests"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "mutation: custom retire de preserved"
+  },
+  {
+   "item": "autres fichiers: options de filtre type/generation des especes",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_species_library.dart:build",
+   "to": "apps/avelune_studio/lib/features/pokemon/application/pokemon_workspace_queries.dart:speciesFilterTypes/speciesFilterGenerations",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_species_filter_owner_test.dart",
+     "test": "3 tests"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "mutation: tri retire"
+  },
+  {
+   "item": "autres fichiers: recherche d'objet, objet masque par filtres, diagnostics de la boutique",
+   "status": "extracted",
+   "from": "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_shop_catalog.dart:_ItemPicker, pokemon_commerce_page.dart, pokemon_shop_availability.dart",
+   "to": "apps/avelune_studio/lib/features/pokemon/application/pokemon_shop_editing.dart:pokemonItemMatchesSearch ; pokemon_commerce_controller.dart:selectedItemHiddenByFilters, selectedShopDiagnostics, visibleItems",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_commerce_activation_owner_test.dart",
+     "test": "item filters (3 tests)"
+    },
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_commerce_activation_owner_test.dart",
+     "test": "a shop only sees its own state diagnostics"
+    }
+   ],
+   "mutationDetected": null,
+   "note": "visibleItems reutilise pokemonItemMatchesSearch"
+  },
+  {
+   "item": "DECISION: dresseur au plus 4 attaques - validation",
+   "status": "extracted",
+   "from": "-",
+   "to": "apps/avelune_studio/lib/features/pokemon/application/pokemon_combat_validation.dart:_validate ; pokemon_trainer_move_limit.dart:pokemonTrainerMoveLimitProblem",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_trainer_move_limit_owner_test.dart",
+     "test": "validation reports a trainer Pokemon that carries five moves"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "changement de comportement voulu"
+  },
+  {
+   "item": "DECISION: dresseur au plus 4 attaques - refus de la 5e sans perdre le brouillon",
+   "status": "extracted",
+   "from": "-",
+   "to": "apps/avelune_studio/lib/features/pokemon/application/pokemon_combat_table_commands.dart:replaceTrainerMember ; pokemon_trainer_move_limit.dart:pokemonTrainerMoveCountRefused, pokemonTrainerMoveLimitRefusal",
+   "tests": [
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_trainer_move_limit_owner_test.dart",
+     "test": "accepts up to four"
+    },
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_trainer_move_limit_owner_test.dart",
+     "test": "fifth move is refused"
+    },
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_trainer_move_limit_owner_test.dart",
+     "test": "oversized trainer can still be trimmed"
+    },
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_trainer_move_limit_owner_test.dart",
+     "test": "move cap rule"
+    },
+    {
+     "file": "apps/avelune_studio/test/pokemon/pokemon_trainer_move_limit_owner_test.dart",
+     "test": "golden project trainer stays valid"
+    }
+   ],
+   "mutationDetected": true,
+   "note": "refus seulement si le total depasse 4 ET augmente : un projet existant a >4 reste editable/reductible"
+  },
+  {
+   "item": "Relecture des autres fichiers presentation/features/pokemon",
+   "status": "reported",
+   "from": "-",
+   "to": "-",
+   "tests": [],
+   "mutationDetected": null,
+   "note": "non extraits: ordre des langues (pokemon_species_overview), talents vides, tri des poches par libelle (pokemon_commerce_page), etats de boutique non vides (pokemon_shop_catalog), repli de section (pokemon_commerce_detail) : affichage/ordre de presentation"
+  }
+ ],
+ "uiOnly": [
+  {
+   "where": "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_combat_page.dart:_create (titre du dialogue par vue)",
+   "what": "libelle par vue",
+   "forRebuild": "choisir le libelle selon combat.view"
+  },
+  {
+   "where": "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_combat_table_detail.dart (fishing / headbutt, libelles EncounterKind, textes d'aide)",
+   "what": "choix de textes",
+   "forRebuild": "reprendre libelles et aides"
+  },
+  {
+   "where": "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_combat_page.dart:build (compact < 900 px)",
+   "what": "mise en page",
+   "forRebuild": "layout responsive"
+  }
+ ],
+ "decisions": [
+  {
+   "topic": "Plafond de 4 attaques : non porte par les packages (parite MCP)",
+   "legacyBehaviour": "UI masque Ajouter une attaque a 4 (pokemon_combat_trainer_detail.dart:359)",
+   "ownerBehaviour": "Studio applique maintenant 4 (validation + replaceTrainerMember). Regle absente de : packages/map_core/lib/src/models/project_trainer.dart:178 (moves sans borne) ; packages/map_core/lib/src/validation/validators.dart:2476 _validateTrainers ; packages/map_core/lib/src/validation/beta_playability_validator.dart:945-957 (seulement vide/catalogue) ; packages/map_authoring/lib/src/domains/gameplay/campaign_content_actions.dart:743 _trainerFromJson (utilise lignes 686 et 728, chemin MCP trainer simple/lot) ; packages/map_editor/lib/src/application/use_cases/trainer_use_cases.dart:393-417 et 453-490 ; map_editor ui trainer_library_panel_pokemon_widgets.dart ; tools/pokemap_mcp (aucun maxItems sur team[].moves). packages/map_battle/lib/src/battle_setup.dart:141 documente deja '4 max'.",
+   "where": "voir ownerBehaviour"
+  },
+  {
+   "topic": "Fixtures >4 attaques",
+   "legacyBehaviour": "-",
+   "ownerBehaviour": "Aucune trouvee (lecture seule) : 6 project.json avec dresseurs (golden_fangame_slice, golden_battle_slice, golden_item_system, map_authoring trainer_battle_format, map_runtime p3_outcome_battle_continuation, studio spatial_first_map) max 2 attaques ; aucun ProjectTrainerPokemonEntry Dart avec >4 hors .claude/worktrees. Projets utilisateur hors depot non examines.",
+   "where": "depot"
+  },
+  {
+   "topic": "Suppression d'une fiche referencee",
+   "legacyBehaviour": "L'UI desactive Supprimer quand selectedReferences non vide",
+   "ownerBehaviour": "PokemonCombatController.deleteSelected ne verifie pas les references (seulement referencesComplete et dirty)",
+   "where": "apps/avelune_studio/lib/features/pokemon/application/pokemon_combat_controller.dart:deleteSelected"
+  },
+  {
+   "topic": "Litteral studio:unique duplique",
+   "legacyBehaviour": "-",
+   "ownerBehaviour": "pokemonEncounterIsUnique ajoute ; controller visibleTables/_validate gardent le litteral",
+   "where": "apps/avelune_studio/lib/features/pokemon/application/pokemon_combat_controller.dart, pokemon_combat_validation.dart"
+  }
+ ],
+ "commands": [
+  {
+   "command": "flutter test --no-pub 5 nouveaux tests",
+   "cwd": "apps/avelune_studio",
+   "exitCode": 0,
+   "result": "+6 +16 +3 +4 +7 tous verts"
+  },
+  {
+   "command": "flutter analyze --no-pub lib/features/pokemon lib/presentation/features/pokemon + 5 tests",
+   "cwd": "apps/avelune_studio",
+   "exitCode": 0,
+   "result": "No issues found"
+  },
+  {
+   "command": "check_clean.py (5 tests, 3 nouveaux fichiers, 7 proprietaires modifies)",
+   "cwd": "repo",
+   "exitCode": 0,
+   "result": "CLEAN x15"
+  },
+  {
+   "command": "mutation x7 dans copie AveluneQA/t01-w2-B_pokemon",
+   "cwd": "copie",
+   "exitCode": 1,
+   "result": "7/7 detectees (filter: 1re mutation = erreur de compilation, remplacee par mutation de tri)"
+  },
+  {
+   "command": "flutter test --no-pub -r failures-only test/pokemon",
+   "cwd": "apps/avelune_studio",
+   "exitCode": 1,
+   "result": "+455 ~2 -1 ; l'unique echec = pokemon_combat_host_test ligne 298, rouge preexistant identique"
+  }
+ ],
+ "createdFiles": [
+  "apps/avelune_studio/lib/features/pokemon/application/pokemon_trainer_move_limit.dart",
+  "apps/avelune_studio/lib/features/pokemon/application/pokemon_trainer_stat_labels.dart",
+  "apps/avelune_studio/lib/features/pokemon/application/pokemon_move_recipe_batch_summary.dart",
+  "apps/avelune_studio/test/pokemon/pokemon_trainer_move_limit_owner_test.dart",
+  "apps/avelune_studio/test/pokemon/pokemon_combat_activation_owner_test.dart",
+  "apps/avelune_studio/test/pokemon/pokemon_commerce_activation_owner_test.dart",
+  "apps/avelune_studio/test/pokemon/pokemon_move_recipe_batch_summary_owner_test.dart",
+  "apps/avelune_studio/test/pokemon/pokemon_species_filter_owner_test.dart"
+ ],
+ "modifiedFiles": [
+  "apps/avelune_studio/lib/features/pokemon/application/pokemon_combat_authoring_rules.dart",
+  "apps/avelune_studio/lib/features/pokemon/application/pokemon_combat_controller.dart",
+  "apps/avelune_studio/lib/features/pokemon/application/pokemon_combat_table_commands.dart",
+  "apps/avelune_studio/lib/features/pokemon/application/pokemon_combat_validation.dart",
+  "apps/avelune_studio/lib/features/pokemon/application/pokemon_commerce_controller.dart",
+  "apps/avelune_studio/lib/features/pokemon/application/pokemon_shop_editing.dart",
+  "apps/avelune_studio/lib/features/pokemon/application/pokemon_workspace_queries.dart",
+  "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_combat_page.dart",
+  "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_combat_table_detail.dart",
+  "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_combat_trainer_stats.dart",
+  "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_commerce_page.dart",
+  "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_commerce_references.dart",
+  "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_move_recipe_batch_panel.dart",
+  "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_shop_availability.dart",
+  "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_shop_catalog.dart",
+  "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_species_library.dart"
+ ]
+}

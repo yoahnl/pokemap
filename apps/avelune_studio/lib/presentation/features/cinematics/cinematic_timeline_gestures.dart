@@ -20,7 +20,7 @@ extension _CinematicTimelineGestures on _CinematicTimelineEditorState {
     if (HardwareKeyboard.instance.isShiftPressed ||
         HardwareKeyboard.instance.isMetaPressed ||
         HardwareKeyboard.instance.isControlPressed) {
-      if (!widget.view.selection.add(id)) widget.view.selection.remove(id);
+      toggleCinematicStepSelection(widget.view.selection, id);
       widget.changed();
     } else {
       widget.onSelect(id);

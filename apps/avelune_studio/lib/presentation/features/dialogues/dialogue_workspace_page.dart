@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../features/dialogues/application/dialogue_workspace_authoring.dart';
 import '../../../features/dialogues/application/dialogue_workspace_controller.dart'
     hide dialogueSteps;
 import '../../shared/widgets/buttons/studio_button.dart';
@@ -58,7 +59,7 @@ class _DialogueWorkspacePageState extends State<DialogueWorkspacePage> {
     final session = controller.active;
     final state = view;
     if (session != null) state!.reconcile(session.document);
-    final editable = session != null && session.readOnlyReason == null;
+    final editable = session?.editable == true;
     return StudioDialogueTheme(
       child: CallbackShortcuts(
         bindings: {

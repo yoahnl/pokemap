@@ -6,13 +6,17 @@ import 'dart:isolate';
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_editor_controller.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
+import 'package:avelune_studio/platform/rendering/studio_map_resources.dart';
 import 'package:avelune_studio/platform/rendering/studio_map_visual_widgets.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_elements_panel.dart';
-import 'package:avelune_studio/presentation/features/map_workspace/map_workspace_screen.dart';
+import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
+import 'package:avelune_studio/features/project_session/application/project_session_controller.dart';
+import 'package:avelune_studio/features/project_session/data/local_project_session_adapter.dart';
+import 'package:avelune_studio/platform/files/scoped_project_session_adapter.dart';
+import 'package:avelune_studio/platform/rendering/viewports/map_editing_viewport_2d.dart';
 import 'package:avelune_studio/platform/rendering/viewports/spatial_map_editing_viewport.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flame/game.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_render_3d/map_render_3d.dart';
@@ -20,6 +24,8 @@ import 'package:map_authoring/map_authoring_local.dart'
     show MapAuthoringWorkerDiagnostics;
 
 import 'marionette_main.dart' as studio;
+import 'neutral_map_editing_host.dart';
+import 'neutral_map_elements_panel.dart';
 import 'save_disk_trace.dart';
 
 ({
@@ -30,9 +36,10 @@ import 'save_disk_trace.dart';
   Map<String, Object?> state,
 })
 readMapElementsState() {
-  MapWorkspaceScreen? workspace;
-  MapElementsPanel? panel;
+  NeutralMapEditingHost? workspace;
+  NeutralMapElementsPanel? panel;
   SpatialMapEditingViewport? spatial;
+  MapEditingViewport2D? flat;
   SpatialSceneController? renderer;
   StudioMapVisual? visual2d;
   Object? renderer2d;
@@ -41,12 +48,14 @@ readMapElementsState() {
   void visit(Element element) {
     if (element.widget case Offstage(offstage: true)) return;
     switch (element.widget) {
-      case MapWorkspaceScreen():
-        workspace = element.widget as MapWorkspaceScreen;
-      case MapElementsPanel():
-        panel = element.widget as MapElementsPanel;
+      case NeutralMapEditingHost():
+        workspace = element.widget as NeutralMapEditingHost;
+      case NeutralMapElementsPanel():
+        panel = element.widget as NeutralMapElementsPanel;
       case SpatialMapEditingViewport():
         spatial = element.widget as SpatialMapEditingViewport;
+      case MapEditingViewport2D():
+        flat = element.widget as MapEditingViewport2D;
       case SpatialSceneView(:final controller):
         renderer = controller;
       case StudioMapVisual(preview: false):
@@ -68,7 +77,10 @@ readMapElementsState() {
 
   WidgetsBinding.instance.rootElement?.visitChildren(visit);
   final document =
-      panel?.document ?? workspace?.controller.active ?? spatial?.document;
+      panel?.document ??
+      workspace?.controller.active ??
+      spatial?.document ??
+      flat?.document;
   final editor = document?.editor;
   final visibility3d = sceneGame == null
       ? null
@@ -90,7 +102,10 @@ readMapElementsState() {
       'mapDirty': document?.dirty,
       'mapSaving': document?.saving,
       'mapRevision': document?.base.revision,
-      'selectedId': spatial?.view.target?.id ?? panel?.view.target?.id,
+      'selectedId':
+          spatial?.view.target?.id ??
+          flat?.view.target?.id ??
+          panel?.view.target?.id,
       'mapIdentity': document == null
           ? null
           : identityHashCode(document.current),
@@ -187,6 +202,35 @@ Future<void> main() async {
   MapAuthoringWorkerDiagnostics.port = workerPort.sendPort;
   final trace = SaveDiskTrace(root);
   await trace.run(studio.main);
+  final sessions = ProjectSessionController(
+    ScopedProjectSessionAdapter(LocalProjectSessionAdapter()),
+  );
+  await sessions.open(root);
+  final activeSession = sessions.state.project;
+  if (activeSession == null || activeSession.directoryPath != root) {
+    throw StateError('The requested disposable project could not be opened.');
+  }
+  final workspaceOwner = MapWorkspaceController(
+    activeSession,
+    LocalMapWorkspaceAdapter(),
+  );
+  await workspaceOwner.initialize();
+  final visualsOwner = await StudioMapResources.load(
+    activeSession,
+    workspaceOwner.project!,
+  );
+  runApp(
+    MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        body: NeutralMapEditingHost(
+          controller: workspaceOwner,
+          visuals: visualsOwner,
+          elements: true,
+        ),
+      ),
+    ),
+  );
   Map<String, Object?> measurement = {};
   MapEditorController? observed;
   VoidCallback? observedListener;

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 import '../../../features/narrative/application/narrative_overview.dart';
+import '../../../features/narrative/application/narrative_overview_detail_lines.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_choice.dart';
@@ -86,13 +87,7 @@ class NarrativeOverviewDetail extends StatelessWidget {
     ..._section(
       context,
       'Si',
-      item.conditions.isEmpty
-          ? [
-              item.advanced
-                  ? 'Analyse détaillée indisponible'
-                  : 'Aucune condition déclarée',
-            ]
-          : item.conditions,
+      narrativeInteractionConditionLines(item),
     ),
     ..._section(context, 'Alors', item.consequences),
     if (item.missingReferences.isNotEmpty)
@@ -110,19 +105,13 @@ class NarrativeOverviewDetail extends StatelessWidget {
         ),
     ],
     const SizedBox(height: 20),
-    if (onOpenScene != null &&
-        (item.record?.definitionOrNull?.sceneId ??
-                item.record?.draftOrNull?.sceneId) !=
-            null)
+    if (onOpenScene != null && narrativeInteractionSceneId(item) != null)
       StudioButton(
         label: 'Ouvrir la scène',
         icon: Icons.account_tree_outlined,
         onPressed: busy
             ? null
-            : () => onOpenScene!(
-                (item.record?.definitionOrNull?.sceneId ??
-                    item.record!.draftOrNull!.sceneId!),
-              ),
+            : () => onOpenScene!(narrativeInteractionSceneId(item)!),
       ),
     if (!item.advanced)
       StudioButton(
@@ -155,14 +144,8 @@ class NarrativeOverviewDetail extends StatelessWidget {
       ),
     ..._links(context, overview.stepLinks[step.id] ?? []),
     if (story case final current?)
-      for (final link in current.sceneLinks.where(
-        (l) => l.stepId == step.id || step.sceneLinkIds.contains(l.id),
-      ))
-        ..._section(context, 'Lien de scène', [
-          link.label,
-          'Rôle : ${_role(link.role)}',
-          if (link.sceneRef == null) 'Scène non renseignée',
-        ]),
+      for (final link in narrativeStepSceneLinks(current, step))
+        ..._section(context, 'Lien de scène', narrativeSceneLinkLines(link)),
     for (final reference
         in overview.stepReferences[step.id] ?? <NarrativeOverviewReference>[])
       StudioNotice(
@@ -179,14 +162,7 @@ class NarrativeOverviewDetail extends StatelessWidget {
   List<Widget> _fact(BuildContext context, NarrativeFactDefinition fact) => [
     _heading(context, fact.label),
     if (fact.description.isNotEmpty) Text(fact.description),
-    ..._section(context, 'Définition', [
-      'Type : ${switch (fact.valueKind) {
-        NarrativeValueKind.boolean => 'Oui / non',
-        NarrativeValueKind.integer => 'Nombre entier',
-        NarrativeValueKind.string => 'Texte',
-      }}',
-      'Valeur initiale : ${fact.valueKind == NarrativeValueKind.boolean ? (fact.defaultValue ? 'Oui' : 'Non') : fact.initialValue.toJson()}',
-    ]),
+    ..._section(context, 'Définition', narrativeFactDefinitionLines(fact)),
     const StudioNotice(
       'Valeur initiale du projet. Les valeurs des parties jouées ne sont pas affichées ici.',
     ),
@@ -196,16 +172,13 @@ class NarrativeOverviewDetail extends StatelessWidget {
   List<Widget> _story(BuildContext context, StorylineAsset value) => [
     _heading(context, value.title),
     if (value.description case final description?) Text(description),
-    ..._section(context, 'Organisation', [
-      '${value.chapters.length} chapitre(s)',
-      '${value.chapters.expand((c) => c.steps).length} étape(s)',
-      '${value.sceneLinks.length} lien(s) de scène',
-    ]),
+    ..._section(context, 'Organisation', narrativeStoryOrganizationLines(value)),
     if (value.relationships.isNotEmpty)
-      ..._section(context, 'Relations entre histoires', [
-        for (final relation in value.relationships)
-          '${_relationship(relation.kind)} → ${overview.stories.where((s) => s.id == relation.targetStorylineId).firstOrNull?.title ?? '${relation.targetStorylineId} (introuvable)'}',
-      ]),
+      ..._section(
+        context,
+        'Relations entre histoires',
+        narrativeStoryRelationLines(value, overview.stories),
+      ),
     const StudioNotice(
       'Choisissez une étape pour retrouver les interactions qui y font référence.',
     ),
@@ -252,22 +225,4 @@ class NarrativeOverviewDetail extends StatelessWidget {
     for (final line in lines)
       Padding(padding: const EdgeInsets.only(bottom: 6), child: Text(line)),
   ];
-
-  String _role(StorylineSceneLinkRole role) => switch (role) {
-    StorylineSceneLinkRole.primary => 'Principal',
-    StorylineSceneLinkRole.optional => 'Facultatif',
-    StorylineSceneLinkRole.branch => 'Branche',
-    StorylineSceneLinkRole.convergence => 'Convergence',
-    StorylineSceneLinkRole.setup => 'Préparation',
-    StorylineSceneLinkRole.payoff => 'Résolution',
-  };
-
-  String _relationship(StorylineRelationshipKind kind) => switch (kind) {
-    StorylineRelationshipKind.sideQuestAvailableDuring => 'Disponible pendant',
-    StorylineRelationshipKind.sideQuestUnlockedBy => 'Débloquée par',
-    StorylineRelationshipKind.sideQuestAffectsMain => 'A un effet sur',
-    StorylineRelationshipKind.convergesTo => 'Converge vers',
-    StorylineRelationshipKind.requires => 'Nécessite',
-    StorylineRelationshipKind.blocks => 'Bloque',
-  };
 }

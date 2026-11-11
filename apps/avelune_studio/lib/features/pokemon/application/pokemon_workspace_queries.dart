@@ -15,4 +15,16 @@ extension PokemonWorkspaceQueries on PokemonWorkspaceController {
           entry,
     ];
   }
+
+  List<String> get speciesFilterTypes =>
+      {
+        for (final entry in index?.entries ?? const <PokemonSpeciesSummary>[])
+          ...entry.types,
+      }.toList()..sort();
+
+  List<int> get speciesFilterGenerations =>
+      {
+        for (final entry in index?.entries ?? const <PokemonSpeciesSummary>[])
+          entry.generation,
+      }.toList()..sort();
 }

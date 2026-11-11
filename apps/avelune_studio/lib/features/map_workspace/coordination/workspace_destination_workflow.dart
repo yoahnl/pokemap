@@ -137,6 +137,9 @@ class WorkspaceDestinationWorkflow {
     }
   }
 
+  Future<bool> allowLibraryExit() async =>
+      await libraryExitGuard?.call()?.call() ?? true;
+
   Future<void> _leaveLibrary(WorkspaceSpace destination) async {
     final guard = libraryExitGuard?.call();
     if (guard == null) return;

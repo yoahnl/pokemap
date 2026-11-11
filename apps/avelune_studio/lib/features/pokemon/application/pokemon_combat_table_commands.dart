@@ -165,15 +165,30 @@ extension PokemonCombatTableCommands on PokemonCombatController {
     ),
   );
 
-  void replaceTrainerMember(int index, ProjectTrainerPokemonEntry value) =>
-      editTrainer(
-        (current) => current.copyWith(
-          team: [
-            for (var i = 0; i < current.team.length; i++)
-              if (i == index) value else current.team[i],
-          ],
-        ),
-      );
+  void replaceTrainerMember(int index, ProjectTrainerPokemonEntry value) {
+    final team = trainer?.current.team;
+    if (team != null &&
+        index >= 0 &&
+        index < team.length &&
+        pokemonTrainerMoveCountRefused(
+          team[index].moves.length,
+          value.moves.length,
+        )) {
+      if (_disposed || saving) return;
+      error = pokemonTrainerMoveLimitRefusal;
+      changed();
+      return;
+    }
+    if (error == pokemonTrainerMoveLimitRefusal) error = null;
+    editTrainer(
+      (current) => current.copyWith(
+        team: [
+          for (var i = 0; i < current.team.length; i++)
+            if (i == index) value else current.team[i],
+        ],
+      ),
+    );
+  }
 
   void remapVariantInputs(String prefix, int removedIndex) {
     if (_disposed || saving) return;

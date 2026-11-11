@@ -1,5 +1,7 @@
 import 'package:map_core/map_core_domain.dart';
 
+import '../../scenes/application/scene_labels.dart';
+
 final class SceneNodeReference {
   const SceneNodeReference(this.scene, this.node);
   final SceneAsset scene;
@@ -46,3 +48,10 @@ List<SceneYarnDialoguePayload> sceneDialogues(SceneAsset scene) {
         payload,
   ];
 }
+
+String sceneNodeReferenceLabel(SceneNodeReference reference) =>
+    '${reference.scene.name} · ${sceneNodeName(reference.scene.graph, reference.node.id)}';
+
+SceneNodeReference? soleSceneNodeReference(
+  List<SceneNodeReference> references,
+) => references.length == 1 ? references.single : null;

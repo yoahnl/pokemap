@@ -1,27 +1,37 @@
-import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
-import 'package:flutter/services.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_border_drawing_draft.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_border_editing_commands.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_canvas_stroke.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_editing_commands.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_workspace_editing_state.dart';
+import 'package:avelune_studio/features/resources/application/resource_border_lifecycle_controller.dart';
+import 'package:avelune_studio/features/resources/coordination/resource_border_lifecycle.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
-import '../../../../avelune_studio/test/support/m2_ui_fixture.dart';
-import '../../../../avelune_studio/test/support/resource_family_gestures.dart';
 import 'uwu6_resource_host.dart';
 
-Future<void> drawUwu6Border(Uwu6ResourceHost host) async {
-  final tester = host.tester;
-  await host.go('Carte');
-  expect(
-    host.fixture.controller.active!.current.layers.whereType<BorderLayer>(),
-    isEmpty,
+Future<void> drawUwu6Border(Uwu6ResourceHost host) => host.io(() async {
+  final controller = host.fixture.controller;
+  final document = controller.active!;
+  expect(document.current.layers.whereType<BorderLayer>(), isEmpty);
+  final blueprint = MapBorderEditingCommands.publishedLines(
+    controller.project!,
+  ).singleWhere(
+    (entry) => entry.latestPublished!.definition.name == 'Muret conservé',
   );
-  await host.text('Bordures');
-  await host.tap('border-model-picker');
-  await host.text('Muret conservé');
-  await host.cell(10, 8);
-  await host.cell(13, 8);
-  await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-  await pumpIo(tester, frames: 6);
-  final map = host.fixture.controller.active!.current;
+  final stroke = MapBorderDrawingDraft.start(
+    mapId: document.current.id,
+    mapSize: document.current.size,
+    blueprintId: blueprint.id,
+    alignment: borderTemplateStrokeAlignment(
+      blueprint.latestPublished!.definition.template,
+    ),
+    origin: const GridPos(x: 10, y: 8),
+  ).addAngle(const GridPos(x: 13, y: 8));
+  expect(stroke.canFinish, true);
+  MapBorderEditingCommands(document, controller.project!).finish(stroke);
+  controller.notify();
+  final map = document.current;
   final border = map.layers.whereType<BorderLayer>().single;
   expect(border.content.features, hasLength(1));
   expect(
@@ -36,9 +46,16 @@ Future<void> drawUwu6Border(Uwu6ResourceHost host) async {
     ),
     false,
   );
-  await host.text('Collisions');
-  await host.cell(11, 8);
-  final painted = host.fixture.controller.active!.current;
+  final collisions = MapCanvasStroke.start(
+    map: map,
+    project: controller.project!,
+    view: MapWorkspaceEditingState()..tool = StudioMapTool.collisionPaint,
+    commands: MapEditingCommands(document, controller.project!),
+    origin: const GridPos(x: 11, y: 8),
+  )!;
+  document.commit(collisions.commit());
+  controller.notify();
+  final painted = document.current;
   expect(
     painted.layers.whereType<CollisionLayer>().any(
       (layer) => layer.collisions[blockedCell],
@@ -49,41 +66,46 @@ Future<void> drawUwu6Border(Uwu6ResourceHost host) async {
     painted.layers.whereType<BorderLayer>().single.content,
     border.content,
   );
-  await host.saveMap();
-  await host.fixture.capture(tester, 'uwu6-widget-first-border-stroke');
+  expect(await controller.save(document), true, reason: document.error);
+  expect(document.dirty, false, reason: document.error);
   print(
-    'UWU6_RESOURCE_FIRST_BORDER_UI id=${border.id} features=${border.content.features.length} index=${map.layers.indexOf(border)}',
+    'UWU6_RESOURCE_FIRST_BORDER_OWNER id=${border.id} features=${border.content.features.length} index=${map.layers.indexOf(border)}',
   );
-  print('UWU6_RESOURCE_EXPLICIT_BORDER_COLLISION_UI=11,8 visualOnly=10,8');
-}
+  print('UWU6_RESOURCE_EXPLICIT_BORDER_COLLISION_OWNER=11,8 visualOnly=10,8');
+});
 
-Future<void> deprecateUwu6Border(Uwu6ResourceHost host) async {
-  await host.go('Ressources');
-  await selectResourceFamily(host.tester, ResourceLibraryFamily.borders);
-  await host.text('Publiées');
-  final before = (await host.reopen()).borderCatalog.records.single;
-  await host.tap('border-resource-actions-${before.id}');
-  await host.text('Déprécier…');
-  await host.tap('resource-border-confirm');
-  await host.tap('resource-management-save');
-  final deprecated = (await host.reopen()).borderCatalog.records.single;
+Future<void> deprecateUwu6Border(Uwu6ResourceHost host) => host.io(() async {
+  final navigation = host.navigation;
+  final before = (await host.read()).borderCatalog.records.single;
+  Future<void> manage(BorderResourceAction action) async {
+    await runBorderResourceManagement(
+      navigation: navigation,
+      record: navigation.workspace.project!.borderCatalog.recordById(
+        before.id,
+      )!,
+      action: action,
+      isActive: () => true,
+      present: (lifecycle) async {
+        await lifecycle.prepare();
+        expect(lifecycle.error, isNull);
+        lifecycle.confirm(true);
+        expect(await lifecycle.apply(), isNull);
+      },
+      presentUsages: (_, _, _) async {},
+    );
+    expect(navigation.error, isNull);
+  }
+
+  await manage(BorderResourceAction.deprecate);
+  final deprecated = (await host.read()).borderCatalog.records.single;
   expect(deprecated.isDeprecated, true);
   expect(deprecated.draft, before.draft);
   expect(deprecated.latestPublished, before.latestPublished);
-  await host.text('Dépréciées');
-  await host.tap('border-resource-actions-${before.id}');
-  await host.text('Réactiver…');
-  await host.tap('resource-border-confirm');
-  await host.tap('resource-management-save');
-  expect((await host.reopen()).borderCatalog.records.single, before);
-  await host.text('Publiées');
-  await host.tap('border-resource-actions-${before.id}');
-  await host.text('Déprécier…');
-  await host.tap('resource-border-confirm');
-  await host.tap('resource-management-save');
-  expect((await host.reopen()).borderCatalog.records.single.isDeprecated, true);
-  await host.fixture.capture(host.tester, 'uwu6-widget-deprecated-border');
+  await manage(BorderResourceAction.reactivate);
+  expect((await host.read()).borderCatalog.records.single, before);
+  await manage(BorderResourceAction.deprecate);
+  expect((await host.read()).borderCatalog.records.single.isDeprecated, true);
   print(
-    'UWU6_RESOURCE_BORDER_UI deprecated-reactivated-deprecated=${before.id}',
+    'UWU6_RESOURCE_BORDER_OWNER deprecated-reactivated-deprecated=${before.id}',
   );
-}
+});

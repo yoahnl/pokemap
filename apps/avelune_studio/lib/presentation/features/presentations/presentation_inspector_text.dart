@@ -15,9 +15,7 @@ extension _PresentationTextFields on PresentationInspector {
           '': 'Police du Player',
           ?clip.style.fontFamily: clip.style.fontFamily ?? '',
         },
-        onChanged: (value) => onPatch({
-          'style': {...style, 'fontFamily': value.isEmpty ? null : value},
-        }),
+        onChanged: (value) => onPatch(presentationFontFamilyPatch(clip, value)),
       ),
       const SizedBox(height: 12),
       field(

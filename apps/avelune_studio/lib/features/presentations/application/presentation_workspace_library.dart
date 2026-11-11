@@ -1,5 +1,7 @@
 part of 'presentation_workspace_controller.dart';
 
+typedef PresentationDocumentTicket = ({String id, int revision});
+
 extension PresentationWorkspaceLibrary on PresentationWorkspaceController {
   bool setFolder(String id, String? folderId) {
     final s = _sessions[id];
@@ -83,11 +85,12 @@ extension PresentationWorkspaceLibrary on PresentationWorkspaceController {
     String? folderId,
     PresentationSceneLink? link,
   }) async {
-    if (_closed || !_flush()) return false;
+    if (_closed || _creating || !_flush()) return false;
     if (title.trim().isEmpty) return _fail('Indiquez un nom.');
     suspendPreview?.call();
     final ticket = ++_generation;
     _loading = true;
+    _creating = true;
     changed();
     try {
       final draft = await port.prepare(project);
@@ -111,12 +114,24 @@ extension PresentationWorkspaceLibrary on PresentationWorkspaceController {
       if (!_closed && ticket == _generation) return _fail(failure);
       return false;
     } finally {
+      _creating = false;
       if (!_closed && ticket == _generation) {
         _loading = false;
         changed();
       }
     }
   }
+
+  PresentationDocumentTicket? get documentTicket => switch (activeId) {
+    final id? when _sessions[id] != null => (
+      id: id,
+      revision: _sessions[id]!.revision,
+    ),
+    _ => null,
+  };
+
+  bool holdsDocument(PresentationDocumentTicket ticket) =>
+      activeId == ticket.id && active?.revision == ticket.revision;
 
   Future<bool> duplicate(String id) async {
     if (!await open(id) || activeId != id) return false;

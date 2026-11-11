@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/narrative/application/narrative_overview.dart';
+import '../../../features/narrative/application/narrative_overview_resume.dart';
 import '../../../features/narrative/application/narrative_overview_selection.dart';
 import '../../../features/narrative/domain/narrative_port.dart';
 import '../../../features/verification/application/verification_workspace_controller.dart';

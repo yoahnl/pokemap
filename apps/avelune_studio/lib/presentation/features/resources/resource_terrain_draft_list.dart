@@ -5,6 +5,7 @@ import '../../shared/widgets/buttons/studio_tool.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../map_workspace/workspace_compact_panel.dart';
 import 'package:avelune_studio/features/resources/application/resource_terrain_actions.dart';
+import 'package:avelune_studio/features/resources/application/resource_terrain_management_copy.dart';
 
 class ResourceTerrainDraftList extends StatelessWidget {
   const ResourceTerrainDraftList({
@@ -62,9 +63,6 @@ class ResourceTerrainDraftList extends StatelessWidget {
       itemCount: drafts.length,
       itemBuilder: (context, index) {
         final draft = drafts[index];
-        final assigned = draft.rules
-            .where((rule) => rule.candidates.isNotEmpty)
-            .length;
         final compatible = canResume?.call(draft) ?? true;
         return Padding(
           padding: const EdgeInsets.only(right: 10),
@@ -75,8 +73,11 @@ class ResourceTerrainDraftList extends StatelessWidget {
                 Expanded(
                   child: StudioChoice(
                     label: 'Reprendre le brouillon : ${draft.name}',
-                    subtitle:
-                        '${status?.call(draft) ?? 'Brouillon enregistré'} · $assigned / ${draft.rules.length} raccords${compatible ? '' : ' · Raccords avancés en lecture seule'}',
+                    subtitle: terrainDraftSubtitle(
+                      draft,
+                      status: status?.call(draft),
+                      compatible: compatible,
+                    ),
                     leading: const Icon(Icons.edit_outlined, size: 20),
                     onTap: compatible
                         ? () {

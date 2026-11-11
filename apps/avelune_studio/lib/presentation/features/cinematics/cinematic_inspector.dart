@@ -18,6 +18,7 @@ import 'cinematic_labels.dart';
 
 import 'package:avelune_studio/features/cinematics/application/cinematic_actor_choices.dart';
 import 'package:avelune_studio/features/cinematics/application/cinematic_camera_options.dart';
+import 'package:avelune_studio/features/cinematics/application/cinematic_inspector_rules.dart';
 import 'package:avelune_studio/features/cinematics/application/cinematic_map_model.dart';
 
 import 'cinematic_view_state.dart';
@@ -94,9 +95,7 @@ class CinematicInspector extends StatelessWidget {
       'actors': 'Acteurs',
       'document': 'Séquence',
     };
-    final selectedTab = tabs.containsKey(view.inspectorTab)
-        ? view.inspectorTab
-        : 'properties';
+    final selectedTab = cinematicInspectorTab(view.inspectorTab);
     return StudioPanel(
       compact: true,
       children: [
@@ -193,7 +192,7 @@ class CinematicInspector extends StatelessWidget {
     const Text(
       'La pose comprend la position et l’orientation. Une annulation restaure toujours la pose de départ.',
     ),
-    if (controller.project.settings.dimension == ProjectDimension.threeD)
+    if (cinematicCrossingEditable(controller.project))
       StudioToggleRow(
         label: 'Autoriser le croisement des personnages en mouvement',
         description: 'Concerne uniquement les personnages qui se déplacent simultanément. Les obstacles et les positions finales restent vérifiés.',

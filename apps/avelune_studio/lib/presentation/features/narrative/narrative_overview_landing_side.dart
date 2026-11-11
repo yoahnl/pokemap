@@ -2,97 +2,45 @@ part of 'narrative_overview_landing.dart';
 
 extension NarrativeOverviewLandingSide on NarrativeOverviewLanding {
   Widget _side(BuildContext context) {
-    final active =
-        <
-          ({
-            String title,
-            String id,
-            String subtitle,
-            bool isScene,
-            IconData icon,
-            StudioTone tone,
-            VoidCallback? open,
-          })
-        >[];
-    for (final story in overview.stories) {
-      if (story.id != activeStoryId && !dirtyStoryIds.contains(story.id)) {
-        continue;
-      }
-      active.add((
-        id: story.id,
-        title: story.title,
-        subtitle: dirtyStoryIds.contains(story.id)
-            ? 'Histoire · brouillon'
-            : 'Histoire ouverte',
-        isScene: false,
-        icon: Icons.auto_stories_outlined,
-        tone: StudioTone.info,
-        open: () => onOpenStory(story.id),
-      ));
-    }
-    for (final scene in scenes) {
-      if (scene.id != activeSceneId && !dirtySceneIds.contains(scene.id)) {
-        continue;
-      }
-      active.add((
-        id: scene.id,
-        title: scene.name,
-        subtitle: dirtySceneIds.contains(scene.id)
-            ? 'Scène · brouillon'
-            : 'Scène ouverte',
-        isScene: true,
-        icon: Icons.account_tree_outlined,
-        tone: StudioTone.info,
-        open: onOpenScene == null ? null : () => onOpenScene!(scene.id),
-      ));
-    }
-    for (final dialogue in dialogues) {
-      if (dialogue.id != activeDialogueId &&
-          !dirtyDialogueIds.contains(dialogue.id)) {
-        continue;
-      }
-      active.add((
-        id: dialogue.id,
-        title: dialogue.name,
-        subtitle: dirtyDialogueIds.contains(dialogue.id)
-            ? 'Dialogue · brouillon'
-            : 'Dialogue ouvert',
-        isScene: false,
-        icon: Icons.forum_outlined,
-        tone: StudioTone.feature,
-        open: onOpenDialogue == null
-            ? null
-            : () => onOpenDialogue!(dialogue.id),
-      ));
-    }
-    for (final interaction in overview.interactions) {
-      if (!interaction.dirty) continue;
-      active.add((
-        id: interaction.id,
-        title: interaction.name,
-        subtitle: 'Interaction · brouillon',
-        isScene: false,
-        icon: Icons.touch_app_outlined,
-        tone: StudioTone.warning,
-        open: () => onOpenInteraction(interaction.id),
-      ));
-    }
-    for (final event in events) {
-      if (event.id != activeEventId && !dirtyEventIds.contains(event.id)) {
-        continue;
-      }
-      active.add((
-        id: event.id,
-        title: _eventName(event),
-        subtitle: dirtyEventIds.contains(event.id)
-            ? 'Événement · brouillon'
-            : 'Événement ouvert',
-        isScene: false,
-        icon: Icons.bolt_outlined,
-        tone: StudioTone.warning,
-        open: onOpenEvent == null ? null : () => onOpenEvent!(event.id),
-      ));
-    }
+    final active = narrativeResumeItems(
+      overview: overview,
+      scenes: scenes,
+      dialogues: dialogues,
+      events: events,
+      activeStoryId: activeStoryId,
+      activeSceneId: activeSceneId,
+      activeDialogueId: activeDialogueId,
+      activeEventId: activeEventId,
+      dirtyStoryIds: dirtyStoryIds,
+      dirtySceneIds: dirtySceneIds,
+      dirtyDialogueIds: dirtyDialogueIds,
+      dirtyEventIds: dirtyEventIds,
+    );
+    final resume = splitNarrativeResume(active);
+    VoidCallback? opener(NarrativeResumeItem item) => switch (item.kind) {
+      NarrativeResumeKind.story => () => onOpenStory(item.id),
+      NarrativeResumeKind.scene =>
+        onOpenScene == null ? null : () => onOpenScene!(item.id),
+      NarrativeResumeKind.dialogue =>
+        onOpenDialogue == null ? null : () => onOpenDialogue!(item.id),
+      NarrativeResumeKind.interaction => () => onOpenInteraction(item.id),
+      NarrativeResumeKind.event =>
+        onOpenEvent == null ? null : () => onOpenEvent!(item.id),
+    };
+    IconData icon(NarrativeResumeKind kind) => switch (kind) {
+      NarrativeResumeKind.story => Icons.auto_stories_outlined,
+      NarrativeResumeKind.scene => Icons.account_tree_outlined,
+      NarrativeResumeKind.dialogue => Icons.forum_outlined,
+      NarrativeResumeKind.interaction => Icons.touch_app_outlined,
+      NarrativeResumeKind.event => Icons.bolt_outlined,
+    };
+    StudioTone tone(NarrativeResumeKind kind) => switch (kind) {
+      NarrativeResumeKind.story ||
+      NarrativeResumeKind.scene => StudioTone.info,
+      NarrativeResumeKind.dialogue => StudioTone.feature,
+      NarrativeResumeKind.interaction ||
+      NarrativeResumeKind.event => StudioTone.warning,
+    };
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -108,18 +56,20 @@ extension NarrativeOverviewLandingSide on NarrativeOverviewLanding {
                 'une scène, un dialogue ou un événement : tant qu’il reste '
                 'ouvert ou non enregistré, il apparaît ici pour le reprendre.',
               ),
-            for (final item in active.take(5))
+            for (final item in resume.shown)
               _documentRow(
                 context,
-                icon: item.icon,
-                tone: item.tone,
-                leading: item.isScene ? _sceneArtwork(item.id) : null,
+                icon: icon(item.kind),
+                tone: tone(item.kind),
+                leading: item.kind == NarrativeResumeKind.scene
+                    ? _sceneArtwork(item.id)
+                    : null,
                 title: item.title,
                 subtitle: item.subtitle,
-                onTap: item.open,
+                onTap: opener(item),
               ),
-            if (active.length > 5)
-              Text('${active.length - 5} autre(s) document(s) en cours'),
+            if (resume.hidden > 0)
+              Text('${resume.hidden} autre(s) document(s) en cours'),
             StudioButton(
               label: 'Voir tous les documents',
               secondary: true,

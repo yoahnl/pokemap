@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../features/narrative/application/narrative_workspace_controller.dart';
 import '../../../features/narrative/application/dialogue_editing_controller.dart';
 import '../../../features/narrative/application/narrative_editing.dart';
+import '../../../features/narrative/application/narrative_interaction_edits.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/inputs/studio_draft_field.dart';
 import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
@@ -30,19 +31,13 @@ class NarrativeInteractionPane extends StatelessWidget {
   Widget build(BuildContext context) {
     final edit = controller.active!;
     final interaction = edit.current.interaction;
-    final mapName =
-        controller.project.maps
-            .where((map) => map.id == edit.document.base.mapId)
-            .firstOrNull
-            ?.name ??
-        'Carte courante';
+    final mapName = narrativeInteractionMapName(
+      controller.project,
+      edit.document.base.mapId,
+    );
     void changed() => controller.changed();
     final editor = DialogueEditingController(edit, changed);
-    final outcomes = {
-      for (final b in edit.current.dialogue.branches)
-        for (final c in b.choices)
-          if (c.outcomeId != null) c.outcomeId!: c.text,
-    };
+    final outcomes = narrativeOutcomeSections(edit.current.dialogue);
     return Column(
       children: [
         StudioPageHeader(
@@ -135,7 +130,7 @@ class NarrativeInteractionPane extends StatelessWidget {
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
               Text(
-                'Carte : $mapName · ${interaction.source.toJson()['kind'] == 'entityInteract' ? 'Interaction avec un personnage' : 'Entrée dans une zone'}',
+                'Carte : $mapName · ${narrativeInteractionOriginLabel(interaction)}',
               ),
               const SizedBox(height: 16),
               if (!edit.editable) ...[
@@ -196,7 +191,7 @@ class NarrativeInteractionPane extends StatelessWidget {
                       label:
                           'Priorité si plusieurs conversations conviennent (plus élevée en premier)',
                       onChanged: (v) {
-                        final p = int.tryParse(v);
+                        final p = narrativePriorityFromInput(v);
                         if (p != null) {
                           edit.change(
                             interaction: interaction.revise(priority: p),
@@ -227,18 +222,17 @@ class NarrativeInteractionPane extends StatelessWidget {
                     collapsible: true,
                     initiallyExpanded: false,
                     key: ValueKey(outcome.key),
-                    title: 'Après le choix « ${outcome.value} »',
+                    title: narrativeOutcomeSectionTitle(outcome.value),
                     children: [
                       NarrativeSequenceEditor(
                         controller: controller,
-                        steps: interaction.branches[outcome.key] ?? [],
+                        steps: narrativeOutcomeSteps(interaction, outcome.key),
                         onChanged: (v) {
                           edit.change(
-                            interaction: interaction.revise(
-                              branches: {
-                                ...interaction.branches,
-                                outcome.key: v,
-                              },
+                            interaction: withNarrativeOutcomeSteps(
+                              interaction,
+                              outcome.key,
+                              v,
                             ),
                           );
                           changed();

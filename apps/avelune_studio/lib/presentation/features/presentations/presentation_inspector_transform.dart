@@ -2,15 +2,11 @@ part of 'presentation_inspector.dart';
 
 extension _PresentationTransformFields on PresentationInspector {
   List<Widget> transformFields(PresentationClip clip) {
-    final encoded = encodePresentationClip(clip);
-    final poseKey = view.orientationOverride
-        ? (view.portrait
-              ? 'portraitCompositionOverride'
-              : 'landscapeCompositionOverride')
-        : view.pose == PresentationPose.end
-        ? 'to'
-        : 'from';
-    final pose = Map<String, Object?>.from(encoded[poseKey] as Map? ?? {});
+    final poseKey = presentationPoseKey(
+      pose: view.pose,
+      orientationOverride: view.orientationOverride,
+      portrait: view.portrait,
+    );
     Widget number(
       String label,
       String key,
@@ -19,27 +15,21 @@ extension _PresentationTransformFields on PresentationInspector {
     }) => StudioCommitField(
       key: ValueKey('${clip.id}:$poseKey:$key'),
       label: label,
-      value: '${((pose[key] as num?)?.toDouble() ?? fallback) / factor}',
+      value:
+          '${presentationPoseFieldValue(clip, poseKey, key, fallback, factor: factor)}',
       tryCommit: (text) {
-        final number = double.tryParse(text.replaceAll(',', '.'));
-        final patched = {...pose, key: number == null ? null : number * factor};
-        final valid =
-            number != null &&
-            number.isFinite &&
-            onPatch({
-              poseKey: patched,
-              if (!view.orientationOverride &&
-                  view.pose == PresentationPose.trajectory)
-                'to': {
-                  ...Map<String, Object?>.from(encoded['to'] as Map? ?? {}),
-                  key: number * factor,
-                },
-            });
-        if (valid) {
-          view.invalidFields.remove(label);
-        } else {
-          view.invalidFields.add(label);
-        }
+        final valid = commitPresentationPoseField(
+          view.invalidFields,
+          label,
+          clip,
+          key,
+          text,
+          pose: view.pose,
+          orientationOverride: view.orientationOverride,
+          portrait: view.portrait,
+          apply: onPatch,
+          factor: factor,
+        );
         changed();
         return valid;
       },
@@ -80,7 +70,12 @@ extension _PresentationTransformFields on PresentationInspector {
       const SizedBox(height: 10),
       number('Échelle Y', 'scaleY', 1),
       const SizedBox(height: 10),
-      number('Rotation (°)', 'rotationTurns', 0, factor: 1 / 360),
+      number(
+        'Rotation (°)',
+        'rotationTurns',
+        0,
+        factor: presentationRotationDegreeFactor,
+      ),
       const SizedBox(height: 10),
       number('Opacité', 'opacity', 1),
       const SizedBox(height: 10),

@@ -44,16 +44,13 @@ class PokemonCombatTableDetail extends StatelessWidget {
       );
     }
     final table = draft.current;
-    final unique = table.tags.contains('studio:unique');
+    final unique = pokemonEncounterIsUnique(table);
     final fishing = {
       EncounterKind.oldRod,
       EncounterKind.goodRod,
       EncounterKind.superRod,
     }.contains(table.encounterKind);
-    final species = {
-      for (final entry in index.entries)
-        if (entry.enabled) entry.id: entry.name,
-    };
+    final species = pokemonEnabledSpeciesNames(index);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -169,7 +166,7 @@ class PokemonCombatTableDetail extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
               ],
-              if (!unique || table.entries.isEmpty)
+              if (pokemonEncounterOffersSpeciesAddition(table))
                 Align(
                   alignment: Alignment.centerLeft,
                   child: StudioButton(

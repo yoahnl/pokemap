@@ -6,9 +6,7 @@ import '../../shared/widgets/inputs/studio_select.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_library_tree.dart';
 import 'package:avelune_studio/features/regional_map/application/regional_map_choices.dart';
 
-export 'package:avelune_studio/features/regional_map/application/regional_map_choices.dart' show regionalMapChoiceLabel;
-
-typedef RegionalMapLink = ({String name, String mapId});
+export 'package:avelune_studio/features/regional_map/application/regional_map_choices.dart' show regionalMapChoiceLabel, RegionalMapLink;
 
 Future<RegionalMapLink?> askRegionalMapLink(
   BuildContext context, {
@@ -25,7 +23,13 @@ Future<RegionalMapLink?> askRegionalMapLink(
   return showDialog<RegionalMapLink>(
     context: context,
     builder: (context) => StatefulBuilder(
-      builder: (context, rebuild) => AlertDialog(
+      builder: (context, rebuild) {
+        final confirmation = regionalMapLinkConfirmation(
+          name: name,
+          mapId: mapId,
+          asksName: asksName,
+        );
+        return AlertDialog(
         title: Text(title),
         content: SizedBox(
           width: 420,
@@ -61,15 +65,13 @@ Future<RegionalMapLink?> askRegionalMapLink(
           ),
           StudioButton(
             label: confirmLabel,
-            onPressed: mapId == null || (asksName && name.trim().isEmpty)
+            onPressed: confirmation == null
                 ? null
-                : () => Navigator.pop(context, (
-                    name: name.trim(),
-                    mapId: mapId!,
-                  )),
+                : () => Navigator.pop(context, confirmation),
           ),
         ],
-      ),
+      );
+      },
     ),
   );
 }

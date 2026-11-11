@@ -60,3 +60,38 @@ bool _matches(SceneAsset scene, String? context, String needle) =>
     scene.name.toLowerCase().contains(needle) ||
     scene.id.toLowerCase().contains(needle) ||
     (context?.toLowerCase().contains(needle) ?? false);
+
+String eventSceneCountLabel({
+  required int visible,
+  required int total,
+  required String query,
+}) => query.trim().isEmpty
+    ? '$total ${total > 1 ? 'scènes' : 'scène'}'
+    : '$visible ${visible > 1 ? 'scènes' : 'scène'} sur $total';
+
+String eventSceneEmptyLabel(String query) => query.trim().isEmpty
+    ? 'Aucune scène dans ce projet.'
+    : 'Aucune scène ne correspond à « ${query.trim()} ».';
+
+String eventSceneRowStatus(
+  SceneAsset scene, {
+  required bool dirty,
+  required bool linked,
+}) =>
+    '${scene.graph.nodes.length} blocs · ${dirty ? 'Modifiée localement' : 'Enregistrée'}${linked ? ' · Scène liée' : ''}';
+
+String eventSceneDialogueLabel(
+  ProjectManifest project,
+  SceneYarnDialoguePayload dialogue,
+) {
+  final name =
+      project.dialogues
+          .where((item) => item.id == dialogue.dialogueId)
+          .firstOrNull
+          ?.name ??
+      'Dialogue introuvable : ${dialogue.dialogueId}';
+  final node = dialogue.yarnNodeName?.trim();
+  return node == null || node.isEmpty
+      ? 'Ouvrir le dialogue $name'
+      : 'Ouvrir le dialogue $name · $node';
+}

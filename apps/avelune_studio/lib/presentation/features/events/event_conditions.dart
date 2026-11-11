@@ -53,25 +53,8 @@ class EventConditions extends StatelessWidget {
     VoidCallback? remove,
     String path,
   ) {
-    final children = switch (value) {
-      NarrativeEventConditionAll(:final children) => children,
-      NarrativeEventConditionAny(:final children) => children,
-      _ => <NarrativeEventConditionExpression>[],
-    };
-    NarrativeEventConditionExpression group(
-      List<NarrativeEventConditionExpression> items,
-    ) => rebuildEventConditionGroup(value, items);
-    final title = switch (value) {
-      NarrativeEventConditionLeaf(:final condition) => eventConditionLabel(
-        condition,
-        facts,
-        records,
-      ),
-      NarrativeEventConditionAll() =>
-        children.isEmpty ? 'Sans condition' : 'Toutes ces conditions',
-      NarrativeEventConditionAny() => 'Au moins une condition',
-      NarrativeEventConditionNot() => 'Inverser cette condition',
-    };
+    final children = eventConditionGroupChildren(value);
+    final title = eventConditionNodeTitle(value, facts, records);
     Future<void> add({NarrativeEventCondition? initial}) async {
       final selected = await chooseEventCondition(
         context,
@@ -82,12 +65,7 @@ class EventConditions extends StatelessWidget {
         entityId: entityId,
       );
       if (selected == null || !context.mounted) return;
-      final leaf = NarrativeEventConditionExpression.leaf(selected);
-      if (value is NarrativeEventConditionLeaf) {
-        replace(leaf);
-      } else {
-        replace(group([...children, leaf]));
-      }
+      replace(withAddedEventCondition(value, selected));
     }
 
     return Padding(
@@ -104,14 +82,12 @@ class EventConditions extends StatelessWidget {
                   ? () => add(initial: value.condition)
                   : null,
             ),
-          if (value is! NarrativeEventConditionNot && children.isNotEmpty ||
-              value is NarrativeEventConditionLeaf)
+          if (canInvertEventCondition(value))
             StudioTool(
               label:
                   'Inverser : se déclencher quand « ${eventExpressionSentence(value, facts, records)} » est faux',
               icon: Icons.swap_horiz,
-              onPressed: () =>
-                  replace(NarrativeEventConditionExpression.not(value)),
+              onPressed: () => replace(invertedEventCondition(value)),
             ),
           if (remove != null)
             StudioTool(
@@ -162,7 +138,7 @@ class EventConditions extends StatelessWidget {
             _node(
               context,
               value.child,
-              (child) => replace(NarrativeEventConditionExpression.not(child)),
+              (child) => replace(invertedEventCondition(child)),
               null,
               '$path.not',
             ),
@@ -171,8 +147,8 @@ class EventConditions extends StatelessWidget {
             _node(
               context,
               children[i],
-              (child) => replace(group([...children]..[i] = child)),
-              () => replace(group([...children]..removeAt(i))),
+              (child) => replace(withEventConditionChild(value, i, child)),
+              () => replace(removeEventConditionChild(value, i)),
               '$path.$i',
             ),
           if (value is NarrativeEventConditionAll ||
@@ -199,14 +175,7 @@ class EventConditions extends StatelessWidget {
                       entityId: entityId,
                     );
                     if (condition != null && context.mounted) {
-                      replace(
-                        group([
-                          ...children,
-                          NarrativeEventConditionExpression.all([
-                            NarrativeEventConditionExpression.leaf(condition),
-                          ]),
-                        ]),
-                      );
+                      replace(withAddedEventConditionGroup(value, condition));
                     }
                   },
                 ),
@@ -225,12 +194,7 @@ class EventConditions extends StatelessWidget {
                   entityId: entityId,
                 );
                 if (condition != null && context.mounted) {
-                  replace(
-                    NarrativeEventConditionExpression.all([
-                      value,
-                      NarrativeEventConditionExpression.leaf(condition),
-                    ]),
-                  );
+                  replace(groupedEventCondition(value, condition));
                 }
               },
             ),

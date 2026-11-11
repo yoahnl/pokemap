@@ -147,6 +147,12 @@ extension PresentationWorkspaceEditing on PresentationWorkspaceController {
     return addClip(clip, layer: layer, label: media.label) ? clip.id : null;
   }
 
+  bool deleteClips(Iterable<String> clipIds) {
+    final ids = clipIds.toList();
+    if (_closed || ids.isEmpty || !_flush()) return false;
+    return apply('presentationClip.deleteBatch', {'clipIds': ids});
+  }
+
   bool apply(String actionId, Map<String, Object?> parameters) =>
       applyBatch([PresentationCommand(actionId, parameters)]);
   bool applyBatch(List<PresentationCommand> commands) {

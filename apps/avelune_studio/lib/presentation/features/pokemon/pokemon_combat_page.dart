@@ -3,7 +3,6 @@ import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/pokemon/application/pokemon_combat_controller.dart';
 import '../../../features/pokemon/domain/pokemon_workspace_models.dart';
-import '../../../features/pokemon/domain/pokemon_combat_port.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import 'pokemon_combat_list.dart';
@@ -77,29 +76,16 @@ class _PokemonCombatPageState extends State<PokemonCombatPage> {
       ),
     );
     if (!mounted || title == null) return;
-    final combat = widget.combat;
-    final created = combat.view == PokemonCombatView.trainers
-        ? combat.createTrainer(title)
-        : combat.createTable(
-            title,
-            unique: combat.view == PokemonCombatView.unique,
-          );
-    if (created) setState(() => compactDetail = true);
+    if (widget.combat.createForView(title)) {
+      setState(() => compactDetail = true);
+    }
   }
 
   Future<void> _delete() async {
     final combat = widget.combat;
-    final table = combat.table;
-    final trainer = combat.trainer;
-    if (combat.dirty ||
-        combat.snapshot?.referencesComplete != true ||
-        (table == null && trainer == null)) {
-      return;
-    }
-    final owner = table?.current.id ?? trainer!.current.id;
-    final references = table != null
-        ? combatTableReferences(combat.snapshot!, table.current)
-        : combatTrainerReferences(combat.snapshot!, trainer!.current);
+    if (!combat.canRequestDeletion) return;
+    final owner = combat.table?.current.id ?? combat.trainer!.current.id;
+    final references = combat.selectedReferences;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -195,12 +181,9 @@ class _PokemonCombatPageState extends State<PokemonCombatPage> {
                           : 'Analyser les usages du projet',
                       secondary: true,
                       loading: combat.analyzing,
-                      onPressed:
-                          combat.operationActive ||
-                              combat.dirty ||
-                              combat.port is! PokemonCombatReferencePort
-                          ? null
-                          : combat.analyzeReferences,
+                      onPressed: combat.canAnalyzeReferences
+                          ? combat.analyzeReferences
+                          : null,
                     ),
                   ],
                 ),
@@ -213,9 +196,9 @@ class _PokemonCombatPageState extends State<PokemonCombatPage> {
                 'pokemap-beta-v1': 'Classique · combats simples',
                 'pokemap-standard-v1': 'Standard · combats simples et doubles',
               },
-              onChanged: combat.operationActive || combat.dirty
-                  ? null
-                  : (value) => combat.setRuleset(pokemonRulesetProfile(value)),
+              onChanged: combat.canChangeRuleset
+                  ? (value) => combat.setRuleset(pokemonRulesetProfile(value))
+                  : null,
             ),
             const SizedBox(height: 12),
             SingleChildScrollView(

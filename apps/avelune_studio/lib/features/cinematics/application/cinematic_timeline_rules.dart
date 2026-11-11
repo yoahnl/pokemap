@@ -46,3 +46,7 @@ void seekCinematicStep(CinematicPreviewTransport transport, String stepId) {
       .firstOrNull;
   if (block != null) transport.seek(block.startMs);
 }
+
+void toggleCinematicStepSelection(Set<String> selection, String stepId) {
+  if (!selection.add(stepId)) selection.remove(stepId);
+}

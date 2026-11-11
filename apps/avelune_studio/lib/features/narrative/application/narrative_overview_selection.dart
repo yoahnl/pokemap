@@ -19,6 +19,13 @@ class NarrativeOverviewSelection {
   bool initialized = false;
   bool showOverview = true;
 
+  void initialize(NarrativeOverview overview) {
+    if (initialized) return;
+    initialized = true;
+    storyId = overview.stories.firstOrNull?.id;
+    if (overview.stories.isEmpty) tab = NarrativeOverviewTab.interactions;
+  }
+
   List<StorylineAsset> visibleStories(NarrativeOverview overview) {
     final query = this.query.trim().toLowerCase();
     return overview.stories

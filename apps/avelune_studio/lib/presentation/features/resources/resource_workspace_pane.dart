@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
+import 'package:avelune_studio/features/resources/application/model_resource_rules.dart';
 import 'package:avelune_studio/features/resources/application/resource_terrain_example.dart';
 import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 import 'package:avelune_studio/presentation/features/terrains/terrain_editor_screen.dart';
@@ -8,6 +9,7 @@ import 'package:avelune_studio/presentation/shared/widgets/feedback/studio_notic
 import 'package:avelune_studio/presentation/shared/widgets/feedback/studio_empty_state.dart';
 
 import 'package:avelune_studio/features/resources/coordination/resource_navigation.dart';
+import 'package:avelune_studio/features/resources/coordination/resource_workspace_routing.dart';
 
 import '../../../features/resources/coordination/resource_workspace_import_workflow.dart';
 
@@ -18,7 +20,6 @@ import 'resource_image_import.dart';
 import 'resource_management_bindings.dart';
 import 'resource_terrain_lifecycle.dart';
 
-import 'package:avelune_studio/features/terrains/domain/terrain_draft_compatibility.dart';
 part 'resource_workspace_actions.dart';
 
 class ResourceWorkspacePane extends StatelessWidget {
@@ -37,34 +38,17 @@ class ResourceWorkspacePane extends StatelessWidget {
     final project = n.workspace.project!;
     final visuals = n.visuals;
     final transfer = n.packTransfer;
-    final packResolution = switch (transfer) {
-      final owner? when owner.requiresPublicationReconciliation => (
-        noticeKey: 'resource-pack-publication-pending',
-        actionKey: 'resource-pack-reconcile-publication',
-        message: 'Le résultat de la publication du pack reste à vérifier. Relisez son statut avant de fermer le projet. Aucun nouvel export ne sera lancé.',
-        label: 'Relire le statut de publication',
-        resolve: owner.retryPublication,
-      ),
-      final owner? when owner.requiresReconciliation => (
-        noticeKey: 'resource-pack-reconciliation-pending',
-        actionKey: 'resource-pack-reconcile-library',
-        message: 'Le pack a été importé. La bibliothèque doit être relue avant de fermer le projet. L’import ne sera pas relancé.',
-        label: 'Relire la bibliothèque',
-        resolve: () async {
-          await owner.retryReconciliation();
-        },
-      ),
-      final owner? when owner.requiresRecovery => (
-        noticeKey: 'resource-pack-recovery-pending',
-        actionKey: 'resource-pack-recover-finalization',
-        message: 'La finalisation de l’import du pack doit être reprise avant de fermer le projet. La sélection ne sera pas importée à nouveau.',
-        label: 'Reprendre la finalisation',
-        resolve: owner.recover,
-      ),
-      _ => null,
-    };
+    final packResolution = resourcePackResolution(transfer);
+    final view = resourceWorkspaceView(
+      n.page,
+      hasDecor: n.decor != null,
+      hasEnvironment: n.environment != null,
+      hasTerrain: n.terrain != null,
+      terrainSpatial: n.terrain?.spatial ?? false,
+      hasResourceVisuals: visuals is ResourceWorkspaceVisuals,
+    );
     Widget content;
-    if (n.page == ResourcePage.decor && n.decor != null) {
+    if (view == ResourceWorkspaceView.decorUnavailable) {
       content = StudioEmptyState(
         key: const ValueKey('resource-decor-workshop-unavailable-state'),
         title: 'Atelier des décors indisponible',
@@ -77,7 +61,7 @@ class ResourceWorkspacePane extends StatelessWidget {
           onPressed: n.showLibrary,
         ),
       );
-    } else if (n.page == ResourcePage.environment && n.environment != null) {
+    } else if (view == ResourceWorkspaceView.environmentUnavailable) {
       content = StudioEmptyState(
         key: const ValueKey('resource-environment-workshop-unavailable-state'),
         title: 'Atelier des environnements indisponible',
@@ -93,11 +77,9 @@ class ResourceWorkspacePane extends StatelessWidget {
           },
         ),
       );
-    } else if (n.page == ResourcePage.characters) {
+    } else if (view == ResourceWorkspaceView.characters) {
       content = const SizedBox();
-    } else if (n.page == ResourcePage.terrain &&
-        n.terrain != null &&
-        (n.terrain!.spatial || visuals is ResourceWorkspaceVisuals)) {
+    } else if (view == ResourceWorkspaceView.terrainEditor) {
       final model = n.terrain!;
       final tileset = model.spatial
           ? null
@@ -134,8 +116,9 @@ class ResourceWorkspacePane extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
               child: ResourceImportResult(
                 source: source,
-                canCreateDecor:
-                    project.settings.dimension == ProjectDimension.twoD,
+                canCreateDecor: resourceImportCanCreateDecor(
+                  project.settings.dimension,
+                ),
                 onCreateDecor: () {
                   n.importedSource = null;
                   n.edit(source);
@@ -178,17 +161,17 @@ class ResourceWorkspacePane extends StatelessWidget {
               onModelLightChanged: n.busy
                   ? null
                   : (model, light) async {
-                      await n.mutate('model3d.configure', {
-                        'modelId': model.id,
-                        'light': light?.toJson(),
-                      });
+                      await n.mutate(
+                        'model3d.configure',
+                        modelConfigurePayload(model.id, modelLightFields(light)),
+                      );
                     },
               onModelShadowsChanged: n.busy
                   ? null
-                  : (model, enabled) => n.mutate('model3d.configure', {
-                      'modelId': model.id,
-                      'castsShadowsByDefault': enabled,
-                    }),
+                  : (model, enabled) => n.mutate(
+                      'model3d.configure',
+                      modelConfigurePayload(model.id, modelShadowFields(enabled)),
+                    ),
               project: project,
               openMaps: n.workspace.documents.values
                   .map((d) => d.current)
@@ -207,8 +190,7 @@ class ResourceWorkspacePane extends StatelessWidget {
               onTerrain: n.prepareTerrain,
               terrainDrafts: n.pendingTerrainDrafts,
               onResumeTerrain: n.resumeTerrain,
-              canResumeTerrain: (draft) =>
-                  terrainDraftCompatibilityProblem(project, draft) == null,
+              canResumeTerrain: (draft) => terrainDraftResumable(project, draft),
               terrainDraftStatus: (draft) => terrainPreparationStatus(n, draft),
               onManageTerrainDraft: (draft, action) =>
                   manageTerrainPreparation(context, n, draft, action),

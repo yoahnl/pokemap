@@ -5,12 +5,7 @@ extension CinematicInspectorCommands on CinematicInspector {
     CinematicAsset asset,
     CinematicTimelineStep step,
   ) {
-    final mediaKind = switch (step.kind) {
-      CinematicTimelineStepKind.sound => CinematicMediaAssetKind.sound,
-      CinematicTimelineStepKind.music => CinematicMediaAssetKind.music,
-      CinematicTimelineStepKind.fx => CinematicMediaAssetKind.cinematicFx,
-      _ => null,
-    };
+    final mediaKind = cinematicCommandMediaKind(step.kind);
     return [
       CinematicCommitField(
         inputs: controller.inputsFor(asset.id),
@@ -58,9 +53,11 @@ extension CinematicInspectorCommands on CinematicInspector {
           label: 'Média du projet',
           value: step.assetRef,
           options: {
-            for (final media in controller.project.cinematicMediaAssets)
-              if (media.kind == mediaKind)
-                media.id: '${media.label} · ${media.id}',
+            for (final media in cinematicCommandMediaChoices(
+              controller.project,
+              step,
+            ))
+              media.id: '${media.label} · ${media.id}',
           },
           onChanged: (id) => _edit(
             asset,

@@ -27,20 +27,19 @@ extension _PresentationPageCommands on _PresentationWorkspacePageState {
   }
 
   void deleteSelection() {
-    if (!flush() || view == null || view!.editing.selectedClipIds.isEmpty) {
-      return;
-    }
-    controller.apply('presentationClip.deleteBatch', {
-      'clipIds': view!.editing.selectedClipIds.toList(),
-    });
+    if (!flush() || view == null) return;
+    controller.deleteClips(view!.editing.selectedClipIds);
     refresh();
   }
 
   void selectAddedClip(String? id) {
-    if (id != null) {
-      sync();
-      view!.editing.selectClip(id);
-      transport.seek(view!.selected!.startUs);
+    if (id != null && controller.active != null) {
+      widget.views.editingSessions.revealAddedClip(
+        _previewLease,
+        controller.active!.asset,
+        id,
+        portrait: view!.portrait,
+      );
     }
     refresh();
   }

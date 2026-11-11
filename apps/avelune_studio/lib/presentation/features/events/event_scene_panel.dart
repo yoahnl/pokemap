@@ -53,7 +53,6 @@ class _EventScenePanelState extends State<EventScenePanel> {
     final linked = choices.linked;
     final contexts = choices.contexts;
     final visible = choices.visible;
-    final needle = _query.trim().toLowerCase();
     final total = widget.scenes.length;
     final textTheme = Theme.of(context).textTheme;
     return StudioPanel(
@@ -75,19 +74,17 @@ class _EventScenePanelState extends State<EventScenePanel> {
         ),
         const SizedBox(height: 6),
         Text(
-          needle.isEmpty
-              ? '$total ${total > 1 ? 'scènes' : 'scène'}'
-              : '${visible.length} ${visible.length > 1 ? 'scènes' : 'scène'} sur $total',
+          eventSceneCountLabel(
+            visible: visible.length,
+            total: total,
+            query: _query,
+          ),
           style: textTheme.bodySmall,
         ),
         const SizedBox(height: 6),
         Expanded(
           child: visible.isEmpty
-              ? Text(
-                  needle.isEmpty
-                      ? 'Aucune scène dans ce projet.'
-                      : 'Aucune scène ne correspond à « ${_query.trim()} ».',
-                )
+              ? Text(eventSceneEmptyLabel(_query))
               : ListView.builder(
                   itemCount: visible.length,
                   itemBuilder: (_, i) {
@@ -97,7 +94,11 @@ class _EventScenePanelState extends State<EventScenePanel> {
                       key: ValueKey('event-scene:${scene.id}'),
                       label: scene.name,
                       subtitle: [
-                        '${scene.graph.nodes.length} blocs · ${widget.dirtyIds.contains(scene.id) ? 'Modifiée localement' : 'Enregistrée'}${scene.id == selectedId ? ' · Scène liée' : ''}',
+                        eventSceneRowStatus(
+                          scene,
+                          dirty: widget.dirtyIds.contains(scene.id),
+                          linked: scene.id == selectedId,
+                        ),
                         if (sceneContext != null && sceneContext.isNotEmpty)
                           sceneContext,
                       ].join('\n'),

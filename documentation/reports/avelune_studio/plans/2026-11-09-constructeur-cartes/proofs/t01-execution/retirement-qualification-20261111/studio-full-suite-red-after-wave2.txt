@@ -1,0 +1,33 @@
+test/architecture/architecture_boundaries_test.dart: application et domaine restent purs dans leur graphe transitif
+test/architecture/architecture_boundaries_test.dart: fichiers Dart manuels limites a 300 lignes
+test/architecture/architecture_boundaries_test.dart: presentation sans acces aux adaptateurs ou au filesystem
+test/architecture/architecture_boundaries_test.dart: theme et widgets partages independants des features et de la DI
+test/events/event_catalog_ui08_test.dart: library performs no map scan, explicit preparation caches unchanged catalogue
+test/events/standard_event_template_publication_test.dart: working guided publication saves and edits without unrelated map files
+test/game_export/studio_project_item_icons_export_test.dart: Studio provisions saved item icons before building the game package
+test/infrastructure/studio_border_preview_lifecycle_test.dart: invalidation releases an image that finishes decoding later
+test/infrastructure/studio_playtest_new_game_test.dart: normal playtest asks for a starter and resets through the same flow
+test/infrastructure/studio_playtest_project_item_icons_test.dart: prepares project item icons before loading the playtest bundle
+test/infrastructure/studio_playtest_test.dart: saved example mounts real runtime, walks, and returns
+test/infrastructure/studio_resource_catalog_update_test.dart: 4096 by 5280 atlas uses existing chunks with bounded whole-decode reservation
+test/infrastructure/studio_resource_lifecycle_test.dart: small budget evicts unused A and reloads A after B without destroying leases
+test/infrastructure/workshop_entry_reads_test.dart: workshop entry reads no map files with 900 unrelated definitions
+test/m3_story_runtime_test.dart: published story plays choices, conditions, one-shot and isolated save/load
+test/platform/mcp/studio_mcp_project_coordination_test.dart: manifest advances only targeted baselines with 0 foreign maps
+test/pokemon/pokemon_combat_host_test.dart: Studio creates a wild table and trainer with independent reopen
+test/presentation/character_studio_portrait_workspace_test.dart: portrait import binds a real image and survives independent reopen
+test/presentation/ui05_narrative_artwork_test.dart: a project without storylines features its real scenes
+test/presentation/ui05_narrative_artwork_test.dart: overview uses project artwork for hero, story, and scene
+test/presentation/workspace_text_editing_shortcuts_test.dart: real map sidebar and Elements search accept hardware editing (variant: TargetPlatform.macOS)
+test/resource_io/border_management_guards_host_test.dart: border usage inspection targets the actual blueprint and does not write
+test/resource_io/border_management_guards_host_test.dart: dirty border editor blocks withdrawal without losing focused input
+test/resource_io/border_management_guards_host_test.dart: stale border confirmation refuses and preserves publication
+test/resource_io/border_management_host_test.dart: deprecation and reactivation preserve immutable publication
+test/resource_io/border_management_host_test.dart: unpublished border withdrawal preserves publication and pixels
+test/resource_io/border_management_layout_host_test.dart: border management stays usable at 1024.0
+test/resource_io/border_management_layout_host_test.dart: border management stays usable at 1280.0
+test/resource_io/border_management_layout_host_test.dart: border management stays usable at 1536.0
+test/std08_visual_catalog_propagation_test.dart: Studio local Event publication accepts a picture Scene outcome source
+test/terrain_runtime_test.dart: new imported and published terrain renders its pixels in real runtime and walks
+test/ui06_scene_runtime_owner_test.dart: real runtime plays Yarn and refusal
+test/ui06_scene_runtime_test.dart: real runtime plays Yarn and refusal

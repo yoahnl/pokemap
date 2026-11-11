@@ -638,6 +638,7 @@ class _SpatialMapEditingViewportState extends State<SpatialMapEditingViewport> {
     if (environmentGesture != null && !environmentGestureValid) {
       discardGesture();
     }
+    widget.view.focusBorderDraftOn(editingDocument.current.id);
     if (widget.view.borderDraft != null && !borderContextValid) {
       discardBorder();
     }
