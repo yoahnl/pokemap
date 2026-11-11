@@ -458,8 +458,8 @@ final class SpatialExplorationSession {
   String? get companionCharacterId => _companionCharacter?.id;
 
   PlayerPokemon? get _companionLead {
-    final first = presentationStateProvider?.call().party.members.firstOrNull;
-    return first != null && !first.isFainted && !first.isEgg ? first : null;
+    final members = presentationStateProvider?.call().party.members;
+    return members?.where((member) => !member.isFainted && !member.isEgg).firstOrNull;
   }
 
   PartyCompanionTrail captureCompanionTrail() => _companionTrail.capture();

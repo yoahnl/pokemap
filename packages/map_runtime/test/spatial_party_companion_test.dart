@@ -167,6 +167,7 @@ void main() {
       String speciesId,
       String formId, {
       int hp = 10,
+      bool isEgg = false,
     }) => PlayerPokemon(
       individualId: individualId,
       speciesId: speciesId,
@@ -174,6 +175,7 @@ void main() {
       natureId: 'hardy',
       abilityId: 'natural',
       currentHp: hp,
+      isEgg: isEgg,
     );
     var state = GameState(
       saveId: 'save',
@@ -317,25 +319,44 @@ void main() {
     session.heroStoryPose = null;
     session.onPresentationFrame = null;
     for (final next in [
-      ('two', 'flower', 'night', 'flower'),
-      ('three', 'moth', 'snow', 'moth'),
+      ('two', 'flower', 'night', 'flower', false),
+      ('three', 'moth', 'snow', 'moth', true),
     ]) {
       state = state.copyWith(
         party: PlayerParty(
           members: [
             member('fainted', 'clockbird', 'bronze', hp: 0),
+            if (next.$5) member('egg', 'flower', 'night', isEgg: true),
             member(next.$1, next.$2, next.$3),
           ],
         ),
       );
       session.frames(0);
-      expect(session.companionCharacterId, isNull);
-      expect(session.frames(0), isNot(contains('party-companion')));
+      expect(session.companionCharacterId, next.$4);
+      expect(session.companionPosition, isNull);
+      session.movement.setInput(x: next.$5 ? 1 : -1, z: 0);
+      for (var i = 0; i < 15; i++) {
+        session.frames(.05);
+      }
+      session.movement.releaseInput();
+      expect(session.frames(0), contains('party-companion'));
+      final companionPosition = session.companionPosition!;
       state = state.copyWith(party: PlayerParty(members: state.party.members.reversed.toList()));
       session.frames(0);
       expect(session.companionCharacterId, next.$4);
-      expect(session.companionPosition, isNull);
+      expect(session.companionPosition!.x, companionPosition.x);
+      expect(session.companionPosition!.z, companionPosition.z);
     }
+    final activeState = state;
+    state = state.copyWith(
+      party: PlayerParty(members: [
+        member('fainted', 'clockbird', 'bronze', hp: 0),
+        member('egg', 'flower', 'night', isEgg: true),
+      ]),
+    );
+    expect(session.frames(0), isNot(contains('party-companion')));
+    expect(session.companionCharacterId, isNull);
+    state = activeState;
     state = GameState.fromJson(state.toJson()).copyWith(
       currentMapId: 'second',
       playerSpatialPosition: PlayerSpatialPosition(x: 4, z: 4),
