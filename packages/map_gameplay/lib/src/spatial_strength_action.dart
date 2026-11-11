@@ -698,22 +698,7 @@ List<_Point> _clip(List<_Point> subject, List<_Point> boundary) {
       break;
     }
     final a = boundary[i], b = boundary[(i + 1) % boundary.length];
-    final output = <_Point>[];
-    var previous = result.last, previousD = _cross(a, b, result.last) * sign;
-    for (final point in result) {
-      final distance = _cross(a, b, point) * sign;
-      if ((distance >= 0) != (previousD >= 0)) {
-        final t = previousD / (previousD - distance);
-        output.add((
-          x: previous.x + (point.x - previous.x) * t,
-          z: previous.z + (point.z - previous.z) * t
-        ));
-      }
-      if (distance >= 0) output.add(point);
-      previous = point;
-      previousD = distance;
-    }
-    result = output;
+    result = _clipHalfPlane(result, (point) => _cross(a, b, point) * sign);
   }
   return result;
 }

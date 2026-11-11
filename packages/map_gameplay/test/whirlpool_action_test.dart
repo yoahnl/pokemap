@@ -136,8 +136,12 @@ void main() {
       'Whirlpool traverses the finite canonical water route while retaining Surf and PP',
       () {
     final state = whirlpoolReady(), map = whirlpoolMap();
-    final result = evaluateWhirlpoolAttempt(
-        map: map, gameState: state, zoneId: 'whirlpool') as CanUseWhirlpool;
+    final result = evaluateFieldTraversalAttempt(
+        ability: FieldAbility.whirlpool,
+        kind: FieldActionZoneKind.whirlpool,
+        map: map, gameState: state, zoneId: 'whirlpool');
+    expect(result.reason, isNull);
+    expect(result.partyIndex, 0);
     expect(result.cells,
         const [GridPos(x: 2, y: 3), GridPos(x: 2, y: 2), GridPos(x: 2, y: 1)]);
     var world = whirlpoolWorld(map, state);
@@ -172,28 +176,28 @@ void main() {
         () {
       var state = whirlpoolReady();
       var map = whirlpoolMap(water: failure != 'land');
-      var expected = WhirlpoolBlockReason.obstructed;
+      var expected = FieldTraversalBlockReason.obstructed;
       switch (failure) {
         case 'land':
-          expected = WhirlpoolBlockReason.requiresWater;
+          expected = FieldTraversalBlockReason.requiresWater;
         case 'walk':
           state = state.copyWith(playerMovementMode: MovementMode.walk);
-          expected = WhirlpoolBlockReason.requiresSurf;
+          expected = FieldTraversalBlockReason.requiresSurf;
         case 'move':
           state = state.copyWith(party: const PlayerParty());
-          expected = WhirlpoolBlockReason.missingMove;
+          expected = FieldTraversalBlockReason.missingMove;
         case 'fainted':
           state = state.copyWith(
               party: PlayerParty(members: [
             state.party.members.single.copyWith(currentHp: 0)
           ]));
-          expected = WhirlpoolBlockReason.missingMove;
+          expected = FieldTraversalBlockReason.missingMove;
         case 'unlock':
           state = state.copyWith(progression: const PlayerProgression());
-          expected = WhirlpoolBlockReason.locked;
+          expected = FieldTraversalBlockReason.locked;
         case 'direction':
           state = state.copyWith(playerFacing: EntityFacing.south);
-          expected = WhirlpoolBlockReason.wrongDirection;
+          expected = FieldTraversalBlockReason.wrongDirection;
         case 'wall':
           map = map.copyWith(layers: [
             MapLayer.collision(
@@ -211,7 +215,9 @@ void main() {
           ]);
       }
       final before = state.toJson();
-      final result = evaluateWhirlpoolAttempt(
+      final result = evaluateFieldTraversalAttempt(
+        ability: FieldAbility.whirlpool,
+        kind: FieldActionZoneKind.whirlpool,
           map: map,
           gameState: state,
           zoneId: 'whirlpool',
@@ -222,7 +228,7 @@ void main() {
                   PixelRect(leftPx: 40, topPx: 30, widthPx: 1, heightPx: 1)
                 ]
               : const []);
-      expect((result as WhirlpoolUnavailable).reason, expected);
+      expect(result.reason, expected);
       expect(state.toJson(), before);
     });
   }
@@ -246,16 +252,19 @@ void main() {
     final restored =
         gameStateFromStrictSaveJson(strictGameStateSaveJson(state));
     expect(
-        evaluateWhirlpoolAttempt(
+        evaluateFieldTraversalAttempt(
+        ability: FieldAbility.whirlpool,
+        kind: FieldActionZoneKind.whirlpool,
             map: whirlpoolMap(), gameState: restored, zoneId: 'whirlpool'),
-        isA<CanUseWhirlpool>());
+        isA<FieldTraversalEvaluation>()
+            .having((e) => e.reason, 'reason', isNull));
   });
 
   test(
       'Whirlpool tickets refuse stale state, replaced instances, moved players and changed routes',
       () {
     final state = whirlpoolReady(), map = whirlpoolMap();
-    final ticket = WhirlpoolActionTicket(
+    final ticket = FieldTraversalActionTicket(
         fieldAction: FieldActionTicket(
             ability: FieldAbility.whirlpool,
             targetCell: state.playerPosition,
@@ -264,23 +273,26 @@ void main() {
         entryState: state,
         instance: null);
     expect(
-        validateWhirlpoolTicket(
+        validateFieldTraversalTicket(
             ticket: ticket,
+            ability: FieldAbility.whirlpool,
             map: map,
             gameState: state,
             currentStateRevision: 4),
         FieldActionRefusal.staleStateRevision);
     expect(
-        validateWhirlpoolTicket(
+        validateFieldTraversalTicket(
             ticket: ticket,
+            ability: FieldAbility.whirlpool,
             map: map,
             gameState:
                 state.copyWith(playerPosition: const GridPos(x: 2, y: 3)),
             currentStateRevision: 3),
         FieldActionRefusal.targetChanged);
     expect(
-        validateWhirlpoolTicket(
+        validateFieldTraversalTicket(
             ticket: ticket,
+            ability: FieldAbility.whirlpool,
             map: map.copyWith(gameplayZones: []),
             gameState: state,
             currentStateRevision: 3),
@@ -290,8 +302,9 @@ void main() {
       'whirls': MapInstanceRuntimeState(instanceId: 'new')
     }));
     expect(
-        validateWhirlpoolTicket(
+        validateFieldTraversalTicket(
             ticket: ticket,
+            ability: FieldAbility.whirlpool,
             map: map,
             gameState: replaced,
             currentStateRevision: 3),

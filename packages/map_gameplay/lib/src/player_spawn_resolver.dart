@@ -101,40 +101,13 @@ GameplayPlayerState _stateFromSpawnEntity(
   required int tileWidthPx,
   required int tileHeightPx,
 }) {
-  final facing = _directionFromEntityFacing(entity.spawn?.facing);
-  final tw = tileWidthPx <= 0 ? 16 : tileWidthPx;
-  final th = tileHeightPx <= 0 ? 16 : tileHeightPx;
-  final spriteW = PlayerCollisionConventionsV1.defaultSpriteWidthPx;
-  final spriteH = PlayerCollisionConventionsV1.defaultSpriteHeightPx;
-
-  final topLeft = PlayerCollisionConventionsV1.playerSpriteTopLeftFromSpawnCell(
-    cellX: entity.pos.x,
-    cellY: entity.pos.y,
-    tileWidthPx: tw,
-    tileHeightPx: th,
-    spriteWidthPx: spriteW,
-    spriteHeightPx: spriteH,
-  );
-  final hitbox =
-      PlayerCollisionConventionsV1.playerCollisionRectFromSpriteTopLeft(
-    spriteTopLeftPx: topLeft,
-    spriteWidthPx: spriteW,
-    spriteHeightPx: spriteH,
-  );
-  final gridPos = PlayerCollisionConventionsV1.projectFeetAnchorToCell(
-    playerCollisionRectPx: hitbox,
-    tileWidthPx: tw,
-    tileHeightPx: th,
+  return GameplayPlayerState.fromGridSpawn(
+    cell: entity.pos,
+    facing: _directionFromEntityFacing(entity.spawn?.facing),
+    tileWidthPx: tileWidthPx,
+    tileHeightPx: tileHeightPx,
     mapWidthCells: map.size.width,
     mapHeightCells: map.size.height,
-  );
-
-  return GameplayPlayerState(
-    pos: gridPos,
-    playerPositionPx: topLeft,
-    facing: facing,
-    playerSpriteWidthPx: spriteW,
-    playerSpriteHeightPx: spriteH,
   );
 }
 

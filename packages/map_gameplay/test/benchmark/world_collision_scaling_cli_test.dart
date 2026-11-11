@@ -22,7 +22,7 @@ void main() {
     final measured =
         (payload['results']! as List<Object?>).single as Map<String, Object?>;
     expect(payload['schemaVersion'], 2);
-    expect(measured['generatorVersion'], 1);
+    expect(measured['generatorVersion'], 2);
     expect(measured['datasetFingerprint'], isNotEmpty);
     expect(measured['allocatedPixelMaskChunks'], 0);
     expect(

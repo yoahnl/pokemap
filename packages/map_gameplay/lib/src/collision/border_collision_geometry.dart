@@ -47,15 +47,6 @@ final class MaterializedBorderCollisionRect {
   final PixelRect rect;
 }
 
-Iterable<PixelRect> resolveMaterializedBorderCollisionRects({
-  required MapData map,
-  required ProjectManifest project,
-  required PixelSize tileSize,
-}) =>
-    resolveMaterializedBorderCollisions(
-            map: map, project: project, tileSize: tileSize)
-        .map((contact) => contact.rect);
-
 Iterable<MaterializedBorderCollisionRect> resolveMaterializedBorderCollisions({
   required MapData map,
   required ProjectManifest project,

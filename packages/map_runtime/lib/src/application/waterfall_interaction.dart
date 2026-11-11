@@ -54,21 +54,12 @@ RuntimeFieldTraversalInteraction? prepareFieldTraversalInteraction({
     );
     final zone = findGameplayZoneById(map, zoneId)!;
     final instance = gameState.mapInstanceWorldState.instanceRef(map.id);
-    ticket = switch (kind) {
-      FieldActionZoneKind.waterfall => WaterfallActionTicket(
-        fieldAction: fieldAction,
-        zone: zone,
-        entryState: gameState,
-        instance: instance,
-      ),
-      FieldActionZoneKind.whirlpool => WhirlpoolActionTicket(
-        fieldAction: fieldAction,
-        zone: zone,
-        entryState: gameState,
-        instance: instance,
-      ),
-      _ => throw StateError('Unsupported field traversal.'),
-    };
+    ticket = FieldTraversalActionTicket(
+      fieldAction: fieldAction,
+      zone: zone,
+      entryState: gameState,
+      instance: instance,
+    );
   } else {
     text = switch (reason) {
       FieldTraversalBlockReason.missingMove =>

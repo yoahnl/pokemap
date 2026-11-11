@@ -164,14 +164,16 @@ void main() {
       () {
     final map = waterfall.waterfallMap(), state = waterfall.waterfallReady();
     expect(
-        evaluateWaterfallAttempt(
+        evaluateFieldTraversalAttempt(
+        ability: FieldAbility.waterfall,
+        kind: FieldActionZoneKind.waterfall,
             map: map,
             gameState: state,
             zoneId: 'fall',
             project: project(FieldAbility.waterfall)),
-        isA<WaterfallUnavailable>()
-            .having((e) => e.reason, 'reason', WaterfallBlockReason.disabled));
-    final ticket = WaterfallActionTicket(
+        isA<FieldTraversalEvaluation>()
+            .having((e) => e.reason, 'reason', FieldTraversalBlockReason.disabled));
+    final ticket = FieldTraversalActionTicket(
         fieldAction: FieldActionTicket(
             ability: FieldAbility.waterfall,
             targetCell: state.playerPosition,
@@ -180,8 +182,9 @@ void main() {
         entryState: state,
         instance: null);
     expect(
-        validateWaterfallTicket(
+        validateFieldTraversalTicket(
             ticket: ticket,
+            ability: FieldAbility.waterfall,
             map: map,
             gameState: state,
             currentStateRevision: 4,
@@ -193,14 +196,16 @@ void main() {
       () {
     final map = whirlpool.whirlpoolMap(), state = whirlpool.whirlpoolReady();
     expect(
-        evaluateWhirlpoolAttempt(
+        evaluateFieldTraversalAttempt(
+        ability: FieldAbility.whirlpool,
+        kind: FieldActionZoneKind.whirlpool,
             map: map,
             gameState: state,
             zoneId: map.gameplayZones.first.id,
             project: project(FieldAbility.whirlpool)),
-        isA<WhirlpoolUnavailable>()
-            .having((e) => e.reason, 'reason', WhirlpoolBlockReason.disabled));
-    final ticket = WhirlpoolActionTicket(
+        isA<FieldTraversalEvaluation>()
+            .having((e) => e.reason, 'reason', FieldTraversalBlockReason.disabled));
+    final ticket = FieldTraversalActionTicket(
         fieldAction: FieldActionTicket(
             ability: FieldAbility.whirlpool,
             targetCell: state.playerPosition,
@@ -209,8 +214,9 @@ void main() {
         entryState: state,
         instance: null);
     expect(
-        validateWhirlpoolTicket(
+        validateFieldTraversalTicket(
             ticket: ticket,
+            ability: FieldAbility.whirlpool,
             map: map,
             gameState: state,
             currentStateRevision: 4,

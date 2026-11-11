@@ -207,9 +207,6 @@ final class BattleProgressionService {
     final effectiveGrants = <BattleExperienceGrant>[];
     for (final grant in plannedGrants) {
       final slot = grant.partySlot;
-      if (slot >= nextMembers.length) {
-        throw RangeError.index(slot, nextMembers, 'participantPartySlot');
-      }
       final metadata = context.partySlotMetadata[slot];
       if (metadata == null) {
         throw StateError('Missing progression metadata for party slot $slot.');

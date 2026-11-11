@@ -11,7 +11,7 @@ import '../../../tools/performance/benchmark_support.dart'
     show sourceTreeFingerprint;
 
 const _schemaVersion = 2;
-const _generatorVersion = 1;
+const _generatorVersion = 2;
 
 Future<void> main(List<String> arguments) async {
   try {
@@ -148,16 +148,30 @@ Map<String, Object?> _measureSparseMaskSize(
     tileCollisionCells: List<bool>.filled(size * size, false),
     placedElementCollisionCells: List<bool>.filled(size * size, false),
   );
-  builder.stampPackedMask(
-    leftPx: 0,
-    topPx: 0,
-    mask: mask,
-    transform: QuarterTurnPixelTransform(
-      sourcePixelSize: const GridSize(width: 64, height: 64),
-      destinationPixelSize: const GridSize(width: 64, height: 64),
-      quarterTurns: 0,
-    ),
+  final element = ProjectElementEntry(
+    id: 'sparse-mask',
+    name: 'Sparse mask',
+    tilesetId: 'ts',
+    categoryId: 'cat',
+    frames: const [
+      TilesetVisualFrame(
+        source: TilesetSourceRect(x: 0, y: 0, width: 4, height: 4),
+      ),
+    ],
+    collisionProfile: ElementCollisionProfile(collisionMask: mask),
   );
+  for (final rect in resolveMapPlacedElementCollisionRects(
+    instance: const MapPlacedElement(
+      id: 'sparse-mask',
+      elementId: 'sparse-mask',
+      layerId: 'ground',
+      pos: GridPos(x: 0, y: 0),
+    ),
+    element: element,
+    tileSize: const PixelSize(width: 16, height: 16),
+  )) {
+    builder.stampRect(rect);
+  }
   final storage = builder.build();
   stopwatch.stop();
   return (elapsedUs: stopwatch.elapsedMicroseconds, storage: storage);

@@ -272,71 +272,6 @@ final class WorldCollisionStorageBuilder {
     }
   }
 
-  /// Stamps one transformed packed mask. Invalid masks remain a no-op, matching
-  /// the historical runtime's fail-open behavior for malformed project data.
-  bool stampPackedMask({
-    required int leftPx,
-    required int topPx,
-    required ElementCollisionPixelMask mask,
-    required QuarterTurnPixelTransform transform,
-  }) {
-    List<bool> decoded;
-    try {
-      decoded = ElementCollisionMaskCodec.decodePackedBits(
-        widthPx: mask.widthPx,
-        heightPx: mask.heightPx,
-        dataBase64: mask.dataBase64,
-      );
-    } catch (_) {
-      return false;
-    }
-
-    final destinationSize = transform.destinationPixelSize;
-    final destinationLeft = BigInt.from(leftPx);
-    final destinationTop = BigInt.from(topPx);
-    final destinationRight =
-        destinationLeft + BigInt.from(destinationSize.width);
-    final destinationBottom =
-        destinationTop + BigInt.from(destinationSize.height);
-    final worldWidth = BigInt.from(widthPx);
-    final worldHeight = BigInt.from(heightPx);
-    if (destinationRight <= BigInt.zero ||
-        destinationBottom <= BigInt.zero ||
-        destinationLeft >= worldWidth ||
-        destinationTop >= worldHeight) {
-      return true;
-    }
-
-    final startX =
-        (destinationLeft.isNegative ? -destinationLeft : BigInt.zero).toInt();
-    final startY =
-        (destinationTop.isNegative ? -destinationTop : BigInt.zero).toInt();
-    final endX = (destinationRight > worldWidth
-            ? worldWidth - destinationLeft
-            : BigInt.from(destinationSize.width))
-        .toInt();
-    final endY = (destinationBottom > worldHeight
-            ? worldHeight - destinationTop
-            : BigInt.from(destinationSize.height))
-        .toInt();
-
-    for (var destinationY = startY; destinationY < endY; destinationY += 1) {
-      for (var destinationX = startX; destinationX < endX; destinationX += 1) {
-        final source = transform.destinationPixelToSourcePixel(
-          GridPos(x: destinationX, y: destinationY),
-        );
-        final sourceIndex = source.y * mask.widthPx + source.x;
-        if (sourceIndex < 0 ||
-            sourceIndex >= decoded.length ||
-            !decoded[sourceIndex]) {
-          continue;
-        }
-        _setPixel(leftPx + destinationX, topPx + destinationY);
-      }
-    }
-    return true;
-  }
-
   WorldCollisionStorage build() {
     final terrainRectCells = <String, Map<int, List<PixelRect>>>{};
     for (final entry in supportableTerrainRectsByLayer.entries) {
@@ -404,18 +339,6 @@ final class WorldCollisionStorageBuilder {
         },
       ),
     );
-  }
-
-  void _setPixel(int x, int y) {
-    if (x < 0 || y < 0 || x >= widthPx || y >= heightPx) {
-      return;
-    }
-    final key = (x ~/ chunkSize, y ~/ chunkSize);
-    final words = _pixelMaskWordsByChunk.putIfAbsent(
-      key,
-      () => Uint32List(chunkSize),
-    );
-    words[y % chunkSize] |= 1 << (x % chunkSize);
   }
 }
 

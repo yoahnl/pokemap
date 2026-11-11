@@ -41,10 +41,13 @@ GameState waterfallReady() => const GameState(
 void main() {
   test('waterfall is a finite validated route without PP consumption', () {
     final state = waterfallReady();
-    final result = evaluateWaterfallAttempt(
+    final result = evaluateFieldTraversalAttempt(
+        ability: FieldAbility.waterfall,
+        kind: FieldActionZoneKind.waterfall,
         map: waterfallMap(), gameState: state, zoneId: 'fall');
-    expect(result, isA<CanUseWaterfall>());
-    expect((result as CanUseWaterfall).cells,
+    expect(result.reason, isNull);
+    expect(result.partyIndex, 0);
+    expect(result.cells,
         const [GridPos(x: 2, y: 3), GridPos(x: 2, y: 2), GridPos(x: 2, y: 1)]);
     expect(state.party.members.single.currentPpByMoveId!['waterfall'], 0);
   });
@@ -55,26 +58,28 @@ void main() {
     for (final pair in [
       (
         state.copyWith(playerFacing: EntityFacing.south),
-        WaterfallBlockReason.wrongDirection
+        FieldTraversalBlockReason.wrongDirection
       ),
       (
         state.copyWith(party: const PlayerParty()),
-        WaterfallBlockReason.missingMove
+        FieldTraversalBlockReason.missingMove
       ),
       (
         state.copyWith(progression: const PlayerProgression()),
-        WaterfallBlockReason.locked
+        FieldTraversalBlockReason.locked
       ),
       (
         state.copyWith(playerMovementMode: MovementMode.walk),
-        WaterfallBlockReason.requiresSurf
+        FieldTraversalBlockReason.requiresSurf
       ),
     ]) {
       expect(
-          (evaluateWaterfallAttempt(
+          (evaluateFieldTraversalAttempt(
+        ability: FieldAbility.waterfall,
+        kind: FieldActionZoneKind.waterfall,
                   map: waterfallMap(),
                   gameState: pair.$1,
-                  zoneId: 'fall') as WaterfallUnavailable)
+                  zoneId: 'fall'))
               .reason,
           pair.$2);
     }
@@ -105,12 +110,14 @@ void main() {
           npc: MapEntityNpcData())
     ]);
     expect(
-        (evaluateWaterfallAttempt(
+        (evaluateFieldTraversalAttempt(
+        ability: FieldAbility.waterfall,
+        kind: FieldActionZoneKind.waterfall,
                 map: map,
                 gameState: waterfallReady(),
-                zoneId: 'fall') as WaterfallUnavailable)
+                zoneId: 'fall'))
             .reason,
-        WaterfallBlockReason.obstructed);
+        FieldTraversalBlockReason.obstructed);
   });
   test(
       'optional Surf, fainted users, dynamic occupancy and stale confirmation use the same pure gate',
@@ -125,29 +132,35 @@ void main() {
                   zone.fieldAction!.waterfall!.copyWith(requiresSurf: false)))
     ]);
     expect(
-        evaluateWaterfallAttempt(
+        evaluateFieldTraversalAttempt(
+        ability: FieldAbility.waterfall,
+        kind: FieldActionZoneKind.waterfall,
             map: dry,
             gameState: ready.copyWith(playerMovementMode: MovementMode.walk),
             zoneId: 'fall'),
-        isA<CanUseWaterfall>());
+        isA<FieldTraversalEvaluation>()
+            .having((e) => e.reason, 'reason', isNull));
     final fainted = ready.copyWith(
         party: PlayerParty(
             members: [ready.party.members.single.copyWith(currentHp: 0)]));
     expect(
-        (evaluateWaterfallAttempt(map: base, gameState: fainted, zoneId: 'fall')
-                as WaterfallUnavailable)
+        (evaluateFieldTraversalAttempt(
+        ability: FieldAbility.waterfall,
+        kind: FieldActionZoneKind.waterfall,
+        map: base, gameState: fainted, zoneId: 'fall'))
             .reason,
-        WaterfallBlockReason.missingMove);
+        FieldTraversalBlockReason.missingMove);
     expect(
-        (evaluateWaterfallAttempt(
+        (evaluateFieldTraversalAttempt(
+        ability: FieldAbility.waterfall,
+        kind: FieldActionZoneKind.waterfall,
                     map: base,
                     gameState: ready,
                     zoneId: 'fall',
-                    dynamicBlockedCells: const [GridPos(x: 2, y: 1)])
-                as WaterfallUnavailable)
+                    dynamicBlockedCells: const [GridPos(x: 2, y: 1)]))
             .reason,
-        WaterfallBlockReason.obstructed);
-    final ticket = WaterfallActionTicket(
+        FieldTraversalBlockReason.obstructed);
+    final ticket = FieldTraversalActionTicket(
         fieldAction: FieldActionTicket(
             ability: FieldAbility.waterfall,
             targetCell: ready.playerPosition,
@@ -156,22 +169,25 @@ void main() {
         entryState: ready,
         instance: null);
     expect(
-        validateWaterfallTicket(
+        validateFieldTraversalTicket(
             ticket: ticket,
+            ability: FieldAbility.waterfall,
             map: base,
             gameState: ready,
             currentStateRevision: 4),
         FieldActionRefusal.staleStateRevision);
     expect(
-        validateWaterfallTicket(
+        validateFieldTraversalTicket(
             ticket: ticket,
+            ability: FieldAbility.waterfall,
             map: base,
             gameState: ready.copyWith(playerFacing: EntityFacing.south),
             currentStateRevision: 3),
         FieldActionRefusal.targetChanged);
     expect(
-        validateWaterfallTicket(
+        validateFieldTraversalTicket(
             ticket: ticket,
+            ability: FieldAbility.waterfall,
             map: dry,
             gameState: ready,
             currentStateRevision: 3),

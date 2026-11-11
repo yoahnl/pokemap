@@ -589,13 +589,6 @@ final class BattleProgressionResult {
       );
     }
 
-    final opportunity = BattleEvolutionOpportunity(
-      occurrenceId: pending.occurrenceId,
-      partySlot: pending.partySlot,
-      candidate: pending.candidate,
-      sourceMaxHp: pending.sourceMaxHp,
-      trigger: pending.trigger,
-    );
     late final GameState decisionState;
     late final BattleEvolutionChange decisionChange;
     late final List<BattleEvolutionOpportunity> remaining;
@@ -605,8 +598,8 @@ final class BattleProgressionResult {
           ruleset: ruleset,
           pokemon: _partyMemberAt(state, pending.partySlot),
           candidate: pending.candidate,
-          sourceMaxHp: opportunity.sourceMaxHp,
-          trigger: opportunity.trigger,
+          sourceMaxHp: pending.sourceMaxHp,
+          trigger: pending.trigger,
         );
         decisionState = _replacePartyMember(
           state,

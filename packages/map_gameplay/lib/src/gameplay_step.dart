@@ -534,13 +534,8 @@ GameplayStepResult resolveGameplayArrival(GameplayWorldState world,
     targetY: movedWorld.player.pos.y,
     previousPos: previousPos,
   );
-  if (movementBehavior != null && movementBehavior is PlacedElementInteracted) {
-    return PlacedElementInteracted(
-      movementBehavior.world,
-      movementBehavior.element,
-      movementBehavior.behavior,
-      movementBehavior.trigger,
-    );
+  if (movementBehavior != null) {
+    return movementBehavior;
   }
 
   return Moved(
@@ -692,7 +687,7 @@ bool _containsPos(MapRect rect, GridPos pos) {
       pos.y < rect.pos.y + rect.size.height;
 }
 
-GameplayStepResult? _resolveMovementTriggeredBehavior({
+PlacedElementInteracted? _resolveMovementTriggeredBehavior({
   required GameplayWorldState world,
   required int targetX,
   required int targetY,

@@ -359,8 +359,7 @@ void main() {
         worldSize: const GridSize(width: 4, height: 4),
         maskSize: const GridSize(width: 1, height: 1),
         pixels: const <bool>[true],
-        leftPx: 80,
-        topPx: 80,
+        cell: const GridPos(x: 5, y: 5),
       );
 
       expect(empty.allocatedPixelMaskChunkCount, 0);
@@ -400,8 +399,7 @@ WorldCollisionStorage _buildMaskStorage({
   required GridSize worldSize,
   required GridSize maskSize,
   required List<bool> pixels,
-  int leftPx = 0,
-  int topPx = 0,
+  GridPos cell = const GridPos(x: 0, y: 0),
 }) {
   final builder = WorldCollisionStorageBuilder(
     widthCells: worldSize.width,
@@ -417,25 +415,45 @@ WorldCollisionStorage _buildMaskStorage({
       false,
     ),
   );
-  final mask = ElementCollisionPixelMask(
-    widthPx: maskSize.width,
-    heightPx: maskSize.height,
-    dataBase64: ElementCollisionMaskCodec.encodePackedBits(
-      widthPx: maskSize.width,
-      heightPx: maskSize.height,
-      solidPixels: pixels,
+  final element = ProjectElementEntry(
+    id: 'mask',
+    name: 'Mask',
+    tilesetId: 'ts',
+    categoryId: 'cat',
+    frames: [
+      TilesetVisualFrame(
+        source: TilesetSourceRect(
+          x: 0,
+          y: 0,
+          width: (maskSize.width ~/ 16).clamp(1, maskSize.width),
+          height: (maskSize.height ~/ 16).clamp(1, maskSize.height),
+        ),
+      ),
+    ],
+    collisionProfile: ElementCollisionProfile(
+      collisionMask: ElementCollisionPixelMask(
+        widthPx: maskSize.width,
+        heightPx: maskSize.height,
+        dataBase64: ElementCollisionMaskCodec.encodePackedBits(
+          widthPx: maskSize.width,
+          heightPx: maskSize.height,
+          solidPixels: pixels,
+        ),
+      ),
     ),
   );
-  builder.stampPackedMask(
-    leftPx: leftPx,
-    topPx: topPx,
-    mask: mask,
-    transform: QuarterTurnPixelTransform(
-      sourcePixelSize: maskSize,
-      destinationPixelSize: maskSize,
-      quarterTurns: 0,
+  for (final rect in resolveMapPlacedElementCollisionRects(
+    instance: MapPlacedElement(
+      id: 'mask',
+      elementId: 'mask',
+      layerId: 'ground',
+      pos: cell,
     ),
-  );
+    element: element,
+    tileSize: const PixelSize(width: 16, height: 16),
+  )) {
+    builder.stampRect(rect);
+  }
   return builder.build();
 }
 

@@ -31,7 +31,7 @@ final class FieldTraversalEvaluation {
   final List<GridPos> cells;
 }
 
-abstract class FieldTraversalActionTicket {
+class FieldTraversalActionTicket {
   const FieldTraversalActionTicket(
       {required this.fieldAction,
       required this.zone,

@@ -370,10 +370,16 @@ void _verifyMovement(MapData map, MapGameplayZone zone) {
       playerPos: state.playerPosition,
       playerFacing: Direction.north,
       playerMovementMode: MovementMode.surf);
-  final evaluation = evaluateWhirlpoolAttempt(
-      map: map, gameState: state, zoneId: zone.id, world: world);
-  expect(evaluation, isA<CanUseWhirlpool>());
-  for (final cell in (evaluation as CanUseWhirlpool).cells) {
+  final evaluation = evaluateFieldTraversalAttempt(
+      ability: FieldAbility.whirlpool,
+      kind: FieldActionZoneKind.whirlpool,
+      map: map,
+      gameState: state,
+      zoneId: zone.id,
+      world: world);
+  expect(evaluation.reason, isNull);
+  expect(evaluation.partyIndex, isNotNull);
+  for (final cell in evaluation.cells) {
     final plan = planActorRouteMove(
         world: world,
         target: SceneActorTarget.player(mapId: map.id),

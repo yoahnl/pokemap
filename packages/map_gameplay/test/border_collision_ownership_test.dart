@@ -20,14 +20,12 @@ void main() {
         BorderCollisionOwner(
             layerId: 'borders', featureId: f.feature.id, placementId: p.id)
     });
-    expect(
-        contacts.map((c) => _rectValues(c.rect)).toList(),
-        resolveMaterializedBorderCollisionRects(
-                map: f.map,
-                project: f.project,
-                tileSize: const PixelSize(width: 32, height: 32))
-            .map(_rectValues)
-            .toList());
+    final world = _world(f);
+    expect(contacts, isNotEmpty);
+    for (final contact in contacts) {
+      expect(world.worldStaticObstaclesCollidePixelRect(contact.rect), isTrue,
+          reason: '${_rectValues(contact.rect)}');
+    }
   });
 
   test('selected placement is excluded only inside intermediate cell', () {

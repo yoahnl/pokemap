@@ -365,21 +365,10 @@ NarrativeValue _parseCanonicalNarrativeInteger(String value) {
 }
 
 /// Contexte optionnel pour l'évaluation de conditions.
-///
-/// Peut contenir des données temporaires non persistées dans le GameState.
-/// Exemple : état temporaire d'un dialogue, position immédiate, etc.
 class ScriptEvaluationContext {
   const ScriptEvaluationContext({
-    this.transientFlags = const {},
-    this.transientVariables = const {},
     this.narrativeFactResolver,
   });
-
-  /// Flags temporaires (non persistés).
-  final Set<String> transientFlags;
-
-  /// Variables temporaires (non persistées).
-  final Map<String, ScriptVariableValue> transientVariables;
 
   final NarrativeFactRuntimeResolver? narrativeFactResolver;
 }

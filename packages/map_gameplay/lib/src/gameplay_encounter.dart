@@ -289,7 +289,36 @@ GameplayEncounterCheckResult checkEncounterAtPlayerPosition({
   );
 }
 
+typedef _EncounterSourcePreparation = ({
+  GameplayEncounterCheckResult? refusal,
+  ({
+    ProjectEncounterTable table,
+    String? variantId,
+    List<ProjectEncounterEntry> entries,
+    double chancePerStep,
+  })? ready,
+});
+
 GameplayEncounterCheckResult? validateEncounterSource({
+  required ProjectManifest project,
+  required EncounterSource source,
+  required EncounterKind encounterKind,
+  GameState? gameState,
+  ScriptEvaluationContext? conditionContext,
+  EncounterEvaluationContext? encounterContext,
+  GameplayEncounterPolicy policy = const GameplayEncounterPolicy(),
+}) =>
+    _prepareEncounterSource(
+      project: project,
+      source: source,
+      encounterKind: encounterKind,
+      gameState: gameState,
+      conditionContext: conditionContext,
+      encounterContext: encounterContext,
+      policy: policy,
+    ).refusal;
+
+_EncounterSourcePreparation _prepareEncounterSource({
   required ProjectManifest project,
   required EncounterSource source,
   required EncounterKind encounterKind,
@@ -299,54 +328,54 @@ GameplayEncounterCheckResult? validateEncounterSource({
   GameplayEncounterPolicy policy = const GameplayEncounterPolicy(),
 }) {
   if (source.encounter.encounterKind != encounterKind) {
-    return GameplayEncounterCheckResult(
+    return (refusal: GameplayEncounterCheckResult(
       status: GameplayEncounterCheckStatus.encounterKindMismatch,
       sourceId: source.id,
       sourceKind: source.kind,
       tableId: source.encounter.encounterTableId,
       encounterKind: encounterKind,
-    );
+    ), ready: null);
   }
   final sourceEncounter = source.encounter;
   final tableId = sourceEncounter.encounterTableId?.trim();
   if (tableId == null || tableId.isEmpty) {
-    return GameplayEncounterCheckResult(
+    return (refusal: GameplayEncounterCheckResult(
       status: GameplayEncounterCheckStatus.noEncounterTableId,
       sourceId: source.id,
       sourceKind: source.kind,
       encounterKind: encounterKind,
-    );
+    ), ready: null);
   }
 
   final table = _findEncounterTable(project.encounterTables, tableId);
   if (table == null) {
-    return GameplayEncounterCheckResult(
+    return (refusal: GameplayEncounterCheckResult(
       status: GameplayEncounterCheckStatus.encounterTableNotFound,
       sourceId: source.id,
       sourceKind: source.kind,
       tableId: tableId,
       encounterKind: encounterKind,
-    );
+    ), ready: null);
   }
 
   if (table.encounterKind != encounterKind) {
-    return GameplayEncounterCheckResult(
+    return (refusal: GameplayEncounterCheckResult(
       status: GameplayEncounterCheckStatus.encounterKindMismatch,
       sourceId: source.id,
       sourceKind: source.kind,
       tableId: table.id,
       encounterKind: encounterKind,
-    );
+    ), ready: null);
   }
 
   if (table.conditions.isNotEmpty && gameState == null) {
-    return GameplayEncounterCheckResult(
+    return (refusal: GameplayEncounterCheckResult(
       status: GameplayEncounterCheckStatus.conditionContextUnavailable,
       sourceId: source.id,
       sourceKind: source.kind,
       tableId: table.id,
       encounterKind: encounterKind,
-    );
+    ), ready: null);
   }
   if (gameState != null) {
     const evaluator = ScriptConditionEvaluator();
@@ -356,13 +385,13 @@ GameplayEncounterCheckResult? validateEncounterSource({
         gameState,
         context: conditionContext,
       )) {
-        return GameplayEncounterCheckResult(
+        return (refusal: GameplayEncounterCheckResult(
           status: GameplayEncounterCheckStatus.conditionsNotMet,
           sourceId: source.id,
           sourceKind: source.kind,
           tableId: table.id,
           encounterKind: encounterKind,
-        );
+        ), ready: null);
       }
     }
   }
@@ -374,38 +403,46 @@ GameplayEncounterCheckResult? validateEncounterSource({
     encounterContext: encounterContext,
   );
   if (selection.refusal != null) {
-    return GameplayEncounterCheckResult(
+    return (refusal: GameplayEncounterCheckResult(
       status: selection.refusal!,
       sourceId: source.id,
       sourceKind: source.kind,
       tableId: table.id,
       encounterKind: encounterKind,
-    );
+    ), ready: null);
   }
   final entries = canonicalEncounterEntries(
     _validEncounterEntries(selection.entries),
   );
   if (entries.isEmpty) {
-    return GameplayEncounterCheckResult(
+    return (refusal: GameplayEncounterCheckResult(
       status: GameplayEncounterCheckStatus.emptyEncounterTable,
       sourceId: source.id,
       sourceKind: source.kind,
       tableId: table.id,
       encounterKind: encounterKind,
-    );
+    ), ready: null);
   }
 
   final chancePerStep = policy.chancePerStep ?? table.chancePerStep;
   if (!chancePerStep.isFinite || chancePerStep < 0 || chancePerStep > 1) {
-    return GameplayEncounterCheckResult(
+    return (refusal: GameplayEncounterCheckResult(
       status: GameplayEncounterCheckStatus.invalidEncounterRate,
       sourceId: source.id,
       sourceKind: source.kind,
       tableId: table.id,
       encounterKind: encounterKind,
-    );
+    ), ready: null);
   }
-  return null;
+  return (
+    refusal: null,
+    ready: (
+      table: table,
+      variantId: selection.variantId,
+      entries: entries,
+      chancePerStep: chancePerStep,
+    ),
+  );
 }
 
 GameplayEncounterCheckResult checkEncounterFromSource({
@@ -420,7 +457,7 @@ GameplayEncounterCheckResult checkEncounterFromSource({
   Random? random,
   GameplayEncounterPolicy policy = const GameplayEncounterPolicy(),
 }) {
-  final refusal = validateEncounterSource(
+  final preparation = _prepareEncounterSource(
     project: project,
     source: source,
     encounterKind: encounterKind,
@@ -429,20 +466,9 @@ GameplayEncounterCheckResult checkEncounterFromSource({
     encounterContext: encounterContext,
     policy: policy,
   );
+  final refusal = preparation.refusal;
   if (refusal != null) return refusal;
-  final table = _findEncounterTable(
-    project.encounterTables,
-    source.encounter.encounterTableId!.trim(),
-  )!;
-  final selection = resolveEncounterVariant(
-    table: table,
-    gameState: gameState,
-    conditionContext: conditionContext,
-    encounterContext: encounterContext,
-  );
-  final entries =
-      canonicalEncounterEntries(_validEncounterEntries(selection.entries));
-  final chancePerStep = policy.chancePerStep ?? table.chancePerStep;
+  final (:table, :variantId, :entries, :chancePerStep) = preparation.ready!;
   final position = world.player.pos;
   final rng = random ?? Random();
   final roll = rng.nextDouble();
@@ -498,7 +524,7 @@ GameplayEncounterCheckResult checkEncounterFromSource({
       encounterRoll: roll,
     ),
     pokemonOverrides: selected.pokemonOverrides,
-    variantId: selection.variantId,
+    variantId: variantId,
   );
   return GameplayEncounterCheckResult(
     status: GameplayEncounterCheckStatus.triggered,

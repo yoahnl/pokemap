@@ -586,10 +586,11 @@ class GameplayWorldState {
     if (isCellCenterBlockedLegacyForGridIndexedSystems(x, y)) {
       return GameplayMovementBlockReason.solid;
     }
-    return movementBlockReasonAtPlayerFeetCellForWaterAndGridSolidTrial(
-      cellX: x,
-      cellY: y,
-      movementMode: movementMode,
+    return movementTerrainBlockReasonAt(
+      map: map,
+      x: x,
+      y: y,
+      mode: movementMode,
     );
   }
 

@@ -42,7 +42,6 @@ export 'src/moving_prop_gameplay.dart';
 
 export 'src/collision/border_collision_geometry.dart'
     show
-        resolveMaterializedBorderCollisionRects,
         resolveMaterializedBorderCollisions,
         BorderCollisionOwner,
         BorderCollisionExclusion,
