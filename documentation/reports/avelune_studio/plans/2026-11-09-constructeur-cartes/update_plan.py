@@ -31,8 +31,8 @@ LOT_KINDS = {
 }
 RETIREMENT_CAPTURES = {("RUI-006", "S01"), ("RUI-008", "S02"), ("RUI-010", "S01")}
 STATE_PROFILE_EXCEPTIONS = {("RUI-013", "S02"): {"twoD"}, ("RUI-013", "S03"): {"threeD"}}
-REQUIREMENTS_REVISION = "2026-11-11-applicable-profiles-v1"
-REQUIREMENTS_SHA256 = "f3004b92cb42a830077047cd428a33b06d62ae6970939a61bf91b2359fbb22f7"
+REQUIREMENTS_REVISION = "2026-11-11-retirement-decoupled-from-visual-targets-v1"
+REQUIREMENTS_SHA256 = "7ffffaf8a26950efc4470e2e2f3e3886749adb0bb623829e10e1f713d257256b"
 G0_TOOL_FILES = {"apps/avelune_studio/tools/" + name for name in ("t01_check_g0.dart", "t01_retirement_gate.dart", "t01_dependency_graph.dart", "t01_dart_lexing.dart", "t01_consumer_entries.dart", "t01_validate_screenshot.dart")}
 DOC_MARKER = '<a id="27-remplacement-ui"></a>'
 

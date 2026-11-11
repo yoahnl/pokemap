@@ -2041,7 +2041,7 @@ Le vérificateur contrôle empreintes, dépendances, scores, mesures et complét
 <a id="rui-004"></a>
 #### RUI-004 — Activer le registre des lots et des preuves
 
-**Statut :** in_progress. **Dépendances :** RUI-003.
+**Statut :** in_progress. **Dépendances :** RUI-002.
 
 **Objectif :** Faire de l’artefact le contrôle de passage des lots, avec état canonique et historique des refus.
 
@@ -2154,7 +2154,7 @@ Le vérificateur contrôle empreintes, dépendances, scores, mesures et complét
 <a id="rui-011"></a>
 #### RUI-011 — Créer les nouveaux tokens et règles visuelles
 
-**Statut :** planned. **Dépendances :** RUI-010.
+**Statut :** planned. **Dépendances :** RUI-003, RUI-010.
 
 **Objectif :** Traduire les références approuvées en palette, typographie, espacements, rayons, tailles et états sémantiques.
 
