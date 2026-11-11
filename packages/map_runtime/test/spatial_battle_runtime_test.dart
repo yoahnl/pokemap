@@ -23,6 +23,7 @@ import 'package:map_runtime/map_runtime.dart' show
 import 'package:map_runtime/src/application/battle_start_request.dart';
 import 'package:map_runtime/src/application/load_runtime_map_bundle.dart';
 import 'package:map_runtime/src/application/runtime_map_bundle.dart';
+import 'package:map_runtime/src/application/runtime_pokemon_species_loader.dart';
 import 'package:map_runtime/src/application/runtime_battle_setup_exception.dart';
 import 'package:map_runtime/src/application/runtime_battle_demonstration.dart';
 import 'package:map_runtime/src/presentation/flame/runtime_input_event.dart';
@@ -1187,6 +1188,74 @@ void main() {
     runtime.resume();
     expect(runtime.isPaused, false);
   });
+  test('successive battles reuse their session species data', () async {
+    final fixture = await _fixture();
+    final loader = RuntimePokemonSpeciesLoader();
+    await loader.loadById(
+      projectRootDirectory: fixture.bundle.projectRootDirectory,
+      pokemonConfig: fixture.bundle.manifest.pokemon,
+      speciesId: 'sproutle',
+    );
+    final initialReads = loader.debugActualReadCount;
+    expect(initialReads, 2);
+    final speciesFile = File(p.join(fixture.bundle.projectRootDirectory,
+        fixture.bundle.manifest.pokemon.speciesDir, '004-sparkitten.json'));
+    await speciesFile.writeAsString('{ invalid species data');
+    final runtime = SpatialBattleRuntime(
+      readGameState: () => fixture.state,
+      commitGameState: (_, _) => true,
+      pokemonSpeciesLoader: loader,
+    );
+    addTearDown(runtime.dispose);
+
+    for (final id in ['first', 'second']) {
+      final completion = runtime.start(bundle: fixture.bundle, request: _wild(id));
+      await _ready(runtime);
+      expect(runtime.error, isNull);
+      expect(loader.debugActualReadCount, initialReads);
+      runtime.cancel();
+      expect(await completion, isFalse);
+    }
+
+    final freshRuntime = SpatialBattleRuntime(
+      readGameState: () => fixture.state,
+      commitGameState: (_, _) => true,
+    );
+    addTearDown(freshRuntime.dispose);
+    final freshCompletion = freshRuntime.start(
+      bundle: fixture.bundle,
+      request: _wild('fresh-session'),
+    );
+    expect(await freshCompletion, isFalse);
+    expect(freshRuntime.error, isA<RuntimeBattleSetupException>());
+  });
+
+  test('battle preparation shares moves without retaining them across battles', () async {
+    final fixture = await _fixture();
+    final movesFile = File(p.join(fixture.bundle.projectRootDirectory,
+        fixture.bundle.manifest.pokemon.catalogFiles['moves']!));
+    final loader = RuntimePokemonSpeciesLoader(
+      snapshotMetrics: _SpeciesSnapshotAction(
+        () => movesFile.writeAsStringSync('{ invalid moves data'),
+      ),
+    );
+    final runtime = SpatialBattleRuntime(
+      readGameState: () => fixture.state,
+      commitGameState: (_, _) => true,
+      pokemonSpeciesLoader: loader,
+    );
+    addTearDown(runtime.dispose);
+    final first = runtime.start(bundle: fixture.bundle, request: _wild('first'));
+    await _ready(runtime);
+    expect(runtime.error, isNull);
+    runtime.cancel();
+    expect(await first, isFalse);
+
+    final second = runtime.start(bundle: fixture.bundle, request: _wild('second'));
+    expect(await second, isFalse);
+    expect(runtime.error, isA<RuntimeBattleSetupException>());
+  });
+
   test('spatial entry resolves the authored wild and trainer configurations',
       () async {
     final fixture = await _fixture();
@@ -2067,6 +2136,15 @@ void main() {
     expect(runtime.battlePresentationListenable.value, isNull);
     runtime.dispose();
   });
+}
+
+class _SpeciesSnapshotAction extends RuntimePokemonSpeciesSnapshotMetrics {
+  const _SpeciesSnapshotAction(this.action);
+
+  final void Function() action;
+
+  @override
+  void onSnapshotBuildStarted(String projectRoot, String speciesDirectory) => action();
 }
 
 Widget _battleWorldHost(SpatialBattleRuntime runtime, Widget world) =>

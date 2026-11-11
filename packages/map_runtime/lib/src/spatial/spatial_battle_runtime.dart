@@ -13,6 +13,7 @@ import 'package:map_gameplay/map_gameplay.dart';
 import '../application/battle_start_request.dart';
 import '../application/player_service_runtime_controller.dart';
 import '../application/runtime_battle_bag_hp_heal_item_apply.dart';
+import '../application/runtime_battle_combatant_seed_builder.dart';
 import '../application/runtime_battle_demonstration.dart';
 import '../application/runtime_battle_outcome_apply.dart';
 import '../application/runtime_battle_reward_resolver.dart';
@@ -70,8 +71,10 @@ final class SpatialBattleRuntime extends ChangeNotifier {
     this.audioMixer,
     this.onOutcomePresented,
     this.worldNow,
+    RuntimePokemonSpeciesLoader? pokemonSpeciesLoader,
     BattleMotionPolicy? motionPolicy,
-  }) : _motionPolicy = motionPolicy;
+  })  : _speciesLoader = pokemonSpeciesLoader ?? RuntimePokemonSpeciesLoader(),
+        _motionPolicy = motionPolicy;
 
   BattleMotionPolicy? _motionPolicy;
 
@@ -130,7 +133,7 @@ final class SpatialBattleRuntime extends ChangeNotifier {
   BattleCommandOverlaySnapshot? _entrySnapshot;
   int _generation = 0;
   int _presentationRevision = 0;
-  final _speciesLoader = RuntimePokemonSpeciesLoader();
+  final RuntimePokemonSpeciesLoader _speciesLoader;
   RuntimePlayerBattleLineupSelection? _playerLineup;
   Map<int, double> _experienceProgress = const {};
   EdgeInsets _viewSafeAreaPadding = EdgeInsets.zero;
@@ -294,11 +297,17 @@ final class SpatialBattleRuntime extends ChangeNotifier {
     return completion.future;
   }
 
-  Future<GameState> _hydrate(GameState state, RuntimeMapBundle bundle) async {
+  Future<GameState> _hydrate(
+    GameState state,
+    RuntimeMapBundle bundle, {
+    RuntimeMoveCatalogLoader? moveCatalogLoader,
+  }) async {
     final catalogs = await loadRuntimePlayerPokemonProgressionCatalogs(
       gameState: state,
       projectRootDirectory: bundle.projectRootDirectory,
       pokemonConfig: bundle.manifest.pokemon,
+      speciesLoader: _speciesLoader,
+      moveCatalogLoader: moveCatalogLoader,
     );
     return hydrateRuntimePlayerPokemonProgression(
       gameState: state,
@@ -317,9 +326,20 @@ final class SpatialBattleRuntime extends ChangeNotifier {
       final temporary = request is WildBattleStartRequest && request.demonstration != null
           ? await prepareRuntimeBattleDemonstration(bundle: bundle, state: _base!, request: request)
           : _base!;
-      final hydrated = await _hydrate(temporary, bundle);
+      final moveCatalogLoader = RuntimeMoveCatalogLoader();
+      final combatantSeedBuilder = RuntimeBattleCombatantSeedBuilder(
+        speciesLoader: _speciesLoader,
+      );
+      final hydrated = await _hydrate(
+        temporary,
+        bundle,
+        moveCatalogLoader: moveCatalogLoader,
+      );
       if (!_current(generation)) return;
-      final mapper = RuntimeBattleSetupMapper();
+      final mapper = RuntimeBattleSetupMapper(
+        moveCatalogLoader: moveCatalogLoader,
+        combatantSeedBuilder: combatantSeedBuilder,
+      );
       if (request is WildBattleStartRequest) {
         request = await mapper.hydrateWildRequest(
           bundle: bundle,
@@ -332,7 +352,10 @@ final class SpatialBattleRuntime extends ChangeNotifier {
         pokemonConfig: bundle.manifest.pokemon,
       );
       if (!_current(generation)) return;
-      final psdkMapper = RuntimePsdkBattleSetupMapper();
+      final psdkMapper = RuntimePsdkBattleSetupMapper(
+        moveCatalogLoader: moveCatalogLoader,
+        combatantSeedBuilder: combatantSeedBuilder,
+      );
       final lineup = mapper.selectPlayerBattleLineup(hydrated.party,
         activeCount: psdkMapper.requiresDoubles(bundle.manifest, request) ? 2 : 1,
       );
@@ -348,7 +371,7 @@ final class SpatialBattleRuntime extends ChangeNotifier {
         onVisualIdentities: (value) => visualIdentitiesByBank = value,
       );
       if (!_current(generation)) return;
-      final moves = await RuntimeMoveCatalogLoader().load(
+      final moves = await moveCatalogLoader.load(
         projectRootDirectory: bundle.projectRootDirectory,
         pokemonConfig: bundle.manifest.pokemon,
       );
@@ -395,7 +418,7 @@ final class SpatialBattleRuntime extends ChangeNotifier {
       _coordinator = RuntimePostBattleDecisionCoordinator(
         rewardResolver: RuntimeBattleRewardResolver(worldNow: worldNow),
         hydrateOwnedPlayerPokemon: ({required gameState, required bundle}) =>
-            _hydrate(gameState, bundle),
+            _hydrate(gameState, bundle, moveCatalogLoader: moveCatalogLoader),
       );
       displaySession = _display();
       _images = BattleVisualAssetCache(
