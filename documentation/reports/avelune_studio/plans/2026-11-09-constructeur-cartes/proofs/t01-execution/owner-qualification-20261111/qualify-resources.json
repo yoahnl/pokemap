@@ -1,0 +1,601 @@
+[
+  {
+    "path": "apps/avelune_studio/lib/presentation/features/resources/border_creation_dialog.dart",
+    "shaVerified": true,
+    "shaEvidence": {
+      "inventorySha256": "1787670d619a03c942906f83d224e8658c54e958114aed6c12ee491162185791",
+      "matchesBlobAt": "861ad496d^ (last changed by e1e5032eb), 1167 lines",
+      "deletedIn": "505f1b71a",
+      "preDeletionBlobSha256": "123697db2afce789c5d8a8decc12269d3737288e99de6c0fad04d7e054ae59cf",
+      "preDeletionMatchesInventory": false,
+      "note": "861ad496d moved the state machine out of the widget before deletion; 505f1b71a^ (628 lines) already delegates to BorderCreationDraft/BorderCreationWorkflow but still holds items k-p below."
+    },
+    "responsibilities": [
+      {
+        "what": "Initialise draft state from the edited record (name, template flags, ground options, sequence length, jump side, chosen role sources resolved through resourceCatalog)",
+        "originalSymbol": "_BorderCreationDialogState.initState",
+        "headOwner": {"path": "apps/avelune_studio/lib/features/resources/application/border_creation_draft.dart", "symbol": "BorderCreationDraft.BorderCreationDraft"},
+        "tests": [
+          {"path": "apps/avelune_studio/test/presentation/spatial_border_resource_controls_test.dart", "name": "cliff edition keeps both corner families and ground ownership separately"},
+          {"path": "apps/avelune_studio/test/presentation/native_ledge_editor_test.dart", "name": "native variants retain their source identity orientation and anchor"}
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "Dirty detection (generic pattern and native ledge name/jump side)",
+        "originalSymbol": "_BorderCreationDialogState._hasChanges",
+        "headOwner": {"path": "apps/avelune_studio/lib/features/resources/application/border_creation_draft.dart", "symbol": "BorderCreationDraft.hasChanges"},
+        "tests": [
+          {"path": "apps/avelune_studio/test/presentation/native_ledge_editor_test.dart", "name": "jump side alone owns a dirty draft and can be restored without changes"},
+          {"path": "apps/avelune_studio/test/resource_io/border_creation_workflow_test.dart", "name": "keeping a dirty pattern preserves every input and refuses publication while closing"}
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "Publication readiness: role completeness, per-step sequence completeness, unavailable animation refusal, native ledge source availability",
+        "originalSymbol": "_baseComplete, _sequenceProblem, _settingsProblem, _complete (+ NativeLedgePanel.sourcesAvailable)",
+        "headOwner": {"path": "apps/avelune_studio/lib/features/resources/application/border_creation_draft.dart", "symbol": "BorderCreationDraft.complete / baseComplete / sequenceProblem / settingsProblem (native: resource_creation_sources.dart nativeLedgeSourcesAvailable)"},
+        "tests": [
+          {"path": "apps/avelune_studio/test/application/border_creation_draft_test.dart", "name": "an unavailable model animation is refused without mutating the project"},
+          {"path": "apps/avelune_studio/test/presentation/spatial_border_resource_controls_test.dart", "name": "creating a straight model border needs a body and terminal only"},
+          {"path": "apps/avelune_studio/test/presentation/border_sequence_editor_test.dart", "name": "a new border sends all six configured steps (straight: $straightOnly)"},
+          {"path": "apps/avelune_studio/test/presentation/border_creation_journey_test.dart", "name": "Studio publishes a border and offers it to the native map tool"}
+        ],
+        "status": "preserved",
+        "note": "Only the straight-only sequenceProblem message is asserted; the directed-corner branch ('angles rentrants et sortants') has no assertion."
+      },
+      {
+        "what": "Input validation/normalisation: sequence length 1..64 with first-step settings propagation and pruning, animation speed (0,16] with comma decimals, corner join 0..8, ground lowering >= 0 stored negated, replacesGround/masksGroundCells mutual exclusion",
+        "originalSymbol": "_sequenceControls.onLength, _modelSettings tryCommit closures, ground toggles and border-ground-base-offset tryCommit",
+        "headOwner": {"path": "apps/avelune_studio/lib/features/resources/application/border_creation_draft.dart", "symbol": "setSequenceLength, setAnimationSpeed, setCornerJoin, setGroundLowering, setReplacesGround, setMasksGroundCells"},
+        "tests": [
+          {"path": "apps/avelune_studio/test/application/border_creation_draft_test.dart", "name": "resizing copies first-step settings and removes obsolete step overrides"},
+          {"path": "apps/avelune_studio/test/application/border_creation_draft_test.dart", "name": "invalid numeric drafts do not overwrite accepted pattern settings"},
+          {"path": "apps/avelune_studio/test/application/border_creation_draft_test.dart", "name": "ground ownership and masking stay mutually exclusive"}
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "Role assignment, variant selection, per-step model source and per-piece settings (each resets accepted warnings)",
+        "originalSymbol": "BorderPatternPanel.onAssign closure, _variantSelector.onChanged, _sequenceControls.onSource, _setSettings",
+        "headOwner": {"path": "apps/avelune_studio/lib/features/resources/application/border_creation_draft.dart", "symbol": "assignRole, selectPrimitive, setPrimitiveSource, setSettings"},
+        "tests": [
+          {"path": "apps/avelune_studio/test/presentation/spatial_border_resource_controls_test.dart", "name": "straight border edits one terminal variant without inventing a corner"},
+          {"path": "apps/avelune_studio/test/presentation/border_sequence_editor_test.dart", "name": "a new border sends all six configured steps (straight: $straightOnly)"}
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "Command construction of BorderCreationRequest (2D element ids vs 3D model ids, facade template, native ledge request with expectedRecord, immutable maps)",
+        "originalSymbol": "_currentRequest",
+        "headOwner": {"path": "apps/avelune_studio/lib/features/resources/application/border_creation_draft.dart", "symbol": "BorderCreationDraft.buildRequest"},
+        "tests": [
+          {"path": "apps/avelune_studio/test/application/border_creation_draft_test.dart", "name": "native ledge requests retain their modules and expose only the existing jump side"},
+          {"path": "apps/avelune_studio/test/resource_io/horizontal_facade_resource_test.dart", "name": "facade drafts exclude the corner family and save through the canonical writer"},
+          {"path": "apps/avelune_studio/test/presentation/spatial_border_resource_controls_test.dart", "name": "creating a straight model border needs a body and terminal only"}
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "Dirty/export owner registration in ResourceNavigation (borderEditorOwners, packBorderDraftOwners), identity-checked removal on dispose, re-registration after a partial failure assigns an id",
+        "originalSymbol": "initState/_save/dispose (_dirtyOwner, _exportOwner)",
+        "headOwner": {"path": "apps/avelune_studio/lib/features/resources/coordination/border_creation_workflow.dart", "symbol": "BorderCreationWorkflow._register / dispose / save"},
+        "tests": [
+          {"path": "apps/avelune_studio/test/resource_io/border_creation_workflow_test.dart", "name": "disposing an old editor preserves a replacement owner registration"},
+          {"path": "apps/avelune_studio/test/resource_io/border_creation_workflow_test.dart", "name": "a late new-border receipt preserves the owners registered while publication settles"},
+          {"path": "apps/avelune_studio/test/presentation/border_creation_journey_test.dart", "name": "Studio publishes a border and offers it to the native map tool"}
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "Close/discard lifecycle with re-entrancy guard",
+        "originalSymbol": "_close (+ _confirmingClose)",
+        "headOwner": {"path": "apps/avelune_studio/lib/features/resources/coordination/border_creation_workflow.dart", "symbol": "BorderCreationWorkflow.requestClose"},
+        "tests": [
+          {"path": "apps/avelune_studio/test/resource_io/border_creation_workflow_test.dart", "name": "discard consent belongs to the active editor only"},
+          {"path": "apps/avelune_studio/test/resource_io/border_creation_workflow_test.dart", "name": "saving blocks duplicate writes and close until its receipt settles"}
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "Republication scope: count traced contours on open maps for an already published border and require consent",
+        "originalSymbol": "_openTracedContours, _confirmRepublication",
+        "headOwner": {"path": "apps/avelune_studio/lib/features/resources/coordination/border_creation_workflow.dart", "symbol": "BorderCreationWorkflow.tracedContours + confirmRepublication callback in save"},
+        "tests": [
+          {"path": "apps/avelune_studio/test/resource_io/border_creation_workflow_test.dart", "name": "republishing traced borders requires the open map scope consent"},
+          {"path": "apps/avelune_studio/test/resource_io/border_creation_workflow_test.dart", "name": "publication without traced contours does not request scope consent"},
+          {"path": "apps/avelune_studio/test/presentation/border_republish_scope_test.dart", "name": "republishing a border traced on an open map requires a scope review"}
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "Save/publish: guards, port.createBorder, navigation.accept, partial receipt reconciliation, expectedRecord refresh, error and warning code capture",
+        "originalSymbol": "_save",
+        "headOwner": {"path": "apps/avelune_studio/lib/features/resources/coordination/border_creation_workflow.dart", "symbol": "BorderCreationWorkflow.save"},
+        "tests": [
+          {"path": "apps/avelune_studio/test/resource_io/border_creation_workflow_test.dart", "name": "a saved partial draft keeps one owner and refreshes the expected record before retry"},
+          {"path": "apps/avelune_studio/test/resource_io/border_creation_workflow_test.dart", "name": "a committed partial publication is reconciled without a second publication"},
+          {"path": "apps/avelune_studio/test/presentation/border_creation_failure_journey_test.dart", "name": "invalid border keeps its native pattern and explains the failed join"},
+          {"path": "apps/avelune_studio/test/presentation/native_ledge_editor_test.dart", "name": "stale native editor cannot overwrite a newer native draft"},
+          {"path": "apps/avelune_studio/test/presentation/native_ledge_editor_test.dart", "name": "missing native source refuses publication without a write"}
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "Invalidate accepted warning codes when the name, the horizontal-facade flag or the native jump side changes (otherwise the next publish sends stale acceptedWarningCodes)",
+        "originalSymbol": "border-name onChanged, border-horizontal-facade onChanged, NativeLedgePanel.onJumpSideChanged closures (_warningCodes = const [])",
+        "headOwner": null,
+        "tests": [],
+        "status": "lost",
+        "note": "Still widget code in 505f1b71a^ (lines 363-364, 374-375, 402-403, 514-515: _draft.warningCodes = const []) and deleted with it. BorderCreationDraft exposes name/horizontalFacade/jumpSide as plain mutable fields; only assignRole, setSettings, setPrimitiveSource and setSequenceLength reset warningCodes. No test asserts any warning invalidation."
+      },
+      {
+        "what": "Map scope of the source library: activeMapId derived from resourceLibraryCatalog.entryFor('borderBlueprint', pendingId)?.mapId",
+        "originalSymbol": "_sources()",
+        "headOwner": null,
+        "tests": [],
+        "status": "lost",
+        "note": "borderCreationSources(project, activeMapId:) accepts the value but no lib code derives it; still in the widget at 505f1b71a^ line 312."
+      },
+      {
+        "what": "Feed rendering diagnostics into native ledge completeness (unavailable resource ids)",
+        "originalSymbol": "_baseComplete -> NativeLedgePanel.sourcesAvailable(record, project, visuals)",
+        "headOwner": null,
+        "tests": [
+          {"path": "apps/avelune_studio/test/application/border_creation_draft_test.dart", "name": "native ledge availability checks missing sources and diagnostics without changing definitions"}
+        ],
+        "status": "lost",
+        "note": "The rule is owned by nativeLedgeSourcesAvailable(unavailableResourceIds:) and tested with explicit ids; the wiring visuals.diagnostics -> BorderCreationDraft.unavailableResourceIds lived in the widget (505f1b71a^ initState) and has no production owner."
+      },
+      {
+        "what": "Creation-only editability of straightOnly / followContourDirection / horizontalFacade (toggles offered only when initialRecord == null)",
+        "originalSymbol": "build(): border-straight-only, border-contour-direction, border-horizontal-facade guarded by initialRecord == null",
+        "headOwner": {"path": "apps/avelune_studio/lib/features/resources/data/local_border_resource_adapter.dart", "symbol": "_createBorder (refuses a template change: 'Conservez le type de la bordure existante.')"},
+        "tests": [],
+        "status": "lost",
+        "note": "Facade/template change on an existing record is refused by the adapter (untested). straightOnly and followContourDirection changes on an existing connected-line border are accepted by _createBorder (request value overrides existing); BorderCreationDraft has no guard."
+      },
+      {
+        "what": "Edit lock while saving (source assignment disabled via activeModelId null, facade and jump toggles disabled, ledge name disabled)",
+        "originalSymbol": "_saving checks in _sequenceControls/activeModelId, toggles onChanged, StudioDraftField enabled",
+        "headOwner": null,
+        "tests": [],
+        "status": "lost",
+        "note": "Only BorderCreationDraft.setSequenceLength checks saving; save() snapshots the request so the in-flight write is safe, but post-save dirty state can diverge. Minor."
+      },
+      {
+        "what": "Warning code to label conversion (coverage_gap_exceeded, coverage_overlap_exceeded)",
+        "originalSymbol": "_warningLabel",
+        "headOwner": null,
+        "tests": [],
+        "status": "lost",
+        "note": "Presentation mapping; a rebuilt editor must reintroduce it."
+      }
+    ],
+    "verdict": "gap",
+    "rationale": "The core state machine (draft, validation, request, owners, close, republication scope, save) was extracted in 861ad496d to BorderCreationDraft/BorderCreationWorkflow with behavioural tests. Four non-visual duties stayed in the widget until deletion and have no owner: accepted-warning invalidation on name/facade/jump edits, activeMapId derivation for the source library, diagnostics -> unavailableResourceIds wiring, and the creation-only rule for straightOnly/followContourDirection (adapter accepts the change). Also: no lib code constructs BorderCreationDraft/BorderCreationWorkflow anymore (the Bordures workshop shows 'Atelier des bordures indisponible'), and test/resource_io/border_management_guards_host_test.dart still drives deleted keys ('border-name', 'Reprendre « … »')."
+  },
+  {
+    "path": "apps/avelune_studio/lib/presentation/features/resources/border_discard_dialog.dart",
+    "shaVerified": true,
+    "shaEvidence": {
+      "inventorySha256": "f41b20d4c74f5c5323aeee6974c5ef0fab563aff9300147f16e9b0e73baf895f",
+      "matchesBlobAt": "505f1b71a^ (unchanged since e934d294e)",
+      "deletedIn": "505f1b71a",
+      "preDeletionMatchesInventory": true
+    },
+    "responsibilities": [
+      {
+        "what": "Discard consent prompt; dismissal maps to keep (null -> false)",
+        "originalSymbol": "confirmBorderDiscard",
+        "headOwner": {"path": "apps/avelune_studio/lib/features/resources/coordination/border_creation_workflow.dart", "symbol": "BorderCreationWorkflow.requestClose (consumes confirmDiscard(): Future<bool>)"},
+        "tests": [
+          {"path": "apps/avelune_studio/test/resource_io/border_creation_workflow_test.dart", "name": "keeping a dirty pattern preserves every input and refuses publication while closing"},
+          {"path": "apps/avelune_studio/test/resource_io/border_creation_workflow_test.dart", "name": "discard consent belongs to the active editor only"}
+        ],
+        "status": "preserved",
+        "note": "The file itself only builds an AlertDialog and returns a bool; the decision is consumed and tested in the workflow."
+      }
+    ],
+    "verdict": "retired_ui",
+    "rationale": "24-line dialog returning a bool with a safe default (keep). No mutation, persistence or validation; the consent semantics are owned and tested by BorderCreationWorkflow.requestClose. Heuristic 'ui_retire' is correct (the inventory's mixedResponsibilities: true flag is not)."
+  },
+  {
+    "path": "apps/avelune_studio/lib/presentation/features/resources/border_pattern_panel.dart",
+    "shaVerified": true,
+    "shaEvidence": {
+      "inventorySha256": "b63e8c588a5de77a831c8bf85e8d4a3791ff550239717e89138472fa23ee90ad",
+      "matchesBlobAt": "861ad496d^ (last changed by f0a9b9863), 394 lines",
+      "deletedIn": "505f1b71a",
+      "preDeletionBlobSha256": "f1aa55c0e41edc8dbdea27cba53d28ddec674c9dce7f8300ea165739c7c48eda",
+      "preDeletionMatchesInventory": false,
+      "note": "861ad496d replaced _roles/_missingRoleLabels/_roleLabel with BorderPatternAssociations."
+    },
+    "responsibilities": [
+      {
+        "what": "Required role set and association completeness (missing pieces, count, completion message) per straightOnly/followContourDirection",
+        "originalSymbol": "_roles, _missingRoleLabels, _roleLabel",
+        "headOwner": {"path": "apps/avelune_studio/lib/features/resources/application/border_pattern_associations.dart", "symbol": "BorderPatternAssociations.roles / missing / countLabel / statusLabel"},
+        "tests": [
+          {"path": "apps/avelune_studio/test/presentation/border_pattern_panel_test.dart", "name": "a contour names the pieces it still needs before publication"},
+          {"path": "apps/avelune_studio/test/presentation/border_pattern_panel_test.dart", "name": "only the explicit straight mode completes without corners"},
+          {"path": "apps/avelune_studio/test/presentation/border_pattern_panel_test.dart", "name": "a directed cliff asks for its inner corner by name"},
+          {"path": "apps/avelune_studio/test/presentation/border_pattern_panel_test.dart", "name": "three associations still require canonical validation"}
+        ],
+        "status": "preserved",
+        "note": "Despite its folder, border_pattern_panel_test.dart is a pure unit test of BorderPatternAssociations. BorderPatternAssociations has no lib consumer in HEAD."
+      },
+      {
+        "what": "Drag-and-drop payload conversion ProjectElementEntry -> ResourceItem(kind: decors, element) before assigning a role",
+        "originalSymbol": "_slot DragTarget.onAcceptWithDetails",
+        "headOwner": null,
+        "tests": [],
+        "status": "lost",
+        "note": "Target owner BorderCreationDraft.assignRole exists and is tested with catalog items; the adaptation of the drag payload has no owner. Minor glue, but a conversion."
+      }
+    ],
+    "verdict": "gap",
+    "rationale": "Not pure UI as the heuristic claims: it carried the association-completeness rule, which 861ad496d extracted to BorderPatternAssociations with 4 unit tests. The only remaining non-visual piece is the drag payload -> ResourceItem conversion, which has no owner (minor). Slot grid, orientation turns and spatial preview MapData are display-only."
+  },
+  {
+    "path": "apps/avelune_studio/lib/presentation/features/resources/border_sequence_controls.dart",
+    "shaVerified": true,
+    "shaEvidence": {
+      "inventorySha256": "a8c5794b0ac1e1f4bd1d4208b3401988f2e865ee20f7d05e2596cf1918075a12",
+      "matchesBlobAt": "505f1b71a^ (unchanged since 7fc69abe6)",
+      "deletedIn": "505f1b71a",
+      "preDeletionMatchesInventory": true
+    },
+    "responsibilities": [
+      {
+        "what": "Forward raw sequence-length text and per-step source picks to the caller (no parsing here)",
+        "originalSymbol": "BorderSequenceControls (onLength, onSource)",
+        "headOwner": {"path": "apps/avelune_studio/lib/features/resources/application/border_creation_draft.dart", "symbol": "setSequenceLength, setPrimitiveSource"},
+        "tests": [
+          {"path": "apps/avelune_studio/test/presentation/border_sequence_editor_test.dart", "name": "a new border sends all six configured steps (straight: $straightOnly)"},
+          {"path": "apps/avelune_studio/test/application/border_creation_draft_test.dart", "name": "resizing copies first-step settings and removes obsolete step overrides"}
+        ],
+        "status": "preserved",
+        "note": "Listed for traceability only: the parsing/validation lived in the dialog's onLength closure, not here."
+      }
+    ],
+    "verdict": "retired_ui",
+    "rationale": "Stateless view: groups primitives by sequenceIndex for display, formats orientation labels, shows the >64 'imported motif kept' notice, disables picks when no active model. No mutation, validation or conversion. Heuristic 'ui_retire' confirmed."
+  },
+  {
+    "path": "apps/avelune_studio/lib/presentation/features/resources/border_source_panel.dart",
+    "shaVerified": true,
+    "shaEvidence": {
+      "inventorySha256": "e09c168a2424124c73a19b60effd489364b05afdd45c3b4a75872c21dd0f0423",
+      "matchesBlobAt": "861ad496d^ (last changed by b88fe5107), 71 lines",
+      "deletedIn": "505f1b71a",
+      "preDeletionBlobSha256": "84164a9e77476b11e6d8196b24d166903f14f10626040086861f02ac049b402f",
+      "preDeletionMatchesInventory": false,
+      "note": "861ad496d replaced the inline filter with borderCreationSources."
+    },
+    "responsibilities": [
+      {
+        "what": "Source eligibility: 3D -> model3d items, 2D -> element items",
+        "originalSymbol": "BorderSourcePanel.build items filter (first where)",
+        "headOwner": {"path": "apps/avelune_studio/lib/features/resources/application/resource_creation_sources.dart", "symbol": "borderCreationSources"},
+        "tests": [
+          {"path": "apps/avelune_studio/test/presentation/spatial_border_resource_controls_test.dart", "name": "border model sources share families and exclude unavailable local resources"}
+        ],
+        "status": "untested",
+        "note": "Only the 3D branch is exercised; the 2D element branch has no test."
+      },
+      {
+        "what": "Map-scoped resources hidden unless the border itself is map-scoped (activeMapId != null || metadata.mapId == null)",
+        "originalSymbol": "BorderSourcePanel.build items filter (second where)",
+        "headOwner": {"path": "apps/avelune_studio/lib/features/resources/application/resource_creation_sources.dart", "symbol": "borderCreationSources(activeMapId:)"},
+        "tests": [
+          {"path": "apps/avelune_studio/test/presentation/spatial_border_resource_controls_test.dart", "name": "border model sources share families and exclude unavailable local resources"}
+        ],
+        "status": "untested",
+        "note": "Exclusion with activeMapId == null is tested; inclusion when activeMapId is set is not, and nothing in lib derives activeMapId (see border_creation_dialog)."
+      }
+    ],
+    "verdict": "gap",
+    "rationale": "Heuristic 'ui_retire' is wrong: the panel owned the source eligibility filter, now extracted to borderCreationSources. The function exists but its 2D branch and the map-scoped inclusion branch are untested, and borderCreationSources has no lib caller in HEAD."
+  },
+  {
+    "path": "apps/avelune_studio/lib/presentation/features/resources/native_ledge_panel.dart",
+    "shaVerified": true,
+    "shaEvidence": {
+      "inventorySha256": "1d1a2e9b61b015c829d011635c67f5416e529093c260f3aacc7194a618d8764c",
+      "matchesBlobAt": "861ad496d^ (last changed by cf4c1bbcf), 160 lines",
+      "deletedIn": "505f1b71a",
+      "preDeletionBlobSha256": "56107a62294c247328e1fb257561c85abf16061397bf76e2ec8bc0533329691e",
+      "preDeletionMatchesInventory": false,
+      "note": "861ad496d delegated sourcesAvailable and the 3D notice to resource_creation_sources.dart."
+    },
+    "responsibilities": [
+      {
+        "what": "Native ledge source availability (structureLarge 2D primitives, element frames, tilesets, image-collection pages, blocked by diagnostics)",
+        "originalSymbol": "NativeLedgePanel.sourcesAvailable",
+        "headOwner": {"path": "apps/avelune_studio/lib/features/resources/application/resource_creation_sources.dart", "symbol": "nativeLedgeSourcesAvailable"},
+        "tests": [
+          {"path": "apps/avelune_studio/test/application/border_creation_draft_test.dart", "name": "native ledge availability checks missing sources and diagnostics without changing definitions"},
+          {"path": "apps/avelune_studio/test/presentation/native_ledge_editor_test.dart", "name": "missing native source refuses publication without a write"}
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "Conversion of MapWorkspaceVisuals.diagnostics into the unavailable resource id set",
+        "originalSymbol": "NativeLedgePanel.sourcesAvailable (visuals.diagnostics.any(...))",
+        "headOwner": null,
+        "tests": [],
+        "status": "lost",
+        "note": "The pure function takes unavailableResourceIds; no production code maps diagnostics to it anymore."
+      },
+      {
+        "what": "Jump side editable only when the record already has a jumpBehavior; string -> BorderLineSide conversion",
+        "originalSymbol": "build(): native-ledge-jump-side StudioSelect (BorderLineSide.values.byName)",
+        "headOwner": {"path": "apps/avelune_studio/lib/features/resources/data/local_border_resource_adapter.dart", "symbol": "_createBorder ('Ce rebord ne possède pas de saut à régler.')"},
+        "tests": [],
+        "status": "untested",
+        "note": "Adapter refuses jumpSide without an original jump; no test asserts that refusal. 'a native ledge without jump stays without jump after publication' only checks the null path."
+      },
+      {
+        "what": "3D-project notice that ledge jumps only apply to 2D maps; jump summary text",
+        "originalSymbol": "build() (native-ledge-jump-2d-only, ledgeJumpSummary)",
+        "headOwner": {"path": "apps/avelune_studio/lib/features/resources/application/resource_creation_sources.dart", "symbol": "nativeLedgeJumpDimensionNotice (+ map_workspace/application/traversal_labels.dart ledgeJumpSummary)"},
+        "tests": [
+          {"path": "apps/avelune_studio/test/resource_io/native_ledge_dimension_notice_test.dart", "name": "a ledge jump says where the game applies it ($dimension)"}
+        ],
+        "status": "preserved"
+      }
+    ],
+    "verdict": "gap",
+    "rationale": "Heuristic 'ui_retire' is wrong: the panel owned the native-ledge availability rule (now nativeLedgeSourcesAvailable, tested). Lost: the diagnostics -> unavailable ids conversion. Untested: the 'no jump, no jump side' rule, now only enforced by _createBorder."
+  },
+  {
+    "path": "apps/avelune_studio/lib/presentation/features/resources/project_catalog_partition_panel.dart",
+    "shaVerified": true,
+    "shaEvidence": {
+      "inventorySha256": "e3d5feb61cbca4b35f5da3cedfdef5f2c37a638b4202e97056bf46149bd91f11",
+      "matchesBlobAt": "4ebd750e2^ (unchanged since 7fc69abe6)",
+      "deletedIn": "4ebd750e2 (not 505f1b71a)",
+      "preDeletionMatchesInventory": true
+    },
+    "responsibilities": [
+      {
+        "what": "Exit guard combining partition busy state with the child workspace guard",
+        "originalSymbol": "_ProjectCatalogPartitionPanelState.allowExit",
+        "headOwner": {"path": "apps/avelune_studio/lib/features/resources/coordination/project_catalog_partition_workflow.dart", "symbol": "ProjectCatalogPartitionWorkflow.allowExit"},
+        "tests": [
+          {"path": "apps/avelune_studio/test/presentation/project_catalog_partition_panel_test.dart", "name": "an active partition locks repeated conversion and exit"},
+          {"path": "apps/avelune_studio/test/presentation/project_catalog_partition_panel_test.dart", "name": "library optimization stays guarded by its child draft and explicit consent"}
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "Optimisation flow: child guard -> explicit consent -> partition -> reopen, busy flag, error message, mounted/late-consent guard",
+        "originalSymbol": "_ProjectCatalogPartitionPanelState.partition",
+        "headOwner": {"path": "apps/avelune_studio/lib/features/resources/coordination/project_catalog_partition_workflow.dart", "symbol": "ProjectCatalogPartitionWorkflow.optimize"},
+        "tests": [
+          {"path": "apps/avelune_studio/test/presentation/project_catalog_partition_panel_test.dart", "name": "library optimization stays guarded by its child draft and explicit consent"},
+          {"path": "apps/avelune_studio/test/presentation/project_catalog_partition_panel_test.dart", "name": "a converted catalogue retries reopening without converting twice"},
+          {"path": "apps/avelune_studio/test/presentation/project_catalog_partition_panel_test.dart", "name": "late partition consent cannot convert a disposed workspace"}
+        ],
+        "status": "preserved",
+        "note": "HEAD adds a no-reconvert retry (_converted); behaviour change is intentional and tested. The partition/reopen callbacks came from studio_workspace_host.dart (also removed in 4ebd750e2); their HEAD owners LocalProjectCatalogPartitionAdapter.partition and reopenPartitionedProject are tested in test/resource_io/project_catalog_partition_test.dart and test/application/project_session_reopening_test.dart."
+      },
+      {
+        "what": "Publish the optimise action, busy and error to StudioHomeNavigation, and clear it on dispose only if still the registered handler",
+        "originalSymbol": "publishAction, dispose (home.onOptimizeLibrary == partition)",
+        "headOwner": null,
+        "tests": [],
+        "status": "lost",
+        "note": "StudioHomeNavigation.updateLibraryOptimization still exists but has no caller in lib; the identity-checked clearing has no owner."
+      },
+      {
+        "what": "Register/unregister the exit guard with the session lifecycle",
+        "originalSymbol": "initState/dispose (widget.registerExitGuard(allowExit / null))",
+        "headOwner": null,
+        "tests": [],
+        "status": "lost",
+        "note": "ProjectCatalogPartitionWorkflow has no lib consumer; nothing registers allowExit."
+      }
+    ],
+    "verdict": "gap",
+    "rationale": "The state machine is preserved and better tested (4 unit tests). The shell composition the panel owned (home action publication with identity-checked teardown, exit-guard registration) has no HEAD owner, so library optimisation is unreachable from the Studio. Logic intact, wiring lost."
+  },
+  {
+    "path": "apps/avelune_studio/lib/presentation/features/resources/resource_border_confirmation_dialog.dart",
+    "shaVerified": true,
+    "shaEvidence": {
+      "inventorySha256": "bb9bb85ded7c803c03b632f380832bdd8426b2de785f7fdd77f1c5dd5ac675c1",
+      "matchesBlobAt": "4ebd750e2^ (unchanged since 383ffb6f1), 119 lines",
+      "deletedIn": "505f1b71a",
+      "preDeletionBlobSha256": "c6ed117a1de5cd7650dff40817fb55d42c490ffd6d4312e21b810ce119045646",
+      "preDeletionMatchesInventory": false,
+      "note": "4ebd750e2 moved the state into ResourceBorderLifecycleController; the 505f1b71a^ version only renders controller state."
+    },
+    "responsibilities": [
+      {
+        "what": "Prepare/re-analyse the canonical mutation with a sequence guard so late results after re-prepare or dispose are ignored; reset confirmation on each prepare",
+        "originalSymbol": "_prepare, dispose (_sequence)",
+        "headOwner": {"path": "apps/avelune_studio/lib/features/resources/application/resource_border_lifecycle_controller.dart", "symbol": "ResourceBorderLifecycleController.prepare / dispose / settle"},
+        "tests": [
+          {"path": "apps/avelune_studio/test/application/resource_border_lifecycle_controller_test.dart", "name": "closing waits for border preparation and ignores the late state"},
+          {"path": "apps/avelune_studio/test/application/resource_border_lifecycle_controller_test.dart", "name": "border preparation failure preserves a recoverable refusal"}
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "Apply gating: ready && !working && confirmed && external canApply (not disposed, no pending receipt)",
+        "originalSymbol": "build() valid: closure, confirm checkbox onChanged",
+        "headOwner": {"path": "apps/avelune_studio/lib/features/resources/application/resource_border_lifecycle_controller.dart", "symbol": "ResourceBorderLifecycleController.canApply / confirm"},
+        "tests": [
+          {"path": "apps/avelune_studio/test/application/resource_border_lifecycle_controller_test.dart", "name": "border publication requires a fresh confirmed preparation"},
+          {"path": "apps/avelune_studio/test/resource_io/resource_border_lifecycle_workflow_test.dart", "name": "border publication retains its receipt and prevents replay after reconciliation"}
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "Apply the prepared mutation and surface the refusal/published-but-unreconciled message",
+        "originalSymbol": "build() submit: widget.apply(_preparation)",
+        "headOwner": {"path": "apps/avelune_studio/lib/features/resources/application/resource_border_lifecycle_controller.dart", "symbol": "ResourceBorderLifecycleController.apply (publish = applyResourceLifecyclePublication)"},
+        "tests": [
+          {"path": "apps/avelune_studio/test/application/resource_border_lifecycle_controller_test.dart", "name": "border retry follows publication commitment $committed"},
+          {"path": "apps/avelune_studio/test/resource_io/resource_border_lifecycle_workflow_test.dart", "name": "stale border confirmation preserves the publication and concurrent draft"}
+        ],
+        "status": "preserved"
+      }
+    ],
+    "verdict": "retired_ui_after_extraction",
+    "rationale": "Every stateful duty (sequence-guarded preparation, confirmation reset, gating, apply/retry semantics) moved to ResourceBorderLifecycleController in 4ebd750e2 with dedicated unit tests and a real-adapter workflow test. Remaining code was display (changed paths count, revision, refusal text). Controller has no lib caller other than runBorderResourceManagement, which itself has no production caller."
+  },
+  {
+    "path": "apps/avelune_studio/lib/presentation/features/resources/resource_border_draft_bar.dart",
+    "shaVerified": true,
+    "shaEvidence": {
+      "inventorySha256": "4a47e081b202f93b8f0e7403fa5ce3b9e8cb17cdcf93dfa097ba7ea435504701",
+      "matchesBlobAt": "861ad496d^ (last changed by 420f2b9e3), 219 lines",
+      "deletedIn": "505f1b71a",
+      "preDeletionBlobSha256": "80f276cd3e4e0e7cafba8a6c690d5ff8d4162f3b96e066361e663c3167a66288",
+      "preDeletionMatchesInventory": false,
+      "note": "861ad496d moved the BorderResourceAction enum to the lifecycle controller file and re-exported it."
+    },
+    "responsibilities": [
+      {
+        "what": "Lifecycle action vocabulary",
+        "originalSymbol": "enum BorderResourceAction",
+        "headOwner": {"path": "apps/avelune_studio/lib/features/resources/application/resource_border_lifecycle_controller.dart", "symbol": "BorderResourceAction"},
+        "tests": [
+          {"path": "apps/avelune_studio/test/resource_io/resource_border_lifecycle_workflow_test.dart", "name": "deprecation and reactivation preserve published revisions and sources"}
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "Action availability by record state: never published -> withdraw draft; published -> deprecate; deprecated -> reactivate; usages always",
+        "originalSymbol": "_menu items",
+        "headOwner": {"path": "packages/map_authoring/lib/src/domains/maps/border_catalog_actions.dart", "symbol": "_delete (delete_published_forbidden) / _setDeprecated (deprecation_requires_publication)"},
+        "tests": [
+          {"path": "packages/map_authoring/test/domains/maps/border_catalog_actions_test.dart", "name": "physical deletion of any published blueprint is forbidden"},
+          {"path": "packages/map_authoring/test/domains/maps/border_catalog_actions_test.dart", "name": "deprecation cannot stand in for deleting a never-published draft"},
+          {"path": "packages/map_authoring/test/domains/maps/border_catalog_actions_test.dart", "name": "deletes only a never-published blueprint"}
+        ],
+        "status": "preserved",
+        "note": "Domain enforces delete/deprecate preconditions. 'Reactivate only when deprecated' is a UI offer only (setDeprecated(false) on an active border is accepted by the domain)."
+      },
+      {
+        "what": "Lifecycle triage projection of records into Brouillons (all) / Publiées (published && !deprecated) / Dépréciées (deprecated)",
+        "originalSymbol": "_ResourceBorderDraftBarState._visible",
+        "headOwner": null,
+        "tests": [],
+        "status": "lost",
+        "note": "No HEAD equivalent (ResourceItem.usableIn has a different purpose). Its only tests, test/resource_io/border_management_host_test.dart ('deprecation and reactivation preserve immutable publication' taps 'Publiées'/'Dépréciées'), drive the deleted widget."
+      }
+    ],
+    "verdict": "gap",
+    "rationale": "Heuristic 'ui_retire' is wrong: the bar carried the action enum (moved, tested) and the lifecycle availability matrix (now enforced and tested in map_authoring). The draft/published/deprecated triage projection has no HEAD owner and its tests target deleted UI. Labels, placement-context text (resourcePlacementContextLabel still in resource_catalog.dart) and compact/library layouts are display."
+  },
+  {
+    "path": "apps/avelune_studio/lib/presentation/features/resources/resource_border_lifecycle.dart",
+    "shaVerified": true,
+    "shaEvidence": {
+      "inventorySha256": "14bdb34c680691d90b01e4433e8301fa9263c092c99a7a600beebea7ee953b17",
+      "matchesBlobAt": "861ad496d^ (unchanged since 383ffb6f1), 141 lines",
+      "deletedIn": "505f1b71a",
+      "preDeletionBlobSha256": "37df1e32849b92086ba2a9303a3921c65efae5fb40372fee60b3638583aa206a",
+      "preDeletionMatchesInventory": false,
+      "note": "861ad496d moved both entry points to features/resources/coordination/resource_border_lifecycle.dart; the 505f1b71a^ version was a 72-line presenter."
+    },
+    "responsibilities": [
+      {
+        "what": "Border editor entry: refuse when navigation disposed/busy/managementDialogActive, begin/end management dialog around the editor",
+        "originalSymbol": "openBorderPreparation",
+        "headOwner": {"path": "apps/avelune_studio/lib/features/resources/coordination/resource_border_lifecycle.dart", "symbol": "runBorderPreparation"},
+        "tests": [],
+        "status": "untested",
+        "note": "runBorderPreparation is referenced by no test and no lib caller."
+      },
+      {
+        "what": "Management entry guard (disposed/busy/managementDialogActive) and abort when the host is gone after revision capture",
+        "originalSymbol": "manageBorderResource (head guard, context.mounted after captureResourceRevision)",
+        "headOwner": {"path": "apps/avelune_studio/lib/features/resources/coordination/resource_border_lifecycle.dart", "symbol": "runBorderResourceManagement (guard, isActive())"},
+        "tests": [],
+        "status": "untested",
+        "note": "Workflow tests only assert managementDialogActive returns to false; no test refuses a re-entrant call or an inactive host."
+      },
+      {
+        "what": "Usages target and dirty owners (usageDraftOwners + borderManagementOwners('border.blueprint.delete'))",
+        "originalSymbol": "manageBorderResource usages branch",
+        "headOwner": {"path": "apps/avelune_studio/lib/features/resources/coordination/resource_border_lifecycle.dart", "symbol": "runBorderResourceManagement presentUsages"},
+        "tests": [
+          {"path": "apps/avelune_studio/test/resource_io/resource_border_lifecycle_workflow_test.dart", "name": "usage management targets the exact blueprint without preparing a mutation"}
+        ],
+        "status": "preserved",
+        "note": "The dirtyOwners callback content is not asserted."
+      },
+      {
+        "what": "Command construction: border.blueprint.delete vs border.blueprint.set_deprecated {blueprintId, isDeprecated} with expectedSnapshotRevision; release previous preparation on re-prepare",
+        "originalSymbol": "manageBorderResource prepare closure",
+        "headOwner": {"path": "apps/avelune_studio/lib/features/resources/coordination/resource_border_lifecycle.dart", "symbol": "runBorderResourceManagement prepareOperation"},
+        "tests": [
+          {"path": "apps/avelune_studio/test/resource_io/resource_border_lifecycle_workflow_test.dart", "name": "deprecation and reactivation preserve published revisions and sources"},
+          {"path": "apps/avelune_studio/test/resource_io/resource_border_lifecycle_workflow_test.dart", "name": "a dirty border owner refuses withdrawal without deleting its draft"},
+          {"path": "apps/avelune_studio/test/resource_io/resource_border_lifecycle_workflow_test.dart", "name": "stale border confirmation preserves the publication and concurrent draft"}
+        ],
+        "status": "preserved",
+        "note": "Successful withdrawal of a never-published draft through this Studio path is not asserted (only prepared then released); domain delete is tested in map_authoring 'deletes only a never-published blueprint'."
+      },
+      {
+        "what": "Apply with destructive confirmation and published-but-unreconciled handling (no replay)",
+        "originalSymbol": "manageBorderResource apply closure",
+        "headOwner": {"path": "apps/avelune_studio/lib/features/resources/coordination/resource_replacement_workflow.dart", "symbol": "applyResourceLifecyclePublication"},
+        "tests": [
+          {"path": "apps/avelune_studio/test/resource_io/resource_border_lifecycle_workflow_test.dart", "name": "border publication retains its receipt and prevents replay after reconciliation"}
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "Release the retained or late preparation on every exit; end management dialog",
+        "originalSymbol": "manageBorderResource finally block",
+        "headOwner": {"path": "apps/avelune_studio/lib/features/resources/coordination/resource_border_lifecycle.dart", "symbol": "runBorderResourceManagement finally (controller.dispose/settle, releasePreparation, endManagementDialog)"},
+        "tests": [
+          {"path": "apps/avelune_studio/test/resource_io/resource_border_lifecycle_workflow_test.dart", "name": "cancelling a border mutation releases its canonical preparation"},
+          {"path": "apps/avelune_studio/test/application/resource_border_lifecycle_controller_test.dart", "name": "closing waits for border preparation and ignores the late state"}
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "Unexpected failure reported through navigation.setImportError",
+        "originalSymbol": "manageBorderResource catch",
+        "headOwner": {"path": "apps/avelune_studio/lib/features/resources/coordination/resource_border_lifecycle.dart", "symbol": "runBorderResourceManagement catch"},
+        "tests": [],
+        "status": "untested"
+      }
+    ],
+    "verdict": "gap",
+    "rationale": "Every responsibility has a HEAD owner in coordination/resource_border_lifecycle.dart, but runBorderPreparation is entirely untested, and the re-entrancy refusal, inactive-host abort and setImportError path of runBorderResourceManagement are untested. Neither function has a production caller (resource_workspace_pane.dart lost its onCreateBorder/onResumeBorder/onManageBorder wiring in 505f1b71a)."
+  },
+  {
+    "path": "apps/avelune_studio/lib/presentation/features/resources/resource_family_navigation.dart",
+    "shaVerified": true,
+    "shaEvidence": {
+      "inventorySha256": "faf46e34ab9c893661b77b664a3afa0294a085876f7d2e5af586e537adf2a02f",
+      "matchesBlobAt": "861ad496d^ (last changed by 9bfc25e95)",
+      "deletedIn": "4ebd750e2 (not 505f1b71a)",
+      "preDeletionBlobSha256": "b46a9b1c2ada5b155eace87748a23c82b67c0f23cab280454f9ff5c100f5ee79",
+      "preDeletionMatchesInventory": false,
+      "note": "Only difference is the resource_catalog import path; already orphaned at 4ebd750e2^ (861ad496d removed its importers resource_library_screen.dart and test/support/resource_family_gestures.dart)."
+    },
+    "responsibilities": [
+      {
+        "what": "Family selection forwarded to the caller (no state change in the widget)",
+        "originalSymbol": "ResourceFamilyNavigation.onChanged",
+        "headOwner": {"path": "apps/avelune_studio/lib/features/resources/application/resource_catalog.dart", "symbol": "ResourceLibraryState.selectFamily"},
+        "tests": [
+          {"path": "apps/avelune_studio/test/resource_io/resource_library_family_return_test.dart", "name": "returning from the character studio reloads the family the library shows"}
+        ],
+        "status": "preserved",
+        "note": "Listed for traceability; the widget only forwarded the enum value."
+      }
+    ],
+    "verdict": "retired_ui",
+    "rationale": "Labels, purposes and icons per ResourceLibraryFamily plus a ListView of choices; selection is a pure callback. No mutation, validation or persistence, and no importer left at deletion time. Heuristic 'ui_retire' confirmed."
+  }
+]

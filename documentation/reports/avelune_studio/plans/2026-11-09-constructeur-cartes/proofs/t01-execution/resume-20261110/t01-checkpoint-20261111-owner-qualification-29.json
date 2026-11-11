@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "at": "2026-11-11T13:30:00+01:00",
+  "head": "7f44a537ed98",
+  "status": "partial_not_accepted",
+  "scope": "Qualification par preuves des 29 sources retirées en source_removed_pending_owner_classification ; mesure de l'état réel de la suite Studio et de G0 sur le HEAD commité.",
+  "inventory": {
+    "path": "ui-retirement-inventory.json",
+    "beforeSha256": "e681f597a00778a34d413381919e9e9661a8210b6f8bac81ed7392020563340f",
+    "afterSha256": "f902f0170b44f5a39538876d2ad6e8c9a91a10f6ed0300d07fe1e51e61db29bf",
+    "qualified": 29,
+    "decisions": {
+      "retired_ui": 6,
+      "kept_open_with_documented_gap": 23
+    },
+    "remainingRetiredNonCanonical": 52,
+    "remainingRetiredNonCanonicalDetail": {
+      "retired_ui_after_extraction": 29,
+      "source_removed_pending_owner_classification": 23
+    },
+    "absentSourcesNotMarkedRetired": 110,
+    "initialFingerprints": "Empreintes initiales T00 conservées ; empreinte au moment de la suppression ajoutée dans retirementObservation. 8 sources ressources et les 10 sources carte avaient été réécrites par 4ebd750e2/861ad496d avant suppression."
+  },
+  "evidence": [
+    "owner-qualification-20261111/qualify-map_workspace.json",
+    "owner-qualification-20261111/qualify-resources.json",
+    "owner-qualification-20261111/qualify-scenes.json",
+    "owner-qualification-20261111/independent-review-retirable-7.json"
+  ],
+  "gapsOfSubstance": [
+    "Scènes : SceneGraphViewport Studio supprimé dans 505f1b71a (pan, zoom, fit, clamps sans propriétaire) ; géométrie du graphe, hit-test des arêtes, liaison clavier et garde async du menu perdus.",
+    "Scènes : la règle « Start ne reçoit pas de liaison » n'existait que dans le canevas ; addSceneEdgeDraft (map_core) ne la vérifie pas (lecture de code, non exécuté).",
+    "Carte : éligibilité des textures de falaise (atlas 1×1 existant) appliquée nulle part ; MapExteriorDecorationController.regenerateBorder sans appelant ni test ; SpatialLedgeEditingCommands.editText sans appelant ni test ; plus aucune entrée vers les modes relief/pente.",
+    "Bordures : remise à zéro des avertissements acceptés au changement de nom, façade ou côté de saut non portée par BorderCreationDraft ; workflows bordures et partition du catalogue testés mais sans appelant dans lib."
+  ],
+  "commands": [
+    {
+      "command": "dart run tools/t01_check_g0.dart --allowlist documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes/t01-technical-exceptions.json",
+      "cwd": "apps/avelune_studio",
+      "exitCode": 1,
+      "result": "1258 constats (329 physiques, 687 joignabilité, 242 symboles), identiques au gel précédent ; lancé avant la mise à jour d'inventaire.",
+      "proof": "owner-qualification-20261111/g0-static-diagnostic-head-7f44a537e.json"
+    },
+    {
+      "command": "flutter test -r failures-only",
+      "cwd": "apps/avelune_studio",
+      "exitCode": 1,
+      "result": "+3791 ~12 -48",
+      "proof": "owner-qualification-20261111/studio-full-suite-failures.log"
+    },
+    {
+      "command": "flutter test --no-pub -r failures-only <18 fichiers en échec hors UI retirée>",
+      "cwd": "apps/avelune_studio",
+      "exitCode": 1,
+      "result": "+86 -22 ; les échecs se reproduisent hors charge de la suite complète.",
+      "proof": "owner-qualification-20261111/studio-isolated-rerun-failures.log"
+    },
+    {
+      "command": "flutter test test/resource_io/border_management_{host,guards_host,layout_host}_test.dart -r failures-only",
+      "cwd": "apps/avelune_studio",
+      "exitCode": 1,
+      "result": "-8 : les tests pilotent des clés et textes de l'atelier Bordures retiré.",
+      "proof": "owner-qualification-20261111/border-management-host-tests-red.log"
+    },
+    {
+      "command": "python3 update_plan.py validate && python3 -m unittest -q test_update_plan",
+      "cwd": "documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes",
+      "exitCode": 0,
+      "result": "Plan valide (88 lots, 0 accepté) ; 26 tests OK."
+    }
+  ],
+  "suiteTriage": {
+    "drivesRetiredUi": "Environ 26 tests hôtes (character_removal_*, border_management_*, portrait, raccourcis, combat Pokémon, artwork narratif) cherchent des widgets retirés ; à réécrire contre les propriétaires ou retirer avec registre retiredUiChecks, jamais supprimer sans preuve.",
+    "architecture": "4 échecs architecture_boundaries ; fichiers en cause datés de 861ad496d/4ebd750e2 (10 novembre), non rejoués sur un commit antérieur.",
+    "toTriage": "Environ 18 échecs métier/runtime/export/playtest non encore classés en régression ou défaut préexistant."
+  },
+  "limits": [
+    "Les qualifications sont des lectures de code ; seuls les tests listés ont été exécutés.",
+    "La séparation régression / préexistant des 48 échecs n'est pas établie.",
+    "Aucun lot T00/T01, aucune cible visuelle et aucune porte G0 ne sont acceptés."
+  ],
+  "mcpParity": "N/A"
+}

@@ -1,0 +1,542 @@
+[
+ {
+  "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_canvas_types.dart",
+  "shaVerified": false,
+  "shaNote": "Deleted blob sha256=c348bc96ad5cd003b768afc54ab325ef5abc7327834385811993f150d083bb30; inventory sha256 f22fb287... is the blob before 861ad496d (two revisions stale). 861ad496d moved SceneGraphViewport out to coordination/scene_graph_viewport.dart, 4ebd750e2 moved scenePortLabel/sceneKindLabel/sceneBlockLabel to features/scenes/application/scene_labels.dart. The inventory's originalHashVerified=true refers to that stale blob.",
+  "responsibilities": [
+   {
+    "what": "Authorable output ports per node",
+    "originalSymbol": "SceneCanvasGeometry.ports",
+    "headOwner": {
+     "path": "packages/map_core/lib/src/authoring/scene_authoring_operations.dart",
+     "symbol": "authorableSceneOutputPortsForNodeInGraph"
+    },
+    "tests": [
+     {
+      "path": "packages/map_core/test/scene_authoring_operations_test.dart",
+      "name": "exposes authorable output ports for V0 node kinds"
+     }
+    ],
+    "status": "preserved"
+   },
+   {
+    "what": "One outgoing edge per source port (occupied-port set used to block wiring)",
+    "originalSymbol": "SceneCanvasGeometry.occupied",
+    "headOwner": {
+     "path": "packages/map_core/lib/src/authoring/scene_authoring_operations.dart",
+     "symbol": "addSceneEdgeDraft (duplicate source port rejection) via SceneEditSession.connect"
+    },
+    "tests": [
+     {
+      "path": "packages/map_core/test/scene_authoring_operations_test.dart",
+      "name": "rejects duplicate dialogue and battle source ports"
+     }
+    ],
+    "status": "preserved"
+   },
+   {
+    "what": "Link target cannot be the source node (no self-loop)",
+    "originalSymbol": "SceneCanvasGeometry.targetAt",
+    "headOwner": {
+     "path": "packages/map_core/lib/src/authoring/scene_authoring_operations.dart",
+     "symbol": "addSceneEdgeDraft (self-loop rejection) via SceneEditSession.connect"
+    },
+    "tests": [
+     {
+      "path": "apps/avelune_studio/test/scene_graph_canvas_test.dart",
+      "name": "invalid connection keeps the document and history intact"
+     }
+    ],
+    "status": "preserved"
+   },
+   {
+    "what": "Start node can never be a link target",
+    "originalSymbol": "SceneCanvasGeometry.targetAt (node.kind == SceneNodeKind.start skipped)",
+    "headOwner": null,
+    "tests": [],
+    "status": "lost"
+   },
+   {
+    "what": "Default position for nodes without a persisted layout (4-column grid, 280x230 step from 40,40)",
+    "originalSymbol": "SceneCanvasGeometry.positions",
+    "headOwner": null,
+    "tests": [],
+    "status": "lost"
+   },
+   {
+    "what": "Node size model (start/end 128x128, others 208 x max(176, 120+26*ports))",
+    "originalSymbol": "SceneCanvasGeometry.nodeSize",
+    "headOwner": null,
+    "tests": [],
+    "status": "lost"
+   },
+   {
+    "what": "Port anchor geometry (input = centerLeft, outputs stacked 26px from bottom-right)",
+    "originalSymbol": "SceneCanvasGeometry.input / output",
+    "headOwner": null,
+    "tests": [],
+    "status": "lost"
+   },
+   {
+    "what": "Graph bounds used by fit, minimap and focus",
+    "originalSymbol": "SceneCanvasGeometry.bounds / nodeRect",
+    "headOwner": null,
+    "tests": [],
+    "status": "lost"
+   },
+   {
+    "what": "Link target hit-test (24px radius around input anchor in screen space)",
+    "originalSymbol": "SceneCanvasGeometry.targetAt",
+    "headOwner": null,
+    "tests": [],
+    "status": "lost"
+   },
+   {
+    "what": "Block descriptor carried by drag/menu (kind, label, optional payload)",
+    "originalSymbol": "SceneBlockDragData",
+    "headOwner": {
+     "path": "apps/avelune_studio/lib/features/scenes/application/scene_block_choice.dart",
+     "symbol": "SceneBlockChoice"
+    },
+    "tests": [],
+    "status": "untested"
+   }
+  ],
+  "verdict": "gap",
+  "rationale": "Only the port catalogue and two link guards survive as map_core domain rules with tests. All graph geometry (default layout, sizes, anchors, bounds, hit-test) has no HEAD owner, and the 'start node cannot receive a link' rule existed only here and in scene_graph_canvas._targets: addSceneEdgeDraft accepts toNodeId == start (source reading, packages/map_core/lib/src/authoring/scene_authoring_operations.dart:1684-1715). SceneBlockChoice is a pure data clone with no consumer. Heuristic owner SceneGraphViewport does not exist at HEAD. SceneGraphViewport (apps/avelune_studio/lib/features/scenes/coordination/scene_graph_viewport.dart) was deleted in the same commit 505f1b71a; the coordination/ directory is empty at HEAD. The map_editor SceneGraphViewport (packages/map_editor/lib/src/ui/canvas/scenes/scene_graph_read_only_view.dart) is an unrelated immutable value type in the legacy editor package and is not a Studio owner."
+ },
+ {
+  "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_graph_canvas.dart",
+  "shaVerified": true,
+  "responsibilities": [
+   {
+    "what": "Commit node move after drag, only when the position changed",
+    "originalSymbol": "_SceneGraphCanvasState._endDrag -> onMoveNode -> SceneEditSession.move",
+    "headOwner": {
+     "path": "apps/avelune_studio/lib/features/scenes/application/scene_edit_session.dart",
+     "symbol": "SceneEditSession.move"
+    },
+    "tests": [
+     {
+      "path": "apps/avelune_studio/test/scene_graph_canvas_test.dart",
+      "name": "canonical layout movement commits once and undo restores its position"
+     },
+     {
+      "path": "apps/avelune_studio/test/scenes/scene_session_ui06_test.dart",
+      "name": "canonical gestures have one history entry and invalid gestures do nothing"
+     }
+    ],
+    "status": "preserved"
+   },
+   {
+    "what": "Skip move commit when the node did not move (no empty history entry)",
+    "originalSymbol": "_endDrag (point != _geometry.positions[id])",
+    "headOwner": {
+     "path": "apps/avelune_studio/lib/features/scenes/application/scene_edit_session.dart",
+     "symbol": "SceneEditSession.commit (next == current guard)"
+    },
+    "tests": [],
+    "status": "untested"
+   },
+   {
+    "what": "Drag delta converted from screen to world (delta / zoom)",
+    "originalSymbol": "_moveDrag",
+    "headOwner": null,
+    "tests": [],
+    "status": "lost"
+   },
+   {
+    "what": "Connect source port to target",
+    "originalSymbol": "_endWire / keyboard Enter -> onConnect -> SceneEditSession.connect",
+    "headOwner": {
+     "path": "apps/avelune_studio/lib/features/scenes/application/scene_edit_session.dart",
+     "symbol": "SceneEditSession.connect"
+    },
+    "tests": [
+     {
+      "path": "apps/avelune_studio/test/scene_graph_canvas_test.dart",
+      "name": "canonical connection keeps exact ports and one undo entry"
+     },
+     {
+      "path": "apps/avelune_studio/test/scene_graph_canvas_test.dart",
+      "name": "invalid connection keeps the document and history intact"
+     },
+     {
+      "path": "apps/avelune_studio/test/scenes/scene_graph_projection_contract_test.dart",
+      "name": "canonical linking makes the exact edge in one undo operation"
+     }
+    ],
+    "status": "preserved"
+   },
+   {
+    "what": "Wire gesture state machine (start only from free port, live target resolution, cancel)",
+    "originalSymbol": "_startWire / _moveWire / _endWire / _cancel / _clearGesture",
+    "headOwner": null,
+    "tests": [],
+    "status": "lost"
+   },
+   {
+    "what": "Keyboard linking: L starts/cycles free ports, Tab/arrows cycle targets ordered by x then y, Enter connects, Esc cancels, empty-port/no-target refusal",
+    "originalSymbol": "_keyboardLinkKey / _freePorts / _targets",
+    "headOwner": null,
+    "tests": [],
+    "status": "lost"
+   },
+   {
+    "what": "Start node excluded from link targets",
+    "originalSymbol": "_targets",
+    "headOwner": null,
+    "tests": [],
+    "status": "lost"
+   },
+   {
+    "what": "Add block at world position, optionally linked from the pending wire",
+    "originalSymbol": "_menu / onDrop -> onAdd -> page add -> SceneEditSession.addAt",
+    "headOwner": {
+     "path": "apps/avelune_studio/lib/features/scenes/application/scene_edit_session.dart",
+     "symbol": "SceneEditSession.addAt"
+    },
+    "tests": [
+     {
+      "path": "apps/avelune_studio/test/scenes/scene_authoring_commands_test.dart",
+      "name": "adding a linked node lays out and connects in one undo entry"
+     },
+     {
+      "path": "apps/avelune_studio/test/scenes/scene_authoring_commands_test.dart",
+      "name": "a rejected connection cannot retain its newly created node"
+     },
+     {
+      "path": "apps/avelune_studio/test/scenes/scene_authoring_commands_test.dart",
+      "name": "read only scene rejects an addition without changing its draft"
+     }
+    ],
+    "status": "preserved"
+   },
+   {
+    "what": "Screen-to-world conversion of the drop/menu point",
+    "originalSymbol": "_menu / onDrop (viewport.localToWorld)",
+    "headOwner": null,
+    "tests": [],
+    "status": "lost"
+   },
+   {
+    "what": "Async guard: menu result dropped if unmounted or scene/viewport changed while the dialog was open",
+    "originalSymbol": "_menuRevision checks in _menu and didUpdateWidget",
+    "headOwner": null,
+    "tests": [],
+    "status": "lost"
+   },
+   {
+    "what": "Gesture reset when scene identity changes",
+    "originalSymbol": "didUpdateWidget",
+    "headOwner": null,
+    "tests": [],
+    "status": "lost"
+   },
+   {
+    "what": "Background tap: edge hit-test selects edge, otherwise clears selection",
+    "originalSymbol": "onBackgroundTap (sceneEdgeAt)",
+    "headOwner": null,
+    "tests": [],
+    "status": "lost"
+   },
+   {
+    "what": "Undo/redo shortcut (Ctrl/Cmd+Z, +Shift)",
+    "originalSymbol": "_key -> onUndo/onRedo -> SceneEditSession.restore",
+    "headOwner": {
+     "path": "apps/avelune_studio/lib/features/scenes/application/scene_edit_session.dart",
+     "symbol": "SceneEditSession.restore"
+    },
+    "tests": [
+     {
+      "path": "apps/avelune_studio/test/scenes/scene_history_ui06_test.dart",
+      "name": "bounded scene history retains latest changes and saved baseline"
+     },
+     {
+      "path": "apps/avelune_studio/test/scene_graph_canvas_test.dart",
+      "name": "read-only mutation and history guards remain enforced"
+     }
+    ],
+    "status": "preserved"
+   },
+   {
+    "what": "Save shortcut (Ctrl/Cmd+S)",
+    "originalSymbol": "_key -> onSave -> SceneWorkspaceController.save",
+    "headOwner": {
+     "path": "apps/avelune_studio/lib/features/scenes/application/scene_workspace_controller.dart",
+     "symbol": "SceneWorkspaceController.save"
+    },
+    "tests": [
+     {
+      "path": "apps/avelune_studio/test/scenes/scene_session_ui06_test.dart",
+      "name": "receipt only cleans captured snapshot and never newer edits"
+     },
+     {
+      "path": "apps/avelune_studio/test/scenes/scene_session_ui06_test.dart",
+      "name": "late save after disposal cannot replace workspace or clean draft"
+     }
+    ],
+    "status": "preserved"
+   },
+   {
+    "what": "Duplicate shortcut (Ctrl/Cmd+D)",
+    "originalSymbol": "_key -> onDuplicate -> SceneEditSession.duplicate",
+    "headOwner": {
+     "path": "apps/avelune_studio/lib/features/scenes/application/scene_edit_session.dart",
+     "symbol": "SceneEditSession.duplicate"
+    },
+    "tests": [
+     {
+      "path": "apps/avelune_studio/test/scenes/scene_session_ui06_test.dart",
+      "name": "canonical gestures have one history entry and invalid gestures do nothing"
+     },
+     {
+      "path": "packages/map_core/test/scene_authoring_operations_test.dart",
+      "name": "duplicates a node payload and layout without copying its edges"
+     }
+    ],
+    "status": "preserved"
+   },
+   {
+    "what": "Delete shortcut (Delete/Backspace) -> delete selected edge or node",
+    "originalSymbol": "_key -> onDelete -> SceneEditSession.disconnect / delete",
+    "headOwner": {
+     "path": "apps/avelune_studio/lib/features/scenes/application/scene_edit_session.dart",
+     "symbol": "SceneEditSession.disconnect / SceneEditSession.delete"
+    },
+    "tests": [
+     {
+      "path": "apps/avelune_studio/test/scene_graph_canvas_test.dart",
+      "name": "disconnect targets the exact edge and undo restores both connections"
+     },
+     {
+      "path": "apps/avelune_studio/test/scene_graph_canvas_test.dart",
+      "name": "read-only mutation and history guards remain enforced"
+     },
+     {
+      "path": "packages/map_core/test/scene_authoring_operations_test.dart",
+      "name": "removes a V0 node draft and its connected edges without mutation"
+     }
+    ],
+    "status": "preserved"
+   },
+   {
+    "what": "Keyboard shortcut routing itself (which key triggers which command, link mode precedence, Space/Ctrl+K opens add menu)",
+    "originalSymbol": "_SceneGraphCanvasState._key",
+    "headOwner": null,
+    "tests": [],
+    "status": "lost"
+   },
+   {
+    "what": "Fit viewport to graph bounds on first layout",
+    "originalSymbol": "onSize (viewport.fit(_geometry.bounds))",
+    "headOwner": null,
+    "tests": [],
+    "status": "lost"
+   }
+  ],
+  "verdict": "gap",
+  "rationale": "Every document mutation the canvas triggered still has a tested SceneEditSession/SceneWorkspaceController owner, but nothing in apps/avelune_studio/lib calls them for scenes any more. The canvas's own logic has no HEAD owner: the wire and keyboard-link state machines, the start-target exclusion, the edge hit-test selection, screen-to-world conversion, the stale-menu async guard (_menuRevision), shortcut routing and first-layout fit. The no-op move guard now relies only on an untested commit equality, and a node without a layout falls back to a grid position that no longer exists. Heuristic owner SceneGraphViewport is gone at HEAD. SceneGraphViewport (apps/avelune_studio/lib/features/scenes/coordination/scene_graph_viewport.dart) was deleted in the same commit 505f1b71a; the coordination/ directory is empty at HEAD. The map_editor SceneGraphViewport (packages/map_editor/lib/src/ui/canvas/scenes/scene_graph_read_only_view.dart) is an unrelated immutable value type in the legacy editor package and is not a Studio owner."
+ },
+ {
+  "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_canvas_painter.dart",
+  "shaVerified": true,
+  "responsibilities": [
+   {
+    "what": "Edge routing curve (cubic with bend = max(48, |dx|/2)) used for hit-testing",
+    "originalSymbol": "sceneWirePath",
+    "headOwner": null,
+    "tests": [],
+    "status": "lost"
+   },
+   {
+    "what": "Edge hit-test for selection (10px tolerance sampled every 6px, topmost edge first, dangling edges skipped)",
+    "originalSymbol": "sceneEdgeAt",
+    "headOwner": null,
+    "tests": [],
+    "status": "lost"
+   }
+  ],
+  "verdict": "gap",
+  "rationale": "SceneCanvasPainter.paint (grid, colours, arrows) is pure painting. But sceneEdgeAt is the only edge-selection hit-test, and scene_graph_canvas used it to pick between selecting an edge and clearing the selection. It has no HEAD owner and no test. Heuristic owner SceneGraphViewport is absent at HEAD and never held this logic."
+ },
+ {
+  "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_canvas_surface.dart",
+  "shaVerified": true,
+  "responsibilities": [
+   {
+    "what": "Wheel zoom at cursor (x0.9 / x1.1), suppressed while wiring",
+    "originalSymbol": "Listener.onPointerSignal -> viewport.zoomAt",
+    "headOwner": null,
+    "tests": [],
+    "status": "lost"
+   },
+   {
+    "what": "Trackpad pan-zoom gesture (start/update/end), suppressed while wiring",
+    "originalSymbol": "onPointerPanZoomStart/Update/End -> viewport.startTrackpad/updateTrackpad/trackpadActive",
+    "headOwner": null,
+    "tests": [],
+    "status": "lost"
+   },
+   {
+    "what": "Background drag pans the viewport unless wiring or trackpad active",
+    "originalSymbol": "GestureDetector.onPanUpdate -> viewport.translate",
+    "headOwner": null,
+    "tests": [],
+    "status": "lost"
+   },
+   {
+    "what": "Zoom in/out buttons around viewport centre",
+    "originalSymbol": "IconButton scene-graph-zoom-in/out -> viewport.zoomAt",
+    "headOwner": null,
+    "tests": [],
+    "status": "lost"
+   },
+   {
+    "what": "Fit scene and centre on selected node",
+    "originalSymbol": "IconButton -> viewport.fit(geometry.bounds) / viewport.centerOn(nodeRect.center)",
+    "headOwner": null,
+    "tests": [],
+    "status": "lost"
+   },
+   {
+    "what": "Secondary tap opens add menu at point; drop accepts a block at a global offset",
+    "originalSymbol": "onSecondaryTapDown / DragTarget.onAcceptWithDetails",
+    "headOwner": null,
+    "tests": [],
+    "status": "lost"
+   }
+  ],
+  "verdict": "gap",
+  "rationale": "The heuristic's ui_retire claim is wrong. The surface changes viewport state (pan, zoom, trackpad focal anchoring, fit, centre-on) and gates gestures while a wire is in progress. The viewport owner (scene_graph_viewport.dart, with its .3-2.5 zoom clamp and .3-1.1 fit clamp) was deleted in 505f1b71a and no HEAD test covers this behaviour. The remaining parts (theme colours, minimap visibility threshold, hint text, tooltips) are visual."
+ },
+ {
+  "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_canvas_minimap.dart",
+  "shaVerified": true,
+  "responsibilities": [
+   {
+    "what": "Minimap tap/drag re-centres the viewport (minimap-local to world projection over bounds inflated by 40)",
+    "originalSymbol": "SceneCanvasMinimap.build center() -> viewport.centerOn",
+    "headOwner": null,
+    "tests": [],
+    "status": "lost"
+   },
+   {
+    "what": "Visible-world rectangle computation (localToWorld of the viewport corners)",
+    "originalSymbol": "_MiniPainter.paint",
+    "headOwner": null,
+    "tests": [],
+    "status": "untested"
+   }
+  ],
+  "verdict": "gap",
+  "rationale": "The heuristic's ui_retire claim is wrong for the interaction: tapping or dragging the minimap moves the viewport through a world projection. Neither that nor the viewport owner exists at HEAD. The visible-rect computation only feeds painting and would be visual on its own, but it shares the lost projection."
+ },
+ {
+  "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_canvas_layer.dart",
+  "shaVerified": true,
+  "responsibilities": [
+   {
+    "what": "World-to-screen placement of nodes and ports, drag delta re-scaled by zoom",
+    "originalSymbol": "SceneCanvasLayer._node / _ports (viewport.worldToLocal, delta * zoom)",
+    "headOwner": null,
+    "tests": [],
+    "status": "lost"
+   },
+   {
+    "what": "Occupied output port is disabled (cannot start a wire)",
+    "originalSymbol": "SceneCanvasLayer._ports (disabled: geometry.occupied)",
+    "headOwner": {
+     "path": "packages/map_core/lib/src/authoring/scene_authoring_operations.dart",
+     "symbol": "addSceneEdgeDraft (duplicate source port rejection)"
+    },
+    "tests": [
+     {
+      "path": "packages/map_core/test/scene_authoring_operations_test.dart",
+      "name": "rejects duplicate dialogue and battle source ports"
+     }
+    ],
+    "status": "preserved"
+   },
+   {
+    "what": "Start node exposes no input port (cannot be a link target)",
+    "originalSymbol": "SceneCanvasLayer._ports (node.kind != SceneNodeKind.start)",
+    "headOwner": null,
+    "tests": [],
+    "status": "lost"
+   }
+  ],
+  "verdict": "gap",
+  "rationale": "Mostly composition and transforms. It does enforce two link rules, though. The occupied-port rule is backed by a tested domain guard. The 'start cannot receive a link' rule has no domain counterpart at HEAD (see scene_canvas_types). The heuristic's ui_retire claim is only true once that rule has a domain owner."
+ },
+ {
+  "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_canvas_node.dart",
+  "shaVerified": true,
+  "responsibilities": [
+   {
+    "what": "Node drag lifecycle (start/move/end/cancel) feeding the move command",
+    "originalSymbol": "_SceneCanvasNodeState GestureDetector.onPan* -> onStart/onMove/onEnd/onCancel",
+    "headOwner": {
+     "path": "apps/avelune_studio/lib/features/scenes/application/scene_edit_session.dart",
+     "symbol": "SceneEditSession.move (final commit only)"
+    },
+    "tests": [
+     {
+      "path": "apps/avelune_studio/test/scene_graph_canvas_test.dart",
+      "name": "canonical layout movement commits once and undo restores its position"
+     }
+    ],
+    "status": "untested"
+   },
+   {
+    "what": "Trackpad-origin pans are not treated as node drags",
+    "originalSymbol": "onPanStart (dragging = event.kind != PointerDeviceKind.trackpad)",
+    "headOwner": null,
+    "tests": [],
+    "status": "lost"
+   },
+   {
+    "what": "Keyboard activation (ActivateIntent) and tap select the node",
+    "originalSymbol": "FocusableActionDetector actions / onTap -> onSelect",
+    "headOwner": {
+     "path": "apps/avelune_studio/lib/features/scenes/application/scene_builder_editing_state.dart",
+     "symbol": "SceneBuilderEditingState.nodeId (state holder only; no select command)"
+    },
+    "tests": [],
+    "status": "lost"
+   },
+   {
+    "what": "Output port pointer lifecycle and disabled-port refusal",
+    "originalSymbol": "SceneCanvasPort Listener (disabled ? null)",
+    "headOwner": {
+     "path": "packages/map_core/lib/src/authoring/scene_authoring_operations.dart",
+     "symbol": "addSceneEdgeDraft (duplicate source port rejection)"
+    },
+    "tests": [
+     {
+      "path": "packages/map_core/test/scene_authoring_operations_test.dart",
+      "name": "rejects duplicate dialogue and battle source ports"
+     }
+    ],
+    "status": "preserved"
+   }
+  ],
+  "verdict": "gap",
+  "rationale": "sceneNodeColor, sceneBlockColor, sceneBlockIcon and the card and port styling are visual. The gesture semantics are not: the trackpad-vs-drag discrimination and keyboard activation selection have no HEAD owner. The drag lifecycle reaches a tested final command, but the gesture itself is untested. The heuristic owner SceneWorkspaceController only manages sessions (open/create/discard/save) and holds none of this."
+ },
+ {
+  "path": "apps/avelune_studio/lib/presentation/features/scenes/scene_canvas_menu.dart",
+  "shaVerified": true,
+  "responsibilities": [
+   {
+    "what": "Add-block picker: case-insensitive label filter and returning the chosen block",
+    "originalSymbol": "showSceneCanvasMenu / _SceneCanvasMenuState.build",
+    "headOwner": null,
+    "tests": [],
+    "status": "lost"
+   }
+  ],
+  "verdict": "gap",
+  "rationale": "Low severity. The dialog never mutates the scene: the add action lives in scene_graph_canvas._menu, and SceneEditSession.addAt is tested. Its only logic is a block-search filter with no HEAD equivalent. sceneNodeMatches (scene_node_search.dart) searches existing nodes, not insertable blocks. If that filter is accepted as presentation state, this file becomes retired_ui. The heuristic's ui_retire is defensible only under that reading."
+ }
+]

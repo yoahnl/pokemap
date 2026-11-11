@@ -1,0 +1,18 @@
+# green
+00:02 +6: All tests passed!
+# mutation guard_off
+00:03 +3 -3: Some tests failed.
+test/characters/character_removal_owner_guard_test.dart: a dirty draft of the removed character refuses inspection and keeps the draft
+test/characters/character_removal_owner_guard_test.dart: a dirty draft of the replacement refuses the replace resolution and keeps the map reference
+test/characters/character_removal_owner_guard_test.dart: a dirty map that references the character refuses removal and saves nothing
+# mutation guard_all_maps
+00:02 +3 -3: Some tests failed.
+test/characters/character_removal_owner_guard_test.dart: a dirty draft of the replacement refuses the replace resolution and keeps the map reference
+test/characters/character_removal_owner_guard_test.dart: a dirty map without the character does not block removal and stays dirty
+test/characters/character_removal_owner_guard_test.dart: a replacement keeps the open map history and refuses an undo to the deleted character
+# mutation reconcile_all
+00:02 +5 -1: Some tests failed.
+test/characters/character_removal_owner_guard_test.dart: a removal drops only the removed draft and keeps another dirty draft
+# mutation history_off
+00:02 +5 -1: Some tests failed.
+test/characters/character_removal_owner_guard_test.dart: a replacement keeps the open map history and refuses an undo to the deleted character

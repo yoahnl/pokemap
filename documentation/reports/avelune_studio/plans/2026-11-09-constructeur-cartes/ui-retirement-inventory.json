@@ -4445,6 +4445,22 @@
         ],
         "responsibilityCoverageVerified": false,
         "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      },
+      "ownerQualification": {
+        "verdict": "gap",
+        "unownedOrUntested": [
+          "Exterior decoration border regeneration (button Régénérer le tracé), errors routed to document.error",
+          "Exterior decoration border removal + clearing view.borderFeature",
+          "Draft scoped to the active map (draft.mapId == current map id)"
+        ],
+        "evidence": "proofs/t01-execution/owner-qualification-20261111/qualify-map_workspace.json",
+        "note": "Décision maintenue ouverte : extraction ou test RUI-005 requis avant classement canonique."
+      },
+      "retirementObservation": {
+        "deletedIn": "505f1b71a",
+        "sha256BeforeDeletion": "4e38f75ec509d9461f626fd15210fd1f4bcd299259dc29b4a8c140f96c4d429c",
+        "initialSha256Matches": false,
+        "note": "Empreinte initiale T00 conservée ; le fichier a été réécrit par des commits d’extraction avant sa suppression."
       }
     },
     {
@@ -4954,6 +4970,21 @@
         ],
         "responsibilityCoverageVerified": false,
         "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      },
+      "ownerQualification": {
+        "verdict": "gap",
+        "unownedOrUntested": [
+          "Entrée vers le mode terrain relief/pente (view.spatialTerrainMode = relief) : plus aucun code ne la pose ; réfuté par la revue indépendante."
+        ],
+        "evidence": "proofs/t01-execution/owner-qualification-20261111/qualify-map_workspace.json",
+        "note": "Décision maintenue ouverte : extraction ou test RUI-005 requis avant classement canonique.",
+        "independentReview": "proofs/t01-execution/owner-qualification-20261111/independent-review-retirable-7.json"
+      },
+      "retirementObservation": {
+        "deletedIn": "505f1b71a",
+        "sha256BeforeDeletion": "3c60b3616cdea17d3b74fdab5b864386207dc67956554e312c1f0a5b02361cf8",
+        "initialSha256Matches": false,
+        "note": "Empreinte initiale T00 conservée ; le fichier a été réécrit par des commits d’extraction avant sa suppression."
       }
     },
     {
@@ -5749,6 +5780,21 @@
         ],
         "responsibilityCoverageVerified": false,
         "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      },
+      "ownerQualification": {
+        "verdict": "gap",
+        "unownedOrUntested": [
+          "Only offer presets available to the active map (resourceLibraryCatalog.availableForMap environmentPreset) before creating a zone",
+          "Map failures to user messages (StateError, region_too_large)"
+        ],
+        "evidence": "proofs/t01-execution/owner-qualification-20261111/qualify-map_workspace.json",
+        "note": "Décision maintenue ouverte : extraction ou test RUI-005 requis avant classement canonique."
+      },
+      "retirementObservation": {
+        "deletedIn": "505f1b71a",
+        "sha256BeforeDeletion": "c36a21900bd6bf857adf96662c6172dc945341994a536fac5db5197437620ad5",
+        "initialSha256Matches": false,
+        "note": "Empreinte initiale T00 conservée ; le fichier a été réécrit par des commits d’extraction avant sa suppression."
       }
     },
     {
@@ -6611,7 +6657,7 @@
         "MapTerrainInspector"
       ],
       "mixedResponsibilities": false,
-      "decision": "source_removed_pending_owner_classification",
+      "decision": "retired_ui",
       "retired": true,
       "retirementStatus": "source_removed",
       "note": "Panneau historique de construction retiré ; 19 tests host et 64 tests ciblés commandes/viewports passent en copie QA. Réglages UI temporairement indisponibles ; qualification des responsabilités, intégration globale et G0 restent ouverts.",
@@ -6625,6 +6671,23 @@
         "lacunae": [],
         "responsibilityCoverageVerified": false,
         "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      },
+      "retirementVerification": {
+        "status": "partial_scoped",
+        "owners": [
+          "MapWorkspaceEditingState.highlightTerrain",
+          "MapWorkspaceEditingState.dimOtherTerrains",
+          "mapTerrainHighlight"
+        ],
+        "note": "Réglages d'affichage seulement ; aucune écriture de document. Réserve : plus aucun code ne pose ces deux drapeaux, figés à leurs valeurs par défaut jusqu'à la reconstruction. Les contrôles terrain intégrés relèvent de spatial_terrain_controls.dart, qualifié séparément en gap.",
+        "evidence": "proofs/t01-execution/owner-qualification-20261111/qualify-map_workspace.json",
+        "independentReview": "proofs/t01-execution/owner-qualification-20261111/independent-review-retirable-7.json"
+      },
+      "retirementObservation": {
+        "deletedIn": "505f1b71a",
+        "sha256BeforeDeletion": "1a7dd406de651a7f516cda8e7f5398a3328978daaafc122405bf43403be8e79a",
+        "initialSha256Matches": false,
+        "note": "Empreinte initiale T00 conservée ; le fichier a été réécrit par des commits d’extraction avant sa suppression."
       }
     },
     {
@@ -6702,6 +6765,20 @@
         ],
         "responsibilityCoverageVerified": false,
         "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      },
+      "ownerQualification": {
+        "verdict": "gap",
+        "unownedOrUntested": [
+          "Skip the write when the chosen activation/table equals the effective current value (absent layer = always / none), so no layer or undo entry is created"
+        ],
+        "evidence": "proofs/t01-execution/owner-qualification-20261111/qualify-map_workspace.json",
+        "note": "Décision maintenue ouverte : extraction ou test RUI-005 requis avant classement canonique."
+      },
+      "retirementObservation": {
+        "deletedIn": "505f1b71a",
+        "sha256BeforeDeletion": "ef78ffdd71b3868c070b4141a2b2a9b97de13a3bd330683f561fbcfb3447bd4d",
+        "initialSha256Matches": false,
+        "note": "Empreinte initiale T00 conservée ; le fichier a été réécrit par des commits d’extraction avant sa suppression."
       }
     },
     {
@@ -8129,7 +8206,7 @@
         "SpatialFishingEditor"
       ],
       "mixedResponsibilities": false,
-      "decision": "source_removed_pending_owner_classification",
+      "decision": "retired_ui",
       "retired": true,
       "retirementStatus": "source_removed",
       "note": "Panneau historique de construction retiré ; 19 tests host et 64 tests ciblés commandes/viewports passent en copie QA. Réglages UI temporairement indisponibles ; qualification des responsabilités, intégration globale et G0 restent ouverts.",
@@ -8158,6 +8235,21 @@
         ],
         "responsibilityCoverageVerified": false,
         "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      },
+      "retirementVerification": {
+        "status": "partial_scoped",
+        "owners": [
+          "MapSpatialSettingsCommands.fishingDrop"
+        ],
+        "note": "Hauteur de pêche portée par MapSpatialSettingsCommands.fishingDrop, inchangée et testée (décimales françaises, refus, annulation, enregistrement en cours). Réserve : message d'erreur et bornes inclusives 0 et 4 non assertés.",
+        "evidence": "proofs/t01-execution/owner-qualification-20261111/qualify-map_workspace.json",
+        "independentReview": "proofs/t01-execution/owner-qualification-20261111/independent-review-retirable-7.json"
+      },
+      "retirementObservation": {
+        "deletedIn": "505f1b71a",
+        "sha256BeforeDeletion": "336197fab77340c6bb5d2a088195a02231af2390278af06b5cee72783a1b78be",
+        "initialSha256Matches": false,
+        "note": "Empreinte initiale T00 conservée ; le fichier a été réécrit par des commits d’extraction avant sa suppression."
       }
     },
     {
@@ -8197,6 +8289,20 @@
         ],
         "responsibilityCoverageVerified": false,
         "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      },
+      "ownerQualification": {
+        "verdict": "gap",
+        "unownedOrUntested": [
+          "Text field parsing: integer for x/z/distance/durationMs, French decimal for height; saving guard"
+        ],
+        "evidence": "proofs/t01-execution/owner-qualification-20261111/qualify-map_workspace.json",
+        "note": "Décision maintenue ouverte : extraction ou test RUI-005 requis avant classement canonique."
+      },
+      "retirementObservation": {
+        "deletedIn": "505f1b71a",
+        "sha256BeforeDeletion": "7c47594d656f319192aea749fba1b66c77fbcd4362f78be8f5f38f1eeb878a92",
+        "initialSha256Matches": false,
+        "note": "Empreinte initiale T00 conservée ; le fichier a été réécrit par des commits d’extraction avant sa suppression."
       }
     },
     {
@@ -8471,6 +8577,20 @@
         ],
         "responsibilityCoverageVerified": false,
         "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      },
+      "ownerQualification": {
+        "verdict": "gap",
+        "unownedOrUntested": [
+          "On document/view rebind, keep the selected ramp only if the new document is the same map"
+        ],
+        "evidence": "proofs/t01-execution/owner-qualification-20261111/qualify-map_workspace.json",
+        "note": "Décision maintenue ouverte : extraction ou test RUI-005 requis avant classement canonique."
+      },
+      "retirementObservation": {
+        "deletedIn": "505f1b71a",
+        "sha256BeforeDeletion": "a7122b6e4912ddedbcee71b6aa2597f06559726b7a0ec54ef4a3685035e4eed7",
+        "initialSha256Matches": false,
+        "note": "Empreinte initiale T00 conservée ; le fichier a été réécrit par des commits d’extraction avant sa suppression."
       }
     },
     {
@@ -8516,6 +8636,20 @@
         ],
         "responsibilityCoverageVerified": false,
         "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      },
+      "ownerQualification": {
+        "verdict": "gap",
+        "unownedOrUntested": [
+          "Cliff atlas eligibility: only 1x1 atlases (or the current one) whose tileset image exists in the project"
+        ],
+        "evidence": "proofs/t01-execution/owner-qualification-20261111/qualify-map_workspace.json",
+        "note": "Décision maintenue ouverte : extraction ou test RUI-005 requis avant classement canonique."
+      },
+      "retirementObservation": {
+        "deletedIn": "505f1b71a",
+        "sha256BeforeDeletion": "74d0aac75c45a051733e2f458fef87bdf829f43b5e38b14b55bde0483d04d6b9",
+        "initialSha256Matches": false,
+        "note": "Empreinte initiale T00 conservée ; le fichier a été réécrit par des commits d’extraction avant sa suppression."
       }
     },
     {
@@ -8561,6 +8695,21 @@
         ],
         "responsibilityCoverageVerified": false,
         "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      },
+      "ownerQualification": {
+        "verdict": "gap",
+        "unownedOrUntested": [
+          "On rebind to another map, reset view.spatialSurfaceId so a stale id is not reused",
+          "Reload the draft when the document changes externally or the canvas selection (view.spatialSurfaceId) changes"
+        ],
+        "evidence": "proofs/t01-execution/owner-qualification-20261111/qualify-map_workspace.json",
+        "note": "Décision maintenue ouverte : extraction ou test RUI-005 requis avant classement canonique."
+      },
+      "retirementObservation": {
+        "deletedIn": "505f1b71a",
+        "sha256BeforeDeletion": "11863b0f0629bc5a1c4993ec331c7a6bd648cad36ae3f573d7fc9ea5633847a5",
+        "initialSha256Matches": false,
+        "note": "Empreinte initiale T00 conservée ; le fichier a été réécrit par des commits d’extraction avant sa suppression."
       }
     },
     {
@@ -15238,6 +15387,25 @@
         ],
         "responsibilityCoverageVerified": false,
         "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      },
+      "ownerQualification": {
+        "verdict": "gap",
+        "unownedOrUntested": [
+          "Invalidate accepted warning codes when the name, the horizontal-facade flag or the native jump side changes (otherwise the next publish sends stale acceptedWarningCodes)",
+          "Map scope of the source library: activeMapId derived from resourceLibraryCatalog.entryFor('borderBlueprint', pendingId)?.mapId",
+          "Feed rendering diagnostics into native ledge completeness (unavailable resource ids)",
+          "Creation-only editability of straightOnly / followContourDirection / horizontalFacade (toggles offered only when initialRecord == null)",
+          "Edit lock while saving (source assignment disabled via activeModelId null, facade and jump toggles disabled, ledge name disabled)",
+          "Warning code to label conversion (coverage_gap_exceeded, coverage_overlap_exceeded)"
+        ],
+        "evidence": "proofs/t01-execution/owner-qualification-20261111/qualify-resources.json",
+        "note": "Décision maintenue ouverte : extraction ou test RUI-005 requis avant classement canonique."
+      },
+      "retirementObservation": {
+        "deletedIn": "505f1b71a",
+        "sha256BeforeDeletion": "123697db2afce789c5d8a8decc12269d3737288e99de6c0fad04d7e054ae59cf",
+        "initialSha256Matches": false,
+        "note": "Empreinte initiale T00 conservée ; le fichier a été réécrit par des commits d’extraction avant sa suppression."
       }
     },
     {
@@ -15246,7 +15414,7 @@
       "sha256": "f41b20d4c74f5c5323aeee6974c5ef0fab563aff9300147f16e9b0e73baf895f",
       "widgetClasses": [],
       "mixedResponsibilities": true,
-      "decision": "source_removed_pending_owner_classification",
+      "decision": "retired_ui",
       "retired": true,
       "retirementStatus": "source_removed",
       "note": "Composition historique de l’atelier Bordures retirée ; 69 tests ciblés passent en copie QA. Une action restante menant à l’ancien atelier est en correction ; qualification des responsabilités et G0 restent ouverts.",
@@ -15260,6 +15428,21 @@
         "lacunae": [],
         "responsibilityCoverageVerified": false,
         "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      },
+      "retirementVerification": {
+        "status": "partial_scoped",
+        "owners": [
+          "BorderCreationWorkflow.requestClose"
+        ],
+        "note": "Dialogue renvoyant un booléen ; la décision et l'appartenance à l'éditeur actif sont portées et testées par BorderCreationWorkflow.requestClose.",
+        "evidence": "proofs/t01-execution/owner-qualification-20261111/qualify-resources.json",
+        "independentReview": "proofs/t01-execution/owner-qualification-20261111/independent-review-retirable-7.json"
+      },
+      "retirementObservation": {
+        "deletedIn": "505f1b71a",
+        "sha256BeforeDeletion": "f41b20d4c74f5c5323aeee6974c5ef0fab563aff9300147f16e9b0e73baf895f",
+        "initialSha256Matches": true,
+        "note": "Empreinte initiale identique à la version supprimée."
       }
     },
     {
@@ -15284,6 +15467,20 @@
         "lacunae": [],
         "responsibilityCoverageVerified": false,
         "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      },
+      "ownerQualification": {
+        "verdict": "gap",
+        "unownedOrUntested": [
+          "Drag-and-drop payload conversion ProjectElementEntry -> ResourceItem(kind: decors, element) before assigning a role"
+        ],
+        "evidence": "proofs/t01-execution/owner-qualification-20261111/qualify-resources.json",
+        "note": "Décision maintenue ouverte : extraction ou test RUI-005 requis avant classement canonique."
+      },
+      "retirementObservation": {
+        "deletedIn": "505f1b71a",
+        "sha256BeforeDeletion": "f1aa55c0e41edc8dbdea27cba53d28ddec674c9dce7f8300ea165739c7c48eda",
+        "initialSha256Matches": false,
+        "note": "Empreinte initiale T00 conservée ; le fichier a été réécrit par des commits d’extraction avant sa suppression."
       }
     },
     {
@@ -15294,7 +15491,7 @@
         "BorderSequenceControls"
       ],
       "mixedResponsibilities": false,
-      "decision": "source_removed_pending_owner_classification",
+      "decision": "retired_ui",
       "retired": true,
       "retirementStatus": "source_removed",
       "note": "Composition historique de l’atelier Bordures retirée ; 69 tests ciblés passent en copie QA. Une action restante menant à l’ancien atelier est en correction ; qualification des responsabilités et G0 restent ouverts.",
@@ -15308,6 +15505,21 @@
         "lacunae": [],
         "responsibilityCoverageVerified": false,
         "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      },
+      "retirementVerification": {
+        "status": "partial_scoped",
+        "owners": [
+          "BorderCreationDraft.setSequenceLength"
+        ],
+        "note": "Vue sans état ; analyse de longueur dans BorderCreationDraft.setSequenceLength, testée. Réserve : la garde « enregistrement en cours » du choix de modèle 3D vivait dans border_creation_dialog.dart (gap séparé).",
+        "evidence": "proofs/t01-execution/owner-qualification-20261111/qualify-resources.json",
+        "independentReview": "proofs/t01-execution/owner-qualification-20261111/independent-review-retirable-7.json"
+      },
+      "retirementObservation": {
+        "deletedIn": "505f1b71a",
+        "sha256BeforeDeletion": "a8c5794b0ac1e1f4bd1d4208b3401988f2e865ee20f7d05e2596cf1918075a12",
+        "initialSha256Matches": true,
+        "note": "Empreinte initiale identique à la version supprimée."
       }
     },
     {
@@ -15332,6 +15544,21 @@
         "lacunae": [],
         "responsibilityCoverageVerified": false,
         "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      },
+      "ownerQualification": {
+        "verdict": "gap",
+        "unownedOrUntested": [
+          "Source eligibility: 3D -> model3d items, 2D -> element items",
+          "Map-scoped resources hidden unless the border itself is map-scoped (activeMapId != null || metadata.mapId == null)"
+        ],
+        "evidence": "proofs/t01-execution/owner-qualification-20261111/qualify-resources.json",
+        "note": "Décision maintenue ouverte : extraction ou test RUI-005 requis avant classement canonique."
+      },
+      "retirementObservation": {
+        "deletedIn": "505f1b71a",
+        "sha256BeforeDeletion": "84164a9e77476b11e6d8196b24d166903f14f10626040086861f02ac049b402f",
+        "initialSha256Matches": false,
+        "note": "Empreinte initiale T00 conservée ; le fichier a été réécrit par des commits d’extraction avant sa suppression."
       }
     },
     {
@@ -15857,6 +16084,21 @@
         "lacunae": [],
         "responsibilityCoverageVerified": false,
         "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      },
+      "ownerQualification": {
+        "verdict": "gap",
+        "unownedOrUntested": [
+          "Conversion of MapWorkspaceVisuals.diagnostics into the unavailable resource id set",
+          "Jump side editable only when the record already has a jumpBehavior; string -> BorderLineSide conversion"
+        ],
+        "evidence": "proofs/t01-execution/owner-qualification-20261111/qualify-resources.json",
+        "note": "Décision maintenue ouverte : extraction ou test RUI-005 requis avant classement canonique."
+      },
+      "retirementObservation": {
+        "deletedIn": "505f1b71a",
+        "sha256BeforeDeletion": "56107a62294c247328e1fb257561c85abf16061397bf76e2ec8bc0533329691e",
+        "initialSha256Matches": false,
+        "note": "Empreinte initiale T00 conservée ; le fichier a été réécrit par des commits d’extraction avant sa suppression."
       }
     },
     {
@@ -15900,6 +16142,21 @@
         ],
         "responsibilityCoverageVerified": false,
         "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      },
+      "ownerQualification": {
+        "verdict": "gap",
+        "unownedOrUntested": [
+          "Publish the optimise action, busy and error to StudioHomeNavigation, and clear it on dispose only if still the registered handler",
+          "Register/unregister the exit guard with the session lifecycle"
+        ],
+        "evidence": "proofs/t01-execution/owner-qualification-20261111/qualify-resources.json",
+        "note": "Décision maintenue ouverte : extraction ou test RUI-005 requis avant classement canonique."
+      },
+      "retirementObservation": {
+        "deletedIn": "4ebd750e2",
+        "sha256BeforeDeletion": "e3d5feb61cbca4b35f5da3cedfdef5f2c37a638b4202e97056bf46149bd91f11",
+        "initialSha256Matches": true,
+        "note": "Empreinte initiale identique à la version supprimée."
       }
     },
     {
@@ -15910,7 +16167,7 @@
         "ResourceBorderConfirmationDialog"
       ],
       "mixedResponsibilities": true,
-      "decision": "source_removed_pending_owner_classification",
+      "decision": "retired_ui",
       "retired": true,
       "retirementStatus": "source_removed",
       "note": "Composition historique de l’atelier Bordures retirée ; 69 tests ciblés passent en copie QA. Une action restante menant à l’ancien atelier est en correction ; qualification des responsabilités et G0 restent ouverts.",
@@ -15936,6 +16193,22 @@
         ],
         "responsibilityCoverageVerified": false,
         "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      },
+      "retirementVerification": {
+        "status": "partial_scoped",
+        "owners": [
+          "ResourceBorderLifecycleController",
+          "runBorderResourceManagement"
+        ],
+        "note": "Règles de confirmation et d'application portées et testées par ResourceBorderLifecycleController. Réserve : runBorderResourceManagement n'a plus d'appelant dans lib ; la préparation automatique à l'ouverture devra être rebranchée par la future UI.",
+        "evidence": "proofs/t01-execution/owner-qualification-20261111/qualify-resources.json",
+        "independentReview": "proofs/t01-execution/owner-qualification-20261111/independent-review-retirable-7.json"
+      },
+      "retirementObservation": {
+        "deletedIn": "505f1b71a",
+        "sha256BeforeDeletion": "c6ed117a1de5cd7650dff40817fb55d42c490ffd6d4312e21b810ce119045646",
+        "initialSha256Matches": false,
+        "note": "Empreinte initiale T00 conservée ; le fichier a été réécrit par des commits d’extraction avant sa suppression."
       }
     },
     {
@@ -15960,6 +16233,20 @@
         "lacunae": [],
         "responsibilityCoverageVerified": false,
         "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      },
+      "ownerQualification": {
+        "verdict": "gap",
+        "unownedOrUntested": [
+          "Lifecycle triage projection of records into Brouillons (all) / Publiées (published && !deprecated) / Dépréciées (deprecated)"
+        ],
+        "evidence": "proofs/t01-execution/owner-qualification-20261111/qualify-resources.json",
+        "note": "Décision maintenue ouverte : extraction ou test RUI-005 requis avant classement canonique."
+      },
+      "retirementObservation": {
+        "deletedIn": "505f1b71a",
+        "sha256BeforeDeletion": "80f276cd3e4e0e7cafba8a6c690d5ff8d4162f3b96e066361e663c3167a66288",
+        "initialSha256Matches": false,
+        "note": "Empreinte initiale T00 conservée ; le fichier a été réécrit par des commits d’extraction avant sa suppression."
       }
     },
     {
@@ -15998,6 +16285,22 @@
         ],
         "responsibilityCoverageVerified": false,
         "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      },
+      "ownerQualification": {
+        "verdict": "gap",
+        "unownedOrUntested": [
+          "Border editor entry: refuse when navigation disposed/busy/managementDialogActive, begin/end management dialog around the editor",
+          "Management entry guard (disposed/busy/managementDialogActive) and abort when the host is gone after revision capture",
+          "Unexpected failure reported through navigation.setImportError"
+        ],
+        "evidence": "proofs/t01-execution/owner-qualification-20261111/qualify-resources.json",
+        "note": "Décision maintenue ouverte : extraction ou test RUI-005 requis avant classement canonique."
+      },
+      "retirementObservation": {
+        "deletedIn": "505f1b71a",
+        "sha256BeforeDeletion": "37df1e32849b92086ba2a9303a3921c65efae5fb40372fee60b3638583aa206a",
+        "initialSha256Matches": false,
+        "note": "Empreinte initiale T00 conservée ; le fichier a été réécrit par des commits d’extraction avant sa suppression."
       }
     },
     {
@@ -16575,7 +16878,7 @@
         "ResourceFamilyNavigation"
       ],
       "mixedResponsibilities": false,
-      "decision": "source_removed_pending_owner_classification",
+      "decision": "retired_ui",
       "retired": true,
       "protectedOwners": [
         "apps/avelune_studio/lib/features/resources/application/resource_catalog.dart"
@@ -16592,6 +16895,21 @@
         "lacunae": [],
         "responsibilityCoverageVerified": false,
         "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      },
+      "retirementVerification": {
+        "status": "partial_scoped",
+        "owners": [
+          "ResourceLibraryState.selectFamily"
+        ],
+        "note": "Libellés, icônes et rappels ; déjà sans consommateur avant suppression. Réserve : les remises à zéro de selectFamily ne sont testées qu'indirectement.",
+        "evidence": "proofs/t01-execution/owner-qualification-20261111/qualify-resources.json",
+        "independentReview": "proofs/t01-execution/owner-qualification-20261111/independent-review-retirable-7.json"
+      },
+      "retirementObservation": {
+        "deletedIn": "4ebd750e2",
+        "sha256BeforeDeletion": "b46a9b1c2ada5b155eace87748a23c82b67c0f23cab280454f9ff5c100f5ee79",
+        "initialSha256Matches": false,
+        "note": "Empreinte initiale T00 conservée ; le fichier a été réécrit par des commits d’extraction avant sa suppression."
       }
     },
     {
@@ -18470,6 +18788,21 @@
         "lacunae": [],
         "responsibilityCoverageVerified": false,
         "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      },
+      "ownerQualification": {
+        "verdict": "gap",
+        "unownedOrUntested": [
+          "World-to-screen placement of nodes and ports, drag delta re-scaled by zoom",
+          "Start node exposes no input port (cannot be a link target)"
+        ],
+        "evidence": "proofs/t01-execution/owner-qualification-20261111/qualify-scenes.json",
+        "note": "Décision maintenue ouverte : extraction ou test RUI-005 requis avant classement canonique."
+      },
+      "retirementObservation": {
+        "deletedIn": "505f1b71a",
+        "sha256BeforeDeletion": "22612ffaf6b361b2aefd0932b8478a26464b8afc1be4da23e87e89c4bc2c82b9",
+        "initialSha256Matches": true,
+        "note": "Empreinte initiale identique à la version supprimée."
       }
     },
     {
@@ -18494,6 +18827,20 @@
         "lacunae": [],
         "responsibilityCoverageVerified": false,
         "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      },
+      "ownerQualification": {
+        "verdict": "gap",
+        "unownedOrUntested": [
+          "Add-block picker: case-insensitive label filter and returning the chosen block"
+        ],
+        "evidence": "proofs/t01-execution/owner-qualification-20261111/qualify-scenes.json",
+        "note": "Décision maintenue ouverte : extraction ou test RUI-005 requis avant classement canonique."
+      },
+      "retirementObservation": {
+        "deletedIn": "505f1b71a",
+        "sha256BeforeDeletion": "63615e23d97bd80f440600f24c1f8f46fac9f26b2fc87fae3baee475e9003389",
+        "initialSha256Matches": true,
+        "note": "Empreinte initiale identique à la version supprimée."
       }
     },
     {
@@ -18518,6 +18865,21 @@
         "lacunae": [],
         "responsibilityCoverageVerified": false,
         "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      },
+      "ownerQualification": {
+        "verdict": "gap",
+        "unownedOrUntested": [
+          "Minimap tap/drag re-centres the viewport (minimap-local to world projection over bounds inflated by 40)",
+          "Visible-world rectangle computation (localToWorld of the viewport corners)"
+        ],
+        "evidence": "proofs/t01-execution/owner-qualification-20261111/qualify-scenes.json",
+        "note": "Décision maintenue ouverte : extraction ou test RUI-005 requis avant classement canonique."
+      },
+      "retirementObservation": {
+        "deletedIn": "505f1b71a",
+        "sha256BeforeDeletion": "2e22963e4fa63bb2bef1a5747bc9c65f3f4c6fefc9aa92f90a4b8d917971722b",
+        "initialSha256Matches": true,
+        "note": "Empreinte initiale identique à la version supprimée."
       }
     },
     {
@@ -18558,6 +18920,22 @@
         ],
         "responsibilityCoverageVerified": false,
         "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      },
+      "ownerQualification": {
+        "verdict": "gap",
+        "unownedOrUntested": [
+          "Node drag lifecycle (start/move/end/cancel) feeding the move command",
+          "Trackpad-origin pans are not treated as node drags",
+          "Keyboard activation (ActivateIntent) and tap select the node"
+        ],
+        "evidence": "proofs/t01-execution/owner-qualification-20261111/qualify-scenes.json",
+        "note": "Décision maintenue ouverte : extraction ou test RUI-005 requis avant classement canonique."
+      },
+      "retirementObservation": {
+        "deletedIn": "505f1b71a",
+        "sha256BeforeDeletion": "dc4247618c56e6e47620bc7c06d410399dcd961d5a14494a044fc0a39928a800",
+        "initialSha256Matches": true,
+        "note": "Empreinte initiale identique à la version supprimée."
       }
     },
     {
@@ -18595,6 +18973,21 @@
         ],
         "responsibilityCoverageVerified": false,
         "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      },
+      "ownerQualification": {
+        "verdict": "gap",
+        "unownedOrUntested": [
+          "Edge routing curve (cubic with bend = max(48, |dx|/2)) used for hit-testing",
+          "Edge hit-test for selection (10px tolerance sampled every 6px, topmost edge first, dangling edges skipped)"
+        ],
+        "evidence": "proofs/t01-execution/owner-qualification-20261111/qualify-scenes.json",
+        "note": "Décision maintenue ouverte : extraction ou test RUI-005 requis avant classement canonique."
+      },
+      "retirementObservation": {
+        "deletedIn": "505f1b71a",
+        "sha256BeforeDeletion": "6f54c8ae6aa88797c70310b16f515c307d898f92d39f4e0efc62d99ff6a74c6b",
+        "initialSha256Matches": true,
+        "note": "Empreinte initiale identique à la version supprimée."
       }
     },
     {
@@ -18619,6 +19012,25 @@
         "lacunae": [],
         "responsibilityCoverageVerified": false,
         "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      },
+      "ownerQualification": {
+        "verdict": "gap",
+        "unownedOrUntested": [
+          "Wheel zoom at cursor (x0.9 / x1.1), suppressed while wiring",
+          "Trackpad pan-zoom gesture (start/update/end), suppressed while wiring",
+          "Background drag pans the viewport unless wiring or trackpad active",
+          "Zoom in/out buttons around viewport centre",
+          "Fit scene and centre on selected node",
+          "Secondary tap opens add menu at point; drop accepts a block at a global offset"
+        ],
+        "evidence": "proofs/t01-execution/owner-qualification-20261111/qualify-scenes.json",
+        "note": "Décision maintenue ouverte : extraction ou test RUI-005 requis avant classement canonique."
+      },
+      "retirementObservation": {
+        "deletedIn": "505f1b71a",
+        "sha256BeforeDeletion": "a5f49b030d39266edd5a50fbc605540c46282ac9cdcbe0814225903407154fbc",
+        "initialSha256Matches": true,
+        "note": "Empreinte initiale identique à la version supprimée."
       }
     },
     {
@@ -18656,6 +19068,26 @@
         ],
         "responsibilityCoverageVerified": false,
         "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      },
+      "ownerQualification": {
+        "verdict": "gap",
+        "unownedOrUntested": [
+          "Start node can never be a link target",
+          "Default position for nodes without a persisted layout (4-column grid, 280x230 step from 40,40)",
+          "Node size model (start/end 128x128, others 208 x max(176, 120+26*ports))",
+          "Port anchor geometry (input = centerLeft, outputs stacked 26px from bottom-right)",
+          "Graph bounds used by fit, minimap and focus",
+          "Link target hit-test (24px radius around input anchor in screen space)",
+          "Block descriptor carried by drag/menu (kind, label, optional payload)"
+        ],
+        "evidence": "proofs/t01-execution/owner-qualification-20261111/qualify-scenes.json",
+        "note": "Décision maintenue ouverte : extraction ou test RUI-005 requis avant classement canonique."
+      },
+      "retirementObservation": {
+        "deletedIn": "505f1b71a",
+        "sha256BeforeDeletion": "c348bc96ad5cd003b768afc54ab325ef5abc7327834385811993f150d083bb30",
+        "initialSha256Matches": false,
+        "note": "Empreinte initiale T00 conservée ; le fichier a été réécrit par des commits d’extraction avant sa suppression."
       }
     },
     {
@@ -18806,6 +19238,30 @@
         ],
         "responsibilityCoverageVerified": false,
         "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      },
+      "ownerQualification": {
+        "verdict": "gap",
+        "unownedOrUntested": [
+          "Skip move commit when the node did not move (no empty history entry)",
+          "Drag delta converted from screen to world (delta / zoom)",
+          "Wire gesture state machine (start only from free port, live target resolution, cancel)",
+          "Keyboard linking: L starts/cycles free ports, Tab/arrows cycle targets ordered by x then y, Enter connects, Esc cancels, empty-port/no-target refusal",
+          "Start node excluded from link targets",
+          "Screen-to-world conversion of the drop/menu point",
+          "Async guard: menu result dropped if unmounted or scene/viewport changed while the dialog was open",
+          "Gesture reset when scene identity changes",
+          "Background tap: edge hit-test selects edge, otherwise clears selection",
+          "Keyboard shortcut routing itself (which key triggers which command, link mode precedence, Space/Ctrl+K opens add menu)",
+          "Fit viewport to graph bounds on first layout"
+        ],
+        "evidence": "proofs/t01-execution/owner-qualification-20261111/qualify-scenes.json",
+        "note": "Décision maintenue ouverte : extraction ou test RUI-005 requis avant classement canonique."
+      },
+      "retirementObservation": {
+        "deletedIn": "505f1b71a",
+        "sha256BeforeDeletion": "0736e8cfe35302ad18b3db0333074b8e43c8ddf96823669082b9df65f0064e96",
+        "initialSha256Matches": true,
+        "note": "Empreinte initiale identique à la version supprimée."
       }
     },
     {
@@ -41724,6 +42180,76 @@
       "classification": "Métier migré vers sessions/compileur/canonical publisher, chrome classé explicitement dans ledger.",
       "reviewer": "t01_dependency_review",
       "evidenceLedger": "proofs/t01-execution/events-retirement-ledger.json"
+    },
+    {
+      "path": "apps/avelune_studio/test/resource_io/character_removal_resolution_host_test.dart",
+      "removedCases": [
+        "dirty owner blocks inspection and keeps focused input",
+        "unrelated dirty map does not block a free character removal",
+        "affected dirty map refuses removal without saving another owner",
+        "free removal preserves an unrelated focused character draft",
+        "referenced character is replaced through the real global resolution",
+        "clear resolution preserves the map owner and independent data",
+        "reanalyzing requires a new explicit confirmation"
+      ],
+      "classification": "Hôte widget de l'atelier Personnages retiré ; comportements repris par des tests propriétaires sur la fixture réelle.",
+      "replacement": "apps/avelune_studio/test/characters/character_removal_owner_guard_test.dart",
+      "reviewer": "Aucune revue indépendante ; voir ledger.",
+      "evidenceLedger": "proofs/t01-execution/character-removal-retirement-ledger.json"
+    },
+    {
+      "path": "apps/avelune_studio/test/resource_io/character_removal_concurrency_host_test.dart",
+      "removedCases": [
+        "dirty replacement is refused without saving its focused draft",
+        "character changed after confirmation preparation is not overwritten",
+        "replacement removed after preview cannot partially replace map references"
+      ],
+      "classification": "Hôte widget de l'atelier Personnages retiré ; comportements repris par des tests propriétaires sur la fixture réelle.",
+      "replacement": "apps/avelune_studio/test/characters/character_removal_owner_guard_test.dart",
+      "reviewer": "Aucune revue indépendante ; voir ledger.",
+      "evidenceLedger": "proofs/t01-execution/character-removal-retirement-ledger.json"
+    },
+    {
+      "path": "apps/avelune_studio/test/resource_io/character_removal_history_host_test.dart",
+      "removedCases": [
+        "replacement preserves unrelated undo and rejects deleted NPC"
+      ],
+      "classification": "Hôte widget de l'atelier Personnages retiré ; comportements repris par des tests propriétaires sur la fixture réelle.",
+      "replacement": "apps/avelune_studio/test/characters/character_removal_owner_guard_test.dart",
+      "reviewer": "Aucune revue indépendante ; voir ledger.",
+      "evidenceLedger": "proofs/t01-execution/character-removal-retirement-ledger.json"
+    },
+    {
+      "path": "apps/avelune_studio/test/resource_io/character_removal_layout_host_test.dart",
+      "removedCases": [
+        "character removal keeps actions accessible at 1536.0",
+        "character removal keeps actions accessible at 1280.0",
+        "character removal keeps actions accessible at 1024.0"
+      ],
+      "classification": "Hôte widget de l'atelier Personnages retiré ; mise en page seule, obsolète jusqu’à la nouvelle UI.",
+      "replacement": null,
+      "reviewer": "Aucune revue indépendante ; voir ledger.",
+      "evidenceLedger": "proofs/t01-execution/character-removal-retirement-ledger.json"
+    },
+    {
+      "path": "apps/avelune_studio/test/resource_io/character_removal_reconciliation_host_test.dart",
+      "removedCases": [
+        "published character removal retries UI without replaying delete"
+      ],
+      "classification": "Hôte widget de l'atelier Personnages retiré ; comportements repris par des tests propriétaires sur la fixture réelle.",
+      "replacement": "apps/avelune_studio/test/characters/character_removal_owner_guard_test.dart",
+      "reviewer": "Aucune revue indépendante ; voir ledger.",
+      "evidenceLedger": "proofs/t01-execution/character-removal-retirement-ledger.json"
+    },
+    {
+      "path": "apps/avelune_studio/test/resource_io/character_removal_host_test.dart",
+      "removedCases": [
+        "free character removal persists without selecting the next identity"
+      ],
+      "classification": "Hôte widget de l'atelier Personnages retiré ; comportements repris par des tests propriétaires sur la fixture réelle.",
+      "replacement": "apps/avelune_studio/test/characters/character_removal_owner_guard_test.dart",
+      "reviewer": "Aucune revue indépendante ; voir ledger.",
+      "evidenceLedger": "proofs/t01-execution/character-removal-retirement-ledger.json"
     }
   ],
   "classificationObservation": {

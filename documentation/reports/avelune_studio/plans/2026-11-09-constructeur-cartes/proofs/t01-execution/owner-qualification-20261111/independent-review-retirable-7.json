@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "at": "2026-11-11",
+  "head": "7f44a537ed98",
+  "reviewer": "Sous-agent réviseur distinct des trois enquêteurs ; lecture seule, aucun test exécuté, aucune modification.",
+  "method": "Lecture des originaux (505f1b71a^ ou parent du commit de suppression), des propriétaires à HEAD et du corps des tests cités ; recherche d'importeurs restants.",
+  "verdicts": [
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_terrain_inspector.dart",
+      "result": "confirmed",
+      "reserve": "highlightTerrain et dimOtherTerrains restent lus mais ne sont plus posés par aucun code ; spatial_terrain_controls.dart, intégré par ce fichier, porte de la logique non visuelle et relève d'un verdict séparé."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/resources/border_discard_dialog.dart",
+      "result": "confirmed",
+      "reserve": null
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/resources/border_sequence_controls.dart",
+      "result": "confirmed",
+      "reserve": "La désactivation du choix de source pendant l'enregistrement était calculée dans border_creation_dialog.dart ; setPrimitiveSource n'a pas de garde saving."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/resources/resource_family_navigation.dart",
+      "result": "confirmed",
+      "reserve": "Déjà sans consommateur avant 4ebd750e2 ; remises à zéro de selectFamily testées seulement indirectement."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_cliff_guide.dart",
+      "result": "refuted",
+      "reserve": "Le bouton « Régler le relief » posait view.spatialTerrainMode = relief et view.tool = terrain ; à HEAD aucun code de lib ne pose relief ou ramp, les chemins relief/pente du viewport spatial sont inatteignables."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/spatial_fishing_editor.dart",
+      "result": "confirmed",
+      "reserve": "Message d'erreur document.error et bornes inclusives 0 et 4 non assertés."
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/resources/resource_border_confirmation_dialog.dart",
+      "result": "confirmed",
+      "reserve": "Préparation automatique à l'ouverture à rebrancher par la future UI ; runBorderResourceManagement n'a plus d'appelant dans lib."
+    }
+  ],
+  "limits": [
+    "Revue statique : aucun test relancé par le réviseur.",
+    "Une confirmation ne vaut ni acceptation de lot ni porte G0."
+  ]
+}

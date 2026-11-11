@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "at": "2026-11-11",
+  "head": "7f44a537ed98",
+  "lots": ["RUI-002", "RUI-005"],
+  "status": "partial_not_accepted",
+  "scope": "Protection, au niveau des propriétaires non visuels, des six comportements de suppression de personnage qui n'étaient plus protégés que par des tests d'UI retirée.",
+  "testFile": {
+    "path": "apps/avelune_studio/test/characters/character_removal_owner_guard_test.dart",
+    "sha256": "703a94ec5f6ae1a3e2be42a835de4152ccbec4e8bd35b1b261bd8ff02745ac5b",
+    "path_driven": "AuthoringResourceFixture réelle sur disque, runCharacterRemoval, CharacterRemovalController, ResourceNavigation.prepareOperation/applyPrepared et MapWorkspaceController.restore ; aucune interface."
+  },
+  "replaces": [
+    {"redTest": "character_removal_resolution_host_test : dirty owner blocks inspection and keeps focused input", "newTest": "a dirty draft of the removed character refuses inspection and keeps the draft"},
+    {"redTest": "character_removal_concurrency_host_test : dirty replacement is refused without saving its focused draft", "newTest": "a dirty draft of the replacement refuses the replace resolution and keeps the map reference"},
+    {"redTest": "character_removal_resolution_host_test : affected dirty map refuses removal without saving another owner", "newTest": "a dirty map that references the character refuses removal and saves nothing"},
+    {"redTest": "character_removal_resolution_host_test : unrelated dirty map does not block a free character removal", "newTest": "a dirty map without the character does not block removal and stays dirty"},
+    {"redTest": "character_removal_resolution_host_test : free removal preserves an unrelated focused character draft", "newTest": "a removal drops only the removed draft and keeps another dirty draft"},
+    {"redTest": "character_removal_history_host_test : replacement preserves unrelated undo and rejects deleted NPC", "newTest": "a replacement keeps the open map history and refuses an undo to the deleted character"}
+  ],
+  "commands": [
+    {
+      "command": "flutter test --no-pub test/characters/character_removal_owner_guard_test.dart",
+      "cwd": "apps/avelune_studio",
+      "exitCode": 0,
+      "result": "+6"
+    },
+    {
+      "command": "flutter analyze --no-pub test/characters/character_removal_owner_guard_test.dart",
+      "cwd": "apps/avelune_studio",
+      "exitCode": 0,
+      "result": "No issues found"
+    },
+    {
+      "command": "Quatre mutations ciblées appliquées une à une dans une copie git archive HEAD sous AveluneQA, code restauré à l'identique après chaque essai, copie supprimée.",
+      "result": "guard_off : 3 rouges ; guard_all_maps : 3 rouges ; reconcile_all : 1 rouge ; history_off : 1 rouge.",
+      "proof": "owner-qualification-20261111/character-removal-owner-guard-tests.log"
+    }
+  ],
+  "notDone": [
+    "Les 16 tests hôtes character_removal_* rouges ne sont ni retirés ni réécrits ; leur retrait relève d'une décision et du registre retiredUiChecks.",
+    "Les 10 cas partiellement couverts (réconciliation d'une carte ouverte propre via acceptResourceContent, retrait réussi d'un brouillon de bordure, stock d'objets de combat…) restent à protéger.",
+    "Aucun code de production modifié."
+  ],
+  "mcpParity": "N/A"
+}

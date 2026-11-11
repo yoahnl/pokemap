@@ -1,0 +1,475 @@
+[
+ {
+  "file": "apps/avelune_studio/test/resource_io/character_removal_resolution_host_test.dart",
+  "test": "referenced character is replaced through the real global resolution",
+  "protectedBehaviour": "Deleting a map-referenced character with resolution=replace rewrites the NPC characterId on disk to the replacement, and the open map document absorbs the receipt clean (dirty=false) with the same entity id and untouched layers.",
+  "owner": {
+   "path": "apps/avelune_studio/lib/features/resources/coordination/resource_navigation_management.dart",
+   "symbol": "ResourceNavigation.applyPrepared/_acceptResourceReceipt -> MapWorkspaceController.acceptResourceMaps -> EditableMapDocument.acceptResourceContent (+ CharacterStudioCharacterActions delete/replace in map_authoring)"
+  },
+  "coveringTests": [
+   {
+    "path": "packages/map_authoring/test/domains/gameplay/character_studio_character_actions_test.dart",
+    "name": "replace deletion rewrites every dependency to another character"
+   },
+   {
+    "path": "packages/map_authoring/test/domains/gameplay/character_studio_character_actions_test.dart",
+    "name": "deletion preserves unknown nested project and map metadata"
+   }
+  ],
+  "classification": "partially_covered",
+  "missing": "Domain rewrite is proven in map_authoring only. No Studio test runs a replace resolution through the LocalResourceAdapter + ResourceNavigation and checks that the active open document accepts the receipt (dirty=false, entity id and layers kept, base revision = disk). EditableMapDocument.acceptResourceContent has no direct test."
+ },
+ {
+  "file": "apps/avelune_studio/test/resource_io/character_removal_resolution_host_test.dart",
+  "test": "dirty owner blocks inspection and keeps focused input",
+  "protectedBehaviour": "If the character being removed has a dirty Character Studio draft, deletePlan/delete preparation is refused, the draft is kept and the project on disk is unchanged.",
+  "owner": {
+   "path": "apps/avelune_studio/lib/features/resources/coordination/resource_character_management.dart",
+   "symbol": "ResourceCharacterManagement.characterManagementOwners (used by _managementProblem in ResourceNavigation.prepareOperation/applyPrepared)"
+  },
+  "coveringTests": [],
+  "classification": "uncovered",
+  "missing": "No test calls characterManagementOwners or prepares characterStudio.character.deletePlan while the target draft is dirty. Border/terrain have equivalent owner-level guard tests, characters do not."
+ },
+ {
+  "file": "apps/avelune_studio/test/resource_io/character_removal_resolution_host_test.dart",
+  "test": "unrelated dirty map does not block a free character removal",
+  "protectedBehaviour": "A dirty map that does not reference the character does not block its removal, and that map stays dirty with its unsaved edit after the removal.",
+  "owner": {
+   "path": "apps/avelune_studio/lib/features/resources/coordination/resource_character_management.dart",
+   "symbol": "ResourceCharacterManagement.characterManagementOwners (map-scope filter)"
+  },
+  "coveringTests": [],
+  "classification": "uncovered",
+  "missing": "No negative test for the map-scope filter of the character guard."
+ },
+ {
+  "file": "apps/avelune_studio/test/resource_io/character_removal_resolution_host_test.dart",
+  "test": "affected dirty map refuses removal without saving another owner",
+  "protectedBehaviour": "A dirty map that references the character blocks its removal; the map stays dirty and unsaved, and the character is not deleted.",
+  "owner": {
+   "path": "apps/avelune_studio/lib/features/resources/coordination/resource_character_management.dart",
+   "symbol": "ResourceCharacterManagement.characterManagementOwners (dirty map referencing the character)"
+  },
+  "coveringTests": [],
+  "classification": "uncovered",
+  "missing": "No test proves that a dirty referencing map refuses character removal."
+ },
+ {
+  "file": "apps/avelune_studio/test/resource_io/character_removal_resolution_host_test.dart",
+  "test": "free removal preserves an unrelated focused character draft",
+  "protectedBehaviour": "After a character is removed, the catalogue reconciliation drops only the removed character draft and keeps a dirty draft of another character as it was.",
+  "owner": {
+   "path": "apps/avelune_studio/lib/features/characters/coordination/character_studio_lifecycle.dart",
+   "symbol": "CharacterStudioController.reconcileCatalog(removedIds) via ResourceCharacterManagement.reconcileCharacterManagement"
+  },
+  "coveringTests": [],
+  "classification": "uncovered",
+  "missing": "reconcileCatalog/reconcileCharacterManagement have no direct test. character_removal_workflow_test removes a character with no other draft open."
+ },
+ {
+  "file": "apps/avelune_studio/test/resource_io/character_removal_resolution_host_test.dart",
+  "test": "clear resolution preserves the map owner and independent data",
+  "protectedBehaviour": "Deleting a referenced character with resolution=clear sets the NPC characterId to null on disk and in the clean open document, with the same entity id and untouched layers.",
+  "owner": {
+   "path": "apps/avelune_studio/lib/features/resources/coordination/resource_navigation_management.dart",
+   "symbol": "ResourceNavigation.applyPrepared -> acceptResourceMaps/acceptResourceContent (+ map_authoring clear resolution)"
+  },
+  "coveringTests": [
+   {
+    "path": "packages/map_authoring/test/domains/gameplay/character_studio_character_actions_test.dart",
+    "name": "clear deletion resolves every project and map reference atomically"
+   }
+  ],
+  "classification": "partially_covered",
+  "missing": "Same gap as the replace case: the domain is covered, but nothing in Studio tests the receipt path that reconciles the open map document."
+ },
+ {
+  "file": "apps/avelune_studio/test/resource_io/character_removal_resolution_host_test.dart",
+  "test": "reanalyzing requires a new explicit confirmation",
+  "protectedBehaviour": "Re-running the impact analysis revokes a previous confirmation; nothing is deleted until the user confirms again, and deletion goes through once confirmed.",
+  "owner": {
+   "path": "apps/avelune_studio/lib/features/characters/application/character_removal_controller.dart",
+   "symbol": "CharacterRemovalController.inspect/confirm/canSubmit/submit"
+  },
+  "coveringTests": [
+   {
+    "path": "apps/avelune_studio/test/characters/character_removal_workflow_test.dart",
+    "name": "replacement plan uses the inspected revision and changing a choice revokes confirmation"
+   },
+   {
+    "path": "apps/avelune_studio/test/characters/character_removal_workflow_test.dart",
+    "name": "real character removal requires confirmation, preserves source assets and releases management lock"
+   },
+   {
+    "path": "apps/avelune_studio/test/characters/character_removal_workflow_test.dart",
+    "name": "owner gate and pending publication prevent duplicate removal while preserving retry state"
+   }
+  ],
+  "classification": "partially_covered",
+  "missing": "The tests prove that changing a choice revokes the confirmation and that submit needs one. None asserts that calling inspect() again after confirm(true) resets confirmed/canSubmit."
+ },
+ {
+  "file": "apps/avelune_studio/test/resource_io/character_removal_layout_host_test.dart",
+  "test": "character removal keeps actions accessible at 1536.0",
+  "protectedBehaviour": "Layout only: the retired removal dialog keeps its save/cancel actions reachable at this size and text scale.",
+  "owner": null,
+  "coveringTests": [],
+  "classification": "ui_only",
+  "missing": "Obsolete until the UI is rebuilt."
+ },
+ {
+  "file": "apps/avelune_studio/test/resource_io/character_removal_layout_host_test.dart",
+  "test": "character removal keeps actions accessible at 1280.0",
+  "protectedBehaviour": "Layout only: the retired removal dialog keeps its save/cancel actions reachable at this size and text scale.",
+  "owner": null,
+  "coveringTests": [],
+  "classification": "ui_only",
+  "missing": "Obsolete until the UI is rebuilt."
+ },
+ {
+  "file": "apps/avelune_studio/test/resource_io/character_removal_layout_host_test.dart",
+  "test": "character removal keeps actions accessible at 1024.0",
+  "protectedBehaviour": "Layout only: the retired removal dialog keeps its save/cancel actions reachable at this size and text scale.",
+  "owner": null,
+  "coveringTests": [],
+  "classification": "ui_only",
+  "missing": "Obsolete until the UI is rebuilt."
+ },
+ {
+  "file": "apps/avelune_studio/test/resource_io/character_removal_concurrency_host_test.dart",
+  "test": "dirty replacement is refused without saving its focused draft",
+  "protectedBehaviour": "Choosing a replacement character that has a dirty draft blocks preparation; the draft stays dirty and unsaved, and the map keeps referencing the original character.",
+  "owner": {
+   "path": "apps/avelune_studio/lib/features/resources/coordination/resource_character_management.dart",
+   "symbol": "ResourceCharacterManagement.characterManagementOwners (replacementId branch)"
+  },
+  "coveringTests": [],
+  "classification": "uncovered",
+  "missing": "Nothing tests the replacementId branch of the character owner guard."
+ },
+ {
+  "file": "apps/avelune_studio/test/resource_io/character_removal_concurrency_host_test.dart",
+  "test": "character changed after confirmation preparation is not overwritten",
+  "protectedBehaviour": "A character modified by another writer after the delete plan was prepared makes the stale plan fail; the concurrent edit stays on disk and the character is not deleted.",
+  "owner": {
+   "path": "apps/avelune_studio/lib/features/resources/data/local_resource_lifecycle_preparation.dart",
+   "symbol": "LocalResourceAdapter.applyPrepared snapshot-revision check (through ResourceNavigation.applyPrepared)"
+  },
+  "coveringTests": [
+   {
+    "path": "apps/avelune_studio/test/resource_io/resource_border_lifecycle_workflow_test.dart",
+    "name": "stale border confirmation preserves the publication and concurrent draft"
+   },
+   {
+    "path": "apps/avelune_studio/test/characters/character_removal_workflow_test.dart",
+    "name": "superseded prepared plan cannot replace the current revision"
+   }
+  ],
+  "classification": "partially_covered",
+  "missing": "Stale-plan refusal is proven generically (border action through the same preparation port) and the controller ignores superseded plans. No test applies a stale characterStudio.character.delete."
+ },
+ {
+  "file": "apps/avelune_studio/test/resource_io/character_removal_concurrency_host_test.dart",
+  "test": "replacement removed after preview cannot partially replace map references",
+  "protectedBehaviour": "If the chosen replacement is deleted after the preview, applying the plan fails as a whole: the deleted character stays, and the map keeps its original reference (no partial project/map write).",
+  "owner": {
+   "path": "apps/avelune_studio/lib/features/resources/data/local_resource_lifecycle_preparation.dart",
+   "symbol": "LocalResourceAdapter.applyPrepared revision check + atomic multi-resource changeSet"
+  },
+  "coveringTests": [
+   {
+    "path": "apps/avelune_studio/test/resource_io/resource_border_lifecycle_workflow_test.dart",
+    "name": "stale border confirmation preserves the publication and concurrent draft"
+   },
+   {
+    "path": "packages/map_authoring/test/domains/gameplay/character_studio_character_actions_test.dart",
+    "name": "clear deletion resolves every project and map reference atomically"
+   }
+  ],
+  "classification": "partially_covered",
+  "missing": "Atomicity is shown at changeSet level and staleness generically. Nothing proves that a stale project+map character replacement leaves both files intact in Studio."
+ },
+ {
+  "file": "apps/avelune_studio/test/resource_io/character_removal_reconciliation_host_test.dart",
+  "test": "published character removal retries UI without replaying delete",
+  "protectedBehaviour": "If the character-source reconciliation fails after the delete is published, the receipt is kept; retryReconciliation completes without replaying the delete, and the selection is cleared.",
+  "owner": {
+   "path": "apps/avelune_studio/lib/features/resources/coordination/resource_navigation_management.dart",
+   "symbol": "_acceptResourceReceipt (characterSourcesChanged branch) + ResourceNavigation.retryReconciliation"
+  },
+  "coveringTests": [
+   {
+    "path": "apps/avelune_studio/test/resource_io/resource_navigation_receipt_recovery_test.dart",
+    "name": "$kind retains publication receipt and reconciles without replay"
+   },
+   {
+    "path": "apps/avelune_studio/test/resource_io/resource_border_lifecycle_workflow_test.dart",
+    "name": "border publication retains its receipt and prevents replay after reconciliation"
+   },
+   {
+    "path": "apps/avelune_studio/test/characters/character_removal_workflow_test.dart",
+    "name": "owner gate and pending publication prevent duplicate removal while preserving retry state"
+   }
+  ],
+  "classification": "partially_covered",
+  "missing": "Receipt retention and retry are proven for tileset/asset/border. Nothing proves the character-delete branch: a characterSourcesChanged failure, then a retry that runs reconciliation once more, with selectedId null."
+ },
+ {
+  "file": "apps/avelune_studio/test/resource_io/character_removal_host_test.dart",
+  "test": "free character removal persists without selecting the next identity",
+  "protectedBehaviour": "Removing an unreferenced character deletes it on disk, leaves tilesets and elements unchanged, and does not auto-select another character.",
+  "owner": {
+   "path": "apps/avelune_studio/lib/features/characters/coordination/character_removal_workflow.dart",
+   "symbol": "runCharacterRemoval + CharacterStudioController.reconcileCatalog"
+  },
+  "coveringTests": [
+   {
+    "path": "apps/avelune_studio/test/characters/character_removal_workflow_test.dart",
+    "name": "real character removal requires confirmation, preserves source assets and releases management lock"
+   },
+   {
+    "path": "apps/avelune_studio/test/resource_io/character_removal_adapter_test.dart",
+    "name": "character inspection never applies and deletion preserves source"
+   }
+  ],
+  "classification": "partially_covered",
+  "missing": "Deletion and tileset/source preservation are covered. Not asserted: selectedId/selectedCharacter == null after removal, and elements unchanged."
+ },
+ {
+  "file": "apps/avelune_studio/test/resource_io/character_removal_history_host_test.dart",
+  "test": "replacement preserves unrelated undo and rejects deleted NPC",
+  "protectedBehaviour": "A replacement receipt updates the open document without consuming or clearing its undo history; undo/redo keep the replacement reference, and an undo that would restore a deleted character is refused with no history loss.",
+  "owner": {
+   "path": "apps/avelune_studio/lib/features/map_workspace/application/map_workspace_history_destinations.dart",
+   "symbol": "_historyResourceProblem (character branch) + EditableMapDocument.acceptResourceContent"
+  },
+  "coveringTests": [],
+  "classification": "uncovered",
+  "missing": "resource_deleted_history_test covers only the decor branch. The character branch and the preservation of undo history by acceptResourceContent have no other test."
+ },
+ {
+  "file": "apps/avelune_studio/test/resource_io/border_management_host_test.dart",
+  "test": "unpublished border withdrawal preserves publication and pixels",
+  "protectedBehaviour": "Withdrawing a never-published border draft deletes only that record; the other published record, tilesets and elements stay identical on disk.",
+  "owner": {
+   "path": "apps/avelune_studio/lib/features/resources/coordination/resource_border_lifecycle.dart",
+   "symbol": "runBorderResourceManagement(BorderResourceAction.deleteDraft)"
+  },
+  "coveringTests": [
+   {
+    "path": "packages/map_authoring/test/domains/maps/border_catalog_actions_test.dart",
+    "name": "deletes only a never-published blueprint"
+   },
+   {
+    "path": "packages/map_authoring/test/domains/maps/border_catalog_actions_test.dart",
+    "name": "physical deletion of any published blueprint is forbidden"
+   }
+  ],
+  "classification": "partially_covered",
+  "missing": "The domain is covered in map_authoring. In Studio, resource_border_lifecycle_workflow_test covers deleteDraft only when refused or cancelled; no test runs a successful withdrawal through the workflow and re-reads the disk."
+ },
+ {
+  "file": "apps/avelune_studio/test/resource_io/border_management_host_test.dart",
+  "test": "deprecation and reactivation preserve immutable publication",
+  "protectedBehaviour": "Deprecating then reactivating a published border only toggles isDeprecated; draft and latestPublished stay the same, and the record is back to identical.",
+  "owner": {
+   "path": "apps/avelune_studio/lib/features/resources/coordination/resource_border_lifecycle.dart",
+   "symbol": "runBorderResourceManagement(deprecate/reactivate) + ResourceBorderLifecycleController"
+  },
+  "coveringTests": [
+   {
+    "path": "apps/avelune_studio/test/resource_io/resource_border_lifecycle_workflow_test.dart",
+    "name": "deprecation and reactivation preserve published revisions and sources"
+   },
+   {
+    "path": "packages/map_authoring/test/domains/maps/border_catalog_actions_test.dart",
+    "name": "deprecates a published blueprint without altering its revision"
+   }
+  ],
+  "classification": "covered_elsewhere",
+  "missing": null
+ },
+ {
+  "file": "apps/avelune_studio/test/resource_io/border_management_guards_host_test.dart",
+  "test": "dirty border editor blocks withdrawal without losing focused input",
+  "protectedBehaviour": "A dirty border editor blocks border.blueprint.delete with a refusal that names it; the draft and disk stay unchanged, and abandoning the editor unregisters its owner.",
+  "owner": {
+   "path": "apps/avelune_studio/lib/features/resources/coordination/resource_border_management.dart",
+   "symbol": "ResourceBorderManagement.borderManagementOwners + BorderCreationWorkflow._register/_dirtyOwner"
+  },
+  "coveringTests": [
+   {
+    "path": "apps/avelune_studio/test/resource_io/resource_border_lifecycle_workflow_test.dart",
+    "name": "a dirty border owner refuses withdrawal without deleting its draft"
+   },
+   {
+    "path": "apps/avelune_studio/test/resource_io/border_creation_workflow_test.dart",
+    "name": "disposing an old editor preserves a replacement owner registration"
+   }
+  ],
+  "classification": "covered_elsewhere",
+  "missing": "Small gap: the refusal test uses an injected owner predicate. No test chains a real dirty BorderCreationWorkflow to that refusal."
+ },
+ {
+  "file": "apps/avelune_studio/test/resource_io/border_management_guards_host_test.dart",
+  "test": "stale border confirmation refuses and preserves publication",
+  "protectedBehaviour": "A deprecation prepared before a concurrent border write is refused; the published record is unchanged and the concurrent draft is kept.",
+  "owner": {
+   "path": "apps/avelune_studio/lib/features/resources/coordination/resource_border_lifecycle.dart",
+   "symbol": "runBorderResourceManagement (expectedSnapshotRevision) + ResourceNavigation.applyPrepared"
+  },
+  "coveringTests": [
+   {
+    "path": "apps/avelune_studio/test/resource_io/resource_border_lifecycle_workflow_test.dart",
+    "name": "stale border confirmation preserves the publication and concurrent draft"
+   }
+  ],
+  "classification": "covered_elsewhere",
+  "missing": null
+ },
+ {
+  "file": "apps/avelune_studio/test/resource_io/border_management_guards_host_test.dart",
+  "test": "border usage inspection targets the actual blueprint and does not write",
+  "protectedBehaviour": "Usage inspection targets family=borders and the exact blueprint id, and writes nothing.",
+  "owner": {
+   "path": "apps/avelune_studio/lib/features/resources/coordination/resource_border_lifecycle.dart",
+   "symbol": "runBorderResourceManagement(BorderResourceAction.usages)"
+  },
+  "coveringTests": [
+   {
+    "path": "apps/avelune_studio/test/resource_io/resource_border_lifecycle_workflow_test.dart",
+    "name": "usage management targets the exact blueprint without preparing a mutation"
+   }
+  ],
+  "classification": "covered_elsewhere",
+  "missing": null
+ },
+ {
+  "file": "apps/avelune_studio/test/resource_io/border_management_layout_host_test.dart",
+  "test": "border management stays usable at 1536.0",
+  "protectedBehaviour": "Layout only: the retired border library tabs and deprecate dialog stay usable at this size and text scale.",
+  "owner": null,
+  "coveringTests": [],
+  "classification": "ui_only",
+  "missing": "Obsolete until the UI is rebuilt."
+ },
+ {
+  "file": "apps/avelune_studio/test/resource_io/border_management_layout_host_test.dart",
+  "test": "border management stays usable at 1280.0",
+  "protectedBehaviour": "Layout only: the retired border library tabs and deprecate dialog stay usable at this size and text scale.",
+  "owner": null,
+  "coveringTests": [],
+  "classification": "ui_only",
+  "missing": "Obsolete until the UI is rebuilt."
+ },
+ {
+  "file": "apps/avelune_studio/test/resource_io/border_management_layout_host_test.dart",
+  "test": "border management stays usable at 1024.0",
+  "protectedBehaviour": "Layout only: the retired border library tabs and deprecate dialog stay usable at this size and text scale.",
+  "owner": null,
+  "coveringTests": [],
+  "classification": "ui_only",
+  "missing": "Obsolete until the UI is rebuilt."
+ },
+ {
+  "file": "apps/avelune_studio/test/pokemon/pokemon_combat_host_test.dart",
+  "test": "Studio creates a wild table and trainer with independent reopen",
+  "protectedBehaviour": "Studio-authored combat data (wild table, trainer with advanced stats, ball, battle-item stock, unique encounter, painted encounter zone, NPC trainer binding) persists, reopens on its own, and makes the Player start a wild battle on the painted cells and a trainer battle from the NPC.",
+  "owner": {
+   "path": "apps/avelune_studio/lib/features/pokemon/application/pokemon_combat_controller.dart",
+   "symbol": "PokemonCombatController (createTable/createTrainer/add|edit|removeTrainerBattleItem/save) + CharacterEditingCommands.assignTrainer + GameplayZoneEditingCommands"
+  },
+  "coveringTests": [
+   {
+    "path": "apps/avelune_studio/test/pokemon/pokemon_combat_table_commands_test.dart",
+    "name": "encounter variants retain stable independent identities and save through the real adapter"
+   },
+   {
+    "path": "apps/avelune_studio/test/pokemon/pokemon_combat_table_commands_test.dart",
+    "name": "trainer ball choices exclude ambiguous identities and ordinary items"
+   },
+   {
+    "path": "apps/avelune_studio/test/pokemon/pokemon_combat_trainer_stats_test.dart",
+    "name": "strict stat integers and 510 cap refuse save then persist each member"
+   },
+   {
+    "path": "apps/avelune_studio/test/pokemon/pokemon_combat_trainer_stats_test.dart",
+    "name": "reselecting advanced preserves invalid raw stats and refuses save"
+   },
+   {
+    "path": "apps/avelune_studio/test/characters/character_editing_test.dart",
+    "name": "assigning a real trainer is undoable and rejects stale IDs"
+   },
+   {
+    "path": "apps/avelune_studio/test/map_workspace/gameplay_zone_canvas_test.dart",
+    "name": "case-by-case drag creates one undoable mask with a hole"
+   },
+   {
+    "path": "apps/avelune_studio/test/map_workspace/gameplay_zone_table_commands_test.dart",
+    "name": "a zone adopts its table type and excludes scripted encounters"
+   },
+   {
+    "path": "packages/map_core/test/trainer_battle_item_capability_test.dart",
+    "name": "trainer picker offers exact unique eligible definitions in ID order"
+   },
+   {
+    "path": "apps/avelune_studio/test/presentation/encounter_trainer_bounded_play_test.dart",
+    "name": "a trainer bound to a character starts its own battle only"
+   }
+  ],
+  "classification": "partially_covered",
+  "missing": "Not covered elsewhere: (1) the controller battle-item stock path: addTrainerBattleItem, editTrainerBattleItemQuantity refusing 2.5 and 0 while keeping the raw input, and removeTrainerBattleItem persisting battleItems:{} without touching the trainer's other fields; (2) save refused without a move (\"au moins une attaque\"); (3) createTable(unique:true) persisting the studio:unique tag with min==max level; (4) end to end, Studio-written files loaded by loadRuntimeMapBundle/PlayableMapGame, which enter a wild battle on a painted cell and a TrainerBattleStartRequest from the bound NPC. bounded_play only covers map_gameplay on a synthetic project."
+ },
+ {
+  "file": "apps/avelune_studio/test/presentation/character_studio_portrait_workspace_test.dart",
+  "test": "portrait import binds a real image and survives independent reopen",
+  "protectedBehaviour": "Creating a portrait state and importing an image binds character.portraits[state] to a new asset; it survives an independent reopen, and the dialogue adapter can read the bytes back.",
+  "owner": {
+   "path": "apps/avelune_studio/lib/features/characters/coordination/character_import_workflow.dart",
+   "symbol": "CharacterImportWorkflow.portrait + CharacterStudioPortraitActions.createPortraitState + LocalResourceAdapter.importCharacterPortrait"
+  },
+  "coveringTests": [
+   {
+    "path": "apps/avelune_studio/test/characters/character_import_workflow_test.dart",
+    "name": "portrait saving gate blocks picker and confirmation until the existing write releases"
+   },
+   {
+    "path": "apps/avelune_studio/test/characters/character_portrait_state_dialog_lifecycle_test.dart",
+    "name": "portrait state creation retains normalized command and completed saving state"
+   },
+   {
+    "path": "apps/avelune_studio/test/dialogues/dialogue_portrait_ui09_test.dart",
+    "name": "portrait resolves canonical character variant to verified asset bytes"
+   }
+  ],
+  "classification": "partially_covered",
+  "missing": "The import + reopen (assetId set) is covered. Not covered: reading the bytes of a portrait imported by Studio through LocalDialogueAdapter.readPortrait (dialogue_portrait_ui09 uses a seeded asset), and full equality of the reopened portraits list. The section tabs and help text are UI-only."
+ },
+ {
+  "file": "apps/avelune_studio/test/presentation/workspace_text_editing_shortcuts_test.dart",
+  "test": "real map sidebar and Elements search accept hardware editing",
+  "protectedBehaviour": "Backspace/Delete/Cmd+A typed in a workspace text field edit the text and never trigger map shortcuts; the map document and undo history are unchanged.",
+  "owner": {
+   "path": "apps/avelune_studio/lib/features/map_workspace/coordination/map_editing_shortcuts.dart",
+   "symbol": "mapEditingShortcuts -> textAwareEditorShortcuts (_EditorShortcutActivator.accepts)"
+  },
+  "coveringTests": [
+   {
+    "path": "apps/avelune_studio/test/presentation/workspace_text_editing_shortcuts_test.dart",
+    "name": "$field field handles hardware deletion under workspace shortcuts"
+   },
+   {
+    "path": "apps/avelune_studio/test/presentation/workspace_text_editing_shortcuts_test.dart",
+    "name": "text cut and undo stay local while save and unfocused editor keys work"
+   },
+   {
+    "path": "apps/avelune_studio/test/presentation/studio_command_palette_test.dart",
+    "name": "delete and Cmd+K do nothing while a text field is edited"
+   }
+  ],
+  "classification": "covered_elsewhere",
+  "missing": "Only the retired map sidebar and Elements search fields are untested. The screen-level _typing guard (workspace_keyboard_binding.dart) is duplicated in those tests, but the production activator guard alone already blocks the keys."
+ }
+]

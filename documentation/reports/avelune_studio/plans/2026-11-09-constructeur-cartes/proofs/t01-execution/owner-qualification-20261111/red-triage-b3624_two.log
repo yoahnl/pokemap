@@ -1,0 +1,4 @@
++0 -1: base-3624e04/apps/avelune_studio/test/scenes/scene_image_puzzle_publication_test.dart: Studio canonical publication retains unrelated catalog scenes after reopening [E]
++0 -2: base-3624e04/apps/avelune_studio/test/pokemon/pokemon_combat_host_test.dart: Studio creates a wild table and trainer with independent reopen [E]
++0 -2: Some tests failed.
+exit=1

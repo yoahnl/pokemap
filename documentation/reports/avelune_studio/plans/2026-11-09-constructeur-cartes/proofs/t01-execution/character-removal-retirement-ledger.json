@@ -1,0 +1,177 @@
+{
+  "schemaVersion": 1,
+  "at": "2026-11-11",
+  "head": "7f44a537ed98",
+  "scope": "Retrait des 16 tests hôtes character_removal_* qui pilotaient l'UI retirée, après reprise de chaque comportement par un test propriétaire non visuel.",
+  "decision": "Décidée par Yoahn le 2026-11-11 : retirer d'abord les 9 tests repris ou purement de mise en page, puis les 7 partiels une fois couverts.",
+  "replacementFile": {
+    "path": "apps/avelune_studio/test/characters/character_removal_owner_guard_test.dart",
+    "sha256": "1f24091b8702e3a40093073011f834486aa092258957e68d1c096d2de8350743",
+    "tests": 13
+  },
+  "removedFiles": [
+    {
+      "path": "apps/avelune_studio/test/resource_io/character_removal_concurrency_host_test.dart",
+      "sha256BeforeRemoval": "ba35abc2a50be8bc079e197cb3ced8e263bcfc68334ff619aab610a19902408f"
+    },
+    {
+      "path": "apps/avelune_studio/test/resource_io/character_removal_history_host_test.dart",
+      "sha256BeforeRemoval": "1605ed587a1136e1882dd2632c1622d7343b5d120abe12ee56f2c2c7902e58b1"
+    },
+    {
+      "path": "apps/avelune_studio/test/resource_io/character_removal_host_test.dart",
+      "sha256BeforeRemoval": "f725670371f632b18f7c54baeb0bb27f563a04b841309774aa0277caf383354a"
+    },
+    {
+      "path": "apps/avelune_studio/test/resource_io/character_removal_layout_host_test.dart",
+      "sha256BeforeRemoval": "d4af7b547c8d0979ba6097faa3062cf96cb5b81e07f178337f6bb68612f16539"
+    },
+    {
+      "path": "apps/avelune_studio/test/resource_io/character_removal_reconciliation_host_test.dart",
+      "sha256BeforeRemoval": "616137f3de981eb1f2dfbfa1ee2f4e4c131b4a9c5ac964911462f2286fa15235"
+    },
+    {
+      "path": "apps/avelune_studio/test/resource_io/character_removal_resolution_host_test.dart",
+      "sha256BeforeRemoval": "f402889c2ed6901050cf922d12617831dbbc1fa9695e783fc2ca94445a43bc4d"
+    },
+    {
+      "path": "apps/avelune_studio/test/support/uwu5_character_host.dart",
+      "sha256BeforeRemoval": "f6bf4d3c8438c18dc3207228daf147937e78eafe82e002e8cc3872757f0fb9c7",
+      "note": "Hôte widget de l'atelier Personnages retiré ; plus aucun importeur."
+    }
+  ],
+  "cases": [
+    {
+      "file": "apps/avelune_studio/test/resource_io/character_removal_resolution_host_test.dart",
+      "test": "dirty owner blocks inspection and keeps focused input",
+      "classification": "replaced",
+      "replacement": "a dirty draft of the removed character refuses inspection and keeps the draft",
+      "mutationsDetected": "guard_off"
+    },
+    {
+      "file": "apps/avelune_studio/test/resource_io/character_removal_resolution_host_test.dart",
+      "test": "unrelated dirty map does not block a free character removal",
+      "classification": "replaced",
+      "replacement": "a dirty map without the character does not block removal and stays dirty",
+      "mutationsDetected": "guard_all_maps"
+    },
+    {
+      "file": "apps/avelune_studio/test/resource_io/character_removal_resolution_host_test.dart",
+      "test": "affected dirty map refuses removal without saving another owner",
+      "classification": "replaced",
+      "replacement": "a dirty map that references the character refuses removal and saves nothing",
+      "mutationsDetected": "guard_off"
+    },
+    {
+      "file": "apps/avelune_studio/test/resource_io/character_removal_resolution_host_test.dart",
+      "test": "free removal preserves an unrelated focused character draft",
+      "classification": "replaced",
+      "replacement": "a removal drops only the removed draft and keeps another dirty draft",
+      "mutationsDetected": "reconcile_all"
+    },
+    {
+      "file": "apps/avelune_studio/test/resource_io/character_removal_concurrency_host_test.dart",
+      "test": "dirty replacement is refused without saving its focused draft",
+      "classification": "replaced",
+      "replacement": "a dirty draft of the replacement refuses the replace resolution and keeps the map reference",
+      "mutationsDetected": "guard_off, guard_all_maps"
+    },
+    {
+      "file": "apps/avelune_studio/test/resource_io/character_removal_history_host_test.dart",
+      "test": "replacement preserves unrelated undo and rejects deleted NPC",
+      "classification": "replaced",
+      "replacement": "a replacement keeps the open map history and refuses an undo to the deleted character",
+      "mutationsDetected": "guard_all_maps, history_off, accept_off"
+    },
+    {
+      "file": "apps/avelune_studio/test/resource_io/character_removal_layout_host_test.dart",
+      "test": "character removal keeps actions accessible at 1536.0",
+      "classification": "ui_only_obsolete",
+      "replacement": null,
+      "mutationsDetected": null
+    },
+    {
+      "file": "apps/avelune_studio/test/resource_io/character_removal_layout_host_test.dart",
+      "test": "character removal keeps actions accessible at 1280.0",
+      "classification": "ui_only_obsolete",
+      "replacement": null,
+      "mutationsDetected": null
+    },
+    {
+      "file": "apps/avelune_studio/test/resource_io/character_removal_layout_host_test.dart",
+      "test": "character removal keeps actions accessible at 1024.0",
+      "classification": "ui_only_obsolete",
+      "replacement": null,
+      "mutationsDetected": null
+    },
+    {
+      "file": "apps/avelune_studio/test/resource_io/character_removal_resolution_host_test.dart",
+      "test": "referenced character is replaced through the real global resolution",
+      "classification": "replaced_after_partial",
+      "replacement": "a replace resolution rewrites the reference on disk and in the clean open map",
+      "mutationsDetected": "accept_off"
+    },
+    {
+      "file": "apps/avelune_studio/test/resource_io/character_removal_resolution_host_test.dart",
+      "test": "clear resolution preserves the map owner and independent data",
+      "classification": "replaced_after_partial",
+      "replacement": "a clear resolution empties the reference on disk and in the clean open map",
+      "mutationsDetected": "accept_off"
+    },
+    {
+      "file": "apps/avelune_studio/test/resource_io/character_removal_resolution_host_test.dart",
+      "test": "reanalyzing requires a new explicit confirmation",
+      "classification": "replaced_after_partial",
+      "replacement": "a new inspection revokes the confirmation and deletes nothing until confirmed again",
+      "mutationsDetected": "confirmation_never_revoked"
+    },
+    {
+      "file": "apps/avelune_studio/test/resource_io/character_removal_concurrency_host_test.dart",
+      "test": "character changed after confirmation preparation is not overwritten",
+      "classification": "replaced_after_partial",
+      "replacement": "a character changed after the plan was prepared is neither overwritten nor deleted",
+      "mutationsDetected": null
+    },
+    {
+      "file": "apps/avelune_studio/test/resource_io/character_removal_concurrency_host_test.dart",
+      "test": "replacement removed after preview cannot partially replace map references",
+      "classification": "replaced_after_partial",
+      "replacement": "a replacement deleted after the preview leaves the project and the map untouched",
+      "mutationsDetected": null
+    },
+    {
+      "file": "apps/avelune_studio/test/resource_io/character_removal_reconciliation_host_test.dart",
+      "test": "published character removal retries UI without replaying delete",
+      "classification": "replaced_after_partial",
+      "replacement": "a failed reconciliation after publication keeps the receipt and retries without replaying the deletion",
+      "mutationsDetected": "sources_changed_off, select_next"
+    },
+    {
+      "file": "apps/avelune_studio/test/resource_io/character_removal_host_test.dart",
+      "test": "free character removal persists without selecting the next identity",
+      "classification": "replaced_after_partial",
+      "replacement": "a free removal deletes only the character and selects no other identity",
+      "mutationsDetected": "select_next"
+    }
+  ],
+  "mutationSurvivors": [
+    {
+      "mutation": "inspect_keeps_confirmation",
+      "reason": "Mutant équivalent : prepare() remet aussi confirmed à faux ; la mutation conjointe confirmation_never_revoked est détectée."
+    },
+    {
+      "mutation": "stale_check_off puis stale_guards_off_five_layers",
+      "reason": "Six couches refusent un plan périmé (Studio lifecycle apply ×2, expectedBefore/SnapshotRevision, plan_store, garde des dépendances de mutation_api, puis une autre non identifiée). Les deux tests de concurrence vérifient la donnée sur disque, mais leur détection par mutation n'est pas démontrée."
+    }
+  ],
+  "proofs": [
+    "owner-qualification-20261111/character-removal-owner-guard-tests.log",
+    "owner-qualification-20261111/character-removal-partials-mutations.log"
+  ],
+  "reviewer": "Aucune revue indépendante ; correspondance établie par l'auteur des tests de remplacement, à partir de red-ui-tests-owner-coverage.json et des mutations.",
+  "limits": [
+    "Les tests visuels de la future UI de suppression restent à écrire en T02+.",
+    "Aucun code de production modifié."
+  ],
+  "mcpParity": "N/A"
+}

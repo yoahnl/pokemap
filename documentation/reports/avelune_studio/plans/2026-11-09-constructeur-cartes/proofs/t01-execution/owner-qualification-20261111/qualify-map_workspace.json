@@ -1,0 +1,966 @@
+[
+  {
+    "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_border_tool_panel.dart",
+    "shaVerified": false,
+    "responsibilities": [
+      {
+        "what": "List visible border features (visible layers only) for selection",
+        "originalSymbol": "_existingBorders / MapBorderEditingCommands.visibleFeatures",
+        "headOwner": {
+          "path": "apps/avelune_studio/lib/features/map_workspace/application/map_border_editing_commands.dart",
+          "symbol": "MapBorderEditingCommands.visibleFeatures"
+        },
+        "tests": [
+          {
+            "path": "apps/avelune_studio/test/presentation/spatial_border_editor_test.dart",
+            "name": "border selection distinguishes identical feature ids in separate layers"
+          },
+          {
+            "path": "apps/avelune_studio/test/presentation/border_stroke_erase_editor_test.dart",
+            "name": "${spatial ? ...} hidden selection requires an explicit visible trace choice"
+          }
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "Erase mode requires an explicit visible selection; never fall back silently; repair selection when trace disappears",
+        "originalSymbol": "_existingBorders selectionRequired + view.selectBorderFeature/prepareBorderErase",
+        "headOwner": {
+          "path": "apps/avelune_studio/lib/features/map_workspace/application/map_workspace_editing_state.dart",
+          "symbol": "MapWorkspaceEditingState.selectBorderFeature / prepareBorderErase / repairBorderSelection"
+        },
+        "tests": [
+          {
+            "path": "apps/avelune_studio/test/presentation/border_stroke_erase_editor_test.dart",
+            "name": "complete erasure returns to draw mode and never silently selects another trace"
+          },
+          {
+            "path": "apps/avelune_studio/test/presentation/border_stroke_erase_editor_test.dart",
+            "name": "${spatial ? ...} hidden selection requires an explicit visible trace choice"
+          }
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "Regeneration status (stale / diagnostic) of the selected feature",
+        "originalSymbol": "commands.regenerationStatus",
+        "headOwner": {
+          "path": "apps/avelune_studio/lib/features/map_workspace/application/map_border_editing_commands.dart",
+          "symbol": "MapBorderEditingCommands.regenerationStatus"
+        },
+        "tests": [
+          {
+            "path": "apps/avelune_studio/test/presentation/spatial_border_editor_test.dart",
+            "name": "regeneration preview cancel apply and feature removal stay explicit"
+          }
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "Prepare then apply regeneration only from a fresh preview (source map + project identity)",
+        "originalSymbol": "commands.prepareExisting / preview.validFor / commands.applyRegeneration",
+        "headOwner": {
+          "path": "apps/avelune_studio/lib/features/map_workspace/application/map_border_editing_commands.dart",
+          "symbol": "MapBorderEditingCommands.prepareExisting / applyRegeneration -> applyExisting identity guard; MapBorderRegenerationPreview.validFor"
+        },
+        "tests": [
+          {
+            "path": "apps/avelune_studio/test/presentation/spatial_border_editor_test.dart",
+            "name": "regeneration preview cancel apply and feature removal stay explicit"
+          },
+          {
+            "path": "apps/avelune_studio/test/presentation/spatial_border_editor_test.dart",
+            "name": "an authored native border without generated units can prepare and apply its first preview"
+          },
+          {
+            "path": "apps/avelune_studio/test/application/spatial_border_commands_test.dart",
+            "name": "changed live models require an explicit preview before regeneration"
+          },
+          {
+            "path": "apps/avelune_studio/test/application/spatial_border_commands_test.dart",
+            "name": "stale sources dimensions and private source models fail closed"
+          }
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "Toggle layer foreground (2D maps only) as one undoable mutation",
+        "originalSymbol": "MapBorderEditingCommands.setForeground",
+        "headOwner": {
+          "path": "apps/avelune_studio/lib/features/map_workspace/application/map_border_editing_commands.dart",
+          "symbol": "MapBorderEditingCommands.setForeground"
+        },
+        "tests": [
+          {
+            "path": "apps/avelune_studio/test/map_workspace/border_drawing_host_test.dart",
+            "name": "canonical border preparation and canvas drawing preserve cardinal sprites and disk persistence"
+          }
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "Delete a map border feature and clear preview/selection",
+        "originalSymbol": "MapBorderEditingCommands.delete",
+        "headOwner": {
+          "path": "apps/avelune_studio/lib/features/map_workspace/application/map_border_editing_commands.dart",
+          "symbol": "MapBorderEditingCommands.delete"
+        },
+        "tests": [
+          {
+            "path": "apps/avelune_studio/test/presentation/spatial_border_editor_test.dart",
+            "name": "regeneration preview cancel apply and feature removal stay explicit"
+          },
+          {
+            "path": "apps/avelune_studio/test/application/spatial_border_commands_test.dart",
+            "name": "generated border models stay owned and feature deletion preserves foreign content"
+          }
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "3D world offset draft (French finite numbers per axis) and save/reset of the offset",
+        "originalSymbol": "_BorderSpatialOffsetEditorState (MapBorderOffsetDraft) + MapBorderEditingCommands.setSpatialOffset",
+        "headOwner": {
+          "path": "apps/avelune_studio/lib/features/map_workspace/application/map_border_drawing_draft.dart",
+          "symbol": "MapBorderOffsetDraft; apps/avelune_studio/lib/features/map_workspace/application/map_border_editing_commands.dart MapBorderEditingCommands.setSpatialOffset"
+        },
+        "tests": [
+          {
+            "path": "apps/avelune_studio/test/map_workspace/map_border_offset_draft_test.dart",
+            "name": "world offset draft preserves source and accepts French finite coordinates"
+          },
+          {
+            "path": "apps/avelune_studio/test/application/spatial_border_commands_test.dart",
+            "name": "spatial offsets keep feature intent and ownership until explicit regeneration"
+          },
+          {
+            "path": "apps/avelune_studio/test/presentation/spatial_border_editor_test.dart",
+            "name": "border altitude accepts French decimals before qualified regeneration"
+          }
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "Finish a draft: exterior (logical-origin offset -> drawBorder) vs map (finish), with owned failure on 3D maps",
+        "originalSymbol": "build: Terminer le tracé onPressed",
+        "headOwner": {
+          "path": "apps/avelune_studio/lib/platform/rendering/viewports/spatial_map_editing_borders.dart",
+          "symbol": "finish path (exterior.drawBorder / MapBorderEditingCommands.finish + view.failBorderDraft); apps/avelune_studio/lib/platform/rendering/viewports/map_editing_viewport_2d_border.dart finish"
+        },
+        "tests": [
+          {
+            "path": "apps/avelune_studio/test/map_workspace/spatial_exterior_border_editor_test.dart",
+            "name": "one native Border crosses sector boundaries with a persistent logical owner"
+          },
+          {
+            "path": "apps/avelune_studio/test/map_workspace/border_drawing_host_test.dart",
+            "name": "canonical border preparation and canvas preview finish in one undoable save"
+          },
+          {
+            "path": "apps/avelune_studio/test/presentation/spatial_border_layout_test.dart",
+            "name": "finish and hover retain one owned refusal until an angle is removed"
+          },
+          {
+            "path": "apps/avelune_studio/test/presentation/spatial_border_editor_test.dart",
+            "name": "native trace previews real units then Enter commits once and Escape discards"
+          }
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "Cancel draft clears only its own refusal",
+        "originalSymbol": "build: Annuler le tracé (view.clearBorderDraftFailure)",
+        "headOwner": {
+          "path": "apps/avelune_studio/lib/features/map_workspace/application/map_workspace_editing_state.dart",
+          "symbol": "MapWorkspaceEditingState.clearBorderDraftFailure (called by spatial viewport discardBorder)"
+        },
+        "tests": [
+          {
+            "path": "apps/avelune_studio/test/presentation/spatial_border_layout_test.dart",
+            "name": "cancel clears its refusal while retaining a different error"
+          },
+          {
+            "path": "apps/avelune_studio/test/presentation/spatial_border_layout_test.dart",
+            "name": "Escape preserves a later non-border document error"
+          }
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "Remove last angle of the draft",
+        "originalSymbol": "view.removeLastBorderAngle",
+        "headOwner": {
+          "path": "apps/avelune_studio/lib/features/map_workspace/application/map_workspace_editing_state.dart",
+          "symbol": "MapWorkspaceEditingState.removeLastBorderAngle"
+        },
+        "tests": [
+          {
+            "path": "apps/avelune_studio/test/presentation/spatial_border_layout_test.dart",
+            "name": "finish and hover retain one owned refusal until an angle is removed"
+          }
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "Move an existing angle of the draft",
+        "originalSymbol": "view.borderMovingAngle (consumed by viewport)",
+        "headOwner": {
+          "path": "apps/avelune_studio/lib/features/map_workspace/application/map_border_drawing_draft.dart",
+          "symbol": "MapBorderDrawingDraft (moveAngle) via viewport"
+        },
+        "tests": [
+          {
+            "path": "apps/avelune_studio/test/map_workspace/map_relief_guided_flow_test.dart",
+            "name": "moving an angle keeps the contour and refuses a point outside"
+          }
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "Border model choices: only published ready profiles offered, drafts counted; profile pieces and draft review",
+        "originalSymbol": "mapBorderProfileChoices / mapBorderProfilePieces / mapBorderDraftReview",
+        "headOwner": {
+          "path": "apps/avelune_studio/lib/features/map_workspace/application/map_border_review.dart",
+          "symbol": "mapBorderProfileChoices / mapBorderProfilePieces / mapBorderDraftReview"
+        },
+        "tests": [
+          {
+            "path": "apps/avelune_studio/test/map_workspace/map_relief_guided_flow_test.dart",
+            "name": "only published profiles are offered and drafts point to the workshop"
+          },
+          {
+            "path": "apps/avelune_studio/test/map_workspace/map_relief_guided_flow_test.dart",
+            "name": "a published profile lists its segments, corners and ends"
+          },
+          {
+            "path": "apps/avelune_studio/test/map_workspace/map_relief_guided_flow_test.dart",
+            "name": "a profile without corner pieces warns before an angled contour"
+          }
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "Exterior decoration border regeneration (button Régénérer le tracé), errors routed to document.error",
+        "originalSymbol": "_existingExteriorBorders -> controller.regenerateBorder",
+        "headOwner": {
+          "path": "apps/avelune_studio/lib/features/map_workspace/application/map_exterior_decoration_controller.dart",
+          "symbol": "MapExteriorDecorationController.regenerateBorder"
+        },
+        "tests": [],
+        "status": "untested"
+      },
+      {
+        "what": "Exterior decoration border removal + clearing view.borderFeature",
+        "originalSymbol": "_existingExteriorBorders -> controller.removeBorder",
+        "headOwner": {
+          "path": "apps/avelune_studio/lib/features/map_workspace/application/map_exterior_decoration_controller.dart",
+          "symbol": "MapExteriorDecorationController.removeBorder"
+        },
+        "tests": [],
+        "status": "untested"
+      },
+      {
+        "what": "Draft scoped to the active map (draft.mapId == current map id)",
+        "originalSymbol": "build: draft = view.borderDraft?.mapId == document.current.id",
+        "headOwner": {
+          "path": "apps/avelune_studio/lib/platform/rendering/viewports/map_editing_viewport_2d.dart",
+          "symbol": "borderDraft.mapId guard (lines ~133/165)"
+        },
+        "tests": [],
+        "status": "untested"
+      }
+    ],
+    "verdict": "gap",
+    "rationale": "SHA MISMATCH: 505f1b71a^ blob sha256=4e38f75ec509d9461f626fd15210fd1f4bcd299259dc29b4a8c140f96c4d429c, inventory sha256=0a4254875403df9ae017833f05b39630167d94210089af8406be9909745ab731. The inventory hash matches the older blob at ff260f2ab; the file was later rewritten by 4ebd750e2/861ad496d (extraction commits) before deletion, so the inventory evidence is stale. Responsibilities below are qualified from the 505f1b71a^ content. Map-border responsibilities all have HEAD owners with behavioural tests. Gap: the exterior-decoration border actions. MapExteriorDecorationController.regenerateBorder has zero callers in HEAD lib and no test anywhere (grep regenerateBorder in test: none); removeBorder is only reached indirectly via eraseBorder and has no direct Studio test (map_authoring service removeBorder test covers the MCP path, a different owner). The draft-map scoping guard survives in the 2D viewport but no test asserts it."
+  },
+  {
+    "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_cliff_guide.dart",
+    "shaVerified": false,
+    "responsibilities": [
+      {
+        "what": "Cliff guidance state (profile / contour / height / review) from map, published definition and draft, incl. level summary",
+        "originalSymbol": "mapCliffGuideState (re-exported from application)",
+        "headOwner": {
+          "path": "apps/avelune_studio/lib/features/map_workspace/application/map_cliff_guidance.dart",
+          "symbol": "mapCliffGuideState / mapCliffLevelsSummary"
+        },
+        "tests": [
+          {
+            "path": "apps/avelune_studio/test/map_workspace/map_relief_guided_flow_test.dart",
+            "name": "guidance projects profile contour and qualified review states"
+          },
+          {
+            "path": "apps/avelune_studio/test/map_workspace/map_relief_guided_flow_test.dart",
+            "name": "a flat contour sends back to the height step"
+          },
+          {
+            "path": "apps/avelune_studio/test/map_workspace/map_relief_guided_flow_test.dart",
+            "name": "the contour reads low and high levels and the wall side"
+          }
+        ],
+        "status": "preserved"
+      }
+    ],
+    "verdict": "retired_ui_after_extraction",
+    "rationale": "SHA MISMATCH: 505f1b71a^ blob sha256=3c60b3616cdea17d3b74fdab5b864386207dc67956554e312c1f0a5b02361cf8, inventory sha256=0043f133f0b5b1c77cd447f34f286e824bffa1599518386ad5837690da65e7e7. The inventory hash matches the older blob at f00224f33; the file was later rewritten by 4ebd750e2/861ad496d (extraction commits) before deletion, so the inventory evidence is stale. Responsibilities below are qualified from the 505f1b71a^ content. The guidance computation was extracted by 4ebd750e2 into application/map_cliff_guidance.dart (unchanged since 505f1b71a^) and is directly tested. Remaining widget code is step-tone mapping, badges and a button that only sets two view-state fields (spatialTerrainMode=relief, tool=terrain): navigation, no document effect."
+  },
+  {
+    "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_environment_tool_panel.dart",
+    "shaVerified": false,
+    "responsibilities": [
+      {
+        "what": "List environment areas and resolve the selected session area",
+        "originalSymbol": "commands.areas / commands.area",
+        "headOwner": {
+          "path": "apps/avelune_studio/lib/features/map_workspace/application/environment_editing_commands.dart",
+          "symbol": "EnvironmentEditingCommands.areas / area"
+        },
+        "tests": [
+          {
+            "path": "apps/avelune_studio/test/application/spatial_environment_commands_test.dart",
+            "name": "generated edits persist through regeneration and deletion is scoped"
+          }
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "Create a zone from a preset (spatial/2D compatibility)",
+        "originalSymbol": "commands.create",
+        "headOwner": {
+          "path": "apps/avelune_studio/lib/features/map_workspace/application/environment_editing_commands.dart",
+          "symbol": "EnvironmentEditingCommands.create"
+        },
+        "tests": [
+          {
+            "path": "apps/avelune_studio/test/application/environment_editing_commands_test.dart",
+            "name": "one stroke keeps exact cells and holes with one undo"
+          },
+          {
+            "path": "apps/avelune_studio/test/application/spatial_environment_commands_test.dart",
+            "name": "spatial preview is native, follows ground, applies once and undoes"
+          }
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "Only offer presets available to the active map (resourceLibraryCatalog.availableForMap environmentPreset) before creating a zone",
+        "originalSymbol": "hasAvailablePreset + chooseEnvironmentPreset (filterResourceCatalog forMapPicker)",
+        "headOwner": {
+          "path": "apps/avelune_studio/lib/features/map_workspace/coordination/map_resource_placement.dart",
+          "symbol": "useMapEnvironment (availableForMap refusal)"
+        },
+        "tests": [],
+        "status": "untested"
+      },
+      {
+        "what": "Preview writes nothing",
+        "originalSymbol": "commands.preview",
+        "headOwner": {
+          "path": "apps/avelune_studio/lib/features/map_workspace/application/environment_editing_commands.dart",
+          "symbol": "EnvironmentEditingCommands.preview"
+        },
+        "tests": [
+          {
+            "path": "apps/avelune_studio/test/application/environment_editing_commands_test.dart",
+            "name": "preview writes nothing and erased outer cells remove generated decors"
+          }
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "Apply only a fresh preview (previewSource/previewProject identity)",
+        "originalSymbol": "fresh gate + commands.apply",
+        "headOwner": {
+          "path": "apps/avelune_studio/lib/features/map_workspace/application/environment_editing_commands.dart",
+          "symbol": "EnvironmentEditingCommands.apply (identity guard, clearPreview)"
+        },
+        "tests": [
+          {
+            "path": "apps/avelune_studio/test/application/environment_editing_commands_test.dart",
+            "name": "stale preview refuses without overwriting an intervening edit"
+          },
+          {
+            "path": "apps/avelune_studio/test/application/spatial_environment_commands_test.dart",
+            "name": "stale spatial preview rejects a changed map or project"
+          }
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "Change seed (Autre répartition)",
+        "originalSymbol": "commands.changeSeed",
+        "headOwner": {
+          "path": "apps/avelune_studio/lib/features/map_workspace/application/environment_editing_commands.dart",
+          "symbol": "EnvironmentEditingCommands.changeSeed"
+        },
+        "tests": [
+          {
+            "path": "apps/avelune_studio/test/application/spatial_environment_commands_test.dart",
+            "name": "generated edits persist through regeneration and deletion is scoped"
+          }
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "Delete zone and its generated decors, clear session",
+        "originalSymbol": "commands.delete + view.environment = null",
+        "headOwner": {
+          "path": "apps/avelune_studio/lib/features/map_workspace/application/environment_editing_commands.dart",
+          "symbol": "EnvironmentEditingCommands.delete"
+        },
+        "tests": [
+          {
+            "path": "apps/avelune_studio/test/application/spatial_environment_commands_test.dart",
+            "name": "generated edits persist through regeneration and deletion is scoped"
+          }
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "Map failures to user messages (StateError, region_too_large)",
+        "originalSymbol": "run() -> environmentEditingMessage",
+        "headOwner": {
+          "path": "apps/avelune_studio/lib/features/map_workspace/application/environment_editing_commands.dart",
+          "symbol": "environmentEditingMessage"
+        },
+        "tests": [],
+        "status": "untested"
+      }
+    ],
+    "verdict": "gap",
+    "rationale": "SHA MISMATCH: 505f1b71a^ blob sha256=c36a21900bd6bf857adf96662c6172dc945341994a536fac5db5197437620ad5, inventory sha256=9d5a064a6645cf81ea30d34f15a0718da4a0a5a3910ca4b2db7be78faaf7d995. The inventory hash matches the older blob at b7d544352; the file was later rewritten by 4ebd750e2/861ad496d (extraction commits) before deletion, so the inventory evidence is stale. Responsibilities below are qualified from the 505f1b71a^ content. Command behaviour (create/preview/apply freshness/seed/delete) is owned by EnvironmentEditingCommands (unchanged) and tested. Gaps: (1) the map-scoped preset admission that the panel enforced through hasAvailablePreset/chooseEnvironmentPreset now only lives in coordination useMapEnvironment, whose environment-specific refusal (Cet environnement est propre a une autre carte) has no test; map_resource_placement_test covers the map-choice filter only for an element resource. (2) environmentEditingMessage (incl. environment.region_too_large mapping) has no test. Confirmation dialog and tool buttons are UI."
+  },
+  {
+    "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_terrain_inspector.dart",
+    "shaVerified": false,
+    "responsibilities": [
+      {
+        "what": "Terrain highlight / dim toggles (view preferences only, no document write)",
+        "originalSymbol": "view.highlightTerrain / view.dimOtherTerrains",
+        "headOwner": {
+          "path": "apps/avelune_studio/lib/features/map_workspace/application/map_terrain_highlight.dart",
+          "symbol": "terrain highlight projection reading MapWorkspaceEditingState.highlightTerrain (dimOtherTerrains read by map_editing_viewport_2d_render via MapEditingViewportSession)"
+        },
+        "tests": [
+          {
+            "path": "apps/avelune_studio/test/map_workspace/map_terrain_highlight_test.dart",
+            "name": "tool, preset and view changes do not leak highlight across maps"
+          },
+          {
+            "path": "apps/avelune_studio/test/map_workspace/map_terrain_highlight_test.dart",
+            "name": "highlight follows painted cells, holes and disconnected islands"
+          }
+        ],
+        "status": "preserved"
+      }
+    ],
+    "verdict": "retired_ui",
+    "rationale": "SHA MISMATCH: 505f1b71a^ blob sha256=1a7dd406de651a7f516cda8e7f5398a3328978daaafc122405bf43403be8e79a, inventory sha256=4743602e21b1d25a0cc0ed15c37748026dca6d5c313669d729a6e561317bceea. The inventory hash matches the older blob at 8d952dc5c; the file was later rewritten by 4ebd750e2/861ad496d (extraction commits) before deletion, so the inventory evidence is stale. Responsibilities below are qualified from the 505f1b71a^ content. No document mutation, command, validation or persistence: a resource-preview lookup for display, help text, two checkboxes writing view-state booleans, and composition of SpatialTerrainControls (qualified separately). The toggles remain fields of the editing state and their consumer is tested; only their UI entry point is gone."
+  },
+  {
+    "path": "apps/avelune_studio/lib/presentation/features/map_workspace/map_terrain_tool_panel.dart",
+    "shaVerified": false,
+    "responsibilities": [
+      {
+        "what": "Refuse settings writes while the document is saving",
+        "originalSymbol": "_change (document.saving)",
+        "headOwner": {
+          "path": "apps/avelune_studio/lib/features/map_workspace/application/map_terrain_settings_commands.dart",
+          "symbol": "MapTerrainSettingsCommands._change saving guard"
+        },
+        "tests": [
+          {
+            "path": "apps/avelune_studio/test/map_workspace/map_terrain_settings_commands_test.dart",
+            "name": "a saving document rejects path settings without modifying its draft"
+          }
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "Path layer animation activation (always / on_enter)",
+        "originalSymbol": "_settings.animation",
+        "headOwner": {
+          "path": "apps/avelune_studio/lib/features/map_workspace/application/map_terrain_settings_commands.dart",
+          "symbol": "MapTerrainSettingsCommands.animation"
+        },
+        "tests": [
+          {
+            "path": "apps/avelune_studio/test/presentation/path_behavior_tool_panel_test.dart",
+            "name": "path behavior can be configured before painting and undone"
+          },
+          {
+            "path": "apps/avelune_studio/test/presentation/path_behavior_tool_panel_test.dart",
+            "name": "terrain animation choices preserve the selected model transform"
+          }
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "Path encounter table (walk tables only, empty clears, material fallback to allowed/default)",
+        "originalSymbol": "_settings.encounter",
+        "headOwner": {
+          "path": "apps/avelune_studio/lib/features/map_workspace/application/map_terrain_settings_commands.dart",
+          "symbol": "MapTerrainSettingsCommands.encounter"
+        },
+        "tests": [
+          {
+            "path": "apps/avelune_studio/test/map_workspace/map_terrain_settings_commands_test.dart",
+            "name": "encounter settings retain canonical validation and can be cleared"
+          },
+          {
+            "path": "apps/avelune_studio/test/map_workspace/map_terrain_settings_commands_test.dart",
+            "name": "unknown encounter table does not create a layer or an undo entry"
+          },
+          {
+            "path": "apps/avelune_studio/test/map_workspace/map_terrain_settings_commands_test.dart",
+            "name": "path settings prepare a native layer without painting any cells"
+          }
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "Skip the write when the chosen activation/table equals the effective current value (absent layer = always / none), so no layer or undo entry is created",
+        "originalSymbol": "inline early return before _change in both onChanged handlers",
+        "headOwner": null,
+        "tests": [],
+        "status": "lost"
+      },
+      {
+        "what": "Available patterns for preset and map",
+        "originalSymbol": "availableTerrainPatterns",
+        "headOwner": {
+          "path": "apps/avelune_studio/lib/features/map_workspace/application/map_terrain_patterns.dart",
+          "symbol": "availableTerrainPatterns"
+        },
+        "tests": [
+          {
+            "path": "apps/avelune_studio/test/presentation/map_canvas_patterns_test.dart",
+            "name": "fixed-height whole models remain available only in native spatial channels"
+          },
+          {
+            "path": "apps/avelune_studio/test/presentation/map_canvas_patterns_test.dart",
+            "name": "adaptive construction picker scopes native families through existing categories"
+          }
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "Select a pattern and initialise its placement mode (stamp-only / construction default)",
+        "originalSymbol": "view.selectTerrainPattern",
+        "headOwner": {
+          "path": "apps/avelune_studio/lib/features/map_workspace/application/map_workspace_editing_state.dart",
+          "symbol": "MapWorkspaceEditingState.selectTerrainPattern + defaultTerrainPatternSelection"
+        },
+        "tests": [
+          {
+            "path": "apps/avelune_studio/test/presentation/map_canvas_patterns_test.dart",
+            "name": "preset selection initializes $kind construction coherently"
+          }
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "Placement-mode admissibility (stamp repeat mode only accepts stamp)",
+        "originalSymbol": "inline options of terrain-pattern-mode",
+        "headOwner": {
+          "path": "packages/map_core/lib/src/operations/smart_tile_pattern_operations.dart",
+          "symbol": "applySmartTilePatternGesture (smart_tile.pattern.stamp_only)"
+        },
+        "tests": [
+          {
+            "path": "packages/map_core/test/smart_tiles/smart_tile_pattern_clipping_policy_test.dart",
+            "name": "fixed stamp refuses unsupported reversed ${selection.kind.name}"
+          }
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "Material choice restricted to preset.allowedMaterialIds",
+        "originalSymbol": "inline guard in terrain-material-picker onChanged",
+        "headOwner": {
+          "path": "apps/avelune_studio/lib/features/map_workspace/application/map_workspace_editing_state.dart",
+          "symbol": "MapWorkspaceEditingState.prepareTerrainPainting / reconcileResources normalisation of terrainMaterialId"
+        },
+        "tests": [
+          {
+            "path": "apps/avelune_studio/test/presentation/map_canvas_patterns_test.dart",
+            "name": "reactive path motifs synchronize material and erase: spatial $spatial"
+          }
+        ],
+        "status": "preserved"
+      }
+    ],
+    "verdict": "gap",
+    "rationale": "SHA MISMATCH: 505f1b71a^ blob sha256=ef78ffdd71b3868c070b4141a2b2a9b97de13a3bd330683f561fbcfb3447bd4d, inventory sha256=9066a3821f4786cbcc42abed3da41662389b272d2c85f531f211646d3c83f3bd. The inventory hash matches the older blob at 5e581241f; the file was later rewritten by 4ebd750e2/861ad496d (extraction commits) before deletion, so the inventory evidence is stale. Responsibilities below are qualified from the 505f1b71a^ content. All writes go through MapTerrainSettingsCommands (unchanged, tested). Lost: the call-site no-op guard. EditableMapDocument.commit drops equal maps, but when no path layer exists MapTerrainSettingsCommands._change calls prepareTerrainStrokeLayer first, so re-selecting the default (always / Aucune) would create a layer and an undo entry; the widget prevented that and no HEAD owner does. Minor, and only relevant once a caller exists again. Mode buttons, relief level and highlight are view state."
+  },
+  {
+    "path": "apps/avelune_studio/lib/presentation/features/map_workspace/spatial_fishing_editor.dart",
+    "shaVerified": false,
+    "responsibilities": [
+      {
+        "what": "Parse/validate fishing drop height (French decimal, finite, 0..4), saving guard, one undoable navigation write",
+        "originalSymbol": "tryCommit -> MapSpatialSettingsCommands.fishingDrop",
+        "headOwner": {
+          "path": "apps/avelune_studio/lib/features/map_workspace/application/map_spatial_settings_commands.dart",
+          "symbol": "MapSpatialSettingsCommands.fishingDrop"
+        },
+        "tests": [
+          {
+            "path": "apps/avelune_studio/test/presentation/spatial_fishing_editor_test.dart",
+            "name": "fishing height commits French decimals and supports undo"
+          },
+          {
+            "path": "apps/avelune_studio/test/presentation/spatial_fishing_editor_test.dart",
+            "name": "fishing refuses writes while saving"
+          }
+        ],
+        "status": "preserved"
+      }
+    ],
+    "verdict": "retired_ui_after_extraction",
+    "rationale": "SHA MISMATCH: 505f1b71a^ blob sha256=336197fab77340c6bb5d2a088195a02231af2390278af06b5cee72783a1b78be, inventory sha256=d3dd977cda046a03332f2c02b5ff404d82d08fb9907b4bdc2bb46a6b57960955. The inventory hash matches the older blob at 85fc0968b; the file was later rewritten by 4ebd750e2/861ad496d (extraction commits) before deletion, so the inventory evidence is stale. Responsibilities below are qualified from the 505f1b71a^ content. 4ebd750e2 moved the parsing/validation/commit into MapSpatialSettingsCommands.fishingDrop (unchanged since); the widget only called it. Tests cover valid, invalid (5, -1, NaN, Infinity, text), undo and saving refusal."
+  },
+  {
+    "path": "apps/avelune_studio/lib/presentation/features/map_workspace/spatial_ledge_editor.dart",
+    "shaVerified": false,
+    "responsibilities": [
+      {
+        "what": "Configure ledges (saving guard, FormatException -> French error, one undo)",
+        "originalSymbol": "_commit -> SpatialLedgeEditingCommands.configure",
+        "headOwner": {
+          "path": "apps/avelune_studio/lib/features/map_workspace/application/spatial_ledge_editing_commands.dart",
+          "symbol": "SpatialLedgeEditingCommands.configure"
+        },
+        "tests": [
+          {
+            "path": "apps/avelune_studio/test/map_workspace/spatial_ledge_editing_commands_test.dart",
+            "name": "native ledges use unique identifiers and one undo per mutation"
+          },
+          {
+            "path": "apps/avelune_studio/test/map_workspace/spatial_ledge_editing_commands_test.dart",
+            "name": "saving map cannot configure a new ledge"
+          },
+          {
+            "path": "apps/avelune_studio/test/presentation/spatial_ledge_editor_test.dart",
+            "name": "ledge commands add a native jump and can undo its deletion"
+          }
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "New ledge with unique id near spawn and valid direction",
+        "originalSymbol": "_commands.next",
+        "headOwner": {
+          "path": "apps/avelune_studio/lib/features/map_workspace/application/spatial_ledge_editing_commands.dart",
+          "symbol": "SpatialLedgeEditingCommands.next"
+        },
+        "tests": [
+          {
+            "path": "apps/avelune_studio/test/map_workspace/spatial_ledge_editing_commands_test.dart",
+            "name": "native ledges use unique identifiers and one undo per mutation"
+          }
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "Edit one field with validation via SpatialLedge.fromJson (direction select)",
+        "originalSymbol": "edit -> SpatialLedgeEditingCommands.edit",
+        "headOwner": {
+          "path": "apps/avelune_studio/lib/features/map_workspace/application/spatial_ledge_editing_commands.dart",
+          "symbol": "SpatialLedgeEditingCommands.edit"
+        },
+        "tests": [
+          {
+            "path": "apps/avelune_studio/test/map_workspace/spatial_ledge_editing_commands_test.dart",
+            "name": "native ledges use unique identifiers and one undo per mutation"
+          }
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "Text field parsing: integer for x/z/distance/durationMs, French decimal for height; saving guard",
+        "originalSymbol": "StudioCommitField.tryCommit -> SpatialLedgeEditingCommands.editText",
+        "headOwner": {
+          "path": "apps/avelune_studio/lib/features/map_workspace/application/spatial_ledge_editing_commands.dart",
+          "symbol": "SpatialLedgeEditingCommands.editText"
+        },
+        "tests": [],
+        "status": "untested"
+      },
+      {
+        "what": "Delete selected ledge (configure filtered list)",
+        "originalSymbol": "_commit(ledges.where(id != selected))",
+        "headOwner": {
+          "path": "apps/avelune_studio/lib/features/map_workspace/application/spatial_ledge_editing_commands.dart",
+          "symbol": "SpatialLedgeEditingCommands.configure"
+        },
+        "tests": [
+          {
+            "path": "apps/avelune_studio/test/presentation/spatial_ledge_editor_test.dart",
+            "name": "ledge commands add a native jump and can undo its deletion"
+          }
+        ],
+        "status": "preserved"
+      }
+    ],
+    "verdict": "gap",
+    "rationale": "SHA MISMATCH: 505f1b71a^ blob sha256=7c47594d656f319192aea749fba1b66c77fbcd4362f78be8f5f38f1eeb878a92, inventory sha256=6a60e5acfc5da8ce1a57aaadfa9b75d618bbe572f21b890594aa33ef12598d26. The inventory hash matches the older blob at 013546ea3; the file was later rewritten by 4ebd750e2/861ad496d (extraction commits) before deletion, so the inventory evidence is stale. Responsibilities below are qualified from the 505f1b71a^ content. Extraction to SpatialLedgeEditingCommands (4ebd750e2) is real and mostly tested. Gap: editText (int vs French-decimal parsing per key, saving refusal) has no caller left in HEAD lib and no test (grep editText in test: none). The pre-extraction widget test guided ledge editing adds a native jump and can undo it was rewritten into a command test that does not use text input. Selected-ledge id is local UI state."
+  },
+  {
+    "path": "apps/avelune_studio/lib/presentation/features/map_workspace/spatial_ramp_editor.dart",
+    "shaVerified": false,
+    "responsibilities": [
+      {
+        "what": "Ramp draft session: load/select, numeric fields, preview, apply, owned preview, dispose",
+        "originalSymbol": "_SpatialRampEditorState -> SpatialRampEditingSession",
+        "headOwner": {
+          "path": "apps/avelune_studio/lib/features/map_workspace/application/spatial_ramp_editing_session.dart",
+          "symbol": "SpatialRampEditingSession (load/edit/preview/apply/clearPreview/dispose)"
+        },
+        "tests": [
+          {
+            "path": "apps/avelune_studio/test/presentation/spatial_ramp_editor_test.dart",
+            "name": "French fractional draft previews cancels and applies once without altering other ramps"
+          },
+          {
+            "path": "apps/avelune_studio/test/presentation/spatial_ramp_editor_test.dart",
+            "name": "selection exact values validation and concurrent changes invalidate owned previews"
+          },
+          {
+            "path": "apps/avelune_studio/test/map_workspace/spatial_editing_sessions_test.dart",
+            "name": "disposing one ramp draft preserves another owner preview"
+          },
+          {
+            "path": "apps/avelune_studio/test/map_workspace/spatial_editing_sessions_test.dart",
+            "name": "a ramp session cannot publish another session preview"
+          },
+          {
+            "path": "apps/avelune_studio/test/presentation/spatial_fractional_ramp_editor_test.dart",
+            "name": "fractional stair endpoints retain edit preview apply and undo without snapping"
+          }
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "External change resync and project refresh disarm only own preview",
+        "originalSymbol": "didUpdateWidget -> synchronize / updateProject",
+        "headOwner": {
+          "path": "apps/avelune_studio/lib/features/map_workspace/application/spatial_ramp_editing_session.dart",
+          "symbol": "SpatialRampEditingSession.synchronize / updateProject"
+        },
+        "tests": [
+          {
+            "path": "apps/avelune_studio/test/presentation/spatial_ramp_editor_test.dart",
+            "name": "project metadata refresh preserves an unapplied ramp draft"
+          },
+          {
+            "path": "apps/avelune_studio/test/map_workspace/spatial_editing_sessions_test.dart",
+            "name": "project dependency refresh disarms only its preview and retains ramp fields"
+          }
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "Apply only a valid preview with changes",
+        "originalSymbol": "enabled && validPreview && preview.hasChanges",
+        "headOwner": {
+          "path": "apps/avelune_studio/lib/features/map_workspace/application/spatial_ramp_editing_commands.dart",
+          "symbol": "SpatialRampEditingCommands.apply (validFor) + session.apply owned-preview identity; EditableMapDocument.commit drops equal maps"
+        },
+        "tests": [
+          {
+            "path": "apps/avelune_studio/test/map_workspace/spatial_editing_sessions_test.dart",
+            "name": "a ramp session cannot publish another session preview"
+          }
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "Surface choices exclude blocking, smart-tile and generated instances",
+        "originalSymbol": "_editing.surfaceChoices",
+        "headOwner": {
+          "path": "apps/avelune_studio/lib/features/map_workspace/application/spatial_ramp_editing_session.dart",
+          "symbol": "SpatialRampEditingSession.surfaceChoices"
+        },
+        "tests": [
+          {
+            "path": "apps/avelune_studio/test/presentation/spatial_ramp_editor_test.dart",
+            "name": "ramp surface choices exclude blocking decors and can return to terrain with undo"
+          }
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "Stair-linked (rampProfile) ramps are read-only",
+        "originalSymbol": "automatic branch (read-only panel)",
+        "headOwner": {
+          "path": "packages/map_core/lib/src/operations/spatial_map_operations.dart",
+          "symbol": "SpatialMapOperations.configureNavigation (Stair ramps are derived from their model profile)"
+        },
+        "tests": [
+          {
+            "path": "apps/avelune_studio/test/map_workspace/spatial_stair_attachment_test.dart",
+            "name": "an automatic stair ramp refuses independent slope editing"
+          }
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "On document/view rebind, keep the selected ramp only if the new document is the same map",
+        "originalSymbol": "didUpdateWidget: selectedId = _editing.source?.id == current.id ? ramp.id : null; new session + load(rampId)",
+        "headOwner": null,
+        "tests": [],
+        "status": "lost"
+      }
+    ],
+    "verdict": "gap",
+    "rationale": "SHA MISMATCH: 505f1b71a^ blob sha256=a7122b6e4912ddedbcee71b6aa2597f06559726b7a0ec54ef4a3685035e4eed7, inventory sha256=1db0a6ab55c6e00e340d05e293e1f8911895ebaa8525726d3793f39414d2f4e4. The inventory hash matches the older blob at 5e581241f; the file was later rewritten by 4ebd750e2/861ad496d (extraction commits) before deletion, so the inventory evidence is stale. Responsibilities below are qualified from the 505f1b71a^ content. Draft logic was extracted into SpatialRampEditingSession/Commands and is well tested; the stair read-only rule is enforced in map_core (test asserts only throwsFormatException, not the stair message, so evidence is weaker than ideal). Lost (binding-level, minor): the rebind rule that preserves the selected ramp across a document/view identity swap of the same map. A fresh session has source == null, so load() falls back to the first ramp; no HEAD owner encodes the retention."
+  },
+  {
+    "path": "apps/avelune_studio/lib/presentation/features/map_workspace/spatial_terrain_controls.dart",
+    "shaVerified": false,
+    "responsibilities": [
+      {
+        "what": "Cliff wall generation toggle preserving the current texture, saving guard, undo",
+        "originalSymbol": "MapSpatialSettingsCommands.terrainAppearance(cliffFrame: current, generateCliffs)",
+        "headOwner": {
+          "path": "apps/avelune_studio/lib/features/map_workspace/application/map_spatial_settings_commands.dart",
+          "symbol": "MapSpatialSettingsCommands.terrainAppearance"
+        },
+        "tests": [
+          {
+            "path": "apps/avelune_studio/test/map_workspace/map_spatial_settings_commands_test.dart",
+            "name": "terrain appearance retains cliff texture and generation independently with undo"
+          }
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "Cliff texture choice: none -> null, atlas -> SmartTileFrameRef(atlasId, 0, 0)",
+        "originalSymbol": "texture StudioSelect onChanged -> terrainAppearance",
+        "headOwner": {
+          "path": "apps/avelune_studio/lib/features/map_workspace/application/map_spatial_settings_commands.dart",
+          "symbol": "MapSpatialSettingsCommands.terrainAppearance"
+        },
+        "tests": [
+          {
+            "path": "apps/avelune_studio/test/map_workspace/map_spatial_settings_commands_test.dart",
+            "name": "terrain appearance retains cliff texture and generation independently with undo"
+          }
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "Cliff atlas eligibility: only 1x1 atlases (or the current one) whose tileset image exists in the project",
+        "originalSymbol": "inline atlases filter in build",
+        "headOwner": null,
+        "tests": [],
+        "status": "lost"
+      },
+      {
+        "what": "Relief/surface draft parameters and preview invalidation on shape/reanchor change",
+        "originalSymbol": "view.spatialContinuousTerrain / spatialSurfaceReanchorInstances / spatialSurfaceLow/HighLevel / spatialSurfaceDirection; terrainSurfacePreview = null",
+        "headOwner": {
+          "path": "apps/avelune_studio/lib/features/map_workspace/application/map_workspace_editing_state.dart",
+          "symbol": "MapWorkspaceEditingState fields consumed by spatial viewport stroke"
+        },
+        "tests": [
+          {
+            "path": "apps/avelune_studio/test/map_workspace/spatial_terrain_surface_tools_test.dart",
+            "name": "continuous terrain is drawn with a live preview and one undo in the existing relief tool"
+          },
+          {
+            "path": "apps/avelune_studio/test/map_workspace/spatial_relief_tools_test.dart",
+            "name": "relief drag previews height and Escape discards the stroke"
+          }
+        ],
+        "status": "preserved"
+      }
+    ],
+    "verdict": "gap",
+    "rationale": "SHA MISMATCH: 505f1b71a^ blob sha256=74d0aac75c45a051733e2f458fef87bdf829f43b5e38b14b55bde0483d04d6b9, inventory sha256=d3e341e5f9fa7cd8cd86ebcaae960912d5fc4ddebfc8c39c38257b2cc456d8b3. The inventory hash matches the older blob at 85fc0968b; the file was later rewritten by 4ebd750e2/861ad496d (extraction commits) before deletion, so the inventory evidence is stale. Responsibilities below are qualified from the 505f1b71a^ content. Writes go through MapSpatialSettingsCommands.terrainAppearance (tested). Lost: the cliff-texture eligibility policy. No HEAD code filters atlases on columns == 1 && rows == 1 or on an existing tileset (grep: none). map_core validators only require the atlas to exist and the frame to fit inside it, and the map_authoring cliffFrame action accepts any in-bounds frame, so the single-cell rule (also stated in the UI copy) is no longer enforced anywhere. The pre-extraction widget test cliff texture picker is undoable and can clear its reference was replaced by a command test that does not cover eligibility. Embedded editors are qualified separately."
+  },
+  {
+    "path": "apps/avelune_studio/lib/presentation/features/map_workspace/spatial_terrain_surface_editor.dart",
+    "shaVerified": false,
+    "responsibilities": [
+      {
+        "what": "Surface draft session: load, numeric fields, preview, apply, delete, owned preview, dispose",
+        "originalSymbol": "_SpatialTerrainSurfaceEditorState -> SpatialTerrainSurfaceEditingSession",
+        "headOwner": {
+          "path": "apps/avelune_studio/lib/features/map_workspace/application/spatial_terrain_surface_editing_session.dart",
+          "symbol": "SpatialTerrainSurfaceEditingSession"
+        },
+        "tests": [
+          {
+            "path": "apps/avelune_studio/test/map_workspace/spatial_editing_sessions_test.dart",
+            "name": "surface draft rejects invalid dimensions and changed source"
+          },
+          {
+            "path": "apps/avelune_studio/test/map_workspace/spatial_editing_sessions_test.dart",
+            "name": "surface deletion is one undo and clears only its owned preview"
+          },
+          {
+            "path": "apps/avelune_studio/test/map_workspace/spatial_editing_sessions_test.dart",
+            "name": "a surface session cannot publish another session preview"
+          },
+          {
+            "path": "apps/avelune_studio/test/map_workspace/spatial_editing_sessions_test.dart",
+            "name": "a disposed surface session cannot delete its former target"
+          }
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "Surface commands (apply / delete with reanchor)",
+        "originalSymbol": "session -> SpatialTerrainSurfaceEditingCommands",
+        "headOwner": {
+          "path": "apps/avelune_studio/lib/features/map_workspace/application/spatial_terrain_surface_editing_commands.dart",
+          "symbol": "SpatialTerrainSurfaceEditingCommands.apply / delete"
+        },
+        "tests": [
+          {
+            "path": "apps/avelune_studio/test/application/spatial_terrain_surface_editing_test.dart",
+            "name": "erasing a part removes the whole native surface and is independent of ramps"
+          },
+          {
+            "path": "apps/avelune_studio/test/map_workspace/spatial_terrain_surface_tools_test.dart",
+            "name": "continuous terrain is drawn with a live preview and one undo in the existing relief tool"
+          }
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "Apply only a valid preview with changes",
+        "originalSymbol": "enabled && valid && preview.hasChanges",
+        "headOwner": {
+          "path": "apps/avelune_studio/lib/features/map_workspace/application/spatial_terrain_surface_editing_session.dart",
+          "symbol": "SpatialTerrainSurfaceEditingSession.apply (owned preview identity) + commands"
+        },
+        "tests": [
+          {
+            "path": "apps/avelune_studio/test/map_workspace/spatial_editing_sessions_test.dart",
+            "name": "a surface session cannot publish another session preview"
+          }
+        ],
+        "status": "preserved"
+      },
+      {
+        "what": "On rebind to another map, reset view.spatialSurfaceId so a stale id is not reused",
+        "originalSymbol": "didUpdateWidget: if _editing.source?.id != current.id -> view.spatialSurfaceId = null",
+        "headOwner": null,
+        "tests": [],
+        "status": "lost"
+      },
+      {
+        "what": "Reload the draft when the document changes externally or the canvas selection (view.spatialSurfaceId) changes",
+        "originalSymbol": "didUpdateWidget else-branch: clearPreview + load",
+        "headOwner": null,
+        "tests": [],
+        "status": "lost"
+      }
+    ],
+    "verdict": "gap",
+    "rationale": "SHA MISMATCH: 505f1b71a^ blob sha256=11863b0f0629bc5a1c4993ec331c7a6bd648cad36ae3f573d7fc9ea5633847a5, inventory sha256=8f0c5a7bad6c685a1fc6b2f80e381ad4cd4f845cf1bbeba1bba8a4984101a3aa. The inventory hash matches the older blob at af7bde1a8; the file was later rewritten by 4ebd750e2/861ad496d (extraction commits) before deletion, so the inventory evidence is stale. Responsibilities below are qualified from the 505f1b71a^ content. Session and commands are extracted and tested. Lost: (1) the cross-map selection reset. A fresh SpatialTerrainSurfaceEditingSession treats source == null as sameMap in load(), so it would keep a view.spatialSurfaceId from another map and could select a same-id surface there. Only the widget guarded this. (2) Resync on external change or canvas selection: unlike the ramp session, the surface session has no synchronize(), and only the widget triggered the reload. Writes stay safe because preview/apply/delete check identity (tested), so these are binding/UX gaps, not data-loss gaps."
+  }
+]

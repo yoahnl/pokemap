@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "at": "2026-11-11",
+  "head": "7f44a537ed98",
+  "status": "partial_not_accepted",
+  "scope": "Tri des 48 échecs de la suite Studio du HEAD : défaut préexistant, test d'une UI retirée ou défaut de test, avec attribution aux commits.",
+  "baselines": [
+    {
+      "commit": "9ffc48021",
+      "role": "Dernier commit avant le premier commit de retrait T01 (861ad496d).",
+      "method": "git archive dans AveluneQA/t01-red-triage, flutter pub get, flutter test --no-pub sur les 28 fichiers rouges présents à ce commit ; environnement supprimé après tri."
+    },
+    {
+      "commit": "3624e0493",
+      "role": "Dernier commit avant les trois commits de retrait du 11 novembre.",
+      "method": "Même procédure, limitée aux tests d'UI retirée et aux cas ambigus."
+    }
+  ],
+  "classification": {
+    "preexisting_before_retirement": {
+      "count": 20,
+      "evidence": "red-triage-base_9ffc.log : même test, même message et mêmes valeurs attendues/obtenues à 9ffc48021 qu'à HEAD.",
+      "tests": [
+        "architecture_boundaries_test ×4",
+        "event_catalog_ui08_test : library performs no map scan…",
+        "standard_event_template_publication_test : working guided publication…",
+        "studio_project_item_icons_export_test",
+        "studio_border_preview_lifecycle_test",
+        "studio_playtest_new_game_test : normal playtest asks for a starter…",
+        "studio_playtest_project_item_icons_test",
+        "studio_playtest_test : saved example mounts real runtime…",
+        "studio_resource_catalog_update_test : 4096 by 5280 atlas…",
+        "studio_resource_lifecycle_test : small budget evicts…",
+        "m3_story_runtime_test",
+        "studio_mcp_project_coordination_test : manifest advances only targeted baselines with 0 foreign maps",
+        "ui05_narrative_artwork_test ×2",
+        "std08_visual_catalog_propagation_test",
+        "terrain_runtime_test",
+        "ui06_scene_runtime_test : real runtime plays Yarn and refusal"
+      ],
+      "probableCause": "Non établie. Suspicion non vérifiée de racine temporaire non résolue pour studio_mcp_project_coordination et studio_project_item_icons_export (createTemp sans resolveSymbolicLinks).",
+      "flaky": "studio_playtest_test « selected map without a spawn… » échoue en suite complète à HEAD, passe isolé à HEAD et dépasse 10 minutes à 9ffc48021."
+    },
+    "test_defect_never_green": {
+      "count": 1,
+      "tests": ["scene_image_puzzle_publication_test : Studio canonical publication retains unrelated catalog scenes after reopening"],
+      "evidence": "Introduit par 4ebd750e2, rouge à 3624e0493 et à HEAD (red-triage-b3624_two.log).",
+      "cause": "Directory.systemTemp.createTemp sans résolution du lien /var → /private/var ; LocalMapWorkspaceAdapter._requireRoot refuse la racine (« Le dossier du projet a changé depuis son ouverture »)."
+    },
+    "drives_retired_ui": {
+      "count": 27,
+      "brokenBy": {
+        "861ad496d_or_4ebd750e2": "21 : character_removal_* ×16, character_studio_portrait ×1, border_management_layout ×3, pokemon_combat_host ×1 (vert seul à 9ffc48021, rouge à 3624e0493).",
+        "505f1b71a_211889927_7f44a537e": "6 : border_management_host ×2, border_management_guards ×3, workspace_text_editing_shortcuts ×1 (verts à 3624e0493)."
+      },
+      "ownerCoverage": "red-ui-tests-owner-coverage.json : 5 couverts ailleurs, 10 partiellement, 6 non couverts, 6 mise en page seule.",
+      "uncoveredBehaviours": [
+        "Suppression de personnage refusée tant que son brouillon Character Studio est sale, brouillon conservé.",
+        "Brouillon sale du personnage de remplacement bloquant la résolution de remplacement.",
+        "Carte sale référençant le personnage : suppression refusée sans rien enregistrer.",
+        "Carte sale non concernée : ne bloque pas la suppression et reste sale.",
+        "reconcileCatalog(removedIds) ne retire que le brouillon du personnage supprimé.",
+        "Historique de carte après remplacement : historique conservé, annulation vers un PNJ supprimé refusée sans perte."
+      ]
+    }
+  },
+  "limits": [
+    "Les fichiers de test à 9ffc48021 sont les versions de ce commit ; 12 fichiers rouges ont été modifiés depuis.",
+    "Les causes des 20 échecs préexistants ne sont pas établies ; ils sortent du périmètre du retrait mais restent à traiter pour RUI-002.",
+    "Analyse de couverture en lecture de code ; aucun test réécrit ni retiré dans cette passe.",
+    "Aucun lot T00/T01 ni G0 n'est accepté."
+  ],
+  "mcpParity": "N/A"
+}

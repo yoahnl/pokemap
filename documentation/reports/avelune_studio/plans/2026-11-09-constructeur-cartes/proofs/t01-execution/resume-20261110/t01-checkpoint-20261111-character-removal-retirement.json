@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "at": "2026-11-11",
+  "head": "7f44a537ed98",
+  "lots": ["RUI-002", "RUI-005"],
+  "status": "partial_not_accepted",
+  "scope": "Retrait des 16 tests hôtes character_removal_* rouges qui pilotaient l'atelier Personnages retiré, chaque comportement étant d'abord repris par un test propriétaire.",
+  "decision": "Yoahn, 2026-11-11 : retirer les 9 tests repris ou de mise en page seule, puis les 7 partiels une fois couverts.",
+  "testFile": {
+    "path": "apps/avelune_studio/test/characters/character_removal_owner_guard_test.dart",
+    "sha256": "1f24091b8702e3a40093073011f834486aa092258957e68d1c096d2de8350743",
+    "tests": 13
+  },
+  "removed": {
+    "files": 6,
+    "cases": 16,
+    "support": "apps/avelune_studio/test/support/uwu5_character_host.dart",
+    "ledger": "proofs/t01-execution/character-removal-retirement-ledger.json",
+    "registry": "ui-retirement-inventory.json retiredUiChecks : 44 → 50 entrées"
+  },
+  "commands": [
+    {"command": "flutter test --no-pub -r failures-only test/resource_io/character_removal_{resolution,concurrency,host,reconciliation}_host_test.dart test/characters/character_removal_{owner_guard,workflow}_test.dart", "cwd": "apps/avelune_studio", "exitCode": 1, "result": "+12 -7 après le retrait des 9 : seuls les 7 partiels restaient rouges."},
+    {"command": "flutter test --no-pub test/characters/character_removal_owner_guard_test.dart", "cwd": "apps/avelune_studio", "exitCode": 0, "result": "+13"},
+    {"command": "Mutations dans une copie git archive HEAD (apps, packages, third_party) sous AveluneQA, code restauré après chaque essai, copie supprimée.", "result": "accept_off 3 rouges ; confirmation_never_revoked 1 ; sources_changed_off 1 ; select_next 2 ; inspect_keeps_confirmation survivant équivalent ; garde de révision périmée non démontrée (six couches).", "proof": "owner-qualification-20261111/character-removal-partials-mutations.log"},
+    {"command": "flutter test --no-pub -r failures-only test/characters test/resource_io/character_removal_adapter_test.dart", "cwd": "apps/avelune_studio", "exitCode": 0, "result": "+68"},
+    {"command": "flutter analyze --no-pub test", "cwd": "apps/avelune_studio", "exitCode": 1, "result": "1 info préexistante (project_surf_condition_session_test.dart:73, curly_braces), aucune sur les fichiers touchés."},
+    {"command": "python3 update_plan.py validate && python3 -m unittest -q test_update_plan", "cwd": "documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes", "exitCode": 0, "result": "88 lots, 0 accepté ; tests OK."},
+    {"command": "dart run tools/t01_check_g0.dart --allowlist documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes/t01-technical-exceptions.json", "cwd": "apps/avelune_studio", "exitCode": 1, "result": "1258 violations, inchangé.", "proof": "owner-qualification-20261111/g0-static-diagnostic-after-character-retirement.json"}
+  ],
+  "suiteEffect": "Les 48 échecs de la suite Studio doivent passer à 32 (16 retirés) ; suite complète non relancée.",
+  "notDone": [
+    "11 autres tests pilotant l'UI retirée (bordures ×8, portrait, raccourcis, combat Pokémon).",
+    "20 échecs préexistants et le défaut de test scene_image_puzzle_publication.",
+    "23 gaps propriétaires, 29 retired_ui_after_extraction, 110 sources absentes non marquées, 329 présentations.",
+    "Aucune revue indépendante de la correspondance des 16 retraits.",
+    "Aucun code de production modifié."
+  ],
+  "mcpParity": "N/A"
+}

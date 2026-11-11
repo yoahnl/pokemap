@@ -1,0 +1,16 @@
+== accept_off: exit 1 +10 -3: Some tests failed.
+   RED a clear resolution empties the reference on disk and in the clean open map
+   RED a replace resolution rewrites the reference on disk and in the clean open map
+   RED a replacement keeps the open map history and refuses an undo to the deleted character
+== inspect_keeps_confirmation: exit 0 +13: All tests passed!
+== stale_check_off: exit 0 +13: All tests passed!
+== sources_changed_off: exit 1 +12 -1: Some tests failed.
+   RED a failed reconciliation after publication keeps the receipt and retries without replaying the deletion
+== select_next: exit 1 +11 -2: Some tests failed.
+   RED a failed reconciliation after publication keeps the receipt and retries without replaying the deletion
+   RED a free removal deletes only the character and selects no other identity
+== confirmation_never_revoked: exit 1 +12 -1: Some tests failed.
+   RED a new inspection revokes the confirmation and deletes nothing until confirmed again
+== stale_guards_off: exit 0 +13: All tests passed!
+== stale_guards_off_all_layers (Studio + map_authoring plan_store): 0 +13: All tests passed!
+== stale_guards_off_five_layers: 0 +13: All tests passed!
