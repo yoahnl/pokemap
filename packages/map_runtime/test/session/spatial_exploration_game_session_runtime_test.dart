@@ -3,6 +3,7 @@ import 'package:map_runtime/src/player/real_weather_provider.dart';
 import 'dart:io';
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
@@ -10,6 +11,7 @@ import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:image/image.dart' as img;
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 
 import '../support/spatial_smart_tile_fixture.dart';
@@ -118,6 +120,49 @@ void main() {
   tearDown(() async {
     await runtime.dispose();
     await root.delete(recursive: true);
+  });
+
+  test('spatial walking advances the saved friendship counter once', () async {
+    const movement = CommittedMovement(
+      kind: CommittedMovementKind.walk,
+      fromCell: GridPos(x: 0, y: 0),
+      toCell: GridPos(x: 1, y: 0),
+    );
+    var initial = descriptor().initialGameState!.copyWith(
+      playerSpatialPosition: PlayerSpatialPosition(x: 4.5, z: 4.5),
+      party: const PlayerParty(members: [
+        PlayerPokemon(speciesId: 'riolu', natureId: 'hardy', abilityId: 'steadfast', friendship: 70),
+      ]),
+    );
+    for (var i = 0; i < 127; i++) {
+      initial = const PokemonFriendshipWalkService().advance(initial,
+          movement: movement, shouldIncrease: () => true);
+    }
+    await runtime.dispose();
+    runtime = SpatialExplorationGameSessionRuntime(
+      descriptor: descriptor(initialState: initial),
+      friendshipRoll: () => true,
+      projectFilePath: () async => '${root.path}/project.json',
+      preloadedInitialMap: ({required projectFilePath, required descriptor, required initialSave}) async =>
+          RuntimeInitialMapPreloadResult(bundle: bundle),
+      mountSession: (_) async {},
+      unmountSession: (_) async {},
+    );
+    await runtime.load((_) {});
+    await runtime.gameplayReady;
+    final session = runtime.session!;
+    session.movement.setInput(x: 1, z: 0);
+    for (var i = 0; i < 30 && runtime.gameStateSnapshot.playerPosition.x == 4; i++) {
+      session.frame(.05);
+      await Future<void>.delayed(Duration.zero);
+    }
+    session.movement.setInput(x: 0, z: 0);
+    expect(runtime.gameStateSnapshot.playerPosition.x, 5);
+    expect(runtime.gameStateSnapshot.metadata['avelune.friendship.walk_steps.v1'], '0');
+    final checkpoint = await runtime.captureCheckpoint();
+    final restored = gameStateFromStrictSaveJson(Map<String, dynamic>.from(checkpoint!.state));
+    expect(restored.metadata['avelune.friendship.walk_steps.v1'], '0');
+    expect(restored.party.members.single.friendship, 71);
   });
 
   for (final (failSave, walkToWall) in [(false, false), (true, false), (false, true), (true, true)]) {
@@ -3396,9 +3441,13 @@ void main() {
                 name: 'Grass',
                 encounterKind: EncounterKind.walk,
                 chancePerStep: 0,
-                entries: [
-                  ProjectEncounterEntry(
-                      speciesId: 'zubat', minLevel: 5, maxLevel: 5)
+                variants: [
+                  ProjectEncounterVariant(
+                    id: 'morning',
+                    name: 'Morning',
+                    timeWindows: [LocalTimeWindow(startMinute: 240, endMinute: 600)],
+                    entries: [ProjectEncounterEntry(speciesId: 'zubat', minLevel: 5, maxLevel: 5)],
+                  ),
                 ])
           ]),
           map: bundle.map.copyWith(layers: [
@@ -3416,17 +3465,17 @@ void main() {
                         encounterTableId: 'grass-table',
                         encounterKind: EncounterKind.walk)))
           ]));
-      var calls = 0;
+      final encounterRandom = _CountingEncounterRandom();
       runtime = SpatialExplorationGameSessionRuntime(
         descriptor: descriptor(),
         projectFilePath: () async => '${root.path}/project.json',
         preloadedInitialMap: ({required projectFilePath, required descriptor, required initialSave}) async => RuntimeInitialMapPreloadResult(bundle: bundle),
         mountSession: (_) async {}, unmountSession: (_) async {},
-        now: () { calls++; return DateTime(2026, 10, 24, minute ~/ 60, minute % 60); },
+        now: () => DateTime(2026, 10, 24, minute ~/ 60, minute % 60),
+        encounterRandom: encounterRandom,
       );
       await runtime.load((_) {});
       await runtime.gameplayReady;
-      final before = calls;
       runtime.handleInput(const RuntimeInputEvent.press(RuntimeInputControl.down));
       for (var i = 0; i < 30 && runtime.session!.movement.z < 5.01; i++) {
         runtime.session!.frame(.05);
@@ -3435,7 +3484,7 @@ void main() {
       runtime.handleInput(const RuntimeInputEvent.release(RuntimeInputControl.down));
       await runtime.gameplayReady;
       expect(runtime.session!.movement.z, greaterThanOrEqualTo(5));
-      expect(calls, before + 1);
+      expect(encounterRandom.calls, minute >= 240 && minute < 600 ? 1 : 0);
       expect(runtime.session!.interactionError.value, isNull);
     });
   }
@@ -5097,6 +5146,22 @@ spatialBorderPassageFixture(RuntimeMapBundle bundle) {
     proposedResult: resolved,
   );
   return (manifest: manifest, source: source, destination: destination);
+}
+
+final class _CountingEncounterRandom implements Random {
+  int calls = 0;
+
+  @override
+  double nextDouble() {
+    calls++;
+    return .5;
+  }
+
+  @override
+  int nextInt(int max) => throw StateError('Unexpected encounter selection');
+
+  @override
+  bool nextBool() => throw StateError('Unexpected random draw');
 }
 
 class _WeatherProvider implements RealWeatherProvider {

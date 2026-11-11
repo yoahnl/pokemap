@@ -24,6 +24,32 @@ void main() {
       if (await tempRoot.exists()) await tempRoot.delete(recursive: true);
     });
 
+    test('loads a daytime friendship evolution from the project catalog',
+        () async {
+      await _writeEvolution(tempRoot, <String, dynamic>{
+        'speciesId': 'sproutle',
+        'evolutions': <Object?>[
+          <String, Object?>{
+            'targetSpeciesId': 'bloomon',
+            'method': 'friendship_day',
+            'minFriendship': 220,
+          },
+        ],
+      });
+      await _writeSpecies(tempRoot, id: 'bloomon', primaryAbilityId: 'overgrow');
+
+      final candidates =
+          await RuntimePokemonEvolutionLoader().loadLevelUpCandidates(
+        projectRootDirectory: tempRoot.path,
+        pokemonConfig: _config(),
+        sourceSpeciesId: 'sproutle',
+      );
+
+      expect(candidates, hasLength(1));
+      expect(candidates.single.condition.minFriendship, 220);
+      expect(candidates.single.condition.timeOfDay, PokemonEvolutionTimeOfDay.day);
+    });
+
     test('loads level rules in catalog order and resolves target metadata',
         () async {
       await _writeEvolution(tempRoot, <String, dynamic>{

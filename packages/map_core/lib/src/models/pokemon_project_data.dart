@@ -1130,6 +1130,14 @@ class PokemonEvolutionEntry {
   }
 }
 
+abstract final class PokemonEvolutionTimeCapabilities {
+  static const capabilityId = 'pokemon.evolution.friendship-time@1';
+
+  static bool requiresCapability(PokemonEvolutionFile file) =>
+      file.evolutions.any((entry) =>
+          const {'friendship_day', 'friendship_night'}.contains(entry.method));
+}
+
 class PokemonEvolutionFile {
   const PokemonEvolutionFile({
     this.schemaVersion = currentPokemonDataSchemaVersion,

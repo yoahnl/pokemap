@@ -17,8 +17,10 @@ final class PokemonExperienceCurve {
   }
 
   static const supportedIds = <String>{
+    'erratic',
     'fast',
     'fast_then_very_slow',
+    'fluctuating',
     'medium',
     'medium_fast',
     'medium_slow',
@@ -38,8 +40,10 @@ final class PokemonExperienceCurve {
       'medium_slow' =>
         ((6 * cubed) ~/ 5) - (15 * level * level) + (100 * level) - 140,
       'slow' => (5 * cubed) ~/ 4,
-      'slow_then_very_fast' => _erraticExperience(level, cubed),
-      'fast_then_very_slow' => _fluctuatingExperience(level, cubed),
+      'erratic' || 'slow_then_very_fast' => _erraticExperience(level, cubed),
+      'fluctuating' ||
+      'fast_then_very_slow' =>
+        _fluctuatingExperience(level, cubed),
       _ => throw StateError('Validated Pokemon growth curve became invalid.'),
     };
 

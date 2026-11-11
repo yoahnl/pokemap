@@ -128,13 +128,19 @@ test("MCP writes canonical Pokemon species and rejects invalid schemas", async (
     });
     const projectHandle = String(opened.projectHandle);
     const workspaceHandle = String(opened.workspaceHandle);
-    const validation = await toolData(client, "pokemap_validate", {
+    const rulesetRead = await toolData(client, "pokemap_workshop", {
+      operation: "read",
       projectHandle,
+      actionId: "pokemon.ruleset.set",
+      parameters: { profile: rulesetProfile() },
+      includeDocuments: false,
     });
-    const initialRevision = String(validation.snapshotRevision);
     const rulesetFailure = await toolFailure(client, "pokemap_plan", {
       projectHandle,
-      request: rulesetMutationRequest(workspaceHandle, initialRevision),
+      request: {
+        ...rulesetMutationRequest(workspaceHandle, String(rulesetRead.snapshotRevision)),
+        extensions: rulesetRead.planExtensions,
+      },
     });
     assert.equal(rulesetFailure.domainCode, "pokemon.ruleset.no_change");
     const project = JSON.parse(

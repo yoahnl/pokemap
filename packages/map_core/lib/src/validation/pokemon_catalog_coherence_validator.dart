@@ -191,6 +191,8 @@ final class PokemonCatalogCoherenceValidator {
 
   static const Set<String> supportedEvolutionMethods = <String>{
     'friendship',
+    'friendship_day',
+    'friendship_night',
     'item',
     'known_move',
     'level_up',
@@ -995,7 +997,8 @@ final class PokemonCatalogCoherenceValidator {
           );
         }
       }
-      if (method == 'friendship') {
+      if (const {'friendship', 'friendship_day', 'friendship_night'}
+          .contains(method)) {
         final friendship = entry.minFriendship;
         if (friendship == null || friendship < 0 || friendship > 255) {
           collector.error(

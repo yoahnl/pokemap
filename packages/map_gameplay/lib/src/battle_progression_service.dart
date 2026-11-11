@@ -69,6 +69,7 @@ final class BattleProgressionContext {
   BattleProgressionContext({
     required this.outcome,
     required this.ruleset,
+    this.hour,
     required Iterable<int> playerParticipantPartySlots,
     required Iterable<BattleProgressionDefeatedOpponent> defeatedOpponents,
     required Iterable<BattleProgressionPartySlotMetadata> partySlotMetadata,
@@ -96,6 +97,7 @@ final class BattleProgressionContext {
           _evolutionCandidatesBySlot(evolutionCandidatesByPartySlot),
         ) {
     ruleset.requireSupported();
+    if (hour != null) RangeError.checkValueInInterval(hour!, 0, 23, 'hour');
     for (final slot in this.playerParticipantPartySlots) {
       RangeError.checkNotNegative(slot, 'playerParticipantPartySlots');
     }
@@ -103,6 +105,7 @@ final class BattleProgressionContext {
 
   final BattleProgressionOutcomeKind outcome;
   final PokemonRulesetProfile ruleset;
+  final int? hour;
   final Set<int> playerParticipantPartySlots;
   final List<BattleProgressionDefeatedOpponent> defeatedOpponents;
   final Map<int, BattleProgressionPartySlotMetadata> partySlotMetadata;
@@ -270,6 +273,10 @@ final class BattleProgressionService {
         experience: newExperience,
         level: newLevel,
         currentHp: newCurrentHp,
+        friendship: _friendshipAfterLevelUps(
+          member.friendship,
+          newLevel - member.level,
+        ),
       );
       effectiveGrants.add(
         BattleExperienceGrant(
@@ -309,6 +316,7 @@ final class BattleProgressionService {
             ),
     ];
     final evolutionOpportunities = <BattleEvolutionOpportunity>[];
+    final evolutionTrigger = PokemonEvolutionTrigger.levelUp(hour: context.hour);
     for (final change in changes) {
       final candidates =
           context.evolutionCandidatesByPartySlot[change.partySlot] ??
@@ -328,7 +336,7 @@ final class BattleProgressionService {
         if (change.newLevel > change.oldLevel &&
             candidate.isEligible(
               progressedPokemon,
-              trigger: const PokemonEvolutionTrigger.levelUp(),
+              trigger: evolutionTrigger,
             )) {
           final policy = evolutionHeldItemPolicy ?? PokemonEvolutionHeldItemPolicy.fromCatalog(
             itemCatalog ?? ItemCatalogSnapshot.empty());
@@ -347,6 +355,7 @@ final class BattleProgressionService {
               partySlot: change.partySlot,
               candidate: candidate,
               sourceMaxHp: change.calculatedStats.maxHp,
+              trigger: evolutionTrigger,
             ),
           );
         }
@@ -368,6 +377,15 @@ final class BattleProgressionService {
       ruleset: context.ruleset,
     );
   }
+}
+
+int _friendshipAfterLevelUps(int friendship, int levelsGained) {
+  var result = friendship;
+  for (var level = 0; level < levelsGained; level++) {
+    final gain = result < 100 ? 5 : result < 200 ? 3 : 2;
+    result = (result + gain).clamp(0, 255);
+  }
+  return result;
 }
 
 String _evolutionOccurrenceId({

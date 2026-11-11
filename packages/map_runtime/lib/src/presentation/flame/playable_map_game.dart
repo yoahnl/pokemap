@@ -333,6 +333,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     RuntimePlayerPokemonProgressionCatalogLoader?
         runtimePlayerPokemonProgressionCatalogLoader,
     @visibleForTesting math.Random? encounterRandom,
+    bool Function()? friendshipRoll,
     DateTime Function()? encounterClock,
     @visibleForTesting math.Random? npcRouteRandom,
     RuntimePostBattleDecisionCoordinator? postBattleDecisionCoordinator,
@@ -399,6 +400,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
         _runtimePlayerPokemonProgressionCatalogLoader =
             runtimePlayerPokemonProgressionCatalogLoader,
         _encounterRandom = encounterRandom ?? math.Random(),
+        _friendshipRoll = friendshipRoll ?? math.Random().nextBool,
         _npcRouteRandom = npcRouteRandom ?? math.Random() {
     if (bundleTransformer != null) {
       _bundle = bundleTransformer!(_bundle);
@@ -495,6 +497,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     _postBattleDecisionCoordinator = postBattleDecisionCoordinator ??
         RuntimePostBattleDecisionCoordinator(
           rewardResolver: RuntimeBattleRewardResolver(
+            worldNow: () => _worldTime.worldTime(_encounterClock()),
             loadSpecies: _battleSpeciesLoader.loadById,
             loadMoveLearningCandidates:
                 _battleLearnsetLoader.loadLevelUpCandidates,
@@ -781,6 +784,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
   /// fresh random source and the encounter engine remains the sole consumer.
   final math.Random _encounterRandom;
   final math.Random _npcRouteRandom;
+  final bool Function() _friendshipRoll;
   final Map<String, _NpcFixedRouteRuntimeEntry> _npcFixedRoutes = {};
   final GridPathfinder _followPathfinder = const GridPathfinder();
   final RuntimeMoveCatalogLoader _battleMoveCatalogLoader =
@@ -6936,6 +6940,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
     _lastCommittedMovement = committed;
     unawaited(projectAudio?.play(ProjectSoundCue.overworldStep));
     _advanceRepelForCommittedMovement(movement);
+    _advanceFriendshipForCommittedMovement(movement);
     final committedStateRevision = _gameStateRevision;
     _isPublishingCommittedMovement = true;
     try {
@@ -6949,6 +6954,27 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
       _isPublishingCommittedMovement = false;
     }
     return committedStateRevision;
+  }
+
+  void _advanceFriendshipForCommittedMovement(CommittedMovement movement) {
+    if (!_bundle.manifest.pokemon.enabled) return;
+    _gameStateRevision += 1;
+    unawaited(_narrativeStateTransactions.transact<void>((state) {
+      if (_isRemoved) return NarrativeEventStateTransaction.rollback(null);
+      final next = const PokemonFriendshipWalkService().advance(
+        state,
+        movement: movement,
+        shouldIncrease: _friendshipRoll,
+      );
+      final counterKey = PokemonFriendshipWalkService.counterMetadataKey;
+      _gameState = _gameState.copyWith(
+        party: next.party,
+        metadata: {..._gameState.metadata, counterKey: next.metadata[counterKey]!},
+      );
+      return NarrativeEventStateTransaction.commit(next, null);
+    }).catchError((Object error) {
+      debugPrint('[friendship] unable to advance walking: $error');
+    }));
   }
 
   final DateTime Function() _encounterClock;
@@ -14874,6 +14900,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents, WidgetsBindingObser
                   session.gameState = session.gameState.copyWith(
                     repelState: session.gameState.repelState.advance(units),
                   );
+                  if (_bundle.manifest.pokemon.enabled) {
+                    session.gameState = const PokemonFriendshipWalkService().advance(
+                      session.gameState,
+                      movement: movement,
+                      shouldIncrease: _friendshipRoll,
+                    );
+                  }
                 }
               } else if (actor is OverworldActorComponent) {
                 if (!actor.startGridStep(

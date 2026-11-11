@@ -94,6 +94,8 @@ final class SpatialExplorationGameSessionRuntime
     PlayerServiceRecoveryCapsLoader? recoveryCapsLoader,
     RealWeatherService? realWeatherService,
     DateTime Function()? now,
+    bool Function()? friendshipRoll,
+    @visibleForTesting Random? encounterRandom,
     RuntimeAudioMixer? audioMixer,
     this.onCommittedMovement,
     @visibleForTesting this.projectAudio,
@@ -107,6 +109,8 @@ final class SpatialExplorationGameSessionRuntime
         _commitCheckpoint = commitCheckpoint,
         _recoveryCapsLoader = recoveryCapsLoader,
         _now = now ?? DateTime.now,
+        _friendshipRoll = friendshipRoll ?? Random().nextBool,
+        _encounterRandom = encounterRandom,
         _realWeather = realWeatherService ?? RealWeatherService.shared,
         _audioMixer = audioMixer ?? RuntimeAudioMixer(),
         _ownsAudioMixer = audioMixer == null,
@@ -163,6 +167,8 @@ final class SpatialExplorationGameSessionRuntime
   bool _fishingHandoffPending = false;
   int _fishingSequence = 0;
   final _fishingRandom = Random();
+  final bool Function() _friendshipRoll;
+  final Random? _encounterRandom;
   bool _materializingState = false;
   MapActivation? _pendingSceneMapActivation;
   bool _hasUncommittedSceneWarp = false;
@@ -565,6 +571,21 @@ final class SpatialExplorationGameSessionRuntime
       final previous = _lastCell;
       _lastCell = cell;
       final map = _session!.bundle.map;
+      if (previous != null) {
+        final kind = switch (_session!.movement.movementMode) {
+          MovementMode.bicycle => CommittedMovementKind.bicycle,
+          MovementMode.surf || MovementMode.dive => CommittedMovementKind.surf,
+          MovementMode.walk => CommittedMovementKind.walk,
+          MovementMode.cut || MovementMode.strength || MovementMode.rockSmash =>
+            CommittedMovementKind.forced,
+          MovementMode.fly => CommittedMovementKind.mapConnection,
+        };
+        _advanceFriendshipForMovement(CommittedMovement(
+          kind: kind,
+          fromCell: previous,
+          toCell: cell,
+        ));
+      }
       if (previous != null &&
           (map.triggers.isNotEmpty ||
               map.gameplayZones.isNotEmpty ||
@@ -736,6 +757,7 @@ final class SpatialExplorationGameSessionRuntime
         .unitsFor(movement);
     if (units != 1 || _gameState == null) return;
     _gameState = _gameState!.copyWith(repelState: _gameState!.repelState.advance(units));
+    _advanceFriendshipForMovement(movement);
     try {
       onCommittedMovement?.call(RuntimeCommittedMovement(mapId: _gameState!.currentMapId,
           mapActivationId: _mapActivationId, revision: ++_committedMovementRevision,
@@ -743,6 +765,18 @@ final class SpatialExplorationGameSessionRuntime
     } on Object catch (error) {
       debugPrint('[movement] spatial movement sink failed: $error');
     }
+  }
+
+  void _advanceFriendshipForMovement(CommittedMovement movement) {
+    final state = _gameState;
+    if (state == null || !(_session?.bundle.manifest.pokemon.enabled ?? false)) {
+      return;
+    }
+    _gameState = const PokemonFriendshipWalkService().advance(
+      state,
+      movement: movement,
+      shouldIncrease: _friendshipRoll,
+    );
   }
 
   String? _trainerSpotLatch;
@@ -856,6 +890,7 @@ final class SpatialExplorationGameSessionRuntime
       return;
     }
     _battle = SpatialBattleRuntime(
+        worldNow: _worldNow,
         gen5BattleSourceLoader: gen5BattleSourceLoader,
         motionPolicy: _preferences?.battleMotion,
         audioMixer: _audioMixer,
@@ -882,6 +917,7 @@ final class SpatialExplorationGameSessionRuntime
       project: project,
       currentWorldProject: () => _session?.bundle.manifest ?? project,
       now: _worldNow,
+      random: _encounterRandom,
       periodicRewardContext: _periodicRewardContext,
       interactionPositionBlocked: (x, z, ignoredEntityId) =>
           _session == null ||

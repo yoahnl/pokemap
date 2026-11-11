@@ -96,10 +96,12 @@ export 'src/wild_player_pokemon_generator.dart'
         WildPokemonGenerationContext,
         WildPlayerPokemonGenerationResult,
         WildPlayerPokemonGenerator;
+export 'src/pokemon_friendship_walk_service.dart';
 export 'src/pokemon_evolution_service.dart'
     show
         PokemonEvolutionTriggerKind,
         PokemonEvolutionTrigger,
+        PokemonEvolutionTimeOfDay,
         PokemonEvolutionConditionKind,
         PokemonEvolutionCondition,
         PokemonEvolutionCandidate,

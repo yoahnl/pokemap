@@ -516,8 +516,10 @@ void main() {
     }
 
     for (final growthRateId in <String>[
+      'erratic',
       'fast',
       'fast_then_very_slow',
+      'fluctuating',
       'medium',
       'medium_fast',
       'medium_slow',

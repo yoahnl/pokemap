@@ -15,6 +15,7 @@ import '../application/player_service_runtime_controller.dart';
 import '../application/runtime_battle_bag_hp_heal_item_apply.dart';
 import '../application/runtime_battle_demonstration.dart';
 import '../application/runtime_battle_outcome_apply.dart';
+import '../application/runtime_battle_reward_resolver.dart';
 import '../application/runtime_contextual_capture.dart';
 import '../application/runtime_battle_experience_progress.dart';
 import '../application/runtime_battle_setup_mapper.dart';
@@ -68,6 +69,7 @@ final class SpatialBattleRuntime extends ChangeNotifier {
     this.onError,
     this.audioMixer,
     this.onOutcomePresented,
+    this.worldNow,
     BattleMotionPolicy? motionPolicy,
   }) : _motionPolicy = motionPolicy;
 
@@ -86,6 +88,7 @@ final class SpatialBattleRuntime extends ChangeNotifier {
   final void Function(Object error)? onError;
   final RuntimeAudioMixer? audioMixer;
   final void Function(BattleOutcome outcome)? onOutcomePresented;
+  final DateTime Function()? worldNow;
   FlameAudioBattleSfxPlayer? _sounds;
   BattlePokemonSpriteResolver? _media;
   SpatialBattlePhase phase = SpatialBattlePhase.idle;
@@ -390,6 +393,7 @@ final class SpatialBattleRuntime extends ChangeNotifier {
         ),
       );
       _coordinator = RuntimePostBattleDecisionCoordinator(
+        rewardResolver: RuntimeBattleRewardResolver(worldNow: worldNow),
         hydrateOwnedPlayerPokemon: ({required gameState, required bundle}) =>
             _hydrate(gameState, bundle),
       );

@@ -115,6 +115,8 @@ final class RuntimePokemonEvolutionLoader {
       final declaredTrigger = switch (method) {
         'level_up' ||
         'friendship' ||
+        'friendship_day' ||
+        'friendship_night' ||
         'known_move' =>
           PokemonEvolutionTriggerKind.levelUp,
         'use_item' || 'item' => PokemonEvolutionTriggerKind.itemUse,
@@ -235,9 +237,15 @@ final class RuntimePokemonEvolutionLoader {
             minFriendship: rawMinFriendship as int,
             minLevel: (minLevel as int?) ?? 2,
           ).validated(),
-        'friendship' => PokemonEvolutionCondition.friendship(
+        'friendship' || 'friendship_day' || 'friendship_night' =>
+          PokemonEvolutionCondition.friendship(
             minFriendship: rawMinFriendship as int,
             minLevel: (minLevel as int?) ?? 2,
+            timeOfDay: switch (method) {
+              'friendship_day' => PokemonEvolutionTimeOfDay.day,
+              'friendship_night' => PokemonEvolutionTimeOfDay.night,
+              _ => PokemonEvolutionTimeOfDay.any,
+            },
           ).validated(),
         'level_up' when moveId.isNotEmpty =>
           PokemonEvolutionCondition.knownMove(
@@ -269,7 +277,8 @@ final class RuntimePokemonEvolutionLoader {
             '${condition.tradeRequirements!.requiredPartnerSpeciesId ?? "any"}',
       PokemonEvolutionConditionKind.level => '${condition.minLevel}',
       PokemonEvolutionConditionKind.friendship =>
-        '${condition.minLevel}:${condition.minFriendship}',
+        '${condition.minLevel}:${condition.minFriendship}'
+            '${condition.timeOfDay == PokemonEvolutionTimeOfDay.any ? "" : ":${condition.timeOfDay.name}"}',
       PokemonEvolutionConditionKind.item =>
         '${condition.minLevel}:${condition.itemId}',
       PokemonEvolutionConditionKind.knownMove =>

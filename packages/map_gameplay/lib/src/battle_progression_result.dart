@@ -189,12 +189,14 @@ final class BattleEvolutionOpportunity {
     required this.partySlot,
     required this.candidate,
     required this.sourceMaxHp,
+    this.trigger = const PokemonEvolutionTrigger.levelUp(),
   });
 
   final String occurrenceId;
   final int partySlot;
   final PokemonEvolutionCandidate candidate;
   final int sourceMaxHp;
+  final PokemonEvolutionTrigger trigger;
 
   BattleEvolutionOpportunity validated() {
     final normalizedOccurrenceId = occurrenceId.trim();
@@ -207,6 +209,7 @@ final class BattleEvolutionOpportunity {
     }
     RangeError.checkNotNegative(partySlot, 'partySlot');
     RangeError.checkValueInInterval(sourceMaxHp, 1, 9999, 'sourceMaxHp');
+    trigger.validated();
     final normalizedCandidate = candidate.validated();
     if (normalizedOccurrenceId == occurrenceId &&
         identical(normalizedCandidate, candidate)) {
@@ -217,6 +220,7 @@ final class BattleEvolutionOpportunity {
       partySlot: partySlot,
       candidate: normalizedCandidate,
       sourceMaxHp: sourceMaxHp,
+      trigger: trigger,
     );
   }
 }
@@ -229,6 +233,7 @@ final class PendingBattleEvolution {
     required this.partySlot,
     required this.candidate,
     required this.sourceMaxHp,
+    this.trigger = const PokemonEvolutionTrigger.levelUp(),
   });
 
   final String opportunityId;
@@ -236,6 +241,7 @@ final class PendingBattleEvolution {
   final int partySlot;
   final PokemonEvolutionCandidate candidate;
   final int sourceMaxHp;
+  final PokemonEvolutionTrigger trigger;
 
   String get sourceSpeciesId => candidate.sourceSpeciesId;
   String get targetSpeciesId => candidate.targetSpeciesId;
@@ -588,6 +594,7 @@ final class BattleProgressionResult {
       partySlot: pending.partySlot,
       candidate: pending.candidate,
       sourceMaxHp: pending.sourceMaxHp,
+      trigger: pending.trigger,
     );
     late final GameState decisionState;
     late final BattleEvolutionChange decisionChange;
@@ -599,6 +606,7 @@ final class BattleProgressionResult {
           pokemon: _partyMemberAt(state, pending.partySlot),
           candidate: pending.candidate,
           sourceMaxHp: opportunity.sourceMaxHp,
+          trigger: opportunity.trigger,
         );
         decisionState = _replacePartyMember(
           state,
@@ -721,6 +729,7 @@ _EvolutionAdvanceResult _advanceEvolution({
       partySlot: opportunity.partySlot,
       candidate: opportunity.candidate,
       sourceMaxHp: opportunity.sourceMaxHp,
+      trigger: opportunity.trigger,
     ),
     remaining: List<BattleEvolutionOpportunity>.unmodifiable(queue.skip(1)),
     changes: appliedChanges,

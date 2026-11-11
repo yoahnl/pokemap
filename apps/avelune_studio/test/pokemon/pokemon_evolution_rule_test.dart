@@ -35,6 +35,22 @@ void main() {
       );
     });
 
+    test('day and night friendship rules expose their actual conditions', () {
+      for (final (method, text) in [
+        ('friendship_day', 'de jour, de 4 h à 19 h 59'),
+        ('friendship_night', 'de nuit, de 20 h à 3 h 59'),
+      ]) {
+        final entry = {'method': method, 'minFriendship': 220};
+        final value = rule(entry);
+        expect(value.kind, PokemonEvolutionRuleKind.friendship);
+        expect(value.executable, isTrue);
+        expect(value.sentence, contains('amitié d’au moins 220'));
+        expect(value.sentence, contains(text));
+        expect(pokemonEvolutionShowsField(entry, 'minFriendship'), isTrue);
+        expect(rule({'method': method}).executable, isFalse);
+      }
+    });
+
     test('item use keeps its alias and default level', () {
       final value = rule({'method': 'item', 'itemId': 'foudre'});
       expect(value.kind, PokemonEvolutionRuleKind.item);
@@ -122,6 +138,8 @@ void main() {
     expect(pokemonEvolutionMethodOptions(_entry(controller)).keys, [
       'level_up',
       'friendship',
+      'friendship_day',
+      'friendship_night',
       'known_move',
       'use_item',
     ]);

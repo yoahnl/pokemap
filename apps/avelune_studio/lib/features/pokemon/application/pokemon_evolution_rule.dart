@@ -22,6 +22,8 @@ final class PokemonEvolutionRule {
 const pokemonGuidedEvolutionMethods = {
   'level_up': 'Montée de niveau',
   'friendship': 'Montée de niveau avec amitié',
+  'friendship_day': 'Montée de niveau avec amitié de jour',
+  'friendship_night': 'Montée de niveau avec amitié de nuit',
   'known_move': 'Montée de niveau avec une attaque connue',
   'use_item': 'Utilisation d’un objet',
 };
@@ -42,7 +44,8 @@ PokemonEvolutionRuleKind pokemonEvolutionRuleKind(Map<String, dynamic> entry) {
     'trade' => PokemonEvolutionRuleKind.trade,
     'level_up' when entry['minFriendship'] != null =>
       PokemonEvolutionRuleKind.friendship,
-    'friendship' => PokemonEvolutionRuleKind.friendship,
+    'friendship' || 'friendship_day' || 'friendship_night' =>
+      PokemonEvolutionRuleKind.friendship,
     'level_up' when move.isNotEmpty => PokemonEvolutionRuleKind.knownMove,
     'known_move' => PokemonEvolutionRuleKind.knownMove,
     'level_up' => PokemonEvolutionRuleKind.level,
@@ -101,8 +104,13 @@ PokemonEvolutionRule pokemonEvolutionRule(
         );
       }
       if (levelProblem() case final problem?) return refused(problem);
+      final time = switch (method) {
+        'friendship_day' => ', de jour, de 4 h à 19 h 59',
+        'friendship_night' => ', de nuit, de 20 h à 3 h 59',
+        _ => '',
+      };
       return runs(
-        'Le jeu le fait évoluer en montant de niveau avec une amitié d’au moins $friendship, dès le niveau $level.',
+        'Le jeu le fait évoluer en montant de niveau avec une amitié d’au moins $friendship$time, dès le niveau $level.',
       );
     case PokemonEvolutionRuleKind.knownMove:
       final move = '${entry['requiredMoveId'] ?? ''}'.trim();

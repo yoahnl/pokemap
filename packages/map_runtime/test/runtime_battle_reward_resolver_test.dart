@@ -10,6 +10,59 @@ import 'package:map_runtime/src/application/runtime_pokemon_species_loader.dart'
 
 void main() {
   group('RuntimeBattleRewardResolver', () {
+    test('uses the host clock for daytime friendship evolution', () async {
+      final candidate = PokemonEvolutionCandidate(
+        opportunityId: 'hero:friendship-day:hero_evolved',
+        sourceSpeciesId: 'hero',
+        targetSpeciesId: 'hero_evolved',
+        condition: const PokemonEvolutionCondition.friendship(
+          minFriendship: 220,
+          timeOfDay: PokemonEvolutionTimeOfDay.day,
+        ),
+        targetBaseStats: const PokemonBaseStats(
+          hp: 60,
+          attack: 62,
+          defense: 63,
+          specialAttack: 80,
+          specialDefense: 80,
+          speed: 60,
+        ),
+        targetPrimaryAbilityId: 'hero_power',
+        targetAbilityIds: const ['hero_power'],
+      );
+      for (final hour in [4, 19, 20, 3]) {
+        var clockReads = 0;
+        final resolver = RuntimeBattleRewardResolver(
+          worldNow: () {
+            clockReads++;
+            return DateTime(2026, 1, 1, hour);
+          },
+          loadSpecies: _SpeciesLoader({
+            'hero': _species('hero', baseExp: 64),
+            'foe': _species('foe', baseExp: 200),
+          }).load,
+          loadMoveLearningCandidates: _LearnsetLoader(const []).load,
+          loadEvolutionCandidates: _EvolutionLoader([candidate]).load,
+        );
+        final state = _state();
+        final resolution = await resolver.resolve(
+          bundle: _bundle(),
+          postWriteBackState: state.copyWith(
+            party: PlayerParty(members: [
+              state.party.members.single.copyWith(friendship: 218),
+            ]),
+          ),
+          runtimeContext: _context(_wildRequest()),
+          outcome: _outcome(),
+        );
+
+        expect(clockReads, 1);
+        expect(resolution.progressionContext.hour, hour);
+        expect(resolution.progression.pendingEvolution != null,
+            hour >= 4 && hour < 20);
+      }
+    });
+
     test('real held catalog prevents level evolution without losing XP or the physical item', () async {
       final root = await Directory.systemTemp.createTemp(
         'native-held-post-battle-',

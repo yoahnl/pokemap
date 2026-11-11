@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 
 import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -12,6 +14,55 @@ import 'package:map_runtime/src/presentation/flame/playable_map_game.dart'
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('a 2D committed step advances the saved friendship counter', () async {
+    final root = await Directory.systemTemp.createTemp('friendship-2d-');
+    addTearDown(() => root.delete(recursive: true));
+    final species = File('${root.path}/data/pokemon/species/riolu.json');
+    await species.parent.create(recursive: true);
+    await species.writeAsString(jsonEncode({
+      'schemaVersion': currentPokemonDataSchemaVersion,
+      'id': 'riolu',
+      'nationalDex': 447,
+      'typing': {'types': ['fighting']},
+      'baseStats': {'hp': 40, 'atk': 70, 'def': 40, 'spa': 35, 'spd': 40, 'spe': 60},
+      'abilities': {'primary': 'steadfast'},
+      'refs': {'learnset': 'riolu'},
+      'progression': {'growthRateId': 'medium_slow', 'baseExp': 72, 'catchRate': 75},
+    }));
+    const movement = CommittedMovement(
+      kind: CommittedMovementKind.walk,
+      fromCell: GridPos(x: 0, y: 0),
+      toCell: GridPos(x: 1, y: 0),
+    );
+    var state = const GameState(
+      saveId: 'friendship',
+      currentMapId: 'friendship_map',
+      playerPosition: GridPos(x: 0, y: 1),
+      party: PlayerParty(members: [
+        PlayerPokemon(speciesId: 'riolu', natureId: 'hardy', abilityId: 'steadfast',
+          level: 5, experience: 135, currentPpByMoveId: {}, friendship: 70),
+      ]),
+    );
+    for (var i = 0; i < 127; i++) {
+      state = const PokemonFriendshipWalkService().advance(state,
+          movement: movement, shouldIncrease: () => true);
+    }
+    final bundle = _bundle(mapId: 'friendship_map', triggers: [], scenes: [])
+        .copyWith(projectRootDirectory: root.path);
+    final game = await _loadGame(bundle,
+        saveData: saveDataFromGameState(state), friendshipRoll: () => true);
+    addTearDown(game.onRemove);
+    await _runSingleMove(game, RuntimeInputControl.right);
+    await _pumpFrames(game, 3);
+
+    expect(game.gameStateSnapshot.playerPosition, const GridPos(x: 1, y: 1));
+    expect(game.gameStateSnapshot.metadata['avelune.friendship.walk_steps.v1'], '0');
+    final restored = gameStateFromSaveData(
+        SaveData.fromJson(saveDataFromGameState(game.gameStateSnapshot).toJson()));
+    expect(restored.metadata['avelune.friendship.walk_steps.v1'], '0');
+    expect(restored.party.members.single.friendship, 71);
+  });
 
   test('Repousse expiration survives an arriving Event V2 Scene and waits until it ends', () async {
     const mapId = 'repel_event_map';
@@ -112,20 +163,30 @@ void main() {
       SceneEdge(id: 'route-blocked', fromNodeId: 'route', fromPortId: 'blocked', toNodeId: 'end', kind: SceneEdgeKind.actionCompleted),
     ]));
     final movements = <RuntimeCommittedMovement>[];
+    var startingState = GameState(saveId: 'repel', currentMapId: mapId,
+      playerPosition: const GridPos(x: 0, y: 1),
+      repelState: RepelState.active(itemId: 'repel', steps: 2));
+    const previousStep = CommittedMovement(kind: CommittedMovementKind.walk,
+      fromCell: GridPos(x: 0, y: 0), toCell: GridPos(x: 1, y: 0));
+    for (var i = 0; i < 126; i++) {
+      startingState = const PokemonFriendshipWalkService().advance(startingState,
+        movement: previousStep, shouldIncrease: () => true);
+    }
     late final _TestPlayableMapGame game;
     game = await _loadGame(_bundle(mapId: mapId,
       triggers: const [MapTrigger(id: 'arrival', name: 'Arrival', type: TriggerType.event,
         area: MapRect(pos: GridPos(x: 1, y: 1), size: GridSize(width: 1, height: 1)))],
       records: [_record(id: 'evt_019abcde-3000-7000-8000-000000000098', name: 'Repel forced route', source: NarrativeEventSourceRef.triggerEnter(mapId, 'arrival'), sceneId: sceneId)],
       factIds: const [factId], dialogueIds: const ['after-route'], scenes: [scene]),
-      saveData: saveDataFromGameState(GameState(saveId: 'repel', currentMapId: mapId, playerPosition: const GridPos(x: 0, y: 1),
-        repelState: RepelState.active(itemId: 'repel', steps: 2))),
+      saveData: saveDataFromGameState(startingState),
       onCommittedMovement: movements.add,
       dialogueSessionLoader: (_) async {
         expect(game.debugPlayerGridPosition, const GridPos(x: 2, y: 1));
         expect(game.gameStateSnapshot.repelState.remainingSteps, 1);
         expect(game.playerServiceGameStateSnapshot.repelState.remainingSteps, 0);
         expect(game.playerServiceGameStateSnapshot.repelState.expirationPending, isTrue);
+        expect(game.gameStateSnapshot.metadata[PokemonFriendshipWalkService.counterMetadataKey], '127');
+        expect(game.playerServiceGameStateSnapshot.metadata[PokemonFriendshipWalkService.counterMetadataKey], '0');
         expect(movements, hasLength(1));
         return _singleLineDialogueSession();
       });
@@ -139,6 +200,7 @@ void main() {
     expect(game.gameStateSnapshot.playerPosition, const GridPos(x: 2, y: 1));
     expect(game.gameStateSnapshot.repelState.remainingSteps, 0);
     expect(game.gameStateSnapshot.repelState.expirationPending, isTrue);
+    expect(game.gameStateSnapshot.metadata[PokemonFriendshipWalkService.counterMetadataKey], '0');
     expect(movements, hasLength(1));
     await _pumpUntil(game, () => game.dialoguePresentationListenable.value?.nodeTitle == 'repel_expired');
   });
@@ -1350,6 +1412,7 @@ DialogueSession _singleLineDialogueSession() {
 
 Future<_TestPlayableMapGame> _loadGame(
   RuntimeMapBundle bundle, {
+  bool Function()? friendshipRoll,
   RuntimeDialogueSessionLoader? dialogueSessionLoader,
   NarrativeRuntimeActivityGate? narrativeRuntimeActivityGate,
   GameSaveRepository? saveRepository,
@@ -1366,6 +1429,7 @@ Future<_TestPlayableMapGame> _loadGame(
     saveRepository: saveRepository,
     saveData: saveData,
     onCommittedMovement: onCommittedMovement,
+    friendshipRoll: friendshipRoll,
     beforeNarrativeAuthorityPreparation: beforeNarrativeAuthorityPreparation,
   );
   game.onGameResize(Vector2(640, 480));
@@ -1438,6 +1502,7 @@ final class _TestPlayableMapGame extends PlayableMapGame {
     super.saveRepository,
     super.saveData,
     super.onCommittedMovement,
+    super.friendshipRoll,
     super.beforeNarrativeAuthorityPreparation,
   });
 

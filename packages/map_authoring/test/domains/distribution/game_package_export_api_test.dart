@@ -14,6 +14,48 @@ import '../../../../map_distribution/test/support/spatial_package_fixture.dart'
     as spatial_fixture;
 
 void main() {
+  for (final method in ['friendship', 'friendship_day', 'friendship_night']) {
+    test('export gates time-restricted friendship evolution $method', () async {
+      const capability = 'pokemon.evolution.friendship-time@1';
+      final root = await _createPlayableProject();
+      addTearDown(() => root.delete(recursive: true));
+      final evolution = File(p.join(root.path, 'data/pokemon/evolutions/fixture.json'));
+      await evolution.parent.create(recursive: true);
+      await evolution.writeAsString(jsonEncode(PokemonEvolutionFile(
+        speciesId: 'fixture.partner',
+        evolutions: [PokemonEvolutionEntry(targetSpeciesId: 'fixture.evolved',
+          method: method, minFriendship: 220)],
+      ).toJson()));
+      final before = await evolution.readAsBytes();
+      final artifact = await CanonicalGamePackageExportService(
+        pokemonValidator: _acceptPokemonProjection,
+      ).build(projectRoot: root, profile: _profile(), mode: GamePackageExportMode.localTest);
+      final needsCapability = method != 'friendship';
+      expect(artifact.manifest.compatibility.requiredCapabilities.contains(capability), needsCapability);
+      final archive = ZipDecoder().decodeBytes(artifact.packageBytes);
+      final exported = archive.findFile('project/data/pokemon/evolutions/fixture.json');
+      expect(exported, isNotNull);
+      expect(exported!.content, before);
+      expect(await evolution.readAsBytes(), before);
+      final host = AveluneRuntimeCompatibility.host();
+      final old = GamePackageHostCompatibility(hubVersion: host.hubVersion,
+        runtimeApiVersion: host.runtimeApiVersion,
+        supportedRuntimeApiVersions: host.supportedRuntimeApiVersions,
+        capabilities: host.capabilities.difference({capability}),
+        supportedProjectFormats: host.supportedProjectFormats,
+        currentProjectFormat: host.currentProjectFormat,
+        currentProjectFormats: host.currentProjectFormats,
+        supportedSaveFormats: host.supportedSaveFormats);
+      if (needsCapability) {
+        expect(() => GamePackageInspector(hostCompatibility: old).inspect(artifact.packageBytes),
+          throwsA(isA<GamePackageFormatException>()));
+      } else {
+        expect(GamePackageInspector(hostCompatibility: old).inspect(artifact.packageBytes).compatibility!.decision,
+          GamePackageCompatibilityDecision.accept);
+      }
+    });
+  }
+
   test('local export bounds story exploration without certifying completion',
       () async {
     final root = await _createPlayableProject();

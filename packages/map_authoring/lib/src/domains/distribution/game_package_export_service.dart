@@ -143,6 +143,21 @@ final class CanonicalGamePackageExportService {
       var allMovesPpRestore = false;
       var friendshipItems = false;
       var heldBerries = false;
+      final evolutionDir = projection.project.pokemon.evolutionsDir
+          .replaceAll('\\', '/')
+          .replaceAll(RegExp(r'/+$'), '');
+      final evolutionPrefix = 'project/$evolutionDir/';
+      final timedFriendshipEvolution = projection.project.pokemon.enabled &&
+          projection.payloadFiles.entries.any((entry) {
+            if (!entry.key.startsWith(evolutionPrefix) ||
+                !entry.key.endsWith('.json')) {
+              return false;
+            }
+            final document = PokemonEvolutionFile.fromJson(
+              jsonDecode(utf8.decode(entry.value)) as Map<String, dynamic>,
+            );
+            return PokemonEvolutionTimeCapabilities.requiresCapability(document);
+          });
       if (itemBytes != null) {
         final catalog = decodeProjectItemCatalog(Map<String, dynamic>.from(
             jsonDecode(utf8.decode(itemBytes)) as Map));
@@ -363,6 +378,7 @@ final class CanonicalGamePackageExportService {
         if (allMovesPpRestore) ItemPpRestoreCapabilities.allMovesCapabilityId,
         if (friendshipItems) ItemFriendshipCapabilities.capabilityId,
         if (heldBerries) ItemHeldBerryCapabilities.capabilityId,
+        if (timedFriendshipEvolution) PokemonEvolutionTimeCapabilities.capabilityId,
         ...battleCapabilities,
         if (contextualCapture) PokemonRulesetProfile.contextualCaptureCapabilityId,
         if (exteriorDecoration) MapExteriorDecoration.capabilityId,

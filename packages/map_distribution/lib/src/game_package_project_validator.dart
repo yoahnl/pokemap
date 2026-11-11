@@ -109,6 +109,27 @@ final class GamePackageProjectValidator {
         return bytes;
       });
       final contextualCapture = project.pokemon.ruleset.profileId == PokemonRulesetProfile.contextualProfileId;
+      if (project.pokemon.enabled &&
+          !packageManifest.compatibility.requiredCapabilities.contains(
+            PokemonEvolutionTimeCapabilities.capabilityId,
+          )) {
+        final evolutionDir = project.pokemon.evolutionsDir
+            .replaceAll('\\', '/')
+            .replaceAll(RegExp(r'/+$'), '');
+        final prefix = 'project/$evolutionDir/';
+        for (final path in payloadPaths.where(
+          (path) => path.startsWith(prefix) && path.endsWith('.json'),
+        )) {
+          final bytes = readPayload(path);
+          if (bytes == null) _fail('Evolution document is missing.');
+          final document = PokemonEvolutionFile.fromJson(
+            jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>,
+          );
+          if (PokemonEvolutionTimeCapabilities.requiresCapability(document)) {
+            _fail('Time-restricted friendship evolution requires ${PokemonEvolutionTimeCapabilities.capabilityId}.');
+          }
+        }
+      }
       if (contextualCapture && !packageManifest.compatibility.requiredCapabilities.contains(
           PokemonRulesetProfile.contextualCaptureCapabilityId)) {
         _fail('Contextual capture requires ${PokemonRulesetProfile.contextualCaptureCapabilityId}.');

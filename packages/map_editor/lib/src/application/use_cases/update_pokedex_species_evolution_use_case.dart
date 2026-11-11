@@ -155,7 +155,9 @@ class UpdatePokedexSpeciesEvolutionUseCase {
         );
       }
       final method = entry.method.trim();
-      if ((method == 'friendship' || entry.minFriendship != null) &&
+      if ((const {'friendship', 'friendship_day', 'friendship_night'}
+                  .contains(method) ||
+              entry.minFriendship != null) &&
           (entry.minFriendship == null ||
               entry.minFriendship! < 1 ||
               entry.minFriendship! > 255)) {

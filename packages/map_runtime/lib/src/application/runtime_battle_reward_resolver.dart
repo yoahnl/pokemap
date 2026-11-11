@@ -83,6 +83,7 @@ final class RuntimeBattleRewardResolution {
 /// therefore be applied twice.
 final class RuntimeBattleRewardResolver {
   RuntimeBattleRewardResolver({
+    DateTime Function()? worldNow,
     RuntimePostBattleSpeciesLoader? loadSpecies,
     RuntimePostBattleMoveLearningLoader? loadMoveLearningCandidates,
     RuntimePostBattleEvolutionLoader? loadEvolutionCandidates,
@@ -90,7 +91,8 @@ final class RuntimeBattleRewardResolver {
         const RuntimeBattleProgressionContextMapper(),
     BattleProgressionService progressionService =
         const BattleProgressionService(),
-  })  : _loadSpecies = loadSpecies ?? RuntimePokemonSpeciesLoader().loadById,
+  })  : _worldNow = worldNow,
+        _loadSpecies = loadSpecies ?? RuntimePokemonSpeciesLoader().loadById,
         _loadMoveLearningCandidates = loadMoveLearningCandidates ??
             RuntimePokemonLearnsetLoader().loadLevelUpCandidates,
         _loadEvolutionCandidates = loadEvolutionCandidates ??
@@ -98,6 +100,7 @@ final class RuntimeBattleRewardResolver {
         _contextMapper = contextMapper,
         _progressionService = progressionService;
 
+  final DateTime Function()? _worldNow;
   final RuntimePostBattleSpeciesLoader _loadSpecies;
   final RuntimePostBattleMoveLearningLoader _loadMoveLearningCandidates;
   final RuntimePostBattleEvolutionLoader _loadEvolutionCandidates;
@@ -139,6 +142,7 @@ final class RuntimeBattleRewardResolver {
         );
       }
 
+      final hour = _worldNow?.call().hour;
       final defeatedOpponents = <BattleProgressionDefeatedOpponent>[];
       final seenEnemyLineupIndexes = <int>{};
       for (final enemy in <BattleCombatant>[
@@ -205,6 +209,7 @@ final class RuntimeBattleRewardResolver {
       final previewContext = BattleProgressionContext(
         outcome: mapped.outcome,
         ruleset: bundle.manifest.pokemon.ruleset,
+        hour: hour,
         playerParticipantPartySlots: mapped.playerParticipantPartySlots,
         defeatedOpponents: defeatedOpponents,
         partySlotMetadata: metadata,
@@ -245,6 +250,7 @@ final class RuntimeBattleRewardResolver {
       final context = BattleProgressionContext(
         outcome: mapped.outcome,
         ruleset: bundle.manifest.pokemon.ruleset,
+        hour: hour,
         playerParticipantPartySlots: mapped.playerParticipantPartySlots,
         defeatedOpponents: defeatedOpponents,
         partySlotMetadata: metadata,

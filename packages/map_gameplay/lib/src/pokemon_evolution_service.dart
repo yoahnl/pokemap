@@ -14,25 +14,31 @@ enum PokemonEvolutionTriggerKind {
 }
 
 final class PokemonEvolutionTrigger {
-  const PokemonEvolutionTrigger.levelUp()
+  const PokemonEvolutionTrigger.levelUp({this.hour})
       : kind = PokemonEvolutionTriggerKind.levelUp,
         itemId = null,
         partnerSpeciesId = null;
 
   const PokemonEvolutionTrigger.itemUse(this.itemId)
       : kind = PokemonEvolutionTriggerKind.itemUse,
+        hour = null,
         partnerSpeciesId = null;
 
   const PokemonEvolutionTrigger.trade({required this.partnerSpeciesId})
       : kind = PokemonEvolutionTriggerKind.trade,
+        hour = null,
         itemId = null;
 
   final PokemonEvolutionTriggerKind kind;
   final String? itemId;
   final String? partnerSpeciesId;
+  final int? hour;
 
   PokemonEvolutionTrigger validated() {
-    if (kind == PokemonEvolutionTriggerKind.levelUp) return this;
+    if (kind == PokemonEvolutionTriggerKind.levelUp) {
+      if (hour != null) RangeError.checkValueInInterval(hour!, 0, 23, 'hour');
+      return this;
+    }
     if (kind == PokemonEvolutionTriggerKind.trade) {
       if (partnerSpeciesId == null ||
           !RegExp(r'^[a-z0-9][a-z0-9_-]*$').hasMatch(partnerSpeciesId!)) {
@@ -58,6 +64,8 @@ enum PokemonEvolutionConditionKind {
   trade,
 }
 
+enum PokemonEvolutionTimeOfDay { any, day, night }
+
 /// One supported, serializable evolution condition.
 ///
 /// V1 intentionally supports only deterministic conditions owned by current
@@ -68,6 +76,7 @@ final class PokemonEvolutionCondition {
     required this.minLevel,
   })  : kind = PokemonEvolutionConditionKind.level,
         minFriendship = null,
+        timeOfDay = PokemonEvolutionTimeOfDay.any,
         itemId = null,
         moveId = null,
         tradeRequirements = null;
@@ -75,6 +84,7 @@ final class PokemonEvolutionCondition {
   const PokemonEvolutionCondition.friendship({
     required this.minFriendship,
     this.minLevel = 2,
+    this.timeOfDay = PokemonEvolutionTimeOfDay.any,
   })  : kind = PokemonEvolutionConditionKind.friendship,
         itemId = null,
         moveId = null,
@@ -85,6 +95,7 @@ final class PokemonEvolutionCondition {
     this.minLevel = 1,
   })  : kind = PokemonEvolutionConditionKind.item,
         minFriendship = null,
+        timeOfDay = PokemonEvolutionTimeOfDay.any,
         moveId = null,
         tradeRequirements = null;
 
@@ -93,6 +104,7 @@ final class PokemonEvolutionCondition {
     this.minLevel = 2,
   })  : kind = PokemonEvolutionConditionKind.knownMove,
         minFriendship = null,
+        timeOfDay = PokemonEvolutionTimeOfDay.any,
         itemId = null,
         tradeRequirements = null;
 
@@ -102,6 +114,7 @@ final class PokemonEvolutionCondition {
   })  : kind = PokemonEvolutionConditionKind.trade,
         minLevel = 1,
         minFriendship = null,
+        timeOfDay = PokemonEvolutionTimeOfDay.any,
         itemId = null,
         moveId = null,
         tradeRequirements = requirements;
@@ -109,6 +122,7 @@ final class PokemonEvolutionCondition {
   final PokemonEvolutionConditionKind kind;
   final int minLevel;
   final int? minFriendship;
+  final PokemonEvolutionTimeOfDay timeOfDay;
   final String? itemId;
   final String? moveId;
   final PokemonTradeEvolutionRequirements? tradeRequirements;
@@ -184,7 +198,14 @@ final class PokemonEvolutionCondition {
         event.kind == PokemonEvolutionTriggerKind.levelUp,
       PokemonEvolutionConditionKind.friendship =>
         event.kind == PokemonEvolutionTriggerKind.levelUp &&
-            pokemon.friendship >= condition.minFriendship!,
+            pokemon.friendship >= condition.minFriendship! &&
+            switch (condition.timeOfDay) {
+              PokemonEvolutionTimeOfDay.any => true,
+              PokemonEvolutionTimeOfDay.day =>
+                event.hour != null && event.hour! >= 4 && event.hour! < 20,
+              PokemonEvolutionTimeOfDay.night =>
+                event.hour != null && (event.hour! < 4 || event.hour! >= 20),
+            },
       PokemonEvolutionConditionKind.item =>
         event.kind == PokemonEvolutionTriggerKind.itemUse &&
             event.itemId == condition.itemId,

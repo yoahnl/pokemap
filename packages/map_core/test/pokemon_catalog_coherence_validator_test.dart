@@ -28,6 +28,32 @@ void main() {
     expect(report.diagnostics, isEmpty);
   });
 
+  test('validates time-restricted friendship evolution methods', () {
+    for (final method in ['friendship_day', 'friendship_night']) {
+      final entry = PokemonEvolutionEntry.fromJson(
+        PokemonEvolutionEntry(
+          targetSpeciesId: 'bulbasaur',
+          method: method,
+          minFriendship: 220,
+        ).toJson(),
+      );
+      final report = validator.validate(_validSnapshot(evolutions: [
+        _document('evolutions/bulbasaur.json', _evolution(entries: [entry])),
+      ]));
+      final codes = report.diagnostics.map((diagnostic) => diagnostic.code);
+      expect(codes, isNot(contains('evolution.method_unsupported')));
+      expect(codes, isNot(contains('evolution.friendship_invalid')));
+
+      final invalid = validator.validate(_validSnapshot(evolutions: [
+        _document('evolutions/bulbasaur.json', _evolution(entries: [
+          PokemonEvolutionEntry(targetSpeciesId: 'bulbasaur', method: method),
+        ])),
+      ]));
+      expect(invalid.diagnostics.map((diagnostic) => diagnostic.code),
+          contains('evolution.friendship_invalid'));
+    }
+  });
+
   test('validates every optional GIF path in media schema v2', () {
     const paths = {
       'frontAnimated': 'assets/front.gif',

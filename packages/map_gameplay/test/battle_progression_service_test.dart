@@ -18,6 +18,68 @@ void main() {
   );
 
   group('BattleProgressionService', () {
+    test('increases friendship on each level using the current tier', () {
+      for (final (before, after) in <(int, int)>[
+        (0, 5),
+        (99, 104),
+        (100, 103),
+        (199, 202),
+        (200, 202),
+        (254, 255),
+      ]) {
+        final state = _state(<PlayerPokemon>[
+          _pokemon(id: 'participant', experience: 125, currentHp: 19)
+              .copyWith(friendship: before),
+        ]);
+        final result = service.apply(
+          state: state,
+          context: _context(),
+          reward: BattleReward(sourceKind: BattleRewardSourceKind.wild),
+        );
+
+        expect(result.state.party.members.single.level, 6);
+        expect(result.state.party.members.single.friendship, after,
+            reason: 'starting friendship $before');
+      }
+    });
+
+    test('applies friendship gains across multiple levels and saves them', () {
+      final state = _state(<PlayerPokemon>[
+        _pokemon(id: 'participant', experience: 125, currentHp: 19)
+            .copyWith(friendship: 99),
+      ]);
+      final result = service.apply(
+        state: state,
+        context: _context(opponents: const <BattleProgressionDefeatedOpponent>[
+          BattleProgressionDefeatedOpponent(level: 70, baseExperience: 100),
+        ]),
+        reward: BattleReward(sourceKind: BattleRewardSourceKind.wild),
+      );
+      final reloaded = normalizeLoadedGameState(gameStateFromSaveData(
+          SaveData.fromJson(saveDataFromGameState(result.state).toJson())));
+
+      expect(result.state.party.members.single.level, 10);
+      expect(result.state.party.members.single.friendship, 116);
+      expect(reloaded.party.members.single.friendship, 116);
+    });
+
+    test('does not increase friendship without a level gain', () {
+      final state = _state(<PlayerPokemon>[
+        _pokemon(id: 'participant', experience: 125, currentHp: 19)
+            .copyWith(friendship: 70),
+      ]);
+      final result = service.apply(
+        state: state,
+        context: _context(opponents: const <BattleProgressionDefeatedOpponent>[
+          BattleProgressionDefeatedOpponent(level: 1, baseExperience: 7),
+        ]),
+        reward: BattleReward(sourceKind: BattleRewardSourceKind.wild),
+      );
+
+      expect(result.state.party.members.single.level, 5);
+      expect(result.state.party.members.single.friendship, 70);
+    });
+
     test('awards canonical wild XP only to an actual participant', () {
       final state = _state(<PlayerPokemon>[
         _pokemon(id: 'participant', level: 5, experience: 125, currentHp: 15),

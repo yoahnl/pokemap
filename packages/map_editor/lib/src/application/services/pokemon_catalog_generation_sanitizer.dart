@@ -88,7 +88,9 @@ final class PokemonCatalogGenerationSanitizer {
     )) {
       return null;
     }
-    if (method == 'friendship' && entry.minFriendship == null) {
+    if (const {'friendship', 'friendship_day', 'friendship_night'}
+            .contains(method) &&
+        entry.minFriendship == null) {
       return null;
     }
     if (method == 'known_move' &&

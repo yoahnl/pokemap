@@ -40,6 +40,25 @@ void main() {
       expect(curve.totalExperienceForLevel(36), 46656);
     });
 
+    test('accepts HGSS growth names with the same thresholds at every level',
+        () {
+      for (final (source, canonical) in [
+        ('erratic', 'slow_then_very_fast'),
+        ('fluctuating', 'fast_then_very_slow'),
+      ]) {
+        final imported = PokemonExperienceCurve.fromId(source);
+        final existing = PokemonExperienceCurve.fromId(canonical);
+        for (var level = 1; level <= 100; level++) {
+          final threshold = existing.totalExperienceForLevel(level);
+          expect(imported.totalExperienceForLevel(level), threshold,
+              reason: '$source level $level');
+          expect(imported.levelForExperience(threshold),
+              existing.levelForExperience(threshold),
+              reason: '$source threshold $threshold');
+        }
+      }
+    });
+
     test('clamps the negative medium-slow level-one threshold to zero', () {
       final curve = PokemonExperienceCurve.fromId('medium_slow');
 

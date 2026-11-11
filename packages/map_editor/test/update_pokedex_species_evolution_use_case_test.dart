@@ -166,6 +166,14 @@ void main() {
       ),
       PokemonEvolutionEntry(
         targetSpeciesId: 'ivysaur',
+        method: 'friendship_day',
+      ),
+      PokemonEvolutionEntry(
+        targetSpeciesId: 'ivysaur',
+        method: 'friendship_night',
+      ),
+      PokemonEvolutionEntry(
+        targetSpeciesId: 'ivysaur',
         method: 'use_item',
       ),
       PokemonEvolutionEntry(

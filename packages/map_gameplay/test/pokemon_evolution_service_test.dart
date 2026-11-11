@@ -288,6 +288,85 @@ void main() {
       );
     });
 
+    test('daytime friendship evolution uses HGSS hour boundaries', () {
+      final pokemon = _pokemon(currentHp: 20)
+          .copyWith(level: 6, friendship: 220);
+      final candidate = _candidate(
+        condition: const PokemonEvolutionCondition.friendship(
+          minFriendship: 220,
+          timeOfDay: PokemonEvolutionTimeOfDay.day,
+        ),
+      );
+
+      for (final (hour, eligible) in <(int, bool)>[
+        (3, false),
+        (4, true),
+        (19, true),
+        (20, false),
+      ]) {
+        expect(candidate.isEligible(pokemon,
+            trigger: PokemonEvolutionTrigger.levelUp(hour: hour)), eligible);
+      }
+      expect(candidate.isEligible(pokemon,
+          trigger: const PokemonEvolutionTrigger.levelUp()), isFalse);
+      expect(candidate.isEligible(pokemon.copyWith(friendship: 219),
+          trigger: const PokemonEvolutionTrigger.levelUp(hour: 12)), isFalse);
+
+      final nightCandidate = _candidate(
+        condition: const PokemonEvolutionCondition.friendship(
+          minFriendship: 220,
+          timeOfDay: PokemonEvolutionTimeOfDay.night,
+        ),
+      );
+      for (final (hour, eligible) in <(int, bool)>[
+        (3, true),
+        (4, false),
+        (19, false),
+        (20, true),
+      ]) {
+        expect(nightCandidate.isEligible(pokemon,
+            trigger: PokemonEvolutionTrigger.levelUp(hour: hour)), eligible);
+      }
+    });
+
+    test('a daytime evolution keeps its trigger through the player decision',
+        () {
+      final candidate = _candidate(
+        condition: const PokemonEvolutionCondition.friendship(
+          minFriendship: 220,
+          timeOfDay: PokemonEvolutionTimeOfDay.day,
+        ),
+      );
+      BattleProgressionResult progress(int? hour, int friendship) =>
+          const BattleProgressionService().apply(
+            state: _state(<PlayerPokemon>[
+              _pokemon(currentHp: 19).copyWith(friendship: friendship),
+            ]),
+            context: _context(
+              hour: hour,
+              evolutionCandidatesBySlot: {0: [candidate]},
+            ),
+            reward: BattleReward(sourceKind: BattleRewardSourceKind.wild),
+          );
+
+      expect(progress(12, 217).pendingEvolution, isNull);
+      expect(progress(20, 218).pendingEvolution, isNull);
+      expect(progress(null, 218).pendingEvolution, isNull);
+      final progression = progress(12, 218);
+      final pending = progression.pendingEvolution!;
+      final evolved = progression.resolvePendingEvolution(
+        BattleEvolutionDecision.accept(
+          opportunityId: pending.opportunityId,
+          occurrenceId: pending.occurrenceId,
+          partySlot: pending.partySlot,
+          sourceSpeciesId: pending.sourceSpeciesId,
+          targetSpeciesId: pending.targetSpeciesId,
+        ),
+      );
+      expect(evolved.state.party.members.single.speciesId, 'bloomon');
+      expect(evolved.state.party.members.single.friendship, 220);
+    });
+
     test('item evolution consumes one item and preserves ownership metadata',
         () {
       const operations = PokemonEvolutionItemOperations();
@@ -883,6 +962,7 @@ GameState _state(List<PlayerPokemon> members) {
 }
 
 BattleProgressionContext _context({
+  int? hour,
   List<BattleProgressionDefeatedOpponent> opponents =
       const <BattleProgressionDefeatedOpponent>[
     BattleProgressionDefeatedOpponent(level: 14, baseExperience: 70),
@@ -896,6 +976,7 @@ BattleProgressionContext _context({
   return BattleProgressionContext(
     ruleset: PokemonRulesetProfile.pokeMapBetaV1,
     outcome: BattleProgressionOutcomeKind.victory,
+    hour: hour,
     playerParticipantPartySlots: const <int>{0},
     defeatedOpponents: opponents,
     partySlotMetadata: <BattleProgressionPartySlotMetadata>[

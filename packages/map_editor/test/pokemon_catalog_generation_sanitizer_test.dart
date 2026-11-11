@@ -61,6 +61,27 @@ void main() {
     expect(result[2].minLevel, 1);
   });
 
+  test('preserves only valid time-restricted friendship evolutions', () {
+    final result = sanitizer.sanitizeEvolutions(
+      const [
+        PokemonEvolutionEntry(
+          targetSpeciesId: 'lucario',
+          method: 'friendship_day',
+          minFriendship: 220,
+        ),
+        PokemonEvolutionEntry(
+          targetSpeciesId: 'umbreon',
+          method: 'friendship_night',
+        ),
+      ],
+      availableSpeciesIds: const {'lucario', 'umbreon'},
+    );
+
+    expect(result, hasLength(1));
+    expect(result.single.method, 'friendship_day');
+    expect(result.single.minFriendship, 220);
+  });
+
   test('keeps only media variants for available forms', () {
     const media = PokemonMediaFile(
       speciesId: 'greninja',

@@ -17,6 +17,7 @@ abstract final class AveluneRuntimeCompatibility {
           ItemPpRestoreCapabilities.allMovesCapabilityId,
           ItemFriendshipCapabilities.capabilityId,
           ItemHeldBerryCapabilities.capabilityId,
+          PokemonEvolutionTimeCapabilities.capabilityId,
           PokemonRulesetProfile.contextualCaptureCapabilityId,
           'catalog.partitioned@2',
           'dialogue.choices@1',
