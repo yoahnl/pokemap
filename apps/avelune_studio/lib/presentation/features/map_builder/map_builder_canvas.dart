@@ -17,6 +17,7 @@ class MapBuilderCanvas extends StatelessWidget {
     required this.onToggleInspector,
     required this.error,
     required this.surface,
+    required this.statusBar,
   });
 
   final MapBuilderSpace space;
@@ -28,6 +29,7 @@ class MapBuilderCanvas extends StatelessWidget {
   final VoidCallback onToggleInspector;
   final String? error;
   final Widget? surface;
+  final Widget statusBar;
 
   @override
   Widget build(BuildContext context) {
@@ -137,36 +139,12 @@ class MapBuilderCanvas extends StatelessWidget {
                   )
                 : ClipRect(child: surface),
           ),
-          Ink(
-            height: 40,
-            padding: const EdgeInsets.symmetric(horizontal: StudioSpacing.xl),
-            decoration: BoxDecoration(
-              color: scheme.surface,
-              border: Border(top: divider),
-            ),
-            child: Row(
-              children: [
-                Text(
-                  _toolLabel(tool),
-                  key: const ValueKey('map-status-tool'),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          statusBar,
         ],
       ),
     );
   }
 }
-
-String _toolLabel(StudioMapTool tool) => switch (tool) {
-  StudioMapTool.select => 'Sélection',
-  StudioMapTool.pan => 'Déplacer la vue',
-  _ => 'Construction',
-};
 
 class _SpaceTab extends StatelessWidget {
   const _SpaceTab({

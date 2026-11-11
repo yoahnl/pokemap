@@ -15,12 +15,14 @@ class MapBuilderLibrary extends StatefulWidget {
     required this.maps,
     required this.activeMapId,
     required this.onSelectMap,
+    required this.resources,
   });
 
   final List<ProjectMapGroup> groups;
   final List<ProjectMapEntry> maps;
   final String? activeMapId;
   final ValueChanged<ProjectMapEntry>? onSelectMap;
+  final Widget resources;
 
   @override
   State<MapBuilderLibrary> createState() => _MapBuilderLibraryState();
@@ -65,14 +67,7 @@ class _MapBuilderLibraryState extends State<MapBuilderLibrary> {
           ),
           Expanded(
             child: switch (_tab) {
-              _LibraryTab.resources => const Padding(
-                padding: EdgeInsets.all(StudioSpacing.xl),
-                child: StudioEmptyState(
-                  icon: Icons.inventory_2_outlined,
-                  title: 'Bibliothèque de ressources',
-                  description: 'La recherche et le placement des ressources arrivent à la prochaine étape.',
-                ),
-              ),
+              _LibraryTab.resources => widget.resources,
               _LibraryTab.maps => MapBuilderMapTree(
                 groups: widget.groups,
                 maps: widget.maps,

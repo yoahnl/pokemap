@@ -18,6 +18,11 @@ import 'package:avelune_studio/presentation/features/map_builder/map_builder_can
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_inspector.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_library.dart';
 import 'package:avelune_studio/presentation/features/map_builder/map_builder_space.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_resource_binding.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_resource_panel.dart';
+import 'package:avelune_studio/presentation/features/map_builder/map_builder_status_bar.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_palette_intent.dart';
+import 'package:map_core/map_core.dart';
 import 'package:avelune_studio/presentation/shared/widgets/minimum_size_viewport.dart';
 
 const mapBuilderMinimumSize = Size(1280, 720);
@@ -51,6 +56,13 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
     prepared: (_) {},
     failed: (failure) => _visualsError =
         'Les ressources de la carte ne peuvent pas être chargées : $failure',
+    changed: _changed,
+  );
+  late final _resources = MapBuilderResourceBinding(
+    maps: _maps,
+    view: () => _view,
+    visuals: () => _visuals,
+    isActive: () => !_disposed,
     changed: _changed,
   );
   var _space = MapBuilderSpace.construction;
@@ -95,6 +107,7 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
       visuals.addListener(_changed);
       _visuals = visuals;
       _changed();
+      unawaited(_resources.load());
     } catch (failure) {
       if (!_disposed) {
         setState(
@@ -109,6 +122,8 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
     if (_disposed) return;
     releaseStaleMapMoves(_views, _maps.active);
     _projection.synchronize(_maps.visualProject);
+    _resources.follow(_activeEntry);
+    _resources.reconcileTool();
     if (mounted) setState(() {});
   }
 
@@ -143,19 +158,35 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
 
   bool get _editable => !_maps.loading && !_maps.catalogBusy && !_maps.saving;
 
+  ProjectMapEntry? get _activeEntry {
+    final id = _maps.active?.base.mapId;
+    return _maps.project?.maps.where((item) => item.id == id).firstOrNull;
+  }
+
   void _setTool(StudioMapTool tool) {
     final view = _view;
     if (view == null) return;
-    setState(() => view.tool = tool);
+    if (tool == StudioMapTool.select) {
+      _resources.release();
+      return;
+    }
+    view.tool = tool;
+    _changed();
   }
 
   @override
   Widget build(BuildContext context) {
     final project = _maps.project;
     final document = _maps.active;
-    final entry = project?.maps
-        .where((item) => item.id == document?.base.mapId)
-        .firstOrNull;
+    final entry = _activeEntry;
+    final view = _view;
+    final intent = view == null
+        ? null
+        : mapPaletteIntent(
+            view,
+            spatial: document?.current.spatialScene != null,
+            project: _resources.catalog,
+          );
     return Scaffold(
       key: const ValueKey('map-builder'),
       body: MinimumSizeViewport(
@@ -192,25 +223,55 @@ class _MapBuilderPageState extends ConsumerState<MapBuilderPage> {
                     onSelectMap: _editable
                         ? (entry) => unawaited(_maps.activate(entry))
                         : null,
+                    resources: MapBuilderResourcePanel(
+                      project: _resources.catalog,
+                      mapId: document?.base.mapId,
+                      visuals: _visuals,
+                      selection: _resources.selection,
+                      onSelection: (value) =>
+                          unawaited(_resources.select(value)),
+                      loading: _resources.loading,
+                      armed: _resources.armed?.identity,
+                      onUse: _editable
+                          ? (item) => unawaited(_resources.use(item))
+                          : null,
+                    ),
                   ),
                   Expanded(
                     child: MapBuilderCanvas(
                       space: _space,
                       onSpace: (space) => setState(() => _space = space),
                       entry: entry,
-                      tool: _view?.tool ?? StudioMapTool.select,
+                      tool: view?.tool ?? StudioMapTool.select,
                       onTool: _setTool,
                       inspectorOpen: _inspectorOpen,
                       onToggleInspector: () =>
                           setState(() => _inspectorOpen = !_inspectorOpen),
-                      error: _maps.error ?? _visualsError ?? document?.error,
+                      error:
+                          _maps.error ??
+                          _visualsError ??
+                          _resources.error ??
+                          document?.error,
                       surface: _surface(),
+                      statusBar: MapBuilderStatusBar(
+                        toolLabel: _resources.armed != null
+                            ? intent?.action ?? 'Construction'
+                            : view?.tool == StudioMapTool.pan
+                            ? 'Déplacer la vue'
+                            : 'Sélection',
+                        view: view,
+                        spatial: document?.current.spatialScene != null,
+                        onChanged: _changed,
+                      ),
                     ),
                   ),
                   if (_inspectorOpen)
                     MapBuilderInspector(
                       entry: entry,
                       projectName: project?.name ?? widget.session.name,
+                      armed: _resources.armed,
+                      intent: intent,
+                      onRelease: _resources.release,
                       onCollapse: () => setState(() => _inspectorOpen = false),
                     ),
                 ],
