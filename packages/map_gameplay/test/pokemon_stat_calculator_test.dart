@@ -270,5 +270,30 @@ void main() {
         throwsRangeError,
       );
     });
+
+    test('species base stats map onto the calculator row field by field', () {
+      final stats = pokemonBaseStatsOf(
+        const PokemonSpeciesBaseStats(
+          hp: 45,
+          atk: 49,
+          def: 50,
+          spa: 65,
+          spd: 66,
+          spe: 44,
+          bst: 319,
+        ),
+      );
+      expect(
+        [
+          stats.hp,
+          stats.attack,
+          stats.defense,
+          stats.specialAttack,
+          stats.specialDefense,
+          stats.speed,
+        ],
+        [45, 49, 50, 65, 66, 44],
+      );
+    });
   });
 }

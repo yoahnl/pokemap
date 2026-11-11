@@ -1,0 +1,1 @@
+flutter test --no-pub -r failures-only in QA copy of HEAD de1a2d01d + wave 3 (apps/avelune_studio): +3962 ~10 -18; no new red against wave 2; removed reds belong to deleted legacy tests plus workshop_entry_reads (load-sensitive)

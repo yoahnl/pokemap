@@ -69,7 +69,7 @@ void main() {
     final commerce = host.commerce;
     expect(commerce.selectItem(_potion(commerce)), isTrue);
     final before = await _analyzedPotionReferences(commerce);
-    await route.go(WorkspaceSpace.map);
+    await route.go(WorkspaceSpace.story);
     await LocalSceneAdapter(
       session: host.source.session,
       mapAdapter: host.source.maps,

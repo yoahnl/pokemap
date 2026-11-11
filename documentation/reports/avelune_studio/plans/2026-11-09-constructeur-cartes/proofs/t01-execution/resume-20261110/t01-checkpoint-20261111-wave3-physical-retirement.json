@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "at": "2026-11-11",
+  "base": "de1a2d01d",
+  "lots": ["RUI-002", "RUI-005", "RUI-007", "RUI-008", "RUI-009", "RUI-010"],
+  "status": "g0_static_passed_lots_not_accepted",
+  "scope": "Vague 3 du retrait T01 : suppression physique de l'ancienne UI du Studio et des tests/supports qui la joignaient ; comptabilité de l'inventaire.",
+  "deleted": "516 fichiers (proofs/t01-execution/retirement-qualification-20261111/wave3-deleted-files.txt) : 329 sources inventoriées sous lib/presentation, lib/avelune_design_system.dart, 2 harnais dev, 182 tests et supports, 2 parts orphelines.",
+  "kept": [
+    "packages/avelune_design_system et packages/map_editor/lib/src/ui restent (consommateurs hors Studio : avelune_converter, map_editor) ; G0 prouve que le Studio ne les joint plus.",
+    "studio_review_dialog_test et studio_section_storage_test déplacés dans packages/avelune_design_system/test."
+  ],
+  "changes": [
+    "map_gameplay : pokemonBaseStatsOf (espèce vers ligne de stats de base) ; le Studio ne nomme plus le type homonyme d'un ancien widget inventorié.",
+    "Exception studio_playtest_view.dart réapprouvée : seul l'import map_story de a10f78dfc a changé (historique conservé).",
+    "Inventaire : 766 -> 28 décisions ouvertes ; retired 215 -> 654 ; retiredUiChecks 50 -> 237."
+  ],
+  "commands": [
+    {"command": "dart run tools/t01_check_g0.dart --allowlist .../t01-technical-exceptions.json", "cwd": "copie QA de HEAD + vague 3 (apps/avelune_studio)", "result": "passed true, 0 violation, 1649 sources Studio inspectées, 4049 joignables, 12 exceptions"},
+    {"command": "dart run tools/t01_check_g0.dart (arbre réel)", "result": "15 violations de résolution uniquement, dues au package avelune_render_contracts en cours d'ajout par une autre session dans map_runtime/map_render_3d (non commité)"},
+    {"command": "flutter test --no-pub -r failures-only", "cwd": "copie QA (apps/avelune_studio)", "result": "+3962 ~10 -18 ; aucun nouveau rouge contre la vague 2"},
+    {"command": "flutter analyze --no-pub lib test dev integration_test", "cwd": "apps/avelune_studio", "result": "0 erreur, 0 warning"},
+    {"command": "python3 update_plan.py validate && python3 -m unittest -q test_update_plan", "result": "valide, 26 tests OK"}
+  ],
+  "review": "Revue indépendante : OK avec réserves ; corrigés : tests du design system déplacés, test de retour depuis Histoire sur WorkspaceSpace.story, chemin du ledger C1.",
+  "pendingForYoahn": [
+    "28 entrées d'inventaire hors Studio sans décision : 7 fichiers sans consommateur (map_editor pokedex_workspace_views, entity_placement_kind_picker, sidebar_header_action ; design system studio_color_picker, studio_slider, studio_time_window, studio_navigation_entry) et 21 utilisés seulement par des tests (global_story_studio, map_inspector_panel et ses panneaux, items_catalog_workspace, studio_state_badge…) : supprimer ou garder.",
+    "Graphe de scène : scene_canvas_painter/surface/minimap/menu retirés en retired_ui, leur logique d'interaction n'a pas de propriétaire non visuel ; à reconstruire dans la nouvelle UI.",
+    "Points ouverts des vagues 1 et 2 (plafond de 4 attaques côté canonique/MCP, piste incompatible dans map_authoring, e2e Hub)."
+  ],
+  "forRebuild": [
+    "MapEditingInputSession.reconcile sans appelant ; flushEdits des présentations à recâbler ; Maj+F10 ; flush du champ focalisé des dialogues ; StudioCommandPalette ; registre addListener(controller.invalidate) des usages de ressources.",
+    "apps/avelune_studio/README.md décrit encore lib/presentation et des widgets retirés.",
+    "RUI-003 : page de revue des cibles visuelles pour Yoahn."
+  ],
+  "mcpParity": "N/A pour la vague 3 (suppression d'UI et helper map_gameplay sans changement d'action ni de contrat)."
+}

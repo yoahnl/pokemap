@@ -28,18 +28,23 @@
       "symbols": [
         "StudioPlaytestView"
       ],
-      "sha256": "2344d52a21da4aaea9f3f12a4ce5c0fb8be252b528c6dff1dfe2218cd5f8dbc4",
+      "sha256": "c307b7c3fc3d85775f524bc9e528e7ef63b3e338e5c8cd7ed8a1cb225e043fde",
       "kind": "player_surface",
       "reason": "Exécuteur carte 2D/3D et surfaces Player, révisions/chargement/ressources conservés ; ancien chrome supprimé, commandes via port technique.",
-      "approvedBy": "t01_map_retirement_finish",
+      "approvedBy": "t01_wave3_import_only_review",
       "reviewHistory": [
+        {
+          "sha256": "2344d52a21da4aaea9f3f12a4ce5c0fb8be252b528c6dff1dfe2218cd5f8dbc4",
+          "approvedBy": "t01_map_retirement_finish",
+          "meaning": "Previous reviewed snapshot; a10f78dfc only added import 'package:map_story/map_story.dart' (map_story extraction), no other byte changed."
+        },
         {
           "sha256": "d48fbf87ef0a70f826957924400bea2915d5b5804ea864477a11471bc1f227b9",
           "approvedBy": "t01_map_boundary",
           "meaning": "Previous reviewed snapshot retained; no assertion of byte equality with the current source."
         }
       ],
-      "reviewedAt": "2026-11-10",
+      "reviewedAt": "2026-11-11",
       "reviewScope": "Current complete source reviewed independently as player_surface; no legacy screen chrome. Not a global G0 or visual parity verdict."
     },
     {

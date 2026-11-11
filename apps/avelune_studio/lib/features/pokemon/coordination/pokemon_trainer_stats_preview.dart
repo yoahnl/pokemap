@@ -33,18 +33,10 @@ gameplay.PokemonCalculatedStats? pokemonTrainerStatsPreview({
   required bool valid,
 }) {
   if (!valid || species == null || species.id != member.speciesId) return null;
-  final base = species.baseStats;
   try {
     return gameplay.calculateTrainerPokemonStats(
       member: member,
-      baseStats: gameplay.PokemonBaseStats(
-        hp: base.hp,
-        attack: base.atk,
-        defense: base.def,
-        specialAttack: base.spa,
-        specialDefense: base.spd,
-        speed: base.spe,
-      ),
+      baseStats: gameplay.pokemonBaseStatsOf(species.baseStats),
     );
   } on ArgumentError {
     return null;

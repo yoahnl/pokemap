@@ -75,7 +75,8 @@ export 'src/pokemon_stat_calculator.dart'
         PokemonBaseStats,
         PokemonCalculatedStats,
         PokemonStatCalculator,
-        calculateTrainerPokemonStats;
+        calculateTrainerPokemonStats,
+        pokemonBaseStatsOf;
 export 'src/player_pokemon_hydrator.dart'
     show
         PlayerPokemonHydrationOrigin,

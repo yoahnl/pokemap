@@ -191,6 +191,16 @@ final class PokemonStatCalculator {
   }
 }
 
+PokemonBaseStats pokemonBaseStatsOf(PokemonSpeciesBaseStats stats) =>
+    PokemonBaseStats(
+      hp: stats.hp,
+      attack: stats.atk,
+      defense: stats.def,
+      specialAttack: stats.spa,
+      specialDefense: stats.spd,
+      speed: stats.spe,
+    );
+
 PokemonCalculatedStats calculateTrainerPokemonStats({
   required ProjectTrainerPokemonEntry member,
   required PokemonBaseStats baseStats,
