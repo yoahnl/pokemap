@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "at": "2026-11-11",
+  "head": "eaa766267",
+  "lots": ["RUI-002", "RUI-005", "RUI-007", "RUI-008", "RUI-009"],
+  "status": "partial_not_accepted",
+  "scope": "Vague 1 du retrait T01 : qualification des 533 cas de test et 329 écrans encore présents, protection additive au niveau des propriétaires, sans aucune suppression.",
+  "commits": [
+    {"sha": "e5de7cfc7", "what": "Découplage RUI-004→RUI-002 et RUI-011→RUI-003+RUI-010 (décision de Yoahn), révision 2026-11-11-retirement-decoupled-from-visual-targets-v1 ; correctif racine temporaire du test puzzle."},
+    {"sha": "eaa766267", "what": "Vague 1 : 322 cas remplacés, 53 partiels, 47 couverts ailleurs, 99 UI seule, 12 non remplacés motivés ; 64 extractions ; une mutation détectée par nouveau fichier de test."}
+  ],
+  "evidence": "proofs/t01-execution/retirement-qualification-20261111 (classify_*, scope_*, ledger_*, check_clean.py, suites).",
+  "g0Rule": "t01_retirement_gate : tout fichier inventorié, tout packages/avelune_design_system/lib/ et packages/map_editor/lib/src/ui/ joignable depuis une racine Studio (lib, test, dev, integration_test) ou depuis les tests Hub est une violation ; les widgetClasses de l'inventaire (dont Studio* du design system) cités dans une source Studio aussi. Les 12 exceptions approuvées sont exclues. Un test propre monte ses widgets dans un MaterialApp par défaut.",
+  "commands": [
+    {"command": "flutter test --no-pub -r failures-only", "cwd": "apps/avelune_studio", "at": "a3cd12ce7", "result": "+3803 ~12 -33"},
+    {"command": "flutter test --no-pub -r failures-only", "cwd": "apps/avelune_studio", "at": "vague 1 avant commit", "result": "+4264 ~13 -32 ; aucun nouveau rouge hors ui06_scene_runtime_owner_test (map_story alors non commité, corrigé ensuite)"},
+    {"command": "flutter test --no-pub <94 nouveaux fichiers>", "cwd": "apps/avelune_studio", "result": "+459 ~1 -1 (ui06 map_story, corrigé : même rouge préexistant « refusal » que l'ancien test)"},
+    {"command": "check_clean.py <111 fichiers>", "result": "111 CLEAN"}
+  ],
+  "decisionsByYoahn": [
+    "Timeline des présentations : un drag hors bornes est ramené à la borne (comportement actuel du contrôleur) ; vérifier ou ajouter le refus d'une piste incompatible.",
+    "Règle « Start ne reçoit aucune liaison entrante » : à ajouter dans map_core addSceneEdgeDraft avec tests et parité MCP, après vérification des lecteurs de projets existants.",
+    "Plafond de 4 attaques par Pokémon de dresseur dans la validation/contrôleur.",
+    "Bordures : bordure dépréciée ou non publiée retirée du pinceau partout (règle ResourceItem.usableIn) ; brouillon de bordure conservé par carte dans le propriétaire, aucune perte silencieuse."
+  ],
+  "defaultsKeptWithoutDecision": [
+    "Arrondi 2D / fraction 3D du drag de repère cinématique, fenêtre caméra 2D bornée / 3D fixe 15×11 : comportement actuel conservé.",
+    "Condition périodique non éditable depuis l'UI (politique extraite telle quelle).",
+    "Panneau de recettes masqué pour une attaque créée dans le projet (règle extraite).",
+    "Interrupteur de croisement des personnages affiché en 3D seulement."
+  ],
+  "wave2": [
+    "Appliquer les 4 décisions de Yoahn (Start : map_story est commité en a10f78dfc, map_core libre à vérifier avant).",
+    "Ajouter une garde de réentrance à PresentationWorkspaceController._create.",
+    "Aligner ResourceDetailPanel sur ResourceItem.usableIn (le panneau n'exclut pas le rôle composant).",
+    "Investiguer le blocage : LocalMapWorkspaceAdapter().loadProject(session) indépendant avant runBorderResourceManagement(deleteDraft).apply ne termine jamais (contourné dans test/support/resource_owner_host.dart).",
+    "Extraire la logique laissée dans l'ancienne UI faute de temps (listes « reste à faire » des ledgers B, C1, C2, D) ou la classer pure UI avec preuve.",
+    "Cas non remplacés : scoped_map_workspace ×2, uwu6_first_border_host, terrain_deleted_history_host (owner map_workspace), map_collision_native_journey (repointer StudioMapTool), workspace_navigation_binding (référence de scène avant garde de sortie).",
+    "Réécrire les 3 e2e Hub uwu4/5/6 et uwu6_resource_host.dart pour piloter les ports Studio ; harnais dev : 2 à supprimer, 4 à réécrire (ledger A), dupliqué hgss à résorber.",
+    "Consigner pour les lots de reconstruction : Maj+F10 non câblé sur MapEditingSurface, MapEditingInputSession.reconcile sans appelant, flush du champ focalisé des dialogues, StudioCommitField, StudioCommandPalette."
+  ],
+  "wave3": [
+    "Supprimer physiquement les 329 sources Studio inventoriées et les tests/supports qui les joignent, avec registre retiredUiChecks (cas, classification, remplaçant, ledger).",
+    "Mettre à jour l'empreinte de l'exception studio_playtest_view.dart (modifiée par a10f78dfc) dans t01-technical-exceptions.json après revue.",
+    "Canoniser les 29 retired_ui_after_extraction, marquer les 110 sources absentes, puis G0 jusqu'à zéro violation, suite complète, revue indépendante."
+  ],
+  "notDone": [
+    "Aucune source d'ancienne UI supprimée dans cette vague ; G0 reste à 1258 violations au dernier diagnostic.",
+    "RUI-003 (approbation des cibles visuelles) : page de revue à préparer après G0, à la demande de Yoahn."
+  ],
+  "mcpParity": "N/A pour la vague 1 ; obligatoire pour la règle Start dans map_core."
+}
