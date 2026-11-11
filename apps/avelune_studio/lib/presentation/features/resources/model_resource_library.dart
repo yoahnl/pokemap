@@ -22,8 +22,6 @@ import 'package:avelune_studio/features/resources/coordination/resource_navigati
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 
 import 'model_animation_controls.dart';
-import 'model_collision_controls.dart';
-import 'model_ramp_controls.dart';
 import 'model_shadow_controls.dart';
 import 'model_light_controls.dart';
 import 'model_light_gizmo.dart';
@@ -454,21 +452,10 @@ class _ModelResourceLibraryState extends State<ModelResourceLibrary> {
               ),
               StudioSection(
                 title: 'Collision et passage',
-                children: [
-                  ModelRampControls(
-                    model: model,
-                    busy: n.busy,
-                    onSave: (profile) =>
-                        shared(model, {'rampProfile': profile?.toJson()}),
-                  ),
-                  const SizedBox(height: 16),
-                  ModelCollisionControls(
-                    model: model,
-                    busy: n.busy,
-                    onSave: (bounds, blocksMovementByDefault) => shared(model, {
-                      'collisionBounds': bounds?.toJson(),
-                      'blocksMovementByDefault': blocksMovementByDefault,
-                    }),
+                children: const [
+                  StudioNotice(
+                    'Les réglages de collision et d’escalier sont temporairement indisponibles. Les paramètres enregistrés sont conservés.',
+                    key: ValueKey('model-collision-ramp-unavailable'),
                   ),
                 ],
               ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
+
 import '../../../features/events/application/event_workspace_controller.dart';
 import '../../shared/widgets/inputs/studio_choice.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
@@ -55,14 +56,14 @@ class EventOutcomeSummary extends StatelessWidget {
   });
   final NarrativeEventSourceRef? source;
   final EventWorkspaceController controller;
-  final ValueChanged<String> onOpenProducer;
+  final ValueChanged<String>? onOpenProducer;
   @override
   Widget build(BuildContext context) {
     final outcome = source?.when<NarrativeOutcomeRef?>(
-    entityAutorun: (_, _) => null,
-    entityBump: (_, _) => null,
-    entityInteract: (_, _) => null,
-    modelInteract: (_, _) => null,
+      entityAutorun: (_, _) => null,
+      entityBump: (_, _) => null,
+      entityInteract: (_, _) => null,
+      modelInteract: (_, _) => null,
       triggerBump: (_, _) => null,
       triggerEnter: (_, _) => null,
       mapEnter: (_) => null,
@@ -105,7 +106,9 @@ class EventOutcomeSummary extends StatelessWidget {
             StudioButton(
               label: 'Ouvrir le producteur',
               icon: Icons.open_in_new,
-              onPressed: () => onOpenProducer(outcome!.producerId),
+              onPressed: onOpenProducer == null
+                  ? null
+                  : () => onOpenProducer!(outcome!.producerId),
             ),
           ],
           const SizedBox(height: 20),

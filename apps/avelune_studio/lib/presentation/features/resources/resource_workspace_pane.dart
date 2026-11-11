@@ -4,23 +4,17 @@ import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visual
 import 'package:avelune_studio/presentation/features/terrains/terrain_editor_screen.dart';
 import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
 import 'package:avelune_studio/presentation/shared/widgets/feedback/studio_notice.dart';
+import 'package:avelune_studio/presentation/shared/widgets/feedback/studio_empty_state.dart';
 
 import 'package:avelune_studio/features/resources/coordination/resource_navigation.dart';
+
 import '../../../features/resources/coordination/resource_workspace_import_workflow.dart';
 
 import 'model_resource_library.dart';
 import 'resource_library_screen.dart';
 import 'resource_image_import.dart';
-import 'decor_editor_screen.dart';
-import 'environment_editor_screen.dart';
-import 'environment_library.dart';
-
-import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
-
-import 'resource_border_lifecycle.dart';
 
 import 'resource_management_bindings.dart';
-import 'resource_pack_transfer_dialog.dart';
 import 'resource_terrain_lifecycle.dart';
 
 import 'package:avelune_studio/features/terrains/domain/terrain_draft_compatibility.dart';
@@ -41,40 +35,62 @@ class ResourceWorkspacePane extends StatelessWidget {
     final n = navigation;
     final project = n.workspace.project!;
     final visuals = n.visuals;
+    final transfer = n.packTransfer;
+    final packResolution = switch (transfer) {
+      final owner? when owner.requiresPublicationReconciliation => (
+        noticeKey: 'resource-pack-publication-pending',
+        actionKey: 'resource-pack-reconcile-publication',
+        message: 'Le résultat de la publication du pack reste à vérifier. Relisez son statut avant de fermer le projet. Aucun nouvel export ne sera lancé.',
+        label: 'Relire le statut de publication',
+        resolve: owner.retryPublication,
+      ),
+      final owner? when owner.requiresReconciliation => (
+        noticeKey: 'resource-pack-reconciliation-pending',
+        actionKey: 'resource-pack-reconcile-library',
+        message: 'Le pack a été importé. La bibliothèque doit être relue avant de fermer le projet. L’import ne sera pas relancé.',
+        label: 'Relire la bibliothèque',
+        resolve: () async {
+          await owner.retryReconciliation();
+        },
+      ),
+      final owner? when owner.requiresRecovery => (
+        noticeKey: 'resource-pack-recovery-pending',
+        actionKey: 'resource-pack-recover-finalization',
+        message: 'La finalisation de l’import du pack doit être reprise avant de fermer le projet. La sélection ne sera pas importée à nouveau.',
+        label: 'Reprendre la finalisation',
+        resolve: owner.recover,
+      ),
+      _ => null,
+    };
     Widget content;
     if (n.page == ResourcePage.decor && n.decor != null) {
-      content = DecorEditorScreen(
-        key: ValueKey(n.decor),
-        draft: n.decor!,
-        project: project,
-        visuals: visuals,
-        onSave: n.saveDecor,
-        onClose: n.showLibrary,
+      content = StudioEmptyState(
+        key: const ValueKey('resource-decor-workshop-unavailable-state'),
+        title: 'Atelier des décors indisponible',
+        description: 'L’atelier est temporairement indisponible. Votre préparation et les sources sont conservées. Les décors existants restent accessibles dans le catalogue.',
+        icon: Icons.edit_off_outlined,
+        action: StudioButton(
+          key: const ValueKey('resource-decor-return-to-catalog'),
+          label: 'Retour au catalogue',
+          secondary: true,
+          onPressed: n.showLibrary,
+        ),
       );
     } else if (n.page == ResourcePage.environment && n.environment != null) {
-      content = EnvironmentEditorScreen(
-        key: ValueKey(n.environment),
-        draft: n.environment!,
-        project: project,
-        visuals: visuals,
-        onSave: n.saveEnvironment,
-        onChanged: n.changed,
-        onDiscard: n.discardEnvironment,
-        onEditDecor: (element) => n.openElement(element, edit: true),
-        openZones: {
-          for (final document in n.workspace.documents.values)
-            if (document.current.layers
-                    .whereType<EnvironmentLayer>()
-                    .expand((layer) => layer.content.areas)
-                    .where((area) => area.presetId == n.environment!.id)
-                    .length
-                case final count when count > 0)
-              document.current.name: count,
-        },
-        onClose: () {
-          n.library.selectFamily(ResourceLibraryFamily.environments);
-          n.showLibrary();
-        },
+      content = StudioEmptyState(
+        key: const ValueKey('resource-environment-workshop-unavailable-state'),
+        title: 'Atelier des environnements indisponible',
+        description: 'L’édition, la duplication et la suppression des environnements sont temporairement indisponibles. Votre préparation en cours est conservée. Les environnements publiés restent dans le catalogue.',
+        icon: Icons.edit_off_outlined,
+        action: StudioButton(
+          key: const ValueKey('resource-environment-return-to-catalog'),
+          label: 'Retour au catalogue',
+          secondary: true,
+          onPressed: () {
+            n.library.atelierVisible = false;
+            n.showLibrary();
+          },
+        ),
       );
     } else if (n.page == ResourcePage.characters) {
       content = const SizedBox();
@@ -137,18 +153,14 @@ class ResourceWorkspacePane extends StatelessWidget {
                 runSpacing: 6,
                 children: [
                   if (n.decor != null)
-                    StudioButton(
-                      label: 'Reprendre le décor',
-                      secondary: true,
-                      onPressed: () {
-                        n.openPage(ResourcePage.decor);
-                      },
+                    const StudioNotice(
+                      'La préparation du décor est conservée. L’atelier est temporairement indisponible.',
+                      key: ValueKey('resource-decor-draft-preserved'),
                     ),
                   if (n.environment != null)
-                    StudioButton(
-                      label: 'Reprendre l’environnement',
-                      secondary: true,
-                      onPressed: () => n.openPage(ResourcePage.environment),
+                    const StudioNotice(
+                      'La préparation de l’environnement est conservée. L’atelier est temporairement indisponible.',
+                      key: ValueKey('resource-environment-draft-preserved'),
                     ),
                 ],
               ),
@@ -172,12 +184,6 @@ class ResourceWorkspacePane extends StatelessWidget {
                       'modelId': model.id,
                       'castsShadowsByDefault': enabled,
                     }),
-              onExportPack: n.packTransfer?.exportAvailable != true || n.busy
-                  ? null
-                  : () => exportPack(context),
-              onImportPack: n.packTransfer == null || n.busy
-                  ? null
-                  : () => importPack(context),
               project: project,
               openMaps: n.workspace.documents.values
                   .map((d) => d.current)
@@ -186,9 +192,6 @@ class ResourceWorkspacePane extends StatelessWidget {
               state: n.library,
               targetMapName: n.workspace.active?.current.name,
               activeMapId: n.workspace.active?.current.id,
-              onExportMarked: n.packTransfer?.exportAvailable != true || n.busy
-                  ? null
-                  : (items) => exportPack(context, selection: items),
               canUse: !n.busy,
               onUse: n.onUse,
               onEdit: n.edit,
@@ -197,11 +200,6 @@ class ResourceWorkspacePane extends StatelessWidget {
               onDuplicate: (item) =>
                   duplicateResourceOrTerrain(context, n, item),
               onTerrain: n.prepareTerrain,
-              onCreateBorder: () => openBorderPreparation(context, n),
-              onResumeBorder: (record) =>
-                  openBorderPreparation(context, n, record),
-              onManageBorder: (record, action) =>
-                  manageBorderResource(context, n, record, action),
               terrainDrafts: n.pendingTerrainDrafts,
               onResumeTerrain: n.resumeTerrain,
               canResumeTerrain: (draft) =>
@@ -214,17 +212,6 @@ class ResourceWorkspacePane extends StatelessWidget {
               onImportFor: (intent) => import(context, intent: intent),
               onCharacters: n.openCharacters,
               onBack: onBack,
-              onCreateEnvironment: n.openEnvironment,
-              environmentLibrary: (items) => EnvironmentLibrary(
-                items: items,
-                project: project,
-                visuals: visuals,
-                onEdit: n.openEnvironment,
-                onDuplicate: n.duplicateEnvironment,
-                onRemove: (preset) => removeEnvironment(context, preset),
-                onDraw: (preset) => n.drawEnvironment?.call(preset),
-                canDraw: project.maps.isNotEmpty && n.drawEnvironment != null,
-              ),
             ),
           ),
         ],
@@ -232,8 +219,34 @@ class ResourceWorkspacePane extends StatelessWidget {
     }
     return Column(
       children: [
+        if (transfer != null && packResolution != null)
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                StudioNotice(
+                  packResolution.message,
+                  key: ValueKey(packResolution.noticeKey),
+                ),
+                if (transfer.error != null)
+                  StudioNotice(transfer.error!, isError: true),
+                const SizedBox(height: 8),
+                StudioButton(
+                  key: ValueKey(packResolution.actionKey),
+                  label: packResolution.label,
+                  secondary: true,
+                  onPressed: transfer.operationActive
+                      ? null
+                      : packResolution.resolve,
+                ),
+              ],
+            ),
+          ),
         if (n.error != null) StudioNotice(n.error!, isError: true, maxLines: 2),
-        if (n.busy) const LinearProgressIndicator(),
+        if (n.busy &&
+            (packResolution == null || transfer?.operationActive == true))
+          const LinearProgressIndicator(),
         Expanded(
           child: AbsorbPointer(absorbing: n.busy, child: content),
         ),

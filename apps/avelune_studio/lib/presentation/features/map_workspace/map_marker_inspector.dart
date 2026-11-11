@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../features/map_workspace/application/map_healing_display_draft.dart';
-
 import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/map_workspace/application/editable_map_document.dart';
@@ -10,9 +8,6 @@ import '../../shared/widgets/buttons/studio_tool.dart';
 import '../../shared/widgets/inputs/studio_choice.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/inputs/studio_commit_field.dart';
-import 'healing_display_controls.dart';
-import 'interactive_encounter_controls.dart';
-import 'entity_presentation_controls.dart';
 
 class MapMarkerInspector extends StatefulWidget {
   const MapMarkerInspector({
@@ -65,25 +60,12 @@ class _MapMarkerInspectorState extends State<MapMarkerInspector> {
     final sign = entity.sign;
     final blocked = _deletionProblem;
     final healingDisplay = entity.healingDisplay;
-    final roleChoices = MapHealingDisplayDraft(
-      widget.document.current,
-      widget.project,
-      entity,
-    );
-    final canConfigureHealingDisplay = roleChoices.canConfigure;
     final canConfigureFieldObstacle = _commands.canConfigureFieldObstacle(
       entity,
     );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        EntityPresentationControls(
-          entity: entity,
-          project: widget.project,
-          map: widget.document.current,
-          onChanged: (value) =>
-              _change(() => _commands.setPresentation(entity.id, value)),
-        ),
         Text(
           spawn != null
               ? 'Point d’apparition'
@@ -220,18 +202,6 @@ class _MapMarkerInspectorState extends State<MapMarkerInspector> {
             ),
           ),
         ],
-        if (canConfigureHealingDisplay) ...[
-          const SizedBox(height: 12),
-          HealingDisplayControls(
-            map: widget.document.current,
-            key: ValueKey('healing-display-${entity.id}'),
-            entity: entity,
-            project: widget.project,
-            elementPreview: widget.elementPreview,
-            onChanged: (display) =>
-                _change(() => _commands.setHealingDisplay(entity.id, display)),
-          ),
-        ],
         if (canConfigureFieldObstacle &&
             entity.interactiveEncounter?.trigger !=
                 InteractiveEncounterTrigger.headbutt) ...[
@@ -313,19 +283,6 @@ class _MapMarkerInspectorState extends State<MapMarkerInspector> {
                   : 'Réapparition : à la réinitialisation de la carte.',
             ),
           ],
-        ],
-        if (canConfigureFieldObstacle &&
-            (entity.fieldObstacle == null ||
-                entity.fieldObstacle?.kind ==
-                    FieldObstacleKind.rockSmashRock)) ...[
-          const SizedBox(height: 12),
-          InteractiveEncounterControls(
-            entity: entity,
-            project: widget.project,
-            onChanged: (payload) => _change(
-              () => _commands.setInteractiveEncounter(entity.id, payload),
-            ),
-          ),
         ],
         const SizedBox(height: 16),
         if (blocked != null) ...[

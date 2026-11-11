@@ -166,7 +166,10 @@ void main() {
       expect(tester.widget<StudioToggleRow>(control).value, isTrue);
       expect(tester.widget<StudioToggleRow>(control).onChanged, isNull);
       expect(port.mutations.single.$1, 'model3d.configure');
-      expect(port.mutations.single.$2, {'modelId': 'lamp', 'castsShadowsByDefault': true});
+      expect(port.mutations.single.$2, {
+        'modelId': 'lamp',
+        'castsShadowsByDefault': true,
+      });
       port.pendingMutation!.completeError(
         const ResourceFailure('Disque indisponible'),
       );
@@ -177,9 +180,9 @@ void main() {
   );
 
   testWidgets(
-    'the model workshop keeps its sections and shows Animation only for animated sources',
+    'the model workshop marks retired controls unavailable and keeps conditional Animation',
     (tester) async {
-      await _pump(
+      final (_, port) = await _pump(
         tester,
         models: [_model('lamp'), _model('flag', animated: true)],
       );
@@ -197,14 +200,26 @@ void main() {
       expect(find.byKey(const ValueKey('model-usages')), findsOne);
       expect(find.textContaining('Dimensions :'), findsOne);
       expect(find.textContaining('Origine :'), findsOne);
-      expect(find.text('Escalier franchissable'), findsOne);
-      expect(find.text('Collision et placement'), findsOne);
+      expect(
+        find.byKey(const ValueKey('model-collision-ramp-unavailable')),
+        findsOne,
+      );
+      expect(find.text('Escalier franchissable'), findsNothing);
+      expect(find.text('Collision et placement'), findsNothing);
+      expect(find.byKey(const ValueKey('model-collision-save')), findsNothing);
+      expect(find.byKey(const ValueKey('model-ramp-0')), findsNothing);
+      expect(port.mutations, isEmpty);
       await tester.tap(find.byKey(const ValueKey('model-resource-flag')));
       await _settle(tester);
       expect(find.text('Animation'), findsWidgets);
       expect(find.byType(ModelAnimationControls), findsOne);
       expect(find.text('Général'), findsOne);
       expect(find.text('Collision et passage'), findsOne);
+      expect(
+        find.byKey(const ValueKey('model-collision-ramp-unavailable')),
+        findsOne,
+      );
+      expect(port.mutations, isEmpty);
     },
   );
 

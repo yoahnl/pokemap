@@ -53,7 +53,6 @@ void main() {
                   view: view,
                   transport: transport,
                   changed: () => rebuild(() {}),
-                  onPlay: () {},
                   onSelect: (id) => rebuild(() {
                     view.selection
                       ..clear()

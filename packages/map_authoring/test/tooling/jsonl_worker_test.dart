@@ -307,6 +307,19 @@ void main() {
       ).readAsString();
 
       expect(transcript, golden);
+      expect(jsonDecode(malformed), {
+        'requestId': 'invalid',
+        'status': 'failure',
+        'data': <String, Object?>{},
+        'error': {
+          'code': 'invalid_request',
+          'message': 'Request line must contain exactly one JSON object.',
+          'retryable': false,
+          'remediation': <Object?>[],
+          'details': {'domainCode': 'worker.invalid_json'},
+        },
+        'artifacts': <Object?>[],
+      });
       for (final line in [describe, malformed]) {
         expect(line, isNot(contains('\n')));
         expect(jsonDecode(line), isA<Map<String, dynamic>>());
@@ -367,7 +380,17 @@ void main() {
 
     test('every described resource kind has an executable query route',
         () async {
-      final setup = await _TestSetup.create(clean: true);
+      final rewardScene = _publishedRewardScene();
+      final queryMap = MapData(
+        id: 'worker-query-map',
+        name: 'Worker query map',
+        size: const GridSize(width: 2, height: 2),
+      );
+      final setup = await _TestSetup.create(
+        clean: true,
+        scenes: [rewardScene],
+        maps: [queryMap],
+      );
       addTearDown(setup.dispose);
       final opened = await _request(
         setup.worker,
@@ -388,10 +411,59 @@ void main() {
           ).toJson(),
         },
       );
+      expect(maps.status, AuthoringResultStatus.success);
       final mapItems = maps.data['items']! as List;
+      expect(mapItems, hasLength(1));
       final firstMapId =
           mapItems.isEmpty ? null : (mapItems.first as Map)['id'] as String?;
+      expect(firstMapId, queryMap.id);
       final registry = AuthoringResourceKindRegistry.canonical();
+      final rewardScenes = await _request(
+        setup.worker,
+        id: 'query-reward-scene-scope',
+        command: 'query',
+        args: {
+          'projectHandle': projectHandle,
+          'request': AuthoringQueryRequest(
+            resourceKind: 'periodicRewardScene',
+            operation: AuthoringQueryOperation.list,
+          ).toJson(),
+        },
+      );
+      expect(rewardScenes.status, AuthoringResultStatus.success);
+      final rewardSceneId =
+          ((rewardScenes.data['items']! as List).single as Map)['sceneId'];
+      expect(rewardSceneId, rewardScene.id);
+      final unscopedRewardNodes = await _request(
+        setup.worker,
+        id: 'query-reward-nodes-without-scene',
+        command: 'query',
+        args: {
+          'projectHandle': projectHandle,
+          'request': AuthoringQueryRequest(
+            resourceKind: 'periodicRewardNode',
+            operation: AuthoringQueryOperation.list,
+          ).toJson(),
+        },
+      );
+      expect(unscopedRewardNodes.status, AuthoringResultStatus.failure);
+      expect(unscopedRewardNodes.error?.details['domainCode'],
+          'query.periodic_reward_scope_invalid');
+      final unscopedMapHealth = await _request(
+        setup.worker,
+        id: 'query-map-health-without-map',
+        command: 'query',
+        args: {
+          'projectHandle': projectHandle,
+          'request': AuthoringQueryRequest(
+            resourceKind: 'mapHealth',
+            operation: AuthoringQueryOperation.list,
+          ).toJson(),
+        },
+      );
+      expect(unscopedMapHealth.status, AuthoringResultStatus.failure);
+      expect(unscopedMapHealth.error?.details['domainCode'],
+          'query.map_health_unsupported');
 
       for (final resourceKind in canonicalQueryableResourceKindIds) {
         final query = registry.find(resourceKind)?.extensions['query'];
@@ -410,6 +482,8 @@ void main() {
               view: AuthoringQueryView.summary,
               filters: {
                 if (mapScoped && firstMapId != null) 'mapId': firstMapId,
+                if (resourceKind == 'periodicRewardNode')
+                  'sceneId': rewardSceneId,
               },
             ).toJson(),
           },
@@ -426,6 +500,31 @@ void main() {
           expect(result.error?.details['domainCode'], 'worker.command_unsupported');
         } else {
           expect(result.status, AuthoringResultStatus.success, reason: resourceKind);
+          if (resourceKind == 'periodicRewardNode') {
+            final node = (result.data['items']! as List).single as Map;
+            expect(node['nodeId'], 'claim');
+            expect(node['reference'], {
+              'schemaVersion': 1,
+              'sceneId': rewardScene.id,
+              'nodeId': 'claim',
+              'rewardId': 'worker-daily-fruit',
+            });
+          } else if (resourceKind == 'mapHealth') {
+            final health = (result.data['items']! as List).single as Map;
+            expect(health['mapId'], queryMap.id);
+            expect(health['revision'], result.data['snapshotRevision']);
+            expect(health['verdict'], 'incomplete');
+            expect((health['checks'] as Map)['visual'], {'status': 'not_run'});
+            expect(health['coverage'], containsPair('width', 2));
+            expect(health['coverage'], containsPair('depth', 2));
+            expect(health['coverage'], containsPair('visualProof', false));
+            expect(
+              (health['issues'] as List)
+                  .cast<Map>()
+                  .map((issue) => issue['code']),
+              contains('map_health.spatial_map_required'),
+            );
+          }
         }
       }
     });
@@ -891,6 +990,54 @@ void main() {
   });
 }
 
+SceneAsset _publishedRewardScene() => SceneAsset(
+      id: 'worker-reward-scene',
+      name: 'Worker reward scene',
+      graph: SceneGraph(
+        startNodeId: 'start',
+        nodes: [
+          SceneNode(id: 'start', kind: SceneNodeKind.start),
+          SceneNode(
+            id: 'claim',
+            kind: SceneNodeKind.action,
+            payload: SceneActionPayload.interactive(
+              SceneInteractiveCommand.claimPeriodicReward(
+                definition: PeriodicItemRewardDefinition(
+                  rewardId: 'worker-daily-fruit',
+                  label: 'Worker fruit',
+                  itemId: 'worker-fruit',
+                  quantity: 1,
+                ),
+              ),
+            ),
+          ),
+          SceneNode(id: 'end', kind: SceneNodeKind.end),
+        ],
+        edges: [
+          SceneEdge(
+            id: 'enter',
+            fromNodeId: 'start',
+            fromPortId: 'completed',
+            toNodeId: 'claim',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+          for (final port in [
+            'received',
+            'alreadyClaimed',
+            'bagFull',
+            'blocked'
+          ])
+            SceneEdge(
+              id: 'claim-$port',
+              fromNodeId: 'claim',
+              fromPortId: port,
+              toNodeId: 'end',
+              kind: SceneEdgeKind.actionCompleted,
+            ),
+        ],
+      ),
+    );
+
 final class _TestSetup {
   const _TestSetup({
     required this.fixture,
@@ -907,6 +1054,8 @@ final class _TestSetup {
   static Future<_TestSetup> create({
     int maxInputBytes = 64 * 1024,
     bool clean = false,
+    List<SceneAsset> scenes = const [],
+    List<MapData> maps = const [],
   }) async {
     final fixture = clean
         ? await Directory.systemTemp.createTemp('pokemap_read_validation_')
@@ -921,8 +1070,16 @@ final class _TestSetup {
     if (clean) {
       final manifest = ProjectManifest(
         name: 'Clean validation fixture',
-        maps: const [],
+        maps: [
+          for (final map in maps)
+            ProjectMapEntry(
+              id: map.id,
+              name: map.name,
+              relativePath: 'maps/${map.id}.json',
+            ),
+        ],
         tilesets: const [],
+        scenes: scenes,
         pokemon: const ProjectPokemonConfig(
           enabled: false,
           ruleset: PokemonRulesetProfile.pokeMapBetaV1,
@@ -932,6 +1089,15 @@ final class _TestSetup {
         const JsonEncoder.withIndent('  ').convert(manifest.toJson()),
         flush: true,
       );
+      if (maps.isNotEmpty) {
+        await Directory('${fixture.path}/maps').create(recursive: true);
+        for (final map in maps) {
+          await File('${fixture.path}/maps/${map.id}.json').writeAsString(
+            const JsonEncoder.withIndent('  ').convert(map.toJson()),
+            flush: true,
+          );
+        }
+      }
       for (final directory in [
         'species',
         'learnsets',

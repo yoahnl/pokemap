@@ -157,8 +157,9 @@ extension _WorkspaceHomeBinding on _MapWorkspaceScreenState {
       case 'projectSettings':
         _show(WorkspaceSpace.projectSettings);
       case 'createMap':
-        _openMap();
-        unawaited(_createMap());
+        _navigationNotice(
+          'La création de cartes est retirée pendant la refonte.',
+        );
       case 'regionalMap':
         _show(WorkspaceSpace.regionalMap);
       case 'resources':

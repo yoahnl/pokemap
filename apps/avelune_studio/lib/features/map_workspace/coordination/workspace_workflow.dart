@@ -337,15 +337,22 @@ class WorkspaceWorkflow {
     }
   }
 
-  bool _flushDialogueEdit() {
+  bool _flushDialogueEdit({bool allowInvalidCinematic = false}) {
     if (presentations?.call()?.flushEdits?.call() == false) return false;
     final owner = dialogues?.call(), previous = dialogues?.call()?.error;
     final cinema = cinematics?.call(),
         previousCinema = cinematics?.call()?.error;
     cinema?.transport.pause();
-    if (cinema?.flushEdits?.call() == false) return false;
+    final cinematicFlushed = cinema?.flushEdits?.call() != false;
+    final canDiscardCinematic =
+        !cinematicFlushed && allowInvalidCinematic && cinema?.dirty == true;
+    if (!cinematicFlushed && !canDiscardCinematic) {
+      return false;
+    }
     flushFocus();
     return (owner?.error == null || owner?.error == previous) &&
-        (cinema?.error == null || cinema?.error == previousCinema);
+        (canDiscardCinematic ||
+            cinema?.error == null ||
+            cinema?.error == previousCinema);
   }
 }

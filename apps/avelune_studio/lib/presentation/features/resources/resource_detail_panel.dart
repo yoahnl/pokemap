@@ -10,7 +10,9 @@ import '../../shared/widgets/feedback/studio_badge.dart';
 import '../../shared/widgets/feedback/studio_empty_state.dart';
 import '../../shared/widgets/layout/studio_asset_preview.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
+
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
+
 import 'resource_item_actions.dart';
 import 'model_shadow_controls.dart';
 import 'model_light_controls.dart';
@@ -208,7 +210,7 @@ class ResourceDetailPanel extends StatelessWidget {
                       : !mapAvailable
                       ? 'Cette ressource est réservée à « ${project.maps.where((map) => map.id == metadata?.mapId).firstOrNull?.name ?? "sa carte"} ».'
                       : !prepared
-                      ? 'Préparez et publiez cette bordure dans son atelier avant de la tracer.'
+                      ? 'Cette bordure n’est pas disponible pour le tracé : elle n’est pas publiée ou elle est dépréciée.'
                       : 'L’utilisation sur la carte est momentanément indisponible.',
                   style: theme.textTheme.bodySmall,
                 ),
@@ -392,16 +394,21 @@ class ResourceDetailPanel extends StatelessWidget {
       else
         const Text(advancedTerrainPreparationMessage),
     if (entry.element != null)
-      StudioButton(
-        label: 'Modifier le décor',
-        icon: Icons.edit_outlined,
-        secondary: true,
-        onPressed: () => onEdit(entry),
+      const Text(
+        'L’atelier des décors est temporairement indisponible. Les paramètres enregistrés sont conservés.',
+        key: ValueKey('resource-decor-workshop-unavailable'),
       ),
-    if (entry.model3d != null ||
-        entry.border != null ||
-        entry.environment != null ||
-        entry.character != null)
+    if (entry.border != null)
+      const Text(
+        'L’atelier des bordures est temporairement indisponible.',
+        key: ValueKey('resource-border-workshop-unavailable'),
+      ),
+    if (entry.environment != null)
+      const Text(
+        'L’édition, la duplication et la suppression des environnements sont temporairement indisponibles. Les paramètres enregistrés sont conservés.',
+        key: ValueKey('resource-environment-workshop-unavailable'),
+      ),
+    if (entry.model3d != null || entry.character != null)
       StudioButton(
         label: 'Ouvrir l’atelier',
         icon: Icons.edit_outlined,
@@ -419,12 +426,9 @@ class ResourceDetailPanel extends StatelessWidget {
         onPressed: () => onTerrain(entry),
       ),
     if (entry.tileset case final tileset?) ...[
-      StudioButton(
-        label: 'Créer un décor',
-        secondary: true,
-        onPressed: canCreateDecor(tileset, project)
-            ? () => onEdit(entry)
-            : null,
+      const Text(
+        'La préparation des décors est temporairement indisponible. Cette image source est conservée.',
+        key: ValueKey('resource-decor-creation-unavailable'),
       ),
       const SizedBox(height: 8),
       StudioButton(

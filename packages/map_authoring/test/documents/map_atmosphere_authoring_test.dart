@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:async';
+import 'package:map_authoring/src/history/authoring_history.dart';
 import 'package:map_authoring/src/transactions/journaled_transaction.dart';
 import 'package:map_authoring/src/transactions/local_transaction_file_gateway.dart';
 import 'package:map_authoring/map_authoring_local.dart';
@@ -173,6 +174,12 @@ Future<void> main(List<String> args) async {
   test(
       'receipt undo reads one history entry without legacy or unrelated entry reads',
       () async {
+    final metadata = Directory('${root.path}/.pokemap/authoring');
+    await metadata.create(recursive: true);
+    final legacy = File('${metadata.path}/history.jsonl');
+    await legacy.writeAsString('unrelated invalid history');
+    final legacyBytes = await legacy.readAsBytes();
+    final legacyStat = await legacy.stat();
     final service = LocalMapAtmosphereAuthoring(policy: policy);
     final before =
         await service.inspect(projectRoot: root.path, mapId: 'shore');
@@ -182,17 +189,14 @@ Future<void> main(List<String> args) async {
         expectedRevision: before.revision,
         settings: SpatialAtmosphereSettings(fireflies: true),
         operationId: 'seed_undo');
-    final metadata = Directory('${root.path}/.pokemap/authoring');
-    for (final name in [
-      'history.jsonl',
-      'history-entries/receipt_document_${'a' * 32}.json'
-    ]) {
-      final file = File('${metadata.path}/$name');
-      await file.parent.create(recursive: true);
-      await file.writeAsString('unrelated invalid history');
-    }
+    final unrelated = File(
+        '${metadata.path}/history-entries/receipt_document_${'a' * 32}.json');
+    await unrelated.writeAsString('unrelated invalid history');
+    final targetedEntryPath =
+        '${metadata.path}/history-entries/${mutation.receipt.receiptId}.json';
     final outside = Zone.current;
     final attempts = <String>[];
+    final entryReads = <String>[];
     await IOOverrides.runZoned(() async {
       final undone = await LocalMapAtmosphereAuthoring(policy: policy)
           .undoReceipt(
@@ -207,12 +211,88 @@ Future<void> main(List<String> args) async {
       expect((undone.receipt.extensions['history'] as Map)['kind'], 'undo');
     }, createFile: (path) {
       final file = outside.run(() => File(path));
-      return path.endsWith('/history.jsonl') ||
-              path.endsWith('receipt_document_${'a' * 32}.json')
+      if (file.path == targetedEntryPath) {
+        return _CountingReadFile(file, entryReads);
+      }
+      return path.endsWith('/history.jsonl') || file.path == unrelated.path
           ? _UnreadableFile(file, attempts)
           : file;
     });
     expect(attempts, isEmpty);
+    expect(entryReads, [targetedEntryPath]);
+    expect(await legacy.readAsBytes(), legacyBytes);
+    final afterLegacyStat = await legacy.stat();
+    expect(afterLegacyStat.size, legacyStat.size);
+    expect(afterLegacyStat.modified, legacyStat.modified);
+    expect(afterLegacyStat.changed, legacyStat.changed);
+    expect(await unrelated.readAsString(), 'unrelated invalid history');
+  });
+  test(
+      'receipt undo refuses legacy changes after preparation without overwriting data',
+      () async {
+    final service = LocalMapAtmosphereAuthoring(policy: policy);
+    final before =
+        await service.inspect(projectRoot: root.path, mapId: 'shore');
+    final mutation = await service.set(
+        projectRoot: root.path,
+        mapId: 'shore',
+        expectedRevision: before.revision,
+        settings: SpatialAtmosphereSettings(fireflies: true),
+        operationId: 'seed_stale_history');
+    final metadata = Directory('${root.path}/.pokemap/authoring');
+    final legacy = File('${metadata.path}/history.jsonl');
+    expect(await legacy.exists(), isFalse);
+    final retention = File('${metadata.path}/history-retention.json');
+    expect(await retention.exists(), isTrue);
+    expect((jsonDecode(await retention.readAsString()) as Map)['legacySnapshot'],
+        isNull);
+    await legacy.writeAsString('legacy changed after preparation');
+    final protectedPaths = [
+      'project.json',
+      'maps/shore.json',
+      'maps/shore.atmosphere.json',
+      '.pokemap/authoring/history.jsonl',
+      '.pokemap/authoring/history-retention.json',
+      '.pokemap/authoring/history-entries.sequence.json',
+      '.pokemap/authoring/history-entries/${mutation.receipt.receiptId}.json',
+    ];
+    final protectedBytes = {
+      for (final relative in protectedPaths)
+        relative: await File('${root.path}/$relative').readAsBytes(),
+    };
+    final entries = Directory('${metadata.path}/history-entries');
+    final entryPaths =
+        (await entries.list().map((entry) => entry.path).toList())..sort();
+    final outside = Zone.current;
+    final attempts = <String>[];
+    await IOOverrides.runZoned(() async {
+      await expectLater(
+          LocalMapAtmosphereAuthoring(policy: policy).undoReceipt(
+              projectRoot: root.path,
+              mapId: 'shore',
+              receiptId: mutation.receipt.receiptId,
+              expectedRevision: mutation.afterRevision,
+              operationId: 'refused_stale_history_undo'),
+          throwsA(isA<AuthoringHistoryException>().having(
+              (error) => error.code, 'code', 'history.preparation_required')));
+    }, createFile: (path) {
+      final file = outside.run(() => File(path));
+      return file.path == legacy.path
+          ? _UnreadableFile(file, attempts)
+          : file;
+    });
+    expect(attempts, isEmpty);
+    for (final relative in protectedPaths) {
+      expect(await File('${root.path}/$relative').readAsBytes(),
+          protectedBytes[relative],
+          reason: relative);
+    }
+    expect((await entries.list().map((entry) => entry.path).toList())..sort(),
+        entryPaths);
+    final unchanged =
+        await service.inspect(projectRoot: root.path, mapId: 'shore');
+    expect(unchanged.revision, mutation.afterRevision);
+    expect(unchanged.settings, mutation.afterSettings);
   });
   test('replay is exact and an operation identity cannot change its payload',
       () async {
@@ -394,6 +474,56 @@ final class _UnreadableFile implements File {
       deny();
   @override
   Future<bool> exists() => delegate.exists();
+  @override
+  Future<FileStat> stat() => delegate.stat();
+  @override
+  Future<String> resolveSymbolicLinks() => delegate.resolveSymbolicLinks();
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+final class _CountingReadFile implements File {
+  _CountingReadFile(this.delegate, this.reads);
+  final File delegate;
+  final List<String> reads;
+  @override
+  String get path => delegate.path;
+  @override
+  Uri get uri => delegate.uri;
+  @override
+  bool get isAbsolute => delegate.isAbsolute;
+  @override
+  File get absolute => _CountingReadFile(delegate.absolute, reads);
+  @override
+  Directory get parent => delegate.parent;
+  @override
+  Future<Uint8List> readAsBytes() {
+    reads.add(path);
+    return delegate.readAsBytes();
+  }
+
+  @override
+  Future<String> readAsString({Encoding encoding = utf8}) {
+    reads.add(path);
+    return delegate.readAsString(encoding: encoding);
+  }
+
+  @override
+  Stream<List<int>> openRead([int? start, int? end]) {
+    reads.add(path);
+    return delegate.openRead(start, end);
+  }
+
+  @override
+  Future<RandomAccessFile> open({FileMode mode = FileMode.read}) {
+    reads.add(path);
+    return delegate.open(mode: mode);
+  }
+
+  @override
+  Future<bool> exists() => delegate.exists();
+  @override
+  Future<int> length() => delegate.length();
   @override
   Future<FileStat> stat() => delegate.stat();
   @override

@@ -97,3 +97,11 @@ documentation/reports/mcp/plans/
 !/documentation/reports/heartgold/plans/2026-11-01-chapitre-7-finition.md
 documentation/reports/heartgold/plans/
 documentation/reports/
+!/documentation/reports/
+/documentation/reports/*
+!/documentation/reports/avelune_studio/
+/documentation/reports/avelune_studio/*
+!/documentation/reports/avelune_studio/plans/
+/documentation/reports/avelune_studio/plans/*
+!/documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes/
+/documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes/**/__pycache__/

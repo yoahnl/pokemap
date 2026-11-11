@@ -36,3 +36,26 @@ String sceneNodeName(SceneGraph graph, String id) {
   final title = node.title?.trim();
   return title == null || title.isEmpty ? sceneKindLabel(node.kind) : title;
 }
+
+String sceneNodeSummary(
+  SceneNode node,
+  ProjectManifest project,
+  SceneAsset scene,
+) => switch (node.payload) {
+  SceneYarnDialoguePayload(:final dialogueId) =>
+    project.dialogues.where((d) => d.id == dialogueId).firstOrNull?.name ??
+        'Dialogue introuvable',
+  SceneConditionPayload(:final conditionSource) =>
+    conditionSource?.label ?? 'Choisir une condition',
+  SceneEndPayload(:final sceneOutcomeId) =>
+    scene.declaredOutcomes
+            .where((o) => o.id == sceneOutcomeId)
+            .firstOrNull
+            ?.label ??
+        sceneOutcomeId ??
+        'Scène terminée',
+  SceneCinematicPayload(:final cinematicId) =>
+    project.cinematics.where((c) => c.id == cinematicId).firstOrNull?.title ??
+        'Cinématique introuvable',
+  _ => node.description ?? sceneBlockLabel(node.kind),
+};

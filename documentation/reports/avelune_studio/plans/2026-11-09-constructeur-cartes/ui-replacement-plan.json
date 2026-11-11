@@ -1,9 +1,10 @@
 {
   "schemaVersion": 1,
   "id": "avelune-studio-ui-replacement-2026-11-09",
+  "requirementsRevision": "2026-11-11-applicable-profiles-v1",
   "title": "Avelune Studio — Retrait intégral et reconstruction de l’UI",
   "createdAt": "2026-11-09",
-  "updatedAt": "2026-11-10",
+  "updatedAt": "2026-11-11",
   "language": "fr",
   "scope": "Toute l’UI du Studio, y compris shell, quatre espaces carte, ressources/ateliers, Histoire, Pokémon, réglages, régional, test/export et dialogues. Les moteurs Player et la logique métier restent protégés.",
   "authority": "La demande du 9 novembre remplace les consignes antérieures de conserver/harmoniser des écrans ou de prendre librement des écarts visuels. Les anciens statuts prouvent éventuellement du fonctionnel, jamais l’acceptation visuelle de cette nouvelle UI.",
@@ -40,6 +41,7 @@
   },
   "qualityContract": {
     "minimumScorePerStatePerProfile": 95,
+    "scope": "Les écrans reconstruits et leurs états se comparent aux maquettes ; les lots techniques RUI-005 à RUI-010 prouvent le retrait, les comportements protégés et l’hôte neutre sans score visuel fictif.",
     "weights": {
       "structure": 40,
       "typography": 15,
@@ -140,6 +142,7 @@
     "Un import JSON dans l’artefact est une consultation/brouillon en mémoire ; exporter le JSON ne met pas automatiquement le dépôt à jour.",
     "Conserver les essais rejetés et le motif ; ne mettre accepted qu’après revue et contrôle de toutes les preuves.",
     "Après nettoyage QA, seules les copies durables de proofs font foi ; aucun lien vers un temporaire supprimé.",
+    "Pour changer volontairement les dépendances, états, profils, critères ou types de preuve, créer une révision explicite du contrat dans le plan et le validateur, faire revoir sa nouvelle empreinte et réévaluer les tentatives concernées.",
     "Si un changement de code ou de référence rend une preuve obsolète : update_plan.py invalidate --lot ID --reason MOTIF --emit-patch ; appliquer, puis régénérer. Les lots dépendants déjà exécutés sont rouverts."
   ],
   "executionGuidance": {
@@ -168,22 +171,37 @@
           "guide_only": 54,
           "known_issue": 15
         },
-        "requiredStateProfilePairs": 782,
+        "requiredStateProfilePairs": 754,
         "bindings": 0,
         "approvedBindings": 0,
+        "firstRebuildLotsAudit": "reference-coverage-rui-011-016.json",
         "lotLevelReferenceAudit": {
-          "pairsWithoutExistingReferenceAtLotLevel": 142,
+          "pairsWithoutExistingReferenceAtLotLevel": 116,
           "retirementPairs": 26,
           "otherPairs": 116,
-          "lotsOutsideRetirement": ["RUI-019", "RUI-024", "RUI-066", "RUI-072", "RUI-073", "RUI-075", "RUI-076", "RUI-077", "RUI-079", "RUI-083", "RUI-085", "RUI-086", "RUI-088"],
-          "interpretation": "142 is a lower bound of missing lot-level references, not an exhaustive count of missing state/profile targets. An existing image attached to a lot does not prove that it depicts each required state. Retirement, performance, compatibility and final-gate states require native or documentary evidence, not fabricated mockup screenshots."
+          "lotsOutsideRetirement": [
+            "RUI-019",
+            "RUI-024",
+            "RUI-066",
+            "RUI-072",
+            "RUI-073",
+            "RUI-075",
+            "RUI-076",
+            "RUI-077",
+            "RUI-079",
+            "RUI-083",
+            "RUI-085",
+            "RUI-086",
+            "RUI-088"
+          ],
+          "interpretation": "116 is a lower bound of missing lot-level visual references after excluding 26 retirement state/profile pairs, not an exhaustive count of missing state/profile targets. An existing image attached to a lot does not prove that it depicts each required state. Performance, compatibility and final-gate reference requirements still require review."
         },
         "limitations": [
           "Le catalogue MagicPath Carte inspecté à la révision figée définit explicitement un projet 3D ; aucune série 2D complète prouvée.",
           "La navigation Pokémon et carte régionale du Studio figé ouvre des guides, pas des écrans complets.",
           "La candidate Carte révisée propose des variantes de profil mais son profil 3D conserve une image de carte 2D ; ce n’est pas une cible de viewport 3D validée.",
           "Les cibles de session, progression, cinématique, Pokémon, import et Player restent notamment à concevoir ou qualifier ; les 640 autres couples avec au moins une image au niveau du lot ne sont pas démontrés état par état.",
-          "Le contrôleur RUI-003 exige aussi des liaisons visuelles pour des états purement techniques de retrait, de mesure et de clôture. Cette exigence ne peut pas être satisfaite honnêtement par une capture de maquette arbitraire ; le contrat de preuve doit être clarifié sans réduire les contrôles visuels des écrans reconstruits.",
+          "Le contrôleur RUI-003 distingue désormais les 26 états/profils techniques de retrait ; les exigences de référence des lots de mesure et de clôture restent à examiner sans réduire les contrôles visuels des écrans reconstruits.",
           "Les fiches guide_only et known_issue ne sont pas des cibles de reconstruction."
         ]
       }
@@ -7877,7 +7895,7 @@
         "attempts": [],
         "blockReason": null,
         "lastUpdated": "2026-11-10",
-        "progressNote": "993 entrées classées au niveau préparation, dont les 992 empreintes historiques vérifiées. Le classement ne prouve pas encore toutes les responsabilités ; destinations et consommateurs à clôturer par les ledgers de retrait."
+        "progressNote": "993 entrées classées lors de la préparation, dont les 992 empreintes historiques vérifiées ; trois UI temporaires introduites ensuite sont recensées séparément, soit 996 entrées. Le classement ne prouve pas encore toutes les responsabilités ; destinations et consommateurs à clôturer par les ledgers de retrait."
       },
       "states": [
         "inventaire classé et graphe d’imports",
@@ -8011,7 +8029,7 @@
         "attempts": [],
         "blockReason": null,
         "lastUpdated": "2026-11-10",
-        "progressNote": "Témoins QA : rendu 2D logiciel et 3D debug intérieur ; profils et exports localTest 2D/3D vérifiés. Les deux exports ont été installés, lancés, sauvegardés puis repris après redémarrage du processus Player headless. Les captures ne prouvent pas les écrans Player ni le rendu GPU ; le build 3D Release échoue encore dans l’AOT Flutter."
+        "progressNote": "Témoins QA : rendu 2D logiciel et 3D debug intérieur ; profils et exports localTest 2D/3D vérifiés. Les deux exports ont été installés, lancés, sauvegardés puis repris après redémarrage du processus Player headless. Les captures ne prouvent pas les écrans Player ni le rendu GPU ; le build 3D Release échoue encore dans l’AOT Flutter. Trois parcours techniques 2D passent sur flutter_tester, dont un runtime simulé ; ils ne valident pas un Player rendu. Le crash AOT est reproduit avec les Dart des Flutter stable et bêta publiés et ne se reproduit pas avec Dart 3.15 bêta isolé ; aucun host Release compatible corrigé n’a été validé."
       },
       "states": [
         "reçus de caractérisation 2D et 3D",
@@ -8155,8 +8173,8 @@
         "implementer": "Tom et sous-agents indépendants",
         "attempts": [],
         "blockReason": null,
-        "lastUpdated": "2026-11-10",
-        "progressNote": "611 sources historiques recensées et aucune liaison approuvée parmi les 782 couples non documentaires du registre. Les candidates Carte et Session restent non approuvées. Une candidate Espèces RUI-075 ajoute 24 captures locales et 91 assertions interactives ; données fictives, 3D schématique, sans intégration native. Les références état/profil restent à compléter et approuver avant reconstruction."
+        "lastUpdated": "2026-11-11",
+        "progressNote": "611 sources historiques recensées et aucune liaison approuvée parmi les 754 couples visuels applicables du registre ; les deux combinaisons impossibles de projet actif/profil opposé sont exclues, sans réduire les états communs. Les 26 couples techniques de retrait ont leur propre contrat de preuve. Pour Session RUI-019 et Espèces RUI-075, 18 correspondances candidates état/profil ont été examinées et documentées ; aucune n’est approuvée. La couverture des 19 états RUI-011–016 est inventoriée et deux variantes candidates du chargement S03 sont disponibles. Les autres références restent à compléter ; les vues 3D candidates sont schématiques et ne prouvent pas le rendu natif."
       },
       "gaps": [
         "Pas de série 2D complète dans les captures du 9 novembre.",
@@ -8290,8 +8308,8 @@
         "implementer": "Tom et sous-agents indépendants",
         "attempts": [],
         "blockReason": null,
-        "lastUpdated": "2026-11-10",
-        "progressNote": "Correctif du vérificateur : empreintes fournies contrôlées aussi pour les lots documentaires ; codeFiles obligatoire pour evidence_framework. Dix tests de régression réussis avec revue indépendante du correctif ; pas de validation native revendiquée. Le contrôleur de reçus ne remplace pas le contrôle G0 réel."
+        "lastUpdated": "2026-11-11",
+        "progressNote": "Le vérificateur distingue preuves techniques et fidélité visuelle, applique les profils réellement possibles de RUI-013 et ancre une révision des dépendances, états, profils, critères et niveaux de preuve. Les tentatives de suppression silencieuse d’un état ou d’un préalable sont refusées ; le suivi reste modifiable. Vingt-six tests du vérificateur passent et une revue indépendante a confirmé ces garde-fous. Le contrôleur de reçus ne remplace ni le contrôle G0 réel ni la revue visuelle."
       },
       "states": [
         "tableau initial sans lot natif validé",
@@ -8422,8 +8440,8 @@
       ],
       "acceptance": [
         "Les trois cas du lot sont démontrés sur données réelles dans les deux profils selon leurs capacités.",
-        "Les captures de tous les états exigés sont reliées aux cibles approuvées et au fingerprint du code.",
-        "Chaque profil obtient au moins 95/100, aucun écart critique, aucun critère géométrique dépassé sans dérogation approuvée.",
+        "Chaque état technique exigé dispose, pour chaque profil, d’un contrôle argumenté et d’une preuve durable liée au code.",
+        "L’hôte neutre est observé et capturé nativement dans les deux profils ; aucune ancienne composition ni aucun écart critique ne subsiste dans le périmètre du lot.",
         "La persistance, l’historique et les consommateurs touchés passent leurs vérifications ciblées ; aucun résultat simulé vendu comme natif."
       ],
       "mcpParity": "N/A si composition seule ; obligatoire si une commande canonique, un contrat ou une sémantique de mutation change",
@@ -8446,8 +8464,8 @@
           }
         ],
         "blockReason": null,
-        "lastUpdated": "2026-11-10",
-        "progressNote": "Extractions ciblées vérifiées pour Histoire, imports Pokémon, Ambiance et graphe Dialogues. Un défaut du catalogue événement partiel reste en correction : le premier correctif passe 16 cas mais doit préserver les incompatibilités 2D/3D et être rejoué. Intégration globale et G0 restent ouverts ; travail en pause à la demande de Yoahn."
+        "lastUpdated": "2026-11-11",
+        "progressNote": "Reprise T00/T01 : les extractions et retraits partiels se poursuivent avec revues indépendantes. La barre de document, la palette et l’onglet Aperçu vide de l’inspecteur Cinématiques sont retirés ; l’aperçu central et les opérations restent disponibles. Les dialogues de déplacements et d’objets ainsi que l’inspecteur de cible Passages sont retirés ; le catalogue reste disponible aux scènes et le passage sélectionné garde un slot neutre. La sauvegarde d’une carte sale et la publication de métadonnées restent deux opérations distinctes. Une passe intégrée de 313 tests Flutter précède le dernier retrait ; 18 tests ciblés passent ensuite. Ces groupes se recoupent et ne prouvent ni recette native ni acceptation globale. La récupération ciblée Cinématiques hors de l’ancienne page reste à réaliser avant son retrait."
       },
       "states": [
         "ports et adaptateurs sans ancienne page",
@@ -8461,7 +8479,8 @@
             "twoD",
             "threeD"
           ],
-          "targetStatus": "neutral_retirement_target_required"
+          "targetStatus": "neutral_retirement_target_required",
+          "proofKind": "technical_report"
         },
         {
           "id": "S02",
@@ -8470,7 +8489,8 @@
             "twoD",
             "threeD"
           ],
-          "targetStatus": "neutral_retirement_target_required"
+          "targetStatus": "neutral_retirement_target_required",
+          "proofKind": "technical_report"
         }
       ],
       "protectedBehavior": "Conserver contrats, identifiants, lecteurs, commandes, validation, historique, export et moteurs ; remplacer entièrement leur présentation.",
@@ -8583,8 +8603,8 @@
       ],
       "acceptance": [
         "Les trois cas du lot sont démontrés sur données réelles dans les deux profils selon leurs capacités.",
-        "Les captures de tous les états exigés sont reliées aux cibles approuvées et au fingerprint du code.",
-        "Chaque profil obtient au moins 95/100, aucun écart critique, aucun critère géométrique dépassé sans dérogation approuvée.",
+        "Chaque état technique exigé dispose, pour chaque profil, d’un contrôle argumenté et d’une preuve durable liée au code.",
+        "L’hôte neutre est observé et capturé nativement dans les deux profils ; aucune ancienne composition ni aucun écart critique ne subsiste dans le périmètre du lot.",
         "La persistance, l’historique et les consommateurs touchés passent leurs vérifications ciblées ; aucun résultat simulé vendu comme natif."
       ],
       "mcpParity": "N/A si composition seule ; obligatoire si une commande canonique, un contrat ou une sémantique de mutation change",
@@ -8608,7 +8628,8 @@
             "twoD",
             "threeD"
           ],
-          "targetStatus": "neutral_retirement_target_required"
+          "targetStatus": "neutral_retirement_target_required",
+          "proofKind": "native_capture"
         },
         {
           "id": "S02",
@@ -8617,7 +8638,8 @@
             "twoD",
             "threeD"
           ],
-          "targetStatus": "neutral_retirement_target_required"
+          "targetStatus": "neutral_retirement_target_required",
+          "proofKind": "technical_report"
         }
       ],
       "protectedBehavior": "Conserver contrats, identifiants, lecteurs, commandes, validation, historique, export et moteurs ; remplacer entièrement leur présentation.",
@@ -8726,8 +8748,8 @@
       ],
       "acceptance": [
         "Les trois cas du lot sont démontrés sur données réelles dans les deux profils selon leurs capacités.",
-        "Les captures de tous les états exigés sont reliées aux cibles approuvées et au fingerprint du code.",
-        "Chaque profil obtient au moins 95/100, aucun écart critique, aucun critère géométrique dépassé sans dérogation approuvée.",
+        "Chaque état technique exigé dispose, pour chaque profil, d’un contrôle argumenté et d’une preuve durable liée au code.",
+        "L’hôte neutre est observé et capturé nativement dans les deux profils ; aucune ancienne composition ni aucun écart critique ne subsiste dans le périmètre du lot.",
         "La persistance, l’historique et les consommateurs touchés passent leurs vérifications ciblées ; aucun résultat simulé vendu comme natif."
       ],
       "mcpParity": "N/A si composition seule ; obligatoire si une commande canonique, un contrat ou une sémantique de mutation change",
@@ -8736,8 +8758,8 @@
         "implementer": null,
         "attempts": [],
         "blockReason": "Dépendances de retrait et preuves globales encore incomplètes ; reprise T01 autorisée par utilisateur. Aucun gel T00 implicite et aucune acceptation anticipée.",
-        "lastUpdated": "2026-11-10",
-        "progressNote": "Sessions et surfaces techniques 2D/3D, régression26 verte et navigation sources6 verte. Catalogue16 interrompu honnêtement pour diagnostic ; compositions Carte et consommateurs mixtes encore à retirer."
+        "lastUpdated": "2026-11-11",
+        "progressNote": "Sessions et surfaces techniques 2D/3D, régression26 verte et navigation sources6 verte. Panneaux caméra et animation des décors retirés ; deux groupes QA de 10 tests couvrent les commandes conservées. Une fermeture de 10 panneaux de construction passe 19 tests host et 64 tests commandes/viewports après correction de trois échecs initiaux. Les panneaux de plateformes sur trajet et d’ascenseur ont été retirés : deux témoins inspecteur, les régressions des sessions et 11 tests de contrats et lecture runtime passent en QA sélective. Intégration globale et G0 restent ouverts. Les compositions Carte et Décors suivantes ont été retirées ; leurs groupes ciblés passent 24 tests et 101 régressions en copie QA sélective. Neuf compositions Palette/atlas sont retirées ; les quatre configurations de continuité et un groupe de 80 tests passent en QA sélective. Les parcours migrés passent sur flutter_tester ; l’exécution macOS native reste ouverte."
       },
       "states": [
         "inventaire Carte retiré",
@@ -8751,7 +8773,8 @@
             "twoD",
             "threeD"
           ],
-          "targetStatus": "neutral_retirement_target_required"
+          "targetStatus": "neutral_retirement_target_required",
+          "proofKind": "technical_report"
         },
         {
           "id": "S02",
@@ -8760,7 +8783,8 @@
             "twoD",
             "threeD"
           ],
-          "targetStatus": "neutral_retirement_target_required"
+          "targetStatus": "neutral_retirement_target_required",
+          "proofKind": "technical_report"
         }
       ],
       "protectedBehavior": "Conserver contrats, identifiants, lecteurs, commandes, validation, historique, export et moteurs ; remplacer entièrement leur présentation.",
@@ -8885,8 +8909,8 @@
       ],
       "acceptance": [
         "Les trois cas du lot sont démontrés sur données réelles dans les deux profils selon leurs capacités.",
-        "Les captures de tous les états exigés sont reliées aux cibles approuvées et au fingerprint du code.",
-        "Chaque profil obtient au moins 95/100, aucun écart critique, aucun critère géométrique dépassé sans dérogation approuvée.",
+        "Chaque état technique exigé dispose, pour chaque profil, d’un contrôle argumenté et d’une preuve durable liée au code.",
+        "L’hôte neutre est observé et capturé nativement dans les deux profils ; aucune ancienne composition ni aucun écart critique ne subsiste dans le périmètre du lot.",
         "La persistance, l’historique et les consommateurs touchés passent leurs vérifications ciblées ; aucun résultat simulé vendu comme natif."
       ],
       "mcpParity": "N/A si composition seule ; obligatoire si une commande canonique, un contrat ou une sémantique de mutation change",
@@ -8895,8 +8919,8 @@
         "implementer": null,
         "attempts": [],
         "blockReason": "Dépendances de retrait et preuves globales encore incomplètes ; reprise T01 autorisée par utilisateur. Aucun gel T00 implicite et aucune acceptation anticipée.",
-        "lastUpdated": "2026-11-10",
-        "progressNote": "Retraits ciblés Histoire, imports Pokémon, Ambiance et graphe Dialogues accompagnés de tests et revues. Le lot médias Pokémon est retiré mais ses tests centraux restent à exécuter. De nombreuses compositions restent à traiter ; aucun atelier reconstruit."
+        "lastUpdated": "2026-11-11",
+        "progressNote": "Retraits ciblés Histoire, imports Pokémon, Ambiance et graphe Dialogues accompagnés de tests et revues. Médias Pokémon : groupes QA de 18, 9 et 24 tests. La fermeture de neuf compositions Bordures passe 69 tests QA ; un autre groupe de 32 vérifie navigation, brouillons et Bordures compactes. Les trois dernières UI partagées de Scènes et les panneaux collision/pente des modèles sont retirés ; 10 tests ciblés Scènes et un groupe transversal de 89 régressions passent, ainsi que 5 tests de l’atelier Modèles. Les conditions quotidiennes existantes et les brouillons restent conservés ; leur ancienne édition est temporairement indisponible. Copie QA sélective, sans validation native globale. Les ateliers Décors retirés conservent leurs owners ; leur ancienne édition reste temporairement indisponible. Deux compositions de transfert Packs sont retirées ; 70 tests ciblés passent, incluant les gardes de publication et de fermeture. Les transferts restent temporairement indisponibles dans cette UI. Les quatre compositions Environnements sont retirées ; les 46 tests de portée, drafts, sauvegarde et régressions ciblées passent en copie QA sélective. Une ancienne composition WorkingCatalog est retirée ; son garde est exercé avec ses owners dans un groupe commun de 106 tests. Une reprise UI limitée des transferts Packs est en cours de validation après revue indépendante. Les anciens réglages retirés disposent d’une récupération temporaire ciblée ; 31 tests de continuité et de publication passent sur le checkout courant. Aucun parcours natif ni lot accepté."
       },
       "states": [
         "registre global retiré",
@@ -8910,7 +8934,8 @@
             "twoD",
             "threeD"
           ],
-          "targetStatus": "neutral_retirement_target_required"
+          "targetStatus": "neutral_retirement_target_required",
+          "proofKind": "technical_report"
         },
         {
           "id": "S02",
@@ -8919,7 +8944,8 @@
             "twoD",
             "threeD"
           ],
-          "targetStatus": "neutral_retirement_target_required"
+          "targetStatus": "neutral_retirement_target_required",
+          "proofKind": "native_capture"
         }
       ],
       "protectedBehavior": "Conserver contrats, identifiants, lecteurs, commandes, validation, historique, export et moteurs ; remplacer entièrement leur présentation.",
@@ -9036,8 +9062,8 @@
       ],
       "acceptance": [
         "Les trois cas du lot sont démontrés sur données réelles dans les deux profils selon leurs capacités.",
-        "Les captures de tous les états exigés sont reliées aux cibles approuvées et au fingerprint du code.",
-        "Chaque profil obtient au moins 95/100, aucun écart critique, aucun critère géométrique dépassé sans dérogation approuvée.",
+        "Chaque état technique exigé dispose, pour chaque profil, d’un contrôle argumenté et d’une preuve durable liée au code.",
+        "L’hôte neutre est observé et capturé nativement dans les deux profils ; aucune ancienne composition ni aucun écart critique ne subsiste dans le périmètre du lot.",
         "La persistance, l’historique et les consommateurs touchés passent leurs vérifications ciblées ; aucun résultat simulé vendu comme natif."
       ],
       "mcpParity": "N/A si composition seule ; obligatoire si une commande canonique, un contrat ou une sémantique de mutation change",
@@ -9061,7 +9087,8 @@
             "twoD",
             "threeD"
           ],
-          "targetStatus": "neutral_retirement_target_required"
+          "targetStatus": "neutral_retirement_target_required",
+          "proofKind": "technical_report"
         },
         {
           "id": "S02",
@@ -9070,7 +9097,8 @@
             "twoD",
             "threeD"
           ],
-          "targetStatus": "neutral_retirement_target_required"
+          "targetStatus": "neutral_retirement_target_required",
+          "proofKind": "technical_report"
         }
       ],
       "protectedBehavior": "Conserver contrats, identifiants, lecteurs, commandes, validation, historique, export et moteurs ; remplacer entièrement leur présentation.",
@@ -9185,8 +9213,8 @@
         "implementer": "Tom + t01_map_boundary + t01_global_boundary + t01_dependency_review",
         "attempts": [],
         "blockReason": "Dépendances de retrait et preuves globales encore incomplètes ; reprise T01 autorisée par utilisateur. Aucun gel T00 implicite et aucune acceptation anticipée.",
-        "lastUpdated": "2026-11-10",
-        "progressNote": "G0 non accepté : inventaire et preuves partiels, nombreuses compositions encore présentes. Les deux échecs de la suite JSONL globale ont été reproduits et diagnostiqués statiquement comme préexistants, sans rerun de HEAD. Aucun lot ni score visuel accepté."
+        "lastUpdated": "2026-11-11",
+        "progressNote": "G0 non accepté : le diagnostic statique du 11 novembre signale 329 fichiers de présentation recensés encore présents, 687 références et 242 symboles historiques ; ces catégories se recoupent et ne sont pas un nombre de fonctionnalités cassées ni un pourcentage. Après revue et normalisation de 22 entrées, 58 entrées déjà marquées retirées dans l’inventaire portent encore une décision hors des trois valeurs acceptées pour G0 et doivent être réexaminées. Les UI de récupération et de saisie temporaires restent recensées à retirer, sans exception. Aucun lot ni score visuel accepté."
       },
       "states": [
         "hôte technique neutre",
@@ -9201,7 +9229,8 @@
             "twoD",
             "threeD"
           ],
-          "targetStatus": "neutral_retirement_target_required"
+          "targetStatus": "neutral_retirement_target_required",
+          "proofKind": "native_capture"
         },
         {
           "id": "S02",
@@ -9210,7 +9239,8 @@
             "twoD",
             "threeD"
           ],
-          "targetStatus": "neutral_retirement_target_required"
+          "targetStatus": "neutral_retirement_target_required",
+          "proofKind": "technical_report"
         },
         {
           "id": "S03",
@@ -9219,7 +9249,8 @@
             "twoD",
             "threeD"
           ],
-          "targetStatus": "neutral_retirement_target_required"
+          "targetStatus": "neutral_retirement_target_required",
+          "proofKind": "technical_report"
         }
       ],
       "protectedBehavior": "Conserver contrats, identifiants, lecteurs, commandes, validation, historique, export et moteurs ; remplacer entièrement leur présentation.",
@@ -9309,7 +9340,10 @@
         "nov09:262",
         "nov09:329"
       ],
-      "referenceGaps": [],
+      "referenceGaps": [
+        "S01 : planche C1 2D standard recadrée ; états complets et capture 3D manquants.",
+        "S02 : texte agrandi 2D/3D sans capture archivée ; interaction à 130 % seule insuffisante."
+      ],
       "nativeStates": [
         "planche de tokens et états",
         "texte agrandi"
@@ -9439,7 +9473,10 @@
         "nov09:035",
         "nov09:055"
       ],
-      "referenceGaps": [],
+      "referenceGaps": [
+        "S01 : fragments repos/focus/erreur/disabled, sans planche complète par profil ; feedback contradictoire de nov09:035 à amender.",
+        "S02 : ressource 2D partielle dans C1 ; cible modèle/preset en profil 3D explicite manquante."
+      ],
       "nativeStates": [
         "composants repos/focus/erreur/disabled",
         "ressource 2D et ressource 3D"
@@ -9580,7 +9617,11 @@
         "nov09:001",
         "nov06:002-accueil"
       ],
-      "referenceGaps": [],
+      "referenceGaps": [
+        "S01 : aucune cible sans projet démontrée ; nov06:002 affiche un projet courant.",
+        "S02/S03 : C2 identifie les profils mais sans shell aux huit destinations ; chaque état de projet actif s’applique uniquement au profil correspondant.",
+        "S04 : navigation compacte historique partielle ; cible 3D distincte et couverture des huit destinations non démontrées."
+      ],
       "nativeStates": [
         "sans projet",
         "projet 2D actif",
@@ -9625,8 +9666,7 @@
           "id": "S02",
           "title": "projet 2D actif",
           "profiles": [
-            "twoD",
-            "threeD"
+            "twoD"
           ],
           "targetStatus": "target_to_bind_before_execution"
         },
@@ -9634,7 +9674,6 @@
           "id": "S03",
           "title": "projet 3D actif",
           "profiles": [
-            "twoD",
             "threeD"
           ],
           "targetStatus": "target_to_bind_before_execution"
@@ -9746,7 +9785,10 @@
         "nov09:397",
         "nov09:398"
       ],
-      "referenceGaps": [],
+      "referenceGaps": [
+        "S01–S03 : quatre espaces et inspecteur ouvert/replié représentés, mais fond illustratif sans canevas 3D distinct ; partage du chrome à approuver.",
+        "S03 : captures compactes 1235×988 physiques avec gouttières ; viewport CSS/DPR non établis."
+      ],
       "nativeStates": [
         "quatre espaces",
         "inspecteur ouvert/replié",
@@ -9899,7 +9941,10 @@
         "nov09:170",
         "nov09:171"
       ],
-      "referenceGaps": [],
+      "referenceGaps": [
+        "S01 : nov09:401 affiche Construction active ; parcours Cmd/Ctrl+K depuis Jeu non démontré.",
+        "S01–S03 : fragments de focus et disponibilité sans contexte 3D distinct ; refus commun et protection de Supprimer requièrent preuve comportementale."
+      ],
       "nativeStates": [
         "recherche focalisée",
         "commande disponible/indisponible",
@@ -10049,7 +10094,11 @@
         "nov09:206",
         "nov09:243"
       ],
-      "referenceGaps": [],
+      "referenceGaps": [
+        "S01/S02/S05 : confirmations historiques et gardes/conflits C2 candidats ; partage du chrome RUI-019 et liaisons par profil à approuver.",
+        "S03 : deux aperçus MagicPath candidats 2D/3D existent pour le chargement ; fenêtre complète, viewport/DPR, interactions et approbation restent à établir. nov09:178 est un diagnostic distinct.",
+        "S04 : choix de récupération présents dans C2, mais issue d’échec/retry et erreurs image/atlas ou modèle/provider sans cible comparable."
+      ],
       "nativeStates": [
         "confirmation",
         "garde",
@@ -23257,7 +23306,7 @@
     "planNativeLotsExecuted": 0,
     "planNativeLotsAccepted": 0,
     "independentNativeReview": "Revues indépendantes de source réalisées entre sous-agents : extractions, frontières Player, surfaces techniques et hôte neutre. Recette native par état/profil et G0 global non acceptés.",
-    "browserVisualReview": "Artefact inspecté dans le navigateur local : filtrage T01 affiche six lots, G0 En cours/aucune acceptation et note de réalisation RUI-005 visible ; capture durable artefact-t01-progress.jpg. Vérification documentaire, pas acceptation des nouvelles maquettes.",
+    "browserVisualReview": "Inspection historique du registre : filtrage T01, G0 et note RUI-005 visibles dans artefact-t01-progress.jpg ; ne couvre pas les modifications ultérieures. L’ouverture récente de l’artefact local a été refusée par la politique du navigateur intégré : synchronisation et contrôles structurels seulement, sans nouvelle inspection visuelle. Aucune acceptation des nouvelles maquettes.",
     "planningChecks": [
       "Historique de préparation initiale : 88 lots détaillés dans 15 thématiques ; 88 lots planifiés, zéro lot natif accepté.",
       "Historique de préparation initiale : 611 références locales présentes et empreintes vérifiées ; aucune référence de lot inconnue.",
@@ -23276,7 +23325,7 @@
       "attribution": "Travaux T01 mêlés à modifications préexistantes et concurrentes ; aucun add/commit/push/restore effectué."
     },
     "executionCheckpoint": {
-      "at": "2026-11-09T23:43:44.898789+00:00",
+      "at": "2026-11-11T09:49:01Z",
       "acceptedLots": 0,
       "G0": "non accepté",
       "knownPassed": [
@@ -23399,6 +23448,111 @@
           "exitCode": 0,
           "evidence": "proofs/t01-execution/dependency-terrain-publication-canonical.log",
           "note": "Nombre de cas distincts du groupe ; ne pas additionner aux checkpoints qui les recouvrent."
+        },
+        {
+          "scope": "Réglages : récupération ciblée, saisies invalides et gardes de publication",
+          "tests": 31,
+          "exitCode": 0,
+          "evidence": "proofs/t01-execution/resume-20261110/t01-recovery-guards-20261111.json",
+          "note": "flutter_tester sur le checkout courant ; ni validation native ni acceptation du lot."
+        },
+        {
+          "scope": "Réglages visuels : propriétaire, aperçu et coûts de travail",
+          "tests": 12,
+          "exitCode": 0,
+          "evidence": "proofs/t01-execution/resume-20261110/t01-recovery-guards-20261111.json",
+          "note": "Groupe antérieur à une correction de formatage sans changement de comportement ; les groupes peuvent se recouper."
+        },
+        {
+          "scope": "Cinématiques : saisies, rechargement, publication et aperçus",
+          "tests": 34,
+          "exitCode": 0,
+          "evidence": "proofs/t01-execution/resume-20261110/t01-recovery-guards-20261111.json",
+          "note": "Groupe historique avant les changements de fermeture ; voir le groupe intégré suivant."
+        },
+        {
+          "scope": "Cinématiques et réglages : régressions intégrées et fermeture",
+          "tests": 58,
+          "exitCode": 0,
+          "evidence": "proofs/t01-execution/resume-20261110/t01-recovery-guards-20261111.json",
+          "note": "flutter_tester après formatage ; les groupes se recoupent et ne valident pas G0."
+        },
+        {
+          "scope": "Cinématiques et ordre des décors : extraction, saisies et régressions intégrées",
+          "tests": 81,
+          "exitCode": 0,
+          "evidence": "proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-order-cinematics.json",
+          "note": "Checkpoint historique flutter_tester avant retrait du panneau de décor mobile ; chevauche les groupes précédents."
+        },
+        {
+          "scope": "Décors mobiles, ordre et cinématiques : régressions intégrées",
+          "tests": 108,
+          "exitCode": 0,
+          "evidence": "proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-moving-prop.json",
+          "note": "Checkpoint historique flutter_tester avant la suite de l’extraction Cinématiques et le retrait Géométrie ; chevauche les groupes précédents."
+        },
+        {
+          "scope": "Géométrie, décors et commit Cinématiques : régressions intégrées",
+          "tests": 137,
+          "exitCode": 0,
+          "evidence": "proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-geometry-cinematic-commit.json",
+          "note": "Checkpoint historique flutter_tester avant retrait des sous-panneaux Passages et de l’aperçu Cinématiques ; chevauche les groupes précédents."
+        },
+        {
+          "scope": "Carte, passages et aperçu Cinématiques : régressions intégrées",
+          "tests": 168,
+          "exitCode": 0,
+          "evidence": "proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-warp-cinematic-preview.json",
+          "note": "Checkpoint historique flutter_tester avant le retrait des sous-panneaux de marqueurs ; chevauche les groupes précédents."
+        },
+        {
+          "scope": "Marqueurs : présentation, affichage de soin et rencontres interactives",
+          "tests": 15,
+          "exitCode": 0,
+          "evidence": "proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-markers.json",
+          "note": "Tests ciblés exécutés par le sous-agent ; revue indépendante de source. Ni recette native, ni acceptation G0."
+        },
+        {
+          "scope": "Cinématiques, carte, passages, marqueurs et règles d’objets : gel intégré",
+          "tests": 239,
+          "exitCode": 0,
+          "evidence": "proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-integrated-239.json",
+          "note": "35 fichiers Flutter ; gel historique avant les retraits ultérieurs. Ce groupe recoupe les checkpoints précédents."
+        },
+        {
+          "scope": "Métadonnées et règles d’objets : plan, application et relecture",
+          "tests": 9,
+          "exitCode": 0,
+          "evidence": "proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-integrated-239.json",
+          "note": "Test canonique distinct ; pas de garantie d’atomicité entre les deux opérations du workflow Studio."
+        },
+        {
+          "scope": "Retrait des dialogues de carte et palette compacte : catalogue, scènes, sauvegarde et récupération",
+          "tests": 37,
+          "exitCode": 0,
+          "evidence": "proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-map-dialogs.json",
+          "note": "Vérifications ciblées après retrait ; groupe recoupant le gel précédent, sans recette native."
+        },
+        {
+          "scope": "Cinématiques, carte et passages : régressions intégrées après retrait",
+          "tests": 313,
+          "exitCode": 0,
+          "evidence": "proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-integrated-313.json",
+          "note": "50 fichiers Flutter avant retrait du reliquat Aperçu ; inclut les parcours disque/Player en fixture. Groupe recoupant les checkpoints précédents."
+        },
+        {
+          "scope": "Cinématiques : retrait de l’onglet Aperçu vide et conservation des saisies",
+          "tests": 18,
+          "exitCode": 0,
+          "evidence": "proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-preview-contract.json",
+          "note": "Tests ciblés après le gel de 313 ; l’aperçu central et le transport restent couverts."
+        },
+        {
+          "scope": "Contrat de preuves : profils applicables et intégrité des exigences",
+          "tests": 26,
+          "exitCode": 0,
+          "evidence": "proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-preview-contract.json",
+          "note": "Suite Python du validateur après correction du verrou des dépendances ; aucune acceptation visuelle."
         }
       ],
       "knownFailed": [
@@ -23411,7 +23565,10 @@
         "Premier batch Création/Session : 42 succès, 2 attentes de fixture incorrectes sur projets 2D vides ; seuls tests adaptés au contrat canonique, puis 4 profils isolés verts et 8 parcours natifs verts.",
         "Événements : premier batch33 succès/3 échecs. Deux nouvelles assertions de label corrigées en branche/actions canoniques puis13 templates verts. Budget de publication working catalog toujours rouge :6 unités sans rapport lues, zéro attendu ; échec reproduit seul, cause non établie, source backend hors chantier UI.",
         "Catalogue Carte : batch16 interrompu après5 succès observés et attente ; pas de réussite revendiquée, diagnostic de fixture en cours.",
-        "Contrôle statique G0 : faux positifs de résolution runtime identifiés par comparaison package:/file: au compilateur, correctif outillage en cours ; aucun patch runtime."
+        "Contrôle statique G0 : faux positifs de résolution runtime identifiés par comparaison package:/file: au compilateur, correctif outillage en cours ; aucun patch runtime.",
+        "Analyse stricte Studio du 11 novembre : code de sortie 1 sur six remarques informatives dans des fichiers inchangés ; l’analyse sans erreurs fatales pour ces informations sort à 0.",
+        "Diagnostic G0 statique avant retrait des sous-panneaux de marqueurs : sortie 1, 1 289 violations dont 339 physiques, 709 de joignabilité et 241 symboles historiques ; catégories recoupables, sans interprétation en pourcentage.",
+        "Diagnostic G0 statique après les retraits Passages et palette Cinématiques : sortie 1, 1 258 violations dont 329 physiques, 687 de joignabilité et 242 symboles historiques ; catégories recoupables, sans interprétation en pourcentage."
       ],
       "limits": [
         "G0 non accepté : widgets historiques, tests et consommateurs en cours de retrait/migration.",
@@ -23419,9 +23576,36 @@
         "Build Release isolé et hôte neutre observé avec moteur QA corrigé ; ne prouve pas les derniers viewports ni des parcours natifs complets 2D/3D.",
         "MCP natif non connecté dans le bundle isolé (distribution.manifest_unavailable) ; tests lifecycle MCP distincts réussis.",
         "Aucune écriture Git, publication ni modification de mécanique runtime réalisée par T01.",
-        "Hôte vide et suivi documentaire capturés ; douze captures documentent deux candidates de maquette locale sans valider les cibles. Captures et mesures natives par état/profil restent à produire, sans score inventé."
+        "Cinquante-huit entrées marquées retirées possèdent encore une décision non admise par le validateur G0 ; elles nécessitent un examen des propriétaires et consommateurs avant reclassement.",
+        "Hôte vide et suivi documentaire capturés ; douze captures documentent deux candidates de maquette locale sans valider les cibles. Captures et mesures natives par état/profil restent à produire, sans score inventé.",
+        "La page Cinématiques reste présente ; la fermeture permet un abandon global explicite, mais la récupération ciblée avant export hors de cette page reste à réaliser avant son retrait."
       ],
       "evidenceFiles": [
+        {
+          "path": "proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-inventory-22.json",
+          "sha256": "cd09d39b5bc04dc288785502a91ba714f08abf0338c8084c4fb3f13fea662f5b",
+          "title": "T01 : classement contrôlé de 22 entrées de l’inventaire"
+        },
+        {
+          "path": "proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-preview-contract.json",
+          "sha256": "c06dad11754a83415751e5747c7676cdd7baf64c28818a36b698b429c8b64b54",
+          "title": "T00/T01 : contrat de preuves et retrait du reliquat Aperçu"
+        },
+        {
+          "path": "proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-integrated-313.json",
+          "sha256": "000c13a3daedc92f8c0181c8d47cc20c307472b7a607c232037a716bcca97415",
+          "title": "T01 : 313 tests intégrés, Passages et palette Cinématiques"
+        },
+        {
+          "path": "proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-map-dialogs.json",
+          "sha256": "407f97d31b7ee7de82f674a72678844df76df5a138523835bd8cf6de47b4f006",
+          "title": "Retrait des dialogues de carte et du montage compact Cinématiques"
+        },
+        {
+          "path": "proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-integrated-239.json",
+          "sha256": "42283766b8b9e61da9317ead66c8aae3bbc98f5e29f6da4c27a988e6d92599a1",
+          "title": "Gel intégré T01 : 239 tests Flutter et neuf tests canoniques"
+        },
         {
           "path": "proofs/t01-execution/after-extraction-before-workflow.log",
           "sha256": "0cca3bd90686d9d4217bda84d13098b1bc42a5304bd5dfae058c29915398d5f3",
@@ -23719,13 +23903,68 @@
         },
         {
           "path": "proofs/t01-execution/retirement-contract-validation.json",
-          "sha256": "92ddba4c6701aac457bc63ef2017301b24df9cfc1239e91ff6f6843c5660d214",
+          "sha256": "c82c357035754a240e6f6646c576acc39ae026069a9a198631ee3dd0abcf7984",
           "title": "Validation consolidée T00/T01 — G0 et parité complète en attente"
         },
         {
           "path": "proofs/t01-execution/resume-20261110/index.json",
-          "sha256": "0a92a068b0a07c8216a86fea94987f199a0ef9b6d1a56d2459baff170c9a8647",
+          "sha256": "3095e7cf1e7f927b38e7175e24c1c940dc98fc498da8ed54274aa2d9f5f6117f",
           "title": "Index des preuves ciblées et des limites de la reprise"
+        },
+        {
+          "path": "proofs/t01-execution/resume-20261110/t01-recovery-guards-20261111.json",
+          "sha256": "f5257b68cc98ed00746de39b1419c72cc439f8e1d74b6d46b4f9e5cad2a5d699",
+          "title": "Historique : réglages et cinématiques avant les changements ultérieurs"
+        },
+        {
+          "path": "proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-order-cinematics.json",
+          "sha256": "fcd36dfca92ee9c23b3bcd758c8da6d9ef287b6e608a74065d283122ecf82ef2",
+          "title": "Historique : retrait ordre des décors et garde des saisies cinématiques"
+        },
+        {
+          "path": "proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-moving-prop.json",
+          "sha256": "5989b07a3a17a25258e8408a607d7b70337440f030cd16283db7ab7291401ea3",
+          "title": "Historique : retrait du panneau de décor mobile et 108 tests intégrés"
+        },
+        {
+          "path": "proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-geometry-cinematic-commit.json",
+          "sha256": "7f1979cecf9071a0ef067a7938b030722e8e961934b904347c60e84008c87236",
+          "title": "Historique : retrait Géométrie, commit Cinématiques et 137 tests intégrés"
+        },
+        {
+          "path": "proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-warp-cinematic-preview.json",
+          "sha256": "ce925197b5be9c64d6ddb6852401b2590e12f5219daa7700de58a44780cc35d8",
+          "title": "Historique : sous-panneaux Passages, aperçu Cinématiques et 168 tests intégrés"
+        },
+        {
+          "path": "proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-markers.json",
+          "sha256": "6a2c298a22e105492bef319f112311c32acedcf268811b54d422d33999d56abe",
+          "title": "Checkpoint ciblé : retrait de trois sous-panneaux de marqueurs"
+        },
+        {
+          "path": "reference-coverage-rui-011-016.json",
+          "sha256": "baccb8b8973d6907197baa61fcf0f925e7058b4d767eba263b7a90b48050abeb",
+          "title": "T00 : couverture candidate des références RUI-011 à RUI-016"
+        },
+        {
+          "path": "proofs/t00-candidates/471199137765941248/manifest.json",
+          "sha256": "218facb6e76200e42e63fc3bd8c43f130300f8c68bbd71a68349299a5149f875",
+          "title": "T00 : proposition MagicPath de chargement 2D et 3D, non approuvée"
+        },
+        {
+          "path": "proofs/t00-candidates/471199137765941248/twoD-loading-native-preview.jpg",
+          "sha256": "dc8d4a2e0eb0ba74fa4e989f7990ced56282416d3d3bdc3beb263dcee620b072",
+          "title": "Candidate MagicPath : chargement 2D"
+        },
+        {
+          "path": "proofs/t00-candidates/471199137765941248/threeD-loading-native-preview.jpg",
+          "sha256": "44e629e167adfacaf683b2d6d1a2a6b4e4bdfa8a6d77b65d6afbc882433cb6ed",
+          "title": "Candidate MagicPath : chargement 3D schématique"
+        },
+        {
+          "path": "proofs/t01-execution/resume-20261110/t01-g0-after-recovery-inventory-20261111.json",
+          "sha256": "105b6e68c0fd6d87b69eeb2344899ee9653ff7f2581be12a7e60a5c55118dc44",
+          "title": "Diagnostic G0 : UI temporaires recensées, retrait incomplet"
         },
         {
           "path": "proofs/t00-candidates/470897188139069440/twoD-rules-dungeon.png",
@@ -24026,11 +24265,71 @@
           "passed": 16,
           "failed": 0,
           "status": "provisional_green_known_dimension_gaps"
+        },
+        {
+          "scope": "Partial event catalog final dimension guards",
+          "passed": 20,
+          "failed": 0,
+          "status": "focused_green_qa_copy"
+        },
+        {
+          "scope": "Partial event catalog core and activation regressions",
+          "passed": 83,
+          "failed": 0,
+          "status": "focused_green_qa_copy"
+        },
+        {
+          "scope": "Scene graph retirement and story navigation retest",
+          "passed": 31,
+          "failed": 0,
+          "status": "focused_green_qa_copy"
+        },
+        {
+          "scope": "Map camera retirement and retained commands",
+          "passed": 10,
+          "failed": 0,
+          "status": "focused_green_qa_copy"
+        },
+        {
+          "scope": "Map decor animation retirement and retained order",
+          "passed": 10,
+          "failed": 0,
+          "status": "focused_green_qa_copy"
+        },
+        {
+          "scope": "Unused navigation bindings and retained routes",
+          "passed": 12,
+          "failed": 0,
+          "status": "focused_green_qa_copy"
+        },
+        {
+          "scope": "JSONL worker and scoped-query regressions",
+          "passed": 44,
+          "failed": 0,
+          "status": "focused_green_qa_copy"
+        },
+        {
+          "scope": "Map construction closure hosts",
+          "passed": 19,
+          "failed": 0,
+          "status": "focused_green_qa_copy"
+        },
+        {
+          "scope": "Map construction commands and 2D/3D viewports",
+          "passed": 64,
+          "failed": 0,
+          "status": "focused_green_qa_copy"
+        },
+        {
+          "scope": "Border resource closure regressions",
+          "passed": 69,
+          "failed": 0,
+          "status": "focused_green_qa_copy_route_issue_open"
         }
       ],
       "additionalPureForwardersRemoved": 8,
       "visualAcceptance": false,
-      "nextAction": "PAUSE demandée par Yoahn. À la reprise : sécuriser les cas 2D/3D du catalogue événement, rejouer UI05 et les tests médias Pokémon, puis poursuivre T00/T01. T02 reste bloqué.",
+      "nextAction": "Poursuivre les retraits et les références T00/T01, valider les changements de scènes et l’intégration globale. UI05, médias Pokémon et transports événementiels ont des vérifications ciblées vertes sur la copie QA ; T02 reste bloqué.",
       "currentValidationReceipt": "proofs/t01-execution/retirement-contract-validation.json",
       "latestContractRuns": [
         {
@@ -24156,6 +24455,33 @@
         "coverage": "24 local captures, five principal states in each profile and 91 interactive assertions.",
         "limits": "Fictitious data and in-memory saves; 3D is schematic; no approved reference bindings or native integration."
       },
+      "componentReferenceCandidate": {
+        "projectId": "470322374529675264",
+        "componentId": "471067651033145344",
+        "revisionId": "471071333137137664",
+        "lotIds": [
+          "RUI-011",
+          "RUI-012"
+        ],
+        "buildStatus": "completed",
+        "status": "candidate_only_not_approved",
+        "manifest": "proofs/t00-candidates/471067651033145344/manifest.json",
+        "manifestSha256": "0f7c57c16f64fdf20239a03886e22eaf39ce5ef1c21f42ab086480093a751162",
+        "nativeStudioIntegration": false,
+        "coverage": "Interactive candidate for components, scope, search, 2D/3D illustrations and enlarged text; one cropped 2D preview saved.",
+        "limits": "No approved bindings; full captures, 3D and enlarged-text captures remain missing. No native fidelity is proven."
+      },
+      "referenceBindingProposal": {
+        "status": "candidate_only_not_approved",
+        "path": "proofs/t00-candidates/reference-binding-proposals/rui019-rui075.proposed-bindings.json",
+        "sha256": "1d982fb2f1a0956840ab4b7e423ed9ef99e3a0ff183a6d21f64b4796bf5544d9",
+        "verification": "proofs/t00-candidates/reference-binding-proposals/verification.json",
+        "verificationSha256": "c94d556810791b0347e47314fa9e43a5352e1f722a7d674ecd1919f7e6bc44a5",
+        "verifier": "proofs/t00-candidates/reference-binding-proposals/verify_proposal.py",
+        "verifierSha256": "610fba68f5beaa9c9329f41c797c76b668ed110266e98e818302f21181e27d08",
+        "coverage": "18 state/profile candidates for RUI-019 and RUI-075; zero approved bindings.",
+        "limits": "Local demonstration screenshots and manual observations; three-dimensional views are schematic. No native fidelity or lot acceptance."
+      },
       "playerWitness": {
         "receipt": "proofs/t00-preparation/current-native-renders/player-runtime/runtime-proof-receipt.json",
         "receiptSha256": "aab4307b2c484f7f93f031efafaa2e15debc808f5f98a7ce1c2ad04f9a03de54",
@@ -24170,8 +24496,27 @@
       "g0Accepted": false,
       "t02Started": false,
       "receipt": "proofs/t01-execution/retirement-contract-validation.json",
-      "receiptSha256": "92ddba4c6701aac457bc63ef2017301b24df9cfc1239e91ff6f6843c5660d214",
+      "receiptSha256": "c82c357035754a240e6f6646c576acc39ae026069a9a198631ee3dd0abcf7984",
+      "receiptSha256AtPause": "92ddba4c6701aac457bc63ef2017301b24df9cfc1239e91ff6f6843c5660d214",
       "summary": "Reprise sur T00/T01 uniquement. Les sources, tests et preuves partielles sont conservés ; aucune acceptation globale ni comparaison native avec la maquette."
+    },
+    "t01ResumptionAfterPause": {
+      "at": "2026-11-10",
+      "status": "in_progress",
+      "acceptedLots": 0,
+      "g0Accepted": false,
+      "t02Started": false,
+      "receipt": "proofs/t01-execution/retirement-contract-validation.json",
+      "receiptSha256": "c82c357035754a240e6f6646c576acc39ae026069a9a198631ee3dd0abcf7984",
+      "summary": "Reprise T00/T01 ; parcours Studio, médias Pokémon, transports événementiels et retraits ciblés scène/carte vérifiés en copie QA. Retraits, intégration globale et parité complète restent en cours.",
+      "inventoryObservation": {
+        "entries": 993,
+        "physicallyAbsent": 256,
+        "recordedAbsent": 197,
+        "absentNotYetRecorded": 59,
+        "recordedWithOwnerClassificationPending": 31,
+        "meaning": "Décompte physique ponctuel, pas un pourcentage de complétude ni une acceptation."
+      }
     }
   },
   "receiptContract": {
@@ -24186,7 +24531,8 @@
       "evidenceFiles"
     ],
     "documentary": "Les 4 lots préparatoires exigent documents/logs réels et revue distincte ; aucune fausse capture native d’application.",
-    "native": "Chaque profil contient functional.expected/negative/nonRegression avec preuve durable, tous les états Sxx avec cible approuvée, screenshot, score, metrics, viewport/DPR, auteur des mesures et niveaux de preuve.",
+    "native": "Pour un écran reconstruit, chaque profil contient functional.expected/negative/nonRegression avec preuve durable, tous les états Sxx avec cible approuvée, screenshot, score, metrics, viewport/DPR, auteur des mesures et niveaux de preuve.",
+    "retirement": "RUI-005 à RUI-010 exigent les mêmes cas fonctionnels dans les deux profils, une capture native de l’hôte neutre par profil (neutralHost : profile, screenshot, viewport, dpr, capturedBy, observation), et pour chaque état une preuve durable, passed, checkedBy, observation et criticalIssues vide. Les états native_capture portent en plus leur capture. Les images sont décodées avec package:image depuis la configuration Dart du checkout. RUI-010 exige le rapport brut G0 statique réussi, un inventaire entièrement classé, les empreintes du registre, des exceptions et des outils, ainsi qu’un nouveau contrôle G0 concordant. Aucune cible de maquette ni aucun score de fidélité ne sont attribués à ces étapes techniques.",
     "referenceBinding": {
       "id": "identifiant stable",
       "lotId": "RUI-xxx",

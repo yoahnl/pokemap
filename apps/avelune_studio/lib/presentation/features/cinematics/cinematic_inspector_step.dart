@@ -32,7 +32,9 @@ extension CinematicInspectorStep on CinematicInspector {
         },
       ),
     if (cinematicDurationEditable(step))
-      StudioCommitField(
+      CinematicCommitField(
+        inputs: controller.inputsFor(asset.id),
+        changed: changed,
         key: ValueKey('duration-${asset.id}-${step.id}'),
         label: 'Durée (ms)',
         alwaysCommit: true,
@@ -309,7 +311,9 @@ extension CinematicInspectorStep on CinematicInspector {
         ),
       ),
       if (jump)
-        StudioCommitField(
+        CinematicCommitField(
+          inputs: controller.inputsFor(asset.id),
+          changed: changed,
           key: ValueKey('jump-height-${step.id}'),
           label: 'Hauteur (cases)',
           alwaysCommit: true,
@@ -430,7 +434,9 @@ extension CinematicInspectorStep on CinematicInspector {
             },
           ),
           for (final axis in ['x', 'y'])
-            StudioCommitField(
+            CinematicCommitField(
+              inputs: controller.inputsFor(asset.id),
+              changed: changed,
               key: ValueKey('cinematic-point-$axis-${point.id}'),
               label:
                   '${point.relativeToActorId == null ? 'Position' : 'Décalage'} $axis (cases)',

@@ -49,9 +49,7 @@ extension _WorkspaceStoryBinding on _MapWorkspaceScreenState {
   }
 
   void _openScenes() {
-    _sceneOrigin = WorkspaceReturn.story;
-    if (_scenes?.active == null) _sceneViews.sceneLibrary = true;
-    _show(WorkspaceSpace.scene);
+    _navigationNotice('L’éditeur de scènes est indisponible.');
   }
 
   void _openNarrativeMap(String mapId) {

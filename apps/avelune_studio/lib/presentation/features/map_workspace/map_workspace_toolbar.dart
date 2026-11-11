@@ -16,22 +16,18 @@ class MapWorkspaceToolbar extends StatelessWidget {
     required this.onSave,
     required this.onTest,
     required this.onClose,
-    required this.onPalette,
     required this.onInspector,
-    required this.onNavigator,
-    required this.paletteVisible,
     required this.inspectorVisible,
-    required this.navigatorVisible,
     this.showUndoRedo = true,
     this.onElements,
     this.onCommands,
   });
   final MapWorkspaceController controller;
   final MapWorkspaceViewState? view;
-  final VoidCallback onChanged, onClose, onPalette, onInspector, onNavigator;
+  final VoidCallback onChanged, onClose, onInspector;
   final ValueChanged<ProjectMapEntry> onActivate;
   final VoidCallback? onSave, onTest, onElements, onCommands;
-  final bool paletteVisible, inspectorVisible, navigatorVisible;
+  final bool inspectorVisible;
   final bool showUndoRedo;
 
   @override
@@ -45,12 +41,6 @@ class MapWorkspaceToolbar extends StatelessWidget {
       runSpacing: 6,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        if (!navigatorVisible)
-          StudioTool(
-            label: 'Dossiers de cartes',
-            icon: Icons.folder_outlined,
-            onPressed: onNavigator,
-          ),
         if (showUndoRedo)
           StudioTool(
             label: 'Annuler',
@@ -171,12 +161,6 @@ class MapWorkspaceToolbar extends StatelessWidget {
                   view!.mapOnly = !view!.mapOnly;
                   onChanged();
                 },
-        ),
-        StudioTool(
-          label: 'Palette',
-          icon: Icons.view_sidebar_outlined,
-          selected: paletteVisible,
-          onPressed: onPalette,
         ),
         StudioTool(
           label: 'Inspecteur',

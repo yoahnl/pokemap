@@ -4,7 +4,6 @@ import 'dart:typed_data';
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 import 'package:avelune_studio/features/resources/coordination/resource_navigation.dart';
 import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
-import 'package:avelune_studio/presentation/features/resources/decor_editor_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as image;
@@ -45,7 +44,16 @@ void main() {
     expect(copied.tilesetId, source.tilesetId);
     expect(copied.frames, source.frames);
     expect(reopened.tilesets, before.tilesets);
-    expect(find.byType(DecorEditorScreen), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('resource-decor-workshop-unavailable-state')),
+      findsOneWidget,
+    );
+    final draft = host.navigation.decor;
+    expect(draft!.original!.id, copied.id);
+    await host.tap('resource-decor-return-to-catalog');
+    expect(host.navigation.page, ResourcePage.library);
+    expect(host.navigation.decor, same(draft));
+    expect((await host.reopen()).elements, reopened.elements);
   });
 
   testWidgets('used decor removal refuses and leaves definitions untouched', (
@@ -151,16 +159,15 @@ void main() {
     (tester) async {
       final host = await openUwU4ResourceHost(tester);
       final source = host.fixture.controller.project!.elements.single;
-      final edit = find.text('Modifier le décor').last;
-      await tester.ensureVisible(edit);
-      await tester.tap(edit);
-      await pumpIo(tester, frames: 4);
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Nom du décor'),
-        'Arbre à copier',
+      host.navigation.edit(
+        resourceCatalog(host.fixture.controller.project!)
+            .singleWhere((item) => item.element?.id == source.id),
       );
-      await tester.tap(find.text('Retour aux ressources').last);
       await pumpIo(tester, frames: 4);
+      final draft = host.navigation.decor!..name = 'Arbre à copier';
+      await host.tap('resource-decor-return-to-catalog');
+      await pumpIo(tester, frames: 4);
+      expect(host.navigation.decor, same(draft));
       await host.action('element:tree', 'Dupliquer la définition…');
       expect(find.text('Enregistrer et dupliquer'), findsOneWidget);
       await tester.tap(find.text('Annuler').last);

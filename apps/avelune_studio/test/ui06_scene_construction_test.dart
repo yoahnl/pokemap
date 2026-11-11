@@ -1,138 +1,109 @@
 import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
+import 'package:avelune_studio/features/scenes/application/scene_edit_session.dart';
 import 'package:avelune_studio/features/scenes/application/scene_workspace_controller.dart';
 import 'package:avelune_studio/features/scenes/data/local_scene_adapter.dart';
-import 'package:avelune_studio/presentation/features/scenes/scene_builder_page.dart';
-import 'package:avelune_studio/presentation/features/scenes/scene_graph_canvas.dart';
-import 'package:avelune_studio/presentation/features/scenes/scene_canvas_painter.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+
 import 'support/ui06_scene_fixture.dart';
-import 'support/ui06_scene_construction_driver.dart';
 
 void main() {
-  testWidgets(
-    'build both branches through palette, properties and wires then publish and reopen',
-    (tester) async {
-      tester.view.physicalSize = const Size(1800, 1100);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-      final fixture = (await tester.runAsync(Ui06SceneFixture.create))!;
+  test(
+    'canonical scene commands build both branches then publish and reopen',
+    () async {
+      final fixture = await Ui06SceneFixture.create();
       final maps = MapWorkspaceController(fixture.session, fixture.maps);
-      await tester.runAsync(maps.initialize);
-      final changed = ValueNotifier(0);
+      await maps.initialize();
       final controller = SceneWorkspaceController(
         maps,
         LocalSceneAdapter(session: fixture.session, mapAdapter: fixture.maps),
-        changed: () => changed.value++,
+        changed: () {},
       );
-      final views = SceneBuilderViewStore();
       addTearDown(() async {
         controller.dispose();
         maps.dispose();
-        views.dispose();
-        changed.dispose();
         await fixture.dispose();
       });
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: studioTheme(),
-          home: Scaffold(
-            body: ValueListenableBuilder(
-              valueListenable: changed,
-              builder: (_, _, _) => SceneBuilderPage(
-                controller: controller,
-                views: views,
-                onBack: () {},
-              ),
-            ),
-          ),
-        ),
-      );
-      await tester.tap(find.text('Créer une scène'));
-      await tester.pumpAndSettle();
-      await tester.enterText(
-        find.descendant(
-          of: find.byType(AlertDialog),
-          matching: find.byType(TextField),
-        ),
-        'Construite au pointeur',
-      );
-      await tester.pump();
-      await tester.tap(find.text('Créer'));
-      await tester.pumpAndSettle();
-      final session = controller.active!;
+      final session = controller.create(
+        'Rencontre construite par les commandes',
+      )!;
       expect(session.current.graph.nodes, hasLength(2));
-      final state = views.forScene(session.current.id);
-      state.viewport.zoomAt(.75, Offset.zero);
-      state.viewport.translate(-state.viewport.pan + const Offset(10, 10));
-      await tester.pump();
-      final driver = Ui06SceneConstructionDriver(tester, controller, views);
-      final initial = session.current.graph.edges.single;
-      final geometry = SceneCanvasGeometry(session.current);
-      final path = sceneWirePath(
-        state.viewport.worldToLocal(
-          geometry.output(initial.fromNodeId, initial.fromPortId, {}),
-        ),
-        state.viewport.worldToLocal(geometry.input(initial.toNodeId, {})),
-      );
-      final metric = path.computeMetrics().single;
-      await tester.tapAt(
-        driver.origin +
-            metric.getTangentForOffset(metric.length * .5)!.position,
-      );
-      await tester.pump();
-      await driver.tap('Déconnecter');
+      expect(session.disconnect(session.current.graph.edges.single.id), isTrue);
       expect(session.current.graph.edges, isEmpty);
-      await driver.move('node_start', const Offset(20, 200));
-      await driver.move('node_end', const Offset(1220, 400));
-      final welcome = await driver.add(
-        SceneNodeKind.yarnDialogue,
-        const Offset(220, 200),
-        document: Ui06SceneFixture.names['station_welcome'],
-      );
-      final condition = await driver.add(
-        SceneNodeKind.condition,
-        const Offset(460, 200),
-      );
-      await driver.select('Référence', 'Laissez-passer obtenu');
-      await driver.select('Valeur attendue', 'Oui');
-      await driver.tap('Appliquer la condition');
-      final refusal = await driver.add(
-        SceneNodeKind.yarnDialogue,
-        const Offset(710, 440),
-        document: Ui06SceneFixture.names['station_refusal'],
-      );
-      final agreement = await driver.add(
-        SceneNodeKind.yarnDialogue,
-        const Offset(710, 20),
-        document: Ui06SceneFixture.names['station_agreement'],
-      );
-      final action = await driver.add(
-        SceneNodeKind.action,
-        const Offset(960, 20),
-      );
-      final end = await driver.add(SceneNodeKind.end, const Offset(1220, 20));
-      await driver.clear();
-      for (final label in ['Attente', 'Embarquement']) {
-        await driver.tap('Ajouter un résultat');
-        await tester.enterText(
-          find.descendant(
-            of: find.byType(AlertDialog),
-            matching: find.byType(TextField),
-          ),
-          label,
-        );
-        await tester.tap(find.text('Ajouter'));
-        await tester.pumpAndSettle();
+      expect(session.move('node_start', 20, 200), isTrue);
+      expect(session.move('node_end', 1220, 400), isTrue);
+      String dialogue(String id, double x, double y) {
+        final payload = scenePayloadChoices(
+          controller.project,
+          SceneNodeKind.yarnDialogue,
+        )[id]!.$2;
+        return session.addAt(
+          SceneNodeKind.yarnDialogue,
+          title: Ui06SceneFixture.names[id],
+          payload: payload,
+          x: x,
+          y: y,
+        )!;
       }
-      await driver.node('node_end');
-      await driver.select('Résultat public', 'Attente');
-      await driver.node(end);
-      await driver.select('Résultat public', 'Embarquement');
+
+      final welcome = dialogue('station_welcome', 220, 200);
+      final condition = session.addAt(
+        SceneNodeKind.condition,
+        title: 'Condition',
+        x: 460,
+        y: 200,
+      )!;
+      expect(
+        session.mutate(
+          (scene) => updateSceneConditionSource(
+            scene,
+            nodeId: condition,
+            source: SceneConditionSource(
+              sourceKind: SceneConditionSourceKind.fact,
+              sourceId: Ui06SceneFixture.passFactId,
+              operator: SceneConditionOperator.isTrue,
+            ),
+          ).updatedScene,
+        ),
+        isTrue,
+      );
+      final refusal = dialogue('station_refusal', 710, 440);
+      final agreement = dialogue('station_agreement', 710, 20);
+      final action = session.addAt(
+        SceneNodeKind.action,
+        title: 'Autoriser le départ',
+        payload: SceneActionPayload.consequence(
+          SceneConsequence.setFact(
+            factId: Ui06SceneFixture.departureFactId,
+            value: true,
+          ),
+        ),
+        x: 960,
+        y: 20,
+      )!;
+      final end = session.addAt(
+        SceneNodeKind.end,
+        title: 'Fin',
+        x: 1220,
+        y: 20,
+      )!;
+      for (final label in ['Attente', 'Embarquement']) {
+        expect(session.addOutcome(label), isTrue);
+      }
+      for (final target in [('node_end', 'result_1'), (end, 'result_2')]) {
+        expect(
+          session.mutate(
+            (scene) => updateSceneEndPayload(
+              scene,
+              nodeId: target.$1,
+              sceneOutcomeId: target.$2,
+              outcomePolicy: null,
+            ).updatedScene,
+          ),
+          isTrue,
+        );
+      }
       for (final connection in [
         ('node_start', 'completed', welcome),
         (welcome, 'completed', condition),
@@ -142,13 +113,17 @@ void main() {
         (agreement, 'completed', action),
         (action, 'completed', end),
       ]) {
-        await driver.wire(connection.$1, connection.$2, connection.$3);
+        expect(
+          session.connect(connection.$1, connection.$2, connection.$3),
+          isTrue,
+          reason: session.error,
+        );
       }
       expect(session.current.graph.nodes, hasLength(8));
       expect(session.current.graph.edges, hasLength(7));
       expect(
         (session.current.graph.nodes
-                    .firstWhere((n) => n.id == condition)
+                    .firstWhere((node) => node.id == condition)
                     .payload
                 as SceneConditionPayload)
             .conditionSource!
@@ -156,7 +131,9 @@ void main() {
         Ui06SceneFixture.passFactId,
       );
       expect(
-        (session.current.graph.nodes.firstWhere((n) => n.id == action).payload
+        (session.current.graph.nodes
+                    .firstWhere((node) => node.id == action)
+                    .payload
                 as SceneActionPayload)
             .consequence,
         SceneConsequence.setFact(
@@ -164,7 +141,14 @@ void main() {
           value: true,
         ),
       );
-      final plan = buildSceneRuntimePlan(session.current);
+      final expected = session.current;
+      final history = session.undoCount;
+      session.restore(redo: false);
+      expect(session.current.graph.edges, hasLength(6));
+      session.restore(redo: true);
+      expect(session.current, same(expected));
+      expect(session.undoCount, history);
+      final plan = buildSceneRuntimePlan(expected);
       expect(plan.plan, isNotNull, reason: plan.diagnostics.toString());
       for (final choice in ['false', 'true']) {
         final preview = previewSceneRuntimePath(
@@ -184,39 +168,27 @@ void main() {
           choice == 'false' ? 'result_1' : 'result_2',
         );
       }
-      final expected = session.current;
-      debugPrint(
-        'UI06 construction: 8 blocs et 7 fils construits, publication',
-      );
-      final saveButton = find.text('Enregistrer');
-      await tester.ensureVisible(saveButton);
-      await tester.runAsync(() async {
-        await tester.tap(saveButton);
-        for (var frame = 0; controller.busy && frame < 300; frame++) {
-          await Future<void>.delayed(const Duration(milliseconds: 10));
-        }
-      });
+      expect(await controller.save(), isTrue, reason: controller.error);
       expect(
         controller.busy,
         isFalse,
         reason: 'La publication doit produire un reçu.',
       );
-      debugPrint(
-        'UI06 construction: publication terminée, relecture indépendante',
-      );
-      await tester.pumpAndSettle();
       expect(session.error, isNull);
       expect(session.dirty, isFalse);
-      final reopened = (await tester.runAsync(
-        () => LocalMapWorkspaceAdapter().loadProject(fixture.session),
-      ))!;
-      expect(reopened.scenes.firstWhere((s) => s.id == expected.id), expected);
+      final reopened = await LocalMapWorkspaceAdapter().loadProject(
+        fixture.session,
+      );
       expect(
-        reopened.scenes.firstWhere((s) => s.id == Ui06SceneFixture.sceneId),
+        reopened.scenes.firstWhere((scene) => scene.id == expected.id),
+        expected,
+      );
+      expect(
+        reopened.scenes.firstWhere(
+          (scene) => scene.id == Ui06SceneFixture.sceneId,
+        ),
         fixture.scene,
       );
-      expect(tester.takeException(), isNull);
-      await tester.pumpWidget(const SizedBox());
     },
   );
 }

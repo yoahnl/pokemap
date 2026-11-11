@@ -5,7 +5,7 @@ import 'package:map_core/map_core_domain.dart';
 
 import '../../../features/cinematics/application/cinematic_workspace_controller.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
-import '../../shared/widgets/inputs/studio_commit_field.dart';
+import 'cinematic_commit_field.dart';
 import '../../shared/widgets/inputs/studio_select.dart';
 import '../../shared/widgets/inputs/studio_tabs.dart';
 import '../../shared/widgets/inputs/studio_toggle_row.dart';
@@ -14,9 +14,10 @@ import '../../shared/widgets/buttons/studio_tool.dart';
 import '../../shared/widgets/feedback/studio_badge.dart';
 import '../../shared/widgets/feedback/studio_notice.dart';
 import '../../shared/widgets/inputs/studio_choice.dart';
-import 'cinematic_action_palette.dart';
 import 'cinematic_labels.dart';
+
 import 'package:avelune_studio/features/cinematics/application/cinematic_map_model.dart';
+
 import 'cinematic_view_state.dart';
 import '../../../features/cinematics/application/cinematic_actor_labels.dart';
 
@@ -37,8 +38,6 @@ class CinematicInspector extends StatelessWidget {
     required this.model,
     required this.onDialogue,
     required this.onLocate,
-    required this.onAdd,
-    this.previewContent,
   });
   final CinematicWorkspaceController controller;
   final CinematicViewState view;
@@ -46,8 +45,6 @@ class CinematicInspector extends StatelessWidget {
   final VoidCallback changed;
   final ValueChanged<String> onDialogue;
   final Future<String?> Function(String) onLocate;
-  final ValueChanged<CinematicTimelineStepKind> onAdd;
-  final Widget? previewContent;
 
   bool _edit(
     CinematicAsset owner,
@@ -109,20 +106,24 @@ class CinematicInspector extends StatelessWidget {
     final session = controller.active;
     if (session == null) return const SizedBox.shrink();
     final asset = session.asset;
+    view.inputs = controller.inputsFor(asset.id, initial: view.inputs);
     final step = asset.timeline.steps
         .where((s) => s.id == view.stepId)
         .firstOrNull;
+    const tabs = {
+      'properties': 'Propriétés',
+      'actors': 'Acteurs',
+      'document': 'Séquence',
+    };
+    final selectedTab = tabs.containsKey(view.inspectorTab)
+        ? view.inspectorTab
+        : 'properties';
     return StudioPanel(
       compact: true,
       children: [
         StudioTabs(
-          items: const {
-            'properties': 'Propriétés',
-            'actors': 'Acteurs',
-            'document': 'Séquence',
-            'preview': 'Aperçu',
-          },
-          selected: view.inspectorTab,
+          items: tabs,
+          selected: selectedTab,
           onChanged: (tab) {
             FocusManager.instance.primaryFocus?.unfocus();
             FocusManager.instance.applyFocusChangesIfNeeded();
@@ -135,27 +136,19 @@ class CinematicInspector extends StatelessWidget {
           child: SingleChildScrollView(
             child: _spaced([
               if (session.readOnlyReason != null) Text(session.readOnlyReason!),
-              if (view.inspectorTab == 'preview')
-                previewContent ?? const Text('Aperçu en préparation.')
-              else if (view.inspectorTab == 'actors')
+              if (selectedTab == 'actors')
                 ..._actorFields(asset)
-              else if (view.inspectorTab == 'document') ...[
+              else if (selectedTab == 'document') ...[
                 ..._documentFields(asset),
                 ..._sequenceSteps(context, asset),
               ] else if (step == null) ...[
                 const StudioNotice(
                   key: ValueKey('cinematic-no-action-guidance'),
-                  'Aucune action sélectionnée. Sélectionnez une action dans la timeline ou dans l’onglet Séquence pour la régler ici, ou ajoutez-en une avec la palette d’actions ci-dessous. En attendant, voici les réglages de la cinématique.',
+                  'Aucune action sélectionnée. Sélectionnez une action dans la timeline ou dans l’onglet Séquence pour la régler ici. En attendant, voici les réglages de la cinématique.',
                 ),
                 ..._documentFields(asset),
               ] else
                 ..._stepFields(asset, step),
-              const Divider(),
-              Text(
-                'Palette d’actions',
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
-              CinematicActionPalette(onAdd: onAdd),
             ]),
           ),
         ),
@@ -169,7 +162,9 @@ class CinematicInspector extends StatelessWidget {
       tone: StudioTone.info,
       icon: Icons.movie_outlined,
     ),
-    StudioCommitField(
+    CinematicCommitField(
+      inputs: controller.inputsFor(asset.id),
+      changed: changed,
       key: ValueKey('cinematic-title-${asset.id}'),
       label: 'Nom de la cinématique',
       alwaysCommit: true,
@@ -227,7 +222,9 @@ class CinematicInspector extends StatelessWidget {
         onChanged: (value) =>
             _edit(asset, (a) => a.copyWith(allowMobileActorCrossing: value)),
       ),
-    StudioCommitField(
+    CinematicCommitField(
+      inputs: controller.inputsFor(asset.id),
+      changed: changed,
       key: ValueKey('cinematic-notes-${asset.id}'),
       label: 'Notes de mise en scène',
       value: asset.notes ?? '',
@@ -250,9 +247,7 @@ class CinematicInspector extends StatelessWidget {
         style: Theme.of(context).textTheme.titleSmall,
       ),
       if (steps.isEmpty)
-        const Text(
-          'Aucune action : ajoutez-en une avec la palette d’actions ci-dessous.',
-        )
+        const Text('Aucune action dans cette séquence.')
       else
         Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,

@@ -1,8 +1,12 @@
 import 'package:avelune_studio/presentation/features/events/event_workspace_page.dart';
-import 'package:avelune_studio/presentation/features/scenes/scene_builder_page.dart';
+import 'package:avelune_studio/presentation/features/events/event_scene_panel.dart';
+import 'package:avelune_studio/features/events/application/event_simulation_session.dart';
+import 'package:avelune_studio/features/events/application/event_workspace_controller.dart';
 import 'package:flutter/material.dart';
+import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
+
 import '../support/capture_m3_widget.dart';
 import '../support/m2_ui_fixture.dart';
 import '../support/ui08_workspace_harness.dart';
@@ -11,7 +15,7 @@ import '../support/ui06_scene_fixture.dart';
 
 void main() {
   testWidgets(
-    'UI08 complete source conditions scene publication simulation and returns',
+    'UI08 scene association without editor preserves publication and application simulation',
     (tester) async {
       tester.view.physicalSize = const Size(1584, 994);
       tester.view.devicePixelRatio = 1;
@@ -87,21 +91,23 @@ void main() {
       );
       await pumpIo(tester);
       expect(controller.active!.draftOrNull!.sceneId, Ui06SceneFixture.sceneId);
-      await ui08Tap(tester, 'Ouvrir la scène');
-      expect(find.byType(SceneBuilderPage), findsOneWidget);
-      final scene = tester
-          .widget<SceneBuilderPage>(find.byType(SceneBuilderPage))
-          .controller
-          .active!;
-      await tester.drag(
-        find.byKey(const ValueKey('scene-graph-node-drag-target-start')),
-        const Offset(34, 20),
+      final openSceneButton = find.descendant(
+        of: find.byType(EventScenePanel),
+        matching: find.widgetWithText(StudioButton, 'Ouvrir la scène'),
       );
+      expect(openSceneButton, findsOneWidget);
+      final openScene = tester.widget<StudioButton>(openSceneButton);
+      expect(openScene.onPressed, isNull);
+      await tester.tap(openSceneButton);
       await tester.pumpAndSettle();
+      expect(find.byType(EventWorkspacePage), findsOneWidget);
+      expect(controller.activeId, createdId);
+      final sceneOwner = ui08Page(tester).scenes!;
+      expect(sceneOwner.open(Ui06SceneFixture.sceneId), isTrue);
+      final scene = sceneOwner.active!;
+      expect(scene.rename('Rencontre · brouillon conservé'), isTrue);
       final sceneDraft = scene.current;
       expect(scene.dirty, true);
-      await ui08Tap(tester, 'Événements');
-      expect(ui08Page(tester).controller.activeId, createdId);
       expect(controller.dirty, true);
       expect(map.current, same(mapDraft));
       expect(scene.current, same(sceneDraft));
@@ -134,12 +140,27 @@ void main() {
         EventSystemMode.dualRead,
         reason: controller.error,
       );
-      await ui08Tap(tester, 'Simulation');
-      await ui08Select(tester, 'Laissez-passer obtenu', 'Oui');
-      await ui08Tap(tester, 'Simuler');
-      expect(find.text('Cet événement est sélectionné'), findsOneWidget);
-      await captureM3Widget(tester, f.captureKey, '06-simulation-canonique');
-      await ui08Tap(tester, 'Fermer');
+      await controller.flushEdits?.call();
+      await WidgetResourcePort.pending;
+      expect(WidgetResourcePort.pending, isNull);
+      expect(controller.busy, isFalse);
+      expect(
+        await controller.prepareAllMaps(),
+        isTrue,
+        reason: controller.error,
+      );
+      expect(controller.mapsComplete, isTrue);
+      final writesBeforeSimulation = f.events.writes;
+      final simulation = EventSimulationSession(controller, createdId)
+        ..setFactBoolean(Ui06SceneFixture.passFactId, true)
+        ..run();
+      expect(simulation.error, isNull);
+      expect(simulation.report, isNotNull);
+      expect(simulation.report!.status, NarrativeEventSimulationStatus.handled);
+      expect(simulation.report!.handledEventId, createdId);
+      expect(f.events.writes, writesBeforeSimulation);
+      expect(map.current, same(mapDraft));
+      expect(scene.current, same(sceneDraft));
       await ui08Tap(tester, 'Déclencheur');
       await ui08Tap(tester, 'Voir sur la carte');
       expect(find.byType(EventWorkspacePage), findsNothing);

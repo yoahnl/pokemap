@@ -107,7 +107,6 @@ class MapWorkspaceToolStrip extends StatelessWidget {
           ('Peindre', Icons.brush_outlined),
           ('Gomme de tuiles', Icons.auto_fix_normal),
           ('Gomme de décors', Icons.delete_outline),
-          ('Palette complète', Icons.open_in_full),
           ('Gérer les ressources', Icons.grid_view_outlined),
         ])
           if (!exterior || supported(label))

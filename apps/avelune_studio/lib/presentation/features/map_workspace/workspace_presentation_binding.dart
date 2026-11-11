@@ -49,9 +49,7 @@ extension _WorkspacePresentationBinding on _MapWorkspaceScreenState {
       previewSceneId: _presentationOrigin.space == WorkspaceSpace.scene
           ? _presentationOrigin.documentId
           : null,
-      onConsumer: (sceneId, nodeId) async {
-        _navigation.openPresentationConsumer(sceneId, nodeId);
-      },
+      onConsumer: null,
       visuals: visuals,
       onBack: () => unawaited(_returnFromPresentation()),
       backLabel: _presentationOrigin.space == WorkspaceSpace.scene

@@ -21,12 +21,14 @@ extension _WorkspaceCloseActions on WorkspaceWorkflow {
         (pending != null && !publishedModelSource)) {
       return false;
     }
-    if (!_flushDialogueEdit()) return false;
+    if (!_flushDialogueEdit(allowInvalidCinematic: true)) return false;
     if (!await _flushEventEdits()) return false;
     if (controller.saving || busy) return false;
     if (!hasPendingChanges) {
       return true;
     }
+    final cinematicOwner = cinematics?.call();
+    final cinematicDraftGuard = cinematicOwner?.captureDraftGuard();
     closing = true;
     changed();
     try {
@@ -37,6 +39,13 @@ extension _WorkspaceCloseActions on WorkspaceWorkflow {
         return false;
       }
       if (choice == WorkspaceCloseChoice.save) return await _saveOwnedChanges();
+      if (!identical(cinematics?.call(), cinematicOwner) ||
+          cinematicDraftGuard?.call() == false) {
+        controller.error =
+            'Les cinématiques ont changé pendant la confirmation. '
+            'Vérifiez-les puis recommencez.';
+        return false;
+      }
       return choice == WorkspaceCloseChoice.discard;
     } finally {
       closing = false;

@@ -1791,7 +1791,9 @@ Ordre initial strict de RUI-001 à RUI-088. Une parallélisation future exige un
 
 ### 27.4 Contrat de fidélité et rejet
 
-Chaque état requis doit obtenir **au moins 95/100 dans chacun des deux profils** : structure 40, typographie 15, espacements 15, contrôles 15, états 15. Revue par Yoahn ou réviseur distinct de l’implémenteur. Aucun score moyen ne compense un écran raté.
+Chaque état d’un écran reconstruit doit obtenir **au moins 95/100 dans chaque profil applicable** : structure 40, typographie 15, espacements 15, contrôles 15, états 15. Les états communs restent exigés en 2D et en 3D ; les deux états de projet actif RUI-013 s’appliquent chacun à leur profil. Revue par Yoahn ou réviseur distinct de l’implémenteur. Aucun score moyen ne compense un écran raté.
+
+Les lots de retrait RUI-005 à RUI-010 exigent les preuves techniques, les comportements protégés et les captures natives de l’hôte neutre définis dans le reçu ; ils ne reçoivent pas de score de fidélité à une interface encore absente.
 
 Seuils : déplacement de structure <=8 px logiques ; erreur de largeur de panneau <=2 % ; différence de taille de texte <=1 px logique ; différence d’espacement <=4 px logiques. Une adaptation intentionnelle modifie d’abord une cible approuvée.
 
@@ -1827,7 +1829,8 @@ Seuils : déplacement de structure <=8 px logiques ; erreur de largeur de pannea
 6. Un import JSON dans l’artefact est une consultation/brouillon en mémoire ; exporter le JSON ne met pas automatiquement le dépôt à jour.
 7. Conserver les essais rejetés et le motif ; ne mettre accepted qu’après revue et contrôle de toutes les preuves.
 8. Après nettoyage QA, seules les copies durables de proofs font foi ; aucun lien vers un temporaire supprimé.
-9. Si un changement de code ou de référence rend une preuve obsolète : update_plan.py invalidate --lot ID --reason MOTIF --emit-patch ; appliquer, puis régénérer. Les lots dépendants déjà exécutés sont rouverts.
+9. Pour changer volontairement les dépendances, états, profils, critères ou types de preuve, créer une révision explicite du contrat dans le plan et le validateur, faire revoir sa nouvelle empreinte et réévaluer les tentatives concernées.
+10. Si un changement de code ou de référence rend une preuve obsolète : update_plan.py invalidate --lot ID --reason MOTIF --emit-patch ; appliquer, puis régénérer. Les lots dépendants déjà exécutés sont rouverts.
 
 ~~~bash
 python3 documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes/update_plan.py validate
@@ -1842,7 +1845,7 @@ Le vérificateur contrôle empreintes, dépendances, scores, mesures et complét
 
 ### 27.6 Index des lots — détails complets dans l’artefact et le JSON
 
-**Avancement vérifié :** 2026-11-09T23:43:44.898789+00:00 ; G0 non accepté.
+**Avancement vérifié :** 2026-11-11T09:49:01Z ; G0 non accepté.
 
 - Caractérisations avant extraction (9 fichiers) : 62 tests, sortie 0.
 - Hôte neutre, lifecycle, updates, MCP, fermeture, édition injectée 2D/3D et contrôleur G0 initial : 37 tests, sortie 0.
@@ -1864,9 +1867,29 @@ Le vérificateur contrôle empreintes, dépendances, scores, mesures et complét
 - Navigation des sources d’événement sans ancien panneau : 6 tests, sortie 0.
 - Conteneurs Ressources : véritables publications, refus et relecture : 4 tests, sortie 0.
 - Terrain : 11 cas de viewport/parser/scratch puis publication canonique isolée corrigée : 12 tests, sortie 0.
+- Réglages : récupération ciblée, saisies invalides et gardes de publication : 31 tests, sortie 0.
+- Réglages visuels : propriétaire, aperçu et coûts de travail : 12 tests, sortie 0.
+- Cinématiques : saisies, rechargement, publication et aperçus : 34 tests, sortie 0.
+- Cinématiques et réglages : régressions intégrées et fermeture : 58 tests, sortie 0.
+- Cinématiques et ordre des décors : extraction, saisies et régressions intégrées : 81 tests, sortie 0.
+- Décors mobiles, ordre et cinématiques : régressions intégrées : 108 tests, sortie 0.
+- Géométrie, décors et commit Cinématiques : régressions intégrées : 137 tests, sortie 0.
+- Carte, passages et aperçu Cinématiques : régressions intégrées : 168 tests, sortie 0.
+- Marqueurs : présentation, affichage de soin et rencontres interactives : 15 tests, sortie 0.
+- Cinématiques, carte, passages, marqueurs et règles d’objets : gel intégré : 239 tests, sortie 0.
+- Métadonnées et règles d’objets : plan, application et relecture : 9 tests, sortie 0.
+- Retrait des dialogues de carte et palette compacte : catalogue, scènes, sauvegarde et récupération : 37 tests, sortie 0.
+- Cinématiques, carte et passages : régressions intégrées après retrait : 313 tests, sortie 0.
+- Cinématiques : retrait de l’onglet Aperçu vide et conservation des saisies : 18 tests, sortie 0.
+- Contrat de preuves : profils applicables et intégrité des exigences : 26 tests, sortie 0.
 
-**Limites :** G0 non accepté : widgets historiques, tests et consommateurs en cours de retrait/migration.; Aucun lot accepté ; prérequis T00 non acceptés.; Build Release isolé et hôte neutre observé avec moteur QA corrigé ; ne prouve pas les derniers viewports ni des parcours natifs complets 2D/3D.; MCP natif non connecté dans le bundle isolé (distribution.manifest_unavailable) ; tests lifecycle MCP distincts réussis.; Aucune écriture Git, publication ni modification de mécanique runtime réalisée par T01.; Hôte vide et suivi documentaire capturés ; douze captures documentent deux candidates de maquette locale sans valider les cibles. Captures et mesures natives par état/profil restent à produire, sans score inventé..
+**Limites :** G0 non accepté : widgets historiques, tests et consommateurs en cours de retrait/migration.; Aucun lot accepté ; prérequis T00 non acceptés.; Build Release isolé et hôte neutre observé avec moteur QA corrigé ; ne prouve pas les derniers viewports ni des parcours natifs complets 2D/3D.; MCP natif non connecté dans le bundle isolé (distribution.manifest_unavailable) ; tests lifecycle MCP distincts réussis.; Aucune écriture Git, publication ni modification de mécanique runtime réalisée par T01.; Cinquante-huit entrées marquées retirées possèdent encore une décision non admise par le validateur G0 ; elles nécessitent un examen des propriétaires et consommateurs avant reclassement.; Hôte vide et suivi documentaire capturés ; douze captures documentent deux candidates de maquette locale sans valider les cibles. Captures et mesures natives par état/profil restent à produire, sans score inventé.; La page Cinématiques reste présente ; la fermeture permet un abandon global explicite, mais la récupération ciblée avant export hors de cette page reste à réaliser avant son retrait..
 
+- [T01 : classement contrôlé de 22 entrées de l’inventaire](proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-inventory-22.json)
+- [T00/T01 : contrat de preuves et retrait du reliquat Aperçu](proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-preview-contract.json)
+- [T01 : 313 tests intégrés, Passages et palette Cinématiques](proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-integrated-313.json)
+- [Retrait des dialogues de carte et du montage compact Cinématiques](proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-map-dialogs.json)
+- [Gel intégré T01 : 239 tests Flutter et neuf tests canoniques](proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-integrated-239.json)
 - [after-extraction-before-workflow.log](proofs/t01-execution/after-extraction-before-workflow.log)
 - [artefact-t01-progress.jpg](proofs/t01-execution/artefact-t01-progress.jpg)
 - [before-characterization.log](proofs/t01-execution/before-characterization.log)
@@ -1928,6 +1951,17 @@ Le vérificateur contrôle empreintes, dépendances, scores, mesures et complét
 - [Contrôle ciblé avant commit T01 — statut partiel](proofs/t01-execution/precommit-check-20261110.json)
 - [Validation consolidée T00/T01 — G0 et parité complète en attente](proofs/t01-execution/retirement-contract-validation.json)
 - [Index des preuves ciblées et des limites de la reprise](proofs/t01-execution/resume-20261110/index.json)
+- [Historique : réglages et cinématiques avant les changements ultérieurs](proofs/t01-execution/resume-20261110/t01-recovery-guards-20261111.json)
+- [Historique : retrait ordre des décors et garde des saisies cinématiques](proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-order-cinematics.json)
+- [Historique : retrait du panneau de décor mobile et 108 tests intégrés](proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-moving-prop.json)
+- [Historique : retrait Géométrie, commit Cinématiques et 137 tests intégrés](proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-geometry-cinematic-commit.json)
+- [Historique : sous-panneaux Passages, aperçu Cinématiques et 168 tests intégrés](proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-warp-cinematic-preview.json)
+- [Checkpoint ciblé : retrait de trois sous-panneaux de marqueurs](proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-markers.json)
+- [T00 : couverture candidate des références RUI-011 à RUI-016](reference-coverage-rui-011-016.json)
+- [T00 : proposition MagicPath de chargement 2D et 3D, non approuvée](proofs/t00-candidates/471199137765941248/manifest.json)
+- [Candidate MagicPath : chargement 2D](proofs/t00-candidates/471199137765941248/twoD-loading-native-preview.jpg)
+- [Candidate MagicPath : chargement 3D schématique](proofs/t00-candidates/471199137765941248/threeD-loading-native-preview.jpg)
+- [Diagnostic G0 : UI temporaires recensées, retrait incomplet](proofs/t01-execution/resume-20261110/t01-g0-after-recovery-inventory-20261111.json)
 - [Candidate locale : règles de carte 2D et donjon](proofs/t00-candidates/470897188139069440/twoD-rules-dungeon.png)
 - [Candidate locale : règles de carte profil 3D et donjon](proofs/t00-candidates/470897188139069440/threeD-rules-dungeon.png)
 - [Candidate locale : mouvements avancés 2D](proofs/t00-candidates/470897188139069440/twoD-advanced-movement.png)
@@ -1972,7 +2006,7 @@ Le vérificateur contrôle empreintes, dépendances, scores, mesures et complét
 
 [Ouvrir le lot complet : fichiers, étapes, tests, références, états et critères](index.html#plan-RUI-001). 5 étapes ; 2 états requis par profil. Le JSON canonique conserve tous les détails ; cet index évite de dupliquer le plan intégral dans un Markdown surdimensionné.
 
-**Avancement :** 993 entrées classées au niveau préparation, dont les 992 empreintes historiques vérifiées. Le classement ne prouve pas encore toutes les responsabilités ; destinations et consommateurs à clôturer par les ledgers de retrait.
+**Avancement :** 993 entrées classées lors de la préparation, dont les 992 empreintes historiques vérifiées ; trois UI temporaires introduites ensuite sont recensées séparément, soit 996 entrées. Le classement ne prouve pas encore toutes les responsabilités ; destinations et consommateurs à clôturer par les ledgers de retrait.
 
 <a id="rui-002"></a>
 #### RUI-002 — Caractériser et protéger le fonctionnel existant
@@ -1987,7 +2021,7 @@ Le vérificateur contrôle empreintes, dépendances, scores, mesures et complét
 
 [Ouvrir le lot complet : fichiers, étapes, tests, références, états et critères](index.html#plan-RUI-002). 5 étapes ; 2 états requis par profil. Le JSON canonique conserve tous les détails ; cet index évite de dupliquer le plan intégral dans un Markdown surdimensionné.
 
-**Avancement :** Témoins QA : rendu 2D logiciel et 3D debug intérieur ; profils et exports localTest 2D/3D vérifiés. Les deux exports ont été installés, lancés, sauvegardés puis repris après redémarrage du processus Player headless. Les captures ne prouvent pas les écrans Player ni le rendu GPU ; le build 3D Release échoue encore dans l’AOT Flutter.
+**Avancement :** Témoins QA : rendu 2D logiciel et 3D debug intérieur ; profils et exports localTest 2D/3D vérifiés. Les deux exports ont été installés, lancés, sauvegardés puis repris après redémarrage du processus Player headless. Les captures ne prouvent pas les écrans Player ni le rendu GPU ; le build 3D Release échoue encore dans l’AOT Flutter. Trois parcours techniques 2D passent sur flutter_tester, dont un runtime simulé ; ils ne valident pas un Player rendu. Le crash AOT est reproduit avec les Dart des Flutter stable et bêta publiés et ne se reproduit pas avec Dart 3.15 bêta isolé ; aucun host Release compatible corrigé n’a été validé.
 
 <a id="rui-003"></a>
 #### RUI-003 — Compléter et approuver les cibles visuelles 2D et 3D
@@ -2002,7 +2036,7 @@ Le vérificateur contrôle empreintes, dépendances, scores, mesures et complét
 
 [Ouvrir le lot complet : fichiers, étapes, tests, références, états et critères](index.html#plan-RUI-003). 6 étapes ; 2 états requis par profil. Le JSON canonique conserve tous les détails ; cet index évite de dupliquer le plan intégral dans un Markdown surdimensionné.
 
-**Avancement :** 611 sources historiques recensées et aucune liaison approuvée parmi les 782 couples non documentaires du registre. Les candidates Carte et Session restent non approuvées. Une candidate Espèces RUI-075 ajoute 24 captures locales et 91 assertions interactives ; données fictives, 3D schématique, sans intégration native. Les références état/profil restent à compléter et approuver avant reconstruction.
+**Avancement :** 611 sources historiques recensées et aucune liaison approuvée parmi les 754 couples visuels applicables du registre ; les deux combinaisons impossibles de projet actif/profil opposé sont exclues, sans réduire les états communs. Les 26 couples techniques de retrait ont leur propre contrat de preuve. Pour Session RUI-019 et Espèces RUI-075, 18 correspondances candidates état/profil ont été examinées et documentées ; aucune n’est approuvée. La couverture des 19 états RUI-011–016 est inventoriée et deux variantes candidates du chargement S03 sont disponibles. Les autres références restent à compléter ; les vues 3D candidates sont schématiques et ne prouvent pas le rendu natif.
 
 <a id="rui-004"></a>
 #### RUI-004 — Activer le registre des lots et des preuves
@@ -2017,7 +2051,7 @@ Le vérificateur contrôle empreintes, dépendances, scores, mesures et complét
 
 [Ouvrir le lot complet : fichiers, étapes, tests, références, états et critères](index.html#plan-RUI-004). 6 étapes ; 2 états requis par profil. Le JSON canonique conserve tous les détails ; cet index évite de dupliquer le plan intégral dans un Markdown surdimensionné.
 
-**Avancement :** Correctif du vérificateur : empreintes fournies contrôlées aussi pour les lots documentaires ; codeFiles obligatoire pour evidence_framework. Dix tests de régression réussis avec revue indépendante du correctif ; pas de validation native revendiquée. Le contrôleur de reçus ne remplace pas le contrôle G0 réel.
+**Avancement :** Le vérificateur distingue preuves techniques et fidélité visuelle, applique les profils réellement possibles de RUI-013 et ancre une révision des dépendances, états, profils, critères et niveaux de preuve. Les tentatives de suppression silencieuse d’un état ou d’un préalable sont refusées ; le suivi reste modifiable. Vingt-six tests du vérificateur passent et une revue indépendante a confirmé ces garde-fous. Le contrôleur de reçus ne remplace ni le contrôle G0 réel ni la revue visuelle.
 
 ### T01 — Retrait intégral de l’ancienne UI
 
@@ -2036,7 +2070,7 @@ Le vérificateur contrôle empreintes, dépendances, scores, mesures et complét
 
 [Ouvrir le lot complet : fichiers, étapes, tests, références, états et critères](index.html#plan-RUI-005). 5 étapes ; 2 états requis par profil. Le JSON canonique conserve tous les détails ; cet index évite de dupliquer le plan intégral dans un Markdown surdimensionné.
 
-**Avancement :** Extractions ciblées vérifiées pour Histoire, imports Pokémon, Ambiance et graphe Dialogues. Un défaut du catalogue événement partiel reste en correction : le premier correctif passe 16 cas mais doit préserver les incompatibilités 2D/3D et être rejoué. Intégration globale et G0 restent ouverts ; travail en pause à la demande de Yoahn.
+**Avancement :** Reprise T00/T01 : les extractions et retraits partiels se poursuivent avec revues indépendantes. La barre de document, la palette et l’onglet Aperçu vide de l’inspecteur Cinématiques sont retirés ; l’aperçu central et les opérations restent disponibles. Les dialogues de déplacements et d’objets ainsi que l’inspecteur de cible Passages sont retirés ; le catalogue reste disponible aux scènes et le passage sélectionné garde un slot neutre. La sauvegarde d’une carte sale et la publication de métadonnées restent deux opérations distinctes. Une passe intégrée de 313 tests Flutter précède le dernier retrait ; 18 tests ciblés passent ensuite. Ces groupes se recoupent et ne prouvent ni recette native ni acceptation globale. La récupération ciblée Cinématiques hors de l’ancienne page reste à réaliser avant son retrait.
 
 <a id="rui-006"></a>
 #### RUI-006 — Détacher toutes les routes de l’ancien Studio
@@ -2066,7 +2100,7 @@ Le vérificateur contrôle empreintes, dépendances, scores, mesures et complét
 
 [Ouvrir le lot complet : fichiers, étapes, tests, références, états et critères](index.html#plan-RUI-007). 5 étapes ; 2 états requis par profil. Le JSON canonique conserve tous les détails ; cet index évite de dupliquer le plan intégral dans un Markdown surdimensionné.
 
-**Avancement :** Sessions et surfaces techniques 2D/3D, régression26 verte et navigation sources6 verte. Catalogue16 interrompu honnêtement pour diagnostic ; compositions Carte et consommateurs mixtes encore à retirer.
+**Avancement :** Sessions et surfaces techniques 2D/3D, régression26 verte et navigation sources6 verte. Panneaux caméra et animation des décors retirés ; deux groupes QA de 10 tests couvrent les commandes conservées. Une fermeture de 10 panneaux de construction passe 19 tests host et 64 tests commandes/viewports après correction de trois échecs initiaux. Les panneaux de plateformes sur trajet et d’ascenseur ont été retirés : deux témoins inspecteur, les régressions des sessions et 11 tests de contrats et lecture runtime passent en QA sélective. Intégration globale et G0 restent ouverts. Les compositions Carte et Décors suivantes ont été retirées ; leurs groupes ciblés passent 24 tests et 101 régressions en copie QA sélective. Neuf compositions Palette/atlas sont retirées ; les quatre configurations de continuité et un groupe de 80 tests passent en QA sélective. Les parcours migrés passent sur flutter_tester ; l’exécution macOS native reste ouverte.
 
 <a id="rui-008"></a>
 #### RUI-008 — Supprimer les anciennes UI globales et spécialisées
@@ -2081,7 +2115,7 @@ Le vérificateur contrôle empreintes, dépendances, scores, mesures et complét
 
 [Ouvrir le lot complet : fichiers, étapes, tests, références, états et critères](index.html#plan-RUI-008). 5 étapes ; 2 états requis par profil. Le JSON canonique conserve tous les détails ; cet index évite de dupliquer le plan intégral dans un Markdown surdimensionné.
 
-**Avancement :** Retraits ciblés Histoire, imports Pokémon, Ambiance et graphe Dialogues accompagnés de tests et revues. Le lot médias Pokémon est retiré mais ses tests centraux restent à exécuter. De nombreuses compositions restent à traiter ; aucun atelier reconstruit.
+**Avancement :** Retraits ciblés Histoire, imports Pokémon, Ambiance et graphe Dialogues accompagnés de tests et revues. Médias Pokémon : groupes QA de 18, 9 et 24 tests. La fermeture de neuf compositions Bordures passe 69 tests QA ; un autre groupe de 32 vérifie navigation, brouillons et Bordures compactes. Les trois dernières UI partagées de Scènes et les panneaux collision/pente des modèles sont retirés ; 10 tests ciblés Scènes et un groupe transversal de 89 régressions passent, ainsi que 5 tests de l’atelier Modèles. Les conditions quotidiennes existantes et les brouillons restent conservés ; leur ancienne édition est temporairement indisponible. Copie QA sélective, sans validation native globale. Les ateliers Décors retirés conservent leurs owners ; leur ancienne édition reste temporairement indisponible. Deux compositions de transfert Packs sont retirées ; 70 tests ciblés passent, incluant les gardes de publication et de fermeture. Les transferts restent temporairement indisponibles dans cette UI. Les quatre compositions Environnements sont retirées ; les 46 tests de portée, drafts, sauvegarde et régressions ciblées passent en copie QA sélective. Une ancienne composition WorkingCatalog est retirée ; son garde est exercé avec ses owners dans un groupe commun de 106 tests. Une reprise UI limitée des transferts Packs est en cours de validation après revue indépendante. Les anciens réglages retirés disposent d’une récupération temporaire ciblée ; 31 tests de continuité et de publication passent sur le checkout courant. Aucun parcours natif ni lot accepté.
 
 <a id="rui-009"></a>
 #### RUI-009 — Retirer les primitives et ponts UI historiques de Studio
@@ -2111,7 +2145,7 @@ Le vérificateur contrôle empreintes, dépendances, scores, mesures et complét
 
 [Ouvrir le lot complet : fichiers, étapes, tests, références, états et critères](index.html#plan-RUI-010). 5 étapes ; 3 états requis par profil. Le JSON canonique conserve tous les détails ; cet index évite de dupliquer le plan intégral dans un Markdown surdimensionné.
 
-**Avancement :** G0 non accepté : inventaire et preuves partiels, nombreuses compositions encore présentes. Les deux échecs de la suite JSONL globale ont été reproduits et diagnostiqués statiquement comme préexistants, sans rerun de HEAD. Aucun lot ni score visuel accepté.
+**Avancement :** G0 non accepté : le diagnostic statique du 11 novembre signale 329 fichiers de présentation recensés encore présents, 687 références et 242 symboles historiques ; ces catégories se recoupent et ne sont pas un nombre de fonctionnalités cassées ni un pourcentage. Après revue et normalisation de 22 entrées, 58 entrées déjà marquées retirées dans l’inventaire portent encore une décision hors des trois valeurs acceptées pour G0 et doivent être réexaminées. Les UI de récupération et de saisie temporaires restent recensées à retirer, sans exception. Aucun lot ni score visuel accepté.
 
 ### T02 — Nouveau design system et nouveau shell
 
@@ -2154,7 +2188,7 @@ Le vérificateur contrôle empreintes, dépendances, scores, mesures et complét
 
 **3D :** Le shell porte le profil 3D réel sans modifier un autre projet.
 
-[Ouvrir le lot complet : fichiers, étapes, tests, références, états et critères](index.html#plan-RUI-013). 5 étapes ; 4 états requis par profil. Le JSON canonique conserve tous les détails ; cet index évite de dupliquer le plan intégral dans un Markdown surdimensionné.
+[Ouvrir le lot complet : fichiers, étapes, tests, références, états et critères](index.html#plan-RUI-013). 5 étapes ; 3 états requis en 2D, 3 en 3D. Le JSON canonique conserve tous les détails ; cet index évite de dupliquer le plan intégral dans un Markdown surdimensionné.
 
 <a id="rui-014"></a>
 #### RUI-014 — Reconstruire le cadre de carte et les panneaux
@@ -3185,7 +3219,7 @@ Départ sur main, HEAD 06fd484d3fbe762f33380e05a21629cb6dee23fc, arbre modifié 
 
 **Vérifications de préparation :** Historique de préparation initiale : 88 lots détaillés dans 15 thématiques ; 88 lots planifiés, zéro lot natif accepté.; Historique de préparation initiale : 611 références locales présentes et empreintes vérifiées ; aucune référence de lot inconnue.; Historique de préparation initiale : Inventaire initial de 992 fichiers, à classer avant retrait ; aucun fichier applicatif supprimé.; Historique de préparation initiale : 16 contrôles du vérificateur réussis : refus de preuve manquante, score 94, auto-revue, écart critique, métrique excessive, code périmé, commande en échec.; Historique de préparation initiale : record émet un patch sans modifier le canonique ; invalidation en cascade vérifiée sur fixture sans résultat natif revendiqué.; Historique de préparation initiale : 17 contrôles d’interactions DOM et 3 contrôles de lien direct réussis ; aucune erreur JavaScript.; Historique de préparation initiale : Rendus Markdown/HTML déterministes et synchronisés au JSON canonique ; contrôle de taille du Markdown réussi.; Historique de préparation initiale : Markdown hygiene : un nouveau Markdown canonique, contrôle réussi avec POKEMAP_MARKDOWN_MAX_NEW=1 ; index sous la limite de 262144 octets..
 
-**Revue native indépendante :** Revues indépendantes de source réalisées entre sous-agents : extractions, frontières Player, surfaces techniques et hôte neutre. Recette native par état/profil et G0 global non acceptés.. **Inspection visuelle du nouvel artefact :** Artefact inspecté dans le navigateur local : filtrage T01 affiche six lots, G0 En cours/aucune acceptation et note de réalisation RUI-005 visible ; capture durable artefact-t01-progress.jpg. Vérification documentaire, pas acceptation des nouvelles maquettes..
+**Revue native indépendante :** Revues indépendantes de source réalisées entre sous-agents : extractions, frontières Player, surfaces techniques et hôte neutre. Recette native par état/profil et G0 global non acceptés.. **Inspection visuelle du nouvel artefact :** Inspection historique du registre : filtrage T01, G0 et note RUI-005 visibles dans artefact-t01-progress.jpg ; ne couvre pas les modifications ultérieures. L’ouverture récente de l’artefact local a été refusée par la politique du navigateur intégré : synchronisation et contrôles structurels seulement, sans nouvelle inspection visuelle. Aucune acceptation des nouvelles maquettes..
 
 **Adaptation de writing-plans :** fichiers, séquence, cas et contrats de preuve sont détaillés ; le plan ne préécrit pas des milliers de lignes de patches futurs sur des interfaces à retirer. Le code et ses tests sont ajoutés au lot concerné. Aucun commit/worktree n’est imposé par le skill.
 

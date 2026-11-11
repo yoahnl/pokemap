@@ -15,13 +15,13 @@ import '../../shared/widgets/inputs/studio_choice.dart';
 import 'map_marker_inspector.dart';
 import 'map_trigger_inspector.dart';
 import 'map_zone_inspector.dart';
-import 'map_warp_inspector.dart';
 import 'map_decor_inspector_tabs.dart';
 import 'map_multi_selection_inspector.dart';
 import 'map_workspace_view_state.dart';
+
 import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
+
 import 'map_connection_panel.dart';
-import 'map_terrain_inspector.dart';
 
 class MapSelectionInspector extends StatelessWidget {
   const MapSelectionInspector({
@@ -88,8 +88,7 @@ class MapSelectionInspector extends StatelessWidget {
     EditableMapDocument document, {
     bool visualOnly = false,
   }) {
-    if (!visualOnly &&
-        view.selectedDecorIds(document.current.id).length > 1) {
+    if (!visualOnly && view.selectedDecorIds(document.current.id).length > 1) {
       return StudioSidebar(
         width: width,
         child: MapMultiSelectionInspector(
@@ -120,14 +119,12 @@ class MapSelectionInspector extends StatelessWidget {
     if (view.tool == StudioMapTool.terrain ||
         (view.tool == StudioMapTool.erase &&
             (view.terrain != null || document.current.spatialScene != null))) {
-      return MapTerrainInspector(
-        key: ObjectKey(document),
-        document: document,
-        project: project,
-        view: view,
-        visuals: visuals,
-        onChanged: onChanged,
+      return StudioSidebar(
         width: width,
+        child: const Text(
+          'Interface Construction retirée — reconstruction en attente.',
+          key: ValueKey('map-construction-retired'),
+        ),
       );
     }
     final commands = CharacterEditingCommands(document, project);
@@ -279,22 +276,8 @@ class MapSelectionInspector extends StatelessWidget {
                     ),
                   )
                 : warp != null
-                ? StudioSidebar(
-                    width: width,
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(12),
-                      child: MapWarpInspector(
-                        document: document,
-                        project: project,
-                        warp: warp,
-                        onChanged: onChanged,
-                        onDeleted: () {
-                          view.clearSelection(document);
-                          onChanged();
-                        },
-                        onOpenDestination: onOpenMap,
-                      ),
-                    ),
+                ? const SizedBox.shrink(
+                    key: ValueKey('map-warp-inspector-retired'),
                   )
                 : view.paletteTab == 'Passages' &&
                       (view.tool == StudioMapTool.select ||

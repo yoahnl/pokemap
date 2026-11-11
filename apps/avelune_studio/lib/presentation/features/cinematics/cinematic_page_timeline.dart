@@ -33,7 +33,6 @@ extension _CinematicPageTimeline on _CinematicWorkspacePageState {
           view: state,
           transport: controller.transport,
           changed: refresh,
-          onPlay: play,
           beforeSelection: flush,
           onSelect: (id) {
             if (!flush()) return;

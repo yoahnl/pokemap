@@ -174,6 +174,15 @@ NarrativeEventProjectCatalog buildNarrativeEventProjectCatalog({
     );
     if (sourceStatus != NarrativeEventProjectResolutionStatus.found) {
       valid = false;
+      final sourceDimensionCompatible = switch (definition.source.kind) {
+        NarrativeEventSourceKind.modelInteract =>
+          project.settings.dimension == ProjectDimension.threeD,
+        NarrativeEventSourceKind.entityBump ||
+        NarrativeEventSourceKind.entityAutorun ||
+        NarrativeEventSourceKind.triggerBump =>
+          project.settings.dimension == ProjectDimension.twoD,
+        _ => true,
+      };
       _recordEventIssue(
         diagnostics: diagnostics,
         code: switch (sourceStatus) {
@@ -190,6 +199,7 @@ NarrativeEventProjectCatalog buildNarrativeEventProjectCatalog({
         eventId: record.id,
         suffix: 'source',
         severity: !input.proposed &&
+                sourceDimensionCompatible &&
                 sourceStatus != NarrativeEventProjectResolutionStatus.ambiguous &&
                 unloadedMapIds.contains(_sourceMapId(definition.source))
             ? NarrativeEventProjectDiagnosticSeverity.warning

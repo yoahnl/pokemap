@@ -3,6 +3,9 @@ import 'dart:io';
 
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_border_drawing_draft.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_border_editing_commands.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/map_resource_placement.dart';
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 import 'package:avelune_studio/platform/rendering/viewports/map_editing_viewport_2d.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -15,13 +18,13 @@ import '../support/map_host_fixture.dart';
 import '../support/border_catalog_fixture.dart';
 
 void main() {
-  testWidgets('native cardinal border draws an angle and saves without rotating sprites', (tester) async {
+  testWidgets('canonical border preparation and canvas drawing preserve cardinal sprites and disk persistence', (tester) async {
     final fixture = await _openWithBorder(tester, nativeOrientations: true);
     final undoBefore = fixture.document.undoCount;
     await tester.ensureVisible(find.text('Bordures'));
     await tester.tap(find.text('Bordures'));
     await pumpIo(tester, frames: 4);
-    await _chooseModel(tester);
+    await _chooseModel(tester, fixture);
     await fixture.tapCell(10, 8);
     await fixture.tapCell(13, 8);
     await fixture.tapCell(13, 11);
@@ -37,8 +40,11 @@ void main() {
     expect(placements.map((p) => p.transform),
         everyElement(BorderSpriteTransform(quarterTurns: 0, flipX: false)));
     expect(fixture.document.undoCount, undoBefore + 1);
-    await tester.ensureVisible(find.byKey(const ValueKey('border-layer-foreground-button')));
-    await tester.tap(find.byKey(const ValueKey('border-layer-foreground-button')));
+    MapBorderEditingCommands(fixture.document, fixture.maps.project!).setForeground(
+      layerId: fixture.document.current.layers.whereType<BorderLayer>().single.id,
+      renderInForeground: true,
+    );
+    fixture.maps.notify();
     await pumpIo(tester, frames: 4);
     expect(fixture.document.current.layers.whereType<BorderLayer>().single.renderInForeground, isTrue);
     expect(fixture.document.undoCount, undoBefore + 2);
@@ -61,7 +67,7 @@ void main() {
     expect(reopened.map.layers.whereType<BorderLayer>().single.renderInForeground, isTrue);
   });
 
-  testWidgets('Bordures explains when this project has no published model', (
+  testWidgets('an empty border catalogue refuses canvas tracing without changing the document', (
     tester,
   ) async {
     final fixture = await MapHostFixture.open(tester);
@@ -69,14 +75,21 @@ void main() {
     await tester.tap(find.text('Bordures'));
     await pumpIo(tester, frames: 4);
 
-    expect(
-      find.textContaining('Aucun modèle de bordure linéaire'),
-      findsOneWidget,
-    );
+    final before = fixture.document.current;
+    final history = fixture.document.undoCount;
+    expect(MapBorderEditingCommands.publishedLines(fixture.maps.project!), isEmpty);
+    await fixture.tapCell(10, 8);
+    final view = tester.widget<MapEditingViewport2D>(
+      find.byType(MapEditingViewport2D),
+    ).view;
+    expect(view.borderDraft, isNull);
+    expect(fixture.document.error, contains('Choisissez une bordure publiée'));
+    expect(fixture.document.current, same(before));
+    expect(fixture.document.undoCount, history);
     expect(fixture.document.dirty, isFalse);
   });
 
-  testWidgets('a previewed angled border finishes in one undoable save', (
+  testWidgets('canonical border preparation and canvas preview finish in one undoable save', (
     tester,
   ) async {
     final fixture = await _openWithBorder(tester);
@@ -86,11 +99,7 @@ void main() {
     await tester.ensureVisible(find.text('Bordures'));
     await tester.tap(find.text('Bordures'));
     await pumpIo(tester, frames: 4);
-    await tester.tap(find.byKey(const ValueKey('border-model-picker')));
-    await pumpIo(tester, frames: 2);
-    expect(find.text('Muret de test'), findsWidgets);
-    await tester.tap(find.text('Muret de test').last);
-    await pumpIo(tester, frames: 2);
+    await _chooseModel(tester, fixture);
     await fixture.tapCell(10, 8);
     final pointer = TestPointer(42, PointerDeviceKind.mouse);
     await tester.sendEventToBinding(pointer.hover(fixture.cellAt(13, 8)));
@@ -113,7 +122,7 @@ void main() {
       2,
       reason: '${view.borderDraft?.anchors} · ${fixture.document.error}',
     );
-    expect(find.textContaining('2 points'), findsOneWidget);
+    expect(view.borderDraft!.canFinish, isTrue);
 
     await fixture.tapCell(13, 11);
     await fixture.key(LogicalKeyboardKey.enter);
@@ -146,7 +155,7 @@ void main() {
     expect(saved.content.features.single, feature);
   });
 
-  testWidgets('cancelling a trace leaves the map and history untouched', (
+  testWidgets('Escape preserves the same draft then canonical reselection discards it without writes', (
     tester,
   ) async {
     final fixture = await _openWithBorder(tester);
@@ -155,17 +164,27 @@ void main() {
     await tester.ensureVisible(find.text('Bordures'));
     await tester.tap(find.text('Bordures'));
     await pumpIo(tester, frames: 4);
-    await _chooseModel(tester);
+    await _chooseModel(tester, fixture);
     await fixture.tapCell(10, 8);
     await fixture.tapCell(13, 8);
-    await tester.tap(find.text('Annuler le tracé'));
-    await pumpIo(tester, frames: 3);
-
     final view = tester
         .widget<MapEditingViewport2D>(find.byType(MapEditingViewport2D))
         .view;
+    final draft = view.borderDraft;
+    expect(draft, isNotNull);
+    expect(draft!.anchors, hasLength(2));
+    await fixture.key(LogicalKeyboardKey.escape);
+    await pumpIo(tester, frames: 3);
+
+    expect(view.tool.name, 'select');
+    expect(view.borderDraft, same(draft));
+    expect(fixture.document.current, same(initial));
+    expect(fixture.document.undoCount, undoBefore);
+    expect(fixture.document.dirty, isFalse);
+    await _chooseModel(tester, fixture);
     expect(view.borderDraft, isNull);
-    expect(fixture.document.current, initial);
+    expect(view.tool.name, 'border');
+    expect(fixture.document.current, same(initial));
     expect(fixture.document.undoCount, undoBefore);
     expect(fixture.document.dirty, isFalse);
   });
@@ -177,7 +196,7 @@ void main() {
     await tester.ensureVisible(find.text('Bordures'));
     await tester.tap(find.text('Bordures'));
     await pumpIo(tester, frames: 4);
-    await _chooseModel(tester);
+    await _chooseModel(tester, fixture);
     await fixture.tapCell(10, 8);
     await fixture.tapCell(13, 8);
     final view = tester
@@ -256,10 +275,10 @@ void main() {
     await tester.ensureVisible(find.text('Bordures'));
     await tester.tap(find.text('Bordures'));
     await pumpIo(tester, frames: 4);
-    await _chooseModel(tester);
+    await _chooseModel(tester, fixture);
     await fixture.tapCell(10, 8);
     await fixture.tapCell(13, 8);
-    await tester.tap(find.text('Terminer le tracé'));
+    await fixture.key(LogicalKeyboardKey.enter);
     await pumpIo(tester, frames: 4);
     final current = fixture.document.current;
     final placements = current.layers.whereType<BorderLayer>().single.content.features.single.materialization!.placements;
@@ -270,10 +289,10 @@ void main() {
     }
     await fixture.tapCell(10, 10);
     await fixture.tapCell(10, 13);
-    await tester.tap(find.text('Terminer le tracé'));
+    await fixture.key(LogicalKeyboardKey.enter);
     await pumpIo(tester, frames: 4);
     expect(fixture.document.current, current);
-    expect(find.textContaining('Une façade doit suivre un tracé horizontal ouvert'), findsWidgets);
+    expect(fixture.document.error, contains('Une façade doit suivre un tracé horizontal ouvert'));
   });
 
   testWidgets('a published stone chain uses grid edges through the host', (
@@ -286,7 +305,7 @@ void main() {
     await tester.ensureVisible(find.text('Bordures'));
     await tester.tap(find.text('Bordures'));
     await pumpIo(tester, frames: 4);
-    await _chooseModel(tester);
+    await _chooseModel(tester, fixture);
     await fixture.tapCell(10, 8);
     await fixture.tapCell(13, 8);
     final draft = tester
@@ -295,7 +314,7 @@ void main() {
         .borderDraft;
     expect(draft?.alignment, BorderStrokeAlignment.gridEdges);
     expect(draft?.canFinish, isTrue);
-    await tester.tap(find.text('Terminer le tracé'));
+    await fixture.key(LogicalKeyboardKey.enter);
     await pumpIo(tester, frames: 4);
     final feature = fixture.document.current.layers
         .whereType<BorderLayer>()
@@ -311,11 +330,28 @@ void main() {
   });
 }
 
-Future<void> _chooseModel(WidgetTester tester) async {
-  await tester.tap(find.byKey(const ValueKey('border-model-picker')));
-  await pumpIo(tester, frames: 2);
-  await tester.tap(find.text('Muret de test').last);
-  await pumpIo(tester, frames: 2);
+Future<void> _chooseModel(WidgetTester tester, MapHostFixture fixture) async {
+  await fixture.maps.ensureBorderProfiles();
+  final view = tester
+      .widget<MapEditingViewport2D>(find.byType(MapEditingViewport2D))
+      .view;
+  final project = fixture.maps.project!;
+  final item = resourceCatalog(project)
+      .singleWhere((item) => item.border?.id == 'muret');
+  expect(
+    await useMapResource(
+      workspace: fixture.maps,
+      item: item,
+      view: () => view,
+      isActive: () => true,
+      chooseMap: (_) async => throw StateError('The map is already active'),
+      chooseTile: (_) async =>
+          throw StateError('A border needs no tile selection'),
+    ),
+    isTrue,
+  );
+  fixture.maps.notify();
+  await pumpIo(tester, frames: 4);
 }
 
 Future<MapHostFixture> _openWithBorder(

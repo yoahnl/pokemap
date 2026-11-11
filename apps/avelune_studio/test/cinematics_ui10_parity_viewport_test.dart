@@ -2,6 +2,7 @@ import 'package:avelune_studio/features/cinematics/data/local_cinematic_adapter.
 import 'package:avelune_studio/presentation/features/cinematics/cinematic_playback_viewport.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
 import 'support/m2_ui_fixture.dart';
 import 'support/capture_m3_widget.dart';
 import 'support/ui08_workspace_harness.dart';
@@ -99,7 +100,7 @@ void main() {
       }
       expect(frames[1950], isNot(frames[0]));
       expect(frames[2450], isNot(frames[1950]));
-      await tester.tap(find.byTooltip('Arrêter et revenir au début'));
+      page.controller.transport.stop();
       await tester.pump();
       expect(page.controller.transport.timeMs, 0);
       expect(find.byType(CinematicPlaybackViewport), findsNothing);

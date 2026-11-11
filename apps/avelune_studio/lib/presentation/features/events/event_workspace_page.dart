@@ -9,7 +9,9 @@ import 'package:map_core/map_core_domain.dart';
 import '../../../features/events/application/event_workspace_controller.dart';
 import '../../../features/events/domain/event_port.dart';
 import '../../../features/scenes/application/scene_workspace_controller.dart';
+
 import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
+
 import '../narrative/narrative_name_dialog.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
 import '../../shared/widgets/buttons/studio_tool.dart';
@@ -19,7 +21,9 @@ import 'event_status_badge.dart';
 import '../../shared/widgets/inputs/studio_tabs.dart';
 import '../../shared/widgets/inputs/studio_commit_field.dart';
 import 'event_view_state.dart';
+
 import 'package:avelune_studio/features/events/application/event_map_loader.dart';
+
 import 'event_labels.dart';
 import 'event_library.dart';
 import 'event_summary.dart';
@@ -36,7 +40,7 @@ class EventWorkspacePage extends StatefulWidget {
     required this.loader,
     required this.visuals,
     required this.onBack,
-    required this.onScene,
+    this.onScene,
     required this.onLocate,
     required this.onTest,
     this.scenes,
@@ -50,7 +54,7 @@ class EventWorkspacePage extends StatefulWidget {
   final SceneWorkspaceController? scenes;
   final Future<Map<String, String>> Function()? loadItems;
   final VoidCallback onBack;
-  final Future<String?> Function(String) onScene;
+  final Future<String?> Function(String)? onScene;
   final void Function(String dialogueId, String? startNode)? onDialogue;
   final Future<String?> Function(NarrativeEventSourceRef) onLocate;
   final Future<void> Function() onTest;
@@ -180,15 +184,17 @@ class _EventWorkspacePageState extends State<EventWorkspacePage> {
   }
 
   Future<void> _scene(String id) async {
+    final open = widget.onScene;
+    if (open == null) return;
     _flush();
     await _pending;
     if (!mounted) return;
-    final problem = await widget.onScene(id);
+    final problem = await open(id);
     if (mounted) setState(() => _notice = problem);
   }
 
   VoidCallback? _sceneOf(NarrativeEventRecord record) =>
-      switch (eventSceneId(record)) {
+      switch (widget.onScene == null ? null : eventSceneId(record)) {
         final id? => () => _scene(id),
         null => null,
       };

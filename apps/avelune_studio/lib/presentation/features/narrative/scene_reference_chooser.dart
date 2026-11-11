@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../features/narrative/application/scene_node_references.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
-import '../scenes/scene_inspector.dart';
+import '../../../features/scenes/application/scene_labels.dart';
 
 String sceneNodeReferenceLabel(SceneNodeReference reference) =>
     '${reference.scene.name} · ${sceneNodeName(reference.scene.graph, reference.node.id)}';

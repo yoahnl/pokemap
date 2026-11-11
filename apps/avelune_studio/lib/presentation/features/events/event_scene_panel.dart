@@ -15,7 +15,7 @@ class EventScenePanel extends StatefulWidget {
     required this.selectedId,
     required this.dirtyIds,
     required this.onSelect,
-    required this.onOpen,
+    this.onOpen,
     required this.onRemove,
     this.storylines = const [],
   });
@@ -23,7 +23,8 @@ class EventScenePanel extends StatefulWidget {
   final List<StorylineAsset> storylines;
   final String? selectedId;
   final Set<String> dirtyIds;
-  final ValueChanged<String> onSelect, onOpen;
+  final ValueChanged<String> onSelect;
+  final ValueChanged<String>? onOpen;
   final VoidCallback onRemove;
 
   @override
@@ -122,7 +123,9 @@ class _EventScenePanelState extends State<EventScenePanel> {
             StudioButton(
               label: 'Ouvrir la scène',
               icon: Icons.open_in_new,
-              onPressed: linked == null ? null : () => widget.onOpen(linked.id),
+              onPressed: linked == null || widget.onOpen == null
+                  ? null
+                  : () => widget.onOpen!(linked.id),
             ),
             StudioButton(
               label: 'Retirer l’association',

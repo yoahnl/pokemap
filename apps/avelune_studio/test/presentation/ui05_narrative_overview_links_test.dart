@@ -1,5 +1,5 @@
-import 'package:avelune_studio/presentation/features/scenes/scene_builder_page.dart';
 import 'package:avelune_studio/presentation/features/dialogues/dialogue_workspace_page.dart';
+import 'package:avelune_studio/presentation/features/narrative/narrative_story_pane.dart';
 import 'package:avelune_studio/presentation/features/events/event_workspace_page.dart';
 import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_action_card.dart';
 import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
@@ -13,7 +13,7 @@ import '../support/ui05_narrative_fixture.dart';
 
 void main() {
   testWidgets(
-    'scene draft remains with its owner after returning to overview',
+    'overview keeps the scene owner draft while its editor remains unavailable',
     (tester) async {
       tester.view.physicalSize = const Size(1536, 1024);
       tester.view.devicePixelRatio = 1;
@@ -33,45 +33,36 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      final scene = fixture.controller.project!.scenes.first;
-      await tester.tap(find.widgetWithText(StudioActionCard, scene.name).first);
-      await tester.pumpAndSettle();
-      final builder = tester.widget<SceneBuilderPage>(
-        find.byType(SceneBuilderPage),
+      final overview = tester.widget<NarrativeStoryPane>(
+        find.byType(NarrativeStoryPane),
       );
-      final session = builder.controller.active!;
-      expect(session.current.id, scene.id);
+      final owner = overview.sceneOwner!;
+      final scene = owner.scenes.first;
+      expect(owner.open(scene.id), isTrue);
+      final session = owner.active!;
       expect(session.rename('Un brouillon de scène'), isTrue);
       final current = session.current;
+      owner.changed();
       await tester.pumpAndSettle();
-      await tester.tap(
-        find
-            .descendant(
-              of: find.byType(SceneBuilderPage),
-              matching: find.text('Histoire'),
-            )
-            .last,
+      expect(overview.onOpenScene, isNull);
+      expect(overview.onScenes, isNull);
+      final sceneCard = find.widgetWithText(
+        StudioActionCard,
+        'Un brouillon de scène',
       );
+      await tester.ensureVisible(sceneCard);
+      expect(tester.widget<StudioActionCard>(sceneCard).onPressed, isNull);
+      await tester.tap(sceneCard);
       await tester.pumpAndSettle();
-      expect(find.text('Un brouillon de scène'), findsOneWidget);
+      expect(find.byType(NarrativeStoryPane), findsOneWidget);
+      expect(owner.active, same(session));
+      expect(session.current, same(current));
+      expect(session.dirty, isTrue);
       await captureM3Widget(
         tester,
         fixture.captureKey,
-        'ui05-05-brouillon-scene',
+        'ui05-scene-owner-unavailable-editor',
       );
-      await tester.tap(
-        find.widgetWithText(StudioActionCard, 'Un brouillon de scène'),
-      );
-      await tester.pumpAndSettle();
-      expect(
-        tester
-            .widget<SceneBuilderPage>(find.byType(SceneBuilderPage))
-            .controller
-            .active,
-        same(session),
-      );
-      expect(session.current, same(current));
-      expect(session.dirty, isTrue);
       expect(fixture.port.publications, 0);
       expect(await tester.runAsync(fixture.diskSnapshot), before);
       expect(tester.takeException(), isNull);

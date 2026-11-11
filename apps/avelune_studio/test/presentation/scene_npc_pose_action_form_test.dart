@@ -1,17 +1,10 @@
-import 'package:avelune_studio/presentation/features/scenes/scene_action_form.dart';
-import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
-import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
-import 'package:flutter/material.dart';
+import 'package:avelune_studio/features/scenes/application/scene_npc_pose_draft.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
 void main() {
   for (final onlyFacing in [false, true]) {
-    testWidgets('guided NPC pose edits both modes facingOnly=$onlyFacing', (
-      tester,
-    ) async {
-      SceneNodePayload? applied;
+    test('NPC pose owner edits both modes facingOnly=$onlyFacing', () async {
       final original = SceneConsequence.setNpcPose(
         mapId: 'room',
         entityId: 'actor',
@@ -19,92 +12,51 @@ void main() {
         y: onlyFacing ? null : 2,
         facing: EntityFacing.west,
       );
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: studioTheme(),
-          home: Scaffold(
-            body: SingleChildScrollView(
-              child: SceneActionForm(
-                project: _project(),
-                loadMap: (_) async => _map(),
-                current: SceneActionPayload.consequence(original),
-                onApply: (value) => applied = value,
-              ),
-            ),
-          ),
-        ),
+      final draft = SceneNpcPoseDraft(
+        project: _project(),
+        changed: () {},
+        loadMap: (_) async => _map(),
+        current: SceneActionPayload.consequence(original),
       );
-      await tester.pumpAndSettle();
-      expect(find.text('PNJ test'), findsOneWidget);
-      final mode = find.byWidgetPredicate(
-        (widget) =>
-            widget is StudioSelect && widget.label == 'Modification du PNJ',
-      );
-      await tester.tap(mode);
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find
-            .text(onlyFacing ? 'Position et direction' : 'Direction uniquement')
-            .last,
-      );
-      await tester.pumpAndSettle();
+      addTearDown(draft.dispose);
+      await draft.reloadMap();
+      expect(draft.actorOptions, {'actor': 'PNJ test'});
+      draft.mode = onlyFacing ? 'position' : 'facing';
       if (onlyFacing) {
-        for (final (label, value) in [('Case X', '4'), ('Case Y', '3')]) {
-          await tester.enterText(find.widgetWithText(TextField, label), value);
-          await tester.pump();
-        }
-      } else {
-        expect(find.widgetWithText(TextField, 'Case X'), findsNothing);
+        draft.xText = '4';
+        draft.yText = '3';
       }
-      final apply = find.byWidgetPredicate(
-        (widget) =>
-            widget is StudioButton && widget.label == 'Appliquer l’action',
-      );
-      expect(tester.widget<StudioButton>(apply).onPressed, isNotNull);
-      await tester.ensureVisible(apply);
-      await tester.tap(apply);
-      final result =
-          (applied as SceneActionPayload).consequence
-              as SceneSetNpcPoseConsequence;
+      final result = draft.pose!;
       expect(result.mapId, 'room');
       expect(result.entityId, 'actor');
       expect(result.facing, EntityFacing.west);
       expect(result.x, onlyFacing ? 4 : null);
       expect(result.y, onlyFacing ? 3 : null);
+      expect(draft.current!.consequence, original);
     });
   }
-  testWidgets(
-    'guided NPC pose refuses unknown character without discarding its reference',
-    (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: studioTheme(),
-          home: Scaffold(
-            body: SceneActionForm(
-              project: _project(),
-              loadMap: (_) async => _map(character: 'missing'),
-              current: SceneActionPayload.consequence(
-                SceneConsequence.setNpcPose(
-                  mapId: 'room',
-                  entityId: 'actor',
-                  facing: EntityFacing.east,
-                ),
-              ),
-              onApply: (_) => fail('Unavailable owner'),
-            ),
-          ),
+  test(
+    'NPC pose refuses an unknown character without discarding its reference',
+    () async {
+      final current = SceneActionPayload.consequence(
+        SceneConsequence.setNpcPose(
+          mapId: 'room',
+          entityId: 'actor',
+          facing: EntityFacing.east,
         ),
       );
-      await tester.pumpAndSettle();
-      expect(
-        find.textContaining('Référence introuvable : actor'),
-        findsOneWidget,
+      final draft = SceneNpcPoseDraft(
+        project: _project(),
+        current: current,
+        loadMap: (_) async => _map(character: 'missing'),
+        changed: () {},
       );
-      final apply = find.byWidgetPredicate(
-        (widget) =>
-            widget is StudioButton && widget.label == 'Appliquer l’action',
-      );
-      expect(tester.widget<StudioButton>(apply).onPressed, isNull);
+      addTearDown(draft.dispose);
+      await draft.reloadMap();
+      expect(draft.actorOptions, isEmpty);
+      expect(draft.pose, isNull);
+      expect(draft.selectedEntityId, 'actor');
+      expect(draft.current, same(current));
     },
   );
 }

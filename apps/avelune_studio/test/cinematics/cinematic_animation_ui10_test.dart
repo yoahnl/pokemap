@@ -82,7 +82,6 @@ void main() {
                 model: null,
                 onDialogue: (_) {},
                 onLocate: (_) async => null,
-                onAdd: (_) {},
               ),
             ),
           ),

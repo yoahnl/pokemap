@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/map_host_fixture.dart';
+import '../support/map_palette_retirement_driver.dart';
 
 void main() {
   testWidgets('overlapping decors can exchange their visible order', (
@@ -10,11 +11,11 @@ void main() {
   ) async {
     final fixture = await MapHostFixture.open(tester);
 
-    await tester.tap(find.byKey(const ValueKey('decor-arbre')));
+    await selectMapDecorForTest(tester, 'arbre');
     await fixture.tapCell(8, 7);
     final tree = fixture.document.selected!;
 
-    await tester.tap(find.byKey(const ValueKey('decor-rocher')));
+    await selectMapDecorForTest(tester, 'rocher');
     await fixture.tapCell(8, 7);
     final rock = fixture.document.selected!;
 

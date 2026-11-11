@@ -96,13 +96,12 @@ List<MapContextAction> _decorActions(
     ];
   }
   final commands = MapEditingCommands(context.document, context.project);
+  final order = commands.decorOrderContext(
+    instanceId: target.id,
+    at: context.position,
+  );
   final known = context.project.elements.any(
-    (entry) =>
-        entry.id ==
-        context.document.current.placedElements
-            .where((item) => item.id == target.id)
-            .firstOrNull
-            ?.elementId,
+    (entry) => entry.id == order?.target?.elementId,
   );
   return [
     const MapContextAction(MapContextCommand.properties, 'Propriétés'),
@@ -120,20 +119,12 @@ List<MapContextAction> _decorActions(
     MapContextAction(
       MapContextCommand.bringForward,
       'Passer devant',
-      unavailable: commands.reorderProblemAt(
-        instanceId: target.id,
-        at: context.position,
-        forward: true,
-      ),
+      unavailable: order?.forwardProblem,
     ),
     MapContextAction(
       MapContextCommand.sendBackward,
       'Passer derrière',
-      unavailable: commands.reorderProblemAt(
-        instanceId: target.id,
-        at: context.position,
-        forward: false,
-      ),
+      unavailable: order?.backwardProblem,
     ),
     const MapContextAction(MapContextCommand.delete, 'Supprimer le décor'),
   ];

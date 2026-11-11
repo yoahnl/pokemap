@@ -38,7 +38,7 @@ class EventTriggerPanel extends StatefulWidget {
   final MapWorkspaceVisuals visuals;
   final EventViewState view;
   final ValueChanged<NarrativeEventSourceRef> onLocate;
-  final ValueChanged<String> onProducer;
+  final ValueChanged<String>? onProducer;
   @override
   State<EventTriggerPanel> createState() => _EventTriggerPanelState();
 }

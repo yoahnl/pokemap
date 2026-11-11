@@ -1,16 +1,16 @@
-import 'package:avelune_studio/presentation/features/scenes/scene_graph_canvas.dart';
-import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart';
+import 'package:avelune_studio/features/scenes/application/scene_edit_session.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
-import 'support/scene_canvas_test_harness.dart';
 
 void main() {
-  testWidgets(
-    '200 canonical nodes retain document identity during eight viewport updates',
-    (tester) async {
+  test(
+    '200 canonical nodes and 265 edges retain their identity during preview',
+    () {
       final fixture = _volumeScene();
+      final session = SceneEditSession(fixture, base: fixture);
+      final before = fixture.toJson();
       expect(fixture.graph.nodes, hasLength(200));
+      expect(fixture.graph.edges, hasLength(265));
       final build = buildSceneRuntimePlan(fixture);
       expect(build.plan, isNotNull, reason: build.diagnostics.toString());
       final trace = previewSceneRuntimePath(
@@ -18,7 +18,7 @@ void main() {
         input: SceneDryRunInputState(
           outputPortByNodeId: {
             for (final node in fixture.graph.nodes.where(
-              (n) => n.kind == SceneNodeKind.condition,
+              (node) => node.kind == SceneNodeKind.condition,
             ))
               node.id: 'true',
           },
@@ -27,39 +27,11 @@ void main() {
       );
       expect(trace.status, SceneDryRunPreviewStatus.completed);
       expect(trace.trace, hasLength(200));
-      final harness = SceneCanvasTestHarness()..scene = fixture;
-      final watch = Stopwatch()..start();
-      await harness.mount(tester);
-      final firstFrameMicros = watch.elapsedMicroseconds;
-      expect(find.byType(SceneGraphCanvas), findsOneWidget);
-      final original = harness.scene;
-      final trackpad = await tester.createGesture(
-        kind: PointerDeviceKind.trackpad,
-      );
-      await trackpad.panZoomStart(const Offset(900, 500));
-      watch.reset();
-      for (var i = 1; i <= 8; i++) {
-        await trackpad.panZoomUpdate(
-          const Offset(900, 500),
-          pan: Offset(i * 20, -i * 10),
-          scale: 1 + i * .05,
-        );
-        await tester.pump();
-      }
-      await trackpad.panZoomEnd();
-      final gestureMicros = watch.elapsedMicroseconds;
-      expect(harness.scene, same(original));
-      expect(harness.commits, 0);
-      expect(harness.view.zoom, closeTo(1.4, .001));
-      expect(
-        (harness.view.pan - const Offset(-200, -280)).distance,
-        lessThan(.001),
-      );
-      expect(harness.scene.graph.edges, hasLength(265));
-      expect(tester.takeException(), isNull);
-      debugPrint(
-        'UI06 volume: nodes=200 edges=265 viewportUpdates=8 documentMutations=0 firstFrameUs=$firstFrameMicros gesturesUs=$gestureMicros; no I/O adapter instantiated',
-      );
+      expect(session.current, same(fixture));
+      expect(session.undoCount, 0);
+      expect(session.dirty, isFalse);
+      expect(fixture.toJson(), before);
+      expect(fixture.graph.edges, hasLength(265));
     },
   );
 }

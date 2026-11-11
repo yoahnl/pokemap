@@ -12,7 +12,9 @@ extension CinematicInspectorCommands on CinematicInspector {
       _ => null,
     };
     return [
-      StudioCommitField(
+      CinematicCommitField(
+        inputs: controller.inputsFor(asset.id),
+        changed: changed,
         key: ValueKey('step-label-${asset.id}-${step.id}'),
         label: 'Nom du bloc',
         value: step.label ?? '',
@@ -140,7 +142,9 @@ extension CinematicInspectorCommands on CinematicInspector {
     CinematicAsset Function(CinematicAsset, double) transform, {
     double? max,
     bool integer = false,
-  }) => StudioCommitField(
+  }) => CinematicCommitField(
+    inputs: controller.inputsFor(asset.id),
+    changed: changed,
     key: ValueKey('$label-${asset.id}-${step.id}'),
     label: label,
     alwaysCommit: true,

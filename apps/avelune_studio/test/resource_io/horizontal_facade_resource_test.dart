@@ -1,58 +1,51 @@
-import 'package:flutter/material.dart';
-import 'package:avelune_studio/presentation/features/resources/border_creation_dialog.dart';
-import 'package:avelune_studio/presentation/features/resources/resource_workspace_pane.dart';
-
-import '../support/uwu_resource_host.dart';
-import '../support/m2_ui_fixture.dart';
-
 import 'package:avelune_studio/features/map_workspace/data/local_map_workspace_adapter.dart';
+import 'package:avelune_studio/features/resources/application/border_creation_draft.dart';
+import 'package:avelune_studio/features/resources/coordination/border_creation_workflow.dart';
 import 'package:avelune_studio/features/resources/domain/resource_port.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
+import '../support/resource_replacement_fixture.dart';
 import 'resource_fixture.dart';
 
 void main() {
-  testWidgets('Studio offers the facade mode and removes the angle family', (
-    tester,
-  ) async {
-    final host = await UwUResourceHost.open(tester);
-    final pane = find.byType(ResourceWorkspacePane);
-    final dialog = showDialog<bool>(
-      context: tester.element(pane),
-      builder: (_) => BorderCreationDialog(
-        navigation: host.navigation,
-        project: host.navigation.workspace.project!,
-        visuals: host.navigation.visuals,
-      ),
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('facade drafts exclude the corner family and save through the canonical writer', () async {
+    final host = await ResourceReplacementFixture.create();
+    final mapBefore = await host.fixture.mapFile.readAsBytes();
+    final draft =
+        BorderCreationDraft(
+            project: host.workspace.project!,
+            unavailableResourceIds: () => const {},
+          )
+          ..horizontalFacade = true
+          ..name = 'Façade du hall';
+    final workflow = BorderCreationWorkflow(
+      navigation: host.navigation,
+      draft: draft,
+      isActive: () => true,
+      confirmDiscard: () async => false,
+      confirmRepublication: (_) async => true,
     );
-    await tester.pumpAndSettle();
-    final toggle = find.byKey(const ValueKey('border-horizontal-facade'));
-    expect(toggle, findsOneWidget);
-    await tester.tap(toggle);
-    await tester.pumpAndSettle();
+    addTearDown(workflow.dispose);
+    expect(draft.roles, ['lineStraight', 'lineCap']);
+    expect(draft.roles, isNot(contains('lineCorner')));
+    expect(draft.complete, isFalse);
+    expect(await workflow.save(publish: true), isFalse);
+    expect((await host.reopen()).borderCatalog.records, isEmpty);
+    expect(await workflow.save(publish: false), isTrue, reason: draft.error);
+    final saved = await host.reopen();
     expect(
-      find.textContaining('Façades sur des tracés ouverts horizontaux'),
-      findsOneWidget,
-    );
-    expect(find.text('Angle'), findsNothing);
-    expect(find.textContaining('0 / 2 familles'), findsOneWidget);
-    await tester.enterText(
-      find.byKey(const ValueKey('border-name')),
-      'Façade du hall',
-    );
-    await tester.pump();
-    await tester.tap(find.text('Enregistrer le brouillon'));
-    await pumpIo(tester, frames: 30);
-    final saved = await tester.runAsync(
-      () => host.fixture.port.loadProject(host.fixture.session),
-    );
-    expect(
-      saved!.borderCatalog.records.single.draft.definition.template,
+      saved.borderCatalog.records.single.draft.definition.template,
       BorderBlueprintTemplate.horizontalFacade,
     );
-    expect(find.byType(BorderCreationDialog), findsNothing);
-    expect(await dialog, isTrue);
+    expect(
+      saved.borderCatalog.records.single.draft.definition.name,
+      'Façade du hall',
+    );
+    expect(saved.borderCatalog.records.single.latestPublished, isNull);
+    expect(await host.fixture.mapFile.readAsBytes(), mapBefore);
   });
 
   test(

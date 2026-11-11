@@ -62,6 +62,97 @@ void main() {
     expect(await f.map(), before);
   });
 
+  test(
+      'unrelated metadata preserves contextual identities and conditions on disk',
+      () async {
+    final f = await fixture();
+    addTearDown(f.dispose);
+    final manifest = (await f.manifest()).copyWith(
+      facts: [NarrativeFactDefinition(id: 'wall-open', label: 'Mur ouvert')],
+    );
+    await File('${f.root.path}/project.json')
+        .writeAsString(jsonEncode(manifest.toJson()));
+    final conditioned = ContextualItemUseRule.fromJson({
+      ...rule.toJson(),
+      'conditionExpression': NarrativeEventConditionExpression.leaf(
+        NarrativeEventCondition.fact('wall-open', true),
+      ).toJson(),
+    });
+    await f.apply(await f.plan(parameters: {
+      'mapId': 'town',
+      'contextualItemUses': [conditioned.toJson()],
+    }));
+    final before = await f.map();
+    final plan = await f.plan(parameters: {
+      'mapId': 'town',
+      'allowBicycle': false,
+    });
+    expect(await f.map(), before);
+    await f.apply(plan);
+    final reopened = await f.map();
+    expect(reopened.contextualItemUses, [conditioned]);
+    expect(
+      reopened,
+      before.copyWith(
+        mapMetadata: before.mapMetadata.copyWith(allowBicycle: false),
+      ),
+    );
+  });
+
+  test('128 contextual rules are accepted by canonical plan apply and reopen',
+      () async {
+    final f = await fixture();
+    addTearDown(f.dispose);
+    final rules = [
+      for (var index = 0; index < 128; index++)
+        ContextualItemUseRule.fromJson({
+          ...rule.toJson(),
+          'id': 'context-item-$index',
+        }),
+    ];
+    final before = await f.map();
+    final plan = await f.plan(parameters: {
+      'mapId': 'town',
+      'contextualItemUses': rules.map((entry) => entry.toJson()).toList(),
+    });
+    expect(await f.map(), before);
+    await f.apply(plan);
+    expect((await f.map()).contextualItemUses, rules);
+  });
+
+  for (final invalid in ['129-rules', 'duplicate-id']) {
+    test('$invalid are refused canonically without changing saved rules',
+        () async {
+      final f = await fixture();
+      addTearDown(f.dispose);
+      await f.apply(await f.plan(parameters: {
+        'mapId': 'town',
+        'contextualItemUses': [rule.toJson()],
+      }));
+      final before = await f.map();
+      final originalBytes =
+          await File('${f.root.path}/documents/unusual.json').readAsBytes();
+      final rules = invalid == 'duplicate-id'
+          ? [rule.toJson(), rule.toJson()]
+          : [
+              for (var index = 0; index < 129; index++)
+                {...rule.toJson(), 'id': 'context-item-$index'},
+            ];
+      await expectLater(
+        () => f.plan(parameters: {
+          'mapId': 'town',
+          'contextualItemUses': rules,
+        }),
+        throwsA(isA<Exception>()),
+      );
+      expect(await f.map(), before);
+      expect(
+        await File('${f.root.path}/documents/unusual.json').readAsBytes(),
+        originalBytes,
+      );
+    });
+  }
+
   for (final invalid in [
     {...rule.toJson(), 'sceneId': 'missing'},
     {...rule.toJson(), 'itemId': 'missing'},

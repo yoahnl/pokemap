@@ -130,7 +130,7 @@ void main() {
   );
 
   testWidgets(
-    'actual import decor placement closed map usages metadata organization and reopen',
+    'actual import decor owner publication placement closed map usages metadata organization and reopen',
     (tester) async {
       tester.view.physicalSize = const Size(1536, 1024);
       tester.view.devicePixelRatio = 1;
@@ -144,7 +144,15 @@ void main() {
       final original = host.fixture;
       await tester.tap(find.byTooltip('Carte').first);
       await pumpIo(tester);
-      await host.tap('map-library-clairiere');
+      await _runResourceCommand(
+        tester,
+        () => host.fixture.controller.activate(
+          host.fixture.controller.project!.maps.singleWhere(
+            (entry) => entry.id == 'clairiere',
+          ),
+        ),
+      );
+      await pumpIo(tester);
       expect(original.controller.active!.current.id, 'clairiere');
       await tester.tap(find.byTooltip('Ressources').first);
       await pumpIo(tester);
@@ -178,12 +186,17 @@ void main() {
       );
       await pumpIo(tester);
       expect(host.navigation.decor!.tileset.id, imported.id);
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Nom du décor'),
-        'Décor pilote',
+      expect(
+        find.byKey(const ValueKey('resource-decor-workshop-unavailable-state')),
+        findsOneWidget,
       );
+      final draft = host.navigation.decor!..name = 'Décor pilote';
       final beforeSave = original.controller.active!.current;
-      await tapResourceAdministrationText(tester, 'Enregistrer le décor');
+      await _runResourceCommand<void>(
+        tester,
+        () => host.navigation.saveDecor(draft.build()),
+      );
+      expect(host.navigation.error, isNull);
       final element = original.controller.project!.elements.singleWhere(
         (item) => item.name == 'Décor pilote',
       );
@@ -362,7 +375,15 @@ void main() {
       expect(independentMap!.map, savedMap);
       await tester.tap(find.byTooltip('Carte').first);
       await pumpIo(tester);
-      await host.tap('map-library-clairiere');
+      await _runResourceCommand(
+        tester,
+        () => host.fixture.controller.activate(
+          host.fixture.controller.project!.maps.singleWhere(
+            (entry) => entry.id == 'clairiere',
+          ),
+        ),
+      );
+      await pumpIo(tester);
       expect(host.fixture.controller.active!.current, savedMap);
       await host.fixture.capture(tester, 'uwu3-journey-reopened-render');
       expect(tester.takeException(), isNull);

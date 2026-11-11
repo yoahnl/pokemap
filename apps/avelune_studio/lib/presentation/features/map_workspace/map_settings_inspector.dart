@@ -4,13 +4,10 @@ import 'package:map_core/map_core_domain.dart';
 import '../../../features/map_workspace/application/editable_map_document.dart';
 import '../../shared/widgets/inputs/studio_tabs.dart';
 import '../../shared/widgets/layout/studio_sidebar.dart';
-import 'map_camera_panel.dart';
 import 'map_catalogue_properties.dart';
 import 'map_workspace_view_state.dart';
 
-enum MapSettingsTab { image, game }
-
-class MapSettingsInspector extends StatefulWidget {
+class MapSettingsInspector extends StatelessWidget {
   const MapSettingsInspector({
     super.key,
     required this.project,
@@ -30,27 +27,12 @@ class MapSettingsInspector extends StatefulWidget {
   final bool showTitle;
 
   @override
-  State<MapSettingsInspector> createState() => _MapSettingsInspectorState();
-}
-
-class _MapSettingsInspectorState extends State<MapSettingsInspector> {
-  MapSettingsTab? _tab;
-
-  @override
   Widget build(BuildContext context) {
-    final document = widget.document;
-    final spatial = document.current.spatialScene != null;
-    final tabs = {
-      if (spatial) MapSettingsTab.image: 'Image',
-      MapSettingsTab.game: 'Jeu',
-    };
-    final tab = tabs.containsKey(_tab) ? _tab! : tabs.keys.first;
-    final small = Theme.of(context).textTheme.bodySmall;
     return Column(
       key: const ValueKey('map-settings-inspector'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (widget.showTitle) ...[
+        if (showTitle) ...[
           Text(
             'RÉGLAGES DE CETTE CARTE',
             style: Theme.of(context).textTheme.labelSmall,
@@ -64,44 +46,13 @@ class _MapSettingsInspectorState extends State<MapSettingsInspector> {
           ),
           const SizedBox(height: 4),
         ],
-        Text(
-          spatial
-              ? 'Une dérogation reste locale. Les autres cartes gardent leur '
-                    'provenance.'
-              : 'Cette carte 2D n’a ni caméra ni cycle propres : seuls ses '
-                    'réglages de jeu s’affichent ici.',
-          style: small,
+        MapCatalogueProperties(
+          map: document.current,
+          onRename: onRenameMap,
+          onEscapeSettings: onEscapeSettings,
         ),
-        const SizedBox(height: 10),
-        if (tabs.length > 1) ...[
-          StudioTabs<MapSettingsTab>(
-            key: const ValueKey('map-settings-tabs'),
-            items: tabs,
-            selected: tab,
-            onChanged: (value) => setState(() => _tab = value),
-          ),
-          const SizedBox(height: 10),
-        ],
-        ...switch (tab) {
-          MapSettingsTab.image => _image(),
-          MapSettingsTab.game => [
-            MapCatalogueProperties(
-              map: document.current,
-              onRename: widget.onRenameMap,
-              onEscapeSettings: widget.onEscapeSettings,
-            ),
-          ],
-        },
       ],
     );
-  }
-
-  List<Widget> _image() {
-    final document = widget.document;
-    return [
-      MapCameraPanel(document: document, onChanged: widget.onChanged),
-      const SizedBox(height: 16),
-    ];
   }
 }
 

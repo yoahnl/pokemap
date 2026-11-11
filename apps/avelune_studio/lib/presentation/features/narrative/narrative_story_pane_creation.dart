@@ -16,21 +16,6 @@ extension _NarrativeStoryPaneCreation on _NarrativeStoryPaneState {
     widget.onProgression?.call();
   }
 
-  Future<void> _createScene() async {
-    final owner = widget.sceneOwner;
-    final open = widget.onOpenScene;
-    if (owner == null || open == null) return;
-    final name = await askNarrativeName(context, 'Nom de la scène');
-    if (!mounted || name == null) return;
-    final created = owner.create(name);
-    if (created == null) {
-      state.notice = owner.error;
-      refresh();
-      return;
-    }
-    await _navigateDocument(open, created.current.id);
-  }
-
   Future<void> _createEvent() async {
     final owner = widget.eventOwner;
     final open = widget.onOpenEvent;

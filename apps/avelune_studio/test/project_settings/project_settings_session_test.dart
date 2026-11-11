@@ -50,6 +50,102 @@ void main() {
     true,
   );
 
+  test('invalid text alone is a pending draft only in its section', () async {
+    final original = visuals.preview.value;
+    final saved = visuals.saved;
+    final reads = visualPort.reads;
+    visuals.reportInvalid(SpatialVisualParameter.fieldOfViewDegrees, 'abc');
+
+    expect(visuals.preview.value, same(original));
+    expect(visuals.saved, same(saved));
+    expect(visuals.dirty, isTrue);
+    expect(settings.dirtySections, {ProjectSettingsSection.image});
+    expect(visuals.dirtyWhere(isImageVisualParameter), isTrue);
+    expect(visuals.dirtyWhere(isTimeWeatherVisualParameter), isFalse);
+    expect(settings.canSave(ProjectSettingsSection.image), isFalse);
+    expect(await settings.save(ProjectSettingsSection.image), isFalse);
+    expect(visuals.invalidInputs, {
+      SpatialVisualParameter.fieldOfViewDegrees: 'abc',
+    });
+    expect(visuals.preview.value, same(original));
+    expect(visuals.saved, same(saved));
+    expect(visuals.canUndo, isFalse);
+    expect(visualPort.reads, reads);
+    expect(visualPort.writes, 0);
+
+    visuals.clearInvalid(SpatialVisualParameter.fieldOfViewDegrees);
+    expect(visuals.dirty, isFalse);
+    expect(settings.dirtySections, isEmpty);
+    expect(visuals.preview.value, same(original));
+    expect(visualPort.reads, reads);
+    expect(visualPort.writes, 0);
+  });
+
+  test(
+    'another section can save while invalid image text is retained',
+    () async {
+      visuals.reportInvalid(SpatialVisualParameter.fieldOfViewDegrees, 'abc');
+      expect(settings.dirtySections, {ProjectSettingsSection.image});
+      expect(await settings.save(ProjectSettingsSection.timeWeather), isTrue);
+      expect(visualPort.writes, 0);
+      visuals.edit(
+        visuals.preview.value.set(SpatialVisualParameter.weatherIntensity, .5),
+      );
+      expect(await settings.save(ProjectSettingsSection.timeWeather), isTrue);
+      expect(visualPort.writes, 1);
+      expect(visualPort.reads, 1);
+      expect(settings.dirtySections, {ProjectSettingsSection.image});
+      expect(
+        visuals.invalidInputs[SpatialVisualParameter.fieldOfViewDegrees],
+        'abc',
+      );
+      expect(
+        visualPort.profile.number(SpatialVisualParameter.weatherIntensity),
+        .5,
+      );
+      expect(visuals.preview.value, visualPort.profile);
+
+      visuals.reportInvalid(SpatialVisualParameter.weatherIntensity, 'xyz');
+      settings.discard(ProjectSettingsSection.image);
+      expect(visuals.invalidInputs, {
+        SpatialVisualParameter.weatherIntensity: 'xyz',
+      });
+      expect(settings.dirtySections, {ProjectSettingsSection.timeWeather});
+      expect(visuals.preview.value, visualPort.profile);
+      settings.discard(ProjectSettingsSection.timeWeather);
+      expect(visuals.dirty, isFalse);
+      expect(visuals.invalidInputs, isEmpty);
+      expect(visuals.preview.value, visualPort.profile);
+      expect(visualPort.reads, 1);
+      expect(visualPort.writes, 1);
+    },
+  );
+
+  test(
+    'an external profile cannot replace a draft containing only invalid text',
+    () {
+      final saved = visuals.saved;
+      final original = visuals.preview.value;
+      visuals.reportInvalid(SpatialVisualParameter.fieldOfViewDegrees, 'abc');
+      expect(
+        visuals.acceptExternalState(
+          ProjectVisualsState(profile: image, revision: 'external'),
+        ),
+        isFalse,
+      );
+      expect(visuals.saved, same(saved));
+      expect(visuals.preview.value, same(original));
+      expect(
+        visuals.invalidInputs[SpatialVisualParameter.fieldOfViewDegrees],
+        'abc',
+      );
+      expect(visuals.dirty, isTrue);
+      expect(visuals.error, contains('modification externe'));
+      expect(visualPort.reads, 1);
+      expect(visualPort.writes, 0);
+    },
+  );
+
   test('the six sections are navigable without saving anything', () async {
     expect(ProjectSettingsSection.values, hasLength(6));
     visuals.edit(image);

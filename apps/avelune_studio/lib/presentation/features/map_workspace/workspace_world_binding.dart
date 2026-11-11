@@ -10,14 +10,6 @@ extension _WorkspaceWorldBinding on _MapWorkspaceScreenState {
     _show(WorkspaceSpace.world);
   }
 
-  Future<void> _returnFromWorld() async {
-    final error = _navigation.returnFromWorld();
-    if (error != null) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(error)));
-    }
-  }
-
   Widget _worldPage() {
     return const Center(
       child: Text('Interface Monde retirée — reconstruction en attente.'),

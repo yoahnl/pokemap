@@ -5,6 +5,7 @@ import 'package:map_core/map_core_domain.dart';
 import '../../narrative/application/narrative_workspace_controller.dart';
 import '../domain/cinematic_port.dart';
 import 'cinematic_edit_session.dart';
+import 'cinematic_input_state.dart';
 import 'cinematic_map_model.dart';
 import 'cinematic_preview_transport.dart';
 
@@ -36,9 +37,118 @@ class CinematicWorkspaceController {
   final _publishing = <String>{}, _deleting = <String>{};
   int _generation = 0, sourceReads = 0, planBuilds = 0;
   bool _disposed = false, _loading = false;
-  String? activeId, error;
+  String? activeId;
+  String? _error;
+  int _errorRevision = 0;
+  CinematicInputState? _errorInputs;
+  String? get error => _error;
+  set error(String? value) {
+    _error = value;
+    _errorRevision++;
+    final inputs = _inputs[activeId];
+    _errorInputs = value != null && inputs?.validating == true ? inputs : null;
+  }
+
   void Function(String id)? onPublished;
-  bool Function()? flushEdits;
+  final _inputs = <String, CinematicInputState>{};
+  (String, int)? _inputDiscardFailure;
+  Object? _inputHost;
+  bool Function()? _flushFocus;
+  bool Function()? get flushEdits => _flushInputs;
+  set flushEdits(bool Function()? value) {
+    _inputHost = null;
+    _flushFocus = value;
+  }
+
+  CinematicInputState inputsFor(String id, {CinematicInputState? initial}) =>
+      _inputs.putIfAbsent(id, () => initial ?? CinematicInputState());
+
+  Iterable<CinematicInputDiscard> get pendingInputDiscards {
+    if (_closed || busy) return const [];
+    return List<CinematicInputDiscard>.unmodifiable([
+      for (final id in _inputs.keys) ?prepareInputDiscard(id),
+    ]);
+  }
+
+  CinematicInputDiscard? prepareInputDiscard(String cinematicId) {
+    if (_closed || busy) return null;
+    final session = _sessions[cinematicId];
+    final inputs = _inputs[cinematicId];
+    if (session == null || inputs == null || !inputs.dirty) return null;
+    return CinematicInputDiscard._(
+      owner: this,
+      cinematicId: cinematicId,
+      title: session.asset.title,
+      session: session,
+      asset: session.asset,
+      sessionRevision: session.revision,
+      inputs: inputs,
+      inputRevision: inputs.revision,
+    );
+  }
+
+  bool discardInputs(
+    CinematicInputDiscard preparation, {
+    required bool confirmed,
+  }) {
+    if (!confirmed || _closed || busy) return false;
+    final session = _sessions[preparation.cinematicId];
+    final inputs = _inputs[preparation.cinematicId];
+    if (!identical(preparation._owner, this) ||
+        !identical(session, preparation._session) ||
+        !identical(session?.asset, preparation._asset) ||
+        session?.revision != preparation._sessionRevision ||
+        !identical(inputs, preparation._inputs) ||
+        inputs?.revision != preparation._inputRevision ||
+        inputs?.dirty != true) {
+      const message =
+          'Cette cinématique ou ses saisies ont changé. '
+          'Vérifiez-les avant de confirmer leur abandon.';
+      if (error != null &&
+          _errorInputs == null &&
+          _inputDiscardFailure?.$2 != _errorRevision) {
+        changed();
+        return false;
+      }
+      error = message;
+      _inputDiscardFailure = (preparation.cinematicId, _errorRevision);
+      changed();
+      return false;
+    }
+    inputs!.discard(preserveDiagnostics: true);
+    final discardFailure = _inputDiscardFailure;
+    if (identical(_errorInputs, inputs) ||
+        (discardFailure?.$1 == preparation.cinematicId &&
+            _errorRevision == discardFailure?.$2)) {
+      error = null;
+    }
+    if (discardFailure?.$1 == preparation.cinematicId) {
+      _inputDiscardFailure = null;
+    }
+    changed();
+    return true;
+  }
+
+  bool _flushInputs() =>
+      _flushFocus?.call() != false &&
+      _inputs.values.every((input) => input.valid);
+
+  void attachInputHost(Object owner, bool Function() flushFocus) {
+    if (_closed) return;
+    if (_inputHost != null && !identical(_inputHost, owner)) {
+      suspendMapPreview();
+    }
+    _inputHost = owner;
+    _flushFocus = flushFocus;
+  }
+
+  void detachInputHost(Object owner) {
+    if (!identical(_inputHost, owner)) return;
+    _inputHost = null;
+    _flushFocus = null;
+    suspendMapPreview();
+  }
+
   bool get _closed => _disposed || narrative.workspace.isDisposed;
   bool get busy => _loading || _publishing.isNotEmpty;
   ProjectManifest get project => narrative.project;
@@ -49,11 +159,49 @@ class CinematicWorkspaceController {
   CinematicWorkingSession? get _active => _sessions[activeId];
   CinematicEditSession? get active => _active?.snapshot;
   CinematicEditSession? session(String id) => _sessions[id]?.snapshot;
-  bool get dirty => _sessions.values.any((s) => s.dirty);
+  bool get dirty =>
+      _sessions.values.any((s) => s.dirty) ||
+      _inputs.values.any((input) => input.dirty);
+  bool Function() captureDraftGuard() {
+    final sessions = {
+      for (final entry in _sessions.entries)
+        entry.key: (entry.value, entry.value.revision),
+    };
+    final inputs = {
+      for (final entry in _inputs.entries)
+        entry.key: (entry.value, entry.value.revision),
+    };
+    return () {
+      if (_closed ||
+          busy ||
+          sessions.length != _sessions.length ||
+          inputs.length != _inputs.length) {
+        return false;
+      }
+      for (final entry in sessions.entries) {
+        final current = _sessions[entry.key];
+        if (!identical(current, entry.value.$1) ||
+            current?.revision != entry.value.$2) {
+          return false;
+        }
+      }
+      for (final entry in inputs.entries) {
+        final current = _inputs[entry.key];
+        if (!identical(current, entry.value.$1) ||
+            current?.revision != entry.value.$2) {
+          return false;
+        }
+      }
+      return true;
+    };
+  }
+
   bool get canUndo => _active?.undo.isNotEmpty ?? false;
   bool get canRedo => _active?.redo.isNotEmpty ?? false;
   String? accessProblem(String id) =>
-      _sessions[id]?.dirty == true || _publishing.contains(id)
+      _sessions[id]?.dirty == true ||
+          _inputs[id]?.dirty == true ||
+          _publishing.contains(id)
       ? 'Cette cinématique possède un brouillon complet. Enregistrez-le ou rechargez-le explicitement.'
       : null;
   bool _fail(Object failure) {
@@ -269,7 +417,9 @@ class CinematicWorkspaceController {
   CinematicAsset? _clipboardSource;
   void invalidateSources(Set<String> ids) {
     for (final id in ids) {
-      if (_sessions[id]?.dirty == false && !_publishing.contains(id)) {
+      if (_sessions[id]?.dirty == false &&
+          _inputs[id]?.dirty != true &&
+          !_publishing.contains(id)) {
         _sessions.remove(id);
       }
     }
@@ -283,6 +433,7 @@ class CinematicWorkspaceController {
         .where(
           (e) =>
               !e.value.dirty &&
+              _inputs[e.key]?.dirty != true &&
               !_publishing.contains(e.key) &&
               e.value.base?.asset !=
                   project.cinematics.where((a) => a.id == e.key).firstOrNull,
@@ -294,6 +445,8 @@ class CinematicWorkspaceController {
 
   void dispose() {
     _disposed = true;
+    _inputHost = null;
+    _flushFocus = null;
     _mapGeneration++;
     _generation++;
     narrative.workspace.removeListener(reconcileCatalog);
@@ -301,4 +454,24 @@ class CinematicWorkspaceController {
     narrative.cinematicsPublished = null;
     transport.dispose();
   }
+}
+
+class CinematicInputDiscard {
+  CinematicInputDiscard._({
+    required this._owner,
+    required this.cinematicId,
+    required this.title,
+    required this._session,
+    required this._asset,
+    required this._sessionRevision,
+    required this._inputs,
+    required this._inputRevision,
+  });
+
+  final String cinematicId, title;
+  final CinematicWorkspaceController _owner;
+  final CinematicWorkingSession _session;
+  final CinematicAsset _asset;
+  final int _sessionRevision, _inputRevision;
+  final CinematicInputState _inputs;
 }

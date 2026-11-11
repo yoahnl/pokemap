@@ -489,34 +489,31 @@ void main() {
       );
       final state = ResourceLibraryState();
       var classified = 0;
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: studioTheme(),
-          home: MediaQuery(
-            data: MediaQueryData(
-              textScaler: TextScaler.linear(size.height < 500 ? 1.5 : 1),
-            ),
-            child: Scaffold(
-              body: ResourceLibraryScreen(
-                project: project,
-                visuals: WorkspaceTestVisuals(),
-                state: state,
-                activeMapId: 'a',
-                targetMapName: 'Clairière',
-                onUse: (_) {},
-                onEdit: (_) {},
-                onTerrain: (_) {},
-                onClassify: (_) => classified++,
-                onManageFamilies: () {},
-                onCreateBorder: () {},
-                onResumeBorder: (_) {},
-                onImport: () {},
-                onBack: () {},
-              ),
+      Widget library() => MaterialApp(
+        theme: studioTheme(),
+        home: MediaQuery(
+          data: MediaQueryData(
+            textScaler: TextScaler.linear(size.height < 500 ? 1.5 : 1),
+          ),
+          child: Scaffold(
+            body: ResourceLibraryScreen(
+              project: project,
+              visuals: WorkspaceTestVisuals(),
+              state: state,
+              activeMapId: 'a',
+              targetMapName: 'Clairière',
+              onUse: (_) {},
+              onEdit: (_) {},
+              onTerrain: (_) {},
+              onClassify: (_) => classified++,
+              onManageFamilies: () {},
+              onImport: () {},
+              onBack: () {},
             ),
           ),
         ),
       );
+      await tester.pumpWidget(library());
       expect(state.atelierVisible, isFalse);
       expect(
         find.byKey(const ValueKey('resource-card-tileset:atlas')),
@@ -543,13 +540,64 @@ void main() {
         find.byKey(const ValueKey('resource-card-element:other')),
         findsOneWidget,
       );
+      expect(
+        find.byKey(const ValueKey('resource-filter-button')),
+        findsNothing,
+      );
+      final catalog = resourceCatalog(project);
+      final familyItems = filterResourceCatalog(
+        project,
+        catalog,
+        state.filters,
+        activeMapId: 'a',
+      );
+      expect(state.visibleItems(familyItems).map((item) => item.identity), [
+        'element:tree',
+        'element:other',
+      ]);
+      state.sort = ResourceSort.nameDescending;
+      expect(state.visibleItems(familyItems).map((item) => item.identity), [
+        'element:other',
+        'element:tree',
+      ]);
+      state.sort = ResourceSort.nameAscending;
+      expect(state.filters.familyId, 'trees');
+      Future<void> openFilterHarness() async {
+        await tester.pumpWidget(
+          MaterialApp(
+            key: const ValueKey('resource-filter-harness'),
+            theme: studioTheme(),
+            home: MediaQuery(
+              data: MediaQueryData(
+                textScaler: TextScaler.linear(size.height < 500 ? 1.5 : 1),
+              ),
+              child: Scaffold(
+                body: ResourceFilterButton(
+                  filters: state.filters,
+                  activeMapName: 'Clairière',
+                  showType: true,
+                  onChanged: () {},
+                  countResults: (draft, _) => filterResourceCatalog(
+                    project,
+                    catalog,
+                    draft,
+                    activeMapId: 'a',
+                  ).length,
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.tap(find.byKey(const ValueKey('resource-filter-button')));
+        await tester.pumpAndSettle();
+      }
+
       String draftCount() => tester
           .widget<Text>(
             find.byKey(const ValueKey('resource-filter-result-count')),
           )
           .data!;
-      await tester.tap(find.byKey(const ValueKey('resource-filter-button')));
-      await tester.pumpAndSettle();
+      await openFilterHarness();
       expect(draftCount(), '2 résultats');
       await _choose(tester, 'resource-filter-scope', 'Propres à une carte');
       expect(draftCount(), '1 résultat');
@@ -563,17 +611,22 @@ void main() {
       expect(state.filters.familyId, 'trees');
       await tester.tap(find.byKey(const ValueKey('resource-filter-cancel')));
       await tester.pumpAndSettle();
+      await tester.pumpWidget(library());
+      await tester.pumpAndSettle();
       expect(state.filters.scope, ResourceCatalogScope.all);
+      expect(state.filters.usage, ResourceCatalogUsage.all);
+      expect(state.filters.familyId, 'trees');
       expect(
         find.byKey(const ValueKey('resource-card-element:tree')),
         findsOneWidget,
       );
-      await tester.tap(find.byKey(const ValueKey('resource-filter-button')));
-      await tester.pumpAndSettle();
+      await openFilterHarness();
       expect(draftCount(), '2 résultats');
       await _choose(tester, 'resource-filter-scope', 'Propres à une carte');
       expect(draftCount(), '1 résultat');
       await tester.tap(find.byKey(const ValueKey('resource-filter-apply')));
+      await tester.pumpAndSettle();
+      await tester.pumpWidget(library());
       await tester.pumpAndSettle();
       expect(state.filters.scope, ResourceCatalogScope.map);
       expect(

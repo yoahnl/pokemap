@@ -38,16 +38,6 @@ extension _ResourceLibraryLayout on _ResourceLibraryScreenState {
                     ? null
                     : () => widget.onClassifyMarked!(marked),
               ),
-            if (widget.onExportMarked != null)
-              StudioButton(
-                key: const ValueKey('resource-marked-export'),
-                label: 'Exporter la sélection…',
-                icon: Icons.inventory_2_outlined,
-                secondary: true,
-                onPressed: count == 0
-                    ? null
-                    : () => widget.onExportMarked!(marked),
-              ),
             StudioButton(
               key: const ValueKey('resource-marked-all'),
               label: 'Sélectionner les ${visible.length} résultats',
@@ -171,6 +161,10 @@ extension _ResourceLibraryLayout on _ResourceLibraryScreenState {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  const Text(
+                    'L’import et l’export de packs sont temporairement indisponibles. Votre sélection est conservée.',
+                    key: ValueKey('resource-pack-transfer-unavailable'),
+                  ),
                   if (state.filters.familyId.isNotEmpty ||
                       state.filters.showComponents ||
                       state.filters.typeKind.isNotEmpty ||
@@ -199,20 +193,40 @@ extension _ResourceLibraryLayout on _ResourceLibraryScreenState {
             if (state.atelierVisible &&
                 state.family == ResourceLibraryFamily.borders)
               Expanded(
-                child: ResourceBorderDraftBar(
-                  project: widget.project,
-                  records: filtered.map((item) => item.border!).toList(),
-                  onResume: widget.onResumeBorder,
-                  onManage: widget.onManageBorder,
-                  library: true,
+                child: StudioEmptyState(
+                  key: const ValueKey(
+                    'resource-border-workshop-unavailable-state',
+                  ),
+                  title: 'Atelier des bordures indisponible',
+                  description: 'L’atelier est temporairement indisponible. Les bordures publiées restent accessibles dans le catalogue général.',
+                  icon: Icons.edit_off_outlined,
+                  action: StudioButton(
+                    key: const ValueKey('resource-border-return-to-catalog'),
+                    label: 'Retour au catalogue',
+                    secondary: true,
+                    onPressed: () => change(() => state.atelierVisible = false),
+                  ),
                 ),
               ),
             if (state.atelierVisible &&
                 state.family == ResourceLibraryFamily.environments)
               Expanded(
-                child:
-                    widget.environmentLibrary?.call(filtered) ??
-                    const Center(child: Text('Aucun environnement préparé.')),
+                child: StudioEmptyState(
+                  key: const ValueKey(
+                    'resource-environment-library-unavailable-state',
+                  ),
+                  title: 'Atelier des environnements indisponible',
+                  description: 'L’édition, la duplication et la suppression des environnements sont temporairement indisponibles. Les environnements publiés restent accessibles dans le catalogue général.',
+                  icon: Icons.edit_off_outlined,
+                  action: StudioButton(
+                    key: const ValueKey(
+                      'resource-environment-library-return-to-catalog',
+                    ),
+                    label: 'Retour au catalogue',
+                    secondary: true,
+                    onPressed: () => change(() => state.atelierVisible = false),
+                  ),
+                ),
               ),
             if (state.atelierVisible &&
                 state.family == ResourceLibraryFamily.models3d)

@@ -96,7 +96,6 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                         ),
                       Expanded(
                         child: MapWorkspaceLayout(
-                          loadContextualItems: _loadSceneItems,
                           homeSearch: widget.home?.search ?? _homeSearch,
                           onSearch: (_) => _goHome(search: true),
                           onHome: widget.home == null ? null : _goHome,
@@ -200,26 +199,8 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                                       _openResourceTools,
                                       _replaceCatalogModelSource,
                                     )
-                              : _space == WorkspaceSpace.projectSettings &&
-                                    _controller.port is ProjectVisualsPort
-                              ? ProjectSettingsPage(
-                                  key: ValueKey(_controller.session.sessionId),
-                                  workspace: _controller,
-                                  initialSection: _settingsSection,
-                                  onOpenOwner: _openFailureOwner,
-                                  owner: _visualOwner,
-                                  surfOwner: _surfOwner,
-                                  csOwner: _csOwner,
-                                  audioOwner: _audioOwner,
-                                  pickMedia: widget.presentationMediaPicker,
-                                  loadItems: _loadSceneItems,
-                                  testBuilder: widget.visualTestBuilder,
-                                  onOpenVerification: () =>
-                                      _show(WorkspaceSpace.verification),
-                                  onOpenExport: () =>
-                                      _show(WorkspaceSpace.gameExport),
-                                  identity: _identityOwner,
-                                )
+                              : _space == WorkspaceSpace.projectSettings
+                              ? _settingsRecovery()
                               : _space == WorkspaceSpace.regionalMap &&
                                     _regionalMap != null
                               ? RegionalMapPage(controller: _regionalMap!)
@@ -284,7 +265,6 @@ extension _WorkspaceScreenBody on _MapWorkspaceScreenState {
                                   narrative: _narrative,
                                   verification: _verification,
                                   scenes: _scenes,
-                                  sceneViews: _sceneViews,
                                   stories: _stories,
                                   sceneOrigin: _sceneOrigin,
                                   onSceneReturn: _sceneReturnAction(),

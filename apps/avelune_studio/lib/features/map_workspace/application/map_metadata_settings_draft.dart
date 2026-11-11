@@ -27,6 +27,58 @@ class MapMetadataSettingsDraft {
   };
 }
 
+final class MapContextualItemUseCollectionDraft {
+  MapContextualItemUseCollectionDraft(Iterable<ContextualItemUseRule> rules)
+    : _drafts = rules.map(MapContextualItemUseDraft.fromRule).toList() {
+    _usedIds.addAll(_drafts.map((draft) => draft.id));
+  }
+
+  final List<MapContextualItemUseDraft> _drafts;
+  final Set<String> _usedIds = {};
+  int _nextId = 1;
+
+  List<MapContextualItemUseDraft> get drafts => List.unmodifiable(_drafts);
+  bool get canAdd => _drafts.length < 128;
+  bool get _validIdentities =>
+      _drafts.every((draft) => draft.id.trim().isNotEmpty) &&
+      _drafts.map((draft) => draft.id).toSet().length == _drafts.length;
+
+  MapContextualItemUseDraft add() {
+    if (!canAdd) {
+      throw StateError(
+        'Une carte accepte au maximum 128 utilisations d’objets.',
+      );
+    }
+    var id = '';
+    do {
+      id = 'context-item-${_nextId++}';
+    } while (!_usedIds.add(id));
+    final draft = MapContextualItemUseDraft(id);
+    _drafts.add(draft);
+    return draft;
+  }
+
+  void removeAt(int index) => _drafts.removeAt(index);
+
+  bool isValid(
+    MapData map,
+    Map<String, String> items,
+    Map<String, String> scenes,
+  ) =>
+      _drafts.length <= 128 &&
+      _validIdentities &&
+      _drafts.every((draft) => draft.isValid(map, items, scenes));
+
+  List<ContextualItemUseRule> toRules() {
+    if (_drafts.length > 128 || !_validIdentities) {
+      throw StateError(
+        'La collection contient trop de règles ou des identifiants invalides.',
+      );
+    }
+    return [for (final draft in _drafts) draft.toRule()];
+  }
+}
+
 final class MapContextualItemUseDraft {
   MapContextualItemUseDraft(this.id);
   factory MapContextualItemUseDraft.fromRule(ContextualItemUseRule rule) =>
@@ -57,7 +109,8 @@ final class MapContextualItemUseDraft {
     final p = int.tryParse(priority),
         px = int.tryParse(x),
         py = int.tryParse(y);
-    return items.containsKey(itemId) &&
+    return id.trim().isNotEmpty &&
+        items.containsKey(itemId) &&
         scenes.containsKey(sceneId) &&
         p != null &&
         p >= -1000000 &&

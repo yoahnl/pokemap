@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../shared/widgets/inputs/studio_choice.dart';
 import '../../shared/widgets/layout/studio_sidebar.dart';
 
 double mapLeftColumnWidth(double available) => available >= 1400
@@ -13,16 +12,11 @@ class MapWorkspaceLeftColumn extends StatelessWidget {
   const MapWorkspaceLeftColumn({
     super.key,
     required this.width,
-    required this.contentSelected,
-    required this.onContentSelected,
-    required this.maps,
     required this.content,
   });
 
   final double width;
-  final bool contentSelected;
-  final ValueChanged<bool> onContentSelected;
-  final Widget maps, content;
+  final Widget content;
 
   @override
   Widget build(BuildContext context) => SizedBox(
@@ -32,35 +26,13 @@ class MapWorkspaceLeftColumn extends StatelessWidget {
       children: [
         StudioSidebar(
           width: width,
-          child: Row(
-            children: [
-              for (final (isContent, label, key) in const [
-                (false, 'Cartes', 'map-left-tab-maps'),
-                (true, 'Contenu', 'map-left-tab-content'),
-              ]) ...[
-                if (isContent) const SizedBox(width: 6),
-                Expanded(
-                  child: StudioChoice(
-                    key: ValueKey(key),
-                    label: label,
-                    dense: true,
-                    selected: contentSelected == isContent,
-                    onTap: () => onContentSelected(isContent),
-                  ),
-                ),
-              ],
-            ],
+          child: Text(
+            'Contenu',
+            style: Theme.of(context).textTheme.titleMedium,
           ),
         ),
         Expanded(
-          child: IndexedStack(
-            index: contentSelected ? 1 : 0,
-            sizing: StackFit.expand,
-            children: [
-              maps,
-              StudioSidebar(width: width, child: content),
-            ],
-          ),
+          child: StudioSidebar(width: width, child: content),
         ),
       ],
     ),

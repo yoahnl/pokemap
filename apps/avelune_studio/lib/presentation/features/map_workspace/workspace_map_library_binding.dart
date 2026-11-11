@@ -24,7 +24,4 @@ extension _WorkspaceMapLibrary on _MapWorkspaceScreenState {
     if (mounted) _changed();
     return problem;
   }
-
-  Future<void> _createMap([String? groupId]) =>
-      createWorkspaceMap(context, _controller, groupId: groupId);
 }

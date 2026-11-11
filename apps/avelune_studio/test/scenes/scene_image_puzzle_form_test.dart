@@ -1,15 +1,11 @@
-import 'package:avelune_studio/presentation/features/scenes/scene_action_form.dart';
-import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
-import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
-import 'package:flutter/material.dart';
+import 'package:avelune_studio/features/scenes/application/scene_image_puzzle_draft.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
 void main() {
-  testWidgets(
-    'Studio reopens the complete puzzle with guided image and placement fields',
-    (tester) async {
+  test(
+    'puzzle owner reopens the complete image and placement definition',
+    () async {
       final definition = ImagePuzzleDefinition(
         puzzleId: 'mosaic',
         imageResourceId: 'image',
@@ -27,64 +23,31 @@ void main() {
           ImagePuzzlePiece(pieceId: 3, slot: 3),
         ],
       );
-      SceneNodePayload? result;
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: studioTheme(),
-          home: Scaffold(
-            body: SingleChildScrollView(
-              child: SceneActionForm(
-                project: const ProjectManifest(
-                  name: 'Puzzle',
-                  maps: [],
-                  tilesets: [],
-                ),
-                current: SceneActionPayload.interactive(
-                  SceneInteractiveCommand.openImagePuzzle(
-                    definition: definition,
-                  ),
-                ),
-                loadVisualMedia: () async => ProjectMediaCatalog(
-                  entries: [
-                    ProjectMediaAsset(
-                      id: 'image',
-                      label: 'Mosaïque choisie',
-                      kind: ProjectMediaKind.image,
-                      sourceAssetId: 'image-source',
-                    ),
-                    ProjectMediaAsset(
-                      id: 'sound',
-                      label: 'Son exclu',
-                      kind: ProjectMediaKind.audio,
-                      sourceAssetId: 'sound-source',
-                    ),
-                  ],
-                ),
-                onApply: (value) => result = value,
-              ),
+      final draft = SceneImagePuzzleDraft(
+        current: SceneOpenImagePuzzleInteractiveCommand(definition: definition),
+        changed: () {},
+        loadVisualMedia: () async => ProjectMediaCatalog(
+          entries: [
+            ProjectMediaAsset(
+              id: 'image',
+              label: 'Mosaïque choisie',
+              kind: ProjectMediaKind.image,
+              sourceAssetId: 'image-source',
             ),
-          ),
+            ProjectMediaAsset(
+              id: 'sound',
+              label: 'Son exclu',
+              kind: ProjectMediaKind.audio,
+              sourceAssetId: 'sound-source',
+            ),
+          ],
         ),
       );
-      await tester.pumpAndSettle();
-      expect(
-        find.byKey(const ValueKey('puzzle-piece-0-fixed')),
-        findsOneWidget,
-      );
-      final imagePicker = tester.widget<StudioSelect>(
-        find.byKey(const ValueKey('puzzle-image')),
-      );
-      expect(imagePicker.options, {'image': 'Mosaïque choisie'});
-      final apply = find.byKey(const ValueKey('puzzle-apply'));
-      expect(tester.widget<StudioButton>(apply).onPressed, isNotNull);
-      await tester.ensureVisible(apply);
-      await tester.tap(apply);
-      expect(
-        ((result as SceneActionPayload).interactiveCommand
-                as SceneOpenImagePuzzleInteractiveCommand)
-            .definition,
-        definition,
-      );
+      addTearDown(draft.dispose);
+      await draft.load();
+      expect(draft.fixed, [0]);
+      expect(draft.images, {'image': 'Mosaïque choisie'});
+      expect(draft.definition, definition);
     },
   );
 }

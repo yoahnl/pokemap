@@ -1,71 +1,100 @@
+import 'package:avelune_studio/features/dialogues/application/dialogue_workspace_controller.dart';
 import 'package:avelune_studio/features/dialogues/data/local_dialogue_adapter.dart';
-import 'package:avelune_studio/presentation/features/dialogues/dialogue_workspace_page.dart';
-import 'package:avelune_studio/presentation/features/events/event_workspace_page.dart';
-import 'package:avelune_studio/presentation/features/scenes/scene_builder_page.dart';
-import 'package:flutter/material.dart';
+import 'package:avelune_studio/features/events/application/event_workspace_controller.dart';
+import 'package:avelune_studio/features/events/data/local_event_adapter.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/workspace_navigation_session.dart';
+import 'package:avelune_studio/features/map_workspace/domain/workspace_navigation.dart';
+import 'package:avelune_studio/features/narrative/application/narrative_workspace_controller.dart';
+import 'package:avelune_studio/features/narrative/data/local_narrative_adapter.dart';
+import 'package:avelune_studio/features/scenes/application/scene_workspace_controller.dart';
+import 'package:avelune_studio/features/scenes/data/local_scene_adapter.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
-import 'support/m2_ui_fixture.dart';
-import 'support/ui08_journey_driver.dart';
-import 'support/ui08_workspace_harness.dart';
-import 'support/ui09_dialogue_fixture.dart';
+import 'support/ui06_scene_fixture.dart';
+import 'support/ui08_event_fixture.dart';
 
 void main() {
-  testWidgets('nested event → scene → dialogue returns to exact owner', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(1536, 1024);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    final h = (await tester.runAsync(
-      () => Ui08WorkspaceHarness.create(tester),
-    ))!;
-    final port = WidgetDialoguePort(
-      LocalDialogueAdapter(
-        session: h.source.session,
-        mapAdapter: h.source.maps,
-      ),
-      tester,
+  TestWidgetsFlutterBinding.ensureInitialized();
+  test('nested event scene dialogue routes preserve the exact dirty owner without publication', () async {
+    final fixture = await createUi08Fixture();
+    addTearDown(fixture.dispose);
+    final maps = MapWorkspaceController(fixture.session, fixture.maps);
+    addTearDown(maps.dispose);
+    await maps.initialize();
+    final narrative = NarrativeWorkspaceController(
+      maps,
+      LocalNarrativeAdapter(session: fixture.session, mapAdapter: fixture.maps),
+      () {},
+      (_, _) async {},
     );
-    addTearDown(() async {
-      await tester.pumpWidget(const SizedBox());
-      await tester.runAsync(h.dispose);
-    });
-    await tester.pumpWidget(h.app(dialoguePort: port));
-    await pumpIo(tester);
-    await ui08Open(tester);
-    await ui08Tap(tester, 'PNJ Chef de gare');
-    final selectedEvent = ui08Page(tester).controller.activeId;
-    await ui08Tap(tester, 'Scène');
-    await ui08Tap(tester, 'Ouvrir la scène');
-    final scene = tester.widget<SceneBuilderPage>(
-      find.byType(SceneBuilderPage),
+    addTearDown(narrative.dispose);
+    final events = EventWorkspaceController(
+      narrative,
+      LocalEventAdapter(session: fixture.session, mapAdapter: fixture.maps),
+      changed: () {},
     );
-    scene.controller.active!.rename('Brouillon scène conservé');
-    final before = scene.controller.active!.current;
+    addTearDown(events.dispose);
+    expect(await events.prepare(), isTrue, reason: events.error);
+    final scenes = SceneWorkspaceController(
+      maps,
+      LocalSceneAdapter(session: fixture.session, mapAdapter: fixture.maps),
+      narrative: narrative,
+      changed: () {},
+    );
+    addTearDown(scenes.dispose);
+    final dialogues = DialogueWorkspaceController(
+      narrative,
+      LocalDialogueAdapter(session: fixture.session, mapAdapter: fixture.maps),
+      changed: () {},
+    );
+    addTearDown(dialogues.dispose);
+    final navigation = WorkspaceNavigationSession(
+      controller: maps,
+      isActive: () => true,
+      changed: () {},
+      events: () => events,
+      scenes: () => scenes,
+      dialogues: () => dialogues,
+      narrative: () => narrative,
+    );
+    final recorded = await fixture.readFresh();
+    await navigation.openEvents(Ui06SceneFixture.eventId);
+    final selectedEvent = events.activeId;
+    final event = events.active!;
+    expect(await navigation.openScene(event.definitionOrNull!.sceneId), isNull);
+    final session = scenes.active!;
+    expect(session.rename('Brouillon scène conservé'), isTrue);
+    final before = session.current;
+    final history = session.undoCount;
     final node = before.graph.nodes.firstWhere(
-      (n) => n.payload is SceneYarnDialoguePayload,
+      (node) => node.payload is SceneYarnDialoguePayload,
     );
-    scene.views.forScene(before.id).nodeId = node.id;
-    scene.controller.changed();
-    await pumpIo(tester);
-    await ui08Tap(tester, 'Ouvrir le dialogue');
-    final dialogue = tester.widget<DialogueWorkspacePage>(
-      find.byType(DialogueWorkspacePage),
-    );
+    navigation.selectSceneNode(before, node.id);
+    final payload = node.payload as SceneYarnDialoguePayload;
     expect(
-      dialogue.controller.activeId,
-      (node.payload as SceneYarnDialoguePayload).dialogueId,
+      await navigation.openDialogue(
+        payload.dialogueId,
+        WorkspaceSpace.scene,
+        startNode: payload.yarnNodeName,
+      ),
+      isNull,
     );
-    await ui08Tap(tester, 'Retour à la scène');
-    expect(scene.controller.active!.current, before);
-    expect(scene.controller.active!.dirty, isTrue);
-    await ui08Tap(tester, 'Événements');
-    expect(find.byType(EventWorkspacePage), findsOneWidget);
-    expect(ui08Page(tester).controller.activeId, selectedEvent);
-    expect(port.writes, 0);
-    expect(tester.takeException(), isNull);
+    expect(dialogues.activeId, payload.dialogueId);
+    navigation.returnFromDialogue();
+    expect(navigation.space, WorkspaceSpace.scene);
+    expect(scenes.active, same(session));
+    expect(session.current, same(before));
+    expect(session.undoCount, history);
+    expect(session.dirty, isTrue);
+    expect(navigation.sceneNodes[before.id], node.id);
+    navigation.show(navigation.sceneOrigin.space);
+    expect(navigation.space, WorkspaceSpace.events);
+    expect(events.activeId, selectedEvent);
+    expect(events.active, same(event));
+    expect(dialogues.dirty, isFalse);
+    expect(events.dirty, isFalse);
+    expect(await fixture.readFresh(), recorded);
   });
 }

@@ -1,5 +1,6 @@
 import 'package:avelune_studio/features/map_workspace/domain/workspace_navigation.dart';
 export 'package:avelune_studio/features/map_workspace/domain/workspace_navigation.dart';
+
 import '../../../features/presentations/application/presentation_workspace_controller.dart';
 import '../../../features/scenes/domain/scene_presentation_creation_request.dart';
 import '../../../features/cinematics/application/cinematic_workspace_controller.dart';
@@ -19,19 +20,23 @@ import 'package:map_core/map_core_domain.dart';
 
 import '../events/event_workspace_page.dart';
 import '../events/event_view_state.dart';
+
 import 'package:avelune_studio/features/events/application/event_map_loader.dart';
+
 import '../../../features/stories/application/story_workspace_controller.dart';
 import '../../../features/verification/application/verification_workspace_controller.dart';
 import '../../../features/scenes/application/scene_workspace_controller.dart';
-import '../../../presentation/features/scenes/scene_builder_page.dart';
 import '../../../features/narrative/application/narrative_workspace_controller.dart';
 import '../narrative/narrative_interaction_pane.dart';
 import '../narrative/narrative_story_pane.dart';
 import '../narrative/narrative_overview_view_state.dart';
 import '../../../features/narrative/application/scene_node_references.dart';
+
 import 'package:avelune_studio/features/resources/coordination/resource_navigation.dart';
+
 import '../resources/resource_image_import.dart';
 import '../resources/resource_workspace_pane.dart';
+
 import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 
 Widget? workspaceSecondaryContent({
@@ -69,7 +74,6 @@ Widget? workspaceSecondaryContent({
   Future<Map<String, String>> Function()? loadSceneItems,
   Future<Map<String, String>> Function()? loadSceneCaptureItems,
   Future<List<PokemonSpeciesSummary>> Function()? loadSceneSpecies,
-  required SceneBuilderViewStore sceneViews,
   required StoryWorkspaceController? stories,
   required WorkspaceReturn sceneOrigin,
   VoidCallback? onSceneReturn,
@@ -118,9 +122,7 @@ Widget? workspaceSecondaryContent({
           ? null
           : (cinematicId) =>
                 sceneNodesPlayingCinematic(scenes.scenes, cinematicId),
-      onTriggerScene: onOpenSceneAt == null
-          ? null
-          : (reference) => onOpenSceneAt(reference.scene.id, reference.node.id),
+      onTriggerScene: null,
       onDialogue: onCinematicDialogue,
       onLocate: onCinematicLocate,
     );
@@ -150,56 +152,10 @@ Widget? workspaceSecondaryContent({
       visuals: visuals,
       scenes: scenes,
       onBack: onEventBack,
-      onScene: onOpenScene,
+      onScene: null,
       onDialogue: dialogues == null ? null : onEventDialogue,
       onLocate: onEventLocate,
       onTest: onEventTest,
-    );
-  }
-  if (space == WorkspaceSpace.scene && scenes != null) {
-    return SceneBuilderPage(
-      loadMoves: loadSceneMoves,
-      loadItems: loadSceneItems,
-      loadCaptureItems: loadSceneCaptureItems,
-      loadSpecies: loadSceneSpecies,
-      loadVisualMedia: presentations == null ? null : () async => (await presentations.port.prepare(scenes.project)).mediaCatalog,
-      onPresentation: onScenePresentation,
-      onCreatePresentation: onCreatePresentation,
-      presentationFor: presentations?.assetFor,
-      presentationEntries: presentations == null
-          ? null
-          : () => presentations.entries,
-      dialogues: dialogues,
-      onCinematic: cinematics == null ? null : onSceneCinematic,
-      onDialogue: dialogues == null ? null : onSceneDialogue,
-      controller: scenes,
-      views: sceneViews,
-      narrative: narrative,
-      onBack: onSceneReturn != null && sceneReturnLabel != null
-          ? onSceneReturn
-          : sceneOrigin.space == WorkspaceSpace.presentation &&
-                onReturnPresentation != null
-          ? () => onReturnPresentation(sceneOrigin.documentId)
-          : sceneOrigin.space == WorkspaceSpace.events
-          ? onReturnEvents
-          : sceneOrigin.space == WorkspaceSpace.progression
-          ? onReturnProgression
-          : sceneOrigin.space == WorkspaceSpace.verification &&
-                onReturnVerification != null
-          ? onReturnVerification
-          : onStory,
-      onBackLabel: onSceneReturn != null && sceneReturnLabel != null
-          ? sceneReturnLabel
-          : sceneOrigin.space == WorkspaceSpace.presentation
-          ? 'la présentation'
-          : sceneOrigin.space == WorkspaceSpace.events
-          ? 'Événements'
-          : sceneOrigin.space == WorkspaceSpace.progression
-          ? 'Histoires et progression'
-          : sceneOrigin.space == WorkspaceSpace.verification
-          ? 'Vérification'
-          : 'Histoire',
-      onTest: onTest,
     );
   }
   if (space == WorkspaceSpace.interaction && narrative?.active != null) {
@@ -223,13 +179,13 @@ Widget? workspaceSecondaryContent({
       onOpen: onOpenInteraction,
       onLocate: onLocateInteraction,
       onCreateInteraction: onCreateInteraction,
-      onScenes: scenes == null ? null : onScenes,
+      onScenes: null,
       onWorld: onWorld,
       onVerification: onVerification,
       verification: verification,
       onEvents: events == null ? null : onEvents,
       onProgression: stories == null ? null : onProgression,
-      onOpenScene: scenes == null ? null : onOpenScene,
+      onOpenScene: null,
       storyOwner: stories,
       sceneOwner: scenes,
       dialogueOwner: dialogues,

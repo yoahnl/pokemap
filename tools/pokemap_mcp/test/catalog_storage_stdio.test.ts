@@ -34,6 +34,10 @@ test("MCP stdio queries and edits working catalogs with pinned pages and partial
     assert.ok((described.mutationActions as JsonRecord[]).some(action => action.id === "catalog.definition.update"));
     const tilesetKind = (described.resourceKinds as JsonRecord[]).find(kind => kind.id === "tileset");
     assert.equal(record(record(tilesetKind!.extensions).partitionedStorage).summary, "indexOnly");
+    const mapHealthKind = (described.resourceKinds as JsonRecord[]).find(kind => kind.id === "mapHealth");
+    const mapHealthQuery = record(record(mapHealthKind!.extensions).query);
+    assert.deepEqual(mapHealthQuery.requiredFilters, ["mapId"]);
+    assert.match(String(mapHealthQuery.listShape), /get takes ids/);
     const opened = await call("pokemap_workspace", { operation: "open", projectRoot: root });
     assert.ok((described.commands as JsonRecord[]).some(command => command.id === "workshop_snapshot"));
     const preparedWorkshop = await call("pokemap_workshop", { operation: "prepare", projectHandle: opened.projectHandle });

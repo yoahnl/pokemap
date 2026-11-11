@@ -79,7 +79,7 @@ extension _EventWorkspaceLayout on _EventWorkspacePageState {
                     loader: widget.loader,
                     visuals: widget.visuals,
                     onLocate: _locate,
-                    onScene: _scene,
+                    onScene: widget.onScene == null ? null : _scene,
                     mutate: _mutate,
                     sceneDirtyIds: sceneDirtyIds,
                     onMode: () => showEventRegistryDialog(context, c),

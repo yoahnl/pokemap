@@ -11,16 +11,13 @@ import 'map_workspace_view_state.dart';
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
 import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visuals.dart';
 import 'map_workspace_toolbar.dart';
-import 'map_workspace_palette_column.dart';
-import 'map_library_navigator.dart';
-import 'map_workspace_compact_navigator.dart';
+import '../../../features/map_workspace/application/map_library_commands.dart';
 import 'map_workspace_editor_pane.dart';
 import 'workspace_map_footer.dart';
 import 'map_selection_inspector.dart';
 import 'map_settings_inspector.dart';
 import 'map_elements_panel.dart';
 import 'workspace_compact_panel.dart';
-import 'map_catalogue_empty_view.dart';
 import 'map_catalogue_workspace_actions.dart';
 
 class MapWorkspaceLayout extends StatelessWidget {
@@ -48,7 +45,6 @@ class MapWorkspaceLayout extends StatelessWidget {
     this.onEnvironments,
     this.onBorders,
     this.onTerrains,
-    this.loadContextualItems,
     required this.onMap,
     this.onProjectSettings,
     this.onRegionalMap,
@@ -94,7 +90,6 @@ class MapWorkspaceLayout extends StatelessWidget {
   final VoidCallback? onProjectSettings;
   final VoidCallback? onStory, onHome, onEnvironments, onBorders, onRegionalMap;
   final VoidCallback? onTerrains;
-  final Future<Map<String, String>> Function()? loadContextualItems;
   final ValueChanged<MapEntity>? onEditInteraction;
   final ValueChanged<NarrativeEventSourceRef>? onEventSource;
   final ValueChanged<MapRect>? onZoneDrawn;
@@ -127,43 +122,21 @@ class MapWorkspaceLayout extends StatelessWidget {
       final largeText = MediaQuery.textScalerOf(context).scale(14) > 20;
       final availableWidth = c.maxWidth - (c.maxWidth < 1200 ? 72 : 184);
       final compactInspector = availableWidth < 1200 || largeText;
-      final compactPalette = availableWidth < 650;
       final mapOnly = activeSpace == 'map' && view?.mapOnly == true;
       final showInspector = !mapOnly && (inspector ?? (!compactInspector));
       final showNavigator = activeSpace == 'map';
       final showPaletteDock = palette && !mapOnly;
-      final paletteWidth = c.maxWidth >= 1400 ? 240.0 : 220.0;
       final inspectorWidth = c.maxWidth >= 1400 ? 340.0 : 280.0;
-      Widget paletteContent(VoidCallback refresh, [VoidCallback? close]) {
-        if (!ready) return const SizedBox();
-        return MapWorkspacePaletteColumn(
-          onPickResource: onPickResource,
-          width: close == null ? paletteWidth : 360,
-          project: project,
-          document: doc,
-          visuals: visuals!,
-          view: view!,
-          search: search,
-          storyAvailable: onZoneDrawn != null,
-          onToolChanged: onToolChanged,
-          onRefresh: refresh,
-          onResources: onResources,
-          onClose: close,
+      void unavailablePalette() {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Les palettes de construction sont indisponibles pendant la refonte.',
+            ),
+          ),
         );
       }
 
-      void openPalette() => showWorkspaceCompactPanel(
-        context,
-        title: 'Palette',
-        builder: (context, refresh, close) => paletteContent(refresh, close),
-      );
-      void openNavigator() => showMapLibraryCompactPanel(
-        context,
-        controller: controller,
-        onActivate: onActivate,
-        onOrganize: onOrganizeMaps,
-        visuals: visuals,
-      );
       Widget inspectorContent(VoidCallback refresh, [VoidCallback? close]) {
         if (!ready) return const SizedBox();
         return MapInspectorScope(
@@ -179,8 +152,6 @@ class MapWorkspaceLayout extends StatelessWidget {
               onToolChanged();
               refresh();
             },
-            onRenameMap: mapCatalogueRenameAction(context, controller),
-            onEscapeSettings: mapCatalogueEscapeRopeAction(context, controller, loadItems: loadContextualItems),
           ),
           selection: MapSelectionInspector(
             width: inspectorWidth,
@@ -192,8 +163,6 @@ class MapWorkspaceLayout extends StatelessWidget {
               onToolChanged();
               refresh();
             },
-            onRenameMap: mapCatalogueRenameAction(context, controller),
-            onEscapeSettings: mapCatalogueEscapeRopeAction(context, controller, loadItems: loadContextualItems),
             onOpenElement: (element) {
               close?.call();
               onOpenElement(element);
@@ -251,15 +220,6 @@ class MapWorkspaceLayout extends StatelessWidget {
           });
         }
       }
-      if (ready && activeSpace == 'map' && view!.revealPalette) {
-        view!.revealPalette = false;
-        if (compactPalette) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (!context.mounted) return;
-            openPalette();
-          });
-        }
-      }
       final headerBar =
           c.maxWidth >= 1400 && !largeText && activeSpace == 'map';
       final toolbar = resourceContent == null
@@ -267,22 +227,18 @@ class MapWorkspaceLayout extends StatelessWidget {
               controller: controller,
               view: view,
               onChanged: onToolChanged,
-              paletteVisible: showPaletteDock,
               inspectorVisible:
                   showInspector &&
                   !compactInspector &&
                   (view?.elementsVisible != true ||
                       view?.contentInLeftColumn == true),
-              navigatorVisible: showNavigator,
               showUndoRedo: activeSpace != 'map',
-              onNavigator: openNavigator,
               onElements: !ready
                   ? null
                   : () {
                       view!.elementsVisible = !view!.elementsVisible;
                       onToolChanged();
                     },
-              onPalette: compactPalette && ready ? openPalette : onPalette,
               onInspector: openInspector,
               onCommands: ready ? onCommands : null,
               onActivate: onActivate,
@@ -337,10 +293,11 @@ class MapWorkspaceLayout extends StatelessWidget {
                           (project != null && visuals == null && error == null)
                       ? const Center(child: CircularProgressIndicator())
                       : !ready
-                      ? MapCatalogueEmptyView(
-                          controller: controller,
-                          onActivate: onActivate,
-                          onOrganize: onOrganizeMaps,
+                      ? const Center(
+                          child: StudioNotice(
+                            'La bibliothèque des cartes est retirée pendant la refonte.',
+                            key: ValueKey('map-library-retired'),
+                          ),
                         )
                       : MapWorkspaceEditorPane(
                           onPickResource: onPickResource,
@@ -379,7 +336,7 @@ class MapWorkspaceLayout extends StatelessWidget {
                           onOrganizeMaps: onOrganizeMaps,
                           onToolChanged: onToolChanged,
                           onChanged: onChanged,
-                          onMoreTools: openPalette,
+                          onMoreTools: unavailablePalette,
                           onResources: onResources,
                           onEnvironments: onEnvironments,
                           onBorders: onBorders,

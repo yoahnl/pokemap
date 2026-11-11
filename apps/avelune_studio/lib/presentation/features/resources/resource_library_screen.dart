@@ -8,6 +8,7 @@ import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visual
 
 import '../map_workspace/workspace_compact_panel.dart';
 import '../../shared/widgets/buttons/studio_button.dart';
+import '../../shared/widgets/feedback/studio_empty_state.dart';
 import '../../shared/widgets/layout/studio_panel.dart';
 
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
@@ -20,8 +21,8 @@ import 'package:avelune_studio/features/resources/application/resource_category_
 import 'resource_detail_panel.dart';
 import 'resource_preview.dart';
 import 'resource_terrain_draft_list.dart';
+
 import 'package:avelune_studio/features/resources/application/resource_terrain_actions.dart';
-import 'resource_border_draft_bar.dart';
 
 import 'package:avelune_studio/features/resources/application/resource_family_tree.dart';
 
@@ -39,9 +40,6 @@ class ResourceLibraryScreen extends StatefulWidget {
     required this.onUse,
     required this.onEdit,
     required this.onTerrain,
-    required this.onCreateBorder,
-    required this.onResumeBorder,
-    this.onManageBorder,
     required this.onImport,
     this.onImportPack,
     this.onExportPack,
@@ -86,10 +84,6 @@ class ResourceLibraryScreen extends StatefulWidget {
   final ValueChanged<ResourceItem> onUse;
   final ValueChanged<ResourceItem> onEdit;
   final ValueChanged<ResourceItem> onTerrain;
-  final VoidCallback onCreateBorder;
-  final ValueChanged<BorderBlueprintRecord> onResumeBorder;
-  final void Function(BorderBlueprintRecord, BorderResourceAction)?
-  onManageBorder;
   final VoidCallback onImport;
   final VoidCallback? onImportPack;
   final VoidCallback? onExportPack;

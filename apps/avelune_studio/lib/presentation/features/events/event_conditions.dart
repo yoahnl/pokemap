@@ -99,7 +99,9 @@ class EventConditions extends StatelessWidget {
             StudioTool(
               label: 'Modifier la condition',
               icon: Icons.edit_outlined,
-              onPressed: () => add(initial: value.condition),
+              onPressed: value.condition.rewardReference == null
+                  ? () => add(initial: value.condition)
+                  : null,
             ),
           if (value is! NarrativeEventConditionNot && children.isNotEmpty ||
               value is NarrativeEventConditionLeaf)

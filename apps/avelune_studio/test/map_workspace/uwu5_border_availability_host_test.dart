@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:avelune_studio/platform/rendering/viewports/map_editing_viewport_2d.dart';
-import 'package:flutter/material.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_border_editing_commands.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
@@ -62,10 +62,12 @@ void main() {
     expect(view.tool.name, 'select');
     await tester.tap(find.text('Bordures'));
     await pumpIo(tester, frames: 3);
-    final picker = tester.widget<DropdownButton<String>>(
-      find.byKey(const ValueKey('border-model-picker')),
+    expect(view.borderBlueprintId, isNull);
+    expect(
+      MapBorderEditingCommands.publishedLines(host.maps.project!)
+          .map((record) => record.id),
+      ['another-border'],
     );
-    expect(picker.value, isNull);
     final before = host.document.current;
     await host.tapCell(10, 8);
     await pumpIo(tester, frames: 2);

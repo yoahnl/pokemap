@@ -1,5 +1,6 @@
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 import 'package:avelune_studio/features/map_workspace/application/map_decor_animation_commands.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_editing_commands.dart';
 import 'package:avelune_studio/features/map_workspace/domain/map_workspace_port.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -7,6 +8,54 @@ import 'package:map_core/map_core.dart';
 import '../support/map_workspace_fixture.dart';
 
 void main() {
+  test('decor order context retains animation data without the retired order widget', () {
+    final commands = _fixture(
+      [100, 150],
+      behaviorId: 'tree-1::behavior::0',
+      animation: const MapPlacedElementAnimation(
+        enabled: true,
+        mode: MapPlacedElementAnimationMode.pingPong,
+        speed: 2.5,
+        autoplay: false,
+        startOffsetMs: 100,
+      ),
+    );
+    final document = commands.document;
+    final before = document.current;
+    expect(
+      before.placedElements.single.behaviors.single.id,
+      'tree-1::behavior::0',
+    );
+    final order = MapEditingCommands(
+      document,
+      commands.project,
+    ).decorOrderContext()!;
+    expect(order.target, same(document.selected));
+    expect(order.position, document.selected!.pos);
+    expect(order.reorderable.single.id, 'tree-1');
+    expect(order.rank, 0);
+    expect(order.forwardProblem, isNotNull);
+    expect(order.backwardProblem, isNotNull);
+    expect(order.target!.animation, before.placedElements.single.animation);
+    expect(order.target!.behaviors, before.placedElements.single.behaviors);
+    expect(document.current, same(before));
+    expect(document.selectedId, 'tree-1');
+    expect(document.canUndo, isFalse);
+    final reopened = MapData.fromJson(document.current.toJson());
+    expect(
+      reopened.placedElements.single.animation,
+      before.placedElements.single.animation,
+    );
+    expect(
+      reopened.placedElements.single.behaviors,
+      before.placedElements.single.behaviors,
+    );
+    expect(
+      reopened.placedElements.single.behaviors.single.id,
+      'tree-1::behavior::0',
+    );
+  });
+
   test('idle image selects terminal frame with undo and native reopen', () {
     final commands = _fixture([83, 84, 83, 83]);
     final document = commands.document;
@@ -156,6 +205,7 @@ void main() {
 MapDecorAnimationCommands _fixture(
   List<int?> frameTimes, {
   MapPlacedElementAnimation? animation,
+  String behaviorId = '',
 }) {
   final project = workspaceProject.copyWith(
     elements: [
@@ -180,10 +230,11 @@ MapDecorAnimationCommands _fixture(
             elementId: 'tree',
             pos: const GridPos(x: 2, y: 2),
             animation: animation,
-            behaviors: const [
+            behaviors: [
               MapPlacedElementBehavior(
+                id: behaviorId,
                 trigger: MapPlacedElementTriggerType.onAction,
-                effect: MapPlacedElementEffect(
+                effect: const MapPlacedElementEffect(
                   type: MapPlacedElementEffectType.playAnimationOnce,
                 ),
               ),

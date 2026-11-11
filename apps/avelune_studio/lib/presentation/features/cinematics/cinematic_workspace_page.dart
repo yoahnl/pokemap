@@ -27,9 +27,6 @@ import 'package:avelune_studio/features/cinematics/application/cinematic_map_mod
 import 'cinematic_map_scene.dart';
 import 'cinematic_timeline_editor.dart';
 import 'cinematic_inspector.dart';
-import 'cinematic_action_palette.dart';
-import 'cinematic_document_toolbar.dart';
-import 'cinematic_preview_status.dart';
 
 import 'package:avelune_studio/platform/rendering/contracts/cinematic_workspace_visuals.dart';
 
@@ -75,33 +72,49 @@ class CinematicWorkspacePage extends StatefulWidget {
 
 class _CinematicWorkspacePageState extends State<CinematicWorkspacePage> {
   CinematicWorkspaceController get controller => widget.controller;
-  CinematicViewState? get view => controller.activeId == null
-      ? null
-      : widget.views.forAsset(controller.activeId!);
+  CinematicViewState? get view {
+    final id = controller.activeId;
+    if (id == null) return null;
+    final state = widget.views.forAsset(id);
+    state.inputs = controller.inputsFor(id, initial: state.inputs);
+    return state;
+  }
+
   CinematicMapModel? get model => controller.previewModel;
   String? get loadingMapId => controller.previewMapId;
   String? get mapError => controller.previewMapProblem;
   CinematicTimelineClipboard? clipboard;
+  final _inputHost = Object();
   @override
   void initState() {
     super.initState();
-    controller.flushEdits = flush;
+    controller.attachInputHost(_inputHost, _flushFocus);
   }
 
   void refresh() {
     if (mounted) setState(() {});
   }
 
-  bool flush() {
+  bool _flushFocus() {
     FocusManager.instance.primaryFocus?.unfocus();
     FocusManager.instance.applyFocusChangesIfNeeded();
-    return view?.error == null;
+    return true;
+  }
+
+  bool flush() => controller.flushEdits?.call() != false;
+
+  @override
+  void didUpdateWidget(CinematicWorkspacePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != controller) {
+      oldWidget.controller.detachInputHost(_inputHost);
+      controller.attachInputHost(_inputHost, _flushFocus);
+    }
   }
 
   @override
   void dispose() {
-    controller.flushEdits = null;
-    controller.suspendMapPreview();
+    controller.detachInputHost(_inputHost);
     super.dispose();
   }
 
@@ -140,23 +153,6 @@ class _CinematicWorkspacePageState extends State<CinematicWorkspacePage> {
                     view: state,
                     model: model,
                     changed: refresh,
-                    onAdd: addAction,
-                    previewContent: CinematicPreviewStatus(
-                      controller: controller,
-                      dialogues: widget.dialogues,
-                      onStep: (id) {
-                        state.selection
-                          ..clear()
-                          ..add(id);
-                        state.inspectorTab = 'properties';
-                        refresh();
-                      },
-                      onActor: (id) {
-                        state.actorId = id;
-                        state.inspectorTab = 'actors';
-                        refresh();
-                      },
-                    ),
                     onDialogue: (id) {
                       if (flush()) {
                         controller.transport.pause();
@@ -215,13 +211,6 @@ class _CinematicWorkspacePageState extends State<CinematicWorkspacePage> {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.stretch,
                                     children: [
-                                      CinematicDocumentToolbar(
-                                        controller: controller,
-                                        onDuplicate: duplicate,
-                                        onDelete: delete,
-                                        onReload: reload,
-                                        onArchive: archive,
-                                      ),
                                       Expanded(
                                         flex: (state!.mapShare * 100).round(),
                                         child: mapContent(),
@@ -269,14 +258,6 @@ class _CinematicWorkspacePageState extends State<CinematicWorkspacePage> {
                     ),
                   ),
                 ),
-                if (session != null && (compact || small))
-                  SizedBox(
-                    height: MediaQuery.textScalerOf(context).scale(32) + 36,
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: CinematicActionPalette(onAdd: addAction),
-                    ),
-                  ),
               ],
             );
           },

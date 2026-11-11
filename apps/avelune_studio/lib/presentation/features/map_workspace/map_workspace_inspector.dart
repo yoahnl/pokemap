@@ -1,5 +1,3 @@
-import 'spatial_platform_controls.dart';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' as rendering show ScrollCacheExtent;
 import 'package:map_core/map_core_domain.dart';
@@ -15,11 +13,8 @@ import '../../shared/widgets/layout/studio_depth_control.dart';
 import '../../shared/widgets/layout/studio_asset_preview.dart';
 import 'map_workspace_view_state.dart';
 import 'map_workspace_tool_strip_selection.dart';
-import 'map_decor_geometry_panel.dart';
-import 'map_moving_prop_panel.dart';
 import 'map_settings_inspector.dart';
 import 'spatial_model_entity_controls.dart';
-import 'spatial_lift_controls.dart';
 import '../../../features/map_workspace/application/spatial_model_editing_commands.dart';
 
 import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
@@ -180,21 +175,6 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
             SpatialModelEntityControls(
               document: document,
               project: project,
-              instance: instance,
-              onChanged: onChanged,
-            ),
-            const SizedBox(height: 12),
-            SpatialPlatformControls(
-              key: ValueKey('platform-${instance.id}'),
-              document: document,
-              project: project,
-              instance: instance,
-              onChanged: onChanged,
-            ),
-            const SizedBox(height: 12),
-            SpatialLiftControls(
-              key: ValueKey('lift-${instance.id}'),
-              document: document,
               instance: instance,
               onChanged: onChanged,
             ),
@@ -540,26 +520,6 @@ class _MapWorkspaceInspectorState extends State<MapWorkspaceInspector> {
                     'Ordre local entre décors compatibles. Les collisions restent inchangées.',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
-                  if (entry != null) ...[
-                    const SizedBox(height: 12),
-                    MapMovingPropPanel(
-                      key: ValueKey('moving-prop-${selected.id}'),
-                      document: document,
-                      project: project,
-                      placement: selected,
-                      onChanged: onChanged,
-                    ),
-                    const SizedBox(height: 12),
-                    MapDecorGeometryPanel(
-                      key: ValueKey('decor-geometry-${selected.id}'),
-                      document: document,
-                      project: project,
-                      instance: selected,
-                      element: entry,
-                      view: view,
-                      onChanged: onChanged,
-                    ),
-                  ],
                 ],
                 if (stack.isNotEmpty) ...[
                   const SizedBox(height: 20),

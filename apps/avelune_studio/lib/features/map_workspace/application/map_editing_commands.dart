@@ -5,6 +5,8 @@ import 'package:map_authoring/map_authoring_editing.dart';
 
 import 'package:avelune_studio/features/map_workspace/application/editable_map_document.dart';
 
+import 'map_decor_order_context.dart';
+
 part 'map_element_placement_commands.dart';
 
 class MapEditingCommands {
@@ -359,6 +361,42 @@ class MapEditingCommands {
       document.stackPosition == position && document.stackPixelPosition != null
       ? stackAtPixel(document.stackPixelPosition!)
       : stack(position);
+
+  MapDecorOrderContext? decorOrderContext({String? instanceId, GridPos? at}) {
+    final id = instanceId ?? document.selectedId;
+    if (id == null) return null;
+    final target = document.current.placedElements
+        .where((element) => element.id == id)
+        .firstOrNull;
+    final position = at ?? document.stackPosition ?? target?.pos;
+    if (position == null) return null;
+    final entries = contextStack(position);
+    return MapDecorOrderContext(
+      instanceId: id,
+      target: target,
+      position: position,
+      pixelPosition: document.stackPosition == position
+          ? document.stackPixelPosition
+          : null,
+      stack: entries,
+      reorderable: entries
+          .where((element) => element.layerId == target?.layerId)
+          .toList(),
+      other: entries
+          .where((element) => element.layerId != target?.layerId)
+          .toList(),
+      forwardProblem: reorderProblemAt(
+        instanceId: id,
+        at: position,
+        forward: true,
+      ),
+      backwardProblem: reorderProblemAt(
+        instanceId: id,
+        at: position,
+        forward: false,
+      ),
+    );
+  }
 
   TileLayer supportLayer(MapData map, {String? preferredLayerId}) {
     final preferred = map.layers

@@ -9,9 +9,20 @@ extension CinematicWorkspaceActions on CinematicWorkspaceController {
     required Future<String?> Function(String title, Map<String, String> options)
     choose,
     bool Function()? isActive,
+    bool flushInputs = false,
   }) async {
     final owner = _active;
     if (_closed || owner == null) return null;
+    if (flushInputs) {
+      final sourceProject = narrative.workspace.project;
+      if (flushEdits?.call() == false ||
+          _closed ||
+          !identical(_active, owner) ||
+          !identical(narrative.workspace.project, sourceProject) ||
+          isActive?.call() == false) {
+        return null;
+      }
+    }
     final asset = owner.asset;
     bool currentRequest() =>
         !_closed && identical(_active, owner) && (isActive?.call() ?? true);

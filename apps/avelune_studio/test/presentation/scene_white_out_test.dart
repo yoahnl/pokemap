@@ -1,107 +1,110 @@
 import 'package:avelune_studio/features/scenes/application/scene_edit_session.dart';
-import 'package:avelune_studio/presentation/features/scenes/scene_action_form.dart';
-import 'package:avelune_studio/presentation/features/scenes/scene_inspector.dart';
-import 'package:avelune_studio/presentation/shared/widgets/buttons/studio_button.dart';
-import 'package:avelune_studio/presentation/shared/widgets/inputs/studio_select.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
-import 'package:flutter/material.dart';
+import 'package:avelune_studio/features/scenes/application/scene_action_draft.dart';
+import 'package:avelune_studio/features/scenes/application/scene_battle_recovery_selection.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
 void main() {
   for (final dimension in ProjectDimension.values) {
-    testWidgets('Studio whiteOut guide is available only in $dimension', (
-      tester,
-    ) async {
-      SceneNodePayload? submitted;
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: studioTheme(),
-          home: Scaffold(
-            body: SingleChildScrollView(
-              child: SceneActionForm(
-                project: _project(dimension),
-                current: null,
-                onApply: (value) => submitted = value,
-              ),
-            ),
-          ),
-        ),
+    test('whiteOut command selection is available only in $dimension', () {
+      final draft = SceneActionDraft(
+        project: _project(dimension),
+        changed: () {},
       );
-      final pickerFinder = find.byWidgetPredicate(
-        (widget) => widget is StudioSelect && widget.label == 'Commande',
-      );
-      final picker = tester.widget<StudioSelect>(pickerFinder);
+      addTearDown(draft.dispose);
       expect(
-        picker.options.containsKey('whiteOut'),
+        draft.commands.any(
+          (command) => command.id == NarrativeCommandIds.whiteOut,
+        ),
         dimension == ProjectDimension.twoD,
       );
       if (dimension == ProjectDimension.twoD) {
-        picker.onChanged!('whiteOut');
-        await tester.pump();
+        draft.choose(NarrativeCommandIds.whiteOut);
         expect(
-          find.textContaining('Une seule récupération par Scene'),
-          findsOneWidget,
-        );
-        final apply = find.byWidgetPredicate(
-          (widget) =>
-              widget is StudioButton && widget.label == 'Ajouter l’action',
-        );
-        tester.widget<StudioButton>(apply).onPressed!();
-        expect(
-          (submitted! as SceneActionPayload).interactiveCommand!.toJson(),
+          (draft.buildPayload() as SceneActionPayload).interactiveCommand!
+              .toJson(),
           {'kind': 'whiteOut'},
         );
       }
     });
 
-    testWidgets('Studio battle recovery picker preserves graph in $dimension', (
-      tester,
-    ) async {
+    test(
+      'historical battle recovery selection preserves graph in $dimension',
+      () {
+        final scene = _battleScene();
+        final session = SceneEditSession(scene, base: scene);
+        final node = scene.graph.nodes.singleWhere(
+          (node) => node.id == 'battle',
+        );
+        final selection = HistoricalSceneBattleRecoverySelection(
+          project: _project(dimension),
+          current: node.payload as SceneBattlePayload,
+        );
+        expect(selection.available, dimension == ProjectDimension.twoD);
+        final payload = selection.select(
+          SceneBattleDefeatRecovery.returnToRecoveryPoint,
+        );
+        if (payload != null) {
+          expect(session.replacePayload(node, payload), isTrue);
+        }
+        expect(
+          (session.current.graph.nodes
+                      .singleWhere((node) => node.id == 'battle')
+                      .payload
+                  as SceneBattlePayload)
+              .defeatRecovery,
+          dimension == ProjectDimension.twoD
+              ? SceneBattleDefeatRecovery.returnToRecoveryPoint
+              : SceneBattleDefeatRecovery.continueScene,
+        );
+        expect(session.current.graph.edges, scene.graph.edges);
+        expect(session.current.layout, scene.layout);
+        expect(session.current.metadata, scene.metadata);
+        expect(session.undoCount, dimension == ProjectDimension.twoD ? 1 : 0);
+        if (selection.available) {
+          session.restore(redo: false);
+          expect(session.current, scene);
+        }
+      },
+    );
+  }
+  test(
+    'unavailable historical selection retains an existing 3D recovery payload',
+    () {
+      final payload = SceneBattlePayload(
+        battleKind: 'trainer',
+        trainerId: 'rival',
+        defeatRecovery: SceneBattleDefeatRecovery.returnToRecoveryPoint,
+      );
+      final selection = HistoricalSceneBattleRecoverySelection(
+        project: _project(ProjectDimension.threeD),
+        current: payload,
+      );
+      expect(selection.select(SceneBattleDefeatRecovery.continueScene), isNull);
+      expect(selection.current, same(payload));
+      expect(
+        selection.current.defeatRecovery,
+        SceneBattleDefeatRecovery.returnToRecoveryPoint,
+      );
       final scene = _battleScene();
       final session = SceneEditSession(scene, base: scene);
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: studioTheme(),
-          home: Scaffold(
-            body: SizedBox(
-              width: 450,
-              height: 600,
-              child: SceneInspector(
-                session: session,
-                project: _project(dimension),
-                nodeId: 'battle',
-                edgeId: null,
-                changed: () {},
-                onDocument: (_) {},
-                onDelete: () {},
-                onDuplicate: () {},
-              ),
-            ),
-          ),
+      expect(
+        session.replacePayload(
+          scene.graph.nodes.singleWhere((node) => node.id == 'battle'),
+          payload,
         ),
+        isTrue,
       );
-      final picker = tester.widget<StudioSelect>(
-        find.byKey(const ValueKey('scene-battle-defeat-recovery-picker')),
-      );
-      expect(picker.value, 'continueScene');
-      expect(picker.onChanged == null, dimension != ProjectDimension.twoD);
-      picker.onChanged?.call('returnToRecoveryPoint');
       expect(
         (session.current.graph.nodes
                     .singleWhere((node) => node.id == 'battle')
                     .payload
                 as SceneBattlePayload)
             .defeatRecovery,
-        dimension == ProjectDimension.twoD
-            ? SceneBattleDefeatRecovery.returnToRecoveryPoint
-            : SceneBattleDefeatRecovery.continueScene,
+        payload.defeatRecovery,
       );
-      expect(session.current.graph.edges, scene.graph.edges);
-      expect(session.current.layout, scene.layout);
-      expect(session.current.metadata, scene.metadata);
-    });
-  }
+    },
+  );
 }
 
 ProjectManifest _project(ProjectDimension dimension) => ProjectManifest(

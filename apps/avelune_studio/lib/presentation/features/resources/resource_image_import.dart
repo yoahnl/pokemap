@@ -41,11 +41,9 @@ class ResourceImportResult extends StatelessWidget {
         runSpacing: 8,
         children: [
           if (canCreateDecor)
-            StudioButton(
-              key: const ValueKey('resource-import-create-decor'),
-              label: 'Créer un décor avec cette image',
-              icon: Icons.crop,
-              onPressed: onCreateDecor,
+            const StudioNotice(
+              'La préparation des décors est temporairement indisponible. Cette image source est conservée.',
+              key: ValueKey('resource-import-decor-unavailable'),
             ),
           StudioButton(
             key: const ValueKey('resource-import-create-terrain'),

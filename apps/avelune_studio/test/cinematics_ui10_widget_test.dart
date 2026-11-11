@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
 import 'support/m2_ui_fixture.dart';
 import 'support/ui10_workspace_harness.dart';
 import 'support/ui10_cinematic_fixture.dart';
@@ -67,7 +68,7 @@ void main() {
         }
         await harness.capture(tester, 'ui10-preview-${entry.$2}');
       }
-      await tester.tap(find.byTooltip('Arrêter et revenir au début'));
+      controller.transport.stop();
       await tester.pump();
       expect(controller.transport.timeMs, 0);
       await harness.capture(tester, 'ui10-preview-stopped');

@@ -4,10 +4,7 @@ import 'package:avelune_studio/features/narrative/application/narrative_workspac
 import 'package:avelune_studio/features/narrative/domain/dialogue_draft.dart';
 import 'package:avelune_studio/features/narrative/domain/narrative_port.dart';
 import 'package:avelune_studio/features/scenes/application/scene_edit_session.dart';
-import 'package:avelune_studio/presentation/features/scenes/scene_inspector.dart';
-import 'package:avelune_studio/presentation/features/scenes/scene_linked_document.dart';
-import 'package:avelune_studio/presentation/theme/studio_theme.dart';
-import 'package:flutter/material.dart';
+import 'package:avelune_studio/features/scenes/application/scene_linked_document_reader.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core_domain.dart';
 
@@ -15,9 +12,10 @@ import '../support/map_workspace_fixture.dart';
 import '../support/ui06_scene_fixture.dart';
 
 void main() {
-  testWidgets(
+  TestWidgetsFlutterBinding.ensureInitialized();
+  test(
     'changing dialogue retains stale wires until explicit correction or undo',
-    (tester) async {
+    () async {
       final base = Ui06SceneFixture.buildScene();
       final original = SceneAsset.fromJson({
         ...base.toJson(),
@@ -75,32 +73,19 @@ void main() {
           ),
         ],
       );
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: studioTheme(),
-          home: Scaffold(
-            body: SizedBox(
-              width: 500,
-              child: StatefulBuilder(
-                builder: (context, setState) => SceneInspector(
-                  session: session,
-                  project: project,
-                  nodeId: 'welcome',
-                  edgeId: null,
-                  changed: () => setState(() {}),
-                  onDocument: (_) {},
-                  onDelete: () {},
-                  onDuplicate: () {},
-                ),
-              ),
-            ),
-          ),
-        ),
+      final node = original.graph.nodes.singleWhere(
+        (node) => node.id == 'welcome',
       );
-      await tester.tap(find.byType(DropdownButtonFormField<String>).first);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Nouveau dialogue').last);
-      await tester.pumpAndSettle();
+      expect(
+        await session.retargetDialogue(
+          node: node,
+          original: node.payload as SceneYarnDialoguePayload,
+          target: project.dialogues.last,
+          start: null,
+          outcomes: const [],
+        ),
+        isTrue,
+      );
       expect(session.current.graph.edges, original.graph.edges);
       expect(session.current.layout, original.layout);
       expect(session.current.metadata, original.metadata);
@@ -112,8 +97,10 @@ void main() {
       expect(payload.dialogueId, 'new');
       expect(payload.speakerHints, ['guide']);
       expect(
-        find.textContaining('Des connexions utilisent des résultats absents'),
-        findsOneWidget,
+        session.current.graph.edges
+            .where((edge) => edge.fromNodeId == 'welcome')
+            .map((edge) => edge.fromPortId),
+        everyElement('old-result'),
       );
       expect(session.undoCount, 1);
       session.restore(redo: false);
@@ -121,153 +108,76 @@ void main() {
     },
   );
 
-  testWidgets(
-    'linked start picker loads one exact document and shares its cached preview',
-    (tester) async {
-      final source = const DialogueDraftCodec().encode(
-        DialogueDraft(
-          entry: const ProjectDialogueEntry(
-            id: 'linked',
+  test('linked reader loads one exact document caches it and preserves missing or selected starts', () async {
+    final source = const DialogueDraftCodec().encode(
+      DialogueDraft(
+        entry: const ProjectDialogueEntry(
+          id: 'linked',
+          name: 'Accueil',
+          relativePath: 'linked.yarn',
+        ),
+        branches: const [
+          DialogueBranchDraft(
+            id: 'Start',
             name: 'Accueil',
-            relativePath: 'linked.yarn',
+            lines: [DialogueLineDraft(text: 'Bienvenue en gare.')],
           ),
-          branches: const [
-            DialogueBranchDraft(
-              id: 'Start',
-              name: 'Accueil',
-              lines: [DialogueLineDraft(text: 'Bienvenue en gare.')],
-            ),
-            DialogueBranchDraft(
-              id: 'Other',
-              name: 'Autre départ',
-              lines: [DialogueLineDraft(text: 'Un autre accueil.')],
-            ),
-          ],
-        ),
-      );
-      final project = ProjectManifest(
-        name: 'Linked',
-        maps: const [],
-        tilesets: const [],
-        dialogues: [source.entry],
-      );
-      final maps = MapWorkspaceController(
-        workspaceSession,
-        WorkspaceMemoryPort(),
-      )..project = project;
-      addTearDown(maps.dispose);
-      final port = _DialoguePort(source);
-      final narrative = NarrativeWorkspaceController(
-        maps,
-        port,
-        () {},
-        (_, _) async {},
-      );
-      final documents = SceneLinkedDocuments();
-      String? chosen;
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: studioTheme(),
-          home: Scaffold(
-            body: Column(
-              children: [
-                documents.dialoguePreview(
-                  SceneYarnDialoguePayload(
-                    dialogueId: 'linked',
-                    yarnNodeName: 'Missing',
-                  ),
-                  project,
-                  narrative,
-                  onStartChanged: (value) => chosen = value,
-                ),
-                Builder(
-                  builder: (context) => TextButton(
-                    onPressed: () => documents.open(
-                      context,
-                      SceneNode(
-                        id: 'dialogue',
-                        kind: SceneNodeKind.yarnDialogue,
-                        payload: SceneYarnDialoguePayload(dialogueId: 'linked'),
-                      ),
-                      project,
-                      narrative,
-                    ),
-                    child: const Text('Document exact'),
-                  ),
-                ),
-              ],
-            ),
+          DialogueBranchDraft(
+            id: 'Other',
+            name: 'Autre départ',
+            lines: [DialogueLineDraft(text: 'Un autre accueil.')],
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(port.reads, 1);
-      expect(
-        find.textContaining('point de départ référencé est absent'),
-        findsOneWidget,
-      );
-      await tester.tap(find.byType(DropdownButtonFormField<String>));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Other').last);
-      await tester.pumpAndSettle();
-      expect(chosen, 'Other');
-      await tester.tap(find.text('Document exact'));
-      await tester.pumpAndSettle();
-      expect(find.text('Bienvenue en gare.'), findsOneWidget);
-      expect(find.text('Un autre accueil.'), findsOneWidget);
-      expect(port.reads, 1);
-      expect(port.writes, 0);
-      expect(narrative.sessions, isEmpty);
-      await tester.tap(find.text('Retour à la scène'));
-      await tester.pumpAndSettle();
-      expect(chosen, 'Other');
-    },
-  );
-
-  testWidgets('cinematic preview describes real steps without raw JSON', (
-    tester,
-  ) async {
-    final project = ProjectManifest(
-      name: 'Cinematic',
-      maps: const [],
-      tilesets: const [],
-      cinematics: [Ui06SceneFixture.buildCinematic()],
-    );
-    final documents = SceneLinkedDocuments();
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: studioTheme(),
-        home: Scaffold(
-          body: Builder(
-            builder: (context) => TextButton(
-              onPressed: () => documents.open(
-                context,
-                SceneNode(
-                  id: 'cinematic',
-                  kind: SceneNodeKind.cinematic,
-                  payload: SceneCinematicPayload(
-                    cinematicId: Ui06SceneFixture.cinematicId,
-                  ),
-                ),
-                project,
-                null,
-              ),
-              child: const Text('Aperçu'),
-            ),
-          ),
-        ),
+        ],
       ),
     );
-    await tester.tap(find.text('Aperçu'));
-    await tester.pumpAndSettle();
-    expect(find.text('Un instant avant le départ'), findsOneWidget);
-    expect(find.text('1. Attendre'), findsOneWidget);
-    expect(find.text('100 ms'), findsOneWidget);
-    expect(find.textContaining('durées explicites 0.1 s'), findsOneWidget);
-    expect(find.textContaining('timeline :'), findsNothing);
-    await tester.tap(find.text('Retour à la scène'));
-    await tester.pumpAndSettle();
-    expect(find.text('Aperçu'), findsOneWidget);
+    final project = ProjectManifest(
+      name: 'Linked',
+      maps: const [],
+      tilesets: const [],
+      dialogues: [source.entry],
+    );
+    final maps = MapWorkspaceController(workspaceSession, WorkspaceMemoryPort())
+      ..project = project;
+    addTearDown(maps.dispose);
+    final port = _DialoguePort(source);
+    final narrative = NarrativeWorkspaceController(
+      maps,
+      port,
+      () {},
+      (_, _) async {},
+    );
+    addTearDown(narrative.dispose);
+    final documents = SceneLinkedDocumentReader();
+    final compiled = await documents.readDialogueDocument(
+      'linked',
+      project,
+      narrative,
+    );
+    final missing = selectLinkedDialogueStart(source, compiled, 'Missing');
+    expect(missing.start, 'Missing');
+    expect(missing.node, isNull);
+    final selected = selectLinkedDialogueStart(source, compiled, 'Other');
+    expect(selected.node!.title, 'Other');
+    final again = await documents.readDialogueDocument(
+      'linked',
+      project,
+      narrative,
+    );
+    expect(again, same(compiled));
+    expect(
+      compiled.nodes
+          .expand((node) => node.steps)
+          .whereType<RuntimeDialogueLine>()
+          .map((line) => line.text),
+      ['Bienvenue en gare.', 'Un autre accueil.'],
+    );
+    expect(port.reads, 1);
+    expect(port.writes, 0);
+    expect(narrative.sessions, isEmpty);
+    expect(
+      selectLinkedDialogueStart(source, again, 'Other').node,
+      same(selected.node),
+    );
   });
 }
 

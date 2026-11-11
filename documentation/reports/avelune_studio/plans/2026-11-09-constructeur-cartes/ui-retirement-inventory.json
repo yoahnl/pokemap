@@ -270,7 +270,7 @@
       "sha256": "b98e33362be9a230e306115d2593e305921571bbe790303f47e50c89a724ace1",
       "widgetClasses": [],
       "mixedResponsibilities": true,
-      "decision": "source_removed_pending_owner_classification",
+      "decision": "extracted_non_ui",
       "retired": true,
       "retirementStatus": "source_removed",
       "note": "Retrait physique observé ; preuve de famille référencée dans les ledgers ; ne vaut pas acceptation du lot ou G0.",
@@ -294,6 +294,49 @@
         "lacunae": [],
         "responsibilityCoverageVerified": false,
         "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      },
+      "retirementVerification": {
+        "status": "scoped_classification_verified_not_g0_accepted",
+        "verifiedAt": "2026-11-11",
+        "classification": "extracted_non_ui",
+        "reviewer": "/root/t01_map_retirement_finish",
+        "reviewScope": "Read-only review of source nature, exact owners, consumers and recorded evidence for these 22 rows.",
+        "owners": [
+          "apps/avelune_studio/lib/features/characters/coordination/character_studio_animation_actions.dart"
+        ],
+        "ownerEvidence": [
+          {
+            "path": "apps/avelune_studio/lib/features/characters/coordination/character_studio_animation_actions.dart",
+            "exists": true,
+            "currentSha256": "b98e33362be9a230e306115d2593e305921571bbe790303f47e50c89a724ace1"
+          }
+        ],
+        "evidence": null,
+        "initialInventorySha256": "b98e33362be9a230e306115d2593e305921571bbe790303f47e50c89a724ace1",
+        "initialSourceReference": "06fd484d3fbe762f33380e05a21629cb6dee23fc",
+        "sourceAbsentVerified": true,
+        "behavioralTestsRerun": false,
+        "nativeAcceptance": false,
+        "g0Accepted": false,
+        "limits": [
+          "Source classification only; no T01/G0 acceptance.",
+          "Current fingerprints and consumers do not constitute a new behavioral test result."
+        ],
+        "removalPreimageSha256": null,
+        "sourceLineage": {
+          "status": "initial_source_to_current_owner_verified",
+          "currentOwnerComparison": "byte_identical",
+          "removalPreimageStatus": "A separate final-alias preimage was not established; no intermediate hash is invented."
+        },
+        "consumerEvidence": [
+          "ResourceNavigation constructs CharacterStudioController.",
+          "StudioMapResources implements CharacterWorkspaceVisuals; resource preview, workspace session loading and narrative dialogue lines use its canonical contract."
+        ],
+        "protectedTests": [
+          "apps/avelune_studio/test/presentation/character_studio_dedicated_workspace_test.dart",
+          "apps/avelune_studio/test/characters/character_portrait_state_dialog_lifecycle_test.dart",
+          "apps/avelune_studio/test/characters/character_import_workflow_test.dart"
+        ]
       }
     },
     {
@@ -346,7 +389,7 @@
       "sha256": "bbc1deefea8b40364c1350d0b789ffc558c13733571e4b58244bad876a71932e",
       "widgetClasses": [],
       "mixedResponsibilities": true,
-      "decision": "historical_alias_removed",
+      "decision": "extracted_non_ui",
       "retired": true,
       "retirementStatus": "source_removed",
       "note": "Retrait physique observé ; ne vaut pas acceptation du lot ni G0.",
@@ -375,6 +418,49 @@
         "lacunae": [],
         "responsibilityCoverageVerified": false,
         "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      },
+      "retirementVerification": {
+        "status": "scoped_classification_verified_not_g0_accepted",
+        "verifiedAt": "2026-11-11",
+        "classification": "extracted_non_ui",
+        "reviewer": "/root/t01_map_retirement_finish",
+        "reviewScope": "Read-only review of source nature, exact owners, consumers and recorded evidence for these 22 rows.",
+        "owners": [
+          "apps/avelune_studio/lib/features/characters/coordination/character_studio_controller.dart"
+        ],
+        "ownerEvidence": [
+          {
+            "path": "apps/avelune_studio/lib/features/characters/coordination/character_studio_controller.dart",
+            "exists": true,
+            "currentSha256": "538b59fef3485dd24ca1e6bdd4fa90892ed0457ba0b00e7437485a9d619c2b45"
+          }
+        ],
+        "evidence": null,
+        "initialInventorySha256": "bbc1deefea8b40364c1350d0b789ffc558c13733571e4b58244bad876a71932e",
+        "initialSourceReference": "06fd484d3fbe762f33380e05a21629cb6dee23fc",
+        "sourceAbsentVerified": true,
+        "behavioralTestsRerun": false,
+        "nativeAcceptance": false,
+        "g0Accepted": false,
+        "limits": [
+          "Source classification only; no T01/G0 acceptance.",
+          "Current fingerprints and consumers do not constitute a new behavioral test result."
+        ],
+        "removalPreimageSha256": null,
+        "sourceLineage": {
+          "status": "initial_source_to_current_owner_verified",
+          "currentOwnerComparison": "Only import prefix ../../../features/characters/application/ becomes ../application/.",
+          "removalPreimageStatus": "A separate final-alias preimage was not established; no intermediate hash is invented."
+        },
+        "consumerEvidence": [
+          "ResourceNavigation constructs CharacterStudioController.",
+          "StudioMapResources implements CharacterWorkspaceVisuals; resource preview, workspace session loading and narrative dialogue lines use its canonical contract."
+        ],
+        "protectedTests": [
+          "apps/avelune_studio/test/presentation/character_studio_dedicated_workspace_test.dart",
+          "apps/avelune_studio/test/characters/character_portrait_state_dialog_lifecycle_test.dart",
+          "apps/avelune_studio/test/characters/character_import_workflow_test.dart"
+        ]
       }
     },
     {
@@ -679,7 +765,7 @@
       "sha256": "a652331aecd3278d97c39d848076846daecd9b7a457ec18afd422067a38e1a63",
       "widgetClasses": [],
       "mixedResponsibilities": true,
-      "decision": "source_removed_pending_owner_classification",
+      "decision": "extracted_non_ui",
       "retired": true,
       "retirementStatus": "source_removed",
       "note": "Retrait physique observé ; preuve de famille référencée dans les ledgers ; ne vaut pas acceptation du lot ou G0.",
@@ -703,6 +789,49 @@
         "lacunae": [],
         "responsibilityCoverageVerified": false,
         "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      },
+      "retirementVerification": {
+        "status": "scoped_classification_verified_not_g0_accepted",
+        "verifiedAt": "2026-11-11",
+        "classification": "extracted_non_ui",
+        "reviewer": "/root/t01_map_retirement_finish",
+        "reviewScope": "Read-only review of source nature, exact owners, consumers and recorded evidence for these 22 rows.",
+        "owners": [
+          "apps/avelune_studio/lib/features/characters/coordination/character_studio_portrait_actions.dart"
+        ],
+        "ownerEvidence": [
+          {
+            "path": "apps/avelune_studio/lib/features/characters/coordination/character_studio_portrait_actions.dart",
+            "exists": true,
+            "currentSha256": "a652331aecd3278d97c39d848076846daecd9b7a457ec18afd422067a38e1a63"
+          }
+        ],
+        "evidence": null,
+        "initialInventorySha256": "a652331aecd3278d97c39d848076846daecd9b7a457ec18afd422067a38e1a63",
+        "initialSourceReference": "06fd484d3fbe762f33380e05a21629cb6dee23fc",
+        "sourceAbsentVerified": true,
+        "behavioralTestsRerun": false,
+        "nativeAcceptance": false,
+        "g0Accepted": false,
+        "limits": [
+          "Source classification only; no T01/G0 acceptance.",
+          "Current fingerprints and consumers do not constitute a new behavioral test result."
+        ],
+        "removalPreimageSha256": null,
+        "sourceLineage": {
+          "status": "initial_source_to_current_owner_verified",
+          "currentOwnerComparison": "byte_identical",
+          "removalPreimageStatus": "A separate final-alias preimage was not established; no intermediate hash is invented."
+        },
+        "consumerEvidence": [
+          "ResourceNavigation constructs CharacterStudioController.",
+          "StudioMapResources implements CharacterWorkspaceVisuals; resource preview, workspace session loading and narrative dialogue lines use its canonical contract."
+        ],
+        "protectedTests": [
+          "apps/avelune_studio/test/presentation/character_studio_dedicated_workspace_test.dart",
+          "apps/avelune_studio/test/characters/character_portrait_state_dialog_lifecycle_test.dart",
+          "apps/avelune_studio/test/characters/character_import_workflow_test.dart"
+        ]
       }
     },
     {
@@ -845,7 +974,7 @@
       "sha256": "8a4ee87dd8fa1ed6224e78f876ef573613ca095abfe477b7e99ebc804ba9a0a6",
       "widgetClasses": [],
       "mixedResponsibilities": true,
-      "decision": "historical_alias_removed",
+      "decision": "extracted_non_ui",
       "retired": true,
       "retirementStatus": "source_removed",
       "note": "Retrait physique observé ; ne vaut pas acceptation du lot ni G0.",
@@ -872,6 +1001,49 @@
         "lacunae": [],
         "responsibilityCoverageVerified": false,
         "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      },
+      "retirementVerification": {
+        "status": "scoped_classification_verified_not_g0_accepted",
+        "verifiedAt": "2026-11-11",
+        "classification": "extracted_non_ui",
+        "reviewer": "/root/t01_map_retirement_finish",
+        "reviewScope": "Read-only review of source nature, exact owners, consumers and recorded evidence for these 22 rows.",
+        "owners": [
+          "apps/avelune_studio/lib/platform/rendering/contracts/character_workspace_visuals.dart"
+        ],
+        "ownerEvidence": [
+          {
+            "path": "apps/avelune_studio/lib/platform/rendering/contracts/character_workspace_visuals.dart",
+            "exists": true,
+            "currentSha256": "8a4ee87dd8fa1ed6224e78f876ef573613ca095abfe477b7e99ebc804ba9a0a6"
+          }
+        ],
+        "evidence": null,
+        "initialInventorySha256": "8a4ee87dd8fa1ed6224e78f876ef573613ca095abfe477b7e99ebc804ba9a0a6",
+        "initialSourceReference": "06fd484d3fbe762f33380e05a21629cb6dee23fc",
+        "sourceAbsentVerified": true,
+        "behavioralTestsRerun": false,
+        "nativeAcceptance": false,
+        "g0Accepted": false,
+        "limits": [
+          "Source classification only; no T01/G0 acceptance.",
+          "Current fingerprints and consumers do not constitute a new behavioral test result."
+        ],
+        "removalPreimageSha256": null,
+        "sourceLineage": {
+          "status": "initial_source_to_current_owner_verified",
+          "currentOwnerComparison": "byte_identical",
+          "removalPreimageStatus": "A separate final-alias preimage was not established; no intermediate hash is invented."
+        },
+        "consumerEvidence": [
+          "ResourceNavigation constructs CharacterStudioController.",
+          "StudioMapResources implements CharacterWorkspaceVisuals; resource preview, workspace session loading and narrative dialogue lines use its canonical contract."
+        ],
+        "protectedTests": [
+          "apps/avelune_studio/test/presentation/character_studio_dedicated_workspace_test.dart",
+          "apps/avelune_studio/test/characters/character_portrait_state_dialog_lifecycle_test.dart",
+          "apps/avelune_studio/test/characters/character_import_workflow_test.dart"
+        ]
       }
     },
     {
@@ -882,8 +1054,14 @@
         "CinematicActionPalette"
       ],
       "mixedResponsibilities": false,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "retired_ui",
+      "retired": true,
+      "retirementVerification": {
+        "status": "partial_scoped",
+        "owners": ["CinematicWorkspaceActions.addAction", "CinematicWorkspaceController.flushEdits"],
+        "note": "Palette retirée ; 15 types d’action conservés. La validation des saisies avant ajout est disponible explicitement avec flushInputs ; les appels directs sans cette option gardent leur comportement.",
+        "evidence": "proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-integrated-313.json"
+      },
       "t00Classification": {
         "classification": "ui_retire",
         "action": "retire_historical_product_ui",
@@ -939,8 +1117,14 @@
         "CinematicDocumentToolbar"
       ],
       "mixedResponsibilities": true,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "retired_ui",
+      "retired": true,
+      "retirementVerification": {
+        "status": "partial_scoped",
+        "owners": ["CinematicWorkspaceController.reload", "CinematicWorkspaceController.delete", "CinematicWorkspaceController.duplicate", "CinematicWorkspaceController.setArchived"],
+        "note": "Barre retirée et confirmations de reload/delete portées par le contrôleur ; conservation des saisies tardives et changements de contexte vérifiée sur la tranche. La page Cinématiques et d’autres commandes visuelles subsistent.",
+        "evidence": "proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-integrated-239.json"
+      },
       "t00Classification": {
         "classification": "ui_retire",
         "action": "retire_historical_product_ui",
@@ -1258,7 +1442,7 @@
       "sha256": "8e354b84c4c608c811d4cfc0c1d70223c59cb3922d2165f66ec3c3af36105925",
       "widgetClasses": [],
       "mixedResponsibilities": false,
-      "decision": "Réexport historique retiré physiquement après extraction ou séparation de son propriétaire non visuel ; consommateurs redirigés.",
+      "decision": "extracted_non_ui",
       "retired": true,
       "t00Classification": {
         "classification": "mixed_extract_then_retire",
@@ -1267,20 +1451,26 @@
         "originalHashVerified": true,
         "destinations": [
           {
-            "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_workspace_controller.dart",
+            "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_map_model.dart",
             "exists": true,
             "responsibleOwner": [
-              "CinematicWorkspaceController"
+              "CinematicMapModel",
+              "cinematicPointUses",
+              "cinematicPreviewCells"
             ],
-            "mappingStatus": "candidate_unverified",
+            "mappingStatus": "scoped_source_mapping_verified",
             "behavioralPreservationVerified": false
           }
         ],
         "externalConsumers": [],
         "lacunae": [
           {
-            "code": "owner_mapping_unverified",
-            "detail": "Heuristic/import/symbol similarity yields a candidate only; responsibility coverage requires scoped source/contract comparison."
+            "code": "current_behavior_not_revalidated",
+            "detail": "Exact alias target and direct consumers verified; no new behavioral/native acceptance inferred."
+          },
+          {
+            "code": "owner_changed_since_retirement",
+            "detail": "Retirement owner hash and current hash are distinct; the later owner delta is not certified by this normalization."
           }
         ],
         "responsibilityCoverageVerified": false,
@@ -1293,6 +1483,54 @@
         "remainingDirectives": 0,
         "widgetMoved": false,
         "globalG0Accepted": false
+      },
+      "retirementVerification": {
+        "status": "scoped_classification_verified_not_g0_accepted",
+        "verifiedAt": "2026-11-11",
+        "classification": "extracted_non_ui",
+        "reviewer": "/root/t01_map_retirement_finish",
+        "reviewScope": "Read-only review of source nature, exact owners, consumers and recorded evidence for these 22 rows.",
+        "owners": [
+          "apps/avelune_studio/lib/features/cinematics/application/cinematic_map_model.dart"
+        ],
+        "ownerEvidence": [
+          {
+            "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_map_model.dart",
+            "exists": true,
+            "currentSha256": "b7034471814bf617c64b82518c9d64ae12c6e742a87f51cd48b85053e0c88825"
+          }
+        ],
+        "evidence": "proofs/t01-execution/narrative-forwarder-retirement.json",
+        "initialInventorySha256": "8e354b84c4c608c811d4cfc0c1d70223c59cb3922d2165f66ec3c3af36105925",
+        "initialSourceReference": "06fd484d3fbe762f33380e05a21629cb6dee23fc",
+        "sourceAbsentVerified": true,
+        "behavioralTestsRerun": false,
+        "nativeAcceptance": false,
+        "g0Accepted": false,
+        "limits": [
+          "Source classification only; no T01/G0 acceptance.",
+          "Current fingerprints and consumers do not constitute a new behavioral test result.",
+          "The owner changed after the recorded alias retirement; no current-behavior equivalence for that later delta is claimed."
+        ],
+        "removalPreimageSha256": "8c7bab1f04f0bdff54efad42d24a44085b21a22fcb3e68791f0a5ab9cbbee909",
+        "sourceLineage": {
+          "status": "initial_source_and_final_alias_distinguished",
+          "initialInventorySha256": "8e354b84c4c608c811d4cfc0c1d70223c59cb3922d2165f66ec3c3af36105925",
+          "finalAliasSha256": "8c7bab1f04f0bdff54efad42d24a44085b21a22fcb3e68791f0a5ab9cbbee909",
+          "finalAliasUri": "package:avelune_studio/features/cinematics/application/cinematic_map_model.dart",
+          "witness": "Exactly one export directive and one LF reconstruct the final alias SHA.",
+          "limit": "This mechanical alias-removal witness does not alone certify every earlier extraction change."
+        },
+        "ownerSha256AtRetirement": "8e354b84c4c608c811d4cfc0c1d70223c59cb3922d2165f66ec3c3af36105925",
+        "currentOwnerMatchesRetirementSha256": false,
+        "consumerVerification": {
+          "scope": "All eight aliases in the cited ledger",
+          "recordedRetargetedDirectives": 27,
+          "currentCanonicalDirectives": 22,
+          "laterRemovedConsumers": 5,
+          "oldDirectivesRemaining": 0
+        },
+        "widgetMovedByAliasRetirement": false
       }
     },
     {
@@ -1534,8 +1772,13 @@
         "CinematicPreviewStatus"
       ],
       "mixedResponsibilities": true,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "retired_ui",
+      "retired": true,
+      "retirementVerification": {
+        "status": "partial_scoped",
+        "note": "Panneau retiré ; transport, plan, diagnostics et assertions de prévisualisation restent couverts. La page Cinématiques reste présente.",
+        "evidence": "proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-warp-cinematic-preview.json"
+      },
       "t00Classification": {
         "classification": "mixed_extract_then_retire",
         "action": "retire_original_after_nonvisual_extraction",
@@ -1715,8 +1958,13 @@
         "CinematicTransportBar"
       ],
       "mixedResponsibilities": false,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "retired_ui",
+      "retired": true,
+      "retirementVerification": {
+        "status": "partial_scoped",
+        "note": "Barre retirée ; le transport et les tests de lecture restent présents. Les contrôles visuels reviendront avec la nouvelle UI.",
+        "evidence": "proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-warp-cinematic-preview.json"
+      },
       "t00Classification": {
         "classification": "ui_retire",
         "action": "retire_historical_product_ui",
@@ -1866,7 +2114,7 @@
       "sha256": "80dfed02c7fb5b3316242836288b24f904faf6c06e184227ca23924433e7d4fd",
       "widgetClasses": [],
       "mixedResponsibilities": true,
-      "decision": "Réexport historique retiré physiquement après extraction ou séparation de son propriétaire non visuel ; consommateurs redirigés.",
+      "decision": "extracted_non_ui",
       "retired": true,
       "t00Classification": {
         "classification": "mixed_extract_then_retire",
@@ -1877,15 +2125,20 @@
           {
             "path": "apps/avelune_studio/lib/platform/rendering/contracts/cinematic_workspace_visuals.dart",
             "exists": true,
-            "mappingStatus": "candidate_unverified",
+            "responsibleOwner": [
+              "CinematicMediaWorkspaceVisuals",
+              "CinematicWorkspaceVisuals",
+              "CinematicSpatialWorkspaceVisuals"
+            ],
+            "mappingStatus": "scoped_source_mapping_verified",
             "behavioralPreservationVerified": false
           }
         ],
         "externalConsumers": [],
         "lacunae": [
           {
-            "code": "owner_mapping_unverified",
-            "detail": "Heuristic/import/symbol similarity yields a candidate only; responsibility coverage requires scoped source/contract comparison."
+            "code": "current_behavior_not_revalidated",
+            "detail": "Exact alias target and direct consumers verified; no new behavioral/native acceptance inferred."
           }
         ],
         "responsibilityCoverageVerified": false,
@@ -1898,6 +2151,53 @@
         "remainingDirectives": 0,
         "widgetMoved": false,
         "globalG0Accepted": false
+      },
+      "retirementVerification": {
+        "status": "scoped_classification_verified_not_g0_accepted",
+        "verifiedAt": "2026-11-11",
+        "classification": "extracted_non_ui",
+        "reviewer": "/root/t01_map_retirement_finish",
+        "reviewScope": "Read-only review of source nature, exact owners, consumers and recorded evidence for these 22 rows.",
+        "owners": [
+          "apps/avelune_studio/lib/platform/rendering/contracts/cinematic_workspace_visuals.dart"
+        ],
+        "ownerEvidence": [
+          {
+            "path": "apps/avelune_studio/lib/platform/rendering/contracts/cinematic_workspace_visuals.dart",
+            "exists": true,
+            "currentSha256": "edc2f06522d2c296ace0d4d6bfc986dc632d5e5255e3a12900b10d4a8de81ad5"
+          }
+        ],
+        "evidence": "proofs/t01-execution/narrative-forwarder-retirement.json",
+        "initialInventorySha256": "80dfed02c7fb5b3316242836288b24f904faf6c06e184227ca23924433e7d4fd",
+        "initialSourceReference": "06fd484d3fbe762f33380e05a21629cb6dee23fc",
+        "sourceAbsentVerified": true,
+        "behavioralTestsRerun": false,
+        "nativeAcceptance": false,
+        "g0Accepted": false,
+        "limits": [
+          "Source classification only; no T01/G0 acceptance.",
+          "Current fingerprints and consumers do not constitute a new behavioral test result."
+        ],
+        "removalPreimageSha256": "ef6ecc4ae014724f4bf83d2a50bd198cc54dfc1e3486adc6bf406e85702ae3ad",
+        "sourceLineage": {
+          "status": "initial_source_and_final_alias_distinguished",
+          "initialInventorySha256": "80dfed02c7fb5b3316242836288b24f904faf6c06e184227ca23924433e7d4fd",
+          "finalAliasSha256": "ef6ecc4ae014724f4bf83d2a50bd198cc54dfc1e3486adc6bf406e85702ae3ad",
+          "finalAliasUri": "package:avelune_studio/platform/rendering/contracts/cinematic_workspace_visuals.dart",
+          "witness": "Exactly one export directive and one LF reconstruct the final alias SHA.",
+          "limit": "This mechanical alias-removal witness does not alone certify every earlier extraction change."
+        },
+        "ownerSha256AtRetirement": "edc2f06522d2c296ace0d4d6bfc986dc632d5e5255e3a12900b10d4a8de81ad5",
+        "currentOwnerMatchesRetirementSha256": true,
+        "consumerVerification": {
+          "scope": "All eight aliases in the cited ledger",
+          "recordedRetargetedDirectives": 27,
+          "currentCanonicalDirectives": 22,
+          "laterRemovedConsumers": 5,
+          "oldDirectivesRemaining": 0
+        },
+        "widgetMovedByAliasRetirement": false
       }
     },
     {
@@ -2633,7 +2933,7 @@
       "sha256": "2aeb872e105ada091735fa20c5e9d14f75de3d80a31ddee4e8d44fe7ffe4d4eb",
       "widgetClasses": [],
       "mixedResponsibilities": false,
-      "decision": "Réexport historique retiré physiquement après extraction ou séparation de son propriétaire non visuel ; consommateurs redirigés.",
+      "decision": "extracted_non_ui",
       "retired": true,
       "t00Classification": {
         "classification": "mixed_extract_then_retire",
@@ -2642,25 +2942,22 @@
         "originalHashVerified": true,
         "destinations": [
           {
-            "path": "apps/avelune_studio/lib/features/events/application/event_legacy_catalog_projection.dart",
-            "exists": false,
-            "mappingStatus": "proposed_unimplemented",
+            "path": "apps/avelune_studio/lib/features/events/application/event_legacy_catalog.dart",
+            "exists": true,
             "responsibleOwner": [
-              "proposed Event legacy catalogue projection unit"
+              "EventLegacyEntry",
+              "EventLegacyDetail",
+              "EventLegacyCatalog"
             ],
-            "scope": "Candidate new feature-owned orchestration for claim index, legacy projection choices, details and identity caching; destination not implemented or accepted.",
+            "mappingStatus": "scoped_source_mapping_verified",
             "behavioralPreservationVerified": false
           }
         ],
         "externalConsumers": [],
         "lacunae": [
           {
-            "code": "destination_unimplemented",
-            "detail": "Proposed destination is not implemented; its responsibilities and contract remain to review."
-          },
-          {
-            "code": "owner_mapping_unverified",
-            "detail": "Native dependencies are proven, but full catalogue orchestration ownership has not been established."
+            "code": "current_behavior_not_revalidated",
+            "detail": "Exact alias target and direct consumers verified; no new behavioral/native acceptance inferred."
           }
         ],
         "responsibilityCoverageVerified": false,
@@ -2673,6 +2970,53 @@
         "remainingDirectives": 0,
         "widgetMoved": false,
         "globalG0Accepted": false
+      },
+      "retirementVerification": {
+        "status": "scoped_classification_verified_not_g0_accepted",
+        "verifiedAt": "2026-11-11",
+        "classification": "extracted_non_ui",
+        "reviewer": "/root/t01_map_retirement_finish",
+        "reviewScope": "Read-only review of source nature, exact owners, consumers and recorded evidence for these 22 rows.",
+        "owners": [
+          "apps/avelune_studio/lib/features/events/application/event_legacy_catalog.dart"
+        ],
+        "ownerEvidence": [
+          {
+            "path": "apps/avelune_studio/lib/features/events/application/event_legacy_catalog.dart",
+            "exists": true,
+            "currentSha256": "9787e91dfe24a88b4b90c9f1a22261256feff7c05bb45f7e16ed3f535bb530a7"
+          }
+        ],
+        "evidence": "proofs/t01-execution/narrative-forwarder-retirement.json",
+        "initialInventorySha256": "2aeb872e105ada091735fa20c5e9d14f75de3d80a31ddee4e8d44fe7ffe4d4eb",
+        "initialSourceReference": "06fd484d3fbe762f33380e05a21629cb6dee23fc",
+        "sourceAbsentVerified": true,
+        "behavioralTestsRerun": false,
+        "nativeAcceptance": false,
+        "g0Accepted": false,
+        "limits": [
+          "Source classification only; no T01/G0 acceptance.",
+          "Current fingerprints and consumers do not constitute a new behavioral test result."
+        ],
+        "removalPreimageSha256": "286277eb22d51eca9118767f1837b30126d1286ff2448ce07ce65b1c541052aa",
+        "sourceLineage": {
+          "status": "initial_source_and_final_alias_distinguished",
+          "initialInventorySha256": "2aeb872e105ada091735fa20c5e9d14f75de3d80a31ddee4e8d44fe7ffe4d4eb",
+          "finalAliasSha256": "286277eb22d51eca9118767f1837b30126d1286ff2448ce07ce65b1c541052aa",
+          "finalAliasUri": "package:avelune_studio/features/events/application/event_legacy_catalog.dart",
+          "witness": "Exactly one export directive and one LF reconstruct the final alias SHA.",
+          "limit": "This mechanical alias-removal witness does not alone certify every earlier extraction change."
+        },
+        "ownerSha256AtRetirement": "9787e91dfe24a88b4b90c9f1a22261256feff7c05bb45f7e16ed3f535bb530a7",
+        "currentOwnerMatchesRetirementSha256": true,
+        "consumerVerification": {
+          "scope": "All eight aliases in the cited ledger",
+          "recordedRetargetedDirectives": 27,
+          "currentCanonicalDirectives": 22,
+          "laterRemovedConsumers": 5,
+          "oldDirectivesRemaining": 0
+        },
+        "widgetMovedByAliasRetirement": false
       }
     },
     {
@@ -3702,8 +4046,14 @@
         "EntityPresentationControls"
       ],
       "mixedResponsibilities": false,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "retired_ui",
+      "retired": true,
+      "retirementVerification": {
+        "status": "partial_scoped",
+        "owners": ["MapEntityPresentationDraft", "MapEntityEditingCommands.setPresentation", "EntityActions.setPresentation"],
+        "note": "Panneau retiré ; brouillon, commande et tests de variantes conservés. Les candidats historiques ci-dessous ne sont pas les propriétaires validés de ce retrait.",
+        "evidence": "proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-markers.json"
+      },
       "t00Classification": {
         "classification": "mixed_extract_then_retire",
         "action": "retire_original_after_nonvisual_extraction",
@@ -3740,8 +4090,14 @@
         "HealingDisplayControls"
       ],
       "mixedResponsibilities": false,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "retired_ui",
+      "retired": true,
+      "retirementVerification": {
+        "status": "partial_scoped",
+        "owners": ["MapHealingDisplayDraft", "MapEntityEditingCommands.setHealingDisplay", "EntityActions"],
+        "note": "Panneau retiré ; brouillon, validation des ressources et tests de soin conservés. Les candidats historiques ci-dessous restent non validés.",
+        "evidence": "proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-markers.json"
+      },
       "t00Classification": {
         "classification": "mixed_extract_then_retire",
         "action": "retire_original_after_nonvisual_extraction",
@@ -3778,8 +4134,14 @@
         "InteractiveEncounterControls"
       ],
       "mixedResponsibilities": false,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "retired_ui",
+      "retired": true,
+      "retirementVerification": {
+        "status": "partial_scoped",
+        "owners": ["MapInteractiveEncounterDraft", "MapEntityEditingCommands.setInteractiveEncounter", "EntityActions"],
+        "note": "Panneau retiré ; brouillon, action canonique et tests de rencontres interactives conservés.",
+        "evidence": "proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-markers.json"
+      },
       "t00Classification": {
         "classification": "ui_retire",
         "action": "retire_historical_product_ui",
@@ -3895,8 +4257,14 @@
         "_MapArrivalPicker"
       ],
       "mixedResponsibilities": true,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "retired_ui",
+      "retired": true,
+      "retirementVerification": {
+        "status": "partial_scoped",
+        "owners": ["MapWarpTargetSession", "mapArrivalChoices", "mapArrivalProblem", "MapWorkspaceController.previewMap"],
+        "note": "Dialogue retiré ; choix et lecture différée restent dans leurs propriétaires. La sélection du passage est conservée.",
+        "evidence": "proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-integrated-313.json"
+      },
       "t00Classification": {
         "classification": "mixed_extract_then_retire",
         "action": "retire_original_after_nonvisual_extraction",
@@ -4042,8 +4410,10 @@
         "_BorderSpatialOffsetEditor"
       ],
       "mixedResponsibilities": true,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "source_removed_pending_owner_classification",
+      "retired": true,
+      "retirementStatus": "source_removed",
+      "note": "Panneau historique de construction retiré ; 19 tests host et 64 tests ciblés commandes/viewports passent en copie QA. Réglages UI temporairement indisponibles ; qualification des responsabilités, intégration globale et G0 restent ouverts.",
       "t00Classification": {
         "classification": "mixed_extract_then_retire",
         "action": "retire_original_after_nonvisual_extraction",
@@ -4085,8 +4455,14 @@
         "MapCameraPanel"
       ],
       "mixedResponsibilities": false,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "extracted_non_ui",
+      "retired": true,
+      "protectedOwners": [
+        "apps/avelune_studio/lib/features/map_workspace/application/map_spatial_settings_commands.dart",
+        "apps/avelune_studio/lib/features/map_workspace/application/editable_map_document.dart"
+      ],
+      "retirementStatus": "source_removed",
+      "note": "Panneau et onglet Image retirés ; commandes caméra, données, annulation et contrôles de catalogue conservés. Dix tests ciblés sur copie QA, dont témoins 2D/3D ; intégration globale, remplacement de l’UI et G0 non acceptés. La classification T00 ci-dessous est l’observation initiale, antérieure à l’extraction.",
       "t00Classification": {
         "classification": "mixed_extract_then_retire",
         "action": "retire_original_after_nonvisual_extraction",
@@ -4537,8 +4913,10 @@
         "MapCliffGuide"
       ],
       "mixedResponsibilities": false,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "source_removed_pending_owner_classification",
+      "retired": true,
+      "retirementStatus": "source_removed",
+      "note": "Panneau historique de construction retiré ; 19 tests host et 64 tests ciblés commandes/viewports passent en copie QA. Réglages UI temporairement indisponibles ; qualification des responsabilités, intégration globale et G0 restent ouverts.",
       "t00Classification": {
         "classification": "mixed_extract_then_retire",
         "action": "retire_original_after_nonvisual_extraction",
@@ -4739,8 +5117,14 @@
         "MapDecorAnimationPanel"
       ],
       "mixedResponsibilities": false,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "extracted_non_ui",
+      "retired": true,
+      "protectedOwners": [
+        "apps/avelune_studio/lib/features/map_workspace/application/map_decor_animation_commands.dart",
+        "apps/avelune_studio/lib/features/map_workspace/application/editable_map_document.dart"
+      ],
+      "retirementStatus": "source_removed",
+      "note": "Ancien onglet Animation des décors 2D retiré. Commandes et données conservées ; dix tests QA ciblés couvrent commandes, sérialisation et onglets restants. Les contrôles d’animation locale restent temporairement indisponibles ; aucune acceptation du lot ni G0.",
       "t00Classification": {
         "classification": "mixed_extract_then_retire",
         "action": "retire_original_after_nonvisual_extraction",
@@ -4782,8 +5166,13 @@
         "MapDecorGeometryPanel"
       ],
       "mixedResponsibilities": false,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "retired_ui",
+      "retired": true,
+      "retirementVerification": {
+        "status": "partial_scoped",
+        "note": "Panneau retiré après vérification des commandes de géométrie, du viewport et de la préservation du montage antérieur par revue indépendante. Le classement préparatoire historique est conservé ci-dessous.",
+        "evidence": "proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-geometry-cinematic-commit.json"
+      },
       "t00Classification": {
         "classification": "mixed_extract_then_retire",
         "action": "retire_original_after_nonvisual_extraction",
@@ -4841,8 +5230,13 @@
         "MapDecorOrderPanel"
       ],
       "mixedResponsibilities": false,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "retired_ui",
+      "retired": true,
+      "retirementVerification": {
+        "status": "partial_scoped",
+        "note": "Panneau retiré ; projection d’ordre extraite et utilisée par le menu contextuel. La revue et les tests sont limités à ce périmètre ; le classement préparatoire historique ci-dessous est conservé.",
+        "evidence": "proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-order-cinematics.json"
+      },
       "t00Classification": {
         "classification": "mixed_extract_then_retire",
         "action": "retire_original_after_nonvisual_extraction",
@@ -5050,8 +5444,14 @@
         "_MapDestinationPicker"
       ],
       "mixedResponsibilities": true,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "retired_ui",
+      "retired": true,
+      "retirementVerification": {
+        "status": "partial_scoped",
+        "owners": ["MapWarpTargetSession", "mapDestinationChoices", "MapWorkspaceController.previewMap"],
+        "note": "Dialogue retiré ; recherche et choix des destinations restent dans leurs propriétaires.",
+        "evidence": "proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-integrated-313.json"
+      },
       "t00Classification": {
         "classification": "mixed_extract_then_retire",
         "action": "retire_original_after_nonvisual_extraction",
@@ -5320,8 +5720,10 @@
         "MapEnvironmentToolPanel"
       ],
       "mixedResponsibilities": true,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "source_removed_pending_owner_classification",
+      "retired": true,
+      "retirementStatus": "source_removed",
+      "note": "Panneau historique de construction retiré ; 19 tests host et 64 tests ciblés commandes/viewports passent en copie QA. Réglages UI temporairement indisponibles ; qualification des responsabilités, intégration globale et G0 restent ouverts.",
       "t00Classification": {
         "classification": "mixed_extract_then_retire",
         "action": "retire_original_after_nonvisual_extraction",
@@ -5355,8 +5757,14 @@
       "sha256": "5b5d7d41f97459cdd2dde1668457cf23d8311650921d3f117dd5c6a9056a0eac",
       "widgetClasses": [],
       "mixedResponsibilities": true,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "retired_ui",
+      "retired": true,
+      "retirementVerification": {
+        "status": "partial_scoped",
+        "owners": ["MapMetadataSettingsDraft", "WorkspaceSessionControllers.loadSceneItems", "saveWorkspaceMapMetadata"],
+        "note": "Dialogue retiré ; draft, chargement d’objets utilisé par les scènes et commande de métadonnées conservés. La sauvegarde d’une carte sale et la publication restent deux opérations distinctes.",
+        "evidence": "proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-map-dialogs.json"
+      },
       "t00Classification": {
         "classification": "mixed_extract_then_retire",
         "action": "retire_original_after_nonvisual_extraction",
@@ -5855,8 +6263,13 @@
         "MapMovingPropPanel"
       ],
       "mixedResponsibilities": false,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "retired_ui",
+      "retired": true,
+      "retirementVerification": {
+        "status": "partial_scoped",
+        "note": "Panneau retiré après vérification des owners de décor mobile et revue indépendante du montage. Le classement préparatoire historique est conservé ci-dessous.",
+        "evidence": "proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-moving-prop.json"
+      },
       "t00Classification": {
         "classification": "mixed_extract_then_retire",
         "action": "retire_original_after_nonvisual_extraction",
@@ -6198,8 +6611,10 @@
         "MapTerrainInspector"
       ],
       "mixedResponsibilities": false,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "source_removed_pending_owner_classification",
+      "retired": true,
+      "retirementStatus": "source_removed",
+      "note": "Panneau historique de construction retiré ; 19 tests host et 64 tests ciblés commandes/viewports passent en copie QA. Réglages UI temporairement indisponibles ; qualification des responsabilités, intégration globale et G0 restent ouverts.",
       "t00Classification": {
         "classification": "ui_retire",
         "action": "retire_historical_product_ui",
@@ -6252,8 +6667,10 @@
         "MapTerrainToolPanel"
       ],
       "mixedResponsibilities": false,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "source_removed_pending_owner_classification",
+      "retired": true,
+      "retirementStatus": "source_removed",
+      "note": "Panneau historique de construction retiré ; 19 tests host et 64 tests ciblés commandes/viewports passent en copie QA. Réglages UI temporairement indisponibles ; qualification des responsabilités, intégration globale et G0 restent ouverts.",
       "t00Classification": {
         "classification": "mixed_extract_then_retire",
         "action": "retire_original_after_nonvisual_extraction",
@@ -6395,8 +6812,13 @@
         "MapWarpDoorEditor"
       ],
       "mixedResponsibilities": false,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "retired_ui",
+      "retired": true,
+      "retirementVerification": {
+        "status": "partial_scoped",
+        "note": "Sous-panneau retiré ; brouillon, commande canonique et tests de porte sont conservés.",
+        "evidence": "proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-warp-cinematic-preview.json"
+      },
       "t00Classification": {
         "classification": "mixed_extract_then_retire",
         "action": "retire_original_after_nonvisual_extraction",
@@ -6432,8 +6854,14 @@
         "MapWarpInspector"
       ],
       "mixedResponsibilities": true,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "retired_ui",
+      "retired": true,
+      "retirementVerification": {
+        "status": "partial_scoped",
+        "owners": ["MapWarpTargetSession", "WarpEditingCommands", "MapWorkspaceEditingState"],
+        "note": "Inspecteur retiré ; slot neutre conservé pour le passage sélectionné afin d’éviter un panneau Connexions hors contexte. Commandes et historique conservés.",
+        "evidence": "proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-integrated-313.json"
+      },
       "t00Classification": {
         "classification": "mixed_extract_then_retire",
         "action": "retire_original_after_nonvisual_extraction",
@@ -6478,8 +6906,13 @@
         "MapWarpLadderEditor"
       ],
       "mixedResponsibilities": false,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "retired_ui",
+      "retired": true,
+      "retirementVerification": {
+        "status": "partial_scoped",
+        "note": "Sous-panneau retiré ; brouillon, commande canonique et tests d’échelle sont conservés.",
+        "evidence": "proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-warp-cinematic-preview.json"
+      },
       "t00Classification": {
         "classification": "mixed_extract_then_retire",
         "action": "retire_original_after_nonvisual_extraction",
@@ -6537,8 +6970,13 @@
         "MapWarpTransitionEditor"
       ],
       "mixedResponsibilities": false,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "retired_ui",
+      "retired": true,
+      "retirementVerification": {
+        "status": "partial_scoped",
+        "note": "Sous-panneau retiré ; commande canonique, aperçu runtime et tests de transition sont conservés.",
+        "evidence": "proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-warp-cinematic-preview.json"
+      },
       "t00Classification": {
         "classification": "mixed_extract_then_retire",
         "action": "retire_original_after_nonvisual_extraction",
@@ -7691,8 +8129,10 @@
         "SpatialFishingEditor"
       ],
       "mixedResponsibilities": false,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "source_removed_pending_owner_classification",
+      "retired": true,
+      "retirementStatus": "source_removed",
+      "note": "Panneau historique de construction retiré ; 19 tests host et 64 tests ciblés commandes/viewports passent en copie QA. Réglages UI temporairement indisponibles ; qualification des responsabilités, intégration globale et G0 restent ouverts.",
       "t00Classification": {
         "classification": "mixed_extract_then_retire",
         "action": "retire_original_after_nonvisual_extraction",
@@ -7728,8 +8168,10 @@
         "SpatialLedgeEditor"
       ],
       "mixedResponsibilities": false,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "source_removed_pending_owner_classification",
+      "retired": true,
+      "retirementStatus": "source_removed",
+      "note": "Panneau historique de construction retiré ; 19 tests host et 64 tests ciblés commandes/viewports passent en copie QA. Réglages UI temporairement indisponibles ; qualification des responsabilités, intégration globale et G0 restent ouverts.",
       "t00Classification": {
         "classification": "mixed_extract_then_retire",
         "action": "retire_original_after_nonvisual_extraction",
@@ -7989,8 +8431,10 @@
         "SpatialRampEditor"
       ],
       "mixedResponsibilities": false,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "source_removed_pending_owner_classification",
+      "retired": true,
+      "retirementStatus": "source_removed",
+      "note": "Panneau historique de construction retiré ; 19 tests host et 64 tests ciblés commandes/viewports passent en copie QA. Réglages UI temporairement indisponibles ; qualification des responsabilités, intégration globale et G0 restent ouverts.",
       "t00Classification": {
         "classification": "mixed_extract_then_retire",
         "action": "retire_original_after_nonvisual_extraction",
@@ -8037,8 +8481,10 @@
         "SpatialTerrainControls"
       ],
       "mixedResponsibilities": false,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "source_removed_pending_owner_classification",
+      "retired": true,
+      "retirementStatus": "source_removed",
+      "note": "Panneau historique de construction retiré ; 19 tests host et 64 tests ciblés commandes/viewports passent en copie QA. Réglages UI temporairement indisponibles ; qualification des responsabilités, intégration globale et G0 restent ouverts.",
       "t00Classification": {
         "classification": "mixed_extract_then_retire",
         "action": "retire_original_after_nonvisual_extraction",
@@ -8080,8 +8526,10 @@
         "SpatialTerrainSurfaceEditor"
       ],
       "mixedResponsibilities": false,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "source_removed_pending_owner_classification",
+      "retired": true,
+      "retirementStatus": "source_removed",
+      "note": "Panneau historique de construction retiré ; 19 tests host et 64 tests ciblés commandes/viewports passent en copie QA. Réglages UI temporairement indisponibles ; qualification des responsabilités, intégration globale et G0 restent ouverts.",
       "t00Classification": {
         "classification": "mixed_extract_then_retire",
         "action": "retire_original_after_nonvisual_extraction",
@@ -11163,8 +11611,8 @@
         "PokemonMediaPreview"
       ],
       "mixedResponsibilities": true,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "retired_ui",
+      "retired": true,
       "t00Classification": {
         "classification": "mixed_extract_then_retire",
         "action": "retire_original_after_nonvisual_extraction",
@@ -11196,6 +11644,14 @@
         ],
         "responsibilityCoverageVerified": false,
         "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      },
+      "retirementEvidence": {
+        "at": "2026-11-10",
+        "owner": "apps/avelune_studio/lib/features/pokemon/application/pokemon_media_editing_session.dart",
+        "targetedTests": "t01-resume-pokemon-media-contracts.log, t01-resume-pokemon-media-workspace-regressions.log, t01-resume-pokemon-media-import-navigation-regressions.log",
+        "evidenceIndex": "proofs/t01-execution/resume-20261110/index.json",
+        "review": "independent code review; 18, 9 and 24 focused tests on frozen QA baseline with monitored shared dependencies",
+        "status": "physically_removed_and_targeted_contracts_green_not_g0"
       }
     },
     {
@@ -11206,8 +11662,8 @@
         "PokemonMediaRoleCard"
       ],
       "mixedResponsibilities": false,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "retired_ui",
+      "retired": true,
       "t00Classification": {
         "classification": "mixed_extract_then_retire",
         "action": "retire_original_after_nonvisual_extraction",
@@ -11230,6 +11686,14 @@
         ],
         "responsibilityCoverageVerified": false,
         "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      },
+      "retirementEvidence": {
+        "at": "2026-11-10",
+        "owner": "apps/avelune_studio/lib/features/pokemon/application/pokemon_media_editing_session.dart",
+        "targetedTests": "t01-resume-pokemon-media-contracts.log, t01-resume-pokemon-media-workspace-regressions.log, t01-resume-pokemon-media-import-navigation-regressions.log",
+        "evidenceIndex": "proofs/t01-execution/resume-20261110/index.json",
+        "review": "independent code review; 18, 9 and 24 focused tests on frozen QA baseline with monitored shared dependencies",
+        "status": "physically_removed_and_targeted_contracts_green_not_g0"
       }
     },
     {
@@ -11850,8 +12314,8 @@
         "_RoleStatus"
       ],
       "mixedResponsibilities": true,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "retired_ui",
+      "retired": true,
       "t00Classification": {
         "classification": "mixed_extract_then_retire",
         "action": "retire_original_after_nonvisual_extraction",
@@ -11883,6 +12347,14 @@
         ],
         "responsibilityCoverageVerified": false,
         "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      },
+      "retirementEvidence": {
+        "at": "2026-11-10",
+        "owner": "apps/avelune_studio/lib/features/pokemon/application/pokemon_media_editing_session.dart",
+        "targetedTests": "t01-resume-pokemon-media-contracts.log, t01-resume-pokemon-media-workspace-regressions.log, t01-resume-pokemon-media-import-navigation-regressions.log",
+        "evidenceIndex": "proofs/t01-execution/resume-20261110/index.json",
+        "review": "independent code review; 18, 9 and 24 focused tests on frozen QA baseline with monitored shared dependencies",
+        "status": "physically_removed_and_targeted_contracts_green_not_g0"
       }
     },
     {
@@ -11986,8 +12458,8 @@
         "PokemonSpeciesThumbnail"
       ],
       "mixedResponsibilities": true,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "retired_ui",
+      "retired": true,
       "t00Classification": {
         "classification": "mixed_extract_then_retire",
         "action": "retire_original_after_nonvisual_extraction",
@@ -12019,6 +12491,14 @@
         ],
         "responsibilityCoverageVerified": false,
         "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      },
+      "retirementEvidence": {
+        "at": "2026-11-10",
+        "owner": "apps/avelune_studio/lib/features/pokemon/application/pokemon_media_editing_session.dart",
+        "targetedTests": "t01-resume-pokemon-media-contracts.log, t01-resume-pokemon-media-workspace-regressions.log, t01-resume-pokemon-media-import-navigation-regressions.log",
+        "evidenceIndex": "proofs/t01-execution/resume-20261110/index.json",
+        "review": "independent code review; 18, 9 and 24 focused tests on frozen QA baseline with monitored shared dependencies",
+        "status": "physically_removed_and_targeted_contracts_green_not_g0"
       }
     },
     {
@@ -12278,7 +12758,7 @@
       "sha256": "abf33f3b70e1a007f371c1573c03e4d2827c40eb807472ce51464b470e66f8a4",
       "widgetClasses": [],
       "mixedResponsibilities": false,
-      "decision": "Réexport historique retiré physiquement après extraction ou séparation de son propriétaire non visuel ; consommateurs redirigés.",
+      "decision": "extracted_non_ui",
       "retired": true,
       "t00Classification": {
         "classification": "mixed_extract_then_retire",
@@ -12287,21 +12767,20 @@
         "originalHashVerified": true,
         "destinations": [
           {
-            "path": "apps/avelune_studio/lib/features/presentations/application/presentation_edit_session.dart",
+            "path": "apps/avelune_studio/lib/features/presentations/application/presentation_gesture_projection.dart",
             "exists": true,
             "responsibleOwner": [
-              "PresentationEditSession",
-              "PresentationWorkingSession"
+              "projectPresentationGesture"
             ],
-            "mappingStatus": "candidate_unverified",
+            "mappingStatus": "scoped_source_mapping_verified",
             "behavioralPreservationVerified": false
           }
         ],
         "externalConsumers": [],
         "lacunae": [
           {
-            "code": "owner_mapping_unverified",
-            "detail": "Heuristic/import/symbol similarity yields a candidate only; responsibility coverage requires scoped source/contract comparison."
+            "code": "current_behavior_not_revalidated",
+            "detail": "Exact alias target and direct consumers verified; no new behavioral/native acceptance inferred."
           }
         ],
         "responsibilityCoverageVerified": false,
@@ -12314,6 +12793,53 @@
         "remainingDirectives": 0,
         "widgetMoved": false,
         "globalG0Accepted": false
+      },
+      "retirementVerification": {
+        "status": "scoped_classification_verified_not_g0_accepted",
+        "verifiedAt": "2026-11-11",
+        "classification": "extracted_non_ui",
+        "reviewer": "/root/t01_map_retirement_finish",
+        "reviewScope": "Read-only review of source nature, exact owners, consumers and recorded evidence for these 22 rows.",
+        "owners": [
+          "apps/avelune_studio/lib/features/presentations/application/presentation_gesture_projection.dart"
+        ],
+        "ownerEvidence": [
+          {
+            "path": "apps/avelune_studio/lib/features/presentations/application/presentation_gesture_projection.dart",
+            "exists": true,
+            "currentSha256": "2005bb306656371cf726219cb617b6f060ca22ede7ad80d3f96582e9a1b2fdd5"
+          }
+        ],
+        "evidence": "proofs/t01-execution/narrative-forwarder-retirement.json",
+        "initialInventorySha256": "abf33f3b70e1a007f371c1573c03e4d2827c40eb807472ce51464b470e66f8a4",
+        "initialSourceReference": "06fd484d3fbe762f33380e05a21629cb6dee23fc",
+        "sourceAbsentVerified": true,
+        "behavioralTestsRerun": false,
+        "nativeAcceptance": false,
+        "g0Accepted": false,
+        "limits": [
+          "Source classification only; no T01/G0 acceptance.",
+          "Current fingerprints and consumers do not constitute a new behavioral test result."
+        ],
+        "removalPreimageSha256": "022b1d995adc78a32cc538ceed13d153c641e55c292495e9c7a76b327ec5cd40",
+        "sourceLineage": {
+          "status": "initial_source_and_final_alias_distinguished",
+          "initialInventorySha256": "abf33f3b70e1a007f371c1573c03e4d2827c40eb807472ce51464b470e66f8a4",
+          "finalAliasSha256": "022b1d995adc78a32cc538ceed13d153c641e55c292495e9c7a76b327ec5cd40",
+          "finalAliasUri": "package:avelune_studio/features/presentations/application/presentation_gesture_projection.dart",
+          "witness": "Exactly one export directive and one LF reconstruct the final alias SHA.",
+          "limit": "This mechanical alias-removal witness does not alone certify every earlier extraction change."
+        },
+        "ownerSha256AtRetirement": "2005bb306656371cf726219cb617b6f060ca22ede7ad80d3f96582e9a1b2fdd5",
+        "currentOwnerMatchesRetirementSha256": true,
+        "consumerVerification": {
+          "scope": "All eight aliases in the cited ledger",
+          "recordedRetargetedDirectives": 27,
+          "currentCanonicalDirectives": 22,
+          "laterRemovedConsumers": 5,
+          "oldDirectivesRemaining": 0
+        },
+        "widgetMovedByAliasRetirement": false
       }
     },
     {
@@ -12568,7 +13094,7 @@
       "sha256": "b5f8cf00efbcf8a3fd21cc9d1bb78f16da26ea9130e98ce7f15a1de01d679b5e",
       "widgetClasses": [],
       "mixedResponsibilities": true,
-      "decision": "Réexport historique retiré physiquement après extraction ou séparation de son propriétaire non visuel ; consommateurs redirigés.",
+      "decision": "extracted_non_ui",
       "retired": true,
       "t00Classification": {
         "classification": "mixed_extract_then_retire",
@@ -12582,15 +13108,15 @@
             "responsibleOwner": [
               "PickPresentationMedia"
             ],
-            "mappingStatus": "candidate_unverified",
+            "mappingStatus": "scoped_source_mapping_verified",
             "behavioralPreservationVerified": false
           }
         ],
         "externalConsumers": [],
         "lacunae": [
           {
-            "code": "owner_mapping_unverified",
-            "detail": "Heuristic/import/symbol similarity yields a candidate only; responsibility coverage requires scoped source/contract comparison."
+            "code": "current_behavior_not_revalidated",
+            "detail": "Exact alias target and direct consumers verified; no new behavioral/native acceptance inferred."
           }
         ],
         "responsibilityCoverageVerified": false,
@@ -12603,6 +13129,53 @@
         "remainingDirectives": 0,
         "widgetMoved": false,
         "globalG0Accepted": false
+      },
+      "retirementVerification": {
+        "status": "scoped_classification_verified_not_g0_accepted",
+        "verifiedAt": "2026-11-11",
+        "classification": "extracted_non_ui",
+        "reviewer": "/root/t01_map_retirement_finish",
+        "reviewScope": "Read-only review of source nature, exact owners, consumers and recorded evidence for these 22 rows.",
+        "owners": [
+          "apps/avelune_studio/lib/features/presentations/domain/presentation_media_picker.dart"
+        ],
+        "ownerEvidence": [
+          {
+            "path": "apps/avelune_studio/lib/features/presentations/domain/presentation_media_picker.dart",
+            "exists": true,
+            "currentSha256": "6a95c1c3c74eb2fb83bae2703a1a2bd6181cfe9d858a77b972bfec5c82f7eda4"
+          }
+        ],
+        "evidence": "proofs/t01-execution/narrative-forwarder-retirement.json",
+        "initialInventorySha256": "b5f8cf00efbcf8a3fd21cc9d1bb78f16da26ea9130e98ce7f15a1de01d679b5e",
+        "initialSourceReference": "06fd484d3fbe762f33380e05a21629cb6dee23fc",
+        "sourceAbsentVerified": true,
+        "behavioralTestsRerun": false,
+        "nativeAcceptance": false,
+        "g0Accepted": false,
+        "limits": [
+          "Source classification only; no T01/G0 acceptance.",
+          "Current fingerprints and consumers do not constitute a new behavioral test result."
+        ],
+        "removalPreimageSha256": "a2b5a06d945747b5b4caa33537d8163e7cc08b8f24f06c6c8284238e4bebec5b",
+        "sourceLineage": {
+          "status": "initial_source_and_final_alias_distinguished",
+          "initialInventorySha256": "b5f8cf00efbcf8a3fd21cc9d1bb78f16da26ea9130e98ce7f15a1de01d679b5e",
+          "finalAliasSha256": "a2b5a06d945747b5b4caa33537d8163e7cc08b8f24f06c6c8284238e4bebec5b",
+          "finalAliasUri": "package:avelune_studio/features/presentations/domain/presentation_media_picker.dart",
+          "witness": "Exactly one export directive and one LF reconstruct the final alias SHA.",
+          "limit": "This mechanical alias-removal witness does not alone certify every earlier extraction change."
+        },
+        "ownerSha256AtRetirement": "6a95c1c3c74eb2fb83bae2703a1a2bd6181cfe9d858a77b972bfec5c82f7eda4",
+        "currentOwnerMatchesRetirementSha256": true,
+        "consumerVerification": {
+          "scope": "All eight aliases in the cited ledger",
+          "recordedRetargetedDirectives": 27,
+          "currentCanonicalDirectives": 22,
+          "laterRemovedConsumers": 5,
+          "oldDirectivesRemaining": 0
+        },
+        "widgetMovedByAliasRetirement": false
       }
     },
     {
@@ -13121,7 +13694,7 @@
       "sha256": "57b3f317f033f7c392d4fdedb0149f62f17cafa25166e269d95e2d60fd982dc4",
       "widgetClasses": [],
       "mixedResponsibilities": true,
-      "decision": "Réexport historique retiré physiquement après extraction ou séparation de son propriétaire non visuel ; consommateurs redirigés.",
+      "decision": "extracted_non_ui",
       "retired": true,
       "t00Classification": {
         "classification": "mixed_extract_then_retire",
@@ -13133,27 +13706,18 @@
             "path": "apps/avelune_studio/lib/platform/rendering/contracts/presentation_workspace_visuals.dart",
             "exists": true,
             "responsibleOwner": [
-              "PresentationMediaWorkspaceVisuals",
-              "PresentationWorkspaceVisuals"
+              "PresentationWorkspaceVisuals",
+              "PresentationMediaWorkspaceVisuals"
             ],
-            "mappingStatus": "candidate_unverified",
-            "behavioralPreservationVerified": false
-          },
-          {
-            "path": "apps/avelune_studio/lib/platform/rendering/presentation_workspace_visuals.dart",
-            "exists": true,
-            "responsibleOwner": [
-              "StudioPresentationVisuals"
-            ],
-            "mappingStatus": "candidate_unverified",
+            "mappingStatus": "scoped_source_mapping_verified",
             "behavioralPreservationVerified": false
           }
         ],
         "externalConsumers": [],
         "lacunae": [
           {
-            "code": "owner_mapping_unverified",
-            "detail": "Heuristic/import/symbol similarity yields a candidate only; responsibility coverage requires scoped source/contract comparison."
+            "code": "current_behavior_not_revalidated",
+            "detail": "Exact alias target and direct consumers verified; no new behavioral/native acceptance inferred."
           }
         ],
         "responsibilityCoverageVerified": false,
@@ -13166,6 +13730,53 @@
         "remainingDirectives": 0,
         "widgetMoved": false,
         "globalG0Accepted": false
+      },
+      "retirementVerification": {
+        "status": "scoped_classification_verified_not_g0_accepted",
+        "verifiedAt": "2026-11-11",
+        "classification": "extracted_non_ui",
+        "reviewer": "/root/t01_map_retirement_finish",
+        "reviewScope": "Read-only review of source nature, exact owners, consumers and recorded evidence for these 22 rows.",
+        "owners": [
+          "apps/avelune_studio/lib/platform/rendering/contracts/presentation_workspace_visuals.dart"
+        ],
+        "ownerEvidence": [
+          {
+            "path": "apps/avelune_studio/lib/platform/rendering/contracts/presentation_workspace_visuals.dart",
+            "exists": true,
+            "currentSha256": "4881f117f7b33da0724c222512a4bab741b24c3bc6a975d80314f8742f4d7141"
+          }
+        ],
+        "evidence": "proofs/t01-execution/narrative-forwarder-retirement.json",
+        "initialInventorySha256": "57b3f317f033f7c392d4fdedb0149f62f17cafa25166e269d95e2d60fd982dc4",
+        "initialSourceReference": "06fd484d3fbe762f33380e05a21629cb6dee23fc",
+        "sourceAbsentVerified": true,
+        "behavioralTestsRerun": false,
+        "nativeAcceptance": false,
+        "g0Accepted": false,
+        "limits": [
+          "Source classification only; no T01/G0 acceptance.",
+          "Current fingerprints and consumers do not constitute a new behavioral test result."
+        ],
+        "removalPreimageSha256": "d3e4ea7705113685c88ddc16e03f25cf1d2aaba5ffba535e15e029176171e347",
+        "sourceLineage": {
+          "status": "initial_source_and_final_alias_distinguished",
+          "initialInventorySha256": "57b3f317f033f7c392d4fdedb0149f62f17cafa25166e269d95e2d60fd982dc4",
+          "finalAliasSha256": "d3e4ea7705113685c88ddc16e03f25cf1d2aaba5ffba535e15e029176171e347",
+          "finalAliasUri": "package:avelune_studio/platform/rendering/contracts/presentation_workspace_visuals.dart",
+          "witness": "Exactly one export directive and one LF reconstruct the final alias SHA.",
+          "limit": "This mechanical alias-removal witness does not alone certify every earlier extraction change."
+        },
+        "ownerSha256AtRetirement": "4881f117f7b33da0724c222512a4bab741b24c3bc6a975d80314f8742f4d7141",
+        "currentOwnerMatchesRetirementSha256": true,
+        "consumerVerification": {
+          "scope": "All eight aliases in the cited ledger",
+          "recordedRetargetedDirectives": 27,
+          "currentCanonicalDirectives": 22,
+          "laterRemovedConsumers": 5,
+          "oldDirectivesRemaining": 0
+        },
+        "widgetMovedByAliasRetirement": false
       }
     },
     {
@@ -13177,7 +13788,7 @@
         "ProjectCreationPathPreview"
       ],
       "mixedResponsibilities": true,
-      "decision": "retired_ui_after_extraction",
+      "decision": "retired_ui",
       "retired": true,
       "retirementStatus": "source_removed",
       "note": "Retrait physique observé ; preuve de famille référencée dans les ledgers ; ne vaut pas acceptation du lot ou G0.",
@@ -13192,6 +13803,56 @@
         "lacunae": [],
         "responsibilityCoverageVerified": false,
         "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      },
+      "retirementVerification": {
+        "status": "scoped_classification_verified_not_g0_accepted",
+        "verifiedAt": "2026-11-11",
+        "classification": "retired_ui",
+        "reviewer": "/root/t01_map_retirement_finish",
+        "reviewScope": "Read-only review of source nature, exact owners, consumers and recorded evidence for these 22 rows.",
+        "owners": [
+          "apps/avelune_studio/lib/features/project_creation/application/project_creation_controller.dart"
+        ],
+        "ownerEvidence": [
+          {
+            "path": "apps/avelune_studio/lib/features/project_creation/application/project_creation_controller.dart",
+            "exists": true,
+            "currentSha256": "dd0cd5365100a12d63e00020a91d95f3ba0df92af3adc905d20abf6ff7df6616"
+          }
+        ],
+        "evidence": "proofs/t01-execution/creation-session-retirement-ledger.json",
+        "initialInventorySha256": "488e43bae3bdef4c3f4a6d777519c5c89957bd3c2412243d60e3bb526f3a9448",
+        "initialSourceReference": "06fd484d3fbe762f33380e05a21629cb6dee23fc",
+        "sourceAbsentVerified": true,
+        "behavioralTestsRerun": false,
+        "nativeAcceptance": false,
+        "g0Accepted": false,
+        "limits": [
+          "Source classification only; no T01/G0 acceptance.",
+          "Current fingerprints and consumers do not constitute a new behavioral test result.",
+          "Software widget tests prove real native surface/provider wiring and synthetic Player playback; no native GPU/device visual acceptance or performance claim.",
+          "Hub consumer source migration analyzed; Hub end-to-end recipes not executed in this slot."
+        ],
+        "removalPreimageSha256": "488e43bae3bdef4c3f4a6d777519c5c89957bd3c2412243d60e3bb526f3a9448",
+        "sourceLineage": {
+          "status": "initial_and_removal_hashes_match",
+          "initialInventorySha256": "488e43bae3bdef4c3f4a6d777519c5c89957bd3c2412243d60e3bb526f3a9448",
+          "ledgerBeforeSha256": "488e43bae3bdef4c3f4a6d777519c5c89957bd3c2412243d60e3bb526f3a9448",
+          "removalPreimageSha256": "488e43bae3bdef4c3f4a6d777519c5c89957bd3c2412243d60e3bb526f3a9448",
+          "ledgerBeforeMatchesInitialInventory": true
+        },
+        "externalConsumersAtRetirement": 0,
+        "testFingerprintVerification": {
+          "ledgerEntryField": "entries[].sha256AfterMigration",
+          "checkedFiles": 11,
+          "matchingCurrentFiles": 11,
+          "kind": "Static current fingerprints, not a fresh test run."
+        },
+        "recordedValidation": {
+          "ledgerStatus": "family_retired_52_distinct_cases_validated",
+          "distinctProtectedCasesRecorded": 52,
+          "freshExecutionClaimed": false
+        }
       }
     },
     {
@@ -13202,7 +13863,7 @@
         "ProjectCreationDialog"
       ],
       "mixedResponsibilities": true,
-      "decision": "retired_ui_after_extraction",
+      "decision": "retired_ui",
       "retired": true,
       "retirementStatus": "source_removed",
       "note": "Retrait physique observé ; preuve de famille référencée dans les ledgers ; ne vaut pas acceptation du lot ou G0.",
@@ -13232,6 +13893,62 @@
         ],
         "responsibilityCoverageVerified": false,
         "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      },
+      "retirementVerification": {
+        "status": "scoped_classification_verified_not_g0_accepted",
+        "verifiedAt": "2026-11-11",
+        "classification": "retired_ui",
+        "reviewer": "/root/t01_map_retirement_finish",
+        "reviewScope": "Read-only review of source nature, exact owners, consumers and recorded evidence for these 22 rows.",
+        "owners": [
+          "apps/avelune_studio/lib/features/project_creation/application/project_creation_controller.dart",
+          "apps/avelune_studio/lib/features/project_session/application/project_session_open_controller.dart"
+        ],
+        "ownerEvidence": [
+          {
+            "path": "apps/avelune_studio/lib/features/project_creation/application/project_creation_controller.dart",
+            "exists": true,
+            "currentSha256": "dd0cd5365100a12d63e00020a91d95f3ba0df92af3adc905d20abf6ff7df6616"
+          },
+          {
+            "path": "apps/avelune_studio/lib/features/project_session/application/project_session_open_controller.dart",
+            "exists": true,
+            "currentSha256": "5208c6c23cd27fdfc14db0080bcd9b743d0e382493071671cc56a948a549ad75"
+          }
+        ],
+        "evidence": "proofs/t01-execution/creation-session-retirement-ledger.json",
+        "initialInventorySha256": "348b3bc5fdebeb1b234a1046b5be7c0013ea9065e56f224054478beff77aa349",
+        "initialSourceReference": "06fd484d3fbe762f33380e05a21629cb6dee23fc",
+        "sourceAbsentVerified": true,
+        "behavioralTestsRerun": false,
+        "nativeAcceptance": false,
+        "g0Accepted": false,
+        "limits": [
+          "Source classification only; no T01/G0 acceptance.",
+          "Current fingerprints and consumers do not constitute a new behavioral test result.",
+          "Software widget tests prove real native surface/provider wiring and synthetic Player playback; no native GPU/device visual acceptance or performance claim.",
+          "Hub consumer source migration analyzed; Hub end-to-end recipes not executed in this slot."
+        ],
+        "removalPreimageSha256": "348b3bc5fdebeb1b234a1046b5be7c0013ea9065e56f224054478beff77aa349",
+        "sourceLineage": {
+          "status": "initial_and_removal_hashes_match",
+          "initialInventorySha256": "348b3bc5fdebeb1b234a1046b5be7c0013ea9065e56f224054478beff77aa349",
+          "ledgerBeforeSha256": "348b3bc5fdebeb1b234a1046b5be7c0013ea9065e56f224054478beff77aa349",
+          "removalPreimageSha256": "348b3bc5fdebeb1b234a1046b5be7c0013ea9065e56f224054478beff77aa349",
+          "ledgerBeforeMatchesInitialInventory": true
+        },
+        "externalConsumersAtRetirement": 0,
+        "testFingerprintVerification": {
+          "ledgerEntryField": "entries[].sha256AfterMigration",
+          "checkedFiles": 11,
+          "matchingCurrentFiles": 11,
+          "kind": "Static current fingerprints, not a fresh test run."
+        },
+        "recordedValidation": {
+          "ledgerStatus": "family_retired_52_distinct_cases_validated",
+          "distinctProtectedCasesRecorded": 52,
+          "freshExecutionClaimed": false
+        }
       }
     },
     {
@@ -13242,7 +13959,7 @@
         "ProjectCreationParameters"
       ],
       "mixedResponsibilities": true,
-      "decision": "retired_ui_after_extraction",
+      "decision": "retired_ui",
       "retired": true,
       "retirementStatus": "source_removed",
       "note": "Retrait physique observé ; preuve de famille référencée dans les ledgers ; ne vaut pas acceptation du lot ou G0.",
@@ -13272,6 +13989,56 @@
         ],
         "responsibilityCoverageVerified": false,
         "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      },
+      "retirementVerification": {
+        "status": "scoped_classification_verified_not_g0_accepted",
+        "verifiedAt": "2026-11-11",
+        "classification": "retired_ui",
+        "reviewer": "/root/t01_map_retirement_finish",
+        "reviewScope": "Read-only review of source nature, exact owners, consumers and recorded evidence for these 22 rows.",
+        "owners": [
+          "apps/avelune_studio/lib/features/project_creation/application/project_creation_controller.dart"
+        ],
+        "ownerEvidence": [
+          {
+            "path": "apps/avelune_studio/lib/features/project_creation/application/project_creation_controller.dart",
+            "exists": true,
+            "currentSha256": "dd0cd5365100a12d63e00020a91d95f3ba0df92af3adc905d20abf6ff7df6616"
+          }
+        ],
+        "evidence": "proofs/t01-execution/creation-session-retirement-ledger.json",
+        "initialInventorySha256": "db99debc5a4e92265a5fd59824d2806191456ec5d1794dd6993d76ce085dca41",
+        "initialSourceReference": "06fd484d3fbe762f33380e05a21629cb6dee23fc",
+        "sourceAbsentVerified": true,
+        "behavioralTestsRerun": false,
+        "nativeAcceptance": false,
+        "g0Accepted": false,
+        "limits": [
+          "Source classification only; no T01/G0 acceptance.",
+          "Current fingerprints and consumers do not constitute a new behavioral test result.",
+          "Software widget tests prove real native surface/provider wiring and synthetic Player playback; no native GPU/device visual acceptance or performance claim.",
+          "Hub consumer source migration analyzed; Hub end-to-end recipes not executed in this slot."
+        ],
+        "removalPreimageSha256": "db99debc5a4e92265a5fd59824d2806191456ec5d1794dd6993d76ce085dca41",
+        "sourceLineage": {
+          "status": "initial_and_removal_hashes_match",
+          "initialInventorySha256": "db99debc5a4e92265a5fd59824d2806191456ec5d1794dd6993d76ce085dca41",
+          "ledgerBeforeSha256": "db99debc5a4e92265a5fd59824d2806191456ec5d1794dd6993d76ce085dca41",
+          "removalPreimageSha256": "db99debc5a4e92265a5fd59824d2806191456ec5d1794dd6993d76ce085dca41",
+          "ledgerBeforeMatchesInitialInventory": true
+        },
+        "externalConsumersAtRetirement": 0,
+        "testFingerprintVerification": {
+          "ledgerEntryField": "entries[].sha256AfterMigration",
+          "checkedFiles": 11,
+          "matchingCurrentFiles": 11,
+          "kind": "Static current fingerprints, not a fresh test run."
+        },
+        "recordedValidation": {
+          "ledgerStatus": "family_retired_52_distinct_cases_validated",
+          "distinctProtectedCasesRecorded": 52,
+          "freshExecutionClaimed": false
+        }
       }
     },
     {
@@ -13282,7 +14049,7 @@
         "ProjectCreationPreview"
       ],
       "mixedResponsibilities": true,
-      "decision": "retired_ui_after_extraction",
+      "decision": "retired_ui",
       "retired": true,
       "retirementStatus": "source_removed",
       "note": "Retrait physique observé ; preuve de famille référencée dans les ledgers ; ne vaut pas acceptation du lot ou G0.",
@@ -13297,6 +14064,56 @@
         "lacunae": [],
         "responsibilityCoverageVerified": false,
         "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      },
+      "retirementVerification": {
+        "status": "scoped_classification_verified_not_g0_accepted",
+        "verifiedAt": "2026-11-11",
+        "classification": "retired_ui",
+        "reviewer": "/root/t01_map_retirement_finish",
+        "reviewScope": "Read-only review of source nature, exact owners, consumers and recorded evidence for these 22 rows.",
+        "owners": [
+          "apps/avelune_studio/lib/features/project_creation/application/project_creation_controller.dart"
+        ],
+        "ownerEvidence": [
+          {
+            "path": "apps/avelune_studio/lib/features/project_creation/application/project_creation_controller.dart",
+            "exists": true,
+            "currentSha256": "dd0cd5365100a12d63e00020a91d95f3ba0df92af3adc905d20abf6ff7df6616"
+          }
+        ],
+        "evidence": "proofs/t01-execution/creation-session-retirement-ledger.json",
+        "initialInventorySha256": "97fe6133c3b65c0d86093315e1998a58d8fd7f028b136941d69c2db448f30528",
+        "initialSourceReference": "06fd484d3fbe762f33380e05a21629cb6dee23fc",
+        "sourceAbsentVerified": true,
+        "behavioralTestsRerun": false,
+        "nativeAcceptance": false,
+        "g0Accepted": false,
+        "limits": [
+          "Source classification only; no T01/G0 acceptance.",
+          "Current fingerprints and consumers do not constitute a new behavioral test result.",
+          "Software widget tests prove real native surface/provider wiring and synthetic Player playback; no native GPU/device visual acceptance or performance claim.",
+          "Hub consumer source migration analyzed; Hub end-to-end recipes not executed in this slot."
+        ],
+        "removalPreimageSha256": "97fe6133c3b65c0d86093315e1998a58d8fd7f028b136941d69c2db448f30528",
+        "sourceLineage": {
+          "status": "initial_and_removal_hashes_match",
+          "initialInventorySha256": "97fe6133c3b65c0d86093315e1998a58d8fd7f028b136941d69c2db448f30528",
+          "ledgerBeforeSha256": "97fe6133c3b65c0d86093315e1998a58d8fd7f028b136941d69c2db448f30528",
+          "removalPreimageSha256": "97fe6133c3b65c0d86093315e1998a58d8fd7f028b136941d69c2db448f30528",
+          "ledgerBeforeMatchesInitialInventory": true
+        },
+        "externalConsumersAtRetirement": 0,
+        "testFingerprintVerification": {
+          "ledgerEntryField": "entries[].sha256AfterMigration",
+          "checkedFiles": 11,
+          "matchingCurrentFiles": 11,
+          "kind": "Static current fingerprints, not a fresh test run."
+        },
+        "recordedValidation": {
+          "ledgerStatus": "family_retired_52_distinct_cases_validated",
+          "distinctProtectedCasesRecorded": 52,
+          "freshExecutionClaimed": false
+        }
       }
     },
     {
@@ -13307,7 +14124,7 @@
         "ProjectCreationProgress"
       ],
       "mixedResponsibilities": true,
-      "decision": "retired_ui_after_extraction",
+      "decision": "retired_ui",
       "retired": true,
       "retirementStatus": "source_removed",
       "note": "Retrait physique observé ; preuve de famille référencée dans les ledgers ; ne vaut pas acceptation du lot ou G0.",
@@ -13322,6 +14139,56 @@
         "lacunae": [],
         "responsibilityCoverageVerified": false,
         "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      },
+      "retirementVerification": {
+        "status": "scoped_classification_verified_not_g0_accepted",
+        "verifiedAt": "2026-11-11",
+        "classification": "retired_ui",
+        "reviewer": "/root/t01_map_retirement_finish",
+        "reviewScope": "Read-only review of source nature, exact owners, consumers and recorded evidence for these 22 rows.",
+        "owners": [
+          "apps/avelune_studio/lib/features/project_creation/application/project_creation_controller.dart"
+        ],
+        "ownerEvidence": [
+          {
+            "path": "apps/avelune_studio/lib/features/project_creation/application/project_creation_controller.dart",
+            "exists": true,
+            "currentSha256": "dd0cd5365100a12d63e00020a91d95f3ba0df92af3adc905d20abf6ff7df6616"
+          }
+        ],
+        "evidence": "proofs/t01-execution/creation-session-retirement-ledger.json",
+        "initialInventorySha256": "867eb12a307e06cac40a11ef0ed58a3dec8224e8b9d4c131ed8edffab02e6b7c",
+        "initialSourceReference": "06fd484d3fbe762f33380e05a21629cb6dee23fc",
+        "sourceAbsentVerified": true,
+        "behavioralTestsRerun": false,
+        "nativeAcceptance": false,
+        "g0Accepted": false,
+        "limits": [
+          "Source classification only; no T01/G0 acceptance.",
+          "Current fingerprints and consumers do not constitute a new behavioral test result.",
+          "Software widget tests prove real native surface/provider wiring and synthetic Player playback; no native GPU/device visual acceptance or performance claim.",
+          "Hub consumer source migration analyzed; Hub end-to-end recipes not executed in this slot."
+        ],
+        "removalPreimageSha256": "867eb12a307e06cac40a11ef0ed58a3dec8224e8b9d4c131ed8edffab02e6b7c",
+        "sourceLineage": {
+          "status": "initial_and_removal_hashes_match",
+          "initialInventorySha256": "867eb12a307e06cac40a11ef0ed58a3dec8224e8b9d4c131ed8edffab02e6b7c",
+          "ledgerBeforeSha256": "867eb12a307e06cac40a11ef0ed58a3dec8224e8b9d4c131ed8edffab02e6b7c",
+          "removalPreimageSha256": "867eb12a307e06cac40a11ef0ed58a3dec8224e8b9d4c131ed8edffab02e6b7c",
+          "ledgerBeforeMatchesInitialInventory": true
+        },
+        "externalConsumersAtRetirement": 0,
+        "testFingerprintVerification": {
+          "ledgerEntryField": "entries[].sha256AfterMigration",
+          "checkedFiles": 11,
+          "matchingCurrentFiles": 11,
+          "kind": "Static current fingerprints, not a fresh test run."
+        },
+        "recordedValidation": {
+          "ledgerStatus": "family_retired_52_distinct_cases_validated",
+          "distinctProtectedCasesRecorded": 52,
+          "freshExecutionClaimed": false
+        }
       }
     },
     {
@@ -13332,7 +14199,7 @@
         "ProjectCreationStepper"
       ],
       "mixedResponsibilities": false,
-      "decision": "retired_ui_after_extraction",
+      "decision": "retired_ui",
       "retired": true,
       "retirementStatus": "source_removed",
       "note": "Retrait physique observé ; preuve de famille référencée dans les ledgers ; ne vaut pas acceptation du lot ou G0.",
@@ -13347,6 +14214,56 @@
         "lacunae": [],
         "responsibilityCoverageVerified": false,
         "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      },
+      "retirementVerification": {
+        "status": "scoped_classification_verified_not_g0_accepted",
+        "verifiedAt": "2026-11-11",
+        "classification": "retired_ui",
+        "reviewer": "/root/t01_map_retirement_finish",
+        "reviewScope": "Read-only review of source nature, exact owners, consumers and recorded evidence for these 22 rows.",
+        "owners": [
+          "apps/avelune_studio/lib/features/project_creation/application/project_creation_controller.dart"
+        ],
+        "ownerEvidence": [
+          {
+            "path": "apps/avelune_studio/lib/features/project_creation/application/project_creation_controller.dart",
+            "exists": true,
+            "currentSha256": "dd0cd5365100a12d63e00020a91d95f3ba0df92af3adc905d20abf6ff7df6616"
+          }
+        ],
+        "evidence": "proofs/t01-execution/creation-session-retirement-ledger.json",
+        "initialInventorySha256": "88c221c6b3b8f9ba840043468507c6be3cbcd5c9fa522a36f900e9c53261da62",
+        "initialSourceReference": "06fd484d3fbe762f33380e05a21629cb6dee23fc",
+        "sourceAbsentVerified": true,
+        "behavioralTestsRerun": false,
+        "nativeAcceptance": false,
+        "g0Accepted": false,
+        "limits": [
+          "Source classification only; no T01/G0 acceptance.",
+          "Current fingerprints and consumers do not constitute a new behavioral test result.",
+          "Software widget tests prove real native surface/provider wiring and synthetic Player playback; no native GPU/device visual acceptance or performance claim.",
+          "Hub consumer source migration analyzed; Hub end-to-end recipes not executed in this slot."
+        ],
+        "removalPreimageSha256": "88c221c6b3b8f9ba840043468507c6be3cbcd5c9fa522a36f900e9c53261da62",
+        "sourceLineage": {
+          "status": "initial_and_removal_hashes_match",
+          "initialInventorySha256": "88c221c6b3b8f9ba840043468507c6be3cbcd5c9fa522a36f900e9c53261da62",
+          "ledgerBeforeSha256": "88c221c6b3b8f9ba840043468507c6be3cbcd5c9fa522a36f900e9c53261da62",
+          "removalPreimageSha256": "88c221c6b3b8f9ba840043468507c6be3cbcd5c9fa522a36f900e9c53261da62",
+          "ledgerBeforeMatchesInitialInventory": true
+        },
+        "externalConsumersAtRetirement": 0,
+        "testFingerprintVerification": {
+          "ledgerEntryField": "entries[].sha256AfterMigration",
+          "checkedFiles": 11,
+          "matchingCurrentFiles": 11,
+          "kind": "Static current fingerprints, not a fresh test run."
+        },
+        "recordedValidation": {
+          "ledgerStatus": "family_retired_52_distinct_cases_validated",
+          "distinctProtectedCasesRecorded": 52,
+          "freshExecutionClaimed": false
+        }
       }
     },
     {
@@ -13357,7 +14274,7 @@
         "ProjectCreationSteps"
       ],
       "mixedResponsibilities": true,
-      "decision": "retired_ui_after_extraction",
+      "decision": "retired_ui",
       "retired": true,
       "retirementStatus": "source_removed",
       "note": "Retrait physique observé ; preuve de famille référencée dans les ledgers ; ne vaut pas acceptation du lot ou G0.",
@@ -13372,6 +14289,56 @@
         "lacunae": [],
         "responsibilityCoverageVerified": false,
         "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      },
+      "retirementVerification": {
+        "status": "scoped_classification_verified_not_g0_accepted",
+        "verifiedAt": "2026-11-11",
+        "classification": "retired_ui",
+        "reviewer": "/root/t01_map_retirement_finish",
+        "reviewScope": "Read-only review of source nature, exact owners, consumers and recorded evidence for these 22 rows.",
+        "owners": [
+          "apps/avelune_studio/lib/features/project_creation/application/project_creation_controller.dart"
+        ],
+        "ownerEvidence": [
+          {
+            "path": "apps/avelune_studio/lib/features/project_creation/application/project_creation_controller.dart",
+            "exists": true,
+            "currentSha256": "dd0cd5365100a12d63e00020a91d95f3ba0df92af3adc905d20abf6ff7df6616"
+          }
+        ],
+        "evidence": "proofs/t01-execution/creation-session-retirement-ledger.json",
+        "initialInventorySha256": "c0eeeb65a1d7fa319a203c0da5fd3ba6bfafed6506d89ad0078cab1b2f8944e2",
+        "initialSourceReference": "06fd484d3fbe762f33380e05a21629cb6dee23fc",
+        "sourceAbsentVerified": true,
+        "behavioralTestsRerun": false,
+        "nativeAcceptance": false,
+        "g0Accepted": false,
+        "limits": [
+          "Source classification only; no T01/G0 acceptance.",
+          "Current fingerprints and consumers do not constitute a new behavioral test result.",
+          "Software widget tests prove real native surface/provider wiring and synthetic Player playback; no native GPU/device visual acceptance or performance claim.",
+          "Hub consumer source migration analyzed; Hub end-to-end recipes not executed in this slot."
+        ],
+        "removalPreimageSha256": "c0eeeb65a1d7fa319a203c0da5fd3ba6bfafed6506d89ad0078cab1b2f8944e2",
+        "sourceLineage": {
+          "status": "initial_and_removal_hashes_match",
+          "initialInventorySha256": "c0eeeb65a1d7fa319a203c0da5fd3ba6bfafed6506d89ad0078cab1b2f8944e2",
+          "ledgerBeforeSha256": "c0eeeb65a1d7fa319a203c0da5fd3ba6bfafed6506d89ad0078cab1b2f8944e2",
+          "removalPreimageSha256": "c0eeeb65a1d7fa319a203c0da5fd3ba6bfafed6506d89ad0078cab1b2f8944e2",
+          "ledgerBeforeMatchesInitialInventory": true
+        },
+        "externalConsumersAtRetirement": 0,
+        "testFingerprintVerification": {
+          "ledgerEntryField": "entries[].sha256AfterMigration",
+          "checkedFiles": 11,
+          "matchingCurrentFiles": 11,
+          "kind": "Static current fingerprints, not a fresh test run."
+        },
+        "recordedValidation": {
+          "ledgerStatus": "family_retired_52_distinct_cases_validated",
+          "distinctProtectedCasesRecorded": 52,
+          "freshExecutionClaimed": false
+        }
       }
     },
     {
@@ -13382,7 +14349,7 @@
         "ProjectOpenControls"
       ],
       "mixedResponsibilities": true,
-      "decision": "retired_ui_after_extraction",
+      "decision": "retired_ui",
       "retired": true,
       "retirementStatus": "source_removed",
       "note": "Retrait physique observé ; preuve de famille référencée dans les ledgers ; ne vaut pas acceptation du lot ou G0.",
@@ -13397,6 +14364,56 @@
         "lacunae": [],
         "responsibilityCoverageVerified": false,
         "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      },
+      "retirementVerification": {
+        "status": "scoped_classification_verified_not_g0_accepted",
+        "verifiedAt": "2026-11-11",
+        "classification": "retired_ui",
+        "reviewer": "/root/t01_map_retirement_finish",
+        "reviewScope": "Read-only review of source nature, exact owners, consumers and recorded evidence for these 22 rows.",
+        "owners": [
+          "apps/avelune_studio/lib/features/project_session/application/project_session_open_controller.dart"
+        ],
+        "ownerEvidence": [
+          {
+            "path": "apps/avelune_studio/lib/features/project_session/application/project_session_open_controller.dart",
+            "exists": true,
+            "currentSha256": "5208c6c23cd27fdfc14db0080bcd9b743d0e382493071671cc56a948a549ad75"
+          }
+        ],
+        "evidence": "proofs/t01-execution/creation-session-retirement-ledger.json",
+        "initialInventorySha256": "de4eaba5cf55394f701e020d2e4f8978fba6c75c173234382218fd8b7d4bd1ef",
+        "initialSourceReference": "06fd484d3fbe762f33380e05a21629cb6dee23fc",
+        "sourceAbsentVerified": true,
+        "behavioralTestsRerun": false,
+        "nativeAcceptance": false,
+        "g0Accepted": false,
+        "limits": [
+          "Source classification only; no T01/G0 acceptance.",
+          "Current fingerprints and consumers do not constitute a new behavioral test result.",
+          "Software widget tests prove real native surface/provider wiring and synthetic Player playback; no native GPU/device visual acceptance or performance claim.",
+          "Hub consumer source migration analyzed; Hub end-to-end recipes not executed in this slot."
+        ],
+        "removalPreimageSha256": "de4eaba5cf55394f701e020d2e4f8978fba6c75c173234382218fd8b7d4bd1ef",
+        "sourceLineage": {
+          "status": "initial_and_removal_hashes_match",
+          "initialInventorySha256": "de4eaba5cf55394f701e020d2e4f8978fba6c75c173234382218fd8b7d4bd1ef",
+          "ledgerBeforeSha256": "de4eaba5cf55394f701e020d2e4f8978fba6c75c173234382218fd8b7d4bd1ef",
+          "removalPreimageSha256": "de4eaba5cf55394f701e020d2e4f8978fba6c75c173234382218fd8b7d4bd1ef",
+          "ledgerBeforeMatchesInitialInventory": true
+        },
+        "externalConsumersAtRetirement": 0,
+        "testFingerprintVerification": {
+          "ledgerEntryField": "entries[].sha256AfterMigration",
+          "checkedFiles": 11,
+          "matchingCurrentFiles": 11,
+          "kind": "Static current fingerprints, not a fresh test run."
+        },
+        "recordedValidation": {
+          "ledgerStatus": "family_retired_52_distinct_cases_validated",
+          "distinctProtectedCasesRecorded": 52,
+          "freshExecutionClaimed": false
+        }
       }
     },
     {
@@ -13405,7 +14422,7 @@
       "sha256": "d92bdd4a47c870bd6acb3f45391074dffaffdc563847cf13e3b16e62d3310d06",
       "widgetClasses": [],
       "mixedResponsibilities": false,
-      "decision": "retired_ui_after_extraction",
+      "decision": "extracted_non_ui",
       "retired": true,
       "retirementStatus": "source_removed",
       "note": "Retrait physique observé ; preuve de famille référencée dans les ledgers ; ne vaut pas acceptation du lot ou G0.",
@@ -13435,6 +14452,58 @@
         ],
         "responsibilityCoverageVerified": false,
         "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      },
+      "retirementVerification": {
+        "status": "scoped_classification_verified_not_g0_accepted",
+        "verifiedAt": "2026-11-11",
+        "classification": "extracted_non_ui",
+        "reviewer": "/root/t01_map_retirement_finish",
+        "reviewScope": "Read-only review of source nature, exact owners, consumers and recorded evidence for these 22 rows.",
+        "owners": [
+          "apps/avelune_studio/lib/features/project_session/application/project_open_message.dart"
+        ],
+        "ownerEvidence": [
+          {
+            "path": "apps/avelune_studio/lib/features/project_session/application/project_open_message.dart",
+            "exists": true,
+            "currentSha256": "2fa8e3b4948c827ee750772d5ed7443ece6d8f12507d14745cf57acad1bad084"
+          }
+        ],
+        "evidence": "proofs/t01-execution/creation-session-retirement-ledger.json",
+        "initialInventorySha256": "d92bdd4a47c870bd6acb3f45391074dffaffdc563847cf13e3b16e62d3310d06",
+        "initialSourceReference": "06fd484d3fbe762f33380e05a21629cb6dee23fc",
+        "sourceAbsentVerified": true,
+        "behavioralTestsRerun": false,
+        "nativeAcceptance": false,
+        "g0Accepted": false,
+        "limits": [
+          "Source classification only; no T01/G0 acceptance.",
+          "Current fingerprints and consumers do not constitute a new behavioral test result.",
+          "Software widget tests prove real native surface/provider wiring and synthetic Player playback; no native GPU/device visual acceptance or performance claim.",
+          "Hub consumer source migration analyzed; Hub end-to-end recipes not executed in this slot."
+        ],
+        "removalPreimageSha256": "8004690746b8c85466b90d3fae06120dd58f6195787e7097f3eeaebf899f3baf",
+        "sourceLineage": {
+          "status": "formatter_extraction_and_later_alias_distinguished",
+          "initialInventorySha256": "d92bdd4a47c870bd6acb3f45391074dffaffdc563847cf13e3b16e62d3310d06",
+          "ledgerBeforeSha256": "d92bdd4a47c870bd6acb3f45391074dffaffdc563847cf13e3b16e62d3310d06",
+          "removalPreimageSha256": "8004690746b8c85466b90d3fae06120dd58f6195787e7097f3eeaebf899f3baf",
+          "ledgerBeforeMatchesInitialInventory": true,
+          "ownedDeltaBeforeRemoval": "Known temporary reexport after exact-body extraction to features/project_session/application/project_open_message.dart",
+          "currentOwnerComparison": "Original formatter differs only by joining the wrapped pathNotPreserved switch arm onto one line."
+        },
+        "externalConsumersAtRetirement": 0,
+        "testFingerprintVerification": {
+          "ledgerEntryField": "entries[].sha256AfterMigration",
+          "checkedFiles": 11,
+          "matchingCurrentFiles": 11,
+          "kind": "Static current fingerprints, not a fresh test run."
+        },
+        "recordedValidation": {
+          "ledgerStatus": "family_retired_52_distinct_cases_validated",
+          "distinctProtectedCasesRecorded": 52,
+          "freshExecutionClaimed": false
+        }
       }
     },
     {
@@ -13445,7 +14514,7 @@
         "ProjectSessionScreen"
       ],
       "mixedResponsibilities": true,
-      "decision": "retired_ui_after_extraction",
+      "decision": "retired_ui",
       "retired": true,
       "retirementStatus": "source_removed",
       "note": "Retrait physique observé ; preuve de famille référencée dans les ledgers ; ne vaut pas acceptation du lot ou G0.",
@@ -13472,6 +14541,65 @@
         ],
         "responsibilityCoverageVerified": false,
         "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      },
+      "retirementVerification": {
+        "status": "scoped_classification_verified_not_g0_accepted",
+        "verifiedAt": "2026-11-11",
+        "classification": "retired_ui",
+        "reviewer": "/root/t01_map_retirement_finish",
+        "reviewScope": "Read-only review of source nature, exact owners, consumers and recorded evidence for these 22 rows.",
+        "owners": [
+          "apps/avelune_studio/lib/features/project_session/application/project_session_open_controller.dart",
+          "apps/avelune_studio/lib/features/project_session/application/project_history_maintenance_controller.dart"
+        ],
+        "ownerEvidence": [
+          {
+            "path": "apps/avelune_studio/lib/features/project_session/application/project_session_open_controller.dart",
+            "exists": true,
+            "currentSha256": "5208c6c23cd27fdfc14db0080bcd9b743d0e382493071671cc56a948a549ad75"
+          },
+          {
+            "path": "apps/avelune_studio/lib/features/project_session/application/project_history_maintenance_controller.dart",
+            "exists": true,
+            "currentSha256": "7343a5ac4d623a8e01a0d8408f456b17bbee930dab8b1b88f4f50b40e592c8e3"
+          }
+        ],
+        "evidence": "proofs/t01-execution/creation-session-retirement-ledger.json",
+        "initialInventorySha256": "904668755da76c5c1b07cb4cfd3d0d8559af44d36386a57fa4c2eb5eb61b29bc",
+        "initialSourceReference": "06fd484d3fbe762f33380e05a21629cb6dee23fc",
+        "sourceAbsentVerified": true,
+        "behavioralTestsRerun": false,
+        "nativeAcceptance": false,
+        "g0Accepted": false,
+        "limits": [
+          "Source classification only; no T01/G0 acceptance.",
+          "Current fingerprints and consumers do not constitute a new behavioral test result.",
+          "Software widget tests prove real native surface/provider wiring and synthetic Player playback; no native GPU/device visual acceptance or performance claim.",
+          "Hub consumer source migration analyzed; Hub end-to-end recipes not executed in this slot.",
+          "Retired-UI nature and retained opening/history owners confirmed; initial-to-removal lineage remains partially established."
+        ],
+        "removalPreimageSha256": "5f4bf60affbb854503f63fbd397d7aa944658c5c712f647348771d5d86036134",
+        "sourceLineage": {
+          "status": "partially_established_lineage",
+          "initialInventorySha256": "904668755da76c5c1b07cb4cfd3d0d8559af44d36386a57fa4c2eb5eb61b29bc",
+          "ledgerBeforeSha256": "5f4bf60affbb854503f63fbd397d7aa944658c5c712f647348771d5d86036134",
+          "removalPreimageSha256": "5f4bf60affbb854503f63fbd397d7aa944658c5c712f647348771d5d86036134",
+          "ledgerBeforeMatchesInitialInventory": false,
+          "unresolvedDelta": true,
+          "note": "Initial observedHead/inventory SHA 904668755da76c5c1b07cb4cfd3d0d8559af44d36386a57fa4c2eb5eb61b29bc differs from ledger removal preimage 5f4bf60affbb854503f63fbd397d7aa944658c5c712f647348771d5d86036134. No exact intermediate delta or ownership provenance is established here."
+        },
+        "externalConsumersAtRetirement": 0,
+        "testFingerprintVerification": {
+          "ledgerEntryField": "entries[].sha256AfterMigration",
+          "checkedFiles": 11,
+          "matchingCurrentFiles": 11,
+          "kind": "Static current fingerprints, not a fresh test run."
+        },
+        "recordedValidation": {
+          "ledgerStatus": "family_retired_52_distinct_cases_validated",
+          "distinctProtectedCasesRecorded": 52,
+          "freshExecutionClaimed": false
+        }
       }
     },
     {
@@ -14062,8 +15190,10 @@
         "BorderCreationDialog"
       ],
       "mixedResponsibilities": true,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "source_removed_pending_owner_classification",
+      "retired": true,
+      "retirementStatus": "source_removed",
+      "note": "Composition historique de l’atelier Bordures retirée ; 69 tests ciblés passent en copie QA. Une action restante menant à l’ancien atelier est en correction ; qualification des responsabilités et G0 restent ouverts.",
       "t00Classification": {
         "classification": "mixed_extract_then_retire",
         "action": "retire_original_after_nonvisual_extraction",
@@ -14116,8 +15246,10 @@
       "sha256": "f41b20d4c74f5c5323aeee6974c5ef0fab563aff9300147f16e9b0e73baf895f",
       "widgetClasses": [],
       "mixedResponsibilities": true,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "source_removed_pending_owner_classification",
+      "retired": true,
+      "retirementStatus": "source_removed",
+      "note": "Composition historique de l’atelier Bordures retirée ; 69 tests ciblés passent en copie QA. Une action restante menant à l’ancien atelier est en correction ; qualification des responsabilités et G0 restent ouverts.",
       "t00Classification": {
         "classification": "ui_retire",
         "action": "retire_historical_product_ui",
@@ -14138,8 +15270,10 @@
         "BorderPatternPanel"
       ],
       "mixedResponsibilities": false,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "source_removed_pending_owner_classification",
+      "retired": true,
+      "retirementStatus": "source_removed",
+      "note": "Composition historique de l’atelier Bordures retirée ; 69 tests ciblés passent en copie QA. Une action restante menant à l’ancien atelier est en correction ; qualification des responsabilités et G0 restent ouverts.",
       "t00Classification": {
         "classification": "ui_retire",
         "action": "retire_historical_product_ui",
@@ -14160,8 +15294,10 @@
         "BorderSequenceControls"
       ],
       "mixedResponsibilities": false,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "source_removed_pending_owner_classification",
+      "retired": true,
+      "retirementStatus": "source_removed",
+      "note": "Composition historique de l’atelier Bordures retirée ; 69 tests ciblés passent en copie QA. Une action restante menant à l’ancien atelier est en correction ; qualification des responsabilités et G0 restent ouverts.",
       "t00Classification": {
         "classification": "ui_retire",
         "action": "retire_historical_product_ui",
@@ -14182,8 +15318,10 @@
         "BorderSourcePanel"
       ],
       "mixedResponsibilities": false,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "source_removed_pending_owner_classification",
+      "retired": true,
+      "retirementStatus": "source_removed",
+      "note": "Composition historique de l’atelier Bordures retirée ; 69 tests ciblés passent en copie QA. Une action restante menant à l’ancien atelier est en correction ; qualification des responsabilités et G0 restent ouverts.",
       "t00Classification": {
         "classification": "ui_retire",
         "action": "retire_historical_product_ui",
@@ -14705,8 +15843,10 @@
         "NativeLedgePanel"
       ],
       "mixedResponsibilities": false,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "source_removed_pending_owner_classification",
+      "retired": true,
+      "retirementStatus": "source_removed",
+      "note": "Composition historique de l’atelier Bordures retirée ; 69 tests ciblés passent en copie QA. Une action restante menant à l’ancien atelier est en correction ; qualification des responsabilités et G0 restent ouverts.",
       "t00Classification": {
         "classification": "ui_retire",
         "action": "retire_historical_product_ui",
@@ -14727,8 +15867,13 @@
         "ProjectCatalogPartitionPanel"
       ],
       "mixedResponsibilities": true,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "source_removed_pending_owner_classification",
+      "retired": true,
+      "protectedOwners": [
+        "apps/avelune_studio/lib/features/resources/coordination/project_catalog_partition_workflow.dart"
+      ],
+      "retirementStatus": "source_removed",
+      "note": "Absence physique et ancien propriétaire revus ; qualification métier et visuelle encore ouverte. L’empreinte initiale ci-dessous concorde avec la source Git avant retrait mais diffère de celle du reçu resource-orphan-composition-retirement.json ; ne pas traiter ce reçu comme gel exact de la source. La classification T00 ci-dessous est historique et son ancien mapping reste à corriger avant acceptation.",
       "t00Classification": {
         "classification": "mixed_extract_then_retire",
         "action": "retire_original_after_nonvisual_extraction",
@@ -14765,8 +15910,10 @@
         "ResourceBorderConfirmationDialog"
       ],
       "mixedResponsibilities": true,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "source_removed_pending_owner_classification",
+      "retired": true,
+      "retirementStatus": "source_removed",
+      "note": "Composition historique de l’atelier Bordures retirée ; 69 tests ciblés passent en copie QA. Une action restante menant à l’ancien atelier est en correction ; qualification des responsabilités et G0 restent ouverts.",
       "t00Classification": {
         "classification": "mixed_extract_then_retire",
         "action": "retire_original_after_nonvisual_extraction",
@@ -14799,8 +15946,10 @@
         "ResourceBorderDraftBar"
       ],
       "mixedResponsibilities": true,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "source_removed_pending_owner_classification",
+      "retired": true,
+      "retirementStatus": "source_removed",
+      "note": "Composition historique de l’atelier Bordures retirée ; 69 tests ciblés passent en copie QA. Une action restante menant à l’ancien atelier est en correction ; qualification des responsabilités et G0 restent ouverts.",
       "t00Classification": {
         "classification": "ui_retire",
         "action": "retire_historical_product_ui",
@@ -14819,8 +15968,10 @@
       "sha256": "14bdb34c680691d90b01e4433e8301fa9263c092c99a7a600beebea7ee953b17",
       "widgetClasses": [],
       "mixedResponsibilities": true,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "source_removed_pending_owner_classification",
+      "retired": true,
+      "retirementStatus": "source_removed",
+      "note": "Composition historique de l’atelier Bordures retirée ; 69 tests ciblés passent en copie QA. Une action restante menant à l’ancien atelier est en correction ; qualification des responsabilités et G0 restent ouverts.",
       "t00Classification": {
         "classification": "mixed_extract_then_retire",
         "action": "retire_original_after_nonvisual_extraction",
@@ -15424,8 +16575,13 @@
         "ResourceFamilyNavigation"
       ],
       "mixedResponsibilities": false,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "source_removed_pending_owner_classification",
+      "retired": true,
+      "protectedOwners": [
+        "apps/avelune_studio/lib/features/resources/application/resource_catalog.dart"
+      ],
+      "retirementStatus": "source_removed",
+      "note": "Absence physique revue, sans acceptation de navigation native. Le SHA avant retrait b46a9b1c2ada5b155eace87748a23c82b67c0f23cab280454f9ff5c100f5ee79 diffère de l’empreinte historique ci-dessous après retarget d’import ; le propriétaire actuel diffère aussi du gel du reçu, donc sa validation reste ouverte.",
       "t00Classification": {
         "classification": "ui_retire",
         "action": "retire_historical_product_ui",
@@ -16971,7 +18127,7 @@
       "sha256": "0ee77770c4b3257dba1923a24b669ed4b616c9719c853f255dd2019c52372887",
       "widgetClasses": [],
       "mixedResponsibilities": true,
-      "decision": "Réexport historique retiré physiquement après extraction ou séparation de son propriétaire non visuel ; consommateurs redirigés.",
+      "decision": "extracted_non_ui",
       "retired": true,
       "t00Classification": {
         "classification": "mixed_extract_then_retire",
@@ -16980,17 +18136,20 @@
         "originalHashVerified": true,
         "destinations": [
           {
-            "path": "apps/avelune_studio/lib/features/scenes/application/scene_integer_authoring_fields.dart",
+            "path": "apps/avelune_studio/lib/features/scenes/application/scene_action_references.dart",
             "exists": true,
-            "mappingStatus": "candidate_unverified",
+            "responsibleOwner": [
+              "SceneActionReferences"
+            ],
+            "mappingStatus": "scoped_source_mapping_verified",
             "behavioralPreservationVerified": false
           }
         ],
         "externalConsumers": [],
         "lacunae": [
           {
-            "code": "owner_mapping_unverified",
-            "detail": "Heuristic/import/symbol similarity yields a candidate only; responsibility coverage requires scoped source/contract comparison."
+            "code": "current_behavior_not_revalidated",
+            "detail": "Exact alias target and direct consumers verified; no new behavioral/native acceptance inferred."
           }
         ],
         "responsibilityCoverageVerified": false,
@@ -17003,6 +18162,53 @@
         "remainingDirectives": 0,
         "widgetMoved": false,
         "globalG0Accepted": false
+      },
+      "retirementVerification": {
+        "status": "scoped_classification_verified_not_g0_accepted",
+        "verifiedAt": "2026-11-11",
+        "classification": "extracted_non_ui",
+        "reviewer": "/root/t01_map_retirement_finish",
+        "reviewScope": "Read-only review of source nature, exact owners, consumers and recorded evidence for these 22 rows.",
+        "owners": [
+          "apps/avelune_studio/lib/features/scenes/application/scene_action_references.dart"
+        ],
+        "ownerEvidence": [
+          {
+            "path": "apps/avelune_studio/lib/features/scenes/application/scene_action_references.dart",
+            "exists": true,
+            "currentSha256": "218eba85524870b1ce396921c7ec282f2ea31fc4004a6db4e622fd954abf2f8a"
+          }
+        ],
+        "evidence": "proofs/t01-execution/narrative-forwarder-retirement.json",
+        "initialInventorySha256": "0ee77770c4b3257dba1923a24b669ed4b616c9719c853f255dd2019c52372887",
+        "initialSourceReference": "06fd484d3fbe762f33380e05a21629cb6dee23fc",
+        "sourceAbsentVerified": true,
+        "behavioralTestsRerun": false,
+        "nativeAcceptance": false,
+        "g0Accepted": false,
+        "limits": [
+          "Source classification only; no T01/G0 acceptance.",
+          "Current fingerprints and consumers do not constitute a new behavioral test result."
+        ],
+        "removalPreimageSha256": "943e58f1149ea6600f04feffa5120af39dd786a6e5fe25c82258d0d798f7a39f",
+        "sourceLineage": {
+          "status": "initial_source_and_final_alias_distinguished",
+          "initialInventorySha256": "0ee77770c4b3257dba1923a24b669ed4b616c9719c853f255dd2019c52372887",
+          "finalAliasSha256": "943e58f1149ea6600f04feffa5120af39dd786a6e5fe25c82258d0d798f7a39f",
+          "finalAliasUri": "../../../features/scenes/application/scene_action_references.dart",
+          "witness": "Exactly one export directive and one LF reconstruct the final alias SHA.",
+          "limit": "This mechanical alias-removal witness does not alone certify every earlier extraction change."
+        },
+        "ownerSha256AtRetirement": "218eba85524870b1ce396921c7ec282f2ea31fc4004a6db4e622fd954abf2f8a",
+        "currentOwnerMatchesRetirementSha256": true,
+        "consumerVerification": {
+          "scope": "All eight aliases in the cited ledger",
+          "recordedRetargetedDirectives": 27,
+          "currentCanonicalDirectives": 22,
+          "laterRemovedConsumers": 5,
+          "oldDirectivesRemaining": 0
+        },
+        "widgetMovedByAliasRetirement": false
       }
     },
     {
@@ -17250,8 +18456,10 @@
         "SceneCanvasLayer"
       ],
       "mixedResponsibilities": true,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "source_removed_pending_owner_classification",
+      "retired": true,
+      "retirementStatus": "source_removed",
+      "note": "Ancien graphe de scène retiré ; 31 tests ciblés sur copie QA couvrent notamment sélection, commandes, persistance et navigation. Les gestes graphiques restent temporairement indisponibles ; classification des responsabilités, intégration globale et G0 ne sont pas acceptés.",
       "t00Classification": {
         "classification": "ui_retire",
         "action": "retire_historical_product_ui",
@@ -17272,8 +18480,10 @@
         "_SceneCanvasMenu"
       ],
       "mixedResponsibilities": true,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "source_removed_pending_owner_classification",
+      "retired": true,
+      "retirementStatus": "source_removed",
+      "note": "Ancien graphe de scène retiré ; 31 tests ciblés sur copie QA couvrent notamment sélection, commandes, persistance et navigation. Les gestes graphiques restent temporairement indisponibles ; classification des responsabilités, intégration globale et G0 ne sont pas acceptés.",
       "t00Classification": {
         "classification": "ui_retire",
         "action": "retire_historical_product_ui",
@@ -17294,8 +18504,10 @@
         "SceneCanvasMinimap"
       ],
       "mixedResponsibilities": false,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "source_removed_pending_owner_classification",
+      "retired": true,
+      "retirementStatus": "source_removed",
+      "note": "Ancien graphe de scène retiré ; 31 tests ciblés sur copie QA couvrent notamment sélection, commandes, persistance et navigation. Les gestes graphiques restent temporairement indisponibles ; classification des responsabilités, intégration globale et G0 ne sont pas acceptés.",
       "t00Classification": {
         "classification": "ui_retire",
         "action": "retire_historical_product_ui",
@@ -17317,8 +18529,10 @@
         "SceneCanvasPort"
       ],
       "mixedResponsibilities": true,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "source_removed_pending_owner_classification",
+      "retired": true,
+      "retirementStatus": "source_removed",
+      "note": "Ancien graphe de scène retiré ; 31 tests ciblés sur copie QA couvrent notamment sélection, commandes, persistance et navigation. Les gestes graphiques restent temporairement indisponibles ; classification des responsabilités, intégration globale et G0 ne sont pas acceptés.",
       "t00Classification": {
         "classification": "mixed_extract_then_retire",
         "action": "retire_original_after_nonvisual_extraction",
@@ -17352,8 +18566,10 @@
       "sha256": "6f54c8ae6aa88797c70310b16f515c307d898f92d39f4e0efc62d99ff6a74c6b",
       "widgetClasses": [],
       "mixedResponsibilities": false,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "source_removed_pending_owner_classification",
+      "retired": true,
+      "retirementStatus": "source_removed",
+      "note": "Ancien graphe de scène retiré ; 31 tests ciblés sur copie QA couvrent notamment sélection, commandes, persistance et navigation. Les gestes graphiques restent temporairement indisponibles ; classification des responsabilités, intégration globale et G0 ne sont pas acceptés.",
       "t00Classification": {
         "classification": "mixed_extract_then_retire",
         "action": "retire_original_after_nonvisual_extraction",
@@ -17389,8 +18605,10 @@
         "SceneCanvasSurface"
       ],
       "mixedResponsibilities": false,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "source_removed_pending_owner_classification",
+      "retired": true,
+      "retirementStatus": "source_removed",
+      "note": "Ancien graphe de scène retiré ; 31 tests ciblés sur copie QA couvrent notamment sélection, commandes, persistance et navigation. Les gestes graphiques restent temporairement indisponibles ; classification des responsabilités, intégration globale et G0 ne sont pas acceptés.",
       "t00Classification": {
         "classification": "ui_retire",
         "action": "retire_historical_product_ui",
@@ -17409,8 +18627,10 @@
       "sha256": "f22fb287ba94dfba472fb72a04c310882eda136c9e08ecce23542cd943256162",
       "widgetClasses": [],
       "mixedResponsibilities": true,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "source_removed_pending_owner_classification",
+      "retired": true,
+      "retirementStatus": "source_removed",
+      "note": "Ancien graphe de scène retiré ; 31 tests ciblés sur copie QA couvrent notamment sélection, commandes, persistance et navigation. Les gestes graphiques restent temporairement indisponibles ; classification des responsabilités, intégration globale et G0 ne sont pas acceptés.",
       "t00Classification": {
         "classification": "mixed_extract_then_retire",
         "action": "retire_original_after_nonvisual_extraction",
@@ -17557,8 +18777,10 @@
         "SceneGraphCanvas"
       ],
       "mixedResponsibilities": true,
-      "decision": "classification requise avant retrait",
-      "retired": false,
+      "decision": "source_removed_pending_owner_classification",
+      "retired": true,
+      "retirementStatus": "source_removed",
+      "note": "Ancien graphe de scène retiré ; 31 tests ciblés sur copie QA couvrent notamment sélection, commandes, persistance et navigation. Les gestes graphiques restent temporairement indisponibles ; classification des responsabilités, intégration globale et G0 ne sont pas acceptés.",
       "t00Classification": {
         "classification": "mixed_extract_then_retire",
         "action": "retire_original_after_nonvisual_extraction",
@@ -18539,7 +19761,7 @@
       "sha256": "bdfd7e937a90a7aa23b3a5b971283b53277b40761ad0b1e42d03f23c561c6509",
       "widgetClasses": [],
       "mixedResponsibilities": false,
-      "decision": "Réexport historique retiré physiquement après extraction ou séparation de son propriétaire non visuel ; consommateurs redirigés.",
+      "decision": "extracted_non_ui",
       "retired": true,
       "t00Classification": {
         "classification": "mixed_extract_then_retire",
@@ -18548,20 +19770,21 @@
         "originalHashVerified": true,
         "destinations": [
           {
-            "path": "apps/avelune_studio/lib/features/stories/application/story_workspace_controller.dart",
+            "path": "apps/avelune_studio/lib/features/stories/application/story_graph_sources.dart",
             "exists": true,
             "responsibleOwner": [
-              "StoryWorkspaceController"
+              "StoryGraphOutcomeSource",
+              "storyGraphOutcomeSources"
             ],
-            "mappingStatus": "candidate_unverified",
+            "mappingStatus": "scoped_source_mapping_verified",
             "behavioralPreservationVerified": false
           }
         ],
         "externalConsumers": [],
         "lacunae": [
           {
-            "code": "owner_mapping_unverified",
-            "detail": "Heuristic/import/symbol similarity yields a candidate only; responsibility coverage requires scoped source/contract comparison."
+            "code": "current_behavior_not_revalidated",
+            "detail": "Exact alias target and direct consumers verified; no new behavioral/native acceptance inferred."
           }
         ],
         "responsibilityCoverageVerified": false,
@@ -18574,6 +19797,53 @@
         "remainingDirectives": 0,
         "widgetMoved": false,
         "globalG0Accepted": false
+      },
+      "retirementVerification": {
+        "status": "scoped_classification_verified_not_g0_accepted",
+        "verifiedAt": "2026-11-11",
+        "classification": "extracted_non_ui",
+        "reviewer": "/root/t01_map_retirement_finish",
+        "reviewScope": "Read-only review of source nature, exact owners, consumers and recorded evidence for these 22 rows.",
+        "owners": [
+          "apps/avelune_studio/lib/features/stories/application/story_graph_sources.dart"
+        ],
+        "ownerEvidence": [
+          {
+            "path": "apps/avelune_studio/lib/features/stories/application/story_graph_sources.dart",
+            "exists": true,
+            "currentSha256": "bdfd7e937a90a7aa23b3a5b971283b53277b40761ad0b1e42d03f23c561c6509"
+          }
+        ],
+        "evidence": "proofs/t01-execution/narrative-forwarder-retirement.json",
+        "initialInventorySha256": "bdfd7e937a90a7aa23b3a5b971283b53277b40761ad0b1e42d03f23c561c6509",
+        "initialSourceReference": "06fd484d3fbe762f33380e05a21629cb6dee23fc",
+        "sourceAbsentVerified": true,
+        "behavioralTestsRerun": false,
+        "nativeAcceptance": false,
+        "g0Accepted": false,
+        "limits": [
+          "Source classification only; no T01/G0 acceptance.",
+          "Current fingerprints and consumers do not constitute a new behavioral test result."
+        ],
+        "removalPreimageSha256": "fc0d146cdfb9891ce12debb7710c49af7521fceaad6e6b60a22f111eecc68655",
+        "sourceLineage": {
+          "status": "initial_source_and_final_alias_distinguished",
+          "initialInventorySha256": "bdfd7e937a90a7aa23b3a5b971283b53277b40761ad0b1e42d03f23c561c6509",
+          "finalAliasSha256": "fc0d146cdfb9891ce12debb7710c49af7521fceaad6e6b60a22f111eecc68655",
+          "finalAliasUri": "package:avelune_studio/features/stories/application/story_graph_sources.dart",
+          "witness": "Exactly one export directive and one LF reconstruct the final alias SHA.",
+          "limit": "This mechanical alias-removal witness does not alone certify every earlier extraction change."
+        },
+        "ownerSha256AtRetirement": "bdfd7e937a90a7aa23b3a5b971283b53277b40761ad0b1e42d03f23c561c6509",
+        "currentOwnerMatchesRetirementSha256": true,
+        "consumerVerification": {
+          "scope": "All eight aliases in the cited ledger",
+          "recordedRetargetedDirectives": 27,
+          "currentCanonicalDirectives": 22,
+          "laterRemovedConsumers": 5,
+          "oldDirectivesRemaining": 0
+        },
+        "widgetMovedByAliasRetirement": false
       }
     },
     {
@@ -40004,8 +41274,14 @@
       "sha256": "02dcfbb1c3e2854e4f8f2403485e342e88303c91a8f0f661c4776bbd036fe7f6",
       "widgetClasses": [],
       "mixedResponsibilities": true,
-      "decision": "classification_mixed_proposed_pending_review",
-      "retired": false,
+      "decision": "retired_ui",
+      "retired": true,
+      "retirementVerification": {
+        "status": "partial_scoped",
+        "owners": ["MapContextualItemUseCollectionDraft", "MapContextualItemUseDraft", "MapMetadataSettingsDraft"],
+        "note": "Dialogue retiré après extraction et revue indépendante de la collection ; identités courantes, borne et conditions caractérisées sans prétendre à une unicité historique entre sessions.",
+        "evidence": "proofs/t01-execution/resume-20261110/t01-checkpoint-20261111-map-dialogs.json"
+      },
       "introducedAfterInventoryHead": true,
       "sourceObservation": {
         "head": "9ffc480212d6535dbaa07e3c2c254f6af7f59b96",
@@ -40039,6 +41315,124 @@
         "responsibilityCoverageVerified": false,
         "reviewStatus": "preparation_classification_not_retirement_acceptance"
       }
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_commit_field.dart",
+      "category": "studio_presentation",
+      "sha256": "34658a4e41d3601717bd532e5babf11aa7547f82c01b6c6902712e0c4ef7fd99",
+      "widgetClasses": [
+        "CinematicCommitField"
+      ],
+      "mixedResponsibilities": true,
+      "decision": "temporary_ui_retire_after_safe_replacement",
+      "retired": false,
+      "introducedAfterInventoryHead": true,
+      "note": "Champ de transition ; retirer avec l’ancien inspecteur après conservation des saisies.",
+      "sourceObservation": {
+        "at": "2026-11-11T04:49:37.340782+00:00",
+        "source": "current working tree; not an original historical baseline"
+      },
+      "t00Classification": {
+        "classification": "mixed_extract_then_retire",
+        "action": "retire_original_after_nonvisual_extraction",
+        "sourceEvidenceSha256": "34658a4e41d3601717bd532e5babf11aa7547f82c01b6c6902712e0c4ef7fd99",
+        "originalHashVerified": false,
+        "destinations": [
+          {
+            "path": "apps/avelune_studio/lib/features/cinematics/application/cinematic_input_state.dart",
+            "exists": true,
+            "mappingStatus": "candidate_unverified",
+            "behavioralPreservationVerified": false
+          }
+        ],
+        "externalConsumers": [],
+        "lacunae": [
+          {
+            "code": "temporary_ui_retirement_pending",
+            "detail": "The temporary surface and its recovery path require replacement and verification before removal."
+          }
+        ],
+        "responsibilityCoverageVerified": false,
+        "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      }
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/project_settings_recovery_pane.dart",
+      "category": "studio_presentation",
+      "sha256": "3e82195128fe8d89c43bdaef7760be410d7f7878c0dc0697e86ea75396fece65",
+      "widgetClasses": [
+        "ProjectSettingsRecoveryPane"
+      ],
+      "mixedResponsibilities": true,
+      "decision": "temporary_ui_retire_after_safe_replacement",
+      "retired": false,
+      "introducedAfterInventoryHead": true,
+      "note": "Interface de récupération temporaire ; retirer quand les brouillons disposent d’un parcours de remplacement validé.",
+      "sourceObservation": {
+        "at": "2026-11-11T04:49:37.341252+00:00",
+        "source": "current working tree; not an original historical baseline"
+      },
+      "t00Classification": {
+        "classification": "mixed_extract_then_retire",
+        "action": "retire_original_after_nonvisual_extraction",
+        "sourceEvidenceSha256": "3e82195128fe8d89c43bdaef7760be410d7f7878c0dc0697e86ea75396fece65",
+        "originalHashVerified": false,
+        "destinations": [
+          {
+            "path": "apps/avelune_studio/lib/features/project_settings/application/project_settings_drafts.dart",
+            "exists": true,
+            "mappingStatus": "candidate_unverified",
+            "behavioralPreservationVerified": false
+          }
+        ],
+        "externalConsumers": [],
+        "lacunae": [
+          {
+            "code": "temporary_ui_retirement_pending",
+            "detail": "The temporary surface and its recovery path require replacement and verification before removal."
+          }
+        ],
+        "responsibilityCoverageVerified": false,
+        "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      }
+    },
+    {
+      "path": "apps/avelune_studio/lib/presentation/features/map_workspace/workspace_settings_recovery_binding.dart",
+      "category": "studio_presentation",
+      "sha256": "1940d3dbdd72f6afaf146c61010558b21e25b0c27b9c84dcb6fb08d86c391bf6",
+      "widgetClasses": [],
+      "mixedResponsibilities": true,
+      "decision": "temporary_ui_retire_after_safe_replacement",
+      "retired": false,
+      "introducedAfterInventoryHead": true,
+      "note": "Raccord temporaire de récupération ; retirer avec la composition hôte et conserver les owners.",
+      "sourceObservation": {
+        "at": "2026-11-11T04:49:37.341472+00:00",
+        "source": "current working tree; not an original historical baseline"
+      },
+      "t00Classification": {
+        "classification": "mixed_extract_then_retire",
+        "action": "retire_original_after_nonvisual_extraction",
+        "sourceEvidenceSha256": "1940d3dbdd72f6afaf146c61010558b21e25b0c27b9c84dcb6fb08d86c391bf6",
+        "originalHashVerified": false,
+        "destinations": [
+          {
+            "path": "apps/avelune_studio/lib/features/project_settings/application/project_settings_drafts.dart",
+            "exists": true,
+            "mappingStatus": "candidate_unverified",
+            "behavioralPreservationVerified": false
+          }
+        ],
+        "externalConsumers": [],
+        "lacunae": [
+          {
+            "code": "temporary_ui_retirement_pending",
+            "detail": "The temporary surface and its recovery path require replacement and verification before removal."
+          }
+        ],
+        "responsibilityCoverageVerified": false,
+        "reviewStatus": "preparation_classification_not_retirement_acceptance"
+      }
     }
   ],
   "executionObservation": {
@@ -40048,16 +41442,17 @@
     "G0Accepted": false,
     "note": "Comptage des chemins de l’inventaire initial physiquement absents, y compris extractions non visuelles ; pas un pourcentage de complétude. Bibliothèques partagées présentes et protégées pour leurs consommateurs externes.",
     "latestResumption": {
-      "at": "2026-11-10",
+      "at": "2026-11-11",
       "additionalPureForwardersRemoved": 8,
       "retargetedDirectives": 27,
       "nativeOrGlobalAcceptance": false,
       "scope": "Physical absence of these eight forwarders only; application contracts and global gate remain under validation.",
-      "additionalRecordedRetirements": 45,
-      "recordedInventoryPathsAbsent": 162,
-      "observedInventoryPathsAbsent": 206,
-      "unrecordedAbsentInventoryPaths": 44,
-      "observationNote": "Physical absence alone does not prove contract preservation, retirement acceptance, or G0; unrecorded paths need separate review."
+      "additionalRecordedRetirements": 80,
+      "recordedInventoryPathsAbsent": 197,
+      "observedInventoryPathsAbsent": 256,
+      "unrecordedAbsentInventoryPaths": 59,
+      "removedWithOwnerClassificationPending": 31,
+      "observationNote": "Physical absence alone does not prove contract preservation, retirement acceptance, or G0; 59 unrecorded paths and 31 recorded paths with pending owner classification still need review. The latest Scene closure is physically absent but its QA is pending. These counts are not a percentage of completion."
     }
   },
   "retiredUiChecks": [

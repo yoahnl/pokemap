@@ -16,7 +16,12 @@ void main() {
 
   for (final source in remoteSources) {
     test('unloaded ${source.kind.name} does not block an unrelated draft', () {
-      final project = _project(source);
+      final project = _project(
+        source,
+        dimension: source.kind == NarrativeEventSourceKind.modelInteract
+            ? ProjectDimension.threeD
+            : ProjectDimension.twoD,
+      );
       final catalog = _catalog(project);
       final context = _context(project, catalog);
       final created = createNarrativeEventDraft(
@@ -55,6 +60,55 @@ void main() {
         withSource.rejectionCode,
         anyOf('sourceMissing', 'sourceUnavailable'),
       );
+    });
+  }
+
+  test('unloaded modelInteract stays blocking in a 2D project', () {
+    final source = NarrativeEventSourceRef.modelInteract('remote', 'model');
+    final project = _project(source);
+    final catalog = _catalog(project);
+
+    expect(catalog.nativeMaps.map((map) => map.id), isNot(contains('remote')));
+    expect(
+      _sourceDiagnostic(catalog).severity,
+      NarrativeEventProjectDiagnosticSeverity.error,
+    );
+    expect(catalog.hasBlockingDiagnostics, isTrue);
+    expect(catalog.events.single.contextuallyValid, isFalse);
+    expect(_create(project, catalog).rejectionCode, 'catalogBlocked');
+  });
+
+  test('unloaded triggerBump stays blocking in a 3D project', () {
+    final source = NarrativeEventSourceRef.triggerBump('remote', 'trigger');
+    final project = _project(source, dimension: ProjectDimension.threeD);
+    final catalog = _catalog(project);
+
+    expect(catalog.nativeMaps.map((map) => map.id), isNot(contains('remote')));
+    expect(
+      _sourceDiagnostic(catalog).severity,
+      NarrativeEventProjectDiagnosticSeverity.error,
+    );
+    expect(catalog.hasBlockingDiagnostics, isTrue);
+    expect(catalog.events.single.contextuallyValid, isFalse);
+    expect(_create(project, catalog).rejectionCode, 'catalogBlocked');
+  });
+
+  for (final source in [
+    NarrativeEventSourceRef.entityBump('remote', 'npc'),
+    NarrativeEventSourceRef.entityAutorun('remote', 'npc'),
+  ]) {
+    test('unloaded ${source.kind.name} stays blocking in a 3D project', () {
+      final project = _project(source, dimension: ProjectDimension.threeD);
+      final catalog = _catalog(project);
+
+      expect(catalog.nativeMaps.map((map) => map.id), isNot(contains('remote')));
+      expect(
+        _sourceDiagnostic(catalog).severity,
+        NarrativeEventProjectDiagnosticSeverity.error,
+      );
+      expect(catalog.hasBlockingDiagnostics, isTrue);
+      expect(catalog.events.single.contextuallyValid, isFalse);
+      expect(_create(project, catalog).rejectionCode, 'catalogBlocked');
     });
   }
 
@@ -230,8 +284,10 @@ void main() {
 ProjectManifest _project(
   NarrativeEventSourceRef source, {
   List<NarrativeEventRecord> additionalRecords = const [],
+  ProjectDimension dimension = ProjectDimension.twoD,
 }) => ProjectManifest(
   name: 'Partial narrative catalog',
+  settings: ProjectSettings(dimension: dimension),
   tilesets: const [],
   maps: const [
     ProjectMapEntry(

@@ -9,10 +9,9 @@ import 'package:avelune_studio/platform/rendering/contracts/map_workspace_visual
 import 'package:avelune_studio/platform/rendering/contracts/workspace_resource_diagnostic.dart';
 import 'package:avelune_studio/features/resources/application/working_catalog_controller.dart';
 import 'package:avelune_studio/features/resources/domain/working_catalog_port.dart';
-import 'package:avelune_studio/presentation/features/resources/working_catalog_workspace.dart';
+import 'package:avelune_studio/features/resources/coordination/working_catalog_workflow.dart';
 import 'package:avelune_studio/presentation/shared/widgets/layout/studio_application_frame.dart';
 import 'package:avelune_studio/presentation/shell/studio_home_navigation.dart';
-import 'package:avelune_studio/presentation/shared/widgets/dialogs/studio_review_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -36,8 +35,8 @@ void main() {
             loadVisuals: (_, _) async => _Visuals([]),
             runtimeBuilder: (entry, revision, close) {
               launches++;
-              expect(entry.id, 'first');
-              expect(revision, 'map-1');
+              expectSync(entry.id, 'first');
+              expectSync(revision, 'map-1');
               return Scaffold(
                 body: TextButton(
                   onPressed: close,
@@ -54,6 +53,10 @@ void main() {
       final document = controller.active;
       final reads = List.of(port.selections);
       await tester.tap(find.text('Tester la carte'));
+      await tester.pumpAndSettle();
+      expect(launches, 0);
+      expect(find.text('Tester cette carte'), findsOneWidget);
+      await tester.tap(find.text('Lancer le test'));
       await tester.pumpAndSettle();
       expect(launches, 1);
       expect(find.text('Retour du test'), findsOneWidget);
@@ -130,7 +133,7 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
   testWidgets(
-    'resources share the Studio frame and preserve drafts without full reads',
+    'injected catalogue owner guard preserves drafts and Studio navigation without the retired screen',
     (tester) async {
       await tester.binding.setSurfaceSize(const Size(1500, 1100));
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -144,6 +147,20 @@ void main() {
       addTearDown(home.dispose);
       var visualLoads = 0;
       Future<bool> Function()? exit;
+      Completer<WorkingCatalogExitDecision>? decision;
+      Future<WorkingCatalogExitDecision> confirmExit() {
+        expectSync(decision, isNull);
+        decision = Completer<WorkingCatalogExitDecision>();
+        return decision!.future;
+      }
+
+      void choose(WorkingCatalogExitDecision value) {
+        final pending = decision;
+        expect(pending, isNotNull);
+        decision = null;
+        pending!.complete(value);
+      }
+
       await tester.pumpWidget(
         MaterialApp(
           home: MapWorkspaceScreen(
@@ -153,17 +170,14 @@ void main() {
               visualLoads++;
               return _Visuals([]);
             },
-            resourceLibraryBuilder: (context, guard, onSaved, onOpenTools, onReplaceModelSource) =>
-                WorkingCatalogWorkspace(
-                  session: scopedMapSession,
-                  controller: catalog,
-                  onClose: () async {},
-                  registerExitGuard: guard,
-                  embedded: true,
-                  onSaved: onSaved,
-                  onOpenTools: onOpenTools,
-                  onReplaceModelSource: onReplaceModelSource,
-                ),
+            resourceLibraryBuilder:
+                (context, guard, onSaved, onOpenTools, onReplaceModelSource) =>
+                    _CatalogGuardProbe(
+                      catalog: catalog,
+                      registerExitGuard: guard,
+                      onSaved: onSaved,
+                      confirmExit: confirmExit,
+                    ),
             runtimeBuilder: (_, _, _) => const SizedBox(),
             onClose: () async {},
             registerExitGuard: (guard) => exit = guard,
@@ -180,7 +194,7 @@ void main() {
       expect(tester.getTopLeft(find.byType(StudioApplicationFrame)).dy, 0);
       expect(find.text('Retour à la bibliothèque'), findsNothing);
       expect(find.text('Charger tous les ateliers et imports'), findsNothing);
-      expect(find.text('Bibliothèque du projet'), findsOneWidget);
+      expect(find.byKey(const ValueKey('catalog-guard-probe')), findsOneWidget);
       expect(catalogPort.queries, 1);
       expect(mapPort.fullReads, 0);
       await catalog.select(catalogPort.entry);
@@ -189,36 +203,32 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Carte'));
       await tester.pumpAndSettle();
-      expect(find.text('Conserver vos modifications ?'), findsOneWidget);
-      await tester.tap(find.text('Annuler'));
+      expect(decision, isNotNull);
+      expect(catalogPort.saveCalls, 0);
+      choose(WorkingCatalogExitDecision.stay);
       await tester.pumpAndSettle();
-      expect(find.text('Bibliothèque du projet'), findsOneWidget);
+      expect(find.byKey(const ValueKey('catalog-guard-probe')), findsOneWidget);
       expect(catalog.dirty, isTrue);
       catalogPort.failSave = true;
       await tester.tap(find.text('Carte'));
       await tester.pumpAndSettle();
-      await tester.tap(
-        find.descendant(
-          of: find.byType(StudioReviewDialog),
-          matching: find.text('Enregistrer'),
-        ),
-      );
+      choose(WorkingCatalogExitDecision.save);
       await tester.pumpAndSettle();
-      expect(find.text('Bibliothèque du projet'), findsOneWidget);
+      expect(find.byKey(const ValueKey('catalog-guard-probe')), findsOneWidget);
       expect(catalog.dirty, isTrue);
+      expect(catalogPort.saveCalls, 1);
+      expect(catalog.error, contains('Échec de sauvegarde'));
+      expect(catalog.draft!.name, 'Ressource modifiée');
+      expect(catalogPort.entry.name, 'Décor');
       catalogPort.failSave = false;
       await tester.tap(find.text('Carte'));
       await tester.pumpAndSettle();
-      await tester.tap(
-        find.descendant(
-          of: find.byType(StudioReviewDialog),
-          matching: find.text('Enregistrer'),
-        ),
-      );
+      choose(WorkingCatalogExitDecision.save);
       await tester.pumpAndSettle();
       expect(catalog.dirty, isFalse);
       expect(catalogPort.entry.name, 'Ressource modifiée');
-      expect(find.text('Bibliothèque du projet'), findsNothing);
+      expect(catalogPort.saveCalls, 2);
+      expect(find.byKey(const ValueKey('catalog-guard-probe')), findsNothing);
       expect(maps.active, same(draft));
       expect(maps.active!.current.name, 'Brouillon conservé');
       expect(maps.active!.dirty, isTrue);
@@ -226,26 +236,79 @@ void main() {
       expect(mapPort.fullReads, 0);
       home.navigate('resources');
       await tester.pumpAndSettle();
-      expect(find.text('Bibliothèque du projet'), findsOneWidget);
+      expect(find.byKey(const ValueKey('catalog-guard-probe')), findsOneWidget);
       await catalog.select(catalogPort.entry);
       catalog.edit(name: 'À abandonner');
       await tester.pumpAndSettle();
       final closing = exit!();
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Annuler'));
+      choose(WorkingCatalogExitDecision.stay);
       await tester.pumpAndSettle();
       expect(await closing, isFalse);
+      expect(catalog.dirty, isTrue);
+      expect(catalog.draft!.name, 'À abandonner');
       await tester.tap(find.text('Carte'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Abandonner'));
+      choose(WorkingCatalogExitDecision.discard);
       await tester.pumpAndSettle();
       expect(catalog.dirty, isFalse);
+      expect(catalogPort.saveCalls, 2);
+      expect(catalogPort.entry.name, 'Ressource modifiée');
       expect(maps.active, same(draft));
       expect(visualLoads, 1);
       expect(mapPort.fullReads, 0);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
     },
+  );
+}
+
+class _CatalogGuardProbe extends StatefulWidget {
+  const _CatalogGuardProbe({
+    required this.catalog,
+    required this.registerExitGuard,
+    required this.onSaved,
+    required this.confirmExit,
+  });
+
+  final WorkingCatalogController catalog;
+  final void Function(Future<bool> Function()?) registerExitGuard;
+  final Future<void> Function() onSaved;
+  final Future<WorkingCatalogExitDecision> Function() confirmExit;
+
+  @override
+  State<_CatalogGuardProbe> createState() => _CatalogGuardProbeState();
+}
+
+class _CatalogGuardProbeState extends State<_CatalogGuardProbe> {
+  late final workflow = WorkingCatalogWorkflow(
+    catalog: widget.catalog,
+    isActive: () => mounted,
+    confirmExit: widget.confirmExit,
+    onSaved: widget.onSaved,
+    changed: () {},
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    widget.registerExitGuard(() => workflow.allowExit(closing: true));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) unawaited(widget.catalog.search(''));
+    });
+  }
+
+  @override
+  void dispose() {
+    workflow.dispose();
+    widget.registerExitGuard(null);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => const Text(
+    'Témoin du garde catalogue sans écran historique',
+    key: ValueKey('catalog-guard-probe'),
   );
 }
 
@@ -305,7 +368,7 @@ class _Visuals extends ChangeNotifier
 }
 
 class _CatalogPort implements WorkingCatalogPort {
-  int queries = 0;
+  int queries = 0, saveCalls = 0;
   bool failSave = false;
   WorkingCatalogEntry entry = const WorkingCatalogEntry(
     id: 'decor',
@@ -336,6 +399,7 @@ class _CatalogPort implements WorkingCatalogPort {
     WorkingCatalogDraft draft, {
     required String revision,
   }) async {
+    saveCalls++;
     if (failSave) throw StateError('Échec de sauvegarde');
     entry = WorkingCatalogEntry(
       id: entry.id,

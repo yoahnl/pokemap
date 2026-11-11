@@ -3,6 +3,10 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/map_resource_placement.dart';
+import 'package:avelune_studio/features/resources/application/resource_catalog.dart';
+import 'package:avelune_studio/platform/rendering/viewports/map_editing_viewport_2d.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as image;
 import 'package:map_core/map_core.dart';
@@ -14,7 +18,7 @@ import '../support/m2_ui_fixture.dart';
 import '../support/uwu5_border_host.dart';
 
 void main() {
-  testWidgets('first authored border stays visible over opaque ground', (
+  testWidgets('canonically prepared border stays visible over opaque ground after canvas drawing and disk reopen', (
     tester,
   ) async {
     final host = await openUwU5BorderHost(
@@ -73,9 +77,25 @@ void main() {
     final initial = fixture.controller.active!.current;
     await tester.tap(find.text('Bordures').first);
     await pumpIo(tester, frames: 6);
-    await tester.tap(find.byKey(const ValueKey('border-model-picker')));
-    await pumpIo(tester, frames: 2);
-    await tester.tap(find.text('Clôture du jardin').last);
+    await fixture.controller.ensureBorderProfiles();
+    final view = tester
+        .widget<MapEditingViewport2D>(find.byType(MapEditingViewport2D))
+        .view;
+    final item = resourceCatalog(fixture.controller.project!)
+        .singleWhere((item) => item.border?.id == 'garden-fence');
+    expect(
+      await useMapResource(
+        workspace: fixture.controller,
+        item: item,
+        view: () => view,
+        isActive: () => true,
+        chooseMap: (_) async => throw StateError('The map is already active'),
+        chooseTile: (_) async =>
+            throw StateError('A border needs no tile selection'),
+      ),
+      isTrue,
+    );
+    fixture.controller.notify();
     await pumpIo(tester, frames: 3);
     final canvas = tester.getRect(find.byKey(const ValueKey('map-canvas')));
     for (final x in [1, 2]) {
@@ -85,7 +105,7 @@ void main() {
       );
       await pumpIo(tester, frames: 4);
     }
-    await tester.tap(find.text('Terminer le tracé'));
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await pumpIo(tester, frames: 20);
     await tester.tap(find.byKey(const ValueKey('Sélectionner')));
     await pumpIo(tester, frames: 8);

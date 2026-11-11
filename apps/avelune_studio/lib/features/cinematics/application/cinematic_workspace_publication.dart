@@ -110,13 +110,60 @@ extension CinematicWorkspacePublication on CinematicWorkspaceController {
     }
   }
 
-  Future<bool> reload() async {
+  bool Function() _captureDocumentGuard(
+    String id, {
+    bool Function()? isActive,
+  }) {
+    final owner = _sessions[id];
+    final asset = owner?.asset;
+    final revision = owner?.revision;
+    final inputs = _inputs[id];
+    final inputRevision = inputs?.revision;
+    final sourceProject = narrative.workspace.project;
+    final selectedId = activeId;
+    final generation = _generation;
+    final errorRevision = _errorRevision;
+    return () =>
+        !_closed &&
+        !busy &&
+        isActive?.call() != false &&
+        activeId == selectedId &&
+        _generation == generation &&
+        _errorRevision == errorRevision &&
+        identical(narrative.workspace.project, sourceProject) &&
+        identical(_sessions[id], owner) &&
+        identical(_sessions[id]?.asset, asset) &&
+        _sessions[id]?.revision == revision &&
+        identical(_inputs[id], inputs) &&
+        _inputs[id]?.revision == inputRevision;
+  }
+
+  Future<bool> reload({
+    Future<bool> Function()? confirm,
+    bool Function()? isActive,
+  }) async {
     final id = activeId;
-    if (id == null || busy || _closed) return false;
+    if (id == null || busy || _closed || isActive?.call() == false) {
+      return false;
+    }
+    final inputs = _inputs[id];
+    final inputRevision = inputs?.revision;
+    if (confirm != null &&
+        (_sessions[id]?.dirty == true || inputs?.dirty == true)) {
+      final current = _captureDocumentGuard(id, isActive: isActive);
+      if (!await confirm() || !current()) {
+        return false;
+      }
+    }
     final previous = _sessions.remove(id);
+    final generation = _generation + 1;
     final ok = await open(id);
-    if (!ok && previous != null) {
+    if (!ok && previous != null && !_closed && _generation == generation) {
       _sessions[id] = previous;
+      changed();
+    }
+    if (ok && inputs != null && inputs.revision == inputRevision) {
+      inputs.discard();
       changed();
     }
     return ok;
@@ -160,9 +207,75 @@ extension CinematicWorkspacePublication on CinematicWorkspaceController {
     }
   }
 
-  Future<bool> delete(String id) async {
-    if (_closed || busy || !await open(id) || activeId != id) return false;
-    final s = _active!;
+  bool _retireDeletedOwner(
+    String id,
+    CinematicWorkingSession owner,
+    CinematicInputState? inputs,
+    int? inputRevision,
+  ) {
+    final currentOwner = _sessions[id];
+    if ((currentOwner != null && !identical(currentOwner, owner)) ||
+        !identical(_inputs[id], inputs) ||
+        _inputs[id]?.revision != inputRevision) {
+      final retained = currentOwner ?? owner;
+      retained.folderId ??= retained.base?.entry?.folderId;
+      retained.base = null;
+      retained.saved = null;
+      retained.revision++;
+      _sessions[id] = retained;
+      return false;
+    }
+    inputs?.discard();
+    _inputs.remove(id);
+    _sessions.remove(id);
+    if (inputs != null && identical(_errorInputs, inputs)) {
+      error = null;
+    }
+    if (activeId == id) {
+      activeId = null;
+      transport.clear();
+    }
+    return true;
+  }
+
+  Future<bool> delete(
+    String id, {
+    Future<bool> Function()? confirm,
+    bool Function()? isActive,
+  }) async {
+    if (_closed || busy || isActive?.call() == false) {
+      return false;
+    }
+    final CinematicWorkingSession s;
+    if (confirm == null) {
+      if (!await open(id) || activeId != id || isActive?.call() == false) {
+        return false;
+      }
+      s = _active!;
+    } else {
+      final current = _captureDocumentGuard(id, isActive: isActive);
+      if (!await confirm() || !current()) {
+        return false;
+      }
+      final opened = _sessions[id];
+      if (opened != null) {
+        s = opened;
+      } else {
+        try {
+          sourceReads++;
+          final source = await port.load(id);
+          if (!current()) {
+            return false;
+          }
+          s = CinematicWorkingSession(source.asset, source);
+        } catch (failure) {
+          if (current()) {
+            _fail(failure);
+          }
+          return false;
+        }
+      }
+    }
     final uses = <String>{
       for (final scene in [...project.scenes, ...?sceneDrafts?.call()])
         for (final n in scene.graph.nodes)
@@ -174,10 +287,10 @@ extension CinematicWorkspacePublication on CinematicWorkspaceController {
     }
     final problem = narrative.cinematicInteractionAccessProblem(id);
     if (problem != null) return _fail(problem);
+    final inputs = _inputs[id];
+    final inputRevision = inputs?.revision;
     if (s.base == null) {
-      _sessions.remove(id);
-      activeId = null;
-      transport.clear();
+      _retireDeletedOwner(id, s, inputs, inputRevision);
       changed();
       return true;
     }
@@ -185,23 +298,54 @@ extension CinematicWorkspacePublication on CinematicWorkspaceController {
     _publishing.add(id);
     _deleting.add(id);
     changed();
+    var published = false;
     try {
       final receipt = await port.delete(base: s.base!);
-      if (_closed) return false;
-      narrative.workspace.acceptResources(
-        project == receipt.resources.before ? receipt.resources.before : before,
-        receipt.resources.manifest,
-      );
-      _sessions.remove(id);
-      if (activeId == id) {
-        activeId = null;
-        transport.clear();
+      published = true;
+      if (_closed) {
+        return true;
       }
-      narrative.invalidateCleanCinematicSessions(id);
+      Object? catalogFailure;
+      if (isActive?.call() == false) {
+        catalogFailure = StateError(
+          'Le propriétaire de cette action a changé.',
+        );
+      } else {
+        try {
+          narrative.workspace.acceptResources(
+            project == receipt.resources.before
+                ? receipt.resources.before
+                : before,
+            receipt.resources.manifest,
+          );
+        } catch (failure) {
+          catalogFailure = failure;
+        }
+      }
+      final retired = _retireDeletedOwner(id, s, inputs, inputRevision);
+      if (error == null) {
+        if (catalogFailure != null) {
+          error =
+              'La version enregistrée a été supprimée. '
+              'Le catalogue courant a été conservé et doit être rechargé.'
+              '${retired ? '' : ' Les saisies récentes restent dans un brouillon non enregistré.'}';
+        } else if (!retired) {
+          error =
+              'La version enregistrée a été supprimée. '
+              'Les saisies récentes sont conservées dans un brouillon non enregistré.';
+        }
+      }
+      if (catalogFailure == null && isActive?.call() != false) {
+        narrative.invalidateCleanCinematicSessions(id);
+      }
       return true;
     } catch (failure) {
-      if (!_closed) error = failure.toString();
-      return false;
+      if (!_closed && (!published || error == null)) {
+        error = published
+            ? 'La version enregistrée a été supprimée, mais l’état local doit être vérifié : $failure'
+            : failure.toString();
+      }
+      return published;
     } finally {
       _publishing.remove(id);
       _deleting.remove(id);

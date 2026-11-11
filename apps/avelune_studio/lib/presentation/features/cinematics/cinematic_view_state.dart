@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core_domain.dart';
+import '../../../features/cinematics/application/cinematic_input_state.dart';
 
 enum CinematicMapMode { select, pan, destination, placement, path }
 
@@ -15,10 +16,15 @@ class CinematicViewState {
   double timelineScale = .06;
   bool timelineFitted = false;
   double mapShare = .48;
-  String? error;
-  String? actionError;
-  String? spatialError;
-  String? inspectorError;
+  CinematicInputState inputs = CinematicInputState();
+  String? get error => inputs.error;
+  set error(String? value) => inputs.error = value;
+  String? get actionError => inputs.actionError;
+  set actionError(String? value) => inputs.actionError = value;
+  String? get spatialError => inputs.spatialError;
+  set spatialError(String? value) => inputs.spatialError = value;
+  String? get inspectorError => inputs.inspectorError;
+  set inspectorError(String? value) => inputs.inspectorError = value;
   String? get stepId => selection.firstOrNull;
   void reconcile(CinematicAsset asset) {
     final ids = asset.timeline.steps.map((step) => step.id).toSet();

@@ -28,7 +28,9 @@ extension _WorkspaceCommandBinding on _MapWorkspaceScreenState {
     final chosen = await showStudioCommandPalette(
       context,
       entries: mapCommandPaletteEntries(_commandContext)
-          .where((entry) => entry.id != 'map.ambiance')
+          .where(
+            (entry) => entry.id != 'map.ambiance' && entry.id != 'map.palette',
+          )
           .toList(),
     );
     if (!mounted || chosen == null) return;

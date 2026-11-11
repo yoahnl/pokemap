@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../support/m2_ui_fixture.dart' show pumpIo;
 import '../support/map_host_fixture.dart';
+import '../support/map_palette_retirement_driver.dart';
 
 void main() {
   testWidgets('mixed render contexts can be reordered from the inspector', (
@@ -11,7 +12,7 @@ void main() {
   ) async {
     final fixture = await MapHostFixture.open(tester);
     for (final id in ['arbre', 'rocher']) {
-      await tester.tap(find.byKey(ValueKey('decor-$id')));
+      await selectMapDecorForTest(tester, id);
       await fixture.tapCell(8, 7);
     }
     final pair = fixture.document.current.placedElements;
@@ -54,7 +55,7 @@ void main() {
   ) async {
     final fixture = await MapHostFixture.open(tester);
     for (final id in ['arbre', 'rocher', 'arbre']) {
-      await tester.tap(find.byKey(ValueKey('decor-$id')));
+      await selectMapDecorForTest(tester, id);
       await fixture.tapCell(8, 7);
     }
     final placed = fixture.document.current.placedElements;

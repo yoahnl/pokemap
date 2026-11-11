@@ -9,7 +9,6 @@ import '../../shared/widgets/layout/studio_graph_card.dart';
 import '../../shared/widgets/layout/studio_timeline_clip.dart';
 import 'cinematic_labels.dart';
 import 'cinematic_view_state.dart';
-import 'cinematic_transport_bar.dart';
 import 'cinematic_timeline_painter.dart';
 
 part 'cinematic_timeline_gestures.dart';
@@ -24,13 +23,12 @@ class CinematicTimelineEditor extends StatefulWidget {
     required this.onSelect,
     required this.onMove,
     required this.onDuration,
-    required this.onPlay,
     this.beforeSelection,
   });
   final CinematicAsset asset;
   final CinematicViewState view;
   final CinematicPreviewTransport transport;
-  final VoidCallback changed, onPlay;
+  final VoidCallback changed;
   final bool Function()? beforeSelection;
   final ValueChanged<String> onSelect;
   final ValueChanged<int> onMove;
@@ -129,22 +127,6 @@ class _CinematicTimelineEditorState extends State<CinematicTimelineEditor> {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                CinematicTransportBar(
-                  transport: widget.transport,
-                  onPlay: widget.onPlay,
-                  scale: scale,
-                  onScale: (value) {
-                    widget.view.timelineScale = value;
-                    widget.changed();
-                  },
-                  onFit: () {
-                    widget.view.timelineScale =
-                        ((constraints.maxWidth - labelWidth - 32) /
-                                math.max(1000, layout.totalDurationMs))
-                            .clamp(.008, .5);
-                    widget.changed();
-                  },
-                ),
                 Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 10,

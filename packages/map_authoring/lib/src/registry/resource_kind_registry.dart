@@ -312,6 +312,22 @@ final class AuthoringResourceKindRegistry {
         },
       ),
       AuthoringResourceKindDescriptor(
+        id: 'mapAtmosphere',
+        version: 1,
+        displayName: 'Map atmosphere',
+        summary:
+            'Bounded per-map atmosphere document preserved by map lifecycle mutations',
+        extensions: const {'querySupported': false},
+      ),
+      AuthoringResourceKindDescriptor(
+        id: 'mapEditor',
+        version: 1,
+        displayName: 'Map editor state',
+        summary:
+            'Per-map editor visibility and lock document preserved by map lifecycle mutations',
+        extensions: const {'querySupported': false},
+      ),
+      AuthoringResourceKindDescriptor(
         id: 'mapConnection',
         version: 1,
         displayName: 'Map connection',
@@ -590,6 +606,7 @@ final class AuthoringResourceKindRegistry {
         summary: 'Revision-bound structural checks with explicit unknowns and visual coverage',
         extensions: const {'query': {
           'operations': ['get', 'list'], 'idFormat': '<mapId>',
+          'requiredFilters': ['mapId'],
           'listShape': 'one item for filters.mapId; get takes ids:[mapId]',
           'catalogProjectRead': 'selectedMapAndReferences',
           'legacyProjectRead': 'fullSnapshot',
@@ -820,6 +837,22 @@ final class AuthoringResourceKindRegistry {
         summary: 'Stage, actors and executable cinematic timeline',
       ),
       AuthoringResourceKindDescriptor(
+        id: 'cinematicMediaAsset',
+        version: 1,
+        displayName: 'Cinematic media asset',
+        summary:
+            'Project-owned sound or music registered by dialogue media import',
+        extensions: const {'querySupported': false},
+      ),
+      AuthoringResourceKindDescriptor(
+        id: 'pokemonCatalog',
+        version: 1,
+        displayName: 'Pokemon catalog',
+        summary:
+            'Project-owned Pokemon catalog referenced by battle recipe import',
+        extensions: const {'querySupported': false},
+      ),
+      AuthoringResourceKindDescriptor(
         id: 'pokemonDocument',
         version: 1,
         displayName: 'Pokemon data document',
@@ -938,6 +971,14 @@ final class AuthoringResourceKindRegistry {
         version: 1,
         displayName: 'Battle progression',
         summary: 'Deterministic battle, outcome and progression preview',
+      ),
+      AuthoringResourceKindDescriptor(
+        id: 'battleRecipeFile',
+        version: 1,
+        displayName: 'Battle recipe file',
+        summary:
+            'Verified battle recipe, binding or resource file admitted by move recipe import',
+        extensions: const {'querySupported': false},
       ),
       AuthoringResourceKindDescriptor(
         id: 'itemCatalog',

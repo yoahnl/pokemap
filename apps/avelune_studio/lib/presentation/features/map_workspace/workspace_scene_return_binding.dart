@@ -5,7 +5,7 @@ extension _WorkspaceSceneReturnBinding on _MapWorkspaceScreenState {
     String sceneId, {
     String? nodeId,
     WorkspaceReturn? origin,
-  }) => _navigation.openScene(sceneId, nodeId: nodeId, origin: origin);
+  }) async => 'L’éditeur de scènes est indisponible.';
 
   Future<String?> _openSceneAt(String sceneId, String? nodeId) =>
       _openScene(sceneId, nodeId: nodeId);
@@ -32,49 +32,6 @@ extension _WorkspaceSceneReturnBinding on _MapWorkspaceScreenState {
         elementId != null &&
         document.current.id == origin.documentId) {
       _selectMapEntity(document, elementId);
-    }
-  }
-
-  Future<void> _openInteractionScene(MapEntity entity) async {
-    final problem = await _navigation.openInteractionScene(
-      entity,
-      choose: (played) => showDialog<SceneAsset>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Scènes jouées par ce personnage'),
-          content: SizedBox(
-            width: 460,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  for (final (record, scene) in played)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: StudioButton(
-                        label: '${scene.name} · ${eventName(record)}',
-                        secondary: true,
-                        onPressed: () => Navigator.pop(context, scene),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-          actions: [
-            StudioButton(
-              label: 'Annuler',
-              secondary: true,
-              onPressed: () => Navigator.pop(context),
-            ),
-          ],
-        ),
-      ),
-    );
-    if (mounted && problem != null) {
-      _interactionNotice = ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(problem)));
     }
   }
 }

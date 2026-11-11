@@ -10,24 +10,11 @@ extension _WorkspaceNavigationBinding on _MapWorkspaceScreenState {
     String id, [
     String? detailId,
   ]) async {
-    if (!await _allowLeavePokemon() || !mounted) return;
     if (kind == 'scene') {
-      final before = _scenes?.sessions[id]?.current;
-      final error = await _openScene(
-        id,
-        nodeId: detailId,
-        origin: const WorkspaceReturn(WorkspaceSpace.pokemon),
-      );
-      if (error == null && _space == WorkspaceSpace.scene) {
-        _pokemonReferenceUnchanged = () {
-          final session = _scenes?.sessions[id];
-          return session != null &&
-              !session.dirty &&
-              (before == null || identical(session.current, before));
-        };
-      }
+      _navigationNotice('L’éditeur de scènes est indisponible.');
       return;
     }
+    if (!await _allowLeavePokemon() || !mounted) return;
     if (kind == 'map') {
       final entry = _controller.project?.maps
           .where((value) => value.id == id)

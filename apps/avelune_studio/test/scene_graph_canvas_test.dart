@@ -1,167 +1,146 @@
-import 'package:avelune_studio/presentation/features/scenes/scene_graph_canvas.dart';
-import 'package:avelune_studio/presentation/features/scenes/scene_canvas_painter.dart';
-import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:avelune_studio/features/scenes/application/scene_edit_session.dart';
+import 'package:avelune_studio/features/map_workspace/application/map_workspace_controller.dart';
+import 'package:avelune_studio/features/map_workspace/coordination/workspace_navigation_session.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
-import 'support/scene_canvas_test_harness.dart';
+
+import 'support/scene_graph_project_fixture.dart';
+import 'support/map_workspace_fixture.dart';
 
 void main() {
-  testWidgets('wires use canonical action input after pan and zoom', (
-    tester,
-  ) async {
-    final harness = SceneCanvasTestHarness();
-    await harness.mount(tester);
-    await tester.drag(
-      find.byKey(const ValueKey('scene-graph-pan-surface')),
-      const Offset(30, 45),
+  test('canonical connection keeps exact ports and one undo entry', () {
+    final original = sceneCanvasFixture();
+    final session = SceneEditSession(original, base: original);
+    expect(session.connect('start', 'completed', 'action'), isTrue);
+    expect(session.undoCount, 1);
+    final connected = session.current;
+    final edge = connected.graph.edges.single;
+    expect(
+      (edge.fromNodeId, edge.fromPortId, edge.toNodeId),
+      ('start', 'completed', 'action'),
     );
-    await tester.tap(find.byKey(const ValueKey('scene-graph-zoom-in')));
-    await tester.pump();
-    final wire = await tester.startGesture(
-      tester.getCenter(
-        find.byKey(const ValueKey('scene-graph-output-port-start-completed')),
-      ),
-    );
-    await wire.moveTo(
-      tester.getCenter(
-        find.byKey(const ValueKey('scene-graph-input-port-action-in')),
-      ),
-    );
-    await tester.pump();
-    expect(find.text('Reliez une entrée · Échap pour annuler'), findsOneWidget);
-    await wire.up();
-    await tester.pump();
-    expect(harness.commits, 1);
-    expect(harness.scene.graph.edges.single.fromNodeId, 'start');
-    expect(harness.scene.graph.edges.single.toNodeId, 'action');
-    expect(harness.scene.graph.edges.single.fromPortId, 'completed');
-    expect(harness.scene.graph.edges.single.kind, SceneEdgeKind.defaultFlow);
-    harness.undo();
-    await tester.pump();
-    expect(harness.scene.graph.edges, isEmpty);
+    expect(edge.kind, SceneEdgeKind.defaultFlow);
+    session.restore(redo: false);
+    expect(session.current, same(original));
+    expect(session.current.graph.edges, isEmpty);
+    session.restore(redo: true);
+    expect(session.current, same(connected));
   });
 
-  testWidgets('cancel, escape and drop into void never connect', (
-    tester,
-  ) async {
-    final harness = SceneCanvasTestHarness();
-    await harness.mount(tester);
-    final source = find.byKey(
-      const ValueKey('scene-graph-output-port-start-completed'),
-    );
-    final target = find.byKey(
-      const ValueKey('scene-graph-input-port-action-in'),
-    );
-    var gesture = await tester.startGesture(tester.getCenter(source));
-    await gesture.moveTo(tester.getCenter(target));
-    await tester.pump();
-    await gesture.cancel();
-    await tester.pump();
-    expect(harness.commits, 0);
-    gesture = await tester.startGesture(tester.getCenter(source));
-    await gesture.moveTo(tester.getCenter(target));
-    await tester.pump();
-    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
-    await gesture.up();
-    await tester.pump();
-    expect(harness.commits, 0);
-    gesture = await tester.startGesture(tester.getCenter(source));
-    await gesture.moveTo(const Offset(900, 400));
-    await gesture.up();
-    await tester.pump();
-    expect(harness.scene.graph.edges, isEmpty);
-  });
-
-  testWidgets('node drag commits once and undo restores displayed position', (
-    tester,
-  ) async {
-    final harness = SceneCanvasTestHarness();
-    await harness.mount(tester);
-    harness.view.zoomAt(.75, const Offset(0, 0));
-    await tester.pump();
-    final node = find.byKey(
-      const ValueKey('scene-graph-node-drag-target-action'),
-    );
-    final before = tester.getTopLeft(node);
-    var gesture = await tester.startGesture(tester.getCenter(node));
-    await gesture.moveBy(const Offset(20, 0));
-    await gesture.moveBy(const Offset(30, 15));
-    await tester.pump();
-    final preview = tester.getTopLeft(node);
-    expect(harness.commits, 0);
-    await gesture.up();
-    await tester.pump();
-    expect(harness.commits, 1);
-    expect((tester.getTopLeft(node) - preview).distance, lessThan(.1));
-    expect(tester.getTopLeft(node).dx, greaterThan(before.dx));
-    harness.undo();
-    await tester.pump();
-    expect(tester.getTopLeft(node), before);
-    gesture = await tester.startGesture(tester.getCenter(node));
-    await gesture.moveBy(const Offset(30, 20));
-    await tester.pump();
-    await gesture.cancel();
-    await tester.pump();
-    expect(harness.commits, 1);
-    expect(tester.getTopLeft(node), before);
-  });
-
-  testWidgets('select actual wire at two zooms and delete via focused canvas', (
-    tester,
-  ) async {
-    final harness = SceneCanvasTestHarness();
-    harness.scene = addSceneEdgeDraft(
-      harness.scene,
-      fromNodeId: 'start',
-      fromPortId: 'completed',
-      toNodeId: 'action',
-    ).updatedScene;
-    await harness.mount(tester);
-    for (final zoom in [.75, 1.3]) {
-      harness.view.zoomAt(zoom, Offset.zero);
-      await tester.pump();
-      final geometry = SceneCanvasGeometry(harness.scene);
-      final path = sceneWirePath(
-        harness.view.worldToLocal(geometry.output('start', 'completed', {})),
-        harness.view.worldToLocal(geometry.input('action', {})),
-      );
-      final metric = path.computeMetrics().single;
-      await tester.tapAt(
-        metric.getTangentForOffset(metric.length * .5)!.position,
-      );
-      await tester.pump();
-      expect(harness.edge, harness.scene.graph.edges.single.id);
-    }
-    await tester.sendKeyEvent(LogicalKeyboardKey.delete);
-    await tester.pump();
-    expect(harness.scene.graph.edges, isEmpty);
-    harness.undo();
-    await tester.pump();
-    expect(harness.scene.graph.edges, hasLength(1));
-  });
-
-  testWidgets(
-    'trackpad focal zoom changes viewport without document mutation',
-    (tester) async {
-      final harness = SceneCanvasTestHarness();
-      await harness.mount(tester);
-      const focal = Offset(820, 350);
-      final before = harness.view.localToWorld(focal);
-      final trackpad = await tester.createGesture(
-        kind: PointerDeviceKind.trackpad,
-      );
-      await trackpad.panZoomStart(focal);
-      await trackpad.panZoomUpdate(focal, scale: 1.4);
-      await trackpad.panZoomEnd();
-      await tester.pump();
-      expect(harness.view.zoom, closeTo(1.4, .001));
+  test('invalid connection keeps the document and history intact', () {
+    final original = sceneCanvasFixture();
+    for (final connection in [
+      ('start', 'completed', 'missing'),
+      ('start', 'missing', 'action'),
+      ('missing', 'completed', 'action'),
+      ('action', 'completed', 'action'),
+    ]) {
+      final session = SceneEditSession(original, base: original);
       expect(
-        (harness.view.localToWorld(focal) - before).distance,
-        lessThan(.001),
+        session.connect(connection.$1, connection.$2, connection.$3),
+        isFalse,
       );
-      expect(harness.commits, 0);
+      expect(session.current, same(original));
+      expect(session.undoCount, 0);
+      expect(session.canRedo, isFalse);
+      expect(session.error, isNotNull);
+    }
+  });
+
+  test(
+    'canonical layout movement commits once and undo restores its position',
+    () {
+      final original = sceneCanvasFixture();
+      var changes = 0;
+      final session = SceneEditSession(
+        original,
+        base: original,
+        onChanged: () => changes++,
+      );
+      expect(session.move('action', 400, 110), isTrue);
+      final moved = session.current;
+      final layout = moved.layout.nodeLayouts.singleWhere(
+        (layout) => layout.nodeId == 'action',
+      );
+      expect((layout.x, layout.y), (400, 110));
+      expect(session.undoCount, 1);
+      expect(changes, 1);
+      session.restore(redo: false);
+      expect(session.current, same(original));
+      session.restore(redo: true);
+      expect(session.current, same(moved));
+      expect(session.move('missing', 20, 30), isFalse);
+      expect(session.current, same(moved));
+      expect(session.undoCount, 1);
     },
   );
+
+  test(
+    'disconnect targets the exact edge and undo restores both connections',
+    () {
+      final original = sceneCanvasFixture();
+      final session = SceneEditSession(original, base: original);
+      expect(session.connect('start', 'completed', 'action'), isTrue);
+      expect(session.connect('action', 'completed', 'end'), isTrue);
+      final connected = session.current;
+      final target = connected.graph.edges.first;
+      final preserved = connected.graph.edges.last;
+      expect(session.disconnect(target.id), isTrue);
+      expect(session.current.graph.edges, [preserved]);
+      session.restore(redo: false);
+      expect(session.current, same(connected));
+      session.restore(redo: true);
+      expect(session.current.graph.edges, [preserved]);
+    },
+  );
+
+  test(
+    'external selection is validated without mutating a document or history',
+    () {
+      final original = sceneCanvasFixture();
+      final session = SceneEditSession(original, base: original);
+      final maps = MapWorkspaceController(
+        workspaceSession,
+        WorkspaceMemoryPort(),
+      );
+      addTearDown(maps.dispose);
+      final navigation = WorkspaceNavigationSession(
+        controller: maps,
+        isActive: () => true,
+        changed: () {},
+      );
+      navigation.sceneNodes['other'] = 'kept';
+      navigation.selectSceneNode(original, 'action');
+      expect(navigation.sceneNodes[original.id], 'action');
+      navigation.selectSceneNode(original, 'missing');
+      expect(navigation.sceneNodes[original.id], 'action');
+      expect(navigation.sceneNodes['other'], 'kept');
+      expect(session.current, same(original));
+      expect(session.undoCount, 0);
+      expect(session.dirty, isFalse);
+    },
+  );
+
+  test('read-only mutation and history guards remain enforced', () {
+    final original = sceneCanvasFixture();
+    String? problem;
+    final session = SceneEditSession(
+      original,
+      base: original,
+      canMutate: () => problem,
+    );
+    expect(session.connect('start', 'completed', 'action'), isTrue);
+    final connected = session.current;
+    problem = 'Lecture seule';
+    expect(session.move('action', 420, 100), isFalse);
+    expect(session.disconnect(connected.graph.edges.single.id), isFalse);
+    expect(session.delete('action'), isFalse);
+    session.restore(redo: false);
+    expect(session.current, same(connected));
+    expect(session.undoCount, 1);
+    expect(session.error, 'Lecture seule');
+    problem = null;
+    session.restore(redo: false);
+    expect(session.current, same(original));
+  });
 }

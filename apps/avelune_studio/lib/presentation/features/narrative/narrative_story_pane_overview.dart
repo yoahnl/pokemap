@@ -37,10 +37,7 @@ extension _NarrativeStoryPaneOverview on _NarrativeStoryPaneState {
               refresh();
             },
             onCreateStory: widget.storyOwner == null ? null : _createStory,
-            onCreateScene:
-                widget.sceneOwner == null || widget.onOpenScene == null
-                ? null
-                : _createScene,
+            onCreateScene: null,
             onCreateEvent:
                 widget.eventOwner == null || widget.onOpenEvent == null
                 ? null

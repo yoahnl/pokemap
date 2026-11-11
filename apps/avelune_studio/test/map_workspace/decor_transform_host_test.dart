@@ -50,9 +50,7 @@ void main() {
   test(
     'geometry inputs save and reload through the real workspace adapter',
     () async {
-      final parent = Directory(
-        '/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/t01-map-retirement',
-      );
+      final parent = Directory.systemTemp;
       await parent.create(recursive: true);
       final fixture = await MapCatalogFixture.create(parent: parent);
       addTearDown(fixture.dispose);

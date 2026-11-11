@@ -81,17 +81,19 @@ final class ProjectVisualsController extends ChangeNotifier {
     if (_undo.length > 100) _undo.removeAt(0);
   }
 
-  bool get dirty => saved != null && saved!.profile != preview.value;
+  bool get dirty =>
+      saved != null &&
+      (saved!.profile != preview.value || invalidInputs.isNotEmpty);
   bool get canUndo => _undo.isNotEmpty;
   bool get canRedo => _redo.isNotEmpty;
   bool dirtyWhere(SpatialVisualScope scope) {
     final base = saved?.profile;
     return base != null &&
-        _changedVisualParameters(base, preview.value).any(scope);
+        (_changedVisualParameters(base, preview.value).any(scope) ||
+            invalidWhere(scope));
   }
 
-  bool invalidWhere(SpatialVisualScope scope) =>
-      invalidInputs.keys.any(scope);
+  bool invalidWhere(SpatialVisualScope scope) => invalidInputs.keys.any(scope);
 
   void reportInvalid(SpatialVisualParameter parameter, String text) {
     if (_disposed || invalidInputs[parameter] == text) return;
@@ -218,7 +220,8 @@ final class ProjectVisualsController extends ChangeNotifier {
   Future<bool> saveWhere(SpatialVisualScope owned) async {
     if (saved == null || saving || loading) return false;
     if (invalidWhere(owned)) {
-      error = 'Corrigez les valeurs invalides avant d’enregistrer : '
+      error =
+          'Corrigez les valeurs invalides avant d’enregistrer : '
           'rien n’a été publié.';
       notifyListeners();
       return false;

@@ -110,7 +110,7 @@ void main() {
       );
     });
 
-    test('provides the canonical minimal resource kinds', () {
+    test('provides the canonical resource kinds', () {
       final registry = AuthoringResourceKindRegistry.canonical();
 
       expect(
@@ -119,7 +119,10 @@ void main() {
           'asset',
           'assetBlob',
           'assetCatalog',
+          'bagCapacity',
           'battleProgression',
+          'battleRecipeFile',
+          'battleTransitionDefinition',
           'borderBlueprint',
           'borderFeature',
           'borderSnapshot',
@@ -133,6 +136,8 @@ void main() {
           'cinematicLibraryCatalog',
           'cinematicLibraryEntry',
           'cinematicLibraryFolder',
+          'cinematicMediaAsset',
+          'contactDeviceConfiguration',
           'dialogue',
           'dialogueSource',
           'element',
@@ -141,15 +146,23 @@ void main() {
           'environmentPreset',
           'eventV2',
           'fact',
+          'fieldAbilityConfiguration',
+          'gen5BattleSourceFile',
           'itemCatalog',
           'itemDefinition',
           'itemReadiness',
           'itemUsage',
           'layer',
           'map',
+          'mapAtmosphere',
           'mapConnection',
+          'mapEditor',
           'mapHealth',
           'model3d',
+          'partyCompanionConfiguration',
+          'periodicRewardNode',
+          'periodicRewardScene',
+          'pokemonCatalog',
           'pokemonDocument',
           'pokemonRuleset',
           'presentationCinematic',
@@ -162,6 +175,7 @@ void main() {
           'presentationVisualFolder',
           'preset',
           'project',
+          'projectAudio',
           'projectPresentationPreset',
           'projectPresentationProfile',
           'railJourney',
@@ -178,6 +192,7 @@ void main() {
           'resourcePackPreview',
           'resourcePackSelection',
           'resourceUsage',
+          'runtimeSmokeProfile',
           'sandboxPlayerState',
           'scene',
           'script',
@@ -190,9 +205,11 @@ void main() {
           'smartTilePreset',
           'spatialMapIntegrity',
           'storyline',
+          'surfConfiguration',
           'tileLayer',
           'tileset',
           'tilesetFolder',
+          'trainerPokemonStats',
           'worldGraph',
           'worldGraphEdge',
           'worldGraphIssue',
@@ -239,6 +256,23 @@ void main() {
           .toSet();
 
       expect(mutationKinds.difference(registeredKinds), isEmpty);
+    });
+
+    test('mutation-only resource kinds do not advertise generic queries', () {
+      final registry = AuthoringResourceKindRegistry.canonical();
+      for (final id in const [
+        'mapAtmosphere',
+        'mapEditor',
+        'battleRecipeFile',
+        'pokemonCatalog',
+        'cinematicMediaAsset',
+      ]) {
+        final descriptor = registry.require(id);
+        expect(descriptor.version, 1, reason: id);
+        expect(descriptor.extensions['querySupported'], isFalse, reason: id);
+        expect(registry.queryableResourceKindIds, isNot(contains(id)),
+            reason: id);
+      }
     });
 
     test('rejects duplicate and incompatible kind versions', () {

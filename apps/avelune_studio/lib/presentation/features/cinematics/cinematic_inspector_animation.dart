@@ -82,7 +82,9 @@ extension CinematicInspectorAnimation on CinematicInspector {
         ),
       ),
       if (command.playback.kind != CharacterCustomAnimationPlaybackKind.once)
-        StudioCommitField(
+        CinematicCommitField(
+          inputs: controller.inputsFor(asset.id),
+          changed: changed,
           key: ValueKey(
             'animation-count-${asset.id}-${step.id}-${command.playback.kind.name}',
           ),

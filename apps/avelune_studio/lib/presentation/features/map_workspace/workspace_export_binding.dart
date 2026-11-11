@@ -31,8 +31,8 @@ extension _WorkspaceExportBinding on _MapWorkspaceScreenState {
     );
   }
 
-  void _openSettingsSection(ProjectSettingsSection section) {
-    _settingsSection = section;
+  void _openSettingsSection(ProjectSettingsSection _) {
+    if (_space != WorkspaceSpace.projectSettings) _settingsOrigin = _space;
     _show(WorkspaceSpace.projectSettings);
   }
 
