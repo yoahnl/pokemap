@@ -117,8 +117,9 @@ class WorkspaceTestVisuals implements MapWorkspaceVisuals {
   List<WorkspaceResourceDiagnostic> get diagnostics => [];
   @override
   Set<String> get activeResourceIds => {};
+  final activatedMaps = <String>[];
   @override
-  void setActiveMap(MapData map) {}
+  void setActiveMap(MapData map) => activatedMaps.add(map.id);
   @override
   void setBrush(ProjectElementEntry? element, TileLayerPaletteEntry? tile) {}
   @override

@@ -22,9 +22,8 @@ void main() {
     );
     final session = container.read(projectSessionControllerProvider);
     expect(session.state.status, ProjectSessionStatus.idle);
-    expect(find.byKey(const ValueKey('studio-neutral-host')), findsOneWidget);
-    expect(find.text('Ouvrir un projet'), findsNothing);
-    expect(find.text('Avelune Studio — hôte technique'), findsOneWidget);
+    expect(find.byKey(const ValueKey('studio-home')), findsOneWidget);
+    expect(find.text('Importer un projet'), findsOneWidget);
 
     await tester.pumpWidget(StudioBootstrap(mcpService: mcp));
     expect(container.read(projectSessionControllerProvider), same(session));

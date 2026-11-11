@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'dart:ui' show AppExitResponse;
 
+import 'package:avelune_design_system/avelune_design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../platform/rendering/contracts/studio_rendering_preferences_scope.dart';
+import '../presentation/shell/studio_root.dart';
 import 'di/studio_lifecycle_providers.dart';
 import 'studio_lifecycle_controller.dart';
 
@@ -51,9 +53,7 @@ class _StudioAppState extends ConsumerState<StudioApp> {
       preferences: _lifecycle.renderingPreferences,
       child: child ?? const SizedBox(),
     ),
-    home: const Scaffold(
-      key: ValueKey('studio-neutral-host'),
-      body: Center(child: Text('Avelune Studio — hôte technique')),
-    ),
+    theme: studioTheme(),
+    home: const StudioRoot(),
   );
 }

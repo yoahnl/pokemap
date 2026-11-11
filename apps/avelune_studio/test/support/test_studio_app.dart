@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:avelune_studio/app/di/home_providers.dart';
 import 'package:avelune_studio/features/home/data/memory_recent_projects_adapter.dart';
 
@@ -8,6 +9,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:avelune_studio/app/di/providers.dart';
 import 'package:avelune_studio/app/studio_app.dart';
 import 'package:avelune_studio/features/project_session/application/project_session_controller.dart';
+
+import 'studio_workspace_test_overrides.dart';
 
 class TestStudioApp extends StatelessWidget {
   const TestStudioApp({
@@ -31,6 +34,7 @@ class TestStudioApp extends StatelessWidget {
         return controller;
       }),
       projectDirectoryPickerProvider.overrideWithValue(chooseDirectory),
+      ...studioWorkspaceTestOverrides(),
     ],
     child: const StudioApp(),
   );

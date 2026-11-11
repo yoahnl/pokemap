@@ -11,12 +11,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../support/controlled_project_session_port.dart';
+import '../../support/map_workspace_fixture.dart';
 import 'studio_mcp_service_test.dart' show FakeStudioMcpProcess;
 
 void main() {
   testWidgets(
     'home starts once and preserves its process through cancelled exit',
     (tester) async {
+      tester.view.physicalSize = const Size(1920, 1080);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
       final port = ControlledProjectSessionPort();
       final session = ProjectSessionController(port);
       final process = FakeStudioMcpProcess();
@@ -30,10 +35,15 @@ void main() {
       );
       addTearDown(service.dispose);
       addTearDown(session.dispose);
+      final maps = WorkspaceMemoryPort();
       Widget app() => ProviderScope(
         overrides: [
           studioMcpServiceProvider.overrideWithValue(service),
           projectSessionControllerProvider.overrideWithValue(session),
+          mapWorkspacePortProvider(exampleA).overrideWithValue(maps),
+          workspaceVisualsLoaderProvider.overrideWithValue(
+            (_, _) async => WorkspaceTestVisuals(),
+          ),
         ],
         child: const StudioApp(),
       );
@@ -43,7 +53,7 @@ void main() {
         listen: false,
       ).read(studioLifecycleControllerProvider);
       lifecycle.registerExitGuard(exampleA.sessionId, () async => allowExit);
-      expect(find.byKey(const ValueKey('studio-neutral-host')), findsOneWidget);
+      expect(find.byKey(const ValueKey('studio-home')), findsOneWidget);
       expect(service.state, StudioMcpState.starting);
       process.ready();
       await tester.pump();

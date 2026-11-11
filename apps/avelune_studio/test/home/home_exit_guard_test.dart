@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/controlled_project_session_port.dart';
+import '../support/studio_workspace_test_overrides.dart';
 
 void main() {
   testWidgets('old session disposal cannot clear replacement exit guard', (
@@ -26,6 +27,7 @@ void main() {
       ProviderScope(
         overrides: [
           projectSessionControllerProvider.overrideWith((ref) => session),
+          ...studioWorkspaceTestOverrides(),
         ],
         child: const StudioApp(),
       ),
