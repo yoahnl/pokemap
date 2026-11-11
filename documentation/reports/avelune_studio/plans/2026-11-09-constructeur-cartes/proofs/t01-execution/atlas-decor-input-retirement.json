@@ -1,0 +1,55 @@
+{
+  "scope": "T01 legacy atlas and decor input contracts",
+  "authorization": "Root approved retiring identified legacy chrome after mapping every native coordinate and command contract.",
+  "atlas": {
+    "test": "apps/avelune_studio/test/presentation/atlas_selection_view_test.dart",
+    "previousCount": 4,
+    "migratedBusinessCount": 3,
+    "owner": "features/resources/application/atlas_selection_controller.dart",
+    "retained": [
+      "Non-square grid and canonical visual resolver crop, margins/gaps/outside refusal.",
+      "Forward and reverse rectangle drag, cancelled and invalid-origin gestures.",
+      "Single-cell terrain selection, duplicate-cell suppression and source-change cancellation."
+    ],
+    "retiredChrome": [
+      "First-layout fit, centering, old zoom controls and retained old-widget transformation after selection update."
+    ]
+  },
+  "collisionInput": {
+    "test": "apps/avelune_studio/test/presentation/decor_collision_mask_test.dart",
+    "previousCount": 2,
+    "migratedBusinessCount": 2,
+    "owner": "features/decors/application/decor_draft.dart and decor_draft_collision_input.dart",
+    "retained": [
+      "Continuous coarse cell interpolation and image bounds, one history transaction per complete stroke.",
+      "Fine pixel targeting, keyboard cursor movement and painting, pointer cancellation, exact undo of completed strokes."
+    ]
+  },
+  "decorEditor": {
+    "test": "apps/avelune_studio/test/presentation/decor_collision_editor_test.dart",
+    "previousCount": 7,
+    "migratedBusinessCount": 3,
+    "addedLifecycleCount": 1,
+    "owner": "existing DecorDraft, same source file plus its collision input part",
+    "retained": [
+      "Fine-mask size-change refusal, equal-size source reselection, explicit collision clearing before resize.",
+      "Coarse brush, fine eraser, packed-mask pixels, complete-stroke undo/redo.",
+      "Failed publication preserves focused name and collisions for the identical retry."
+    ],
+    "added": [
+      "Single pending publication and no late view error after closure."
+    ],
+    "retiredChrome": [
+      "Presence of old collision mode buttons and canvas composition.",
+      "Old 1536x1024 layout at enlarged text.",
+      "Old 1280x800 layout at enlarged text.",
+      "Old 1024x640 layout at enlarged text."
+    ]
+  },
+  "validation": "Root isolated execution pending; source analysis and independent source review in progress.",
+  "claims": {
+    "newInterfaceAccepted": false,
+    "gpuRenderingProven": false,
+    "T01Complete": false
+  }
+}

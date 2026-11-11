@@ -1,0 +1,1221 @@
+{
+  "schemaVersion": 1,
+  "id": "rui-011-016-reference-coverage",
+  "title": "Couverture candidate des références RUI-011 à RUI-016",
+  "recordedAt": "2026-11-11T09:26:39.381881+00:00",
+  "updatedAt": "2026-11-11T11:01:57Z",
+  "status": "candidate_mapping_only_not_approved",
+  "scope": {
+    "lotIds": [
+      "RUI-011",
+      "RUI-012",
+      "RUI-013",
+      "RUI-014",
+      "RUI-015",
+      "RUI-016"
+    ],
+    "stateCount": 19,
+    "stateProfilePairCount": 36,
+    "nonApplicablePairs": 2,
+    "canonicalPlan": "ui-replacement-plan.json",
+    "sourcePathsRelativeTo": "this_report_directory",
+    "historicalVisualInspection": "Sources ciblées inspectées ; absence démontrée limitée à ces sources et manifestes, sans audit visuel exhaustif des 611 références.",
+    "nativeStudioEvidence": false,
+    "approvedBindingsCreated": 0
+  },
+  "decisions": [
+    "Ne pas convertir une capture 2D ou un fond illustratif en cible 3D.",
+    "Les contrôles communs peuvent être proposés comme fragments de chrome ; leur réemploi et les cibles de canevas restent à approuver.",
+    "Les candidats C1/C2 restent hors registre canonique ; leurs identifiants locaux ne sont pas des referenceIds."
+  ],
+  "nonGoals": [
+    "Aucune approbation, modification de statut ou création de liaison.",
+    "Aucune reconstruction native, preuve comportementale ou validation de rendu moteur.",
+    "Aucune modification des captures, de l’inventaire, du README ou de index.html."
+  ],
+  "measurementReserves": [
+    "Les historiques nov09 examinés font 1422×800 pixels physiques, sauf 394–398 à 1235×988 ; dimensions physiques seules insuffisantes pour déduire viewport CSS/DPR.",
+    "394–398 comportent des gouttières blanches, avec interface occupant environ 1111×889 : échelle/provenance à établir avant mesure comparable.",
+    "nov06 et nov09 ont des identités graphiques différentes ; choisir/amender la cible avant de mélanger les compositions.",
+    "C1 : aperçu MagicPath 2D standard recadré, 1200×630 ; interactions 3D/130 % rapportées sans captures complètes.",
+    "C2 : aperçu Vite local Chromium/Playwright, CSS 1440×1000 DPR 1 ; données de démonstration, aperçu 3D schématique, aucune session Studio native.",
+    "nov09:014 et nov09:019 sont des modales de point d’entrée vers l’outil existant, pas des pages reconstruites.",
+    "Les deux aperçus MagicPath C3 de chargement sont limités à 1200×630 ; fenêtre complète, viewport CSS et DPR ne sont pas établis et l’aperçu 3D reste schématique."
+  ],
+  "sources": [
+    {
+      "id": "nov06:002-accueil",
+      "kind": "registered_historical_reference",
+      "path": "references-studio/002-accueil.jpg",
+      "revisionId": "468810522758889472",
+      "sha256": "8ee8af6a99ddaceb03560840765b97493a6a3a920e953e195bd1f29161eaaa71",
+      "pixelWidth": 1280,
+      "pixelHeight": 720,
+      "designStatus": "reference_existing",
+      "profileContext": "not_explicitly_established",
+      "approvedForThisMapping": false
+    },
+    {
+      "id": "nov06:058-commandes",
+      "kind": "registered_historical_reference",
+      "path": "references-studio/058-commandes.jpg",
+      "revisionId": "468810522758889472",
+      "sha256": "51da7fdb654860fc89f246f824291b78bb3f34641af93fcb4cac138782dd1d6c",
+      "pixelWidth": 1280,
+      "pixelHeight": 720,
+      "designStatus": "reference_existing",
+      "profileContext": "not_explicitly_established",
+      "approvedForThisMapping": false
+    },
+    {
+      "id": "nov09:001",
+      "kind": "registered_historical_reference",
+      "path": "captures/001-construction-accueil-catalogue-projet.jpg",
+      "revisionId": "470590493273763840",
+      "sha256": "4a586cdea4521dda3d94ae7ff4f63af836cd70990b05f32e65d5e1d4fa77cae9",
+      "pixelWidth": 1422,
+      "pixelHeight": 800,
+      "designStatus": "reference_existing",
+      "profileContext": "not_explicitly_established",
+      "approvedForThisMapping": false
+    },
+    {
+      "id": "nov09:009",
+      "kind": "registered_historical_reference",
+      "path": "captures/009-bibliotheque-recherche-avec-resultat.jpg",
+      "revisionId": "470590493273763840",
+      "sha256": "14ce3d4410091daf263f742a85187aea8304aac8e3e63777a301c3f380027d1d",
+      "pixelWidth": 1422,
+      "pixelHeight": 800,
+      "designStatus": "reference_existing",
+      "profileContext": "not_explicitly_established",
+      "approvedForThisMapping": false
+    },
+    {
+      "id": "nov09:010",
+      "kind": "registered_historical_reference",
+      "path": "captures/010-bibliotheque-recherche-vide.jpg",
+      "revisionId": "470590493273763840",
+      "sha256": "e06a3691b4c6225d403b475cc7e8b2f942ecf74402d0cdaf0c6a0221400ff58e",
+      "pixelWidth": 1422,
+      "pixelHeight": 800,
+      "designStatus": "reference_existing",
+      "profileContext": "not_explicitly_established",
+      "approvedForThisMapping": false
+    },
+    {
+      "id": "nov09:014",
+      "kind": "registered_historical_reference",
+      "path": "captures/014-navigation-accueil-projet.jpg",
+      "revisionId": "470590493273763840",
+      "sha256": "3f2db573c6c5fbf224003a142233a81677313770a40ce7e5f39e19fa78d5047c",
+      "pixelWidth": 1422,
+      "pixelHeight": 800,
+      "designStatus": "reference_existing",
+      "profileContext": "not_explicitly_established",
+      "approvedForThisMapping": false
+    },
+    {
+      "id": "nov09:019",
+      "kind": "registered_historical_reference",
+      "path": "captures/019-navigation-reglages-projet.jpg",
+      "revisionId": "470590493273763840",
+      "sha256": "68b872aed7c938bd2912106956cfc886c317790c3f039ad6589d5dfe4dd6d1ee",
+      "pixelWidth": 1422,
+      "pixelHeight": 800,
+      "designStatus": "reference_existing",
+      "profileContext": "not_explicitly_established",
+      "approvedForThisMapping": false
+    },
+    {
+      "id": "nov09:035",
+      "kind": "registered_historical_reference",
+      "path": "captures/035-decor-erreur-position-hors-limites.jpg",
+      "revisionId": "470590493273763840",
+      "sha256": "ff11d204f38bd79e48937c4aad7dd9cf29b1a4e21ea09e733564188ad63538cc",
+      "pixelWidth": 1422,
+      "pixelHeight": 800,
+      "designStatus": "reference_existing",
+      "profileContext": "not_explicitly_established",
+      "approvedForThisMapping": false
+    },
+    {
+      "id": "nov09:055",
+      "kind": "registered_historical_reference",
+      "path": "captures/055-ressource-prairie.jpg",
+      "revisionId": "470590493273763840",
+      "sha256": "340a28259e43d560746c89170d5016adb398af82c4afd022ae189f6e13db6148",
+      "pixelWidth": 1422,
+      "pixelHeight": 800,
+      "designStatus": "reference_existing",
+      "profileContext": "not_explicitly_established",
+      "approvedForThisMapping": false
+    },
+    {
+      "id": "nov09:094",
+      "kind": "registered_historical_reference",
+      "path": "captures/094-environnement-garde-changement-contexte.jpg",
+      "revisionId": "470590493273763840",
+      "sha256": "f5de5916631d8e6b53630b9e7453031e36ea4db6b92faec1ccab734a6c871657",
+      "pixelWidth": 1422,
+      "pixelHeight": 800,
+      "designStatus": "reference_existing",
+      "profileContext": "not_explicitly_established",
+      "approvedForThisMapping": false
+    },
+    {
+      "id": "nov09:118",
+      "kind": "registered_historical_reference",
+      "path": "captures/118-vue-inspecteur-replie.jpg",
+      "revisionId": "470590493273763840",
+      "sha256": "3ea2a6dd88ff4dbc9a2519f1bf4424730a1e20ad6a036f9558b874dfef95bd99",
+      "pixelWidth": 1422,
+      "pixelHeight": 800,
+      "designStatus": "reference_existing",
+      "profileContext": "not_explicitly_established",
+      "approvedForThisMapping": false
+    },
+    {
+      "id": "nov09:170",
+      "kind": "registered_historical_reference",
+      "path": "captures/170-historique-annulation-commune.jpg",
+      "revisionId": "470590493273763840",
+      "sha256": "564fa07abf5036c131cac35b6f18e343e4dab500a6ef199aec06a8ea910a07f9",
+      "pixelWidth": 1422,
+      "pixelHeight": 800,
+      "designStatus": "reference_existing",
+      "profileContext": "not_explicitly_established",
+      "approvedForThisMapping": false
+    },
+    {
+      "id": "nov09:171",
+      "kind": "registered_historical_reference",
+      "path": "captures/171-historique-retablissement-commun.jpg",
+      "revisionId": "470590493273763840",
+      "sha256": "9f197413e13cd9f688bcfdbc03b02b6157b226e15e957558b06556b5204cfc63",
+      "pixelWidth": 1422,
+      "pixelHeight": 800,
+      "designStatus": "reference_existing",
+      "profileContext": "not_explicitly_established",
+      "approvedForThisMapping": false
+    },
+    {
+      "id": "nov09:173",
+      "kind": "registered_historical_reference",
+      "path": "captures/173-jeu-accueil-connexions.jpg",
+      "revisionId": "470590493273763840",
+      "sha256": "a4500da47ea50d0b76877d9d70c40ad54f02a8cc0d14853574ebd1dd9d430714",
+      "pixelWidth": 1422,
+      "pixelHeight": 800,
+      "designStatus": "reference_existing",
+      "profileContext": "not_explicitly_established",
+      "approvedForThisMapping": false
+    },
+    {
+      "id": "nov09:178",
+      "kind": "registered_historical_reference",
+      "path": "captures/178-test-diagnostic-connexion-bloquante.jpg",
+      "revisionId": "470590493273763840",
+      "sha256": "9da764ae689c76ebf61498592389f72b02ffaebb0ab1ef8bce32832689559d89",
+      "pixelWidth": 1422,
+      "pixelHeight": 800,
+      "designStatus": "reference_existing",
+      "profileContext": "not_explicitly_established",
+      "approvedForThisMapping": false
+    },
+    {
+      "id": "nov09:185",
+      "kind": "registered_historical_reference",
+      "path": "captures/185-connexion-conflit-bord-deux-destinations.jpg",
+      "revisionId": "470590493273763840",
+      "sha256": "f1eadb84f3a75c5967c8d42691585ae9c0664b2214acc34c514e489f180134d6",
+      "pixelWidth": 1422,
+      "pixelHeight": 800,
+      "designStatus": "reference_existing",
+      "profileContext": "not_explicitly_established",
+      "approvedForThisMapping": false
+    },
+    {
+      "id": "nov09:206",
+      "kind": "registered_historical_reference",
+      "path": "captures/206-passage-confirmation-suppression.jpg",
+      "revisionId": "470590493273763840",
+      "sha256": "c688734cfae7d84d84541fd6df2ac99ebf828ebaf776cb2f539f440851d06752",
+      "pixelWidth": 1422,
+      "pixelHeight": 800,
+      "designStatus": "reference_existing",
+      "profileContext": "not_explicitly_established",
+      "approvedForThisMapping": false
+    },
+    {
+      "id": "nov09:243",
+      "kind": "registered_historical_reference",
+      "path": "captures/243-points-confirmation-remplacer-depart.jpg",
+      "revisionId": "470590493273763840",
+      "sha256": "48fd1007e30ea4aab458fbd2268243482f81b67f6b712956987312876413fcb1",
+      "pixelWidth": 1422,
+      "pixelHeight": 800,
+      "designStatus": "reference_existing",
+      "profileContext": "not_explicitly_established",
+      "approvedForThisMapping": false
+    },
+    {
+      "id": "nov09:262",
+      "kind": "registered_historical_reference",
+      "path": "captures/262-scenario-accueil-sans-selection.jpg",
+      "revisionId": "470590493273763840",
+      "sha256": "ad7a29d9088066cd8b0014c6cebb30e784607d4d21b22815bfd17169be1f57a8",
+      "pixelWidth": 1422,
+      "pixelHeight": 800,
+      "designStatus": "reference_existing",
+      "profileContext": "not_explicitly_established",
+      "approvedForThisMapping": false
+    },
+    {
+      "id": "nov09:329",
+      "kind": "registered_historical_reference",
+      "path": "captures/329-ambiance-bourg-meteo-pluie.jpg",
+      "revisionId": "470590493273763840",
+      "sha256": "e9b52ee603bddb3f4443b7ac581b0fc878f47d2c08d9ffda3301a291ccb42157",
+      "pixelWidth": 1422,
+      "pixelHeight": 800,
+      "designStatus": "reference_existing",
+      "profileContext": "not_explicitly_established",
+      "approvedForThisMapping": false
+    },
+    {
+      "id": "nov09:394",
+      "kind": "registered_historical_reference",
+      "path": "captures/394-responsive-construction-compact-inspecteur-ouvert.jpg",
+      "revisionId": "470590493273763840",
+      "sha256": "dc95b7a06ab153b769d6b1883e423ccb1cc95a5f394e3f582b5bac2afd51424c",
+      "pixelWidth": 1235,
+      "pixelHeight": 988,
+      "designStatus": "reference_existing",
+      "profileContext": "not_explicitly_established",
+      "approvedForThisMapping": false
+    },
+    {
+      "id": "nov09:395",
+      "kind": "registered_historical_reference",
+      "path": "captures/395-responsive-construction-compact-inspecteur-replie.jpg",
+      "revisionId": "470590493273763840",
+      "sha256": "30c1654ebb2d5a1f427129fa9225bcb63278a76b019f4888339a77ed5cd5bc38",
+      "pixelWidth": 1235,
+      "pixelHeight": 988,
+      "designStatus": "reference_existing",
+      "profileContext": "not_explicitly_established",
+      "approvedForThisMapping": false
+    },
+    {
+      "id": "nov09:396",
+      "kind": "registered_historical_reference",
+      "path": "captures/396-responsive-jeu-compact.jpg",
+      "revisionId": "470590493273763840",
+      "sha256": "25772f501bf1b491c086912fb2c41142ee93501f4fafc7d225facddbb612ba4b",
+      "pixelWidth": 1235,
+      "pixelHeight": 988,
+      "designStatus": "reference_existing",
+      "profileContext": "not_explicitly_established",
+      "approvedForThisMapping": false
+    },
+    {
+      "id": "nov09:397",
+      "kind": "registered_historical_reference",
+      "path": "captures/397-responsive-scenario-compact.jpg",
+      "revisionId": "470590493273763840",
+      "sha256": "217f19e75652f50645a2a739b1fe082b2084af5893b79550d9a32216dc5bfc63",
+      "pixelWidth": 1235,
+      "pixelHeight": 988,
+      "designStatus": "reference_existing",
+      "profileContext": "not_explicitly_established",
+      "approvedForThisMapping": false
+    },
+    {
+      "id": "nov09:398",
+      "kind": "registered_historical_reference",
+      "path": "captures/398-responsive-ambiance-compact.jpg",
+      "revisionId": "470590493273763840",
+      "sha256": "2f64f2731509664f75ae219e1709c9dd81175008687f4901882025a6cb3690c8",
+      "pixelWidth": 1235,
+      "pixelHeight": 988,
+      "designStatus": "reference_existing",
+      "profileContext": "not_explicitly_established",
+      "approvedForThisMapping": false
+    },
+    {
+      "id": "nov09:401",
+      "kind": "registered_historical_reference",
+      "path": "captures/401-bibliotheque-recherche-raccourci-depuis-jeu.jpg",
+      "revisionId": "470590493273763840",
+      "sha256": "ef081e0146447e6ee417d6d53dc7d1008f6821d29832ab4f42774f52cb69fd00",
+      "pixelWidth": 1422,
+      "pixelHeight": 800,
+      "designStatus": "reference_existing",
+      "profileContext": "not_explicitly_established",
+      "approvedForThisMapping": false
+    },
+    {
+      "id": "C1:preview-2d-standard.svg",
+      "kind": "unregistered_candidate_capture",
+      "path": "proofs/t00-candidates/471067651033145344/preview-2d-standard.svg",
+      "manifestPath": "proofs/t00-candidates/471067651033145344/manifest.json",
+      "componentId": "471067651033145344",
+      "revisionId": "471071333137137664",
+      "sha256": "4e61b2b69932f2e30ec91a28be6e0d492c268704f11d5a5c6c306895f1cad7c1",
+      "profileContext": "twoD",
+      "pixelWidth": 1200,
+      "pixelHeight": 630,
+      "candidateStatus": "candidate_not_approved",
+      "viewportCssPixels": null,
+      "devicePixelRatio": null,
+      "approvedForThisMapping": false
+    },
+    {
+      "id": "C2:twoD-readonly.png",
+      "kind": "unregistered_candidate_capture",
+      "path": "proofs/t00-candidates/470908170030706688/twoD-readonly.png",
+      "manifestPath": "proofs/t00-candidates/470908170030706688/manifest.json",
+      "componentId": "470904123445886976",
+      "revisionId": "470908170030706688",
+      "sha256": "20f70c33a828a0423a45fefa08ea75af5f0a37a870402b047b19ed0be31ef3c8",
+      "profileContext": "twoD",
+      "pixelWidth": 1440,
+      "pixelHeight": 1000,
+      "candidateStatus": "candidate_only_not_approved",
+      "viewportCssPixels": {
+        "width": 1440,
+        "height": 1000
+      },
+      "devicePixelRatio": 1,
+      "approvedForThisMapping": false
+    },
+    {
+      "id": "C2:twoD-recovery.png",
+      "kind": "unregistered_candidate_capture",
+      "path": "proofs/t00-candidates/470908170030706688/twoD-recovery.png",
+      "manifestPath": "proofs/t00-candidates/470908170030706688/manifest.json",
+      "componentId": "470904123445886976",
+      "revisionId": "470908170030706688",
+      "sha256": "13ed2b7a1b5ecb2954533fff4d9a1fbe07f4558b84b63eb779b0ce31b57c9cfa",
+      "profileContext": "twoD",
+      "pixelWidth": 1440,
+      "pixelHeight": 1000,
+      "candidateStatus": "candidate_only_not_approved",
+      "viewportCssPixels": {
+        "width": 1440,
+        "height": 1000
+      },
+      "devicePixelRatio": 1,
+      "approvedForThisMapping": false
+    },
+    {
+      "id": "C2:twoD-conflict.png",
+      "kind": "unregistered_candidate_capture",
+      "path": "proofs/t00-candidates/470908170030706688/twoD-conflict.png",
+      "manifestPath": "proofs/t00-candidates/470908170030706688/manifest.json",
+      "componentId": "470904123445886976",
+      "revisionId": "470908170030706688",
+      "sha256": "0a3a0df2069535dd9923482a88b4725de99b6ac7961904185ecaac6d7b09fc44",
+      "profileContext": "twoD",
+      "pixelWidth": 1440,
+      "pixelHeight": 1000,
+      "candidateStatus": "candidate_only_not_approved",
+      "viewportCssPixels": {
+        "width": 1440,
+        "height": 1000
+      },
+      "devicePixelRatio": 1,
+      "approvedForThisMapping": false
+    },
+    {
+      "id": "C2:twoD-draft.png",
+      "kind": "unregistered_candidate_capture",
+      "path": "proofs/t00-candidates/470908170030706688/twoD-draft.png",
+      "manifestPath": "proofs/t00-candidates/470908170030706688/manifest.json",
+      "componentId": "470904123445886976",
+      "revisionId": "470908170030706688",
+      "sha256": "b593248597917146d6983ab893062128ee8bc33d17f03b27682895aae7185aab",
+      "profileContext": "twoD",
+      "pixelWidth": 1440,
+      "pixelHeight": 1000,
+      "candidateStatus": "candidate_only_not_approved",
+      "viewportCssPixels": {
+        "width": 1440,
+        "height": 1000
+      },
+      "devicePixelRatio": 1,
+      "approvedForThisMapping": false
+    },
+    {
+      "id": "C2:threeD-readonly.png",
+      "kind": "unregistered_candidate_capture",
+      "path": "proofs/t00-candidates/470908170030706688/threeD-readonly.png",
+      "manifestPath": "proofs/t00-candidates/470908170030706688/manifest.json",
+      "componentId": "470904123445886976",
+      "revisionId": "470908170030706688",
+      "sha256": "356436b1f96de26dd4d97a063ab30a3640c3e5551ccc1aa9a9f9eac57b4ab82f",
+      "profileContext": "threeD",
+      "pixelWidth": 1440,
+      "pixelHeight": 1000,
+      "candidateStatus": "candidate_only_not_approved",
+      "viewportCssPixels": {
+        "width": 1440,
+        "height": 1000
+      },
+      "devicePixelRatio": 1,
+      "approvedForThisMapping": false
+    },
+    {
+      "id": "C2:threeD-recovery.png",
+      "kind": "unregistered_candidate_capture",
+      "path": "proofs/t00-candidates/470908170030706688/threeD-recovery.png",
+      "manifestPath": "proofs/t00-candidates/470908170030706688/manifest.json",
+      "componentId": "470904123445886976",
+      "revisionId": "470908170030706688",
+      "sha256": "5c1d247a7e1960b7d46ed91f240445e1992e55e86e5b62c5019ee65b2b7b094e",
+      "profileContext": "threeD",
+      "pixelWidth": 1440,
+      "pixelHeight": 1000,
+      "candidateStatus": "candidate_only_not_approved",
+      "viewportCssPixels": {
+        "width": 1440,
+        "height": 1000
+      },
+      "devicePixelRatio": 1,
+      "approvedForThisMapping": false
+    },
+    {
+      "id": "C2:threeD-conflict.png",
+      "kind": "unregistered_candidate_capture",
+      "path": "proofs/t00-candidates/470908170030706688/threeD-conflict.png",
+      "manifestPath": "proofs/t00-candidates/470908170030706688/manifest.json",
+      "componentId": "470904123445886976",
+      "revisionId": "470908170030706688",
+      "sha256": "9741a2154b01d550362024351f32693fca989d4d430987f40e4ed8269d1cdc23",
+      "profileContext": "threeD",
+      "pixelWidth": 1440,
+      "pixelHeight": 1000,
+      "candidateStatus": "candidate_only_not_approved",
+      "viewportCssPixels": {
+        "width": 1440,
+        "height": 1000
+      },
+      "devicePixelRatio": 1,
+      "approvedForThisMapping": false
+    },
+    {
+      "id": "C2:threeD-draft.png",
+      "kind": "unregistered_candidate_capture",
+      "path": "proofs/t00-candidates/470908170030706688/threeD-draft.png",
+      "manifestPath": "proofs/t00-candidates/470908170030706688/manifest.json",
+      "componentId": "470904123445886976",
+      "revisionId": "470908170030706688",
+      "sha256": "4c986b1dc2b1765dd1f2e80f3e3f6c91826b5cfa4ee5079f11f7ae63e0325e07",
+      "profileContext": "threeD",
+      "pixelWidth": 1440,
+      "pixelHeight": 1000,
+      "candidateStatus": "candidate_only_not_approved",
+      "viewportCssPixels": {
+        "width": 1440,
+        "height": 1000
+      },
+      "devicePixelRatio": 1,
+      "approvedForThisMapping": false
+    },
+    {
+      "id": "C3:twoD-loading-native-preview.jpg",
+      "kind": "unregistered_candidate_capture",
+      "path": "proofs/t00-candidates/471199137765941248/twoD-loading-native-preview.jpg",
+      "manifestPath": "proofs/t00-candidates/471199137765941248/manifest.json",
+      "componentId": "471199137765941248",
+      "revisionId": "471199137770135552",
+      "sha256": "dc8d4a2e0eb0ba74fa4e989f7990ced56282416d3d3bdc3beb263dcee620b072",
+      "profileContext": "twoD",
+      "pixelWidth": 1200,
+      "pixelHeight": 630,
+      "candidateStatus": "candidate_only_not_approved",
+      "viewportCssPixels": null,
+      "devicePixelRatio": null,
+      "approvedForThisMapping": false
+    },
+    {
+      "id": "C3:threeD-loading-native-preview.jpg",
+      "kind": "unregistered_candidate_capture",
+      "path": "proofs/t00-candidates/471199137765941248/threeD-loading-native-preview.jpg",
+      "manifestPath": "proofs/t00-candidates/471199137765941248/manifest.json",
+      "componentId": "471199717544583168",
+      "revisionId": "471199717544583169",
+      "sha256": "44e629e167adfacaf683b2d6d1a2a6b4e4bdfa8a6d77b65d6afbc882433cb6ed",
+      "profileContext": "threeD",
+      "pixelWidth": 1200,
+      "pixelHeight": 630,
+      "candidateStatus": "candidate_only_not_approved",
+      "viewportCssPixels": null,
+      "devicePixelRatio": null,
+      "approvedForThisMapping": false
+    }
+  ],
+  "states": [
+    {
+      "lotId": "RUI-011",
+      "stateId": "S01",
+      "title": "planche de tokens et états",
+      "profiles": {
+        "twoD": {
+          "status": "partial_explicit_profile_candidate",
+          "sourceIds": [
+            "C1:preview-2d-standard.svg"
+          ],
+          "reserves": [
+            "Capture 2D standard recadrée : palette, typographie et cartes visibles ; contrôles et états de la partie basse coupés."
+          ],
+          "approved": false,
+          "bindingCreated": false
+        },
+        "threeD": {
+          "status": "no_comparable_target_demonstrated",
+          "sourceIds": [],
+          "reserves": [
+            "Aucune capture 3D de la planche archivée."
+          ],
+          "approved": false,
+          "bindingCreated": false
+        }
+      }
+    },
+    {
+      "lotId": "RUI-011",
+      "stateId": "S02",
+      "title": "texte agrandi",
+      "profiles": {
+        "twoD": {
+          "status": "no_comparable_target_demonstrated",
+          "sourceIds": [],
+          "reserves": [
+            "Activation à 130 % rapportée par le manifeste C1, sans capture correspondante."
+          ],
+          "approved": false,
+          "bindingCreated": false
+        },
+        "threeD": {
+          "status": "no_comparable_target_demonstrated",
+          "sourceIds": [],
+          "reserves": [
+            "Aucune capture 3D avec texte agrandi archivée."
+          ],
+          "approved": false,
+          "bindingCreated": false
+        }
+      }
+    },
+    {
+      "lotId": "RUI-012",
+      "stateId": "S01",
+      "title": "composants repos/focus/erreur/disabled",
+      "profiles": {
+        "twoD": {
+          "status": "partial_shared_chrome_candidate",
+          "sourceIds": [
+            "nov09:009",
+            "nov09:010",
+            "nov09:035",
+            "nov09:178"
+          ],
+          "reserves": [
+            "Profil de projet non explicitement établi dans ces captures.",
+            "Focus, vide, saisie numérique en erreur et action désactivée représentés séparément ; aucune planche complète. nov09:035 associe une coche verte à une erreur : feedback à amender avant approbation."
+          ],
+          "approved": false,
+          "bindingCreated": false
+        },
+        "threeD": {
+          "status": "partial_shared_chrome_candidate",
+          "sourceIds": [
+            "nov09:009",
+            "nov09:010",
+            "nov09:035",
+            "nov09:178"
+          ],
+          "reserves": [
+            "Profil de projet non explicitement établi dans ces captures.",
+            "Focus, vide, saisie numérique en erreur et action désactivée représentés séparément ; aucune planche complète. nov09:035 associe une coche verte à une erreur : feedback à amender avant approbation. Aucune variante de contexte 3D distincte démontrée."
+          ],
+          "approved": false,
+          "bindingCreated": false
+        }
+      }
+    },
+    {
+      "lotId": "RUI-012",
+      "stateId": "S02",
+      "title": "ressource 2D et ressource 3D",
+      "profiles": {
+        "twoD": {
+          "status": "partial_explicit_profile_candidate",
+          "sourceIds": [
+            "C1:preview-2d-standard.svg",
+            "nov09:055"
+          ],
+          "reserves": [
+            "C1 montre des cartes dans un profil 2D explicite mais recadré ; nov09:055 reste illustratif."
+          ],
+          "approved": false,
+          "bindingCreated": false
+        },
+        "threeD": {
+          "status": "no_comparable_target_demonstrated",
+          "sourceIds": [
+            "nov09:055"
+          ],
+          "reserves": [
+            "Les aperçus illustratifs de Prairie ne prouvent pas une ressource modèle/preset dans un profil 3D explicite."
+          ],
+          "approved": false,
+          "bindingCreated": false
+        }
+      }
+    },
+    {
+      "lotId": "RUI-013",
+      "stateId": "S01",
+      "title": "sans projet",
+      "profiles": {
+        "twoD": {
+          "status": "no_comparable_target_demonstrated",
+          "sourceIds": [
+            "nov06:002-accueil",
+            "nov09:014"
+          ],
+          "reserves": [
+            "Accueil historique avec projet courant ; nov09:014 est une modale de point d’entrée vers l’outil existant. Aucun état sans projet."
+          ],
+          "approved": false,
+          "bindingCreated": false
+        },
+        "threeD": {
+          "status": "no_comparable_target_demonstrated",
+          "sourceIds": [],
+          "reserves": [
+            "Aucun état sans projet comparable démontré."
+          ],
+          "approved": false,
+          "bindingCreated": false
+        }
+      }
+    },
+    {
+      "lotId": "RUI-013",
+      "stateId": "S02",
+      "title": "projet 2D actif",
+      "profiles": {
+        "twoD": {
+          "status": "partial_explicit_profile_candidate",
+          "sourceIds": [
+            "C2:twoD-readonly.png",
+            "nov09:001",
+            "nov06:002-accueil"
+          ],
+          "reserves": [
+            "C2 identifie une session 2D mais ne montre pas les huit destinations ; les historiques ne prouvent pas le profil actif."
+          ],
+          "approved": false,
+          "bindingCreated": false
+        },
+        "threeD": {
+          "status": "not_applicable",
+          "sourceIds": [],
+          "reserves": [
+            "Un projet 2D actif relève du profil 2D ; l’état projet 3D actif est vérifié séparément."
+          ],
+          "approved": false,
+          "bindingCreated": false
+        }
+      }
+    },
+    {
+      "lotId": "RUI-013",
+      "stateId": "S03",
+      "title": "projet 3D actif",
+      "profiles": {
+        "twoD": {
+          "status": "not_applicable",
+          "sourceIds": [],
+          "reserves": [
+            "Un projet 3D actif relève du profil 3D ; l’état projet 2D actif est vérifié séparément."
+          ],
+          "approved": false,
+          "bindingCreated": false
+        },
+        "threeD": {
+          "status": "partial_explicit_profile_candidate",
+          "sourceIds": [
+            "C2:threeD-readonly.png",
+            "nov06:002-accueil"
+          ],
+          "reserves": [
+            "C2 identifie une session 3D et un aperçu isométrique distinct, mais pas le shell complet ; les miniatures historiques ne prouvent pas le profil du projet actif."
+          ],
+          "approved": false,
+          "bindingCreated": false
+        }
+      }
+    },
+    {
+      "lotId": "RUI-013",
+      "stateId": "S04",
+      "title": "navigation compacte",
+      "profiles": {
+        "twoD": {
+          "status": "partial_shared_chrome_candidate",
+          "sourceIds": [
+            "nov09:394",
+            "nov09:395",
+            "nov09:396",
+            "nov09:397",
+            "nov09:398"
+          ],
+          "reserves": [
+            "Profil de projet non explicitement établi dans ces captures.",
+            "Navigation latérale compacte représentée ; huit destinations et libellés compacts complets non démontrés."
+          ],
+          "approved": false,
+          "bindingCreated": false
+        },
+        "threeD": {
+          "status": "partial_shared_chrome_candidate",
+          "sourceIds": [
+            "nov09:394",
+            "nov09:395",
+            "nov09:396",
+            "nov09:397",
+            "nov09:398"
+          ],
+          "reserves": [
+            "Profil de projet non explicitement établi dans ces captures.",
+            "Chrome réutilisable proposé seulement ; aucun canevas 3D distinct ni huit destinations complètes démontrés."
+          ],
+          "approved": false,
+          "bindingCreated": false
+        }
+      }
+    },
+    {
+      "lotId": "RUI-014",
+      "stateId": "S01",
+      "title": "quatre espaces",
+      "profiles": {
+        "twoD": {
+          "status": "partial_shared_chrome_candidate",
+          "sourceIds": [
+            "nov09:001",
+            "nov09:173",
+            "nov09:262",
+            "nov09:329"
+          ],
+          "reserves": [
+            "Profil de projet non explicitement établi dans ces captures.",
+            "Les quatre espaces sont visibles sur un fond statique/illustratif ; Ambiance ne constitue pas une cible fidèle de rendu de carte."
+          ],
+          "approved": false,
+          "bindingCreated": false
+        },
+        "threeD": {
+          "status": "partial_shared_chrome_candidate",
+          "sourceIds": [
+            "nov09:001",
+            "nov09:173",
+            "nov09:262",
+            "nov09:329"
+          ],
+          "reserves": [
+            "Profil de projet non explicitement établi dans ces captures.",
+            "Les quatre espaces fournissent du chrome seulement ; aucune cible de canevas 3D distincte démontrée."
+          ],
+          "approved": false,
+          "bindingCreated": false
+        }
+      }
+    },
+    {
+      "lotId": "RUI-014",
+      "stateId": "S02",
+      "title": "inspecteur ouvert/replié",
+      "profiles": {
+        "twoD": {
+          "status": "partial_shared_chrome_candidate",
+          "sourceIds": [
+            "nov09:394",
+            "nov09:395",
+            "nov09:001",
+            "nov09:118"
+          ],
+          "reserves": [
+            "Profil de projet non explicitement établi dans ces captures.",
+            "Privilégier la paire compacte 394/395 ; le contenu de scène diffère entre 001 et 118."
+          ],
+          "approved": false,
+          "bindingCreated": false
+        },
+        "threeD": {
+          "status": "partial_shared_chrome_candidate",
+          "sourceIds": [
+            "nov09:394",
+            "nov09:395"
+          ],
+          "reserves": [
+            "Profil de projet non explicitement établi dans ces captures.",
+            "Paire de chrome ouverte/repliée visible ; aucun contexte de canevas 3D distinct démontré."
+          ],
+          "approved": false,
+          "bindingCreated": false
+        }
+      }
+    },
+    {
+      "lotId": "RUI-014",
+      "stateId": "S03",
+      "title": "viewport compact",
+      "profiles": {
+        "twoD": {
+          "status": "partial_shared_chrome_candidate",
+          "sourceIds": [
+            "nov09:394",
+            "nov09:395",
+            "nov09:396",
+            "nov09:397",
+            "nov09:398"
+          ],
+          "reserves": [
+            "Profil de projet non explicitement établi dans ces captures.",
+            "Composition compacte explicite ; dimensions physiques seules, viewport CSS et DPR non établis."
+          ],
+          "approved": false,
+          "bindingCreated": false
+        },
+        "threeD": {
+          "status": "partial_shared_chrome_candidate",
+          "sourceIds": [
+            "nov09:394",
+            "nov09:395",
+            "nov09:396",
+            "nov09:397",
+            "nov09:398"
+          ],
+          "reserves": [
+            "Profil de projet non explicitement établi dans ces captures.",
+            "Composition de chrome seulement ; aucun canevas compact 3D distinct et viewport CSS/DPR non établis."
+          ],
+          "approved": false,
+          "bindingCreated": false
+        }
+      }
+    },
+    {
+      "lotId": "RUI-015",
+      "stateId": "S01",
+      "title": "recherche focalisée",
+      "profiles": {
+        "twoD": {
+          "status": "partial_shared_chrome_candidate",
+          "sourceIds": [
+            "nov09:401",
+            "nov09:009",
+            "nov09:010",
+            "nov06:058-commandes"
+          ],
+          "reserves": [
+            "Profil de projet non explicitement établi dans ces captures.",
+            "401 affiche Construction active : origine depuis Jeu non démontrée. 058 est une palette de commandes, pas la recherche de ressources attendue."
+          ],
+          "approved": false,
+          "bindingCreated": false
+        },
+        "threeD": {
+          "status": "partial_shared_chrome_candidate",
+          "sourceIds": [
+            "nov09:401",
+            "nov09:009",
+            "nov09:010",
+            "nov06:058-commandes"
+          ],
+          "reserves": [
+            "Profil de projet non explicitement établi dans ces captures.",
+            "Aucune variante 3D distincte ; 401 ne démontre pas le parcours depuis Jeu, 058 cherche des commandes."
+          ],
+          "approved": false,
+          "bindingCreated": false
+        }
+      }
+    },
+    {
+      "lotId": "RUI-015",
+      "stateId": "S02",
+      "title": "commande disponible/indisponible",
+      "profiles": {
+        "twoD": {
+          "status": "partial_shared_chrome_candidate",
+          "sourceIds": [
+            "nov09:170",
+            "nov09:171",
+            "nov09:178"
+          ],
+          "reserves": [
+            "Profil de projet non explicitement établi dans ces captures.",
+            "États visuels de commandes disponibles/muettes ou désactivées ; disponibilité réelle et refus commun non prouvés."
+          ],
+          "approved": false,
+          "bindingCreated": false
+        },
+        "threeD": {
+          "status": "partial_shared_chrome_candidate",
+          "sourceIds": [
+            "nov09:170",
+            "nov09:171",
+            "nov09:178"
+          ],
+          "reserves": [
+            "Profil de projet non explicitement établi dans ces captures.",
+            "Aucune variante 3D distincte ; disponibilité réelle et refus commun non prouvés."
+          ],
+          "approved": false,
+          "bindingCreated": false
+        }
+      }
+    },
+    {
+      "lotId": "RUI-015",
+      "stateId": "S03",
+      "title": "champ texte focalisé",
+      "profiles": {
+        "twoD": {
+          "status": "partial_shared_chrome_candidate",
+          "sourceIds": [
+            "nov09:009",
+            "nov09:010",
+            "nov09:401",
+            "nov06:058-commandes"
+          ],
+          "reserves": [
+            "Profil de projet non explicitement établi dans ces captures.",
+            "Focus visible ; la protection de Supprimer dans un champ exige une preuve comportementale."
+          ],
+          "approved": false,
+          "bindingCreated": false
+        },
+        "threeD": {
+          "status": "partial_shared_chrome_candidate",
+          "sourceIds": [
+            "nov09:009",
+            "nov09:010",
+            "nov09:401",
+            "nov06:058-commandes"
+          ],
+          "reserves": [
+            "Profil de projet non explicitement établi dans ces captures.",
+            "Aucune variante 3D distincte ; la protection de Supprimer dans un champ exige une preuve comportementale."
+          ],
+          "approved": false,
+          "bindingCreated": false
+        }
+      }
+    },
+    {
+      "lotId": "RUI-016",
+      "stateId": "S01",
+      "title": "confirmation",
+      "profiles": {
+        "twoD": {
+          "status": "partial_shared_chrome_candidate",
+          "sourceIds": [
+            "nov09:206",
+            "nov09:243"
+          ],
+          "reserves": [
+            "Profil de projet non explicitement établi dans ces captures.",
+            "Confirmations visibles ; focus restauré, Échap et absence d’action en arrière-plan non prouvés par ces images."
+          ],
+          "approved": false,
+          "bindingCreated": false
+        },
+        "threeD": {
+          "status": "partial_shared_chrome_candidate",
+          "sourceIds": [
+            "nov09:206",
+            "nov09:243"
+          ],
+          "reserves": [
+            "Profil de projet non explicitement établi dans ces captures.",
+            "Motif de dialogue commun seulement ; aucune variante de contexte 3D distincte."
+          ],
+          "approved": false,
+          "bindingCreated": false
+        }
+      }
+    },
+    {
+      "lotId": "RUI-016",
+      "stateId": "S02",
+      "title": "garde",
+      "profiles": {
+        "twoD": {
+          "status": "explicit_profile_candidate",
+          "sourceIds": [
+            "C2:twoD-draft.png",
+            "nov09:094"
+          ],
+          "reserves": [
+            "Garde explicite 2D dans C2 ; réemploi de ce dialogue RUI-019 pour RUI-016 à approuver."
+          ],
+          "approved": false,
+          "bindingCreated": false
+        },
+        "threeD": {
+          "status": "explicit_profile_candidate",
+          "sourceIds": [
+            "C2:threeD-draft.png"
+          ],
+          "reserves": [
+            "Garde explicite 3D dans C2 ; réemploi de ce dialogue RUI-019 pour RUI-016 à approuver."
+          ],
+          "approved": false,
+          "bindingCreated": false
+        }
+      }
+    },
+    {
+      "lotId": "RUI-016",
+      "stateId": "S03",
+      "title": "chargement",
+      "profiles": {
+        "twoD": {
+          "status": "partial_explicit_profile_candidate",
+          "sourceIds": [
+            "nov09:178",
+            "C3:twoD-loading-native-preview.jpg"
+          ],
+          "reserves": [
+            "178 est un diagnostic bloquant avant test, pas un chargement.",
+            "C3 montre le dialogue de chargement 2D, mais ne couvre pas la fenêtre complète ; viewport CSS, DPR, interactions et approbation restent à établir."
+          ],
+          "approved": false,
+          "bindingCreated": false
+        },
+        "threeD": {
+          "status": "partial_explicit_profile_candidate",
+          "sourceIds": [
+            "C3:threeD-loading-native-preview.jpg"
+          ],
+          "reserves": [
+            "C3 montre le dialogue de chargement 3D avec un fond schématique, mais ne couvre pas la fenêtre complète ; viewport CSS, DPR, interactions et approbation restent à établir."
+          ],
+          "approved": false,
+          "bindingCreated": false
+        }
+      }
+    },
+    {
+      "lotId": "RUI-016",
+      "stateId": "S04",
+      "title": "erreur récupérable",
+      "profiles": {
+        "twoD": {
+          "status": "partial_explicit_profile_candidate",
+          "sourceIds": [
+            "C2:twoD-recovery.png",
+            "nov09:178"
+          ],
+          "reserves": [
+            "C2 montre un choix de récupération après interruption ; issue d’échec/retry absente. 178 est un diagnostic corrigeable. Erreur image/atlas non représentée."
+          ],
+          "approved": false,
+          "bindingCreated": false
+        },
+        "threeD": {
+          "status": "partial_explicit_profile_candidate",
+          "sourceIds": [
+            "C2:threeD-recovery.png"
+          ],
+          "reserves": [
+            "Choix de récupération explicite 3D ; issue d’échec/retry et erreur modèle/provider non représentées."
+          ],
+          "approved": false,
+          "bindingCreated": false
+        }
+      }
+    },
+    {
+      "lotId": "RUI-016",
+      "stateId": "S05",
+      "title": "conflit",
+      "profiles": {
+        "twoD": {
+          "status": "explicit_profile_candidate",
+          "sourceIds": [
+            "C2:twoD-conflict.png"
+          ],
+          "reserves": [
+            "Conflit de révision explicite ; réemploi du dialogue RUI-019 à approuver. nov09:185 décrit un conflit de connexions et ne couvre pas cet état."
+          ],
+          "approved": false,
+          "bindingCreated": false
+        },
+        "threeD": {
+          "status": "explicit_profile_candidate",
+          "sourceIds": [
+            "C2:threeD-conflict.png"
+          ],
+          "reserves": [
+            "Conflit de révision explicite 3D ; réemploi du dialogue RUI-019 à approuver, aperçu 3D schématique."
+          ],
+          "approved": false,
+          "bindingCreated": false
+        }
+      }
+    }
+  ],
+  "canonicalChanges": {
+    "onlyChangedFields": [
+      "lots[RUI-011].referenceGaps",
+      "lots[RUI-012].referenceGaps",
+      "lots[RUI-013].referenceGaps",
+      "lots[RUI-014].referenceGaps",
+      "lots[RUI-015].referenceGaps",
+      "lots[RUI-016].referenceGaps"
+    ],
+    "canonicalInvariantSha256ExcludingTheseFields": "0c9be6541b1cc83508f24ba44d05d1d3514c6081552789dc1a90c49715d2e05f",
+    "referenceBindingsPreserved": true,
+    "executionAndApprovalStatusesPreserved": true
+  },
+  "verification": {
+    "gitHead": "3624e0493d81d7d58fc35e06d56399a5064e3bb9",
+    "initialGitState": {
+      "command": "git status --short --untracked-files=all",
+      "entryCount": 675,
+      "outputSha256": "25cebf920ee43ff3749faffccf4efdc8b761c6cf1dc3554f951589cd06cc429d",
+      "interpretation": "Travaux préexistants/concurrents ; aucune attribution globale à cette synthèse."
+    },
+    "sourceHashChecks": {
+      "historicalReferenceCount": 26,
+      "candidateCaptureCount": 9,
+      "allMatched": true
+    },
+    "commandsRun": [
+      "git status --short --untracked-files=all",
+      "git rev-parse HEAD",
+      "git check-ignore -v documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes/reference-coverage-rui-011-016.json",
+      "python3 : lecture JSON, comparaison SHA-256 registre/manifestes et cohérence des 19 états/38 profils"
+    ],
+    "testsAnalyzeBuild": "Non exécutés : changements documentaires JSON seulement.",
+    "independentReview": "Le relevé initial n’avait pas de revue indépendante de ce JSON. Les deux aperçus de chargement ajoutés ensuite ont été examinés par un autre agent et leurs empreintes vérifiées par le coordinateur ; ils restent candidats.",
+    "updateVerification": "Deux nouveaux aperçus C3 ajoutés après le relevé initial ; SHA-256 vérifiés le 11 novembre 2026. La matrice RUI-013 exclut les deux combinaisons impossibles de projet actif/profil opposé ; les 36 couples applicables restent exigés. Les comptes et empreintes du relevé initial ci-dessus sont historiques.",
+    "finalGitState": {
+      "command": "git status --short --untracked-files=all",
+      "entryCount": 676,
+      "outputSha256": "729e8c8cd08e593088d87d061e4b6326670773f572bb2f195c7aea7a77330f85",
+      "interpretation": "Travaux préexistants/concurrents ; aucune attribution globale à cette synthèse."
+    }
+  },
+  "recommendedNextStep": "Compléter les captures manquantes puis faire approuver les liaisons état/profil applicables avant T02.",
+  "mcpParity": "N/A"
+}

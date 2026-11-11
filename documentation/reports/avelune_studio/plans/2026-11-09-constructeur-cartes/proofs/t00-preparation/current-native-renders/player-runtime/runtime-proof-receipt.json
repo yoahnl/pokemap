@@ -1,0 +1,883 @@
+{
+  "schemaVersion": 1,
+  "tier": "actual installed Player headless runtime lifecycle and durable current-format save/restart",
+  "nativeUiOrGpuRendered": false,
+  "saveFormat": 2,
+  "scope": "owned QA copies only",
+  "projects": {
+    "twoD": {
+      "files": 14,
+      "deltaSinceCanonicalExport": {
+        "added": [],
+        "removed": [],
+        "changed": []
+      },
+      "unchanged": true
+    },
+    "threeD": {
+      "files": 1312,
+      "deltaSinceCanonicalExport": {
+        "added": [],
+        "removed": [],
+        "changed": []
+      },
+      "unchanged": true
+    }
+  },
+  "exports": {
+    "twod": {
+      "bytes": 40189,
+      "sha256": "269ba994e7b35d86d0b99e58cbf568f7385ac830531eec23c180e371102f8b09",
+      "unchanged": true
+    },
+    "threed": {
+      "bytes": 9214276,
+      "sha256": "17b92dd6f4fc73f090d4831ba8c985f6f5ba41a87c0f3ac7caaef9c9a8d84543",
+      "unchanged": true
+    }
+  },
+  "processes": {
+    "read-isolated4-command.json": {
+      "runnerPid": 10513,
+      "exitCode": 1,
+      "ownedDescendantCount": 5,
+      "remaining": ""
+    },
+    "read-isolated5-command.json": {
+      "runnerPid": 11822,
+      "exitCode": 0,
+      "ownedDescendantCount": 3,
+      "remaining": ""
+    },
+    "write-command.json": {
+      "runnerPid": 490,
+      "exitCode": 1,
+      "ownedDescendantCount": 16,
+      "remaining": ""
+    },
+    "write-isolated-command.json": {
+      "runnerPid": 4249,
+      "exitCode": 1,
+      "ownedDescendantCount": 0,
+      "remaining": ""
+    },
+    "write-isolated2-command.json": {
+      "runnerPid": 7666,
+      "exitCode": 1,
+      "ownedDescendantCount": 19,
+      "remaining": ""
+    },
+    "write-isolated3-command.json": {
+      "runnerPid": 9421,
+      "exitCode": 1,
+      "ownedDescendantCount": 2,
+      "remaining": ""
+    },
+    "write-isolated4-command.json": {
+      "runnerPid": 10352,
+      "exitCode": 0,
+      "ownedDescendantCount": 2,
+      "remaining": ""
+    }
+  },
+  "proofs": {
+    "twod-write": {
+      "pid": 10418,
+      "dimension": "twod",
+      "phase": "write",
+      "tier": "production Player headless runtime lifecycle",
+      "nativeUiOrGpuRendered": false,
+      "stage": "disposed",
+      "installedGameId": "dev.avelune.qa.t01.twod",
+      "commandPhase": "paused",
+      "lastCommand": "save",
+      "lastCommandStatus": "accepted",
+      "lastCommandMessage": null,
+      "initialState": {
+        "saveId": "2b92b70a-0b3b-519e-972c-ab430824c3cb",
+        "currentMapId": "jardin",
+        "playerPosition": {
+          "x": 8,
+          "y": 9
+        },
+        "playerSpatialPosition": null,
+        "trainerProfile": {
+          "name": "Joueur",
+          "avatarCharacterId": "guide",
+          "pronounSet": "neutral",
+          "badgeIds": [],
+          "money": 0,
+          "playtimeSeconds": 0
+        },
+        "party": {
+          "members": []
+        },
+        "bag": {
+          "entries": []
+        },
+        "storyFlags": {
+          "activeFlags": []
+        },
+        "scriptVariables": {
+          "values": {
+            "player_name": {
+              "value": "Joueur",
+              "runtimeType": "string"
+            },
+            "player_avatar": {
+              "value": "guide",
+              "runtimeType": "string"
+            },
+            "player_pronoun_set": {
+              "value": "neutral",
+              "runtimeType": "string"
+            },
+            "player_pronoun_subject": {
+              "value": "iel",
+              "runtimeType": "string"
+            },
+            "player_pronoun_object": {
+              "value": "ellui",
+              "runtimeType": "string"
+            },
+            "player_pronoun_possessive": {
+              "value": "son",
+              "runtimeType": "string"
+            },
+            "player_pronoun_reflexive": {
+              "value": "ellui-même",
+              "runtimeType": "string"
+            }
+          }
+        },
+        "progression": {
+          "unlockedFieldAbilities": [],
+          "storyFlags": [],
+          "shopPurchaseCounts": {},
+          "completedStepIds": [],
+          "completedCutsceneIds": [],
+          "seenSpeciesIds": [],
+          "caughtSpeciesIds": []
+        }
+      },
+      "moved": true,
+      "stateBeforeManualSave": {
+        "saveId": "2b92b70a-0b3b-519e-972c-ab430824c3cb",
+        "currentMapId": "jardin",
+        "playerPosition": {
+          "x": 6,
+          "y": 9
+        },
+        "playerSpatialPosition": null,
+        "trainerProfile": {
+          "name": "Joueur",
+          "avatarCharacterId": "guide",
+          "pronounSet": "neutral",
+          "badgeIds": [],
+          "money": 0,
+          "playtimeSeconds": 0
+        },
+        "party": {
+          "members": []
+        },
+        "bag": {
+          "entries": []
+        },
+        "storyFlags": {
+          "activeFlags": []
+        },
+        "scriptVariables": {
+          "values": {
+            "player_name": {
+              "value": "Joueur",
+              "runtimeType": "string"
+            },
+            "player_avatar": {
+              "value": "guide",
+              "runtimeType": "string"
+            },
+            "player_pronoun_set": {
+              "value": "neutral",
+              "runtimeType": "string"
+            },
+            "player_pronoun_subject": {
+              "value": "iel",
+              "runtimeType": "string"
+            },
+            "player_pronoun_object": {
+              "value": "ellui",
+              "runtimeType": "string"
+            },
+            "player_pronoun_possessive": {
+              "value": "son",
+              "runtimeType": "string"
+            },
+            "player_pronoun_reflexive": {
+              "value": "ellui-même",
+              "runtimeType": "string"
+            }
+          }
+        },
+        "progression": {
+          "unlockedFieldAbilities": [],
+          "storyFlags": [],
+          "shopPurchaseCounts": {},
+          "completedStepIds": [],
+          "completedCutsceneIds": [],
+          "seenSpeciesIds": [],
+          "caughtSpeciesIds": []
+        }
+      },
+      "saveChecksum": "d6e10022442333f8874cb7c5e96bd2aa794ae6f15d072e3c099b22bd9d748ffc",
+      "savedState": {
+        "saveId": "2b92b70a-0b3b-519e-972c-ab430824c3cb",
+        "currentMapId": "jardin",
+        "playerPosition": {
+          "x": 6,
+          "y": 9
+        },
+        "playerSpatialPosition": null,
+        "trainerProfile": {
+          "name": "Joueur",
+          "avatarCharacterId": "guide",
+          "pronounSet": "neutral",
+          "badgeIds": [],
+          "money": 0,
+          "playtimeSeconds": 0
+        },
+        "party": {
+          "members": []
+        },
+        "bag": {
+          "entries": []
+        },
+        "storyFlags": {
+          "activeFlags": []
+        },
+        "scriptVariables": {
+          "values": {
+            "player_name": {
+              "value": "Joueur",
+              "runtimeType": "string"
+            },
+            "player_avatar": {
+              "value": "guide",
+              "runtimeType": "string"
+            },
+            "player_pronoun_set": {
+              "value": "neutral",
+              "runtimeType": "string"
+            },
+            "player_pronoun_subject": {
+              "value": "iel",
+              "runtimeType": "string"
+            },
+            "player_pronoun_object": {
+              "value": "ellui",
+              "runtimeType": "string"
+            },
+            "player_pronoun_possessive": {
+              "value": "son",
+              "runtimeType": "string"
+            },
+            "player_pronoun_reflexive": {
+              "value": "ellui-même",
+              "runtimeType": "string"
+            }
+          }
+        },
+        "progression": {
+          "unlockedFieldAbilities": [],
+          "storyFlags": [],
+          "shopPurchaseCounts": {},
+          "completedStepIds": [],
+          "completedCutsceneIds": [],
+          "seenSpeciesIds": [],
+          "caughtSpeciesIds": []
+        }
+      },
+      "success": true
+    },
+    "twod-read": {
+      "pid": 11944,
+      "dimension": "twod",
+      "phase": "read",
+      "tier": "production Player headless runtime lifecycle",
+      "nativeUiOrGpuRendered": false,
+      "stage": "disposed",
+      "inputSaveChecksum": "d6e10022442333f8874cb7c5e96bd2aa794ae6f15d072e3c099b22bd9d748ffc",
+      "commandPhase": "loadingSession",
+      "lastCommand": "continueGame",
+      "lastCommandStatus": "accepted",
+      "lastCommandMessage": null,
+      "initialState": {
+        "saveId": "2b92b70a-0b3b-519e-972c-ab430824c3cb",
+        "currentMapId": "jardin",
+        "playerPosition": {
+          "x": 6,
+          "y": 9
+        },
+        "playerSpatialPosition": null,
+        "trainerProfile": {
+          "name": "Joueur",
+          "avatarCharacterId": "guide",
+          "pronounSet": "neutral",
+          "badgeIds": [],
+          "money": 0,
+          "playtimeSeconds": 0
+        },
+        "party": {
+          "members": []
+        },
+        "bag": {
+          "entries": []
+        },
+        "storyFlags": {
+          "activeFlags": []
+        },
+        "scriptVariables": {
+          "values": {
+            "player_name": {
+              "value": "Joueur",
+              "runtimeType": "string"
+            },
+            "player_avatar": {
+              "value": "guide",
+              "runtimeType": "string"
+            },
+            "player_pronoun_set": {
+              "value": "neutral",
+              "runtimeType": "string"
+            },
+            "player_pronoun_subject": {
+              "value": "iel",
+              "runtimeType": "string"
+            },
+            "player_pronoun_object": {
+              "value": "ellui",
+              "runtimeType": "string"
+            },
+            "player_pronoun_possessive": {
+              "value": "son",
+              "runtimeType": "string"
+            },
+            "player_pronoun_reflexive": {
+              "value": "ellui-même",
+              "runtimeType": "string"
+            }
+          }
+        },
+        "progression": {
+          "unlockedFieldAbilities": [],
+          "storyFlags": [],
+          "shopPurchaseCounts": {},
+          "completedStepIds": [],
+          "completedCutsceneIds": [],
+          "seenSpeciesIds": [],
+          "caughtSpeciesIds": []
+        }
+      },
+      "restoredState": {
+        "saveId": "2b92b70a-0b3b-519e-972c-ab430824c3cb",
+        "currentMapId": "jardin",
+        "playerPosition": {
+          "x": 6,
+          "y": 9
+        },
+        "playerSpatialPosition": null,
+        "trainerProfile": {
+          "name": "Joueur",
+          "avatarCharacterId": "guide",
+          "pronounSet": "neutral",
+          "badgeIds": [],
+          "money": 0,
+          "playtimeSeconds": 0
+        },
+        "party": {
+          "members": []
+        },
+        "bag": {
+          "entries": []
+        },
+        "storyFlags": {
+          "activeFlags": []
+        },
+        "scriptVariables": {
+          "values": {
+            "player_name": {
+              "value": "Joueur",
+              "runtimeType": "string"
+            },
+            "player_avatar": {
+              "value": "guide",
+              "runtimeType": "string"
+            },
+            "player_pronoun_set": {
+              "value": "neutral",
+              "runtimeType": "string"
+            },
+            "player_pronoun_subject": {
+              "value": "iel",
+              "runtimeType": "string"
+            },
+            "player_pronoun_object": {
+              "value": "ellui",
+              "runtimeType": "string"
+            },
+            "player_pronoun_possessive": {
+              "value": "son",
+              "runtimeType": "string"
+            },
+            "player_pronoun_reflexive": {
+              "value": "ellui-même",
+              "runtimeType": "string"
+            }
+          }
+        },
+        "progression": {
+          "unlockedFieldAbilities": [],
+          "storyFlags": [],
+          "shopPurchaseCounts": {},
+          "completedStepIds": [],
+          "completedCutsceneIds": [],
+          "seenSpeciesIds": [],
+          "caughtSpeciesIds": []
+        }
+      },
+      "inputSaveUnchangedBeforeTeardown": true,
+      "success": true
+    },
+    "twod-final-save-file": {
+      "sha256": "f274c6a466992ce0a58ffcc385a92f7c8c7f86588ff7277d2b81e8e834806348",
+      "bytes": 5345
+    },
+    "threed-write": {
+      "pid": 8233,
+      "dimension": "threed",
+      "phase": "write",
+      "tier": "production Player headless runtime lifecycle",
+      "nativeUiOrGpuRendered": false,
+      "stage": "disposed",
+      "installedGameId": "dev.avelune.qa.t01.threed",
+      "lastCommand": "save",
+      "lastCommandStatus": "accepted",
+      "lastCommandMessage": null,
+      "initialState": {
+        "saveId": "a83314b8-8bea-5e65-b05b-afbcdf8f559c",
+        "currentMapId": "first-map",
+        "playerPosition": {
+          "x": 25,
+          "y": 15
+        },
+        "playerSpatialPosition": {
+          "schemaVersion": 1,
+          "x": 25.5,
+          "z": 15.5
+        },
+        "trainerProfile": {
+          "name": "QA HGSS",
+          "avatarCharacterId": "voyageur-de-test",
+          "pronounSet": "neutral",
+          "badgeIds": [],
+          "money": 0,
+          "playtimeSeconds": 0
+        },
+        "party": {
+          "members": []
+        },
+        "bag": {
+          "entries": []
+        },
+        "storyFlags": {
+          "activeFlags": []
+        },
+        "scriptVariables": {
+          "values": {
+            "player_name": {
+              "value": "QA HGSS",
+              "runtimeType": "string"
+            },
+            "player_avatar": {
+              "value": "voyageur-de-test",
+              "runtimeType": "string"
+            },
+            "player_pronoun_set": {
+              "value": "neutral",
+              "runtimeType": "string"
+            },
+            "player_pronoun_subject": {
+              "value": "iel",
+              "runtimeType": "string"
+            },
+            "player_pronoun_object": {
+              "value": "ellui",
+              "runtimeType": "string"
+            },
+            "player_pronoun_possessive": {
+              "value": "son",
+              "runtimeType": "string"
+            },
+            "player_pronoun_reflexive": {
+              "value": "ellui-même",
+              "runtimeType": "string"
+            }
+          }
+        },
+        "progression": {
+          "unlockedFieldAbilities": [],
+          "storyFlags": [],
+          "shopPurchaseCounts": {},
+          "completedStepIds": [],
+          "completedCutsceneIds": [],
+          "seenSpeciesIds": [],
+          "caughtSpeciesIds": []
+        }
+      },
+      "moved": true,
+      "stateBeforeManualSave": {
+        "saveId": "a83314b8-8bea-5e65-b05b-afbcdf8f559c",
+        "currentMapId": "first-map",
+        "playerPosition": {
+          "x": 26,
+          "y": 15
+        },
+        "playerSpatialPosition": {
+          "schemaVersion": 1,
+          "x": 26.6875,
+          "z": 15.5
+        },
+        "trainerProfile": {
+          "name": "QA HGSS",
+          "avatarCharacterId": "voyageur-de-test",
+          "pronounSet": "neutral",
+          "badgeIds": [],
+          "money": 0,
+          "playtimeSeconds": 0
+        },
+        "party": {
+          "members": []
+        },
+        "bag": {
+          "entries": []
+        },
+        "storyFlags": {
+          "activeFlags": []
+        },
+        "scriptVariables": {
+          "values": {
+            "player_name": {
+              "value": "QA HGSS",
+              "runtimeType": "string"
+            },
+            "player_avatar": {
+              "value": "voyageur-de-test",
+              "runtimeType": "string"
+            },
+            "player_pronoun_set": {
+              "value": "neutral",
+              "runtimeType": "string"
+            },
+            "player_pronoun_subject": {
+              "value": "iel",
+              "runtimeType": "string"
+            },
+            "player_pronoun_object": {
+              "value": "ellui",
+              "runtimeType": "string"
+            },
+            "player_pronoun_possessive": {
+              "value": "son",
+              "runtimeType": "string"
+            },
+            "player_pronoun_reflexive": {
+              "value": "ellui-même",
+              "runtimeType": "string"
+            }
+          }
+        },
+        "progression": {
+          "unlockedFieldAbilities": [],
+          "storyFlags": [],
+          "shopPurchaseCounts": {},
+          "completedStepIds": [],
+          "completedCutsceneIds": [],
+          "seenSpeciesIds": [],
+          "caughtSpeciesIds": []
+        }
+      },
+      "saveChecksum": "2b1dbc10fb8b447557832262bfac2f7f975b3f2078c70fe5e05c04c26d538776",
+      "savedState": {
+        "saveId": "a83314b8-8bea-5e65-b05b-afbcdf8f559c",
+        "currentMapId": "first-map",
+        "playerPosition": {
+          "x": 26,
+          "y": 15
+        },
+        "playerSpatialPosition": {
+          "schemaVersion": 1,
+          "x": 26.6875,
+          "z": 15.5
+        },
+        "trainerProfile": {
+          "name": "QA HGSS",
+          "avatarCharacterId": "voyageur-de-test",
+          "pronounSet": "neutral",
+          "badgeIds": [],
+          "money": 0,
+          "playtimeSeconds": 0
+        },
+        "party": {
+          "members": []
+        },
+        "bag": {
+          "entries": []
+        },
+        "storyFlags": {
+          "activeFlags": []
+        },
+        "scriptVariables": {
+          "values": {
+            "player_name": {
+              "value": "QA HGSS",
+              "runtimeType": "string"
+            },
+            "player_avatar": {
+              "value": "voyageur-de-test",
+              "runtimeType": "string"
+            },
+            "player_pronoun_set": {
+              "value": "neutral",
+              "runtimeType": "string"
+            },
+            "player_pronoun_subject": {
+              "value": "iel",
+              "runtimeType": "string"
+            },
+            "player_pronoun_object": {
+              "value": "ellui",
+              "runtimeType": "string"
+            },
+            "player_pronoun_possessive": {
+              "value": "son",
+              "runtimeType": "string"
+            },
+            "player_pronoun_reflexive": {
+              "value": "ellui-même",
+              "runtimeType": "string"
+            }
+          }
+        },
+        "progression": {
+          "unlockedFieldAbilities": [],
+          "storyFlags": [],
+          "shopPurchaseCounts": {},
+          "completedStepIds": [],
+          "completedCutsceneIds": [],
+          "seenSpeciesIds": [],
+          "caughtSpeciesIds": []
+        }
+      },
+      "success": true
+    },
+    "threed-read": {
+      "pid": 10681,
+      "dimension": "threed",
+      "phase": "read",
+      "tier": "production Player headless runtime lifecycle",
+      "nativeUiOrGpuRendered": false,
+      "stage": "disposed",
+      "inputSaveChecksum": "2b1dbc10fb8b447557832262bfac2f7f975b3f2078c70fe5e05c04c26d538776",
+      "commandPhase": "loadingSession",
+      "lastCommand": "continueGame",
+      "lastCommandStatus": "accepted",
+      "lastCommandMessage": null,
+      "initialState": {
+        "saveId": "a83314b8-8bea-5e65-b05b-afbcdf8f559c",
+        "currentMapId": "first-map",
+        "playerPosition": {
+          "x": 26,
+          "y": 15
+        },
+        "playerSpatialPosition": {
+          "schemaVersion": 1,
+          "x": 26.6875,
+          "z": 15.5
+        },
+        "trainerProfile": {
+          "name": "QA HGSS",
+          "avatarCharacterId": "voyageur-de-test",
+          "pronounSet": "neutral",
+          "badgeIds": [],
+          "money": 0,
+          "playtimeSeconds": 0
+        },
+        "party": {
+          "members": []
+        },
+        "bag": {
+          "entries": []
+        },
+        "storyFlags": {
+          "activeFlags": []
+        },
+        "scriptVariables": {
+          "values": {
+            "player_name": {
+              "value": "QA HGSS",
+              "runtimeType": "string"
+            },
+            "player_avatar": {
+              "value": "voyageur-de-test",
+              "runtimeType": "string"
+            },
+            "player_pronoun_set": {
+              "value": "neutral",
+              "runtimeType": "string"
+            },
+            "player_pronoun_subject": {
+              "value": "iel",
+              "runtimeType": "string"
+            },
+            "player_pronoun_object": {
+              "value": "ellui",
+              "runtimeType": "string"
+            },
+            "player_pronoun_possessive": {
+              "value": "son",
+              "runtimeType": "string"
+            },
+            "player_pronoun_reflexive": {
+              "value": "ellui-même",
+              "runtimeType": "string"
+            }
+          }
+        },
+        "progression": {
+          "unlockedFieldAbilities": [],
+          "storyFlags": [],
+          "shopPurchaseCounts": {},
+          "completedStepIds": [],
+          "completedCutsceneIds": [],
+          "seenSpeciesIds": [],
+          "caughtSpeciesIds": []
+        }
+      },
+      "restoredState": {
+        "saveId": "a83314b8-8bea-5e65-b05b-afbcdf8f559c",
+        "currentMapId": "first-map",
+        "playerPosition": {
+          "x": 26,
+          "y": 15
+        },
+        "playerSpatialPosition": {
+          "schemaVersion": 1,
+          "x": 26.6875,
+          "z": 15.5
+        },
+        "trainerProfile": {
+          "name": "QA HGSS",
+          "avatarCharacterId": "voyageur-de-test",
+          "pronounSet": "neutral",
+          "badgeIds": [],
+          "money": 0,
+          "playtimeSeconds": 0
+        },
+        "party": {
+          "members": []
+        },
+        "bag": {
+          "entries": []
+        },
+        "storyFlags": {
+          "activeFlags": []
+        },
+        "scriptVariables": {
+          "values": {
+            "player_name": {
+              "value": "QA HGSS",
+              "runtimeType": "string"
+            },
+            "player_avatar": {
+              "value": "voyageur-de-test",
+              "runtimeType": "string"
+            },
+            "player_pronoun_set": {
+              "value": "neutral",
+              "runtimeType": "string"
+            },
+            "player_pronoun_subject": {
+              "value": "iel",
+              "runtimeType": "string"
+            },
+            "player_pronoun_object": {
+              "value": "ellui",
+              "runtimeType": "string"
+            },
+            "player_pronoun_possessive": {
+              "value": "son",
+              "runtimeType": "string"
+            },
+            "player_pronoun_reflexive": {
+              "value": "ellui-même",
+              "runtimeType": "string"
+            }
+          }
+        },
+        "progression": {
+          "unlockedFieldAbilities": [],
+          "storyFlags": [],
+          "shopPurchaseCounts": {},
+          "completedStepIds": [],
+          "completedCutsceneIds": [],
+          "seenSpeciesIds": [],
+          "caughtSpeciesIds": []
+        }
+      },
+      "inputSaveUnchangedBeforeTeardown": true,
+      "success": true
+    },
+    "threed-final-save-file": {
+      "sha256": "dd6fb36e816284300cccdfe597d38a820b788bfdf8990001144ba1f5a2968f0d",
+      "bytes": 5439
+    }
+  },
+  "knownHarnessFailures": [
+    "Initial target apps/pokemap_hub was a symlink to checkout. Owned temporary test was removed; no pre-existing tracked source edited. First suite failed on premature playing assertion.",
+    "First genuinely isolated command had no package_graph.json and failed before tests. Offline pub get in owned source fixed the harness environment.",
+    "2D first movement entered authored ending warp jardin->clairiere, executing finishGame; probe changed its direction left, without editing the game.",
+    "2D first read checked mapEnter readiness too soon; bounded polling of actual map activation fixed this probe assertion."
+  ],
+  "limits": [
+    "No native Player widget navigation tested",
+    "No GPU scene rendering or visual comparison tested",
+    "Party/bag/facts/progression were empty authored defaults; persistence comparison covers them but does not prove nonempty mechanics",
+    "No FG or T00/T01 global acceptance conclusion"
+  ],
+  "baselineSourceUnchanged": true,
+  "harnessAnalysis": {
+    "command": "dart analyze test/t01_real_export_runtime_probe_test.dart",
+    "exitCode": 2,
+    "errors": 0,
+    "warnings": 1,
+    "infos": 2,
+    "details": "Flame load() is internal; 2 brace style infos in disposable harness"
+  },
+  "sourceInventorySha256": "fbc2bad7a04ffbbd8ec9c5aac0b2d2739f54f9a864947ce822670afe11a68608",
+  "checkoutProbeTestAbsent": true,
+  "checkoutStatusEntries": 820,
+  "cleanup": {
+    "source": {
+      "removedBytes": 340218139,
+      "removed": true
+    },
+    "twod": {
+      "removedBytes": 43381,
+      "removed": true
+    },
+    "threed": {
+      "removedBytes": 8588696,
+      "removed": true
+    }
+  },
+  "timestamp": 1794328626.035533
+}

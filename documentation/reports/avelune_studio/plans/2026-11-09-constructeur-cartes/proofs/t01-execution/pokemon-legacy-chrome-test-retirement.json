@@ -1,0 +1,33 @@
+{
+  "authorization": "Root approved retiring each identified legacy chrome case after mapping responsibility, without repeated approvals.",
+  "retired": [
+    {
+      "removedTest": "apps/avelune_studio/test/pokemon/pokemon_empty_state_test.dart",
+      "sha256": "411f32fd23698d6edb6634ca72372078e48c7828ce88de42c22caeac0f4a7077",
+      "cases": [
+        "large text in a short pane scrolls to the action instead of overflowing",
+        "a roomy pane keeps the empty state centred without scrolling"
+      ],
+      "responsibility": "Legacy PokemonEmptyState composition, scroll, centering and generic callback reachability.",
+      "canonicalCommandCovered": "No canonical command or mutation was invoked by this test. Combat creation commands remain covered independently.",
+      "remainingAcceptance": "New interface layout and native pixel-art presentation remain separate unproven acceptance criteria."
+    },
+    {
+      "removedTest": "apps/avelune_studio/test/pokemon/pokemon_thumbnail_sharpness_test.dart",
+      "sha256": "f9bcdbdf2d0cb44f96533ee1e965fba1a9970980c9ae21753362917d0b93b990",
+      "cases": [
+        "species thumbnails keep pixel art sharp (R11)"
+      ],
+      "responsibility": "Image.filterQuality property on the retired PokemonSpeciesThumbnail composition with a one-pixel fake port.",
+      "canonicalCommandCovered": "No canonical command or mutation was invoked by this test. Combat creation commands remain covered independently.",
+      "remainingAcceptance": "New interface layout and native pixel-art presentation remain separate unproven acceptance criteria."
+    }
+  ],
+  "retiredChromeCases": 3,
+  "deletedBusinessContractCases": 0,
+  "claims": {
+    "newInterfaceAccepted": false,
+    "nativePixelArtAcceptanceInferred": false,
+    "T01Complete": false
+  }
+}

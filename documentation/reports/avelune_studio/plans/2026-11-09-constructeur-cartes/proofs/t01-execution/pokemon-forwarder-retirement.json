@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "kind": "physical-forwarder-retirement",
+  "retiredFiles": [
+    {
+      "retired": "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_evolution_rule.dart",
+      "retiredSha256": "f290232dd909fdcac8a2cf4670f5b08cb5f2fd9e3dbe9e6e62fccb757ed61725",
+      "owner": "apps/avelune_studio/lib/features/pokemon/application/pokemon_evolution_rule.dart",
+      "ownerSha256Before": "71ec02c7ab462d30ad93c34d78dbca92969f42ba7c923bb18f9b6701e50adfb6",
+      "ownerSha256After": "71ec02c7ab462d30ad93c34d78dbca92969f42ba7c923bb18f9b6701e50adfb6"
+    },
+    {
+      "retired": "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_combat_references.dart",
+      "retiredSha256": "8d6fad9e529e232bc95b6cd66cd57e114336accc3c5e985d63c3a38f0741cafe",
+      "owner": "apps/avelune_studio/lib/features/pokemon/application/pokemon_combat_references.dart",
+      "ownerSha256Before": "361098137d539e1d1a335973027e7c8e9d6815072e410c4aa4afc8bbda16ec4d",
+      "ownerSha256After": "361098137d539e1d1a335973027e7c8e9d6815072e410c4aa4afc8bbda16ec4d"
+    }
+  ],
+  "retargetedDirectives": [
+    {
+      "consumer": "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_evolution_entry.dart",
+      "oldUri": "pokemon_evolution_rule.dart",
+      "newUri": "../../../features/pokemon/application/pokemon_evolution_rule.dart"
+    },
+    {
+      "consumer": "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_combat_reference_list.dart",
+      "oldUri": "pokemon_combat_references.dart",
+      "newUri": "../../../features/pokemon/application/pokemon_combat_references.dart"
+    },
+    {
+      "consumer": "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_combat_context_panel.dart",
+      "oldUri": "pokemon_combat_references.dart",
+      "newUri": "../../../features/pokemon/application/pokemon_combat_references.dart"
+    },
+    {
+      "consumer": "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_combat_trainer_detail.dart",
+      "oldUri": "pokemon_combat_references.dart",
+      "newUri": "../../../features/pokemon/application/pokemon_combat_references.dart"
+    },
+    {
+      "consumer": "apps/avelune_studio/lib/presentation/features/pokemon/pokemon_combat_page.dart",
+      "oldUri": "pokemon_combat_references.dart",
+      "newUri": "../../../features/pokemon/application/pokemon_combat_references.dart"
+    },
+    {
+      "consumer": "apps/avelune_studio/test/presentation/encounter_trainer_authoring_journey_test.dart",
+      "oldUri": "package:avelune_studio/presentation/features/pokemon/pokemon_combat_references.dart",
+      "newUri": "package:avelune_studio/features/pokemon/application/pokemon_combat_references.dart"
+    }
+  ],
+  "validation": {
+    "ownerHashesUnchanged": true,
+    "remainingRetiredImports": 0,
+    "testsDeleted": 0,
+    "targetedTests": "Not run by this agent; root isolated epoch validation pending",
+    "mcpParity": "N/A"
+  },
+  "limitations": [
+    "Two forwarders only; remaining Pokemon and Resource compositions are not certified retired.",
+    "No G0 or T01 acceptance claimed."
+  ]
+}

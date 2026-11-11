@@ -1,0 +1,7 @@
+Analyzing t01_real_export_runtime_probe_test.dart...
+
+warning - t01_real_export_runtime_probe_test.dart:127:31 - The member 'load' can only be used within its package. - invalid_use_of_internal_member
+   info - t01_real_export_runtime_probe_test.dart:25:7 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+   info - t01_real_export_runtime_probe_test.dart:218:15 - Statements in an if should be enclosed in a block. Try wrapping the statement in a block. - curly_braces_in_flow_control_structures
+
+3 issues found.

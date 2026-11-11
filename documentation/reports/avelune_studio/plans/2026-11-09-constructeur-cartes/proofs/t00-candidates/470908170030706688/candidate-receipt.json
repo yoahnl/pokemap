@@ -1,0 +1,30 @@
+{
+  "scope": "MagicPath prototype only; no native Studio session or real project writes",
+  "componentId": "470904123445886976",
+  "revisionId": "470908170030706688",
+  "projectId": "470322374529675264",
+  "buildStatus": "completed",
+  "testCommand": "node --test session-reference-model.test.mjs",
+  "testExitCode": 0,
+  "finishedAt": "2026-11-10T14:26:36.116513+00:00",
+  "testCount": 14,
+  "testLog": "model-tests.log",
+  "testLogSha256": "81f2347ea68de8817627c7592e35881e806ebe41cad6c23e78bc6d80043aba85",
+  "nativeStudioIntegration": false,
+  "referenceApproved": false,
+  "referenceBindingsCreated": false,
+  "files": [
+    {
+      "path": "src/components/generated/AveluneStudioRUI019Sessions2DEt3D.tsx",
+      "sha256": "7aa5d3829ac5514ce35b422292a06dab8c4a156e9c27d5ef582dfdee38cbf076"
+    },
+    {
+      "path": "src/components/generated/SessionReference.css",
+      "sha256": "78fc52be944e3183199a018b0107122d4c3e646c8e3aa35ca812cee6d3b1efc6"
+    },
+    {
+      "path": "src/components/generated/SessionReferenceModel.ts",
+      "sha256": "952b9be84fb48042b9da616b0ae0d0d99c5542eaf5838256d9658b70e7d9c559"
+    }
+  ]
+}

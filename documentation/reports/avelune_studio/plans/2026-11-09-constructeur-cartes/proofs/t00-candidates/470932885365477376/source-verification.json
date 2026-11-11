@@ -1,0 +1,25 @@
+{
+  "files": [
+    {
+      "path": "src/components/generated/RUI075EspCesPokMonCandidate2D3D.tsx",
+      "submittedSha256": "42342a02bc634e4f390f5fe072128f300e43b0079acd9c8a3621dcd47b787415",
+      "remoteNormalizedSha256": "339f7c919af145cec3ab1302b931447731c64e738cccdb253a1d51af8bb311ac",
+      "semanticMatch": true
+    },
+    {
+      "path": "src/components/generated/RUI075EspCesPokMonCandidate2D3D.css",
+      "submittedSha256": "ed04a643a2770b279a6e7bf8cbade97d60ed775ceb1267427435299d11c15c47",
+      "remoteNormalizedSha256": "ed04a643a2770b279a6e7bf8cbade97d60ed775ceb1267427435299d11c15c47",
+      "semanticMatch": true
+    }
+  ],
+  "allSemanticMatches": true,
+  "normalization": {
+    "engine": "esbuild",
+    "version": "0.25.12",
+    "loader": "tsx",
+    "target": "es2020",
+    "jsx": "automatic",
+    "minify": true
+  }
+}

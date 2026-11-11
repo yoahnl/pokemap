@@ -1,0 +1,229 @@
+{
+  "checks": 91,
+  "passed": [
+    "twoD/liste selected",
+    "twoD/liste dimension retained",
+    "twoD/liste candidate provenance visible",
+    "twoD/list has species",
+    "twoD/liste no horizontal overflow",
+    "twoD/fiche selected",
+    "twoD/fiche dimension retained",
+    "twoD/fiche candidate provenance visible",
+    "twoD/sheet identity",
+    "twoD/fiche no horizontal overflow",
+    "twoD/provenance selected",
+    "twoD/provenance dimension retained",
+    "twoD/provenance candidate provenance visible",
+    "twoD/provenance source distinction",
+    "twoD/provenance no horizontal overflow",
+    "twoD/brouillon selected",
+    "twoD/brouillon dimension retained",
+    "twoD/brouillon candidate provenance visible",
+    "twoD/valid draft can be saved",
+    "twoD/brouillon no horizontal overflow",
+    "twoD/erreur selected",
+    "twoD/erreur dimension retained",
+    "twoD/erreur candidate provenance visible",
+    "twoD/missing reference alert",
+    "twoD/missing reference blocks save",
+    "twoD/missing reference does not substitute preview",
+    "twoD/erreur no horizontal overflow",
+    "twoD/empty search",
+    "twoD/pagination second page",
+    "twoD/type filter only matching species",
+    "twoD/tab Formes",
+    "twoD/tab Évolutions",
+    "twoD/tab Médias",
+    "twoD/tab Usages",
+    "twoD/provenance compare dialog",
+    "twoD/Escape closes dialog",
+    "twoD/cancel discard preserves draft",
+    "twoD/invalid stat blocks save",
+    "twoD/save labelled mock-only",
+    "twoD/saved fixture value rereads in same mock session",
+    "twoD/retry keeps missing reference blocked",
+    "twoD/replacement requires explicit choice",
+    "twoD/explicit replacement resolved",
+    "twoD/resolved reference allows save",
+    "twoD/replacement retains species identity",
+    "threeD/liste selected",
+    "threeD/liste dimension retained",
+    "threeD/liste candidate provenance visible",
+    "threeD/list has species",
+    "threeD/liste no horizontal overflow",
+    "threeD/fiche selected",
+    "threeD/fiche dimension retained",
+    "threeD/fiche candidate provenance visible",
+    "threeD/sheet identity",
+    "threeD/fiche no horizontal overflow",
+    "threeD/provenance selected",
+    "threeD/provenance dimension retained",
+    "threeD/provenance candidate provenance visible",
+    "threeD/provenance source distinction",
+    "threeD/provenance no horizontal overflow",
+    "threeD/brouillon selected",
+    "threeD/brouillon dimension retained",
+    "threeD/brouillon candidate provenance visible",
+    "threeD/valid draft can be saved",
+    "threeD/brouillon no horizontal overflow",
+    "threeD/erreur selected",
+    "threeD/erreur dimension retained",
+    "threeD/erreur candidate provenance visible",
+    "threeD/missing reference alert",
+    "threeD/missing reference blocks save",
+    "threeD/missing reference does not substitute preview",
+    "threeD/erreur no horizontal overflow",
+    "threeD/empty search",
+    "threeD/pagination second page",
+    "threeD/type filter only matching species",
+    "threeD/tab Formes",
+    "threeD/tab Évolutions",
+    "threeD/tab Médias",
+    "threeD/tab Usages",
+    "threeD/provenance compare dialog",
+    "threeD/Escape closes dialog",
+    "threeD/cancel discard preserves draft",
+    "threeD/invalid stat blocks save",
+    "threeD/save labelled mock-only",
+    "threeD/saved fixture value rereads in same mock session",
+    "threeD/retry keeps missing reference blocked",
+    "threeD/replacement requires explicit choice",
+    "threeD/explicit replacement resolved",
+    "threeD/resolved reference allows save",
+    "threeD/replacement retains species identity",
+    "no uncaught browser errors"
+  ],
+  "captures": [
+    {
+      "profile": "twoD",
+      "state": "liste",
+      "code": "S01",
+      "filename": "twoD-S01-liste.png"
+    },
+    {
+      "profile": "twoD",
+      "state": "fiche",
+      "code": "S02",
+      "filename": "twoD-S02-fiche.png"
+    },
+    {
+      "profile": "twoD",
+      "state": "provenance",
+      "code": "S03",
+      "filename": "twoD-S03-provenance.png"
+    },
+    {
+      "profile": "twoD",
+      "state": "brouillon",
+      "code": "S04",
+      "filename": "twoD-S04-brouillon.png"
+    },
+    {
+      "profile": "twoD",
+      "state": "erreur",
+      "code": "S05",
+      "filename": "twoD-S05-erreur.png"
+    },
+    {
+      "profile": "twoD",
+      "state": "empty",
+      "filename": "twoD-extra-empty.png"
+    },
+    {
+      "profile": "twoD",
+      "state": "Formes",
+      "filename": "twoD-extra-formes.png"
+    },
+    {
+      "profile": "twoD",
+      "state": "Évolutions",
+      "filename": "twoD-extra-evolutions.png"
+    },
+    {
+      "profile": "twoD",
+      "state": "Médias",
+      "filename": "twoD-extra-medias.png"
+    },
+    {
+      "profile": "twoD",
+      "state": "Usages",
+      "filename": "twoD-extra-usages.png"
+    },
+    {
+      "profile": "twoD",
+      "state": "compare",
+      "filename": "twoD-extra-compare.png"
+    },
+    {
+      "profile": "twoD",
+      "state": "replacement",
+      "filename": "twoD-extra-replacement.png"
+    },
+    {
+      "profile": "threeD",
+      "state": "liste",
+      "code": "S01",
+      "filename": "threeD-S01-liste.png"
+    },
+    {
+      "profile": "threeD",
+      "state": "fiche",
+      "code": "S02",
+      "filename": "threeD-S02-fiche.png"
+    },
+    {
+      "profile": "threeD",
+      "state": "provenance",
+      "code": "S03",
+      "filename": "threeD-S03-provenance.png"
+    },
+    {
+      "profile": "threeD",
+      "state": "brouillon",
+      "code": "S04",
+      "filename": "threeD-S04-brouillon.png"
+    },
+    {
+      "profile": "threeD",
+      "state": "erreur",
+      "code": "S05",
+      "filename": "threeD-S05-erreur.png"
+    },
+    {
+      "profile": "threeD",
+      "state": "empty",
+      "filename": "threeD-extra-empty.png"
+    },
+    {
+      "profile": "threeD",
+      "state": "Formes",
+      "filename": "threeD-extra-formes.png"
+    },
+    {
+      "profile": "threeD",
+      "state": "Évolutions",
+      "filename": "threeD-extra-evolutions.png"
+    },
+    {
+      "profile": "threeD",
+      "state": "Médias",
+      "filename": "threeD-extra-medias.png"
+    },
+    {
+      "profile": "threeD",
+      "state": "Usages",
+      "filename": "threeD-extra-usages.png"
+    },
+    {
+      "profile": "threeD",
+      "state": "compare",
+      "filename": "threeD-extra-compare.png"
+    },
+    {
+      "profile": "threeD",
+      "state": "replacement",
+      "filename": "threeD-extra-replacement.png"
+    }
+  ],
+  "runtimeErrors": []
+}

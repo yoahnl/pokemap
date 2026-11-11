@@ -1,0 +1,322 @@
+{
+  "schemaVersion": 1,
+  "lotId": "RUI-075",
+  "stage": "T00",
+  "projectId": "470322374529675264",
+  "componentId": "470932885365477376",
+  "revisionId": "470932885365477377",
+  "generatedName": "joyfully-field-9876",
+  "status": "candidate_only_not_approved",
+  "buildStatus": "completed",
+  "captureOrigin": "Local Vite preview of the submitted React/TypeScript component and its CSS, captured in Chromium with Playwright. Not native Studio. MagicPath stored preview independently viewed for the initial state.",
+  "sourceVerification": "Submitted TSX and MagicPath-normalized TSX compile to identical minified JavaScript using the recorded esbuild settings; component CSS is byte-identical. The standalone local preview wrapper differs from the MagicPath scaffold and does not prove pixel-identical host rendering.",
+  "viewportCssPixels": {
+    "width": 1440,
+    "height": 1080
+  },
+  "devicePixelRatio": 1,
+  "browser": "Chromium 156.0.8078.74",
+  "screenshots": [
+    {
+      "profile": "twoD",
+      "state": "liste",
+      "code": "S01",
+      "filename": "twoD-S01-liste.png",
+      "path": "twoD-S01-liste.png",
+      "sha256": "d264aff7ca435362f200b4a40d07365317ad3b486a0fbd7f998b755c2a15730b",
+      "pixelWidth": 1440,
+      "pixelHeight": 1080,
+      "capturedAt": "2026-11-10T16:09:05.583098+00:00"
+    },
+    {
+      "profile": "twoD",
+      "state": "fiche",
+      "code": "S02",
+      "filename": "twoD-S02-fiche.png",
+      "path": "twoD-S02-fiche.png",
+      "sha256": "5ca8b7147a798731889c8dc9958635c8061055e4ba409b173395270573fd922c",
+      "pixelWidth": 1440,
+      "pixelHeight": 1080,
+      "capturedAt": "2026-11-10T16:09:05.694527+00:00"
+    },
+    {
+      "profile": "twoD",
+      "state": "provenance",
+      "code": "S03",
+      "filename": "twoD-S03-provenance.png",
+      "path": "twoD-S03-provenance.png",
+      "sha256": "09a619cc239b9332e5590f910263a6e3e3f12e349d0da5f37894f4130888e322",
+      "pixelWidth": 1440,
+      "pixelHeight": 1080,
+      "capturedAt": "2026-11-10T16:09:05.786505+00:00"
+    },
+    {
+      "profile": "twoD",
+      "state": "brouillon",
+      "code": "S04",
+      "filename": "twoD-S04-brouillon.png",
+      "path": "twoD-S04-brouillon.png",
+      "sha256": "7aaf42fff3d1f0a37f29d0c8675f0b252f201510b9b386970c75413f6826be3d",
+      "pixelWidth": 1440,
+      "pixelHeight": 1080,
+      "capturedAt": "2026-11-10T16:09:05.879296+00:00"
+    },
+    {
+      "profile": "twoD",
+      "state": "erreur",
+      "code": "S05",
+      "filename": "twoD-S05-erreur.png",
+      "path": "twoD-S05-erreur.png",
+      "sha256": "e1c0a65ca6f0be6201163c86fcaea4a7c849f34ea3f2d589775f8052297c8b69",
+      "pixelWidth": 1440,
+      "pixelHeight": 1080,
+      "capturedAt": "2026-11-10T16:09:05.984736+00:00"
+    },
+    {
+      "profile": "twoD",
+      "state": "empty",
+      "filename": "twoD-extra-empty.png",
+      "path": "twoD-extra-empty.png",
+      "sha256": "f4705796859424f664f9240f9259c83fdfa6eb9586eed3c62cadef9e77b2e7bd",
+      "pixelWidth": 1440,
+      "pixelHeight": 1080,
+      "capturedAt": "2026-11-10T16:09:06.085981+00:00"
+    },
+    {
+      "profile": "twoD",
+      "state": "Formes",
+      "filename": "twoD-extra-formes.png",
+      "path": "twoD-extra-formes.png",
+      "sha256": "cce036cadf8f614db2b03d768f860fd6a17c4b7f11cbad63910dd4005ff8d57f",
+      "pixelWidth": 1440,
+      "pixelHeight": 1080,
+      "capturedAt": "2026-11-10T16:09:06.325391+00:00"
+    },
+    {
+      "profile": "twoD",
+      "state": "Évolutions",
+      "filename": "twoD-extra-evolutions.png",
+      "path": "twoD-extra-evolutions.png",
+      "sha256": "1180f5b6ceebbcbdc31c26cffba1a5e9d995d0006392d90be548ce4ecdddf8f6",
+      "pixelWidth": 1440,
+      "pixelHeight": 1080,
+      "capturedAt": "2026-11-10T16:09:06.410468+00:00"
+    },
+    {
+      "profile": "twoD",
+      "state": "Médias",
+      "filename": "twoD-extra-medias.png",
+      "path": "twoD-extra-medias.png",
+      "sha256": "8f6033ae73813b3b823bc02fcc3e3f62f47ce6b1d87049441ab995243364c317",
+      "pixelWidth": 1440,
+      "pixelHeight": 1080,
+      "capturedAt": "2026-11-10T16:09:06.493617+00:00"
+    },
+    {
+      "profile": "twoD",
+      "state": "Usages",
+      "filename": "twoD-extra-usages.png",
+      "path": "twoD-extra-usages.png",
+      "sha256": "11aa8707ffe78bfb25ab167d67636d9ca2097498967fc15c7702fda453b8ad57",
+      "pixelWidth": 1440,
+      "pixelHeight": 1080,
+      "capturedAt": "2026-11-10T16:09:06.577984+00:00"
+    },
+    {
+      "profile": "twoD",
+      "state": "compare",
+      "filename": "twoD-extra-compare.png",
+      "path": "twoD-extra-compare.png",
+      "sha256": "c227ce6d0e93789648766650089973ee67b81d1b0f774cd615c4ba1b97c329f4",
+      "pixelWidth": 1440,
+      "pixelHeight": 1080,
+      "capturedAt": "2026-11-10T16:09:06.771800+00:00"
+    },
+    {
+      "profile": "twoD",
+      "state": "replacement",
+      "filename": "twoD-extra-replacement.png",
+      "path": "twoD-extra-replacement.png",
+      "sha256": "b4b4f9dd36b6f57f8cdac911adad8744dd624cdba2af5f5f8dd1885108e9262c",
+      "pixelWidth": 1440,
+      "pixelHeight": 1080,
+      "capturedAt": "2026-11-10T16:09:08.041456+00:00"
+    },
+    {
+      "profile": "threeD",
+      "state": "liste",
+      "code": "S01",
+      "filename": "threeD-S01-liste.png",
+      "path": "threeD-S01-liste.png",
+      "sha256": "d9c1bee8fddc4cfa4116eba7c5f7791300eb1b95ddba80be4c7b5f7dd012d662",
+      "pixelWidth": 1440,
+      "pixelHeight": 1080,
+      "capturedAt": "2026-11-10T16:09:08.259471+00:00"
+    },
+    {
+      "profile": "threeD",
+      "state": "fiche",
+      "code": "S02",
+      "filename": "threeD-S02-fiche.png",
+      "path": "threeD-S02-fiche.png",
+      "sha256": "9775e58d18bef89ea59421dab75bb998f295d447823ba4f4e0b9df6cbf3b8600",
+      "pixelWidth": 1440,
+      "pixelHeight": 1080,
+      "capturedAt": "2026-11-10T16:09:08.354062+00:00"
+    },
+    {
+      "profile": "threeD",
+      "state": "provenance",
+      "code": "S03",
+      "filename": "threeD-S03-provenance.png",
+      "path": "threeD-S03-provenance.png",
+      "sha256": "697541299bece58bae8b8edb073f59062cc395b098077f28790d39dbd373878a",
+      "pixelWidth": 1440,
+      "pixelHeight": 1080,
+      "capturedAt": "2026-11-10T16:09:08.437262+00:00"
+    },
+    {
+      "profile": "threeD",
+      "state": "brouillon",
+      "code": "S04",
+      "filename": "threeD-S04-brouillon.png",
+      "path": "threeD-S04-brouillon.png",
+      "sha256": "6163022a57eea53ba94a47ec82ee4441f24fdb4d7140f21a05ea3a5712abc16a",
+      "pixelWidth": 1440,
+      "pixelHeight": 1080,
+      "capturedAt": "2026-11-10T16:09:08.533411+00:00"
+    },
+    {
+      "profile": "threeD",
+      "state": "erreur",
+      "code": "S05",
+      "filename": "threeD-S05-erreur.png",
+      "path": "threeD-S05-erreur.png",
+      "sha256": "45af181afad4f6ef741961879888305bafc21841ce3ca83311809e1526cda65d",
+      "pixelWidth": 1440,
+      "pixelHeight": 1080,
+      "capturedAt": "2026-11-10T16:09:08.620257+00:00"
+    },
+    {
+      "profile": "threeD",
+      "state": "empty",
+      "filename": "threeD-extra-empty.png",
+      "path": "threeD-extra-empty.png",
+      "sha256": "b84c0c4c0f67c3e45679284b30ce7b8e2d927655e7b7723329e7a96470573a36",
+      "pixelWidth": 1440,
+      "pixelHeight": 1080,
+      "capturedAt": "2026-11-10T16:09:08.712323+00:00"
+    },
+    {
+      "profile": "threeD",
+      "state": "Formes",
+      "filename": "threeD-extra-formes.png",
+      "path": "threeD-extra-formes.png",
+      "sha256": "bbfdebd1c1d0dd5f171a4a07026d7df5e0905e4c474d64ac2ce1393cdea52e7f",
+      "pixelWidth": 1440,
+      "pixelHeight": 1080,
+      "capturedAt": "2026-11-10T16:09:08.965723+00:00"
+    },
+    {
+      "profile": "threeD",
+      "state": "Évolutions",
+      "filename": "threeD-extra-evolutions.png",
+      "path": "threeD-extra-evolutions.png",
+      "sha256": "db777351f574e95505fdac4d17acfe9e009ca634cada06e659c89da0806edd12",
+      "pixelWidth": 1440,
+      "pixelHeight": 1080,
+      "capturedAt": "2026-11-10T16:09:09.053199+00:00"
+    },
+    {
+      "profile": "threeD",
+      "state": "Médias",
+      "filename": "threeD-extra-medias.png",
+      "path": "threeD-extra-medias.png",
+      "sha256": "1686be8a02d85e47cce234859251a78d1946b5f12836954fd52833866d79821b",
+      "pixelWidth": 1440,
+      "pixelHeight": 1080,
+      "capturedAt": "2026-11-10T16:09:09.147975+00:00"
+    },
+    {
+      "profile": "threeD",
+      "state": "Usages",
+      "filename": "threeD-extra-usages.png",
+      "path": "threeD-extra-usages.png",
+      "sha256": "336eea8a63c386cd476f700bf671ab742df287e70185d7d9e287ba2cefd3ee55",
+      "pixelWidth": 1440,
+      "pixelHeight": 1080,
+      "capturedAt": "2026-11-10T16:09:09.228738+00:00"
+    },
+    {
+      "profile": "threeD",
+      "state": "compare",
+      "filename": "threeD-extra-compare.png",
+      "path": "threeD-extra-compare.png",
+      "sha256": "0786cf7b64fd163b8f3ad874e63172690cd4f0dc67b019d31c06660136ba548a",
+      "pixelWidth": 1440,
+      "pixelHeight": 1080,
+      "capturedAt": "2026-11-10T16:09:09.363456+00:00"
+    },
+    {
+      "profile": "threeD",
+      "state": "replacement",
+      "filename": "threeD-extra-replacement.png",
+      "path": "threeD-extra-replacement.png",
+      "sha256": "d5daec2842b4b258278ce531abaaa2faad44498527aa102157c23cd0a64ed65f",
+      "pixelWidth": 1440,
+      "pixelHeight": 1080,
+      "capturedAt": "2026-11-10T16:09:10.694034+00:00"
+    }
+  ],
+  "sources": [
+    {
+      "path": "src/components/generated/RUI075EspCesPokMonCandidate2D3D.tsx",
+      "submittedSha256": "42342a02bc634e4f390f5fe072128f300e43b0079acd9c8a3621dcd47b787415",
+      "remoteNormalizedSha256": "339f7c919af145cec3ab1302b931447731c64e738cccdb253a1d51af8bb311ac",
+      "semanticMatch": true
+    },
+    {
+      "path": "src/components/generated/RUI075EspCesPokMonCandidate2D3D.css",
+      "submittedSha256": "ed04a643a2770b279a6e7bf8cbade97d60ed775ceb1267427435299d11c15c47",
+      "remoteNormalizedSha256": "ed04a643a2770b279a6e7bf8cbade97d60ed775ceb1267427435299d11c15c47",
+      "semanticMatch": true
+    }
+  ],
+  "normalization": {
+    "engine": "esbuild",
+    "version": "0.25.12",
+    "loader": "tsx",
+    "target": "es2020",
+    "jsx": "automatic",
+    "minify": true
+  },
+  "archiveSha256": "5b09c3e3ba16f639bbd4eb72cc6e6807aa4ece5f1d3804002554f61152348e8f",
+  "nativeStudioValidation": false,
+  "realDataUsed": false,
+  "approvedTargetBindings": [],
+  "coverage": {
+    "requiredProfiles": [
+      "twoD",
+      "threeD"
+    ],
+    "requiredStates": [
+      "liste",
+      "fiche",
+      "provenance",
+      "brouillon",
+      "erreur référence"
+    ],
+    "requiredCaptures": 10,
+    "supplementaryCaptures": 14,
+    "interactiveAssertionsPassed": 91,
+    "uncaughtBrowserErrors": 0
+  },
+  "limits": [
+    "Fictional species, data, library, provenance and SVG illustrations only.",
+    "All changes are in-memory prototype state; page reload resets them.",
+    "Only the special-defense base-stat field is editable in this bounded reference candidate; the other base stats are visible.",
+    "The 3D preview is an illustrative SVG volume, not a model or target-engine render.",
+    "No native authoring, persistence, catalogue import, export, Player playback or RUI-075 acceptance is proven.",
+    "No approved target binding was created or changed."
+  ]
+}

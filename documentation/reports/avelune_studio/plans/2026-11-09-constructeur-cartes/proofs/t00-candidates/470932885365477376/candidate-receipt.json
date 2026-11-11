@@ -1,0 +1,25 @@
+{
+  "scope": "MagicPath reference prototype only",
+  "projectId": "470322374529675264",
+  "componentId": "470932885365477376",
+  "revisionId": "470932885365477377",
+  "codeSessionId": "mcs_fb9f3011-3b0f-48ab-8d41-e9474d8f7025",
+  "idempotencyKey": "rui-075-species-candidate-20261110-story-agent-1",
+  "jobId": "466929222972227584-external-agent-470936406634696704",
+  "remoteBuildStatus": "completed",
+  "localBuild": {
+    "command": "node node_modules/vite/bin/vite.js build --outDir local-build",
+    "tool": "Vite 6.4.6",
+    "exitCode": 0
+  },
+  "interactionCheck": {
+    "tool": "Playwright CLI + Chromium",
+    "exitCode": 0,
+    "assertionsPassed": 91,
+    "captureCount": 24
+  },
+  "nativeMagicPathPreviewViewed": true,
+  "approved": false,
+  "manifestSha256": "8abcbeee2a4d9d007aff528b9a18f99fb50c617776bf443b9fe11c9f740ec6ae",
+  "existingCandidatesModified": false
+}

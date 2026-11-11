@@ -1,0 +1,22 @@
+✔ twoD: the portable catalogue cannot edit or save (0.795916ms)
+✔ twoD: recovery failure retains the operation and can retry (0.310042ms)
+✔ twoD: rollback waits for explicit confirmation (0.085417ms)
+✔ twoD: keeping a conflicting session does not allow saving (0.083458ms)
+✔ twoD: canceling closure keeps the draft and selection (0.545834ms)
+✔ twoD: a failed save cannot close or discard the draft (0.195292ms)
+✔ twoD: changing project requires a draft decision and clears old selection (0.129959ms)
+✔ threeD: the portable catalogue cannot edit or save (0.06775ms)
+✔ threeD: recovery failure retains the operation and can retry (0.091ms)
+✔ threeD: rollback waits for explicit confirmation (0.093958ms)
+✔ threeD: keeping a conflicting session does not allow saving (0.048333ms)
+✔ threeD: canceling closure keeps the draft and selection (0.036542ms)
+✔ threeD: a failed save cannot close or discard the draft (0.045167ms)
+✔ threeD: changing project requires a draft decision and clears old selection (0.031083ms)
+ℹ tests 14
+ℹ suites 0
+ℹ pass 14
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 155.175042

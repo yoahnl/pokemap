@@ -1,0 +1,201 @@
+{
+  "schemaVersion": 1,
+  "kind": "physical-forwarder-retirement",
+  "retiredFiles": [
+    {
+      "retired": "apps/avelune_studio/lib/presentation/features/events/event_legacy_catalog.dart",
+      "retiredSha256": "286277eb22d51eca9118767f1837b30126d1286ff2448ce07ce65b1c541052aa",
+      "owner": "apps/avelune_studio/lib/features/events/application/event_legacy_catalog.dart",
+      "ownerSha256Before": "9787e91dfe24a88b4b90c9f1a22261256feff7c05bb45f7e16ed3f535bb530a7",
+      "ownerSha256After": "9787e91dfe24a88b4b90c9f1a22261256feff7c05bb45f7e16ed3f535bb530a7"
+    },
+    {
+      "retired": "apps/avelune_studio/lib/presentation/features/scenes/scene_action_references.dart",
+      "retiredSha256": "943e58f1149ea6600f04feffa5120af39dd786a6e5fe25c82258d0d798f7a39f",
+      "owner": "apps/avelune_studio/lib/features/scenes/application/scene_action_references.dart",
+      "ownerSha256Before": "218eba85524870b1ce396921c7ec282f2ea31fc4004a6db4e622fd954abf2f8a",
+      "ownerSha256After": "218eba85524870b1ce396921c7ec282f2ea31fc4004a6db4e622fd954abf2f8a"
+    },
+    {
+      "retired": "apps/avelune_studio/lib/presentation/features/stories/story_graph_sources.dart",
+      "retiredSha256": "fc0d146cdfb9891ce12debb7710c49af7521fceaad6e6b60a22f111eecc68655",
+      "owner": "apps/avelune_studio/lib/features/stories/application/story_graph_sources.dart",
+      "ownerSha256Before": "bdfd7e937a90a7aa23b3a5b971283b53277b40761ad0b1e42d03f23c561c6509",
+      "ownerSha256After": "bdfd7e937a90a7aa23b3a5b971283b53277b40761ad0b1e42d03f23c561c6509"
+    },
+    {
+      "retired": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_workspace_visuals.dart",
+      "retiredSha256": "ef6ecc4ae014724f4bf83d2a50bd198cc54dfc1e3486adc6bf406e85702ae3ad",
+      "owner": "apps/avelune_studio/lib/platform/rendering/contracts/cinematic_workspace_visuals.dart",
+      "ownerSha256Before": "edc2f06522d2c296ace0d4d6bfc986dc632d5e5255e3a12900b10d4a8de81ad5",
+      "ownerSha256After": "edc2f06522d2c296ace0d4d6bfc986dc632d5e5255e3a12900b10d4a8de81ad5"
+    },
+    {
+      "retired": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_map_model.dart",
+      "retiredSha256": "8c7bab1f04f0bdff54efad42d24a44085b21a22fcb3e68791f0a5ab9cbbee909",
+      "owner": "apps/avelune_studio/lib/features/cinematics/application/cinematic_map_model.dart",
+      "ownerSha256Before": "8e354b84c4c608c811d4cfc0c1d70223c59cb3922d2165f66ec3c3af36105925",
+      "ownerSha256After": "8e354b84c4c608c811d4cfc0c1d70223c59cb3922d2165f66ec3c3af36105925"
+    },
+    {
+      "retired": "apps/avelune_studio/lib/presentation/features/presentations/presentation_gesture_projection.dart",
+      "retiredSha256": "022b1d995adc78a32cc538ceed13d153c641e55c292495e9c7a76b327ec5cd40",
+      "owner": "apps/avelune_studio/lib/features/presentations/application/presentation_gesture_projection.dart",
+      "ownerSha256Before": "2005bb306656371cf726219cb617b6f060ca22ede7ad80d3f96582e9a1b2fdd5",
+      "ownerSha256After": "2005bb306656371cf726219cb617b6f060ca22ede7ad80d3f96582e9a1b2fdd5"
+    },
+    {
+      "retired": "apps/avelune_studio/lib/presentation/features/presentations/presentation_workspace_visuals.dart",
+      "retiredSha256": "d3e4ea7705113685c88ddc16e03f25cf1d2aaba5ffba535e15e029176171e347",
+      "owner": "apps/avelune_studio/lib/platform/rendering/contracts/presentation_workspace_visuals.dart",
+      "ownerSha256Before": "4881f117f7b33da0724c222512a4bab741b24c3bc6a975d80314f8742f4d7141",
+      "ownerSha256After": "4881f117f7b33da0724c222512a4bab741b24c3bc6a975d80314f8742f4d7141"
+    },
+    {
+      "retired": "apps/avelune_studio/lib/presentation/features/presentations/presentation_media_picker.dart",
+      "retiredSha256": "a2b5a06d945747b5b4caa33537d8163e7cc08b8f24f06c6c8284238e4bebec5b",
+      "owner": "apps/avelune_studio/lib/features/presentations/domain/presentation_media_picker.dart",
+      "ownerSha256Before": "6a95c1c3c74eb2fb83bae2703a1a2bd6181cfe9d858a77b972bfec5c82f7eda4",
+      "ownerSha256After": "6a95c1c3c74eb2fb83bae2703a1a2bd6181cfe9d858a77b972bfec5c82f7eda4"
+    }
+  ],
+  "retargetedDirectives": [
+    {
+      "consumer": "apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_screen.dart",
+      "oldUri": "../presentations/presentation_workspace_visuals.dart",
+      "newUri": "package:avelune_studio/platform/rendering/contracts/presentation_workspace_visuals.dart"
+    },
+    {
+      "consumer": "apps/avelune_studio/lib/presentation/features/map_workspace/map_workspace_screen.dart",
+      "oldUri": "../presentations/presentation_media_picker.dart",
+      "newUri": "package:avelune_studio/features/presentations/domain/presentation_media_picker.dart"
+    },
+    {
+      "consumer": "apps/avelune_studio/lib/presentation/features/events/event_legacy_detail.dart",
+      "oldUri": "event_legacy_catalog.dart",
+      "newUri": "package:avelune_studio/features/events/application/event_legacy_catalog.dart"
+    },
+    {
+      "consumer": "apps/avelune_studio/lib/presentation/features/events/event_library.dart",
+      "oldUri": "event_legacy_catalog.dart",
+      "newUri": "package:avelune_studio/features/events/application/event_legacy_catalog.dart"
+    },
+    {
+      "consumer": "apps/avelune_studio/lib/presentation/features/project_settings/project_audio_panel.dart",
+      "oldUri": "../presentations/presentation_media_picker.dart",
+      "newUri": "package:avelune_studio/features/presentations/domain/presentation_media_picker.dart"
+    },
+    {
+      "consumer": "apps/avelune_studio/lib/presentation/features/project_settings/project_settings_page.dart",
+      "oldUri": "../presentations/presentation_media_picker.dart",
+      "newUri": "package:avelune_studio/features/presentations/domain/presentation_media_picker.dart"
+    },
+    {
+      "consumer": "apps/avelune_studio/lib/presentation/features/presentations/presentation_canvas.dart",
+      "oldUri": "presentation_workspace_visuals.dart",
+      "newUri": "package:avelune_studio/platform/rendering/contracts/presentation_workspace_visuals.dart"
+    },
+    {
+      "consumer": "apps/avelune_studio/lib/presentation/features/presentations/presentation_canvas.dart",
+      "oldUri": "presentation_gesture_projection.dart",
+      "newUri": "package:avelune_studio/features/presentations/application/presentation_gesture_projection.dart"
+    },
+    {
+      "consumer": "apps/avelune_studio/lib/presentation/features/presentations/presentation_library.dart",
+      "oldUri": "presentation_workspace_visuals.dart",
+      "newUri": "package:avelune_studio/platform/rendering/contracts/presentation_workspace_visuals.dart"
+    },
+    {
+      "consumer": "apps/avelune_studio/lib/presentation/features/presentations/presentation_workspace_page.dart",
+      "oldUri": "presentation_workspace_visuals.dart",
+      "newUri": "package:avelune_studio/platform/rendering/contracts/presentation_workspace_visuals.dart"
+    },
+    {
+      "consumer": "apps/avelune_studio/lib/presentation/features/presentations/presentation_workspace_page.dart",
+      "oldUri": "presentation_media_picker.dart",
+      "newUri": "package:avelune_studio/features/presentations/domain/presentation_media_picker.dart"
+    },
+    {
+      "consumer": "apps/avelune_studio/lib/presentation/features/stories/story_graph_geometry.dart",
+      "oldUri": "story_graph_sources.dart",
+      "newUri": "package:avelune_studio/features/stories/application/story_graph_sources.dart"
+    },
+    {
+      "consumer": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_path_painter.dart",
+      "oldUri": "cinematic_map_model.dart",
+      "newUri": "package:avelune_studio/features/cinematics/application/cinematic_map_model.dart"
+    },
+    {
+      "consumer": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_workspace_page.dart",
+      "oldUri": "cinematic_map_model.dart",
+      "newUri": "package:avelune_studio/features/cinematics/application/cinematic_map_model.dart"
+    },
+    {
+      "consumer": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_workspace_page.dart",
+      "oldUri": "cinematic_workspace_visuals.dart",
+      "newUri": "package:avelune_studio/platform/rendering/contracts/cinematic_workspace_visuals.dart"
+    },
+    {
+      "consumer": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_playback_viewport.dart",
+      "oldUri": "cinematic_map_model.dart",
+      "newUri": "package:avelune_studio/features/cinematics/application/cinematic_map_model.dart"
+    },
+    {
+      "consumer": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_map_overlay.dart",
+      "oldUri": "cinematic_map_model.dart",
+      "newUri": "package:avelune_studio/features/cinematics/application/cinematic_map_model.dart"
+    },
+    {
+      "consumer": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_map_overlay.dart",
+      "oldUri": "cinematic_workspace_visuals.dart",
+      "newUri": "package:avelune_studio/platform/rendering/contracts/cinematic_workspace_visuals.dart"
+    },
+    {
+      "consumer": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_inspector.dart",
+      "oldUri": "cinematic_map_model.dart",
+      "newUri": "package:avelune_studio/features/cinematics/application/cinematic_map_model.dart"
+    },
+    {
+      "consumer": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_map_scene.dart",
+      "oldUri": "cinematic_map_model.dart",
+      "newUri": "package:avelune_studio/features/cinematics/application/cinematic_map_model.dart"
+    },
+    {
+      "consumer": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_spatial_map_scene.dart",
+      "oldUri": "cinematic_map_model.dart",
+      "newUri": "package:avelune_studio/features/cinematics/application/cinematic_map_model.dart"
+    },
+    {
+      "consumer": "apps/avelune_studio/lib/presentation/features/cinematics/cinematic_spatial_map_scene.dart",
+      "oldUri": "cinematic_workspace_visuals.dart",
+      "newUri": "package:avelune_studio/platform/rendering/contracts/cinematic_workspace_visuals.dart"
+    },
+    {
+      "consumer": "apps/avelune_studio/test/cinematics/cinematic_spatial_gestures_ui10_test.dart",
+      "oldUri": "package:avelune_studio/presentation/features/cinematics/cinematic_map_model.dart",
+      "newUri": "package:avelune_studio/features/cinematics/application/cinematic_map_model.dart"
+    },
+    {
+      "consumer": "apps/avelune_studio/test/cinematics/cinematic_relative_points_ui10_test.dart",
+      "oldUri": "package:avelune_studio/presentation/features/cinematics/cinematic_map_model.dart",
+      "newUri": "package:avelune_studio/features/cinematics/application/cinematic_map_model.dart"
+    },
+    {
+      "consumer": "apps/avelune_studio/test/cinematics/cinematic_spatial_map_scene_test.dart",
+      "oldUri": "package:avelune_studio/presentation/features/cinematics/cinematic_map_model.dart",
+      "newUri": "package:avelune_studio/features/cinematics/application/cinematic_map_model.dart"
+    },
+    {
+      "consumer": "apps/avelune_studio/test/cinematics/cinematic_jump_ui10_test.dart",
+      "oldUri": "package:avelune_studio/presentation/features/cinematics/cinematic_map_model.dart",
+      "newUri": "package:avelune_studio/features/cinematics/application/cinematic_map_model.dart"
+    },
+    {
+      "consumer": "apps/avelune_studio/test/cinematics/cinematic_viewport_parity_ui10_test.dart",
+      "oldUri": "package:avelune_studio/presentation/features/cinematics/cinematic_map_model.dart",
+      "newUri": "package:avelune_studio/features/cinematics/application/cinematic_map_model.dart"
+    }
+  ],
+  "remainingImports": [],
+  "widgetMoved": false
+}

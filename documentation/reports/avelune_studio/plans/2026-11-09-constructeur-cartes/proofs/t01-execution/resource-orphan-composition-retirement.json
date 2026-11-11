@@ -1,0 +1,27 @@
+{
+  "authorization": "Root explicitly approved removal after resolved imports, symbols and SHA review.",
+  "removedSources": [
+    {
+      "removed": "lib/presentation/features/resources/project_catalog_partition_panel.dart",
+      "sha256": "82aff8d17911b458ae794963571f385292cf9605cdd67a55d647db758e967d6a",
+      "directImportExportPartConsumers": [],
+      "retainedOwner": "features/resources/coordination/project_catalog_partition_workflow.dart",
+      "retainedOwnerSha256": "5f99bcd8cc2b67427b5ba4aa6cd3cdbed65d383df1cd73c3225230ca1788917e",
+      "responsibility": "Partition conversion child guard consent conversion/reopen retry preserved in existing workflow tests4."
+    },
+    {
+      "removed": "lib/presentation/features/resources/resource_family_navigation.dart",
+      "sha256": "b46a9b1c2ada5b155eace87748a23c82b67c0f23cab280454f9ff5c100f5ee79",
+      "directImportExportPartConsumers": [],
+      "retainedOwner": "features/resources/application/resource_catalog.dart",
+      "retainedOwnerSha256": "720c359ed526765ce41267bee438c15e3afa0aab4ed695fd5d4c3794f5797aa7",
+      "responsibility": "Unused legacy family menu, labels and icons; canonical ResourceLibraryFamily, filters and tree remain."
+    }
+  ],
+  "deletedBusinessTests": 0,
+  "validation": "Partition workflow4 passed in prior root isolated batches. Post-deletion isolated root validation pending.",
+  "claims": {
+    "T01Complete": false,
+    "newInterfaceAccepted": false
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "argv": [
+    "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+    "test",
+    "--no-pub",
+    "--concurrency=1",
+    "--timeout=180s",
+    "-r",
+    "expanded",
+    "test/t01_real_export_runtime_probe_test.dart"
+  ],
+  "cwd": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/runtime-probe/source/apps/pokemap_hub",
+  "phase": "write",
+  "pid": 4249,
+  "started": 1794328143.6035058,
+  "owned": {},
+  "cleanup": [],
+  "exitCode": 1,
+  "finished": 1794328145.336758,
+  "environment": {
+    "AVELUNE_T01_RUNTIME_ROOT": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/runtime-probe",
+    "AVELUNE_T01_RUNTIME_PHASE": "write"
+  }
+}

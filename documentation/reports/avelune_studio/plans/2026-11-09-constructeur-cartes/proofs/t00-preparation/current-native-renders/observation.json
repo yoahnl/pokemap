@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "at": "2026-11-10",
+  "status": "partial_not_accepted",
+  "scope": "Current QA witness copies after partial T01 work; not a before-retirement baseline or a visual mockup comparison.",
+  "server": "Isolated PokeMap MCP server rebuilt in the QA cache with a root restricted to current-witnesses; the shared server and its dist directory were not restarted or rebuilt.",
+  "twoD": {
+    "project": "QA copy of Avelune Atelier des cartes",
+    "mapId": "clairiere",
+    "operation": "pokemap_render, cellPixelSize 16",
+    "status": "rendered_and_inspected",
+    "width": 384,
+    "height": 256,
+    "sourceRevision": "sha256:8c4560f24b63a328c56ba5cb5e90f28de0337b28fe3602a8c764dd09ea0aa845",
+    "file": "twoD-clairiere.png",
+    "fileSha256": "e8beb6d8cf59d8dca0cf956658f74327ea45b6df0dcf7a9023af47928973d1f7",
+    "artifactFingerprint": "51c6f78212309d0876eb93571c8e84f7d7726942ee831b328a53736cc8af0606",
+    "artifactFingerprintKind": "Authoring domain-framed SHA-256 over artifact-content and bytes, distinct from the raw file SHA-256.",
+    "limit": "This proves one software-rendered view of the QA map only; it does not prove native Studio interaction, export, Player, save/resume or visual fidelity."
+  },
+  "threeD": {
+    "project": "QA copy of HGSS Bourg Geon and player house",
+    "mapId": "maison-etage",
+    "operation": "Direct isolated debug render host, game view, midday",
+    "status": "rendered_debug_only",
+    "width": 1600,
+    "height": 900,
+    "sourceRevision": "sha256:b008dd7b8e0cd8265fd72ea1754309fb680a188109a16742223820f051abb331",
+    "instances": 137,
+    "rendererErrors": [],
+    "file": "threeD-maison-etage-debug.png",
+    "fileSha256": "518251a91953e65c1962fc9b40e86745807995a96b9f003721bb34294c2992ee",
+    "releaseAttempt": {
+      "status": "not_rendered",
+      "error": "render3d.host_build_failed",
+      "buildExitCode": 1,
+      "firstDiagnostic": "Unexpected object (Class with illegal cid, full-aot): package:flutter/src/widgets/_window_macos.dart Class _Rect; Dart snapshot generator exited -6.",
+      "diagnosticSource": "The owned QA build's compressed Xcode activity log; the MCP response tail contained only subsequent warnings.",
+      "matchingUpstreamIssue": "https://github.com/flutter/flutter/issues/191575"
+    },
+    "largeMapDebugAttempt": {
+      "mapId": "first-map",
+      "status": "render.scene_timeout",
+      "detail": "The scene did not become ready within the host's 180-second limit; its cause has not been established."
+    },
+    "limit": "The debug image proves one native renderer view of the QA interior, not a Release build, the larger exterior, Player behavior or visual acceptance. The shared Flutter SDK was not modified."
+  },
+  "outstanding": ["3D Release render and larger exterior initialization", "2D and 3D export", "Player execution", "save and resume", "G0 and full workspace integration"]
+}

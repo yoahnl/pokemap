@@ -1,0 +1,1196 @@
+{
+  "schemaVersion": 1,
+  "id": "t00-rui019-rui075-reference-binding-proposal",
+  "createdAt": "2026-11-10T22:46:35Z",
+  "preparedBy": "Tom",
+  "status": "proposal_only_unapproved",
+  "proposalOnly": true,
+  "imagesCreatedOrModified": false,
+  "sourceWorkspace": "/Users/karim/Project/pokemonProject",
+  "sourceHead": "468d1d62af188568da578a020c8081fed1c82997",
+  "sourcePlan": {
+    "path": "/Users/karim/Project/pokemonProject/documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes/ui-replacement-plan.json",
+    "sha256AtRead": "0356a6f3818fb6af90edfb90f793879a165db028d38a65e96bd3ebf5cb5b32bb",
+    "canonicalBindingCountAtRead": 0
+  },
+  "scope": {
+    "lotIds": [
+      "RUI-019",
+      "RUI-075"
+    ],
+    "profiles": [
+      "twoD",
+      "threeD"
+    ],
+    "stateDefinition": "Familles Sxx actuellement requises par ces deux lots uniquement.",
+    "purpose": "Préparer des liaisons vers les captures candidates existantes sans approbation implicite.",
+    "excludedClaims": [
+      "Approbation de cible",
+      "Acceptation T00 ou T01",
+      "Acceptation d’un lot de reconstruction",
+      "Exécution native Studio ou Player",
+      "Validation de persistance ou export",
+      "Équivalence visuelle avec un moteur3D"
+    ]
+  },
+  "sourceSets": [
+    {
+      "id": "470908170030706688",
+      "lotId": "RUI-019",
+      "manifestPath": "/Users/karim/Project/pokemonProject/documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes/proofs/t00-candidates/470908170030706688/manifest.json",
+      "manifestRelativePath": "proofs/t00-candidates/470908170030706688/manifest.json",
+      "manifestSha256": "b354ca1ac5c31df9d91db3b9966016d2cc2cd61a682b0ec0a6c399b0109169b3",
+      "projectId": "470322374529675264",
+      "componentId": "470904123445886976",
+      "revisionId": "470908170030706688",
+      "statusInSourceManifest": "candidate_only_not_approved",
+      "captureOrigin": "Local Vite preview of the source submitted to this MagicPath revision, captured with Chromium and Playwright; not native Studio and not the Safari preview.",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "dpr": 1,
+      "captureTimestamp": "2026-11-10T14:44:41.866439+00:00",
+      "sourceVerification": null,
+      "provenanceVerificationThisPass": "Les fichiers locaux et leurs empreintes ont été vérifiés. Aucune interrogation distante, recompilation ou reproduction du prototype n’a été effectuée.",
+      "nativeStudioValidation": false,
+      "realDataUsed": false,
+      "limitations": [
+        "Données de démonstration ; aucune session ou écriture Studio réelle.",
+        "Ces huit vues sont des candidates ; aucune liaison état/profil approuvée.",
+        "Le visuel de carte 3D est schématique et ne prouve pas un viewport natif."
+      ]
+    },
+    {
+      "id": "470932885365477376",
+      "lotId": "RUI-075",
+      "manifestPath": "/Users/karim/Project/pokemonProject/documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes/proofs/t00-candidates/470932885365477376/manifest.json",
+      "manifestRelativePath": "proofs/t00-candidates/470932885365477376/manifest.json",
+      "manifestSha256": "8abcbeee2a4d9d007aff528b9a18f99fb50c617776bf443b9fe11c9f740ec6ae",
+      "projectId": "470322374529675264",
+      "componentId": "470932885365477376",
+      "revisionId": "470932885365477377",
+      "statusInSourceManifest": "candidate_only_not_approved",
+      "captureOrigin": "Local Vite preview of the submitted React/TypeScript component and its CSS, captured in Chromium with Playwright. Not native Studio. MagicPath stored preview independently viewed for the initial state.",
+      "viewport": {
+        "width": 1440,
+        "height": 1080
+      },
+      "dpr": 1,
+      "captureTimestamp": null,
+      "sourceVerification": "Submitted TSX and MagicPath-normalized TSX compile to identical minified JavaScript using the recorded esbuild settings; component CSS is byte-identical. The standalone local preview wrapper differs from the MagicPath scaffold and does not prove pixel-identical host rendering.",
+      "provenanceVerificationThisPass": "Les fichiers locaux et leurs empreintes ont été vérifiés. Aucune interrogation distante, recompilation ou reproduction du prototype n’a été effectuée.",
+      "nativeStudioValidation": false,
+      "realDataUsed": false,
+      "limitations": [
+        "Fictional species, data, library, provenance and SVG illustrations only.",
+        "All changes are in-memory prototype state; page reload resets them.",
+        "Only the special-defense base-stat field is editable in this bounded reference candidate; the other base stats are visible.",
+        "The 3D preview is an illustrative SVG volume, not a model or target-engine render.",
+        "No native authoring, persistence, catalogue import, export, Player playback or RUI-075 acceptance is proven.",
+        "No approved target binding was created or changed."
+      ]
+    }
+  ],
+  "expectedPairs": [
+    {
+      "lotId": "RUI-019",
+      "stateId": "S01",
+      "stateTitle": "lecture seule",
+      "profile": "twoD"
+    },
+    {
+      "lotId": "RUI-019",
+      "stateId": "S02",
+      "stateTitle": "récupération",
+      "profile": "twoD"
+    },
+    {
+      "lotId": "RUI-019",
+      "stateId": "S03",
+      "stateTitle": "conflit",
+      "profile": "twoD"
+    },
+    {
+      "lotId": "RUI-019",
+      "stateId": "S04",
+      "stateTitle": "fermeture avec brouillon",
+      "profile": "twoD"
+    },
+    {
+      "lotId": "RUI-019",
+      "stateId": "S01",
+      "stateTitle": "lecture seule",
+      "profile": "threeD"
+    },
+    {
+      "lotId": "RUI-019",
+      "stateId": "S02",
+      "stateTitle": "récupération",
+      "profile": "threeD"
+    },
+    {
+      "lotId": "RUI-019",
+      "stateId": "S03",
+      "stateTitle": "conflit",
+      "profile": "threeD"
+    },
+    {
+      "lotId": "RUI-019",
+      "stateId": "S04",
+      "stateTitle": "fermeture avec brouillon",
+      "profile": "threeD"
+    },
+    {
+      "lotId": "RUI-075",
+      "stateId": "S01",
+      "stateTitle": "liste",
+      "profile": "twoD"
+    },
+    {
+      "lotId": "RUI-075",
+      "stateId": "S02",
+      "stateTitle": "fiche",
+      "profile": "twoD"
+    },
+    {
+      "lotId": "RUI-075",
+      "stateId": "S03",
+      "stateTitle": "provenance",
+      "profile": "twoD"
+    },
+    {
+      "lotId": "RUI-075",
+      "stateId": "S04",
+      "stateTitle": "brouillon",
+      "profile": "twoD"
+    },
+    {
+      "lotId": "RUI-075",
+      "stateId": "S05",
+      "stateTitle": "erreur référence",
+      "profile": "twoD"
+    },
+    {
+      "lotId": "RUI-075",
+      "stateId": "S01",
+      "stateTitle": "liste",
+      "profile": "threeD"
+    },
+    {
+      "lotId": "RUI-075",
+      "stateId": "S02",
+      "stateTitle": "fiche",
+      "profile": "threeD"
+    },
+    {
+      "lotId": "RUI-075",
+      "stateId": "S03",
+      "stateTitle": "provenance",
+      "profile": "threeD"
+    },
+    {
+      "lotId": "RUI-075",
+      "stateId": "S04",
+      "stateTitle": "brouillon",
+      "profile": "threeD"
+    },
+    {
+      "lotId": "RUI-075",
+      "stateId": "S05",
+      "stateTitle": "erreur référence",
+      "profile": "threeD"
+    }
+  ],
+  "proposedBindings": [
+    {
+      "id": "proposal-RUI-019-S01-twoD",
+      "lotId": "RUI-019",
+      "stateId": "S01",
+      "stateTitle": "lecture seule",
+      "profile": "twoD",
+      "referenceId": "candidate:470908170030706688:twoD:readonly",
+      "approvalStatus": "unapproved_proposal",
+      "approved": false,
+      "approvedBy": null,
+      "approvedAt": null,
+      "sourceSetId": "470908170030706688",
+      "capturePath": "/Users/karim/Project/pokemonProject/documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes/proofs/t00-candidates/470908170030706688/twoD-readonly.png",
+      "captureRelativePath": "proofs/t00-candidates/470908170030706688/twoD-readonly.png",
+      "sha256": "20f70c33a828a0423a45fefa08ea75af5f0a37a870402b047b19ed0be31ef3c8",
+      "pixelWidth": 1440,
+      "pixelHeight": 1000,
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "dpr": 1,
+      "sourceCaptureState": "readonly",
+      "sourceCaptureCode": null,
+      "capturedAt": "2026-11-10T14:44:41.866439+00:00",
+      "visualCorrespondence": {
+        "status": "candidate_matches_named_state_family_not_design_acceptance",
+        "reviewedBy": "Tom",
+        "reviewedAt": "2026-11-10T22:46:35Z",
+        "method": "Observation individuelle du fichier existant avec view_image, sans recadrage ni nouvelle capture.",
+        "visibleEvidence": [
+          "Le titre « Lecture seule » et le bandeau « Ce catalogue s’ouvre en lecture seule » sont visibles.",
+          "Le bouton Enregistrer est désactivé et le champ porte la mention « Consultation uniquement »."
+        ],
+        "profileEvidence": [
+          "Le projet « Johto · édition2D » est identifiable ; les vues non modales montrent un plan de dessus quadrillé."
+        ],
+        "fullFrame": true,
+        "nativeFidelityScoreAssigned": false,
+        "coverageScope": "Composition de maquette visible dans le cadre ; uniquement les contrôles et contenus effectivement montrés."
+      },
+      "limitations": [
+        "Capture de consultation initiale uniquement ; aucune tentative d’écriture native ni conversion de catalogue démontrée.",
+        "Aucune approbation de design, acceptation du lot ou preuve native n’est créée par cette proposition."
+      ]
+    },
+    {
+      "id": "proposal-RUI-019-S02-twoD",
+      "lotId": "RUI-019",
+      "stateId": "S02",
+      "stateTitle": "récupération",
+      "profile": "twoD",
+      "referenceId": "candidate:470908170030706688:twoD:recovery",
+      "approvalStatus": "unapproved_proposal",
+      "approved": false,
+      "approvedBy": null,
+      "approvedAt": null,
+      "sourceSetId": "470908170030706688",
+      "capturePath": "/Users/karim/Project/pokemonProject/documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes/proofs/t00-candidates/470908170030706688/twoD-recovery.png",
+      "captureRelativePath": "proofs/t00-candidates/470908170030706688/twoD-recovery.png",
+      "sha256": "13ed2b7a1b5ecb2954533fff4d9a1fbe07f4558b84b63eb779b0ce31b57c9cfa",
+      "pixelWidth": 1440,
+      "pixelHeight": 1000,
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "dpr": 1,
+      "sourceCaptureState": "recovery",
+      "sourceCaptureCode": null,
+      "capturedAt": "2026-11-10T14:44:41.866439+00:00",
+      "visualCorrespondence": {
+        "status": "candidate_matches_named_state_family_not_design_acceptance",
+        "reviewedBy": "Tom",
+        "reviewedAt": "2026-11-10T22:46:35Z",
+        "method": "Observation individuelle du fichier existant avec view_image, sans recadrage ni nouvelle capture.",
+        "visibleEvidence": [
+          "Le titre « Récupération » et le bandeau d’écriture interrompue sont visibles.",
+          "La dernière version complète et l’écriture interrompue sont comparées ; les deux choix de reprise et le bouton Continuer sont visibles."
+        ],
+        "profileEvidence": [
+          "Le projet « Johto · édition2D » est identifiable ; les vues non modales montrent un plan de dessus quadrillé."
+        ],
+        "fullFrame": true,
+        "nativeFidelityScoreAssigned": false,
+        "coverageScope": "Composition de maquette visible dans le cadre ; uniquement les contrôles et contenus effectivement montrés."
+      },
+      "limitations": [
+        "Capture du choix initial de récupération ; résultat après Continuer, échec et abandon après confirmation non capturés dans ces huit images.",
+        "Aucune approbation de design, acceptation du lot ou preuve native n’est créée par cette proposition."
+      ]
+    },
+    {
+      "id": "proposal-RUI-019-S03-twoD",
+      "lotId": "RUI-019",
+      "stateId": "S03",
+      "stateTitle": "conflit",
+      "profile": "twoD",
+      "referenceId": "candidate:470908170030706688:twoD:conflict",
+      "approvalStatus": "unapproved_proposal",
+      "approved": false,
+      "approvedBy": null,
+      "approvedAt": null,
+      "sourceSetId": "470908170030706688",
+      "capturePath": "/Users/karim/Project/pokemonProject/documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes/proofs/t00-candidates/470908170030706688/twoD-conflict.png",
+      "captureRelativePath": "proofs/t00-candidates/470908170030706688/twoD-conflict.png",
+      "sha256": "0a3a0df2069535dd9923482a88b4725de99b6ac7961904185ecaac6d7b09fc44",
+      "pixelWidth": 1440,
+      "pixelHeight": 1000,
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "dpr": 1,
+      "sourceCaptureState": "conflict",
+      "sourceCaptureCode": null,
+      "capturedAt": "2026-11-10T14:44:41.866439+00:00",
+      "visualCorrespondence": {
+        "status": "candidate_matches_named_state_family_not_design_acceptance",
+        "reviewedBy": "Tom",
+        "reviewedAt": "2026-11-10T22:46:35Z",
+        "method": "Observation individuelle du fichier existant avec view_image, sans recadrage ni nouvelle capture.",
+        "visibleEvidence": [
+          "Le titre « Conflit » et le message « Le projet a changé depuis son ouverture » sont visibles.",
+          "Les colonnes Cette session / Sur disque comparent les révisions 42/43 et les positions X11/X12 ; Garder ma session / Recharger sont visibles."
+        ],
+        "profileEvidence": [
+          "Le projet « Johto · édition2D » est identifiable ; les vues non modales montrent un plan de dessus quadrillé."
+        ],
+        "fullFrame": true,
+        "nativeFidelityScoreAssigned": false,
+        "coverageScope": "Composition de maquette visible dans le cadre ; uniquement les contrôles et contenus effectivement montrés."
+      },
+      "limitations": [
+        "Comparaison initiale du conflit ; confirmation de rechargement, résultat et conservation durable ne sont pas démontrés par cette image.",
+        "Aucune approbation de design, acceptation du lot ou preuve native n’est créée par cette proposition."
+      ]
+    },
+    {
+      "id": "proposal-RUI-019-S04-twoD",
+      "lotId": "RUI-019",
+      "stateId": "S04",
+      "stateTitle": "fermeture avec brouillon",
+      "profile": "twoD",
+      "referenceId": "candidate:470908170030706688:twoD:draft",
+      "approvalStatus": "unapproved_proposal",
+      "approved": false,
+      "approvedBy": null,
+      "approvedAt": null,
+      "sourceSetId": "470908170030706688",
+      "capturePath": "/Users/karim/Project/pokemonProject/documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes/proofs/t00-candidates/470908170030706688/twoD-draft.png",
+      "captureRelativePath": "proofs/t00-candidates/470908170030706688/twoD-draft.png",
+      "sha256": "b593248597917146d6983ab893062128ee8bc33d17f03b27682895aae7185aab",
+      "pixelWidth": 1440,
+      "pixelHeight": 1000,
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "dpr": 1,
+      "sourceCaptureState": "draft",
+      "sourceCaptureCode": null,
+      "capturedAt": "2026-11-10T14:44:41.866439+00:00",
+      "visualCorrespondence": {
+        "status": "candidate_matches_named_state_family_not_design_acceptance",
+        "reviewedBy": "Tom",
+        "reviewedAt": "2026-11-10T22:46:35Z",
+        "method": "Observation individuelle du fichier existant avec view_image, sans recadrage ni nouvelle capture.",
+        "visibleEvidence": [
+          "La modale « Fermer le projet ? » mentionne le brouillon Entrée du laboratoire.",
+          "Les actions Enregistrer et fermer, Rester dans le projet et Fermer sans enregistrer sont visibles, ainsi que la croix d’annulation."
+        ],
+        "profileEvidence": [
+          "Le projet « Johto · édition2D » est identifiable ; les vues non modales montrent un plan de dessus quadrillé."
+        ],
+        "fullFrame": true,
+        "nativeFidelityScoreAssigned": false,
+        "coverageScope": "Modale de décision de fermeture et fond illustratif flouté."
+      },
+      "limitations": [
+        "Capture de la modale avant décision ; ni succès d’enregistrement/fermeture ni échec d’écriture ne sont capturés.",
+        "Le fond est volontairement flouté par la maquette ; cette image vise la modale, pas un canevas de carte détaillé.",
+        "Aucune approbation de design, acceptation du lot ou preuve native n’est créée par cette proposition."
+      ]
+    },
+    {
+      "id": "proposal-RUI-019-S01-threeD",
+      "lotId": "RUI-019",
+      "stateId": "S01",
+      "stateTitle": "lecture seule",
+      "profile": "threeD",
+      "referenceId": "candidate:470908170030706688:threeD:readonly",
+      "approvalStatus": "unapproved_proposal",
+      "approved": false,
+      "approvedBy": null,
+      "approvedAt": null,
+      "sourceSetId": "470908170030706688",
+      "capturePath": "/Users/karim/Project/pokemonProject/documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes/proofs/t00-candidates/470908170030706688/threeD-readonly.png",
+      "captureRelativePath": "proofs/t00-candidates/470908170030706688/threeD-readonly.png",
+      "sha256": "356436b1f96de26dd4d97a063ab30a3640c3e5551ccc1aa9a9f9eac57b4ab82f",
+      "pixelWidth": 1440,
+      "pixelHeight": 1000,
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "dpr": 1,
+      "sourceCaptureState": "readonly",
+      "sourceCaptureCode": null,
+      "capturedAt": "2026-11-10T14:44:41.866439+00:00",
+      "visualCorrespondence": {
+        "status": "candidate_matches_named_state_family_not_design_acceptance",
+        "reviewedBy": "Tom",
+        "reviewedAt": "2026-11-10T22:46:35Z",
+        "method": "Observation individuelle du fichier existant avec view_image, sans recadrage ni nouvelle capture.",
+        "visibleEvidence": [
+          "Le titre « Lecture seule » et le bandeau « Ce catalogue s’ouvre en lecture seule » sont visibles.",
+          "Le bouton Enregistrer est désactivé et le champ porte la mention « Consultation uniquement »."
+        ],
+        "profileEvidence": [
+          "Le projet « Johto · édition3D » est identifiable ; les vues non modales montrent un plateau incliné illustratif."
+        ],
+        "fullFrame": true,
+        "nativeFidelityScoreAssigned": false,
+        "coverageScope": "Composition de maquette visible dans le cadre ; uniquement les contrôles et contenus effectivement montrés."
+      },
+      "limitations": [
+        "Capture de consultation initiale uniquement ; aucune tentative d’écriture native ni conversion de catalogue démontrée.",
+        "Aucune approbation de design, acceptation du lot ou preuve native n’est créée par cette proposition.",
+        "Le contenu3D est schématique ; aucune acceptation du rendu GPU, du moteur, de la caméra ou d’un asset3D natif."
+      ]
+    },
+    {
+      "id": "proposal-RUI-019-S02-threeD",
+      "lotId": "RUI-019",
+      "stateId": "S02",
+      "stateTitle": "récupération",
+      "profile": "threeD",
+      "referenceId": "candidate:470908170030706688:threeD:recovery",
+      "approvalStatus": "unapproved_proposal",
+      "approved": false,
+      "approvedBy": null,
+      "approvedAt": null,
+      "sourceSetId": "470908170030706688",
+      "capturePath": "/Users/karim/Project/pokemonProject/documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes/proofs/t00-candidates/470908170030706688/threeD-recovery.png",
+      "captureRelativePath": "proofs/t00-candidates/470908170030706688/threeD-recovery.png",
+      "sha256": "5c1d247a7e1960b7d46ed91f240445e1992e55e86e5b62c5019ee65b2b7b094e",
+      "pixelWidth": 1440,
+      "pixelHeight": 1000,
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "dpr": 1,
+      "sourceCaptureState": "recovery",
+      "sourceCaptureCode": null,
+      "capturedAt": "2026-11-10T14:44:41.866439+00:00",
+      "visualCorrespondence": {
+        "status": "candidate_matches_named_state_family_not_design_acceptance",
+        "reviewedBy": "Tom",
+        "reviewedAt": "2026-11-10T22:46:35Z",
+        "method": "Observation individuelle du fichier existant avec view_image, sans recadrage ni nouvelle capture.",
+        "visibleEvidence": [
+          "Le titre « Récupération » et le bandeau d’écriture interrompue sont visibles.",
+          "La dernière version complète et l’écriture interrompue sont comparées ; les deux choix de reprise et le bouton Continuer sont visibles."
+        ],
+        "profileEvidence": [
+          "Le projet « Johto · édition3D » est identifiable ; les vues non modales montrent un plateau incliné illustratif."
+        ],
+        "fullFrame": true,
+        "nativeFidelityScoreAssigned": false,
+        "coverageScope": "Composition de maquette visible dans le cadre ; uniquement les contrôles et contenus effectivement montrés."
+      },
+      "limitations": [
+        "Capture du choix initial de récupération ; résultat après Continuer, échec et abandon après confirmation non capturés dans ces huit images.",
+        "Aucune approbation de design, acceptation du lot ou preuve native n’est créée par cette proposition.",
+        "Le contenu3D est schématique ; aucune acceptation du rendu GPU, du moteur, de la caméra ou d’un asset3D natif."
+      ]
+    },
+    {
+      "id": "proposal-RUI-019-S03-threeD",
+      "lotId": "RUI-019",
+      "stateId": "S03",
+      "stateTitle": "conflit",
+      "profile": "threeD",
+      "referenceId": "candidate:470908170030706688:threeD:conflict",
+      "approvalStatus": "unapproved_proposal",
+      "approved": false,
+      "approvedBy": null,
+      "approvedAt": null,
+      "sourceSetId": "470908170030706688",
+      "capturePath": "/Users/karim/Project/pokemonProject/documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes/proofs/t00-candidates/470908170030706688/threeD-conflict.png",
+      "captureRelativePath": "proofs/t00-candidates/470908170030706688/threeD-conflict.png",
+      "sha256": "9741a2154b01d550362024351f32693fca989d4d430987f40e4ed8269d1cdc23",
+      "pixelWidth": 1440,
+      "pixelHeight": 1000,
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "dpr": 1,
+      "sourceCaptureState": "conflict",
+      "sourceCaptureCode": null,
+      "capturedAt": "2026-11-10T14:44:41.866439+00:00",
+      "visualCorrespondence": {
+        "status": "candidate_matches_named_state_family_not_design_acceptance",
+        "reviewedBy": "Tom",
+        "reviewedAt": "2026-11-10T22:46:35Z",
+        "method": "Observation individuelle du fichier existant avec view_image, sans recadrage ni nouvelle capture.",
+        "visibleEvidence": [
+          "Le titre « Conflit » et le message « Le projet a changé depuis son ouverture » sont visibles.",
+          "Les colonnes Cette session / Sur disque comparent les révisions 42/43 et les positions X11/X12 ; Garder ma session / Recharger sont visibles."
+        ],
+        "profileEvidence": [
+          "Le projet « Johto · édition3D » est identifiable ; les vues non modales montrent un plateau incliné illustratif."
+        ],
+        "fullFrame": true,
+        "nativeFidelityScoreAssigned": false,
+        "coverageScope": "Composition de maquette visible dans le cadre ; uniquement les contrôles et contenus effectivement montrés."
+      },
+      "limitations": [
+        "Comparaison initiale du conflit ; confirmation de rechargement, résultat et conservation durable ne sont pas démontrés par cette image.",
+        "Aucune approbation de design, acceptation du lot ou preuve native n’est créée par cette proposition.",
+        "Le contenu3D est schématique ; aucune acceptation du rendu GPU, du moteur, de la caméra ou d’un asset3D natif."
+      ]
+    },
+    {
+      "id": "proposal-RUI-019-S04-threeD",
+      "lotId": "RUI-019",
+      "stateId": "S04",
+      "stateTitle": "fermeture avec brouillon",
+      "profile": "threeD",
+      "referenceId": "candidate:470908170030706688:threeD:draft",
+      "approvalStatus": "unapproved_proposal",
+      "approved": false,
+      "approvedBy": null,
+      "approvedAt": null,
+      "sourceSetId": "470908170030706688",
+      "capturePath": "/Users/karim/Project/pokemonProject/documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes/proofs/t00-candidates/470908170030706688/threeD-draft.png",
+      "captureRelativePath": "proofs/t00-candidates/470908170030706688/threeD-draft.png",
+      "sha256": "4c986b1dc2b1765dd1f2e80f3e3f6c91826b5cfa4ee5079f11f7ae63e0325e07",
+      "pixelWidth": 1440,
+      "pixelHeight": 1000,
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "dpr": 1,
+      "sourceCaptureState": "draft",
+      "sourceCaptureCode": null,
+      "capturedAt": "2026-11-10T14:44:41.866439+00:00",
+      "visualCorrespondence": {
+        "status": "candidate_matches_named_state_family_not_design_acceptance",
+        "reviewedBy": "Tom",
+        "reviewedAt": "2026-11-10T22:46:35Z",
+        "method": "Observation individuelle du fichier existant avec view_image, sans recadrage ni nouvelle capture.",
+        "visibleEvidence": [
+          "La modale « Fermer le projet ? » mentionne le brouillon Entrée du laboratoire.",
+          "Les actions Enregistrer et fermer, Rester dans le projet et Fermer sans enregistrer sont visibles, ainsi que la croix d’annulation."
+        ],
+        "profileEvidence": [
+          "Le projet « Johto · édition3D » est identifiable ; les vues non modales montrent un plateau incliné illustratif."
+        ],
+        "fullFrame": true,
+        "nativeFidelityScoreAssigned": false,
+        "coverageScope": "Modale de décision de fermeture et fond illustratif flouté."
+      },
+      "limitations": [
+        "Capture de la modale avant décision ; ni succès d’enregistrement/fermeture ni échec d’écriture ne sont capturés.",
+        "Le fond est volontairement flouté par la maquette ; cette image vise la modale, pas un canevas de carte détaillé.",
+        "Aucune approbation de design, acceptation du lot ou preuve native n’est créée par cette proposition.",
+        "Le contenu3D est schématique ; aucune acceptation du rendu GPU, du moteur, de la caméra ou d’un asset3D natif."
+      ]
+    },
+    {
+      "id": "proposal-RUI-075-S01-twoD",
+      "lotId": "RUI-075",
+      "stateId": "S01",
+      "stateTitle": "liste",
+      "profile": "twoD",
+      "referenceId": "candidate:470932885365477376:twoD:liste",
+      "approvalStatus": "unapproved_proposal",
+      "approved": false,
+      "approvedBy": null,
+      "approvedAt": null,
+      "sourceSetId": "470932885365477376",
+      "capturePath": "/Users/karim/Project/pokemonProject/documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes/proofs/t00-candidates/470932885365477376/twoD-S01-liste.png",
+      "captureRelativePath": "proofs/t00-candidates/470932885365477376/twoD-S01-liste.png",
+      "sha256": "d264aff7ca435362f200b4a40d07365317ad3b486a0fbd7f998b755c2a15730b",
+      "pixelWidth": 1440,
+      "pixelHeight": 1080,
+      "viewport": {
+        "width": 1440,
+        "height": 1080
+      },
+      "dpr": 1,
+      "sourceCaptureState": "liste",
+      "sourceCaptureCode": "S01",
+      "capturedAt": "2026-11-10T16:09:05.583098+00:00",
+      "visualCorrespondence": {
+        "status": "candidate_matches_named_state_family_not_design_acceptance",
+        "reviewedBy": "Tom",
+        "reviewedAt": "2026-11-10T22:46:35Z",
+        "method": "Observation individuelle du fichier existant avec view_image, sans recadrage ni nouvelle capture.",
+        "visibleEvidence": [
+          "Le catalogue indique 12 espèces, affiche six lignes et une pagination 1/2.",
+          "Recherche, filtres de type/statut, origine et état de chaque ligne sont visibles ; l’entrée Importer une bibliothèque est visible."
+        ],
+        "profileEvidence": [
+          "Le sélecteur Profil2D est actif et le panneau droit décrit les sprites par rôle ; aucun modèle3D natif n’est présenté dans la liste."
+        ],
+        "fullFrame": true,
+        "nativeFidelityScoreAssigned": false,
+        "coverageScope": "Composition de maquette visible dans le cadre ; uniquement les contrôles et contenus effectivement montrés."
+      },
+      "limitations": [
+        "Première page non filtrée uniquement ; aucun vide, chargement ou erreur de catalogue n’est montré par cette capture.",
+        "Aucune approbation de design, acceptation du lot ou preuve native n’est créée par cette proposition."
+      ]
+    },
+    {
+      "id": "proposal-RUI-075-S02-twoD",
+      "lotId": "RUI-075",
+      "stateId": "S02",
+      "stateTitle": "fiche",
+      "profile": "twoD",
+      "referenceId": "candidate:470932885365477376:twoD:fiche",
+      "approvalStatus": "unapproved_proposal",
+      "approved": false,
+      "approvedBy": null,
+      "approvedAt": null,
+      "sourceSetId": "470932885365477376",
+      "capturePath": "/Users/karim/Project/pokemonProject/documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes/proofs/t00-candidates/470932885365477376/twoD-S02-fiche.png",
+      "captureRelativePath": "proofs/t00-candidates/470932885365477376/twoD-S02-fiche.png",
+      "sha256": "5ca8b7147a798731889c8dc9958635c8061055e4ba409b173395270573fd922c",
+      "pixelWidth": 1440,
+      "pixelHeight": 1080,
+      "viewport": {
+        "width": 1440,
+        "height": 1080
+      },
+      "dpr": 1,
+      "sourceCaptureState": "fiche",
+      "sourceCaptureCode": "S02",
+      "capturedAt": "2026-11-10T16:09:05.694527+00:00",
+      "visualCorrespondence": {
+        "status": "candidate_matches_named_state_family_not_design_acceptance",
+        "reviewedBy": "Tom",
+        "reviewedAt": "2026-11-10T22:46:35Z",
+        "method": "Observation individuelle du fichier existant avec view_image, sans recadrage ni nouvelle capture.",
+        "visibleEvidence": [
+          "La fiche Florou affiche identité, catégorie, identifiant stable et six statistiques de base (total329).",
+          "Les onglets Données/Formes/Évolutions/Médias/Usages et les entrées de complément sont visibles ; Données est l’onglet montré."
+        ],
+        "profileEvidence": [
+          "Profil2D est actif ; l’aperçu latéral est étiqueté Combat · face ·96×96px et montre une illustration de sprite."
+        ],
+        "fullFrame": true,
+        "nativeFidelityScoreAssigned": false,
+        "coverageScope": "Composition de maquette visible dans le cadre ; uniquement les contrôles et contenus effectivement montrés."
+      },
+      "limitations": [
+        "La capture principale montre Données ; elle ne suffit pas à elle seule comme cible de chaque onglet secondaire.",
+        "La candidate ne rend éditable que le champ de défense spéciale parmi les statistiques de base.",
+        "Aucune approbation de design, acceptation du lot ou preuve native n’est créée par cette proposition."
+      ]
+    },
+    {
+      "id": "proposal-RUI-075-S03-twoD",
+      "lotId": "RUI-075",
+      "stateId": "S03",
+      "stateTitle": "provenance",
+      "profile": "twoD",
+      "referenceId": "candidate:470932885365477376:twoD:provenance",
+      "approvalStatus": "unapproved_proposal",
+      "approved": false,
+      "approvedBy": null,
+      "approvedAt": null,
+      "sourceSetId": "470932885365477376",
+      "capturePath": "/Users/karim/Project/pokemonProject/documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes/proofs/t00-candidates/470932885365477376/twoD-S03-provenance.png",
+      "captureRelativePath": "proofs/t00-candidates/470932885365477376/twoD-S03-provenance.png",
+      "sha256": "09a619cc239b9332e5590f910263a6e3e3f12e349d0da5f37894f4130888e322",
+      "pixelWidth": 1440,
+      "pixelHeight": 1080,
+      "viewport": {
+        "width": 1440,
+        "height": 1080
+      },
+      "dpr": 1,
+      "sourceCaptureState": "provenance",
+      "sourceCaptureCode": "S03",
+      "capturedAt": "2026-11-10T16:09:05.786505+00:00",
+      "visualCorrespondence": {
+        "status": "candidate_matches_named_state_family_not_design_acceptance",
+        "reviewedBy": "Tom",
+        "reviewedAt": "2026-11-10T22:46:35Z",
+        "method": "Observation individuelle du fichier existant avec view_image, sans recadrage ni nouvelle capture.",
+        "visibleEvidence": [
+          "Le panneau Provenance montre la bibliothèque Atelier Forêt v1.2, les identifiants d’espèce/source et le statut des droits de maquette.",
+          "L’origine des valeurs distingue bibliothèque et adaptations locales ; Comparer les valeurs est visible au bas du cadre."
+        ],
+        "profileEvidence": [
+          "Profil2D est actif ; l’aperçu latéral est étiqueté Combat · face ·96×96px et montre une illustration de sprite."
+        ],
+        "fullFrame": true,
+        "nativeFidelityScoreAssigned": false,
+        "coverageScope": "Composition de maquette visible dans le cadre ; uniquement les contrôles et contenus effectivement montrés."
+      },
+      "limitations": [
+        "Provenance et droits fictifs de démonstration ; aucune vérification d’une bibliothèque réelle ou comparaison de versions native.",
+        "Aucune approbation de design, acceptation du lot ou preuve native n’est créée par cette proposition."
+      ]
+    },
+    {
+      "id": "proposal-RUI-075-S04-twoD",
+      "lotId": "RUI-075",
+      "stateId": "S04",
+      "stateTitle": "brouillon",
+      "profile": "twoD",
+      "referenceId": "candidate:470932885365477376:twoD:brouillon",
+      "approvalStatus": "unapproved_proposal",
+      "approved": false,
+      "approvedBy": null,
+      "approvedAt": null,
+      "sourceSetId": "470932885365477376",
+      "capturePath": "/Users/karim/Project/pokemonProject/documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes/proofs/t00-candidates/470932885365477376/twoD-S04-brouillon.png",
+      "captureRelativePath": "proofs/t00-candidates/470932885365477376/twoD-S04-brouillon.png",
+      "sha256": "7aaf42fff3d1f0a37f29d0c8675f0b252f201510b9b386970c75413f6826be3d",
+      "pixelWidth": 1440,
+      "pixelHeight": 1080,
+      "viewport": {
+        "width": 1440,
+        "height": 1080
+      },
+      "dpr": 1,
+      "sourceCaptureState": "brouillon",
+      "sourceCaptureCode": "S04",
+      "capturedAt": "2026-11-10T16:09:05.879296+00:00",
+      "visualCorrespondence": {
+        "status": "candidate_matches_named_state_family_not_design_acceptance",
+        "reviewedBy": "Tom",
+        "reviewedAt": "2026-11-10T22:46:35Z",
+        "method": "Observation individuelle du fichier existant avec view_image, sans recadrage ni nouvelle capture.",
+        "visibleEvidence": [
+          "La fiche porte un badge Brouillon, la catégorie « Graine sylvestre » et une défense spéciale de70.",
+          "Le panneau latéral compare Graine→Graine sylvestre et65→70, avec Enregistrer le brouillon et Abandonner les modifications."
+        ],
+        "profileEvidence": [
+          "Profil2D est actif ; l’aperçu latéral est étiqueté Combat · face ·96×96px et montre une illustration de sprite."
+        ],
+        "fullFrame": true,
+        "nativeFidelityScoreAssigned": false,
+        "coverageScope": "Composition de maquette visible dans le cadre ; uniquement les contrôles et contenus effectivement montrés."
+      },
+      "limitations": [
+        "Delta borné de deux champs dans un prototype en mémoire ; aucune sauvegarde durable ou publication native démontrée.",
+        "Aucune approbation de design, acceptation du lot ou preuve native n’est créée par cette proposition."
+      ]
+    },
+    {
+      "id": "proposal-RUI-075-S05-twoD",
+      "lotId": "RUI-075",
+      "stateId": "S05",
+      "stateTitle": "erreur référence",
+      "profile": "twoD",
+      "referenceId": "candidate:470932885365477376:twoD:erreur",
+      "approvalStatus": "unapproved_proposal",
+      "approved": false,
+      "approvedBy": null,
+      "approvedAt": null,
+      "sourceSetId": "470932885365477376",
+      "capturePath": "/Users/karim/Project/pokemonProject/documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes/proofs/t00-candidates/470932885365477376/twoD-S05-erreur.png",
+      "captureRelativePath": "proofs/t00-candidates/470932885365477376/twoD-S05-erreur.png",
+      "sha256": "e1c0a65ca6f0be6201163c86fcaea4a7c849f34ea3f2d589775f8052297c8b69",
+      "pixelWidth": 1440,
+      "pixelHeight": 1080,
+      "viewport": {
+        "width": 1440,
+        "height": 1080
+      },
+      "dpr": 1,
+      "sourceCaptureState": "erreur",
+      "sourceCaptureCode": "S05",
+      "capturedAt": "2026-11-10T16:09:05.984736+00:00",
+      "visualCorrespondence": {
+        "status": "candidate_matches_named_state_family_not_design_acceptance",
+        "reviewedBy": "Tom",
+        "reviewedAt": "2026-11-10T22:46:35Z",
+        "method": "Observation individuelle du fichier existant avec view_image, sans recadrage ni nouvelle capture.",
+        "visibleEvidence": [
+          "L’aperçu affiche « Aperçu indisponible » et indique que la référence enregistrée est conservée.",
+          "Le panneau « Une référence manque » propose Choisir un remplacement / Réessayer et désactive l’enregistrement du brouillon."
+        ],
+        "profileEvidence": [
+          "Profil2D est actif ; le média de combat absent est identifié comme demo.media.flora.front et son aperçu est remplacé par un diagnostic."
+        ],
+        "fullFrame": true,
+        "nativeFidelityScoreAssigned": false,
+        "coverageScope": "Composition de maquette visible dans le cadre ; uniquement les contrôles et contenus effectivement montrés."
+      },
+      "limitations": [
+        "Erreur de référence d’un média précis ; pas de généralisation aux erreurs de réseau, catalogue, import ou écriture.",
+        "Les résultats après remplacement ou nouvelle tentative ne sont pas montrés par cette capture principale.",
+        "Aucune approbation de design, acceptation du lot ou preuve native n’est créée par cette proposition."
+      ]
+    },
+    {
+      "id": "proposal-RUI-075-S01-threeD",
+      "lotId": "RUI-075",
+      "stateId": "S01",
+      "stateTitle": "liste",
+      "profile": "threeD",
+      "referenceId": "candidate:470932885365477376:threeD:liste",
+      "approvalStatus": "unapproved_proposal",
+      "approved": false,
+      "approvedBy": null,
+      "approvedAt": null,
+      "sourceSetId": "470932885365477376",
+      "capturePath": "/Users/karim/Project/pokemonProject/documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes/proofs/t00-candidates/470932885365477376/threeD-S01-liste.png",
+      "captureRelativePath": "proofs/t00-candidates/470932885365477376/threeD-S01-liste.png",
+      "sha256": "d9c1bee8fddc4cfa4116eba7c5f7791300eb1b95ddba80be4c7b5f7dd012d662",
+      "pixelWidth": 1440,
+      "pixelHeight": 1080,
+      "viewport": {
+        "width": 1440,
+        "height": 1080
+      },
+      "dpr": 1,
+      "sourceCaptureState": "liste",
+      "sourceCaptureCode": "S01",
+      "capturedAt": "2026-11-10T16:09:08.259471+00:00",
+      "visualCorrespondence": {
+        "status": "candidate_matches_named_state_family_not_design_acceptance",
+        "reviewedBy": "Tom",
+        "reviewedAt": "2026-11-10T22:46:35Z",
+        "method": "Observation individuelle du fichier existant avec view_image, sans recadrage ni nouvelle capture.",
+        "visibleEvidence": [
+          "Le catalogue indique 12 espèces, affiche six lignes et une pagination 1/2.",
+          "Recherche, filtres de type/statut, origine et état de chaque ligne sont visibles ; l’entrée Importer une bibliothèque est visible."
+        ],
+        "profileEvidence": [
+          "Le sélecteur Profil3D est actif et le panneau droit décrit un modèle avec les mêmes données ; la liste conserve des vignettes2D, sans viewport3D."
+        ],
+        "fullFrame": true,
+        "nativeFidelityScoreAssigned": false,
+        "coverageScope": "Composition de maquette visible dans le cadre ; uniquement les contrôles et contenus effectivement montrés."
+      },
+      "limitations": [
+        "Première page non filtrée uniquement ; aucun vide, chargement ou erreur de catalogue n’est montré par cette capture.",
+        "Aucune approbation de design, acceptation du lot ou preuve native n’est créée par cette proposition.",
+        "Le contenu3D est schématique ; aucune acceptation du rendu GPU, du moteur, de la caméra ou d’un asset3D natif."
+      ]
+    },
+    {
+      "id": "proposal-RUI-075-S02-threeD",
+      "lotId": "RUI-075",
+      "stateId": "S02",
+      "stateTitle": "fiche",
+      "profile": "threeD",
+      "referenceId": "candidate:470932885365477376:threeD:fiche",
+      "approvalStatus": "unapproved_proposal",
+      "approved": false,
+      "approvedBy": null,
+      "approvedAt": null,
+      "sourceSetId": "470932885365477376",
+      "capturePath": "/Users/karim/Project/pokemonProject/documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes/proofs/t00-candidates/470932885365477376/threeD-S02-fiche.png",
+      "captureRelativePath": "proofs/t00-candidates/470932885365477376/threeD-S02-fiche.png",
+      "sha256": "9775e58d18bef89ea59421dab75bb998f295d447823ba4f4e0b9df6cbf3b8600",
+      "pixelWidth": 1440,
+      "pixelHeight": 1080,
+      "viewport": {
+        "width": 1440,
+        "height": 1080
+      },
+      "dpr": 1,
+      "sourceCaptureState": "fiche",
+      "sourceCaptureCode": "S02",
+      "capturedAt": "2026-11-10T16:09:08.354062+00:00",
+      "visualCorrespondence": {
+        "status": "candidate_matches_named_state_family_not_design_acceptance",
+        "reviewedBy": "Tom",
+        "reviewedAt": "2026-11-10T22:46:35Z",
+        "method": "Observation individuelle du fichier existant avec view_image, sans recadrage ni nouvelle capture.",
+        "visibleEvidence": [
+          "La fiche Florou affiche identité, catégorie, identifiant stable et six statistiques de base (total329).",
+          "Les onglets Données/Formes/Évolutions/Médias/Usages et les entrées de complément sont visibles ; Données est l’onglet montré."
+        ],
+        "profileEvidence": [
+          "Profil3D est actif ; l’aperçu latéral porte Volume illustré et Modèle sur carte · vue trois-quarts. Il ne s’agit pas d’un modèle natif."
+        ],
+        "fullFrame": true,
+        "nativeFidelityScoreAssigned": false,
+        "coverageScope": "Composition de maquette visible dans le cadre ; uniquement les contrôles et contenus effectivement montrés."
+      },
+      "limitations": [
+        "La capture principale montre Données ; elle ne suffit pas à elle seule comme cible de chaque onglet secondaire.",
+        "La candidate ne rend éditable que le champ de défense spéciale parmi les statistiques de base.",
+        "Aucune approbation de design, acceptation du lot ou preuve native n’est créée par cette proposition.",
+        "Le contenu3D est schématique ; aucune acceptation du rendu GPU, du moteur, de la caméra ou d’un asset3D natif."
+      ]
+    },
+    {
+      "id": "proposal-RUI-075-S03-threeD",
+      "lotId": "RUI-075",
+      "stateId": "S03",
+      "stateTitle": "provenance",
+      "profile": "threeD",
+      "referenceId": "candidate:470932885365477376:threeD:provenance",
+      "approvalStatus": "unapproved_proposal",
+      "approved": false,
+      "approvedBy": null,
+      "approvedAt": null,
+      "sourceSetId": "470932885365477376",
+      "capturePath": "/Users/karim/Project/pokemonProject/documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes/proofs/t00-candidates/470932885365477376/threeD-S03-provenance.png",
+      "captureRelativePath": "proofs/t00-candidates/470932885365477376/threeD-S03-provenance.png",
+      "sha256": "697541299bece58bae8b8edb073f59062cc395b098077f28790d39dbd373878a",
+      "pixelWidth": 1440,
+      "pixelHeight": 1080,
+      "viewport": {
+        "width": 1440,
+        "height": 1080
+      },
+      "dpr": 1,
+      "sourceCaptureState": "provenance",
+      "sourceCaptureCode": "S03",
+      "capturedAt": "2026-11-10T16:09:08.437262+00:00",
+      "visualCorrespondence": {
+        "status": "candidate_matches_named_state_family_not_design_acceptance",
+        "reviewedBy": "Tom",
+        "reviewedAt": "2026-11-10T22:46:35Z",
+        "method": "Observation individuelle du fichier existant avec view_image, sans recadrage ni nouvelle capture.",
+        "visibleEvidence": [
+          "Le panneau Provenance montre la bibliothèque Atelier Forêt v1.2, les identifiants d’espèce/source et le statut des droits de maquette.",
+          "L’origine des valeurs distingue bibliothèque et adaptations locales ; Comparer les valeurs est visible au bas du cadre."
+        ],
+        "profileEvidence": [
+          "Profil3D est actif ; l’aperçu latéral porte Volume illustré et Modèle sur carte · vue trois-quarts. Il ne s’agit pas d’un modèle natif."
+        ],
+        "fullFrame": true,
+        "nativeFidelityScoreAssigned": false,
+        "coverageScope": "Composition de maquette visible dans le cadre ; uniquement les contrôles et contenus effectivement montrés."
+      },
+      "limitations": [
+        "Provenance et droits fictifs de démonstration ; aucune vérification d’une bibliothèque réelle ou comparaison de versions native.",
+        "Aucune approbation de design, acceptation du lot ou preuve native n’est créée par cette proposition.",
+        "Le contenu3D est schématique ; aucune acceptation du rendu GPU, du moteur, de la caméra ou d’un asset3D natif."
+      ]
+    },
+    {
+      "id": "proposal-RUI-075-S04-threeD",
+      "lotId": "RUI-075",
+      "stateId": "S04",
+      "stateTitle": "brouillon",
+      "profile": "threeD",
+      "referenceId": "candidate:470932885365477376:threeD:brouillon",
+      "approvalStatus": "unapproved_proposal",
+      "approved": false,
+      "approvedBy": null,
+      "approvedAt": null,
+      "sourceSetId": "470932885365477376",
+      "capturePath": "/Users/karim/Project/pokemonProject/documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes/proofs/t00-candidates/470932885365477376/threeD-S04-brouillon.png",
+      "captureRelativePath": "proofs/t00-candidates/470932885365477376/threeD-S04-brouillon.png",
+      "sha256": "6163022a57eea53ba94a47ec82ee4441f24fdb4d7140f21a05ea3a5712abc16a",
+      "pixelWidth": 1440,
+      "pixelHeight": 1080,
+      "viewport": {
+        "width": 1440,
+        "height": 1080
+      },
+      "dpr": 1,
+      "sourceCaptureState": "brouillon",
+      "sourceCaptureCode": "S04",
+      "capturedAt": "2026-11-10T16:09:08.533411+00:00",
+      "visualCorrespondence": {
+        "status": "candidate_matches_named_state_family_not_design_acceptance",
+        "reviewedBy": "Tom",
+        "reviewedAt": "2026-11-10T22:46:35Z",
+        "method": "Observation individuelle du fichier existant avec view_image, sans recadrage ni nouvelle capture.",
+        "visibleEvidence": [
+          "La fiche porte un badge Brouillon, la catégorie « Graine sylvestre » et une défense spéciale de70.",
+          "Le panneau latéral compare Graine→Graine sylvestre et65→70, avec Enregistrer le brouillon et Abandonner les modifications."
+        ],
+        "profileEvidence": [
+          "Profil3D est actif ; l’aperçu latéral porte Volume illustré et Modèle sur carte · vue trois-quarts. Il ne s’agit pas d’un modèle natif."
+        ],
+        "fullFrame": true,
+        "nativeFidelityScoreAssigned": false,
+        "coverageScope": "Composition de maquette visible dans le cadre ; uniquement les contrôles et contenus effectivement montrés."
+      },
+      "limitations": [
+        "Delta borné de deux champs dans un prototype en mémoire ; aucune sauvegarde durable ou publication native démontrée.",
+        "Aucune approbation de design, acceptation du lot ou preuve native n’est créée par cette proposition.",
+        "Le contenu3D est schématique ; aucune acceptation du rendu GPU, du moteur, de la caméra ou d’un asset3D natif."
+      ]
+    },
+    {
+      "id": "proposal-RUI-075-S05-threeD",
+      "lotId": "RUI-075",
+      "stateId": "S05",
+      "stateTitle": "erreur référence",
+      "profile": "threeD",
+      "referenceId": "candidate:470932885365477376:threeD:erreur",
+      "approvalStatus": "unapproved_proposal",
+      "approved": false,
+      "approvedBy": null,
+      "approvedAt": null,
+      "sourceSetId": "470932885365477376",
+      "capturePath": "/Users/karim/Project/pokemonProject/documentation/reports/avelune_studio/plans/2026-11-09-constructeur-cartes/proofs/t00-candidates/470932885365477376/threeD-S05-erreur.png",
+      "captureRelativePath": "proofs/t00-candidates/470932885365477376/threeD-S05-erreur.png",
+      "sha256": "45af181afad4f6ef741961879888305bafc21841ce3ca83311809e1526cda65d",
+      "pixelWidth": 1440,
+      "pixelHeight": 1080,
+      "viewport": {
+        "width": 1440,
+        "height": 1080
+      },
+      "dpr": 1,
+      "sourceCaptureState": "erreur",
+      "sourceCaptureCode": "S05",
+      "capturedAt": "2026-11-10T16:09:08.620257+00:00",
+      "visualCorrespondence": {
+        "status": "candidate_matches_named_state_family_not_design_acceptance",
+        "reviewedBy": "Tom",
+        "reviewedAt": "2026-11-10T22:46:35Z",
+        "method": "Observation individuelle du fichier existant avec view_image, sans recadrage ni nouvelle capture.",
+        "visibleEvidence": [
+          "L’aperçu affiche « Aperçu indisponible » et indique que la référence enregistrée est conservée.",
+          "Le panneau « Une référence manque » propose Choisir un remplacement / Réessayer et désactive l’enregistrement du brouillon."
+        ],
+        "profileEvidence": [
+          "Profil3D est actif ; le média de modèle3D absent est identifié comme demo.media.flora.model et son aperçu est remplacé par un diagnostic."
+        ],
+        "fullFrame": true,
+        "nativeFidelityScoreAssigned": false,
+        "coverageScope": "Composition de maquette visible dans le cadre ; uniquement les contrôles et contenus effectivement montrés."
+      },
+      "limitations": [
+        "Erreur de référence d’un média précis ; pas de généralisation aux erreurs de réseau, catalogue, import ou écriture.",
+        "Les résultats après remplacement ou nouvelle tentative ne sont pas montrés par cette capture principale.",
+        "Aucune approbation de design, acceptation du lot ou preuve native n’est créée par cette proposition.",
+        "Le contenu3D est schématique ; aucune acceptation du rendu GPU, du moteur, de la caméra ou d’un asset3D natif."
+      ]
+    }
+  ],
+  "coverage": {
+    "requiredPairCount": 18,
+    "proposedCandidatePairCount": 18,
+    "approvedBindingCount": 0,
+    "missingCandidatePairs": [],
+    "pairsWithoutApprovedTarget": [
+      {
+        "lotId": "RUI-019",
+        "stateId": "S01",
+        "profile": "twoD"
+      },
+      {
+        "lotId": "RUI-019",
+        "stateId": "S02",
+        "profile": "twoD"
+      },
+      {
+        "lotId": "RUI-019",
+        "stateId": "S03",
+        "profile": "twoD"
+      },
+      {
+        "lotId": "RUI-019",
+        "stateId": "S04",
+        "profile": "twoD"
+      },
+      {
+        "lotId": "RUI-019",
+        "stateId": "S01",
+        "profile": "threeD"
+      },
+      {
+        "lotId": "RUI-019",
+        "stateId": "S02",
+        "profile": "threeD"
+      },
+      {
+        "lotId": "RUI-019",
+        "stateId": "S03",
+        "profile": "threeD"
+      },
+      {
+        "lotId": "RUI-019",
+        "stateId": "S04",
+        "profile": "threeD"
+      },
+      {
+        "lotId": "RUI-075",
+        "stateId": "S01",
+        "profile": "twoD"
+      },
+      {
+        "lotId": "RUI-075",
+        "stateId": "S02",
+        "profile": "twoD"
+      },
+      {
+        "lotId": "RUI-075",
+        "stateId": "S03",
+        "profile": "twoD"
+      },
+      {
+        "lotId": "RUI-075",
+        "stateId": "S04",
+        "profile": "twoD"
+      },
+      {
+        "lotId": "RUI-075",
+        "stateId": "S05",
+        "profile": "twoD"
+      },
+      {
+        "lotId": "RUI-075",
+        "stateId": "S01",
+        "profile": "threeD"
+      },
+      {
+        "lotId": "RUI-075",
+        "stateId": "S02",
+        "profile": "threeD"
+      },
+      {
+        "lotId": "RUI-075",
+        "stateId": "S03",
+        "profile": "threeD"
+      },
+      {
+        "lotId": "RUI-075",
+        "stateId": "S04",
+        "profile": "threeD"
+      },
+      {
+        "lotId": "RUI-075",
+        "stateId": "S05",
+        "profile": "threeD"
+      }
+    ],
+    "supplementarySpeciesCapturesNotMappedToNewStates": 14,
+    "supplementaryCapturePolicy": "Les14 captures supplémentaires du manifeste Espèces sont conservées par leur source, mais ne sont ni revues visuellement ni transformées en états supplémentaires par cette proposition.",
+    "requiredStateConclusion": "Chaque couple Sxx/profil demandé pour RUI-019 et RUI-075 possède ici une capture candidate correspondant à sa famille d’état. Aucun de ces18 couples ne possède une cible approuvée.",
+    "gapsOutsideNamedStateFamilies": [
+      {
+        "lotId": "RUI-019",
+        "states": [
+          "Résultat de récupération après Continuer",
+          "Échec de récupération",
+          "Résultat et échec d’enregistrement avant fermeture",
+          "Formats compacts et texte agrandi"
+        ],
+        "status": "not_covered_by_eight_primary_captures",
+        "note": "Ne sont pas ajoutés comme états Sxx requis par cette proposition ; restent à examiner si le lot exige ces variantes."
+      },
+      {
+        "lotId": "RUI-075",
+        "states": [
+          "Catalogue vide ou filtré",
+          "Chargement/erreur de catalogue",
+          "Succès et échec de sauvegarde durable",
+          "Rendu3D natif et ressources réelles"
+        ],
+        "status": "not_established_by_ten_primary_captures",
+        "note": "Ne pas extrapoler de la présence d’un bouton à une cible du résultat de l’action."
+      }
+    ],
+    "otherLotsNotCovered": [
+      "RUI-076",
+      "RUI-077",
+      "RUI-078",
+      "RUI-079",
+      "RUI-083"
+    ],
+    "sharedChromeApproval": "Aucun alignement des deux candidates avec le shell final n’est approuvé. Les deux séries ont des compositions distinctes à examiner."
+  },
+  "verification": {
+    "imageSha256MatchesSourceManifests": true,
+    "pngHeaderDimensionsMatchSourceManifests": true,
+    "viewportTimesDprEqualsPixelDimensions": true,
+    "individualImagesViewed": 18,
+    "automatedChecksDoNotAssessVisualQuality": true,
+    "applicationTestsRun": false,
+    "prototypeTestsRerun": false,
+    "note": "Le résultat de cette vérification porte sur les fichiers et la correspondance sémantique visible, pas sur la fidélité native ni l’acceptabilité du design."
+  },
+  "canonicalRegistryWrittenByThisTask": false,
+  "sharedPlanModifiedByThisTask": false,
+  "lotStatusChangedByThisTask": false
+}

@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 1,
+  "status": "candidate_not_approved",
+  "projectId": "470322374529675264",
+  "componentId": "471199137765941248",
+  "revisionId": "471199137770135552",
+  "title": "RUI-016 S03 — proposition de chargement indéterminé en profils 2D et 3D",
+  "capturedAt": "2026-11-11T09:40:53.067Z",
+  "coverage": [
+    {
+      "lotId": "RUI-016",
+      "stateId": "S03",
+      "profiles": [
+        "twoD",
+        "threeD"
+      ]
+    }
+  ],
+  "components": [
+    {
+      "profile": "twoD",
+      "componentId": "471199137765941248",
+      "revisionId": "471199137770135552",
+      "jobId": "466929222972227584-external-agent-471200557076475904",
+      "buildStatus": "completed"
+    },
+    {
+      "profile": "threeD",
+      "componentId": "471199717544583168",
+      "revisionId": "471199717544583169",
+      "jobId": "466929222972227584-external-agent-471200582300995584",
+      "buildStatus": "completed"
+    }
+  ],
+  "captureOrigin": "Aperçus natifs de MagicPath via view_component, après construction distante ; aucun navigateur local, serveur local ou CDP utilisé.",
+  "captures": [
+    {
+      "profile": "twoD",
+      "state": "loading",
+      "mimeType": "image/jpeg",
+      "componentId": "471199137765941248",
+      "revisionId": "471199137770135552",
+      "path": "twoD-loading-native-preview.jpg",
+      "sha256": "dc8d4a2e0eb0ba74fa4e989f7990ced56282416d3d3bdc3beb263dcee620b072",
+      "pixelWidth": 1200,
+      "pixelHeight": 630,
+      "origin": "MagicPath view_component native MCP image block; compressed preview bytes archived unchanged",
+      "viewportCssPixels": null,
+      "devicePixelRatio": null,
+      "visibleCoverage": "Dialogue complet ; bandeau de profil visible ; composition globale de la fenêtre tronquée hors de l’aperçu natif."
+    },
+    {
+      "profile": "threeD",
+      "state": "loading",
+      "mimeType": "image/jpeg",
+      "componentId": "471199717544583168",
+      "revisionId": "471199717544583169",
+      "path": "threeD-loading-native-preview.jpg",
+      "sha256": "44e629e167adfacaf683b2d6d1a2a6b4e4bdfa8a6d77b65d6afbc882433cb6ed",
+      "pixelWidth": 1200,
+      "pixelHeight": 630,
+      "origin": "MagicPath view_component native MCP image block; compressed preview bytes archived unchanged",
+      "viewportCssPixels": null,
+      "devicePixelRatio": null,
+      "visibleCoverage": "Dialogue complet ; bandeau de profil visible ; composition globale de la fenêtre tronquée hors de l’aperçu natif."
+    }
+  ],
+  "designLineage": [
+    {
+      "componentId": "470322378581372928",
+      "revisionId": "470590493273763840",
+      "role": "Palette sombre, chrome carte, quatre espaces ; aperçu épinglé inspecté via view_component.",
+      "approvalStatus": "reference_existing dans le registre local, aucune approbation nouvelle attribuée."
+    },
+    {
+      "componentId": "470904123445886976",
+      "revisionId": "470908170030706688",
+      "role": "Hiérarchie du dialogue, focus cyan, tokens de surface/texte ; aperçu et contexte source épinglés inspectés.",
+      "approvalStatus": "candidate_only_not_approved selon le manifeste local."
+    }
+  ],
+  "submittedSourceFingerprints": [
+    {
+      "profile": "twoD",
+      "remotePath": "src/components/generated/AveluneStudioRUI016S03Chargement2DEt3DProposition.tsx",
+      "sha256": "6a7796a86e603dd70f99a717ff4003e8e8be91d4e29e05b65a3dbf3f1c818973",
+      "byteCount": 10104
+    },
+    {
+      "profile": "twoD",
+      "remotePath": "src/components/generated/LoadingReference.css",
+      "sha256": "270eb181c2f7ce651e383b7abb0932f2b8c99496551f842f5c2949d4bbdbd38d",
+      "byteCount": 11517
+    },
+    {
+      "profile": "threeD",
+      "remotePath": "src/components/generated/AveluneStudioRUI016S03Chargement3DProposition.tsx",
+      "sha256": "fdc0b7a750498b5808ba64a4e1277384138043b2a743344599e5bd6aaaa651e8",
+      "byteCount": 10102
+    },
+    {
+      "profile": "threeD",
+      "remotePath": "src/components/generated/LoadingReference.css",
+      "sha256": "270eb181c2f7ce651e383b7abb0932f2b8c99496551f842f5c2949d4bbdbd38d",
+      "byteCount": 11517
+    }
+  ],
+  "designDecisions": [
+    "Chargement indéterminé : aucun pourcentage ni durée inventés.",
+    "2D : images, tuiles et atlas ; aperçu SVG distinct en vue du dessus.",
+    "3D : modèles, matériaux et vue spatiale ; volumes SVG isométriques schématiques, aucune conversion de capture 2D.",
+    "Route 29 reste le contexte de carte ouverte pendant la préparation de Bourg Geon.",
+    "Bouton Annuler le chargement focalisé dans les aperçus ; annulation et Échap reviennent à la carte ouverte dans le code de démonstration.",
+    "Les contrôles d’exploration 2D/3D restent dans le bandeau de référence, en dehors du produit simulé."
+  ],
+  "verification": {
+    "remoteBuilds": "Les deux submit_component_code ont retourné completed.",
+    "nativePreviewVisualInspection": "Les deux images ont été retournées par view_component et inspectées ; profil, texte, progression indéterminée et dialogue complet visibles.",
+    "interactionChecks": "Non exécutés ; les interactions et garanties de focus/annulation ne sont pas démontrées par ces captures.",
+    "nativeStudioIntegration": false,
+    "nativeFidelityScore": null,
+    "referenceApproved": false,
+    "referenceBindingsCreated": false,
+    "localBrowserUsed": false,
+    "applicationOrCanonicalPlanModifiedByThisWork": false,
+    "sourceRetention": "Sources temporaires utilisées uniquement pour transfert ; empreintes conservées ici, sources distantes accessibles par les identifiants de révision."
+  },
+  "limits": [
+    "Propositions de design uniquement, sans approbation ni liaison canonique.",
+    "Images JPEG compressées 1200×630 retournées par MagicPath ; viewport CSS et DPR de capture non fournis par le service.",
+    "1440×1000 sont les dimensions de composant demandées aux sessions ; ne pas les confondre avec un viewport de capture mesuré.",
+    "Le dialogue est entièrement visible, mais la capture ne couvre pas toute la fenêtre ni ses états compacts.",
+    "L’état courant reste volontairement en chargement ; aucune vraie lecture de fichier, préparation provider ou publication de carte n’est exécutée.",
+    "L’aperçu 3D reste schématique et ne prouve aucun rendu de moteur.",
+    "L’annulation sûre, le retour de focus, les raccourcis et l’absence de publication partielle nécessitent une validation fonctionnelle/native séparée."
+  ],
+  "nextStep": "Examen de design par Yoahn, puis éventuelle approbation/liaison distincte de RUI-016 S03 par profil ; aucune modification automatique du plan canonique.",
+  "mcpParity": "N/A"
+}

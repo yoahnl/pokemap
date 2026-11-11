@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "projectId": "470322374529675264",
+  "componentId": "470904123445886976",
+  "revisionId": "470908170030706688",
+  "status": "candidate_only_not_approved",
+  "buildStatus": "completed",
+  "captureOrigin": "Local Vite preview of the source submitted to this MagicPath revision, captured with Chromium and Playwright; not native Studio and not the Safari preview.",
+  "capturedAt": "2026-11-10T14:44:41.866439+00:00",
+  "viewportCssPixels": {
+    "width": 1440,
+    "height": 1000
+  },
+  "devicePixelRatio": 1,
+  "screenshots": [
+    {
+      "profile": "twoD",
+      "state": "readonly",
+      "title": "Lecture seule",
+      "path": "twoD-readonly.png",
+      "sha256": "20f70c33a828a0423a45fefa08ea75af5f0a37a870402b047b19ed0be31ef3c8",
+      "pixelWidth": 1440,
+      "pixelHeight": 1000
+    },
+    {
+      "profile": "twoD",
+      "state": "recovery",
+      "title": "Récupération",
+      "path": "twoD-recovery.png",
+      "sha256": "13ed2b7a1b5ecb2954533fff4d9a1fbe07f4558b84b63eb779b0ce31b57c9cfa",
+      "pixelWidth": 1440,
+      "pixelHeight": 1000
+    },
+    {
+      "profile": "twoD",
+      "state": "conflict",
+      "title": "Conflit",
+      "path": "twoD-conflict.png",
+      "sha256": "0a3a0df2069535dd9923482a88b4725de99b6ac7961904185ecaac6d7b09fc44",
+      "pixelWidth": 1440,
+      "pixelHeight": 1000
+    },
+    {
+      "profile": "twoD",
+      "state": "draft",
+      "title": "Fermeture avec brouillon",
+      "path": "twoD-draft.png",
+      "sha256": "b593248597917146d6983ab893062128ee8bc33d17f03b27682895aae7185aab",
+      "pixelWidth": 1440,
+      "pixelHeight": 1000
+    },
+    {
+      "profile": "threeD",
+      "state": "readonly",
+      "title": "Lecture seule",
+      "path": "threeD-readonly.png",
+      "sha256": "356436b1f96de26dd4d97a063ab30a3640c3e5551ccc1aa9a9f9eac57b4ab82f",
+      "pixelWidth": 1440,
+      "pixelHeight": 1000
+    },
+    {
+      "profile": "threeD",
+      "state": "recovery",
+      "title": "Récupération",
+      "path": "threeD-recovery.png",
+      "sha256": "5c1d247a7e1960b7d46ed91f240445e1992e55e86e5b62c5019ee65b2b7b094e",
+      "pixelWidth": 1440,
+      "pixelHeight": 1000
+    },
+    {
+      "profile": "threeD",
+      "state": "conflict",
+      "title": "Conflit",
+      "path": "threeD-conflict.png",
+      "sha256": "9741a2154b01d550362024351f32693fca989d4d430987f40e4ed8269d1cdc23",
+      "pixelWidth": 1440,
+      "pixelHeight": 1000
+    },
+    {
+      "profile": "threeD",
+      "state": "draft",
+      "title": "Fermeture avec brouillon",
+      "path": "threeD-draft.png",
+      "sha256": "4c986b1dc2b1765dd1f2e80f3e3f6c91826b5cfa4ee5079f11f7ae63e0325e07",
+      "pixelWidth": 1440,
+      "pixelHeight": 1000
+    }
+  ],
+  "sourceCopies": [
+    {
+      "path": "src/components/generated/AveluneStudioRUI019Sessions2DEt3D.tsx",
+      "submittedSha256": "7aa5d3829ac5514ce35b422292a06dab8c4a156e9c27d5ef582dfdee38cbf076",
+      "archivedSha256": "bacaf0c66ba4991d1f3d70bc60375183dac12a0240de863a074bbd0ad460eab0",
+      "note": "A final newline was added by the archive writer; source text is otherwise identical."
+    },
+    {
+      "path": "src/components/generated/SessionReference.css",
+      "submittedSha256": "78fc52be944e3183199a018b0107122d4c3e646c8e3aa35ca812cee6d3b1efc6",
+      "archivedSha256": "78fc52be944e3183199a018b0107122d4c3e646c8e3aa35ca812cee6d3b1efc6",
+      "note": "Byte-identical copy of the submitted source."
+    },
+    {
+      "path": "src/components/generated/SessionReferenceModel.ts",
+      "submittedSha256": "952b9be84fb48042b9da616b0ae0d0d99c5542eaf5838256d9658b70e7d9c559",
+      "archivedSha256": "952b9be84fb48042b9da616b0ae0d0d99c5542eaf5838256d9658b70e7d9c559",
+      "note": "Byte-identical copy of the submitted source."
+    }
+  ],
+  "prototypeTests": {
+    "command": "node --test session-reference-model.test.mjs",
+    "exitCode": 0,
+    "count": 14,
+    "log": "model-tests.log",
+    "logSha256": "81f2347ea68de8817627c7592e35881e806ebe41cad6c23e78bc6d80043aba85",
+    "testSource": "session-reference-model.test.mjs",
+    "testSourceSha256": "26f34c2eca1b6b06f81c8ceec3ca3eb16479eaada28ba5bf7fa27dd3eddc1dd0"
+  },
+  "limits": [
+    "Données de démonstration ; aucune session ou écriture Studio réelle.",
+    "Ces huit vues sont des candidates ; aucune liaison état/profil approuvée.",
+    "Le visuel de carte 3D est schématique et ne prouve pas un viewport natif."
+  ]
+}

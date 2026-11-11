@@ -1,0 +1,167 @@
+{
+  "verifiedAt": "2026-11-10T22:52:44.561146+00:00",
+  "status": "verified_local_proposal_unapproved",
+  "proposalPath": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/t00-reference-binding-proposals/rui019-rui075.proposed-bindings.json",
+  "proposalSha256": "1d982fb2f1a0956840ab4b7e423ed9ef99e3a0ff183a6d21f64b4796bf5544d9",
+  "verifierSha256": "610fba68f5beaa9c9329f41c797c76b668ed110266e98e818302f21181e27d08",
+  "requiredPairs": 18,
+  "verifiedBindings": 18,
+  "approvedBindingsInProposal": 0,
+  "missingCandidatePairs": [],
+  "currentCanonicalRegistryBindingCount": 0,
+  "currentPlanSha256": "c639a6a830a3ed9b00ebe627425fb623562022263e8b5c9dd7eabbf527867ed4",
+  "planChangedSinceProposalRead": true,
+  "requiredPairsMatchCurrentPlan": true,
+  "sourceImageHashesAndDimensionsVerified": true,
+  "visualCorrespondence": "Recorded manual observations are not automated design approval or native fidelity measurement.",
+  "verificationWrites": [
+    "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/t00-reference-binding-proposals/verification.json"
+  ],
+  "sourcesAndSharedPlanWritten": false,
+  "bindings": [
+    {
+      "lotId": "RUI-019",
+      "stateId": "S01",
+      "profile": "twoD",
+      "sha256": "20f70c33a828a0423a45fefa08ea75af5f0a37a870402b047b19ed0be31ef3c8",
+      "pixelWidth": 1440,
+      "pixelHeight": 1000
+    },
+    {
+      "lotId": "RUI-019",
+      "stateId": "S02",
+      "profile": "twoD",
+      "sha256": "13ed2b7a1b5ecb2954533fff4d9a1fbe07f4558b84b63eb779b0ce31b57c9cfa",
+      "pixelWidth": 1440,
+      "pixelHeight": 1000
+    },
+    {
+      "lotId": "RUI-019",
+      "stateId": "S03",
+      "profile": "twoD",
+      "sha256": "0a3a0df2069535dd9923482a88b4725de99b6ac7961904185ecaac6d7b09fc44",
+      "pixelWidth": 1440,
+      "pixelHeight": 1000
+    },
+    {
+      "lotId": "RUI-019",
+      "stateId": "S04",
+      "profile": "twoD",
+      "sha256": "b593248597917146d6983ab893062128ee8bc33d17f03b27682895aae7185aab",
+      "pixelWidth": 1440,
+      "pixelHeight": 1000
+    },
+    {
+      "lotId": "RUI-019",
+      "stateId": "S01",
+      "profile": "threeD",
+      "sha256": "356436b1f96de26dd4d97a063ab30a3640c3e5551ccc1aa9a9f9eac57b4ab82f",
+      "pixelWidth": 1440,
+      "pixelHeight": 1000
+    },
+    {
+      "lotId": "RUI-019",
+      "stateId": "S02",
+      "profile": "threeD",
+      "sha256": "5c1d247a7e1960b7d46ed91f240445e1992e55e86e5b62c5019ee65b2b7b094e",
+      "pixelWidth": 1440,
+      "pixelHeight": 1000
+    },
+    {
+      "lotId": "RUI-019",
+      "stateId": "S03",
+      "profile": "threeD",
+      "sha256": "9741a2154b01d550362024351f32693fca989d4d430987f40e4ed8269d1cdc23",
+      "pixelWidth": 1440,
+      "pixelHeight": 1000
+    },
+    {
+      "lotId": "RUI-019",
+      "stateId": "S04",
+      "profile": "threeD",
+      "sha256": "4c986b1dc2b1765dd1f2e80f3e3f6c91826b5cfa4ee5079f11f7ae63e0325e07",
+      "pixelWidth": 1440,
+      "pixelHeight": 1000
+    },
+    {
+      "lotId": "RUI-075",
+      "stateId": "S01",
+      "profile": "twoD",
+      "sha256": "d264aff7ca435362f200b4a40d07365317ad3b486a0fbd7f998b755c2a15730b",
+      "pixelWidth": 1440,
+      "pixelHeight": 1080
+    },
+    {
+      "lotId": "RUI-075",
+      "stateId": "S02",
+      "profile": "twoD",
+      "sha256": "5ca8b7147a798731889c8dc9958635c8061055e4ba409b173395270573fd922c",
+      "pixelWidth": 1440,
+      "pixelHeight": 1080
+    },
+    {
+      "lotId": "RUI-075",
+      "stateId": "S03",
+      "profile": "twoD",
+      "sha256": "09a619cc239b9332e5590f910263a6e3e3f12e349d0da5f37894f4130888e322",
+      "pixelWidth": 1440,
+      "pixelHeight": 1080
+    },
+    {
+      "lotId": "RUI-075",
+      "stateId": "S04",
+      "profile": "twoD",
+      "sha256": "7aaf42fff3d1f0a37f29d0c8675f0b252f201510b9b386970c75413f6826be3d",
+      "pixelWidth": 1440,
+      "pixelHeight": 1080
+    },
+    {
+      "lotId": "RUI-075",
+      "stateId": "S05",
+      "profile": "twoD",
+      "sha256": "e1c0a65ca6f0be6201163c86fcaea4a7c849f34ea3f2d589775f8052297c8b69",
+      "pixelWidth": 1440,
+      "pixelHeight": 1080
+    },
+    {
+      "lotId": "RUI-075",
+      "stateId": "S01",
+      "profile": "threeD",
+      "sha256": "d9c1bee8fddc4cfa4116eba7c5f7791300eb1b95ddba80be4c7b5f7dd012d662",
+      "pixelWidth": 1440,
+      "pixelHeight": 1080
+    },
+    {
+      "lotId": "RUI-075",
+      "stateId": "S02",
+      "profile": "threeD",
+      "sha256": "9775e58d18bef89ea59421dab75bb998f295d447823ba4f4e0b9df6cbf3b8600",
+      "pixelWidth": 1440,
+      "pixelHeight": 1080
+    },
+    {
+      "lotId": "RUI-075",
+      "stateId": "S03",
+      "profile": "threeD",
+      "sha256": "697541299bece58bae8b8edb073f59062cc395b098077f28790d39dbd373878a",
+      "pixelWidth": 1440,
+      "pixelHeight": 1080
+    },
+    {
+      "lotId": "RUI-075",
+      "stateId": "S04",
+      "profile": "threeD",
+      "sha256": "6163022a57eea53ba94a47ec82ee4441f24fdb4d7140f21a05ea3a5712abc16a",
+      "pixelWidth": 1440,
+      "pixelHeight": 1080
+    },
+    {
+      "lotId": "RUI-075",
+      "stateId": "S05",
+      "profile": "threeD",
+      "sha256": "45af181afad4f6ef741961879888305bafc21841ce3ca83311809e1526cda65d",
+      "pixelWidth": 1440,
+      "pixelHeight": 1080
+    }
+  ]
+}

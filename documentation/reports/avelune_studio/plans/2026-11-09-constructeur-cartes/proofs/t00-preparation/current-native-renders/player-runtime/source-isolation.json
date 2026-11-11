@@ -1,0 +1,114 @@
+[
+  {
+    "name": "avelune_design_system",
+    "selectedSource": "/Users/karim/Project/pokemonProject/packages/avelune_design_system",
+    "sourceReal": "/Users/karim/Project/pokemonProject/packages/avelune_design_system",
+    "destination": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/runtime-probe/source/packages/avelune_design_system",
+    "destinationReal": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/runtime-probe/source/packages/avelune_design_system"
+  },
+  {
+    "name": "avelune_gen5_sprite_native",
+    "selectedSource": "/Users/karim/Project/pokemonProject/packages/avelune_gen5_sprite_native",
+    "sourceReal": "/Users/karim/Project/pokemonProject/packages/avelune_gen5_sprite_native",
+    "destination": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/runtime-probe/source/packages/avelune_gen5_sprite_native",
+    "destinationReal": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/runtime-probe/source/packages/avelune_gen5_sprite_native"
+  },
+  {
+    "name": "avelune_rendering",
+    "selectedSource": "/Users/karim/Project/pokemonProject/packages/avelune_rendering",
+    "sourceReal": "/Users/karim/Project/pokemonProject/packages/avelune_rendering",
+    "destination": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/runtime-probe/source/packages/avelune_rendering",
+    "destinationReal": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/runtime-probe/source/packages/avelune_rendering"
+  },
+  {
+    "name": "avelune_studio",
+    "selectedSource": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio",
+    "sourceReal": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/apps/avelune_studio",
+    "destination": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/runtime-probe/source/apps/avelune_studio",
+    "destinationReal": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/runtime-probe/source/apps/avelune_studio"
+  },
+  {
+    "name": "flame_3d",
+    "selectedSource": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/third_party/flame_3d",
+    "sourceReal": "/Users/karim/Project/pokemonProject/third_party/flame_3d",
+    "destination": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/runtime-probe/source/third_party/flame_3d",
+    "destinationReal": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/runtime-probe/source/third_party/flame_3d"
+  },
+  {
+    "name": "gamepads_darwin",
+    "selectedSource": "/Users/karim/Project/pokemonProject/packages/gamepads_darwin",
+    "sourceReal": "/Users/karim/Project/pokemonProject/packages/gamepads_darwin",
+    "destination": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/runtime-probe/source/packages/gamepads_darwin",
+    "destinationReal": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/runtime-probe/source/packages/gamepads_darwin"
+  },
+  {
+    "name": "gamepads_ios",
+    "selectedSource": "/Users/karim/Project/pokemonProject/packages/gamepads_ios",
+    "sourceReal": "/Users/karim/Project/pokemonProject/packages/gamepads_ios",
+    "destination": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/runtime-probe/source/packages/gamepads_ios",
+    "destinationReal": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/runtime-probe/source/packages/gamepads_ios"
+  },
+  {
+    "name": "map_authoring",
+    "selectedSource": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/map_authoring",
+    "sourceReal": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/map_authoring",
+    "destination": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/runtime-probe/source/packages/map_authoring",
+    "destinationReal": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/runtime-probe/source/packages/map_authoring"
+  },
+  {
+    "name": "map_battle",
+    "selectedSource": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/map_battle",
+    "sourceReal": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/map_battle",
+    "destination": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/runtime-probe/source/packages/map_battle",
+    "destinationReal": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/runtime-probe/source/packages/map_battle"
+  },
+  {
+    "name": "map_core",
+    "selectedSource": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/map_core",
+    "sourceReal": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/map_core",
+    "destination": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/runtime-probe/source/packages/map_core",
+    "destinationReal": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/runtime-probe/source/packages/map_core"
+  },
+  {
+    "name": "map_distribution",
+    "selectedSource": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/map_distribution",
+    "sourceReal": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/map_distribution",
+    "destination": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/runtime-probe/source/packages/map_distribution",
+    "destinationReal": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/runtime-probe/source/packages/map_distribution"
+  },
+  {
+    "name": "map_gameplay",
+    "selectedSource": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/map_gameplay",
+    "sourceReal": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/map_gameplay",
+    "destination": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/runtime-probe/source/packages/map_gameplay",
+    "destinationReal": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/runtime-probe/source/packages/map_gameplay"
+  },
+  {
+    "name": "map_player_ui",
+    "selectedSource": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/map_player_ui",
+    "sourceReal": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/map_player_ui",
+    "destination": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/runtime-probe/source/packages/map_player_ui",
+    "destinationReal": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/runtime-probe/source/packages/map_player_ui"
+  },
+  {
+    "name": "map_render_3d",
+    "selectedSource": "/Users/karim/Project/pokemonProject/packages/map_render_3d",
+    "sourceReal": "/Users/karim/Project/pokemonProject/packages/map_render_3d",
+    "destination": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/runtime-probe/source/packages/map_render_3d",
+    "destinationReal": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/runtime-probe/source/packages/map_render_3d"
+  },
+  {
+    "name": "map_runtime",
+    "selectedSource": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/map_runtime",
+    "sourceReal": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/source-validation-exact-20261110-1355/packages/map_runtime",
+    "destination": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/runtime-probe/source/packages/map_runtime",
+    "destinationReal": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/runtime-probe/source/packages/map_runtime"
+  },
+  {
+    "name": "pokemap_hub",
+    "selectedSource": "/Users/karim/Project/pokemonProject/apps/pokemap_hub",
+    "sourceReal": "/Users/karim/Project/pokemonProject/apps/pokemap_hub",
+    "destination": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/runtime-probe/source/apps/pokemap_hub",
+    "destinationReal": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/runtime-probe/source/apps/pokemap_hub"
+  }
+]

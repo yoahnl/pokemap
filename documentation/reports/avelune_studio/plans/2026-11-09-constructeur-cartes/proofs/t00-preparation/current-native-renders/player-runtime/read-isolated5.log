@@ -1,0 +1,62 @@
+00:00 +0: loading /Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/runtime-probe/source/apps/pokemap_hub/test/t01_real_export_runtime_probe_test.dart
+00:00 +0: actual twod export Player read
+twod read starting
+twod read verified_installed_launch
+twod bootstrap projectResolution
+twod bootstrap playerPreferences
+twod bootstrap controlProfile
+twod bootstrap hostStorage
+twod bootstrap presentationBinding
+twod bootstrap runtimeGraph
+twod read title_initialized
+[runtime_loader] bundle load start projectFilePath=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/runtime-probe/twod/support/games/dev.avelune.qa.t01.twod/versions/0.0.0-qa.t01/project/project.json mapId=jardin
+[runtime_loader] bundle map resolved mapId=jardin relativePath=maps/jardin.json mapPath=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/runtime-probe/twod/support/games/dev.avelune.qa.t01.twod/versions/0.0.0-qa.t01/project/maps/jardin.json
+[runtime_loader] bundle tilesets collected ids=atelier
+[runtime_loader] bundle tileset path id=atelier path=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/runtime-probe/twod/support/games/dev.avelune.qa.t01.twod/versions/0.0.0-qa.t01/project/assets/atelier.png
+[runtime_loader] bundle load ok mapId=jardin projectRoot=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/runtime-probe/twod/support/games/dev.avelune.qa.t01.twod/versions/0.0.0-qa.t01/project tilesets=1
+[runtime_game] tileset image load start map=jardin
+[runtime_game] tileset cache resolve requested=1
+[runtime_game] tileset cache resolve ok result=1
+[runtime_game] onLoad start map=jardin projectFilePath=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/runtime-probe/twod/support/games/dev.avelune.qa.t01.twod/versions/0.0.0-qa.t01/project/project.json tilesets=1
+[runtime] Save restored on map jardin at (6, 9)
+[runtime_game] tileset image load ok count=1 map=jardin
+[runtime_game] mount root map start map=jardin
+[step_studio_trace] npc_mount_added map=jardin entity=chief
+[step_studio_trace] npc_mount_added map=jardin entity=traveller
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[runtime_game] mount root map ok map=jardin
+[runtime_loader] bundle load start projectFilePath=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/runtime-probe/twod/support/games/dev.avelune.qa.t01.twod/versions/0.0.0-qa.t01/project/project.json mapId=clairiere
+[runtime_loader] bundle map resolved mapId=clairiere relativePath=maps/clairiere.json mapPath=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/runtime-probe/twod/support/games/dev.avelune.qa.t01.twod/versions/0.0.0-qa.t01/project/maps/clairiere.json
+[npc_patrol] read movement entity=chief pos=(8,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[runtime_game] onLoad completed activeMapId=jardin
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[npc_patrol] read movement entity=chief pos=(8,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[npc_patrol] read movement entity=chief pos=(8,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+Shell: [runtime_loader] map file lookup path=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/runtime-probe/twod/support/games/dev.avelune.qa.t01.twod/versions/0.0.0-qa.t01/project/maps/clairiere.json
+Shell: [runtime_loader] map file read ok bytes=5828
+Shell: [runtime_loader] map validated id=clairiere size=24x16 layers=3 entities=1 placedElements=3 warps=0 triggers=0
+twod read production_session_started
+[runtime_loader] bundle tilesets collected ids=atelier
+[runtime_loader] bundle tileset path id=atelier path=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/runtime-probe/twod/support/games/dev.avelune.qa.t01.twod/versions/0.0.0-qa.t01/project/assets/atelier.png
+[runtime_loader] bundle load ok mapId=clairiere projectRoot=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/runtime-probe/twod/support/games/dev.avelune.qa.t01.twod/versions/0.0.0-qa.t01/project tilesets=1
+[runtime_game] tileset cache resolve requested=1
+[runtime_game] tileset cache resolve ok result=1
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[npc_patrol] read movement entity=chief pos=(8,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[step_studio_trace] npc_presence_applied map=jardin entity=chief present=true
+[step_studio_trace] npc_presence_applied map=jardin entity=traveller present=true
+[npc_patrol] read movement entity=chief pos=(8,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[npc_patrol] read movement entity=traveller pos=(10,10) size=1x1 mode=idle waypoints= loop=true pauseMs=0 stepMs=200
+[event_v2] mapEnter activation=mapact_1794328418976320_1 map=jardin reason=saveRestore result=MapEnterProductionDispatchNoFallback
+twod read disk_checkpoint_restored_in_fresh_process
+twod read disposed
+00:01 +1: All tests passed!

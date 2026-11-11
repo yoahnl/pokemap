@@ -1,0 +1,31 @@
+{
+  "scope": "T01 Resources spatial border controls",
+  "authorization": "Root explicitly approved retirement of the two legacy chrome-only cases after mapping the five business contracts.",
+  "sourceTest": "apps/avelune_studio/test/presentation/spatial_border_resource_controls_test.dart",
+  "beforeCases": 7,
+  "afterCases": 5,
+  "preservedContracts": [
+    "Independent inner and outer corners; invalid ground lowering; replacement and masking exclusion; exact request payload.",
+    "Unselected terminal variant with unavailable animation blocks publication until its own clip is cleared.",
+    "Editing one terminal variant preserves every unrelated variant and does not invent corner sources.",
+    "Straight creation refuses incomplete body/cap assignments and sends the exact complete request.",
+    "Source candidates retain shared family descendants and exclude private resources without an active map."
+  ],
+  "retiredCases": [
+    {
+      "name": "tapping the interactive 3D slot preview assigns its active border model",
+      "reason": "Legacy BorderPatternPanel and TerrainSpatialPreview interaction removed with the old composition. Original case was skipped unless STUDIO_BORDER_GPU_TESTS. No GPU proof is inferred.",
+      "retainedBusinessOwner": "BorderCreationDraft.assignRole; covered in the five migrated owner contracts and existing border_creation_draft_test."
+    },
+    {
+      "name": "the shared border source list scrolls at 150 percent in a short panel",
+      "reason": "Legacy BorderSourcePanel responsive composition only. New UI acceptance remains unproven."
+    }
+  ],
+  "validation": "Dart analysis pending final rerun; root isolated Flutter execution pending.",
+  "claims": {
+    "newInterfaceAccepted": false,
+    "gpuCoverageInferredFromSkippedTest": false,
+    "T01Complete": false
+  }
+}

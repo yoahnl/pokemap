@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "status": "candidate_not_approved",
+  "projectId": "470322374529675264",
+  "componentId": "471067651033145344",
+  "revisionId": "471071333137137664",
+  "name": "Avelune Studio — Références T00 · composants et lisibilité",
+  "date": "2026-11-11",
+  "coverage": [
+    "RUI-011",
+    "RUI-012"
+  ],
+  "captures": [
+    {
+      "path": "preview-2d-standard.svg",
+      "sha256": "4e61b2b69932f2e30ec91a28be6e0d492c268704f11d5a5c6c306895f1cad7c1",
+      "profile": "twoD",
+      "state": "standard",
+      "width": 1200,
+      "height": 630,
+      "origin": "MagicPath native component preview; JPEG embedded losslessly in SVG",
+      "limitations": [
+        "Aperçu recadré : seule la partie supérieure de la planche est visible.",
+        "Cette capture ne constitue pas une capture 3D ni de texte agrandi."
+      ]
+    }
+  ],
+  "interactionsObserved": [
+    "Passage 2D vers 3D et retour d’un aperçu adapté",
+    "Filtre Sur cette carte avec une ressource et libellé singulier",
+    "Recherche sans résultat et effacement",
+    "Activation du texte agrandi à 130 %",
+    "Sélection Maison du village reportée dans Propriétés"
+  ],
+  "limitations": [
+    "Candidate visuelle, pas une cible approuvée ni une UI native.",
+    "Aperçus 2D et 3D illustratifs ; ils ne prouvent pas un rendu du moteur.",
+    "Les captures complètes de la planche, des états 3D et du texte agrandi restent à produire."
+  ]
+}

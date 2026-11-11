@@ -1,0 +1,45 @@
+{
+  "argv": [
+    "/opt/homebrew/share/flutter-3.47.5/bin/flutter",
+    "test",
+    "--no-pub",
+    "--concurrency=1",
+    "--timeout=180s",
+    "-r",
+    "expanded",
+    "test/t01_real_export_runtime_probe_test.dart"
+  ],
+  "cwd": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/runtime-probe/source/apps/pokemap_hub",
+  "phase": "read",
+  "pid": 10513,
+  "started": 1794328360.361238,
+  "owned": {
+    "10515": {
+      "parent": 10513,
+      "command": "(bash)"
+    },
+    "10516": {
+      "parent": 10515,
+      "command": "(bash)"
+    },
+    "10517": {
+      "parent": 10516,
+      "command": "(bash)"
+    },
+    "10631": {
+      "parent": 10513,
+      "command": "(dartaotruntime)"
+    },
+    "10681": {
+      "parent": 10513,
+      "command": "/opt/homebrew/share/flutter-3.47.5/bin/cache/artifacts/engine/darwin-x64/flutter_tester --disable-vm-service --enable-checked-mode --verify-entry-points --enable-software-rendering --skia-deterministic-rendering --enable-dart-profiling --non-interactive --use-test-fonts --disable-asset-fonts --packages=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/runtime-probe/source/apps/pokemap_hub/.dart_tool/package_config.json --flutter-assets-dir=/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/runtime-probe/source/apps/pokemap_hub/build/unit_test_assets /var/folders/b5/7gsfwzyd449_54n8l40h40gc0000gn/T/flutter_tools.XNZh7f/flutter_test_listener.7scR1Z/listener.dart.dill"
+    }
+  },
+  "cleanup": [],
+  "exitCode": 1,
+  "finished": 1794328371.9630458,
+  "environment": {
+    "AVELUNE_T01_RUNTIME_ROOT": "/Users/karim/Library/Caches/AveluneQA/studio-t01-retirement-20261109/current-witnesses/runtime-probe",
+    "AVELUNE_T01_RUNTIME_PHASE": "read"
+  }
+}
