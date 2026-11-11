@@ -170,8 +170,9 @@ void main() {
             prepared.parameters.entries.toList().reversed)
       });
       fixture.reader.paths.clear();
-      final source = _CountingSourceFile(
-          File('${fixture.root.path}/assets/models3d/house.glb'));
+      final source = _CountingSourceFile(File(
+          File('${fixture.root.path}/assets/models3d/house.glb')
+              .resolveSymbolicLinksSync()));
       final io = IOOverrides.current ?? _DefaultIOOverrides();
       Future<AuthoringMutationPlanResult> plan(AuthoringRequest value) =>
           IOOverrides.runZoned(
