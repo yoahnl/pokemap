@@ -111,6 +111,13 @@ packages:
       relative: true
     source: path
     version: "0.1.0"
+  avelune_render_host:
+    dependency: transitive
+    description:
+      path: "../../packages/avelune_render_host"
+      relative: true
+    source: path
+    version: "0.1.0"
   avelune_rendering:
     dependency: transitive
     description:

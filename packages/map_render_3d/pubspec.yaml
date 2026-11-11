@@ -16,6 +16,8 @@ dependencies:
   crypto: ^3.0.7
   avelune_render_contracts:
     path: ../avelune_render_contracts
+  avelune_render_host:
+    path: ../avelune_render_host
   map_core:
     path: ../map_core
 dev_dependencies:

@@ -1,7 +1,8 @@
+import 'package:avelune_render_host/avelune_render_host.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/widgets.dart';
 
-class SpatialGameSurface<T extends Game> extends StatefulWidget {
+class SpatialGameSurface<T extends Game> extends StatelessWidget {
   const SpatialGameSurface({
     super.key,
     required this.game,
@@ -15,89 +16,44 @@ class SpatialGameSurface<T extends Game> extends StatefulWidget {
   final bool continuous;
   final Widget Function(BuildContext) loadingBuilder;
   final Widget Function(BuildContext, Object) errorBuilder;
+
   @override
-  State<SpatialGameSurface<T>> createState() => _SpatialGameSurfaceState<T>();
+  Widget build(BuildContext context) => RenderSurfaceActivity(
+    engine: _FlameSurfaceEngine(game),
+    continuous: continuous,
+    child: GameWidget<T>(
+      game: game,
+      autofocus: autofocus,
+      loadingBuilder: loadingBuilder,
+      errorBuilder: errorBuilder,
+    ),
+  );
 }
 
-class _SpatialGameSurfaceState<T extends Game>
-    extends State<SpatialGameSurface<T>>
-    with WidgetsBindingObserver {
-  bool _pausedByVisibility = false;
-  bool _pausedByDemand = false;
-  bool _demandCheckScheduled = false;
+final class _FlameSurfaceEngine implements RenderSurfaceEngine {
+  const _FlameSurfaceEngine(this.game);
+
+  final Game game;
 
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-  }
+  bool get isAttached => game.isAttached;
 
   @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
+  bool get isPaused => game.isPaused;
 
   @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state != AppLifecycleState.resumed) return;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _syncActivity();
-    });
-  }
+  void pause() => game.pauseEngine();
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _syncActivity();
-  }
+  void resume() => game.resumeEngine();
 
   @override
-  void didUpdateWidget(SpatialGameSurface<T> oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (!identical(oldWidget.game, widget.game)) {
-      _pausedByVisibility = false;
-      _pausedByDemand = false;
-    }
-    _syncActivity();
-  }
-
-  void _syncActivity() {
-    if (!TickerMode.valuesOf(context).enabled) {
-      if (!widget.game.isPaused) {
-        widget.game.pauseEngine();
-        _pausedByVisibility = true;
-      }
-      return;
-    }
-    if (_pausedByVisibility) {
-      _pausedByVisibility = false;
-      widget.game.resumeEngine();
-    }
-    if (widget.continuous) {
-      if (_pausedByDemand) {
-        _pausedByDemand = false;
-        widget.game.resumeEngine();
-      }
-    } else if (!widget.game.isAttached) {
-      if (_demandCheckScheduled) return;
-      _demandCheckScheduled = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _demandCheckScheduled = false;
-        if (mounted) _syncActivity();
-      });
-    } else if (!widget.game.isPaused || _pausedByDemand) {
-      _pausedByDemand = true;
-      widget.game.pauseEngine();
-      widget.game.stepEngine(stepTime: 0);
-    }
-  }
+  void presentFrame() => game.stepEngine(stepTime: 0);
 
   @override
-  Widget build(BuildContext context) => GameWidget<T>(
-    game: widget.game,
-    autofocus: widget.autofocus,
-    loadingBuilder: widget.loadingBuilder,
-    errorBuilder: widget.errorBuilder,
-  );
+  bool operator ==(Object other) =>
+      other is _FlameSurfaceEngine && identical(other.game, game);
+
+  @override
+  int get hashCode => identityHashCode(game);
 }

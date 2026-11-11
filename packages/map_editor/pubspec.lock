@@ -112,6 +112,20 @@ packages:
       relative: true
     source: path
     version: "0.1.0"
+  avelune_render_contracts:
+    dependency: transitive
+    description:
+      path: "../avelune_render_contracts"
+      relative: true
+    source: path
+    version: "0.1.0"
+  avelune_render_host:
+    dependency: transitive
+    description:
+      path: "../avelune_render_host"
+      relative: true
+    source: path
+    version: "0.1.0"
   avelune_rendering:
     dependency: transitive
     description:
