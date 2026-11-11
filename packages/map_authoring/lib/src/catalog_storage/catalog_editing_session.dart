@@ -40,14 +40,13 @@ import 'catalog_storage_store.dart';
 
 final class CatalogEditingPlan {
   CatalogEditingPlan._(this.plan, this.scope, this._operationId, this.root,
-      this._lease, this._patch, this._owner, this._currentProjectRevision);
+      this._lease, this._owner, this._currentProjectRevision);
 
   final AuthoringPlan plan;
   final AuthoringIdempotencyScope scope;
   String _operationId;
   String get operationId => _operationId;
   final CatalogObjectReference root;
-  CatalogStoragePatch? _patch;
   Map<String, int>? _retentionCosts;
   List<AuthoringHistoryResourceChange>? _retentionChanges;
   final Object _owner;
@@ -253,7 +252,6 @@ final class CatalogEditingSession {
           .where((plan) => plan.operationId == operationId)
           .toList()) {
         prepared._invalidated = true;
-        prepared._patch = null;
         _prepared.remove(prepared.plan.planId);
         await _plans.discard(prepared.plan.planId);
       }
@@ -652,8 +650,7 @@ final class CatalogEditingSession {
             publicPlan: publicPlan,
             diff: publicDiff,
             additionalChanges: additional,
-            currentProjectRevision: currentProjectRevision,
-            patch: patch);
+            currentProjectRevision: currentProjectRevision);
         prepared._exteriorRemovals = deleted;
         await _checkRetentionCosts(prepared, projected: next);
         await store.publishObjectsUnderLock(patch.objects,
@@ -797,15 +794,9 @@ final class CatalogEditingSession {
 
   Future<void> _refreshAfterApply(CatalogEditingPlan prepared) async {
     final nextReader = await retention.openSnapshot();
-    final patch = prepared._patch;
-    late final CatalogSnapshot next;
+    final next = nextReader.snapshot;
     try {
-      next = nextReader.snapshot.root == prepared.root && patch != null
-          ? await patch.nextSnapshot(readObject: nextReader.lease.readObject)
-          : nextReader.snapshot;
-      if (patch == null || nextReader.snapshot.root != prepared.root) {
-        await store.restoreIndexAdmission(next);
-      }
+      await store.restoreIndexAdmission(next);
     } on Object {
       await nextReader.close();
       rethrow;
@@ -820,7 +811,6 @@ final class CatalogEditingSession {
       }
     });
     prepared._settled = true;
-    prepared._patch = null;
     prepared._retentionCosts = null;
     prepared._retentionChanges = null;
     _prepared.remove(prepared.plan.planId);
@@ -1429,8 +1419,7 @@ final class CatalogEditingSession {
               publicRequest: request,
               publicBaseRevision: revision,
               currentProjectRevision: currentProjectRevision,
-              additionalChanges: additional,
-              patch: patch);
+              additionalChanges: additional);
           try {
             final attestation = target.bulkCapability == null
                 ? null
@@ -1509,8 +1498,7 @@ final class CatalogEditingSession {
       String? publicBaseRevision,
       AuthoringPlan? publicPlan,
       List<AuthoringResourceChange> additionalChanges = const [],
-      Future<String> Function()? currentProjectRevision,
-      CatalogStoragePatch? patch}) {
+      Future<String> Function()? currentProjectRevision}) {
     final revision = publicBaseRevision ?? 'sha256:${before.sha256}';
     publicRequest ??= publicPlan?.request;
     if (publicRequest != null &&
@@ -1604,7 +1592,6 @@ final class CatalogEditingSession {
         operationId,
         next.root,
         lease,
-        patch,
         _owner,
         currentProjectRevision);
     _prepared[plan.planId] = prepared;

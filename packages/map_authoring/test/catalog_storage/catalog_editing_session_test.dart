@@ -73,6 +73,23 @@ void main() {
     ]);
   });
 
+  test(
+      'the refreshed editing snapshot rereads corrupt units after warming its index',
+      () async {
+    final planned = await session.planPatch(
+        upserts: [_unit('a', 'after')], idempotencyKey: 'warm-refreshed-index');
+    await session.apply(planned);
+    final key = _key('a');
+    expect((await session.snapshot.lookup(key))!.payload['name'], 'after');
+    final reference = (await session.snapshot.indexEntry(key))!.reference;
+    final file =
+        File('${directory.path}/catalog/objects/${reference.sha256}.json');
+    await file.writeAsString('corrupt retained definition');
+    await expectLater(session.snapshot.lookup(key), throwsFormatException);
+    expect(await file.readAsString(), 'corrupt retained definition');
+    expect(await store.readHead(), planned.root);
+  });
+
   for (final checkpoint in AuthoringTransactionCheckpoint.values) {
     test('restart reconciles ${checkpoint.name} through canonical recovery',
         () async {
